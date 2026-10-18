@@ -169,7 +169,7 @@ h2 {
 .btn.pri { background: var(--ink); color: var(--paper); }
 .btn.pri svg { width: 16px; height: 19px; fill: currentColor; flex: none; }
 @media (hover: hover) and (pointer: fine) { .btn.pri:hover { opacity: .88; } }
-.btn.sec { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.btn.sec { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); padding-block: 15px; }
 @media (hover: hover) and (pointer: fine) { .btn.sec:hover { background: var(--chip); } }
 .send-mac svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .brew {
@@ -284,6 +284,12 @@ h2 {
 .side { display: grid; gap: 18px; justify-items: start; }
 .acts .btn { flex: 1 1 auto; }
 .acts .brew { display: none; }
+.get { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 10px 12px; width: 100%; }
+.side .acts { width: 100%; }
+.get-o { display: grid; gap: 6px; min-width: 0; align-content: start; }
+.get-o .btn { width: 100%; padding-inline: 14px; }
+.get-o .fine { font-size: 11.5px; }
+.btn .dl { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 /* the before/after stage (design d3). --x is the rest position per
    breakpoint, set here in CSS so no-JS, reduced motion and the very
@@ -548,6 +554,7 @@ h2 {
   padding: 14px; display: grid; gap: 10px; align-content: start;
 }
 .card-i h3 { font: 700 17px/1.2 var(--display); letter-spacing: -.01em; }
+.card-i { min-width: 0; }
 .card-i .btn { width: 100%; flex: none; }
 .stats .opt { display: none; }
 .card-i p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.55; }
@@ -571,6 +578,7 @@ h2 {
 /* ---------- tablet and up (521+) ---------- */
 @media (min-width: 521px) {
   .more { display: inline; }
+  .opt-i { display: none; }
   .opt { display: block; }
   .stats .opt { display: grid; }
   .sec { padding-block: clamp(44px, 7vw, 84px); }
@@ -578,7 +586,6 @@ h2 {
   .nav { display: flex; }
   .mnav { display: none; }
   .top { padding-block: 40px 0; }
-  .hero-grid { grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: end; }
   .top h1 { font-size: clamp(44px, 6vw, 86px); max-width: 12ch; }
   .side { max-width: 440px; padding-bottom: 6px; }
   .lede { font-size: 19px; }
@@ -618,7 +625,7 @@ h2 {
   .bars { gap: 16px; }
   .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 26px; }
   .method { margin-top: 26px; }
-  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 30px; }
+  .cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 30px; }
   .card-i { padding: 20px; gap: 13px; }
   .card-i h3 { font-size: 19px; }
   .editions { margin-top: 22px; }
@@ -628,6 +635,9 @@ h2 {
 
 /* ---------- desktop (981+) ---------- */
 @media (min-width: 981px) {
+  .hero-grid { grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: end; }
+  .side { max-width: 480px; }
+  .get-o .fine { white-space: nowrap; }
   .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding-block: 30px 44px; }
   .feat { padding: 18px 20px 20px 0; }
   .feat + .feat { padding-left: 20px; border-left: 1px solid var(--rule); }
@@ -699,12 +709,23 @@ h2 {
           <button class="btn pri only-ios send-mac" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span class="lb">Send Mark to your Mac</span>
           </button>
-          <a class="btn pri no-ios" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="hero">
-            <svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store
-          </a>
+          <div class="get no-ios">
+            <div class="get-o">
+              <a class="btn pri" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="hero">
+                <svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store
+              </a>
+              <span class="fine">v2.1.17 &middot; 2.5.0 <span class="opt-i">soon</span><span class="more">is coming</span></span>
+            </div>
+            <div class="get-o">
+              <a class="btn sec" id="dmg-hero" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="github" data-placement="hero">
+                <svg class="dl" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12"/></svg>Download .dmg
+              </a>
+              <span class="fine"><span id="version">v2.5.0</span> &middot; &asymp; 15 MB<span class="more"> &middot; Apple silicon</span></span>
+            </div>
+          </div>
           <button class="brew" type="button" data-copy="brew tap xronocode/mark &amp;&amp; brew install --cask mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero" aria-label="Copy the Homebrew install command"><i>$</i>brew install --cask mark<b>Copy</b></button>
         </div>
-        <p class="fine"><span id="version">v2.5.0</span> &middot; macOS &amp; Windows &middot; free, MIT</p>
+        <p class="fine">Same editor, two editions &middot; <a href="%BASE%guide/editions">What&rsquo;s the difference?</a> &middot; Windows too &middot; free, MIT</p>
       </div>
     </div>
 
@@ -1025,8 +1046,10 @@ instruction.</pre>
       if (v) v.textContent = rel.tag_name;
       var asset = (rel.assets || []).filter(function (a) { return /Mark_.*_aarch64\.dmg$/.test(a.name || ''); })[0];
       if (asset && asset.browser_download_url) {
-        var d = document.getElementById('dmg-link');
-        if (d) d.href = asset.browser_download_url;
+        ['dmg-link', 'dmg-hero'].forEach(function (id) {
+          var d = document.getElementById(id);
+          if (d) d.href = asset.browser_download_url;
+        });
       }
     })
     .catch(function () {});
