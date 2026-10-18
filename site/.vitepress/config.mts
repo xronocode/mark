@@ -75,7 +75,9 @@ const head: HeadConfig[] = [
   // it and agrees (same storage key, same resolution).
   ['script', {}, THEME_INIT_JS],
   ['style', {}, '.vp-doc div[class*=language-] > span.lang{color:var(--vp-c-text-2)}'],
-  ['link', { rel: 'icon', type: 'image/png', href: `${base}${SITE_META.favicon}` }],
+  ['link', { rel: 'icon', href: `${base}favicon.ico?v=2`, sizes: '48x48' }],
+  ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg?v=2` }],
+  ['link', { rel: 'apple-touch-icon', href: `${base}apple-touch-icon.png?v=2` }],
   // C-64 T-003: App Store banner (Safari/macOS), paper/ink theme-color
   // pair, strict referrer, WebSite JSON-LD.
   ...(docsHeadTags(settings) as HeadConfig[]),
