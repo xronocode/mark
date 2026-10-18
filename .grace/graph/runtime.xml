@@ -3839,6 +3839,35 @@
         through the user-selected path — sandbox-safe in the MAS build).
         Unit tests/renderer/muya/diagram-export.test.js; e2e
         tests/e2e/diagram-export.spec.ts.
+        C-56 T-005 (2026-10-18, user choice, approved mockup variant C):
+        ```mermaid and ```vega-lite figures with non-empty source render
+        the diagram CORNER TOOLBAR instead of the PNG edit pencil and the
+        standalone expand glyph — renderBlockToolbar.js
+        (renderBlock/): div.ag-block-toolbar as a direct figure child
+        (survives the pele pipeline's preview innerHTML inserts), three
+        same-family icon buttons (Edit source / Copy as image / Open full
+        screen, mockup glyphs at the 16-grid 1.5 stroke; labels localized
+        blockToolbar.* in the 10 locales). Every pill button carries the
+        ag-block-expand class — the keyboard.js key-guard family hook
+        (keys on a focused pill button belong to the button); click
+        routing (clickEvent.js START_BLOCK_TOOLBAR_CLICK, ahead of the
+        generic expand branch) distinguishes the actions by
+        data-block-toolbar-action: editSource → handleContainerBlockClick
+        (the pencil's action), copyImage → muya-diagram-export with the
+        FIGURE (the T-002 host transport; Copy disabled — not hidden —
+        while the block has no rendered svg, corner-4, via
+        syncBlockToolbarState funneled through expandNeed.js
+        updateFigureExpandNeed), expand → muya-block-viewer. The expand
+        action keeps the expandNeed.js D-7 gate (display:none without
+        ag-expand-needed); the pill reveals on figure hover (opacity
+        0 → 1, 150 ms) or :focus-within, never the caret (ag-active
+        hides it). Other roles (html, multiplemath, flowchart, sequence,
+        plantuml, tables) keep the pencil/standalone glyph; blockViewer
+        close() focus-restore prefers the pill's expand button
+        (expandButtonOf). Unit tests/renderer/muya/block-toolbar.test.js
+        (+ block-expand-button.test.js split); e2e in
+        tests/e2e/diagram-export.spec.ts (pill group) and
+        tests/e2e/block-viewer.spec.ts.
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -4023,6 +4052,33 @@
             </Attribute>
           </LegacyAttributes>
         </fn-diagramExport>
+        <fn-renderBlockToolbar>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                parser/render/renderBlock/renderBlockToolbar.js (C-56
+                T-005, approved mockup variant C): the diagram corner
+                toolbar — div.ag-block-toolbar with three same-family
+                icon buttons (Edit source / Copy as image / Open full
+                screen) rendered as a direct figure child of ```mermaid
+                (pele) and ```vega-lite figures with non-empty source,
+                REPLACING the PNG edit pencil and the standalone expand
+                glyph on those two roles. Every button carries the
+                ag-block-expand family class (the keyboard.js key-guard
+                hook); clickEvent.js routes by data-block-toolbar-action
+                (editSource → handleContainerBlockClick, copyImage →
+                muya-diagram-export with the figure, expand →
+                muya-block-viewer). syncBlockToolbarState — called from
+                expandNeed.js updateFigureExpandNeed on every render /
+                pele insert / vega embed — keeps the Copy button disabled
+                while the block has no rendered svg (corner-4). The
+                expand action stays need-gated by ag-expand-needed; the
+                pill reveals on figure hover / :focus-within only.
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-renderBlockToolbar>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>

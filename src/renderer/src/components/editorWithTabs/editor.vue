@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.24.0
+// VERSION: 1.24.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
@@ -111,6 +111,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v1.24.1: C-56 T-005 — doc only, no code change: the
+//     muya-diagram-export event gained a third producer (the diagram
+//     corner pill's Copy-as-image button dispatches { action:
+//     'copyImage', element: FIGURE } from muya clickEvent
+//     START_BLOCK_TOOLBAR_CLICK); this handler already serves it
+//     unchanged.
 //   - 2026-10-18 v1.24.0: C-56 — per-block diagram/chart picture export.
 //     handleDiagramExportAction({ action, element }) is the single
 //     transport (clipboard writeImage of the 2× PNG, save dialog + binary
@@ -1133,10 +1139,10 @@ const handleCopyAsMarkdown = async () => {
 
 // START_CONTRACT: handleDiagramExportAction
 //   PURPOSE: C-56 — let a rendered diagram (```mermaid → Pele) or chart (```vega-lite) block leave Mark as a picture: copied to the clipboard as a 2× PNG, or saved to disk as PNG/SVG.
-//   INPUTS: { action: 'copyImage' | 'savePng' | 'saveSvg', element: Element - anything inside the exportable block (context-menu target) or the live preview div (the block viewer dispatch) }
+//   INPUTS: { action: 'copyImage' | 'savePng' | 'saveSvg', element: Element - anything inside the exportable block (context-menu target), the live preview div (the block viewer dispatch) or the figure itself (the C-56 T-005 corner-pill Copy-as-image dispatch) }
 //   OUTPUTS: { Promise<void> - resolves after the transport attempt; never rejects }
 //   SIDE_EFFECTS: Native clipboard-manager writeImage (2× PNG); plugin-dialog save + fs write (binary PNG / text SVG); success/failure notices; failures and cancels warn with the anchored marker and write nothing (corner-5).
-//   LINKS: C-56 R-1..R-5; muya/lib/utils/diagramExport (buildStandaloneSvg/rasterizeSvg/suggestFileName/nearestHeadingText); ui/blockViewer muya-diagram-export; clipboard-manager:allow-write-image capability.
+//   LINKS: C-56 R-1..R-5 + T-005 (the corner pill); muya/lib/utils/diagramExport (buildStandaloneSvg/rasterizeSvg/suggestFileName/nearestHeadingText); ui/blockViewer muya-diagram-export; muya clickEvent START_BLOCK_TOOLBAR_CLICK; clipboard-manager:allow-write-image capability.
 // END_CONTRACT: handleDiagramExportAction
 // START_BLOCK_DIAGRAM_EXPORT
 const DIAGRAM_EXPORT_MARKER = '[Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT]'

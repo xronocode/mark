@@ -472,6 +472,11 @@
     "diagram": "Диаграмма",
     "table": "Таблица"
   },
+  "blockToolbar": {
+    "editSource": "Изменить источник",
+    "copyImage": "Скопировать как изображение",
+    "openFullScreen": "Открыть на весь экран"
+  },
   "recent": {
     "taglineLead": "Агенты пишут. Вы",
     "taglineHighlight": "придаёте",

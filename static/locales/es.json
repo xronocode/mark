@@ -461,6 +461,11 @@
     "diagram": "Diagrama",
     "table": "Tabla"
   },
+  "blockToolbar": {
+    "editSource": "Editar fuente",
+    "copyImage": "Copiar como imagen",
+    "openFullScreen": "Abrir a pantalla completa"
+  },
   "recent": {
     "taglineLead": "Los agentes escriben. Tú",
     "taglineHighlight": "das forma",

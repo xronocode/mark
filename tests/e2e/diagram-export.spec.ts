@@ -1,29 +1,40 @@
 // FILE: tests/e2e/diagram-export.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: E2E gate for the C-56 per-block diagram/chart picture export — context-menu items only on rendered Pele diagram / Vega-Lite chart blocks (enabled when rendered, disabled when the block never rendered, absent on paragraphs/tables/flowchart blocks), Copy as Image putting a 2×-natural PNG on the clipboard through plugin:clipboard-manager|write_image, Save as PNG…/SVG… writing valid bytes via the dialog + fs shims (2× IHDR, standalone SVG with zero var(--pele-*) and the theme panel background rect), the heading-slug default file name (ascii + Cyrillic + document fallback), the cancelled-save no-op, and the fullscreen block viewer toolbar exporting the WHOLE diagram at 2× natural size while the viewer itself is zoomed (corner-2) with the buttons hidden on non-exportable sources.
+//   PURPOSE: E2E gate for the C-56 per-block diagram/chart picture export — context-menu items only on rendered Pele diagram / Vega-Lite chart blocks (enabled when rendered, disabled when the block never rendered, absent on paragraphs/tables/flowchart blocks), Copy as Image putting a 2×-natural PNG on the clipboard through plugin:clipboard-manager|write_image, Save as PNG…/SVG… writing valid bytes via the dialog + fs shims (2× IHDR, standalone SVG with zero var(--pele-*) and the theme panel background rect), the heading-slug default file name (ascii + Cyrillic + document fallback), the cancelled-save no-op, the fullscreen block viewer toolbar exporting the WHOLE diagram at 2× natural size while the viewer itself is zoomed (corner-2) with the buttons hidden on non-exportable sources, and the C-56 T-005 corner pill (hover reveal + caret-only invisibility, localized labels, Edit source opening the block source, Copy as image through the shared transport, Open full screen, scope limited to mermaid/vega-lite figures).
 //   SCOPE: diagram-export.spec.ts only; boots the built renderer via the tauri shim with mocked preferences (same bootstrap as pele-render.spec.ts) and per-test __mockInvoke overrides for the context-menu popup, the clipboard image write, the dialog save and the binary/text fs writes.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim (installTauriShim + the C-56 defaults).
-//   LINKS: .grace/changes/active/C-56 R-1..R-7 (corners 1-6); .grace/verification/runtime.xml V-M-012 scenario-63; unit twin tests/renderer/muya/diagram-export.test.js; src/muya/lib/utils/diagramExport.js; editor.vue handleDiagramExportAction; ui/blockViewer export toolbar.
+//   LINKS: .grace/changes/active/C-56 R-1..R-7 (corners 1-6) and T-005 (the corner pill); .grace/verification/runtime.xml V-M-012 scenario-63 and scenario-64; unit twins tests/renderer/muya/diagram-export.test.js + block-toolbar.test.js; src/muya/lib/utils/diagramExport.js; editor.vue handleDiagramExportAction; ui/blockViewer export toolbar; muya renderBlockToolbar/clickEvent START_BLOCK_TOOLBAR_CLICK.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   clipboardPngIhdr - IHDR of the PNG that reached the clipboard mock.
+//   mockDialogSave - plugin:dialog|save capture mock.
+//   mockFsWrites - fs write capture mock.
+//   waitForMermaid - waits for the first rendered pele SVG.
 //   MAIN_MD - heading + mermaid (rendered) + vega-lite + paragraph + flowchart + table + an EMPTY mermaid fence (never-rendered case).
-//   WIDE_MD - a 12-node graph LR (always scaled to the column → expand button opens the viewer).
+//   WIDE_MD - a 12-node graph LR (always scaled to the column → the pill's expand action opens the viewer).
 //   NO_HEADING_MD - a diagram with no preceding heading (document fallback name diagram-N).
 //   RU_HEADING_MD - a Cyrillic heading before the diagram (unicode slug, corner-6).
 //   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors pele-render.spec.ts).
 //   mockContextMenu - records every mt_window_popup_context_menu items payload and returns a chosen clicked id (null = dismissed).
 //   mockClipboardImage / mockDialogSave / mockBinaryWrite / mockTextWrite - per-transport capture overrides.
-//   pngIhdr - reads { width, height } out of a captured PNG byte array in-page.
 //   naturalSizeOf - the exporter's natural-size math (data-natural-width / viewBox ratio) applied to a live figure's SVG.
 //   openContextMenuOn - left-clicks a paragraph first (muya's contextmenu dispatch needs a live cursor) then right-clicks the target.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-56: first version.
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-005: the zoomed-viewer case
+//   opens the viewer through the pill's expand action (the standalone
+//   glyph no longer exists on mermaid figures), the saved-SVG case also
+//   pins no ag-block-toolbar chrome, and a new START_BLOCK_EXPORT_E2E_
+//   TOOLBAR group covers the pill — hover reveal vs caret-only,
+//   localized labels, the pencil/glyph replaced, Edit source / Copy as
+//   image (2× PNG + toast) / Open full screen actions, the empty-fence
+//   no-pill case and the role scope (vega yes, flowchart/table no).
+//   v1.0.0 - 2026-10-18 C-56: first version.
 // END_CHANGE_SUMMARY
 
 import { test, expect, type Page } from '@playwright/test'
@@ -437,6 +448,8 @@ test.describe('diagram export (C-56)', () => {
     // No editor chrome and no executable markup travelled.
     expect(written!.content).not.toContain('<script')
     expect(written!.content).not.toContain('ag-block-expand')
+    // C-56 T-005: the corner pill is editor chrome too.
+    expect(written!.content).not.toContain('ag-block-toolbar')
   })
 
   test('file names: the Cyrillic heading slugs to Cyrillic; no heading falls back to diagram-N (corner-6)', async ({ page }) => {
@@ -480,7 +493,7 @@ test.describe('diagram export (C-56)', () => {
     await waitForMermaid(page)
     await mockClipboardImage(page)
 
-    await page.locator("figure[data-role='MERMAID'] > button.ag-block-expand").first().click()
+    await page.locator("figure[data-role='MERMAID'] div.ag-block-toolbar button.ag-block-toolbar-expand").first().click()
     const viewer = page.locator('.ag-block-viewer')
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
     await expect(viewer).toHaveClass(/ag-block-viewer-can-export/)
@@ -536,4 +549,137 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     await expect(viewer.locator('.ag-block-viewer-fit')).toBeVisible()
   })
   // END_BLOCK_EXPORT_E2E_VIEWER
+
+  // START_BLOCK_EXPORT_E2E_TOOLBAR
+  // C-56 T-005: the diagram corner pill (user choice 2026-10-18, variant
+  // C) — Edit source / Copy as image / Open full screen on mermaid and
+  // vega-lite figures, replacing the PNG pencil and the standalone glyph.
+  test('corner pill: hover reveals the localized pill; the caret alone does not; the empty fence renders no pill', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MAIN_MD)
+    await waitForMermaid(page)
+    const figure = page.locator("figure[data-role='MERMAID']").first()
+
+    // Rest: the pill is laid out but invisible.
+    const restOpacity = await page.evaluate(() =>
+      getComputedStyle(document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement).opacity
+    )
+    expect(restOpacity).toBe('0')
+
+    // Hover: the pill appears; its three action buttons (the expand one
+    // included — DOM-present even where the need gate keeps it hidden)
+    // carry the localized labels.
+    await figure.hover()
+    await page.waitForTimeout(300)
+    const pill = figure.locator('div.ag-block-toolbar')
+    await expect(pill).toBeVisible()
+    expect(await pill.evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
+    const labels = await pill.evaluate((el) =>
+      Array.from(el.querySelectorAll('button')).map((b) => ({
+        action: (b as HTMLElement).dataset.blockToolbarAction,
+        label: b.getAttribute('aria-label'),
+        title: b.getAttribute('title')
+      }))
+    )
+    expect(labels).toEqual([
+      { action: 'editSource', label: 'Edit source', title: 'Edit source' },
+      { action: 'copyImage', label: 'Copy as image', title: 'Copy as image' },
+      { action: 'expand', label: 'Open full screen', title: 'Open full screen' }
+    ])
+
+    // The pencil and the standalone glyph are gone on this figure (no
+    // direct button.ag-block-expand child — the pill's buttons are nested
+    // inside div.ag-block-toolbar).
+    expect(await figure.locator('a.ag-container-icon').count()).toBe(0)
+    const directGlyph = await figure.evaluate((el) =>
+      Array.from(el.children).filter((c) =>
+        c.tagName === 'BUTTON' && (c as HTMLElement).classList.contains('ag-block-expand')
+      ).length
+    )
+    expect(directGlyph).toBe(0)
+
+    // Caret-only never reveals: pointer off the figure, click a paragraph.
+    await page.mouse.move(1, 1)
+    await page.locator('#ag-editor-id p').first().click()
+    await page.waitForTimeout(300)
+    const caretOpacity = await page.evaluate(() =>
+      getComputedStyle(document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement).opacity
+    )
+    expect(caretOpacity).toBe('0')
+
+    // The empty mermaid fence at the end of MAIN_MD renders no pill at
+    // all (no source) — and keeps the pencil like every other role.
+    const last = page.locator("figure[data-role='MERMAID']").last()
+    expect(await last.locator('div.ag-block-toolbar').count()).toBe(0)
+    expect(await last.locator('a.ag-container-icon').count()).toBe(1)
+  })
+
+  test('corner pill: Edit source opens the block source (the old pencil action)', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MAIN_MD)
+    await waitForMermaid(page)
+    const figure = page.locator("figure[data-role='MERMAID']").first()
+
+    await figure.locator('button.ag-block-toolbar-edit').click()
+    // The figure activates and the editable source shows.
+    await expect(figure).toHaveClass(/ag-active/)
+    await expect(figure.locator('pre[data-role="mermaid"] span.ag-code-content').first())
+      .toBeVisible({ timeout: 10_000 })
+  })
+
+  test('corner pill: Copy as image writes a 2× PNG through the shared transport; the button is enabled once rendered', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MAIN_MD)
+    await waitForMermaid(page)
+    await mockClipboardImage(page)
+    const figure = page.locator("figure[data-role='MERMAID']").first()
+    const copy = figure.locator('button.ag-block-toolbar-copy')
+
+    // The rendered block's copy action is enabled (corner-4 flips it on
+    // when the svg lands — expandNeed's sync).
+    await expect(copy).toBeEnabled()
+
+    await copy.click()
+    const natural = await naturalSizeOf(page, "figure[data-role='MERMAID']")
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__clipImages.length), { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    const ihdr = await clipboardPngIhdr(page)
+    expect(ihdr).not.toBeNull()
+    expect(Math.abs(ihdr!.width - 2 * natural.width)).toBeLessThanOrEqual(2)
+    expect(Math.abs(ihdr!.height - 2 * natural.height)).toBeLessThanOrEqual(2)
+    // The same «Copied» toast as the context-menu item.
+    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+  })
+
+  test('corner pill: Open full screen opens the shared viewer from the pill', async ({ page }) => {
+    // WIDE_MD: the 12-node chain always carries the need class, so the
+    // pill's expand action is laid out and clickable.
+    await bootstrapWithMarkdown(page, WIDE_MD)
+    await waitForMermaid(page)
+    const figure = page.locator("figure[data-role='MERMAID']").first()
+    const expand = figure.locator('button.ag-block-toolbar-expand')
+    await expect(expand).toBeVisible()
+
+    await expand.click()
+    const viewer = page.locator('.ag-block-viewer')
+    await expect(viewer).toHaveClass(/ag-block-viewer-open/)
+    await expect(viewer.locator('.ag-block-viewer-title')).toHaveText('Diagram')
+    await page.keyboard.press('Escape')
+    await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
+  })
+
+  test('corner pill: vega-lite figures carry it too; flowchart/sequence figures and tables do not', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MAIN_MD)
+    await waitForMermaid(page)
+    await page.locator("figure[data-role='VEGA-LITE'] div.ag-container-preview svg").first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+    await page.locator("figure[data-role='FLOWCHART'] div.ag-container-preview svg").first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+
+    expect(await page.locator("figure[data-role='VEGA-LITE'] div.ag-block-toolbar").count()).toBe(1)
+    // The other roles keep today's pencil + standalone glyph.
+    for (const role of ['FLOWCHART', 'TABLE']) {
+      expect(await page.locator(`figure[data-role='${role}'] div.ag-block-toolbar`).count()).toBe(0)
+      expect(await page.locator(`figure[data-role='${role}'] > button.ag-block-expand`).count()).toBe(1)
+    }
+  })
+  // END_BLOCK_EXPORT_E2E_TOOLBAR
 })

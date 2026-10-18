@@ -465,6 +465,11 @@
     "diagram": "Diagram",
     "table": "Table"
   },
+  "blockToolbar": {
+    "editSource": "Edit source",
+    "copyImage": "Copy as image",
+    "openFullScreen": "Open full screen"
+  },
   "recent": {
     "taglineLead": "Agents write. You",
     "taglineHighlight": "shape",

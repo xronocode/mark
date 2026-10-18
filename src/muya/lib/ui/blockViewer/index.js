@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.2.0
+// VERSION: 3.2.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
 //   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports).
@@ -14,7 +14,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.2.0 - 2026-10-18 C-56 T-003: the viewer toolbar gains
+//   LAST_CHANGE: v3.2.1 - 2026-10-18 C-56 T-005: close()/reassert focus
+//   restore resolves the figure's LIVE expand button with
+//   expandButtonOf() — mermaid/vega-lite figures now carry the corner
+//   pill (all three pill buttons share the ag-block-expand family
+//   class), so the restore prefers the pill's Open-full-screen button
+//   before falling back to the standalone glyph the other roles keep.
+//   v3.2.0 - 2026-10-18 C-56 T-003: the viewer toolbar gains
 //   Copy as Image / Save as PNG… / Save as SVG… (button.ag-block-viewer-
 //   export-btn between 1:1 and close). The buttons exist in the DOM but
 //   stay display:none unless the opened source resolves to a
@@ -102,6 +108,15 @@ import { CLASS_OR_ID, EVENT_KEYS } from '../../config'
 // leave Mark as a picture. No transport code: muya only dispatches.
 import { EXPORTABLE_FIGURE_SELECTOR } from '../../utils/diagramExport'
 import './index.css'
+
+// C-56 T-005: the live expand button of a figure for focus restore —
+// mermaid/vega-lite figures carry the corner pill (whose three buttons
+// share the ag-block-expand family class; the pill's Open-full-screen
+// button is the one that opened the viewer), the other roles and tables
+// keep the standalone glyph.
+const expandButtonOf = (fig) =>
+  (fig.querySelector('button.ag-block-toolbar-expand') ||
+    fig.querySelector('button.ag-block-expand'))
 
 const FIT_PADDING = 32
 const ZOOM_KEY_FACTOR = 1.25
@@ -714,7 +729,7 @@ class BlockViewer {
     this.returnFocusFigureId = null
     if (figureId) {
       const fig = document.getElementById(figureId)
-      const live = fig && fig.querySelector('.ag-block-expand')
+      const live = fig && expandButtonOf(fig)
       if (live) el = live
     }
     if (restoreFocus && el && typeof el.focus === 'function') {
@@ -729,7 +744,7 @@ class BlockViewer {
           let live = el
           if (figureId) {
             const fig = document.getElementById(figureId)
-            const button = fig && fig.querySelector('.ag-block-expand')
+            const button = fig && expandButtonOf(fig)
             if (button) live = button
           }
           if (live && live.isConnected && document.activeElement !== live) {

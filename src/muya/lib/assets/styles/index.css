@@ -957,6 +957,124 @@ figure[data-role='TABLE'].ag-expand-needed > button.ag-block-expand {
   right: 0;
 }
 
+/* ================================================================
+ * C-56 T-005 — diagram corner toolbar (user choice 2026-10-18,
+ * approved mockup variant C: one hover pill, three same-family
+ * icon actions)
+ *
+ * On ```mermaid (pele) and ```vega-lite figures with source the pill
+ * (renderBlockToolbar.js — a DIRECT figure child like the old glyph,
+ * so the pele pipeline's preview innerHTML inserts never touch it)
+ * REPLACES the PNG edit pencil and the standalone expand glyph:
+ * Edit source (the container edit action), Copy as image (the C-56
+ * clipboard transport) and Open full screen (the C-51 viewer, still
+ * need-gated: the button is display:none unless expandNeed.js put
+ * ag-expand-needed on the figure — no Tab stop without it). The pill
+ * appears ONLY while the pointer is over the figure (opacity 0 → 1,
+ * 150 ms) or a button inside it holds keyboard focus (:focus-within);
+ * the caret inside the figure (ag-active) hides it — the code copy
+ * button owns the corner while the source is edited. Every button
+ * carries the ag-block-expand family class so the keyboard.js
+ * BLOCK_KEYBOARD_EXPAND_BUTTON guard leaves Tab/Enter/arrows to the
+ * button; the `figure > button.ag-block-expand` rules above cannot
+ * match (the pill buttons are one level deeper). The mockup's exact
+ * tokens: background color-mix(--pele-surface 95%), 1px border
+ * color-mix(--pele-fg 12%), radius 8, padding 2, buttons padding 4/8
+ * radius 6, colour --pele-muted → --pele-fg over a 10% fg tint on
+ * hover, label span revealed by the button's own hover. Other roles
+ * (html, multiplemath, flowchart, sequence, plantuml, tables) keep
+ * today's pencil/expand unchanged.
+ * ================================================================ */
+figure.ag-has-expand > div.ag-block-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: color-mix(in srgb, var(--pele-surface) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pele-fg) 12%, transparent);
+  border-radius: 8px;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+}
+
+/* Pointer over the figure reveals the pill; keyboard focus inside it
+   keeps it visible (Tab users see where the focus landed). Never the
+   caret: the ag-active rule below hides it while editing. Like the old
+   glyph, the invisible pill keeps receiving clicks (opacity does not
+   affect hit testing) — parity with today. */
+figure.ag-has-expand:hover > div.ag-block-toolbar,
+figure.ag-has-expand > div.ag-block-toolbar:focus-within {
+  opacity: 1;
+}
+
+figure.ag-active > div.ag-block-toolbar {
+  display: none;
+}
+
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--pele-muted);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: 500 12px/1.4 -apple-system, system-ui, sans-serif;
+}
+
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn svg {
+  display: block;
+  flex: none;
+}
+
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:hover:not(:disabled),
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:focus-visible {
+  color: var(--pele-fg);
+  background: color-mix(in srgb, var(--pele-fg) 10%, transparent);
+}
+
+/* corner-4: Copy as image is disabled — not hidden — while the block
+   has no rendered SVG (expandNeed.js's sync toggles the attribute). */
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* Variant C: the text label sits next to the icon and slides in on the
+   button's own hover / keyboard focus (hidden otherwise so the resting
+   pill stays three compact icons). */
+/* C-56 T-005: a very short diagram (one node) must still hold the 30 px
+   pill inside its own box — the pill overlays the diagram, never the next
+   block below it. */
+figure.ag-has-expand:has(> div.ag-block-toolbar) > div.ag-container-preview {
+  min-height: 46px;
+}
+
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn > span {
+  display: none;
+  white-space: nowrap;
+}
+
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:hover:not(:disabled) > span,
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:focus-visible > span {
+  display: inline;
+}
+
+/* The Open-full-screen action keeps the D-7 need gate: hidden (and not
+   a Tab stop) unless the figure carries ag-expand-needed. */
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-expand {
+  display: none;
+}
+
+figure.ag-expand-needed > div.ag-block-toolbar > button.ag-block-toolbar-expand {
+  display: inline-flex;
+}
+
 /* C-51 T-014 (user 2026-10-16 smoke): while a container block's source
    is edited, its live preview takes its own space BELOW the source in
    normal flow — the inherited MarkText float was position:absolute and
