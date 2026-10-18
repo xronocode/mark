@@ -1,5 +1,5 @@
 // FILE: tests/renderer/site/landing.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the site landing renderer and settings resolution (M-053).
 //   SCOPE: base normalization, %BASE% substitution, shared head, analytics
@@ -14,6 +14,13 @@
 //   TEMPLATE - minimal landing template fixture
 //   CF - Cloudflare beacon token fixture used by analytics assertions
 // END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-003: og:image assertion follows
+//                 the shared head swap from the showcase screenshot to the
+//                 brand card og-card.png.]
+//   PREV: [v1.0.0 - C-22: initial settings/renderer coverage]
+// END_CHANGE_SUMMARY
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -68,7 +75,7 @@ describe('renderLanding', () => {
     expect(html).toContain('href="/mark/guide/"')
     expect(html).toContain('src="/mark/logo-96px.png"')
     expect(html).toContain('<link rel="canonical" href="https://x.github.io/mark/">')
-    expect(html).toContain('og:image" content="https://x.github.io/mark/showcase-00-rich-markdown.png"')
+    expect(html).toContain('og:image" content="https://x.github.io/mark/og-card.png"')
     expect(html).not.toMatch(/%BASE%|SITE_HEAD/)
   })
 
