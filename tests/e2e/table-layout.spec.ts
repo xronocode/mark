@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.4.0
+// VERSION: 1.4.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling) and the C-65 T-003 overflow cue of the same wrapper (class-gated edge shades + the «columns X–Y of N» caption below the table on the column edge, live on scroll).
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, and lib/tableResize/tableCue.js.
@@ -20,7 +20,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-18 C-65 T-003: the shade pins moved from
+//   LAST_CHANGE: v1.4.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   v1.4.0 - 2026-10-18 C-65 T-003: the shade pins moved from
 //   the C-39 cover-gradient backgrounds (backgroundAttachment) to the
 //   class-gated cue (ag-table-cue-left/right), and the caption joined the
 //   pin: «columns 1–N of 15» at the start, a live range in the middle,
@@ -270,6 +271,8 @@ test.describe('table layout (C-39 T-001)', () => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
       wrapper.scrollLeft = (wrapper.scrollWidth - wrapper.clientWidth) / 2
     })
+    // The scroll event (and so the cue sync) lands a frame later — poll.
+    await expect.poll(async () => (await cueState(page))!.shadeLeft).toBe(true)
     const middle = await cueState(page)
     expect(middle!.shadeLeft).toBe(true)
     expect(middle!.shadeRight).toBe(true)
@@ -285,6 +288,7 @@ test.describe('table layout (C-39 T-001)', () => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
       wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
     })
+    await expect.poll(async () => (await cueState(page))!.shadeRight).toBe(false)
     const end = await cueState(page)
     expect(end!.shadeLeft).toBe(true)
     expect(end!.shadeRight).toBe(false)

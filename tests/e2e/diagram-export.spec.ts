@@ -1,5 +1,5 @@
 // FILE: tests/e2e/diagram-export.spec.ts
-// VERSION: 1.3.0
+// VERSION: 1.4.1
 // START_MODULE_CONTRACT
 //   PURPOSE: E2E gate for the C-56 per-block diagram/chart picture export — context-menu items only on rendered Pele diagram / Vega-Lite chart blocks (enabled when rendered, disabled when the block never rendered, absent on paragraphs/tables/flowchart blocks), Copy as Image putting a 2×-natural PNG on the clipboard through plugin:clipboard-manager|write_image, Save as PNG…/SVG… writing valid bytes via the dialog + fs shims (2× IHDR, standalone SVG with zero var(--pele-*) and the theme panel background rect), the heading-slug default file name (ascii + Cyrillic + document fallback), the cancelled-save no-op, the fullscreen block viewer toolbar exporting the WHOLE diagram at 2× natural size while the viewer itself is zoomed (corner-2) with the buttons hidden on non-exportable sources, the C-56 T-005 corner pill (hover reveal + caret-only invisibility, localized labels, Edit source opening the block source, Copy as image through the shared transport, Open full screen, scope limited to mermaid/vega-lite figures), and the C-56 T-006 embedded-image copy (the image-toolbar Copy image button between edit and the alignment buttons and the context-menu Copy Image item writing the PNG bytes — local file:// images through the read-binary bridge with exact-byte PNG pass-through, JPEG re-encoded on a canvas at natural size, and a broken read showing the failure notice with nothing written).
 //   SCOPE: diagram-export.spec.ts only; boots the built renderer via the tauri shim with mocked preferences (same bootstrap as pele-render.spec.ts) and per-test __mockInvoke overrides for the context-menu popup, the clipboard image write, the dialog save, the binary/text fs writes and the binary fs read.
@@ -26,7 +26,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-18 C-56 T-007: the pill-label case
+//   LAST_CHANGE: v1.4.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   v1.4.0 - 2026-10-19 C-65: tables open full screen from
+//   their own toolbar and carry no standalone glyph or diagram pill.
+//   v1.3.0 - 2026-10-18 C-56 T-007: the pill-label case
 //   reads only the family buttons and pins the leading C-62 appearance
 //   control on Mermaid pills.
 //   v1.2.0 - 2026-10-18 C-56 T-006: the START_BLOCK_EXPORT_
@@ -548,7 +551,9 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     await page.locator("figure[data-role='TABLE'] table").first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
-    await page.locator("figure[data-role='TABLE'] > button.ag-block-expand").first().click()
+    // C-65: tables open full screen from their own toolbar above the table.
+    await page.locator("figure[data-role='TABLE'] table").first().hover()
+    await page.locator("figure[data-role='TABLE'] div.ag-table-toolbar button.ag-block-toolbar-expand").first().click()
     const viewer = page.locator('.ag-block-viewer')
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
     await expect(viewer).not.toHaveClass(/ag-block-viewer-can-export/)
@@ -687,11 +692,14 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
       .waitFor({ state: 'visible', timeout: 20_000 })
 
     expect(await page.locator("figure[data-role='VEGA-LITE'] div.ag-block-toolbar").count()).toBe(1)
-    // The other roles keep today's pencil + standalone glyph.
-    for (const role of ['FLOWCHART', 'TABLE']) {
-      expect(await page.locator(`figure[data-role='${role}'] div.ag-block-toolbar`).count()).toBe(0)
-      expect(await page.locator(`figure[data-role='${role}'] > button.ag-block-expand`).count()).toBe(1)
-    }
+    // Flowcharts keep today's pencil + standalone glyph.
+    expect(await page.locator("figure[data-role='FLOWCHART'] div.ag-block-toolbar").count()).toBe(0)
+    expect(await page.locator("figure[data-role='FLOWCHART'] > button.ag-block-expand").count()).toBe(1)
+    // C-65: tables carry their own table toolbar (not the diagram pill:
+    // no copy-as-image) and no standalone glyph.
+    expect(await page.locator("figure[data-role='TABLE'] div.ag-block-toolbar.ag-table-toolbar").count()).toBe(1)
+    expect(await page.locator("figure[data-role='TABLE'] button.ag-block-toolbar-copy").count()).toBe(0)
+    expect(await page.locator("figure[data-role='TABLE'] > button.ag-block-expand").count()).toBe(0)
   })
   // END_BLOCK_EXPORT_E2E_TOOLBAR
 

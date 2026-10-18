@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.28.0
+// VERSION: 1.28.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
@@ -114,6 +114,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.28.1 - 2026-10-19 fix: a fresh open whose content the store already holds still applies the stored table layouts (the early return skipped them).
 //   - 2026-10-18 v1.28.0: C-65 T-001 — persistent table column widths and
 //     the per-table Full width mode. applyStoredTableLayouts runs after
 //     every document load (file-loaded / file-changed): the store util
@@ -1932,6 +1933,10 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
       newMarkdown === currentFile.value.markdown
     ) {
       if (newCursor) editor.value.setCursor(newCursor)
+      // C-65: a fresh open whose content the store already holds still
+      // adopts the file's stored table layouts (this early return used to
+      // skip them, so reopened files lost their column widths).
+      if (!props.mirror) applyStoredTableLayouts()
       return
     }
     editor.value.clearHistory()

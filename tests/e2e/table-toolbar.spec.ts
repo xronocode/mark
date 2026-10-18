@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-toolbar.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-002 table toolbar and the T-004 Full width mode in the built renderer — the pill appears ABOVE the table on hover (and on keyboard focus within the figure), its right edge on the text-column edge, hidden while the caret is inside the table, the standalone glyph gone, the Open-full-screen action need-gated; Full width lays the table out from the editor's left edge with the editor scrolling horizontally while the toolbar and caption stay on the column edge, and Fit to page returns the wrapper scroll.
 //   SCOPE: renderTableToolbar.js + renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION, the C-65 CSS section of src/muya/lib/assets/styles/index.css, and the TableResize toggle/geometry/cue paths.
@@ -19,7 +19,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65: new — every case fails without
+//   LAST_CHANGE: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   v1.0.0 - 2026-10-18 C-65: new — every case fails without
 //   the toolbar vnode/CSS (no pill), the need gate pin fails if the expand
 //   button loses the family gate, and the full-width cases fail without
 //   the breakout (no editor scrollbar) or the cue («all N columns»).
@@ -108,6 +109,8 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     const expand = toolbar.querySelector('button.ag-block-toolbar-expand') as HTMLElement
     return {
       opacity: window.getComputedStyle(toolbar).opacity,
+      display: window.getComputedStyle(toolbar).display,
+      figureActive: figure.classList.contains('ag-active'),
       toggleLabel: (toggle.querySelector('span.ag-block-toolbar-label') as HTMLElement).textContent,
       toggleTitle: toggle.title,
       toggleActive: toggle.classList.contains('ag-table-toolbar-active'),
@@ -128,8 +131,9 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
 
     // Hover over the table reveals the pill.
     await page.locator("figure[data-role='TABLE'] table").first().hover()
+    // The reveal is a 150 ms opacity transition — poll, never sample once.
+    await expect.poll(async () => (await toolbarState(page)).opacity).toBe('1')
     const hovered = await toolbarState(page)
-    expect(hovered.opacity).toBe('1')
 
     // Placement: ABOVE the table (never over its middle), right edge on
     // the column edge (±1px).
@@ -166,8 +170,11 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(box).not.toBeNull()
     await page.mouse.click(box!.x + 10, box!.y + box!.height / 2)
 
-    const state = await toolbarState(page)
-    expect(state.opacity).toBe('0')
+    // ag-active hides the pill outright (display:none), like diagrams.
+    await expect.poll(async () => {
+      const st = await toolbarState(page)
+      return { active: st.figureActive, hidden: st.display === 'none' || st.opacity === '0' }
+    }).toEqual({ active: true, hidden: true })
   })
 
   test('Full width: natural width from the editor\'s left edge, the editor scrolls, the cue reads «all N columns»', async ({ page }) => {
