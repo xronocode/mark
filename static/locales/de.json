@@ -237,8 +237,8 @@
       "rename": "Umbenennen",
       "moveToTrash": "In Papierkorb verschieben",
       "showInFolder": "Im Ordner anzeigen",
-      "pin": "Anheften",
-      "unpin": "Lösen"
+      "pin": "Zu „Angeheftet“ hinzufügen",
+      "unpin": "Aus „Angeheftet“ entfernen"
     },
     "tabs": {
       "close": "Schließen",
@@ -250,8 +250,8 @@
       "showInFolder": "Im Ordner anzeigen",
       "lock": "Dokument sperren",
       "unlock": "Dokument entsperren",
-      "pin": "Anheften",
-      "unpin": "Lösen",
+      "pin": "Zu „Angeheftet“ hinzufügen",
+      "unpin": "Aus „Angeheftet“ entfernen",
       "splitView": "Geteilte Ansicht",
       "copyAsMarkdown": "Als Markdown kopieren",
       "copyAsHtml": "Als HTML kopieren",

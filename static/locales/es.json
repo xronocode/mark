@@ -237,8 +237,8 @@
       "rename": "Renombrar",
       "moveToTrash": "Mover a la Papelera",
       "showInFolder": "Mostrar en Carpeta",
-      "pin": "Fijar",
-      "unpin": "Dejar de fijar"
+      "pin": "Añadir a Fijados",
+      "unpin": "Quitar de Fijados"
     },
     "tabs": {
       "close": "Cerrar",
@@ -250,8 +250,8 @@
       "showInFolder": "Mostrar en carpeta",
       "lock": "Bloquear documento",
       "unlock": "Desbloquear documento",
-      "pin": "Fijar",
-      "unpin": "Dejar de fijar",
+      "pin": "Añadir a Fijados",
+      "unpin": "Quitar de Fijados",
       "splitView": "Vista dividida",
       "copyAsMarkdown": "Copiar como Markdown",
       "copyAsHtml": "Copiar como HTML",

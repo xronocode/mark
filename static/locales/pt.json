@@ -237,8 +237,8 @@
       "rename": "Renomear",
       "moveToTrash": "Mover para Lixeira",
       "showInFolder": "Mostrar na Pasta",
-      "pin": "Fixar",
-      "unpin": "Desafixar"
+      "pin": "Adicionar a Fixados",
+      "unpin": "Remover de Fixados"
     },
     "tabs": {
       "close": "Fechar",
@@ -250,8 +250,8 @@
       "showInFolder": "Mostrar na pasta",
       "lock": "Bloquear documento",
       "unlock": "Desbloquear documento",
-      "pin": "Fixar",
-      "unpin": "Desafixar",
+      "pin": "Adicionar a Fixados",
+      "unpin": "Remover de Fixados",
       "splitView": "Visualização dividida",
       "copyAsMarkdown": "Copiar como Markdown",
       "copyAsHtml": "Copiar como HTML",

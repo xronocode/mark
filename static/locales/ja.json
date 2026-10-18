@@ -237,8 +237,8 @@
       "rename": "名前を変更",
       "moveToTrash": "ゴミ箱に移動",
       "showInFolder": "フォルダで表示",
-      "pin": "ピン留め",
-      "unpin": "ピン留めを解除"
+      "pin": "ピン留め済みに追加",
+      "unpin": "ピン留め済みから削除"
     },
     "tabs": {
       "close": "閉じる",
@@ -250,8 +250,8 @@
       "showInFolder": "フォルダで表示",
       "lock": "ドキュメントをロック",
       "unlock": "ドキュメントのロックを解除",
-      "pin": "ピン留め",
-      "unpin": "ピン留めを解除",
+      "pin": "ピン留め済みに追加",
+      "unpin": "ピン留め済みから削除",
       "splitView": "分割表示",
       "copyAsMarkdown": "Markdown としてコピー",
       "copyAsHtml": "HTML としてコピー",
