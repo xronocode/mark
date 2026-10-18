@@ -1,639 +1,749 @@
+<!-- FILE: site/landing/index.html -->
+<!-- VERSION: 2.0.0 -->
+<!-- START_MODULE_CONTRACT -->
+<!--   PURPOSE: The Mark site landing (served at the site root by renderLanding) -->
+<!--            - the mobile-first paragraph-numbered paper/ink/marker page -->
+<!--            per C-64 D-9: a draggable before/after hero (raw agent -->
+<!--            Markdown vs Mark's rendered page), the four-fact strip, the -->
+<!--            diagram wall with live theme chips, install cards and the -->
+<!--            iOS Mark-for-Mac bar. -->
+<!--   SCOPE: one hand-written template. Build placeholders (named comments -->
+<!--          the build replaces; never spell them with angle brackets here, -->
+<!--          an inner close-sequence would end this comment): SITE_HEAD = -->
+<!--          shared SEO/analytics head; THEME_INIT = shared no-flash theme -->
+<!--          script, first in head, before any CSS; BRAND_CSS = -->
+<!--          site/shared/brand.css inlined atop the first style block; -->
+<!--          DIAGRAM colon id = build-time Pele SVG for that gallery example -->
+<!--          (unique idPrefix per occurrence); THEME_VARS_JSON = theme chip -->
+<!--          data (id to pele vars plus page and dark). BASE token = the -->
+<!--          site base path. Inline JS only: copy buttons, version refresh -->
+<!--          from the GitHub API, the stage slider (pointer + keyboard), the -->
+<!--          wall chips/auto-cycle, the appearance toggle (VitePress storage -->
+<!--          key) and the iOS share bar. -->
+<!--   DEPENDS: site/shared/brand.css (tokens inlined at build), -->
+<!--            site/shared/theme-init.js (THEME_INIT_JS), the gallery pele -->
+<!--            renderer (fills the DIAGRAM placeholders), -->
+<!--            site/public/consent.js + track.js (loaded by the shared head -->
+<!--            when GA is configured: copy buttons mark is-copied, links -->
+<!--            carry data-track, data-method, data-placement) -->
+<!--   LINKS: .grace/changes/active/C-64 R-3 R-4 R-5 R-7, D-9, T-002; -->
+<!--          .grace/graph/features.xml M-053; -->
+<!--          .grace/changes/active/C-64/design/d1.html d2.html d3.html and -->
+<!--          base.css (the approved prototypes this page implements); -->
+<!--          site/.vitepress/landing.mjs renderLanding; -->
+<!--          tests/site/landing-content.test.mjs -->
+<!--   ROLE: RUNTIME -->
+<!--   MAP_MODE: SUMMARY -->
+<!-- END_MODULE_CONTRACT -->
+<!-- START_MODULE_MAP -->
+<!--   head: THEME_INIT placeholder, charset/viewport/title, SITE_HEAD, -->
+<!--         font preloads, ios-detect script, BRAND_CSS + page CSS -->
+<!--   #macbar - iOS/iPadOS sticky Mark-for-Mac bar (share with copy fallback) -->
+<!--   #hero (data-consent-after) - headline, actions, #stage, fact strip -->
+<!--   #stage - before/after slider (#page layer wears Paper/Ink pele vars) -->
+<!--   ¶ 01 Agents - live reload + ⌘D copy, 01-agents shot, agent snippet -->
+<!--   ¶ 02 Diagrams - #themes chips + #sheet wall (7 DIAGRAM placeholders) -->
+<!--   ¶ 03 The page itself - six feature cards (viewer + light/dark shots) -->
+<!--   ¶ 04 Small and native - memory bars to scale + measured stats -->
+<!--   ¶ 05 Install - App Store / Homebrew copy / Windows cards + editions -->
+<!--   footer - docs nav, Mark Text credit, © line -->
+<!-- END_MODULE_MAP -->
+<!-- START_CHANGE_SUMMARY -->
+<!--   LAST_CHANGE: [v2.0.0 - 2026-10-18 C-64 T-002: full rebuild per D-9 - -->
+<!--                 mobile-first brand layout (breakpoints 520/980, safe-area -->
+<!--                 gutters), draggable/keyboard before/after hero with -->
+<!--                 build-time diagram placeholders, d1 fact strip, d2 wall as -->
+<!--                 ¶ 02 with live theme chips, install cards with verified -->
+<!--                 facts (v2.5.0, App Store id, full brew command, setup.exe), -->
+<!--                 iOS Mark-for-Mac bar (Web Share, remembered dismiss, -->
+<!--                 share_to_mac events) and download_click hooks on every -->
+<!--                 install CTA.] -->
+<!--   PREV: [v1.x - 2026-10 C-22/C-58: Schibsted/oklch landing with typing -->
+<!--                 demo, tabs showcase and footprint chart.] -->
+<!-- END_CHANGE_SUMMARY -->
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mark · The Markdown editor for what your agents write</title>
-    <!-- Shared head (meta, Open Graph, favicon, optional analytics) is
-         injected here by site/.vitepress/landing.mjs; %BASE% below is the
-         site base path substituted at build/dev time. -->
-    <!--SITE_HEAD-->
-    <link rel="preload" href="%BASE%fonts/schibsted-grotesk.woff2" as="font" type="font/woff2" crossorigin>
-    <style>
-        /* ---------------------------------------------------------------
-           Landing design system
-           Type: Schibsted Grotesk (display + body), JetBrains Mono only for
-           real code: commands, file names, markdown source.
-           Colour: brand cyan from the app icon, neutrals tinted toward it.
-           Shape rule: controls 8px, panels 12px, status chips full pill.
-           Motion: strong ease-out for entrances, ease-in-out for things
-           that move on screen; every animation has a reduced-motion path.
-           --------------------------------------------------------------- */
-        @font-face {
-            font-family: "Schibsted Grotesk";
-            src: url("%BASE%fonts/schibsted-grotesk.woff2") format("woff2");
-            font-weight: 400 900; font-style: normal; font-display: swap;
-        }
-        @font-face {
-            font-family: "Schibsted Grotesk";
-            src: url("%BASE%fonts/schibsted-grotesk-italic.woff2") format("woff2");
-            font-weight: 400 900; font-style: italic; font-display: swap;
-        }
-        @font-face {
-            font-family: "JetBrains Mono";
-            src: url("%BASE%fonts/jetbrains-mono.woff2") format("woff2");
-            font-weight: 400 700; font-style: normal; font-display: swap;
-        }
+<!--THEME_INIT-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mark — The Markdown editor for what your agents write</title>
+<!-- Shared head (canonical, OG, JSON-LD, apple-itunes-app, theme-color,
+     consent.js + track.js when GA is configured) is injected here by
+     site/.vitepress/landing.mjs; the brand CSS below is inlined by the
+     build at the BRAND_CSS placeholder, exactly as the gallery does. -->
+<!--SITE_HEAD-->
+<link rel="preload" href="%BASE%fonts/brand/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="%BASE%fonts/brand/IBMPlexSans-400.woff2" as="font" type="font/woff2" crossorigin>
+<!-- START_BLOCK_IOS_DETECT -->
+<!-- iPhone/iPad before paint (iPadOS reports a Mac UA): the hero swaps the
+     App Store button for "Send Mark to your Mac" and the sticky bar may
+     appear. Desktop and Android phones get neither. -->
+<script>
+(function () {
+  var ios = /iPhone|iPad/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios) document.documentElement.classList.add('ios');
+})();
+</script>
+<!-- END_BLOCK_IOS_DETECT -->
+<style>
+<!--BRAND_CSS-->
+/* ---------------------------------------------------------------
+   Landing page chrome on the shared brand tokens (paper/ink/marker,
+   Bricolage + Plex — faces and dark sets come from the inlined layer
+   above). Mobile-first; breakpoints 520 and 980; safe-area gutters.
+   --------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 16px/1.55 var(--body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+img { max-width: 100%; display: block; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+code, pre, kbd { font-family: var(--mono); }
+:focus-visible { outline: 2px solid var(--marker); outline-offset: 2px; border-radius: 2px; }
 
-        :root {
-            --bg: oklch(0.985 0.003 225);
-            --bg-2: oklch(0.955 0.007 225);
-            --line: oklch(0.89 0.01 225);
-            --ink: oklch(0.21 0.02 238);
-            --ink-2: oklch(0.42 0.02 238);
-            --ink-3: oklch(0.5 0.018 238);
-            --brand: oklch(0.74 0.13 222);
-            --on-brand: oklch(0.18 0.03 238);
-            --link: oklch(0.5 0.12 232);
-            --bar: oklch(0.72 0.012 238);
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+.skip { position: absolute; left: -9999px; }
+.skip:focus {
+  left: 16px; top: 12px; z-index: 80;
+  background: var(--ink); color: var(--paper);
+  padding: 8px 12px; border-radius: 8px;
+}
 
-            /* The "night" surface: app window, terminal, install block.
-               It stays dark in both themes, like Mark's own dark themes. */
-            --night: oklch(0.2 0.018 242);
-            --night-2: oklch(0.245 0.02 242);
-            --night-line: oklch(0.33 0.02 242);
-            --night-ink: oklch(0.94 0.008 230);
-            --night-ink-2: oklch(0.78 0.015 235);
-            --night-ink-3: oklch(0.66 0.015 235);
+/* ---------- type ---------- */
+h1, .h1 {
+  font-family: var(--display); font-weight: 800;
+  letter-spacing: -.032em; line-height: .95;
+}
+h2 {
+  font: 800 clamp(30px, 5.4vw, 54px)/1.02 var(--display);
+  letter-spacing: -.025em;
+  max-width: 18ch;
+}
+.lead { margin: 14px 0 0; color: var(--mute); font-size: 17px; line-height: 1.55; max-width: 58ch; }
+.lead b, .lede b { color: var(--ink); font-weight: 600; }
+.eyebrow, .no {
+  font: 500 var(--fs-xs)/1 var(--mono);
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--mute); margin: 0 0 14px;
+}
+.more { display: none; }
 
-            --font: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
-            --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+/* ---------- buttons ---------- */
+.acts { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  border-radius: 12px;
+  font: 600 16px/1 var(--body);
+  padding: 15px 20px; text-decoration: none; white-space: nowrap;
+  border: 0; cursor: pointer; max-width: 100%;
+}
+.btn:active { transform: scale(.98); }
+.btn.pri { background: var(--ink); color: var(--paper); }
+.btn.pri svg { width: 16px; height: 19px; fill: currentColor; flex: none; }
+@media (hover: hover) and (pointer: fine) { .btn.pri:hover { opacity: .88; } }
+.send-mac svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.brew {
+  display: inline-flex; align-items: center; gap: 10px;
+  border: 1px solid var(--rule); border-radius: 12px;
+  padding: 13px 10px 13px 16px;
+  font: 500 14px var(--mono); white-space: nowrap;
+  background: transparent; color: var(--ink);
+  cursor: pointer; max-width: 100%; overflow: hidden;
+}
+.brew i { font-style: normal; color: var(--mute); }
+.brew b {
+  font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  padding: 7px 9px; border-radius: 7px; background: var(--chip); flex: none;
+}
+.brew.is-copied { border-color: var(--ink); }
+.brew.is-copied b { background: var(--marker); color: var(--on-marker); }
+@media (hover: hover) and (pointer: fine) { .brew:hover { border-color: var(--mute); } }
+.brew.block {
+  display: flex; width: 100%; white-space: normal; overflow-wrap: anywhere;
+  text-align: left; min-height: 64px; align-items: center;
+}
+.brew.block b { margin-left: auto; }
+.fine { font: 500 12.5px/1.5 var(--mono); color: var(--mute); letter-spacing: .02em; }
+.fine a, .lead a { color: var(--ink); }
 
-            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-            --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+/* ---------- header ---------- */
+.hdr { padding-block: 18px 0; }
+.hdr-in { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; }
+.brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  font: 800 22px/1 var(--display); letter-spacing: -.02em;
+  text-decoration: none; color: var(--ink);
+}
+.brand img { width: 32px; height: 32px; display: block; border-radius: 7px; }
+.nav { display: none; gap: 22px; align-items: center; font: 500 14.5px var(--body); }
+.nav a { text-decoration: none; color: var(--ink-2); }
+.nav a:hover, .nav a:focus-visible { color: var(--ink); }
+.nav .gh {
+  display: inline-flex; gap: 6px; align-items: center;
+  border: 1px solid var(--rule); border-radius: 999px; padding: 7px 12px;
+  color: var(--ink);
+}
+.hdr-r { display: flex; align-items: center; gap: 10px; }
+.toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--rule); background: transparent;
+  color: var(--ink-2); cursor: pointer; font-size: 15px; line-height: 1; padding: 0;
+}
+.toggle:hover { color: var(--ink); border-color: var(--mute); }
+.toggle .sun { display: none; }
+:root.dark .toggle .sun, :root[data-theme="dark"] .toggle .sun { display: inline; }
+:root.dark .toggle .moon, :root[data-theme="dark"] .toggle .moon { display: none; }
+.mnav { position: relative; }
+.mnav summary {
+  list-style: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 600 14px/1 var(--body); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 9px 14px;
+}
+.mnav summary::-webkit-details-marker { display: none; }
+.mnav[open] summary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.mnav nav {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 50;
+  display: grid; gap: 2px; min-width: 190px;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 12px;
+  padding: 10px; box-shadow: 0 18px 40px -18px rgba(23, 25, 30, .35);
+}
+.mnav nav a {
+  text-decoration: none; color: var(--ink);
+  font: 500 15px/1 var(--body); padding: 11px 12px; border-radius: 8px;
+}
+.mnav nav a:hover, .mnav nav a:focus-visible { background: var(--chip); }
 
-            --r-control: 8px;
-            --r-panel: 12px;
+/* ---------- iOS / Android visibility ---------- */
+.only-ios { display: none !important; }
+.ios .only-ios { display: inline-flex !important; }
+.ios .no-ios { display: none !important; }
 
-            --wrap: 1200px;
-            --gutter: clamp(16px, 4vw, 40px);
-            --section: clamp(88px, 11vw, 152px);
+/* ---------- the iOS "Mark for Mac" bar ---------- */
+.macbar {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 70;
+  align-items: center; gap: 10px;
+  padding: 8px max(14px, env(safe-area-inset-right, 0px)) 8px max(14px, env(safe-area-inset-left, 0px));
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  background: var(--paper); border-bottom: 1px solid var(--rule);
+}
+.macbar img { width: 22px; height: 22px; border-radius: 5px; }
+.mb-t { font: 800 15px/1 var(--display); letter-spacing: -.01em; color: var(--ink); }
+.mb-send {
+  margin-left: auto; flex: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 600 13.5px/1 var(--body);
+  background: var(--ink); color: var(--paper);
+  border: 0; border-radius: 999px; padding: 9px 14px; cursor: pointer;
+}
+.mb-send:active { transform: scale(.97); }
+.mb-x {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--rule); background: transparent;
+  color: var(--mute); font-size: 13px; line-height: 1; cursor: pointer; padding: 0;
+}
+.ios .macbar { display: flex; visibility: hidden; transform: translateY(-110%); transition: transform .25s ease, visibility 0s .25s; }
+.ios .macbar.show { visibility: visible; transform: none; transition: transform .25s ease; }
 
-            --z-sticky: 10;
-            --z-toast: 30;
+/* ---------- hero ---------- */
+.top { padding-block: 14px 0; }
+.hero-grid { display: grid; gap: 18px; }
+.top h1 { font-size: clamp(40px, 11.4vw, 60px); }
+.lede { margin: 0; color: var(--mute); font-size: 16.5px; line-height: 1.5; max-width: 40em; }
+.side { display: grid; gap: 18px; justify-items: start; }
+.acts .btn { flex: 1 1 auto; }
+.acts .brew { display: none; }
 
-            color-scheme: light;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: oklch(0.165 0.014 242);
-                --bg-2: oklch(0.2 0.016 242);
-                --line: oklch(0.3 0.018 242);
-                --ink: oklch(0.95 0.006 230);
-                --ink-2: oklch(0.79 0.014 235);
-                --ink-3: oklch(0.7 0.014 235);
-                --link: oklch(0.8 0.12 222);
-                --bar: oklch(0.45 0.015 240);
-                --night: oklch(0.125 0.014 242);
-                --night-2: oklch(0.175 0.016 242);
-                --night-line: oklch(0.28 0.018 242);
-                color-scheme: dark;
-            }
-        }
+/* the before/after stage (design d3) */
+.stage {
+  position: relative; height: 470px;
+  margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
+  border-radius: 0; overflow: hidden;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize;
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .3), 0 30px 80px -30px rgba(40, 30, 10, .45);
+}
+:root.dark .stage, :root[data-theme="dark"] .stage {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .09), 0 40px 100px -30px rgba(0, 0, 0, .85);
+}
+.layer { position: absolute; inset: 0; display: grid; grid-template-rows: 40px 1fr; }
+.layer.raw { background: #17191E; color: #C9CDD6; }
+.layer.raw .wbar { background: #1E2026; border-color: #2A2C33; color: #7D818B; }
+.layer.raw .body {
+  padding: 16px 18px; font: 400 11.5px/1.7 var(--mono);
+  white-space: pre; overflow: hidden; color: #C9CDD6;
+}
+.layer.raw .c { color: #6E727C; } .layer.raw .h { color: #8FB0FF; }
+.layer.raw .s { color: #8FD3A8; } .layer.raw .k { color: #D6A2F2; }
+.layer.page { clip-path: inset(0 0 0 var(--x, 46%)); border-radius: 0; box-shadow: none; }
+.layer.page .doc {
+  padding: 16px 0 0 18px; display: grid;
+  grid-template-columns: minmax(0, 1fr); gap: 6px;
+  width: calc(100% - 36px); max-width: 1120px;
+}
+.layer.page .doc .full { grid-column: 1 / -1; }
+.layer.page .doc .hide-sm { display: none; }
+.handle { position: absolute; top: 0; bottom: 0; left: var(--x, 46%); width: 0; z-index: 4; }
+.handle::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -2px; width: 4px;
+  background: var(--marker);
+}
+.handle span {
+  position: absolute; top: 50%; left: 0; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--marker); color: var(--on-marker);
+  font: 600 12px/1 var(--mono); padding: 10px 12px; border-radius: 999px;
+  white-space: nowrap; box-shadow: 0 8px 20px -6px rgba(0, 0, 0, .4);
+}
+.lab {
+  position: absolute; bottom: 16px; z-index: 3;
+  font: 600 10.5px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  padding: 7px 10px; border-radius: 999px; max-width: 44%;
+}
+.lab.l { left: 16px; background: #2A2C33; color: #C9CDD6; }
+.lab.r { right: 16px; background: var(--marker); color: var(--on-marker); }
 
-        *, *::before, *::after { box-sizing: border-box; }
-        html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--ink);
-            font-family: var(--font);
-            font-size: 17px;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            text-rendering: optimizeLegibility;
-        }
-        img { max-width: 100%; display: block; }
-        a { color: inherit; }
-        code, kbd, pre { font-family: var(--mono); }
-        h1, h2, h3 { margin: 0; text-wrap: balance; }
-        p { margin: 0; text-wrap: pretty; }
-        :focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
+/* Mark window chrome (light Paper inside; .dk = Ink, like design base.css) */
+.win {
+  --w-bg: #FBF8F2; --w-fg: #22252B; --w-mute: #77736B; --w-rule: #E3DCCD;
+  --w-bar: #F4EFE6;
+  --note-line: #577FC8; --note-bg: #EEF2FA; --note-title: #3E62A8; --note-fg: #22252B;
+  background: var(--w-bg); color: var(--w-fg);
+  border-radius: 12px; overflow: hidden; position: relative;
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .28), 0 2px 4px rgba(40, 30, 10, .06),
+    0 24px 48px -16px rgba(40, 30, 10, .28), 0 60px 120px -40px rgba(40, 30, 10, .35);
+}
+.win.dk {
+  --w-bg: #21242B; --w-fg: #ECE6DA; --w-mute: #9D998F; --w-rule: #33363D; --w-bar: #1E2026;
+  --note-line: #91A7F1; --note-bg: rgba(145, 167, 241, .13); --note-title: #91A7F1; --note-fg: #ECE6DA;
+}
+:root.dark .win, :root[data-theme="dark"] .win {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .09), 0 40px 100px -20px rgba(0, 0, 0, .85);
+}
+.wbar {
+  height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 14px;
+  background: var(--w-bar); border-bottom: 1px solid var(--w-rule);
+  font: 500 12.5px var(--body); color: var(--w-mute);
+}
+.lights { display: flex; gap: 8px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; display: block; background: #FF5F57; }
+.lights i:nth-child(2) { background: #FEBC2E; }
+.lights i:nth-child(3) { background: #28C840; }
+.wbar .ttl { flex: 1; text-align: center; color: var(--w-fg); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 11.5px/1 var(--mono); padding: 6px 9px; border-radius: 999px;
+  background: var(--marker); color: var(--on-marker); white-space: nowrap;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
 
-        .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
-        .skip { position: absolute; left: -9999px; }
-        .skip:focus { left: 16px; top: 12px; z-index: var(--z-toast); background: var(--ink); color: var(--bg); padding: 8px 12px; border-radius: var(--r-control); }
+/* rendered Markdown inside the window */
+.md { font: 400 15px/1.6 var(--body); color: var(--w-fg); }
+.md h2 { font: 700 21px/1.2 var(--display); margin: 0 0 6px; letter-spacing: -.01em; max-width: none; }
+.md h3 { font: 700 15px/1.3 var(--body); margin: 14px 0 8px; }
+.md .meta { font-size: 12.5px; color: var(--w-mute); margin: 0; }
+.md table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.md th, .md td { border: 1px solid var(--w-rule); padding: 4px 7px; text-align: left; }
+.md th { font-weight: 600; }
+.md .note {
+  margin-top: 12px; border-left: 3px solid var(--note-line);
+  background: var(--note-bg); border-radius: 6px; padding: 9px 11px;
+  font-size: 12.5px; line-height: 1.5; color: var(--note-fg);
+}
+.md .note b { color: var(--note-title); }
+.dia {
+  background: var(--pele-bg, #f2ece1); border-radius: 10px; padding: 12px;
+  display: flex; justify-content: center;
+}
+:root.dark .layer.page .dia, :root[data-theme="dark"] .layer.page .dia { background: var(--pele-bg, #21242b); }
+.dia svg { width: 100%; height: auto; max-width: 100%; display: block; }
+.dia-pie { max-width: 300px; }
 
-        /* ---------- Buttons ---------- */
-        .btn {
-            display: inline-flex; align-items: center; gap: 10px;
-            height: 48px; padding: 0 20px;
-            border-radius: var(--r-control);
-            font: 600 16px/1 var(--font);
-            text-decoration: none; white-space: nowrap;
-            border: 0; cursor: pointer;
-            transition: transform 160ms var(--ease-out), background-color 200ms ease;
-        }
-        .btn:active { transform: scale(0.97); }
-        .btn-primary { background: var(--brand); color: var(--on-brand); }
-        @media (hover: hover) and (pointer: fine) {
-            .btn-primary:hover { background: oklch(0.8 0.13 222); }
-        }
-        .btn svg { width: 18px; height: 18px; flex: none; }
+/* the d1 four-fact strip */
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; padding-block: 22px 34px; }
+.feat { display: grid; gap: 5px; align-content: start; border-top: 2px solid var(--ink); padding-top: 10px; }
+.feat .k {
+  font: 600 11.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--mute); display: flex; gap: 8px; align-items: center;
+}
+.feat .k b {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px;
+  border-radius: 6px; background: var(--marker); color: var(--on-marker);
+  font-size: 10.5px; letter-spacing: 0; padding: 0 5px; font-weight: 600;
+}
+.feat p { margin: 0; font: 600 15px/1.3 var(--body); }
+.feat p span { display: block; font: 400 13px/1.45 var(--body); color: var(--mute); margin-top: 3px; }
 
-        .copy {
-            display: inline-flex; align-items: center; gap: 12px;
-            height: 48px; padding: 0 8px 0 16px;
-            border-radius: var(--r-control);
-            border: 1px solid var(--line);
-            background: var(--bg-2);
-            color: var(--ink);
-            font: 500 14px/1 var(--mono);
-            cursor: pointer; max-width: 100%;
-            transition: transform 160ms var(--ease-out), border-color 200ms ease;
-        }
-        .copy:active { transform: scale(0.98); }
-        @media (hover: hover) and (pointer: fine) { .copy:hover { border-color: var(--ink-3); } }
-        .copy .cmd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .copy .cmd::before { content: "$ "; color: var(--ink-3); }
-        .copy .state {
-            display: inline-grid; place-items: center;
-            min-width: 68px; height: 32px; padding: 0 10px;
-            border-radius: 6px;
-            background: var(--bg); color: var(--ink-2);
-            font: 600 13px/1 var(--font);
-        }
-        .copy .state span { grid-area: 1 / 1; transition: opacity 180ms ease, filter 180ms ease, transform 180ms var(--ease-out); }
-        .copy .state .done { visibility: hidden; opacity: 0; filter: blur(3px); transform: translateY(4px); color: var(--link); }
-        .copy.is-copied .state .idle { visibility: hidden; opacity: 0; filter: blur(3px); transform: translateY(-4px); }
-        .copy.is-copied .state .done { visibility: visible; opacity: 1; filter: none; transform: none; }
+/* ---------- sections ---------- */
+.sec { padding-block: clamp(44px, 7vw, 84px); border-top: 1px solid var(--rule); }
 
-        /* ---------- Nav ---------- */
-        .nav {
-            position: sticky; top: 0; z-index: var(--z-sticky);
-            background: color-mix(in oklch, var(--bg) 86%, transparent);
-            backdrop-filter: saturate(1.4) blur(12px);
-            -webkit-backdrop-filter: saturate(1.4) blur(12px);
-            border-bottom: 1px solid transparent;
-            transition: border-color 200ms ease;
-        }
-        .nav.is-scrolled { border-bottom-color: var(--line); }
-        .nav .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
-        .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 700; font-size: 19px; letter-spacing: -0.01em; }
-        .brand img { width: 30px; height: 30px; border-radius: 7px; }
-        .nav-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-        .nav-links a {
-            text-decoration: none; color: var(--ink-2); font-size: 15px; font-weight: 500;
-            padding: 8px 12px; border-radius: var(--r-control);
-            transition: color 150ms ease, background-color 150ms ease;
-        }
-        @media (hover: hover) and (pointer: fine) { .nav-links a:hover { color: var(--ink); background: var(--bg-2); } }
-        .nav-links .stars { font-family: var(--mono); font-size: 13px; color: var(--ink-3); margin-left: 6px; }
-        .nav .btn { height: 38px; padding: 0 14px; font-size: 15px; }
-        @media (max-width: 640px) {
-            .nav-links .hide-sm { display: none; }
-            .nav .wrap { gap: 8px; }
-        }
+/* ¶ 01 agents */
+.agents-grid { display: grid; gap: 26px; margin-top: 30px; }
+.shotwin { margin: 0; }
+.shotwin img { width: 100%; height: auto; }
+.snippet h3 { font: 700 19px/1.2 var(--display); letter-spacing: -.01em; }
+.snippet .note { margin: 8px 0 0; color: var(--mute); font-size: 15px; max-width: 40ch; }
+.snippet .note code, .lead code { font: 500 .88em var(--mono); color: var(--ink); background: var(--chip); padding: 2px 6px; border-radius: 5px; }
+.code {
+  position: relative; margin-top: 14px;
+  background: #17191E; color: #C9CDD6; border-radius: 12px;
+  padding: 18px 18px; font: 400 12.5px/1.7 var(--mono);
+  overflow-x: auto;
+}
+.code pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.copy-code {
+  position: absolute; top: 10px; right: 10px;
+  font: 600 12px/1 var(--body); padding: 7px 12px; border-radius: 7px;
+  border: 1px solid #33363D; background: #21242B; color: #C9CDD6; cursor: pointer;
+}
+.copy-code.is-copied { background: var(--marker); color: var(--on-marker); border-color: var(--marker); }
 
-        /* ---------- Hero ---------- */
-        .hero { padding: clamp(48px, 7vw, 88px) 0 var(--section); overflow: clip; }
-        .hero h1 {
-            font-size: clamp(2.4rem, 1.2rem + 4.4vw, 5rem);
-            line-height: 1.03;
-            letter-spacing: -0.035em;
-            font-weight: 750;
-        }
-        .hero h1 .l { display: block; }
-        .hero h1 .l2 { color: var(--ink-3); }
-        .hero-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
-            gap: clamp(32px, 5vw, 72px);
-            margin-top: clamp(32px, 4vw, 56px);
-            align-items: start;
-        }
-        .hero-copy { display: flex; flex-direction: column; gap: 28px; padding-top: 8px; }
-        .lede { font-size: 19px; line-height: 1.55; color: var(--ink-2); max-width: 34ch; }
-        .ctas { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-        .release { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); }
-        .release .pill {
-            font: 500 12.5px/1 var(--mono); color: var(--ink-2);
-            padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line);
-        }
-        @media (max-width: 960px) {
-            .hero-grid { grid-template-columns: 1fr; }
-            .lede { max-width: 46ch; }
-        }
+/* ¶ 02 diagrams wall (design d2) */
+.themes { display: flex; gap: 8px; align-items: center; margin-top: 22px;
+  overflow-x: auto; scrollbar-width: none;
+  margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
+  padding-inline: max(20px, env(safe-area-inset-left, 0px));
+}
+.themes::-webkit-scrollbar { display: none; }
+.themes .chip {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  font: 500 13.5px/1 var(--body); padding: 7px 12px 7px 7px;
+  border-radius: 999px; border: 1px solid var(--rule);
+  background: transparent; color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.themes .chip i {
+  width: 18px; height: 18px; border-radius: 50%; display: block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
+.themes .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.themes .count { flex: none; font: 500 12.5px var(--mono); color: var(--mute); padding: 0 6px; }
+.sheet {
+  position: relative; margin-top: 16px;
+  margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
+  padding: 16px 0 14px;
+  background: var(--t-page, var(--card)); transition: background .5s;
+}
+.badge { display: none; }
+.wallgrid {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+  gap: 12px; padding: 0 max(20px, env(safe-area-inset-left, 0px));
+  scrollbar-width: none;
+}
+.wallgrid::-webkit-scrollbar { display: none; }
+.cell {
+  flex: none; width: 82%; height: 300px; scroll-snap-align: center;
+  min-width: 0; background: var(--pele-bg, var(--card)); border-radius: 12px;
+  padding: 12px 14px 10px; display: grid; grid-template-rows: auto 1fr; gap: 6px;
+  transition: background .5s; overflow: hidden;
+}
+.cell .n {
+  display: flex; justify-content: space-between; gap: 8px;
+  font: 500 11px/1.2 var(--mono); letter-spacing: .06em;
+  color: var(--pele-muted, var(--mute)); text-transform: uppercase;
+}
+.cell .n span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell .s { min-height: 0; display: flex; align-items: center; justify-content: center; }
+.cell .s svg { width: 100%; height: 100%; max-height: 100%; }
+.swipe {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px max(20px, env(safe-area-inset-left, 0px)) 0;
+  font: 500 12px var(--mono); color: var(--pele-muted, var(--mute));
+}
+.swipe .dots { display: flex; gap: 5px; }
+.swipe .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--pele-line, var(--rule)); opacity: .4; }
+.swipe .dots i.on { opacity: 1; width: 16px; border-radius: 3px; }
+.under { padding-block: 22px 0; }
+.under a { font: 500 14px/1 var(--mono); color: var(--ink); }
 
-        /* Entrance: runs once on load; content is visible without it. */
-        @keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } }
-        .hero .l, .hero-copy > *, .stage { animation: none; }
-        .hero .l2 { animation-delay: 70ms; }
-        .hero-copy > :nth-child(1) { animation-delay: 160ms; }
-        .hero-copy > :nth-child(2) { animation-delay: 220ms; }
-        .hero-copy > :nth-child(3) { animation-delay: 280ms; }
-        .stage { animation-delay: 240ms; animation-duration: 1000ms; }
+/* ¶ 03 the page itself */
+.feats3 {
+  list-style: none; margin: 26px 0 0; padding: 0;
+  display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+  margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
+  padding-inline: max(20px, env(safe-area-inset-left, 0px));
+  padding-block: 4px; scrollbar-width: none;
+}
+.feats3::-webkit-scrollbar { display: none; }
+.feats3 li {
+  flex: none; width: 78%; scroll-snap-align: center;
+  border: 1px solid var(--rule); border-radius: 14px; background: var(--card);
+  padding: 18px; display: grid; gap: 8px; align-content: start;
+}
+.feats3 h3 { font: 700 17px/1.25 var(--display); letter-spacing: -.01em; }
+.feats3 p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.5; }
+.feats3 img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--rule); }
+.feats3 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-        /* ---------- The live demo (agent writes, Mark renders) ---------- */
-        .stage { position: relative; padding-bottom: 72px; }
-        .win {
-            background: var(--night);
-            color: var(--night-ink);
-            border-radius: var(--r-panel);
-            box-shadow:
-                0 0 0 1px oklch(0.1 0.02 242 / 0.5),
-                0 30px 60px -30px oklch(0.2 0.05 242 / 0.55),
-                0 12px 24px -12px oklch(0.2 0.05 242 / 0.3);
-            overflow: hidden;
-        }
-        .win-bar {
-            display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-            height: 40px; padding: 0 14px;
-            border-bottom: 1px solid var(--night-line);
-            font-size: 13px; color: var(--night-ink-2);
-        }
-        .lights { display: flex; gap: 8px; }
-        .lights i { width: 12px; height: 12px; border-radius: 50%; }
-        .lights i:nth-child(1) { background: oklch(0.68 0.19 25); }
-        .lights i:nth-child(2) { background: oklch(0.82 0.16 85); }
-        .lights i:nth-child(3) { background: oklch(0.72 0.18 145); }
-        .win-title { font-weight: 600; }
-        .status {
-            justify-self: end;
-            display: inline-flex; align-items: center; gap: 6px;
-            font: 500 12px/1 var(--font);
-            padding: 5px 9px; border-radius: 999px;
-            background: var(--night-2); color: var(--night-ink-3);
-            transition: background-color 240ms ease, color 240ms ease;
-        }
-        .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-        .status[data-tone="live"] { background: oklch(0.74 0.13 222 / 0.18); color: var(--brand); }
-        .status[data-tone="edit"] { background: oklch(0.82 0.16 85 / 0.16); color: oklch(0.86 0.13 85); }
+/* ¶ 04 numbers */
+.bars-cap { margin: 30px 0 0; font: 600 12px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--mute); }
+.bars { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 16px; }
+.bars li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; align-items: center; }
+.bars .who { font: 600 15px/1.3 var(--body); min-width: 0; }
+.bars .who small { display: block; font: 400 12px/1.4 var(--mono); color: var(--mute); margin-top: 2px; }
+.bars .track { grid-column: 1 / -1; height: 20px; background: var(--chip); border-radius: 5px; overflow: hidden; }
+.bars .fill { display: block; height: 100%; width: calc(var(--v) * 100%); background: var(--mute); border-radius: 5px; }
+.bars li.mark .who { font-size: 16.5px; }
+.bars li.mark .fill { background: var(--ink); }
+.bars .val { text-align: right; font: 600 15px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+.bars li.mark .val { color: var(--ink); font-size: 16px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 26px 0 0; }
+.stats div { border-top: 2px solid var(--ink); padding-top: 9px; display: grid; gap: 3px; }
+.stats dt { font: 600 11.5px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.stats dd { margin: 0; font: 800 22px/1.05 var(--display); letter-spacing: -.01em; }
+.method { margin-top: 26px; font-size: 13px; line-height: 1.6; color: var(--mute); max-width: 78ch; }
 
-        .doc {
-            padding: 28px clamp(20px, 4vw, 44px) 36px;
-            min-height: 470px;
-            font-size: 15px; line-height: 1.6;
-        }
-        .doc > * { margin: 0 0 12px; border-radius: 6px; }
-        .doc h2 { font-size: 26px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; color: oklch(0.8 0.13 222); margin-bottom: 8px; }
-        .doc h3 { font-size: 17px; font-weight: 700; margin-top: 20px; margin-bottom: 8px; }
-        .doc p { color: var(--night-ink-2); }
-        .doc code { font-size: 0.86em; background: var(--night-2); padding: 2px 6px; border-radius: 4px; color: var(--night-ink); }
-        .doc ol { padding-left: 22px; }
-        .doc li { padding: 2px 6px; margin-left: -6px; border-radius: 5px; color: var(--night-ink); }
-        .doc li::marker { color: var(--night-ink-3); font-variant-numeric: tabular-nums; }
-        .doc .sel { background: oklch(0.74 0.13 222 / 0.35); border-radius: 2px; }
-        .doc .caret { display: inline-block; width: 2px; height: 1.1em; margin-left: 1px; vertical-align: -0.18em; background: var(--brand); animation: blink 1s steps(1) infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
-        .doc figure { margin: 8px 0 0; padding: 16px; background: var(--night-2); }
-        .doc figure svg { width: 100%; height: auto; display: block; }
-        .doc .flash { animation: flash 1400ms var(--ease-out); }
-        @keyframes flash {
-            0% { background-color: oklch(0.74 0.13 222 / 0.28); }
-            100% { background-color: transparent; }
-        }
-        .doc .enter { animation: enter 420ms var(--ease-out) both, flash 1400ms var(--ease-out); }
-        @keyframes enter { from { opacity: 0; transform: translateY(6px); } }
+/* ¶ 05 install */
+.cards { display: grid; gap: 14px; margin-top: 30px; }
+.card-i {
+  border: 1px solid var(--rule); border-radius: 14px; background: var(--card);
+  padding: 20px; display: grid; gap: 13px; align-content: start;
+}
+.card-i h3 { font: 700 19px/1.2 var(--display); letter-spacing: -.01em; }
+.card-i .btn { width: 100%; }
+.card-i p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.55; }
+.card-i p a { color: var(--ink); }
+.card-i code { font: 500 .9em var(--mono); color: var(--ink); background: var(--chip); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+.editions { margin-top: 22px; font-size: 14px; line-height: 1.6; color: var(--mute); max-width: 90ch; }
+.editions a { color: var(--ink); }
 
-        .term {
-            position: absolute; left: clamp(-40px, -3vw, -16px); bottom: 0;
-            width: min(430px, 78%);
-            background: oklch(0.14 0.012 242);
-            color: var(--night-ink-2);
-            border-radius: var(--r-panel);
-            box-shadow:
-                0 0 0 1px oklch(0.32 0.02 242),
-                0 24px 48px -20px oklch(0.1 0.04 242 / 0.6);
-            font: 400 12.5px/1.7 var(--mono);
-            padding: 12px 16px 14px;
-            min-height: 150px;
-        }
-        .term-head { display: flex; justify-content: space-between; color: var(--night-ink-3); font-size: 11.5px; margin-bottom: 6px; }
-        .term p { white-space: pre-wrap; word-break: break-word; }
-        .term .you { color: var(--night-ink); }
-        .term .you::before { content: "› "; color: var(--brand); }
-        .term .dim { color: var(--night-ink-3); }
-        .term .ok { color: oklch(0.8 0.14 150); }
-        .term .hl { color: var(--brand); }
-        .term .line-in { animation: enter 300ms var(--ease-out) both; }
+/* ---------- footer ---------- */
+.foot { border-top: 1px solid var(--rule); padding-block: 34px 46px; }
+.foot-in { display: grid; gap: 22px; }
+.foot .brand { font-size: 19px; }
+.foot .brand img { width: 26px; height: 26px; }
+.credit { margin: 12px 0 0; color: var(--mute); font-size: 14px; max-width: 44ch; }
+.credit a { color: var(--ink-2); }
+.copr { margin: 6px 0 0; color: var(--mute); font-size: 13px; }
+.foot-nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.foot-nav a { color: var(--ink-2); text-decoration: none; font-size: 14.5px; }
+.foot-nav a:hover, .foot-nav a:focus-visible { color: var(--ink); }
 
-        @media (max-width: 960px) {
-            .stage { padding-bottom: 0; }
-            .term { position: relative; left: auto; width: auto; margin: -24px 16px 0; }
-            .doc { min-height: 430px; }
-        }
-        @media (max-width: 520px) {
-            .doc { min-height: 480px; }
-            .doc h2 { font-size: 22px; }
-        }
+/* ---------- tablet and up (521+) ---------- */
+@media (min-width: 521px) {
+  .more { display: block; }
+  .nav { display: flex; }
+  .mnav { display: none; }
+  .top { padding-block: 40px 0; }
+  .hero-grid { grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: end; }
+  .top h1 { font-size: clamp(44px, 6vw, 86px); max-width: 12ch; }
+  .side { max-width: 440px; padding-bottom: 6px; }
+  .lede { font-size: 19px; }
+  .acts .btn { flex: 0 0 auto; }
+  .acts .brew { display: inline-flex; }
+  .stage { height: 520px; margin-inline: 0; border-radius: 14px; }
+  .layer.raw .body { padding: 22px 34px; font-size: 14px; line-height: 1.75; }
+  .layer.page .doc { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; padding: 26px 0 0 34px; width: calc(100% - 68px); }
+  .layer.page .doc .hide-sm { display: block; }
+  .md h2 { font-size: 26px; }
+  .md h3 { font-size: 17px; margin-top: 16px; }
+  .md table { font-size: 13.5px; }
+  .md th, .md td { padding: 6px 10px; }
+  .lab { font-size: 11px; }
+  .feat p { font-size: 17px; }
+  .feat p span { font-size: 14.5px; }
+  .agents-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 40px; align-items: start; }
+  .themes { overflow: visible; margin-inline: 0; padding-inline: 0; flex-wrap: wrap; }
+  .sheet { margin-inline: 0; border-radius: 18px; padding: 22px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 30px 80px -30px rgba(40, 30, 10, .4); }
+  :root.dark .sheet, :root[data-theme="dark"] .sheet { box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 40px 100px -30px rgba(0, 0, 0, .8); }
+  .wallgrid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 76px; gap: 14px; overflow: visible; padding: 0; }
+  .cell { width: auto; height: auto; border-radius: 12px; padding: 12px 14px 10px; }
+  .c1 { grid-column: span 7; grid-row: span 3; } .c2 { grid-column: span 5; grid-row: span 3; }
+  .c3, .c4, .c5 { grid-column: span 4; grid-row: span 3; }
+  .c6 { grid-column: span 5; grid-row: span 2; } .c7 { grid-column: span 7; grid-row: span 2; }
+  .badge { position: absolute; right: 22px; top: -16px; transform: rotate(3deg); }
+  .swipe { display: none; }
+  .feats3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; overflow: visible; margin-inline: 0; padding-inline: 0; }
+  .feats3 li { width: auto; }
+  .bars li { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 6.5rem; gap: 20px; }
+  .bars .track { grid-column: auto; }
+  .bars .fill { transition: width .6s ease; }
+  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .foot-in { grid-template-columns: auto 1fr; justify-items: end; align-items: start; }
+  .foot-nav { justify-content: flex-end; }
+}
 
-        /* ---------- Sections ---------- */
-        section { padding: var(--section) 0; }
-        .sec-head { max-width: 760px; }
-        .sec-head h2 {
-            font-size: clamp(2rem, 1.2rem + 2.6vw, 3.4rem);
-            line-height: 1.05; letter-spacing: -0.03em; font-weight: 750;
-        }
-        .sec-head p { margin-top: 20px; font-size: 19px; color: var(--ink-2); max-width: 58ch; }
+/* ---------- desktop (981+) ---------- */
+@media (min-width: 981px) {
+  .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding-block: 30px 44px; }
+  .feat { padding: 18px 20px 20px 0; }
+  .feat + .feat { padding-left: 20px; border-left: 1px solid var(--rule); }
+  .stage { height: 580px; }
+  .wallgrid { grid-auto-rows: 86px; }
+}
 
-        /* ---------- The loop (a real three-step sequence) ---------- */
-        .loop { border-top: 1px solid var(--line); }
-        .steps {
-            list-style: none; margin: 56px 0 0; padding: 0;
-            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-            counter-reset: step;
-            border-top: 1px solid var(--line);
-        }
-        .steps li { padding: 28px 28px 0 0; counter-increment: step; }
-        .steps li + li { padding-left: 28px; border-left: 1px solid var(--line); }
-        .steps li::before {
-            content: counter(step);
-            display: block; margin-bottom: 20px;
-            font: 700 15px/1 var(--mono); color: var(--link);
-        }
-        .steps h3 { font-size: 22px; letter-spacing: -0.015em; font-weight: 700; margin-bottom: 8px; }
-        .steps p { color: var(--ink-2); max-width: 32ch; }
-        .steps code, .snippet .note code { font-size: 0.86em; background: var(--bg-2); padding: 2px 6px; border-radius: 4px; }
-        @media (max-width: 820px) {
-            .steps { grid-template-columns: 1fr; }
-            .steps li, .steps li + li { padding: 24px 0; border-left: 0; border-bottom: 1px solid var(--line); }
-        }
-
-        .snippet { margin-top: 72px; display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: clamp(24px, 4vw, 64px); align-items: start; }
-        .snippet h3 { font-size: 22px; letter-spacing: -0.015em; }
-        .snippet .note { margin-top: 10px; color: var(--ink-2); max-width: 34ch; }
-        .code {
-            position: relative;
-            background: var(--night); color: var(--night-ink-2);
-            border-radius: var(--r-panel);
-            padding: 22px 24px;
-            font: 400 13.5px/1.75 var(--mono);
-            overflow-x: auto;
-        }
-        .code pre { margin: 0; white-space: pre-wrap; }
-        .code .hl { color: var(--night-ink); }
-        .code .copy-sm {
-            position: absolute; top: 12px; right: 12px;
-            height: 30px; padding: 0 12px; border-radius: 6px; border: 0;
-            background: var(--night-2); color: var(--night-ink-2);
-            font: 600 12.5px/1 var(--font); cursor: pointer;
-            transition: transform 160ms var(--ease-out), color 150ms ease;
-        }
-        .code .copy-sm:active { transform: scale(0.96); }
-        .code .copy-sm.is-copied { color: var(--brand); }
-        @media (max-width: 820px) { .snippet { grid-template-columns: 1fr; } .code { padding-top: 52px; } }
-
-        /* ---------- Footprint chart ---------- */
-        .footprint { background: var(--bg-2); }
-        .chart-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 56px; }
-        .seg {
-            position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-            padding: 4px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line);
-        }
-        .seg button {
-            position: relative; z-index: 1;
-            height: 36px; padding: 0 18px; border: 0; background: none; cursor: pointer;
-            font: 600 14px/1 var(--font); color: var(--ink-2);
-            border-radius: 7px; transition: color 200ms ease;
-        }
-        .seg button[aria-pressed="true"] { color: var(--on-brand); }
-        .seg .thumb {
-            position: absolute; top: 4px; bottom: 4px; left: 4px;
-            width: calc((100% - 8px) / 2);
-            border-radius: 7px; background: var(--brand);
-            transition: transform 360ms var(--ease-in-out);
-        }
-        .seg[data-metric="disk"] .thumb { transform: translateX(100%); }
-        .chart-caption { font-size: 15px; color: var(--ink-3); }
-
-        .bars { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 22px; }
-        .bars li { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 6.5rem; align-items: center; gap: 20px; }
-        .bars .who { font-weight: 600; font-size: 16px; line-height: 1.3; }
-        .bars .who small { display: block; font: 400 12.5px/1.4 var(--mono); color: var(--ink-3); margin-top: 3px; }
-        .bars .track { height: 30px; }
-        .bars .fill {
-            height: 100%; border-radius: 4px; background: var(--bar);
-            transform-origin: left center;
-            transform: scaleX(var(--v, 1));
-            transition: transform 620ms var(--ease-in-out);
-        }
-        .bars .val { text-align: right; font: 600 16px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
-        .bars .val span { transition: opacity 160ms ease; }
-        .bars .mark .fill { background: var(--brand); }
-        .bars .mark .val { color: var(--ink); }
-        .bars .mark .who { font-size: 18px; }
-        @media (max-width: 720px) {
-            .bars li { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; }
-            .bars .track { grid-column: 1 / -1; grid-row: 2; height: 22px; }
-        }
-        .method { margin-top: 40px; font-size: 14px; line-height: 1.6; color: var(--ink-3); max-width: 80ch; }
-        .method a { color: var(--link); }
-
-        /* ---------- Showcase (tabbed, real screenshots) ---------- */
-        .tabs {
-            position: relative; display: flex; gap: 4px; margin-top: 48px;
-            overflow-x: auto; scrollbar-width: none;
-        }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tabs button {
-            position: relative; z-index: 1; flex: none;
-            height: 40px; padding: 0 16px; border: 0; border-radius: var(--r-control);
-            background: none; cursor: pointer; white-space: nowrap;
-            font: 600 15px/1 var(--font); color: var(--ink-3);
-            transition: color 200ms ease;
-        }
-        .tabs button[aria-selected="true"] { color: var(--ink); }
-        @media (hover: hover) and (pointer: fine) { .tabs button:hover { color: var(--ink); } }
-        .tabs .ind {
-            position: absolute; left: 0; top: 0; height: 40px; width: 0;
-            border-radius: var(--r-control); background: var(--bg-2);
-            transition: transform 320ms var(--ease-in-out), width 320ms var(--ease-in-out);
-        }
-        .viewer { margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1fr); }
-        .shot { margin: 0 0 48px; }
-        .shot img {
-            width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; object-position: top;
-            border-radius: var(--r-panel);
-            box-shadow: 0 0 0 1px var(--line), 0 24px 48px -28px oklch(0.2 0.05 242 / 0.45);
-            background: var(--night);
-        }
-        .shot > p { margin-top: 18px; color: var(--ink-2); max-width: 60ch; }
-        /* With JS the panels stack in one cell and crossfade. */
-        .js .shot {
-            grid-area: 1 / 1; margin: 0;
-            opacity: 0; filter: blur(6px); transform: scale(0.992);
-            transition: opacity 320ms ease, filter 320ms ease, transform 420ms var(--ease-out);
-            pointer-events: none;
-        }
-        .js .shot.is-on { opacity: 1; filter: none; transform: none; pointer-events: auto; }
-        .no-js .tabs { display: none; }
-
-        /* ---------- Details ---------- */
-        .details { padding-top: 0; }
-        .details-grid {
-            margin-top: 64px;
-            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 56px clamp(32px, 6vw, 96px);
-        }
-        .group h3 { font-size: 22px; letter-spacing: -0.015em; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
-        .group dl { margin: 0; }
-        .group dt { font-weight: 650; margin-top: 18px; }
-        .group dd { margin: 4px 0 0; color: var(--ink-2); }
-        .group code, .group kbd { font-size: 0.85em; background: var(--bg-2); padding: 2px 6px; border-radius: 4px; color: var(--ink); }
-        .group a { color: var(--link); }
-        @media (max-width: 760px) { .details-grid { grid-template-columns: 1fr; } }
-
-        /* ---------- Install (the one dark block) ---------- */
-        .install { background: var(--night); color: var(--night-ink); }
-        .install .sec-head p { color: var(--night-ink-2); }
-        .install .copy { margin-top: 44px; height: 64px; width: min(100%, 720px); justify-content: space-between; font-size: clamp(12px, 1.4vw, 17px); background: var(--night-2); border-color: var(--night-line); color: var(--night-ink); padding-left: 22px; }
-        .install .copy .cmd::before { color: var(--night-ink-3); }
-        .install .copy .state { background: var(--night); color: var(--night-ink-2); }
-        .install .copy .state .done { color: var(--brand); }
-        @media (hover: hover) and (pointer: fine) { .install .copy:hover { border-color: var(--night-ink-3); } }
-        .alt { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px 32px; font-size: 16px; color: var(--night-ink-2); }
-        .alt a { color: var(--night-ink); text-decoration-color: var(--night-ink-3); text-underline-offset: 3px; transition: text-decoration-color 150ms ease; }
-        @media (hover: hover) and (pointer: fine) { .alt a:hover { text-decoration-color: var(--brand); } }
-        .facts { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--night-line); display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 14px; color: var(--night-ink-3); }
-
-        /* ---------- Footer ---------- */
-        footer { padding: 48px 0 56px; font-size: 15px; color: var(--ink-3); }
-        footer .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
-        footer nav { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-left: auto; }
-        footer a { color: var(--ink-2); text-decoration: none; }
-        @media (hover: hover) and (pointer: fine) { footer a:hover { color: var(--ink); } }
-
-        /* ---------- Reduced motion ---------- */
-        @media (prefers-reduced-motion: reduce) {
-            html { scroll-behavior: auto; }
-            @keyframes fade { from { opacity: 0; } }
-            .hero .l, .hero-copy > *, .stage { animation: none; }
-            .doc .enter, .doc .flash, .term .line-in, .doc .caret { animation: none; }
-            .bars .fill, .seg .thumb, .tabs .ind { transition: none; }
-            .js .shot { transform: none; filter: none; transition: opacity 200ms ease; }
-        }
-    </style>
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
 </head>
-<body class="no-js">
-    <script>document.body.className = 'js'</script>
-    <a class="skip" href="#main">Skip to content</a>
+<body>
+<a class="skip" href="#main">Skip to content</a>
 
-    <header class="nav" id="nav">
-        <div class="wrap">
-            <a class="brand" href="%BASE%" aria-label="Mark home">
-                <img src="%BASE%logo-96px.png" alt="" width="30" height="30">
-                Mark
-            </a>
-            <nav class="nav-links" aria-label="Primary">
-                <a href="%BASE%guide/">Docs</a>
-                <a class="hide-sm" href="%BASE%diagrams/">Diagrams</a>
-                <a class="hide-sm" href="%BASE%changelog">Changelog</a>
-                <a class="hide-sm" href="https://github.com/xronocode/mark">GitHub<span class="stars" id="gh-stars" hidden></span></a>
-            </nav>
-            <a class="btn btn-primary" href="#install">Download</a>
+<!-- START_BLOCK_MAC_BAR -->
+<!-- iOS/iPadOS only (html.ios): appears after the hero scrolls out, until
+     dismissed. "Send to Mac" shares the canonical URL (Web Share) or copies
+     it; every outcome fires share_to_mac through window.markTrack. -->
+<aside class="macbar" id="macbar" aria-label="Send Mark to your Mac">
+  <img src="%BASE%mark-icon.svg" alt="" width="22" height="22">
+  <span class="mb-t">Mark for Mac</span>
+  <button class="mb-send send-mac" type="button"><span class="lb">Send to Mac</span></button>
+  <button class="mb-x" id="macbar-x" type="button" aria-label="Hide this bar">&#10005;</button>
+</aside>
+<!-- END_BLOCK_MAC_BAR -->
+
+<!-- START_BLOCK_HEADER -->
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href="%BASE%" aria-label="Mark home">
+      <img src="%BASE%mark-icon.svg" alt="" width="32" height="32">Mark
+    </a>
+    <nav class="nav" aria-label="Site">
+      <a href="%BASE%diagrams/">Diagrams</a>
+      <a href="%BASE%guide/">Docs</a>
+      <a href="%BASE%changelog">Changelog</a>
+      <a class="gh" href="https://github.com/xronocode/mark" data-track="download_click" data-method="github" data-placement="nav">GitHub</a>
+    </nav>
+    <div class="hdr-r">
+      <button class="toggle" id="appearance" type="button" aria-label="Toggle dark mode" aria-pressed="false"><span class="sun" aria-hidden="true">&#9728;</span><span class="moon" aria-hidden="true">&#9790;</span></button>
+      <details class="mnav">
+        <summary aria-haspopup="menu">Menu</summary>
+        <nav aria-label="Site">
+          <a href="%BASE%diagrams/">Diagrams</a>
+          <a href="%BASE%guide/">Docs</a>
+          <a href="%BASE%changelog">Changelog</a>
+          <a href="https://github.com/xronocode/mark" data-track="download_click" data-method="github" data-placement="nav">GitHub</a>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
+<!-- END_BLOCK_HEADER -->
+
+<main id="main">
+
+<!-- START_BLOCK_HERO -->
+<!-- data-consent-after: the consent card (consent.js) waits until this whole
+     section has left the viewport — it never covers the first screen. -->
+<section class="top" id="hero" data-consent-after>
+  <div class="wrap">
+    <div class="hero-grid">
+      <h1>Agents write Markdown. <span class="hl">Mark draws it.</span></h1>
+      <div class="side">
+        <p class="lede">Mark opens the file your agent is writing and renders it as it saves: tables, 32 kinds of diagrams, math, callouts. <b>&#8984;D</b> shows what changed since you last looked.</p>
+        <div class="acts">
+          <button class="btn pri only-ios send-mac" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span class="lb">Send Mark to your Mac</span>
+          </button>
+          <a class="btn pri no-ios" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="hero">
+            <svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store
+          </a>
+          <button class="brew" type="button" data-copy="brew tap xronocode/mark &amp;&amp; brew install --cask mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero" aria-label="Copy the Homebrew install command"><i>$</i>brew install --cask mark<b>Copy</b></button>
         </div>
-    </header>
+        <p class="fine"><span id="version">v2.5.0</span> &middot; macOS &amp; Windows &middot; free, MIT</p>
+      </div>
+    </div>
 
-    <main id="main">
-        <!-- Hero ---------------------------------------------------- -->
-        <div class="hero">
-            <div class="wrap">
-                <h1>
-                    <span class="l">Your agents write Markdown.</span>
-                    <span class="l l2">You read it in Mark.</span>
-                </h1>
-                <div class="hero-grid">
-                    <div class="hero-copy">
-                        <p class="lede">A native Mac editor for plans, specs and reports. Diagrams and tables render inline; agent edits reload live.</p>
-                        <div class="ctas">
-                            <a class="btn btn-primary" id="cta-download" href="https://github.com/xronocode/mark/releases/latest">
-                                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Download for Mac
-                            </a>
-                            <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark">
-                                <span class="cmd">brew install --cask mark</span>
-                                <span class="state" aria-live="polite"><span class="idle">Copy</span><span class="done">Copied</span></span>
-                            </button>
-                        </div>
-                        <p class="release"><span class="pill" id="version">v2.1 beta</span> Apple Silicon, 11 MB</p>
-                    </div>
+    <!-- The before/after stage (design d3): the raw Markdown an agent saved
+         on the left of the marker, Mark's rendered page on the right. The
+         DIAGRAM placeholders are filled with build-time Pele SVGs. -->
+    <div class="stage" id="stage" style="--x:46%">
+      <div class="layer raw" aria-hidden="true">
+        <div class="wbar"><span class="lights"><i></i><i></i><i></i></span><span class="ttl">claude &mdash; cat q3-review.md</span></div>
+<div class="body"><span class="h"># Q3 review &mdash; growth</span>
 
-                    <!-- Live demo. The markup below is the finished state, so
-                         the scene reads correctly without JavaScript or with
-                         reduced motion; the script replays it as a loop. -->
-                    <div class="stage" role="img" aria-label="Demo: an agent writes plan.md, Mark renders it, you rewrite step 3, and the agent picks up the change">
-                        <div class="win">
-                            <div class="win-bar">
-                                <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
-                                <div class="win-title">plan.md</div>
-                                <div class="status" id="status" data-tone="">Saved</div>
-                            </div>
-                            <div class="doc" id="doc">
-                                <h2>Auth module plan</h2>
-                                <p>Replace cookie sessions before the 3.0 release. Owner: API team.</p>
-                                <h3>Steps</h3>
-                                <ol>
-                                    <li>Add a <code>POST /auth/token</code> endpoint</li>
-                                    <li>Hash passwords with argon2id</li>
-                                    <li id="step3">Issue short-lived JWTs, no server sessions</li>
-                                    <li>Migrate existing users on next login</li>
-                                </ol>
-                                <figure>
-                                    <svg viewBox="0 0 520 96" aria-hidden="true" font-family="Schibsted Grotesk, sans-serif" font-size="13">
-                                        <g stroke="oklch(0.6 0.02 240)" stroke-width="1.4" fill="none">
-                                            <path d="M86 48h40M226 48h40M352 38l58-16M352 58l58 16"/>
-                                        </g>
-                                        <g fill="oklch(0.6 0.02 240)">
-                                            <path d="M130 48l-8-4.5v9zM270 48l-8-4.5v9zM414 21l-9-2.4 2.6 8.6zM414 75l-6.4-6.2-2.4 8.7z"/>
-                                        </g>
-                                        <rect x="8" y="30" width="78" height="36" rx="6" fill="oklch(0.66 0.12 222)"/>
-                                        <text x="47" y="52.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">Client</text>
-                                        <rect x="130" y="30" width="96" height="36" rx="6" fill="oklch(0.66 0.12 222)"/>
-                                        <text x="178" y="52.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">/auth/token</text>
-                                        <path d="M312 20l42 28-42 28-42-28z" fill="oklch(0.8 0.13 85)"/>
-                                        <text x="312" y="52.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">valid?</text>
-                                        <rect x="414" y="6" width="98" height="32" rx="6" fill="oklch(0.7 0.13 150)"/>
-                                        <text x="463" y="26.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">JWT, 15 min</text>
-                                        <rect x="414" y="58" width="98" height="32" rx="6" fill="oklch(0.68 0.15 25)"/>
-                                        <text x="463" y="78.5" text-anchor="middle" fill="oklch(0.16 0.02 240)" font-weight="600">401</text>
-                                    </svg>
-                                </figure>
-                            </div>
-                        </div>
-                        <div class="term" id="term">
-                            <div class="term-head"><span>~/api</span><span>agent</span></div>
-                            <p class="you">plan the auth module rewrite</p>
-                            <p class="dim">wrote plan.md (4 steps, 1 diagram)</p>
-                            <p><span class="hl">plan.md changed:</span> step 3 now uses JWTs</p>
-                            <p class="ok">updating the implementation to match</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<span class="h">## Funnel</span>
+<span class="c">```mermaid</span>
+<span class="s">sankey-beta</span>
+Search,Visitors,520
+Ads,Visitors,340
+Referrals,Visitors,240
+Visitors,Signed up,690
+Visitors,Bounced,410
+Signed up,Activated,470
+<span class="c">```</span>
+
+<span class="h">## Targets</span>
+| Metric      | Q2   | Q3   | &Delta;     |
+| ----------- | ---- | ---- | ----- |
+| Signed up   | 540  | 690  | +28%  |
+| Activated   | 350  | 470  | +34%  |
+| Pro         | 140  | 180  | +29%  |
+
+<span class="k">&gt; [!NOTE]</span>
+<span class="k">&gt;</span> Ads spend paused in week 38.</div>
+      </div>
+      <div class="layer page win" id="page">
+        <div class="wbar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="ttl">q3-review.md</span><span class="pill"><span class="dot" aria-hidden="true"></span>Reloaded</span></div>
+        <div class="doc md">
+          <div class="full"><h2>Q3 review &mdash; growth</h2><p class="meta">Written by the agent from analytics.csv and billing-export.csv</p></div>
+          <div><h3>Funnel</h3><div class="dia"><!--DIAGRAM:sankey--></div></div>
+          <div class="hide-sm">
+            <h3>Targets</h3>
+            <table>
+              <thead><tr><th>Metric</th><th>Q2</th><th>Q3</th><th>&Delta;</th></tr></thead>
+              <tbody>
+                <tr><td>Signed up</td><td>540</td><td>690</td><td>+28%</td></tr>
+                <tr><td>Activated</td><td>350</td><td>470</td><td>+34%</td></tr>
+                <tr><td>Pro</td><td>140</td><td>180</td><td>+29%</td></tr>
+              </tbody>
+            </table>
+            <div class="note"><b>Note</b><br>Ads spend paused in week 38.</div>
+            <h3>Where the time went</h3>
+            <div class="dia dia-pie"><!--DIAGRAM:pie--></div>
+          </div>
         </div>
+      </div>
+      <span class="lab l">What the agent saved</span><span class="lab r">What you see in Mark</span>
+      <div class="handle" role="slider" tabindex="0" aria-label="Reveal more of the rendered page (drag, or use the arrow keys)" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="46"><span>&#10229; drag</span></div>
+    </div>
 
-        <!-- The loop -------------------------------------------------- -->
-        <section class="loop" aria-labelledby="loop-h">
-            <div class="wrap">
-                <div class="sec-head">
-                    <h2 id="loop-h">One file, two authors.</h2>
-                    <p>Your agent drafts, you correct, and the file on disk carries the conversation. Nothing to paste back into a chat.</p>
-                </div>
-                <ol class="steps">
-                    <li>
-                        <h3>The agent writes</h3>
-                        <p>It saves <code>plan.md</code> and opens it with <code>open&nbsp;-a&nbsp;Mark</code>.</p>
-                    </li>
-                    <li>
-                        <h3>You edit in place</h3>
-                        <p>Delete a step, rewrite a paragraph, leave a note under a table. Save.</p>
-                    </li>
-                    <li>
-                        <h3>The agent reads the diff</h3>
-                        <p>Its next write reloads in Mark without moving your cursor.</p>
-                    </li>
-                </ol>
+    <!-- The four-fact strip (design d1) -->
+    <div class="facts">
+      <div class="feat"><span class="k"><b>&#8635;</b>Live reload</span><p>Every save, in place<span>Scroll position stays where you were.</span></p></div>
+      <div class="feat"><span class="k"><b>&#8984;D</b>Changes</span><p>See what the agent touched<span>Against a snapshot taken before each reload.</span></p></div>
+      <div class="feat"><span class="k"><b>32</b>Diagram types</span><p>Drawn in the page<span>Flowchart to sankey, in your theme&rsquo;s colours.</span></p></div>
+      <div class="feat"><span class="k"><b>0.4&#8202;s</b>Native</span><p>Small and quick<span>&asymp;&nbsp;30&#8202;MB on disk, the system WebView.</span></p></div>
+    </div>
+  </div>
+</section>
+<!-- END_BLOCK_HERO -->
 
-                <div class="snippet">
-                    <div>
-                        <h3>Teach your agent once</h3>
-                        <p class="note">Paste into <code>CLAUDE.md</code>, <code>AGENTS.md</code> or any system prompt your agent reads.</p>
-                    </div>
-                    <div class="code">
-                        <button class="copy-sm" type="button" data-copy-target="agent-snippet">Copy</button>
-<pre id="agent-snippet"><span class="hl">When you produce a plan, spec, report, or any document longer
-than ~50 lines, write it to a .md file and open it for the user:</span>
+<!-- START_BLOCK_SECTION_AGENTS -->
+<section class="sec" aria-labelledby="ag-h">
+  <div class="wrap">
+    <p class="no">&para; 01</p>
+    <h2 id="ag-h">Watch your agent write.</h2>
+    <p class="lead">Keep the file open while an agent works on it. Every save on disk reloads the tab in place and keeps your scroll position, so you can follow a long pass and step in when it finishes. <b>&#8984;D</b> shows exactly what the agent changed, against a snapshot Mark takes before every reload.</p>
+    <div class="agents-grid">
+      <figure class="win shotwin">
+        <div class="wbar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="ttl">plan.md</span><span class="pill"><span class="dot" aria-hidden="true"></span>Reloaded</span></div>
+        <img src="%BASE%shots/01-agents-800.jpg" srcset="%BASE%shots/01-agents.jpg 1440w, %BASE%shots/01-agents-800.jpg 800w" sizes="(min-width: 981px) 680px, calc(100vw - 40px)" alt="A plan document beside the folder tree, with Recent, Pinned and the page outline" width="1440" height="900" loading="lazy">
+      </figure>
+      <div class="snippet">
+        <h3>Connect your agent</h3>
+        <p class="note">The home screen connects your agent with one click &mdash; or paste this into <code>CLAUDE.md</code>, <code>AGENTS.md</code> or any system prompt your agent reads.</p>
+        <div class="code">
+          <button class="copy-code" type="button" data-copy-target="agent-snippet" aria-label="Copy the agent snippet">Copy</button>
+<pre id="agent-snippet">When you produce a plan, spec, report, or any document longer
+than ~50 lines, write it to a .md file and open it for the user:
 
     open -a Mark &lt;file&gt;.md
 
@@ -641,445 +751,468 @@ The user reads and edits it in Mark, which reloads the file when
 it changes on disk. When the file changes, read the new version:
 the user left corrections inline. Treat the diff as your next
 instruction.</pre>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Footprint --------------------------------------------------- -->
-        <section class="footprint" aria-labelledby="fp-h">
-            <div class="wrap">
-                <div class="sec-head">
-                    <h2 id="fp-h">113 MB with 25 documents open.</h2>
-                    <p>We opened the same 25 files in four editors and counted every process each one owns. Mark renders with the WebKit already on your Mac instead of shipping its own browser engine.</p>
-                </div>
-
-                <div class="chart-top">
-                    <div class="seg" id="seg" data-metric="ram" role="group" aria-label="Metric">
-                        <span class="thumb" aria-hidden="true"></span>
-                        <button type="button" data-metric="ram" aria-pressed="true">Memory</button>
-                        <button type="button" data-metric="disk" aria-pressed="false">Disk</button>
-                    </div>
-                    <p class="chart-caption" id="chart-caption">RAM with 25 documents open, all app processes</p>
-                </div>
-
-                <ul class="bars" id="bars">
-                    <li data-ram="2313" data-disk="676">
-                        <div class="who">Agentic AI IDE <small>A********** · Electron</small></div>
-                        <div class="track"><div class="fill"></div></div>
-                        <div class="val"><span>2,313 MB</span></div>
-                    </li>
-                    <li data-ram="1517" data-disk="1160">
-                        <div class="who">General code editor <small>V* C*** · Electron</small></div>
-                        <div class="track"><div class="fill"></div></div>
-                        <div class="val"><span>1,517 MB</span></div>
-                    </li>
-                    <li data-ram="803" data-disk="481">
-                        <div class="who">Note-taking editor <small>O******* · Electron</small></div>
-                        <div class="track"><div class="fill"></div></div>
-                        <div class="val"><span>803 MB</span></div>
-                    </li>
-                    <li class="mark" data-ram="113" data-disk="28">
-                        <div class="who">Mark <small>Native · system WebKit</small></div>
-                        <div class="track"><div class="fill"></div></div>
-                        <div class="val"><span>113 MB</span></div>
-                    </li>
-                </ul>
-
-                <p class="method">
-                    Method: Apple M5, 32 GB, macOS 26.6, 21 September 2026. The same 25 Markdown files (about 54 KB) in every editor; Electron apps ran in fresh profiles, and RAM is the sum of all app-owned processes after a 25-second settle. Mark v2.1.11 downloads at 11.7 MB and idles near 61 MB with one file open. Competitor names are masked on purpose; the pattern is the point. Reproduce it with <a href="https://github.com/xronocode/mark/blob/main/tools/benchmark/editors-bench.sh">tools/benchmark/editors-bench.sh</a>.
-                </p>
-            </div>
-        </section>
-
-        <!-- Showcase ---------------------------------------------------- -->
-        <section aria-labelledby="sc-h">
-            <div class="wrap">
-                <div class="sec-head">
-                    <h2 id="sc-h">Everything an agent puts in a .md file.</h2>
-                    <p>Rendered in place, in one pane. No split preview, no export step.</p>
-                </div>
-
-                <div class="tabs" role="tablist" aria-label="Showcase" id="tabs">
-                    <span class="ind" aria-hidden="true"></span>
-                    <button type="button" role="tab" id="t-0" aria-controls="p-0" aria-selected="true">Text</button>
-                    <button type="button" role="tab" id="t-1" aria-controls="p-1" aria-selected="false" tabindex="-1">Code</button>
-                    <button type="button" role="tab" id="t-2" aria-controls="p-2" aria-selected="false" tabindex="-1">Diagrams</button>
-                    <button type="button" role="tab" id="t-3" aria-controls="p-3" aria-selected="false" tabindex="-1">Math</button>
-                    <button type="button" role="tab" id="t-4" aria-controls="p-4" aria-selected="false" tabindex="-1">Tables</button>
-                    <button type="button" role="tab" id="t-5" aria-controls="p-5" aria-selected="false" tabindex="-1">Tasks</button>
-                </div>
-                <div class="viewer">
-                    <div class="shot is-on" role="tabpanel" id="p-0" aria-labelledby="t-0">
-                        <img src="%BASE%showcase-00-rich-markdown.png" alt="Mark showing a formatted document with headings, emphasis, lists and a quote" width="1280" height="800">
-                        <p>Headings, lists, quotes and inline code, edited where they are rendered. Switch to source mode when you want the raw text.</p>
-                    </div>
-                    <div class="shot" role="tabpanel" id="p-1" aria-labelledby="t-1">
-                        <img src="%BASE%showcase-01-code-highlighting.png" alt="Fenced code blocks with syntax highlighting in Mark" width="1280" height="800" loading="lazy">
-                        <p>Fenced code with highlighting for more than 60 languages.</p>
-                    </div>
-                    <div class="shot" role="tabpanel" id="p-2" aria-labelledby="t-2">
-                        <img src="%BASE%showcase-02-mermaid-flowchart.png" alt="A Mermaid architecture flowchart and a pie chart rendered inline" width="1280" height="800" loading="lazy">
-                        <p>32 diagram types in Mermaid syntax and Vega charts render inline and follow the theme. <a href="%BASE%diagrams/">See every type in the gallery</a>.</p>
-                    </div>
-                    <div class="shot" role="tabpanel" id="p-3" aria-labelledby="t-3">
-                        <img src="%BASE%showcase-03-math-katex.png" alt="KaTeX equations rendered inline in a document" width="1280" height="800" loading="lazy">
-                        <p>KaTeX for inline and display equations.</p>
-                    </div>
-                    <div class="shot" role="tabpanel" id="p-4" aria-labelledby="t-4">
-                        <img src="%BASE%showcase-04-data-tables.png" alt="A project dashboard built from Markdown tables" width="1280" height="800" loading="lazy">
-                        <p>Tables render as tables and edit cell by cell.</p>
-                    </div>
-                    <div class="shot" role="tabpanel" id="p-5" aria-labelledby="t-5">
-                        <img src="%BASE%showcase-06-task-management.png" alt="A roadmap with checked and unchecked task lists" width="1280" height="800" loading="lazy">
-                        <p>Task lists you can tick off while the agent works through them.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Details ----------------------------------------------------- -->
-        <section class="details" aria-labelledby="dt-h">
-            <div class="wrap">
-                <div class="sec-head">
-                    <h2 id="dt-h">A small app with the right parts.</h2>
-                </div>
-                <div class="details-grid">
-                    <div class="group">
-                        <h3>For the agent loop</h3>
-                        <dl>
-                            <dt>Live reload</dt>
-                            <dd>External edits appear as they land. Run <code>mark --watch plan.md</code> from any script.</dd>
-                            <dt>Inline diff</dt>
-                            <dd><kbd>⌘D</kbd> compares against git HEAD or a <code>.before</code> file, so you see exactly what the agent changed.</dd>
-                            <dt>Unsaved work stays safe</dt>
-                            <dd>A reload never overwrites a tab you are still editing; you choose to save, discard or keep it.</dd>
-                        </dl>
-                    </div>
-                    <div class="group">
-                        <h3>For reading</h3>
-                        <dl>
-                            <dt>32 themes and custom CSS</dt>
-                            <dd>Light, dark and everything between, synced across windows.</dd>
-                            <dt>Preview mode</dt>
-                            <dd>Double-click a .md file in Finder and it opens read-only. Make Mark the default handler if you like.</dd>
-                            <dt>Folders and search</dt>
-                            <dd>A sidebar file tree, tabs, and find across a whole folder.</dd>
-                        </dl>
-                    </div>
-                    <div class="group">
-                        <h3>For your Mac</h3>
-                        <dl>
-                            <dt>Native, not Electron</dt>
-                            <dd>Tauri and the system WebKit view, a real menu bar, system spell-check, proper shortcuts.</dd>
-                            <dt>Signed and notarized</dt>
-                            <dd>Developer ID signed, notarized by Apple, updated through Homebrew.</dd>
-                        </dl>
-                    </div>
-                    <div class="group">
-                        <h3>For your files</h3>
-                        <dl>
-                            <dt>No account, no telemetry</dt>
-                            <dd>Nothing leaves your machine. Files stay plain Markdown on disk.</dd>
-                            <dt>Open source</dt>
-                            <dd>MIT licensed, built on the Muya engine from Mark Text. <a href="https://github.com/xronocode/mark">Read the code on GitHub</a>. If Mark is useful to you, <a href="https://ko-fi.com/xronocode">support it on Ko-fi</a>.</dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Install ----------------------------------------------------- -->
-        <section class="install" id="install" aria-labelledby="in-h">
-            <div class="wrap">
-                <div class="sec-head">
-                    <h2 id="in-h">Install in one line.</h2>
-                    <p>Homebrew keeps Mark updated. Paste this into Terminal.</p>
-                </div>
-                <button class="copy" type="button" data-copy="brew tap xronocode/mark && brew install --cask mark">
-                    <span class="cmd">brew tap xronocode/mark &amp;&amp; brew install --cask mark</span>
-                    <span class="state" aria-live="polite"><span class="idle">Copy</span><span class="done">Copied</span></span>
-                </button>
-                <div class="alt">
-                    <a id="dmg-download" href="https://github.com/xronocode/mark/releases/latest">Download the .dmg (11 MB)</a>
-                    <a href="https://apps.apple.com/app/mark-light-md-editor-for-ai/id6814590464">Get it on the Mac App Store</a>
-                    <a href="%BASE%guide/quickstart">Read the quick start</a>
-                    <a href="https://github.com/xronocode/mark#install">Build from source</a>
-                </div>
-                <div class="facts">
-                    <span>Apple Silicon</span>
-                    <span>macOS 12 or later</span>
-                    <span>Intel Macs: build from source</span>
-                    <a href="https://apps.apple.com/app/mark-light-md-editor-for-ai/id6814590464">Also on the Mac App Store</a>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <div class="wrap">
-            <a class="brand" href="%BASE%" aria-label="Mark home"><img src="%BASE%logo-96px.png" alt="" width="30" height="30">Mark</a>
-            <span>© <span id="year">2026</span> xronocode · MIT</span>
-            <nav aria-label="Footer">
-                <a href="%BASE%guide/">Docs</a>
-                <a href="%BASE%diagrams/">Diagram gallery</a>
-                <a href="%BASE%changelog">Changelog</a>
-                <a href="%BASE%privacy">Privacy</a>
-                <a href="#cookie-settings">Cookie settings</a>
-                <a href="https://github.com/xronocode/mark">GitHub</a>
-                <a href="https://ko-fi.com/xronocode">Support on Ko-fi</a>
-            </nav>
         </div>
-    </footer>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- END_BLOCK_SECTION_AGENTS -->
 
-    <script>
-    (function () {
-        'use strict';
-        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-        var $ = function (s, r) { return (r || document).querySelector(s); };
-        var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
-        $('#year').textContent = new Date().getFullYear();
+<!-- START_BLOCK_SECTION_DIAGRAMS -->
+<section class="sec" id="diagrams-sec" aria-labelledby="dg-h">
+  <div class="wrap">
+    <p class="no">&para; 02</p>
+    <h2 id="dg-h"><span class="hl">32 kinds of diagrams,</span> drawn as your agent saves.</h2>
+    <p class="lead">Flowcharts, sankeys, Gantt charts &mdash; a plain ```mermaid block in the Markdown, drawn in the page in the colours of the theme. Pick a theme and watch the wall follow:</p>
+    <div class="themes" id="themes" role="group" aria-label="Diagram theme"></div>
+    <div class="sheet" id="sheet">
+      <span class="pill badge">```mermaid &rarr; drawn on save</span>
+      <div class="wallgrid" id="wallgrid">
+        <div class="cell c1"><div class="n"><span>Flowchart</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:flowchart--></div></div>
+        <div class="cell c2"><div class="n"><span>Sankey</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:sankey--></div></div>
+        <div class="cell c3"><div class="n"><span>Pie</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:pie--></div></div>
+        <div class="cell c4"><div class="n"><span>Venn</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:venn--></div></div>
+        <div class="cell c5"><div class="n"><span>Radar</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:radar--></div></div>
+        <div class="cell c6"><div class="n"><span>Kanban</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:kanban--></div></div>
+        <div class="cell c7"><div class="n"><span>Gantt</span><span>```mermaid</span></div><div class="s"><!--DIAGRAM:gantt--></div></div>
+      </div>
+      <div class="swipe"><span>Swipe &middot; 5 of 32 types</span><span class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></span></div>
+    </div>
+    <p class="under"><a href="%BASE%diagrams/">See all 32 diagram types in every theme &rarr;</a></p>
+  </div>
+</section>
+<!-- END_BLOCK_SECTION_DIAGRAMS -->
 
-        /* ---------- Release + stars (live from GitHub) ---------- */
-        fetch('https://api.github.com/repos/xronocode/mark/releases/latest')
-            .then(function (r) { return r.json(); })
-            .then(function (rel) {
-                if (!rel || !rel.tag_name) return;
-                $('#version').textContent = rel.tag_name;
-                // Point the DMG links at the exact current artifact.
-                var asset = (rel.assets || []).find(function (a) { return /Mark_.*_aarch64\.dmg$/.test(a.name); });
-                if (!asset) return;
-                ['cta-download', 'dmg-download'].forEach(function (id) {
-                    var el = document.getElementById(id);
-                    if (el) el.href = asset.browser_download_url;
-                });
-            })
-            .catch(function () {});
-        fetch('https://api.github.com/repos/xronocode/mark')
-            .then(function (r) { return r.json(); })
-            .then(function (repo) {
-                // Shown only once the count is socially meaningful.
-                if (repo && repo.stargazers_count >= 50) {
-                    var s = $('#gh-stars');
-                    s.textContent = '★ ' + repo.stargazers_count.toLocaleString('en-US');
-                    s.hidden = false;
-                }
-            })
-            .catch(function () {});
+<!-- START_BLOCK_SECTION_PAGE -->
+<section class="sec" aria-labelledby="pg-h">
+  <div class="wrap">
+    <p class="no">&para; 03</p>
+    <h2 id="pg-h">Write in the finished page.</h2>
+    <p class="lead">Headings, tables, task lists, footnotes, callouts and front matter look done while you type &mdash; and the rest of the page keeps up.</p>
+    <ul class="feats3">
+      <li>
+        <h3>Split View</h3>
+        <p>The rendered page is the editor. When you need the raw Markdown, Split View puts it beside the page.</p>
+      </li>
+      <li>
+        <h3>Copy it clean</h3>
+        <p>Copy as Markdown, as HTML for email, as plain text, or as structured text that keeps paragraphs, bullets, links and tables readable wherever you paste them.</p>
+      </li>
+      <li class="f-img">
+        <h3>Open anything full screen</h3>
+        <img src="%BASE%shots/05-viewer-800.jpg" srcset="%BASE%shots/05-viewer.jpg 1440w, %BASE%shots/05-viewer-800.jpg 800w" sizes="(min-width: 981px) 380px, 78vw" alt="A large release-pipeline diagram open in the fullscreen viewer, zoomed in" width="1440" height="900" loading="lazy">
+        <p>Any diagram or wide table opens in a clean viewer with zoom, pan and a sticky header for tables.</p>
+      </li>
+      <li>
+        <h3>Print &amp; PDF, each direct</h3>
+        <p><b>&#8984;P</b> opens the system print panel directly. Export to PDF writes the file through a save dialog, without the print panel &mdash; on macOS and Windows.</p>
+      </li>
+      <li class="f-img">
+        <h3>32 themes, light and dark</h3>
+        <div class="pair">
+          <img src="%BASE%shots/01-agents-800.jpg" srcset="%BASE%shots/01-agents.jpg 1440w, %BASE%shots/01-agents-800.jpg 800w" sizes="(min-width: 981px) 190px, 38vw" alt="A plan document in the light theme" width="1440" height="900" loading="lazy">
+          <img src="%BASE%shots/08-dark-800.jpg" srcset="%BASE%shots/08-dark.jpg 1440w, %BASE%shots/08-dark-800.jpg 800w" sizes="(min-width: 981px) 190px, 38vw" alt="The same plan document in the dark theme" width="1440" height="900" loading="lazy">
+        </div>
+        <p>Theme families with a light and a dark member &mdash; Paper, Ink, Docs, macOS and more &mdash; one title-bar button apart. Diagrams can follow, or pin their own look.</p>
+      </li>
+      <li>
+        <h3>Diagrams as pictures</h3>
+        <p>Copy any diagram as an image, or save it as PNG or SVG with the theme&rsquo;s colours &mdash; from the diagram&rsquo;s corner panel, the context menu or the full-screen view.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+<!-- END_BLOCK_SECTION_PAGE -->
 
-        /* ---------- Nav border once scrolled ---------- */
-        var nav = $('#nav');
-        var onScroll = function () { nav.classList.toggle('is-scrolled', window.scrollY > 8); };
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
+<!-- START_BLOCK_SECTION_NUMBERS -->
+<section class="sec" aria-labelledby="fp-h">
+  <div class="wrap">
+    <p class="no">&para; 04</p>
+    <h2 id="fp-h">Small and native.</h2>
+    <p class="lead">Mark renders with the system WebView &mdash; WebKit on macOS, WebView2 on Windows &mdash; instead of shipping its own browser engine.</p>
+    <p class="bars-cap">Memory with the same rich document open</p>
+    <ul class="bars">
+      <li class="mark">
+        <span class="who">Mark<small>native &middot; system WebView</small></span>
+        <span class="track"><span class="fill" style="--v:.31"></span></span>
+        <span class="val">&asymp; 310 MB</span>
+      </li>
+      <li>
+        <span class="who">An Electron notes app<small>same document</small></span>
+        <span class="track"><span class="fill" style="--v:.4"></span></span>
+        <span class="val">&asymp; 400 MB</span>
+      </li>
+      <li>
+        <span class="who">An Electron code editor<small>same document</small></span>
+        <span class="track"><span class="fill" style="--v:1"></span></span>
+        <span class="val">&asymp; 1 GB</span>
+      </li>
+    </ul>
+    <dl class="stats">
+      <div><dt>First window</dt><dd>&asymp; 0.4 s</dd></div>
+      <div><dt>On disk</dt><dd>&asymp; 30 MB</dd></div>
+      <div><dt>Plain document</dt><dd>&asymp; 150 MB</dd></div>
+      <div><dt>4,100-line file</dt><dd>&asymp; 3 s to open</dd></div>
+    </dl>
+    <p class="method">Measured 2026-10-15 on one Apple silicon Mac, Mark 2.3.0 &mdash; your numbers will differ. A rich document means Mermaid diagrams, KaTeX math and a table open together.</p>
+  </div>
+</section>
+<!-- END_BLOCK_SECTION_NUMBERS -->
 
-        /* ---------- Copy to clipboard ---------- */
-        function copyText(text) {
-            if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
-            return new Promise(function (ok, fail) {
-                var ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-                document.body.appendChild(ta);
-                ta.select();
-                try { document.execCommand('copy') ? ok() : fail(); } catch (e) { fail(e); }
-                ta.remove();
-            });
-        }
-        $$('[data-copy]').forEach(function (el) {
-            var t;
-            el.addEventListener('click', function () {
-                copyText(el.getAttribute('data-copy')).then(function () {
-                    el.classList.add('is-copied');
-                    clearTimeout(t);
-                    t = setTimeout(function () { el.classList.remove('is-copied'); }, 1800);
-                }, function () {});
-            });
+<!-- START_BLOCK_SECTION_INSTALL -->
+<section class="sec" id="install" aria-labelledby="in-h">
+  <div class="wrap">
+    <p class="no">&para; 05</p>
+    <h2 id="in-h">Get Mark</h2>
+    <p class="lead">Free and open source, MIT licence. No account, no analytics, no telemetry in the app.</p>
+    <div class="cards">
+      <article class="card-i">
+        <h3>Mac App Store</h3>
+        <a class="btn pri" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="install">
+          <svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store
+        </a>
+        <p>Requires macOS 12 or later. The App Store edition is 2.1.17 today; its next update brings 2.5.0. <a href="%BASE%guide/editions#when-the-app-store-catches-up">When does it catch up?</a></p>
+      </article>
+      <article class="card-i">
+        <h3>Homebrew</h3>
+        <button class="brew block" type="button" data-copy="brew tap xronocode/mark &amp;&amp; brew install --cask mark" data-track="download_click" data-method="homebrew_copy" data-placement="install" aria-label="Copy the Homebrew install command"><i>$</i>brew tap xronocode/mark &amp;&amp; brew install --cask mark<b>Copy</b></button>
+        <p>Apple silicon. Developer ID signed and notarized by Apple; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code>. Or download <a id="dmg-link" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="github" data-placement="install">Mark_2.5.0_aarch64.dmg</a> (&asymp; 15 MB).</p>
+      </article>
+      <article class="card-i">
+        <h3>Windows</h3>
+        <a class="btn" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
+        <p><code>Mark_2.5.0_x64-setup.exe</code>, &asymp; 10 MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo; &mdash; choose <em>More info</em>, then <em>Run anyway</em>.</p>
+      </article>
+    </div>
+    <p class="editions">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. <a href="%BASE%guide/editions">See the full table</a>.</p>
+  </div>
+</section>
+<!-- END_BLOCK_SECTION_INSTALL -->
+</main>
+
+<!-- START_BLOCK_FOOTER -->
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div>
+      <a class="brand" href="%BASE%" aria-label="Mark home"><img src="%BASE%mark-icon.svg" alt="" width="26" height="26">Mark</a>
+      <p class="credit">Inspired by <a href="https://github.com/marktext/marktext">Mark Text</a> &mdash; a different technical take on the same idea.</p>
+      <p class="copr">&copy; <span id="year">2026</span> xronocode &middot; MIT</p>
+    </div>
+    <nav class="foot-nav" aria-label="Footer">
+      <a href="%BASE%guide/">Docs</a>
+      <a href="%BASE%diagrams/">Diagrams</a>
+      <a href="%BASE%changelog">Changelog</a>
+      <a href="%BASE%privacy">Privacy</a>
+      <a href="#cookie-settings">Cookie settings</a>
+      <a href="https://ko-fi.com/xronocode">Support</a>
+      <a href="https://github.com/xronocode/mark" data-track="download_click" data-method="github" data-placement="footer">GitHub</a>
+    </nav>
+  </div>
+</footer>
+<!-- END_BLOCK_FOOTER -->
+
+<!-- Theme data for the diagram chips and the hero's Paper/Ink pair, filled
+     from the gallery renderer at build time (same table as /diagrams/). -->
+<script type="application/json" id="pele-vars"><!--THEME_VARS_JSON--></script>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var phone = window.matchMedia('(max-width: 520px)');
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var isDark = function () { return root.classList.contains('dark'); };
+
+  /* START_BLOCK_PAGE_THEMES */
+  var THEMES = {};
+  try {
+    var nv = document.getElementById('pele-vars');
+    var raw = nv ? nv.textContent.replace(/^\s+|\s+$/g, '') : '';
+    if (raw.charAt(0) === '{') THEMES = JSON.parse(raw);
+  } catch (e) { THEMES = {}; }
+  function applyPele (el, id) {
+    if (!el) return;
+    var t = THEMES[id];
+    if (!t) return;
+    for (var k in t) if (k.indexOf('--') === 0) el.style.setProperty(k, t[k]);
+    el.style.setProperty('--t-page', t.page);
+  }
+  /* END_BLOCK_PAGE_THEMES */
+
+  /* START_BLOCK_APPEARANCE */
+  var heroPage = document.getElementById('page');
+  function heroPele () {
+    if (heroPage) heroPage.classList.toggle('dk', isDark());
+    applyPele(heroPage, isDark() ? 'ink' : 'paper');
+  }
+  var tgl = document.getElementById('appearance');
+  if (tgl) {
+    tgl.setAttribute('aria-pressed', String(isDark()));
+    tgl.addEventListener('click', function () {
+      var dark = !isDark();
+      root.classList.toggle('dark', dark);
+      root.setAttribute('data-theme', dark ? 'dark' : 'light');
+      tgl.setAttribute('aria-pressed', String(dark));
+      try { localStorage.setItem('vitepress-theme-appearance', dark ? 'dark' : 'light'); } catch (e) {}
+      heroPele();
+      if (wallCur === 'paper' || wallCur === 'ink') wallSet(isDark() ? 'ink' : 'paper');
+    });
+  }
+  heroPele();
+  /* END_BLOCK_APPEARANCE */
+
+  /* START_BLOCK_VERSION */
+  fetch('https://api.github.com/repos/xronocode/mark/releases/latest')
+    .then(function (r) { return r.json(); })
+    .then(function (rel) {
+      if (!rel || !rel.tag_name) return;
+      var v = document.getElementById('version');
+      if (v) v.textContent = rel.tag_name;
+      var asset = (rel.assets || []).filter(function (a) { return /Mark_.*_aarch64\.dmg$/.test(a.name || ''); })[0];
+      if (asset && asset.browser_download_url) {
+        var d = document.getElementById('dmg-link');
+        if (d) d.href = asset.browser_download_url;
+      }
+    })
+    .catch(function () {});
+  /* END_BLOCK_VERSION */
+
+  /* START_BLOCK_COPY */
+  function copyText (text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+    return new Promise(function (ok, fail) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy') ? ok() : fail(); } catch (e) { fail(e); }
+      ta.remove();
+    });
+  }
+  $$('[data-copy]').forEach(function (el) {
+    var label = el.querySelector('b');
+    var orig = label ? label.textContent : '';
+    var t;
+    el.addEventListener('click', function () {
+      copyText(el.getAttribute('data-copy')).then(function () {
+        el.classList.add('is-copied');
+        if (label) label.textContent = 'Copied';
+        clearTimeout(t);
+        t = setTimeout(function () {
+          el.classList.remove('is-copied');
+          if (label) label.textContent = orig;
+        }, 1800);
+      }, function () {});
+    });
+  });
+  $$('[data-copy-target]').forEach(function (el) {
+    var t;
+    el.addEventListener('click', function () {
+      var src = document.getElementById(el.getAttribute('data-copy-target'));
+      if (!src) return;
+      copyText(src.textContent).then(function () {
+        el.classList.add('is-copied');
+        el.textContent = 'Copied';
+        clearTimeout(t);
+        t = setTimeout(function () {
+          el.classList.remove('is-copied');
+          el.textContent = 'Copy';
+        }, 1800);
+      }, function () {});
+    });
+  });
+  /* END_BLOCK_COPY */
+
+  /* START_BLOCK_STAGE */
+  var st = document.getElementById('stage');
+  if (st) {
+    var handle = st.querySelector('.handle');
+    var drag = false;
+    var sweepOn = true;
+    var restX = phone.matches ? 34 : 46;
+    function setX (pct) {
+      var x = Math.max(4, Math.min(96, pct));
+      st.style.setProperty('--x', x + '%');
+      if (handle) handle.setAttribute('aria-valuenow', String(Math.round(x)));
+    }
+    function setFromClient (cx) {
+      var r = st.getBoundingClientRect();
+      if (r.width > 0) setX((cx - r.left) / r.width * 100);
+    }
+    setX(restX);
+    st.addEventListener('pointerdown', function (e) {
+      drag = true;
+      sweepOn = false;
+      if (st.setPointerCapture) { try { st.setPointerCapture(e.pointerId); } catch (err) {} }
+      setFromClient(e.clientX);
+    });
+    st.addEventListener('pointermove', function (e) { if (drag) setFromClient(e.clientX); });
+    st.addEventListener('pointerup', function () { drag = false; });
+    st.addEventListener('pointercancel', function () { drag = false; });
+    if (handle) {
+      handle.addEventListener('keydown', function (e) {
+        var now = parseFloat(handle.getAttribute('aria-valuenow')) || restX;
+        var step = { ArrowLeft: -5, ArrowDown: -5, ArrowRight: 5, ArrowUp: 5 }[e.key];
+        if (typeof step === 'number') { e.preventDefault(); sweepOn = false; setX(now + step); }
+        else if (e.key === 'Home') { e.preventDefault(); sweepOn = false; setX(4); }
+        else if (e.key === 'End') { e.preventDefault(); sweepOn = false; setX(96); }
+      });
+    }
+    /* One sweep on load so the idea reads without touching it (skipped under
+       reduced motion), then the handle rests mid-way. */
+    if (!reduce.matches) {
+      var t0 = null;
+      var sweep = function (t) {
+        if (!sweepOn) return;
+        if (!t0) t0 = t;
+        var k = Math.min(1, (t - t0) / 2600);
+        var x = 92 - Math.sin(k * Math.PI) * 70;
+        if (k >= 1) x = restX;
+        if (!drag) setX(x);
+        if (k < 1) requestAnimationFrame(sweep);
+      };
+      setTimeout(function () { requestAnimationFrame(sweep); }, 500);
+    }
+  }
+  /* END_BLOCK_STAGE */
+
+  /* START_BLOCK_WALL */
+  var WALL_THEMES = [
+    ['paper', 'Paper'], ['ink', 'Ink'], ['nord', 'Nord'], ['gruvbox-light', 'Gruvbox'],
+    ['solarized-dark', 'Solarized'], ['catppuccin-mocha', 'Catppuccin'],
+    ['rose-pine-dawn', 'Ros\u00e9 Pine'], ['dracula', 'Dracula']
+  ];
+  var wallCur = null;
+  var wallTimer = null;
+  var sheet = document.getElementById('sheet');
+  var themesBox = document.getElementById('themes');
+  var wallIds = WALL_THEMES.map(function (p) { return p[0]; });
+  function wallSet (id) {
+    if (wallIds.indexOf(id) < 0) return;
+    wallCur = id;
+    applyPele(sheet, id);
+    if (themesBox) $$('.chip', themesBox).forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-id') === id));
+    });
+  }
+  function wallStop () {
+    if (wallTimer) { clearInterval(wallTimer); wallTimer = null; }
+  }
+  if (themesBox && sheet) {
+    WALL_THEMES.forEach(function (pair) {
+      var v = THEMES[pair[0]];
+      if (!v) return;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.setAttribute('data-id', pair[0]);
+      b.setAttribute('aria-pressed', 'false');
+      var sw = document.createElement('i');
+      sw.style.background = 'linear-gradient(135deg,' + v['--pele-bg'] + ' 50%,' + v['--pele-accent'] + ' 50%)';
+      b.appendChild(sw);
+      b.appendChild(document.createTextNode(pair[1]));
+      b.addEventListener('click', function () { wallStop(); wallSet(pair[0]); });
+      themesBox.appendChild(b);
+    });
+    var count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = '+ 24 more';
+    themesBox.appendChild(count);
+    wallSet(isDark() ? 'ink' : 'paper');
+    /* The slow auto-cycle stops on the first interaction and when the wall
+       leaves the screen; it never starts under reduced motion. */
+    var wallSec = document.getElementById('diagrams-sec');
+    if (wallSec) {
+      wallSec.addEventListener('pointerdown', wallStop);
+      wallSec.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key.indexOf('Arrow') === 0) wallStop();
+      });
+      if ('IntersectionObserver' in window) {
+        var wio = new IntersectionObserver(function (entries) {
+          if (!entries[0].isIntersecting) wallStop();
         });
-        $$('[data-copy-target]').forEach(function (el) {
-            var t;
-            el.addEventListener('click', function () {
-                copyText(document.getElementById(el.getAttribute('data-copy-target')).textContent).then(function () {
-                    el.classList.add('is-copied');
-                    el.textContent = 'Copied';
-                    clearTimeout(t);
-                    t = setTimeout(function () { el.classList.remove('is-copied'); el.textContent = 'Copy'; }, 1800);
-                }, function () {});
-            });
+        wio.observe(wallSec);
+      }
+    }
+    if (!reduce.matches) {
+      var wi = wallIds.indexOf(wallCur);
+      if (wi < 0) wi = 0;
+      wallTimer = setInterval(function () {
+        wi = (wi + 1) % wallIds.length;
+        wallSet(wallIds[wi]);
+      }, 2600);
+    }
+  }
+  /* END_BLOCK_WALL */
+
+  /* START_BLOCK_MAC_BAR */
+  function trackShare (result) {
+    if (window.markTrack) window.markTrack('share_to_mac', { result: result });
+  }
+  function canonicalUrl () {
+    var c = document.querySelector('link[rel="canonical"]');
+    return c && c.href ? c.href : location.href;
+  }
+  function flashLabel (btn, text) {
+    var lb = btn.querySelector('.lb') || btn;
+    if (!lb.getAttribute('data-label')) lb.setAttribute('data-label', lb.textContent);
+    lb.textContent = text;
+    setTimeout(function () { lb.textContent = lb.getAttribute('data-label'); }, 2000);
+  }
+  function sendToMac (btn) {
+    var url = canonicalUrl();
+    if (navigator.share) {
+      navigator.share({ title: 'Mark \u2014 Markdown editor for Mac', text: 'Install Mark on my Mac', url: url })
+        .then(function () { trackShare('shared'); },
+              function () { trackShare('dismissed'); });
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        flashLabel(btn, 'Link copied');
+        trackShare('copied');
+      }, function () {});
+    }
+  }
+  $$('.send-mac').forEach(function (b) {
+    b.addEventListener('click', function () { sendToMac(b); });
+  });
+  var bar = document.getElementById('macbar');
+  if (bar && root.classList.contains('ios')) {
+    var dismissed = false;
+    try { dismissed = localStorage.getItem('mark-mac-bar') === 'dismissed'; } catch (e) {}
+    var hero = document.getElementById('hero');
+    if (!dismissed && hero) {
+      var showBar = function () { bar.classList.add('show'); };
+      if ('IntersectionObserver' in window) {
+        var bio = new IntersectionObserver(function (entries) {
+          if (!entries[0].isIntersecting) { bio.disconnect(); showBar(); }
         });
+        bio.observe(hero);
+      } else {
+        var onScr = function () {
+          if (hero.getBoundingClientRect().bottom < 0) {
+            window.removeEventListener('scroll', onScr);
+            showBar();
+          }
+        };
+        window.addEventListener('scroll', onScr, { passive: true });
+      }
+    }
+    var bx = document.getElementById('macbar-x');
+    if (bx) bx.addEventListener('click', function () {
+      bar.classList.remove('show');
+      try { localStorage.setItem('mark-mac-bar', 'dismissed'); } catch (e) {}
+    });
+  }
+  /* END_BLOCK_MAC_BAR */
 
-        /* ---------- Footprint chart ---------- */
-        var seg = $('#seg'), bars = $$('#bars li');
-        var captions = { ram: 'RAM with 25 documents open, all app processes', disk: 'Size on disk after install' };
-        function setMetric(m, animate) {
-            var max = Math.max.apply(null, bars.map(function (li) { return +li.dataset[m]; }));
-            seg.dataset.metric = m;
-            $$('button', seg).forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.metric === m)); });
-            $('#chart-caption').textContent = captions[m];
-            bars.forEach(function (li) {
-                var v = +li.dataset[m];
-                li.querySelector('.fill').style.setProperty('--v', Math.max(v / max, 0.012).toFixed(4));
-                var span = li.querySelector('.val span');
-                var text = v.toLocaleString('en-US') + ' MB';
-                if (!animate || reduce.matches) { span.textContent = text; return; }
-                span.style.opacity = 0;
-                setTimeout(function () { span.textContent = text; span.style.opacity = 1; }, 160);
-            });
-        }
-        setMetric('ram', false);
-        $$('button', seg).forEach(function (b) {
-            b.addEventListener('click', function () { setMetric(b.dataset.metric, true); });
-        });
-        // Bars are drawn at full length by default; the first time the chart
-        // scrolls into view they grow from zero (WAAPI, so nothing is gated).
-        if ('IntersectionObserver' in window && !reduce.matches) {
-            var io = new IntersectionObserver(function (entries) {
-                if (!entries[0].isIntersecting) return;
-                io.disconnect();
-                bars.forEach(function (li, i) {
-                    var fill = li.querySelector('.fill');
-                    fill.animate(
-                        [{ transform: 'scaleX(0)' }, { transform: 'scaleX(' + fill.style.getPropertyValue('--v') + ')' }],
-                        { duration: 900, delay: 80 * i, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' }
-                    );
-                });
-            }, { threshold: 0.4 });
-            io.observe($('#bars'));
-        }
-
-        /* ---------- Showcase tabs ---------- */
-        var tabs = $$('#tabs [role="tab"]'), ind = $('#tabs .ind');
-        var current = function () { return tabs.filter(function (t) { return t.getAttribute('aria-selected') === 'true'; })[0]; };
-        function placeIndicator(tab) {
-            ind.style.width = tab.offsetWidth + 'px';
-            ind.style.transform = 'translateX(' + tab.offsetLeft + 'px)';
-        }
-        function select(i, focus) {
-            tabs.forEach(function (t, j) {
-                var on = i === j, panel = document.getElementById(t.getAttribute('aria-controls'));
-                t.setAttribute('aria-selected', String(on));
-                t.tabIndex = on ? 0 : -1;
-                panel.classList.toggle('is-on', on);
-                panel.inert = !on;
-                panel.setAttribute('aria-hidden', String(!on));
-            });
-            placeIndicator(tabs[i]);
-            if (focus) tabs[i].focus();
-        }
-        tabs.forEach(function (t, i) {
-            t.addEventListener('click', function () { select(i); });
-            t.addEventListener('keydown', function (e) {
-                var k = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
-                if (k) { e.preventDefault(); select((i + k + tabs.length) % tabs.length, true); }
-                if (e.key === 'Home') { e.preventDefault(); select(0, true); }
-                if (e.key === 'End') { e.preventDefault(); select(tabs.length - 1, true); }
-            });
-        });
-        ind.style.transition = 'none';
-        select(0);
-        void ind.offsetWidth;
-        ind.style.transition = '';
-        window.addEventListener('resize', function () { placeIndicator(current()); });
-        if (document.fonts) document.fonts.ready.then(function () { placeIndicator(current()); });
-
-        /* ---------- Hero demo: agent writes, Mark renders, you edit ---------- */
-        var doc = $('#doc'), term = $('#term'), status = $('#status');
-        if (!doc || reduce.matches) return;
-
-        var blocks = $$(':scope > *', doc);          // h3, p, h4, ol, figure
-        var ol = $('ol', doc), items = $$('li', doc);
-        var step3 = $('#step3'), finalStep3 = step3.textContent;
-        var termLines = $$('p', term);
-        var visible = true, runId = 0;
-
-        // A pausable sleep: time only advances while the demo is on screen
-        // and the tab is visible, so nobody returns to a half-played scene.
-        function wait(ms, id) {
-            return new Promise(function (ok, stop) {
-                var left = ms, last = performance.now();
-                (function tick(now) {
-                    if (id !== runId) return stop('cancelled');
-                    if (visible && !document.hidden) left -= now - last;
-                    last = now;
-                    if (left <= 0) return ok();
-                    requestAnimationFrame(tick);
-                })(last);
-            });
-        }
-        function setStatus(text, tone) { status.textContent = text; status.dataset.tone = tone || ''; }
-        function replay(el, cls) { el.classList.remove('enter', 'flash', 'line-in'); void el.offsetWidth; el.classList.add(cls); }
-        function show(el, cls) { el.hidden = false; replay(el, cls); }
-
-        function reset() {
-            blocks.concat(items, termLines).forEach(function (el) { el.hidden = true; el.classList.remove('enter', 'flash', 'line-in'); });
-            step3.textContent = 'Store sessions in Redis';
-            setStatus('Waiting', '');
-        }
-        function finish() {
-            blocks.concat(items, termLines).forEach(function (el) { el.hidden = false; el.classList.remove('enter', 'flash', 'line-in'); });
-            termLines[0].textContent = 'plan the auth module rewrite';
-            step3.textContent = finalStep3;
-            setStatus('Saved', '');
-        }
-        async function type(el, text, id, speed) {
-            for (var i = 1; i <= text.length; i++) {
-                el.textContent = text.slice(0, i);
-                await wait(speed, id);
-            }
-        }
-
-        async function play(id) {
-            reset();
-            await wait(500, id);
-            // 1. You ask the agent for a plan.
-            termLines[0].textContent = '';
-            termLines[0].hidden = false;
-            await type(termLines[0], 'plan the auth module rewrite', id, 34);
-            await wait(700, id);
-            // 2. The agent writes plan.md in bursts; Mark reloads on each write.
-            var order = [blocks[0], blocks[1], blocks[2], items[0], items[1], items[2], items[3], blocks[4]];
-            ol.hidden = false;
-            for (var i = 0; i < order.length; i++) {
-                show(order[i], 'enter');
-                setStatus('Reloaded', 'live');
-                await wait(order[i] === blocks[4] ? 700 : 380, id);
-            }
-            show(termLines[1], 'line-in');
-            setStatus('Saved', '');
-            await wait(1600, id);
-            // 3. You rewrite step 3 right in the rendered document.
-            step3.innerHTML = '<span class="sel">Store sessions in Redis</span>';
-            await wait(700, id);
-            step3.innerHTML = '<span></span><span class="caret"></span>';
-            setStatus('Edited', 'edit');
-            await wait(250, id);
-            await type(step3.firstChild, finalStep3, id, 38);
-            await wait(500, id);
-            step3.textContent = finalStep3;
-            setStatus('Saved', '');
-            await wait(700, id);
-            // 4. The agent sees the file change on disk and follows it.
-            show(termLines[2], 'line-in');
-            await wait(900, id);
-            show(termLines[3], 'line-in');
-            await wait(1200, id);
-            await wait(4200, id);
-        }
-
-        async function loop() {
-            var id = ++runId;
-            try { while (id === runId) await play(id); } catch (e) { /* cancelled */ }
-        }
-
-        if ('IntersectionObserver' in window) {
-            new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; }, { threshold: 0.1 }).observe(doc);
-        }
-        if (reduce.addEventListener) {
-            reduce.addEventListener('change', function (e) { if (e.matches) { runId++; finish(); } });
-        }
-        // Let the hero entrance settle before the scene starts over.
-        setTimeout(loop, 900);
-    })();
-    </script>
+  /* START_BLOCK_YEAR */
+  var y = document.getElementById('year');
+  if (y) y.textContent = String(new Date().getFullYear());
+  /* END_BLOCK_YEAR */
+})();
+</script>
 </body>
 </html>
