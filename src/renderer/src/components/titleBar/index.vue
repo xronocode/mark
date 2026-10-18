@@ -195,7 +195,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.1.0
+// VERSION: 2.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -212,6 +212,8 @@
 //   isOnResizeEdge - True when a press is within RESIZE_EDGE_PX of the top/left/right edge.
 //   handleCloseClick - Requests native window close.
 //   handleMaximizeClick - Toggles native maximize/fullscreen state.
+//   ownsTauriDragRegion - True when the target itself carries data-tauri-drag-region (Tauri's drag.js owns its double click).
+//   handleTitleBarDblclick - Bar double click → maximize toggle, except on interactive zones and on drag-region targets.
 //   handleMinimizeClick - Requests native window minimize.
 //   handleMenuClick - Opens the native application menu at the pointer.
 //   themeMode - Title-bar theme button state: auto | light | dark (C-41 T-001).
@@ -229,6 +231,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v2.1.1: fix — a double click on a data-tauri-drag-region
+//     element maximized and immediately restored the window: Tauri's
+//     drag.js and handleTitleBarDblclick both toggled. The handler now
+//     leaves those targets to drag.js (START_BLOCK_TITLEBAR_DBLCLICK).
 //   - 2026-10-15 v2.1.0: C-38 T-006 N4 b/d — the Win/Linux Settings
 //     gear and the frameless caption buttons (minimize / maximize /
 //     restore / close) render from the drawn chromeIcons set on the
@@ -651,7 +657,20 @@ const handleMaximizeClick = async () => {
 // interactive zones opt out. C-15 T-W1: frameless Windows/Linux windows
 // get the same gesture (native Windows maximizes on titlebar dblclick),
 // and handleMaximizeClick already no-ops gracefully for every state.
+// START_BLOCK_TITLEBAR_DBLCLICK
+// Tauri's injected drag.js already toggles maximize on a double click whose
+// target itself carries data-tauri-drag-region (macOS on mouseup, others on
+// mousedown). Toggling here too maximized the window and restored it at
+// once, so this handler only covers the bar's plain children.
+const ownsTauriDragRegion = (target) => {
+  const attr = typeof target?.getAttribute === 'function'
+    ? target.getAttribute('data-tauri-drag-region')
+    : null
+  return attr !== null && attr !== 'false'
+}
+
 const handleTitleBarDblclick = (event) => {
+  if (ownsTauriDragRegion(event.target)) return
   if (
     event.target.closest('.title-no-drag, .titlebar-nav, .titlebar-right, .right-toolbar')
   ) {
@@ -659,6 +678,7 @@ const handleTitleBarDblclick = (event) => {
   }
   handleMaximizeClick()
 }
+// END_BLOCK_TITLEBAR_DBLCLICK
 
 const handleMinimizeClick = async () => {
   await getCurrentWindow().minimize()
