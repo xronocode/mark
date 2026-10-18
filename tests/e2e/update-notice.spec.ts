@@ -1,5 +1,5 @@
 // FILE: tests/e2e/update-notice.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-66 automatic update check end to end against a
 //            mocked mt_updater_check — the notice with its three buttons
@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-19 C-66 T-002: initial matrix — notice
+//   LAST_CHANGE: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   v1.0.0 - 2026-10-19 C-66 T-002: initial matrix — notice
 //   + three buttons, Later, Skip/next-version, 24 h throttle, offline
 //   silence, What's New deferral, App Store gate, switch off, Ink theme
 //   visibility.
@@ -65,8 +66,13 @@ async function installUpdateNoticeShim(page: Page, opts: ShimOptions = {}) {
     ({ running, feed, buildMode, seed }) => {
       ;(window as any).__APP_VERSION_OVERRIDE__ = running
       ;(window as any).__invokeLog = []
-      for (const [key, value] of Object.entries(seed ?? {})) {
-        localStorage.setItem(`mark-e2e-prefs:${key}`, JSON.stringify(value))
+      // Seed once per test: a reload is a «next launch» and must see what
+      // the previous launch wrote (re-seeding reset lastSeenVersion).
+      if (!sessionStorage.getItem('mark-e2e-seeded')) {
+        for (const [key, value] of Object.entries(seed ?? {})) {
+          localStorage.setItem(`mark-e2e-prefs:${key}`, JSON.stringify(value))
+        }
+        sessionStorage.setItem('mark-e2e-seeded', '1')
       }
       const mock: Record<string, (args: any) => any> = {
         mt_prefs_get: ({ key }: { key: string }) => {
@@ -195,10 +201,10 @@ test.describe('Automatic update check (C-66)', () => {
 
     await notice.locator('.notice-button', { hasText: 'Skip this version' }).click()
     await expect(notice).toBeHidden()
-    const skipped = await page.evaluate(() =>
+    // The prefs write is async (IPC) — poll the persisted key.
+    await expect.poll(() => page.evaluate(() =>
       localStorage.getItem('mark-e2e-prefs:skippedUpdateVersion')
-    )
-    expect(skipped).toBe('"2.6.0"')
+    )).toBe('"2.6.0"')
 
     // A later check (clock back-dated past 24 h) with the same feed stays hidden…
     await backDateLastCheck(page)
