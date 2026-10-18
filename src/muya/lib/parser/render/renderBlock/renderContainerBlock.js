@@ -1,19 +1,20 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored.
-//   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants).
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21 and scenario-60; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored. C-62: Render a stable appearance button on nonempty Mermaid figures.
+//   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants).; ./renderDiagramAppearance.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21 and scenario-60; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker plus a button.ag-block-expand child (C-51 T-006; visibility need-gated by expandNeed.js since T-010).
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker plus a button.ag-block-expand child (C-51 T-006; visibility need-gated by expandNeed.js since T-010); nonempty Mermaid figures also get the stable appearance button (C-62).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.7.0 - 2026-10-18 C-62: render the appearance button as a stable figure child on nonempty Mermaid blocks.
 //   - (v1.0.0 implied: upstream muya, previously ungoverned.)
 //   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_RENDER: a `[!type]` blockquote gets ag-callout classes, a non-editable title row and view-only fold state.
 //   - 2026-10-15 v1.2.0: C-39 T-001 START_BLOCK_TABLE_SCROLL_WRAPPER: the table element renders inside div.ag-table-scroll so wide tables scroll horizontally instead of overflowing the text column.
@@ -30,6 +31,7 @@ import { renderEditIcon } from './renderContainerEditIcon'
 import renderLineNumberRows from './renderLineNumber'
 import renderCopyButton from './renderCopyButton'
 import renderExpandButton from './renderExpandButton'
+import renderDiagramAppearance from './renderDiagramAppearance'
 import { renderLeftBar, renderBottomBar } from './renderTableDargBar'
 import { renderColumnResizer } from './renderColumnResizer'
 import { TABLE_FIXED_CLASS, sumWidths } from '../../../tableResize'
@@ -234,6 +236,7 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
       const code = preBlock ? this.codeCache.get(preBlock.key) : ''
       if (typeof code === 'string' && code !== '') {
         selector += '.ag-has-expand'
+        if (functionType === 'mermaid') children.push(renderDiagramAppearance(t, code))
         children.push(renderExpandButton(t))
       }
     } else if (functionType === 'table') {

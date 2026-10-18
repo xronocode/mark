@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/eventHandler/keyboard.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Route Muya keyboard events to editing commands, including layout-independent undo and redo.
-//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, direct Muya history shortcuts, and leaving keys alone (keydown AND keyup) when the C-51 expand button holds focus.
+//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, direct Muya history shortcuts, and leaving keys alone (keydown AND keyup) when expand/appearance buttons hold focus (C-62).
 //   DEPENDS: Muya event center/content state, selection helpers, editor config, emoji UI.
 //   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml V-M-012 scenario-10; .grace/changes/active/C-51 T-006 and T-010 (BLOCK_KEYBOARD_EXPAND_BUTTON).
 //   ROLE: RUNTIME
@@ -10,11 +10,12 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - GRACE 4 synchronized symbol
+//   default - Keyboard class; native expand/appearance button keys bypass editing handlers on keydown and keyup.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-16 C-51 T-010: the expand-button key
+//   LAST_CHANGE: v1.5.0 - 2026-10-18 C-62: extend native-button keyboard isolation to the diagram appearance control.
+//   PREV: v1.4.0 - 2026-10-16 C-51 T-010: the expand-button key
 //   guard now covers KEYUP too (isExpandButtonEvent, shared with keydown).
 //   The keyup selection machinery must not run from a button-focused
 //   state: getCursorRange's needFix branch calls setCursorRange →
@@ -60,7 +61,7 @@ const isExpandButtonEvent = (event) =>
     event &&
     event.target &&
     event.target.closest &&
-    event.target.closest('button.ag-block-expand')
+    event.target.closest('button.ag-block-expand, button.ag-diagram-appearance')
   )
 // END_BLOCK_KEYBOARD_EXPAND_BUTTON
 

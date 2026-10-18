@@ -1,15 +1,16 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.8.0
+// VERSION: 1.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release.
-//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010; C-51 T-014 (muya-options-rerender, consumed by ui/blockViewer).
+//   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release. C-62: Per-diagram appearance controller lifecycle, writable metadata and read-only view overrides.
+//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins.; ./ui/diagramAppearance.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010; C-51 T-014 (muya-options-rerender, consumed by ui/blockViewer).; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   muya.diagramAppearance - per-diagram four-mode menu, portable metadata edits and bounded read-only overrides (C-62).
 //   default - GRACE 4 synchronized symbol (Muya class).
 //   Muya#reparseMarkdown - rebuild blocks under the current footnote grammar without a content event or history entry, preserving source selection and scroll.
 //   Muya#refreshCodeBlockLineNumbers - re-measure every code-block gutter (wrap or code-font change without a re-render).
@@ -17,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.8.0 - 2026-10-18 C-60: a rendered footnote option change
+//   LAST_CHANGE: v1.9.0 - 2026-10-18 C-62: own the diagram appearance controller before plugins/rendering and tear it down with the editor.
+//   PREV: v1.8.0 - 2026-10-18 C-60: a rendered footnote option change
 //   reparses the in-memory document with source-coordinate selection and
 //   scroll preservation; no content event, disk read or undo entry.
 //   v1.7.0 - 2026-10-17 C-51 T-014: setOptions(_, true)
@@ -64,6 +66,7 @@ import ExportMarkdown from './utils/exportMarkdown'
 import ExportHtml from './utils/exportHtml'
 import ToolTip from './ui/tooltip'
 import I18nCSS from './utils/i18nCSS'
+import DiagramAppearance from './ui/diagramAppearance'
 import './assets/styles/index.css'
 import './assets/styles/callout.css'
 
@@ -89,6 +92,7 @@ class Muya {
     // it for stored widths — irrelevant on a fresh instance, but it keeps
     // the construction order render-independent.
     this.tableResize = new TableResize(this)
+    this.diagramAppearance = new DiagramAppearance(this)
     // UI plugins
     if (Muya.plugins.length) {
       for (const { plugin: Plugin, options: opts } of Muya.plugins) {
@@ -680,6 +684,7 @@ class Muya {
   }
 
   destroy() {
+    this.diagramAppearance.destroy()
     this.contentState.clear()
     this.quickInsert.destroy()
     this.codePicker.destroy()

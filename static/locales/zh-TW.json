@@ -1445,5 +1445,18 @@
         "text": "圖表程式碼從 44 個檔案 2.6 MB 精簡為壓縮後 0.26 MB 的單一檔案。"
       }
     }
+  },
+  "diagramAppearance": {
+    "label": "圖表外觀",
+    "auto": "自動",
+    "custom": "自訂",
+    "light": "淺色",
+    "dark": "深色",
+    "autoDescription": "跟隨文件主題",
+    "customDescription": "使用 Markdown 中的配色",
+    "lightDescription": "一律使用淺色",
+    "darkDescription": "一律使用深色",
+    "noCustomPalette": "Markdown 中未設定配色",
+    "viewOnly": "僅套用於目前檢視"
   }
 }
