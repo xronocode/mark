@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.13.0
+// VERSION: 1.14.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -19,7 +19,7 @@
 //   i18n - GRACE 4 synchronized symbol
 //   lastMuyaOptions - GRACE 4 synchronized symbol
 //   logMock - GRACE 4 synchronized symbol
-//   mockEditorInstance - GRACE 4 synchronized symbol
+//   mockEditorInstance - Muya mock; footnote watcher cases verify cache invalidation without changing saved/unsaved content or history.
 //   mockPrinter - GRACE 4 synchronized symbol
 //   mockSpellchecker - GRACE 4 synchronized symbol
 //   moveImageToFolderMock - GRACE 4 synchronized symbol
@@ -38,6 +38,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v1.14.0: C-60 — footnote toggles invalidate all cached tab blocks without changing Markdown, history or isSaved.
 //   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
 //   - 2026-08-10 v1.2.0: cover boot hydration when an agent/Finder open selects a tab before editor bus listeners are ready.
 //   - 2026-08-10 v1.3.0: cover stale file-changed events not overwriting unsaved active-tab content.
@@ -633,13 +634,27 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.setOptions).toHaveBeenCalledWith({ superSubScript: true }, true)
   })
 
-  it('watcher: footnote calls setOptions', async () => {
-    await mountEditor()
+  it.each([false, true])('watcher: footnote invalidates tab caches without content edits (mirror=%s)', async mirror => {
+    await mountEditor({ mirror })
     mockEditorInstance.setOptions.mockClear()
+    editorStore.currentFile.blocks = [{ key: 'old-current-block' }]
+    const background = {
+      id: 'background', markdown: 'Unsaved background text', isSaved: false,
+      blocks: [{ key: 'old-background-block' }], history: { stack: [], index: -1 }
+    }
+    editorStore.tabs.push(background)
+    const original = editorStore.currentFile.markdown
     // C-24: footnotes default to on, so the watcher fires on switching them off.
     preferencesStore.footnote = false
     await nextTick()
     expect(mockEditorInstance.setOptions).toHaveBeenCalledWith({ footnote: false }, true)
+    expect(editorStore.tabs.every(tab => !('blocks' in tab))).toBe(true)
+    expect(editorStore.currentFile.markdown).toBe(original)
+    expect(editorStore.currentFile.isSaved).toBe(true)
+    expect(editorStore.tabs[1]).toEqual({
+      id: 'background', markdown: 'Unsaved background text', isSaved: false,
+      history: { stack: [], index: -1 }
+    })
   })
 
   it('watcher: isHtmlEnabled calls setOptions (inverted)', async () => {

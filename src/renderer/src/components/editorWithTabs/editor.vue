@@ -78,10 +78,10 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.23.0
+// VERSION: 1.24.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
-//   SCOPE: Renderer-side Muya lifecycle and UI orchestration; does not own Markdown parsing rules or backend file persistence.
+//   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
 //   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml).
 //   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012.
 //   ROLE: RUNTIME
@@ -90,7 +90,7 @@
 //
 // START_MODULE_MAP
 //   setMarkdownToEditor - Loads a newly opened document into Muya.
-//   handleFileChange - Restores a switched/reloaded tab's document, cursor, history, and scroll state.
+//   handleFileChange - Restores a switched/reloaded tab's document, cursor, history, and scroll state; footnote changes drop cached blocks so activation reparses with the current grammar.
 //   scrollToCords - Restores saved scrollTop without leaving the editor hidden behind a delayed animation frame.
 //   scrollToCordsAfterReload - Clamps the pre-edit scrollTop into a reloaded document's real scrollable range (no phantom padding, no blank viewport).
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
@@ -110,6 +110,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v1.24.0: C-60 — footnote toggles reparse Muya's current
+//     buffer; drop saved tab block caches so tab activation uses the new
+//     grammar too. Markdown, history, isSaved and disk files are unchanged.
 //   - 2026-10-15 v1.23.0: C-39 T-002 — the Muya options carry
 //     disableTableColumnResize: props.mirror, so the read-only Split View
 //     mirror pane renders no table column-resize handles. Reading/locked
@@ -569,6 +572,13 @@ watch(superSubScript, (value, oldValue) => {
 watch(footnote, (value, oldValue) => {
   if (value !== oldValue && editor.value) {
     editor.value.setOptions({ footnote: value }, true)
+    // START_BLOCK_FOOTNOTE_TAB_CACHE_INVALIDATION
+    // Background tabs still carry blocks from the previous grammar.
+    // Their Markdown/source cursor/history remain available for activation.
+    // Also needed when this is the read-only Split View mirror: cache
+    // invalidation never writes source content or changes its save state.
+    for (const tab of editorStore.tabs) delete tab.blocks
+    // END_BLOCK_FOOTNOTE_TAB_CACHE_INVALIDATION
   }
 })
 

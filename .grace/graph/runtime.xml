@@ -2588,6 +2588,10 @@
       <Status>partial</Status>
       <Layer>2</Layer>
       <Summary>
+        C-60: the footnote preference watcher applies the current grammar
+        immediately and invalidates cached blocks in every tab; activation
+        reparses stored Markdown with its source cursor/history while the
+        saved/unsaved state stays unchanged (V-M-011 scenario-65).
         Vue 3 renderer app (migrated in Phase A via PR #4001); hosts muya, theme
         controller, command dispatcher, native title-path actions, and editor
         visibility/focus lifecycle. Invariant (C-30): muya block-lexer rules
@@ -3570,6 +3574,12 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
+        C-60: setOptions reparses the current in-memory Markdown on a
+        rendered footnote toggle, preserving source selection, scroll and
+        edit history without a content event. History snapshots carry their
+        footnote grammar and reparse lazily on undo/redo when it differs;
+        old snapshots are also reparsed. Other option rerenders keep the
+        existing block tree. See fn-reparseMarkdown and V-M-012 scenario-24.
         WYSIWYG Markdown engine (existing, zero Electron coupling, ports to
         WebView as is). C-24: blockquotes whose first line is `[!type]` render
         as GitHub/Obsidian callouts (utils/callout.js; render-only, view-only
@@ -3807,7 +3817,7 @@
         <Purpose>
           WYSIWYG Markdown engine: parses, renders, and edits Markdown in-place
           in DOM. Zero Electron coupling confirmed via triple-check grep. Ports
-          to WebView as-is. 49 public methods + 26 events + 13 state invariants
+          to WebView as-is. 50 public methods + 26 events + 13 state invariants
           + 5 diagram renderers (Pele/Vega-Lite/Flowchart/Sequence/PlantUML)
           + 11 parser option flags + 19 inline + 16 block token types.
         </Purpose>
@@ -3897,7 +3907,7 @@
           <LegacyAttributes>
             <Attribute>
               <Name>PURPOSE</Name>
-              <Value>Change theme, mode, etc.</Value>
+              <Value>Change view options; a rendered footnote grammar change reparses the current buffer without a content edit (C-60).</Value>
             </Attribute>
           </LegacyAttributes>
         </fn-setOptions>
@@ -3960,6 +3970,13 @@
             </Attribute>
           </LegacyAttributes>
         </fn-expandNeed>
+        <fn-reparseMarkdown>
+          <Purpose>Rebuild Muya blocks under the current footnote grammar without adding a history entry or emitting a content change.</Purpose>
+          <Inputs><Input>isRenderCursor: boolean, true only for explicit history restoration</Input></Inputs>
+          <Outputs><Output>Current block tree and source selection, with scroll restored</Output></Outputs>
+          <SideEffects>Renders; clears stale block-key selections/search matches; never reads disk or changes Markdown in the renderer store.</SideEffects>
+          <VerificationRef>V-M-012</VerificationRef>
+        </fn-reparseMarkdown>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>

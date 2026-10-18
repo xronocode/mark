@@ -4925,6 +4925,15 @@
           (absolute float present) and the three T-014 e2e cases fail;
           the pre-existing viewer/expand-button cases stay green.
         </Scenario>
+        <Scenario>
+          scenario-65: Footnote option tab caches (C-60): the preference
+          watcher invalidates blocks in active and background tabs without
+          changing their Markdown, history or isSaved; tab activation
+          cannot resurrect a tree parsed under the previous grammar.
+          editor-coverage.test.js pins cache invalidation; the real renderer
+          footnote-options.spec.ts exercises broadcasts, saved/unsaved
+          state, undo/redo and tab switches in Chromium and WebKit.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -5617,6 +5626,8 @@
           --project=webkit-tables tests/e2e/table-column-resize.spec.ts
         </Command>
         <Command>npx vitest run tests/renderer/muya/export-fence-length.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/footnote-options.test.js</Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/footnote-options.spec.ts --project=chromium --project=webkit-footnotes</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -6188,6 +6199,19 @@
           tests/renderer/muya/pele-node-contrast.test.js (light-card
           rule, label box === panel, label ink ≥ 4.5:1) plus the Paper pin
           in diagram-theme.test.js.
+        </Scenario>
+        <Scenario>
+          scenario-24: Live footnote grammar (C-60): changing footnote with
+          setOptions(_, true) reparses the in-memory document immediately
+          in both directions, without a content event or history entry;
+          Markdown, source-coordinate selection and scroll are preserved.
+          Snapshots record their footnote grammar; undo/redo reparses only
+          mismatching or legacy snapshots, keeping undo depth and unsaved
+          edits. Unchanged footnotes and ordinary view options keep block
+          identity. Unit: footnote-options.test.js (real Muya); browser:
+          footnote-options.spec.ts (Chromium + webkit-footnotes).
+          Trace: [Muya][reparseMarkdown][BLOCK_FOOTNOTE_OPTION_REPARSE]
+          carries the boolean footnote flag only, never document text.
         </Scenario>
       </Scenarios>
       <Markers>

@@ -1,0 +1,32 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-60>
+    <Name>Apply footnote setting changes to already open documents</Name>
+    <Created>2026-10-18</Created>
+    <Summary>Fix the reported footnote toggle bug: enabling or disabling Settings → Markdown → Footnotes immediately reparses open Markdown under the selected grammar, without reopening the file. Preserve text, unsaved state, selection, scroll and undo/redo; cached tabs and history must not restore the previous grammar.</Summary>
+    <Problem>Muya.setOptions only renders the existing block tree. Definitions parsed while footnotes were disabled remain paragraphs after enabling the option; disabling leaves footnote figures behind. Reopening reparses them correctly.</Problem>
+    <Goals>
+      <R-1>A real footnote option change with rendering requested reparses the current in-memory Markdown before rendering, in both directions.</R-1>
+      <R-2>The view change creates no content edit, autosave or undo step, preserves the current source selection and scroll, and retains unsaved edits and undo/redo.</R-2>
+      <R-3>Undo/redo lazily reparses snapshots whose footnote grammar differs. Tab activation cannot reuse blocks from the previous grammar.</R-3>
+    </Goals>
+    <Constraints>
+      <Item>Use the current in-memory text; never reload from disk to apply a preference.</Item>
+      <Item>Keep inline-only options and ordinary theme rerenders on their existing inexpensive render path.</Item>
+      <Item>Preserve existing uncommitted work, including C-57 changes in the routed graph and verification files.</Item>
+    </Constraints>
+    <NonGoals><Item>No release, installed-app replacement, preference migration or changes to callout syntax; no general parser-option redesign.</Item></NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Unit regression fails before the fix and passes after it for off → on → off, unchanged Markdown, selection/scroll, no new history/change events, and undo/redo under the current setting.</Criterion>
+      <Criterion>Renderer tests cover cached-tab invalidation. Browser integration in Chromium and WebKit toggles footnotes without a reload, preserves unsaved state and exercises undo/redo and a tab switch.</Criterion>
+      <Criterion>Graph, verification, module contracts/maps and change summaries describe the final behavior. Selected C-60 target/final lint passes; global baseline errors are reported separately.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas><M-012/><M-011/></AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run tests/renderer/muya/footnote-options.test.js tests/renderer/muya/markdown-round-trip.test.js tests/renderer/muya/keyboard-undo.test.js tests/renderer/muya/code-block-line-numbers.test.js tests/renderer/components/editor-coverage.test.js</ExpectedCommand>
+      <ExpectedCommand>npx playwright test tests/e2e/footnote-options.spec.ts --project=chromium --project=webkit-footnotes</ExpectedCommand>
+      <ExpectedEvidence>Old-code failure, targeted regression results, full renderer suite, browser assertions and scoped GRACE evidence.</ExpectedEvidence>
+    </VerificationIntent>
+    <Approval><ApprovedBy>User, 2026-10-18: «баг чинить будем?» after the diagnosed missing reparse and reopen workaround.</ApprovedBy><ApprovalScope>Fix the diagnosed footnote preference bug and the directly affected selection, history and tab-cache behavior; routine implementation and verification choices are delegated by this request.</ApprovalScope></Approval>
+    <Completion><Date>2026-10-18</Date><Summary>Implemented and verified; evidence in plan.xml. No release cut.</Summary></Completion>
+  </C-60>
+</GraceChangeSpec>
