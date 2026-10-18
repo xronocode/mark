@@ -1,21 +1,41 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.2.0
+// VERSION: 3.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom.
-//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), and the C-51 T-014 polish: fit scales small content UP to the stage (no 1:1 cap) and an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan. C-62: Expose the same Mermaid appearance control and refresh local palettes without changing zoom/pan.
-//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render).; renderBlock/renderDiagramAppearance, muya.diagramAppearance.
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.; .grace/changes/archive/C-62.
+//   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
+//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
+//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR — role gate only, no transports inside muya), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render); renderBlock/renderDiagramAppearance, muya.diagramAppearance.
+//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/changes/active/C-56 (picture export, scenario-63); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop; options, source/history and appearance changes refresh the live clone when its content token changes, preserving the panzoom transform; Mermaid diagrams expose the shared appearance control in the header.
+//   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop; on 'muya-options-rerender' (theme switch full re-render) an open viewer polls the live block until its content differs from the last clone (outerHTML token; the mermaid pipeline re-inserts the last-good OLD-theme svg synchronously before the async re-draw lands) and swaps the clone in place, keeping the panzoom transform; C-56: the toolbar carries three export actions (ag-block-viewer-export-btn) that appear only when the opened source is a MERMAID/VEGA-LITE figure (ag-block-viewer-can-export) and dispatch muya-diagram-export { action, element: LIVE source } — the export always describes the WHOLE diagram at natural size, never the zoomed viewport crop.; Mermaid diagrams also expose the shared C-62 appearance control in the header.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.2.0 - 2026-10-18 C-62: shared Mermaid appearance menu in the viewer header; local changes refresh the clone and keep zoom/pan.
-//   PREV: v3.1.0 - 2026-10-17 C-51 T-014 gate results: the
+//   LAST_CHANGE: v3.3.0 - 2026-10-18 merge of C-56 onto C-62: the header carries
+//   both the appearance control and the C-56 export buttons.
+//   v3.2.1 - 2026-10-18 C-56 T-005: close()/reassert focus
+//   restore resolves the figure's LIVE expand button with
+//   expandButtonOf() — mermaid/vega-lite figures now carry the corner
+//   pill (all three pill buttons share the ag-block-expand family
+//   class), so the restore prefers the pill's Open-full-screen button
+//   before falling back to the standalone glyph the other roles keep.
+//   v3.2.0 - 2026-10-18 C-56 T-003: the viewer toolbar gains
+//   Copy as Image / Save as PNG… / Save as SVG… (button.ag-block-viewer-
+//   export-btn between 1:1 and close). The buttons exist in the DOM but
+//   stay display:none unless the opened source resolves to a
+//   MERMAID/VEGA-LITE figure (the ag-block-viewer-can-export class on the
+//   overlay; tables and the follow-up diagram roles never show them).
+//   Clicking dispatches muya-diagram-export with the LIVE resolved source
+//   (resolveLiveSource() || sourceEl) — NEVER the viewer's own clone — so
+//   the exporter reads the natural size off data-natural-width/viewBox and
+//   the current panzoom transform cannot leak into the picture. muya keeps
+//   no transports: the editor host (editor.vue handleDiagramExportAction)
+//   owns clipboard writeImage, the save dialog and the fs write.
+//   v3.2.0 (C-62) - 2026-10-18: shared Mermaid appearance menu in the viewer header; local changes refresh the clone and keep zoom/pan.
+//   v3.1.0 - 2026-10-17 C-51 T-014 gate results: the
 //   theme-refresh poll had two resolution bugs and one race. (1) The
 //   by-id lookup could resolve the viewer's OWN clone — cloneNode keeps
 //   the preview div's id and the SVG id is deliberately shared (mermaid
@@ -88,7 +108,19 @@
 import Panzoom from '@panzoom/panzoom'
 import { CLASS_OR_ID, EVENT_KEYS } from '../../config'
 import { createAppearanceButton, updateAppearanceButton } from '../../parser/render/renderBlock/renderDiagramAppearance'
+// C-56: role gate for the export toolbar — which figure data-roles may
+// leave Mark as a picture. No transport code: muya only dispatches.
+import { EXPORTABLE_FIGURE_SELECTOR } from '../../utils/diagramExport'
 import './index.css'
+
+// C-56 T-005: the live expand button of a figure for focus restore —
+// mermaid/vega-lite figures carry the corner pill (whose three buttons
+// share the ag-block-expand family class; the pill's Open-full-screen
+// button is the one that opened the viewer), the other roles and tables
+// keep the standalone glyph.
+const expandButtonOf = (fig) =>
+  (fig.querySelector('button.ag-block-toolbar-expand') ||
+    fig.querySelector('button.ag-block-expand'))
 
 const FIT_PADDING = 32
 const ZOOM_KEY_FACTOR = 1.25
@@ -176,6 +208,9 @@ class BlockViewer {
     this.options = options
     this.isOpen = false
     this.kind = null // 'diagram' | 'table'
+    // C-56: the opened source is a MERMAID/VEGA-LITE figure — the export
+    // toolbar shows only then (tables and follow-up diagram roles never).
+    this.exportable = false
     this.returnFocusEl = null
     this.panzoom = null
     this.destroyed = false
@@ -247,10 +282,37 @@ class BlockViewer {
       const figure = this.resolveLiveSource()?.closest('figure[data-role="MERMAID"]')
       if (figure) this.muya.diagramAppearance?.openForFigure(figure, this.appearanceBtn)
     })
+    // START_BLOCK_VIEWER_EXPORT_BUTTONS
+    // C-56: three export actions between 1:1 and close. The copy glyph is
+    // a trusted inline constant (two overlapping rounded cards, drawn in
+    // currentColor so it follows the theme); the save actions read as
+    // their format. Hidden unless the opened source is exportable (the
+    // ag-block-viewer-can-export class, toggled in open()).
+    this.copyImageBtn = makeButton(
+      'ag-block-viewer-btn ag-block-viewer-export-btn ag-block-viewer-copy-image',
+      ''
+    )
+    this.copyImageBtn.innerHTML =
+      '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"></rect><path d="M10.5 3H4.5A1.5 1.5 0 0 0 3 4.5v6" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>'
+    this.savePngBtn = makeButton(
+      'ag-block-viewer-btn ag-block-viewer-export-btn ag-block-viewer-save-png',
+      'PNG'
+    )
+    this.saveSvgBtn = makeButton(
+      'ag-block-viewer-btn ag-block-viewer-export-btn ag-block-viewer-save-svg',
+      'SVG'
+    )
+    this.copyImageBtn.addEventListener('click', () => this.dispatchDiagramExport('copyImage'))
+    this.savePngBtn.addEventListener('click', () => this.dispatchDiagramExport('savePng'))
+    this.saveSvgBtn.addEventListener('click', () => this.dispatchDiagramExport('saveSvg'))
+    // END_BLOCK_VIEWER_EXPORT_BUTTONS
     controls.appendChild(this.zoomOutBtn)
     controls.appendChild(this.zoomInBtn)
     controls.appendChild(this.fitBtn)
     controls.appendChild(this.actualSizeBtn)
+    controls.appendChild(this.copyImageBtn)
+    controls.appendChild(this.savePngBtn)
+    controls.appendChild(this.saveSvgBtn)
     controls.appendChild(this.closeBtn)
     this.zoomOutBtn.addEventListener('click', () => this.zoomOut())
     this.zoomInBtn.addEventListener('click', () => this.zoomIn())
@@ -341,6 +403,16 @@ class BlockViewer {
     const sourceFigure = source && source.closest ? source.closest('figure') : null
     this.sourceFigureId = sourceFigure && sourceFigure.id ? sourceFigure.id : null
     this.sourceFigureEl = sourceFigure || null
+    // C-56: the export toolbar exists only for the exportable roles —
+    // MERMAID (pele) diagrams and VEGA-LITE charts. Tables and the other
+    // diagram roles open the viewer fine but never see the buttons.
+    this.exportable = !!(
+      kind === 'diagram' &&
+      source &&
+      source.closest &&
+      source.closest(EXPORTABLE_FIGURE_SELECTOR)
+    )
+    this.viewerEl.classList.toggle('ag-block-viewer-can-export', this.exportable)
     this.lastClonedToken = this.sourceToken(source)
     const active = document.activeElement
     const inViewerUi = active && this.viewerEl && this.viewerEl.contains(active)
@@ -403,6 +475,13 @@ class BlockViewer {
     this.fitBtn.setAttribute('aria-label', this.t('blockViewer.fit'))
     this.actualSizeBtn.title = this.t('blockViewer.actualSize')
     this.actualSizeBtn.setAttribute('aria-label', this.t('blockViewer.actualSize'))
+    // C-56: tooltips + accessible names for the export actions.
+    this.copyImageBtn.title = this.t('blockViewer.copyImage')
+    this.copyImageBtn.setAttribute('aria-label', this.t('blockViewer.copyImage'))
+    this.savePngBtn.title = this.t('blockViewer.savePng')
+    this.savePngBtn.setAttribute('aria-label', this.t('blockViewer.savePng'))
+    this.saveSvgBtn.title = this.t('blockViewer.saveSvg')
+    this.saveSvgBtn.setAttribute('aria-label', this.t('blockViewer.saveSvg'))
     this.closeBtn.title = this.t('blockViewer.close')
     this.closeBtn.setAttribute('aria-label', this.t('blockViewer.close'))
   }
@@ -413,6 +492,23 @@ class BlockViewer {
     this.focusableEls = null
     if (appearance) updateAppearanceButton(this.appearanceBtn, this.muya.options?.t, appearance.mode)
   }
+  // START_BLOCK_VIEWER_EXPORT_ACTIONS
+  // C-56: the toolbar export dispatch. The HOST (editor.vue
+  // handleDiagramExportAction, subscribed to muya-diagram-export) owns
+  // every transport — muya never touches the clipboard, dialogs or the
+  // filesystem. The element handed over is the LIVE resolved source,
+  // never this viewer's own clone: the exporter reads the natural size
+  // from data-natural-width/viewBox, so the current panzoom transform
+  // (e.g. zoomed ×3 and panned) cannot leak into the picture — the export
+  // always describes the WHOLE diagram at natural size (corner-2).
+  dispatchDiagramExport (action) {
+    if (!this.isOpen || !this.exportable) return
+    const source = this.resolveLiveSource() || this.sourceEl
+    if (!source) return
+    console.debug('[Muya][blockViewer][BLOCK_VIEWER_EXPORT] dispatch', { action })
+    this.muya.eventCenter.dispatch('muya-diagram-export', { action, element: source })
+  }
+  // END_BLOCK_VIEWER_EXPORT_ACTIONS
 
   // START_BLOCK_VIEWER_PANZOOM
   initPanzoom () {
@@ -633,6 +729,8 @@ class BlockViewer {
     if (this.muya.diagramAppearance?.anchor === this.appearanceBtn) this.muya.diagramAppearance.close({ restoreFocus: false })
     this.isOpen = false
     this.focusableEls = null
+    this.exportable = false
+    this.viewerEl.classList.remove('ag-block-viewer-can-export')
     this.cancelThemeRefresh()
     this.sourceEl = null
     this.sourceFigureId = null
@@ -650,7 +748,7 @@ class BlockViewer {
     this.returnFocusFigureId = null
     if (figureId) {
       const fig = document.getElementById(figureId)
-      const live = fig && fig.querySelector('.ag-block-expand')
+      const live = fig && expandButtonOf(fig)
       if (live) el = live
     }
     if (restoreFocus && el && typeof el.focus === 'function') {
@@ -665,7 +763,7 @@ class BlockViewer {
           let live = el
           if (figureId) {
             const fig = document.getElementById(figureId)
-            const button = fig && fig.querySelector('.ag-block-expand')
+            const button = fig && expandButtonOf(fig)
             if (button) live = button
           }
           if (live && live.isConnected && document.activeElement !== live) {
