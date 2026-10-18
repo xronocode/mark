@@ -2656,6 +2656,8 @@
         <Path>site/scripts/csp.mjs</Path>
         <Path>site/scripts/seo-files.mjs</Path>
         <Path>site/scripts/og-card.mjs</Path>
+        <Path>site/scripts/landing-fill.mjs</Path>
+        <Path>site/scripts/shots.mjs</Path>
         <Path>site/og/card.html</Path>
         <Path>site/gallery/examples.mjs</Path>
         <Path>site/gallery/theme-vars.json</Path>
