@@ -67,5 +67,11 @@
     </T-005>
   </ImplementationPlan>
   <Execution>T-001 by one ZCode agent; T-002 and T-003 by two ZCode agents in parallel worktrees (disjoint files: T-002 owns site/landing/index.html, T-003 owns landing.mjs/consent.js/public/scripts); T-004 split between a ZCode agent (tests, matrix spec) and the orchestrator (runs, review, GRACE close-out); T-005 orchestrator only.</Execution>
+  <Evidence>
+    <Item>cd site &amp;&amp; npx vitepress build . &amp;&amp; node scripts/check-dist.mjs — GALLERY svgs=32, SEO, CSP pages=20/20, LINKS pages=20 links=564: OK.</Item>
+    <Item>npx vitest run tests/site tests/renderer/site tests/renderer/editions-doc.test.js — 144 passed.</Item>
+    <Item>node site/scripts/shots.mjs — 32/32 shots (320/390/844×390/1440 × light/dark × 4 pages): no horizontal overflow, consent card never over the hero, no CSP violations; landing 5.7 phone screens (was 8.8). The matrix lives in site/scripts/shots.mjs instead of tests/e2e/site-matrix.spec.ts.</Item>
+    <Item>Old-logo sweep (D-10): md5 search finds no copy of the old mark in tracked files; README 07-home re-captured. Lighthouse not run.</Item>
+  </Evidence>
 </C-64>
 </GraceChangePlan>
