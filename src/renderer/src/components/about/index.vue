@@ -39,9 +39,10 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-// The brand mark follows the effective theme (light or dark ¶ icon).
+// The brand mark contrasts with the effective theme: light ¶ on dark
+// themes, dark ¶ on light themes.
 const { theme } = storeToRefs(usePreferencesStore())
-const brandLogo = computed(() => (isDarkTheme(theme.value) ? MarkTextLogoDark : MarkTextLogo))
+const brandLogo = computed(() => (isDarkTheme(theme.value) ? MarkTextLogo : MarkTextLogoDark))
 
 const name = 'Mark'
 const copyright = t('about.copyright', { year: new Date().getFullYear() })
