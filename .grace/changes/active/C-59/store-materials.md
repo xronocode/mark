@@ -413,3 +413,33 @@ Executed by `.grace/changes/active/C-59/asc-apply.py` + `asc-payload.json`
   when a version localization appears.
 - Remaining user step: submit for review in ASC UI (manual release
   already set on the version); then release manually after approval.
+
+## Rebuild with the fixed logo (2026-10-18 ~21:00)
+
+User moved tag v2.5.0 to 7d12a671 (release/2.5.0 = old tag + brand fix:
+logo.png, logo-dark.png, about/index.vue, recent/index.vue — the old
+round-M logo on the home screen and in About). ASC state was checked
+first: version 2.5.0 still PREPARE_FOR_SUBMISSION (never submitted —
+nothing to revoke) and relationships.build = null (nothing to unlink);
+build 3896c4bb stays unused.
+
+- Worktree ~/prj/mark-wt/mas-2.5.0 re-checked out to the new tag
+  (HEAD verified = 7d12a671, diff vs old tag = exactly the 4 brand files).
+- Build number: ASC rejects a second build with the same CFBundleVersion,
+  and 4-part "2.5.0.1" was rejected too (error 90257 — at most three
+  period-separated integers). Final: bundle.macOS.bundleVersion "2.5.1",
+  marketing version 2.5.0. Committed to fork main 667583bb + fix 4f9a7a5b
+  (local main untouched — holds unpushed C-64).
+- Logo verified three ways: visual check of the tagged light logo
+  (pilcrow ¶ with yellow accent on cream — not the round M); byte-exact
+  match of src/renderer/dist/assets/logo-AOWh1XaX.png and
+  logo-dark-BYyWlolx.png against the tagged sources (md5 db079578…,
+  1d7d2cc5…); Info.plist 2.5.0 / 2.5.1.
+- mas-pkg.sh + pkgutil chain verified again; upload via altool:
+  Delivery 65f1dc80-d5eb-4ac4-a610-8d1e1fa9e3b3 (12,675,276 B).
+- Build 2.5.1 (id 65f1dc80…) state=VALID ~1 min after upload;
+  usesNonExemptEncryption=false set via API (200).
+- Metadata, screenshots, previews untouched (instruction); the v2
+  restructured descriptions (desc-v2.json) remain pending user ok.
+- Pkg copies: ~/Downloads/Mark-mas-2.5.1.pkg (current);
+  Mark-mas-2.5.0.1.pkg removed (rejected), Mark-mas-2.5.0.pkg superseded.
