@@ -124,7 +124,7 @@ describe('renderGallery (the built page)', () => {
   it('substitutes the site base everywhere under SITE_BASE=/mark/', () => {
     const html = renderGallery(resolveSiteSettings({ SITE_URL: 'https://xronocode.github.io/mark', SITE_BASE: '/mark/' }))
     expect(html).toContain('href="/mark/guide/"')
-    expect(html).toContain('url("/mark/fonts/schibsted-grotesk.woff2")')
+    expect(html).toContain('url("/mark/fonts/gallery/BricolageGrotesque-800.woff2")')
     expect(html).not.toMatch(/%BASE%|(href|src)="\/(?!mark\/)/)
   })
 })
