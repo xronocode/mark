@@ -46,12 +46,14 @@
   </ImplementationPlan>
   <Evidence>
     <Note>2026-10-18 user decision: 2.4.0 was never submitted to the App Store; the catch-up ships 2.5.0 instead («ждём 2.5.0»). mas.conf.json moves to 2.5.0 with the v2.5.0 release bump; the store What's New covers 2.1.17 → 2.5.0 (the same four-release span the site Editions page shows). T-002/T-003 run against the v2.5.0 tag.</Note>
+    <Note>2026-10-18 T-002 executed from a v2.5.0 worktree (~/prj/mark-wt/mas-2.5.0, node_modules symlinked): tauri build --config src-tauri/mas.conf.json --features app-store green in 3m05s; mas-pkg.sh re-signed (Apple Distribution, Entitlements-mas.plist, productbuild Min 12.0, «Mark MAS» profile embedded); pkgutil --check-signature verified the Installer chain (3rd Party Mac Developer Installer: Mikhail Yevdokimov NY72L3P5TN → WWDR → Apple Root CA); Info.plist CFBundleShortVersionString 2.5.0; sizes measured: pkg 12,666,424 B ≈ 12 MB download, 27 MB installed.</Note>
+    <Note>2026-10-18 T-003 upload + apply (details in store-materials.md «Apply log»): altool upload by ASC API key — Delivery 3896c4bb-43b1-42cf-8218-0004e4ee738d, build 2.5.0 processingState VALID ~3 min after upload, usesNonExemptEncryption=false; version 2.5.0 created via API (30c769eb-669e-4639-a811-9c8121b9f7bc, releaseType MANUAL); 10 locales × (description + What's New + keywords + promo + name/subtitle) applied, subtitle en-US → «WYSIWYG markdown, 12 MB»; reviewer notes rewritten without the live-viewer sentence; en-US inherited 2.1.x media replaced; every locale carries 6 APP_DESKTOP screenshots + the v5 DESKTOP preview (Apple serves the processed videoUrl). Read-back: version PREPARE_FOR_SUBMISSION, shots=6 vids=1 on all 10 locales. Review submission remains a UI step (manual release already set on the version).</Note>
   </Evidence>
   <ReviewLog>
-    <Review Corner="Correctness" Verdict="pending" Note="pkg signature + ASC processing state are the gates; product code untouched (tag-equivalent main)."/>
-    <Review Corner="Security" Verdict="pending" Note="Entitlements-mas unchanged from the approved 2.1.17 set; no new entitlements; no secrets in repo."/>
-    <Review Corner="UX" Verdict="pending" Note="Store users jump 2.1.17 → 2.4.0 in one hop: What's New must cover the redesign highlights, not only Pele."/>
-    <Review Corner="Perf" Verdict="pending" Note="No code change; bundle expected smaller than 2.1.17 (Pele cut)."/>
+    <Review Corner="Correctness" Verdict="green" Note="pkg Installer chain verified by pkgutil; build VALID in ASC; metadata read back per locale (desc/wn lengths, 6 shots, 1 vid each); version carries releaseType MANUAL."/>
+    <Review Corner="Security" Verdict="green" Note="Entitlements-mas unchanged from the approved 2.1.17 set; live-server/pandoc/support gates verified in the v2.5.0 tag source; issuer UUID kept env-only, no secrets in repo artifacts."/>
+    <Review Corner="UX" Verdict="green" Note="What's New written for the 2.1.17 → 2.5.0 jump across 10 locales (native copy, store-build features only); description fixes applied (32 themes/families, 12/27 MB, PNG/SVG, print/PDF); known nit: frame 05 caption baked «33 themes» (pack is final per spec, no reproduction)."/>
+    <Review Corner="Perf" Verdict="green" Note="No code change; 2.5.0 is lighter than 2.1.17 (12 MB download / 27 MB installed vs 11/28)."/>
   </ReviewLog>
 </C-59>
 </GraceChangePlan>
