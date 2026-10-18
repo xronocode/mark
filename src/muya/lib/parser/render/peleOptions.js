@@ -4,7 +4,7 @@
 //   PURPOSE: Per-type pele render options (C-55 R-4) — the C-51 lab sizes re-expressed in pele's option surface (fontSize/padding), the global measurement font (the same chrome stack the --pele-font variable displays, so layout measurement matches the rendered text), and the C-34 fit-column policy (no maxWidth: pele emits width=natural + max-width:100%, which the pipeline's --mark-zoom max-width builds on).
 //   SCOPE: buildPeleRenderOptions(type, tokens) and the SCROLLABLE_LAB_TYPES table; no DOM access, no caching.
 //   DEPENDS: ./diagramTheme (DEFAULT_DIAGRAM_FONT for the fontless fallback).
-//   LINKS: .grace/changes/active/C-55 R-4; .grace/changes/archive/C-51 (lab sizes); .grace/graph/runtime.xml M-012.
+//   LINKS: .grace/changes/archive/C-55 R-4; .grace/changes/archive/C-51 (lab sizes); .grace/graph/runtime.xml M-012.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

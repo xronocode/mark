@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the shared diagram theme engine (renamed from mermaidTheme.js in C-55) — OKLCH categorical palette properties, render-time theme-token reading from the document's CSS variables (Paper pins), the WCAG node-contrast gates of nodeContrastColors, chartPalette (OKLCH generation vs theme-defined series), the C-55 R-3 buildPeleVariables --pele-* block (Paper literal pin matching the static stylesheet fallback, Ink L 0.74/C 0.11 series derivation, theme-defined series override + modulo wrap), and diagramThemeSignature.
 //   SCOPE: src/muya/lib/parser/render/diagramTheme.js pure API; export wiring lives in export-pele-theme.test.js, pipeline behaviour in pele-pipeline.test.js, the all-32-themes gate in pele-node-contrast.test.js.
 //   DEPENDS: src/muya/lib/parser/render/diagramTheme.js, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-55 R-3; .grace/changes/archive/C-51 T-003/T-004/T-005/T-012 and C-54 (node-contrast rules); .grace/verification/runtime.xml V-M-012 scenario-17; START_BLOCK_PELE_VARIABLES, START_BLOCK_DIAGRAM_*.
+//   LINKS: .grace/changes/archive/C-55 R-3; .grace/changes/archive/C-51 T-003/T-004/T-005/T-012 and C-54 (node-contrast rules); .grace/verification/runtime.xml V-M-012 scenario-17; START_BLOCK_PELE_VARIABLES, START_BLOCK_DIAGRAM_*.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

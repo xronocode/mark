@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-55 pele render pipeline (the C-34 R2.1 resilience contract carried onto the pele engine): code-only LRU SVG cache — a theme switch is a CACHE HIT (corner-2: colors live in the --pele-* CSS variables), keep-last-good + escaped PeleError text, per-block ~250 ms debounce, counter-unique idPrefixes, C-49 data-natural-width from RenderResult.width with the --mark-zoom calc max-width, pele.detectType feeding the per-type render options, no <style> hoisting (pele SVGs carry none), and the C-51 T-010 expand-need re-evaluation after every insert.
 //   SCOPE: createPelePipeline and StateRender.renderPele wiring; C-62 appearance-only cache reuse, superseded in-flight sources and editor-scoped target resolution.
 //   DEPENDS: src/muya/lib/parser/render/pelePipeline.js, src/muya/lib/parser/render/index.js, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-55 R-2/R-4 and the plan's corner-2; .grace/changes/archive/C-34 R2.1 (resilience contract), C-49 (zoom), C-51 T-010 (expand-need); .grace/verification/runtime.xml V-M-012 scenario-9; START_BLOCK_PELE_*.
+//   LINKS: .grace/changes/archive/C-55 R-2/R-4 and the plan's corner-2; .grace/changes/archive/C-34 R2.1 (resilience contract), C-49 (zoom), C-51 T-010 (expand-need); .grace/verification/runtime.xml V-M-012 scenario-9; START_BLOCK_PELE_*.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
