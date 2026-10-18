@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-deep.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify titleBar/index.vue computed state, native actions, popover rename, window controls, and lifecycle behavior.
 //   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
@@ -20,6 +20,8 @@
 //   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
 //   - 2026-09-28 v1.3.0: C-15 T-W1 — dblclick-maximize is cross-platform (both directions pinned).
 //   - 2026-10-15 v1.4.0: C-41 T-001 — three-state themeMode pin.
+//   - 2026-10-18 v1.6.0: dblclick on a data-tauri-drag-region target is left to
+//     Tauri drag.js (the double toggle maximized then restored the window).
 //   - 2026-10-15 v1.5.0: C-40 T-002 — the paths/handleNavClick/handleWordClick
 //     pins retired with the breadcrumb, Files/TOC buttons and word-count
 //     counter; rename is now the popover Rename… (handleRenameClick →
@@ -259,6 +261,24 @@ describe('titleBar/index.vue — deep coverage', () => {
       // cross-platform now (was macOS-only via toggleMaxmizeOnMacOS).
       windowStub.isFullscreen.mockClear()
       wrapper.vm.handleTitleBarDblclick({ target: { closest: () => null } })
+      await vi.waitFor(() => expect(windowStub.isFullscreen).toHaveBeenCalled())
+    })
+
+    it('handleTitleBarDblclick leaves drag-region targets to Tauri drag.js (no double toggle)', async () => {
+      const wrapper = mountComponent()
+      windowStub.isFullscreen.mockClear()
+      windowStub.maximize.mockClear()
+      // drag.js toggles maximize for a dblclick whose target itself has the
+      // attribute; a second toggle here restored the window right away.
+      const dragTarget = { getAttribute: (n) => (n === 'data-tauri-drag-region' ? '' : null), closest: () => null }
+      wrapper.vm.handleTitleBarDblclick({ target: dragTarget })
+      await new Promise((r) => setTimeout(r, 0))
+      expect(windowStub.isFullscreen).not.toHaveBeenCalled()
+      expect(windowStub.maximize).not.toHaveBeenCalled()
+      // data-tauri-drag-region="false" is not a drag region for drag.js,
+      // so the bar handler still toggles there.
+      const optedOut = { getAttribute: () => 'false', closest: () => null }
+      wrapper.vm.handleTitleBarDblclick({ target: optedOut })
       await vi.waitFor(() => expect(windowStub.isFullscreen).toHaveBeenCalled())
     })
 

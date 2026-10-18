@@ -195,7 +195,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.1.0
+// VERSION: 2.1.3
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
@@ -212,6 +212,8 @@
 //   isOnResizeEdge - True when a press is within RESIZE_EDGE_PX of the top/left/right edge.
 //   handleCloseClick - Requests native window close.
 //   handleMaximizeClick - Toggles native maximize/fullscreen state.
+//   ownsTauriDragRegion - True when the target itself carries data-tauri-drag-region (Tauri's drag.js owns its double click).
+//   handleTitleBarDblclick - Bar double click → maximize toggle, except on interactive zones and on drag-region targets.
 //   handleMinimizeClick - Requests native window minimize.
 //   handleMenuClick - Opens the native application menu at the pointer.
 //   themeMode - Title-bar theme button state: auto | light | dark (C-41 T-001).
@@ -225,10 +227,21 @@
 //   handleRevealClick - Popover reveal → window.electron.shell.showItemInFolder.
 //   handleCopyPathClick - Popover Copy path → native clipboard plugin write (WKWebView-safe).
 //   handleGuideClick - Win/Linux «?» → bus mt::open-guide (C-40 T-002 / C-40 R-1).
-//   onDocMouseDown/onDocKeydown - Outside-click and Escape closers for the popover.
+//   onDocMouseDown/onDocKeydown - Outside-click (window capture phase, ahead of Tauri drag.js) and Escape closers for the popover.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-18 v2.1.3: the popover actions sit in one row of equal-width
+//     buttons (the popover grew 360 → 420 px; Russian labels wrapped to a
+//     second line).
+//   - 2026-10-18 v2.1.2: fix — a click on the empty title bar did not close
+//     the document info popover: drag.js stops mousedown propagation on
+//     drag-region targets. The outside-click closer moved to a window
+//     capture-phase listener.
+//   - 2026-10-18 v2.1.1: fix — a double click on a data-tauri-drag-region
+//     element maximized and immediately restored the window: Tauri's
+//     drag.js and handleTitleBarDblclick both toggled. The handler now
+//     leaves those targets to drag.js (START_BLOCK_TITLEBAR_DBLCLICK).
 //   - 2026-10-15 v2.1.0: C-38 T-006 N4 b/d — the Win/Linux Settings
 //     gear and the frameless caption buttons (minimize / maximize /
 //     restore / close) render from the drawn chromeIcons set on the
@@ -500,7 +513,11 @@ const handleCopyPathClick = async () => {
 }
 
 // Outside click and Escape close the popover. The title button itself
-// is excluded so its click can toggle the popover closed.
+// is excluded so its click can toggle the popover closed. The mousedown
+// closer listens on window in the CAPTURE phase: Tauri's drag.js
+// stops immediate propagation of mousedown on data-tauri-drag-region
+// targets at document level, so a document listener never saw a click
+// on the empty title bar and the popover stayed open.
 const onDocMouseDown = (event) => {
   if (!popoverOpen.value) return
   const target = event.target instanceof Element ? event.target : null
@@ -651,7 +668,20 @@ const handleMaximizeClick = async () => {
 // interactive zones opt out. C-15 T-W1: frameless Windows/Linux windows
 // get the same gesture (native Windows maximizes on titlebar dblclick),
 // and handleMaximizeClick already no-ops gracefully for every state.
+// START_BLOCK_TITLEBAR_DBLCLICK
+// Tauri's injected drag.js already toggles maximize on a double click whose
+// target itself carries data-tauri-drag-region (macOS on mouseup, others on
+// mousedown). Toggling here too maximized the window and restored it at
+// once, so this handler only covers the bar's plain children.
+const ownsTauriDragRegion = (target) => {
+  const attr = typeof target?.getAttribute === 'function'
+    ? target.getAttribute('data-tauri-drag-region')
+    : null
+  return attr !== null && attr !== 'false'
+}
+
 const handleTitleBarDblclick = (event) => {
+  if (ownsTauriDragRegion(event.target)) return
   if (
     event.target.closest('.title-no-drag, .titlebar-nav, .titlebar-right, .right-toolbar')
   ) {
@@ -659,6 +689,7 @@ const handleTitleBarDblclick = (event) => {
   }
   handleMaximizeClick()
 }
+// END_BLOCK_TITLEBAR_DBLCLICK
 
 const handleMinimizeClick = async () => {
   await getCurrentWindow().minimize()
@@ -697,7 +728,7 @@ onMounted(() => {
   if (isOsx) {
     document.addEventListener('mousedown', handleWindowDragMouseDown)
   }
-  document.addEventListener('mousedown', onDocMouseDown)
+  window.addEventListener('mousedown', onDocMouseDown, true)
   document.addEventListener('keydown', onDocKeydown)
 })
 
@@ -705,7 +736,7 @@ onBeforeUnmount(() => {
   if (isOsx) {
     document.removeEventListener('mousedown', handleWindowDragMouseDown)
   }
-  document.removeEventListener('mousedown', onDocMouseDown)
+  window.removeEventListener('mousedown', onDocMouseDown, true)
   document.removeEventListener('keydown', onDocKeydown)
   if (typeof resizeUnlisten === 'function') {
     resizeUnlisten()
@@ -889,7 +920,7 @@ img {
   top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  width: 360px;
+  width: 420px;
   max-width: calc(100vw - 32px);
   box-sizing: border-box;
   padding: 16px;
@@ -945,13 +976,19 @@ img {
   white-space: nowrap;
 }
 .doc-info-actions {
-  display: flex;
+  /* One row of equal-width actions (two for untitled documents). */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
-  flex-wrap: wrap;
 }
 .doc-info-action {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
-  padding: 5px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   border: none;
   background: transparent;

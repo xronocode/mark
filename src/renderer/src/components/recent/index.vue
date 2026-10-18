@@ -183,7 +183,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.2 - 2026-10-18 fix: the brand mark was still the
+//   LAST_CHANGE: v2.1.3 - 2026-10-18 fix: row layout — .row-button gained
+//     box-sizing:border-box (width:100% plus padding overflowed the column
+//     by 20 px), and «Remove from list» is a quiet button centred on the
+//     row in the time column's place instead of a bordered chip pinned to
+//     the bottom edge over the path line.
+//   v2.1.2 - 2026-10-18 fix: the brand mark was still the
 //     pre-C-33 round «M» logo.png; it is now the ¶ app icon, light or dark
 //     by the effective theme (logo.png / logo-dark.png, full-bleed, from assets/icon).
 //   v2.1.1 - 2026-10-18 fix: safe vertical centering — the
@@ -818,6 +823,7 @@ function onNativeDrag(event) {
   grid-template-columns: 22px 1fr auto;
   gap: 2px 10px;
   align-items: baseline;
+  box-sizing: border-box;
   width: 100%;
   padding: 6px 10px;
   border: none;
@@ -873,18 +879,21 @@ function onNativeDrag(event) {
 }
 
 .row-remove {
+  /* Takes the time column's place on hover / keyboard focus, centred on
+     the row; the hidden time keeps the grid from reflowing. */
   position: absolute;
+  top: 50%;
   right: 10px;
-  bottom: 6px;
+  transform: translateY(-50%);
   z-index: 1;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1;
-  color: var(--editorColor);
-  padding: 4px 7px;
+  color: var(--editorColor60, var(--editorColor50));
+  padding: 5px 8px;
+  border: none;
   border-radius: 6px;
-  border: 1px solid var(--tableBorderColor, var(--editorColor10));
-  background: var(--floatBgColor, var(--editorBgColor));
+  background: transparent;
   white-space: nowrap;
   cursor: pointer;
   visibility: hidden;
@@ -893,8 +902,17 @@ function onNativeDrag(event) {
 .recent-item:focus-within .row-remove {
   visibility: visible;
 }
+.recent-item:hover .row-time,
+.recent-item:focus-within .row-time {
+  visibility: hidden;
+}
 .row-remove:hover {
-  border-color: var(--themeColor);
+  color: var(--editorColor);
+  background: color-mix(in srgb, var(--editorColor) 10%, transparent);
+}
+.row-remove:focus-visible {
+  outline: 2px solid var(--focusColor, var(--themeColor));
+  outline-offset: -2px;
 }
 
 .no-recent {
