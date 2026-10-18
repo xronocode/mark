@@ -6,7 +6,9 @@
  * flips the tab into the read-only previewMode surface — the tab shows
  * the lock badge and the muya surface goes contenteditable=false; a click
  * inside the document (the reading-view exit gesture) does NOT unlock;
- * unlocking restores editing. Also pins the copy-as-markdown document
+ * unlocking restores editing. A Finder/CLI reading view without a lock
+ * shows no badge (2026-10-18: every externally opened tab looked locked).
+ * Also pins the copy-as-markdown document
  * flavor and the split-view reachability through the command registry.
  */
 
@@ -100,7 +102,7 @@ test.describe('lock document (C-40 T-004)', () => {
       .toBeGreaterThan(3)
   })
 
-  test('the lock badge also marks a Finder-opened reading-view tab, and Lock makes it sticky', async ({ page }) => {
+  test('a Finder-opened reading-view tab has no badge; Lock adds it and makes it sticky', async ({ page }) => {
     await bootEditor(page)
     // previewMode: true is exactly what the mt::open-new-tab payload
     // carries for Finder/CLI-opened files (bootstrap-ipc APPLY_PREVIEW_MODE).
@@ -114,8 +116,10 @@ test.describe('lock document (C-40 T-004)', () => {
         editor.currentFile._previewSideBarSnapshot = false
       }
     })
-    await expect(badge(page)).toBeVisible({ timeout: 5_000 })
+    // Reading view is read-only but unbadged: only an explicit lock shows
+    // the lock (every externally opened tab used to look locked).
     await expect(surface(page)).toHaveAttribute('contenteditable', 'false')
+    await expect(badge(page)).toHaveCount(0)
 
     // The reading-view click gesture still exits plain preview mode
     // (existing M-022 behaviour is unchanged for unlocked tabs).
