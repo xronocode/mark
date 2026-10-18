@@ -1,14 +1,17 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Single source of site settings and the landing renderer shared by
-//            the VitePress config (dev middleware + buildEnd) and unit tests.
+//   PURPOSE: Single source of site settings and the static-page renderers
+//            shared by the VitePress config (dev middleware + buildEnd) and
+//            unit tests.
 //   SCOPE: resolve SITE_URL/SITE_BASE and analytics env (GA_MEASUREMENT_ID,
-//          CF_BEACON_TOKEN, UMAMI_*) into settings; render the
-//          landing template (base token + shared head); emit robots.txt and
-//          CNAME content.
+//          CF_BEACON_TOKEN, UMAMI_*) into settings; render static pages
+//          (landing + the C-58 /diagrams/ gallery) from templates with the
+//          shared head (per-page canonical/OG) and base token; emit
+//          robots.txt and CNAME content.
 //   DEPENDS: none (pure functions over strings/env)
-//   LINKS: M-053 SiteBuild; C-22; site/landing/index.html
+//   LINKS: M-053 SiteBuild; C-22; C-58; site/landing/index.html;
+//          site/scripts/build-gallery.mjs (renderPage consumer)
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -21,14 +24,22 @@
 //   CONSENT_GEO_URL - shared country lookup that decides whether the cookie banner is needed
 //   analyticsTags - analytics[], base -> [{ attrs, body }] script tags (landing + docs)
 //   analyticsScript - analyticsTags serialized to HTML, '' when analytics is off
-//   renderSharedHead - meta/OG/twitter/favicon/analytics HTML for the landing
-//   renderLanding - template -> final landing HTML
+//   sharedHeadTags - settings + { path, title, description } -> meta/OG/twitter/favicon/analytics HTML
+//   renderSharedHead - sharedHeadTags for the site root (landing default meta)
+//   renderPage - template + settings + page meta -> final HTML (head + base)
+//   renderLanding - template -> final landing HTML (renderPage with root meta)
 //   robotsTxt - robots.txt body pointing at the sitemap
 //   cnameFor - custom-domain CNAME body, or null for github.io/sub-path hosting
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [2026-10-12 - Defer the self-contained analytics loader to keep first paint unblocked.]
+//   LAST_CHANGE: [v1.4.0 - 2026-10-18 C-58 T-002: the shared head and the
+//                 template render are generalized into sharedHeadTags +
+//                 renderPage (per-page path/title/description) so the
+//                 /diagrams/ gallery page gets the same SEO/analytics/
+//                 consent treatment; renderLanding/renderSharedHead keep
+//                 their exact previous output for the root page.]
+//   PREV: [2026-10-12 - Defer the self-contained analytics loader to keep first paint unblocked.]
 //   PREV: [v1.3.0 - GA4 loads through public/consent.js: Consent Mode v2 + cookie banner only for EEA/UK/CH visitors]
 //   PREV: [v1.2.0 - analytics is a list; GA4, Cloudflare Web Analytics and Umami can run together]
 //   PREV: [v1.1.0 - GA4 provider via GA_MEASUREMENT_ID]
@@ -129,20 +140,34 @@ export function analyticsScript (analytics, base = '/') {
   }).join('\n    ')
 }
 
-export function renderSharedHead (settings) {
+// START_CONTRACT: sharedHeadTags
+//   PURPOSE: The shared head for any static site page — description,
+//            per-page canonical/OG URL and title, favicon, theme color,
+//            twitter card, and the site's analytics/consent scripts.
+//   INPUTS: { settings: resolveSiteSettings() output,
+//             page: { path?: string - URL path after the host with a trailing
+//                     slash ('' = site root), title?: string,
+//                     description?: string } - defaults to the landing meta }
+//   OUTPUTS: { string - the head tags joined with newlines }
+//   SIDE_EFFECTS: none
+// END_CONTRACT: sharedHeadTags
+export function sharedHeadTags (settings, page = {}) {
   const { siteUrl, base } = settings
-  const pageUrl = siteUrl + '/'
+  const path = page.path ?? ''
+  const title = page.title ?? SITE_META.title
+  const description = page.description ?? SITE_META.description
+  const pageUrl = path ? `${siteUrl}/${path}` : siteUrl + '/'
   const image = `${siteUrl}/${SITE_META.ogImage}`
   const tags = [
-    `<meta name="description" content="${escapeAttr(SITE_META.description)}">`,
+    `<meta name="description" content="${escapeAttr(description)}">`,
     `<link rel="canonical" href="${escapeAttr(pageUrl)}">`,
     `<link rel="icon" type="image/png" href="${base}${SITE_META.favicon}">`,
     `<link rel="apple-touch-icon" href="${base}${SITE_META.favicon}">`,
     '<meta name="theme-color" content="#07090c">',
     '<meta property="og:type" content="website">',
     `<meta property="og:site_name" content="${SITE_META.name}">`,
-    `<meta property="og:title" content="${escapeAttr(SITE_META.title)}">`,
-    `<meta property="og:description" content="${escapeAttr(SITE_META.description)}">`,
+    `<meta property="og:title" content="${escapeAttr(title)}">`,
+    `<meta property="og:description" content="${escapeAttr(description)}">`,
     `<meta property="og:url" content="${escapeAttr(pageUrl)}">`,
     `<meta property="og:image" content="${escapeAttr(image)}">`,
     '<meta name="twitter:card" content="summary_large_image">',
@@ -150,6 +175,31 @@ export function renderSharedHead (settings) {
     analyticsScript(settings.analytics, settings.base)
   ].filter(Boolean)
   return tags.join('\n    ')
+}
+
+export function renderSharedHead (settings) {
+  return sharedHeadTags(settings)
+}
+
+// START_CONTRACT: renderPage
+//   PURPOSE: Turn a static site page template into servable HTML — the
+//            shared head (per-page meta) in place of <!--SITE_HEAD--> and
+//            the site base substituted for %BASE%. Used by the landing and
+//            the C-58 /diagrams/ gallery.
+//   INPUTS: { template: string - the page template, settings: resolveSiteSettings(),
+//             page: { path, title, description } - sharedHeadTags page meta }
+//   OUTPUTS: { string - HTML with the head injected and %BASE% substituted }
+//   SIDE_EFFECTS: none; throws if the head placeholder is missing
+// END_CONTRACT: renderPage
+export function renderPage (template, settings, page = {}) {
+  // START_BLOCK_RENDER_PAGE
+  if (!template.includes(HEAD_PLACEHOLDER)) {
+    throw new Error(`[SiteBuild][renderPage][BLOCK_RENDER_PAGE] template is missing ${HEAD_PLACEHOLDER}`)
+  }
+  return template
+    .replace(HEAD_PLACEHOLDER, sharedHeadTags(settings, page))
+    .replace(BASE_TOKEN, settings.base)
+  // END_BLOCK_RENDER_PAGE
 }
 
 // START_CONTRACT: renderLanding
