@@ -465,6 +465,12 @@
     "copyImage": "画像としてコピー",
     "openFullScreen": "全画面で開く"
   },
+  "tableToolbar": {
+    "fullWidth": "フル幅で表示",
+    "fitToPage": "ページ幅に合わせる",
+    "columnsRange": "列 {start}～{end}／{total}",
+    "allColumns": "全 {total} 列"
+  },
   "recent": {
     "taglineLead": "エージェントが書く。",
     "taglineHighlight": "あなたが形にする。",

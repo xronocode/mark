@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/renderBlock/expandNeed.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Decide whether a viewable figure actually benefits from the fullscreen viewer (C-51 T-010, user decision D-7) and toggle the ag-expand-needed class that gates the expand button's visibility.
-//   SCOPE: Pure need rules (a diagram drawn narrower than its natural size or taller than 600 px; a table that overflows its C-39 scroll wrapper or is taller than 600 px), DOM gathering for one figure, the class toggle with the BLOCK_EXPAND_NEED log anchor, ONE shared ResizeObserver over the observed figures (unobserved when they leave the DOM; absent ResizeObserver — jsdom — degrades to render-time evaluation), and the sync/release entry points wired into every StateRender render path, the mermaid pipeline insert, renderDiagram and Muya.destroy. C-56 T-005: updateFigureExpandNeed also runs syncBlockToolbarState (renderBlockToolbar.js) so the corner pill's Copy as image button is disabled while the block has no rendered SVG — the same funnel covers both without new call sites.
-//   DEPENDS: renderBlockToolbar.syncBlockToolbarState (the C-56 pill copy-disabled pass; pure DOM).
-//   LINKS: .grace/changes/active/C-51 T-010 (D-7); .grace/changes/active/C-56 T-005 (the pill sync); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-60 and scenario-64; renderExpandButton.js (the gated button); renderBlockToolbar.js (the pill whose expand button is gated the same way); renderContainerBlock.js START_BLOCK_EXPAND_BUTTON (the ag-has-expand marker); the C-51 T-006/T-010 + C-56 T-005 CSS sections of lib/assets/styles/index.css.
+//   SCOPE: Pure need rules (a diagram drawn narrower than its natural size or taller than 600 px; a table that overflows its C-39 scroll wrapper or is taller than 600 px), DOM gathering for one figure, the class toggle with the BLOCK_EXPAND_NEED log anchor, ONE shared ResizeObserver over the observed figures (unobserved when they leave the DOM; absent ResizeObserver — jsdom — degrades to render-time evaluation), and the sync/release entry points wired into every StateRender render path, the mermaid pipeline insert, renderDiagram and Muya.destroy. C-56 T-005: updateFigureExpandNeed also runs syncBlockToolbarState (renderBlockToolbar.js) so the corner pill's Copy as image button is disabled while the block has no rendered SVG — the same funnel covers both without new call sites. C-65 T-003: updateFigureExpandNeed also runs syncTableCue (lib/tableResize/tableCue.js) on TABLE figures, so the «columns X–Y of N» caption and the edge shades re-evaluate on every render and on every figure resize through the same funnel (wrapper scrolls use TableResize's capture-phase scroll listener).
+//   DEPENDS: renderBlockToolbar.syncBlockToolbarState (the C-56 pill copy-disabled pass; pure DOM); tableResize/tableCue.syncTableCue (the C-65 cue pass; pure DOM).
+//   LINKS: .grace/changes/active/C-51 T-010 (D-7); .grace/changes/active/C-56 T-005 (the pill sync); .grace/changes/active/C-65 T-003 (the cue sync); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-60, scenario-64 and scenario-66; renderExpandButton.js (the gated button); renderBlockToolbar.js (the pill whose expand button is gated the same way); renderTableToolbar.js (the table toolbar whose expand button is gated the same way); renderContainerBlock.js START_BLOCK_EXPAND_BUTTON (the ag-has-expand marker); the C-51 T-006/T-010 + C-56 T-005 + C-65 CSS sections of lib/assets/styles/index.css.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -16,7 +16,7 @@
 //   diagramNeedRule - pure rule: need ⇔ laid out AND (preview taller than 600 px OR drawn ≥ 2 px narrower than the natural width).
 //   tableNeedRule - pure rule: need ⇔ scrollWidth > clientWidth + 1 OR the table taller than 600 px.
 //   figureNeedsExpand - DOM gathering for one figure (svg viewBox / px width attribute or img naturalWidth; preview and scroll-wrapper measurements) plus the matching rule.
-//   updateFigureExpandNeed - evaluate one figure (or anything inside it) and toggle the class; logs [Muya][expandNeed][BLOCK_EXPAND_NEED] when the verdict flips; also syncs the C-56 pill copy button's disabled state (syncBlockToolbarState).
+//   updateFigureExpandNeed - evaluate one figure (or anything inside it) and toggle the class; logs [Muya][expandNeed][BLOCK_EXPAND_NEED] when the verdict flips; also syncs the C-56 pill copy button's disabled state (syncBlockToolbarState) and — on TABLE figures — the C-65 caption/shades (syncTableCue).
 //   syncExpandNeed - evaluate every figure under a root and keep the shared ResizeObserver in step (observe new figures, unobserve the ones that left the DOM).
 //   releaseExpandNeedObservations - drop a destroyed editor's figures from the shared observer (Muya.destroy).
 //   TALL_BLOCK_PX - height (px) above which a diagram or table always gets the button.
@@ -24,7 +24,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-005: updateFigureExpandNeed
+//   LAST_CHANGE: v1.2.0 - 2026-10-18 C-65 T-003: updateFigureExpandNeed
+//   additionally runs syncTableCue on TABLE figures — the same funnel
+//   (every render path, pele insert, awaited vega embed, ResizeObserver
+//   tick) that evaluates the need now also keeps the C-65 overflow caption
+//   and the edge shades current when the figure (column) resizes; wrapper
+//   SCROLLS are covered by TableResize's capture-phase scroll listener.
+//   The need rules themselves are unchanged.
+//   v1.1.0 - 2026-10-18 C-56 T-005: updateFigureExpandNeed
 //   additionally runs syncBlockToolbarState on the resolved figure — the
 //   same funnel (every render path, pele insert, awaited vega embed,
 //   ResizeObserver tick) that evaluates the need now also keeps the
@@ -47,6 +54,8 @@
 
 // C-56 T-005: the corner pill rides the same post-render funnel.
 import { syncBlockToolbarState } from './renderBlockToolbar'
+// C-65 T-003: the table overflow cue rides it too (tables only).
+import { syncTableCue } from '../../../tableResize/tableCue'
 
 export const EXPAND_NEEDED_CLASS = 'ag-expand-needed'
 export const EXPAND_FIGURE_SELECTOR = 'figure.ag-has-expand'
@@ -152,6 +161,12 @@ export const updateFigureExpandNeed = (element) => {
   // block has no rendered SVG — every path that re-evaluates the need
   // (render, pele insert, awaited vega embed, resize tick) re-syncs it.
   syncBlockToolbarState(figure)
+  // C-65 T-003: the table overflow caption + edge shades re-evaluate on
+  // the same paths (render + figure/column resize); the sync itself is a
+  // no-op on figures that are not laid out (hidden pane, jsdom).
+  if (figure.dataset.role === 'TABLE') {
+    syncTableCue(figure)
+  }
   return needed
 }
 // END_BLOCK_EXPAND_NEED_TOGGLE

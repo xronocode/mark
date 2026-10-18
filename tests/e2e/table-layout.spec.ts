@@ -1,10 +1,10 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer: wide tables scroll inside the text column with edge-shadow backgrounds, narrow tables keep content width, long URLs are capped at ~40ch, and editing works after horizontal scrolling.
-//   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER) and the C-39 CSS section in src/muya/lib/assets/styles/index.css.
+//   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling) and the C-65 T-003 overflow cue of the same wrapper (class-gated edge shades + the «columns X–Y of N» caption below the table on the column edge, live on scroll).
+//   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, and lib/tableResize/tableCue.js.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, the built renderer served by `npm run preview`.
-//   LINKS: .grace/changes/active/C-39 T-001; .grace/verification/runtime.xml V-M-012 scenario-18; unit structure twin tests/renderer/muya/table-scroll-wrapper.test.js.
+//   LINKS: .grace/changes/active/C-39 T-001; .grace/changes/active/C-65 T-003; .grace/verification/runtime.xml V-M-012 scenario-18 and scenario-66; unit structure twin tests/renderer/muya/table-scroll-wrapper.test.js + table-cue.test.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -17,10 +17,17 @@
 //   LONG_URL - a 200-character URL.
 //   LONG_URL_MD - table fixture with LONG_URL in a body cell.
 //   EDIT_AFTER_SCROLL_MD - wide table used for the editing-after-scroll cases.
+//   cueState - reads one wrapper's caption text + shade side classes + scroll geometry.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-18 fix: the wide table's scroll container ends above the next block (the 30 px negative bottom margin painted the scrollbar over the following heading).
+//   LAST_CHANGE: v1.4.0 - 2026-10-18 C-65 T-003: the shade pins moved from
+//   the C-39 cover-gradient backgrounds (backgroundAttachment) to the
+//   class-gated cue (ag-table-cue-left/right), and the caption joined the
+//   pin: «columns 1–N of 15» at the start, a live range in the middle,
+//   none for a table that fits; the caption is right-aligned on the
+//   text-column edge.
+//   v1.3.0 - 2026-10-18 fix: the wide table's scroll container ends above the next block (the 30 px negative bottom margin painted the scrollbar over the following heading).
 //   v1.2.0 - 2026-10-15 C-39: narrow tables are centred in the text column (equal side gaps; fails with 0px left gap without margin-inline:auto).
 //   v1.1.0 - 2026-10-15 C-39 review: typing in a scrolled table keeps the horizontal scroll (fails at 559px without render/index.js START_BLOCK_TABLE_SCROLL_KEEP); the scrollbar under a wide table stays thin (fails at 17px in WebKit without the ::-webkit-scrollbar rule).
 //   v1.0.0 - 2026-10-15 C-39 T-001: scroll-vs-overflow, column containment, no page-level horizontal scroll, narrow content width, 40ch URL cap, caret lands in a scrolled-to cell; all except the narrow-table case fail without the wrapper + C-39 CSS.
@@ -167,7 +174,6 @@ test.describe('table layout (C-39 T-001)', () => {
     const editorRect = editor.getBoundingClientRect()
     return {
       overflowX: window.getComputedStyle(wrapper).overflowX,
-      backgroundAttachment: window.getComputedStyle(wrapper).backgroundAttachment,
       clientWidth: wrapper.clientWidth,
       scrollWidth: wrapper.scrollWidth,
       wrapperRight: wrapper.getBoundingClientRect().right,
@@ -178,6 +184,29 @@ test.describe('table layout (C-39 T-001)', () => {
       columnWidth: editor.clientWidth - parseFloat(editorStyle.paddingLeft || '0') - parseFloat(editorStyle.paddingRight || '0'),
       pageScrollWidth: editorScroller.scrollWidth,
       pageClientWidth: editorScroller.clientWidth
+    }
+  })
+
+  // C-65 T-003: one wrapper's cue state — caption text + visibility, the
+  // shade side classes, and the scroll geometry that drives them.
+  const cueState = (page: Page) => page.evaluate(() => {
+    const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement | null
+    const wrapper = figure?.querySelector('div.ag-table-scroll') as HTMLElement | null
+    const caption = figure?.querySelector('div.ag-table-caption') as HTMLElement | null
+    if (!figure || !wrapper || !caption) return null
+    const editor = document.querySelector('#ag-editor-id') as HTMLElement
+    const editorStyle = window.getComputedStyle(editor)
+    const editorRect = editor.getBoundingClientRect()
+    const capRect = caption.getBoundingClientRect()
+    return {
+      captionText: caption.textContent || '',
+      captionOn: caption.classList.contains('ag-table-caption-on'),
+      captionDisplay: window.getComputedStyle(caption).display,
+      captionRight: capRect.right,
+      captionBottomVsWrapper: capRect.top - wrapper.getBoundingClientRect().bottom,
+      shadeLeft: wrapper.classList.contains('ag-table-cue-left'),
+      shadeRight: wrapper.classList.contains('ag-table-cue-right'),
+      columnRight: editorRect.right - parseFloat(editorStyle.paddingRight || '0')
     }
   })
 
@@ -197,9 +226,11 @@ test.describe('table layout (C-39 T-001)', () => {
     // No horizontal scrollbar at the page level (pre-C-39 the table
     // overflowed the editor column visibly).
     expect(m!.pageScrollWidth).toBeLessThanOrEqual(m!.pageClientWidth + 1)
-    // Edge shadows: two covers track the content (local), two shadows are
-    // pinned to the scrollport — pure CSS, no listeners.
-    expect(m!.backgroundAttachment).toBe('local, local, scroll, scroll')
+    // C-65: at the start the right side hides columns — the class-gated
+    // shade shows there, never on the resting left side.
+    const cue = await cueState(page)
+    expect(cue!.shadeRight).toBe(true)
+    expect(cue!.shadeLeft).toBe(false)
     // The horizontal scrollbar stays thin (WebKit draws a 15px classic bar
     // without the ::-webkit-scrollbar height rule).
     const scrollbar = await page.evaluate(() => {
@@ -218,7 +249,53 @@ test.describe('table layout (C-39 T-001)', () => {
     expect(overlap, 'table scrollbar must not reach into the next block').toBeLessThanOrEqual(0)
   })
 
-  test('a 2x2 table keeps content width and does not scroll', async ({ page }) => {
+  test('the C-65 cue: caption below the table on the column edge, live on scroll', async ({ page }) => {
+    await bootstrapWithMarkdown(page, WIDE_15COL_MD)
+    await waitForTable(page)
+
+    // Start: columns 1..N visible from the first column, only the right
+    // side hides columns.
+    const start = await cueState(page)
+    expect(start!.captionOn).toBe(true)
+    expect(start!.captionDisplay).toBe('block')
+    expect(start!.captionText).toMatch(/^columns 1–\d+ of 15$/)
+    expect(start!.shadeLeft).toBe(false)
+    expect(start!.shadeRight).toBe(true)
+    // The caption sits BELOW the wrapper, right-aligned on the same
+    // text-column edge (±1px).
+    expect(start!.captionBottomVsWrapper).toBeGreaterThanOrEqual(0)
+    expect(Math.abs(start!.captionRight - start!.columnRight)).toBeLessThanOrEqual(1)
+
+    // Scroll to the middle: both sides hide columns, the range moves.
+    await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      wrapper.scrollLeft = (wrapper.scrollWidth - wrapper.clientWidth) / 2
+    })
+    const middle = await cueState(page)
+    expect(middle!.shadeLeft).toBe(true)
+    expect(middle!.shadeRight).toBe(true)
+    const middleRange = /^columns (\d+)–(\d+) of 15$/.exec(middle!.captionText)
+    expect(middleRange, `caption must read «columns X–Y of 15»: "${middle!.captionText}"`).toBeTruthy()
+    expect(parseInt(middleRange![1], 10)).toBeGreaterThan(1)
+    expect(parseInt(middleRange![2], 10)).toBeLessThan(15)
+    expect(middle!.captionText).not.toBe(start!.captionText)
+
+    // Scroll to the end: only the left side hides columns, the range ends
+    // at the last column.
+    await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
+    })
+    const end = await cueState(page)
+    expect(end!.shadeLeft).toBe(true)
+    expect(end!.shadeRight).toBe(false)
+    const endRange = /^columns (\d+)–(\d+) of 15$/.exec(end!.captionText)
+    expect(endRange, `caption must read «columns X–Y of 15»: "${end!.captionText}"`).toBeTruthy()
+    expect(parseInt(endRange![1], 10)).toBeGreaterThan(1)
+    expect(parseInt(endRange![2], 10)).toBe(15)
+  })
+
+  test('a 2x2 table keeps content width, shows no cue, and does not scroll', async ({ page }) => {
     await bootstrapWithMarkdown(page, NARROW_2X2_MD)
     await waitForTable(page)
 
@@ -227,6 +304,13 @@ test.describe('table layout (C-39 T-001)', () => {
 
     expect(m!.tableWidth, 'narrow table must keep its content width').toBeLessThan(m!.columnWidth - 200)
     expect(Math.abs(m!.scrollWidth - m!.clientWidth)).toBeLessThanOrEqual(1)
+    // C-65: a table that fits has neither shade nor caption.
+    const cue = await cueState(page)
+    expect(cue!.captionOn).toBe(false)
+    expect(cue!.captionDisplay).toBe('none')
+    expect(cue!.captionText).toBe('')
+    expect(cue!.shadeLeft).toBe(false)
+    expect(cue!.shadeRight).toBe(false)
     // Narrow tables are centred in the text column, like diagrams.
     const gaps = await page.evaluate(() => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement

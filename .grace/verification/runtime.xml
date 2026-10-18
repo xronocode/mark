@@ -5650,6 +5650,19 @@
           npm run build &amp;&amp; npx playwright test --project=chromium
           tests/e2e/diagram-export.spec.ts
         </Command>
+        <Command>
+          npx vitest run tests/renderer/muya/table-cue.test.js
+          tests/renderer/muya/table-layout-persistence.test.js
+          tests/renderer/muya/table-column-resize.test.js
+          tests/renderer/store/table-layout-store.test.js
+          tests/renderer/store/editor-table-layouts.test.js
+        </Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          --project=webkit-tables tests/e2e/table-toolbar.spec.ts
+          tests/e2e/table-width-persistence.spec.ts
+          tests/e2e/table-layout.spec.ts
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -6405,6 +6418,71 @@
           the display load → failure notice, clipboard untouched, no
           page error).
         </Scenario>
+        <Scenario>
+          scenario-66: Wide tables part 1 (C-65, user review 2026-10-18,
+          approved mockup variant E — the invisible boundary is the RIGHT
+          EDGE OF THE TEXT COLUMN): table column widths and the per-table
+          Full width mode PERSIST PER FILE in the Mark profile
+          (prefs key tableLayouts through renderer util
+          tableLayoutStore.js — sanitize, prune entries whose file no
+          longer exists on load (stat), 30-file cap, the R-2 rename move
+          wired into store/editor.js RENAME + RENAME_IF_NEEDED; a Finder
+          move never moves entries — the orphan is pruned on the next
+          load) and NEVER into the markdown/history/isSaved. muya keys
+          them by document ordinal + header signature (column count +
+          hash of header texts): an edited header or column count drops
+          THAT table's widths (corner-2, live and on reload), a
+          never-resized table stores nothing (corner-5), and the only
+          write path is a real drag end / double-click reset / mode
+          toggle (muya-table-layouts dispatch → editor.vue saves under
+          the active pathname; sequence-guarded loads). The TABLE
+          TOOLBAR replaces the standalone expand glyph: a C-56-family
+          pill (renderTableToolbar.js) ABOVE the table just over its top
+          edge, right edge on the column edge, revealed on figure hover
+          and :focus-within, hidden on ag-active (corner-7), routed on
+          capture phase inside lib/tableResize (toggle / muya-block-viewer);
+          its Open-full-screen button keeps the expandNeed.js D-7 gate
+          (corner-6: hidden on narrow tables) and every button carries
+          the ag-block-expand keyboard-guard family class. The OVERFLOW
+          CUE is edge shades only + a caption BELOW the table,
+          right-aligned on the same column edge: «columns X–Y of N»
+          (tableToolbar.columnsRange in all ten locales + regenerated
+          min.json), live on scroll (capture-phase listener), render and
+          figure resize (expandNeed funnel) and drag; the sides are the
+          class-gated ag-table-cue-left/right gradients (the C-39
+          cover-gradient layers are gone — one fact drives caption and
+          shades); a table that fits shows neither (corner-6). FULL
+          WIDTH (R-6, per table): the figure keeps the column width
+          (toolbar + caption stay anchored) while the wrapper breaks out
+          with a measured inline margin (applyFullWidthGeometry — theme
+          paddings never hardcoded), overflow visible, the table at the
+          editor area's LEFT edge, the EDITOR scroller owning the
+          horizontal scrollbar (corner-8), the caption reading «all N
+          columns» (tableToolbar.allColumns) with no shades, and the
+          button flipped to the active «Fit to page»; the mode persists
+          in the same store. Unit-pinned in
+          tests/renderer/store/table-layout-store.test.js (store
+          transforms, prune, cap, rename, IO flows incl. failure paths),
+          tests/renderer/muya/table-layout-persistence.test.js
+          (signature/adoption/both drops/serialize+persist/toggle+routing/
+          R-3 reset paths/disabled surface),
+          tests/renderer/muya/table-cue.test.js (range maths
+          start/middle/end/fits/single-column/degenerate, formatting
+          fallback, DOM sync, toolbar vnode, CSS literals) and
+          tests/renderer/store/editor-table-layouts.test.js (the rename
+          hooks); block-expand-button.test.js v1.6.0 re-pins the table
+          case (toolbar instead of the glyph, dead CSS rule gone).
+          End-to-end: tests/e2e/table-toolbar.spec.ts (placement vs the
+          column edge, reveal incl. keyboard focus, ag-active hide,
+          narrow-table gate, full-width breakout + editor scrollbar +
+          scrolled reveal + fit-back, viewer open),
+          tests/e2e/table-width-persistence.spec.ts (resize → close →
+          reopen keeps widths with the markdown byte-identical, never
+          resized stores nothing, Full width remembered, edited header
+          drops them, missing file pruned) and table-layout.spec.ts
+          v1.4.0 (caption range + shade sides at start/middle/end, no
+          cue when it fits) — chromium + webkit-tables.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -6457,6 +6535,17 @@
              [Editor][handleImageCopyAction][BLOCK_IMAGE_COPY] lives on
              the host side (named in scenario-65) — muya only dispatches
              the muya-image-copy event. -->
+        <!-- C-65 persistent table layouts: muya-side markers (the host
+             load/save markers [Editor][applyStoredTableLayouts]
+             [BLOCK_TABLE_LAYOUTS_APPLIED] / [BLOCK_TABLE_LAYOUTS_SAVED]
+             and the store util's
+             [TableLayoutStore][loadTableLayoutsFor][BLOCK_TABLE_LAYOUTS_PRUNED]
+             / move + failure markers live on the renderer side, named in
+             scenario-66). -->
+        <Marker>[Muya][tableResize][BLOCK_TABLE_IDENTITY_CHANGED]</Marker>
+        <Marker>[Muya][tableResize][BLOCK_TABLE_LAYOUTS_APPLIED]</Marker>
+        <Marker>[Muya][tableResize][BLOCK_TABLE_LAYOUTS_PERSISTED]</Marker>
+        <Marker>[Muya][tableResize][BLOCK_TABLE_FULL_WIDTH]</Marker>
         <!-- C-51 T-010 expand-need verdict flip (no content in the payload). -->
         <Marker>
           [Muya][expandNeed][BLOCK_EXPAND_NEED blockKey=&lt;key&gt; needed=&lt;bool&gt;]
