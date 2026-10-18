@@ -1,0 +1,67 @@
+<!doctype html>
+<!--
+  FILE: site/og/card.html
+  VERSION: 1.0.0
+  START_MODULE_CONTRACT
+    PURPOSE: The 1200x630 Open Graph card for the site — paper background,
+             the ¶ icon and Mark wordmark, the D-9 headline with the marker
+             highlight, one fact line.
+    SCOPE: static render target for site/scripts/og-card.mjs (Playwright
+           screenshots it to site/public/og-card.png); never served.
+    DEPENDS: site/public/fonts/brand/*.woff2 (relative @font-face)
+    LINKS: M-053 SiteBuild; C-64 T-003 R-8; assets/icon/mark-icon.svg
+           (the inlined ¶ mark); site/.vitepress/landing.mjs SITE_META.ogImage
+    ROLE: CONFIG
+    MAP_MODE: NONE
+  END_MODULE_CONTRACT
+  START_CHANGE_SUMMARY
+    LAST_CHANGE: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
+  END_CHANGE_SUMMARY
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mark — OG card</title>
+<style>
+  @font-face{font-family:"Bricolage Grotesque";src:url("../public/fonts/brand/BricolageGrotesque-800.woff2") format("woff2");font-weight:800;font-style:normal;font-display:block}
+  @font-face{font-family:"IBM Plex Sans";src:url("../public/fonts/brand/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:block}
+  @font-face{font-family:"IBM Plex Sans";src:url("../public/fonts/brand/IBMPlexSans-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:block}
+  @font-face{font-family:"IBM Plex Mono";src:url("../public/fonts/brand/IBMPlexMono-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:block}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    width:1200px;height:630px;overflow:hidden;position:relative;
+    background:#F5EFE4;color:#17191E;
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:64px 96px 56px;
+  }
+  .brand{display:flex;align-items:center;gap:20px}
+  .brand svg{width:72px;height:72px;display:block}
+  .brand .word{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:56px;line-height:1;letter-spacing:-.02em}
+  .brand .site{margin-left:auto;font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:500;font-size:20px;color:#5F584B}
+  h1{
+    margin:0;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;
+    font-size:96px;line-height:.98;letter-spacing:-.03em;text-wrap:balance;
+  }
+  .hl{
+    background:linear-gradient(transparent 58%,#FFCF1A 58%,#FFCF1A 92%,transparent 92%);
+    padding:0 .06em;margin:0 -.03em;
+  }
+  .sub{font-size:27px;font-weight:500;color:#5F584B;letter-spacing:.01em}
+  .foot{border-top:1px solid #D6CCB9;padding-top:20px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:500;font-size:19px;color:#5F584B;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+  <div class="brand">
+    <svg viewBox="0 0 1024 1024" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FAF6EE"/><stop offset="1" stop-color="#EFE7D8"/></linearGradient></defs><rect x="100" y="100" width="824" height="824" rx="186" fill="url(#g)"/><g transform="translate(-22 -24)"><path d="M620 250 V598 H392 Q342 598 330 550 L279 306 Q272 250 320 250 Z M592 278 V570 H396 Q364 570 357 540 L307 302 Q303 278 327 278 Z" fill="#17191E" fill-rule="evenodd"/><path d="M592 278 V570 H396 Q364 570 357 540 L307 302 Q303 278 327 278 Z" fill="#FFCF1A"/><g fill="#17191E"><path d="M568 250 H632 Q640 250 640 258 V780 L560 810 V258 Q560 250 568 250 Z"/><path d="M712 250 H776 Q784 250 784 258 V728 L704 758 V258 Q704 250 712 250 Z"/><path d="M568 250 H776 Q784 250 784 258 V322 Q784 330 776 330 H568 Q560 330 560 322 V258 Q560 250 568 250 Z"/></g></g></svg>
+    <span class="word">Mark</span>
+    <span class="site">mark.xronocode.com</span>
+  </div>
+  <h1>Agents write Markdown.<br><span class="hl">Mark draws it.</span></h1>
+  <div>
+    <p class="sub">Native Markdown editor · 32 diagram types · 32 themes</p>
+    <p class="foot"><span>Free · macOS and Windows</span><span>MIT license</span></p>
+  </div>
+</body>
+</html>

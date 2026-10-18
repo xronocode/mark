@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // FILE: site/scripts/check-dist.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Gate the built site before deploy — every internal link/asset in
 //            every dist HTML page must resolve to a file in dist, and the
@@ -9,10 +9,16 @@
 //          fail on misses, leftover %BASE%/<!--SITE_HEAD--> tokens, or missing
 //          index.html/sitemap.xml/robots.txt; check the gallery page (one SVG
 //          per example, no PeleError, size under 400 KB, no external
-//          script/style hosts beyond the site's configured analytics).
-//   DEPENDS: ../.vitepress/landing.mjs (resolveSiteSettings),
-//            ../gallery/examples.mjs (the example count)
-//   LINKS: M-053 SiteBuild; C-22; C-58 R-6; .github/workflows/site.yml
+//          script/style hosts beyond the site's configured analytics); check
+//          the SEO set (llms.txt sections, .well-known/security.txt contact +
+//          expiry, landing apple-itunes-app / og-card / parseable JSON-LD
+//          SoftwareApplication at the released version, track.js iff GA4);
+//          check the CSP (every page has the meta, every inline script hash
+//          present — scripts/csp.mjs verifyCsp).
+//   DEPENDS: ../.vitepress/landing.mjs (resolveSiteSettings, appVersion),
+//            ./csp.mjs (verifyCsp), ../gallery/examples.mjs (example count)
+//   LINKS: M-053 SiteBuild; C-22; C-58 R-6; C-64 T-003 R-8/R-9;
+//          .github/workflows/site.yml
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -29,7 +35,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-58 T-004: new BLOCK_CHECK_GALLERY
+//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-003: new BLOCK_CHECK_SEO and
+//                 BLOCK_CHECK_CSP gates — llms.txt + security.txt exist with
+//                 the required sections/lines, the landing head carries
+//                 apple-itunes-app, og-card.png and a parseable JSON-LD
+//                 SoftwareApplication whose softwareVersion equals the root
+//                 package.json, track.js appears exactly when GA4 is
+//                 configured, and every built page has a CSP meta covering
+//                 every inline script hash.]
+//   PREV: [v1.1.0 - 2026-10-18 C-58 T-004: new BLOCK_CHECK_GALLERY
 //                 gate — dist/diagrams/index.html must exist, contain one
 //                 <svg> per gallery example, no PeleError text, stay under
 //                 400 KB, and load scripts/styles only from the site itself
@@ -40,7 +54,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { resolveSiteSettings } from '../.vitepress/landing.mjs'
+import { appVersion, resolveSiteSettings } from '../.vitepress/landing.mjs'
+import { verifyCsp } from './csp.mjs'
 import { EXAMPLES } from '../gallery/examples.mjs'
 
 const dist = fileURLToPath(new URL('../.vitepress/dist/', import.meta.url))
@@ -148,6 +163,88 @@ function main () {
   }
   problems.push(...galleryProblems)
   // END_BLOCK_CHECK_GALLERY
+
+  // START_BLOCK_CHECK_SEO
+  const seoProblems = []
+  const llmsPath = join(dist, 'llms.txt')
+  if (!existsSync(llmsPath)) {
+    seoProblems.push('missing llms.txt')
+  } else {
+    const llms = readFileSync(llmsPath, 'utf8')
+    if (!llms.startsWith('# Mark')) seoProblems.push('llms.txt must start with "# Mark"')
+    for (const section of ['## Install', '## Docs', '## Source']) {
+      if (!llms.includes(section)) seoProblems.push(`llms.txt missing the "${section}" section`)
+    }
+    if (!llms.includes('brew tap xronocode/mark && brew install --cask mark')) seoProblems.push('llms.txt missing the Homebrew one-liner')
+    if (/\]\((?!https:)/.test(llms)) seoProblems.push('llms.txt has non-absolute links')
+  }
+  const securityPath = join(dist, '.well-known', 'security.txt')
+  if (!existsSync(securityPath)) {
+    seoProblems.push('missing .well-known/security.txt')
+  } else {
+    const security = readFileSync(securityPath, 'utf8')
+    if (!security.includes('Contact: https://github.com/xronocode/mark/security/advisories/new')) seoProblems.push('security.txt missing the Contact line')
+    if (!security.includes('Canonical:')) seoProblems.push('security.txt missing the Canonical line')
+    const expires = /Expires: (\S+)/.exec(security)?.[1]
+    const expiresAt = expires ? Date.parse(expires) : NaN
+    if (Number.isNaN(expiresAt)) seoProblems.push('security.txt missing a parseable Expires date')
+    else if (expiresAt <= Date.now()) seoProblems.push('security.txt Expires is not in the future')
+  }
+  if (existsSync(join(dist, 'index.html'))) {
+    const landingHtml = readFileSync(join(dist, 'index.html'), 'utf8')
+    if (!landingHtml.includes('apple-itunes-app')) seoProblems.push('index.html missing apple-itunes-app')
+    if (!/og:image" content="[^"]*\/og-card\.png"/.test(landingHtml)) seoProblems.push('index.html og:image must point at og-card.png')
+    // The JSON-LD must parse and place SoftwareApplication at the released version.
+    let graph = []
+    let parseFailed = false
+    try {
+      graph = [...landingHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+        .flatMap((m) => JSON.parse(m[1])['@graph'] || [])
+    } catch (e) {
+      parseFailed = true
+      seoProblems.push(`index.html JSON-LD does not parse: ${e.message}`)
+    }
+    const app = graph.find((n) => n['@type'] === 'SoftwareApplication')
+    if (!app) {
+      if (!parseFailed) seoProblems.push('index.html JSON-LD has no SoftwareApplication node')
+    } else if (app.softwareVersion !== appVersion()) {
+      seoProblems.push(`index.html softwareVersion ${app.softwareVersion} != package.json ${appVersion()}`)
+    }
+    const hasGa4 = analytics.some((a) => a.provider === 'ga4')
+    const hasTrack = landingHtml.includes('track.js')
+    if (hasGa4 !== hasTrack) seoProblems.push(hasTrack ? 'track.js present without GA4 configured' : 'track.js missing while GA4 is configured')
+  } else {
+    seoProblems.push('missing index.html')
+  }
+  if (seoProblems.length) {
+    console.error(`[SiteBuild][checkDist][BLOCK_CHECK_SEO] FAIL problems=${seoProblems.length}`)
+  } else {
+    console.log('[SiteBuild][checkDist][BLOCK_CHECK_SEO] OK llms.txt security.txt head version=' + appVersion())
+  }
+  problems.push(...seoProblems)
+  // END_BLOCK_CHECK_SEO
+
+  // START_BLOCK_CHECK_CSP
+  const cspProblems = []
+  let cspPages = 0
+  for (const page of pages) {
+    const html = readFileSync(page, 'utf8')
+    if (!/<meta\s+http-equiv=["']?Content-Security-Policy["']?/i.test(html)) {
+      cspProblems.push(`${relative(dist, page)}: no CSP meta`)
+      continue
+    }
+    for (const missing of verifyCsp(html)) {
+      cspProblems.push(`${relative(dist, page)}: inline script ${missing} not pinned by the CSP meta`)
+    }
+    cspPages++
+  }
+  if (cspProblems.length) {
+    console.error(`[SiteBuild][checkDist][BLOCK_CHECK_CSP] FAIL problems=${cspProblems.length}`)
+  } else {
+    console.log(`[SiteBuild][checkDist][BLOCK_CHECK_CSP] OK pages=${cspPages}/${pages.length}`)
+  }
+  problems.push(...cspProblems)
+  // END_BLOCK_CHECK_CSP
 
   if (problems.length) {
     console.error(`[SiteBuild][checkDist][BLOCK_CHECK_LINKS] FAIL problems=${problems.length}`)

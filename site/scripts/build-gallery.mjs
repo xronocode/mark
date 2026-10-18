@@ -39,7 +39,7 @@
 //   storage key.
 //   PREV: v1.1.0 - 2026-10-18 orchestrator review: the page wears
 //   the approved ¶ proof-sheet look (paper/ink, sun marker headline,
-//   Bricolage Grotesque + IBM Plex self-hosted under %BASE%fonts/gallery)
+//   Bricolage Grotesque + IBM Plex self-hosted under %BASE%fonts/brand)
 //   per the user's choice; solid sticky bar (the oklch color-mix tinted it).
 //   v1.0.0 - 2026-10-18 C-58 T-002: first version, ported from the approved
 //   prototype (site/gallery/prototype/build.reference.mjs) with the shared

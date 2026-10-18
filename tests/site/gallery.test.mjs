@@ -24,11 +24,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-64 T-001: fonts now load from
-//   /fonts/brand/ (moved from /fonts/gallery/), and the page carries two
-//   inline scripts (the shared no-flash THEME_INIT_JS + the controller) —
-//   the count assertion follows deliberately; CSP hashing lands in T-003.
-//   v1.0.0 - 2026-10-18 C-58 T-001/T-002: first version.
+//   LAST_CHANGE: v1.2.0 - 2026-10-18 C-64 T-001+T-003 merge: fonts from
+//   /fonts/brand/; three scripts (THEME_INIT_JS head script, controller,
+//   JSON-LD that must parse with a SoftwareApplication node).
+//   PREV: v1.0.0 - 2026-10-18 C-58 T-001/T-002: first version.
 // END_CHANGE_SUMMARY
 
 import { render } from 'pele'
@@ -117,11 +116,12 @@ describe('renderGallery (the built page)', () => {
     expect(HTML).not.toContain('fonts.googleapis.com')
     expect(HTML).not.toContain('fonts.gstatic.com')
     expect(HTML).not.toContain('src="undefined')
-    // C-64 T-001: two inline scripts now — the shared no-flash THEME_INIT_JS
-    // in <head> (must run before CSS) and the controller at end of body.
-    // Neither has a src when analytics is off; C-64 T-003 hashes both.
-    expect((HTML.match(/<script\b/g) || []).length).toBe(2)
+    // C-64: THEME_INIT_JS in <head> (before CSS), the controller at end of
+    // body, and the shared head's JSON-LD. None has a src when analytics is off.
+    expect((HTML.match(/<script\b/g) || []).length).toBe(3)
     expect(HTML).not.toMatch(/<script\b[^>]*\ssrc=/)
+    const ld = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(HTML)?.[1]
+    expect(JSON.parse(ld)['@graph'].map((n) => n['@type'])).toContain('SoftwareApplication')
   })
 
   it('leaves no unrendered tokens or pele errors', () => {
