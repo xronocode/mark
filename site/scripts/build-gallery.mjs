@@ -28,15 +28,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-58 T-002: first version, ported
-//   from the approved prototype (site/gallery/prototype/build.reference.mjs)
-//   with two deliberate adaptations: the page chrome wears the site brand
-//   from site/landing/index.html (Schibsted Grotesk + JetBrains Mono
-//   self-hosted from %BASE%fonts, the oklch palette, brand-cyan accents —
-//   the prototype's Google-Fonts Bricolage/IBM Plex are not used), and the
-//   head is the shared site head (canonical/OG/analytics/consent) instead
-//   of the prototype's bare <title>. The stage/grid/cards/show markup and
-//   the controller behaviour are the prototype's, verbatim in structure.
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 orchestrator review: the page wears
+//   the approved ¶ proof-sheet look (paper/ink, sun marker headline,
+//   Bricolage Grotesque + IBM Plex self-hosted under %BASE%fonts/gallery)
+//   per the user's choice; solid sticky bar (the oklch color-mix tinted it).
+//   v1.0.0 - 2026-10-18 C-58 T-002: first version, ported from the approved
+//   prototype (site/gallery/prototype/build.reference.mjs) with the shared
+//   site head (canonical/OG/analytics/consent) instead of a bare <title>.
 // END_CHANGE_SUMMARY
 
 import { render } from 'pele'
@@ -127,17 +125,20 @@ export function buildGalleryTemplate (vars = deriveThemeVars()) {
      injected by site/.vitepress/landing.mjs renderPage; %BASE% below is
      the site base path substituted at build/dev time. -->
 <!--SITE_HEAD-->
-<link rel="preload" href="%BASE%fonts/schibsted-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="%BASE%fonts/gallery/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-/* Layout: site-brand proof-sheet header and controls, then a "stage" that
-   wears the chosen Mark theme — the diagrams recolor live, exactly as in
-   the app. Brand tokens mirror site/landing/index.html; fonts are the
-   self-hosted ones under site/public/fonts. */
-@font-face{font-family:"Schibsted Grotesk";src:url("%BASE%fonts/schibsted-grotesk.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap}
-@font-face{font-family:"JetBrains Mono";src:url("%BASE%fonts/jetbrains-mono.woff2") format("woff2");font-weight:400 700;font-style:normal;font-display:swap}
-:root{--bg:oklch(0.985 0.003 225);--bg-2:oklch(0.955 0.007 225);--rule:oklch(0.89 0.01 225);--ink:oklch(0.21 0.02 238);--ink-2:oklch(0.42 0.02 238);--ink-3:oklch(0.5 0.018 238);--brand:oklch(0.74 0.13 222);--on-brand:oklch(0.18 0.03 238);--link:oklch(0.5 0.12 232);
---display:"Schibsted Grotesk",ui-sans-serif,system-ui,sans-serif;--body:"Schibsted Grotesk",ui-sans-serif,system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace}
-@media (prefers-color-scheme:dark){:root{--bg:oklch(0.165 0.014 242);--bg-2:oklch(0.2 0.016 242);--rule:oklch(0.3 0.018 242);--ink:oklch(0.95 0.006 230);--ink-2:oklch(0.79 0.014 235);--ink-3:oklch(0.7 0.014 235);--link:oklch(0.8 0.12 222);color-scheme:dark}}
+/* Layout: the approved ¶ proof-sheet look (paper / ink / sun marker,
+   Bricolage + IBM Plex, self-hosted under site/public/fonts/gallery), then
+   a "stage" that wears the chosen Mark theme — the diagrams recolour live,
+   exactly as in the app. This is the C-35 refresh direction, adopted early. */
+@font-face{font-family:"Bricolage Grotesque";src:url("%BASE%fonts/gallery/BricolageGrotesque-800.woff2") format("woff2");font-weight:800;font-style:normal;font-display:swap}
+@font-face{font-family:"IBM Plex Sans";src:url("%BASE%fonts/gallery/IBMPlexSans-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"IBM Plex Sans";src:url("%BASE%fonts/gallery/IBMPlexSans-500.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:"IBM Plex Sans";src:url("%BASE%fonts/gallery/IBMPlexSans-600.woff2") format("woff2");font-weight:600 700;font-style:normal;font-display:swap}
+@font-face{font-family:"IBM Plex Mono";src:url("%BASE%fonts/gallery/IBMPlexMono-500.woff2") format("woff2");font-weight:400 500;font-style:normal;font-display:swap}
+:root{--bg:#F2EDE3;--bg-2:#E7E0D2;--rule:#CFC6B4;--ink:#131418;--ink-2:#3D3A33;--ink-3:#5E584C;--brand:#FFD21F;--on-brand:#131418;--link:#131418;--sun:#FFD21F;
+--display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;--body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#17181C;--bg-2:#24252B;--rule:#34353B;--ink:#F2EDE3;--ink-2:#D2CCBF;--ink-3:#A39C8D;--link:#FFD21F;color-scheme:dark}}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -150,11 +151,12 @@ a{color:inherit}
 .folio nav a{color:var(--ink-2);text-decoration:none}
 .folio nav a:hover{color:var(--ink)}
 .hero{padding-block:clamp(40px,6vw,72px) 28px;display:grid;gap:16px}
-h1{margin:0;font:750 clamp(38px,6.5vw,80px)/1.02 var(--display);letter-spacing:-.03em;text-wrap:balance;max-width:18ch}
-.hl{color:var(--link)}
+h1{margin:0;font:800 clamp(40px,7vw,88px)/.95 var(--display);letter-spacing:-.025em;text-wrap:balance;max-width:18ch}
+.hl{color:var(--ink);background:linear-gradient(transparent 58%,var(--sun) 58%,var(--sun) 90%,transparent 90%)}
+@media (prefers-color-scheme:dark){.hl{color:var(--sun);background:none}}
 .lede{margin:0;max-width:62ch;font-size:19px;color:var(--ink-2)}
 .lede code{font:500 .88em var(--mono);color:var(--ink);background:var(--bg-2);padding:2px 6px;border-radius:5px}
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in oklch,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);border-block:1px solid var(--rule);padding-block:12px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-block:1px solid var(--rule);padding-block:12px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 .bar .wrap{display:grid;gap:10px}
 .filters{display:flex;flex-wrap:wrap;gap:6px}
@@ -195,7 +197,7 @@ footer a{color:var(--link)}
 .show{position:fixed;inset:0;z-index:50;background:var(--t-page);color:var(--pele-fg);display:grid;grid-template-rows:auto 1fr auto;padding:max(20px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));transition:background .3s}
 .show[hidden]{display:none}
 .sh-top,.sh-bot{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
-.sh-k{font:750 clamp(28px,4vw,56px)/1 var(--display);letter-spacing:-.02em}
+.sh-k{font:800 clamp(28px,4vw,56px)/1 var(--display);letter-spacing:-.02em}
 .sh-n{font:500 13px var(--mono);color:var(--pele-muted);letter-spacing:.1em}
 .sh-stage{min-height:0;display:flex;align-items:center;justify-content:center;padding:2vh 0}
 .sh-stage .panel{margin:0;width:min(1400px,100%);height:100%;max-height:100%;padding:3vh 3vw;box-sizing:border-box}
