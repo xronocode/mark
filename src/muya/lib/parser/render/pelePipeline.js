@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/pelePipeline.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Resilient pele render pipeline (C-55) — replaces mermaidPipeline.js after the mermaid→pele hard cut. Synchronous DOM-free pele renders through a code-only LRU SVG cache (colors live in the --pele-* CSS variables, so a theme switch recolors every diagram with ZERO re-renders), keep-last-good rendering with escaped error text, per-block ~250 ms debounce while typing, counter-unique idPrefixes, C-49 fontSize-proportional scaling via data-natural-width from RenderResult.width, and the C-51 T-010 expand-need re-evaluation after every insert.
 //   SCOPE: createPelePipeline factory plus cache/LRU, hash, debounce, insert (incl. natural-width capture and expand-need), and error helpers; targets are resolved by selector at each flush so re-patched DOM is always current. Pele renders without DOM and emits SVG without <style> blocks, so the mermaid-era orphan-cleanup and WKWebView style-hoisting are deliberately gone. C-62: Apply local appearance on every raw SVG insertion and reject superseded async requests.
@@ -15,12 +15,17 @@
 //   PELE_ERROR_CLASS - CSS class ("ag-pele-error") of the small error element rendered below a kept-last-good diagram.
 //   PELE_NATURAL_WIDTH_ATTR - SVG attribute ("data-natural-width") carrying the diagram's natural pixel width for C-49 zoom scaling.
 //   DONUT_HOLE - C-51 Keynote donut: hole radius as a fraction of the pie radius (kept from the mermaid era).
-//   postProcessPeleSvg - rendered SVG + type → SVG with the Keynote donut hole for pie (panel-coloured via var(--pele-bg), recolors with the theme).
+//   postProcessPeleSvg - rendered SVG + type → SVG with the Keynote donut hole for pie (panel-coloured via var(--pele-bg), recolors with the theme) and the kanban re-map (cards on --pele-surface with a 35 % border, columns on --pele-surface-alt).
+//   KANBAN_CARD_BORDER_OPACITY - stroke opacity of kanban card frames (0.35).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-62: local appearance on every insert; mode-only cache reuse, read-only overrides and latest-request guards.
-//   PREV: v1.0.0 - 2026-10-17 C-55: first version, ported from
+//   LAST_CHANGE: v1.2.0 - 2026-10-18 fix: kanban cards were panel-coloured
+//   (darker than their columns) with the heavy node-outline frame —
+//   postProcessPeleSvg re-maps kanban to surface cards with a 35 % frame
+//   on surface-alt columns, through theme variables (export-safe).
+//   v1.1.0 - 2026-10-18 C-62: local appearance on every insert; mode-only cache reuse, read-only overrides and latest-request guards.
+//   v1.0.0 - 2026-10-17 C-55: first version, ported from
 //   mermaidPipeline.js v2.1.0. What carried over verbatim: the resilience
 //   contract (keep-last-good, debounce, LRU, unique render ids, expand-need
 //   sync, C-49 zoomable max-width). What changed with pele: the render is
@@ -110,7 +115,27 @@ class LruCache {
 // inert pieOuterCircle marker carries the outer radius for verifiers.
 export const DONUT_HOLE = 0.56
 
+// START_BLOCK_PELE_KANBAN
+// Pele paints kanban columns with --pele-surface and cards with --pele-bg
+// framed by --pele-border. In Mark --pele-bg is the diagram PANEL and
+// --pele-border the high-contrast node outline (C-54 WCAG gate), so cards
+// came out panel-coloured, darker than their columns, with a heavy grey
+// frame (user 2026-10-18: «выглядит уродски»). Re-map, still through the
+// theme variables so it recolors and survives PNG/SVG export: columns use
+// --pele-surface-alt, cards --pele-surface with the border at 35 % opacity.
+export const KANBAN_CARD_BORDER_OPACITY = 0.35
+
+const restyleKanban = (svg) =>
+  svg
+    .replace(/<rect([^>]*?) fill="var\(--_s\)"/g, '<rect$1 fill="var(--pele-surface-alt)"')
+    .replace(
+      /<rect([^>]*?) fill="var\(--_bg\)" stroke="var\(--_b\)"/g,
+      `<rect$1 fill="var(--pele-surface)" stroke="var(--_b)" stroke-opacity="${KANBAN_CARD_BORDER_OPACITY}"`
+    )
+// END_BLOCK_PELE_KANBAN
+
 export const postProcessPeleSvg = (svg, type) => {
+  if (typeof svg === 'string' && type === 'kanban') return restyleKanban(svg)
   if (typeof svg !== 'string' || type !== 'pie') return svg
   if (/class="pieDonutHole"/.test(svg)) return svg
   const group = /<g class="pele-slices"[^>]*>/.exec(svg)
