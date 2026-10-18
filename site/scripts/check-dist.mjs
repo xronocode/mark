@@ -211,7 +211,7 @@ function main () {
       seoProblems.push(`index.html softwareVersion ${app.softwareVersion} != package.json ${appVersion()}`)
     }
     const hasGa4 = analytics.some((a) => a.provider === 'ga4')
-    const hasTrack = landingHtml.includes('track.js')
+    const hasTrack = /<script\b[^>]*\ssrc="[^"]*track\.js"/.test(landingHtml)
     if (hasGa4 !== hasTrack) seoProblems.push(hasTrack ? 'track.js present without GA4 configured' : 'track.js missing while GA4 is configured')
   } else {
     seoProblems.push('missing index.html')

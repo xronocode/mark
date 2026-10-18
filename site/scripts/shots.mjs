@@ -16,7 +16,19 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   arg - read a --flag value from argv
+//   DIST - built site directory
+//   OUT - screenshot/report directory
 //   PAGES - paths checked in every viewport
+//   IOS_UA - iPhone Safari user agent for the iOS viewports
+//   TYPES - extension -> content type for the static server
+//   remote - --url target instead of the local dist
+//   server - local static server (null for --url)
+//   base - origin under test
+//   browser - chromium instance
+//   results - per-shot outcome list (also written to report.json)
+//   bad - shots with problems
+//   home390 - landing at 390 light, for the screen-count readout
 //   VIEWPORTS - name, size, mobile/iOS flags
 //   serveDist - static server over dist with clean-URL fallback
 //   checkPage - open one page in one viewport/theme, screenshot, return problems
