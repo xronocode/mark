@@ -265,6 +265,7 @@
       "copyAsPlainText": "Copy as Plain Text",
       "copyAsStructuredText": "Copy as Structured Text",
       "copyAsImage": "Copy as Image",
+      "copyImage": "Copy Image",
       "saveAsPng": "Save as PNG…",
       "saveAsSvg": "Save as SVG…",
       "selectAll": "Select All",
@@ -1307,12 +1308,14 @@
       },
       "toolbar": {
         "edit": "Edit Image",
+        "copyImage": "Copy Image",
         "inline": "Inline Image",
         "alignLeft": "Align Left",
         "alignCenter": "Align Center",
         "alignRight": "Align Right",
         "delete": "Remove Image"
-      }
+      },
+      "copyTitle": "Image"
     },
     "placeholders": {
       "frontMatter": "Input YAML Front Matter",

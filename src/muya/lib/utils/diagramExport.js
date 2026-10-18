@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/utils/diagramExport.js
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Per-block diagram/chart picture export (C-56) — turn a rendered Pele diagram (```mermaid) or Vega-Lite chart (```vega-lite) SVG into a self-contained standalone SVG string (all --pele-* variables resolved from the live theme, theme font declared, theme code-panel background rect, natural size from data-natural-width/viewBox — never the zoomed or viewer-scaled size) and rasterize it to a 2× Retina PNG on a canvas; plus the save-file name suggestion (nearest preceding heading slug, document-name fallback).
-//   SCOPE: pure DOM/string transforms plus a canvas rasterizer; SVG sanitization for export (no <script>, no on* handlers, no javascript: hrefs, no editor chrome); block resolution limited to the C-56 exportable roles (MERMAID, VEGA-LITE); injectable theme tokens/variables, canvas and image factories for tests. No clipboard, dialog or fs I/O — the editor host (editor.vue) owns the transports.
+//   PURPOSE: Per-block diagram/chart picture export (C-56) — turn a rendered Pele diagram (```mermaid) or Vega-Lite chart (```vega-lite) SVG into a self-contained standalone SVG string (all --pele-* variables resolved from the live theme, theme font declared, theme code-panel background rect, natural size from data-natural-width/viewBox — never the zoomed or viewer-scaled size) and rasterize it to a 2× Retina PNG on a canvas; plus the save-file name suggestion (nearest preceding heading slug, document-name fallback) and, since T-006, the embedded-image copy helpers (source classification local/remote/data:, data-URL decode, PNG magic check, image-bytes → natural-size canvas PNG).
+//   SCOPE: pure DOM/string transforms plus canvas rasterizers; SVG sanitization for export (no <script>, no on* handlers, no javascript: hrefs, no editor chrome); block resolution limited to the C-56 exportable roles (MERMAID, VEGA-LITE); injectable theme tokens/variables, canvas, image and object-URL factories for tests. No clipboard, dialog, fetch or fs I/O — the editor host (editor.vue) owns the transports.
 //   DEPENDS: ./../parser/render/diagramTheme (readActiveThemeTokens, buildPeleVariables — pure token math), ./../parser/render/pelePipeline (PELE_NATURAL_WIDTH_ATTR constant only), ./../config (CLASS_OR_ID).
-//   LINKS: .grace/changes/active/C-56 R-1/R-2/R-4 (spec), T-001 (plan); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-63; consumers: src/renderer/src/components/editorWithTabs/editor.vue (context menu + muya-diagram-export events), muya ui/blockViewer (toolbar dispatch).
+//   LINKS: .grace/changes/active/C-56 R-1/R-2/R-4 (spec), T-001/T-006 (plan); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-63 and scenario-65; consumers: src/renderer/src/components/editorWithTabs/editor.vue (context menu + muya-diagram-export/muya-image-copy events), muya ui/blockViewer (toolbar dispatch), muya ui/imageToolbar (Copy image button dispatch).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -19,10 +19,21 @@
 //   buildStandaloneSvg - live SVG element → self-contained SVG string: var(--pele-*) references replaced with the resolved theme values, natural width/height/viewBox, root inline sizing stripped, background rect of the theme panel colour (default) or none (transparent), theme font declared when the root carries none, script/handler/javascript:-href free. null when no size can be derived.
 //   rasterizeSvg - standalone SVG string → { bytes, width, height } PNG at scale× natural size (default 2×) drawn through an <img> onto a canvas; createCanvas/makeImage injectable for tests.
 //   pngIhdrSize - PNG bytes → { width, height } read from the IHDR header (big-endian u32 at bytes 16..23); null for non-PNG or short input — shared by the e2e 2×-natural assertions.
+//   resolveImageCopySource - raw Markdown image src (+ the document path) → { kind: 'local', path } | { kind: 'remote', url } | { kind: 'data', bytes, mime } | null: absolute/relative/file:///asset:// (Tauri convertFileSrc) forms are local OS paths resolved against the document directory, http(s) is remote, data: decodes inline; blob: and empty srcs never resolve (C-56 T-006).
+//   decodeDataUrl - data: URL → { bytes: Uint8Array, mime } (base64 or percent-encoded payload); null for malformed input.
+//   isPngBytes - bytes → true iff the 8-byte PNG signature leads the buffer (the pass-through gate — the claimed mime/extension never decides).
+//   imageBytesToPng - image bytes → { bytes, width, height } PNG drawn on a canvas at the image's NATURAL size (JPEG/WebP/GIF/SVG/other re-encode); createCanvas/makeImage/makeObjectUrl injectable for tests.
+//   imageCopyPngBytes - the transport's single call: PNG bytes pass through untouched (with their IHDR size), everything else is re-encoded through imageBytesToPng.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.1 - 2026-10-18 C-56 T-005 grace-lint pass: markup
+//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-006: embedded-image copy
+//   helpers — resolveImageCopySource/decodeDataUrl/isPngBytes/
+//   imageBytesToPng/imageCopyPngBytes — and the img load/decode wait
+//   extracted into the shared waitDecodedImage (rasterizeSvg keeps the
+//   src-before-decode ordering the orchestrator review pinned; only the
+//   load-failure message text generalized).
+//   v1.0.1 - 2026-10-18 C-56 T-005 grace-lint pass: markup
 //   only, no behavior change — pngIhdrSize added to the MODULE_MAP and the
 //   buildStandaloneSvg / rasterizeSvg START_CONTRACT blocks moved OUT of
 //   (before) START_BLOCK_STANDALONE_SVG / START_BLOCK_EXPORT_RASTERIZE so
@@ -391,6 +402,23 @@ const readSvgRootSize = (svgString) => {
   return null
 }
 
+// START_BLOCK_IMAGE_WAIT_DECODE
+// src first, then wait: decode() called before src rejects in
+// Chromium/WebKit; images without decode() fall back to onload/onerror.
+// Shared by rasterizeSvg (data: SVG) and imageBytesToPng (object-URL
+// bitmap) so the orchestrator-pinned ordering lives in exactly one place.
+const waitDecodedImage = (img, src) => {
+  const loaded = typeof img.decode === 'function'
+    ? null
+    : new Promise((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('the image failed to load'))
+    })
+  img.src = src
+  return loaded || img.decode()
+}
+// END_BLOCK_IMAGE_WAIT_DECODE
+
 export const rasterizeSvg = async (svgString, {
   scale = 2,
   createCanvas = null,
@@ -412,16 +440,7 @@ export const rasterizeSvg = async (svgString, {
   const imageFactory = makeImage || (() => new Image())
   const img = imageFactory()
   const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`
-  // src first, then wait: decode() called before src rejects in
-  // Chromium/WebKit; images without decode() fall back to onload/onerror.
-  const loaded = typeof img.decode === 'function'
-    ? null
-    : new Promise((resolve, reject) => {
-      img.onload = () => resolve()
-      img.onerror = () => reject(new Error('rasterizeSvg: the SVG image failed to load'))
-    })
-  img.src = dataUrl
-  await (loaded || img.decode())
+  await waitDecodedImage(img, dataUrl)
   const canvas = canvasFactory(width, height)
   const ctx = canvas.getContext('2d')
   if (!ctx) {
@@ -442,3 +461,208 @@ export const rasterizeSvg = async (svgString, {
   return { bytes, width, height }
 }
 // END_BLOCK_EXPORT_RASTERIZE
+
+// START_CONTRACT: resolveImageCopySource
+//   PURPOSE: C-56 T-006 — classify the raw Markdown src of an embedded ![](…) image for the clipboard picture copy: which transport reads the bytes and from where.
+//   INPUTS: { rawSrc: string - token.attrs.src straight from the Markdown, options: { docPath: string = '' - the document file path; relative srcs resolve against its directory } }
+//   OUTPUTS: { { kind: 'local', path } | { kind: 'remote', url } | { kind: 'data', bytes: Uint8Array, mime } | null - null when nothing can read the source (empty src, blob:, malformed data:, relative src without a saved document) }
+//   SIDE_EFFECTS: none — pure string/bytes math (data-URL base64 decodes inline).
+//   LINKS: muya utils/index.js getImageInfo (the render-side twin that resolves display srcs); editor.vue handleImageCopyAction; unit twins tests/renderer/muya/image-copy.test.js.
+// END_CONTRACT: resolveImageCopySource
+// START_BLOCK_IMAGE_COPY_SOURCE
+// T-006 source forms, mirroring how the render pipeline itself resolves
+// display srcs (utils getImageInfo → file:// + __markImageLoader):
+//   data:…            → inline bytes (decodeDataUrl)
+//   http(s)://…       → remote fetch (the host transport owns fetch)
+//   file:///…         → OS path (decodeURIComponent, exactly like
+//                       loadImageAsync's bridge branch)
+//   asset://localhost/<encodeURIComponent(path)> (or bare asset://…)
+//                       → OS path — the Tauri convertFileSrc form
+//   /abs, C:\…, \\…   → OS path as-is
+//   everything else   → relative to the document directory; no saved
+//                       document → null (nothing can resolve it)
+// blob: srcs never appear in Markdown (they are display-only object URLs
+// created at render time) and never resolve.
+const safeDecodePath = (p) => {
+  try {
+    return decodeURIComponent(p)
+  } catch (_) {
+    return p
+  }
+}
+
+const WIN_ABSOLUTE_PATH = /^(?:[a-zA-Z]:[\\/]|\\\\|\/\/)/
+
+// POSIX-style segment normalization (Windows separators are folded to '/'
+// first): '.' drops, '..' pops, duplicates collapse. Enough for the
+// document-directory joins T-006 needs; no symlink semantics required.
+const normalizePathParts = (p) => {
+  const absolute = p.startsWith('/')
+  const out = []
+  for (const part of p.split('/')) {
+    if (!part || part === '.') continue
+    if (part === '..') {
+      if (out.length && out[out.length - 1] !== '..') {
+        out.pop()
+      } else if (!absolute) {
+        out.push('..')
+      }
+      continue
+    }
+    out.push(part)
+  }
+  const joined = out.join('/')
+  return absolute ? `/${joined}` : (joined || '.')
+}
+
+const dirnameOf = (p) => {
+  const norm = String(p || '').replace(/\\/g, '/')
+  const cut = norm.lastIndexOf('/')
+  if (cut < 0) return ''
+  return norm.slice(0, cut)
+}
+
+export const decodeDataUrl = (src) => {
+  if (typeof src !== 'string' || !/^data:/i.test(src)) return null
+  const comma = src.indexOf(',')
+  if (comma < 0) return null
+  const header = src.slice(5, comma).split(';')
+  const mime = (header[0] || '').trim().toLowerCase() || 'application/octet-stream'
+  const isBase64 = header.slice(1).some((p) => p.trim().toLowerCase() === 'base64')
+  try {
+    if (isBase64) {
+      const bin = atob(src.slice(comma + 1).replace(/\s+/g, ''))
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i)
+      }
+      return { bytes, mime }
+    }
+    return { bytes: new TextEncoder().encode(decodeURIComponent(src.slice(comma + 1))), mime }
+  } catch (_) {
+    return null
+  }
+}
+
+export const resolveImageCopySource = (rawSrc, { docPath = '' } = {}) => {
+  const src = typeof rawSrc === 'string' ? rawSrc.trim() : ''
+  if (!src) return null
+  if (/^data:/i.test(src)) {
+    const decoded = decodeDataUrl(src)
+    return decoded ? { kind: 'data', ...decoded } : null
+  }
+  if (/^https?:/i.test(src)) {
+    return { kind: 'remote', url: src }
+  }
+  if (/^file:\/\//i.test(src)) {
+    // The __markImageLoader bridge decodes exactly this way.
+    // file:///C:/x on Windows → C:/x (drop the slash before a drive letter).
+    const path = decodeURIComponent(src.replace(/^file:\/\//i, ''))
+    return { kind: 'local', path: path.replace(/^\/([A-Za-z]:[\\/])/, '$1') }
+  }
+  if (/^asset:\/\//i.test(src)) {
+    const withoutScheme = src.replace(/^asset:\/\//i, '')
+    const payload = /^localhost\//i.test(withoutScheme)
+      ? withoutScheme.replace(/^localhost\//i, '')
+      : withoutScheme
+    const path = safeDecodePath(payload)
+    return path ? { kind: 'local', path } : null
+  }
+  if (/^blob:/i.test(src)) {
+    return null
+  }
+  if (WIN_ABSOLUTE_PATH.test(src) || src.startsWith('/')) {
+    return { kind: 'local', path: safeDecodePath(src) }
+  }
+  // Relative to the document. An unsaved tab has no directory — nothing
+  // can resolve the source (the failure notice path).
+  const dir = dirnameOf(docPath)
+  if (!dir) return null
+  const joined = normalizePathParts(`${dir}/${safeDecodePath(src).replace(/\\/g, '/')}`)
+  return { kind: 'local', path: joined }
+}
+// END_BLOCK_IMAGE_COPY_SOURCE
+
+// START_CONTRACT: imageBytesToPng
+//   PURPOSE: C-56 T-006 — re-encode non-PNG image bytes (JPEG/WebP/GIF/SVG/other) as PNG by drawing them on a canvas at the image's natural size.
+//   INPUTS: { bytes: Uint8Array, options: { mime: string - object-URL content type hint, createCanvas: (w, h) => HTMLCanvasElement, makeImage: () => HTMLImageElement, makeObjectUrl: (bytes, mime) => string } }
+//   OUTPUTS: { Promise<{ bytes: Uint8Array, width: number, height: number }> - encoded PNG at natural size } — rejects on load/size/encode failure (the host maps that to the failure notice).
+//   SIDE_EFFECTS: none outside the throwaway object URL (revoked in finally when the default factory created it), img and canvas; object-URL/blob sources never taint the canvas.
+//   LINKS: imageCopyPngBytes (the pass-through gate); rasterizeSvg (the SVG-string twin); editor.vue handleImageCopyAction.
+// END_CONTRACT: imageBytesToPng
+// START_BLOCK_IMAGE_COPY_PNG
+export const isPngBytes = (bytes) => {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 8) return false
+  return (
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+    bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a
+  )
+}
+
+export const imageBytesToPng = async (bytes, {
+  mime = 'image/png',
+  createCanvas = null,
+  makeImage = null,
+  makeObjectUrl = null
+} = {}) => {
+  if (!(bytes instanceof Uint8Array) || bytes.length === 0) {
+    throw new Error('imageBytesToPng: no image bytes')
+  }
+  const urlFactory = makeObjectUrl ||
+    ((b, m) => URL.createObjectURL(new Blob([b], { type: m || 'application/octet-stream' })))
+  const url = urlFactory(bytes, mime)
+  try {
+    const imageFactory = makeImage || (() => new Image())
+    const img = imageFactory()
+    await waitDecodedImage(img, url)
+    const width = img.naturalWidth || img.width
+    const height = img.naturalHeight || img.height
+    // An SVG without intrinsic dimensions reports no natural size — there
+    // is nothing meaningful to rasterize (the failure notice path).
+    if (!(width > 0) || !(height > 0)) {
+      throw new Error('imageBytesToPng: the image carries no natural size')
+    }
+    const canvasFactory = createCanvas || ((w, h) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      return canvas
+    })
+    const canvas = canvasFactory(width, height)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      throw new Error('imageBytesToPng: no 2d context')
+    }
+    ctx.drawImage(img, 0, 0, width, height)
+    const blob = await new Promise((resolve, reject) => {
+      try {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('imageBytesToPng: PNG encoding failed'))),
+          'image/png'
+        )
+      } catch (err) {
+        reject(err)
+      }
+    })
+    return {
+      bytes: new Uint8Array(await blob.arrayBuffer()),
+      width,
+      height
+    }
+  } finally {
+    if (!makeObjectUrl && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(url)
+    }
+  }
+}
+
+// The transport's single entry: a real PNG passes through untouched (its
+// bytes are exactly what the clipboard should carry — no re-encode
+// quality loss), everything else is re-encoded as PNG at natural size.
+export const imageCopyPngBytes = (bytes, options = {}) => {
+  if (isPngBytes(bytes)) {
+    return Promise.resolve({ bytes, ...(pngIhdrSize(bytes) || {}) })
+  }
+  return imageBytesToPng(bytes, options)
+}
+// END_BLOCK_IMAGE_COPY_PNG

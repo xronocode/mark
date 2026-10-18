@@ -264,6 +264,7 @@
       "copyAsPlainText": "复制为纯文本",
       "copyAsStructuredText": "复制为结构化文本",
       "copyAsImage": "复制为图像",
+      "copyImage": "复制图片",
       "saveAsPng": "另存为 PNG…",
       "saveAsSvg": "另存为 SVG…",
       "selectAll": "全选",
@@ -1290,12 +1291,14 @@
       },
       "toolbar": {
         "edit": "编辑图片",
+        "copyImage": "复制图片",
         "inline": "行内图片",
         "alignLeft": "左对齐",
         "alignCenter": "居中对齐",
         "alignRight": "右对齐",
         "delete": "删除图片"
-      }
+      },
+      "copyTitle": "图片"
     },
     "placeholders": {
       "frontMatter": "输入 YAML 前置信息",

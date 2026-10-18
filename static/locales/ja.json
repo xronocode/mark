@@ -264,6 +264,7 @@
       "copyAsPlainText": "プレーンテキストとしてコピー",
       "copyAsStructuredText": "構造化テキストとしてコピー",
       "copyAsImage": "画像としてコピー",
+      "copyImage": "画像をコピー",
       "saveAsPng": "PNG として保存…",
       "saveAsSvg": "SVG として保存…",
       "selectAll": "すべて選択",
@@ -1282,12 +1283,14 @@
       },
       "toolbar": {
         "edit": "画像を編集",
+        "copyImage": "画像をコピー",
         "inline": "インライン画像",
         "alignLeft": "左揃え",
         "alignCenter": "中央揃え",
         "alignRight": "右揃え",
         "delete": "画像を削除"
-      }
+      },
+      "copyTitle": "画像"
     },
     "placeholders": {
       "frontMatter": "YAML フロントマターを入力...",

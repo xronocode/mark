@@ -3868,6 +3868,38 @@
         (+ block-expand-button.test.js split); e2e in
         tests/e2e/diagram-export.spec.ts (pill group) and
         tests/e2e/block-viewer.spec.ts.
+        C-56 T-006 (2026-10-18, user request): Copy image for embedded
+        ![](…) Markdown images — the picture goes BACK to the clipboard.
+        utils/diagramExport.js gains the image-copy helpers:
+        resolveImageCopySource classifies the raw Markdown src
+        (absolute / file:/// — decoded exactly like the render bridge —
+        / Tauri asset://localhost URLs / relative-to-document → local OS
+        path; http(s) → remote; data: decoded inline via decodeDataUrl;
+        blob: and empty never resolve), isPngBytes is the magic-bytes
+        gate, imageBytesToPng re-encodes any other format on a canvas at
+        NATURAL size (object-URL source, so no CORS taint; a sizeless
+        SVG rejects — the failure notice path), and imageCopyPngBytes is
+        the transport's single call: real PNG bytes pass through
+        untouched, everything else converts. Entry points: ui/imageToolbar
+        (v1.1.0) gains the Copy image button between edit and the
+        alignment buttons (the T-005 corner-pill copy glyph inlined as
+        SVG, tooltip editor.image.toolbar.copyImage; selectItem's
+        copyImage case dispatches muya-image-copy with the muya image
+        info) and editor.vue handleEditorContextMenu adds the Copy Image
+        item (contextMenu.editor.copyImage, only when the right-click
+        target is an img inside a muya image wrapper — a failed image
+        has its img removed and gets nothing). editor.vue
+        handleImageCopyAction is the single transport: local reads go
+        through the EXISTING read-binary bridge (window.__markImageLoader
+        → mt::fs::read_binary — the same path the display uses, no new
+        fs scope), remotes via fetch, PNG passthrough / canvas re-encode
+        via imageCopyPngBytes, clipboard writeImage reusing the T-002
+        capability, the T-002 «Copied» toast and the existing
+        «Could not copy the image» failure notice with the
+        [Editor][handleImageCopyAction][BLOCK_IMAGE_COPY] marker (every
+        failure path — CORS, vanished file, decode — resolves, never
+        rejects). Unit tests/renderer/muya/image-copy.test.js; e2e in
+        tests/e2e/diagram-export.spec.ts (embedded-image group).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -4042,12 +4074,19 @@
                 the live theme, theme font + panel background rect,
                 natural size from data-natural-width/viewBox, unsafe
                 markup stripped; 2× PNG rasterizer; heading-slug file
-                name with the &lt;doc&gt;-diagram-N fallback). The
-                clipboard/dialog/fs transports live on the host side:
+                name with the &lt;doc&gt;-diagram-N fallback). T-006 adds
+                the embedded-image copy helpers — resolveImageCopySource /
+                decodeDataUrl / isPngBytes / imageBytesToPng /
+                imageCopyPngBytes (raw Markdown src classification
+                local/remote/data:, data-URL decode, PNG magic gate,
+                natural-size canvas PNG re-encode, pass-through gate).
+                The clipboard/dialog/fs transports live on the host side:
                 editor.vue handleDiagramExportAction (context-menu ids +
-                the muya-diagram-export event) and the blockViewer
+                the muya-diagram-export event), the blockViewer
                 toolbar dispatch ([Muya][blockViewer]
-                [BLOCK_VIEWER_EXPORT]).
+                [BLOCK_VIEWER_EXPORT]) and handleImageCopyAction (the
+                muya-image-copy event from ui/imageToolbar's Copy image
+                button + the context-menu copyEmbeddedImage id).
               </Value>
             </Attribute>
           </LegacyAttributes>

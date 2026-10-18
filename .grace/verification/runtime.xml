@@ -6296,6 +6296,60 @@
           scope) and tests/e2e/block-viewer.spec.ts (pill look, need
           gate, Tab walk over the pill's Edit/Copy stops, screenshots).
         </Scenario>
+        <Scenario>
+          scenario-65: Copy image for embedded Markdown images (C-56
+          T-006, user request 2026-10-18): an already-inserted ![](…)
+          image goes back on the clipboard as a picture from TWO entry
+          points — the muya image toolbar (ui/imageToolbar v1.1.0 gains
+          the Copy image button between edit and the alignment buttons,
+          the T-005 corner-pill copy glyph inlined as SVG, tooltip
+          editor.image.toolbar.copyImage localized in all ten locales)
+          and the editor context menu (item contextMenu.editor.copyImage
+          / id copyEmbeddedImage, present ONLY when the right-click
+          target is an img inside a muya image wrapper — a failed image
+          has its img removed and gets nothing; paragraphs get nothing).
+          utils/diagramExport.js resolves the picture:
+          resolveImageCopySource classifies the raw Markdown src —
+          absolute / file:/// (decoded exactly like the render bridge) /
+          Tauri asset://localhost URLs / relative resolved against the
+          document directory (null without a saved document) are local
+          OS paths, http(s) is remote, data: decodes inline
+          (decodeDataUrl, base64 + params), blob: never resolves;
+          imageCopyPngBytes is the transport's single call — real PNG
+          bytes pass through UNTOUCHED (magic-bytes gate isPngBytes, the
+          claimed mime/extension never decides), every other format
+          (JPEG/WebP/GIF/SVG/other) is re-encoded on a canvas at NATURAL
+          size via imageBytesToPng (object-URL source — no CORS taint;
+          a sizeless SVG rejects to the failure path). The transport is
+          editor.vue handleImageCopyAction (the muya-image-copy event
+          from the toolbar + the copyEmbeddedImage menu id): local reads
+          go through the EXISTING read-binary bridge
+          (window.__markImageLoader → mt::fs::read_binary — the same
+          path the display uses, NO new fs scope), remotes via fetch;
+          the clipboard write reuses the T-002
+          clipboard-manager:allow-write-image capability (nothing new);
+          success shows the T-002 «Copied» toast, and EVERY failure path
+          (CORS-tainted/failed fetch, vanished file, undecodable bytes,
+          sizeless image) warns
+          [Editor][handleImageCopyAction][BLOCK_IMAGE_COPY], shows the
+          existing «Could not copy the image» notice and resolves —
+          never an unhandled rejection. Unit-pinned in
+          tests/renderer/muya/image-copy.test.js (source resolution:
+          absolute/windows/file:///asset:// URLs, relative-with-…/…
+          against the document, relative-without-document null, remote,
+          data:, blob:/empty; decodeDataUrl base64 + params + malformed;
+          isPngBytes magic gate; imageBytesToPng natural-size canvas
+          draw + the no-natural-size and empty-bytes rejections;
+          imageCopyPngBytes pass-through vs convert) and end-to-end in
+          tests/e2e/diagram-export.spec.ts
+          (START_BLOCK_EXPORT_E2E_IMAGE_COPY: the toolbar button
+          position + exact-byte PNG pass-through for a local file://
+          image served through the mt_fs_read_binary mock, the
+          context-menu item on an img target only, a JPEG re-encoded to
+          a PNG at its natural IHDR size, and a read that breaks after
+          the display load → failure notice, clipboard untouched, no
+          page error).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
@@ -6343,6 +6397,10 @@
              [Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT]
              live on the host side; no content in the payload). -->
         <Marker>[Muya][blockViewer][BLOCK_VIEWER_EXPORT]</Marker>
+        <!-- C-56 T-006 embedded-image copy: the failure marker
+             [Editor][handleImageCopyAction][BLOCK_IMAGE_COPY] lives on
+             the host side (named in scenario-65) — muya only dispatches
+             the muya-image-copy event. -->
         <!-- C-51 T-010 expand-need verdict flip (no content in the payload). -->
         <Marker>
           [Muya][expandNeed][BLOCK_EXPAND_NEED blockKey=&lt;key&gt; needed=&lt;bool&gt;]
