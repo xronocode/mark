@@ -2617,6 +2617,16 @@
         (site/.vitepress/theme) extends DefaultTheme over it, and the
         shared no-flash theme-init script keeps docs, gallery and landing
         on one VitePress-storage-key choice.
+        C-64 T-002 rebuilds the landing itself as the mobile-first page per
+        D-9: a draggable before/after hero (raw agent Markdown versus Mark's
+        rendered page, diagrams injected at build time into DIAGRAM
+        placeholders with theme data from THEME_VARS_JSON), the d1
+        four-fact strip, the d2 diagram wall as section 02 with live theme
+        chips, install cards carrying the verified facts (v2.5.0, App Store
+        id, full brew command, Windows setup.exe), an iOS/iPadOS
+        Mark-for-Mac sticky bar (Web Share with copy fallback, remembered
+        dismiss, share_to_mac events) and download_click hooks on every
+        install CTA; tests/site/landing-content.test.mjs pins the contract.
                 C-64 T-003 adds the SEO/consent/security layer: the shared head carries
         apple-itunes-app, the brand theme-color pair, strict referrer,
         hreflang en + x-default, the 1200x630 og-card.png and a JSON-LD
