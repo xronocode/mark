@@ -38,15 +38,15 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
-## What's new in 2.5.0
+## What's new in 2.5.3
 
-- **Diagrams as pictures.** Copy any diagram or Vega-Lite chart as an image, or save it as PNG or SVG — from the corner panel, the context menu or the full-screen view. The SVG carries the theme's colours, so it looks the same anywhere.
-- **A corner panel on every diagram.** Hover a diagram and a small panel appears at its top-right edge: its look, the source, copy as image and full screen. The panel stays out of the way until you need it.
-- **A look for each diagram.** Auto follows the document theme; Custom keeps the author's palette from the Markdown; Light and Dark pin it. The choice is saved in the diagram and undoes like any edit.
-- **Print and PDF, each direct.** ⌘P goes straight to the system print panel. Export to PDF saves the file through a save dialog, without the print panel — on macOS and Windows.
-- **And the rest.** Copy an image that is already in the document back to the clipboard; footnote settings apply instantly; kanban boards look calmer; the site has a [gallery of every diagram type](https://mark.xronocode.com/diagrams/).
+- **Picks up where you left off.** Launch Mark and the folder and tabs you had open come back, with the same tab active — like Obsidian. Files that are gone are skipped; opening a file from Finder starts with that file. Turn it off in Settings › General › Startup.
+- **Wide tables at full width.** A table wider than the text column opens at its natural width: centred when it fits the window, otherwise starting just inside the edge, with the editor scrolling sideways. «Fit to page» in the table toolbar keeps it in the column, and Mark remembers that per table.
+- **Column widths that stay.** Drag a column border once and the width is kept for that file across restarts — in your Mark profile, never in the Markdown. A double click on the border resets it.
+- **Updates come to you.** The download and Homebrew build checks for a new version once a day and offers Update, Later or Skip this version.
+- **And the rest.** A broom clears Recent in the sidebar; ⌘W closes Settings; the update check in Settings reports in its own row.
 
-The 2.4.0 highlights — the Pele diagram engine, instant theme recolouring, new diagram types, a much lighter app — are in [CHANGELOG.md](CHANGELOG.md).
+The 2.5.0 highlights — diagrams as pictures, a look for each diagram, direct print and PDF — are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Why Mark
 

@@ -1452,7 +1452,7 @@
     "title": "Novidades",
     "seeGuide": "Ver o guia",
     "continue": "Continuar",
-    "also": "E mais: as notas de rodapé mudam na hora, e o site ganhou uma galeria com todos os tipos de diagrama",
+    "also": "E mais: uma vassoura limpa os Recentes na barra lateral, e ⌘W fecha os Ajustes",
     "seeEverything": "Ver todas as novidades",
     "v2_3_1": {
       "look": {
@@ -1506,6 +1506,24 @@
       "images": {
         "title": "Copie imagens de novo",
         "text": "Copie para a área de transferência, com um clique, uma imagem já no documento."
+      }
+    },
+    "v2_5_3": {
+      "session": {
+        "title": "Continue de onde parou",
+        "text": "Ao iniciar, o Mark reabre a pasta e as abas. Desative em Ajustes › Geral."
+      },
+      "tables": {
+        "title": "Tabelas largas em largura total",
+        "text": "Uma tabela mais larga que a página abre em largura total; «Ajustar» é lembrado."
+      },
+      "columns": {
+        "title": "A largura das colunas fica",
+        "text": "Arraste a borda de uma coluna e a largura fica salva para o arquivo, sem mudar o Markdown."
+      },
+      "updates": {
+        "title": "As atualizações vêm até você",
+        "text": "Uma vez por dia o Mark procura uma versão nova: atualizar agora, depois ou pular."
       }
     }
   },

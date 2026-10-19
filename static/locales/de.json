@@ -1448,7 +1448,7 @@
     "title": "Was ist neu",
     "seeGuide": "Anleitung ansehen",
     "continue": "Weiter",
-    "also": "Außerdem: Fußnoten-Einstellungen wirken sofort, und die Website zeigt alle Diagrammtypen in einer Galerie",
+    "also": "Außerdem: Ein Besen leert „Zuletzt“ in der Seitenleiste, und ⌘W schließt die Einstellungen",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "v2_3_1": {
       "look": {
@@ -1502,6 +1502,24 @@
       "images": {
         "title": "Bilder erneut kopieren",
         "text": "Kopiere ein Bild aus dem Dokument mit einem Klick wieder in die Zwischenablage."
+      }
+    },
+    "v2_5_3": {
+      "session": {
+        "title": "Weiter, wo Sie aufgehört haben",
+        "text": "Mark öffnet beim Start Ordner und Tabs von zuletzt. Abschaltbar in Einstellungen."
+      },
+      "tables": {
+        "title": "Breite Tabellen in voller Breite",
+        "text": "Breitere Tabellen öffnen in voller Breite; „An Seite anpassen“ bleibt je Tabelle."
+      },
+      "columns": {
+        "title": "Spaltenbreiten bleiben",
+        "text": "Spaltengrenze einmal ziehen – die Breite bleibt für die Datei. Markdown bleibt gleich."
+      },
+      "updates": {
+        "title": "Updates kommen zu Ihnen",
+        "text": "Mark sucht täglich nach einer neuen Version: jetzt, später oder überspringen."
       }
     }
   },

@@ -127,7 +127,7 @@ test.describe("What's New (C-48)", () => {
     await expect(titles.nth(2)).toHaveText('Print and PDF, each direct')
     await expect(titles.nth(3)).toHaveText('Copy images back out')
     // The «Also» line and both footer links.
-    await expect(sheet.locator('.also')).toContainText('footnote settings')
+    await expect(sheet.locator('.also')).toContainText('clears Recent')
     await expect(sheet.locator('.foot-links .guide-link').first())
       .toHaveText('See everything new ↗')
     await expect(sheet.locator('.foot-links .guide-link').nth(1)).toHaveText('See the guide')

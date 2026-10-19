@@ -1,5 +1,5 @@
 // FILE: tests/renderer/whatsNew/content.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-53 R-1 What's New 2.3.1 content — exactly the four
 //            D-1 items in the approved order, every locale table (all 10)
@@ -20,11 +20,13 @@
 //
 // START_MODULE_MAP
 //   LOCALES - the ten shipped locale codes and their source tables.
+//   ITEM_KEY_ORDER_2_5_3 - the four 2.5.3 item keys in sheet order (session, tables, columns, updates).
 //   ITEM_KEY_ORDER - the four D-1 item keys in the approved order.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 release 2.5.0: pins move to the four
+//   LAST_CHANGE: v1.2.0 - 2026-10-19 release 2.5.3: a 2.5.3 block pins the four new items, their locale matrix and the release URL (the 2.5.0 pins stay — that sheet still exists).
+//   v1.1.0 - 2026-10-18 release 2.5.0: pins move to the four
 //   2.5.0 items (export, look, print, images); format names (PNG, SVG,
 //   PDF) replace the Pele/mermaid name pins.
 //   v1.0.0 - 2026-10-17 C-53 T-001/R-1: initial pins.
@@ -163,6 +165,45 @@ describe('whatsNew 2.5.0 content in every locale', () => {
   })
 })
 // END_BLOCK_LOCALE_MATRIX
+
+// START_BLOCK_CONTENT_2_5_3
+// Release 2.5.3: session restore (C-69), wide tables at full width and
+// remembered column widths (C-65), the daily update check (C-66).
+const ITEM_KEY_ORDER_2_5_3 = ['session', 'tables', 'columns', 'updates']
+
+describe('whatsNew 2.5.3 sheet', () => {
+  it('ships the four 2.5.3 items in order with distinct one-char icons', () => {
+    const items = getWhatsNewItems('2.5.3')
+    expect(items.map((i) => i.titleKey.replace('whatsNew.v2_5_3.', '').replace('.title', '')))
+      .toEqual(ITEM_KEY_ORDER_2_5_3)
+    for (const item of items) {
+      expect(item.icon.length).toBe(1)
+      expect(item.textKey).toMatch(/^whatsNew\.v2_5_3\.\w+\.text$/)
+    }
+    expect(new Set(items.map((i) => i.icon)).size).toBe(items.length)
+  })
+
+  it('every locale carries the four items within the 32/90 layout, no message syntax, Markdown untranslated', () => {
+    for (const [code, table] of Object.entries(LOCALES)) {
+      const section = table.whatsNew.v2_5_3
+      expect(section, `${code}: whatsNew.v2_5_3`).toBeTruthy()
+      for (const key of ITEM_KEY_ORDER_2_5_3) {
+        const { title, text } = section[key]
+        expect(title.length, `${code} ${key}.title`).toBeGreaterThan(0)
+        expect(title.length, `${code} ${key}.title is ${title.length}`).toBeLessThanOrEqual(32)
+        expect(text.length, `${code} ${key}.text is ${text.length}`).toBeLessThanOrEqual(90)
+        expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
+      }
+      expect(section.columns.text, `${code}: columns.text keeps Markdown`).toContain('Markdown')
+      expect(section.updates.text, `${code}: updates.text keeps Mark`).toContain('Mark')
+    }
+  })
+
+  it('points the 2.5.3 sheet at its GitHub release page', () => {
+    expect(getWhatsNewReleaseUrl('2.5.3')).toBe('https://github.com/xronocode/mark/releases/tag/v2.5.3')
+  })
+})
+// END_BLOCK_CONTENT_2_5_3
 
 // START_BLOCK_RELEASE_URL
 describe('getWhatsNewReleaseUrl (C-53 «See everything new» link)', () => {
