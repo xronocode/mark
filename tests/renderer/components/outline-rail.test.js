@@ -1,8 +1,8 @@
 // FILE: tests/renderer/components/outline-rail.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-40 T-003 outline-rail component — rendering, scrollspy highlight, click-to-jump, and every visibility gate (preference, source/split/diff modes, ≥3 headings, editor-area width, no-overlap fit).
-//   SCOPE: outlineRail.vue in jsdom with a fake ResizeObserver, stubbed element geometry, mocked bus; plus the editorWithTabs/index.vue wiring (rail mounted with the mode-gate props) and the sidebar TOC retirement.
+//   SCOPE: outlineRail.vue in jsdom with fake ResizeObserver, owned scroll/mutation-driven table occlusion and cleanup, stubbed element geometry, mocked bus; editorWithTabs wiring and sidebar TOC retirement.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, vue-i18n, outlineRail.vue, editorWithTabs/index.vue, sideBar/index.vue.
 //   LINKS: .grace/changes/active/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: TEST
@@ -14,7 +14,7 @@
 //   FakeResizeObserver - controllable observer so a test can push a resize (which re-runs measure()).
 //   geometry - mutable element-rect fixture (container width, centred column width).
 //   stubGeometry - Element.prototype.getBoundingClientRect spy reading `geometry` (the #ag-editor-id column is centred, muya layout).
-//   mountRail - mounts outlineRail.vue attached to a fake editor container (with the #ag-editor-id column); returns { wrapper, preferencesStore }.
+//   mountRail - mounts outlineRail.vue in an owned editor/scroller/column fixture; returns { wrapper, preferencesStore }.
 //   LIST_TOC - editor listToc fixture.
 //   ROOT - repo root for source pins.
 //   i18n - vue-i18n instance with the rail title.
@@ -23,6 +23,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v1.1.0: C-71-OUTLINE-OCCLUSION — scroll-only visibility/restoration, table mutation ownership and scheduled-work cleanup.
 //   - 2026-10-15 v1.0.0: C-40 T-003 initial coverage.
 // END_CHANGE_SUMMARY
 
@@ -96,7 +97,7 @@ const mountRail = async ({
   listToc = LIST_TOC,
   preferenceVisible = true
 } = {}) => {
-  document.body.innerHTML = '<div id="rail-host"><div id="ag-editor-id"></div></div>'
+  document.body.innerHTML = '<div id="rail-host" class="editor-with-tabs"><div class="editor-component"><div id="ag-editor-id"></div></div></div>'
   const host = document.getElementById('rail-host')
 
   const pinia = setupTestPinia()
@@ -154,6 +155,50 @@ describe('editorWithTabs/outlineRail.vue', () => {
       wrapper.findAll('.outline-rail-item').map((i) => i.text())
     ).toEqual(['Release notes', 'Alpha Section', 'Beta Section'])
     wrapper.unmount()
+  })
+
+  it('hides on owned scroll intersection, restores without hover and cleans up all scheduled work', async () => {
+    stubGeometry()
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect')
+    const { wrapper } = await mountRail()
+    const host = document.getElementById('rail-host')
+    const scroller = host.querySelector('.editor-component')
+    const rail = wrapper.find('.outline-rail')
+    rail.element.getBoundingClientRect = () => ({ left: 1100, top: 46, right: 1280, bottom: 200 })
+    scroller.getBoundingClientRect = () => ({ left: 0, top: 0, right: 1300, bottom: 720 })
+    const figure = document.createElement('figure')
+    figure.dataset.role = 'TABLE'
+    figure.innerHTML = '<div class="ag-table-scroll"><table></table></div>'
+    const table = figure.querySelector('table')
+    let top = 800
+    table.getBoundingClientRect = () => ({ left: 100, top, right: 1200, bottom: top + 100 })
+    host.querySelector('#ag-editor-id').appendChild(figure)
+    await vi.waitFor(() => expect(rail.classes()).not.toContain('outline-rail--occluded'))
+    top = 80
+    scroller.dispatchEvent(new Event('scroll'))
+    await vi.waitFor(() => expect(rail.classes()).toContain('outline-rail--occluded'))
+    expect(rail.attributes('inert')).toBe('')
+    expect(rail.attributes('aria-hidden')).toBe('true')
+    // An owned style mutation can change table geometry without a scroll.
+    top = 800
+    table.style.width = '500px'
+    await vi.waitFor(() => expect(rail.classes()).not.toContain('outline-rail--occluded'))
+    expect(rail.attributes('inert')).toBeUndefined()
+    const foreign = figure.cloneNode(true)
+    foreign.querySelector('table').getBoundingClientRect = () => ({ left: 100, top: 80, right: 1200, bottom: 180 })
+    document.body.appendChild(foreign)
+    scroller.dispatchEvent(new Event('scroll'))
+    await nextTick()
+    expect(rail.classes()).not.toContain('outline-rail--occluded')
+    const remove = vi.spyOn(host, 'removeEventListener')
+    const cancel = vi.spyOn(window, 'cancelAnimationFrame')
+    // Leave one queued frame for unmount to cancel.
+    scroller.dispatchEvent(new Event('scroll'))
+    wrapper.unmount()
+    expect(remove).toHaveBeenCalledWith('scroll', expect.any(Function), true)
+    expect(cancel).toHaveBeenCalled()
+    expect(disconnect).toHaveBeenCalled()
+    expect(observers.size).toBe(0)
   })
 
   it('hides in source mode, split view, and diff view', async () => {

@@ -4272,7 +4272,18 @@
           count in the bar, Esc/outside close, copy-path/reveal
           dispatch, «?» per platform) + updated e2e sidebar-toggle /
           titlebar-theme-toggle / view-modes selectors.
-          scenario-54: «On this page» outline rail (C-40 T-003): a slim
+          scenario-54: «On this page» outline rail (C-40 T-003).
+          C-71-OUTLINE-OCCLUSION extension: the whole rail becomes hidden,
+          inert and aria-hidden on any visible table intersection, including
+          initial layout, scroll, resize and table mutations. It restores
+          once clear, independently of hover, without changing rail/table
+          geometry, Markdown or saved state. The scrollport and Fit-to-page
+          wrapper clip bounds exclude invisible table portions; exact edge
+          contact and foreign editors do not hide the rail. Unit geometry,
+          owned events and unmount cleanup are covered by the existing
+          outline-rail unit suites; table-ui-regressions.spec.ts verifies
+          scroll-only hide/restore and Fit-to-page transitions in both engines.
+          The baseline slim
           rail right of the centred text column lists the document's h1–h3
           (deeper levels indented per level within h1–h3, h4–h6 reachable
           only through ⌘T Go to Heading), the current item is bold with a

@@ -1,10 +1,13 @@
 <template>
   <div v-show="railVisible" ref="anchorRef" class="outline-rail-anchor">
     <nav
+      ref="railRef"
       class="outline-rail"
       data-editor-overlay-right
-      :class="{ 'outline-rail--wrap': wordWrapInToc }"
+      :class="{ 'outline-rail--wrap': wordWrapInToc, 'outline-rail--occluded': occluded }"
       :aria-label="t('outlineRail.title')"
+      :aria-hidden="occluded ? 'true' : undefined"
+      :inert="occluded ? '' : undefined"
     >
       <div class="outline-rail-header">{{ t('outlineRail.title') }}</div>
       <div class="outline-rail-items">
@@ -28,11 +31,11 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/outlineRail.vue
-// VERSION: 1.1.1
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-40 T-003 «On this page» outline rail — a slim absolute rail right of the centred text column listing h1–h3, tracking the section in view, and smooth-jumping on click.
-//   SCOPE: Rendering + visibility gates (preference, WYSIWYG-only modes, ≥3 h1–h3 headings, ≥1000px editor area, no text overlap), scrollspy highlight, click-to-jump; heading data and gates come from store.listToc and util/outlineRail.js.
-//   DEPENDS: editor/preferences stores, bus (toc-active-heading, scroll-to-header), util/outlineRail.js, ResizeObserver.
+//   SCOPE: Rendering + visibility gates (preference, WYSIWYG-only modes, ≥3 h1–h3 headings, ≥1000px editor area, no text overlap), scrollspy highlight, click-to-jump; hide the whole rail without reflow during visible table intersection, using owned scroll/resize/column mutation observation with unmount cleanup.
+//   DEPENDS: editor/preferences stores, bus (toc-active-heading, scroll-to-header), util/outlineRail.js, ResizeObserver, scoped MutationObserver, animation frames.
 //   LINKS: .grace/changes/active/C-40 T-003; .grace/graph/runtime.xml M-011 fn-extractRailHeadings; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -44,9 +47,13 @@
 //   measure - Reads the editor-area width and the centred column's text edge from the live DOM.
 //   setActiveSlug - Applies the editor's toc-active-heading scrollspy payload.
 //   jumpTo - Emits scroll-to-header for a clicked rail item (the shared smooth-scroll path).
+//   railRef/occluded - Live rail box and layout-preserving table-intersection visibility state.
+//   updateOcclusion - Measures only owned live tables against the rail and scrollport; reconciles table resize observations.
+//   scheduleOcclusion - Coalesces owned scroll/resize/mutation reads into one animation frame.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v1.2.0: C-71-OUTLINE-OCCLUSION — hide the whole outline on any visible table intersection, independently of hover, without changing its box or page geometry.
 //   - 2026-10-19 v1.1.1: C-65 — the rail marks itself data-editor-overlay-right so a centred Full width table never slides under it.
 //   - 2026-10-15 v1.1.0: C-38 T-006 N4 b — the current item's marker
 //     tick and the focus ring follow the system accent instead of the
@@ -68,7 +75,8 @@ import {
   extractRailHeadings,
   resolveCurrentHeading,
   shouldShowRail,
-  COLUMN_RIGHT_PADDING_FALLBACK
+  COLUMN_RIGHT_PADDING_FALLBACK,
+  railIntersectsTable
 } from '@/util/outlineRail'
 
 const props = defineProps({
@@ -105,6 +113,8 @@ const currentHeading = computed(() =>
 // against --editorAreaWidth / editorLineWidth changes, which resize the
 // column without resizing the container.
 const anchorRef = ref(null)
+const railRef = ref(null)
+const occluded = ref(false)
 const containerWidth = ref(NaN)
 const columnRight = ref(NaN)
 const columnPaddingRight = ref(NaN)
@@ -128,9 +138,15 @@ const measure = () => {
   columnPaddingRight.value = Number.isFinite(padding) && padding > 0
     ? padding
     : COLUMN_RIGHT_PADDING_FALLBACK
+  scheduleOcclusion()
 }
 
 let resizeObserver = null
+let mutationObserver = null
+let occlusionHost = null
+let occlusionFrame = null
+let observedTables = new Set()
+let destroyed = false
 
 const railVisible = computed(() =>
   shouldShowRail({
@@ -146,6 +162,43 @@ const railVisible = computed(() =>
 )
 // END_BLOCK_RAIL_MEASURE
 
+// START_BLOCK_RAIL_TABLE_OCCLUSION
+const updateOcclusion = () => {
+  occlusionFrame = null
+  if (destroyed) return
+  const rail = railRef.value
+  const scroller = occlusionHost?.querySelector('.editor-component')
+  if (!railVisible.value || !rail || !scroller) {
+    occluded.value = false
+    return
+  }
+  const tables = new Set(scroller.querySelectorAll("figure[data-role='TABLE'] > .ag-table-scroll > table"))
+  for (const table of observedTables) {
+    if (!tables.has(table)) resizeObserver?.unobserve(table)
+  }
+  for (const table of tables) {
+    if (!observedTables.has(table)) resizeObserver?.observe(table)
+  }
+  observedTables = tables
+  const railRect = rail.getBoundingClientRect()
+  const viewport = scroller.getBoundingClientRect()
+  occluded.value = [...tables].some(table => {
+    // Fit-to-page tables clip inside their own wrapper. Hidden columns
+    // outside that wrapper must not hide a rail they cannot paint over.
+    const wrapper = table.parentElement
+    const clip = getComputedStyle(wrapper).overflowX === 'visible'
+      ? viewport
+      : wrapper.getBoundingClientRect()
+    return railIntersectsTable(railRect, table.getBoundingClientRect(), viewport, clip)
+  })
+}
+
+const scheduleOcclusion = () => {
+  if (destroyed || occlusionFrame !== null) return
+  occlusionFrame = requestAnimationFrame(updateOcclusion)
+}
+// END_BLOCK_RAIL_TABLE_OCCLUSION
+
 const jumpTo = (slug) => {
   bus.emit('scroll-to-header', slug)
   console.debug(`[OutlineRail][jumpTo][BLOCK_RAIL_JUMP slug=${slug}]`)
@@ -159,6 +212,8 @@ const setActiveSlug = (slug) => {
 
 onMounted(() => {
   bus.on('toc-active-heading', setActiveSlug)
+  occlusionHost = anchorRef.value?.closest('.editor-with-tabs') || anchorRef.value?.parentElement
+  occlusionHost?.addEventListener('scroll', scheduleOcclusion, { capture: true, passive: true })
   measure()
   if (typeof ResizeObserver === 'function' && anchorRef.value?.parentElement) {
     resizeObserver = new ResizeObserver(() => measure())
@@ -169,11 +224,26 @@ onMounted(() => {
     // fine — the rail is hidden in exactly those modes anyway.
     const column = anchorRef.value.parentElement.querySelector('#ag-editor-id')
     if (column) resizeObserver.observe(column)
+    if (railRef.value) resizeObserver.observe(railRef.value)
   }
+  const column = occlusionHost?.querySelector('#ag-editor-id')
+  if (column && typeof MutationObserver === 'function') {
+    mutationObserver = new MutationObserver(scheduleOcclusion)
+    mutationObserver.observe(column, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] })
+  }
+  scheduleOcclusion()
 })
 
 onBeforeUnmount(() => {
+  destroyed = true
   bus.off('toc-active-heading', setActiveSlug)
+  occlusionHost?.removeEventListener('scroll', scheduleOcclusion, true)
+  occlusionHost = null
+  if (occlusionFrame !== null) cancelAnimationFrame(occlusionFrame)
+  occlusionFrame = null
+  mutationObserver?.disconnect()
+  mutationObserver = null
+  observedTables.clear()
   if (resizeObserver) {
     resizeObserver.disconnect()
     resizeObserver = null
@@ -184,7 +254,7 @@ onBeforeUnmount(() => {
 // ResizeObserver entry (hidden → visible transitions in particular), so
 // re-measure when the heading list or the column-width preference changes.
 watch(
-  () => [listToc.value.length, preferencesStore.editorLineWidth, props.diffMode, props.splitView],
+  () => [listToc.value.length, preferencesStore.editorLineWidth, props.diffMode, props.splitView, railVisible.value],
   () => {
     nextTick(() => measure())
   }
@@ -228,6 +298,12 @@ watch(
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Keep measurable geometry while removing hidden controls from painting,
+   pointer hit testing and the accessibility/keyboard navigation surface. */
+.outline-rail--occluded {
+  visibility: hidden;
 }
 
 .outline-rail-items {

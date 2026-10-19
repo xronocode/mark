@@ -1,8 +1,8 @@
 // FILE: tests/e2e/table-ui-regressions.spec.ts
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce wide-table centering, viewer zoom reachability and localized tooltip layout regressions reported on 2026-10-19.
-//   SCOPE: Chromium/WebKit full-editor geometry for moderate and long-cell tables, late outline visibility, click-driven viewer zoom and ten-locale image labels.
+//   SCOPE: Chromium/WebKit full-editor table geometry, scroll-driven whole-outline occlusion/restoration, late outline visibility, click-driven viewer zoom and ten-locale image labels.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, static/locales.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -13,9 +13,11 @@
 //   LONG_CELL_TABLE - long prose cells fitting the editor while exceeding the outline-reduced width.
 //   locales - ten shipped translation dictionaries, excluding generated minified copies.
 //   tableGeometry - actual table center and full owning editor client bounds.
+//   documentState - current normalized Markdown and saved flag for scroll-only mutation checks.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - Reproduce the remaining long-cell centering fault against editor bounds independently of outline placement.
+//   LAST_CHANGE: v1.3.0 - Pin the owner's scroll-driven whole-outline intersection rule without hover, page shift or content changes.
+//   PREV: v1.2.0 - Reproduce the remaining long-cell centering fault against editor bounds independently of outline placement.
 //   PREV: v1.1.0 - Reproduce late owned-outline visibility and preserve viewport-centered geometry without a window resize.
 //   PREV: v1.0.0 - 2026-10-19: user-reported table and tooltip regressions, verified in both rendering engines.
 // END_CHANGE_SUMMARY
@@ -72,20 +74,72 @@ const tableGeometry = (page: Page) => page.evaluate(() => {
     scrollWidth: scroller.scrollWidth, clientWidth: scroller.clientWidth }
 })
 
+const documentState = (page: Page) => page.evaluate(() => {
+  const app = document.querySelector('#app') as any
+  const file = app.__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+  return { markdown: file.markdown, isSaved: file.isSaved }
+})
+
 test.beforeEach(async ({ page }) => { await installTauriShim(page) })
 
 test('long-cell table centers in the full editor while the outline remains overlaid', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1400, height: 900 })
   await bootEditor(page)
   await openFileTab(page, '/tmp/mark-e2e/long-cell-center.md', LONG_CELL_TABLE)
-  await expect(page.locator('.outline-rail')).toBeVisible()
+  // The outline retains its independent box even when an intersecting table hides it.
+  expect(await page.locator('.outline-rail').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(0)
   await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
   await expect.poll(async () => {
     const g = await tableGeometry(page)
     expect(g.tableWidth).toBeLessThan(g.clientWidth - 48)
     return Math.abs(g.center - g.centerExpected)
   }).toBeLessThanOrEqual(2)
+  await expect(page.locator('.outline-rail')).toBeHidden()
   await page.screenshot({ path: testInfo.outputPath('long-cell-centered.png') })
+  // Hidden columns in Fit to page cannot intersect the outline.
+  const figure = page.locator("figure[data-role='TABLE']")
+  await figure.hover()
+  await figure.locator('.ag-table-toolbar-toggle').click()
+  await expect(page.locator('.outline-rail')).toBeVisible()
+  await figure.locator('.ag-table-toolbar-toggle').click()
+  await expect(page.locator('.outline-rail')).toBeHidden()
+})
+
+test('table intersection hides the whole outline during scrolling without hover or page shift', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await bootEditor(page)
+  const markdown = `# Scroll intersection\n\n${'Introductory paragraph.\n\n'.repeat(30)}${LONG_CELL_TABLE}\n${'Trailing paragraph.\n\n'.repeat(40)}`
+  await openFileTab(page, '/tmp/mark-e2e/table-outline-intersection.md', markdown)
+  const beforeDocument = await documentState(page)
+  expect(beforeDocument.isSaved).toBe(true)
+  const rail = page.locator('.outline-rail')
+  await expect(rail).toBeVisible()
+  await page.mouse.move(5, 5)
+  const before = await rail.evaluate(el => el.getBoundingClientRect().toJSON())
+  // Scroll the table into the rail with the pointer outside the editor.
+  await page.locator("figure[data-role='TABLE'] table").evaluate(table => {
+    const scroller = table.closest('.editor-component')!
+    scroller.scrollTop += table.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 80
+  })
+  await expect(rail).toBeHidden()
+  expect(await rail.evaluate(el => el.getBoundingClientRect().toJSON())).toEqual(before)
+  await expect(rail).toHaveAttribute('inert', '')
+  await expect(rail).toHaveAttribute('aria-hidden', 'true')
+  const overlapping = await page.locator("figure[data-role='TABLE'] table").boundingBox()
+  await page.mouse.move(overlapping!.x + 20, overlapping!.y + 20)
+  await expect(rail).toBeHidden()
+  expect(await page.locator("figure[data-role='TABLE'] table").boundingBox()).toEqual(overlapping)
+  await page.screenshot({ path: testInfo.outputPath('outline-hidden-at-intersection.png') })
+  // Continue until the table is fully clipped above the scrollport.
+  await page.locator("figure[data-role='TABLE'] table").evaluate(table => {
+    const scroller = table.closest('.editor-component')!
+    scroller.scrollTop += table.getBoundingClientRect().bottom - scroller.getBoundingClientRect().top + 10
+  })
+  await expect(rail).toBeVisible()
+  expect(await rail.evaluate(el => el.getBoundingClientRect().toJSON())).toEqual(before)
+  await expect(rail).not.toHaveAttribute('inert', '')
+  await expect(rail).not.toHaveAttribute('aria-hidden', 'true')
+  expect(await documentState(page)).toEqual(beforeDocument)
 })
 
 for (const sidebar of [false, true]) test(`expanded table stays centered after resize with sidebar ${sidebar}`, async ({ page }, testInfo) => {
