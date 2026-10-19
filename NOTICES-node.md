@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **633 packages**.
+Generated from `license-checker --production` over **631 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,7 +13,7 @@ npx --package license-checker -- license-checker --production --json | \
 
 | License | Package count |
 |---|---:|
-| MIT | 463 |
+| MIT | 461 |
 | BSD-3-Clause | 56 |
 | ISC | 50 |
 | Apache-2.0 | 37 |
@@ -32,7 +32,7 @@ npx --package license-checker -- license-checker --production --json | \
 | UNLICENSED | 1 |
 | WTFPL | 1 |
 
-## MIT (463)
+## MIT (461)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -152,7 +152,6 @@ npx --package license-checker -- license-checker --production --json | \
 | abort-controller | 3.0.0 | https://github.com/mysticatea/abort-controller |
 | acorn | 8.16.0 | https://github.com/acornjs/acorn |
 | acorn-import-attributes | 1.9.5 | https://github.com/xtuc/acorn-import-attributes |
-| agent-base | 6.0.2 | https://github.com/TooTallNate/node-agent-base |
 | agent-base | 7.1.4 | https://github.com/TooTallNate/proxy-agents |
 | animation-frame-polyfill | 1.1.0 | https://github.com/webdeveric/animation-frame-polyfill |
 | ansi-escapes | 5.0.0 | https://github.com/sindresorhus/ansi-escapes |
@@ -169,7 +168,7 @@ npx --package license-checker -- license-checker --production --json | \
 | asynckit | 0.4.0 | https://github.com/alexindigo/asynckit |
 | atoa | 1.0.0 | https://github.com/bevacqua/atoa |
 | available-typed-arrays | 1.0.7 | https://github.com/inspect-js/available-typed-arrays |
-| axios | 1.20.0 | https://github.com/axios/axios |
+| axios | 1.15.2 | https://github.com/axios/axios |
 | base64-js | 1.5.1 | https://github.com/beatgammit/base64-js |
 | batch-processor | 1.0.0 | https://github.com/wnr/batch-processor |
 | birpc | 2.9.0 | https://github.com/antfu-collective/birpc |
@@ -260,7 +259,7 @@ npx --package license-checker -- license-checker --production --json | \
 | flowchart.js | 1.18.0 | https://github.com/adrai/flowchart.js |
 | follow-redirects | 1.16.0 | https://github.com/follow-redirects/follow-redirects |
 | for-each | 0.3.5 | https://github.com/Raynos/for-each |
-| form-data | 4.0.6 | https://github.com/form-data/form-data |
+| form-data | 4.0.5 | https://github.com/form-data/form-data |
 | function-bind | 1.1.2 | https://github.com/Raynos/function-bind |
 | functions-have-names | 1.2.3 | https://github.com/inspect-js/functions-have-names |
 | fuzzaldrin | 2.1.0 | https://github.com/atom/fuzzaldrin |
@@ -277,12 +276,11 @@ npx --package license-checker -- license-checker --production --json | \
 | has-property-descriptors | 1.0.2 | https://github.com/inspect-js/has-property-descriptors |
 | has-symbols | 1.1.0 | https://github.com/inspect-js/has-symbols |
 | has-tostringtag | 1.0.2 | https://github.com/inspect-js/has-tostringtag |
-| hasown | 2.0.4 | https://github.com/inspect-js/hasOwn |
+| hasown | 2.0.3 | https://github.com/inspect-js/hasOwn |
 | hookable | 5.5.3 | https://github.com/unjs/hookable |
 | html-encoding-sniffer | 4.0.0 | https://github.com/jsdom/html-encoding-sniffer |
 | html-tags | 5.1.0 | https://github.com/sindresorhus/html-tags |
 | http-proxy-agent | 7.0.2 | https://github.com/TooTallNate/proxy-agents |
-| https-proxy-agent | 5.0.1 | https://github.com/TooTallNate/node-https-proxy-agent |
 | https-proxy-agent | 7.0.6 | https://github.com/TooTallNate/proxy-agents |
 | iconv-lite | 0.6.3 | https://github.com/ashtuchkin/iconv-lite |
 | imurmurhash | 0.1.4 | https://github.com/jensyt/imurmurhash-js |
@@ -424,7 +422,7 @@ npx --package license-checker -- license-checker --production --json | \
 | shallow-clone | 3.0.1 | https://github.com/jonschlinkert/shallow-clone |
 | shebang-command | 2.0.0 | https://github.com/kevva/shebang-command |
 | shebang-regex | 3.0.0 | https://github.com/sindresorhus/shebang-regex |
-| side-channel | 1.1.1 | https://github.com/ljharb/side-channel |
+| side-channel | 1.1.0 | https://github.com/ljharb/side-channel |
 | side-channel-list | 1.0.1 | https://github.com/ljharb/side-channel-list |
 | side-channel-map | 1.0.1 | https://github.com/ljharb/side-channel-map |
 | side-channel-weakmap | 1.0.2 | https://github.com/ljharb/side-channel-weakmap |
@@ -484,7 +482,7 @@ npx --package license-checker -- license-checker --production --json | \
 | wrap-ansi | 7.0.0 | https://github.com/chalk/wrap-ansi |
 | wrap-ansi | 9.0.2 | https://github.com/chalk/wrap-ansi |
 | ws | 8.17.1 | https://github.com/websockets/ws |
-| ws | 8.22.0 | https://github.com/websockets/ws |
+| ws | 8.20.0 | https://github.com/websockets/ws |
 | wsl-utils | 0.1.0 | https://github.com/sindresorhus/wsl-utils |
 | xliff | 6.3.0 | https://github.com/locize/xliff |
 | xml-js | 1.6.11 | https://github.com/nashwaan/xml-js |
@@ -588,7 +586,7 @@ npx --package license-checker -- license-checker --production --json | \
 | d3-time-format | 4.1.0 | https://github.com/d3/d3-time-format |
 | d3-timer | 3.0.1 | https://github.com/d3/d3-timer |
 | delaunator | 5.1.0 | https://github.com/mapbox/delaunator |
-| electron-to-chromium | 1.5.459 | https://github.com/Kilian/electron-to-chromium |
+| electron-to-chromium | 1.5.344 | https://github.com/Kilian/electron-to-chromium |
 | fastq | 1.20.1 | https://github.com/mcollina/fastq |
 | get-caller-file | 2.0.5 | https://github.com/stefanpenner/get-caller-file |
 | glob-parent | 5.1.2 | https://github.com/gulpjs/glob-parent |
@@ -604,7 +602,7 @@ npx --package license-checker -- license-checker --production --json | \
 | saxes | 6.0.0 | https://github.com/lddubeau/saxes |
 | semver | 5.7.2 | https://github.com/npm/node-semver |
 | semver | 6.3.1 | https://github.com/npm/node-semver |
-| semver | 7.8.5 | https://github.com/npm/node-semver |
+| semver | 7.7.4 | https://github.com/npm/node-semver |
 | signal-exit | 4.1.0 | https://github.com/tapjs/signal-exit |
 | topojson-client | 3.1.0 | https://github.com/topojson/topojson-client |
 | universal-user-agent | 7.0.3 | https://github.com/gr2m/universal-user-agent |
