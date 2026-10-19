@@ -10,7 +10,7 @@
 //   SCOPE: One pure build gate, one pure theme→effect mapping, managed
 //          state, one boot application, two commands. macOS and Linux
 //          never apply an effect and every command reports mica:false
-//          (2026-10-16 user decision «Только Mica»: no macOS vibrancy,
+//          (2026-10-16 user decision "Mica only": no macOS vibrancy,
 //          no macOSPrivateApi, no transparent macOS window).
 //   DEPENDS: tauri (WebviewWindow set_effects / EffectsBuilder / Effect,
 //            State, Manager), windows-version (Windows-only target dep,

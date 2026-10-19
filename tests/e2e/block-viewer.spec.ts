@@ -87,8 +87,8 @@
 //   theme, the preview floats). bootstrapWithMarkdown gained the
 //   extraPrefs parameter (existing callers unchanged).
 //   v3.0.0 - 2026-10-16 C-51 T-010 (user decision D-7,
-//   «показывается даже для малых таблиц и диаграмм… похожа на иконку
-//   копировать»): the button appears only where the viewer helps. Small
+//   "it shows even for small tables and diagrams… looks like the copy
+//   icon"): the button appears only where the viewer helps. Small
 //   mermaid/table blocks have NO visible button and NO Tab stop (display:
 //   none — focus() is a no-op and Tab walks past them); a wide flowchart
 //   and wide/tall tables DO get it, hidden at rest (opacity 0), ≥ 0.4 on

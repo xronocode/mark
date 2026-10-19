@@ -106,7 +106,7 @@ class LruCache {
 // END_BLOCK_PELE_LRU
 
 // START_BLOCK_PELE_DONUT
-// C-51 Keynote-style donut (user 2026-10-16: «думаю да» — on by default;
+// C-51 Keynote-style donut (user 2026-10-16: "yes, I think so" — on by default;
 // Markdown has no place to store a per-diagram choice), ported from the
 // mermaid-era post-pass: pele draws plain pies, so a hole of DONUT_HOLE ×
 // radius goes in AFTER the slice paths (paint order) inside the
@@ -120,7 +120,7 @@ export const DONUT_HOLE = 0.56
 // framed by --pele-border. In Mark --pele-bg is the diagram PANEL and
 // --pele-border the high-contrast node outline (C-54 WCAG gate), so cards
 // came out panel-coloured, darker than their columns, with a heavy grey
-// frame (user 2026-10-18: «выглядит уродски»). Re-map, still through the
+// frame (user 2026-10-18: "looks ugly"). Re-map, still through the
 // theme variables so it recolors and survives PNG/SVG export: columns use
 // --pele-surface-alt, cards --pele-surface with the border at 35 % opacity.
 export const KANBAN_CARD_BORDER_OPACITY = 0.35

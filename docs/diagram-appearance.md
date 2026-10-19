@@ -1,15 +1,15 @@
-# Оформление отдельной диаграммы
+# Single diagram appearance
 
-В правом верхнем углу блока `mermaid`, рядом с разворачиванием, доступно меню оформления. Такое же меню находится в полноэкранном просмотрщике.
+In the top-right corner of a `mermaid` block, next to the expand control, an appearance menu is available. The same menu lives in the fullscreen viewer.
 
-| Режим | Поведение |
+| Mode | Behavior |
 |---|---|
-| Авто | Следует теме документа. Явные цвета `classDef` и `style` работают как прежде. |
-| Кастомная | Использует авторскую палитру из Markdown. Недоступна, если палитра не задана. |
-| Светлая | Фиксирует светлую палитру этой диаграммы. |
-| Тёмная | Фиксирует тёмную палитру этой диаграммы. |
+| Auto | Follows the document theme. Explicit `classDef` and `style` colors keep working as before. |
+| Custom | Uses the author palette from Markdown. Unavailable when no palette is defined. |
+| Light | Pins the light palette for this diagram. |
+| Dark | Pins the dark palette for this diagram. |
 
-Выбор в редактируемом документе — один шаг Undo. Авторские настройки сохраняются при переключении; «Авто» удаляет только служебный комментарий режима. В заблокированном документе и зеркале Split View выбор действует только для просмотра: файл не меняется. Разблокировка возвращает оформление из Markdown. HTML-экспорт учитывает текущее оформление.
+Changing it inside an editable document is a single Undo step. Author settings survive mode switching; "Auto" removes only the mode's service comment. In a locked document and in the Split View mirror the choice is view-only: the file is not modified. Unlocking restores the appearance defined in Markdown. HTML export respects the current appearance.
 
 ```mermaid
 ---
@@ -24,11 +24,11 @@ config:
 ---
 %% mark:appearance custom %%
 flowchart LR
-  A[Идея] --> B[Редактор]
+  A[Idea] --> B[Editor]
 ```
 
-Комментарий `%% mark:appearance custom %%` хранится внутри Markdown-блока, после YAML-заголовка. Другие Mermaid-движки воспринимают его как комментарий. Саму авторскую палитру они могут читать обычным способом.
+The `%% mark:appearance custom %%` comment is stored inside the Markdown block, after the YAML header. Other Mermaid engines treat it as a comment. The author palette itself they can read the usual way.
 
-Поддерживаются общие цвета `background`, `primaryColor` / `mainBkg` / `actorBkg`, `primaryTextColor` / `textColor` / `actorTextColor` / `nodeTextColor` / `classText`, `primaryBorderColor` / `nodeBorder` / `actorBorder` / `clusterBorder`, `secondaryColor` / `clusterBkg` / `altBackground`, `lineColor` / `signalColor` / `defaultLinkColor`, `labelTextColor`, `tertiaryColor`, а также серии `pie1…8`, `cScale0…7`, `git0…7`. При нескольких синонимах приоритет задаёт общая политика; `mainBkg` и `nodeBorder` имеют приоритет над `primaryColor` и `primaryBorderColor`. Цвета — буквальные HEX-значения. Поддерживается и прежний заголовок `%%{init: …}%%`; YAML `config` имеет приоритет над ним.
+Supported common colors: `background`, `primaryColor` / `mainBkg` / `actorBkg`, `primaryTextColor` / `textColor` / `actorTextColor` / `nodeTextColor` / `classText`, `primaryBorderColor` / `nodeBorder` / `actorBorder` / `clusterBorder`, `secondaryColor` / `clusterBkg` / `altBackground`, `lineColor` / `signalColor` / `defaultLinkColor`, `labelTextColor`, `tertiaryColor`, plus the `pie1…8`, `cScale0…7`, `git0…7` series. When several synonyms are present, priority follows the common policy; `mainBkg` and `nodeBorder` take precedence over `primaryColor` and `primaryBorderColor`. Colors are literal HEX values. The legacy `%%{init: …}%%` header is also supported; YAML `config` takes precedence over it.
 
-Это совместимость по цветам. Она не воспроизводит геометрию Mermaid, все его типовые настройки и шрифты. В светлом и тёмном режимах явные цветовые переопределения снимаются с отображаемого SVG, а толщина линий и прочее оформление сохраняются. Исходный текст и авторская палитра остаются на месте.
+This is color compatibility only. It does not reproduce Mermaid's geometry, its full set of defaults, or its fonts. In light and dark modes explicit color overrides are stripped from the rendered SVG, while stroke widths and other styling remain. The source text and the author palette stay in place.
