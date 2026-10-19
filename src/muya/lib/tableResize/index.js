@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Table column resize and per-table layout (C-39 T-002 session widths; C-65 persistent widths + the per-table Full width mode keyed by file-path-stable identities), pointer-drag interaction on header-border handles, double-click reset, reconciliation after every muya re-render, the table toolbar click routing and the overflow-cue refresh.
 //   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), the persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge (R-1/R-3, written only after a real user action), the Full width mode session set + DOM application + toggle routing (R-4/R-6), capture-phase pointer/mouse/click/dblclick/scroll handling on the editor container, and DOM application of widths (colgroup + table-layout fixed).
@@ -19,7 +19,8 @@
 //   RESIZER_CLASS - class of the invisible header-border drag handle rendered into each th.
 //   TABLE_FULL_WIDTH_CLASS - re-export of the tableCue figure class for the renderContainerBlock vnode ("ag-table-full-width").
 //   TABLE_TOOLBAR_BUTTON_SELECTOR - selector of the table toolbar buttons (from renderTableToolbar; routed here on capture phase).
-//   sanitizePersistedEntries - pure: clamp/boolean-coerce a raw persisted entries object into {widths, manual, fullWidth} entries (invalid dropped).
+//   sanitizePersistedEntries - pure: clamp/boolean-coerce a raw persisted entries object into {widths, manual, fullWidth, fit} entries (invalid dropped).
+//   overflowsTextColumn - pure: true when a table's natural width exceeds its figure's text-column width (the Full width default trigger).
 //   tableSignature - pure-ish: header signature of a thead row (column count + hash of the header cell texts).
 //   hashHeaderText - pure: djb2 base36 hash used by the signature.
 //   clampWidth - pure: round and clamp a drag width to the minimum.
@@ -28,7 +29,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-19 Full width placement: a table that
+//   LAST_CHANGE: v2.2.0 - 2026-10-19 Full width is the DEFAULT for a
+//   table wider than the text column (user decision after the live
+//   review): such a table gets the mode automatically (autoFullWidth, not
+//   persisted) unless the user chose «Fit to page» for it — that explicit
+//   choice is a new fitToPage set persisted as fit: true. Tables that fit
+//   the column are untouched. muya option tableFullWidthDefault (true)
+//   gates it; the preference to change it is backlog.
+//   v2.1.0 - 2026-10-19 Full width placement: a table that
 //   fits the editor area is centred in it; a wider one starts
 //   FULL_WIDTH_GUTTER_PX from the left edge (it used to stick to the edge).
 //   v2.0.0 - 2026-10-18 C-65: widths (and the per-table Full
@@ -147,14 +155,25 @@ export const sanitizePersistedEntries = (raw) => {
     const rawManual = Array.isArray(value.manual) ? value.manual : []
     const manual = widths.map((_, i) => !!rawManual[i])
     const fullWidth = !!value.fullWidth
-    if (widths.length === 0 && !fullWidth) continue
-    // No user-dragged column and no Full width: indistinguishable from auto
-    // layout, so nothing worth restoring (the session store drops it too).
-    if (!fullWidth && !manual.some(Boolean)) continue
-    entries[pid] = { widths, manual, fullWidth }
+    // An explicit «Fit to page» choice (meaningful since Full width is the
+    // default for wide tables); Full width wins a contradictory entry.
+    const fit = !fullWidth && !!value.fit
+    if (widths.length === 0 && !fullWidth && !fit) continue
+    // No user-dragged column and no mode choice: indistinguishable from the
+    // default layout, so nothing worth restoring.
+    if (!fullWidth && !fit && !manual.some(Boolean)) continue
+    entries[pid] = { widths, manual, fullWidth, fit }
   }
   return entries
 }
+
+// The Full width default trigger: the table's natural width (max-content,
+// or the fixed widths sum) is wider than the text column its figure keeps
+// in every mode, so the comparison is the same before and after breakout.
+// Zero geometry (jsdom, hidden panes) never triggers.
+export const overflowsTextColumn = (tableWidth, columnWidth) =>
+  Number.isFinite(tableWidth) && Number.isFinite(columnWidth) &&
+  columnWidth > 0 && tableWidth > columnWidth + 1
 // END_BLOCK_PERSISTENT_IDENTITY
 
 // START_BLOCK_TABLE_RESIZE_INTERACTION
@@ -171,6 +190,11 @@ class TableResize {
     // entries of the ACTIVE document (set by applyPersistedLayouts).
     this.identities = new Map()
     this.fullWidth = new Set()
+    // fitToPage: the explicit «Fit to page» choices (persisted as fit);
+    // autoFullWidth: tables in Full width by the default only (never
+    // persisted, recomputed after every render).
+    this.fitToPage = new Set()
+    this.autoFullWidth = new Set()
     this.persisted = null
     const { container, eventCenter } = muya
     // Capture phase on the editor container: the resizer must own its
@@ -260,7 +284,25 @@ class TableResize {
   // ---- Full width mode (C-65 R-6) ----
 
   isFullWidth(key) {
-    return this.fullWidth.has(key)
+    return this.fullWidth.has(key) || this.autoFullWidth.has(key)
+  }
+
+  defaultFullWidth() {
+    return this.enabled() && !(this.muya.options && this.muya.options.tableFullWidthDefault === false)
+  }
+
+  // Recompute the default for one table without an explicit choice.
+  // Returns true when its effective mode changed.
+  updateAutoFullWidth(key, figure, table) {
+    if (this.fullWidth.has(key) || this.fitToPage.has(key)) {
+      return this.autoFullWidth.delete(key)
+    }
+    const wide = this.defaultFullWidth() && !!table && !!figure &&
+      overflowsTextColumn(table.getBoundingClientRect().width, figure.clientWidth)
+    if (wide === this.autoFullWidth.has(key)) return false
+    if (wide) this.autoFullWidth.add(key)
+    else this.autoFullWidth.delete(key)
+    return true
   }
 
   // ---- DOM application ----
@@ -334,6 +376,8 @@ class TableResize {
         this.resetTable(key)
         this.stripWidths(table)
         this.fullWidth.delete(key)
+        this.fitToPage.delete(key)
+        this.autoFullWidth.delete(key)
         const changedFigure = table.closest('figure')
         if (changedFigure) this.applyFullWidthDom(changedFigure, false)
         console.debug(
@@ -358,10 +402,20 @@ class TableResize {
           if (storedFigure) this.applyFullWidthDom(storedFigure, true)
           changed = true
         }
+        if (stored.fit && !this.fitToPage.has(key)) {
+          this.fitToPage.add(key)
+          this.autoFullWidth.delete(key)
+          const fitFigure = table.closest('figure')
+          if (fitFigure) this.applyFullWidthDom(fitFigure, false)
+          changed = true
+        }
       }
     }
     for (const key of Array.from(this.identities.keys())) {
       if (!presentKeys.has(key)) this.identities.delete(key)
+    }
+    for (const key of Array.from(this.autoFullWidth)) {
+      if (!presentKeys.has(key)) this.autoFullWidth.delete(key)
     }
     if (this.persisted) {
       for (const pid of Object.keys(this.persisted)) {
@@ -395,11 +449,13 @@ class TableResize {
       const entry = this.widths.get(key)
       const manual = !!(entry && entry.manual.some(m => m))
       const fullWidth = this.fullWidth.has(key)
-      if (!manual && !fullWidth) continue
+      const fit = this.fitToPage.has(key)
+      if (!manual && !fullWidth && !fit) continue
       entries[pid] = {
         widths: entry ? entry.widths.slice() : [],
         manual: entry ? entry.manual.slice() : [],
-        fullWidth
+        fullWidth,
+        fit
       }
     }
     return entries
@@ -508,11 +564,19 @@ class TableResize {
     const table = figure.querySelector('table')
     const key = table && table.id
     if (!key) return
-    const on = !this.fullWidth.has(key)
+    const on = !this.isFullWidth(key)
+    // The choice becomes explicit and survives the default; «Fit to page»
+    // is recorded only where the default would otherwise apply (a table
+    // that fits the column simply returns to the default).
+    const wide = this.defaultFullWidth() &&
+      overflowsTextColumn(table.getBoundingClientRect().width, figure.clientWidth)
+    this.autoFullWidth.delete(key)
     if (on) {
       this.fullWidth.add(key)
+      this.fitToPage.delete(key)
     } else {
       this.fullWidth.delete(key)
+      if (wide) this.fitToPage.add(key)
     }
     this.applyFullWidthDom(figure, on)
     console.debug(
@@ -581,7 +645,8 @@ class TableResize {
   // measure, re-applies the Full width class/geometry a re-render dropped,
   // and refreshes every table cue with the live translator.
   reconcileAfterRender() {
-    if (this.widths.size === 0 && this.fullWidth.size === 0 && !this.persisted) return
+    if (this.widths.size === 0 && this.fullWidth.size === 0 && !this.persisted &&
+      !this.defaultFullWidth()) return
     const { container } = this.muya
     if (!container || !container.querySelectorAll) return
     this.syncIdentities()
@@ -623,7 +688,8 @@ class TableResize {
       const table = figure.querySelector('table')
       const key = table && table.id
       if (!key) continue
-      const on = this.fullWidth.has(key)
+      this.updateAutoFullWidth(key, figure, table)
+      const on = this.isFullWidth(key)
       if (on !== figure.classList.contains(TABLE_FULL_WIDTH_CLASS)) {
         this.applyFullWidthDom(figure, on)
         continue

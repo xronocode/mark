@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.4.1
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling) and the C-65 T-003 overflow cue of the same wrapper (class-gated edge shades + the «columns X–Y of N» caption below the table on the column edge, live on scroll).
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, and lib/tableResize/tableCue.js.
@@ -20,7 +20,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   LAST_CHANGE: v1.5.0 - 2026-10-19 Full width is the default for wide tables: the C-39 wrapper-scroll cases first choose «Fit to page» (fitToPage); a new case pins the default itself.
+//   v1.4.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.4.0 - 2026-10-18 C-65 T-003: the shade pins moved from
 //   the C-39 cover-gradient backgrounds (backgroundAttachment) to the
 //   class-gated cue (ag-table-cue-left/right), and the caption joined the
@@ -164,6 +165,22 @@ test.describe('table layout (C-39 T-001)', () => {
     return wrapper
   }
 
+  // C-65 2026-10-19: a wide table opens in Full width; the C-39 cases pin
+  // the in-column wrapper scroll, i.e. the «Fit to page» mode — choose it.
+  async function fitToPage(page: Page) {
+    await page.waitForFunction(() =>
+      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
+    , undefined, { timeout: 5_000 })
+    await page.evaluate(() => {
+      for (const figure of document.querySelectorAll("figure[data-role='TABLE'].ag-table-full-width")) {
+        (figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement).click()
+      }
+    })
+    await page.waitForFunction(() =>
+      !document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
+    , undefined, { timeout: 5_000 })
+  }
+
   const measureTable = (page: Page) => page.evaluate(() => {
     const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement | null
     const table = document.querySelector("figure[data-role='TABLE'] table") as HTMLElement | null
@@ -210,9 +227,33 @@ test.describe('table layout (C-39 T-001)', () => {
     }
   })
 
+  test('a wide table opens in Full width by default; a narrow one stays in the column (C-65)', async ({ page }) => {
+    await bootstrapWithMarkdown(page, WIDE_15COL_MD)
+    await waitForTable(page)
+    await page.waitForFunction(() =>
+      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
+    , undefined, { timeout: 5_000 })
+    const wide = await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      const toggle = document.querySelector("figure[data-role='TABLE'] button.ag-table-toolbar-toggle") as HTMLElement
+      return { overflowX: window.getComputedStyle(wrapper).overflowX, label: toggle.title }
+    })
+    expect(wide.overflowX).toBe('visible')
+    expect(wide.label).toBe('Fit to page')
+
+    await bootstrapWithMarkdown(page, NARROW_2X2_MD)
+    await waitForTable(page)
+    await page.waitForTimeout(300)
+    const narrowFull = await page.evaluate(() =>
+      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
+    )
+    expect(narrowFull).toBe(false)
+  })
+
   test('a 15-column table scrolls horizontally inside the text column', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
+    await fitToPage(page)
 
     const m = await measureTable(page)
     expect(m).not.toBeNull()
@@ -252,6 +293,7 @@ test.describe('table layout (C-39 T-001)', () => {
   test('the C-65 cue: caption below the table on the column edge, live on scroll', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
+    await fitToPage(page)
 
     // Start: columns 1..N visible from the first column, only the right
     // side hides columns.
@@ -364,6 +406,7 @@ test.describe('table layout (C-39 T-001)', () => {
   test('clicking a cell after scrolling right places the caret in that cell', async ({ page }) => {
     await bootstrapWithMarkdown(page, EDIT_AFTER_SCROLL_MD)
     await waitForTable(page)
+    await fitToPage(page)
 
     // Scroll the wrapper fully to the right, outside of Playwright's
     // actionability scrolling (mouse.click at coordinates never scrolls).
@@ -389,6 +432,7 @@ test.describe('table layout (C-39 T-001)', () => {
   test('typing in a scrolled table keeps the horizontal scroll position', async ({ page }) => {
     await bootstrapWithMarkdown(page, EDIT_AFTER_SCROLL_MD)
     await waitForTable(page)
+    await fitToPage(page)
 
     // Scroll so a middle column is in view, then edit a cell in that column.
     const before = await page.evaluate(() => {
