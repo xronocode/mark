@@ -40,6 +40,15 @@
       Version sources, release fixtures, tags, artifacts, updater metadata, and
       Homebrew delivery remain synchronized and mechanically verified.
     </ReleaseReproducibility>
+    <ReleaseAdmission>
+      Owner acceptance records the checked behavior and queues it in a
+      collecting release train; it never starts publication. Track commit,
+      artifact, acceptance scope and integration state in
+      docs/release-trains/ under its README.md protocol. Freezing a candidate
+      requires accounting for its complete user-facing diff. Version/tag,
+      publishing workflow, store and tap publication require a separate
+      explicit owner release instruction.
+    </ReleaseAdmission>
     <VerificationFirstClass>
       Module commands, scenarios, markers, traces, fixtures, and phase gates are
       maintained with implementation and graph changes.

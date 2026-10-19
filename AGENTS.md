@@ -198,9 +198,21 @@ In current `.grace/*.xml` artifacts, semantic entities use their unique ID as th
 7. New behavior or scope starts from an approved `.grace/changes/active/C-*/change-spec.xml` and `change-plan.xml`; do not reconstruct historical work as retroactive changes.
 8. Run `grace lint --path . --assertions current` and `grace status --path . --with modules --json` before handing off a governed change.
 
+## Acceptance and release trains
+
+Read [the delivery protocol](docs/release-trains/README.md) and follow its Current train link when recording a fix, owner acceptance, a handoff or a release instruction. Keep historical train paths and IDs stable.
+
+- Track reported → fixed → verified → owner accepted → queued → released, with commit/build evidence and integration state recorded separately.
+- “Works”, “accepted”, “mark for release” and “include in the next patch” mean record acceptance and queue the checked scope. They never mean start a release.
+- Record the owner's date, precise accepted scenarios and tested artifact. Acceptance of one fix does not accept other features in the same build. Material changes to accepted behavior require a new check.
+- Queue accepted work in the current collecting train. Its target version/date may remain unassigned. Keep pending candidates distinct from included items.
+- Before freezing a candidate, account for every user-facing change since the previous release, including changes already in main and small repairs without C-* bundles.
+- Version bumps, release tags, publishing workflow dispatches, store uploads and tap publication require a separate explicit owner instruction to release. A frozen train or green CI is not that instruction.
+- This is delivery bookkeeping; implementation and structural refactors still follow their own GRACE contracts, approved scopes and gates.
+
 ## Release (cutting a new version)
 
-Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT build or publish locally**. Remote is `fork` (`xronocode/mark`), not `origin`. Flow:
+Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT build or publish locally**. Remote is `fork` (`xronocode/mark`), not `origin`. Start this flow only after the separate release instruction and train admission described above:
 
 1. Bump the version in **all six synchronized places** (M-046 preflight `release:preflight` enforces this and fails the build on any drift):
    - `package.json` → `"version"`
@@ -212,7 +224,7 @@ Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT buil
 3. Validate locally BEFORE tagging:
    - `npm run release:preflight -- --tag v2.X.Y-beta` → must print `BLOCK_RELEASE_VERSION_CONSISTENT ... sources=6`
    - `npx vitest run tests/renderer/release-preflight.test.js` → 11 passed
-4. **Materials (mandatory, before the tag)** — every user-facing surface must match the release. Derive the content from the change specs shipped since the previous tag (`git log vPREV..HEAD --oneline` + `.grace/changes/active/C-*/spec.xml` Name/Summary/Decisions), ranked by the latest gap-analysis categories (UI polish → product mechanics → content rendering → folder work → AI/agents → breadth):
+4. **Materials (mandatory, before the tag)** — every user-facing surface must match the release. Reconcile the frozen train items (including FIX-* repairs), shipped change specs and exact release diff (`git log vPREV..HEAD --oneline` + `.grace/changes/active/C-*/spec.xml` Name/Summary/Decisions), ranked by the latest gap-analysis categories (UI polish → product mechanics → content rendering → folder work → AI/agents → breadth):
    - **What's New sheet**: the new version's entry in `src/renderer/src/whatsNew/data.js` (≤ 4 items) with locale keys in **all ten** `static/locales/*.json` (titles ≤ 32 chars, texts ≤ 90), the "Also" line and the "See everything new" release URL; `tests/renderer/whatsNew/content.test.js` must pass.
    - **README**: «What's new in vX.Y.Z» section in the same categories with a one-line pointer to the previous release's highlights in CHANGELOG, stale claims fixed, and fresh screenshots — capture with `README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium` and commit the PNGs in `docs/assets/readme/`.
    - **CHANGELOG.md**: a dated `## [X.Y.Z]` entry in the same categories.
@@ -226,7 +238,7 @@ Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT buil
    # prepend the changelog section, then:
    gh release edit v2.X.Y-beta -R xronocode/mark --notes-file /tmp/rel-combined.md
    ```
-   Derive the content from the change specs shipped in the release (`git log vPREV..vNEW --oneline` + `.grace/changes/active/C-*/spec.xml` Name/Summary fields).
+   Derive the content from the frozen train, shipped change specs and exact release diff (`git log vPREV..vNEW --oneline` + `.grace/changes/active/C-*/spec.xml` Name/Summary fields).
 
 **Semantics that matter:** beta tags are published as **normal releases** (`PRERELEASE=false` in the workflow, asserted by tests) so the `/releases/latest` feed advances — the in-app updater reads `https://github.com/xronocode/mark/releases/latest/download/latest.json`. A release is live iff that `latest.json` serves the new version.
 

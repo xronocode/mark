@@ -2342,6 +2342,8 @@
       <Layer>TOOLING</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
       <Summary>
+        The test workflow gates native Shift+Up/Down selection with
+        the passive format toolbar through the webkit-keyboard project.
         C-63: the test workflow explicitly gates the C-60 footnote and
         C-62 diagram-appearance projects in WebKit after browser installation,
         preserving their WKWebView-engine coverage on every test run.

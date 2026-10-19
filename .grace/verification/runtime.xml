@@ -315,9 +315,9 @@
             <command>./target/debug/mark (5s, real $HOME=/Users/myevdokimov, SIGTERM)</command>
             <stderr-captured>
               [legacy][detect][BLOCK_LEGACY_FOUND]
-              marktext=Some(&quot;/Users/myevdokimov/Library/Application
+              marktext=Some(&quot;~/Library/Application
               Support/marktext&quot;)
-              mark=Some(&quot;/Users/myevdokimov/Library/Application
+              mark=Some(&quot;~/Library/Application
               Support/mark&quot;)
             </stderr-captured>
             <window-side-effect>
@@ -3197,7 +3197,7 @@
               </Attribute>
             </LegacyAttributes>
             Case-insensitive FS (macOS default, Windows): sandbox
-            `/Users/me/Work` MUST block `/users/me/work/../../etc` after
+            `~/Work` MUST block `/users/me/work/../../etc` after
             NFC+case-fold normalization. Evidence:
             `[Security][path][BLOCK_CASEFOLD_TRAVERSAL]`.
           </ec>
@@ -5706,6 +5706,9 @@
           tests/e2e/table-width-persistence.spec.ts
           tests/e2e/table-layout.spec.ts
         </Command>
+      
+        <Command>npx vitest run tests/renderer/muya/keyboard-selection.test.js tests/renderer/muya/keyboard-undo.test.js tests/renderer/muya/block-expand-button.test.js</Command>
+        <Command>npx playwright test tests/e2e/keyboard-selection.spec.ts --project=chromium --project=webkit-keyboard</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -6558,6 +6561,32 @@
           export transport: table/diagram copy + save, index fallback,
           failure notices); e2e: tests/e2e/diagram-export.spec.ts (C-70 cases),
           block-viewer.spec.ts (button count + Tab walk).
+        </Scenario>
+        <Scenario>
+          scenario-70: Shift+Up/Down continues native selection after the
+          passive format toolbar appears. Repeated presses grow the range,
+          reversing direction shrinks it, and the anchor stays fixed across
+          wrapped lines and paragraph boundaries. Host selection events still
+          arrive; Markdown is unchanged. Actual autocomplete pickers retain
+          vertical keys, including when the toolbar is also shown.
+          Unit: tests/renderer/muya/keyboard-selection.test.js. Browser:
+          tests/e2e/keyboard-selection.spec.ts in Chromium and webkit-keyboard,
+          including non-transparent selection paint and multiple selected rows.
+          Source-branch evidence (2026-10-19, before this integration): four new unit assertions and both
+          directional browser cases failed before the fix. Afterward all
+          eight keyboard-selection unit cases, ten Chromium/WebKit cases
+          and 42 neighboring status-bar/viewer browser cases passed; the
+          screenshots show painted ranges in both directions. Full Vitest:
+          333 files, 4581 passed, two existing skips and three existing todos.
+          The renderer-only branch gate remains 85.71 percent; this is not
+          Muya or whole-product coverage. IPC types and renderer build pass.
+          Existing WebKit large-document gate: 419ms busy, below 3000ms.
+          Owner live acceptance recorded on 2026-10-19 after opening the
+          fresh Mark Test with the selection fixture: vertical Shift-arrow
+          behavior accepted. FIX-001 in docs/release-trains/2.5.x-next.md
+          records source 1d594f9c, the tested binary hash and queued status.
+          Other changes in that binary retain their own acceptance state;
+          this acceptance does not authorize publication.
         </Scenario>
       </Scenarios>
       <Markers>
