@@ -1,10 +1,29 @@
+# Mobile lane instructions
+
+This worktree is the independent mobile delivery lane. Follow docs/mobile-delivery/README.md and docs/mobile-delivery/current.md. Mobile versions, release tags, workflows, acceptance and commits are separate from desktop. The desktop release procedure below is reference material and must not be used to publish mobile. Current mobile source is WIP; preserve it and do not publish generated/signing/private evidence. Common Git commit/push safety hooks remain mandatory, including two serial local-model reviews, exact payload scans and candidate recheck. Never bypass hooks or fall back to a cloud model. A fresh clone must install the reviewed shared safety infrastructure before any local commit/push; this setup is not a desktop product release dependency.
+
 # GRACE 4 Framework - Project Engineering Protocol
 
 ## Keywords
 markdown, editor, wysiwyg, electron, tauri, vue3, muya, macos, homebrew, port, modernization
 
 ## Annotation
-Mark Text — заброшенный автором, но живой в комьюнити WYSIWYG Markdown редактор. Цель проекта — модернизировать стек (Electron + Vue 2 → Electron 30 + Vue 3 в Фазе A, затем Tauri v2 + Rust в Фазе B), включить 13 комьюнити-PR-ов (bugfixes + features + refactor), уменьшить footprint с 200 MB до ~15 MB, и обеспечить простую установку на macOS через собственный Homebrew tap с ad-hoc signing, без необходимости ручного снятия Gatekeeper quarantine.
+Mark Text — a WYSIWYG Markdown editor abandoned by its original author but alive in the community. The project goal is to modernize the stack (Electron + Vue 2 → Electron 30 + Vue 3 in Phase A, then Tauri v2 + Rust in Phase B), land 13 community PRs (bugfixes + features + refactor), shrink the footprint from 200 MB to ~15 MB, and make macOS installation simple via a custom Homebrew tap with ad-hoc signing — no manual Gatekeeper quarantine removal needed.
+
+## Language Policy
+
+English is the working language of this repository. Every committed artifact is written in English: code comments, commit messages, docs, README, CHANGELOG, `.grace` current-state XML, change specs and plans, test titles and comments, GitHub release notes, and PR/issue text. When a comment cites what a person said, translate the quote to English and keep the speaker, date, and change id.
+
+Deliberate exceptions (stay non-English by design — do not "fix" them):
+- `static/locales/*.json` and `src/renderer/src/whatsNew/data.js` — product localization (10 locales, native copy)
+- localized guide and fixture content: `static/guide/ru.md`, `static/mobile-fixture.md`, `site/public/consent.js` per-locale strings
+- test fixtures and assertions that verify localization behavior: RU plurals, Russian UI strings in locale regression specs, `Cmd+Я` Russian-layout keys, Cyrillic slugify/anchor/quote-pairing cases, `«Марк, отмена»` voice commands, CP-1251 encoding tests, native-driver label fallbacks like `['Cancel', 'Отмена']`
+- functional data: the Cyrillic transliteration table in `src/muya/lib/parser/marked/urlify.js`
+- `docs/*.xml` GRACE 3 provenance and `docs/migrations/` — frozen byte-for-byte
+- `marktext/` upstream clone — reference only
+- `.grace/changes/archive/` — historical record, like git history; new changes are English, archives are not retro-translated
+
+GitHub release notes carry an English "What's new" section above the `---` separator; the automated verification block below it is never edited. Conversations with the owner may stay in Russian — chat is not repo content.
 
 ## GRACE 4 Source of Truth
 
@@ -198,14 +217,14 @@ Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT buil
    - `npm run release:preflight -- --tag v2.X.Y-beta` → must print `BLOCK_RELEASE_VERSION_CONSISTENT ... sources=6`
    - `npx vitest run tests/renderer/release-preflight.test.js` → 11 passed
 4. **Materials (mandatory, before the tag)** — every user-facing surface must match the release. Derive the content from the change specs shipped since the previous tag (`git log vPREV..HEAD --oneline` + `.grace/changes/active/C-*/spec.xml` Name/Summary/Decisions), ranked by the latest gap-analysis categories (UI polish → product mechanics → content rendering → folder work → AI/agents → breadth):
-   - **What's New sheet**: the new version's entry in `src/renderer/src/whatsNew/data.js` (≤ 4 items) with locale keys in **all ten** `static/locales/*.json` (titles ≤ 32 chars, texts ≤ 90), the «Also» line and the «See everything new» release URL; `tests/renderer/whatsNew/content.test.js` must pass.
+   - **What's New sheet**: the new version's entry in `src/renderer/src/whatsNew/data.js` (≤ 4 items) with locale keys in **all ten** `static/locales/*.json` (titles ≤ 32 chars, texts ≤ 90), the "Also" line and the "See everything new" release URL; `tests/renderer/whatsNew/content.test.js` must pass.
    - **README**: «What's new in vX.Y.Z» section in the same categories with a one-line pointer to the previous release's highlights in CHANGELOG, stale claims fixed, and fresh screenshots — capture with `README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium` and commit the PNGs in `docs/assets/readme/`.
    - **CHANGELOG.md**: a dated `## [X.Y.Z]` entry in the same categories.
-   - **Release notes**: draft the user-facing «Что нового» section now (step 7 pastes it once the release is live).
+   - **Release notes**: draft the user-facing "What's new" section now, **in English** (step 7 pastes it once the release is live).
    - All ten locales are written/proofread as **native copy** (meaning from the approved sheet texts, not literal translations; ⌘D / ⌥⌘V and product names — Mark, Paper, Ink, Docs, macOS, Mermaid, Guide — stay untranslated).
 5. Commit `chore(release): v2.X.Y-beta`, push `fork main`, then `git tag v2.X.Y-beta && git push fork v2.X.Y-beta` (tag pattern `v*.*.*` / `v*.*.*-*`).
 6. Watch the run: `gh run list -R xronocode/mark`. If a tag was pushed on a bad commit, delete the remote tag, retag on the fix, push again — the release re-runs.
-7. **Write the release notes** — the workflow only publishes the automated verification block (attestation/cosign), never a human changelog. Once the release is live, prepend a user-facing «Что нового» section (grouped: Вкладки / Титлбар / Редактор / …; one bullet per user-visible change, referencing the C-* change ids is optional but keep the wording user-facing) while KEEPING the automated block below a `---` separator:
+7. **Write the release notes** — the workflow only publishes the automated verification block (attestation/cosign), never a human changelog. Once the release is live, prepend a user-facing "What's new" section **in English** (grouped: Tabs / Title bar / Editor / …; one bullet per user-visible change, referencing the C-* change ids is optional but keep the wording user-facing) while KEEPING the automated block below a `---` separator:
    ```bash
    gh release view v2.X.Y-beta -R xronocode/mark --json body --jq '.body' > /tmp/rel-body.md
    # prepend the changelog section, then:
