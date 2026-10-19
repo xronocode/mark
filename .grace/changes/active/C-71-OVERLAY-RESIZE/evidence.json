@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-19",
+  "ciFailure": {
+    "run": 39252757178,
+    "job": 118060811382,
+    "cases": 2,
+    "offsetPixels": 114.5,
+    "engine": "WebKit on macos-14"
+  },
+  "reproduction": "Late outline show/hide with no window/column resize reproduced the same 114.5px stale offset in both local engines. Unit ownership/lifecycle regression also failed before repair.",
+  "repair": "Use the existing instance-scoped ResizeObserver for the text column, actual scroller and owning outline; visibility/scroller geometry updates now refresh the table viewport. No global DOM observer or source/persistence writes. Browser expected geometry uses clientWidth.",
+  "verification": {
+    "focusedUnitPassed": 89,
+    "browserPassed": 72,
+    "engines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "scopes": [
+      "table layout/toolbar",
+      "viewer",
+      "outline rail",
+      "late outline visibility"
+    ],
+    "pixelThreshold": 2,
+    "rendererBuild": "passed",
+    "graceFinalLeaf": "passed; zero integrity errors",
+    "fullVitestPassed": 4613,
+    "files": 336,
+    "existingSkipped": 2,
+    "existingTodo": 3,
+    "ipcTypes": "passed"
+  },
+  "fullSuiteAndRemote": "Fresh full local suite passed; remote WebKit/macOS-14 verification pending."
+}

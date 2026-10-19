@@ -3625,6 +3625,9 @@
         host selection notifications to the editor when only the passive
         format toolbar is shown. Actual autocomplete pickers retain their
         existing arrow-key ownership, including when both tools are shown.
+        C-71 follow-up: the resize lifecycle observes the owning scroller
+        and outline as well as the text column, so late overlay visibility
+        and sidebar geometry cannot leave a stale available viewport.
         C-71: Full width tables use a measured available viewport and CSS
         auto margins, so late fonts cannot stale their centering. Resize
         refreshes table geometry on window/container/font changes,
@@ -4197,7 +4200,7 @@
         </fn-tableResize>
         <fn-resizeSurfaces>
           <Path>src/muya/lib/eventHandler/resize.js</Path>
-          <Purpose>Refresh table viewports and optional line-number gutters on window/container resize and font completion; detach observers/listeners on destruction.</Purpose>
+          <Purpose>Refresh tables and optional gutters on window, owning column/scroller/outline resize and font completion; observe late outline visibility without a column resize; detach all listeners/observers on destruction.</Purpose>
           <DependsOn>tableResize.refreshTableSurfaces; contentState.resizeLineNumber; utils.throttle</DependsOn>
         </fn-resizeSurfaces>
         <fn-tooltipLayout>

@@ -1,8 +1,8 @@
 // FILE: tests/e2e/table-ui-regressions.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce wide-table centering, viewer zoom reachability and localized tooltip layout regressions reported on 2026-10-19.
-//   SCOPE: Real Chromium/WebKit geometry, click-driven viewer zoom and every image toolbar label in all ten locales.
+//   SCOPE: Chromium/WebKit viewport geometry and late outline visibility, click-driven viewer zoom and ten-locale image labels.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, static/locales.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -14,7 +14,8 @@
 //   tableGeometry - actual table center and available editor bounds.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-19: user-reported table and tooltip regressions, verified in both rendering engines.
+//   LAST_CHANGE: v1.1.0 - Reproduce late owned-outline visibility and preserve viewport-centered geometry without a window resize.
+//   PREV: v1.0.0 - 2026-10-19: user-reported table and tooltip regressions, verified in both rendering engines.
 // END_CHANGE_SUMMARY
 
 import { test, expect, Page } from '@playwright/test'
@@ -49,7 +50,8 @@ const tableGeometry = (page: Page) => page.evaluate(() => {
   const tr = table.getBoundingClientRect()
   const sr = scroller.getBoundingClientRect()
   const or = overlay?.getBoundingClientRect()
-  const right = or && or.width > 0 && or.left > sr.left && or.left < sr.right ? or.left - 24 : sr.right
+  const viewportRight = sr.left + scroller.clientWidth
+  const right = or && or.width > 0 && or.left > sr.left && or.left < viewportRight ? or.left - 24 : viewportRight
   return { tableLeft: tr.left, tableWidth: tr.width, center: (tr.left + tr.right) / 2,
     availableLeft: sr.left, availableRight: right, centerExpected: (sr.left + right) / 2,
     scrollWidth: scroller.scrollWidth, clientWidth: scroller.clientWidth }
@@ -71,6 +73,33 @@ for (const sidebar of [false, true]) test(`expanded table stays centered after r
     }).toBeLessThanOrEqual(2)
   }
   await page.screenshot({ path: testInfo.outputPath('table-centered.png') })
+})
+
+test('late outline visibility keeps an expanded table centered without a window resize', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 })
+  await bootEditor(page)
+  await openFileTab(page, '/tmp/mark-e2e/table-late-outline.md', MEDIUM_TABLE)
+  await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
+  const rail = page.locator('.outline-rail')
+  await expect(rail).toBeVisible()
+  await page.evaluate(() => (window as any).__bus.emit('cmd::execute', 'view.outline'))
+  await expect(rail).toBeHidden()
+  await page.evaluate(() => document.fonts.ready)
+  // Settle the existing 300ms startup resize throttle before changing only the rail.
+  await page.waitForTimeout(400)
+  await expect.poll(async () => {
+    const g = await tableGeometry(page)
+    return Math.abs(g.center - g.centerExpected)
+  }).toBeLessThanOrEqual(2)
+  for (const visible of [true, false]) {
+    await page.evaluate(() => (window as any).__bus.emit('cmd::execute', 'view.outline'))
+    if (visible) await expect(rail).toBeVisible()
+    else await expect(rail).toBeHidden()
+    await expect.poll(async () => {
+      const g = await tableGeometry(page)
+      return Math.abs(g.center - g.centerExpected)
+    }).toBeLessThanOrEqual(2)
+  }
 })
 
 test('table viewer zoom buttons remain visible, operable and fitted on a narrow window', async ({ page }, testInfo) => {
