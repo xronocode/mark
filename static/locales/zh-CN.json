@@ -549,6 +549,7 @@
         "autoSave": "停止输入后不久自动保存更改",
         "autoSaveDelay": "最后一次按键后等待多久再保存",
         "previewModeOnFinderOpen": "在 Finder 中打开的文档以阅读视图显示",
+        "restoreSessionOnLaunch": "启动时恢复上次会话",
         "language": "应用语言",
         "defaultEncoding": "新文件的文件编码",
         "endOfLine": "新文件及保存时使用的行尾符",
@@ -614,7 +615,9 @@
       "startup": {
         "title": "启动",
         "previewModeOnFinderOpen": "在 Finder 中打开的文档以阅读视图显示",
-        "previewModeOnFinderOpenHelp": "通过 Finder 或 Dock 双击打开的文件以只读方式启动；点击即可编辑。"
+        "previewModeOnFinderOpenHelp": "通过 Finder 或 Dock 双击打开的文件以只读方式启动；点击即可编辑。",
+        "restoreSessionOnLaunch": "启动时恢复上次会话",
+        "restoreSessionOnLaunchHelp": "启动 Mark 时重新打开上次的文件夹和标签页。"
       },
       "language": {
         "title": "语言",

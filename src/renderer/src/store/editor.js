@@ -17,6 +17,7 @@ import {
   TrailingNewlineCommand
 } from '../commands'
 import { defineStore } from 'pinia'
+import { watch } from 'vue'
 import { ElMessageBox } from 'element-plus/es/components/message-box/index.mjs'
 import { usePreferencesStore } from './preferences'
 import { useProjectStore } from './project'
@@ -81,6 +82,9 @@ let _lastPrintOptions = loadLastPrintOptions()
 
 let _bootPhase = true
 export const __resetBootPhase = () => { _bootPhase = true }
+
+// C-69: stores whose session autosave watcher is running (one per store).
+const sessionAutosaveStores = new WeakSet()
 
 export const useEditorStore = defineStore('editor', {
   state: () => ({
@@ -579,38 +583,114 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
-    async _saveSessionState() {
-      const paths = this.tabs
-        .map((t) => t.pathname)
-        .filter(Boolean)
-      await ipcPrefs.set('lastSessionTabs', paths).catch(() => {})
+    // START_BLOCK_SESSION_RESTORE
+    // C-69: the session snapshot — tab paths in order (untitled skipped),
+    // the active tab and the open project roots. Written on window close
+    // and, debounced, on every change once the boot restore finished
+    // (START_SESSION_AUTOSAVE), so a quit or a crash keeps the last state.
+    _sessionSnapshot() {
+      const projectStore = useProjectStore()
+      const tabs = this.tabs.map((t) => t.pathname).filter(Boolean)
+      const active = (this.currentFile && this.currentFile.pathname) || null
+      const folders = (projectStore.projectTrees || []).map((r) => r.pathname).filter(Boolean)
+      return { tabs, active, folders }
     },
 
-    async RESTORE_SESSION() {
-      const paths = await ipcPrefs.get('lastSessionTabs').catch(() => null)
-      if (!Array.isArray(paths) || !paths.length) return
-      let isFirst = true
-      for (const p of paths) {
-        try {
-          const markdown = await ipcFs.read(p)
-          const filename = window.path.basename(p)
-          this.NEW_TAB_WITH_CONTENT({
-            markdownDocument: {
-              markdown,
-              pathname: p,
-              filename,
-              encoding: { encoding: 'utf8', isBom: false },
-              lineEnding: 'lf',
-              trimTrailingNewline: 3
-            },
-            selected: isFirst
-          })
-          isFirst = false
-        } catch {
-          // file no longer exists — skip silently
+    async _saveSessionState() {
+      const { tabs, active, folders } = this._sessionSnapshot()
+      await ipcPrefs.set('lastSessionTabs', tabs).catch(() => {})
+      await ipcPrefs.set('lastSessionActive', active).catch(() => {})
+      await ipcPrefs.set('lastSessionFolders', folders).catch(() => {})
+    },
+
+    START_SESSION_AUTOSAVE() {
+      if (sessionAutosaveStores.has(this)) return
+      sessionAutosaveStores.add(this)
+      let timer = null
+      watch(
+        () => JSON.stringify(this._sessionSnapshot()),
+        () => {
+          clearTimeout(timer)
+          timer = setTimeout(() => { void this._saveSessionState() }, 400)
         }
+      )
+    },
+
+    // The boot entry (APPLY_BOOTSTRAP_EDITOR): a cold launch without files
+    // to open restores the saved session unless the user switched it off;
+    // the autosave starts only afterwards so an empty boot never
+    // overwrites the saved session.
+    async BOOT_SESSION({ restore } = {}) {
+      try {
+        if (restore) {
+          const preferencesStore = usePreferencesStore()
+          let enabled = preferencesStore.restoreSessionOnLaunch
+          if (enabled === undefined) {
+            enabled = await ipcPrefs.get('restoreSessionOnLaunch').catch(() => undefined)
+          }
+          if (enabled !== false) await this.RESTORE_SESSION()
+        }
+      } finally {
+        this.START_SESSION_AUTOSAVE()
       }
     },
+
+    // Folders first (OPEN_RECENT_FOLDER), then the files through the
+    // normal open path (mt::open-file: encoding, line endings, watcher) in
+    // the saved order, then the saved active tab. Missing paths are
+    // skipped. Also the welcome screen «Last session» action.
+    async RESTORE_SESSION() {
+      const projectStore = useProjectStore()
+      const readList = async (key) => {
+        const value = await ipcPrefs.get(key).catch(() => null)
+        return Array.isArray(value) ? value.filter((p) => typeof p === 'string' && p) : []
+      }
+      const exists = async (path, kind) => {
+        try {
+          const stat = await ipcFs.stat(path)
+          return kind === 'dir' ? !!stat.isDirectory : !!stat.isFile
+        } catch {
+          return false
+        }
+      }
+      const folders = await readList('lastSessionFolders')
+      const paths = await readList('lastSessionTabs')
+      const active = await ipcPrefs.get('lastSessionActive').catch(() => null)
+      let skipped = 0
+      let restoredFolders = 0
+      let restoredTabs = 0
+      for (const folder of folders) {
+        if (projectStore.projectTrees.some((r) => r.pathname === folder)) continue
+        if (!(await exists(folder, 'dir'))) { skipped++; continue }
+        await projectStore.OPEN_RECENT_FOLDER(folder)
+        restoredFolders++
+      }
+      for (const p of paths) {
+        if (!(await exists(p, 'file'))) { skipped++; continue }
+        try {
+          await window.electron.ipcRenderer.invoke('mt::open-file', p, {})
+          restoredTabs++
+        } catch {
+          skipped++
+        }
+      }
+      if (typeof active === 'string' && active) {
+        // mt::open-file answers with an mt::open-new-tab event; wait for
+        // the tab to land before selecting it.
+        for (let i = 0; i < 40; i++) {
+          const tab = this.tabs.find((t) => t.pathname === active)
+          if (tab) {
+            if (this.currentFile !== tab) this.UPDATE_CURRENT_FILE(tab)
+            break
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50))
+        }
+      }
+      console.debug(
+        `[EditorStore][bootSession][BLOCK_SESSION_RESTORED] folders=${restoredFolders} tabs=${restoredTabs} skipped=${skipped}`
+      )
+    },
+    // END_BLOCK_SESSION_RESTORE
 
     async GET_RECENT_FILES() {
       try {
@@ -928,6 +1008,9 @@ export const useEditorStore = defineStore('editor', {
         checked: !!sourceCodeModeEnabled
       })
 
+      // C-69: a cold launch without files reopens the last session (the
+      // welcome screen shows when nothing came back).
+      void this.BOOT_SESSION({ restore: !!addBlankTab })
       if (addBlankTab) {
         // Welcome screen shows when no tabs are open — skip blank tab
       } else if (Array.isArray(markdownList) && markdownList.length) {

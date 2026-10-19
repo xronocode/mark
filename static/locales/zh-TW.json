@@ -549,6 +549,7 @@
         "autoSave": "停止輸入後不久自動儲存變更",
         "autoSaveDelay": "最後一次按鍵後等待多久再儲存",
         "previewModeOnFinderOpen": "從 Finder 開啟的文件以閱讀檢視顯示",
+        "restoreSessionOnLaunch": "啟動時恢復上次的工作階段",
         "language": "應用程式語言",
         "defaultEncoding": "新檔案的檔案編碼",
         "endOfLine": "新檔案及儲存時使用的行尾符號",
@@ -614,7 +615,9 @@
       "startup": {
         "title": "啟動",
         "previewModeOnFinderOpen": "從 Finder 開啟的文件以閱讀檢視顯示",
-        "previewModeOnFinderOpenHelp": "在 Finder 或 Dock 中雙擊開啟的檔案以唯讀方式啟動；點擊即可編輯。"
+        "previewModeOnFinderOpenHelp": "在 Finder 或 Dock 中雙擊開啟的檔案以唯讀方式啟動；點擊即可編輯。",
+        "restoreSessionOnLaunch": "啟動時恢復上次的工作階段",
+        "restoreSessionOnLaunchHelp": "啟動 Mark 時重新開啟上次的資料夾與分頁。"
       },
       "language": {
         "title": "語言",

@@ -16,6 +16,11 @@
     "type": "boolean",
     "default": true
   },
+  "restoreSessionOnLaunch": {
+    "description": "General--Reopen the last session (folder and tabs) on launch.",
+    "type": "boolean",
+    "default": true
+  },
   "language": {
     "description": "General--The language Mark use. 'system' follows the OS preferred languages (C-45).",
     "type": "string",

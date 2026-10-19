@@ -34,6 +34,12 @@
           :bool="previewModeOnFinderOpen"
           :on-change="(value) => onSelectChange('previewModeOnFinderOpen', value)"
         ></bool>
+        <bool
+          :description="t('preferences.general.startup.restoreSessionOnLaunch')"
+          :help="t('preferences.general.startup.restoreSessionOnLaunchHelp')"
+          :bool="restoreSessionOnLaunch"
+          :on-change="(value) => onSelectChange('restoreSessionOnLaunch', value)"
+        ></bool>
       </template>
     </compound>
     <!-- END_BLOCK_GENERAL_STARTUP -->
@@ -132,9 +138,9 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/general/index.vue
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates (C-66 automatic-check switch + manual check) per the N2 IA §3.1.
+//   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode, C-69 session restore), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates (C-66 automatic-check switch + manual check) per the N2 IA §3.1.
 //   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings; treeShowAllFiles switch binding (C-51 T-001); autoCheckUpdates switch binding (C-66 T-003).
 //   DEPENDS: prefComponents/common/{compound,bool,select,range,buttonRow}, tabs/general/config, store/preferences, util (isOsx), @tauri-apps/api/app (getVersion, lazy).
 //   LINKS: .grace/changes/active/C-38 T-004; .grace/changes/active/C-51 T-001; .grace/changes/active/C-66 R-4; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
@@ -150,10 +156,12 @@
 //   appVersionLabel / checkForUpdates - the Updates row: `Mark <version>` from getVersion() (lazy); the check runs inline (mt_updater_check) and reports in the row; install goes through the shared installSignedUpdate (lazy import — no commands-module side effects at page load).
 //   updateState / updatesHelp / updatesButton - in-row update state machine (idle, checking, current, available, failed) and its help line and button label.
 //   treeShowAllFiles - C-51 T-001 show-all-files switch state (store/preferences) bound to the last Files-and-saving row.
+//   restoreSessionOnLaunch - C-69 «Reopen the last session on launch» switch state (store/preferences), second Startup row.
 //   autoCheckUpdates - C-66 T-003 automatic-check switch state (store/preferences) bound to the first Updates row (the whole group is updater-capability-gated, corner-5).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v2.4.0: C-69 T-002 — «Reopen the last session on launch» bool row in Startup (default on).
 //   - 2026-10-19 v2.3.0: fix — the update check reports in the row (checking / up to date / available + Install / failed) instead of a toast that covered the button; no double check.
 //   - 2026-10-19 v2.2.0: C-66 T-003 — «Check for updates
 //     automatically» bool row opens the Updates group (default on,
@@ -183,6 +191,7 @@ const preferenceStore = usePreferencesStore()
 
 const {
   previewModeOnFinderOpen,
+  restoreSessionOnLaunch,
   language,
   autoSave,
   autoSaveDelay,

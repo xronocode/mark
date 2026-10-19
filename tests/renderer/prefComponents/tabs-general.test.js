@@ -92,9 +92,11 @@ describe('tabs/general — C-38 T-004 content', () => {
     // The Updates row's label is the computed `Mark <version>` label, not a
     // locale key; its presence is pinned by the help key on the same row.
     const keys = rowKeys(wrapper)
-    expect(keys.slice(0, 7)).toEqual([
+    expect(keys.slice(0, 8)).toEqual([
       'preferences.general.macosIntegration.defaultForMd',
       'preferences.general.startup.previewModeOnFinderOpen',
+      // C-69: the session-restore switch closes the Startup group.
+      'preferences.general.startup.restoreSessionOnLaunch',
       'preferences.general.language.appLanguage',
       'preferences.general.filesAndSaving.autoSave',
       'preferences.general.filesAndSaving.autoSaveDelay',
