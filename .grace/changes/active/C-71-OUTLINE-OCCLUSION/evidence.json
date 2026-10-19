@@ -6,15 +6,54 @@
   "implementation": "Keep the rail's measurable box, apply visibility:hidden plus inert/aria-hidden during strict visible rectangle intersection, and restore on scroll/layout changes. Own-editor scroll capture, column mutation and table/rail resize observation are coalesced into one animation frame and disconnected on unmount. Scrollport and Fit-to-page wrapper clipping exclude invisible table portions.",
   "verification": {
     "focusedUnitPassed": 36,
-    "fullRendererCoverage": { "filesPassed": 336, "testsPassed": 4631, "existingSkipped": 2, "existingTodo": 3, "statements": 92.55, "branches": 85.91, "functions": 87.1, "lines": 93.62, "thresholds": "unchanged and passing" },
+    "fullRendererCoverage": {
+      "filesPassed": 336,
+      "testsPassed": 4631,
+      "existingSkipped": 2,
+      "existingTodo": 3,
+      "statements": 92.55,
+      "branches": 85.91,
+      "functions": 87.1,
+      "lines": 93.62,
+      "thresholds": "unchanged and passing"
+    },
     "browserPassed": 76,
-    "engines": ["Chromium", "WebKit"],
-    "scenarios": ["initial long-cell intersection", "scroll-only hide and restore", "pointer independence", "unchanged page/table/rail geometry and normalized Markdown/saved state", "Fit-to-page clipping and expansion", "outline gates and navigation", "viewer zoom and tooltip corpus", "foreign editor exclusion and lifecycle cleanup"],
+    "engines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "scenarios": [
+      "initial long-cell intersection",
+      "scroll-only hide and restore",
+      "pointer independence",
+      "unchanged page/table/rail geometry and normalized Markdown/saved state",
+      "Fit-to-page clipping and expansion",
+      "outline gates and navigation",
+      "viewer zoom and tooltip corpus",
+      "foreign editor exclusion and lifecycle cleanup"
+    ],
     "rendererBuild": "passed from clean npm ci",
     "ipcTypecheck": "passed",
     "webkitPerformanceGate": "passed; thresholds unchanged",
     "graceCurrent": "zero integrity errors; existing baseline/overlap warnings remain"
   },
   "acceptance": "C-71 remains pending on one fresh native build containing both separately delivered fixes.",
-  "release": "No version, tag or publication authorized."
+  "release": "No version, tag or publication authorized.",
+  "ownerAcceptance": {
+    "date": "2026-10-19",
+    "owner": "repository owner",
+    "confirmation": "Everything described earlier is accepted; the newly noticed table-footer spacing is a separate defect.",
+    "source": "f17b070e2eac144808a6f6aba6d2609ffd3e16bb",
+    "binarySha256": "4b309c9292105a10e33c4281e0e25b56d77ff5dec5d8c22905b3966062a520ea",
+    "scope": [
+      "long-cell table centering",
+      "whole-outline hide/restore on any visible table intersection during scrolling without hover or reflow",
+      "viewer zoom and Fit",
+      "readable tooltips"
+    ],
+    "train": "2.5.x-next",
+    "state": "queued",
+    "record": "docs/release-trains/2.5.x-next.md#c-71",
+    "separateFollowup": "C-TABLE-FOOTER; no release authorization"
+  }
 }
