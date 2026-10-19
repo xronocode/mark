@@ -67,21 +67,29 @@ describe('diffView.vue', () => {
     expect(notifyMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning', message: expect.stringContaining(text) }))
   }
 
-  it('exits with a notice when no pathname is provided', async () => {
+  // C-68: «nothing to compare» exits with a calm info notice instead.
+  const expectCalmExitWith = (text) => {
+    expect(tab.diffMode).toBe(false)
+    expect(notifyMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'info', message: text }))
+  }
+
+  it('exits with a calm notice when no pathname is provided', async () => {
     await mountComponent({ pathname: '' })
-    expectExitWith('diffView.noPath')
+    expectCalmExitWith('diffView.nothingToCompare')
   })
 
-  it('exits with a notice when invoke fails with an Error object', async () => {
-    invokeMock.mockRejectedValueOnce(new Error('file not found'))
+  it('a backend error with no opened snapshot becomes a calm notice, not the raw error', async () => {
+    invokeMock.mockRejectedValueOnce(new Error('not_a_git_repo: outside a git repository'))
     await mountComponent()
-    expectExitWith('file not found')
+    expectCalmExitWith('diffView.noChanges')
+    expect(JSON.stringify(notifyMock.mock.calls)).not.toContain('not_a_git_repo')
   })
 
-  it('exits with a notice when invoke fails with a string', async () => {
+  it('a backend string error is swallowed the same way', async () => {
     invokeMock.mockRejectedValueOnce('custom error string')
     await mountComponent()
-    expectExitWith('custom error string')
+    expectCalmExitWith('diffView.noChanges')
+    expect(JSON.stringify(notifyMock.mock.calls)).not.toContain('custom error string')
   })
 
   it('exits with a notice when CodeMirror.MergeView is not available', async () => {

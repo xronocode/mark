@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.3.0-beta
+// VERSION: 2.3.1-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -40,6 +40,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 C-68 T-001: the view.diff-mode untitled pre-check calms
+//     down — an info notice («Nothing to compare yet») instead of the old
+//     warning that told the user to save first; diff mode is still never
+//     entered for a pathname-less tab.
 //   - 2026-10-19 C-66 T-002: the signed install half of file.check-update
 //     is extracted into the exported installSignedUpdate (identical
 //     behaviour: updater toast, downloadAndInstall, relaunch, up-to-date
@@ -810,13 +814,18 @@ const commands = [
       const editor = useEditorStore()
       const tab = editor.currentFile
       if (tab && tab.id && !tab.diffMode && !tab.pathname) {
-        // M-031: an untitled tab has no baseline; entering diff mode would
-        // only hide the editor. Explain instead of toggling.
+        // C-68 R-3 (corner-5): an untitled tab has nothing to compare —
+        // never enter diff mode, and say it calmly (info, not a warning
+        // about missing baselines).
         const [{ default: notice }, { t }] = await Promise.all([
           import('@/services/notification'),
           import('@/i18n')
         ])
-        notice.notify({ title: t('diffView.unavailable'), message: t('diffView.noPath'), type: 'warning' })
+        notice.notify({
+          title: t('diffView.unavailable'),
+          message: t('diffView.nothingToCompare'),
+          type: 'info'
+        })
         return
       }
       if (tab && tab.id) {

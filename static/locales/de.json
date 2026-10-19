@@ -1432,9 +1432,10 @@
     "baseline": "Ausgangsversion",
     "exit": "Diff beenden",
     "unavailable": "Vergleich nicht verfügbar",
-    "noPath": "Speichere die Datei zuerst – ein unbenannter Tab hat keine Ausgangsversion zum Vergleichen.",
-    "noBaseline": "Für diese Datei wurde keine Ausgangsversion gefunden.",
+    "noChanges": "Keine Änderungen, seit die Datei geöffnet wurde.",
+    "nothingToCompare": "Noch nichts zu vergleichen.",
     "sourceSnapshot": "Vor der letzten externen Speicherung · {time}",
+    "sourceOpened": "Seit dem Öffnen der Datei · {time}",
     "sourcePrevious": "Vorherige Version"
   },
   "updateNotice": {

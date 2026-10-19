@@ -9,12 +9,12 @@
  */
 
 // FILE: tests/renderer/components/diff-view-snapshot.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-43 baseline priority in diffView.vue — latest per-tab snapshot wins over mt_diff_baseline — and the header source label for both paths.
+//   PURPOSE: Pin the C-43 baseline priority in diffView.vue — latest per-tab snapshot wins over mt_diff_baseline — and the header source label for both paths; since C-68 a backend failure with no snapshot at all is a calm info notice (never the raw error).
 //   SCOPE: createMergeView baseline resolution + baselineSideLabel; MergeView receives the snapshot as orig when present.
 //   DEPENDS: src/renderer/src/components/editorWithTabs/diffView.vue, src/renderer/src/store/diffSnapshots.js (real module)
-//   LINKS: .grace/changes/active/C-43 R-2/R-3; .grace/verification/runtime.xml V-M-011 scenario-39
+//   LINKS: .grace/changes/archive/C-43 R-2/R-3; .grace/changes/active/C-68 R-2/R-3 (calm no-baseline exit); .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-43 S1 initial priority tests.
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-68 T-001: the no-snapshot backend failure now expects the calm info notice (raw error never surfaces); the opened-fallback chain itself is pinned in diff-opened-baseline.test.js.
+//   v1.0.0 - 2026-10-15 C-43 S1 initial priority tests.
 // END_CHANGE_SUMMARY
 
 import { mount, flushPromises } from '@vue/test-utils'
@@ -151,14 +152,17 @@ describe('diffView.vue — C-43 baseline priority', () => {
     expect(mergeOptions().orig).toBe('stored baseline content')
   })
 
-  it('exits with a notice when the stored baseline invoke fails and no snapshot exists', async () => {
+  it('exits with a calm notice when the stored baseline invoke fails and no snapshot exists', async () => {
     invokeMock.mockRejectedValueOnce(new Error('not_a_git_repo'))
     await mountComponent()
 
     expect(tab.diffMode).toBe(false)
+    // C-68: the raw Rust error is a fallback signal — the user sees a calm
+    // info notice instead.
     expect(notifyMock).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'warning', message: expect.stringContaining('not_a_git_repo') })
+      expect.objectContaining({ type: 'info', message: 'diffView.noChanges' })
     )
+    expect(JSON.stringify(notifyMock.mock.calls)).not.toContain('not_a_git_repo')
   })
 
   it('a snapshot keeps the diff alive even when the stored baseline would have failed', async () => {

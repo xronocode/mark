@@ -1,0 +1,42 @@
+{
+  "change": "C-68",
+  "date": "2026-10-19",
+  "source": "Preserved agent/c68 uncommitted work; reviewed and ported onto current desktop main without copying old locale bundles.",
+  "scope": "Opened fallback plus calm notices; preserve snapshot > backend > opened priority and session/tab lifecycle.",
+  "repairsDuringReview": [
+    "Four async lifetime regressions reproduced on source implementation and repaired with request/tab/path/view guards.",
+    "Restore fixture updated for current C-69 normal-open bridge.",
+    "Browser Markdown poll receives its page; all diff browser specs run under WebKit and CI.",
+    "Three stale MODULE_MAP declarations corrected; backend fallback logs use a stable reason without raw paths."
+  ],
+  "checks": {
+    "unitPassed": 50,
+    "browserPassed": 26,
+    "browserEngines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "localeSourceRuntimeParity": 10,
+    "rendererBuild": "passed",
+    "ipcTypes": "passed",
+    "graceCurrentLint": {
+      "errors": 0,
+      "warnings": 55
+    }
+  },
+  "wholeSuite": {
+    "passed": 4609,
+    "result": "passed",
+    "coverageScope": "Existing renderer-only configuration; not whole-product or Muya coverage.",
+    "statements": 92.38,
+    "branches": 85.8,
+    "functions": 86.82,
+    "lines": 93.46,
+    "thresholds": "unchanged; passing",
+    "files": 335,
+    "existingSkipped": 2,
+    "existingTodo": 3
+  },
+  "ownerLiveAcceptance": "pending; integration is not publication or owner acceptance",
+  "publication": "No version bump, tag, store action or release"
+}

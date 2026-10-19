@@ -1,10 +1,10 @@
 // FILE: tests/renderer/store/diff-snapshots.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Unit tests for the C-43 per-tab pre-reload snapshot ring (store/diffSnapshots.js): record/latest/clear, dedupe of an unchanged newest snapshot, the 5-per-tab cap with oldest dropped, independent tabs, and the returned copy contract.
-//   SCOPE: The ring module only — editor.js wiring is covered by tests/renderer/store/live-reload-snapshots.test.js.
+//   PURPOSE: Unit tests for store/diffSnapshots.js — the C-43 per-tab pre-reload snapshot ring (record/latest/clear, dedupe, 5-per-tab cap, independent tabs, copy contract) and the C-68 «opened» slot (record/replace/clear, isolation from the ring).
+//   SCOPE: The snapshots module only — editor.js wiring is covered by tests/renderer/store/live-reload-snapshots.test.js (ring) and tests/renderer/store/opened-snapshots.test.js (opened slot).
 //   DEPENDS: src/renderer/src/store/diffSnapshots.js
-//   LINKS: .grace/changes/active/C-43 R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-39
+//   LINKS: .grace/changes/archive/C-43 R-1/R-4; .grace/changes/active/C-68 R-1; .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -14,12 +14,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-43 S1 initial ring tests.
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-68 T-001: opened-slot suite (single replaceable slot, ring isolation, clear-with-tab).
+//   v1.0.0 - 2026-10-15 C-43 S1 initial ring tests.
 // END_CHANGE_SUMMARY
 
 import {
   recordSnapshot,
+  recordOpenedSnapshot,
   latestSnapshot,
+  openedSnapshot,
   snapshotCount,
   clearSnapshots,
   __resetDiffSnapshots,
@@ -123,5 +126,100 @@ describe('store/diffSnapshots — C-43 snapshot ring', () => {
 
     expect(snapshotCount('tab-1')).toBe(0)
     expect(latestSnapshot('tab-1')).toBeNull()
+  })
+})
+
+describe('store/diffSnapshots — C-68 opened slot', () => {
+  beforeEach(() => {
+    __resetDiffSnapshots()
+  })
+
+  it('records and returns the single { markdown, takenAt, kind: "opened" } slot', () => {
+    recordOpenedSnapshot('tab-1', '# from disk', 42)
+
+    expect(openedSnapshot('tab-1')).toEqual({
+      markdown: '# from disk',
+      takenAt: 42,
+      kind: 'opened'
+    })
+  })
+
+  it('a second record replaces the slot (one per tab), refreshing takenAt', () => {
+    recordOpenedSnapshot('tab-1', '# first load', 42)
+    recordOpenedSnapshot('tab-1', '# second load', 99)
+
+    expect(openedSnapshot('tab-1')).toEqual({
+      markdown: '# second load',
+      takenAt: 99,
+      kind: 'opened'
+    })
+  })
+
+  it('stamps takenAt with Date.now when no timestamp is given', () => {
+    const before = Date.now()
+    recordOpenedSnapshot('tab-1', '# from disk')
+    const after = Date.now()
+
+    const snap = openedSnapshot('tab-1')
+    expect(snap.takenAt).toBeGreaterThanOrEqual(before)
+    expect(snap.takenAt).toBeLessThanOrEqual(after)
+  })
+
+  it('an unknown tab has no opened snapshot', () => {
+    expect(openedSnapshot('never-seen')).toBeNull()
+  })
+
+  it('ring pressure never evicts the opened slot, and the slot never touches the ring', () => {
+    recordOpenedSnapshot('tab-1', '# opened', 10)
+    for (let i = 1; i <= SNAPSHOT_LIMIT + 2; i++) {
+      recordSnapshot('tab-1', `# external ${i}`, 1_000 * i)
+    }
+
+    expect(snapshotCount('tab-1')).toBe(SNAPSHOT_LIMIT)
+    expect(latestSnapshot('tab-1').markdown).toBe(`# external ${SNAPSHOT_LIMIT + 2}`)
+    // The slot survived the full ring churn…
+    expect(openedSnapshot('tab-1').markdown).toBe('# opened')
+
+    // …and re-recording the slot does not add to or trim the ring.
+    recordOpenedSnapshot('tab-1', '# reopened', 20)
+    expect(snapshotCount('tab-1')).toBe(SNAPSHOT_LIMIT)
+    expect(latestSnapshot('tab-1').markdown).toBe(`# external ${SNAPSHOT_LIMIT + 2}`)
+    expect(openedSnapshot('tab-1').markdown).toBe('# reopened')
+  })
+
+  it('clearSnapshots drops the ring AND the opened slot for one tab only', () => {
+    recordSnapshot('tab-1', '# external', 1)
+    recordOpenedSnapshot('tab-1', '# opened', 2)
+    recordOpenedSnapshot('tab-2', '# other tab', 3)
+    recordSnapshot('tab-2', '# other external', 4)
+    clearSnapshots('tab-1')
+
+    expect(openedSnapshot('tab-1')).toBeNull()
+    expect(latestSnapshot('tab-1')).toBeNull()
+    expect(openedSnapshot('tab-2').markdown).toBe('# other tab')
+    expect(latestSnapshot('tab-2').markdown).toBe('# other external')
+  })
+
+  it('openedSnapshot returns a copy — mutating it cannot corrupt the slot', () => {
+    recordOpenedSnapshot('tab-1', '# from disk', 42)
+
+    const snap = openedSnapshot('tab-1')
+    snap.markdown = '# tampered'
+    snap.takenAt = 0
+
+    expect(openedSnapshot('tab-1')).toEqual({
+      markdown: '# from disk',
+      takenAt: 42,
+      kind: 'opened'
+    })
+  })
+
+  it('ignores a missing tab id or non-string markdown', () => {
+    recordOpenedSnapshot('', '# x')
+    recordOpenedSnapshot(null, '# x')
+    recordOpenedSnapshot('tab-1', undefined)
+    recordOpenedSnapshot('tab-1', 123)
+
+    expect(openedSnapshot('tab-1')).toBeNull()
   })
 })
