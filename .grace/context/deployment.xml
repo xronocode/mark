@@ -335,7 +335,7 @@
           </Attribute>
         </LegacyAttributes>
         Create tap repo scaffold on disk at
-        /Users/myevdokimov/prj/mark/homebrew-mark/ with Casks/mark.rb
+        &lt;HOME&gt;/prj/mark/homebrew-mark/ with Casks/mark.rb
         placeholder (will be pushed to xronocode/homebrew-mark in Phase-A3).
       </step-6>
       <step-7>
@@ -1264,21 +1264,14 @@
             <Value>done</Value>
           </Attribute>
         </LegacyAttributes>
-        tar the userData dirs to fixtures/ in outer mark/ repo (not
-        mark-electron/test/ — fixtures are private and reborn-mark/ does not
-        exist yet; outer mark/ has no remote per commit f9f96cab). Captured: (a)
-        `fixtures/v1-userdata-mark-1.0.2/userdata.tar.gz` (9.5KB,
-        src=`~/Library/Application Support/mark/`) + `migration-relevant/`
-        cherry-pick (preferences.json/dataCenter.json/window-state.json/Local
-        Storage leveldb/com.xronocode.mark.plist); (b)
-        `fixtures/v0-marktext-userdata/userdata.tar.gz` (8KB,
-        src=`~/Library/Application Support/marktext/`) + `migration-relevant/`
-        cherry-pick. Both Chromium internals (Cache, GPUCache, blob_storage,
-        Crashpad, etc.) excluded. Path deviation from plan
-        (`test/fixtures/com.xronocode.mark` →
-        `fixtures/v1-userdata-mark-1.0.2`): bundle-id is electron-builder appId,
-        but electron-store uses `app.getName()` which is `mark`. Fixture name
-        reflects real source path + version snapshot.
+        Historical Phase-B-pre1 capture: two Electron userData snapshots were
+        originally stored here before this repository became public. C-PRIVATE-OPERATIONS
+        preserved exact copies in the private companion and removed the profile
+        archives, browser databases, runtime logs and incidental property list from
+        public source. Public fixtures now retain only six sanitized JSON preference,
+        data-center and window-state examples with the synthetic /Users/&lt;fixture&gt; home.
+        The legacy import pipeline was retired by C-13; these examples are not
+        complete migration snapshots and current startup does not consume them.
       </step-3>
       <step-4>
         <LegacyAttributes>
@@ -1287,10 +1280,10 @@
             <Value>done</Value>
           </Attribute>
         </LegacyAttributes>
-        fixture-pin.lock committed at `fixtures/fixture-pin.lock` — sha256+size
-        manifest of 21 files (2 tarballs + 19 cherry-picked migration-relevant
-        files across both v0/marktext and v1/mark). Generated 2026-04-25T19:19Z.
-        Mark.app version at capture: 1.1.0.
+        The current fixtures/fixture-pin.lock pins the six sanitized JSON examples
+        by SHA-256 and byte size (updated 2026-10-19). The original capture manifest
+        is preserved with the private originals. V-M-005 and V-M-046 reference
+        tests/renderer/publication-privacy.test.js for the public boundary check.
       </step-4>
       <step-5>
         <LegacyAttributes>

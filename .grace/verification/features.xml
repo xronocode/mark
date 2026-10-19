@@ -2307,11 +2307,15 @@
     </V-M-045>
     <V-M-046>
       <Priority>critical</Priority>
-      <Commands><Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session</Command></Commands>
+      <Commands>
+        <Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session</Command>
+        <Command>npx vitest run tests/renderer/publication-privacy.test.js</Command>
+      </Commands>
       <Scenarios>
         <Scenario>scenario-16: renderer-e2e runs webkit-session after browser installation, including remaining editor content and edit ownership after active-tab close.</Scenario>
         <Scenario>scenario-15: renderer-e2e runs webkit-diff after browser installation, preserving opened-baseline, snapshot-priority and calm-exit checks.</Scenario>
         <Scenario>scenario-14: renderer-e2e runs webkit-keyboard after installing WebKit, preserving native vertical-selection checks in the shipping browser engine.</Scenario>
+        <Scenario>scenario-15 (C-PRIVATE-OPERATIONS): the public tree excludes C-59 operational submission records, docs/promotion planning, the owner backlog and table-copy discussion previews while retaining reusable release tooling; legacy fixture publication checks pass.</Scenario>
         <Scenario>scenario-13 (C-63): renderer-e2e invokes the existing C-60 and C-62 WebKit projects after installing WebKit, before the aggregate status can succeed. Both projects pass locally; CI triggers, existing jobs and release workflows remain unchanged.</Scenario>
         <Scenario>
           scenario-11 (C-15 T-W3): the publish job drops every staged Windows

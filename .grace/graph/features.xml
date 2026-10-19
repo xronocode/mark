@@ -2367,6 +2367,12 @@
         Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
         .github/workflows/release.yml, .github/workflows/test.yml
       </PlannedPath>
+      <PublicationBoundary>
+        C-PRIVATE-OPERATIONS: reusable tools/release/ scripts remain public.
+        Account-specific App Store submission records, one-off apply state and
+        promotion planning live in the private companion; docs/publication-policy.md
+        defines the boundary checked by tests/renderer/publication-privacy.test.js.
+      </PublicationBoundary>
       <Dependencies>
         <M-001/>
         <M-016/>
@@ -2453,7 +2459,7 @@
           .github/workflows/release.yml
         </Source>
         <KnowledgeGraphPath>tools/release-preflight.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
-        <Tests>tests/renderer/release-preflight.test.js</Tests>
+        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/publication-privacy.test.js</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>

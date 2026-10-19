@@ -11,7 +11,7 @@
           cd src-tauri &amp;&amp; cargo clippy --manifest-path
           src-tauri/Cargo.toml -- -D warnings
         </Command>
-        <Command>./target/debug/mark (5s, real $HOME=/Users/myevdokimov, SIGTERM)</Command>
+        <Command>./target/debug/mark (5s, real $HOME=&lt;HOME&gt;, SIGTERM)</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: App starts, main window is created, menu is registered.</Scenario>
@@ -312,7 +312,7 @@
             <marker>[legacy][detect][BLOCK_LEGACY_NONE]</marker>
           </log-markers-emitted>
           <real-world-smoke>
-            <command>./target/debug/mark (5s, real $HOME=/Users/myevdokimov, SIGTERM)</command>
+            <command>./target/debug/mark (5s, real $HOME=&lt;HOME&gt;, SIGTERM)</command>
             <stderr-captured>
               [legacy][detect][BLOCK_LEGACY_FOUND]
               marktext=Some(&quot;~/Library/Application
@@ -1502,9 +1502,11 @@
     <V-M-005>
       <Priority>high</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/publication-privacy.test.js</Command>
         <Command>cargo test --manifest-path src-tauri/Cargo.toml m005_prefs</Command>
       </Commands>
       <Scenarios>
+        <Scenario>scenario-5 (C-PRIVATE-OPERATIONS): the complete retained legacy fixture corpus has six valid JSON examples, synthetic home paths and an exact SHA-256/size manifest; captured profiles and browser runtime files are absent.</Scenario>
         <Scenario>scenario-1: set→get roundtrip for all known pref keys.</Scenario>
         <Scenario>scenario-3: Corrupt prefs file falls back to defaults and logs a loud marker.</Scenario>
         <Scenario>
