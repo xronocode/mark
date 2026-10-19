@@ -3302,6 +3302,10 @@
           tests/e2e/dead-link-validation.spec.ts
         </Command>
         <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          tests/e2e/outline-rail.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts
+        </Command>
+        <Command>
           npx vitest run tests/renderer/components/tabs-scroll.test.js
           tests/renderer/components/tabs.test.js
           tests/renderer/components/tabs-coverage.test.js
@@ -5746,6 +5750,15 @@
         <Command>
           npm run build &amp;&amp; npx playwright test --project=chromium
           --project=webkit-block-viewer tests/e2e/block-viewer.spec.ts
+        </Command>
+        <Command>
+          npx vitest run tests/renderer/muya/front-menu-width.test.js
+          tests/renderer/commands/paragraph-shortcuts.test.js
+          tests/renderer/commands/menu-consistency.test.js
+        </Command>
+        <Command>
+          npm run build &amp;&amp; npx playwright test --project=chromium
+          tests/e2e/keyboard-shortcuts.spec.ts tests/e2e/front-menu-locale.spec.ts
         </Command>
         <Command>
           npm run build &amp;&amp; npx playwright test --project=chromium

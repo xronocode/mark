@@ -242,6 +242,20 @@ const setupIpcListenersImpl = async () => {
       console.log(
         `[boot][pending_opens][BLOCK_NEW_TAB_RECEIVED elapsed_ms=${_elapsedMs()} path=${_basename} previewMode=${_previewModeFlag}]`
       )
+      // FIX-002: attribute the sidebar-click open latency — when a click
+      // mark exists, this diff covers the click → backend read → event
+      // arrival leg (tab creation itself is synchronous below).
+      if (typeof window !== 'undefined' && typeof window.__openFileClickAt === 'number') {
+        const sinceClick = Math.round(performance.now() - window.__openFileClickAt)
+        // eslint-disable-next-line no-console
+        console.log(
+          `[boot][pending_opens][BLOCK_OPEN_FILE_ARRIVAL since_click_ms=${sinceClick} path=${_basename}]`
+        )
+        // Hand the arrival time to the tab-creation and first-paint
+        // markers (editor store / editor.vue) — same renderer clock.
+        window.__openFileArrivalAt = performance.now()
+        window.__openFileClickAt = undefined
+      }
 
       // v1 sent (markdownDocument, options, selected); via Tauri the
       // payload is a single object — pick fields tolerantly.

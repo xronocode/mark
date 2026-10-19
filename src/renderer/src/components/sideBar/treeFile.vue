@@ -40,7 +40,7 @@
 //   PURPOSE: One file row of the sidebar tree — name only at the shared row inset (C-51 T-013 removed the leading file-type icon), the current file on a soft rounded pill (chromeAccentSoft + accent text), non-Markdown rows dimmed and not openable, the context menu carrying Pin/Unpin (C-51 T-002) and the trailing pin mark on pinned rows (C-51 T-011).
 //   SCOPE: Row rendering (rename input, current/active/dirty state, pinned mark), open-or-select click behaviour, context menu wiring with pin state.
 //   DEPENDS: vue, pinia, store/project, store/editor, store/pinned, ../icons/chromeIcons.js, contextMenu/sideBar, bus, vue-i18n.
-//   LINKS: .grace/changes/active/C-38 T-006 N4 b (accent selection); .grace/changes/active/C-51 T-001/T-002/T-011/T-013; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-006 N4 b (accent selection); .grace/changes/archive/C-51 T-001/T-002/T-011/T-013; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -126,6 +126,17 @@ const handleFileClick = () => {
     }
     editorStore.UPDATE_CURRENT_FILE(openedTab)
   } else {
+    // FIX-002 (2026-10-20): phase-0 mark of the sidebar-click open trace
+    // (click → mt::open-file → tab arrival → first paint). The later
+    // markers (bootstrap-ipc BLOCK_NEW_TAB_RECEIVED, editor store
+    // BLOCK_OPEN_TAB_CREATED, editor.vue BLOCK_OPEN_FIRST_PAINT) diff
+    // against this timestamp to attribute the reported multi-second
+    // latency to a leg.
+    window.__openFileClickAt = performance.now()
+    // eslint-disable-next-line no-console
+    console.log(
+      `[sidebar][open-file][BLOCK_OPEN_FILE_CLICK path=${pathname.split('/').pop() || pathname}]`
+    )
     window.electron.ipcRenderer.send('mt::open-file', pathname, {})
   }
 }

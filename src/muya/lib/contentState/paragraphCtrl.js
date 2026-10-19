@@ -672,9 +672,15 @@ const paragraphCtrl = (ContentState) => {
     }
 
     if (needDispatchChange) {
-      // this.muya.dispatchSelectionChange()
-      // this.muya.dispatchSelectionFormats()
-      // this.muya.dispatchChange()
+      // FIX-006 (2026-10-20): upstream left these dispatches commented out,
+      // so paragraph transformations (front menu «Turn into», palette and
+      // the ⌘1–6 desktop shortcuts) rendered in the DOM but never reached
+      // the store — the tab stayed «saved», the markdown/TOC stayed stale
+      // and a tab switch reverted the block. The sibling mutations
+      // (duplicate/insertParagraph/deleteParagraph) all dispatch
+      // 'stateChange', which Muya init() wires to dispatchChange; doing
+      // the same here keeps one notification channel.
+      this.muya.eventCenter.dispatch('stateChange')
     }
   }
 

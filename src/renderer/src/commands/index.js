@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.3.1-beta
+// VERSION: 2.5.4-fixwave
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
 //   DEPENDS: renderer bus/stores, Tauri core, M-016 updater plugin, notification service.
-//   LINKS: docs/knowledge-graph.xml M-009,M-013-A,M-016; docs/verification-plan.xml V-M-016.
+//   LINKS: .grace/graph/runtime.xml M-009,M-013-A,M-016; .grace/verification/runtime.xml V-M-016.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -40,6 +40,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 FIX-005/FIX-006: the paragraph commands gain their
+//     canonical palette shortcuts — edit.duplicate ⇧⌘D (moved off ⇧⌘P,
+//     which UC-025 reserves for the Command Palette),
+//     edit.create-paragraph ⇧⌘N, edit.delete-paragraph ⇧⌘⌫ and
+//     paragraph.heading-1..6 ⌘1..6 (visual-regression-plan 13C). The
+//     desktop keydown layer lives in editor.vue
+//     BLOCK_PARAGRAPH_SHORTCUTS; these arrays are the palette display
+//     and must stay in sync with it (pinned by
+//     tests/renderer/commands/paragraph-shortcuts.test.js).
 //   - 2026-10-19 C-68 T-001: the view.diff-mode untitled pre-check calms
 //     down — an info notice («Nothing to compare yet») instead of the old
 //     warning that told the user to save first; diff mode is still never
@@ -384,19 +393,26 @@ const commands = [
     }
   },
   {
+    // FIX-005: ⇧⌘D is the canonical duplicate chord (visual-regression-
+    // plan 13C.1); the desktop keydown layer (editor.vue
+    // BLOCK_PARAGRAPH_SHORTCUTS) dispatches it and the paragraph front
+    // menu displays it. ⇧⌘P stays reserved for the Command Palette.
     id: 'edit.duplicate',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'D'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('duplicate', 'duplicate'))
     }
   },
   {
     id: 'edit.create-paragraph',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'N'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('createParagraph', 'createParagraph'))
     }
   },
   {
     id: 'edit.delete-paragraph',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', 'Shift', 'Backspace'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('deleteParagraph', 'deleteParagraph'))
     }
@@ -500,39 +516,48 @@ const commands = [
 
   // --------------------------------------------------------------------------
   // Paragraph
+  // FIX-006: ⌘1–6 apply Heading 1–6 through the desktop keydown layer
+  // (editor.vue BLOCK_PARAGRAPH_SHORTCUTS); the palette mirrors the same
+  // chords next to each command (UC-025).
 
   {
     id: 'paragraph.heading-1',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '1'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('paragraph', 'heading 1'))
     }
   },
   {
     id: 'paragraph.heading-2',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '2'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('paragraph', 'heading 2'))
     }
   },
   {
     id: 'paragraph.heading-3',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '3'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('paragraph', 'heading 3'))
     }
   },
   {
     id: 'paragraph.heading-4',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '4'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('paragraph', 'heading 4'))
     }
   },
   {
     id: 'paragraph.heading-5',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '5'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('paragraph', 'heading 5'))
     }
   },
   {
     id: 'paragraph.heading-6',
+    shortcut: [isOsx ? 'Cmd' : 'Ctrl', '6'],
     execute: async () => {
       focusEditorAndExecute(() => bus.emit('paragraph', 'heading 6'))
     }

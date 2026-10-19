@@ -230,4 +230,43 @@ test.describe('outline rail (C-40 T-003)', () => {
     await page.waitForTimeout(600) // listToc settles; the rail never appears
     await expect(rail(page)).toBeHidden()
   })
+
+  // FIX-003 (2026-10-20): closing the current tab and creating a new
+  // document must not leave the previous (closed) file's headings on the
+  // rail. The empty-document early return in LISTEN_FOR_CONTENT_CHANGE
+  // used to swallow the TOC reset that arrives with the fresh tab's
+  // first change event (markdown "\n", toc []).
+  test('rail empties after closing a file and creating a new document (FIX-003)', async ({ page }) => {
+    await bootEditor(page)
+    await openFileTab(page, '/tmp/outline-life-a.md', DOC)
+    await expect(rail(page).locator('.outline-rail-item').first()).toBeVisible({ timeout: 5_000 })
+
+    // Close the current (saved) tab through the real store funnel.
+    await page.evaluate(() => {
+      const app = document.querySelector('#app') as any
+      app.__vue_app__.config.globalProperties.$pinia._s.get('editor').CLOSE_TAB()
+    })
+    await page.waitForTimeout(600)
+
+    // Create the new untitled document (the Cmd+N / File › New path).
+    await page.evaluate(() => {
+      ;(window as any).__bus.emit('mt::new-untitled-tab', { selected: true, markdown: '' })
+    })
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => {
+            const app = document.querySelector('#app') as any
+            const editor = app.__vue_app__.config.globalProperties.$pinia.state.value.editor
+            return {
+              untitled: editor.currentFile?.filename || '',
+              listToc: (editor.listToc || []).length,
+              railItems: document.querySelectorAll('.outline-rail-item').length
+            }
+          }),
+        { timeout: 5_000 }
+      )
+      .toEqual({ untitled: 'Untitled-1', listToc: 0, railItems: 0 })
+    await expect(rail(page)).toBeHidden()
+  })
 })

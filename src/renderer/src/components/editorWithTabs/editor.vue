@@ -14,7 +14,7 @@
       }"
       :dir="textDirection"
       @mousedown.capture="handlePreviewMousedown"
-      @keydown.capture="handlePreviewKeydown"
+      @keydown.capture="handleEditorSurfaceKeydown"
       @click.capture="handleMirrorGuard"
       @paste.capture="handleMirrorGuard"
       @drop.capture="handleMirrorGuard"
@@ -78,12 +78,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.29.0
+// VERSION: 1.30.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
 //   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence).
-//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/active/C-56 (diagram export, embedded-image copy); .grace/changes/active/C-65 T-001 (the table layout prefs host wiring).
+//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -107,6 +107,9 @@
 //   handleCopyAsMarkdown - Copies selection (or whole document) as raw Markdown text (C-40 T-004).
 //   handleDiagramExportAction - C-56 picture export transport: a rendered Pele diagram / Vega-Lite chart block leaves Mark as a 2× PNG on the clipboard (writeImage) or a PNG/SVG file (save dialog + fs write); owns the toast and failure notices.
 //   handleImageCopyAction - C-56 T-006 embedded-image copy transport: an already-inserted ![](…) image goes back on the clipboard as a picture — local files through the existing read-binary bridge, remotes via fetch, PNG bytes as-is, other formats re-encoded on a canvas; serves the muya image toolbar button and the editor context-menu item.
+//   handleEditorSurfaceKeydown - FIX-005/FIX-006 wrapper keydown entry: runs the paragraph shortcut wave, then the preview Cmd+\ chord.
+//   handleParagraphShortcutKeys - FIX-005/FIX-006: physical-code chords inside the WYSIWYG surface — ⇧⌘D duplicate, ⇧⌘N new paragraph, ⇧⌘⌫ delete paragraph, ⌘1–6 heading levels (visual-regression-plan 13C; ⇧⌘P stays reserved for UC-025 Command Palette).
+//   handlePreviewKeydown - Cmd+\ preview-aware sidebar toggle (V-M-022 E-05 keeps other keys from exiting preview).
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, the C-56 Copy as Image / Save as PNG… / Save as SVG… items (diagram/chart blocks only), Share (C-10/C-11/C-12/C-32/C-56).
@@ -116,7 +119,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.29.0 - C-TAB-CLOSE-OWNERSHIP: reject other-tab renders, track the displayed document owner, recover missed activation and prevent stale-surface changes/scroll from reaching a different tab.
+//   LAST_CHANGE: v1.30.0 - 2026-10-20 FIX-005/FIX-006: the desktop
+//   paragraph shortcuts are wired through a capture keydown on the
+//   editor wrapper (handleEditorSurfaceKeydown →
+//   handleParagraphShortcutKeys): ⇧⌘D duplicate, ⇧⌘N new paragraph,
+//   ⇧⌘⌫ delete paragraph and ⌘1–6 → Heading 1–6, matched by physical
+//   key code so Russian layouts work; scoped to the WYSIWYG surface and
+//   suppressed on read-only surfaces, the locked tab and the fullscreen
+//   viewer. ⇧⌘P is no longer displayed for duplicate (UC-025 keeps it
+//   reserved for the Command Palette).
+//   PREV: v1.29.0 - C-TAB-CLOSE-OWNERSHIP: reject other-tab renders, track the displayed document owner, recover missed activation and prevent stale-surface changes/scroll from reaching a different tab.
 //   PREV: v1.28.1 - 2026-10-19 fix: a fresh open whose content the store already holds still applies the stored table layouts (the early return skipped them).
 //   - 2026-10-18 v1.28.0: C-65 T-001 — persistent table column widths and
 //     the per-table Full width mode. applyStoredTableLayouts runs after
@@ -486,6 +498,62 @@ const handlePreviewKeydown = (event) => {
   layoutStore.TOGGLE_LAYOUT_ENTRY('showSideBar')
   event.preventDefault()
 }
+
+// Wrapper keydown entry: the paragraph shortcut wave runs first, then
+// the preview Cmd+\ chord. FIX-005/FIX-006.
+const handleEditorSurfaceKeydown = (event) => {
+  handleParagraphShortcutKeys(event)
+  handlePreviewKeydown(event)
+}
+
+// START_BLOCK_PARAGRAPH_SHORTCUTS
+// FIX-005/FIX-006 (2026-10-20): the paragraph front menu advertised
+// ⇧⌘P duplicate / ⇧⌘N new paragraph / ⇧⌘D delete, and the test plan
+// promised Cmd+1–6 → Heading 1–6, but no layer ever dispatched them —
+// the native menu intentionally keeps paragraph commands palette-only
+// (menu-consistency RENDERER_ONLY_ALLOWLIST), so this capture handler is
+// the desktop shortcut path. Canonical bindings follow
+// docs/visual-regression-plan.md 13C: duplicate ⇧⌘D, delete ⇧⌘⌫,
+// new paragraph ⇧⌘N, headings ⌘1–6; ⇧⌘P stays reserved for the Command
+// Palette (UC-025). Physical `code` matching keeps the chords working
+// on non-Latin (e.g. Russian) layouts, mirroring the KeyZ undo rule.
+const handleParagraphShortcutKeys = (event) => {
+  if (!event || event.isComposing) return
+  const cmdOrCtrl = isOsx ? event.metaKey : event.ctrlKey
+  if (!cmdOrCtrl || event.altKey) return
+  // Only chords typed into the WYSIWYG surface itself: not the search
+  // bar, not the fullscreen block viewer (it owns its +/−/0/1 keys).
+  const target = event.target
+  if (!target || !target.closest || !target.closest('.editor-component')) return
+  if (target.closest('.ag-block-viewer')) return
+  // Read-only surfaces (preview / Split View mirror / locked tab) must
+  // not transform the document underneath.
+  if (isReadOnlySurface.value || currentFile.value?.locked) return
+  if (event.shiftKey) {
+    if (event.code === 'KeyD') {
+      event.preventDefault()
+      bus.emit('duplicate', 'duplicate')
+      return
+    }
+    if (event.code === 'KeyN') {
+      event.preventDefault()
+      bus.emit('createParagraph', 'createParagraph')
+      return
+    }
+    if (event.code === 'Backspace') {
+      event.preventDefault()
+      bus.emit('deleteParagraph', 'deleteParagraph')
+      return
+    }
+    return
+  }
+  const headingLevel = /^Digit([1-6])$/.exec(event.code)
+  if (headingLevel) {
+    event.preventDefault()
+    bus.emit('paragraph', `heading ${headingLevel[1]}`)
+  }
+}
+// END_BLOCK_PARAGRAPH_SHORTCUTS
 
 // START_CONTRACT: syncMirrorFromSource
 //   PURPOSE: C-29 — while this muya pane mirrors the CodeMirror pane, re-render it from the tab markdown (debounced: 150 ms, or twice the last render time up to 2 s on heavy documents) without taking focus.
@@ -2049,6 +2117,21 @@ const handleFileChange = ({
       }
       renderedTabId = activeFile?.id || null
       if (props.mirror) mirroredMarkdown = newMarkdown
+      // FIX-002: phase-3 mark — first paint after the Muya render of a
+      // sidebar-clicked file. UPDATE_CURRENT_FILE routes the render
+      // through this handler (the parallel file-loaded event then skips
+      // as a duplicate), so the paint stamp belongs here; the arrival
+      // stamp is set by bootstrap-ipc.js.
+      if (typeof window !== 'undefined' && typeof window.__openFileArrivalAt === 'number') {
+        const arrivalAt = window.__openFileArrivalAt
+        window.__openFileArrivalAt = undefined
+        requestAnimationFrame(() => {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[editor][open-file][BLOCK_OPEN_FIRST_PAINT since_arrival_ms=${Math.round(performance.now() - arrivalAt)}]`
+          )
+        })
+      }
     } else if (newCursor) {
       editor.value.setCursor(newCursor)
     }
