@@ -3630,8 +3630,9 @@
         the complete lazy preview import graph before their environment
         closes. Runtime rendering and Markdown export behavior are unchanged.
         Native vertical selection: keyboard.js leaves Shift+Up/Down and
-        host selection notifications to the editor when only the passive
-        format toolbar is shown. Actual autocomplete pickers retain their
+        host selection notifications to the editor when passive format,
+        link, footnote, table-action and image-action panels overlap,
+        including delayed hover dismissal. Actual autocomplete pickers retain their
         existing arrow-key ownership, including when both tools are shown.
         C-71 follow-up: the resize lifecycle observes the owning scroller
         and outline as well as the text column, so late overlay visibility

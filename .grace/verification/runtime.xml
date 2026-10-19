@@ -6669,6 +6669,12 @@
           wrapped lines and paragraph boundaries. Host selection events still
           arrive; Markdown is unchanged. Actual autocomplete pickers retain
           vertical keys, including when the toolbar is also shown.
+          FIX-001 follow-up: passive link, footnote, table-action and
+          image-action panels do not take vertical selection when they
+          overlap the format toolbar. Browser cases hover a real link and
+          move away during delayed dismissal; both directions continue
+          growing painted selection without changing Markdown. Active
+          autocomplete pickers still own their keys alongside both panels.
           Unit: tests/renderer/muya/keyboard-selection.test.js. Browser:
           tests/e2e/keyboard-selection.spec.ts in Chromium and webkit-keyboard,
           including non-transparent selection paint and multiple selected rows.
@@ -6684,7 +6690,13 @@
           Owner live acceptance recorded on 2026-10-19 after opening the
           fresh Mark Test with the selection fixture: vertical Shift-arrow
           behavior accepted. FIX-001 in docs/release-trains/2.5.x-next.md
-          records source 1d594f9c, the tested binary hash and queued status.
+          retains source 1d594f9c, the tested binary hash and earlier acceptance.
+          Owner report on Mark Test 549542ad reopens the overlapping-panel
+          scope for a fresh check; prior acceptance remains historical.
+          Follow-up evidence: four new unit cases fail on the baseline;
+          all 33 focused/neighboring unit cases and 22 Chromium/WebKit
+          selection/status-bar cases pass after the repair. Renderer build
+          and C-DESKTOP-STABILIZATION final assertions pass.
           Other changes in that binary retain their own acceptance state;
           this acceptance does not authorize publication.
         </Scenario>

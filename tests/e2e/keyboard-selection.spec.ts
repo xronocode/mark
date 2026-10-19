@@ -1,8 +1,8 @@
 // FILE: tests/e2e/keyboard-selection.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify native vertical selection while Muya's selection-format toolbar is visible.
-//   SCOPE: Repeated Shift+Up/Down, direction reversal, wrapped lines, paragraph boundaries, painted selection and unchanged Markdown.
+//   SCOPE: Repeated Shift+Up/Down, overlapping link-hover and format panels, direction reversal, wrapped lines, paragraph boundaries, painted selection and unchanged Markdown.
 //   DEPENDS: Playwright, renderer-only Tauri shim, editor boot helpers.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -10,13 +10,14 @@
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
 //   WRAPPED - Plain text long enough to span several visual lines in either browser.
-//   selectedText - Reads the browser's actual selected text.
+//   selectedText - Reads the browser's actual selected text, including while two passive panels overlap.
 //   markdown - Reads the current document independently of DOM selection.
 //   placeCaret - Places a collapsed caret at a deterministic text offset.
 //   expectPaintedSelection - Verifies a visible selection color and multiple selected visual rows.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - Reproduce and prevent format-toolbar interception of Shift+Up/Down.
+//   LAST_CHANGE: v1.1.0 - Reproduce delayed link-hover dismissal blocking Shift+Up/Down beside the format toolbar.
+//   PREV: v1.0.0 - Reproduce and prevent format-toolbar interception of Shift+Up/Down.
 // END_CHANGE_SUMMARY
 
 import { test, expect, type Page } from '@playwright/test'
@@ -67,6 +68,36 @@ test.describe('keyboard selection with the format toolbar', () => {
 
   // START_BLOCK_SELECTION_TOOLBAR_REGRESSIONS
   for (const direction of ['Down', 'Up'] as const) {
+    test(`Shift+${direction} works while link hover and format panels overlap`, async ({ page }) => {
+      await openFileTab(page, '/tmp/keyboard-selection-hover.md',
+        `${WRAPPED}\n\nA [reference link](https://example.com) for hovering.`)
+      const original = await markdown(page)
+      await placeCaret(page, 'Selection must keep moving', direction === 'Down' ? 20 : WRAPPED.length - 20)
+      await page.keyboard.press(direction === 'Down' ? 'Shift+ArrowRight' : 'Shift+ArrowLeft')
+      const toolbar = page.locator('.ag-format-picker-container')
+      await expect(toolbar).toHaveAttribute('data-popper-placement', /.+/)
+      const first = await selectedText(page)
+      expect(first).toHaveLength(1)
+
+      // Hover without moving editor focus: the pointer can remain over a link
+      // while the user extends text selection with the keyboard.
+      await page.locator('#ag-editor-id a.ag-inline-rule span').filter({ hasText: 'reference link' }).hover()
+      const linkPanel = page.locator('.ag-link-tools').locator('..')
+      await expect(linkPanel).toHaveAttribute('data-popper-placement', /.+/)
+      await expect(toolbar).toHaveAttribute('data-popper-placement', /.+/)
+      await page.keyboard.press(`Shift+Arrow${direction}`)
+      await expect.poll(async () => (await selectedText(page)).length).toBeGreaterThan(first.length)
+      const second = await selectedText(page)
+
+      // Link tools deliberately linger after mouseout. Native selection must
+      // work before their hide timer fires, as well as while still hovered.
+      await page.mouse.move(5, 5)
+      await page.keyboard.press(`Shift+Arrow${direction}`)
+      await expect.poll(async () => (await selectedText(page)).length).toBeGreaterThan(second.length)
+      await expectPaintedSelection(page)
+      expect(await markdown(page)).toBe(original)
+    })
+
     test(`Shift+${direction} grows and reverses selection over wrapped lines`, async ({ page }, testInfo) => {
       await openFileTab(page, '/tmp/keyboard-selection.md', WRAPPED)
       const original = await markdown(page)
