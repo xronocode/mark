@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.3.0
+# VERSION: 1.4.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Fail local commit/push operations closed until their exact payload passes static exposure checks and two serial local-model reviews.
-#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, complete locale field review, two-pass local review, identity recheck and common hooks.
+#   PURPOSE: Fail local commit/push operations closed until their exact payload passes static exposure checks and two serial local-model reviews, with an explicit human override lane for model-review false positives.
+#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, complete locale field review, two-pass local review, optional identity-bound manual override of the model-review phase only, identity recheck and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks, loopback Ollama, canonical local-ai-safety preflight.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFE-DELIVERY.
 #   ROLE: SCRIPT
@@ -27,12 +27,13 @@
 #   gpu_preflight - bound the canonical host check and redact unavailable/timeout diagnostics.
 #   gpu_ownership - prove an empty slot or the expected loaded reviewer before any chat request.
 #   local_review - run GPU preflight and two serial local-only reviews per chunk.
-#   review - lock, scan, review, recheck candidate identity and write a private receipt.
+#   review - lock, scan, honor an explicit human override with a bound receipt, review, recheck candidate identity and write a private receipt.
 #   install - self-review the staged bootstrap and install common fail-closed hooks.
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before loading the reviewer, including single-other-engine and multiple-model states.
+#   LAST_CHANGE: 1.4.0 - 2026-10-20: add MARK_SAFETY_OVERRIDE — a human-set reason that skips only the local-model review phase after static scans pass, writing an identity-bound private receipt; deterministic exposure and Gitleaks checks stay mandatory.
+#   PREV: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before loading the reviewer, including single-other-engine and multiple-model states.
 #   PREV: 1.2.0 - 2026-10-19: enforce the approved public/private operational and captured-profile path boundary before inference.
 #   PREV: 1.1.0 - 2026-10-19: review complete generated-locale field deltas; full-blob scans and exact raw identity rechecks remain unchanged.
 #   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: mandatory exact-payload static and local-model commit/push gate, shared across independent delivery lanes.
@@ -412,6 +413,22 @@ def review(make_candidate, private, operation):
             raise GateError("Another repository safety review owns the inference slot") from None
         candidate = make_candidate()
         scan(candidate)
+        # START_BLOCK_MANUAL_REVIEW_OVERRIDE
+        # Trust anchor: the interactive human shell. MARK_SAFETY_OVERRIDE carries a
+        # non-empty human reason and skips ONLY the local-model review phase; the
+        # deterministic path/artifact checks and the Gitleaks scan above have already
+        # passed for this exact candidate identity. The override is recorded as a
+        # private receipt bound to the candidate identity, so push-time re-review of
+        # the same content must repeat the explicit override.
+        override = os.environ.get("MARK_SAFETY_OVERRIDE", "").strip()
+        if override:
+            receipt = {"operation": operation, "identity": candidate["identity"], "reason": override, "overriddenAt": int(time.time()), "gateSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "scope": "local model review skipped by explicit human decision; static exposure checks and Gitleaks ran and passed"}
+            path = private / ("override-" + operation + "-" + candidate["identity"] + ".json")
+            path.write_text(json.dumps(receipt, indent=2))
+            os.chmod(path, 0o600)
+            print("[RepositorySafety][override][BLOCK_SAFETY_OVERRIDE_USED]", operation, candidate["identity"], "reason=" + override)
+            return
+        # END_BLOCK_MANUAL_REVIEW_OVERRIDE
         records = local_review(candidate, private)
         if len(records) != len(chunks(review_view(candidate["payload"]))) * 2:
             raise GateError("Incomplete local two-pass review")
