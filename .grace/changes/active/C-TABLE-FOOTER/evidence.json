@@ -76,5 +76,20 @@
     },
     "freshNativeArtifact": "pending after the separate toolbar-label follow-up",
     "grace": "0 integrity errors; existing baseline/scope-overlap warnings"
+  },
+  "captionPaintFollowup": {
+    "date": "2026-10-20",
+    "ownerAcceptance": "Owner accepted the remaining behavior on Mark Test UI f8af91e9, including fitting-table controls and cumulative toolbar labels. Footer admission remains open only for the pale patch over its edge shade.",
+    "cause": "The renderer [contenteditable] rule paints the editor background on the caption despite contenteditable=false; caption opacity lightens the wrapper gradient.",
+    "baseline": "Both Chromium and WebKit fail the screenshot continuity regression: RGB delta 28 across caption/gap at the same shade x coordinate; allowed delta 2.",
+    "fix": "Keep the caption background transparent; preserve the accepted text inset and footer geometry.",
+    "verification": {
+      "focusedBrowserPassed": 16,
+      "engines": [
+        "Chromium",
+        "WebKit"
+      ],
+      "scope": "caption shade-pixel continuity, footer geometry, fitting/restored controls, resize handle and cumulative labels"
+    }
   }
 }
