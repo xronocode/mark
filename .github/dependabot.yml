@@ -1,0 +1,64 @@
+# Dependabot version updates — keeps the three lockfiles from drifting.
+# Security updates are opened immediately regardless of this schedule.
+#
+# Ecosystems:
+#   npm  /       — app + test tooling (root package-lock.json)
+#   npm  /site   — marketing/docs site (separate lockfile)
+#   cargo /      — Tauri workspace (Cargo.lock lives in the repo root)
+#
+# The appium stack is the calibrated iOS e2e toolchain (WDA session
+# recycling, alert-bridge hooks); only patch/minor bumps are taken
+# automatically, majors get a manual review pass first.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    groups:
+      npm-root:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "appium*"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "@appium/*"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "appium-xcuitest-driver"
+        update-types:
+          - "version-update:semver-minor"
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    groups:
+      npm-site:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    groups:
+      cargo-workspace:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
