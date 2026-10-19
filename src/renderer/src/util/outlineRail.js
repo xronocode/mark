@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/util/outlineRail.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pure helpers for the C-40 T-003 «On this page» outline rail — h1–h3 extraction from listToc, current-heading resolution, and the width/heading-count/fit gates.
-//   SCOPE: Pure functions only (no DOM, no store access): extractRailHeadings, resolveCurrentHeading, railFitsWithoutOverlap, shouldShowRail.
+//   PURPOSE: Pure helpers for the outline rail — heading extraction, current-heading resolution, visibility gates and visible table intersection.
+//   SCOPE: Pure functions only (no DOM, no store access): extractRailHeadings, resolveCurrentHeading, railFitsWithoutOverlap, shouldShowRail, railIntersectsTable.
 //   DEPENDS: none.
-//   LINKS: .grace/changes/active/C-40 T-003; components/editorWithTabs/outlineRail.vue; .grace/graph/runtime.xml M-011 fn-extractRailHeadings; .grace/verification/runtime.xml V-M-011 scenario-54.
+//   LINKS: .grace/changes/active/C-40 T-003; C-71-OUTLINE-OCCLUSION; components/editorWithTabs/outlineRail.vue; .grace/graph/runtime.xml M-011 fn-extractRailHeadings and fn-railIntersectsTable; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -16,6 +16,7 @@
 //   resolveCurrentHeading - Map the scrollspy slug (any level) onto the nearest visible rail heading at-or-before it.
 //   railFitsWithoutOverlap - Geometry gate: does the fixed rail box clear the centred text column with a gap?
 //   shouldShowRail - Combined preference/mode/width/heading-count/fit gate.
+//   railIntersectsTable - Strict positive intersection of rail, table, owning scrollport and optional wrapper clip.
 //   RAIL_WIDTH - rail box width (px).
 //   RAIL_RIGHT_INSET - rail distance from the editor's right edge (px).
 //   RAIL_TEXT_GAP - minimum gap between text and rail (px).
@@ -23,6 +24,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v1.1.0: C-71-OUTLINE-OCCLUSION — only a visible table/rail intersection hides the whole outline; edge contact and clipped content do not.
 //   - 2026-10-15 v1.0.0: C-40 T-003 — initial extraction with the canvas
 //     geometry (170 px rail, 22 px right inset, 10 px gap to the text
 //     column; the column's 50 px right padding keeps the measured text
@@ -42,6 +44,17 @@ export const RAIL_TEXT_GAP = 10
 // #ag-editor-id ships `padding: 20px 50px 100px 50px` (muya default.css);
 // used only when the live computed padding cannot be read.
 export const COLUMN_RIGHT_PADDING_FALLBACK = 50
+
+// START_BLOCK_RAIL_TABLE_INTERSECTION
+export const railIntersectsTable = (rail, table, viewport, clip = viewport) => {
+  const rects = [rail, table, viewport, clip]
+  if (!rects.every(rect => rect &&
+    ['left', 'right', 'top', 'bottom'].every(edge => Number.isFinite(rect[edge])) &&
+    rect.right > rect.left && rect.bottom > rect.top)) return false
+  return Math.max(...rects.map(rect => rect.left)) < Math.min(...rects.map(rect => rect.right)) &&
+    Math.max(...rects.map(rect => rect.top)) < Math.min(...rects.map(rect => rect.bottom))
+}
+// END_BLOCK_RAIL_TABLE_INTERSECTION
 
 // START_BLOCK_EXTRACT_RAIL_HEADINGS
 // The rail lists h1–h3 only (deeper levels are indented within the rail;
