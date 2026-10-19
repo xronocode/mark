@@ -12,6 +12,24 @@ Carried over from the old status table in the README:
 - Image upload services (PicGo and similar) are not supported.
 
 <!-- #region releases -->
+## [2.5.3] - 2026-10-19
+
+Mark now remembers where you were, and wide tables get the room they need.
+
+### Interface
+- A table wider than the text column opens at full width: centred when it fits the window, otherwise 24 px from the editor's edge, with the editor scrolling sideways; it never slides under the outline. «Fit to page» in the table toolbar keeps a table in the column and is remembered per table.
+- The table toolbar sits above the table on the column edge, and a caption below shows which columns are in view («columns 3–7 of 15»).
+- A broom in the sidebar's Recent header clears the list.
+- ⌘W closes the Settings window.
+
+### Product mechanics
+- Session restore: a launch without a file reopens the folder and tabs of the last session in order, with the same active tab; missing files are skipped. The session is saved as you work, so a quit or a crash keeps it. Settings › General › Startup › «Reopen the last session on launch» (on by default).
+- Column widths you drag are remembered per file in the Mark profile and restored on reopen; the Markdown is never changed. Editing a table's header resets its widths.
+- The download and Homebrew build checks for updates once a day and offers Update, Later or Skip this version (Settings › General › Updates).
+- Check for updates in Settings reports in its own row instead of a notice over the button.
+
+### Fixed
+- The table toolbar buttons kept working only until the next partial re-render (for example after typing elsewhere); they now always respond.
 ## [2.5.2] - 2026-10-18
 
 A fix release for the window chrome and the home screen.

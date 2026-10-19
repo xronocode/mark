@@ -92,7 +92,7 @@ describe('C-48 help.whats-new', () => {
     await findCmd('help.whats-new').execute()
     const [event, payload] = bus.emit.mock.calls[0]
     expect(event).toBe('whatsNewDialog')
-    expect(payload.version).toBe('2.5.0')
+    expect(payload.version).toBe('2.5.3')
     expect(getWhatsNewItems(payload.version).length).toBeGreaterThan(0)
   })
 })

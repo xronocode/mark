@@ -1451,7 +1451,7 @@
     "title": "Novedades",
     "seeGuide": "Ver la guía",
     "continue": "Continuar",
-    "also": "Además: las notas al pie se ajustan al instante y la web tiene una galería con todos los tipos de diagrama",
+    "also": "Además: una escoba vacía Recientes en la barra lateral y ⌘W cierra los Ajustes",
     "seeEverything": "Ver todas las novedades",
     "v2_3_1": {
       "look": {
@@ -1505,6 +1505,24 @@
       "images": {
         "title": "Copia imágenes de nuevo",
         "text": "Copia al portapapeles una imagen que ya está en el documento, con un clic."
+      }
+    },
+    "v2_5_3": {
+      "session": {
+        "title": "Sigue donde lo dejaste",
+        "text": "Mark reabre tu carpeta y tus pestañas al iniciar. Se desactiva en Ajustes."
+      },
+      "tables": {
+        "title": "Tablas anchas a todo lo ancho",
+        "text": "Una tabla más ancha que la página se abre a todo lo ancho; «Ajustar» se recuerda."
+      },
+      "columns": {
+        "title": "El ancho de columna se queda",
+        "text": "Arrastra un borde de columna y su ancho se recuerda por archivo. El Markdown no cambia."
+      },
+      "updates": {
+        "title": "Las novedades llegan solas",
+        "text": "Mark busca una versión nueva una vez al día: actualiza ya, luego u omítela."
       }
     }
   },

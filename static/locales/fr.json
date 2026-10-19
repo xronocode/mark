@@ -1452,7 +1452,7 @@
     "title": "Nouveautés",
     "seeGuide": "Voir le guide",
     "continue": "Continuer",
-    "also": "Et aussi : les réglages des notes s'appliquent aussitôt, et le site présente tous les types de diagrammes",
+    "also": "Aussi : un balai vide Récents dans la barre latérale, et ⌘W ferme les Réglages",
     "seeEverything": "Voir toutes les nouveautés",
     "v2_3_1": {
       "look": {
@@ -1506,6 +1506,24 @@
       "images": {
         "title": "Recopiez vos images",
         "text": "Recopiez en un clic une image déjà présente dans le document."
+      }
+    },
+    "v2_5_3": {
+      "session": {
+        "title": "Reprenez là où vous étiez",
+        "text": "Mark rouvre votre dossier et vos onglets au démarrage. Désactivable dans Réglages."
+      },
+      "tables": {
+        "title": "Tableaux larges, pleine largeur",
+        "text": "Un tableau plus large que la page s’ouvre en pleine largeur ; « Ajuster » est retenu."
+      },
+      "columns": {
+        "title": "Les largeurs de colonnes restent",
+        "text": "Tirez une bordure de colonne : la largeur reste pour le fichier, sans toucher au Markdown."
+      },
+      "updates": {
+        "title": "Les mises à jour viennent à vous",
+        "text": "Mark cherche une nouvelle version chaque jour : maintenant, plus tard ou ignorer."
       }
     }
   },

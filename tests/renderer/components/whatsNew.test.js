@@ -102,8 +102,9 @@ describe('components/whatsNew — sheet', () => {
     const icons = wrapper.findAll('.news-icon').map((i) => i.text())
     expect(icons).toEqual(['⧉', '◐', '⎙', '▣'])
     // the C-55 «Also» line under the items
+    // (the also key is release-wide; since 2.5.3 it names the broom + ⌘W)
     expect(wrapper.find('.also').text()).toBe(
-      'Also: footnote settings apply instantly, and the site now has a gallery of every diagram type'
+      'Also: a broom clears Recent in the sidebar, and ⌘W closes Settings'
     )
     const footLinks = wrapper.findAll('.foot-links .guide-link')
     expect(footLinks[0].text()).toBe('See everything new ↗')
