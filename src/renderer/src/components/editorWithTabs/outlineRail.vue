@@ -2,6 +2,7 @@
   <div v-show="railVisible" ref="anchorRef" class="outline-rail-anchor">
     <nav
       class="outline-rail"
+      data-editor-overlay-right
       :class="{ 'outline-rail--wrap': wordWrapInToc }"
       :aria-label="t('outlineRail.title')"
     >
@@ -27,7 +28,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/outlineRail.vue
-// VERSION: 1.1.0
+// VERSION: 1.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: C-40 T-003 «On this page» outline rail — a slim absolute rail right of the centred text column listing h1–h3, tracking the section in view, and smooth-jumping on click.
 //   SCOPE: Rendering + visibility gates (preference, WYSIWYG-only modes, ≥3 h1–h3 headings, ≥1000px editor area, no text overlap), scrollspy highlight, click-to-jump; heading data and gates come from store.listToc and util/outlineRail.js.
@@ -46,6 +47,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v1.1.1: C-65 — the rail marks itself data-editor-overlay-right so a centred Full width table never slides under it.
 //   - 2026-10-15 v1.1.0: C-38 T-006 N4 b — the current item's marker
 //     tick and the focus ring follow the system accent instead of the
 //     theme colours.
