@@ -36,13 +36,13 @@
 //   fonts from the chrome tokens) that pele SVG roots reference — a theme
 //   switch changes the variables and recolors every diagram with zero
 //   re-renders, so the pipeline's SVG cache key is code-only.
-//   v1.3.0 - 2026-10-17 C-54 (user: «чини»): light themes
+//   v1.3.0 - 2026-10-17 C-54 (user: "fix it"): light themes
 //   draw nodes as white cards again (surface lighter than the panel, border
 //   ≥ 3:1) instead of the grey T-012 blend; edge labels and label boxes
 //   take the panel colour with ≥ 4.5:1 text (labelText) — no more black
 //   boxes on dark panels.
-//   v1.2.0 - 2026-10-16 C-51 T-012 (user: «в темной теме у
-//   мермейд явно проблемы с контрастностью блоков»): node colours are now
+//   v1.2.0 - 2026-10-16 C-51 T-012 (user: "in the dark theme
+//   mermaid clearly has block contrast problems"): node colours are now
 //   derived RELATIVE TO THE CODE-BLOCK PANEL (the background diagram SVGs
 //   actually sit on), not the page tokens — see nodeContrastColors.
 //   readActiveThemeTokens composites translucent CSS values over the theme
@@ -287,8 +287,8 @@ export const readActiveThemeTokens = () => {
 // END_BLOCK_DIAGRAM_THEME_TOKENS
 
 // START_BLOCK_DIAGRAM_NODE_CONTRAST
-// C-51 T-012 (user 2026-10-16: «в темной теме у мермейд явно проблемы с
-// контрастностью блоков»): diagram node shapes sit on the CODE-BLOCK PANEL
+// C-51 T-012 (user 2026-10-16: "in the dark theme mermaid clearly has
+// block contrast problems"): diagram node shapes sit on the CODE-BLOCK PANEL
 // (the SVG's --codeBlockBgColor background, see muya's
 // ag-container-preview CSS), not on the page background — most dark themes
 // ship --floatBgColor == --codeBlockBgColor with hairline borders, so the

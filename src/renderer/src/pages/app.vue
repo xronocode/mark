@@ -294,8 +294,8 @@ const setupDragDropHandler = () => {
   return () => window.removeEventListener('dragover', onDragOver, false)
 }
 
-// C-15 Phase W QA (Nurik): "ctrl+zoom должен изменять размер шрифта, а не
-// зумить внутренний фрейм". Ctrl+wheel and Ctrl+=/-/0 drive the editor
+// C-15 Phase W QA (Nurik): "ctrl+zoom should change the font size, not
+// zoom the inner frame". Ctrl+wheel and Ctrl+=/-/0 drive the editor
 // fontSize preference (live via editor.vue watcher, debounced persistence)
 // instead of --content-zoom, which scaled the whole editor surface and
 // produced a stray horizontal scrollbar at zoom > 1.
