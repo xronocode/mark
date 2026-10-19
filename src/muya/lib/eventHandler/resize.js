@@ -1,20 +1,21 @@
 // FILE: src/muya/lib/eventHandler/resize.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Re-align table viewports and code-block line-number gutters when editor dimensions or fonts change.
-//   SCOPE: Instance-scoped throttled window/container resize and font completion listeners; table refresh always runs, gutter refresh follows codeBlockLineNumbers; destroy detaches every listener.
-//   DEPENDS: muya utils throttle; contentState.resizeLineNumber(forceAll); tableResize.refreshTableSurfaces.
+//   PURPOSE: Re-align table viewports and gutters when owning editor, scroller, outline or font geometry changes.
+//   SCOPE: Instance-scoped throttled window/owned-surface resize and font completion listeners; observe outline visibility without a column resize; table refresh always runs, optional gutters follow their setting; destroy detaches all observers/listeners.
+//   DEPENDS: muya throttle; contentState.resizeLineNumber; tableResize.refreshTableSurfaces; owning editor scroller/outline DOM surfaces.
 //   LINKS: .grace/graph/runtime.xml M-012 fn-resizeSurfaces; .grace/verification/runtime.xml V-M-012 scenario-20 and scenario-69; C-38 T-005; C-71.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - Resize class: refresh table viewports and optional gutters on container/window/font changes; destroy detaches listeners and observer.
+//   default - Resize: observe its column, scroller and outline; refresh table/optional gutter geometry; detach on destroy.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-19 C-71: table layout refresh also runs
+//   LAST_CHANGE: v2.2.0 - 2026-10-19: late owning outline visibility and scroller changes refresh available table geometry without a window/column resize.
+//   PREV: v2.1.0 - 2026-10-19 C-71: table layout refresh also runs
 //   with line numbers disabled; font loading completion and container
 //   resize keep centered tables aligned without Markdown edits.
 //   v2.0.0 - 2026-10-15 C-38 T-005 (#1648): listener active again.
@@ -55,7 +56,15 @@ class Resize {
     // window resize event — observe the container itself when available.
     if (typeof ResizeObserver !== 'undefined') {
       this.observer = new ResizeObserver(this.listener)
-      this.observer.observe(this.muya.container)
+      // The text column can stay 750px wide while its viewport changes.
+      // Outline v-show changes its box between zero and a visible width,
+      // without resizing the column or dispatching a window resize.
+      const scroller = this.muya.container.closest?.('.editor-component')
+      const overlay = this.muya.container.closest?.('.editor-with-tabs')
+        ?.querySelector('[data-editor-overlay-right]')
+      for (const surface of new Set([this.muya.container, scroller, overlay])) {
+        if (surface) this.observer.observe(surface)
+      }
     }
     // A late web-font swap re-wraps code without resizing anything; the
     // measured heights go stale the moment the real font lands.

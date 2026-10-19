@@ -6624,7 +6624,11 @@
           scenario-69 (C-71): Expanded tables center within the available
           editor viewport through resizes, sidebar changes and late fonts;
           own-editor outline bounds and scrolled content coordinates are
-          respected. CSS auto margins avoid stale natural-width offsets;
+          respected. Late owning outline show/hide is observed even when
+          the column/window width stays fixed; scroller size and scrollbar
+          changes use the actual client viewport. A real-browser regression
+          reproduced the CI 114.5px stale offset before the follow-up repair.
+          CSS auto margins avoid stale natural-width offsets;
           oversized tables retain their 24px gutter and editor scrollbar.
           The 600px-window viewer exposes labeled magnifier zoom controls
           and working zoom-in/out/fit clicks. Every image toolbar label in
