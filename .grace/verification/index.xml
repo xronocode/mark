@@ -1,5 +1,6 @@
 <GraceVerificationIndex graceVersion='4.0'>
   <VerificationDocuments>
+    <!-- V-M-012 scenario-70 covers Shift-arrow selection across overlapping passive hover/action panels. -->
     <!-- C-63: V-M-046 scenario-13 enforces the footnotes and appearance WebKit projects. -->
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>

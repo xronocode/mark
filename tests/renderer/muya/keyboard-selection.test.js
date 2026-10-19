@@ -1,8 +1,8 @@
 // FILE: tests/renderer/muya/keyboard-selection.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Protect native vertical selection and selection notifications from passive format-toolbar interception.
-//   SCOPE: Shift+Up/Down event cancellation, model/DOM selection preservation, state notifications and active-picker ownership.
+//   SCOPE: Shift+Up/Down event cancellation, overlapping passive toolbar/hover panels, model/DOM selection preservation, state notifications and active-picker ownership.
 //   DEPENDS: Muya Keyboard, jsdom selection, Vitest.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -10,11 +10,12 @@
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
 //   cleanups - Removes DOM listeners and the harness editing host after each case.
-//   createHarness - Builds an editing host with a real non-collapsed DOM selection and configurable shown tools.
+//   createHarness - Builds an editing host with a real non-collapsed DOM selection and configurable passive/active shown tools.
 //   sendKey - Dispatches a cancelable keyboard event to the editor.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - Verify vertical selection bypasses the passive toolbar while autocomplete pickers retain arrow keys.
+//   LAST_CHANGE: v1.1.0 - Reproduce Shift-arrow blocking when a passive hover/action panel overlaps the format toolbar.
+//   PREV: v1.0.0 - Verify vertical selection bypasses the passive toolbar while autocomplete pickers retain arrow keys.
 // END_CHANGE_SUMMARY
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -94,8 +95,24 @@ describe('vertical keyboard selection', () => {
     expect(window.getSelection().toString()).toBe('select')
   })
 
+  it.each([
+    'ag-link-tools', 'ag-footnote-tool', 'ag-table-bar-tools', 'ag-image-toolbar'
+  ])('%s does not take Shift-arrow ownership from the format toolbar', name => {
+    const { muya, anchor, focus } = createHarness(['ag-format-picker', name])
+    for (const key of ['ArrowUp', 'ArrowDown']) {
+      expect(sendKey(muya.container, 'keydown', key).defaultPrevented).toBe(false)
+      sendKey(muya.container, 'keyup', key)
+      vi.runOnlyPendingTimers()
+    }
+    expect(muya.contentState.arrowHandler).toHaveBeenCalledTimes(2)
+    expect(muya.dispatchSelectionChange).toHaveBeenCalledTimes(2)
+    expect(muya.dispatchSelectionFormats).toHaveBeenCalledTimes(2)
+    expect(muya.contentState.cursor).toEqual({ anchor, focus })
+    expect(window.getSelection().toString()).toBe('select')
+  })
+
   it.each(['ag-quick-insert', 'ag-emoji-picker', 'ag-link-path-picker'])('%s retains ownership of vertical keys', name => {
-    const { muya } = createHarness(['ag-format-picker', name])
+    const { muya } = createHarness(['ag-format-picker', 'ag-link-tools', name])
     expect(sendKey(muya.container, 'keydown', 'ArrowDown').defaultPrevented).toBe(true)
     sendKey(muya.container, 'keyup', 'ArrowDown')
     vi.runOnlyPendingTimers()

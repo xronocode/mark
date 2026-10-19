@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/eventHandler/keyboard.js
-// VERSION: 1.6.0
+// VERSION: 1.6.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Route Muya keyboard events to editing commands, including layout-independent undo and redo.
-//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, native Shift+Up/Down selection with the passive format toolbar, direct Muya history shortcuts, and leaving keys alone (keydown AND keyup) when expand/appearance buttons hold focus (C-62).
+//   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, native Shift+Up/Down selection with overlapping passive panels, direct Muya history shortcuts, and leaving keys alone (keydown AND keyup) when expand/appearance buttons hold focus (C-62).
 //   DEPENDS: Muya event center/content state, selection helpers, editor config, emoji UI.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenarios 10 and 70; .grace/changes/active/C-51 T-006 and T-010 (BLOCK_KEYBOARD_EXPAND_BUTTON).
 //   ROLE: RUNTIME
@@ -10,11 +10,12 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - Keyboard class; preserves native button keys and vertical selection while routing active-picker navigation.
+//   default - Keyboard class; preserves native button keys and vertical selection across passive panels while routing active-picker navigation.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-19: keep native Shift+Up/Down and host selection updates working while the passive format toolbar is visible.
+//   LAST_CHANGE: v1.6.1 - 2026-10-19 FIX-001 follow-up: passive hover/action panels may overlap the format toolbar without taking Shift-arrow selection.
+//   PREV: v1.6.0 - 2026-10-19: keep native Shift+Up/Down and host selection updates working while the passive format toolbar is visible.
 //   PREV: v1.5.0 - 2026-10-18 C-62: extend native-button keyboard isolation to the diagram appearance control.
 //   PREV: v1.4.0 - 2026-10-16 C-51 T-010: the expand-button key
 //   guard now covers KEYUP too (isExpandButtonEvent, shared with keydown).
@@ -67,13 +68,21 @@ const isExpandButtonEvent = (event) =>
 // END_BLOCK_KEYBOARD_EXPAND_BUTTON
 
 // START_BLOCK_NATIVE_VERTICAL_SELECTION
-// The format toolbar follows a text selection; it has no arrow-key menu.
-// Let the browser extend that selection, while actual autocomplete pickers
-// retain their existing navigation keys even if the toolbar is also shown.
+// These panels have click actions, not arrow-key menus. A hovered link or
+// footnote can coexist with the format toolbar and linger during dismissal;
+// their timing must not take native Shift-arrow selection from the editor.
+// Actual autocomplete pickers and unknown tools retain their existing keys.
+const PASSIVE_SELECTION_FLOATS = new Set([
+  'ag-format-picker',
+  'ag-link-tools',
+  'ag-footnote-tool',
+  'ag-table-bar-tools',
+  'ag-image-toolbar'
+])
 const isNativeVerticalSelection = (event, shownFloat) =>
   event.shiftKey &&
   (event.key === EVENT_KEYS.ArrowUp || event.key === EVENT_KEYS.ArrowDown) &&
-  Object.keys(shownFloat).every(name => name === 'ag-format-picker')
+  Object.keys(shownFloat).every(name => PASSIVE_SELECTION_FLOATS.has(name))
 // END_BLOCK_NATIVE_VERTICAL_SELECTION
 
 class Keyboard {
