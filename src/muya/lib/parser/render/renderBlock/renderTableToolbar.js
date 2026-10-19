@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderTableToolbar.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-65 T-002 the TABLE toolbar — a pill of the C-56 family (div.ag-block-toolbar.ag-table-toolbar) with three icon actions (Full width ↔ Fit to page toggle, Copy as image — C-70, Open full screen) rendered as a direct child of every table figure, REPLACING the standalone button.ag-block-expand glyph tables carried since C-51.
 //   SCOPE: The pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label, the hidden hover-reveal label span, the active state class and the per-state toggle icon) and the button selector constant the capture-phase routing keys on. Placement lives in renderContainerBlock.js START_BLOCK_TABLE_TOOLBAR_AND_CAPTION (ABOVE the table, right edge on the text-column edge); looks in the C-65 CSS section of lib/assets/styles/index.css; click routing lives in lib/tableResize/index.js (capture phase — clickEvent.js never sees these buttons); the toggle's live label/icon swap lives in TableResize.updateToolbarToggleDom. tableCue.syncTableCue gates the width toggle on actual text-column overflow; Open full screen keeps the separate expandNeed.js gate through ag-expand-needed. Copy as image remains available on fitting tables.
-//   DEPENDS: muya snabbdom h; muya options.t (tableToolbar.fullWidth / tableToolbar.fitToPage — localized in the 10 locales — and blockToolbar.openFullScreen, shared with the diagram pill); renderBlockToolbar.TOOLBAR_EXPAND_ICON_PATH (the same mockup glyph).
-//   LINKS: .grace/changes/active/C-65 T-002; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-64 (the C-56 family) and scenario-66; renderBlockToolbar.js (the family the pill reuses); renderExpandButton.js (the standalone glyph tables no longer render); expandNeed.js (the need gate); keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON (every button carries the ag-block-expand family class so Tab/Enter/arrows belong to the button).
+//   DEPENDS: muya snabbdom h; muya options.t (tableToolbar.fullWidth / tableToolbar.fitToPage — localized in the 10 locales — and blockToolbar.openFullScreen, shared with the diagram pill); renderBlockToolbar glyphs and toolbarLabelEvents (shared cumulative inline-label reveal).
+//   LINKS: .grace/changes/active/C-TOOLBAR-LABELS; .grace/changes/active/C-TABLE-FOOTER; .grace/changes/active/C-65 T-002; .grace/graph/runtime.xml M-012 fn-toolbarLabelVisits; .grace/verification/runtime.xml V-M-012 scenario-toolbar-label-visits, scenario-table-footer and scenario-66; renderBlockToolbar.js (shared glyphs and visit hooks); expandNeed.js (viewer need gate); keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON (button key ownership).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,11 +14,12 @@
 //   TABLE_TOOLBAR_BUTTON_SELECTOR - selector shared by the two table buttons ("button.ag-table-toolbar-btn" — routed by lib/tableResize capture-phase handlers; the buttons ALSO carry the ag-block-expand family class so the keyboard.js key guard covers them, but NOT dataset.blockToolbarAction, so clickEvent.js's pill branch can never misroute them).
 //   TOOLBAR_TABLE_FULLWIDTH_ICON_PATH - the Full width glyph (arrows out to both edges, 16-grid 1.5 stroke).
 //   TOOLBAR_TABLE_FIT_ICON_PATH - the Fit to page glyph (arrows collapsing inward).
-//   default - renderTableToolbar(t, { fullWidth }) - the pill vnode: the width-need-gated toggle button (ag-table-toolbar-toggle, + ag-table-toolbar-active and the fit icon when the mode is on), the C-70 Copy as image button (ag-block-toolbar-copy ag-table-toolbar-copy, the diagram pill's glyph and label), then the Open full screen button (ag-block-toolbar-expand, viewer-need-gated by CSS exactly like the diagram pill's third action).
+//   default - renderTableToolbar(t, { fullWidth }) - the pill vnode with panel-local cumulative labels: the width-need-gated toggle, Copy as image and viewer-need-gated Open full screen.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: document the measured width-toggle gate; fitting tables retain Copy as image.
+//   LAST_CHANGE: v1.3.0 - 2026-10-20 C-TOOLBAR-LABELS: share panel-local cumulative label reveal with diagram toolbars.
+//   PREV: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: document the measured width-toggle gate; fitting tables retain Copy as image.
 //   PREV: v1.1.0 - 2026-10-19 C-70: «Copy as image» joins the pill
 //   between the toggle and Open full screen (same glyph and locale key as
 //   the diagram pill); TableResize routes it to muya-diagram-export.
@@ -36,7 +37,7 @@
 // END_CHANGE_SUMMARY
 
 import { h } from '../snabbdom'
-import { TOOLBAR_EXPAND_ICON_PATH, TOOLBAR_COPY_ICON_RECT, TOOLBAR_COPY_ICON_PATHS } from './renderBlockToolbar'
+import { TOOLBAR_EXPAND_ICON_PATH, TOOLBAR_COPY_ICON_RECT, TOOLBAR_COPY_ICON_PATHS, toolbarLabelEvents } from './renderBlockToolbar'
 
 export const TABLE_TOOLBAR_SELECTOR = 'div.ag-block-toolbar.ag-table-toolbar'
 export const TABLE_TOOLBAR_BUTTON_SELECTOR = 'button.ag-table-toolbar-btn'
@@ -79,14 +80,13 @@ const renderToolbarButton = (className, action, label, iconPath) =>
     dataset: { tableToolbarAction: action }
   }, [
     renderIcon(Array.isArray(iconPath) ? iconPath : [h('path', { attrs: { d: iconPath } })]),
-    // Variant C family: the text label sits next to the icon and is
-    // revealed by the button's own hover (CSS), keeping the resting pill
-    // compact.
+    // A visited label stays open until the pointer leaves the whole pill.
     h('span.ag-block-toolbar-label', label)
   ])
 
 const renderTableToolbar = (t, { fullWidth = false } = {}) => h(TABLE_TOOLBAR_SELECTOR, {
-  attrs: { contenteditable: 'false' }
+  attrs: { contenteditable: 'false' },
+  on: toolbarLabelEvents
 }, [
   // Full width ↔ Fit to page — the per-table R-6 mode. The active state
   // swaps icon, label and the ag-table-toolbar-active class; TableResize

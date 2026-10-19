@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The C-56 T-005 diagram corner toolbar — one hover pill (user choice 2026-10-18, approved mockup variant C) with three same-family icon actions (Edit source, Copy as image, Open full screen) rendered as a direct child of Pele diagram (```mermaid) and Vega-Lite chart figures, replacing the old PNG edit pencil and the standalone expand glyph on those two roles only.
-//   SCOPE: the pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label, the hidden hover-reveal label span) and syncBlockToolbarState — the post-render pass that keeps the Copy as image button DISABLED while the figure's preview carries no rendered SVG (corner-4; a keep-last-good stale SVG counts as rendered and exports). Placement lives in renderContainerBlock.js START_BLOCK_TOOLBAR_RENDER; looks in the C-56 T-005 section of lib/assets/styles/index.css; click routing in eventHandler/clickEvent.js START_BLOCK_TOOLBAR_CLICK; the Open-full-screen action keeps the expandNeed.js gate through the figure's ag-expand-needed class.
+//   SCOPE: the pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label), panel-local cumulative inline label reveal shared with tables, and syncBlockToolbarState — the post-render pass that keeps the Copy as image button DISABLED while the figure's preview carries no rendered SVG (corner-4; a keep-last-good stale SVG counts as rendered and exports). Visited labels stay open across adjacent buttons and reset on whole-panel pointer/focus exit. Placement lives in renderContainerBlock.js START_BLOCK_TOOLBAR_RENDER; looks in the C-56 T-005 section of lib/assets/styles/index.css; click routing in eventHandler/clickEvent.js START_BLOCK_TOOLBAR_CLICK; the Open-full-screen action keeps the expandNeed.js gate through the figure's ag-expand-needed class.
 //   DEPENDS: muya snabbdom h; muya options.t (blockToolbar.editSource / copyImage / openFullScreen — localized in the 10 locales).
-//   LINKS: .grace/changes/active/C-56 T-005; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-64; renderExpandButton.js (the standalone twin flowchart/sequence/plantuml figures and tables keep); expandNeed.js updateFigureExpandNeed (the syncBlockToolbarState call site); clickEvent.js (routing); keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON (the key guard — every pill button carries the ag-block-expand family class so Tab/Enter/arrows and keyups belong to the button, and the `figure > button.ag-block-expand` CSS rules cannot match the nested pill buttons).
+//   LINKS: .grace/changes/active/C-TOOLBAR-LABELS; .grace/changes/active/C-56 T-005; .grace/graph/runtime.xml M-012 fn-toolbarLabelVisits; .grace/verification/runtime.xml V-M-012 scenario-toolbar-label-visits and scenario-64; renderExpandButton.js (standalone flowchart/sequence/plantuml controls); expandNeed.js (copy state); clickEvent.js (action routing); keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON (button key ownership).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -17,11 +17,13 @@
 //   BLOCK_TOOLBAR_BUTTON_SELECTOR - selector shared by the three pill buttons ("button.ag-block-expand.ag-block-toolbar-btn" — the ag-block-expand family class is the keyboard.js key-guard hook, NOT the click route: clickEvent.js routes by data-block-toolbar-action first).
 //   TOOLBAR_EDIT_ICON_PATH / TOOLBAR_COPY_ICON_RECT + TOOLBAR_COPY_ICON_PATHS / TOOLBAR_EXPAND_ICON_PATH - the exact mockup glyph geometry (16×16 viewBox, 1.5 stroke, round caps/joins), pinned by tests/renderer/muya/block-toolbar.test.js.
 //   syncBlockToolbarState - figure → toggle the pill copy button's `disabled` per whether div.ag-container-preview holds an svg; no-op without a pill (called from expandNeed.js updateFigureExpandNeed after every render path, pele insert and vega embed).
+//   toolbarLabelEvents - shared vnode event hooks: accumulate visited button labels within one panel; reset on whole-panel pointer/focus exit without global listeners or document writes.
 //   default - renderBlockToolbar(t, leading = []) - the pill vnode: optional leading controls (C-56 T-007: the C-62 appearance button on Mermaid figures), then three buttons (ag-block-toolbar-edit / -copy / -expand), each with title + aria-label from the blockToolbar.* strings, tabindex 0, the icon and the hidden label span; the expand button's VISIBILITY stays need-gated by CSS (display:none unless the figure carries ag-expand-needed).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-70: syncBlockToolbarState keeps a table figure's Copy as image enabled (tables have no preview SVG).
+//   LAST_CHANGE: v1.3.0 - 2026-10-20 C-TOOLBAR-LABELS: visited labels stay open while traversing a table/diagram panel, then reset on leaving it.
+//   PREV: v1.2.0 - 2026-10-19 C-70: syncBlockToolbarState keeps a table figure's Copy as image enabled (tables have no preview SVG).
 //   PREV: v1.1.0 - 2026-10-18 C-56 T-007: optional `leading`
 //   vnodes render before Edit source, so the C-62 appearance control
 //   joins the pill and its hover reveal.
@@ -78,6 +80,35 @@ export const syncBlockToolbarState = (figure) => {
 }
 // END_BLOCK_TOOLBAR_STATE
 
+// START_BLOCK_TOOLBAR_LABEL_VISITS
+// The state belongs to the live buttons, so panels cannot affect each
+// other and replacing a toolbar naturally starts a compact visit.
+const revealToolbarLabel = (event) => {
+  const panel = event.currentTarget
+  const button = event.target && event.target.closest
+    ? event.target.closest('button.ag-block-toolbar-btn')
+    : null
+  if (button && button.parentElement === panel && !button.disabled) {
+    button.classList.add('ag-toolbar-label-open')
+  }
+}
+
+const resetToolbarLabels = (event) => {
+  for (const button of event.currentTarget.querySelectorAll('button.ag-toolbar-label-open')) {
+    button.classList.remove('ag-toolbar-label-open')
+  }
+}
+
+export const toolbarLabelEvents = {
+  mouseover: revealToolbarLabel,
+  mouseleave: resetToolbarLabels,
+  focusin: revealToolbarLabel,
+  focusout: (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) resetToolbarLabels(event)
+  }
+}
+// END_BLOCK_TOOLBAR_LABEL_VISITS
+
 // START_BLOCK_TOOLBAR_VNODE
 // 16-grid stroke icon (viewBox 0 0 16 16, currentColor, 1.5 stroke, round
 // caps/joins — the mockup's exact geometry).
@@ -108,13 +139,13 @@ const renderToolbarButton = (action, className, label, iconChildren) =>
     dataset: { blockToolbarAction: action }
   }, [
     renderIcon(iconChildren),
-    // Variant C: the text label sits next to the icon and is revealed by
-    // the button's own hover (CSS), keeping the resting pill compact.
+    // Visited labels remain visible until the pointer leaves this panel.
     h('span.ag-block-toolbar-label', label)
   ])
 
 const renderBlockToolbar = (t, leading = []) => h(BLOCK_TOOLBAR_SELECTOR, {
-  attrs: { contenteditable: 'false' }
+  attrs: { contenteditable: 'false' },
+  on: toolbarLabelEvents
 }, [
   // C-56 T-007: role-specific leading controls (the C-62 appearance
   // button on Mermaid figures) share the pill's hover reveal.

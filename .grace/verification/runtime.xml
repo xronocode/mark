@@ -6695,6 +6695,17 @@
           invalid column descriptors, missing surfaces, pointer capture,
           reset persistence and C-70 copy-image capture routing.
         </Scenario>
+        <scenario-toolbar-label-visits>
+          C-TOOLBAR-LABELS: real pointer traversal over table, Mermaid and
+          Vega-Lite panels retains every earlier visited inline label.
+          Prior button widths and total panel width never shrink while
+          traversing; the right anchor stays fixed. Whole-panel exit resets
+          all visited labels, and panels do not share visit state. DOM
+          event tests cover icon descendants, disabled buttons, intra-panel
+          focus moves and external/null focus exits. No Markdown or saved
+          state changes. Tests: table-toolbar-labels.spec.ts in Chromium
+          and the existing webkit-tables project; block-toolbar.test.js.
+        </scenario-toolbar-label-visits>
         <scenario-table-footer>
           C-TABLE-FOOTER: the noneditable counter
           follows the table inside its scroll block, before the native
