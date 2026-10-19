@@ -1,5 +1,5 @@
 // FILE: tests/renderer/publication-privacy.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Guard the public boundary for operational records and legacy preference examples.
 //   SCOPE: Reject captured profiles and private operations; validate synthetic paths and exact fixture hashes.
@@ -11,13 +11,13 @@
 // START_MODULE_MAP
 //   root - public repository root resolved from the test location
 //   fixtures - retained public fixture directory
-//   collectFixtureFiles - recursively list the public fixture corpus
-//   readFixtureManifest - parse unique SHA-256 and byte-size records
+//   collectFixtureFiles - recursively list the corpus with portable manifest path separators
+//   readFixtureManifest - parse unique SHA-256 and size records with LF or CRLF delimiters
 // END_MODULE_MAP
 
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { dirname, relative, resolve } from 'node:path'
+import { dirname, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
@@ -28,13 +28,13 @@ const fixtures = resolve(root, 'fixtures')
 function collectFixtureFiles (directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const path = resolve(directory, entry.name)
-    return entry.isDirectory() ? collectFixtureFiles(path) : [relative(fixtures, path)]
+    return entry.isDirectory() ? collectFixtureFiles(path) : [relative(fixtures, path).split(sep).join('/')]
   }).sort()
 }
 
 function readFixtureManifest () {
   const records = new Map()
-  for (const line of readFileSync(resolve(fixtures, 'fixture-pin.lock'), 'utf8').split('\n')) {
+  for (const line of readFileSync(resolve(fixtures, 'fixture-pin.lock'), 'utf8').split(/\r?\n/)) {
     if (!line.trim() || line.startsWith('#')) continue
     const match = /^([a-f0-9]{64})\s+(\d+)\s+(.+)$/.exec(line)
     expect(match, 'valid fixture manifest record').not.toBeNull()
@@ -95,6 +95,7 @@ describe('public operational-record boundary', () => {
 // END_BLOCK_PUBLICATION_BOUNDARY_SUITE
 
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - Also prevent republishing the private owner backlog and table-copy discussion previews.
+//   LAST_CHANGE: v1.2.0 - Normalize native separators and parse CRLF manifests; Git attributes preserve exact fixture bytes on Windows.
+//   PREVIOUS_CHANGE: v1.1.0 - Also prevent republishing the private owner backlog and table-copy discussion previews.
 //   PREVIOUS_CHANGE: v1.0.0 - Guard the owner-approved separation of private operations and captured profiles.
 // END_CHANGE_SUMMARY
