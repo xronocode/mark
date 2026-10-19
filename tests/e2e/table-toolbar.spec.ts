@@ -1,7 +1,7 @@
 // FILE: tests/e2e/table-toolbar.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-65 T-002 table toolbar and the T-004 Full width mode in the built renderer — the pill appears ABOVE the table on hover (and on keyboard focus within the figure), its right edge on the text-column edge, hidden while the caret is inside the table, the standalone glyph gone, the Open-full-screen action need-gated; Full width lays the table out from the editor's left edge with the editor scrolling horizontally while the toolbar and caption stay on the column edge, and Fit to page returns the wrapper scroll.
+//   PURPOSE: Pin table toolbar placement/keyboard access and Full width mode, retaining the toolbar on the text-column edge and the reserved caption inside its scroll block; Fit to page returns local scrolling.
 //   SCOPE: renderTableToolbar.js + renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION, the C-65 CSS section of src/muya/lib/assets/styles/index.css, and the TableResize toggle/geometry/cue paths.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, ./fixtures/helpers (bootEditor/openFileTab), the built renderer served by `npm run preview`; runs in the chromium project and the webkit-tables project.
 //   LINKS: .grace/changes/active/C-65 T-002/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; unit twins tests/renderer/muya/table-cue.test.js + table-layout-persistence.test.js; persistence e2e table-width-persistence.spec.ts.
@@ -13,13 +13,14 @@
 //   wideHeader/wideRow/WIDE_18COL_MD - an 18-column fixture wider than the window in Full width mode.
 //   NARROW_MD - a 2x2 fixture (the no-need / no-cue corner).
 //   DOC_PATH - test helper (DOC_PATH).
-//   WIDE_18COL_MD - test helper (WIDE_18COL_MD).
+//   WIDE_18COL_MD - 18-column overflow fixture with the counter anchored inside the scroll viewport.
 //   wideHeader - test helper (wideHeader).
 //   wideRow - test helper (wideRow).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-19 Full width is the default for a wide table: it opens in the mode (toggle reads «Fit to page»), one click fits it, a second one returns it.
+//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER: counter belongs to the scroll block; the toolbar retains its text-column anchor.
+//   v1.1.0 - 2026-10-19 Full width is the default for a wide table: it opens in the mode (toggle reads «Fit to page»), one click fits it, a second one returns it.
 //   v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.0.0 - 2026-10-18 C-65: new — every case fails without
 //   the toolbar vnode/CSS (no pill), the need gate pin fails if the expand
@@ -93,6 +94,7 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
       tableTop: tableRect.top,
       tableLeft: tableRect.left,
       captionRight: caption.getBoundingClientRect().right,
+      wrapperRight: wrapper.getBoundingClientRect().right,
       captionText: caption.textContent || '',
       scrollerScrollWidth: scroller.scrollWidth,
       scrollerClientWidth: scroller.clientWidth,
@@ -144,8 +146,8 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(g!.toolbarBottom).toBeLessThanOrEqual(g!.tableTop + 2)
     expect(g!.toolbarTop).toBeLessThan(g!.tableTop)
     expect(Math.abs(g!.toolbarRight - g!.columnRight)).toBeLessThanOrEqual(1)
-    // The caption shares the same edge anchor.
-    expect(Math.abs(g!.captionRight - g!.columnRight)).toBeLessThanOrEqual(1)
+    // The counter stays inside its own scroll block.
+    expect(Math.abs(g!.captionRight - g!.wrapperRight)).toBeLessThanOrEqual(1)
 
     // Keyboard focus within the figure reveals it too (focus-within).
     await page.evaluate(() => {
@@ -197,9 +199,9 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     // …and is wider than the window: the EDITOR scroller owns the scrollbar.
     expect(g!.scrollerScrollWidth).toBeGreaterThan(g!.scrollerClientWidth + 100)
     expect(g!.computedOverflowX).toBe('visible')
-    // The toolbar and the caption stay on the text-column edge.
+    // The toolbar keeps its text-column anchor; the counter belongs to the scroll block.
     expect(Math.abs(g!.toolbarRight - g!.columnRight)).toBeLessThanOrEqual(1)
-    expect(Math.abs(g!.captionRight - g!.columnRight)).toBeLessThanOrEqual(1)
+    expect(Math.abs(g!.captionRight - g!.wrapperRight)).toBeLessThanOrEqual(1)
     // The caption reads «all N columns» and no shade is painted.
     expect(g!.captionText).toBe('all 18 columns')
     const shades = await page.evaluate(() => {

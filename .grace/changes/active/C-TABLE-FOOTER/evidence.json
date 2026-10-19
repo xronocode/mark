@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-20",
+  "status": "implemented and locally verified; protected integration, CI and owner acceptance pending",
+  "acceptedPriorScope": "The owner accepted C-71 on Mark Test C71 f17b070e before reporting this separate footer defect. Acceptance is recorded in 35f99e19 and docs/release-trains/2.5.x-next.md#c-71.",
+  "reproduction": {
+    "ownerReport": "Long-cell table in Fit to page mode: an excessive gap precedes the scrollbar, with the column counter outside and below the scroll block.",
+    "cause": "The table's block-end margin, 16px wrapper padding and external caption add separate spaces. Caption visibility previously removed its box on fitting tables.",
+    "baseline": "Four new Chromium/WebKit cases failed before repair: caption outside the wrapper and a visible Full width fitting-table counter.",
+    "interactionGuard": "A new selected-column bottom-handle hit test failed in both engines after moving the caption; a scoped z-index restores handle paint and input above the informational sticky line."
+  },
+  "implementation": "Table then noneditable caption share one scroll wrapper. Reset table block margins; reserve a 20px counter line, 2px gap and 6px scrollbar zone. Compensate actual consumed native scrollbar height so overlaid/classic/no bars retain the same footer height. Empty fitting-table captions, including Full width, remain invisible without collapsing. Sticky inline placement keeps the counter inside the scrollport; selected-column drag handles remain reachable. Existing Full width editor scroll ownership and persisted widths are retained.",
+  "verification": {
+    "focusedUnitPassed": 115,
+    "fullRendererCoverage": { "filesPassed": 336, "testsPassed": 4633, "existingSkipped": 2, "existingTodo": 3, "statements": 92.43, "branches": 85.84, "functions": 86.97, "lines": 93.5, "thresholds": "unchanged and passing" },
+    "broadBrowserBeforeFinalDragLayerRule": { "passed": 83, "scopes": ["table footer/layout/toolbar/column resize", "C-71 centering/outline/viewer/tooltips", "picture export"] },
+    "finalLayoutBrowserPassed": 48,
+    "engines": ["Chromium", "WebKit"],
+    "finalScenarios": ["counter inside wrapper before scrollbar", "2px gap", "28px footer with hidden or visible caption", "constant counter position on horizontal scroll", "unchanged normalized Markdown/saved state", "bottom drag-handle hit testing", "table editing and column resize", "existing toolbar and overflow behavior"],
+    "webkitPerformanceGate": "passed after the final drag-layer rule; thresholds unchanged",
+    "ipcTypes": "passed",
+    "rendererBuild": "passed",
+    "graceCurrent": "zero integrity errors; existing baseline/overlap warnings remain"
+  },
+  "release": "Separate follow-up admission required; no version, tag or publication authorized."
+}

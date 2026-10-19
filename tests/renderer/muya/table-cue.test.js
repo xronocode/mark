@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-cue.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 overflow cue and table toolbar — the pure «columns X–Y of N» range math (start / middle / end / fits / single column / degenerate), the caption formatting incl. the token fallback and the full-width «all N columns», the DOM state gathering and sync (caption text/visibility + shade side classes, live translator pin), the renderTableToolbar vnode (buttons, labels, active state, family classes, dataset actions, need-gated expand) and the C-65 CSS literals (toolbar above the table on the column edge, caption below it, class-gated shades, full-width breakout).
 //   SCOPE: src/muya/lib/tableResize/tableCue.js, src/muya/lib/parser/render/renderBlock/renderTableToolbar.js, the C-65 section of lib/assets/styles/index.css, and the START_BLOCK_TABLE_TOOLBAR_AND_CAPTION placement in renderContainerBlock.js.
@@ -14,13 +14,14 @@
 //   t - params-aware translator, compared with throwing/non-string/token-preserving fallback paths.
 //   identityT - fake translator that ignores params (the fallback path exercises the token replacement).
 //   columnsOf - builds a contiguous column geometry array.
-//   buildFigure - jsdom figure[data-role=TABLE] > div.ag-table-scroll > table with a thead row, with stubbed rects and clientWidth.
+//   buildFigure - jsdom table/caption scroll-block fixture with header, native scrollbar metrics and viewport geometry.
 //   rangeOf - visibleColumnRange over a columnsOf geometry and a span.
 //   NINE - test helper (NINE).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-71: CSS centers full-width tables;
+//   LAST_CHANGE: v1.3.0 - 2026-10-20 C-TABLE-FOOTER: caption inside the wrapper, fitting expanded tables clear text, native scrollbar-space compensation retains a fixed footer.
+//   v1.2.0 - 2026-10-19 C-71: CSS centers full-width tables;
 //   integrate reviewed c65cov cases for complete cue/toolbar coverage.
 //   v1.1.0 - 2026-10-19 C-70: three table toolbar actions.
 //   C-65 R-7 coverage completion: the
@@ -117,7 +118,7 @@ const buildFigure = ({ role = 'TABLE', headerTexts = ['A', 'B', 'C'], wrapperRec
   figure.appendChild(wrapper)
   const caption = document.createElement('div')
   caption.className = TABLE_CAPTION_CLASS
-  figure.appendChild(caption)
+  wrapper.appendChild(caption)
   wrapper.getBoundingClientRect = () => ({ left: wrapperRect.left, width: wrapperRect.width })
   Object.defineProperty(wrapper, 'clientWidth', {
     value: clientWidth !== null ? clientWidth : wrapperRect.width,
@@ -128,7 +129,7 @@ const buildFigure = ({ role = 'TABLE', headerTexts = ['A', 'B', 'C'], wrapperRec
   cells.forEach((cell, i) => {
     cell.getBoundingClientRect = () => ({ left: rects[i].left, width: rects[i].width })
   })
-  return { figure, wrapper, caption, row }
+  return { figure, wrapper, table, caption, row }
 }
 // END_BLOCK_CUE_FIXTURES
 
@@ -338,6 +339,30 @@ describe('table cue DOM state + sync (C-65 T-003)', () => {
     expect(wrapper.classList.contains(TABLE_CUE_RIGHT_CLASS)).toBe(false)
   })
 
+  it('a Full width table fitting its measured viewport clears the reserved caption', () => {
+    const { figure, table, caption } = buildFigure({ fullWidth: true })
+    table.getBoundingClientRect = () => ({ width: 500 })
+    caption.textContent = 'stale'
+    caption.classList.add(TABLE_CAPTION_ON_CLASS)
+    expect(syncTableCue(figure, t).fits).toBe(true)
+    expect(caption.textContent).toBe('')
+    expect(caption.classList.contains(TABLE_CAPTION_ON_CLASS)).toBe(false)
+    expect(caption.parentElement.className).toContain('ag-table-scroll')
+  })
+
+  it('tracks consumed and overlaid native scrollbar space without changing table content', () => {
+    const { figure, wrapper, table } = buildFigure()
+    const before = table.innerHTML
+    Object.defineProperty(wrapper, 'offsetHeight', { value: 100, configurable: true })
+    Object.defineProperty(wrapper, 'clientHeight', { value: 94, configurable: true })
+    syncTableCue(figure, t)
+    expect(wrapper.style.getPropertyValue('--ag-table-scrollbar-height')).toBe('6px')
+    Object.defineProperty(wrapper, 'clientHeight', { value: 100, configurable: true })
+    syncTableCue(figure, t)
+    expect(wrapper.style.getPropertyValue('--ag-table-scrollbar-height')).toBe('0px')
+    expect(table.innerHTML).toBe(before)
+  })
+
   it('a not-laid-out figure is a no-op (no throw, no state)', () => {
     const { figure } = buildFigure({ wrapperRect: { left: 0, width: 0 } })
     expect(syncTableCue(figure, t)).toBeNull()
@@ -461,13 +486,15 @@ describe('table cue + toolbar CSS (C-65, mockup variant E)', () => {
     expect(rule).toContain('right: 0')
   })
 
-  it('pins the caption below the table, right-aligned, hidden until filled', () => {
-    const base = css.split("figure[data-role='TABLE'] > div.ag-table-caption {")[1].split('}')[0]
-    expect(base).toContain('display: none')
+  it('keeps an invisible caption line inside the wrapper and reveals it without reflow', () => {
+    const base = css.split("figure[data-role='TABLE'] > div.ag-table-scroll > div.ag-table-caption {")[1].split('}')[0]
+    expect(base).toContain('display: block')
+    expect(base).toContain('visibility: hidden')
+    expect(base).toContain('height: 20px')
+    expect(base).toContain('position: sticky')
     expect(base).toContain('text-align: right')
-    expect(css).toContain('figure[data-role=\'TABLE\'] > div.ag-table-caption.ag-table-caption-on {')
-    const on = css.split("figure[data-role='TABLE'] > div.ag-table-caption.ag-table-caption-on {")[1].split('}')[0]
-    expect(on).toContain('display: block')
+    const on = css.split("figure[data-role='TABLE'] > div.ag-table-scroll > div.ag-table-caption.ag-table-caption-on {")[1].split('}')[0]
+    expect(on).toContain('visibility: visible')
   })
 
   it('pins the class-gated edge shades (both sides, one rule per side plus the pair)', () => {

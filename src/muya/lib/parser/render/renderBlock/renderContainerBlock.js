@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderContainerBlock.js
-// VERSION: 1.9.0
+// VERSION: 1.10.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
-//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, the C-56 T-005 corner pill on mermaid/vega-lite figures, the C-65 table toolbar + overflow caption on table figures, code-block line-number gutter, table column-resize handle) per container type; the table element is returned inside its C-39 horizontal scroll wrapper, with its C-39 T-002 session colgroup when widths are stored. C-62/C-56 T-007: nonempty Mermaid figures carry the appearance button as the pill's leading item.
+//   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, the C-56 T-005 corner pill on mermaid/vega-lite figures, the C-65 table toolbar, code-block line-number gutter, table column-resize handle) per container type; the table and reserved noneditable caption return inside one horizontal scroll wrapper, with the session colgroup when widths are stored. C-62/C-56 T-007: nonempty Mermaid figures carry the appearance button as the pill's leading item.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants + TABLE_FULL_WIDTH_CLASS).; ./renderDiagramAppearance; ./renderTableToolbar.
 //   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21, scenario-60, scenario-64 and scenario-66; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010, C-56 T-005, C-65 T-002/T-003.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
@@ -10,11 +10,12 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); a `table` block returns div.ag-table-scroll > table (plus the session colgroup when muya.tableResize has matching widths); a `th` block gets the span.ag-column-resizer handle; a fence/indent `code` block records its pre in stateRender.lineNumberPreKeys for post-render gutter measuring; mermaid/flowchart/sequence/plantuml/vega-lite figures with non-empty source and table figures get the ag-has-expand marker (C-51 T-006; visibility need-gated by expandNeed.js since T-010) — flowchart/sequence/plantuml figures carry a button.ag-block-expand child, mermaid/vega-lite figures instead carry the C-56 T-005 corner pill (div.ag-block-toolbar, replacing the PNG edit pencil and the standalone glyph; their expand action lives inside the pill under the same need gate), and TABLE figures carry the C-65 table toolbar (div.ag-block-toolbar.ag-table-toolbar ABOVE the table — the removed standalone glyph's viewer action lives in its second button) plus the overflow caption div below the table (filled by tableCue post-render; the figure also carries ag-table-full-width when the per-table C-65 mode is on). On Mermaid figures the pill leads with the C-62 appearance button (C-56 T-007).
+//   default - renderContainerBlock(parent, block, activeBlocks, matches, useCache, t); tables render a scroll wrapper containing the table/colgroup and reserved caption footer, with toolbar/front icon on the figure; th cells carry resize handles; code blocks record line-number surfaces; diagram/table figures retain need-gated viewer affordances and Mermaid appearance controls.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.9.0 - 2026-10-18 C-65 T-002/T-003: table figures render
+//   LAST_CHANGE: v1.10.0 - 2026-10-20 C-TABLE-FOOTER: the noneditable caption is inside the scroll wrapper, after the table and before its scrollbar; fitting tables retain the same reserved footer.
+//   v1.9.0 - 2026-10-18 C-65 T-002/T-003: table figures render
 //   the C-65 table toolbar (renderTableToolbar.js) as their FIRST child —
 //   Full width ↔ Fit to page + Open full screen — REPLACING the standalone
 //   button.ag-block-expand glyph (mockup variant E: the pill sits ABOVE the
@@ -308,9 +309,8 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
       // it only on ag-expand-needed figures (corner-6). Disabled surfaces
       // (the read-only Split View mirror) render no toolbar — the pill
       // would promise interactions that are off there.
-      // C-65 T-003: the overflow caption is the LAST child, below the
-      // table — in-flow (it reserves its own space), right-aligned on the
-      // same text-column edge; tableCue.js fills/hides it post-render.
+      // C-TABLE-FOOTER: the reserved caption is rendered with the table
+      // inside its scroll wrapper below; the toolbar stays a figure child.
       // C-65 R-6: the figure carries ag-table-full-width whenever the
       // per-table mode is on, so every re-render keeps the layout by
       // construction (the measured breakout margin is re-applied by
@@ -326,9 +326,6 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
       if (tableResize && tableResize.enabled()) {
         children.unshift(renderTableToolbar(t, { fullWidth }))
       }
-      children.push(h('div.ag-table-caption', {
-        attrs: { contenteditable: 'false' }
-      }))
       // END_BLOCK_TABLE_TOOLBAR_AND_CAPTION
     }
     // END_BLOCK_EXPAND_BUTTON
@@ -460,7 +457,10 @@ export default function renderContainerBlock (parent, block, activeBlocks, match
       )
     }
     // END_BLOCK_TABLE_COLUMN_WIDTHS
-    return h('div.ag-table-scroll', {}, [h(selector, data, children)])
+    return h('div.ag-table-scroll', {}, [
+      h(selector, data, children),
+      h('div.ag-table-caption', { attrs: { contenteditable: 'false' } })
+    ])
   }
   // END_BLOCK_TABLE_SCROLL_WRAPPER
 
