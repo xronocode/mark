@@ -1,0 +1,57 @@
+{
+  "change": "C-CI-FENCE-TEARDOWN",
+  "date": "2026-10-19",
+  "integration_base": "961119104b711acc29f6ea4d54f95cd20bb10c30",
+  "scope": "Test teardown only; runtime rendering, real Guide/Muya round trips, platform jobs and coverage thresholds are preserved.",
+  "original_ci": {
+    "run": 39261695233,
+    "windows_job": 118090703643,
+    "passed_tests": 4617,
+    "errors": 2,
+    "error": "EnvironmentTeardownError importing the sequence renderer's underscore dependency after export-fence-length.test.js environment teardown"
+  },
+  "controlled_reproduction": {
+    "kind": "real-import completion invariant, not an emulation of the entire Windows runner",
+    "method": "A private Vite transform delays the real sequence module by 200ms, counts calls through the unchanged real lazy loader and asserts zero pending calls after suite teardown.",
+    "baseline": {
+      "suite_exit": 1,
+      "passed_export_assertions": 3,
+      "pending_loader_calls": 2
+    },
+    "repaired": {
+      "suite_exit": 0,
+      "passed_export_assertions": 3,
+      "pending_loader_calls": 0
+    },
+    "production_mocks_added": false
+  },
+  "repair": "Await vi.dynamicImportSettled in afterAll instead of a fixed 50ms timer, then restore console spies.",
+  "local_verification": {
+    "focused_units": {
+      "files": 3,
+      "passed": 38
+    },
+    "full_coverage": {
+      "command": "npm run test:coverage -- --maxWorkers=4",
+      "exit": 0,
+      "files": 336,
+      "passed": 4617,
+      "skipped": 2,
+      "todo": 3,
+      "statements": 92.45,
+      "branches": 85.88,
+      "functions": 86.88,
+      "lines": 93.51,
+      "thresholds_changed": false
+    }
+  },
+  "remote_acceptance": "Required on the resulting main commit after the normal guarded push; local evidence does not claim remote CI success.",
+  "release": "Published version remains 2.5.3; no version bump, tag or publication is authorized.",
+  "privacy": "Public evidence contains synthetic checks and repository-relative identities only; raw logs and fault-injection configuration stay private.",
+  "lifecycle": {
+    "local_final_gate": "passed before apply/archive; zero errors, 84 scope/heuristic warnings",
+    "apply_authorization": "Owner explicitly approved resolving this bounded failure, guarded integration and green CI on 2026-10-19.",
+    "archive_scope": "Only this new repair bundle; unrelated lifecycle reconciliation remains deferred.",
+    "remote_ci": "Still required after guarded commit/push; not claimed by applied source state."
+  }
+}

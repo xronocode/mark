@@ -5775,6 +5775,20 @@
         <Command>npx playwright test tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</Command>
       </Commands>
       <Scenarios>
+        <scenario-muya-fence-import-teardown>
+          The real Muya fence-export/Guide round-trip suite waits for
+          vi.dynamicImportSettled before restoring its console spies and
+          returning from afterAll. All chained diagram imports must finish
+          before the environment closes; a fixed elapsed-time delay is not
+          evidence of completion. Preserve all three real Markdown round-trip
+          assertions, strict unhandled-error reporting and coverage thresholds.
+          A private controlled-delay check uses the real loader, delays the
+          sequence-module transform and checks zero pending loader calls at
+          suite exit; the old 50ms boundary leaves two calls pending.
+          Command: npx vitest run tests/renderer/muya/export-fence-length.test.js.
+          Full acceptance: renderer coverage on macOS, Linux and Windows;
+          C-CI-FENCE-TEARDOWN records the original run and repaired evidence.
+        </scenario-muya-fence-import-teardown>
         <Scenario>
           scenario-1: CommonMark spec compliance: all passing tests remain green
           across every merge commit.
