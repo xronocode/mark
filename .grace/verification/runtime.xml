@@ -5706,9 +5706,11 @@
           tests/e2e/table-width-persistence.spec.ts
           tests/e2e/table-layout.spec.ts
         </Command>
-      
+
         <Command>npx vitest run tests/renderer/muya/keyboard-selection.test.js tests/renderer/muya/keyboard-undo.test.js tests/renderer/muya/block-expand-button.test.js</Command>
         <Command>npx playwright test tests/e2e/keyboard-selection.spec.ts --project=chromium --project=webkit-keyboard</Command>
+        <Command>npx vitest run tests/renderer/muya/tooltip-layout.test.js tests/renderer/muya/resize-surfaces.test.js tests/renderer/muya/table-layout-persistence.test.js</Command>
+        <Command>npx playwright test tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -6561,6 +6563,24 @@
           export transport: table/diagram copy + save, index fallback,
           failure notices); e2e: tests/e2e/diagram-export.spec.ts (C-70 cases),
           block-viewer.spec.ts (button count + Tab walk).
+        </Scenario>
+        <Scenario>
+          scenario-69 (C-71): Expanded tables center within the available
+          editor viewport through resizes, sidebar changes and late fonts;
+          own-editor outline bounds and scrolled content coordinates are
+          respected. CSS auto margins avoid stale natural-width offsets;
+          oversized tables retain their 24px gutter and editor scrollbar.
+          The 600px-window viewer exposes labeled magnifier zoom controls
+          and working zoom-in/out/fit clicks. Every image toolbar label in
+          all ten locales stays on one readable line. Image/general tooltip
+          placement clamps/flips at viewport edges, long labels wrap within
+          a bounded automatic height, and leave/removal cancels timers.
+          Element Plus labels are audited with the same locale corpus.
+          Tests: table-ui-regressions.spec.ts, tooltip-layout.test.js,
+          resize-surfaces.test.js and the extended table layout suites.
+          Reviewed c65cov additions exercise store default IO/error paths,
+          invalid column descriptors, missing surfaces, pointer capture,
+          reset persistence and C-70 copy-image capture routing.
         </Scenario>
         <Scenario>
           scenario-70: Shift+Up/Down continues native selection after the
@@ -9412,7 +9432,9 @@
           one mt_updater_check per due launch, offline rejection and
           statusNote answers silent with lastUpdateCheckAt unstamped (retried
           next launch), notice queued only for an available not-skipped
-          version. tests/e2e/update-notice.spec.ts drives the real boot
+          version. Reviewed c65cov additions also pin completed checks with
+          ISO-string clocks and the real ipcPrefs lazy import on Skip.
+          tests/e2e/update-notice.spec.ts drives the real boot
           against a mocked mt_updater_check: the notice with Update / Later /
           Skip this version after exactly one check, Later dismiss, Skip
           persisting (2.6.0 hidden, 2.6.1 shows), the offline quiet path,

@@ -43,6 +43,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
   padding: 8px 16px;
   color: var(--editorColor);
   background: var(--floatBgColor);
@@ -72,11 +73,15 @@ html.platform-darwin .ag-block-viewer-header {
 
 .ag-block-viewer-controls {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
   gap: 6px;
-  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .ag-block-viewer-btn {
+  flex-shrink: 0;
   min-width: 30px;
   height: 28px;
   padding: 0 8px;
@@ -88,6 +93,13 @@ html.platform-darwin .ag-block-viewer-header {
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
+}
+
+.ag-block-viewer-zoom-in,
+.ag-block-viewer-zoom-out {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ag-block-viewer-btn:hover {
@@ -104,9 +116,9 @@ html.platform-darwin .ag-block-viewer-header {
 /* START_BLOCK_CSS_EXPORT */
 /* C-56 picture export: the three toolbar actions (Copy as Image, Save as
  * PNG…, Save as SVG…) exist in every viewer but render only when the
- * opened source is an exportable diagram — a MERMAID (pele) figure or a
- * VEGA-LITE chart (index.js toggles ag-block-viewer-can-export in open()).
- * Tables and the follow-up diagram roles keep them hidden. */
+ * opened source is a MERMAID (pele) figure, a VEGA-LITE chart or a table
+ * (index.js toggles ag-block-viewer-can-export in open()). Other diagram
+ * roles keep them hidden. */
 .ag-block-viewer-export-btn {
   display: none;
 }

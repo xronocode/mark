@@ -1,0 +1,52 @@
+{
+  "C-71": {
+    "Date": "2026-10-19",
+    "Baseline": "Chromium and WebKit reproduced stale expanded-table centering and two-line image labels. Zoom controls worked at 800px before the change; their discoverability and narrow-window reachability were strengthened.",
+    "Implementation": "Full width now measures a guttered available viewport and lets CSS center the natural-size table. Resize/font lifecycle refresh is independent of line numbers. Geometry includes scrollLeft and only the owning outline. Viewer magnifier controls wrap at narrow widths. Intrinsic-width image/general tooltips wrap exceptionally long content, clamp/flip at viewport edges, and clean up hover timers.",
+    "UnitTests": {
+      "Passed": "4573",
+      "Files": "332",
+      "ExistingSkipped": "2",
+      "ExistingTodo": "3",
+      "Command": "npx vitest run -c vitest.int.config.mjs --coverage --maxWorkers=1"
+    },
+    "RendererCoverage": {
+      "Statements": "92.35",
+      "Branches": "85.71",
+      "Functions": "86.75",
+      "Lines": "93.43",
+      "ThresholdPolicy": "Existing committed thresholds unchanged; passing."
+    },
+    "ScopedCoverage": {
+      "Files": {
+        "File": [
+          "src/muya/lib/tableResize/index.js",
+          "src/muya/lib/tableResize/tableCue.js",
+          "src/muya/lib/parser/render/renderBlock/renderTableToolbar.js",
+          "src/renderer/src/util/tableLayoutStore.js",
+          "src/muya/lib/eventHandler/resize.js",
+          "src/muya/lib/ui/tooltip/index.js"
+        ]
+      },
+      "Tests": "151 passed",
+      "Statements": "831/831",
+      "Branches": "607/607",
+      "Functions": "101/101",
+      "Lines": "705/705",
+      "Limitation": "This is a six-file coverage result, not whole-product coverage or every modified file. CSS behavior and image/viewer controls have separate real-engine regression evidence."
+    },
+    "BrowserEvidence": "Chromium and WebKit: actual centered-table geometry with sidebar/outline across window sizes; 600px viewer zoom clicks and labels; 70 image labels across all ten locales; general and Element Plus label audit; long-label wrapping; actual image-toolbar hover wiring. Existing table toolbar and viewer keyboard/theme/export regressions remain passing.",
+    "NativeTests": "cargo llvm-cov --bin mark --locked: 436 passed, one pre-existing ignored test; first coverage inventory recorded under C-72/baseline.json.",
+    "Build": "Renderer production build and IPC typecheck passed. A local debug-only Mark Test.app bundle was built at target-test/debug/bundle/macos/Mark Test.app with updater artifacts disabled; no tag/release/publication.",
+    "Governance": "grace lint --path . --assertions current and grace status --path . --with modules --json: zero integrity errors. Existing stale baseline/overlap warnings remain visible; they do not establish whole-project GRACE readiness.",
+    "Pending": "Owner live verification of Mark Test; C-72 whole-product coverage specification remains draft after the owner requested explanation of its risks and complexity.",
+    "BrowserTests": {
+      "passed": 58,
+      "engines": [
+        "Chromium",
+        "WebKit"
+      ],
+      "command": "npx playwright test tests/e2e/table-ui-regressions.spec.ts tests/e2e/table-toolbar.spec.ts tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-tables --project=webkit-block-viewer"
+    }
+  }
+}

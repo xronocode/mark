@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/table-layout-store.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001 per-file table layout profile store — sanitize/normalize, the file-entries set/replace/delete transform, the bounded size cap, the missing-file prune (stat false / stat throws / no stat capability), the rename move, and the three IO flows (load prunes+caps+writes back, save replaces one file, move follows a rename) with an injected fake prefs IO.
 //   SCOPE: src/renderer/src/util/tableLayoutStore.js (pure transforms + IO flows with defaultIo swapped by injection).
@@ -10,13 +10,19 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   makeIo - fake prefs IO: a backing object for get, a writes recorder for set.
+//   makeIo - injected prefs IO with read/write recording; compared with default IO and failed-write behavior.
 //   ENTRY - one valid persisted entry fixture.
 //   entryFor - a widths+manual entry fixture builder.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65: new — every transform and IO
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-65 R-7 coverage completion:
+//   manual-flag derivation from the kept widths, the no-widths
+//   fullWidth-only entry, all-husk file normalization, the missing
+//   updatedAt cap tie-break by path, the absent/throwing stat capability
+//   of the default bridge, the failing load write-back and the defaultIo
+//   prefs routing of readStore/writeStore.
+//   v1.0.0 - 2026-10-18 C-65: new — every transform and IO
 //   rule of the store is pinned against a fake IO; the prune/cap cases
 //   fail without their filters, the rename case fails without the move.
 // END_CHANGE_SUMMARY
@@ -37,10 +43,13 @@ import {
   moveTableLayoutsEntry,
   normalizeStore,
   pruneMissingFiles,
+  readStore,
   saveTableLayoutsFor,
   sanitizeEntry,
-  storeWithFileEntries
+  storeWithFileEntries,
+  writeStore
 } from '@/util/tableLayoutStore'
+import { ipcPrefs } from '@/ipc/runtime'
 
 const entryFor = (widths, manual, fullWidth = false) => ({ widths, manual, fullWidth })
 
@@ -74,6 +83,17 @@ describe('pure store transforms (C-65 T-001)', () => {
     expect(sanitizeEntry([1, 2])).toBeNull()
   })
 
+  it('derives the manual flags from the kept widths when the raw entry has none', () => {
+    // No manual array: one auto flag per kept width.
+    expect(sanitizeEntry({ widths: [90, 70] })).toEqual({
+      widths: [90, 70], manual: [false, false], fullWidth: false
+    })
+    // No widths array at all: an empty-but-valid fullWidth-only entry.
+    expect(sanitizeEntry({ fullWidth: true })).toEqual({
+      widths: [], manual: [], fullWidth: true
+    })
+  })
+
   it('normalizes any raw prefs value into a valid store', () => {
     expect(normalizeStore(null)).toEqual(EMPTY_STORE)
     expect(normalizeStore('junk')).toEqual(EMPTY_STORE)
@@ -87,6 +107,17 @@ describe('pure store transforms (C-65 T-001)', () => {
     expect(Object.keys(store.files)).toEqual(['/a.md'])
     expect(store.files['/a.md']['0#2:x']).toEqual(ENTRY)
     expect(store.version).toBe(1)
+  })
+
+  it('normalization drops file entries whose every table entry sanitizes away', () => {
+    const store = normalizeStore({
+      files: {
+        '/ok.md': { '0#1:x': ENTRY },
+        '/husk.md': { '0#1:bad': { widths: [] }, '1#1:bad': 'junk' },
+        '/empty.md': {}
+      }
+    })
+    expect(Object.keys(store.files)).toEqual(['/ok.md'])
   })
 
   it('storeWithFileEntries sets, replaces and deletes (empty entries delete the file entry)', () => {
@@ -121,6 +152,16 @@ describe('pure store transforms (C-65 T-001)', () => {
     const small = capStoreFiles(normalizeStore({ files: { '/only.md': { '0#1:x': ENTRY } } }))
     expect(small.capped).toBe(false)
     expect(small.store.files['/only.md']).toBeTruthy()
+  })
+
+  it('ties on updatedAt (or a missing one) break by path, deterministically', () => {
+    const files = {}
+    for (const name of ['/d.md', '/b.md', '/c.md', '/a.md']) {
+      files[name] = { '0#1:x': ENTRY } // no updatedAt → 0 for every file
+    }
+    const { store, capped } = capStoreFiles({ version: 1, files }, 2)
+    expect(capped).toBe(true)
+    expect(Object.keys(store.files)).toEqual(['/a.md', '/b.md'])
   })
 
   it('moveFileEntry moves one path\'s entry and never invents one', () => {
@@ -181,6 +222,48 @@ describe('prune + IO flows (C-65 R-1/R-2, corner-3)', () => {
   it('a corrupted prefs read degrades to the empty store and never throws out of load', async () => {
     const io = { get: async () => { throw new Error('prefs down') }, set: async () => {} }
     await expect(loadTableLayoutsFor('/doc.md', io)).resolves.toEqual({})
+  })
+
+  it('a missing stat capability keeps every file (nothing pruned, nothing written back)', async () => {
+    const io = makeIo({ files: { '/doc.md': { '0#2:x': ENTRY } } })
+    const saved = window.fileUtils
+    try {
+      // No fileUtils at all…
+      window.fileUtils = undefined
+      expect(await loadTableLayoutsFor('/doc.md', io)).toEqual({ '0#2:x': ENTRY })
+      // …or one without a callable stat.
+      window.fileUtils = {}
+      expect(await loadTableLayoutsFor('/doc.md', io)).toEqual({ '0#2:x': ENTRY })
+      expect(io.writes.length).toBe(0)
+    } finally {
+      window.fileUtils = saved
+    }
+  })
+
+  it('a throwing default stat counts every file as gone', async () => {
+    window.fileUtils.stat.mockRejectedValue(new Error('stat io'))
+    const io = makeIo({ files: { '/doc.md': { '0#2:x': ENTRY }, '/other.md': { '0#1:y': ENTRY } } })
+    expect(await loadTableLayoutsFor('/doc.md', io)).toEqual({})
+    expect(io.writes.length).toBe(1)
+    expect(io.writes[0].value.files).toEqual({})
+  })
+
+  it('a failing write-back during load warns and still resolves the (pruned-away) entries', async () => {
+    window.fileUtils.stat.mockResolvedValue({ isFile: false })
+    const io = {
+      get: async () => ({ files: { '/doc.md': { '0#2:x': ENTRY }, '/gone.md': { '0#1:y': ENTRY } } }),
+      set: async () => { throw new Error('disk full') }
+    }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await expect(loadTableLayoutsFor('/doc.md', io)).resolves.toEqual({})
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('BLOCK_TABLE_LAYOUTS_WRITE_FAILED'))
+    warn.mockRestore()
+  })
+
+  it('readStore/writeStore without injected IO route through the default prefs facade', async () => {
+    expect(await readStore()).toEqual(EMPTY_STORE)
+    await writeStore(EMPTY_STORE)
+    expect(ipcPrefs.set).toHaveBeenCalledWith(TABLE_LAYOUTS_PREFS_KEY, EMPTY_STORE)
   })
 
   it('saveTableLayoutsFor replaces one file\'s entries and deletes the husk when empty', async () => {

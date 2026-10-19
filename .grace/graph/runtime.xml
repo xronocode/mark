@@ -3592,6 +3592,14 @@
         host selection notifications to the editor when only the passive
         format toolbar is shown. Actual autocomplete pickers retain their
         existing arrow-key ownership, including when both tools are shown.
+        C-71: Full width tables use a measured available viewport and CSS
+        auto margins, so late fonts cannot stale their centering. Resize
+        refreshes table geometry on window/container/font changes,
+        independently of code line numbers. Content-space coordinates
+        preserve horizontal scrolling; only the owning outline narrows the
+        viewport. Viewer zoom has magnifier +/- glyphs and responsive
+        controls. Intrinsic-width tooltips clamp/flip at viewport edges,
+        wrap long labels and remove hover timers on leave/detached sources.
         C-62: Mermaid/Pele diagrams expose Auto/Custom/Light/Dark through
         muya.diagramAppearance and a shared inline/viewer button. Writable
         choices persist as a header-only %% mark:appearance MODE %% comment
@@ -3992,8 +4000,9 @@
         T-004/R-6: Full width keeps the FIGURE at column width (toolbar +
         caption stay anchored) while the WRAPPER breaks out — overflow
         visible, an inline margin-left measured against the muya scroller
-        (applyFullWidthGeometry; theme paddings never hardcoded) puts the
-        table at the editor area's LEFT edge, the EDITOR scroller owns the
+        (applyFullWidthGeometry; theme paddings never hardcoded) defines a
+        guttered viewport; CSS centers fitting tables and anchors oversized
+        tables at its left gutter. The EDITOR scroller owns the
         horizontal scrollbar, and the caption reads «all N columns»
         (tableToolbar.allColumns) with no shades. Unit
         tests/renderer/muya/table-layout-persistence.test.js +
@@ -4140,7 +4149,8 @@
                 dispatch, only after real user actions); the Full width
                 session set + toggleFullWidthFromElement /
                 applyFullWidthDom / applyFullWidthGeometry (measured
-                breakout margin) implement the per-table R-6 mode; the
+                viewport width and scroll-relative breakout margin, with
+                CSS auto margins for centering) implement the R-6 mode; the
                 table toolbar (renderTableToolbar.js) and the caption are
                 routed on CAPTURE PHASE here (toggle, muya-block-viewer,
                 the caption caret guard, the scroll cue listener).
@@ -4152,6 +4162,16 @@
             </Attribute>
           </LegacyAttributes>
         </fn-tableResize>
+        <fn-resizeSurfaces>
+          <Path>src/muya/lib/eventHandler/resize.js</Path>
+          <Purpose>Refresh table viewports and optional line-number gutters on window/container resize and font completion; detach observers/listeners on destruction.</Purpose>
+          <DependsOn>tableResize.refreshTableSurfaces; contentState.resizeLineNumber; utils.throttle</DependsOn>
+        </fn-resizeSurfaces>
+        <fn-tooltipLayout>
+          <Path>src/muya/lib/ui/tooltip/index.js; src/muya/lib/ui/imageToolbar/index.js</Path>
+          <Purpose>Viewport-clamped, flipped tooltip placement, intrinsic widths and multiline fallback; clear hover timers and detached labels.</Purpose>
+          <Exports>positionTooltip; Tooltip; ImageToolbar.positionLabel</Exports>
+        </fn-tooltipLayout>
         <fn-tableCue>
           <LegacyAttributes>
             <Attribute>

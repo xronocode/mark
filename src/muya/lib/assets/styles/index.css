@@ -1820,13 +1820,14 @@ figure div.ag-table-scroll > table.ag-column-widths-fixed td {
  * a C-56-family pill appears ABOVE the table, just over its top edge,
  * its right edge on the column edge; it may cover the end of the line
  * above (accepted — the user is looking at the table) and never floats
- * over the middle of the table; the caret inside the table (ag-active)
- * hides it like diagrams. The standalone table expand glyph is GONE —
+ * over the middle of the table; a caret in a cell keeps it reachable on
+ * hover. The standalone table expand glyph is GONE —
  * the pill's second button is the same viewer action under the same
  * expandNeed.js need gate (ag-expand-needed). T-003: the caption below
  * the table is right-aligned on the same edge; a table that fits shows
  * neither shade nor caption. T-004/R-6: Full width lays the table out
- * at its natural width from the editor's LEFT edge — the figure keeps
+ * at natural width, centered when it fits the available viewport and
+ * gutter-anchored when oversized (C-71) — the figure keeps
  * the column width so the toolbar/caption stay on the column edge, the
  * wrapper stops clipping (the editor itself scrolls horizontally) and
  * the caption reads «all N columns».
@@ -1883,7 +1884,8 @@ figure[data-role='TABLE'] > div.ag-table-caption.ag-table-caption-on {
    editor's left edge; the bar zone would stick into unreachable left
    overflow). The exact left breakout is an inline margin TableResize
    measures (theme paddings are never hardcoded here). The table starts
-   at the wrapper's left edge instead of being centred. */
+   in the measured viewport with CSS auto margins; oversized tables start
+   at its left gutter and scroll horizontally (C-71). */
 figure.ag-table-full-width > div.ag-table-scroll {
   overflow: visible;
   max-width: none;
@@ -1895,7 +1897,7 @@ figure.ag-table-full-width > div.ag-table-scroll::-webkit-scrollbar {
 }
 
 figure.ag-table-full-width > div.ag-table-scroll > table {
-  margin-inline: 0;
+  margin-inline: auto;
 }
 
 /* Full width shows no shade: nothing is hidden by the wrapper (the

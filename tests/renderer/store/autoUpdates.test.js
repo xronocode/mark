@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/autoUpdates.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-66 automatic-update gate — the full decision table
 //            (24 h throttle, What's New deferral, App Store gate, switch
@@ -18,7 +18,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   NOW - fixed fake-clock instant shared by every case.
+//   NOW - fixed clock, exercised both as Date and as a completed-check ISO string.
 //   HOURS - hour/millisecond helper for relative stamps.
 //   makeFakeIpc - in-memory prefs facade (get/set) capturing set() calls.
 //   statusAvailable / statusUpToDate / statusNote - mt_updater_check answer fixtures.
@@ -28,7 +28,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-19 C-66 T-001: initial pins — the gate
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-66 R-7 coverage completion: the
+//   ISO-string clock on a COMPLETED check (String(now) stamp) and the
+//   SKIP_VERSION lazy import of the real ipcPrefs facade.
+//   v1.0.0 - 2026-10-19 C-66 T-001: initial pins — the gate
 //   decision table, the launch-check orchestration (throttle, silence,
 //   stamp, skip) and the three notice actions.
 // END_CHANGE_SUMMARY
@@ -434,6 +437,17 @@ describe('autoUpdates — RUN_LAUNCH_CHECK orchestration', () => {
     expect(store.notice.visible).toBe(false)
     log.mockRestore()
   })
+
+  it('an ISO-string clock on a completed check stamps String(now)', async () => {
+    const store = useAutoUpdatesStore()
+    const ipc = makeFakeIpc()
+    const invoke = vi.fn().mockResolvedValue(statusUpToDate())
+
+    const out = await store.RUN_LAUNCH_CHECK({ ipc, invokeFn: invoke, now: NOW.toISOString() })
+
+    expect(out.checked).toBe(true)
+    expect(ipc.calls).toContainEqual({ key: LAST_UPDATE_CHECK_AT_KEY, value: NOW.toISOString() })
+  })
 })
 
 describe('autoUpdates — notice actions', () => {
@@ -484,6 +498,21 @@ describe('autoUpdates — notice actions', () => {
 
     expect(store.notice.visible).toBe(false)
     error.mockRestore()
+  })
+
+  it('SKIP_VERSION without an injected facade persists through the real ipcPrefs', async () => {
+    const store = useAutoUpdatesStore()
+    queueNotice(store, '2.6.0')
+    const { ipcPrefs } = await import('@/ipc/runtime')
+    const setSpy = vi.spyOn(ipcPrefs, 'set').mockResolvedValue(undefined)
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await store.SKIP_VERSION()
+
+    expect(setSpy).toHaveBeenCalledWith(SKIPPED_UPDATE_VERSION_KEY, '2.6.0')
+    expect(store.notice.visible).toBe(false)
+    setSpy.mockRestore()
+    log.mockRestore()
   })
 
   it('INSTALL_UPDATE (Update) runs the shared signed install flow with the queued status', async () => {
