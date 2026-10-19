@@ -3415,6 +3415,8 @@
           npm run build &amp;&amp; npx playwright test tests/e2e/block-viewer.spec.ts
           --project=chromium --project=webkit-block-viewer
         </Command>
+        <Command>npx vitest run tests/renderer/store/opened-snapshots.test.js tests/renderer/components/diff-opened-baseline.test.js</Command>
+        <Command>npx playwright test tests/e2e/diff-opened-baseline.spec.ts --project=chromium --project=webkit-diff</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -4966,6 +4968,50 @@
           the updater-capability-gated group (App Store hides it with the
           rest of the group).
         </Scenario>
+        <Scenario>
+          scenario-67: Opened baselines — ⌘D always has something to
+          compare (C-68 T-001): every renderer disk load records one
+          «opened» snapshot per tab (store/diffSnapshots.js openedByTab —
+          { markdown, takenAt, kind: 'opened' }, separate from the C-43
+          external-change ring so neither evicts the other, cleared with
+          the tab by clearSnapshots/FORCE_CLOSE_TAB): NEW_TAB_WITH_CONTENT
+          covers open, reopen and session restore (untitled tabs never
+          record; focusing an already-open file keeps the original slot)
+          and loadChange moves the slot to the content an external reload
+          lands (the ring keeps the pre-reload version and stays the
+          preferred baseline). diffView resolves ⌘D's baseline as external
+          snapshot → mt_diff_baseline → opened; a backend error («Not a
+          git repository» / «File is outside the git repository») is a
+          fallback signal logged as BLOCK_DIFF_BASELINE_FALLBACK and never
+          reaches the UI. When nothing compares — untitled tab
+          (diffView.nothingToCompare, also the calm info wording of the
+          view.diff-mode pre-check), no baseline at all, or a chosen
+          baseline equal to the current markdown (diffView.noChanges) —
+          diff mode exits with an info notice
+          (BLOCK_DIFF_NOTHING_TO_COMPARE) instead of an error. The header
+          names the opened source
+          («Since you opened the file · HH:MM:SS» local 24h,
+          diffView.sourceOpened; noPath/noBaseline retired) in all ten
+          locales. Unit-pinned in tests/renderer/store/diff-snapshots.test.js
+          (slot record/replace/clear + ring isolation),
+          tests/renderer/store/opened-snapshots.test.js (all load paths,
+          untitled-never, re-focus-keeps, reload-moves-slot,
+          close-clears) and tests/renderer/components/diff-opened-baseline.test.js
+          (priority chain incl. backend-error → opened fallback,
+          equal-content and untitled calm exits, other-tab isolation;
+          diff-view-snapshot/diffView tests updated to the calm exits);
+          visually pinned in tests/e2e/diff-opened-baseline.spec.ts
+          (chromium + the webkit-diff project; tauri-shim mt_diff_baseline
+          throws the raw Rust error — the edited-note case asserts the
+          invoke trace shows it was swallowed into the opened fallback
+          with the source label, the untouched-note case asserts the calm
+          notice, no diff view and no raw error) and the rewritten
+          diff-view.spec.ts backend-failure pair. Four deferred-request tests
+          additionally reject late failure/success after tab switch, path
+          replacement, view unmount and explicit diff exit. All four fail
+          on the source implementation and pass after lifetime guards.
+          Fallback logs carry a stable reason without raw backend paths.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
@@ -5011,7 +5057,10 @@
         <Marker>[Editor][handleFileChange][BLOCK_STALE_CHANGE_IGNORED]</Marker>
         <Marker>[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED]</Marker>
         <Marker>[DiffSnapshots][record][BLOCK_SNAPSHOT_RECORDED tab=&lt;id&gt; size=&lt;n&gt;] — C-43 pre-reload snapshot appended to the tab ring</Marker>
-        <Marker>[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=snapshot|stored] — C-43 baseline priority in diffView</Marker>
+        <Marker>[DiffSnapshots][recordOpened][BLOCK_OPENED_SNAPSHOT_RECORDED tab=&lt;id&gt;] — opened snapshot recorded on disk load</Marker>
+        <Marker>[editor][diff][BLOCK_DIFF_BASELINE_SOURCE source=snapshot|stored|opened] — per-tab baseline priority</Marker>
+        <Marker>[editor][diff][BLOCK_DIFF_BASELINE_FALLBACK reason=backend-unavailable] — stable redacted fallback signal</Marker>
+        <Marker>[editor][diff][BLOCK_DIFF_NOTHING_TO_COMPARE reason=no-path|no-baseline|no-changes] — calm info exit</Marker>
         <Marker>[editor][guide][BLOCK_GUIDE_REQUESTED section=&lt;key|top&gt;] — mt::open-guide received (C-40 G-3)</Marker>
         <Marker>[editor][guide][BLOCK_GUIDE_TAB_OPENED id=&lt;id&gt; locale=&lt;code&gt;] — guide tab created as a temporary untitled document (C-40 G-3)</Marker>
         <Marker>[editor][guide][BLOCK_GUIDE_SCROLL_TO_SECTION heading=&lt;text&gt; slug=&lt;muya-key&gt;] — deep link scrolled the guide to a section heading (C-40 G-3)</Marker>

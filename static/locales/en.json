@@ -1451,9 +1451,10 @@
     "baseline": "Baseline",
     "exit": "Exit diff",
     "unavailable": "Diff unavailable",
-    "noPath": "Save the file first — an untitled tab has no baseline to compare with.",
-    "noBaseline": "No baseline found for this file.",
+    "noChanges": "No changes since you opened the file.",
+    "nothingToCompare": "Nothing to compare yet.",
     "sourceSnapshot": "Before the last external save · {time}",
+    "sourceOpened": "Since you opened the file · {time}",
     "sourcePrevious": "Previous version"
   },
   "updateNotice": {

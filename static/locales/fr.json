@@ -1436,9 +1436,10 @@
     "baseline": "Version de base",
     "exit": "Quitter le diff",
     "unavailable": "Comparaison indisponible",
-    "noPath": "Enregistrez d’abord le fichier : un onglet sans titre n’a pas de version de base à comparer.",
-    "noBaseline": "Aucune version de base trouvée pour ce fichier.",
+    "noChanges": "Aucune modification depuis l’ouverture du fichier.",
+    "nothingToCompare": "Rien à comparer pour le moment.",
     "sourceSnapshot": "Avant le dernier enregistrement externe · {time}",
+    "sourceOpened": "Depuis l’ouverture du fichier · {time}",
     "sourcePrevious": "Version précédente"
   },
   "updateNotice": {

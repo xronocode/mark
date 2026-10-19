@@ -24,7 +24,7 @@ import { useProjectStore } from './project'
 import { useLayoutStore } from './layout'
 import { useMainStore } from '.'
 import { i18n } from '../i18n'
-import { recordSnapshot, clearSnapshots } from './diffSnapshots'
+import { recordSnapshot, recordOpenedSnapshot, clearSnapshots } from './diffSnapshots'
 import {
   loadGuideMarkdown,
   getGuideSectionHeadingText,
@@ -241,6 +241,14 @@ export const useEditorStore = defineStore('editor', {
       // document would resurrect over the reloaded content. The reloaded
       // markdown is the source of truth; the next render repopulates blocks.
       tab.blocks = undefined
+
+      // START_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD
+      // C-68 R-1: an external reload is also a disk load — the opened slot
+      // now mirrors the content that just landed. The pre-reload snapshot
+      // ring (recorded by APPLY_FILE_CHANGE before this call) keeps its
+      // place as the preferred diff baseline.
+      recordOpenedSnapshot(tab.id, markdown)
+      // END_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD
 
       if (oldHistory) {
         tab.history = oldHistory
@@ -1543,6 +1551,17 @@ export const useEditorStore = defineStore('editor', {
       const docState = createDocumentState(Object.assign(markdownDocument, options))
       const { id, cursor } = docState
 
+      // START_BLOCK_RECORD_OPENED_SNAPSHOT_LOAD
+      // C-68 R-1: every disk load (open, reopen, session restore — they all
+      // funnel through here) keeps one «opened» baseline so ⌘D can always
+      // show what changed since the load. Untitled tabs have no pathname;
+      // focusing an already-open file returned early above, so the original
+      // opened time survives re-focuses.
+      if (pathname) {
+        recordOpenedSnapshot(id, markdown)
+      }
+      // END_BLOCK_RECORD_OPENED_SNAPSHOT_LOAD
+
       if (selected) {
         this.UPDATE_CURRENT_FILE(docState)
         if (!_bootPhase) bus.emit('file-loaded', { id, markdown, cursor })
@@ -2278,9 +2297,9 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Tab lifecycle, content revisions, save outcomes, and watcher coordination.
-//   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/active/C-61 (PDF export + print).
+//   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, and per-tab diff baselines (recording only — resolution lives in diffView.vue).
+//   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus, store/diffSnapshots.
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/active/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/active/C-61 (PDF export + print).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -2291,6 +2310,12 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-19 C-68 T-001: opened baselines. NEW_TAB_WITH_CONTENT (open,
+//     reopen, session restore — every disk-load funnel) and loadChange
+//     (external reload) record the content they land into the per-tab
+//     «opened» slot of store/diffSnapshots.js; FORCE_CLOSE_TAB already
+//     cleared it with the ring (clearSnapshots drops both). Untitled tabs
+//     never record; focusing an already-open file keeps the original slot.
 //   - 2026-10-18 C-65 R-2: RENAME (title-bar card › Rename…) and
 //     RENAME_IF_NEEDED (the sidebar rename) move the file's stored table
 //     layouts to the new path through util/tableLayoutStore

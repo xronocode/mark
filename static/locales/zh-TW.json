@@ -1437,9 +1437,10 @@
     "baseline": "基準版本",
     "exit": "結束比對",
     "unavailable": "無法比對",
-    "noPath": "請先儲存檔案——未命名的分頁沒有可比對的基準版本。",
-    "noBaseline": "找不到此檔案的基準版本。",
+    "noChanges": "開啟檔案後還沒有變更。",
+    "nothingToCompare": "目前沒有可比對的內容。",
     "sourceSnapshot": "上次外部儲存之前 · {time}",
+    "sourceOpened": "自開啟檔案以來 · {time}",
     "sourcePrevious": "先前版本"
   },
   "updateNotice": {
