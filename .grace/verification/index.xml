@@ -24,6 +24,7 @@
         <V-M-009/>
         <V-M-010/>
         <V-M-011/>
+        <!-- C-TAB-CLOSE-OWNERSHIP: V-M-011 scenario-68 covers delayed rendering, recovery and stale-surface edit isolation. -->
         <V-M-012/>
         <V-M-013/>
         <V-M-013-A/>
