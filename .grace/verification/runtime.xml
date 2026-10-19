@@ -6716,6 +6716,10 @@
           compensated. The counter stays inside the viewport when scrolling.
           Its text ends 18px before the right edge: 14px for the shade
           plus a 4px clear gap, pinned with a DOM text-range measurement.
+          The noneditable caption explicitly stays transparent: screenshot
+          RGB samples at one shade x coordinate differ by at most 2 across
+          the caption row and lower gap. Before repair, the generic
+          contenteditable background lightened the caption band by 28.
           Owner-review follow-up: fitting tables hide the width toggle and
           its Tab stop while retaining Copy as image. A restored Full width
           choice on a fitting table has no stray counter. The wide fixture

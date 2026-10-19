@@ -1,6 +1,6 @@
 {
   "date": "2026-10-20",
-  "status": "implemented and locally verified; owner accepted on the exact immutable native snapshot; protected commits and integration CI pending",
+  "status": "owner accepted; exact runtime snapshot mapped to protected commit; integration CI pending",
   "baseline": {
     "failed": 6,
     "engines": [
@@ -82,5 +82,10 @@
       "nativeObservation": "Exact isolated app brought forward with the wide overflowing long-cell table visible, counter above the scrollbar and clear of the right shade; fitting table and diagram/chart fixtures below. No gallery or production-app substitution."
     }
   },
-  "release": "No version, tag, release or updater publication authorized."
+  "release": "No version, tag, release or updater publication authorized.",
+  "sourceMapping": {
+    "protectedRevision": "46b255c240c08dbfa1a8e26d526ef2fcb6a58754",
+    "snapshot": "f8af91e92d729b61577e68f06ac0307e1f2ecb8ca7a71f95e6ebe210db8312c3",
+    "verification": "All four accepted runtime input hashes match the protected commit; the full src/static/package/Cargo diff from snapshot base has exactly those four files. Caption transparency is a later separate follow-up."
+  }
 }

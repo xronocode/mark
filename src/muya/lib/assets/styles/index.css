@@ -1866,7 +1866,8 @@ figure.ag-has-expand > div.ag-block-toolbar > button.ag-table-toolbar-btn.ag-tab
 /* START_CHANGE_SUMMARY
    LAST_CHANGE: 2026-10-20 C-TABLE-FOOTER owner review — hide the width
    toggle and its Tab stop when the table fits the text column; keep the
-   caption text 4px clear of the 14px right-edge shade.
+   caption text 4px clear of the 14px right-edge shade. Keep its background
+   transparent so the generic noneditable background cannot lighten it.
    PREV: 2026-10-20 C-TABLE-FOOTER — table, reserved counter line,
    2px gap and native scrollbar share one compact scrolling block.
    END_CHANGE_SUMMARY */
@@ -1887,6 +1888,8 @@ figure[data-role='TABLE'] > div.ag-table-scroll > div.ag-table-caption {
   height: 20px;
   padding: 2px 18px 0 0;
   font: 400 12px/1.5 -apple-system, system-ui, sans-serif;
+  /* The generic [contenteditable] rule also paints false surfaces. */
+  background: transparent;
   color: var(--editorColor);
   opacity: 0.55;
   cursor: default;
