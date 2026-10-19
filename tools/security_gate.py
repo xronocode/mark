@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.0.0
+# VERSION: 1.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes static exposure checks and two serial local-model reviews.
-#   SCOPE: Staged/message/outgoing snapshots, Gitleaks, private-path/artifact checks, bounded local review, candidate recheck, private receipts and shared hook installation.
+#   SCOPE: Exact staged/message/outgoing snapshots, complete static scans, strict generated-locale field review with raw fallback, two-pass local review, candidate recheck, private receipts and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks, loopback Ollama, canonical local-ai-safety preflight.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFE-DELIVERY.
 #   ROLE: SCRIPT
@@ -14,7 +14,8 @@
 #   git - checked Git invocation without a shell.
 #   repository - resolve worktree and shared private Git storage.
 #   publication_lines - exclude removed baseline lines from new-exposure scanning.
-#   review_view - mask only removed baseline home prefixes while retaining the full diff.
+#   locale_review_section - represent every changed field of a strict one-line locale JSON replacement, or retain its raw diff.
+#   review_view - retain complete changes, compact supported locale replacements and mask only removed baseline home prefixes.
 #   validate_lane - keep mobile runtime and desktop release/version writes in their own lanes.
 #   staged_candidate - bind staged blobs, diff and commit message to an index tree.
 #   push_candidate - inspect every outgoing commit and proposed ref update.
@@ -29,7 +30,8 @@
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: mandatory exact-payload static and local-model commit/push gate, shared across independent delivery lanes.
+#   LAST_CHANGE: 1.1.0 - 2026-10-19: review complete generated-locale field deltas; full-blob scans and exact raw identity rechecks remain unchanged.
+#   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: mandatory exact-payload static and local-model commit/push gate, shared across independent delivery lanes.
 # END_CHANGE_SUMMARY
 
 import argparse
@@ -73,7 +75,66 @@ def publication_lines(patch):
     return "\n".join(line for line in patch.splitlines() if not line.startswith("-"))
 
 
+def locale_review_section(section):
+    # START_BLOCK_COMPLETE_LOCALE_REVIEW
+    lines = section.splitlines()
+    match = re.fullmatch(r"diff --git a/(static/locales/[^\s]+\.min\.json) b/\1", lines[0]) if lines else None
+    if not match or len(lines) < 6 or not re.fullmatch(r"index [0-9a-f]+\.\.[0-9a-f]+ 100644", lines[1]):
+        return section
+    name = match.group(1)
+    if lines[2:5] != ["--- a/" + name, "+++ b/" + name, "@@ -1 +1 @@"]:
+        return section
+    body = [line for line in lines[5:] if line != "\\ No newline at end of file"]
+    if len(body) != 2 or not body[0].startswith("-") or not body[1].startswith("+"):
+        return section
+
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("Duplicate key")
+            result[key] = value
+        return result
+
+    def unsupported(value):
+        raise ValueError("Unsupported numeric representation")
+
+    try:
+        before, after = [json.loads(line[1:], object_pairs_hook=unique, parse_float=unsupported, parse_constant=unsupported) for line in body]
+    except (ValueError, RecursionError):
+        return section
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return section
+    changes = []
+
+    def emit(prefix, path, value):
+        changes.append(prefix + "JSON " + json.dumps(path, ensure_ascii=False) + " " + json.dumps(value, ensure_ascii=False))
+
+    def compare(old, new, path):
+        if isinstance(old, dict) and isinstance(new, dict):
+            for key in old:
+                if key not in new:
+                    emit("-", path + [key], old[key])
+                else:
+                    compare(old[key], new[key], path + [key])
+            for key in new:
+                if key not in old:
+                    emit("+", path + [key], new[key])
+        elif json.dumps(old, ensure_ascii=False) != json.dumps(new, ensure_ascii=False):
+            emit("-", path, old)
+            emit("+", path, new)
+
+    try:
+        compare(before, after, [])
+        return "JSON FIELD REVIEW: " + name + "\nComplete semantic changes; exact raw blobs remain statically scanned and identity-bound.\n" + "\n".join(changes) + "\n"
+    except (ValueError, RecursionError):
+        return section
+    # END_BLOCK_COMPLETE_LOCALE_REVIEW
+
+
 def review_view(payload):
+    sections = re.split(r"(?=^diff --git )", payload, flags=re.M)
+    payload = "".join(locale_review_section(section) if section.startswith("diff --git ") else section for section in sections)
     lines = []
     for line in payload.splitlines(keepends=True):
         if line.startswith("-") and not line.startswith("---"):
