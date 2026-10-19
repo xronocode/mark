@@ -622,6 +622,60 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })).toBe(true)
   })
 
+  // FIX-008 (2026-10-20): the table canvas keeps `overflow: auto` while
+  // panzoom only scales visually, so the natural-width layout box painted
+  // a phantom horizontal scrollbar track even at Fit. updateTableOverflow
+  // now enables a native scrollbar per axis only when the SCALED content
+  // actually overflows the stage.
+  test('table: no horizontal scrollbar track at Fit; a real scrollbar returns at 1:1 (FIX-008)', async ({ page }) => {
+    // Wider than WIDE_TABLE_MD: the default viewport stage is ~1280px, and
+    // the 12-column table still fits it at 1:1 — the phantom track the
+    // owners saw was a 1px layout-only overflow at Fit. 18 long columns
+    // genuinely overflow at 1:1, so the returning scrollbar is real.
+    const header = Array.from({ length: 18 }, (_, i) => `column-header-${i + 1}`).join(' | ')
+    const WIDER_TABLE_MD = `# Block Viewer Overflow Table\n\n| ${header} |\n| ${'---|'.repeat(18)}\n| ${header} |\n`
+    await bootstrapWithMarkdown(page, WIDER_TABLE_MD)
+    await page.locator('.editor-component, .editor-wrapper').first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+    const table = page.locator('table.ag-paragraph').first()
+    await table.waitFor({ state: 'visible', timeout: 15_000 })
+
+    const expand = page.locator('figure[data-role="TABLE"] div.ag-table-toolbar button.ag-block-toolbar-expand').first()
+    await expand.click()
+    const viewer = page.locator('.ag-block-viewer')
+    await expect(viewer).toHaveClass(/ag-block-viewer-open/)
+
+    // Let the deferred post-layout fit run before asserting the axis.
+    await page.waitForTimeout(250)
+    const canvasState = () => page.evaluate(() => {
+      const canvas = document.querySelector('.ag-block-viewer-canvas') as HTMLElement
+      const stage = document.querySelector('.ag-block-viewer-stage') as HTMLElement
+      // The canvas box is content-sized (max-content); genuine overflow
+      // means the box itself is wider than the stage it must fit.
+      return {
+        overflowX: window.getComputedStyle(canvas).overflowX,
+        boxWiderThanStage: canvas.offsetWidth > stage.clientWidth + 1
+      }
+    })
+
+    // Fit: the scaled table fits the stage — no phantom horizontal track.
+    const fit = await canvasState()
+    expect(fit.overflowX).toBe('hidden')
+
+    // 1:1: the wide table genuinely overflows — the scrollbar comes back.
+    await page.keyboard.press('1')
+    await page.waitForTimeout(150)
+    const actual = await canvasState()
+    expect(actual.overflowX).toBe('auto')
+    expect(actual.boxWiderThanStage).toBe(true)
+
+    // Back to Fit (key '0') the track disappears again.
+    await page.keyboard.press('0')
+    await page.waitForTimeout(150)
+    const refit = await canvasState()
+    expect(refit.overflowX).toBe('hidden')
+  })
+
 
 
   test('Cmd/Ctrl+click on a small diagram still opens the viewer; a plain click opens the source', async ({ page }) => {

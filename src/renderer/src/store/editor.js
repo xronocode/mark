@@ -1565,6 +1565,14 @@ export const useEditorStore = defineStore('editor', {
       if (selected) {
         this.UPDATE_CURRENT_FILE(docState)
         if (!_bootPhase) bus.emit('file-loaded', { id, markdown, cursor })
+        // FIX-002: phase-2 mark — the tab state exists and the load event
+        // is out; the remaining leg to first paint lives in editor.vue.
+        if (typeof window !== 'undefined' && typeof window.__openFileArrivalAt === 'number') {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[editor][open-file][BLOCK_OPEN_TAB_CREATED since_arrival_ms=${Math.round(performance.now() - window.__openFileArrivalAt)} id=${id}]`
+          )
+        }
       } else {
         if (!_bootPhase) this.updateTabIdToIndex()
         this.tabs.push(docState)
@@ -1636,6 +1644,17 @@ export const useEditorStore = defineStore('editor', {
       tab.markdown = markdown
       tab.contentRevision = (tab.contentRevision || 0) + 1
 
+      // Only update TOC if it's the current file.
+      // FIX-003 (2026-10-20): this sync must run BEFORE the empty-document
+      // early return below — switching to a fresh untitled document emits
+      // exactly that shape (markdown "\n", toc []), and the early return
+      // used to swallow the TOC reset, leaving the outline of the
+      // previously displayed (possibly closed) file on the right rail.
+      if (id === this.currentFile.id && toc && !equal(toc, this.listToc)) {
+        this.listToc = toc
+        this.toc = listToTree(toc)
+      }
+
       if (oldMarkdown.length === 0 && markdown.length === 1 && markdown[0] === '\n') {
         return
       }
@@ -1645,12 +1664,6 @@ export const useEditorStore = defineStore('editor', {
       if (muyaIndexCursor) tab.muyaIndexCursor = muyaIndexCursor
       if (history) tab.history = history
       if (blocks) tab.blocks = blocks
-
-      // Only update TOC if it's the current file
-      if (id === this.currentFile.id && toc && !equal(toc, this.listToc)) {
-        this.listToc = toc
-        this.toc = listToTree(toc)
-      }
 
       if (
         tab.history.lastEditIndex >= 0 &&
@@ -2299,7 +2312,7 @@ export const useEditorStore = defineStore('editor', {
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, and per-tab diff baselines (recording only — resolution lives in diffView.vue).
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus, store/diffSnapshots.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/active/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/active/C-61 (PDF export + print).
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

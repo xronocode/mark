@@ -334,6 +334,29 @@ svg.chrome-icon {
   padding: 8px 6px;
 }
 
+/* Overwrite Element style — teleported message box (FIX-007, 2026-10-20).
+   The unsaved-changes confirm (editor store CLOSE_UNSAVED_TAB /
+   LISTEN_FOR_CLOSE) renders ElMessageBox.confirm at body level, so it
+   never saw the app theme and stayed white over a dark editor. The
+   surface, border, title, message and close affordance now follow the
+   same float tokens as the other dialogs; the warning icon keeps its
+   element accent so the destructive choice stays visually distinct. */
+.el-message-box {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px 0 var(--floatBorderColor);
+  border: solid 1px var(--floatBorderColor);
+  background-color: var(--floatBgColor);
+}
+.el-message-box__title {
+  color: var(--editorColor);
+}
+.el-message-box__message {
+  color: var(--editorColor80);
+}
+.el-message-box__headerbtn .el-message-box__close {
+  color: var(--editorColor50);
+}
+
 input.el-input__inner {
   background: var(--inputBgColor);
   border: 1px solid var(--editorColor10);

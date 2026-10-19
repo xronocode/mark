@@ -2998,6 +2998,11 @@
         <Errors/>
       </Contract>
       <Interface>
+        <fn-handleParagraphShortcutKeys>
+          <Purpose>FIX-005/FIX-006 desktop paragraph shortcuts — physical-code chords (⇧⌘D duplicate, ⇧⌘N new paragraph, ⇧⌘⌫ delete, ⌘1–6 headings) captured on the editor wrapper, scoped to the writable WYSIWYG surface, dispatched through the same bus events as the command registry.</Purpose>
+          <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+          <VerificationRef>V-M-012</VerificationRef>
+        </fn-handleParagraphShortcutKeys>
         <fn-reconcileActiveDocument>
           <Purpose>Track the rendered Muya document independently of the active tab, restore a missed activation after Vue flush, and block stale-surface content/scroll writes into another tab.</Purpose>
           <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
@@ -4110,6 +4115,16 @@
         <Errors/>
       </Contract>
       <Interface>
+        <fn-updateTableOverflow>
+          <Purpose>FIX-008 fullscreen table viewer scrollport: per-axis native scrollbars exist only when the scaled content actually overflows the stage, removing the phantom horizontal track at Fit while keeping sticky-header scrolling at >=100%.</Purpose>
+          <File>src/muya/lib/ui/blockViewer/index.js</File>
+          <VerificationRef>V-M-012</VerificationRef>
+        </fn-updateTableOverflow>
+        <fn-computeMenuWidth>
+          <Purpose>FIX-004 content-aware front-menu/submenu sizing: the widest localized row (label + shortcut column + submenu arrow) measured with the menu font, clamped to [190, 340] px so long Russian rows stay on one line.</Purpose>
+          <File>src/muya/lib/ui/frontMenu/index.js</File>
+          <VerificationRef>V-M-012</VerificationRef>
+        </fn-computeMenuWidth>
         <fn-setContent>
           <LegacyAttributes>
             <Attribute>
