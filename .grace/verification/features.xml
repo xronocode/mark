@@ -2307,8 +2307,9 @@
     </V-M-045>
     <V-M-046>
       <Priority>critical</Priority>
-      <Commands><Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance</Command></Commands>
+      <Commands><Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard</Command></Commands>
       <Scenarios>
+        <Scenario>scenario-14: renderer-e2e runs webkit-keyboard after installing WebKit, preserving native vertical-selection checks in the shipping browser engine.</Scenario>
         <Scenario>scenario-13 (C-63): renderer-e2e invokes the existing C-60 and C-62 WebKit projects after installing WebKit, before the aggregate status can succeed. Both projects pass locally; CI triggers, existing jobs and release workflows remain unchanged.</Scenario>
         <Scenario>
           scenario-11 (C-15 T-W3): the publish job drops every staged Windows
