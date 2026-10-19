@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.1.0
+# VERSION: 1.2.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes static exposure checks and two serial local-model reviews.
-#   SCOPE: Exact staged/message/outgoing snapshots, complete static scans, strict generated-locale field review with raw fallback, two-pass local review, candidate recheck, private receipts and common hooks.
+#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, complete locale field review, two-pass local review, identity recheck and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks, loopback Ollama, canonical local-ai-safety preflight.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFE-DELIVERY.
 #   ROLE: SCRIPT
@@ -30,7 +30,8 @@
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.1.0 - 2026-10-19: review complete generated-locale field deltas; full-blob scans and exact raw identity rechecks remain unchanged.
+#   LAST_CHANGE: 1.2.0 - 2026-10-19: enforce the approved public/private operational and captured-profile path boundary before inference.
+#   PREV: 1.1.0 - 2026-10-19: review complete generated-locale field deltas; full-blob scans and exact raw identity rechecks remain unchanged.
 #   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: mandatory exact-payload static and local-model commit/push gate, shared across independent delivery lanes.
 # END_CHANGE_SUMMARY
 
@@ -242,6 +243,17 @@ def validate_content(blobs):
         path = Path(name)
         if path.is_absolute() or ".." in path.parts:
             raise GateError("Unsafe repository path")
+        reserved = (".grace/changes/active/C-59", ".grace/changes/archive/C-59", "docs/promotion", "prototypes/table-copy")
+        if name == "docs/backlog.md" or any(name == prefix or name.startswith(prefix + "/") for prefix in reserved):
+            raise GateError("Reserved private operational path: " + name)
+        if name.startswith("fixtures/"):
+            retained = {"fixtures/README.md", "fixtures/fixture-pin.lock"} | {
+                "fixtures/" + version + "/migration-relevant/" + item
+                for version in ["v0-marktext-userdata", "v1-userdata-mark-1.0.2"]
+                for item in ["dataCenter.json", "preferences.json", "window-state.json"]
+            }
+            if name not in retained:
+                raise GateError("Captured profile or unsupported public fixture path: " + name)
         if any(p in {".git", ".claude", ".zcode", "node_modules", "target", "target-test", "dist", "DerivedData"} for p in path.parts):
             raise GateError("Generated or private session material: " + name)
         if path.name.startswith(".env") and not path.name.endswith((".example", ".sample")):

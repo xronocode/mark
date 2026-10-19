@@ -2560,6 +2560,8 @@
     <V-M-064>
       <Priority>critical</Priority><Commands><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Commands>
       <Scenarios>
+        <Scenario>Reserved private operational paths and captured-profile additions fail before inference in staged and outgoing scans. All six synthetic preference examples, their manifest/README and reusable release tools remain allowed.</Scenario>
+
         <Scenario>Generated locale review preserves nested additions/removals/replacements, changed arrays and scalar types. Duplicate keys, unsupported numbers/hunks and malformed JSON retain raw text. Added exposures remain visible and full-blob static scans still reject them.</Scenario>
 <Scenario>Reject credentials and personal paths without printing values; reject generated, binary and symlink payloads.</Scenario><Scenario>Review exact staged blobs rather than unstaged files; inspect every outgoing intermediate commit.</Scenario><Scenario>Engine conflicts, unavailable local inference, redirects, malformed/truncated verdicts and changed candidates stop commit/push.</Scenario><Scenario>Every complete bounded chunk receives two serial local-model passes; shared hooks remain active across worktrees.</Scenario></Scenarios>
       <Markers><Marker>[RepositorySafety][review][BLOCK_SAFETY_REVIEW_PASS]</Marker><Marker>[RepositorySafety][review][BLOCK_SAFETY_REVIEW_STOP]</Marker></Markers>
