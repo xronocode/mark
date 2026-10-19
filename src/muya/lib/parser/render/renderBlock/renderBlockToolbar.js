@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The C-56 T-005 diagram corner toolbar — one hover pill (user choice 2026-10-18, approved mockup variant C) with three same-family icon actions (Edit source, Copy as image, Open full screen) rendered as a direct child of Pele diagram (```mermaid) and Vega-Lite chart figures, replacing the old PNG edit pencil and the standalone expand glyph on those two roles only.
 //   SCOPE: the pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label, the hidden hover-reveal label span) and syncBlockToolbarState — the post-render pass that keeps the Copy as image button DISABLED while the figure's preview carries no rendered SVG (corner-4; a keep-last-good stale SVG counts as rendered and exports). Placement lives in renderContainerBlock.js START_BLOCK_TOOLBAR_RENDER; looks in the C-56 T-005 section of lib/assets/styles/index.css; click routing in eventHandler/clickEvent.js START_BLOCK_TOOLBAR_CLICK; the Open-full-screen action keeps the expandNeed.js gate through the figure's ag-expand-needed class.
@@ -21,7 +21,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-007: optional `leading`
+//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-70: syncBlockToolbarState keeps a table figure's Copy as image enabled (tables have no preview SVG).
+//   PREV: v1.1.0 - 2026-10-18 C-56 T-007: optional `leading`
 //   vnodes render before Edit source, so the C-62 appearance control
 //   joins the pill and its hover reveal.
 //   v1.0.0 - 2026-10-18 C-56 T-005: new — on ```mermaid (pele)
@@ -66,7 +67,11 @@ export const syncBlockToolbarState = (figure) => {
   if (!figure || figure.nodeType !== 1 || typeof figure.querySelector !== 'function') return
   const copyButton = figure.querySelector('button.ag-block-toolbar-copy')
   if (!copyButton) return
-  const rendered = !!figure.querySelector('div.ag-container-preview svg')
+  // C-70: a table is always "rendered" — its picture is drawn from the
+  // live table layout, not from a preview SVG.
+  const rendered = figure.getAttribute('data-role') === 'TABLE'
+    ? !!figure.querySelector('table')
+    : !!figure.querySelector('div.ag-container-preview svg')
   if (copyButton.disabled === rendered) {
     copyButton.disabled = !rendered
   }

@@ -538,9 +538,10 @@ test.describe('diagram export (C-56)', () => {
     expect(Math.abs(ihdr!.height - 2 * natural.height)).toBeLessThanOrEqual(2)
   })
 
-  test('viewer toolbar: the export buttons stay hidden for non-exportable sources (a wide table)', async ({ page }) => {
-    // 12 columns: the table overflows its column, so the figure needs the
-    // viewer and its expand button opens it.
+  // C-70: tables export too — the viewer shows the C-56 buttons for a
+  // table and they export the LIVE table drawn from its layout (2× PNG,
+  // standalone SVG), never the scaled clone.
+  test('viewer toolbar: a wide table shows the export buttons; Copy as image and Save as SVG work (C-70)', async ({ page }) => {
     const tableDoc = `# Table Only
 
 ${Array.from({ length: 12 }, (_, i) => `| Column number ${i + 1}`).join('')} |
@@ -550,18 +551,66 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     await bootstrapWithMarkdown(page, tableDoc)
     await page.locator("figure[data-role='TABLE'] table").first()
       .waitFor({ state: 'visible', timeout: 15_000 })
+    await mockClipboardImage(page)
+    await mockDialogSave(page, '/tmp/mark-e2e-exports/table-only.svg')
+    await mockFsWrites(page)
+    const tableSize = await page.evaluate(() => {
+      const r = document.querySelector("figure[data-role='TABLE'] table")!.getBoundingClientRect()
+      return { width: r.width, height: r.height }
+    })
 
-    // C-65: tables open full screen from their own toolbar above the table.
-    await page.locator("figure[data-role='TABLE'] table").first().hover()
+    await page.locator("figure[data-role='TABLE'] div.ag-table-scroll").first().hover()
     await page.locator("figure[data-role='TABLE'] div.ag-table-toolbar button.ag-block-toolbar-expand").first().click()
     const viewer = page.locator('.ag-block-viewer')
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
-    await expect(viewer).not.toHaveClass(/ag-block-viewer-can-export/)
-    await expect(viewer.locator('.ag-block-viewer-copy-image')).toBeHidden()
-    await expect(viewer.locator('.ag-block-viewer-save-png')).toBeHidden()
-    await expect(viewer.locator('.ag-block-viewer-save-svg')).toBeHidden()
-    // The zoom controls stay available.
-    await expect(viewer.locator('.ag-block-viewer-fit')).toBeVisible()
+    await expect(viewer).toHaveClass(/ag-block-viewer-can-export/)
+    await expect(viewer.locator('.ag-block-viewer-copy-image')).toBeVisible()
+    await expect(viewer.locator('.ag-block-viewer-save-png')).toBeVisible()
+    await expect(viewer.locator('.ag-block-viewer-save-svg')).toBeVisible()
+
+    await viewer.locator('.ag-block-viewer-copy-image').click()
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__clipImages.length), { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    const ihdr = await clipboardPngIhdr(page)
+    expect(ihdr).not.toBeNull()
+    // 2× the live table plus the 16 px padding on each side.
+    expect(Math.abs(ihdr!.width - 2 * (Math.ceil(tableSize.width + 32)))).toBeLessThanOrEqual(4)
+    expect(Math.abs(ihdr!.height - 2 * (Math.ceil(tableSize.height + 32)))).toBeLessThanOrEqual(4)
+
+    await viewer.locator('.ag-block-viewer-save-svg').click()
+    await page.waitForFunction(() => (window as any).__textWrites.length > 0, undefined, { timeout: 10_000 })
+    const saved = await page.evaluate(() => ({
+      defaultPath: (window as any).__saveCalls[0].defaultPath,
+      svg: (window as any).__textWrites[0].content as string
+    }))
+    expect(saved.defaultPath).toBe('table-only.svg')
+    expect(saved.svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"')).toBe(true)
+    expect(saved.svg).toContain('>Column number 1</text>')
+    expect(saved.svg).not.toContain('foreignObject')
+  })
+
+  test('table toolbar: Copy as image writes a 2× PNG of the table (C-70)', async ({ page }) => {
+    await bootstrapWithMarkdown(page, MAIN_MD)
+    await page.locator("figure[data-role='TABLE'] table").first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+    await mockClipboardImage(page)
+    const tableSize = await page.evaluate(() => {
+      const r = document.querySelector("figure[data-role='TABLE'] table")!.getBoundingClientRect()
+      return { width: r.width, height: r.height }
+    })
+    await page.locator("figure[data-role='TABLE'] div.ag-table-scroll").first().hover()
+    const copy = page.locator("figure[data-role='TABLE'] div.ag-table-toolbar button.ag-table-toolbar-copy")
+    await expect(copy).toHaveAttribute('aria-label', 'Copy as image')
+    await copy.click()
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__clipImages.length), { timeout: 10_000 })
+      .toBeGreaterThan(0)
+    const ihdr = await clipboardPngIhdr(page)
+    expect(ihdr).not.toBeNull()
+    expect(Math.abs(ihdr!.width - 2 * Math.ceil(tableSize.width + 32))).toBeLessThanOrEqual(4)
+    expect(Math.abs(ihdr!.height - 2 * Math.ceil(tableSize.height + 32))).toBeLessThanOrEqual(4)
+    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
   })
   // END_BLOCK_EXPORT_E2E_VIEWER
 
@@ -695,10 +744,11 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     // Flowcharts keep today's pencil + standalone glyph.
     expect(await page.locator("figure[data-role='FLOWCHART'] div.ag-block-toolbar").count()).toBe(0)
     expect(await page.locator("figure[data-role='FLOWCHART'] > button.ag-block-expand").count()).toBe(1)
-    // C-65: tables carry their own table toolbar (not the diagram pill:
-    // no copy-as-image) and no standalone glyph.
+    // C-65: tables carry their own table toolbar (not the diagram pill)
+    // and no standalone glyph; since C-70 it has its own Copy as image.
     expect(await page.locator("figure[data-role='TABLE'] div.ag-block-toolbar.ag-table-toolbar").count()).toBe(1)
-    expect(await page.locator("figure[data-role='TABLE'] button.ag-block-toolbar-copy").count()).toBe(0)
+    expect(await page.locator("figure[data-role='TABLE'] div.ag-block-toolbar:not(.ag-table-toolbar)").count()).toBe(0)
+    expect(await page.locator("figure[data-role='TABLE'] button.ag-table-toolbar-copy").count()).toBe(1)
     expect(await page.locator("figure[data-role='TABLE'] > button.ag-block-expand").count()).toBe(0)
   })
   // END_BLOCK_EXPORT_E2E_TOOLBAR
