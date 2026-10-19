@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/utils/diagramExport.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Per-block diagram/chart picture export (C-56) — turn a rendered Pele diagram (```mermaid) or Vega-Lite chart (```vega-lite) SVG into a self-contained standalone SVG string (all --pele-* variables resolved from the live theme, theme font declared, theme code-panel background rect, natural size from data-natural-width/viewBox — never the zoomed or viewer-scaled size) and rasterize it to a 2× Retina PNG on a canvas; plus the save-file name suggestion (nearest preceding heading slug, document-name fallback) and, since T-006, the embedded-image copy helpers (source classification local/remote/data:, data-URL decode, PNG magic check, image-bytes → natural-size canvas PNG).
 //   SCOPE: pure DOM/string transforms plus canvas rasterizers; SVG sanitization for export (no <script>, no on* handlers, no javascript: hrefs, no editor chrome); block resolution limited to the C-56 exportable roles (MERMAID, VEGA-LITE); injectable theme tokens/variables, canvas, image and object-URL factories for tests. No clipboard, dialog, fetch or fs I/O — the editor host (editor.vue) owns the transports.
@@ -15,7 +15,7 @@
 //   diagramExportSvg - anything inside an EXPORTABLE figure (target, the figure, or the LIVE preview div) → the rendered SVG of its preview div; null for non-exportable roles and never-rendered blocks (strict role gate — math/html previews never resolve).
 //   nearestHeadingText - element → textContent of the nearest PRECEDING heading in document order (walks previous siblings and ancestors; stops at the editor root).
 //   slugifyName - free text → filesystem-safe slug (unicode letters kept — Russian headings slug to Cyrillic; whitespace→'-'; anything not letter/number/hyphen dropped; 64-char cap).
-//   suggestFileName - { headingText, docName, index, ext } → "heading-slug.png" or "<doc>-diagram-N.png" fallback.
+//   suggestFileName - { headingText, docName, index, ext, noun } → "heading-slug.png" or "<doc>-diagram-N.png" / "<doc>-table-N.png" fallback.
 //   buildStandaloneSvg - live SVG element → self-contained SVG string: var(--pele-*) references replaced with the resolved theme values, natural width/height/viewBox, root inline sizing stripped, background rect of the theme panel colour (default) or none (transparent), theme font declared when the root carries none, script/handler/javascript:-href free. null when no size can be derived.
 //   rasterizeSvg - standalone SVG string → { bytes, width, height } PNG at scale× natural size (default 2×) drawn through an <img> onto a canvas; createCanvas/makeImage injectable for tests.
 //   pngIhdrSize - PNG bytes → { width, height } read from the IHDR header (big-endian u32 at bytes 16..23); null for non-PNG or short input — shared by the e2e 2×-natural assertions.
@@ -27,7 +27,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-006: embedded-image copy
+//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-70: suggestFileName takes noun
+//   ('diagram' | 'table') for the <doc>-<noun>-N fallback.
+//   v1.1.0 - 2026-10-18 C-56 T-006: embedded-image copy
 //   helpers — resolveImageCopySource/decodeDataUrl/isPngBytes/
 //   imageBytesToPng/imageCopyPngBytes — and the img load/decode wait
 //   extracted into the shared waitDecodedImage (rasterizeSvg keeps the
@@ -126,20 +128,24 @@ export const slugifyName = (text) => {
  * @param {string} [options.docName] document file name (extension stripped)
  * @param {number} [options.index=1] 1-based index of the diagram among the exportable blocks
  * @param {string} [options.ext='png'] file extension (sanitized)
+ * @param {string} [options.noun='diagram'] fallback noun: 'diagram' or 'table' (C-70)
  * @returns {string}
  */
 export const suggestFileName = ({
   headingText = '',
   docName = '',
   index = 1,
-  ext = 'png'
+  ext = 'png',
+  noun = 'diagram'
 } = {}) => {
   const safeExt = String(ext).replace(/[^a-z0-9]/gi, '').toLowerCase() || 'png'
   const heading = slugifyName(headingText)
   if (heading) return `${heading}.${safeExt}`
   const doc = slugifyName(String(docName || '').replace(/\.[^.]+$/, ''))
   const n = Number.isFinite(index) && index > 0 ? Math.floor(index) : 1
-  return doc ? `${doc}-diagram-${n}.${safeExt}` : `diagram-${n}.${safeExt}`
+  // C-70: tables fall back to <doc>-table-N.
+  const what = noun === 'table' ? 'table' : 'diagram'
+  return doc ? `${doc}-${what}-${n}.${safeExt}` : `${what}-${n}.${safeExt}`
 }
 
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6'

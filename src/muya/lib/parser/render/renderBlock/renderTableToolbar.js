@@ -1,7 +1,7 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderTableToolbar.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-65 T-002 the TABLE toolbar — a pill of the C-56 family (div.ag-block-toolbar.ag-table-toolbar) with two icon actions (Full width ↔ Fit to page toggle, Open full screen) rendered as a direct child of every table figure, REPLACING the standalone button.ag-block-expand glyph tables carried since C-51.
+//   PURPOSE: C-65 T-002 the TABLE toolbar — a pill of the C-56 family (div.ag-block-toolbar.ag-table-toolbar) with three icon actions (Full width ↔ Fit to page toggle, Copy as image — C-70, Open full screen) rendered as a direct child of every table figure, REPLACING the standalone button.ag-block-expand glyph tables carried since C-51.
 //   SCOPE: The pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label, the hidden hover-reveal label span, the active state class and the per-state toggle icon) and the button selector constant the capture-phase routing keys on. Placement lives in renderContainerBlock.js START_BLOCK_TABLE_TOOLBAR_AND_CAPTION (ABOVE the table, right edge on the text-column edge); looks in the C-65 CSS section of lib/assets/styles/index.css; click routing lives in lib/tableResize/index.js (capture phase — clickEvent.js never sees these buttons); the toggle's live label/icon swap lives in TableResize.updateToolbarToggleDom; the Open-full-screen action keeps the expandNeed.js gate through the figure's ag-expand-needed class.
 //   DEPENDS: muya snabbdom h; muya options.t (tableToolbar.fullWidth / tableToolbar.fitToPage — localized in the 10 locales — and blockToolbar.openFullScreen, shared with the diagram pill); renderBlockToolbar.TOOLBAR_EXPAND_ICON_PATH (the same mockup glyph).
 //   LINKS: .grace/changes/active/C-65 T-002; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-64 (the C-56 family) and scenario-66; renderBlockToolbar.js (the family the pill reuses); renderExpandButton.js (the standalone glyph tables no longer render); expandNeed.js (the need gate); keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON (every button carries the ag-block-expand family class so Tab/Enter/arrows belong to the button).
@@ -14,11 +14,14 @@
 //   TABLE_TOOLBAR_BUTTON_SELECTOR - selector shared by the two table buttons ("button.ag-table-toolbar-btn" — routed by lib/tableResize capture-phase handlers; the buttons ALSO carry the ag-block-expand family class so the keyboard.js key guard covers them, but NOT dataset.blockToolbarAction, so clickEvent.js's pill branch can never misroute them).
 //   TOOLBAR_TABLE_FULLWIDTH_ICON_PATH - the Full width glyph (arrows out to both edges, 16-grid 1.5 stroke).
 //   TOOLBAR_TABLE_FIT_ICON_PATH - the Fit to page glyph (arrows collapsing inward).
-//   default - renderTableToolbar(t, { fullWidth }) - the pill vnode: the toggle button (ag-table-toolbar-toggle, + ag-table-toolbar-active and the fit icon when the mode is on) then the Open full screen button (ag-block-toolbar-expand, need-gated by CSS exactly like the diagram pill's third action).
+//   default - renderTableToolbar(t, { fullWidth }) - the pill vnode: the toggle button (ag-table-toolbar-toggle, + ag-table-toolbar-active and the fit icon when the mode is on), the C-70 Copy as image button (ag-block-toolbar-copy ag-table-toolbar-copy, the diagram pill's glyph and label), then the Open full screen button (ag-block-toolbar-expand, need-gated by CSS exactly like the diagram pill's third action).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65 T-002: new — every table figure
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-70: «Copy as image» joins the pill
+//   between the toggle and Open full screen (same glyph and locale key as
+//   the diagram pill); TableResize routes it to muya-diagram-export.
+//   v1.0.0 - 2026-10-18 C-65 T-002: new — every table figure
 //   renders the pill ABOVE the table (CSS positions it just over the
 //   table's top edge with its right edge on the text-column edge, approved
 //   mockup variant E) instead of the standalone expand glyph. Buttons:
@@ -32,7 +35,7 @@
 // END_CHANGE_SUMMARY
 
 import { h } from '../snabbdom'
-import { TOOLBAR_EXPAND_ICON_PATH } from './renderBlockToolbar'
+import { TOOLBAR_EXPAND_ICON_PATH, TOOLBAR_COPY_ICON_RECT, TOOLBAR_COPY_ICON_PATHS } from './renderBlockToolbar'
 
 export const TABLE_TOOLBAR_SELECTOR = 'div.ag-block-toolbar.ag-table-toolbar'
 export const TABLE_TOOLBAR_BUTTON_SELECTOR = 'button.ag-table-toolbar-btn'
@@ -61,6 +64,7 @@ const renderIcon = (children) => h('svg', {
   }
 }, children)
 
+// iconPath: one path d string, or an array of icon child vnodes.
 const renderToolbarButton = (className, action, label, iconPath) =>
   h(`button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.${className.trim().split(/\s+/).join('.')}`, {
     attrs: {
@@ -73,7 +77,7 @@ const renderToolbarButton = (className, action, label, iconPath) =>
     },
     dataset: { tableToolbarAction: action }
   }, [
-    renderIcon([h('path', { attrs: { d: iconPath } })]),
+    renderIcon(Array.isArray(iconPath) ? iconPath : [h('path', { attrs: { d: iconPath } })]),
     // Variant C family: the text label sits next to the icon and is
     // revealed by the button's own hover (CSS), keeping the resting pill
     // compact.
@@ -99,6 +103,17 @@ const renderTableToolbar = (t, { fullWidth = false } = {}) => h(TABLE_TOOLBAR_SE
       t('tableToolbar.fullWidth'),
       TOOLBAR_TABLE_FULLWIDTH_ICON_PATH
     ),
+  // C-70 Copy as image — the diagram pill's glyph; the table is drawn
+  // from its live layout (utils/tableExport.js) and rasterized at 2×.
+  renderToolbarButton(
+    'ag-block-toolbar-copy ag-table-toolbar-copy',
+    'copyImage',
+    t('blockToolbar.copyImage'),
+    [
+      h('rect', { attrs: { ...TOOLBAR_COPY_ICON_RECT } }),
+      ...TOOLBAR_COPY_ICON_PATHS.map((d) => h('path', { attrs: { d } }))
+    ]
+  ),
   // Open full screen — the shared block viewer; visibility stays
   // need-gated by expandNeed.js (CSS display rules, no Tab stop without
   // ag-expand-needed).

@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Table column resize and per-table layout (C-39 T-002 session widths; C-65 persistent widths + the per-table Full width mode keyed by file-path-stable identities), pointer-drag interaction on header-border handles, double-click reset, reconciliation after every muya re-render, the table toolbar click routing and the overflow-cue refresh.
 //   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), the persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge (R-1/R-3, written only after a real user action), the Full width mode session set + DOM application + toggle routing (R-4/R-6), capture-phase pointer/mouse/click/dblclick/scroll handling on the editor container, and DOM application of widths (colgroup + table-layout fixed).
@@ -29,7 +29,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.2.0 - 2026-10-19 Full width is the DEFAULT for a
+//   LAST_CHANGE: v2.3.0 - 2026-10-19 C-70: the toolbar's copyImage action
+//   dispatches muya-diagram-export (copyImageFromElement).
+//   v2.2.0 - 2026-10-19 Full width is the DEFAULT for a
 //   table wider than the text column (user decision after the live
 //   review): such a table gets the mode automatically (autoFullWidth, not
 //   persisted) unless the user chose «Fit to page» for it — that explicit
@@ -593,6 +595,14 @@ class TableResize {
     this.muya.eventCenter.dispatch('muya-block-viewer', { element: figure })
   }
 
+  // C-70: the toolbar's Copy as image — the same host transport as the
+  // diagram pill (editor.vue handleDiagramExportAction, table branch).
+  copyImageFromElement(element) {
+    const figure = this.findTableFigure(element)
+    if (!figure) return
+    this.muya.eventCenter.dispatch('muya-diagram-export', { action: 'copyImage', element: figure })
+  }
+
   // ---- Toolbar + caption event routing (capture phase) ----
 
   handleToolbarMousedown = event => {
@@ -617,6 +627,8 @@ class TableResize {
       const action = button.dataset.tableToolbarAction
       if (action === 'toggleFullWidth') {
         this.toggleFullWidthFromElement(button)
+      } else if (action === 'copyImage') {
+        this.copyImageFromElement(button)
       } else {
         this.openViewerFromElement(button)
       }

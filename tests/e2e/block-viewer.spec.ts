@@ -680,8 +680,9 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     // C-56 T-005 + C-65 T-002: 18 buttons (the two mermaid + vega pill
     // figures carry THREE family buttons each, flowchart/sequence/plantuml
     // carry the standalone glyph, each of the three tables carries the
-    // toolbar's toggle + expand pair) — visibility is the need gate.
-    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(18)
+    // toolbar's toggle + copy (C-70) + expand trio) — visibility is the
+    // need gate.
+    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(21)
 
     // Exactly the four benefiting figures carry the need class.
     const needs = await page.evaluate(() =>
@@ -709,7 +710,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
         label: b.getAttribute('aria-label')
       }))
     )
-    expect(labeled).toHaveLength(18)
+    expect(labeled).toHaveLength(21)
     const tally: Record<string, number> = {}
     for (const b of labeled) {
       tally[`${b.pill ? 'pill:' : ''}${b.action}`] = (tally[`${b.pill ? 'pill:' : ''}${b.action}`] || 0) + 1
@@ -717,7 +718,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(tally).toEqual({
       standalone: 3,
       'pill:edit': 3,
-      'pill:copy': 3,
+      'pill:copy': 6,
       'pill:expand': 6,
       'pill:toggle': 3
     })
@@ -1039,14 +1040,19 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     // toggle, then its need-gated expand action.
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-toggle"), 'Tab must reach the small table toggle').toBe(true)
+    // C-70: every table toolbar has an always-reachable Copy as image.
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-copy"), 'Tab must reach the small table copy').toBe(true)
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-toggle"), 'Tab must reach the wide table toggle').toBe(true)
     await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-copy"), 'Tab must reach the wide table copy').toBe(true)
+    await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-expand"), 'Tab must reach the wide table expand').toBe(true)
 
-    // Shift+Tab walks back through the wide table's toggle.
+    // Shift+Tab walks back through the wide table's copy.
     await page.keyboard.press('Shift+Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-toggle")).toBe(true)
+    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-copy")).toBe(true)
   })
 
   test('table: the toolbar never covers the header text or the last column resize handle and resizing still works', async ({ page }) => {

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-cue.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 overflow cue and table toolbar — the pure «columns X–Y of N» range math (start / middle / end / fits / single column / degenerate), the caption formatting incl. the token fallback and the full-width «all N columns», the DOM state gathering and sync (caption text/visibility + shade side classes, live translator pin), the renderTableToolbar vnode (buttons, labels, active state, family classes, dataset actions, need-gated expand) and the C-65 CSS literals (toolbar above the table on the column edge, caption below it, class-gated shades, full-width breakout).
 //   SCOPE: src/muya/lib/tableResize/tableCue.js, src/muya/lib/parser/render/renderBlock/renderTableToolbar.js, the C-65 section of lib/assets/styles/index.css, and the START_BLOCK_TABLE_TOOLBAR_AND_CAPTION placement in renderContainerBlock.js.
@@ -20,7 +20,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65: new — every case fails without
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-70: the table toolbar carries three buttons (toggle, Copy as image, Open full screen).
+//   PREV: v1.0.0 - 2026-10-18 C-65: new — every case fails without
 //   tableCue.js / renderTableToolbar.js (no caption, no shade classes, no
 //   toolbar) or against the pre-C-65 CSS (no placement rules).
 // END_CHANGE_SUMMARY
@@ -315,8 +316,10 @@ describe('table toolbar vnode (C-65 T-002, C-56 family)', () => {
     expect(vnode.sel).toBe(TABLE_TOOLBAR_SELECTOR)
     expect(vnode.data.attrs.contenteditable).toBe('false')
     const buttons = buttonsOf(vnode)
-    expect(buttons.length).toBe(2)
-    const [toggle, expand] = buttons
+    // C-70: toggle, Copy as image, Open full screen.
+    expect(buttons.length).toBe(3)
+    const [toggle, copy, expand] = buttons
+    expect(copy.sel).toBe('button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.ag-block-toolbar-copy.ag-table-toolbar-copy')
     // Family classes: the keyboard.js key guard hooks ag-block-expand; the
     // shared pill button styling hooks ag-block-toolbar-btn.
     expect(toggle.sel).toBe('button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.ag-table-toolbar-toggle')
@@ -356,7 +359,7 @@ describe('table toolbar vnode (C-65 T-002, C-56 family)', () => {
   })
 
   it('defaults to the resting (Fit OFF) state and keeps the glyphs distinct', () => {
-    expect(renderTableToolbar(tt).children.length).toBe(2)
+    expect(renderTableToolbar(tt).children.length).toBe(3)
     expect(renderTableToolbar(tt, {}).children[0].data.attrs.title).toBe('Full width')
     expect(TOOLBAR_TABLE_FIT_ICON_PATH).not.toBe(TOOLBAR_TABLE_FULLWIDTH_ICON_PATH)
     expect(TABLE_TOOLBAR_BUTTON_SELECTOR).toBe('button.ag-table-toolbar-btn')
