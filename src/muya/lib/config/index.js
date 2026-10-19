@@ -449,7 +449,12 @@ export const MUYA_DEFAULT_OPTION = Object.freeze({
   // C-39 T-002: hide the session-only table column resize affordances.
   // Set for the read-only Split View mirror pane; reading/locked tabs keep
   // them (resizing is view-only — it never writes to the document).
-  disableTableColumnResize: false
+  disableTableColumnResize: false,
+
+  // C-65 R-6: a table wider than the text column opens in Full width
+  // unless the user chose «Fit to page» for it. The preference that lets
+  // users change this default is backlog (C-65 NonGoal).
+  tableFullWidthDefault: true
 })
 
 // export const DIAGRAM_TEMPLATE = Object.freeze({

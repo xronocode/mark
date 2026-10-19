@@ -96,6 +96,10 @@
     <T-005>
       <Note>2026-10-19 — tests and artifacts only. Unit: the four new/extended test files above aim the change's files at full line/branch coverage (pure store/cue maths fully enumerated; TableResize adoption/drop/persist/toggle/routing/reset paths; rename hooks). e2e: tests/e2e/table-toolbar.spec.ts + tests/e2e/table-width-persistence.spec.ts (chromium + webkit-tables via the table-* match) and the updated table-layout.spec.ts / table-column-resize.spec.ts pins. GRACE: graph M-012 (C-65 summary + fn-tableResize rework + fn-tableCue/fn-tableToolbar/fn-tableLayoutStore), verification V-M-012 scenario-66 + the C-65 markers, this Evidence. NOT DONE by this agent (no shell): pinning per-file 100% thresholds inside vitest.config.ts is OUTSIDE the plan's ObservedWriteScope — the orchestrator must add the per-file gate for src/muya/lib/tableResize/index.js, src/muya/lib/tableResize/tableCue.js, src/muya/lib/parser/render/renderBlock/renderTableToolbar.js and src/renderer/src/util/tableLayoutStore.js (and add the muya paths to coverage.include, which today covers only src/renderer/src); likewise running vitest/playwright/grace lint, and the Paper/Ink screenshot capture + the user's live check.</Note>
     </T-005>
+    <T-006>
+      <Status>done 2026-10-19 (orchestrator)</Status>
+      <Note>Full width default for wide tables: tableResize v2.2.0 (autoFullWidth recomputed per render via overflowsTextColumn, fitToPage set persisted as fit, muya option tableFullWidthDefault=true, off in the mirror); snabbdom.js toHTML hyphenates camelCase dataset keys (the toggle lost data-table-toolbar-action after a partial render — found by the new re-toggle e2e); unit +7 (table-layout-persistence v1.1.0, snabbdom-to-html-dataset v1.0.0); e2e table-toolbar v1.1.0, table-layout v1.5.0, block-viewer v3.6.0; chromium + webkit-tables 71/71, full e2e 426 passed, vitest 4472 passed. Backlog: the preference to change the default (NonGoal).</Note>
+    </T-006>
   </Evidence>
 </C-65>
 </GraceChangePlan>
