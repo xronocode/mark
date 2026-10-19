@@ -65,7 +65,7 @@
 	"searchFollowSymlinks": true,
 	"watcherUsePolling": false,
 	"defaultDirectoryToOpen": "",
-	"lastOpenedFolder": "/Users/myevdokimov/Documents/_vault",
+	"lastOpenedFolder": "/Users/<fixture>/Documents/_vault",
 	"treePathExcludePatterns": [],
 	"autoSnapWindowWidth": true,
 	"__internal__": {

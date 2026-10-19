@@ -9,6 +9,7 @@
       <!-- V-M-012 scenario-70 covers native Shift+Up/Down selection and its scoped owner acceptance. -->
       <!-- C-60: V-M-012 scenario-24 and V-M-011 scenario-65 cover live footnote grammar changes. -->
       <!-- C-62: V-M-012 scenario-25 covers local appearance modes, palette safety, history, readonly behavior and viewer/export parity. -->
+      <!-- C-PRIVATE-OPERATIONS: V-M-005 scenario-5 verifies the sanitized fixture corpus and manifest. -->
       <Owns>
         <V-M-001/>
         <V-M-002/>
@@ -62,6 +63,7 @@
       <!-- V-M-046 scenario-16 retains the webkit-session CI gate. -->
       <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
       <!-- V-M-046 scenario-14 retains the WebKit keyboard-selection CI gate. -->
+      <!-- C-PRIVATE-OPERATIONS: V-M-046 scenario-15 verifies private operational records stay outside public source. -->
       <Owns>
         <V-M-031/>
         <V-M-032/>

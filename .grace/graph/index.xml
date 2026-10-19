@@ -8,6 +8,7 @@
       <!-- M-012 preserves native vertical selection while the passive format toolbar is shown. -->
       <!-- C-60: M-012 fn-reparseMarkdown and M-011 footnote tab-cache ownership. -->
       <!-- C-62: M-012 fn-diagramAppearance owns mode metadata, menu and editor/viewer/export palettes; M-011 supplies localized copy. -->
+      <!-- C-PRIVATE-OPERATIONS: M-005 owns sanitized legacy preference examples and their publication check. -->
       <Owns>
         <M-001/>
         <M-002/>
@@ -61,6 +62,7 @@
       <!-- M-046 gates WebKit session restore and close/edit isolation. -->
       <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
       <!-- M-046 gates the WebKit keyboard-selection project in test.yml. -->
+      <!-- C-PRIVATE-OPERATIONS: M-046 owns the public/private release-operations boundary. -->
       <Owns>
         <M-031/>
         <M-032/>
