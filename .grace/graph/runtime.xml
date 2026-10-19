@@ -2764,6 +2764,14 @@
         the preferences.* locale tree is rewritten in all ten languages.
         C-40 T-003: the «On this page» outline rail
         (editorWithTabs/outlineRail.vue over the pure util/outlineRail.js)
+        now hides as a whole whenever a visible owned table intersects it
+        (C-71-OUTLINE-OCCLUSION, owner's clarified scroll rule). Its box
+        remains measurable; visibility, inertness and aria-hidden remove
+        obscuring paint and input without shifting page geometry. Scoped
+        capture scroll, column mutations and table/rail resize observation
+        coalesce geometry reads into one frame and detach on unmount.
+        Tables clipped by Fit to page or the scrollport do not occlude it.
+        The baseline rail
         replaces the sidebar TOC panel — a slim absolute rail right of the
         centred text column inside the editorWithTabs .container
         (positioning context; canvas geometry: 170 px wide, 22 px right
@@ -3199,6 +3207,10 @@
             </Attribute>
           </LegacyAttributes>
         </fn-extractRailHeadings>
+        <fn-railIntersectsTable>
+          <Name>railIntersectsTable</Name>
+          <Purpose>util/outlineRail.js: positive intersection of valid rail, table, owning scrollport and optional Fit-to-page wrapper clip rectangles; edge contact or clipped-offscreen content returns false. outlineRail.vue applies whole-rail visibility without reflow, independently of pointer hover.</Purpose>
+        </fn-railIntersectsTable>
         <fn-resolveCurrentHeading>
           <LegacyAttributes>
             <Attribute>

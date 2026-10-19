@@ -4,6 +4,7 @@
     <!-- C-63: V-M-046 scenario-13 enforces the footnotes and appearance WebKit projects. -->
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>
+      <!-- C-71-OUTLINE-OCCLUSION: V-M-011 scenario-54 covers whole-outline hide/restore on scroll intersection without geometry or content writes. -->
       <!-- C-71-TABLE-CENTER: V-M-012 scenario-69 reproduces long-cell centering against full editor bounds in both engines. -->
       <!-- C-CI-FENCE-TEARDOWN: V-M-012 scenario-muya-fence-import-teardown owns deterministic real-import completion. -->
       <!-- C-71 follow-up: own outline/scroller observation keeps table viewport geometry current after late visibility changes. -->

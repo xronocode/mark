@@ -1,8 +1,8 @@
 // FILE: tests/renderer/util/outline-rail.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-40 T-003 outline-rail pure gates — h1–h3 extraction, current-heading resolution (nearest visible ancestor), and the width/heading-count/no-overlap fit rules.
-//   SCOPE: util/outlineRail.js pure functions only (no DOM, no stores).
+//   SCOPE: util/outlineRail.js pure heading/gate functions and strict table/rail/scrollport intersection, including clipping and invalid geometry.
 //   DEPENDS: util/outlineRail.js, Vitest.
 //   LINKS: .grace/changes/active/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: TEST
@@ -11,9 +11,11 @@
 //
 // START_MODULE_MAP
 //   TOC - listToc fixture with mixed heading levels.
+//   rect - rectangle fixture from four viewport edges.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v1.1.0: C-71-OUTLINE-OCCLUSION — positive visible intersection, clipping, edge contact and unusable geometry.
 //   - 2026-10-15 v1.0.0: C-40 T-003 initial coverage.
 // END_CHANGE_SUMMARY
 
@@ -23,7 +25,8 @@ import {
   railFitsWithoutOverlap,
   shouldShowRail,
   RAIL_MIN_EDITOR_WIDTH,
-  RAIL_MIN_HEADINGS
+  RAIL_MIN_HEADINGS,
+  railIntersectsTable
 } from '@/util/outlineRail'
 
 const TOC = [
@@ -33,6 +36,30 @@ const TOC = [
   { slug: 'h3-deep', content: 'Deep', lvl: 3 },
   { slug: 'h5-hidden', content: 'Hidden', lvl: 5 }
 ]
+
+const rect = (left, top, right, bottom) => ({ left, top, right, bottom })
+
+describe('railIntersectsTable', () => {
+  it.each([
+    [rect(100, 80, 1150, 160), true],
+    [rect(100, 80, 1100, 160), false],
+    [rect(100, 200, 1150, 260), false],
+    [rect(100, -200, 1150, -10), false],
+    [rect(100, -200, 1150, 90), true],
+    [rect(100, 80, 100, 160), false],
+    [rect(NaN, 80, 1150, 160), false],
+    [null, false]
+  ])('requires positive intersection inside the viewport: %j', (table, expected) => {
+    expect(railIntersectsTable(rect(1100, 60, 1280, 200), table, rect(0, 0, 1300, 700))).toBe(expected)
+  })
+
+  it('ignores a table/rail intersection clipped outside the owning scrollport', () => {
+    expect(railIntersectsTable(rect(1100, 0, 1280, 200), rect(100, 0, 1200, 40), rect(0, 50, 1300, 700))).toBe(false)
+    expect(railIntersectsTable(null, rect(100, 0, 1200, 40), rect(0, 0, 1300, 700))).toBe(false)
+    expect(railIntersectsTable(rect(1100, 0, 1280, 200), rect(100, 0, 1200, 40), null)).toBe(false)
+    expect(railIntersectsTable(rect(1100, 0, 1280, 200), rect(100, 0, 1200, 40), rect(0, 0, 1300, 700), rect(100, 0, 900, 100))).toBe(false)
+  })
+})
 
 describe('extractRailHeadings', () => {
   it('keeps h1–h3 in document order and drops deeper levels', () => {

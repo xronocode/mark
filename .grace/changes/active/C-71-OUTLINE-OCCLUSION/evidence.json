@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-19",
+  "status": "fixed and locally verified; protected integration CI and fresh native acceptance pending",
+  "ownerRule": "Hide the whole contents whenever a table intersects it during page scrolling, independently of pointer hover. Restore when clear, without changing page geometry.",
+  "reproduction": "Both Chromium and WebKit failed the new scroll-only regression before repair: the outline stayed visible while intersecting the long-cell table.",
+  "implementation": "Keep the rail's measurable box, apply visibility:hidden plus inert/aria-hidden during strict visible rectangle intersection, and restore on scroll/layout changes. Own-editor scroll capture, column mutation and table/rail resize observation are coalesced into one animation frame and disconnected on unmount. Scrollport and Fit-to-page wrapper clipping exclude invisible table portions.",
+  "verification": {
+    "focusedUnitPassed": 36,
+    "fullRendererCoverage": { "filesPassed": 336, "testsPassed": 4631, "existingSkipped": 2, "existingTodo": 3, "statements": 92.55, "branches": 85.91, "functions": 87.1, "lines": 93.62, "thresholds": "unchanged and passing" },
+    "browserPassed": 76,
+    "engines": ["Chromium", "WebKit"],
+    "scenarios": ["initial long-cell intersection", "scroll-only hide and restore", "pointer independence", "unchanged page/table/rail geometry and normalized Markdown/saved state", "Fit-to-page clipping and expansion", "outline gates and navigation", "viewer zoom and tooltip corpus", "foreign editor exclusion and lifecycle cleanup"],
+    "rendererBuild": "passed from clean npm ci",
+    "ipcTypecheck": "passed",
+    "webkitPerformanceGate": "passed; thresholds unchanged",
+    "graceCurrent": "zero integrity errors; existing baseline/overlap warnings remain"
+  },
+  "acceptance": "C-71 remains pending on one fresh native build containing both separately delivered fixes.",
+  "release": "No version, tag or publication authorized."
+}
