@@ -5,3 +5,7 @@ tests/renderer/muya/fixtures/** text eol=lf
 # C-33: icon sources are hashed (Assets.car.sources.sha256) and compared to
 # gen.py output byte for byte — keep LF on every checkout.
 assets/icon/** text eol=lf
+# The retained synthetic preference examples are byte-hashed by the public
+# privacy guard. Windows checkout conversion must not change those bytes.
+fixtures/**/migration-relevant/*.json text eol=lf
+fixtures/fixture-pin.lock text eol=lf

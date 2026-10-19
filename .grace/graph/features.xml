@@ -2342,6 +2342,10 @@
       <Layer>TOOLING</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
       <Summary>
+        Retained synthetic preference JSON and its manifest use LF checkout
+        bytes; privacy verification normalizes host path separators and
+        accepts manifest line delimiters on Windows, macOS and Linux.
+
         vitest.int.config.mjs re-exports the canonical Vitest configuration
         for portable historical C-71 commands, without machine-specific paths.
         The test workflow gates session restore and close/edit ownership
