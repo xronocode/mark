@@ -1153,7 +1153,7 @@ export const useEditorStore = defineStore('editor', {
       // F-LIFECYCLE-WIRE (B4-pre-alpha-step-3): renderer-driven confirm
       // dialog before discarding/saving an unsaved tab on Cmd+W. v1.2.3
       // would silently save+close which surprised the 2026-05-08 smoke
-      // user ("ничего не появляется"). Three outcomes mirror the
+      // user ("nothing appears"). Three outcomes mirror the
       // window-close dialog in LISTEN_FOR_CLOSE.
       const { id, pathname, filename, markdown } = file
       const options = getOptionsFromState(file)

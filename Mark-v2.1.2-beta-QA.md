@@ -1,54 +1,54 @@
-# Проверка Mark v2.1.2-beta
+# Mark v2.1.2-beta verification
 
-Отмечай пункт после проверки. Если что-то сломалось, рядом напиши, что именно произошло.
+Check each item after testing. If something breaks, write next to it what exactly happened.
 
-## 1. Путь к файлу в заголовке
+## 1. File path in the title bar
 
-- [x] Нажми правой кнопкой по имени или пути текущего файла в верхней панели.
-- [x] В контекстном меню есть команда копирования пути.
-- [x] Выбери её и вставь результат ниже: должен вставиться полный путь к этому файлу.
+- [x] Right-click the current file's name or path in the top bar.
+- [x] The context menu has a copy-path command.
+- [x] Choose it and paste the result below: the full path to this file should be pasted.
 
-Результат:
+Result:
 
-> МЕСТО**bu yerda**здесь
+> PLACE**bu yerda**HERE
 
-## 2. Первый рендер документа
+## 2. First document render
 
-- [x] Закрой и снова открой этот файл через Finder или меню **File → Open**.
-- [x] Текст и оформление появляются сразу — пустого окна до первого клика или прокрутки нет.
-- [x] Повтори открытие 2–3 раза: результат остаётся одинаковым.
+- [x] Close and reopen this file via Finder or **File → Open**.
+- [x] Text and styling appear immediately — no blank window before the first click or scroll.
+- [x] Repeat opening 2–3 times: the result stays the same.
 
-## 3. Видимость курсора
+## 3. Cursor visibility
 
-- [x] Поставь курсор в конец следующей строки и набери несколько слов:
+- [x] Put the cursor at the end of the following line and type a few words:
 
-Курсор в обычном абзаце: проверка
+Cursor in a regular paragraph: test
 
-- [x] Проверь курсор в заголовке:
+- [x] Check the cursor in a heading:
 
-### Курсор в заголовке: проверка
+### Cursor in a heading: test
 
-- [x] Проверь курсор в блоке кода:
+- [x] Check the cursor in a code block:
 
 ```text
-Курсор в блоке кода: проверка
+Cursor in a code block: test
 ```
 
-- [x] Переключись в другое приложение и вернись в Mark: курсор снова виден.
-- [x] Поменяй светлую и тёмную тему: курсор контрастный в обеих.
+- [x] Switch to another app and come back to Mark: the cursor is visible again.
+- [x] Toggle light and dark theme: the cursor has enough contrast in both.
 
-## 4. Обновления без Terminal
+## 4. Updates without Terminal
 
-- [x] Открой **Help → Check for Updates**.
-- [x] Mark сообщает, что `2.1.2-beta` актуальна.
-- [x] Terminal не открывается.
-- [x] Нет команды `brew upgrade --cask mark@alpha` и ошибки untrusted tap.
+- [x] Open **Help → Check for Updates**.
+- [x] Mark reports that `2.1.2-beta` is up to date.
+- [x] No Terminal window opens.
+- [x] No `brew upgrade --cask mark@alpha` command and no untrusted tap error.
 
-## Итог
+## Outcome
 
-- [ ] Всё прошло.
-- [x] Есть ошибка — опиши её здесь и приложи скриншот при возможности.
+- [ ] Everything passed.
+- [x] There is an error — describe it here and attach a screenshot if possible.
 
-Комментарий:
+Comment:
 
-> баг - нажал скопировать путь - но в буфере старые данные еще, путь не скопировался в буфер
+> bug — clicked "copy path", but the clipboard still held the old data; the path was not copied
