@@ -1,21 +1,22 @@
 // FILE: tests/renderer/muya/export-fence-length.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin that a fenced code block whose content contains backtick runs re-exports inside a fence longer than any inner run (C-51 T-009 BLOCK_FENCE_LENGTH_KEEP).
-//   SCOPE: exportMarkdown normalizeCodeBlock fence length via Muya setMarkdown -> getMarkdown: a block naming ``` fences keeps them inside one block, plain blocks stay 3-backtick, the guide's agent-prompt block survives a full open/save round trip.
+//   SCOPE: Real Muya/Guide fence-export round trips and completion of their lazy preview imports before test-environment teardown.
 //   DEPENDS: src/muya/lib (Muya), src/renderer/src/util/guideDoc.js (guide source).
-//   LINKS: .grace/changes/active/C-51 T-009; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-011 scenario-58.
+//   LINKS: .grace/changes/active/C-51 T-009; .grace/changes/archive/C-CI-FENCE-TEARDOWN; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-011 scenario-59 and V-M-012 scenario-muya-fence-import-teardown.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   mdToMarkdown - mounts a throwaway Muya instance on a fresh container and returns getMarkdown().
+//   mdToMarkdown - exports through a real throwaway Muya instance, destroys it and removes its container; suite teardown drains the remaining preview imports.
 //   FENCE_BLOCK - minimal document whose text fence names a ``` fence inside.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-51 T-009: the guide's agent prompt names ```mermaid fences, so the exported fence must be longer than the inner runs or the re-imported markdown closes the block early.
+//   LAST_CHANGE: v1.1.0 - C-CI-FENCE-TEARDOWN: await lazy preview imports instead of guessing a 50ms teardown deadline; restore console spies after the imports settle.
+//   PREV: v1.0.0 - C-51 T-009: the guide's agent prompt names ```mermaid fences, so the exported fence must be longer than the inner runs or the re-imported markdown closes the block early.
 // END_CHANGE_SUMMARY
 
 import { beforeAll, afterAll, vi } from 'vitest'
@@ -39,16 +40,17 @@ const mdToMarkdown = (markdown) => {
 const FENCE_BLOCK = '````text\n- Diagrams — ```mermaid fences\nplain text\n````\n'
 
 describe('exportMarkdown fence length (C-51 T-009)', () => {
-  // The muya export path logs asynchronously; with coverage on (macOS CI)
-  // a log still in flight when the worker closes is reported as an
-  // unhandled «Closing rpc while onUserConsoleLog was pending». Silence it.
-  // Kept silenced until the worker closes (restoring in afterAll let a late
-  // log through on Ubuntu CI); the file runs in its own worker.
+  // Keep real preview diagnostics quiet during these Markdown assertions.
+  // Restore the spies only after all lazy imports and their chained imports
+  // finish, so neither module evaluation nor its logs outlive the suite.
   beforeAll(() => {
     for (const m of ['log', 'debug', 'info', 'warn', 'error']) vi.spyOn(console, m).mockImplementation(() => {})
   })
   afterAll(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // The Guide starts real diagram imports even though its Muya instance
+    // is destroyed synchronously. Elapsed time cannot prove they finished.
+    await vi.dynamicImportSettled()
+    vi.restoreAllMocks()
   })
 
   it('a block naming ``` fences re-exports inside a longer outer fence', () => {

@@ -3626,6 +3626,9 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
+        C-CI-FENCE-TEARDOWN: real-Muya Guide/fence-export tests wait for
+        the complete lazy preview import graph before their environment
+        closes. Runtime rendering and Markdown export behavior are unchanged.
         Native vertical selection: keyboard.js leaves Shift+Up/Down and
         host selection notifications to the editor when only the passive
         format toolbar is shown. Actual autocomplete pickers retain their

@@ -1,0 +1,24 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-CI-FENCE-TEARDOWN>
+    <ChangeRef>C-CI-FENCE-TEARDOWN</ChangeRef>
+    <Created>2026-10-19</Created>
+    <IntentSummary>In the owner-approved sequential CI repair, reproduce the slow real-import race, wait for Vitest-tracked imports instead of a fixed teardown delay, and verify the unchanged export contract and platform matrix.</IntentSummary>
+    <ApprovalBasis>The owner's 2026-10-19 approval covers resolving this precise late-import failure, guarded integration and green CI; no new feature or release action is included.</ApprovalBasis>
+    <BaselineAssertions><MustContain><File>tests/renderer/muya/export-fence-length.test.js</File><Text>setTimeout(resolve, 50)</Text></MustContain></BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>tests/renderer/muya/export-fence-length.test.js</File><Text>await vi.dynamicImportSettled()</Text></MustContain>
+      <MustPassCommand><Command>npx vitest run tests/renderer/muya/export-fence-length.test.js tests/renderer/util/agent-prompt-rich.test.js tests/renderer/muya/vega-csp-renderer.test.js --maxWorkers=2</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-012/></GraphAnchors><VerificationAnchors><V-M-012/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope>
+      <File>tests/renderer/muya/export-fence-length.test.js</File>
+      <File>.grace/graph/index.xml</File><File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/index.xml</File><File>.grace/verification/runtime.xml</File>
+      <Glob>.grace/changes/active/C-CI-FENCE-TEARDOWN/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001><Title>Reproduce slow imports and repair the test teardown boundary</Title><DependsOn/><AcceptanceCriteria><Criterion>A controlled delay exposes the old lifecycle failure; real imports settle before the repaired suite returns and all existing round-trip checks stay intact.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/renderer/muya/export-fence-length.test.js tests/renderer/util/agent-prompt-rich.test.js tests/renderer/muya/vega-csp-renderer.test.js --maxWorkers=2</Command></Verification></T-001>
+      <T-002><Title>Verify full coverage, guarded integration and remote CI</Title><DependsOn>T-001</DependsOn><AcceptanceCriteria><Criterion>Full coverage thresholds remain unchanged, safety gates pass before commit/push, and both current-main workflows complete successfully.</Criterion></AcceptanceCriteria><Verification><Command>npm run test:coverage -- --maxWorkers=4</Command></Verification></T-002>
+    </ImplementationPlan>
+  </C-CI-FENCE-TEARDOWN>
+</GraceChangePlan>

@@ -1,0 +1,14 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-CI-FENCE-TEARDOWN>
+    <Name>Drain real diagram imports before fence-export test teardown</Name>
+    <Created>2026-10-19</Created>
+    <Summary>Resolve the Windows renderer EnvironmentTeardownError in test run 39261695233 and restore green CI on current main without changing the published 2.5.3 version.</Summary>
+    <ApprovalBasis>On 2026-10-19 the owner explicitly approved the proposed next step: resolve this CI error and obtain green CI on current main. The approved execution includes the bounded repair, normal safety-reviewed commit and push, and CI verification.</ApprovalBasis>
+    <Goals><Goal>Replace the export-fence suite's elapsed-time teardown guess with completion of the real lazy module imports started by the Guide round trip.</Goal></Goals>
+    <Constraints><Constraint>Keep the real Muya/Guide export assertions, strict unhandled-error handling, coverage thresholds and all platform jobs. Use the mandatory static/Gitleaks/two-pass local-model commit and push gates.</Constraint></Constraints>
+    <NonGoals><NonGoal>No product behavior, dependencies, release versions, tags, publication, mobile changes or broad test infrastructure refactor.</NonGoal></NonGoals>
+    <AcceptanceCriteria><Criterion>Demonstrate the late-import failure with controlled loading delay; the repaired harness drains imports, keeps all fence/Guide assertions passing and passes full renderer coverage plus remote CI.</Criterion></AcceptanceCriteria>
+    <AffectedAreas><Area>M-012 real-Muya fence-export test lifecycle and V-M-012 verification; runtime behavior remains unchanged.</Area></AffectedAreas>
+    <VerificationIntent><Command>npx vitest run tests/renderer/muya/export-fence-length.test.js tests/renderer/util/agent-prompt-rich.test.js tests/renderer/muya/vega-csp-renderer.test.js --maxWorkers=2</Command><Command>npm run test:coverage -- --maxWorkers=4</Command><ExpectedEvidence>Controlled-delay before/after results and green remote test/CI workflows on the resulting main commit.</ExpectedEvidence></VerificationIntent>
+  </C-CI-FENCE-TEARDOWN>
+</GraceChangeSpec>
