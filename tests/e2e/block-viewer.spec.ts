@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.5.0
+// VERSION: 3.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2), the C-51 T-006/T-010 expand affordances (since C-56 T-005: the corner pill on mermaid/vega-lite figures and the standalone glyph on flowchart/sequence/plantuml; since C-65 T-002: the TABLE toolbar on tables — its expand action is the pill-family need-gated button) and the T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd/click, Esc close with focus restore; the T-010 need rules (hidden expand actions on small blocks — no Tab stop; wide/tall blocks get them), the C-56 T-005 pill look (variant C: opacity 0 → 1 on figure hover / :focus-within, never the caret; themed surface pill, label reveal, muted → fg hover), the C-65 table toolbar placement above the table clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -23,7 +23,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.5.0 - 2026-10-18 C-65 T-002: tables render the TABLE
+//   LAST_CHANGE: v3.6.0 - 2026-10-19 Full width default: the wide table's toggle reads «Fit to page», the narrow ones «Full width»; the last-column drag scrolls the editor (the Full width scroller) as well as the wrapper.
+//   v3.5.0 - 2026-10-18 C-65 T-002: tables render the TABLE
 //   TOOLBAR instead of the standalone glyph — every table selector moved
 //   from `figure > button.ag-block-expand` to the toolbar's need-gated
 //   expand button (figure > div.ag-table-toolbar >
@@ -724,7 +725,10 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(labeled.filter((b) => b.action === 'edit').every((b) => b.label === 'Edit source')).toBe(true)
     expect(labeled.filter((b) => b.action === 'copy').every((b) => b.label === 'Copy as image')).toBe(true)
     expect(labeled.filter((b) => b.action === 'expand').every((b) => b.label === 'Open full screen')).toBe(true)
-    expect(labeled.filter((b) => b.action === 'toggle').every((b) => b.label === 'Full width')).toBe(true)
+    // C-65 2026-10-19: the wide table opens in Full width (its toggle
+    // offers «Fit to page»); the small and the tall-narrow ones do not.
+    const toggles = labeled.filter((b) => b.action === 'toggle').map((b) => b.label).sort()
+    expect(toggles).toEqual(['Fit to page', 'Full width', 'Full width'])
 
     // Small table: the toolbar's expand action is display:none — hidden,
     // unrendered and NOT focusable (focus() is a no-op, so no Tab stop),
@@ -1075,9 +1079,13 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     // The last column of the overflowing table is scrolled out of the
     // clip rect: scroll the wrapper fully right first (outside of
     // Playwright's actionability scrolling, like table-layout.spec.ts).
+    // A wide table opens in Full width (C-65 default), where the EDITOR
+    // scroller owns the horizontal scroll — scroll both.
     await page.evaluate(() => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
       wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
+      const scroller = document.querySelector('.editor-component') as HTMLElement | null
+      if (scroller) scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth
     })
     const widthsBefore = await page.evaluate(() => {
       const table = document.querySelector("figure[data-role='TABLE'] table") as HTMLTableElement

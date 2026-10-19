@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-toolbar.spec.ts
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-002 table toolbar and the T-004 Full width mode in the built renderer — the pill appears ABOVE the table on hover (and on keyboard focus within the figure), its right edge on the text-column edge, hidden while the caret is inside the table, the standalone glyph gone, the Open-full-screen action need-gated; Full width lays the table out from the editor's left edge with the editor scrolling horizontally while the toolbar and caption stay on the column edge, and Fit to page returns the wrapper scroll.
 //   SCOPE: renderTableToolbar.js + renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION, the C-65 CSS section of src/muya/lib/assets/styles/index.css, and the TableResize toggle/geometry/cue paths.
@@ -19,7 +19,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 Full width is the default for a wide table: it opens in the mode (toggle reads «Fit to page»), one click fits it, a second one returns it.
+//   v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.0.0 - 2026-10-18 C-65: new — every case fails without
 //   the toolbar vnode/CSS (no pill), the need gate pin fails if the expand
 //   button loses the family gate, and the full-width cases fail without
@@ -126,8 +127,10 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(rest.opacity).toBe('0')
     // The need gate keeps the expand action on wide tables…
     expect(rest.expandDisplay).not.toBe('none')
-    expect(rest.toggleLabel).toBe('Full width')
-    expect(rest.toggleActive).toBe(false)
+    // …and a wide table opens in Full width (the default): the toggle
+    // offers «Fit to page».
+    expect(rest.toggleLabel).toBe('Fit to page')
+    expect(rest.toggleActive).toBe(true)
 
     // Hover over the table reveals the pill.
     await page.locator("figure[data-role='TABLE'] table").first().hover()
@@ -180,17 +183,11 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     }).toEqual({ active: true, display: 'flex', opacity: '1' })
   })
 
-  test('Full width: natural width from the editor\'s left edge, the editor scrolls, the cue reads «all N columns»', async ({ page }) => {
+  test('a wide table opens in Full width by default: gutter from the editor\'s left edge, the editor scrolls, the cue reads «all N columns»', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
 
-    // Hover the table and click the toggle.
-    const tableBox = await page.locator("figure[data-role='TABLE'] table").first().boundingBox()
-    expect(tableBox).not.toBeNull()
-    await page.mouse.move(tableBox!.x + tableBox!.width / 2, tableBox!.y + tableBox!.height / 2)
-    const toggleBox = await page.locator("figure[data-role='TABLE'] button.ag-table-toolbar-toggle").boundingBox()
-    expect(toggleBox).not.toBeNull()
-    await page.mouse.click(toggleBox!.x + toggleBox!.width / 2, toggleBox!.y + toggleBox!.height / 2)
-
+    // No click: the default puts a table wider than the column in the mode.
+    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
     const g = await geometry(page)
     expect(g!.figureFullWidth).toBe(true)
     // The table starts at the editor area's left edge…
@@ -235,17 +232,15 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(Math.abs(revealed.lastRight - revealed.scrollerRight)).toBeLessThanOrEqual(400)
   })
 
-  test('Fit to page returns the wrapper scroll and the range caption', async ({ page }) => {
+  test('Fit to page returns the wrapper scroll and the range caption; Full width again restores the mode', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
+    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
 
     const tableBox = await page.locator("figure[data-role='TABLE'] table").first().boundingBox()
     await page.mouse.move(tableBox!.x + tableBox!.width / 2, tableBox!.y + tableBox!.height / 2)
     const toggle = page.locator("figure[data-role='TABLE'] button.ag-table-toolbar-toggle")
-    const toggleBox = await toggle.boundingBox()
-    await page.mouse.click(toggleBox!.x + toggleBox!.width / 2, toggleBox!.y + toggleBox!.height / 2)
-    expect((await geometry(page))!.figureFullWidth).toBe(true)
 
-    // Fit back.
+    // Fit to page.
     const toggleBox2 = await toggle.boundingBox()
     await page.mouse.move(toggleBox2!.x + toggleBox2!.width / 2, toggleBox2!.y + toggleBox2!.height / 2)
     await page.mouse.click(toggleBox2!.x + toggleBox2!.width / 2, toggleBox2!.y + toggleBox2!.height / 2)
@@ -259,6 +254,22 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     const state = await toolbarState(page)
     expect(state.toggleLabel).toBe('Full width')
     expect(state.toggleActive).toBe(false)
+
+    // The choice sticks across re-renders (typing below the table).
+    await page.locator('#ag-editor-id p').last().click()
+    await page.keyboard.type(' more')
+    expect((await geometry(page))!.figureFullWidth).toBe(false)
+
+    // Full width again — after the partial render the typing made (the
+    // toggle used to lose data-table-toolbar-action there: toHTML wrote
+    // camelCase dataset keys).
+    // Fitted, the table is wider than its clip: hover the visible wrapper.
+    const tableBox3 = await page.locator("figure[data-role='TABLE'] div.ag-table-scroll").first().boundingBox()
+    await page.mouse.move(tableBox3!.x + tableBox3!.width / 2, tableBox3!.y + tableBox3!.height / 2)
+    await expect.poll(async () => (await toolbarState(page)).opacity).toBe('1')
+    const toggleBox3 = await toggle.boundingBox()
+    await page.mouse.click(toggleBox3!.x + toggleBox3!.width / 2, toggleBox3!.y + toggleBox3!.height / 2)
+    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
   })
 
   test('Open full screen opens the shared block viewer', async ({ page }) => {

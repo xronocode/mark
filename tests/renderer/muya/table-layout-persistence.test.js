@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001/T-004 persistent table layout behaviour of muya.tableResize — the persistent identity (ordinal + header signature), adoption of stored entries into fresh block keys, the identity-change drop (header edited / column count changed — corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the Full width toggle (class + toolbar DOM + persistence) and the capture-phase toolbar/caption routing incl. the viewer dispatch and the disabled-surface guard.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities, applyPersistedLayouts, serializeTableLayouts, persist, toggle/openViewer, handleToolbarClick/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -14,12 +14,17 @@
 //   makeFakeMuya - fake muya {container, options, eventCenter with REAL addEventListener-backed attachDOMEvent, dispatch spy} with a real TableResize.
 //   buildTableFigure - jsdom figure[data-role=TABLE] > div.ag-table-scroll > table.ag-paragraph with header texts, ids and stubbed cell rects.
 //   buildToolbarDom - the live toolbar DOM TableResize swaps on toggle (button + label span + svg path).
+//   makeWide - stubs a fixture's table natural width and its figure's text-column width (the Full width default trigger).
 //   pidOf - computes the expected ordinal#signature identity of a buildTableFigure fixture.
 //   T - test helper (T).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65: new — every adoption/drop/persist
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 Full width default: a wide table gets
+//   the mode with nothing persisted, «Fit to page» on it persists fit: true
+//   and survives a reload, a fitting table / disabled option / mirror stay
+//   untouched; entries now carry the fit flag.
+//   v1.0.0 - 2026-10-18 C-65: new — every adoption/drop/persist
 //   case fails without the identity machinery; the toggle/click cases fail
 //   without the capture-phase routing; the R-3 cases fail when the reset
 //   paths do not persist.
@@ -30,6 +35,7 @@ import TableResize, {
   MIN_COLUMN_WIDTH,
   TABLE_FULL_WIDTH_CLASS,
   hashHeaderText,
+  overflowsTextColumn,
   sanitizePersistedEntries,
   tableSignature
 } from 'muya/lib/tableResize'
@@ -177,7 +183,7 @@ describe('persistent identity (C-65 R-1)', () => {
     expect(Object.keys(entries).sort()).toEqual(['0#2:x', '1#1:y', '3#1:w'])
     expect(entries['0#2:x'].widths).toEqual([120, MIN_COLUMN_WIDTH])
     expect(entries['0#2:x'].manual).toEqual([true, false])
-    expect(entries['1#1:y']).toEqual({ widths: [], manual: [], fullWidth: true })
+    expect(entries['1#1:y']).toEqual({ widths: [], manual: [], fullWidth: true, fit: false })
     expect(entries['3#1:w'].widths).toEqual([90])
     expect(sanitizePersistedEntries(null)).toBeNull()
     expect(sanitizePersistedEntries('x')).toBeNull()
@@ -299,7 +305,7 @@ describe('serialize + persist (C-65 R-1: written only after a real action)', () 
 
     const entries = muya.tableResize.serializeTableLayouts()
     expect(Object.keys(entries).sort()).toEqual([pidOf(0, ['Alpha', 'Beta']), pidOf(2, ['X', 'Y'])].sort())
-    expect(entries[pidOf(2, ['X', 'Y'])]).toEqual({ widths: [], manual: [], fullWidth: true })
+    expect(entries[pidOf(2, ['X', 'Y'])]).toEqual({ widths: [], manual: [], fullWidth: true, fit: false })
   })
 
   it('persist dispatches muya-table-layouts with the serialized entries', () => {
@@ -309,11 +315,119 @@ describe('serialize + persist (C-65 R-1: written only after a real action)', () 
     muya.tableResize.setTableWidths('t1', [120], [true])
     muya.tableResize.persist()
     expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', {
-      entries: { [pidOf(0, ['Alpha'])]: { widths: [120], manual: [true], fullWidth: false } }
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [120], manual: [true], fullWidth: false, fit: false } }
     })
   })
 })
 // END_BLOCK_PERSIST_ASSERTIONS
+
+// START_BLOCK_DEFAULT_FULL_WIDTH_ASSERTIONS
+const makeWide = (figure, tableWidth, columnWidth = 700) => {
+  const table = figure.querySelector('table')
+  table.getBoundingClientRect = () => ({ left: 0, top: 0, right: tableWidth, bottom: 40, width: tableWidth, height: 40 })
+  Object.defineProperty(figure, 'clientWidth', { configurable: true, get: () => columnWidth })
+}
+
+describe('Full width is the default for wide tables (C-65 R-6, 2026-10-19)', () => {
+  it('overflowsTextColumn: only a measurable table wider than the column triggers', () => {
+    expect(overflowsTextColumn(900, 700)).toBe(true)
+    expect(overflowsTextColumn(701, 700)).toBe(false) // 1px tolerance
+    expect(overflowsTextColumn(500, 700)).toBe(false)
+    expect(overflowsTextColumn(900, 0)).toBe(false) // zero geometry
+    expect(overflowsTextColumn(NaN, 700)).toBe(false)
+  })
+
+  it('a wide table opens in Full width without writing anything; a fitting one does not', () => {
+    const muya = makeFakeMuya()
+    const wide = buildTableFigure('t1', ['Alpha'])
+    const narrow = buildTableFigure('t2', ['Beta'])
+    muya.container.appendChild(wide.figure)
+    muya.container.appendChild(narrow.figure)
+    makeWide(wide.figure, 1200)
+    makeWide(narrow.figure, 300)
+
+    muya.tableResize.reconcileAfterRender()
+
+    expect(muya.tableResize.isFullWidth('t1')).toBe(true)
+    expect(wide.figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(true)
+    expect(muya.tableResize.isFullWidth('t2')).toBe(false)
+    expect(narrow.figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(false)
+    expect(muya.eventCenter.dispatch).not.toHaveBeenCalledWith('muya-table-layouts', expect.anything())
+    expect(muya.tableResize.serializeTableLayouts()).toEqual({})
+  })
+
+  it('«Fit to page» on a default-wide table persists fit and survives a reload', () => {
+    const muya = makeFakeMuya()
+    const { figure } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    makeWide(figure, 1200)
+    const { toggle } = buildToolbarDom(figure)
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.isFullWidth('t1')).toBe(true)
+
+    toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(muya.tableResize.isFullWidth('t1')).toBe(false)
+    expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(false)
+    expect(muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', {
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: false, fit: true } }
+    })
+    // The next render does not re-apply the default over the choice.
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.isFullWidth('t1')).toBe(false)
+
+    // A fresh surface (reopen) adopts the stored choice.
+    const reopened = makeFakeMuya()
+    const again = buildTableFigure('k9', ['Alpha'])
+    reopened.container.appendChild(again.figure)
+    makeWide(again.figure, 1200)
+    reopened.tableResize.applyPersistedLayouts({
+      [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: false, fit: true }
+    })
+    reopened.tableResize.reconcileAfterRender()
+    expect(reopened.tableResize.isFullWidth('k9')).toBe(false)
+
+    // Full width again: back to an explicit Full width entry.
+    toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(muya.tableResize.isFullWidth('t1')).toBe(true)
+    expect(muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', {
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: true, fit: false } }
+    })
+  })
+
+  it('the default follows the table: it narrows back when the table becomes narrow', () => {
+    const muya = makeFakeMuya()
+    const { figure } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    makeWide(figure, 1200)
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.isFullWidth('t1')).toBe(true)
+    makeWide(figure, 400)
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.isFullWidth('t1')).toBe(false)
+    expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(false)
+  })
+
+  it('tableFullWidthDefault: false and the read-only mirror keep wide tables fitted', () => {
+    for (const options of [{ tableFullWidthDefault: false }, { disableTableColumnResize: true }]) {
+      const muya = makeFakeMuya(options)
+      const { figure } = buildTableFigure('t1', ['Alpha'])
+      muya.container.appendChild(figure)
+      makeWide(figure, 1200)
+      muya.tableResize.reconcileAfterRender()
+      expect(muya.tableResize.isFullWidth('t1')).toBe(false)
+    }
+  })
+
+  it('sanitize keeps a fit-only entry and lets Full width win a contradictory one', () => {
+    const entries = sanitizePersistedEntries({
+      'a': { widths: [], manual: [], fit: true },
+      'b': { widths: [], manual: [], fullWidth: true, fit: true }
+    })
+    expect(entries.a).toEqual({ widths: [], manual: [], fullWidth: false, fit: true })
+    expect(entries.b).toEqual({ widths: [], manual: [], fullWidth: true, fit: false })
+  })
+})
+// END_BLOCK_DEFAULT_FULL_WIDTH_ASSERTIONS
 
 // START_BLOCK_TOGGLE_ASSERTIONS
 describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
@@ -334,7 +448,7 @@ describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
     expect(path.getAttribute('d')).toBeDefined()
     expect(wrapper.style.marginLeft).toBe('') // jsdom zero geometry: no breakout
     expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', {
-      entries: { [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: true } }
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: true, fit: false } }
     })
 
     // Back to Fit to page: the entry disappears (nothing user-made remains).
@@ -502,7 +616,7 @@ describe('reset paths persist (C-65 R-3)', () => {
     const entry = muya.tableResize.widths.get('t1')
     expect(entry.manual).toEqual([true, false])
     expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', {
-      entries: { [pidOf(0, ['Alpha', 'Beta'])]: { widths: [120, 120], manual: [true, false], fullWidth: false } }
+      entries: { [pidOf(0, ['Alpha', 'Beta'])]: { widths: [120, 120], manual: [true, false], fullWidth: false, fit: false } }
     })
     expect(table.classList.contains('ag-column-widths-fixed')).toBe(true)
   })
@@ -526,7 +640,7 @@ describe('reset paths persist (C-65 R-3)', () => {
     expect(muya.tableResize.getWidths('t1')).toEqual([180])
     expect(table.classList.contains('ag-column-widths-fixed')).toBe(true)
     expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', {
-      entries: { [pidOf(0, ['Alpha'])]: { widths: [180], manual: [true], fullWidth: false } }
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [180], manual: [true], fullWidth: false, fit: false } }
     })
   })
 })
