@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/block-expand-button.test.js
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on the figures that keep it since C-56 T-005 (flowchart, sequence, plantuml diagrams; mermaid/vega-lite render the corner pill and TABLES render the C-65 table toolbar instead — see block-toolbar.test.js / table-cue.test.js), the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
 //   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js; the C-56 T-005 pill lives in block-toolbar.test.js; the C-65 table toolbar lives in table-cue.test.js.
@@ -13,7 +13,7 @@
 //   TRANSLATIONS - en strings injected as the render/click t function.
 //   rendererDoubles - per-name loader results (pele swapped in for the export case).
 //   makeDiagramBlocks - figure→pre→code→line-span block tree for a diagram functionType.
-//   makeTableBlocks - figure→table→thead/tbody block tree (same shape as table-scroll-wrapper.test.js).
+//   makeTableBlocks - table block tree whose renderer adds a noneditable caption inside the scroll wrapper.
 //   createStateRender - real StateRender with a fake muya and a stubbed renderLeafBlock.
 //   findVnode - depth-first vnode search by predicate.
 //   findExpandButtonVnode - the button.ag-block-expand child of a figure vnode, plus its index.
@@ -27,7 +27,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.7.0 - 2026-10-19 C-70: the table toolbar carries three buttons (toggle, Copy as image, Open full screen).
+//   LAST_CHANGE: v1.8.0 - 2026-10-20 C-TABLE-FOOTER: disabled table surfaces retain the caption inside the scroll block.
+//   v1.7.0 - 2026-10-19 C-70: the table toolbar carries three buttons (toggle, Copy as image, Open full screen).
 //   PREV: v1.6.0 - 2026-10-18 C-65 T-002: tables left the standalone
 //   glyph's scope — the table figure case now pins that tables carry the
 //   C-65 table toolbar (whose expand button keeps the family class and the
@@ -340,7 +341,8 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     expect(findExpandButtonVnode(figureVnode).button).toBeNull()
     expect((figureVnode.children || []).some((c) => (c.sel || '').includes('ag-table-toolbar'))).toBe(false)
     // The caption element still renders (informational, inert).
-    expect((figureVnode.children || []).some((c) => c.sel === 'div.ag-table-caption')).toBe(true)
+    const wrapper = figureVnode.children.find(c => c.sel === 'div.ag-table-scroll')
+    expect(wrapper.children.some(c => c.sel === 'div.ag-table-caption')).toBe(true)
   })
 
   it('renders no button for html / multiplemath figures, empty diagrams, or plain blocks', async () => {

@@ -3638,6 +3638,15 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
+        C-TABLE-FOOTER: the table scroll wrapper contains its table and
+        a fixed 20px noneditable counter line, followed by a 2px gap and
+        one reserved 6px native scrollbar zone. Measured consumed native
+        scrollbar height compensates padding, so overlay/classic bars and
+        hidden fitting-table counters keep the same compact footer height.
+        Table block margins are reset inside the wrapper. A sticky counter
+        remains inside its scrollport; a fitting Full width table also
+        hides its caption. Toolbar placement, drag ownership, persisted
+        widths and Full width editor scroll ownership are retained.
         C-CI-FENCE-TEARDOWN: real-Muya Guide/fence-export tests wait for
         the complete lazy preview import graph before their environment
         closes. Runtime rendering and Markdown export behavior are unchanged.
@@ -4048,8 +4057,9 @@
         boundary), hover/:focus-within reveal, ag-active hide, may cover
         the line above — accepted. T-003: the overflow cue is EDGE SHADES
         ONLY + a CAPTION below the table (renderContainerBlock renders
-        div.ag-table-caption as the last figure child; tableCue.js fills
-        it) — «columns X–Y of N» (tableToolbar.columnsRange in the 10
+        div.ag-table-caption after the table INSIDE the scroll wrapper;
+        C-TABLE-FOOTER reserves its line even when hidden, above the native
+        scrollbar with a 2px gap; tableCue.js fills it) — «columns X–Y of N» (tableToolbar.columnsRange in the 10
         locales, {start}/{end}/{total} interpolation with a token
         fallback), live on scroll (a capture-phase scroll listener on the
         container), render and figure resize (expandNeed.js
@@ -4057,8 +4067,8 @@
         drag; the C-39 cover-gradient shadows were replaced by the
         class-gated ag-table-cue-left/right shades so the sides and the
         caption state the same fact (a table that fits shows neither).
-        T-004/R-6: Full width keeps the FIGURE at column width (toolbar +
-        caption stay anchored) while the WRAPPER breaks out — overflow
+        T-004/R-6: Full width keeps the FIGURE at column width (toolbar
+        stays anchored; the counter belongs to the wrapper) while the WRAPPER breaks out — overflow
         visible, an inline margin-left measured against the muya scroller
         (applyFullWidthGeometry; theme paddings never hardcoded) defines a
         guttered viewport; CSS centers fitting tables and anchors oversized
@@ -4245,9 +4255,10 @@
                 barely-cut single column still reads as clipped),
                 formatColumnsCaption (tableToolbar.columnsRange /
                 allColumns with a {start}/{end}/{total} token fallback),
-                tableCueState (DOM gathering incl. the full-width
-                short-circuit; null on hidden panes/jsdom) and
-                syncTableCue (caption text/visibility + the
+                tableCueState (DOM gathering incl. measured full-width fit;
+                null on hidden panes/jsdom) and
+                syncTableCue (caption text/visibility, consumed native
+                scrollbar-space CSS variable, and the
                 ag-table-cue-left/right shade classes). setTableCueTranslator
                 pins the live translator for the resize funnel
                 (expandNeed.js updateFigureExpandNeed calls syncTableCue

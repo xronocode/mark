@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-scroll-wrapper.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-39 T-001 table scroll wrapper: the table element renders inside div.ag-table-scroll between the figure and the table, the table tools bar and front icon stay direct children of the figure, and the drag bars stay children of their cells.
 //   SCOPE: START_BLOCK_TABLE_SCROLL_WRAPPER in src/muya/lib/parser/render/renderBlock/renderContainerBlock.js.
@@ -13,12 +13,13 @@
 //   StateRender - real StateRender class imported after the renderer-loader mock.
 //   makeBlocks - the figure→table→thead/tbody→tr→th/td→span block tree fixture.
 //   createStateRender - real StateRender with a fake muya and a stubbed renderLeafBlock.
-//   renderFigure - renders the whole figure block with the given activeBlocks chain.
+//   renderFigure - renders figure, table and noneditable caption in one scroll block with the given activeBlocks chain.
 //   findVnode - depth-first vnode search by predicate.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-39 T-001: wrapper structure, toolbar/icon siblings, drag bars inside cells, table id preserved, non-table containers unwrapped; all fail against the pre-C-39 render (table was a direct child of the figure).
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FOOTER: reserved caption follows the table inside the scroll wrapper; toolbar and drag ownership stay intact.
+//   v1.0.0 - 2026-10-15 C-39 T-001: wrapper structure, toolbar/icon siblings, drag bars inside cells, table id preserved, non-table containers unwrapped; all fail against the pre-C-39 render (table was a direct child of the figure).
 // END_CHANGE_SUMMARY
 
 import { describe, expect, it, vi } from 'vitest'
@@ -103,6 +104,10 @@ describe('table scroll wrapper (C-39 T-001)', () => {
     // and is no longer a direct child of the figure.
     const tableVnode = (wrapper.children || []).find((c) => (c.sel || '').startsWith('table#tt'))
     expect(tableVnode, 'the table must be a child of the wrapper').toBeTruthy()
+    const caption = wrapper.children.find(c => c.sel === 'div.ag-table-caption')
+    expect(caption.data.attrs.contenteditable).toBe('false')
+    expect(wrapper.children.indexOf(caption)).toBeGreaterThan(wrapper.children.indexOf(tableVnode))
+    expect(figureVnode.children.some(c => c.sel === 'div.ag-table-caption')).toBe(false)
     expect((figureVnode.children || []).some((c) => (c.sel || '').startsWith('table#tt'))).toBe(false)
 
     // thead/tbody rows survive inside the table.

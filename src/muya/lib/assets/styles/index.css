@@ -1638,19 +1638,17 @@ i.ag-footnote-backlink {
  *
  * The row-drag bar of the first column hangs at left: -11px and the
  * column-drag bar of the last row at bottom: -15px outside the table
- * box (themes/default.css); the wrapper's padding keeps both inside
- * the clip rect, the matching negative left margin keeps the table
- * aligned with the text column. The bottom room is NOT cancelled by a
- * negative margin: the horizontal scrollbar is drawn at the bottom of
- * the padding box, and with margin-bottom: -30px it landed 30 px below
- * the table, over the heading or paragraph that follows (2026-10-18).
+ * box (themes/default.css). The reserved caption line clears the bottom
+ * handles; left padding and its matching negative margin clear row
+ * handles. Native scrollbar compensation retains one compact footer
+ * whether the scrollbar consumes layout space or overlays it.
  */
 figure div.ag-table-scroll {
   box-sizing: border-box;
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 0 0 16px 11px;
+  padding: 0 0 max(2px, calc(8px - var(--ag-table-scrollbar-height, 0px))) 11px;
   margin: 0 0 0 -11px;
 }
 
@@ -1663,6 +1661,7 @@ figure div.ag-table-scroll {
 figure div.ag-table-scroll > table {
   width: max-content;
   max-width: none;
+  margin-block: 0;
   /* Narrow tables sit centred in the text column like diagrams (user
      2026-10-15); a table wider than the column gets 0 auto margins and
      scrolls from its first column. Cell text alignment stays as the
@@ -1857,15 +1856,23 @@ figure.ag-has-expand > div.ag-block-toolbar > button.ag-table-toolbar-btn.ag-tab
   background: color-mix(in srgb, var(--pele-fg) 12%, transparent);
 }
 
-/* The overflow caption: in-flow BELOW the table (it reserves its own
-   space — never covers the next block), right-aligned on the column
-   edge, muted; hidden entirely (no space) until tableCue fills it. */
-figure[data-role='TABLE'] > div.ag-table-caption {
-  display: none;
+/* START_BLOCK_TABLE_FOOTER_GEOMETRY */
+/* START_CHANGE_SUMMARY
+   LAST_CHANGE: 2026-10-20 C-TABLE-FOOTER — table, reserved counter line,
+   2px gap and native scrollbar share one compact scrolling block.
+   END_CHANGE_SUMMARY */
+/* The footer stays in flow when empty. Sticky inline placement keeps
+   the counter visible while the table scrolls horizontally. */
+figure[data-role='TABLE'] > div.ag-table-scroll > div.ag-table-caption {
+  display: block;
+  visibility: hidden;
+  position: sticky;
+  left: 0;
   text-align: right;
   box-sizing: border-box;
   width: 100%;
-  padding: 4px 0 0;
+  height: 20px;
+  padding: 2px 2px 0 0;
   font: 400 12px/1.5 -apple-system, system-ui, sans-serif;
   color: var(--editorColor);
   opacity: 0.55;
@@ -1874,9 +1881,16 @@ figure[data-role='TABLE'] > div.ag-table-caption {
   -webkit-user-select: none;
 }
 
-figure[data-role='TABLE'] > div.ag-table-caption.ag-table-caption-on {
-  display: block;
+figure[data-role='TABLE'] > div.ag-table-scroll > div.ag-table-caption.ag-table-caption-on {
+  visibility: visible;
 }
+
+/* The selected column's bottom drag handle shares the reserved line.
+   Keep its paint and input above the informational sticky counter. */
+figure div.ag-table-scroll table .ag-drag-handler.bottom {
+  z-index: 1;
+}
+/* END_BLOCK_TABLE_FOOTER_GEOMETRY */
 
 /* Full width (R-6): the WRAPPER breaks out — visible overflow (the
    editor scroller owns the horizontal scrollbar), no clip, no own
@@ -1901,7 +1915,8 @@ figure.ag-table-full-width > div.ag-table-scroll > table {
 }
 
 /* Full width shows no shade: nothing is hidden by the wrapper (the
-   caption reads «all N columns»); the classes stay off in practice —
+   caption reads «all N columns» only while wider than its viewport);
+   the classes stay off in practice —
    this rule is the guarantee even if a stray sync ran. */
 figure.ag-table-full-width > div.ag-table-scroll.ag-table-cue-left,
 figure.ag-table-full-width > div.ag-table-scroll.ag-table-cue-right,

@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/tableResize/tableCue.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-65 T-003 overflow cue for wide tables — the pure «columns X–Y of N» range math (which columns are mostly visible in the C-39 scroll wrapper) plus the DOM sync pass that drives the caption below the table and the edge-shade side classes, live on scroll, resize and drag.
-//   SCOPE: visibleColumnRange (pure, majority-visible rule + table-edge clipping), formatColumnsCaption (pure, tableToolbar.columnsRange / tableToolbar.allColumns with {start}/{end}/{total} token interpolation fallback), tableCueState (DOM gathering for one table figure incl. the full-width mode verdict) and syncTableCue (apply caption text + shade classes). The caption element and the shade hooks are rendered by renderContainerBlock; the listeners that re-run the sync live in lib/tableResize/index.js (capture-phase scroll) and expandNeed.js (render/resize funnel).
+//   SCOPE: Visible-column range and caption formatting, live full-width fit detection, native scrollbar-space measurement and caption/shade DOM sync. The reserved caption lives inside the scroll wrapper; fitting tables clear its text without removing space. Scroll/resize/render listeners remain in tableResize and expandNeed.
 //   DEPENDS: pure DOM measurements (wrapper/clientWidth/getBoundingClientRect; jsdom's zero rects degrade to a null state — no cue), a translator function (muya options.t or the module-level setTableCueTranslator pin).
 //   LINKS: .grace/changes/active/C-65 T-003; .grace/graph/runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-66; renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; expandNeed.js updateFigureExpandNeed (the funnel call site); the C-65 CSS section of lib/assets/styles/index.css.
 //   ROLE: RUNTIME
@@ -12,20 +12,21 @@
 // START_MODULE_MAP
 //   VISIBLE_COLUMN_FRACTION - fraction of a column's width that must be inside the scrollport for the column to count as (mostly) visible.
 //   CLIP_TOLERANCE_PX - sub-pixel tolerance for the table-edge clipping check that decides the shade sides.
-//   TABLE_CAPTION_CLASS - class of the caption element rendered below the table ("ag-table-caption").
+//   TABLE_CAPTION_CLASS - reserved caption inside the scroll wrapper, below the table and above its scrollbar ("ag-table-caption").
 //   TABLE_CAPTION_ON_CLASS - class marking a caption that currently shows text ("ag-table-caption-on").
 //   TABLE_CUE_LEFT_CLASS / TABLE_CUE_RIGHT_CLASS - wrapper classes gating the edge shades ("ag-table-cue-left"/"ag-table-cue-right").
 //   TABLE_FULL_WIDTH_CLASS - figure class marking the per-table Full width mode ("ag-table-full-width", applied by TableResize).
 //   visibleColumnRange - pure: {spanLeft, spanWidth, columns:[{left,width}]} → {fits, start, end, total, hiddenLeft, hiddenRight} (1-based inclusive range) or null when nothing is measurable.
 //   formatColumnsCaption - pure: translator + cue state → the caption text (null when the table fits or the state is unusable; «all N columns» in full-width mode).
 //   setTableCueTranslator - pin the module-level translator used when syncTableCue gets no t (the expandNeed resize funnel has no muya at hand).
-//   tableCueState - DOM gathering + rules for one table figure (full-width short-circuit; null on hidden panes/jsdom).
-//   syncTableCue - evaluate one figure and apply the caption text/visibility and the shade classes; returns the state.
+//   tableCueState - DOM gathering + rules for one figure, including a full-width table fitting its viewport.
+//   syncTableCue - apply caption visibility, shades and measured native scrollbar space; return the state without document writes.
 //   TABLE_CUE_RIGHT_CLASS - exported helper (TABLE_CUE_RIGHT_CLASS).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65 T-003: new module. Approved
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FOOTER: retain invisible footer space when fitting, including Full width, and compensate actual native scrollbar height for a stable 2px gap.
+//   v1.0.0 - 2026-10-18 C-65 T-003: new module. Approved
 //   mockup variant E: no arrows, no chips — an edge shade on each side that
 //   hides columns and a caption BELOW the table, right-aligned on the
 //   text-column edge, both driven from one state object. The C-39 CSS-only
@@ -116,10 +117,10 @@ const interpolate = (t, key, params) => {
 
 export const formatColumnsCaption = (t, state) => {
   if (!state) return null
+  if (state.fits) return null
   if (state.fullWidth) {
     return interpolate(t, 'tableToolbar.allColumns', { total: state.total })
   }
-  if (state.fits) return null
   return interpolate(t, 'tableToolbar.columnsRange', {
     start: state.start,
     end: state.end,
@@ -143,9 +144,10 @@ export const tableCueState = (figure) => {
   if (!row || row.cells.length === 0) return null
   const total = row.cells.length
   if (figure.classList.contains(TABLE_FULL_WIDTH_CLASS)) {
+    const width = table.getBoundingClientRect().width
     return {
       fullWidth: true,
-      fits: false,
+      fits: width > 0 && wrapper.clientWidth > 0 && width <= wrapper.clientWidth + CLIP_TOLERANCE_PX,
       total,
       start: 1,
       end: total,
@@ -179,6 +181,12 @@ export const syncTableCue = (figure, t) => {
   const text = formatColumnsCaption(t || cueTranslator, state)
   const wrapper = figure.querySelector('div.ag-table-scroll')
   if (wrapper) {
+    // The native bar may consume 6px or overlay the scrollport. CSS keeps
+    // one reserved bar zone and a 2px caption gap in either case.
+    const height = `${Math.max(0, wrapper.offsetHeight - wrapper.clientHeight)}px`
+    if (wrapper.style.getPropertyValue('--ag-table-scrollbar-height') !== height) {
+      wrapper.style.setProperty('--ag-table-scrollbar-height', height)
+    }
     wrapper.classList.toggle(TABLE_CUE_LEFT_CLASS, !!state.hiddenLeft)
     wrapper.classList.toggle(TABLE_CUE_RIGHT_CLASS, !!state.hiddenRight)
   }

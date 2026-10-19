@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001/T-004 persistent table layout behaviour of muya.tableResize — the persistent identity (ordinal + header signature), adoption of stored entries into fresh block keys, the identity-change drop (header edited / column count changed — corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the Full width toggle (class + toolbar DOM + persistence) and the capture-phase toolbar/caption routing incl. the viewer dispatch and the disabled-surface guard.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities, applyPersistedLayouts, serializeTableLayouts, persist, toggle/openViewer, handleToolbarClick/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -12,7 +12,7 @@
 // START_MODULE_MAP
 //   CLEANUP - teardown callbacks run after each test.
 //   makeFakeMuya - fake muya {container, options, eventCenter with REAL addEventListener-backed attachDOMEvent, dispatch spy} with a real TableResize.
-//   buildTableFigure - jsdom figure[data-role=TABLE] > div.ag-table-scroll > table.ag-paragraph with header texts, ids and stubbed cell rects.
+//   buildTableFigure - jsdom table/caption scroll block with header texts, ids and stubbed cell rects.
 //   buildToolbarDom - the live toolbar DOM TableResize swaps on toggle (button + label span + svg path).
 //   makeWide - stubs natural and text-column widths for Full width defaults; geometry cases pin the client viewport independently of the outline.
 //   pidOf - computes the expected ordinal#signature identity of a buildTableFigure fixture.
@@ -23,7 +23,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-19 C-71-TABLE-CENTER: outline geometry never reserves table viewport width or shifts the page center.
+//   LAST_CHANGE: v1.4.0 - 2026-10-20 C-TABLE-FOOTER: caption click guards run against the actual nested scroll-block structure.
+//   v1.3.0 - 2026-10-19 C-71-TABLE-CENTER: outline geometry never reserves table viewport width or shifts the page center.
 //   v1.2.0 - 2026-10-19 C-71: viewport geometry, scrollbar
 //   coordinates, overlay ownership, removed auto-width entries and C-70
 //   copy routing; integrate and update the reviewed c65cov guard tests.
@@ -130,7 +131,7 @@ const buildTableFigure = (id, headerTexts, { width = 120 } = {}) => {
   figure.appendChild(wrapper)
   const caption = document.createElement('div')
   caption.className = TABLE_CAPTION_CLASS
-  figure.appendChild(caption)
+  wrapper.appendChild(caption)
   for (const cell of row.cells) {
     cell.getBoundingClientRect = () => ({ left: 0, width, height: 20 })
   }
