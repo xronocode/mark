@@ -973,7 +973,7 @@ figure.ag-has-expand.ag-expand-needed .ag-container-icon {
  * tokens: background color-mix(--pele-surface 95%), 1px border
  * color-mix(--pele-fg 12%), radius 8, padding 2, buttons padding 4/8
  * radius 6, colour --pele-muted → --pele-fg over a 10% fg tint on
- * hover, label span revealed by the button's own hover. Other roles
+ * hover, visited labels retained until leaving the complete pill. Other roles
  * (html, multiplemath, flowchart, sequence, plantuml, tables) keep
  * today's pencil/expand unchanged.
  * ================================================================ */
@@ -1037,9 +1037,13 @@ figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:disabl
   opacity: 0.45;
 }
 
-/* Variant C: the text label sits next to the icon and slides in on the
-   button's own hover / keyboard focus (hidden otherwise so the resting
-   pill stays three compact icons). */
+/* START_BLOCK_TOOLBAR_LABEL_VISITS_CSS */
+/* START_CHANGE_SUMMARY
+   LAST_CHANGE: 2026-10-20 C-TOOLBAR-LABELS — retain every visited label
+   while traversing one panel; shared vnode events clear on panel exit.
+   END_CHANGE_SUMMARY */
+/* Labels accumulate during a panel visit, so moving to the neighboring
+   button cannot collapse a previous one and shrink the hit targets. */
 /* C-56 T-005: a very short diagram (one node) must still hold the 30 px
    pill inside its own box — the pill overlays the diagram, never the next
    block below it. */
@@ -1053,9 +1057,11 @@ figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn > span
 }
 
 figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:hover:not(:disabled) > span,
+figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn.ag-toolbar-label-open:not(:disabled) > span,
 figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:focus-visible > span {
   display: inline;
 }
+/* END_BLOCK_TOOLBAR_LABEL_VISITS_CSS */
 
 /* The Open-full-screen action keeps the D-7 need gate: hidden (and not
    a Tab stop) unless the figure carries ag-expand-needed. */

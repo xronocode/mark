@@ -1,10 +1,10 @@
 // FILE: tests/renderer/muya/block-toolbar.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-56 T-005 diagram corner toolbar — the pill vnode (div.ag-block-toolbar with the three same-family icon buttons) rendered ONLY on ```mermaid (pele) and ```vega-lite figures with non-empty source where it REPLACES the PNG edit pencil and the standalone expand glyph, the exact mockup glyphs (16-grid, 1.5 stroke, round caps) and localized labels/title/aria-label, the ag-block-expand keyboard-guard family class on every pill button, click routing (editSource → handleContainerBlockClick, copyImage → muya-diagram-export, expand → muya-block-viewer, disabled routes nowhere), the corner-4 syncBlockToolbarState copy-disabled pass (wired through updateFigureExpandNeed), and the variant-C CSS literals.
-//   SCOPE: renderBlockToolbar.js (vnode + sync), the renderContainerBlock START_BLOCK_TOOLBAR_RENDER placement, the clickEvent START_BLOCK_TOOLBAR_CLICK routing, the expandNeed funnel integration and the C-56 T-005 CSS section of lib/assets/styles/index.css. The expand need RULES stay in expand-need.test.js; the standalone glyph in block-expand-button.test.js.
+//   SCOPE: renderBlockToolbar.js (vnode, cumulative label hooks and sync), renderTableToolbar's shared label hooks, the renderContainerBlock START_BLOCK_TOOLBAR_RENDER placement, the clickEvent START_BLOCK_TOOLBAR_CLICK routing, the expandNeed funnel integration and shared label CSS. The expand need RULES stay in expand-need.test.js; the standalone glyph in block-expand-button.test.js.
 //   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, ClickEvent with a real-DOM event-center double, muya snabbdom h, node:fs for the CSS read; Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-56 T-005; .grace/verification/runtime.xml V-M-012 scenario-64; tests/e2e/diagram-export.spec.ts (the pill e2e); tests/e2e/block-viewer.spec.ts.
+//   LINKS: .grace/changes/active/C-TOOLBAR-LABELS; .grace/changes/active/C-56 T-005; .grace/verification/runtime.xml V-M-012 scenario-toolbar-label-visits and scenario-64; tests/e2e/table-toolbar-labels.spec.ts; tests/e2e/diagram-export.spec.ts; tests/e2e/block-viewer.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -22,10 +22,12 @@
 //   pillButtons - the three family buttons of a pill vnode, skipping leading controls (C-56 T-007).
 //   createClickHarness - container + addEventListener-backed eventCenter double + ClickEvent instance with a handleContainerBlockClick spy.
 //   makeDomFigure - a real-DOM MERMAID figure with preview + pill buttons (click-routing and sync cases).
+//   mountToolbar - patch either actual table/diagram vnode into the DOM for real event-hook dispatch and isolated panel-state assertions.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-007: Mermaid pills lead with
+//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TOOLBAR-LABELS: real table/diagram event hooks retain visited labels, isolate panels and reset only on whole-panel exit.
+//   PREV: v1.1.0 - 2026-10-18 C-56 T-007: Mermaid pills lead with
 //   the C-62 appearance button (Vega-Lite pills do not); family-button
 //   assertions go through pillButtons.
 //   v1.0.0 - 2026-10-18 C-56 T-005: new — every case fails
@@ -37,7 +39,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { h } from 'muya/lib/parser/render/snabbdom'
+import { h, patch } from 'muya/lib/parser/render/snabbdom'
 import ClickEvent from 'muya/lib/eventHandler/clickEvent'
 import {
   BLOCK_TOOLBAR_BUTTON_SELECTOR,
@@ -49,6 +51,7 @@ import {
   syncBlockToolbarState
 } from 'muya/lib/parser/render/renderBlock/renderBlockToolbar'
 import { updateFigureExpandNeed } from 'muya/lib/parser/render/renderBlock/expandNeed'
+import renderTableToolbar from 'muya/lib/parser/render/renderBlock/renderTableToolbar'
 
 const rendererDoubles = {}
 
@@ -194,7 +197,47 @@ const makeDomFigure = ({ withSvg = true, needed = false } = {}) => {
 afterEach(() => {
   document.body.innerHTML = ''
 })
+const mountToolbar = (factory) => {
+  const mount = document.body.appendChild(document.createElement('div'))
+  const panel = patch(mount, factory(t)).elm
+  return { panel, buttons: Array.from(panel.querySelectorAll('button.ag-block-toolbar-btn')) }
+}
 // END_BLOCK_TOOLBAR_DOM_HARNESS
+
+// START_BLOCK_TOOLBAR_LABEL_VISIT_ASSERTIONS
+describe('cumulative inline toolbar labels (C-TOOLBAR-LABELS)', () => {
+  for (const factory of [renderBlockToolbar, renderTableToolbar]) {
+    it(`${factory.name} retains adjacent visits within one panel and resets on panel exit`, () => {
+      const { panel, buttons } = mountToolbar(factory)
+      const other = mountToolbar(factory)
+      // A real descendant target exercises bubbling from the icon.
+      buttons[0].querySelector('svg').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+      buttons[1].dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+      panel.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+      expect(buttons.slice(0, 2).every(b => b.classList.contains('ag-toolbar-label-open'))).toBe(true)
+      expect(other.panel.querySelector('.ag-toolbar-label-open')).toBeNull()
+      panel.dispatchEvent(new MouseEvent('mouseleave'))
+      expect(panel.querySelector('.ag-toolbar-label-open')).toBeNull()
+      buttons[0].disabled = true
+      buttons[0].dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+      expect(buttons[0].classList.contains('ag-toolbar-label-open')).toBe(false)
+    })
+
+    it(`${factory.name} retains focus visits between its buttons and clears on external or null focus`, () => {
+      const { panel, buttons } = mountToolbar(factory)
+      buttons[0].dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+      buttons[0].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: buttons[1] }))
+      buttons[1].dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+      expect(buttons.slice(0, 2).every(b => b.classList.contains('ag-toolbar-label-open'))).toBe(true)
+      buttons[1].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }))
+      expect(panel.querySelector('.ag-toolbar-label-open')).toBeNull()
+      buttons[0].dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+      buttons[0].dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+      expect(panel.querySelector('.ag-toolbar-label-open')).toBeNull()
+    })
+  }
+})
+// END_BLOCK_TOOLBAR_LABEL_VISIT_ASSERTIONS
 
 // START_BLOCK_TOOLBAR_RENDER_ASSERTIONS
 // C-56 T-007: the three family buttons, skipping leading controls.
@@ -519,10 +562,11 @@ describe('corner toolbar CSS (C-56 T-005, approved mockup variant C)', () => {
     expect(disabled).toContain('cursor: default')
   })
 
-  it('pins the variant-C label reveal (hidden span, shown on the button\u2019s own hover) and the expand need gate', () => {
+  it('pins compact labels, visited-label retention, keyboard reveal and the expand need gate', () => {
     const labelHidden = rule('figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn > span {')
     expect(labelHidden).toContain('display: none')
     expect(css).toContain('figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-btn:hover:not(:disabled) > span,')
+    expect(css).toContain('button.ag-block-toolbar-btn.ag-toolbar-label-open:not(:disabled) > span,')
 
     const gate = rule('figure.ag-has-expand > div.ag-block-toolbar > button.ag-block-toolbar-expand {')
     expect(gate).toContain('display: none')
