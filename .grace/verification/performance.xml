@@ -176,9 +176,23 @@
     </V-M-024>
     <V-M-025>
       <Priority>high</Priority>
-      <Commands/>
-      <Scenarios/>
-      <Markers/>
+      <Commands>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/open-file-timing.spec.ts --project=chromium</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          FIX-002 (2026-10-20) open-file timing trace — a sidebar-clicked
+          ordinary document emits BLOCK_OPEN_FILE_ARRIVAL within 100 ms of
+          the click mark and BLOCK_OPEN_FIRST_PAINT within 2000 ms of the
+          arrival; a ~600 KB document stays inside a 10000 ms paint budget.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[sidebar][open-file][BLOCK_OPEN_FILE_CLICK]</Marker>
+        <Marker>[boot][pending_opens][BLOCK_OPEN_FILE_ARRIVAL]</Marker>
+        <Marker>[editor][open-file][BLOCK_OPEN_TAB_CREATED]</Marker>
+        <Marker>[editor][open-file][BLOCK_OPEN_FIRST_PAINT]</Marker>
+      </Markers>
       <TraceAssertions/>
       <LegacyMatrixEvidence>
         <Module>M-025</Module>

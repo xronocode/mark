@@ -16,6 +16,14 @@ const createWholeSubMenu = (t) => {
 
 const COMMAND_KEY = isOsx ? '⌘' : '⌃'
 
+// FIX-005 (2026-10-20): the displayed chords are the ones the desktop
+// keydown layer actually dispatches (editor.vue
+// BLOCK_PARAGRAPH_SHORTCUTS, visual-regression-plan 13C). Duplicate
+// moved off ⇧⌘P — UC-025 reserves that chord for the Command Palette.
+const DUPLICATE_SHORTCUT = `⇧${COMMAND_KEY}D`
+const NEW_PARAGRAPH_SHORTCUT = `⇧${COMMAND_KEY}N`
+const DELETE_SHORTCUT = `⇧${COMMAND_KEY}⌫`
+
 // 创建菜单的函数，接收翻译函数作为参数
 export const createMenu = (t) => {
   // 如果没有翻译函数，直接返回键名
@@ -26,7 +34,7 @@ export const createMenu = (t) => {
       icon: copyIcon,
       label: 'duplicate',
       text: translate('frontMenu.duplicate'),
-      shortCut: `⇧${COMMAND_KEY}P`
+      shortCut: DUPLICATE_SHORTCUT
     },
     {
       icon: turnIcon,
@@ -37,13 +45,13 @@ export const createMenu = (t) => {
       icon: newIcon,
       label: 'new',
       text: translate('frontMenu.newParagraph'),
-      shortCut: `⇧${COMMAND_KEY}N`
+      shortCut: NEW_PARAGRAPH_SHORTCUT
     },
     {
       icon: deleteIcon,
       label: 'delete',
       text: translate('frontMenu.delete'),
-      shortCut: `⇧${COMMAND_KEY}D`
+      shortCut: DELETE_SHORTCUT
     }
   ]
 }

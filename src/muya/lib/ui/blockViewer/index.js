@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.5.0
+// VERSION: 3.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
 //   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
 //   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR — role gate only, no transports inside muya), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render); renderBlock/renderDiagramAppearance, muya.diagramAppearance.
-//   LINKS: .grace/changes/active/C-34 T-002; .grace/changes/active/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/active/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/changes/active/C-56 (picture export, scenario-63); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.; .grace/changes/archive/C-62.
+//   LINKS: .grace/changes/archive/C-34 T-002; .grace/changes/archive/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/archive/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/changes/archive/C-56 (picture export, scenario-63); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.5.0 - 2026-10-19 C-71: use explicit magnifier +/-
+//   LAST_CHANGE: v3.6.0 - 2026-10-20 FIX-008: updateTableOverflow keeps
+//   the table canvas scrollport per-axis — a native scrollbar exists
+//   only when the SCALED content overflows the stage, so a fitted table
+//   no longer paints a phantom horizontal scrollbar track (the layout
+//   box still spans the natural width; panzoom scales visually only).
+//   PREV: v3.5.0 - 2026-10-19 C-71: use explicit magnifier +/-
 //   glyphs for discoverable viewer zoom; responsive header keeps every
 //   control reachable in narrow windows.
 //   v3.4.0 - 2026-10-19 C-70: tables are exportable — Copy as
@@ -445,6 +450,12 @@ class BlockViewer {
     )
     this.canvas.className = 'ag-block-viewer-canvas'
     this.canvas.style.maxHeight = ''
+    // FIX-008: a fresh open must re-derive the scrollport (the scale
+    // guard would otherwise keep the previous table's overflow axes) and
+    // diagram opens must not inherit a table's inline overflow at all.
+    this._overflowScale = null
+    this.canvas.style.overflowX = ''
+    this.canvas.style.overflowY = ''
     this.canvas.innerHTML = ''
     if (kind === 'table') {
       this.canvas.classList.add('ag-block-viewer-scrollable')
@@ -662,7 +673,42 @@ class BlockViewer {
     } else {
       this.canvas.style.maxHeight = `${Math.round(this.stage.clientHeight / scale)}px`
     }
+    this.updateTableOverflow(scale)
   }
+
+  // START_BLOCK_VIEWER_FIT_OVERFLOW
+  // FIX-008 (2026-10-20): the table canvas is `width: max-content` capped
+  // by the stage, and panzoom only scales it VISUALLY — the layout box
+  // still spans the table's natural width, so `overflow: auto` painted a
+  // horizontal scrollbar track even at Fit, where the scaled-down table
+  // already fits (scrolling it revealed empty space). The scrollport is
+  // now per-axis: a native scrollbar exists only when the SCALED content
+  // actually overflows the stage; otherwise the axis is hidden, which
+  // removes the phantom track. Sticky-header scrolling (scale ≥ 1 with
+  // the maxHeight cap) keeps its native vertical scroll.
+  updateTableOverflow (scale = 1) {
+    if (this.kind !== 'table' || !this.canvas || !this.stage) return
+    // Pan events carry the same scale; the scroll region only changes
+    // with zoom (content size is static), so skip the layout reads.
+    if (this._overflowScale === scale && this.canvas.style.overflowX) return
+    this._overflowScale = scale
+    const stageW = this.stage.clientWidth
+    const stageH = this.stage.clientHeight
+    if (!stageW || !stageH) return
+    const contentW = this.canvas.scrollWidth
+    const contentH = this.canvas.scrollHeight
+    const overflowX = contentW * scale > stageW + 1 ? 'auto' : 'hidden'
+    const overflowY = contentH * scale > stageH + 1 ? 'auto' : 'hidden'
+    if (this.canvas.style.overflowX !== overflowX) {
+      this.canvas.style.overflowX = overflowX
+      if (overflowX === 'hidden') this.canvas.scrollLeft = 0
+    }
+    if (this.canvas.style.overflowY !== overflowY) {
+      this.canvas.style.overflowY = overflowY
+      if (overflowY === 'hidden') this.canvas.scrollTop = 0
+    }
+  }
+  // END_BLOCK_VIEWER_FIT_OVERFLOW
   // END_BLOCK_VIEWER_STICKY_CAP
 
   // START_BLOCK_VIEWER_KEYBOARD

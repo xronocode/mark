@@ -168,7 +168,7 @@
         { "id": "key-001", "name": "Cmd+S saves", "steps": "Edit file → Cmd+S", "expected": "File saved, dirty indicator cleared", "status": "pending" },
         { "id": "key-002", "name": "Cmd+Z undo / Cmd+Shift+Z redo", "steps": "Type text → Cmd+Z → Cmd+Shift+Z", "expected": "Text undone then redone", "status": "pending" },
         { "id": "key-003", "name": "Cmd+B bold toggle", "steps": "Select text → Cmd+B", "expected": "Text becomes bold, repeat unboldens", "status": "pending" },
-        { "id": "key-004", "name": "Cmd+1-6 heading levels", "steps": "Place cursor → Cmd+1", "expected": "Line becomes H1, Cmd+2 → H2, etc.", "status": "pending" }
+        { "id": "key-004", "name": "Cmd+1-6 heading levels", "steps": "Place cursor → Cmd+1", "expected": "Line becomes H1, Cmd+2 → H2, etc.", "status": "pass", "evidence": "FIX-006 2026-10-20: e2e tests/e2e/keyboard-shortcuts.spec.ts (Cmd+1..6 headings) + tests/renderer/commands/paragraph-shortcuts.test.js layer pins" }
       ]
     }
   ]
