@@ -3,6 +3,7 @@
     <!-- C-63: V-M-046 scenario-13 enforces the footnotes and appearance WebKit projects. -->
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>
+      <!-- V-M-005 scenario-5 pins synthetic preference corpus bytes across checkout platforms. -->
       <!-- Close-report triage strengthens V-M-011 session scenario-24 with DOM/store/edit ownership checks. -->
       <!-- C-68: M-011/V-M-011 scenario-67 own opened diff baselines and async tab/view isolation. -->
       <!-- C-71: V-M-012 scenario-69 covers table centering, viewer zoom and all tooltip families across ten locales. -->
@@ -60,6 +61,7 @@
     </VD-PERFORMANCE>
     <VD-FEATURES>
       <Path>verification/features.xml</Path>
+      <!-- V-M-046 scenario-17 owns privacy publication verification; it is distinct from scenario-15 diff CI coverage. -->
       <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- V-M-046 scenario-16 retains the webkit-session CI gate. -->
       <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->

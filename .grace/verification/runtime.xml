@@ -1506,7 +1506,7 @@
         <Command>cargo test --manifest-path src-tauri/Cargo.toml m005_prefs</Command>
       </Commands>
       <Scenarios>
-        <Scenario>scenario-5 (C-PRIVATE-OPERATIONS): the complete retained legacy fixture corpus has six valid JSON examples, synthetic home paths and an exact SHA-256/size manifest; captured profiles and browser runtime files are absent.</Scenario>
+        <Scenario>scenario-5 (C-PRIVATE-OPERATIONS): the complete retained legacy fixture corpus has six valid JSON examples, synthetic home paths and an exact SHA-256/size manifest; captured profiles and browser runtime files are absent. Checkout attributes pin the seven hashed example/manifest files to LF, and the verification uses portable path separators and manifest line delimiters on Windows.</Scenario>
         <Scenario>scenario-1: set→get roundtrip for all known pref keys.</Scenario>
         <Scenario>scenario-3: Corrupt prefs file falls back to defaults and logs a loud marker.</Scenario>
         <Scenario>

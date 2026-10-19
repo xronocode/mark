@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-19",
+  "observedFailure": {
+    "run": 39250822379,
+    "windowsJob": 118054463335,
+    "failedCases": 2,
+    "causes": [
+      "Native backslash paths differ from slash manifest entries.",
+      "CRLF manifest lines fail the record parser; byte-hashed JSON also needs a canonical checkout policy."
+    ]
+  },
+  "repair": [
+    "Normalize native path separators to manifest slashes.",
+    "Parse LF and CRLF manifest delimiters.",
+    "Pin six retained preference JSON files and their hash manifest to LF with Git attributes.",
+    "Disambiguate newly overlapping V-M-046 privacy scenario-17 from diff scenario-15."
+  ],
+  "verification": {
+    "focusedPrivacyCasesPassed": 3,
+    "forcedAutocrlfCheckoutExactFiles": 7,
+    "hashAndCorpusAssertions": "unchanged",
+    "graceFinalAssertionsWithCommands": "passed; zero integrity errors",
+    "WindowsCI": "pending fresh final run"
+  },
+  "scope": "Test/checkout portability only; no product behavior, private companion, fixture payload, release or history rewrite."
+}
