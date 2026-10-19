@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling) and the C-65 T-003 overflow cue of the same wrapper (class-gated edge shades + the «columns X–Y of N» caption below the table on the column edge, live on scroll).
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, and lib/tableResize/tableCue.js.
@@ -12,7 +12,7 @@
 // START_MODULE_MAP
 //   wideHeader - builds the header row of the 15-column fixture.
 //   wideRow - builds one body row of the 15-column fixture.
-//   WIDE_15COL_MD - 15-column table fixture.
+//   WIDE_15COL_MD - 15-column fixture with a reserved counter/scrollbar footer inside the scroll block.
 //   NARROW_2X2_MD - 2x2 table fixture.
 //   LONG_URL - a 200-character URL.
 //   LONG_URL_MD - table fixture with LONG_URL in a body cell.
@@ -20,7 +20,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-19 Full width is the default for wide tables: the C-39 wrapper-scroll cases first choose «Fit to page» (fitToPage); a new case pins the default itself.
+//   LAST_CHANGE: v1.6.0 - 2026-10-20 C-TABLE-FOOTER: counter remains inside its wrapper and fitting tables retain an invisible footer.
+//   v1.5.0 - 2026-10-19 Full width is the default for wide tables: the C-39 wrapper-scroll cases first choose «Fit to page» (fitToPage); a new case pins the default itself.
 //   v1.4.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.4.0 - 2026-10-18 C-65 T-003: the shade pins moved from
 //   the C-39 cover-gradient backgrounds (backgroundAttachment) to the
@@ -219,8 +220,11 @@ test.describe('table layout (C-39 T-001)', () => {
       captionText: caption.textContent || '',
       captionOn: caption.classList.contains('ag-table-caption-on'),
       captionDisplay: window.getComputedStyle(caption).display,
+      captionVisibility: window.getComputedStyle(caption).visibility,
+      captionInside: caption.parentElement === wrapper,
       captionRight: capRect.right,
-      captionBottomVsWrapper: capRect.top - wrapper.getBoundingClientRect().bottom,
+      wrapperRight: wrapper.getBoundingClientRect().right,
+      captionBottomVsWrapper: wrapper.getBoundingClientRect().bottom - capRect.bottom,
       shadeLeft: wrapper.classList.contains('ag-table-cue-left'),
       shadeRight: wrapper.classList.contains('ag-table-cue-right'),
       columnRight: editorRect.right - parseFloat(editorStyle.paddingRight || '0')
@@ -303,10 +307,10 @@ test.describe('table layout (C-39 T-001)', () => {
     expect(start!.captionText).toMatch(/^columns 1–\d+ of 15$/)
     expect(start!.shadeLeft).toBe(false)
     expect(start!.shadeRight).toBe(true)
-    // The caption sits BELOW the wrapper, right-aligned on the same
-    // text-column edge (±1px).
+    // The caption is inside the wrapper, above its scrollbar zone.
+    expect(start!.captionInside).toBe(true)
     expect(start!.captionBottomVsWrapper).toBeGreaterThanOrEqual(0)
-    expect(Math.abs(start!.captionRight - start!.columnRight)).toBeLessThanOrEqual(1)
+    expect(Math.abs(start!.captionRight - start!.wrapperRight)).toBeLessThanOrEqual(1)
 
     // Scroll to the middle: both sides hide columns, the range moves.
     await page.evaluate(() => {
@@ -352,7 +356,8 @@ test.describe('table layout (C-39 T-001)', () => {
     // C-65: a table that fits has neither shade nor caption.
     const cue = await cueState(page)
     expect(cue!.captionOn).toBe(false)
-    expect(cue!.captionDisplay).toBe('none')
+    expect(cue!.captionDisplay).toBe('block')
+    expect(cue!.captionVisibility).toBe('hidden')
     expect(cue!.captionText).toBe('')
     expect(cue!.shadeLeft).toBe(false)
     expect(cue!.shadeRight).toBe(false)

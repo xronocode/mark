@@ -6584,8 +6584,9 @@
           its Open-full-screen button keeps the expandNeed.js D-7 gate
           (corner-6: hidden on narrow tables) and every button carries
           the ag-block-expand keyboard-guard family class. The OVERFLOW
-          CUE is edge shades only + a caption BELOW the table,
-          right-aligned on the same column edge: «columns X–Y of N»
+          CUE is edge shades only + a caption BELOW the table inside
+          the scroll wrapper (C-TABLE-FOOTER), aligned inside its visible
+          scrollport: «columns X–Y of N»
           (tableToolbar.columnsRange in all ten locales + regenerated
           min.json), live on scroll (capture-phase listener), render and
           figure resize (expandNeed funnel) and drag; the sides are the
@@ -6593,12 +6594,13 @@
           cover-gradient layers are gone — one fact drives caption and
           shades); a table that fits shows neither (corner-6). FULL
           WIDTH (R-6, per table): the figure keeps the column width
-          (toolbar + caption stay anchored) while the wrapper breaks out
+          (toolbar stays anchored; caption follows the wrapper) while the wrapper breaks out
           with a measured inline margin (applyFullWidthGeometry — theme
           paddings never hardcoded), overflow visible, the table at the
           editor area's LEFT edge, the EDITOR scroller owning the
           horizontal scrollbar (corner-8), the caption reading «all N
-          columns» (tableToolbar.allColumns) with no shades, and the
+          columns» (tableToolbar.allColumns) only when wider than its
+          viewport, with no shades, and the
           button flipped to the active «Fit to page»; the mode persists
           in the same store. Unit-pinned in
           tests/renderer/store/table-layout-store.test.js (store
@@ -6693,6 +6695,20 @@
           invalid column descriptors, missing surfaces, pointer capture,
           reset persistence and C-70 copy-image capture routing.
         </Scenario>
+        <scenario-table-footer>
+          C-TABLE-FOOTER: the noneditable counter
+          follows the table inside its scroll block, before the native
+          horizontal scrollbar with a 2px gap. Table block margins and
+          duplicate bottom padding are removed. A constant footer reserves
+          the counter line and scrollbar space invisibly when fitting,
+          including Full width; consumed/overlay scrollbar metrics are
+          compensated. The counter stays inside the viewport when scrolling.
+          Native editing, caption caret guards, drag handles, persistent
+          widths and accepted C-71 geometry/outline behavior remain intact.
+          Tests: table-footer.spec.ts in Chromium/WebKit, updated table
+          layout/toolbar browser cases, table-cue, table-scroll-wrapper,
+          block-expand-button and table-layout-persistence unit suites.
+        </scenario-table-footer>
         <Scenario>
           scenario-70: Shift+Up/Down continues native selection after the
           passive format toolbar appears. Repeated presses grow the range,
