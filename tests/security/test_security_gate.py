@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.1.0
+# VERSION: 1.2.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
-#   SCOPE: Real temporary Git indexes, Gitleaks rejection, network isolation, complete locale deltas, review responses and outgoing intermediate commits; never create or publish fixture commits.
+#   SCOPE: Reserved private paths, retained fixture examples, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, exact-index, local-only review and outgoing-history failure scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.1.0 - 2026-10-19: prove locale deltas retain nested changes and raw fallback without reducing static scans.
+#   LAST_CHANGE: 1.2.0 - 2026-10-19: reject reserved private operations and captured profiles while retaining synthetic examples and reusable tooling.
+#   PREV: 1.1.0 - 2026-10-19: prove locale deltas retain nested changes and raw fallback without reducing static scans.
 #   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: executable fail-closed safety contracts.
 # END_CHANGE_SUMMARY
 
@@ -36,6 +37,16 @@ spec.loader.exec_module(gate)
 
 
 class SafetyGateTests(unittest.TestCase):
+    def test_approved_private_paths_cannot_be_force_added_or_pushed(self):
+        for name in ["docs/backlog.md", "docs/promotion/strategy.md", "prototypes/table-copy/preview.md", ".grace/changes/active/C-59/state.json", ".grace/changes/archive/C-59/state.json", "fixtures/v0-marktext-userdata/userdata.tar.gz", "fixtures/v1-userdata-mark-1.0.2/migration-relevant/Local Storage/profile.json"]:
+            with self.subTest(path=name), self.assertRaises(gate.GateError):
+                gate.validate_content([(name, b"record")])
+        for version in ["v0-marktext-userdata", "v1-userdata-mark-1.0.2"]:
+            for item in ["dataCenter.json", "preferences.json", "window-state.json"]:
+                gate.validate_content([("fixtures/" + version + "/migration-relevant/" + item, b'{"path":"/Users/<fixture>/notes"}')])
+        for name in ["fixtures/README.md", "fixtures/fixture-pin.lock", "tools/release/asc-api.py", "docs/publication-policy.md"]:
+            gate.validate_content([(name, b"public reusable content")])
+
     @staticmethod
     def locale_patch(before, after):
         name = "static/locales/en.min.json"

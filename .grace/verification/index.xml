@@ -60,6 +60,7 @@
     </VD-PERFORMANCE>
     <VD-FEATURES>
       <Path>verification/features.xml</Path>
+      <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- V-M-046 scenario-16 retains the webkit-session CI gate. -->
       <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
       <!-- V-M-046 scenario-14 retains the WebKit keyboard-selection CI gate. -->
