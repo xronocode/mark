@@ -759,8 +759,8 @@ test.describe('pele follows the app theme (C-51 T-003/T-004, C-55)', () => {
   })
 })
 
-// C-51 T-012 (user 2026-10-16: «в темной теме у мермейд явно проблемы с
-// контрастностью блоков»): node shapes sit on the code-block PANEL — in Ink
+// C-51 T-012 (user 2026-10-16: "in the dark theme mermaid clearly has
+// block contrast problems"): node shapes sit on the code-block PANEL — in Ink
 // the old fill (--floatBgColor) was 1.03:1 and the border (--tableBorderColor)
 // 1.2:1 against it. The three dark themes the user saw render a flowchart
 // (with a subgraph/cluster), a sequence diagram (actors + notes) and a state
