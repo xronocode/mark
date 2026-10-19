@@ -84,8 +84,8 @@ describe('whatsNew/data', () => {
 
   it('resolveWhatsNewVersion keeps a version with content and falls back to the newest otherwise', () => {
     expect(resolveWhatsNewVersion('2.5.0-beta')).toBe('2.5.0')
-    expect(resolveWhatsNewVersion('2.5.1')).toBe('2.5.0')
-    expect(resolveWhatsNewVersion('0.0.0')).toBe('2.5.0')
+    expect(resolveWhatsNewVersion('2.5.1')).toBe('2.5.3')
+    expect(resolveWhatsNewVersion('0.0.0')).toBe('2.5.3')
     expect(getWhatsNewItems(resolveWhatsNewVersion('garbage')).length).toBeGreaterThan(0)
   })
 })

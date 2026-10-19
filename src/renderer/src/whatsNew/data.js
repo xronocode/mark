@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
 //            (max 4 items, icon + i18n title/text keys) keyed by the
@@ -31,7 +31,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-18 release 2.5.0: the sheet shows
+//   LAST_CHANGE: v1.5.0 - 2026-10-19 release 2.5.3: the sheet shows the
+//   four 2.5.3 items (session restore C-69, wide tables at full width
+//   C-65, remembered column widths C-65, daily update check C-66) and
+//   points at the v2.5.3 release; the also line names the Clear Recent
+//   broom (C-67) and ⌘W closing Settings.
+//   v1.4.0 - 2026-10-18 release 2.5.0: the sheet shows
 //   the four 2.5.0 items (diagrams as pictures, a look per diagram,
 //   direct print and PDF, copy images back out) and points at the v2.5.0
 //   release; the also line names instant footnotes and the site gallery.
@@ -66,6 +71,28 @@ export const WHATS_NEW_MAX_ITEMS = 4
 // ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
 // under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
+  '2.5.3': [
+    {
+      icon: '↺',
+      titleKey: 'whatsNew.v2_5_3.session.title',
+      textKey: 'whatsNew.v2_5_3.session.text'
+    },
+    {
+      icon: '↔',
+      titleKey: 'whatsNew.v2_5_3.tables.title',
+      textKey: 'whatsNew.v2_5_3.tables.text'
+    },
+    {
+      icon: '▥',
+      titleKey: 'whatsNew.v2_5_3.columns.title',
+      textKey: 'whatsNew.v2_5_3.columns.text'
+    },
+    {
+      icon: '⟳',
+      titleKey: 'whatsNew.v2_5_3.updates.title',
+      textKey: 'whatsNew.v2_5_3.updates.text'
+    }
+  ],
   '2.5.0': [
     {
       icon: '⧉',
@@ -99,6 +126,7 @@ export const WHATS_NEW_CONTENT = {
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_RELEASE_URLS = {
+  '2.5.3': 'https://github.com/xronocode/mark/releases/tag/v2.5.3',
   '2.5.0': 'https://github.com/xronocode/mark/releases/tag/v2.5.0'
 }
 

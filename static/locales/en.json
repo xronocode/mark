@@ -1467,7 +1467,7 @@
     "title": "What's new",
     "seeGuide": "See the guide",
     "continue": "Continue",
-    "also": "Also: footnote settings apply instantly, and the site now has a gallery of every diagram type",
+    "also": "Also: a broom clears Recent in the sidebar, and ⌘W closes Settings",
     "seeEverything": "See everything new",
     "v2_3_1": {
       "look": {
@@ -1521,6 +1521,24 @@
       "images": {
         "title": "Copy images back out",
         "text": "Copy a picture that is already in the document back to the clipboard."
+      }
+    },
+    "v2_5_3": {
+      "session": {
+        "title": "Picks up where you left off",
+        "text": "Mark reopens your folder and tabs on launch. Turn it off in Settings › General."
+      },
+      "tables": {
+        "title": "Wide tables at full width",
+        "text": "A table wider than the page opens at full width; Fit to page is kept per table."
+      },
+      "columns": {
+        "title": "Column widths stay put",
+        "text": "Drag a column border once and the width stays for that file. The Markdown is untouched."
+      },
+      "updates": {
+        "title": "Updates come to you",
+        "text": "Mark checks for a new version once a day: update now, later, or skip it."
       }
     }
   },
