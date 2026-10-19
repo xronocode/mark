@@ -1,5 +1,5 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.2.0
+# VERSION: 1.3.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
 #   SCOPE: Reserved private paths, retained fixture examples, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, exact-index, local-only review and outgoing-history failure scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.2.0 - 2026-10-19: reject reserved private operations and captured profiles while retaining synthetic examples and reusable tooling.
+#   LAST_CHANGE: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before model loading, including one-other-engine and multiple-model failures.
+#   PREV: 1.2.0 - 2026-10-19: reject reserved private operations and captured profiles while retaining synthetic examples and reusable tooling.
 #   PREV: 1.1.0 - 2026-10-19: prove locale deltas retain nested changes and raw fallback without reducing static scans.
 #   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: executable fail-closed safety contracts.
 # END_CHANGE_SUMMARY
@@ -37,6 +38,33 @@ spec.loader.exec_module(gate)
 
 
 class SafetyGateTests(unittest.TestCase):
+    def test_gpu_preflight_timeout_is_bounded_and_does_not_echo_command(self):
+        with patch.object(gate.subprocess, "run", side_effect=subprocess.TimeoutExpired(["private-host-command"], 60)):
+            with self.assertRaises(gate.GateError) as found:
+                gate.gpu_preflight(Path("canonical-check"))
+            self.assertNotIn("private-host-command", str(found.exception))
+
+    def test_gpu_slot_requires_positive_empty_or_expected_engine_evidence(self):
+        opener = Mock()
+        for models, report in [([], b"no inference engine active"), ([{"name": "qwen3:4b"}], b"ollama: model loaded")]:
+            opener.open.side_effect = lambda *a, **k: io.BytesIO(json.dumps({"models": models}).encode())
+            gate.gpu_ownership(SimpleNamespace(returncode=0, stdout=report), opener)
+
+    def test_one_other_engine_or_multiple_models_block_before_chat(self):
+        for models, report in [([], b"LM Studio: model loaded"), ([{"name": "other-model"}], b"ollama: model loaded"), ([{"name": "qwen3:4b"}, {"name": "other-model"}], b"ollama: model loaded"), ([], b"unrecognized preflight output"), ({}, b"no inference engine active")]:
+            opener = Mock()
+            opener.open.side_effect = lambda *a, **k: io.BytesIO(json.dumps({"models": models}).encode())
+            with self.assertRaises(gate.GateError):
+                gate.gpu_ownership(SimpleNamespace(returncode=2, stdout=report), opener)
+            self.assertEqual(opener.open.call_args.args[0], "http://127.0.0.1:11434/api/ps")
+
+    def test_malformed_model_inventory_stops_without_a_chat_request(self):
+        opener = Mock()
+        opener.open.side_effect = lambda *a, **k: io.BytesIO(b"[]")
+        with self.assertRaises(gate.GateError):
+            gate.gpu_ownership(SimpleNamespace(returncode=0, stdout=b"no inference engine active"), opener)
+        self.assertEqual(opener.open.call_count, 1)
+
     def test_approved_private_paths_cannot_be_force_added_or_pushed(self):
         for name in ["docs/backlog.md", "docs/promotion/strategy.md", "prototypes/table-copy/preview.md", ".grace/changes/active/C-59/state.json", ".grace/changes/archive/C-59/state.json", "fixtures/v0-marktext-userdata/userdata.tar.gz", "fixtures/v1-userdata-mark-1.0.2/migration-relevant/Local Storage/profile.json"]:
             with self.subTest(path=name), self.assertRaises(gate.GateError):
@@ -201,13 +229,14 @@ class SafetyGateTests(unittest.TestCase):
     def test_local_review_requires_two_complete_serial_responses(self):
         answer = {"done": True, "done_reason": "stop", "model": "qwen3:4b", "message": {"content": '{"verdict":"pass","findings":[]}'}}
         opener = Mock()
-        opener.open.side_effect = lambda *a, **k: io.BytesIO(json.dumps(answer).encode())
-        with tempfile.TemporaryDirectory() as name, patch.object(Path, "is_file", return_value=True), patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0)), patch.object(gate.urllib.request, "build_opener", return_value=opener):
+        opener.open.side_effect = lambda request, **k: io.BytesIO(json.dumps({"models": []} if isinstance(request, str) else answer).encode())
+        with tempfile.TemporaryDirectory() as name, patch.object(Path, "is_file", return_value=True), patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=b"no inference engine active")), patch.object(gate.urllib.request, "build_opener", return_value=opener):
             records = gate.local_review({"payload": "public", "identity": "hash"}, Path(name))
             self.assertEqual([x["phase"] for x in records], ["review", "skeptical independent recheck"])
-            self.assertEqual(opener.open.call_count, 2)
+            self.assertEqual(opener.open.call_count, 4)
             for call in opener.open.call_args_list:
-                self.assertEqual(call.args[0].full_url, "http://127.0.0.1:11434/api/chat")
+                request = call.args[0]
+                self.assertIn(request if isinstance(request, str) else request.full_url, ["http://127.0.0.1:11434/api/ps", "http://127.0.0.1:11434/api/chat"])
             answer["done_reason"] = "length"
             with self.assertRaises(gate.GateError):
                 gate.local_review({"payload": "public", "identity": "hash"}, Path(name))
@@ -217,7 +246,7 @@ class SafetyGateTests(unittest.TestCase):
             gate.NoRedirect().redirect_request(None, None, 302, "redirect", {}, "https://example.invalid")
         opener = Mock()
         opener.open.side_effect = urllib.error.URLError("offline")
-        with tempfile.TemporaryDirectory() as name, patch.object(Path, "is_file", return_value=True), patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0)), patch.object(gate.urllib.request, "build_opener", return_value=opener):
+        with tempfile.TemporaryDirectory() as name, patch.object(Path, "is_file", return_value=True), patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=b"no inference engine active")), patch.object(gate.urllib.request, "build_opener", return_value=opener):
             with self.assertRaises(gate.GateError):
                 gate.local_review({"payload": "public", "identity": "hash"}, Path(name))
             self.assertEqual(opener.open.call_count, 1)

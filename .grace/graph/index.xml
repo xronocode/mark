@@ -59,6 +59,7 @@
     </GD-PERFORMANCE>
     <GD-FEATURES>
       <Path>graph/features.xml</Path>
+      <!-- M-064/V-M-064 prove GPU ownership for the selected reviewer before loading it. -->
       <!-- M-046 owns byte-stable fixture checkout attributes and portable verification paths. -->
       <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- M-046 gates WebKit session restore and close/edit isolation. -->

@@ -2785,6 +2785,10 @@
     <M-064>
       <Name>RepositorySafetyGate</Name><Type>SCRIPT</Type><Status>implemented</Status><Layer>TOOLING</Layer>
       <Summary>
+        Local inference requires positive canonical empty/expected-engine
+        evidence and a bounded loopback model inventory before each chat;
+        another engine/model, ambiguous state or timeout stops loading.
+
         Publication-policy reserved operations and captured-profile paths
         are rejected deterministically before inference, including force-adds.
         Six sanitized preference examples and reusable release tools remain public.

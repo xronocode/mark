@@ -61,6 +61,7 @@
     </VD-PERFORMANCE>
     <VD-FEATURES>
       <Path>verification/features.xml</Path>
+      <!-- M-064/V-M-064 prove GPU ownership for the selected reviewer before loading it. -->
       <!-- V-M-046 scenario-17 owns privacy publication verification; it is distinct from scenario-15 diff CI coverage. -->
       <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- V-M-046 scenario-16 retains the webkit-session CI gate. -->

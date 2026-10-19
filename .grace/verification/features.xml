@@ -2560,6 +2560,8 @@
     <V-M-064>
       <Priority>critical</Priority><Commands><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Commands>
       <Scenarios>
+        <Scenario>Target-aware GPU checks accept only an empty slot or expected loaded reviewer. A single other engine, other/multiple Ollama models, malformed/unavailable inventory or preflight timeout blocks before chat without echoing private command details.</Scenario>
+
         <Scenario>Reserved private operational paths and captured-profile additions fail before inference in staged and outgoing scans. All six synthetic preference examples, their manifest/README and reusable release tools remain allowed.</Scenario>
 
         <Scenario>Generated locale review preserves nested additions/removals/replacements, changed arrays and scalar types. Duplicate keys, unsupported numbers/hunks and malformed JSON retain raw text. Added exposures remain visible and full-blob static scans still reject them.</Scenario>
