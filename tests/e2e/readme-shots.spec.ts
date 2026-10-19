@@ -45,7 +45,7 @@
 //   opens the viewer through the corner pill's expand action (mermaid
 //   figures no longer carry the standalone glyph).
 //   PREV: v1.1.0 - 2026-10-17 C-53 review: every shot in the macOS
-//   theme (user: «эпловскую бери для скринов»), 05-viewer shows a large
+//   theme (user: "use the Apple one for screenshots"), 05-viewer shows a large
 //   release-pipeline diagram zoomed in instead of a 12-node chain.
 //   PREV: v1.0.0 - 2026-10-17 C-53 T-001/R-2: initial capture spec.
 // END_CHANGE_SUMMARY

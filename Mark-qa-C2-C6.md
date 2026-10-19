@@ -1,103 +1,103 @@
-# QA-проверка Mark: последние баги C-2…C-6
+# Mark QA: the latest C-2…C-6 bugs
 
-Сборка: тестовый билд из этой сессии — `target/release/bundle/macos/Mark.app` (или DMG рядом; собран 2026-09-16 после обоих ревью). Отмечай пункт после проверки. Если что-то сломалось — рядом напиши, что именно произошло.
+Build: the test build from this session — `target/release/bundle/macos/Mark.app` (or the DMG next to it; built 2026-09-16 after both reviews). Check an item after verifying it. If something breaks, write next to it what exactly happened.
 
-Статус изменений на момент документа:
+Change status as of this document:
 
-| Change | Что это | Статус |
+| Change | What it is | Status |
 |---|---|---|
-| C-2 | Live-reload внешних изменений файлов (fan-out подписок watcher'а) | реализован, закоммичен (437a76f5) |
-| C-3 | «Copy as HTML» — богатый буфер для вставки в почту | реализован в рабочем дереве, не закоммичен |
-| C-4 | Переименование открытого файла из сайдбара | **запланирован, НЕ реализован** — сценарий ниже сейчас провалится, это ожидаемо |
-| C-5 | Флакающий тест pinch-zoom (timing) | расследование, тестовая инфраструктура — на ручное QA не влияет |
-| C-6 | Авто-скролл полосы вкладок к активной вкладке | реализован в этой сессии |
+| C-2 | Live-reload of external file changes (watcher subscription fan-out) | implemented, committed (437a76f5) |
+| C-3 | "Copy as HTML" — rich clipboard for pasting into email | implemented in the working tree, not committed |
+| C-4 | Renaming an open file from the sidebar | **planned, NOT implemented** — the scenario below currently fails, this is expected |
+| C-5 | Flaky pinch-zoom test (timing) | investigation, test infrastructure — does not affect manual QA |
+| C-6 | Tab bar auto-scroll to the active tab | implemented in this session |
 
 ---
 
-## C-6. Активная вкладка всегда видна (новый фикс)
+## C-6. The active tab is always visible (new fix)
 
-Подготовка: открой 8–10 файлов, чтобы полоса вкладок переполнилась и начала прокручиваться колесом мыши. Окно сузь, если вкладки помещаются.
+Setup: open 8–10 files so the tab bar overflows and starts scrolling with the mouse wheel. Narrow the window if the tabs still fit.
 
-- [ ] **Сценарий 1 — цикл Ctrl+Tab.** Прокрути полосу в начало. Зажми Ctrl+Tab и циклируй вкладки, пока активная не уйдёт за правый край. Ожидание: полоса сама доскролливает, активная вкладка (с подсветкой и синей полоской) всегда полностью видна; при переходе к левой вкладке полоса доскролливает влево.
-- [ ] **Сценарий 2 — Ctrl+Shift+Tab.** То же в обратную сторону — полоса следует за активной вкладкой влево.
-- [ ] **Сценарий 3 — клик в сайдбаре.** Прокрути полосу вкладок влево. В дереве файлов сайдбара кликни файл, чья вкладка сейчас за правым краем. Ожидание: вкладка становится активной И полоса доскролливается к ней.
-- [ ] **Сценарий 4 — поиск.** Открой поиск по проекту, кликни результат из файла с вкладкой за краем — то же ожидание, что в сценарии 3.
-- [ ] **Сценарий 5 — закрытие соседей.** Активируй вкладку за правым краем, закрой её крестиком (или средней кнопкой). Ожидание: активация переходит к соседней вкладке, полоса держит её видимой.
-- [ ] **Сценарий 6 — ручная прокрутка не ломается.** Колесом мыши/тачпадом прокрути полосу вручную, не переключая вкладки. Ожидание: прокрутка работает как раньше, скачков нет.
-- [ ] **Сценарий 7 — без скачка на видимой вкладке.** Кликай по вкладкам, которые уже видны. Ожидание: полоса не дёргается, позиция прокрутки не меняется.
-- [ ] **Сценарий 8 — драг-перестановка.** Перетащи активную вкладку в самый конец полосы. Ожидание: после дропа полоса доскролливает к ней.
-- [ ] **Сценарий 9 — восстановление сессии.** Сузь окно, открой много файлов, активируй последнюю вкладку (она за краем), полностью закрой и снова открой Mark. Ожидание: после старта полоса уже прокручена к активной вкладке.
-- [ ] **Сценарий 10 — скрытая полоса вкладок.** Скрой полосу вкладок (View → Toggle Tab Bar или аналог), прокрути ничего не трогая, снова покажи. Ожидание: полоса возвращается уже прокрученной к активной вкладке, активная видна сразу.
+- [ ] **Scenario 1 — Ctrl+Tab cycling.** Scroll the bar to the start. Hold Ctrl+Tab and cycle tabs until the active one goes past the right edge. Expected: the bar auto-scrolls on its own, the active tab (with highlight and blue underline) is always fully visible; when switching to a left tab the bar scrolls back left.
+- [ ] **Scenario 2 — Ctrl+Shift+Tab.** Same in reverse — the bar follows the active tab to the left.
+- [ ] **Scenario 3 — sidebar click.** Scroll the tab bar to the left. In the sidebar file tree click a file whose tab is currently beyond the right edge. Expected: the tab becomes active AND the bar scrolls to it.
+- [ ] **Scenario 4 — search.** Open project search, click a result from a file whose tab is off-screen — same expectation as scenario 3.
+- [ ] **Scenario 5 — closing neighbors.** Activate a tab beyond the right edge, close it with the × (or middle-click). Expected: activation moves to the neighboring tab, the bar keeps it visible.
+- [ ] **Scenario 6 — manual scrolling is not broken.** Scroll the bar manually with the mouse wheel/trackpad without switching tabs. Expected: scrolling works as before, no jumps.
+- [ ] **Scenario 7 — no jump on a visible tab.** Click tabs that are already visible. Expected: the bar does not twitch, scroll position does not change.
+- [ ] **Scenario 8 — drag reorder.** Drag the active tab to the very end of the bar. Expected: after the drop the bar scrolls to it.
+- [ ] **Scenario 9 — session restore.** Narrow the window, open many files, activate the last tab (it is off-screen), fully quit and reopen Mark. Expected: after startup the bar is already scrolled to the active tab.
+- [ ] **Scenario 10 — hidden tab bar.** Hide the tab bar (View → Toggle Tab Bar or equivalent), scroll nothing, show it again. Expected: the bar comes back already scrolled to the active tab; the active one is visible immediately.
 
-## C-2. Внешние изменения файлов видны во всех вкладках
+## C-2. External file changes are visible in all tabs
 
-Подготовка: открой 2–3 файла из одной папки (первый — до открытия папки-проекта в сайдбаре, остальные после), чтобы было несколько watch-подписок.
+Setup: open 2–3 files from one folder (the first one before opening the project folder in the sidebar, the rest after), so there are several watch subscriptions.
 
-- [ ] **Сценарий 1 — второй файл тоже живой.** Открой файл A, затем файл B (важно: именно вторым и позже). Внеси изменение в B снаружи Mark (например, `echo "правка" >> B.md` в Terminal). Ожидание: вкладка B обновляется сама (или появляется запрос reload, если вкладка грязная) — не только первый открытый файл.
-- [ ] **Сценарий 2 — оба файла с одним путём.** Если один и тот же файл открыт в двух вкладках — правка снаружи обновляет обе.
-- [ ] **Сценарий 3 — без утечек.** Пошарь открывая/закрывая файлы и папки минуту; в консоли (`npm run tauri:dev` stderr) нет повторяющихся ошибок watch-канала, память не растёт заметно.
+- [ ] **Scenario 1 — the second file is live too.** Open file A, then file B (important: exactly second and later). Make a change in B from outside Mark (e.g. `echo "edit" >> B.md` in Terminal). Expected: tab B updates on its own (or a reload prompt appears if the tab is dirty) — not only the first opened file.
+- [ ] **Scenario 2 — both tabs, same path.** If the same file is open in two tabs — an external edit updates both.
+- [ ] **Scenario 3 — no leaks.** Churn opening/closing files and folders for a minute; the console (`npm run tauri:dev` stderr) shows no repeating watch-channel errors, memory does not visibly grow.
 
 ## C-3. Copy as HTML (Cmd+Shift+C)
 
-- [x] **Сценарий 1 — выделение в письмо.** Открой документ с заголовком, списком и жирным текстом. Выдели фрагмент, нажми Cmd+Shift+C (или меню Edit → Copy as HTML, или ПКМ в редакторе). Вставь в черновик письма (Mail/Gmail). Ожидание: форматирование сохранено (заголовок — заголовком, список — списком, жирный — жирным), а не сырой Markdown.
-- [x] **Сценарий 2 — без выделения.** Сними выделение, Cmd+Shift+C, вставь в письмо. Ожидание: вставился весь документ с форматированием.
-- [ ] **Сценарий 3 — в текстовый редактор.** Повтори вставку в Notes/TextEdit (plain text). Ожидание: вставляется Markdown-исходник, без HTML-тегов.
+- [x] **Scenario 1 — selection into an email.** Open a document with a heading, a list, and bold text. Select a fragment, press Cmd+Shift+C (or menu Edit → Copy as HTML, or right-click in the editor). Paste into an email draft (Mail/Gmail). Expected: formatting is preserved (heading stays a heading, list stays a list, bold stays bold), not raw Markdown.
+- [x] **Scenario 2 — without a selection.** Clear the selection, Cmd+Shift+C, paste into an email. Expected: the whole document is pasted with formatting.
+- [ ] **Scenario 3 — into a plain-text editor.** Repeat the paste into Notes/TextEdit (plain text). Expected: the Markdown source is pasted, without HTML tags.
 
-> Подтверждено пользователем 2026-09-17: «хтмл копируется, вставляется в почту — гуд» (сценарии 1–2, через ПКМ-меню C-11).
+> Confirmed by the user 2026-09-17: "HTML copies and pastes into email — good" (scenarios 1–2, via the C-11 right-click menu).
 
-## C-4. Переименование открытого файла из сайдбара (ПОКА НЕ РЕАЛИЗОВАНО)
+## C-4. Renaming an open file from the sidebar (NOT IMPLEMENTED YET)
 
-- [ ] **Сценарий (проверить после реализации).** Открой файл, переименуй его в сайдбаре (контекстное меню → Rename). Ожидание после фикса: вкладка меняет имя и путь, внешние правки нового пути продолжают живую перезагрузку, в консоли нет ошибок. До реализации C-4 здесь будет TypeError и вкладка останется со старым именем — это известное состояние, не регистрируй как новый баг.
+- [ ] **Scenario (verify after implementation).** Open a file, rename it in the sidebar (context menu → Rename). Expected after the fix: the tab changes name and path, external edits of the new path keep live-reloading, no console errors. Until C-4 is implemented there will be a TypeError here and the tab keeps the old name — this is a known state, do not log it as a new bug.
 
-## C-5. Pinch-zoom (регресс-проверка руками)
+## C-5. Pinch-zoom (manual regression check)
 
-- [ ] **Сценарий — зум жестом.** В редакторе сделай pinch-жест (trackpad) несколько раз подряд, включая медленные жесты ниже порога срабатывания. Ожидание: масштаб меняется плавно, мелкие жесты не дёргают зум, редактор не мигает и не теряет фокус. (Известная проблема C-5 — редкий флак в автоматическом тесте на медленных машинах, не в поведении приложения.)
+- [ ] **Scenario — gesture zoom.** In the editor, do a pinch gesture (trackpad) several times in a row, including slow gestures below the activation threshold. Expected: zoom changes smoothly, small gestures do not jerk the zoom, the editor does not flicker or lose focus. (Known C-5 issue — a rare flake in the automated test on slow machines, not in app behavior.)
 
-## Общий регресс после сборки
+## General regression after the build
 
-- [ ] Все вкладки закрываются; `Cmd+N` создаёт новые; перетаскивание вкладок работает.
-- [ ] `npm test` на этой сборке исходников — 100% зелёный.
-
----
-
-## Результаты автопрогона батча C-7/C-8/C-9 (CUA, 2026-09-16)
-
-Прогон по пересобранному `target/release/bundle/macos/Mark.app` (после обоих ревью). Скриншоты: /tmp/mark-qa-shots/f1–f7*.png.
-
-| Сценарий | Результат | Evidence |
-|---|---|---|
-| C-7 resize → автоскролл | **PASS** | окно 600px, активная qa6 у правого края; включение сайдбара сузило полосу на ~220px — qa6 осталась активной и полностью видимой БЕЗ смены активации (f6); прямой set_window_frame ниже 600 невозможен (app minWidth), поэтому триггер — сайдбар |
-| C-8 цикл вкладок (меню) | **PASS** | Window → Select Next Tab ×4: активация прошла qa1→qa6, полоса сама доскроллила вправо (qa1–qa4 за левым краем, qa6 подсвечена, контент «File 6») (f4); dispatch-цепочка menu→bridge→command→bus→store подтверждена в stderr |
-| C-8 физический Ctrl+Tab | **Ручная проверка** | CUA не может синтезировать ⌃⇥ до menu-equivalent (событие до меню не доходит — ограничение синтеза, не приложения). Нажми Ctrl+Tab руками: вкладка должна переключиться; если нет — верни баг |
-| C-9 титлбар 600px (минимум) | **PASS** | путь клиппится слева до «mark-qa-c6 › watch.md», имя полностью видно, наложений нет ни с нав-кнопками, ни со счётчиком слов (f1) |
-| C-9 титлбар 1200px | **PASS** | полный путь «private › tmp › mark-qa-c6 › qa6.md» по центру, как раньше (f7) |
-| C-9 двойной клик по пустому титлбару | **source-pin** | жест перенесён на весь бар с гвардом интерактивных зон; jsdom не перехватывает tauri window у SFC — закреплено source-пин тестом |
-
-Гейты батча: полный сьют 222 файла / **3029 passed / 0 failed**; `cargo test --bin mark -- m009_menu` 10/10; `grace lint` 0 ошибок; ревью-проход 1 — changes-requested (блокер: 2 Rust-теста меню) → исправлено; проход 2 — **VERDICT green**.
+- [ ] All tabs close; `Cmd+N` creates new ones; tab dragging works.
+- [ ] `npm test` on this build's sources — 100% green.
 
 ---
 
-## Результаты автопрогона (CUA, 2026-09-16)
+## Automated run results, C-7/C-8/C-9 batch (CUA, 2026-09-16)
 
-Прогонял агент через cua-driver по свежесобранному `target/release/bundle/macos/Mark.app` (отдельный инстанс, 10 файлов в /tmp/mark-qa-c6, окно 480–600px; инстансы пользователя не тронуты). Скриншоты-доказательства: /tmp/mark-qa-shots/s0–s19.png.
+Run against the rebuilt `target/release/bundle/macos/Mark.app` (after both reviews). Screenshots: /tmp/mark-qa-shots/f1–f7*.png.
 
-| Сценарий | Результат | Evidence |
+| Scenario | Result | Evidence |
 |---|---|---|
-| C-6 запуск/restore (9) | **PASS** | после старта полоса уже у активной последней вкладки (qa1 за левым краем, watch.md подсвечена справа); повторено после перезапуска (s14) |
-| C-6 сайдбар-активация (3) | **PASS** | клик watch.md в «Opened files» при полосе у левого края → полоса сама доскроллила, watch видна и подсвечена (s6) |
-| C-6 скрытая полоса (10) | **PASS** | Toggle Tab Bar off→on → активная вкладка снова полностью видна (s8) |
-| C-6 close-active (5) | **PASS** | закрытие активной watch крестиком → соседка rich активна, видна, полоса не дёргается (s12) |
-| C-6 ручной скролл (6) | **PASS** | колесо двигает полосу, авто-смыкания назад нет, активная остаётся где оставили (s4) |
-| C-6 драг-реордер (8) | **SOFT PASS** | реордер произошёл (qa1 уехала в конец), активная rich осталась видимой и подсвеченной; точную точку дропа сместил drag-autoscroll (s13b) |
-| C-6 цикл Ctrl+Tab (1–2) | **N/A — нет биндинга** | команды tabs.cycleForward/Backward существуют, но клавиша в этом порту не привязана — активировать циклом нельзя. Стоит привязать (напр. Ctrl+Tab / Ctrl+Shift+Tab) отдельной задачей |
-| C-6 no-jump на видимой (7) | **PASS** (косвенно) | клики по видимым вкладкам/сайдбару не смещали полосу без нужды |
-| C-2 live-reload (1) | **PASS** | `echo >> watch.md` снаружи → строка «External edit v2» появилась в открытой вкладке сама; подписка watcher'а была ~10-й по счёту (s7) |
-| C-3 Copy as HTML (1–2) | **PASS** | Edit → Copy as HTML (без выделения) → в буфере одновременно public.html + utf8-plain-text; HTML-контент = отрендеренный `<h1>Watched file</h1>…` с внешней правкой v2 (whole-document fallback работает) |
-| C-4 rename | **SKIPPED** | веб-контекст-меню сайдбара не адресуемо через AX, пиксель-попытка попала не в тот пункт; статус и так известен — RENAME_IF_NEEDED не реализован (C-4 planned-only) |
-| C-5 pinch-zoom | **N/A** | аппаратный жест не автоматизируется через CUA; поведение не проверялось |
+| C-7 resize → auto-scroll | **PASS** | 600px window, active qa6 at the right edge; enabling the sidebar narrowed the bar by ~220px — qa6 stayed active and fully visible WITHOUT an activation change (f6); a direct set_window_frame below 600 is impossible (app minWidth), so the trigger is the sidebar |
+| C-8 tab cycle (menu) | **PASS** | Window → Select Next Tab ×4: activation went qa1→qa6, the bar auto-scrolled right by itself (qa1–qa4 beyond the left edge, qa6 highlighted, content "File 6") (f4); the menu→bridge→command→bus→store dispatch chain confirmed in stderr |
+| C-8 physical Ctrl+Tab | **Manual check** | CUA cannot synthesize ⌃⇥ to the menu-equivalent (the event does not reach the menu — a synthesis limitation, not an app one). Press Ctrl+Tab by hand: the tab should switch; if not, file a bug |
+| C-9 title bar 600px (minimum) | **PASS** | the path clips on the left down to "mark-qa-c6 › watch.md", the name is fully visible, no overlap with either nav buttons or the word counter (f1) |
+| C-9 title bar 1200px | **PASS** | full path "private › tmp › mark-qa-c6 › qa6.md" centered, as before (f7) |
+| C-9 double-click on empty title bar | **source-pin** | the gesture moved to the whole bar with a guard for interactive zones; jsdom does not intercept the tauri window of an SFC — pinned with a source-pin test |
 
-Замечания по ходу прогона (вне скоупа C-6, кандидатами в backlog):
+Batch gates: full suite 222 files / **3029 passed / 0 failed**; `cargo test --bin mark -- m009_menu` 10/10; `grace lint` 0 errors; review pass 1 — changes-requested (blocker: 2 Rust menu tests) → fixed; pass 2 — **VERDICT green**.
 
-1. **Resize окна не триггерит автоскролл**: при сужении окна активная вкладка может остаться за краем до следующей смены активации (замечено при переходе 720→480px). Лечится ResizeObserver на контейнере — отдельная маленькая задача.
-2. **Нет клавиатурного биндинга на цикл вкладок** (см. таблицу) — команды есть, акселератора нет.
-3. CUA-специфика: WKWebView дропает фоновые aux-клики (middle-click закрытие вкладок проверено через крестик) — на живого пользователя не влияет.
+---
+
+## Automated run results (CUA, 2026-09-16)
+
+The agent drove the freshly built `target/release/bundle/macos/Mark.app` via cua-driver (a separate instance, 10 files in /tmp/mark-qa-c6, 480–600px window; the user's instances untouched). Evidence screenshots: /tmp/mark-qa-shots/s0–s19.png.
+
+| Scenario | Result | Evidence |
+|---|---|---|
+| C-6 launch/restore (9) | **PASS** | after startup the bar is already at the active last tab (qa1 beyond the left edge, watch.md highlighted on the right); repeated after a restart (s14) |
+| C-6 sidebar activation (3) | **PASS** | clicking watch.md in "Opened files" with the bar at the left edge → the bar auto-scrolled, watch is visible and highlighted (s6) |
+| C-6 hidden bar (10) | **PASS** | Toggle Tab Bar off→on → the active tab is fully visible again (s8) |
+| C-6 close-active (5) | **PASS** | closing the active watch with × → the rich neighbor is active, visible, the bar does not twitch (s12) |
+| C-6 manual scroll (6) | **PASS** | the wheel moves the bar, no auto-snap back, the active tab stays where it was left (s4) |
+| C-6 drag reorder (8) | **SOFT PASS** | the reorder happened (qa1 moved to the end), the active rich tab stayed visible and highlighted; the exact drop point was shifted by drag-autoscroll (s13b) |
+| C-6 Ctrl+Tab cycle (1–2) | **N/A — no binding** | the tabs.cycleForward/Backward commands exist, but the key is not bound in this port — cycling cannot be activated. Worth binding (e.g. Ctrl+Tab / Ctrl+Shift+Tab) as a separate task |
+| C-6 no-jump on visible (7) | **PASS** (indirect) | clicks on visible tabs/sidebar did not move the bar without need |
+| C-2 live-reload (1) | **PASS** | `echo >> watch.md` from outside → the line "External edit v2" appeared in the open tab on its own; the watcher subscription was about the 10th in a row (s7) |
+| C-3 Copy as HTML (1–2) | **PASS** | Edit → Copy as HTML (no selection) → the clipboard holds public.html + utf8-plain-text simultaneously; HTML content = the rendered `<h1>Watched file</h1>…` with the external edit v2 (whole-document fallback works) |
+| C-4 rename | **SKIPPED** | the sidebar's web context menu is not addressable via AX, a pixel attempt hit the wrong item; the status is known anyway — RENAME_IF_NEEDED is not implemented (C-4 planned-only) |
+| C-5 pinch-zoom | **N/A** | a hardware gesture cannot be automated via CUA; behavior not verified |
+
+Notes from the run (outside C-6 scope, backlog candidates):
+
+1. **Window resize does not trigger auto-scroll**: when narrowing the window, the active tab can stay off-screen until the next activation change (noticed on the 720→480px transition). Fixable with a ResizeObserver on the container — a small separate task.
+2. **No keyboard binding for tab cycling** (see table) — the commands exist, there is no accelerator.
+3. CUA specifics: WKWebView drops background aux-clicks (middle-click tab close was verified via the ×) — does not affect a live user.
