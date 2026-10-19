@@ -1,8 +1,8 @@
 // FILE: tests/e2e/table-ui-regressions.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce wide-table centering, viewer zoom reachability and localized tooltip layout regressions reported on 2026-10-19.
-//   SCOPE: Chromium/WebKit viewport geometry and late outline visibility, click-driven viewer zoom and ten-locale image labels.
+//   SCOPE: Chromium/WebKit full-editor geometry for moderate and long-cell tables, late outline visibility, click-driven viewer zoom and ten-locale image labels.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, static/locales.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -10,11 +10,13 @@
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
 //   MEDIUM_TABLE - natural-width table wider than the text column but narrower than a large editor viewport.
+//   LONG_CELL_TABLE - long prose cells fitting the editor while exceeding the outline-reduced width.
 //   locales - ten shipped translation dictionaries, excluding generated minified copies.
-//   tableGeometry - actual table center and available editor bounds.
+//   tableGeometry - actual table center and full owning editor client bounds.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - Reproduce late owned-outline visibility and preserve viewport-centered geometry without a window resize.
+//   LAST_CHANGE: v1.2.0 - Reproduce the remaining long-cell centering fault against editor bounds independently of outline placement.
+//   PREV: v1.1.0 - Reproduce late owned-outline visibility and preserve viewport-centered geometry without a window resize.
 //   PREV: v1.0.0 - 2026-10-19: user-reported table and tooltip regressions, verified in both rendering engines.
 // END_CHANGE_SUMMARY
 
@@ -43,21 +45,48 @@ More text.
 const locales = readdirSync(resolve('static/locales')).filter(f => f.endsWith('.json') && !f.endsWith('.min.json'))
   .map(f => ({ name: f, data: JSON.parse(readFileSync(resolve('static/locales', f), 'utf8')) }))
 
+const LONG_CELL_TABLE = `# Long-cell table
+
+| Description | Additional context | Result |
+| --- | --- | --- |
+| This is a deliberately long cell containing several ordinary words that should wrap inside the table without changing the page centre. | Another long explanation that makes the natural table wider than the text column while keeping all content readable. | A long result with supporting details and a clear outcome for the table layout regression. |
+
+## Second section
+
+Paragraph after the table.
+
+## Third section
+
+More supporting text.
+`
+
 const tableGeometry = (page: Page) => page.evaluate(() => {
   const table = document.querySelector("figure[data-role='TABLE'] table")!
   const scroller = document.querySelector('.editor-component') as HTMLElement
-  const overlay = document.querySelector('[data-editor-overlay-right]')
   const tr = table.getBoundingClientRect()
   const sr = scroller.getBoundingClientRect()
-  const or = overlay?.getBoundingClientRect()
   const viewportRight = sr.left + scroller.clientWidth
-  const right = or && or.width > 0 && or.left > sr.left && or.left < viewportRight ? or.left - 24 : viewportRight
+  const right = viewportRight
   return { tableLeft: tr.left, tableWidth: tr.width, center: (tr.left + tr.right) / 2,
     availableLeft: sr.left, availableRight: right, centerExpected: (sr.left + right) / 2,
     scrollWidth: scroller.scrollWidth, clientWidth: scroller.clientWidth }
 })
 
 test.beforeEach(async ({ page }) => { await installTauriShim(page) })
+
+test('long-cell table centers in the full editor while the outline remains overlaid', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await bootEditor(page)
+  await openFileTab(page, '/tmp/mark-e2e/long-cell-center.md', LONG_CELL_TABLE)
+  await expect(page.locator('.outline-rail')).toBeVisible()
+  await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
+  await expect.poll(async () => {
+    const g = await tableGeometry(page)
+    expect(g.tableWidth).toBeLessThan(g.clientWidth - 48)
+    return Math.abs(g.center - g.centerExpected)
+  }).toBeLessThanOrEqual(2)
+  await page.screenshot({ path: testInfo.outputPath('long-cell-centered.png') })
+})
 
 for (const sidebar of [false, true]) test(`expanded table stays centered after resize with sidebar ${sidebar}`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1600, height: 1000 })
