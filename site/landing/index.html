@@ -1,5 +1,5 @@
 <!-- FILE: site/landing/index.html -->
-<!-- VERSION: 2.3.1 -->
+<!-- VERSION: 2.4.0 -->
 <!-- START_MODULE_CONTRACT -->
 <!--   PURPOSE: The Mark site landing (served at the site root by renderLanding) -->
 <!--            - the mobile-first paragraph-numbered paper/ink/marker page -->
@@ -15,7 +15,11 @@
 <!--          site/shared/brand.css inlined atop the first style block; -->
 <!--          DIAGRAM colon id = build-time Pele SVG for that gallery example -->
 <!--          (unique idPrefix per occurrence); THEME_VARS_JSON = theme chip -->
-<!--          data (id to pele vars plus page and dark). BASE token = the -->
+<!--          data (id to pele vars plus page and dark). Release tokens -->
+<!--          (%VERSION%, %DMG_NAME%, %DMG_URL%, %DMG_MB%, %EXE_NAME%, -->
+<!--          %EXE_URL%, %EXE_MB%) = the latest GitHub release's facts, -->
+<!--          filled by fillLanding at build (left in place when no release -->
+<!--          is passed). BASE token = the -->
 <!--          site base path. Inline JS only: copy buttons, version refresh -->
 <!--          from the GitHub API, the stage slider (pointer + keyboard, rest -->
 <!--          read from the CSS --rest var), the wall chips/auto-cycle, the -->
@@ -55,7 +59,15 @@
 <!--   footer - docs nav, Mark Text credit, © line (cv) -->
 <!-- END_MODULE_MAP -->
 <!-- START_CHANGE_SUMMARY -->
-<!--   LAST_CHANGE: [v2.3.1 - 2026-10-19 C-64: the stage drags only from the handle strip (pill-wide, full height, pan-y), keeping the grab offset; touches elsewhere just scroll. ¶03 cards share one template — a 16:10 thumbnail (cropped shots or small CSS mock-ups), title, text — so they line up at one height (phone carousel, 2 cols ≥521, 3 cols ≥981).] -->
+<!--   LAST_CHANGE: [v2.4.0 - 2026-10-19 C-64 version sync: every hardcoded -->
+<!--                 release fact becomes a build token filled from the latest -->
+<!--                 GitHub release — <span id="version">v%VERSION%</span>, the -->
+<!--                 hero and Homebrew "≈ %DMG_MB% MB" / Windows "≈ %EXE_MB% -->
+<!--                 MB" figures, the DMG/EXE link names and the -->
+<!--                 #dmg-hero/#dmg-link/#win-link hrefs. The App Store -->
+<!--                 edition facts stay pinned, and the runtime releases-API -->
+<!--                 swap stays as a refresh.] -->
+<!--   PREV: [v2.3.1 - 2026-10-19 C-64: the stage drags only from the handle strip (pill-wide, full height, pan-y), keeping the grab offset; touches elsewhere just scroll. ¶03 cards share one template — a 16:10 thumbnail (cropped shots or small CSS mock-ups), title, text — so they line up at one height (phone carousel, 2 cols ≥521, 3 cols ≥981).] -->
 <!--   PREV: [v2.3.0 - 2026-10-18 C-64 T-007 audit fixes: every -->
 <!--                 screenshot ships in a <picture> with 400/800/1440 webp -->
 <!--                 sources (jpg <img> kept as the fallback with its srcset, -->
@@ -73,7 +85,8 @@
 <!--                 button gets #win-link and swaps to the exact setup.exe -->
 <!--                 from the releases API; the share URL carries send-to-Mac -->
 <!--                 UTM tags; the hero captions read "v2.1.17 · sandboxed" -->
-<!--                 and "v2.5.0 · latest · ≈ 15 MB" ("latest" ≥521 only, no .opt-i, -->
+<!--                 and "v%VERSION% · latest · ≈ %DMG_MB% MB" (release tokens -->
+<!--                 now; "latest" ≥521 only, no .opt-i, -->
 <!--                 no desktop nowrap); the stage rests on a --rest custom -->
 <!--                 property per breakpoint (34/46/30%) that the sweep, the -->
 <!--                 slider aria and a resize listener all read from the -->
@@ -98,7 +111,8 @@
 <!--                 gutters), draggable/keyboard before/after hero with -->
 <!--                 build-time diagram placeholders, d1 fact strip, d2 wall as -->
 <!--                 ¶ 02 with live theme chips, install cards with verified -->
-<!--                 facts (v2.5.0, App Store id, full brew command, setup.exe), -->
+<!--                 facts (release facts via the %VERSION%/%DMG_NAME%/%EXE_NAME% -->
+<!--                 tokens, App Store id, full brew command, setup.exe), -->
 <!--                 iOS Mark-for-Mac bar (Web Share, remembered dismiss, -->
 <!--                 share_to_mac events) and download_click hooks on every -->
 <!--                 install CTA.] -->
@@ -822,10 +836,10 @@ h2 {
               <span class="fine">v2.1.17 &middot; sandboxed</span>
             </div>
             <div class="get-o">
-              <a class="btn sec" id="dmg-hero" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="dmg" data-placement="hero">
+              <a class="btn sec" id="dmg-hero" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="hero">
                 <svg class="dl" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12"/></svg>Download .dmg
               </a>
-              <span class="fine"><span id="version">v2.5.0</span><span class="more"> &middot; latest</span> &middot; &asymp; 15 MB</span>
+              <span class="fine"><span id="version">v%VERSION%</span><span class="more"> &middot; latest</span> &middot; &asymp; %DMG_MB% MB</span>
             </div>
           </div>
           <button class="brew" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero" aria-label="Copy brew install --cask xronocode/mark/mark"><i>$</i>brew install --cask xronocode/mark/mark<b>Copy</b></button>
@@ -1084,12 +1098,12 @@ instruction.</pre>
       <article class="card-i">
         <h3>Homebrew</h3>
         <button class="brew block" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="install" aria-label="Copy brew install --cask xronocode/mark/mark"><span class="cmd"><i>$</i>brew install --cask xronocode/mark/mark</span><b>Copy</b></button>
-        <p>Apple silicon. Developer ID signed and notarized by Apple<span class="more">; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code></span>. Or download <a id="dmg-link" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="dmg" data-placement="install">Mark_2.5.0_aarch64.dmg</a> (&asymp; 15 MB).</p>
+        <p>Apple silicon. Developer ID signed and notarized by Apple<span class="more">; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code></span>. Or download <a id="dmg-link" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="install">%DMG_NAME%</a> (&asymp; %DMG_MB% MB).</p>
       </article>
       <article class="card-i">
         <h3>Windows</h3>
-        <a class="btn sec" id="win-link" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
-        <p><code>Mark_2.5.0_x64-setup.exe</code>, &asymp; 10 MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo;<span class="more"> &mdash; choose <em>More info</em>, then <em>Run anyway</em></span>.</p>
+        <a class="btn sec" id="win-link" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
+        <p><code>%EXE_NAME%</code>, &asymp; %EXE_MB% MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo;<span class="more"> &mdash; choose <em>More info</em>, then <em>Run anyway</em></span>.</p>
       </article>
     </div>
     <p class="editions"><span class="more">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. </span><a href="%BASE%guide/editions">See the full table</a>.</p>

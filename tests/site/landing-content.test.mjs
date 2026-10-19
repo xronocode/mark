@@ -1,20 +1,23 @@
 // @vitest-environment node
 // FILE: tests/site/landing-content.test.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify the C-64 T-002 landing content contract — the four
-//            install facts render, stale claims and forbidden Mark Text
-//            wording are absent, the consent anchor sits on the hero, every
-//            install CTA carries the download_click attrs, the stage handle
-//            is a real slider, the iOS detect script runs before any CSS,
-//            the theme-init placeholder is present and DIAGRAM placeholders
-//            only name gallery example ids.
+//   PURPOSE: Verify the C-64 T-002 landing content contract — the install
+//            facts render (the download facts as release tokens filled by
+//            fillLanding), stale claims and forbidden Mark Text wording are
+//            absent, the consent anchor sits on the hero, every install CTA
+//            carries the download_click attrs, the stage handle is a real
+//            slider, the iOS detect script runs before any CSS, the
+//            theme-init placeholder is present and DIAGRAM placeholders only
+//            name gallery example ids.
 //   SCOPE: site/landing/index.html through renderLanding (base '/'), i.e.
 //          the template as the build receives it, placeholders included.
 //   DEPENDS: Vitest (node env), site/.vitepress/landing.mjs renderLanding,
+//            site/scripts/landing-fill.mjs fillLanding,
+//            site/scripts/release.mjs releaseFacts (the fill facts),
 //            site/gallery/examples.mjs (the id whitelist)
-//   LINKS: M-053 SiteBuild; V-M-053; C-64 T-002 (R-3, R-4, R-5, R-7);
-//          corners 1, 2, 5, 7, 8
+//   LINKS: M-053 SiteBuild; V-M-053; C-64 T-002 (R-3, R-4, R-5, R-7),
+//          version sync; corners 1, 2, 5, 7, 8
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -25,7 +28,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.3.0 - 2026-10-18 C-64 T-007: pins the audit fixes -
+//   LAST_CHANGE: [v1.4.0 - 2026-10-19 C-64 version sync: the download facts
+//                 are asserted as the %VERSION%/%DMG_*/%EXE_* tokens in the
+//                 template (App Store edition facts stay pinned), and a fill
+//                 test proves fillLanding(TEMPLATE, undefined, facts) writes
+//                 the resolved names, URLs and MB figures everywhere.]
+//   PREV: [v1.3.0 - 2026-10-18 C-64 T-007: pins the audit fixes -
 //                 every screenshot in a <picture> with 400/800/1440 webp
 //                 sources and the jpg <img> fallback intact (R-2), the
 //                 stage demo document's h2/h3 demoted to identically-styled
@@ -55,21 +63,49 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { renderLanding, resolveSiteSettings } from '../../site/.vitepress/landing.mjs'
+import { fillLanding } from '../../site/scripts/landing-fill.mjs'
+import { releaseFacts } from '../../site/scripts/release.mjs'
 import { EXAMPLES } from '../../site/gallery/examples.mjs'
 
 const TEMPLATE = readFileSync(resolve(import.meta.dirname, '../../site/landing/index.html'), 'utf8')
 const HTML = renderLanding(TEMPLATE, resolveSiteSettings({}))
 
 describe('landing install facts', () => {
-  it('renders the App Store link, the brew one-liner, the Windows setup.exe and v2.5.0', () => {
+  it('renders the App Store link, the brew one-liner and the release tokens for the download facts', () => {
     expect(HTML).toContain('https://apps.apple.com/app/id6814590464')
     // One canonical command everywhere (C-64 T-006 F-1): the tap-free
     // one-liner, identical in the data-copy attribute and the visible text.
     expect(HTML).toContain('brew install --cask xronocode/mark/mark')
     expect(HTML).not.toContain('brew tap xronocode/mark &amp;&amp;')
-    expect(HTML).toContain('Mark_2.5.0_x64-setup.exe')
-    expect(HTML).toContain('Mark_2.5.0_aarch64.dmg')
-    expect(HTML).toMatch(/id="version">v2\.5\.0</)
+    // C-64 version sync: the download facts are build tokens filled from the
+    // latest GitHub release (the fill test below pins the substitution).
+    expect(TEMPLATE).toContain('%DMG_NAME%')
+    expect(TEMPLATE).toContain('%EXE_NAME%')
+    expect(TEMPLATE).toMatch(/id="version">v%VERSION%</)
+    expect(TEMPLATE).toContain('id="dmg-hero" href="%DMG_URL%"')
+    expect(TEMPLATE).toContain('id="dmg-link" href="%DMG_URL%"')
+    expect(TEMPLATE).toContain('id="win-link" href="%EXE_URL%"')
+    expect(TEMPLATE).toContain('&asymp; %DMG_MB% MB')
+    expect(TEMPLATE).toContain('&asymp; %EXE_MB% MB')
+  })
+
+  it('fills the release tokens from the resolved facts (C-64 version sync)', () => {
+    const facts = releaseFacts({
+      version: '9.9.9',
+      dmg: { name: 'Mark_9.9.9_aarch64.dmg', url: 'https://obj.example/Mark_9.9.9_aarch64.dmg', size: 14_800_000 },
+      exe: { name: 'Mark_9.9.9_x64-setup.exe', url: 'https://obj.example/Mark_9.9.9_x64-setup.exe', size: 9_700_000 }
+    }, '2.5.2')
+    const filled = fillLanding(TEMPLATE, undefined, facts)
+    expect(filled).toContain('Mark_9.9.9_aarch64.dmg')
+    expect(filled).toContain('Mark_9.9.9_x64-setup.exe')
+    expect(filled).toMatch(/id="version">v9\.9\.9</)
+    expect(filled).toContain('href="https://obj.example/Mark_9.9.9_aarch64.dmg"')
+    expect(filled).toContain('href="https://obj.example/Mark_9.9.9_x64-setup.exe"')
+    expect(filled).toContain('&asymp; 15 MB')
+    expect(filled).toContain('&asymp; 10 MB')
+    expect(filled).not.toContain('%VERSION%')
+    expect(filled).not.toContain('%DMG_')
+    expect(filled).not.toContain('%EXE_')
   })
 
   it('carries the editions facts: App Store 2.1.17 catching up to 2.5.0, macOS 12, SmartScreen note', () => {
@@ -96,7 +132,10 @@ describe('landing consent + install analytics wiring', () => {
   const isInstallCta = (tag) =>
     tag.includes('apps.apple.com/app/id6814590464') ||
     tag.includes('brew install --cask xronocode/mark/mark') ||
-    tag.includes('github.com/xronocode/mark/releases/latest')
+    tag.includes('github.com/xronocode/mark/releases/latest') ||
+    // unfilled release tokens stand in for the DMG/Windows links here
+    tag.includes('%DMG_URL%') ||
+    tag.includes('%EXE_URL%')
   const CTAS = TAGS.filter(isInstallCta)
 
   it('finds the install CTAs (App Store, brew copies, DMG, Windows)', () => {
@@ -280,7 +319,7 @@ describe('landing C-64 T-006 audit fixes', () => {
 
   it('states the hero version captions as one-line facts (D-2)', () => {
     expect(HTML).toContain('v2.1.17 &middot; sandboxed')
-    expect(HTML).toContain('<span id="version">v2.5.0</span><span class="more"> &middot; latest</span> &middot; &asymp; 15 MB')
+    expect(TEMPLATE).toContain('<span id="version">v%VERSION%</span><span class="more"> &middot; latest</span> &middot; &asymp; %DMG_MB% MB')
     expect(HTML).not.toContain('opt-i')
     expect(HTML).not.toContain('is coming')
     expect(HTML).not.toMatch(/\.get-o \.fine\s*\{\s*white-space/)

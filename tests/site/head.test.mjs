@@ -1,26 +1,29 @@
 // @vitest-environment node
 // FILE: tests/site/head.test.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 head/consent/analytics/SEO/CSP/FAQ surface —
-//            the shared head's SEO tags, the JSON-LD @graph (version from
-//            the root package.json, install facts, publisher org, '<'
-//            escaped), the docs BreadcrumbList, the FAQPage node against
-//            site/guide/faq.md, docsHeadTags, the GA4 consent.js+track.js
-//            pair, the llms.txt / security.txt builders, and the meta CSP
-//            (exact-text sha256 hashing, ld+json exclusion, provider host
-//            toggles, first-in-head idempotent injection, tamper
-//            detection) plus the runtime behaviour of public/track.js and
-//            public/consent.js (grant-gated GA load, undecided click
-//            queue) booted on fake window/document globals.
+//            the shared head's SEO tags, the JSON-LD @graph (version: the
+//            release pinned by setReleaseVersion, the root package.json by
+//            default; install facts, publisher org, '<' escaped), the docs
+//            BreadcrumbList, the FAQPage node against site/guide/faq.md,
+//            docsHeadTags, the GA4 consent.js+track.js pair, the llms.txt /
+//            security.txt builders, and the meta CSP (exact-text sha256
+//            hashing, ld+json exclusion, provider host toggles, first-in-head
+//            idempotent injection, tamper detection) plus the runtime
+//            behaviour of public/track.js and public/consent.js (grant-gated
+//            GA load, undecided click queue) booted on fake window/document
+//            globals.
 //   SCOPE: site/.vitepress/landing.mjs (jsonLd, breadcrumbJsonLd, FAQ_ITEMS,
 //          faqJsonLd, sharedHeadTags, docsHeadTags, analyticsTags,
-//          appVersion), site/scripts/csp.mjs, site/scripts/seo-files.mjs,
-//          site/guide/faq.md, site/public/{consent.js,track.js}.
+//          appVersion, setReleaseVersion), site/scripts/csp.mjs,
+//          site/scripts/seo-files.mjs, site/guide/faq.md,
+//          site/public/{consent.js,track.js}.
 //   DEPENDS: Vitest (node env; scripts are evaluated via new Function with
 //          injected globals, no DOM).
 //   LINKS: M-053 SiteBuild; V-M-053; C-64 T-003 (R-5 meta, R-6, R-7, R-8,
-//          R-9), T-006, T-007 (M-2/P-1, G-2, G-1); corner-6, corner-7
+//          R-9), T-006, T-007 (M-2/P-1, G-2, G-1), version sync;
+//          corner-6, corner-7
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -42,7 +45,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-007: consent.js never injects
+//   LAST_CHANGE: [v1.3.0 - 2026-10-19 C-64 version sync: appVersion() returns
+//                 the pinned release after setReleaseVersion(v) (including in
+//                 the JSON-LD softwareVersion) and falls back to the root
+//                 package.json after setReleaseVersion(undefined), so the
+//                 other tests are unaffected.]
+//   PREV: [v1.2.0 - 2026-10-18 C-64 T-007: consent.js never injects
 //                 the gtag script while undecided/denied (only a saved
 //                 grant, the geo auto-grant or the Allow click schedules
 //                 it — still load + idle) and exposes decided(); track.js
@@ -74,6 +82,7 @@ import {
   faqJsonLd,
   jsonLd,
   resolveSiteSettings,
+  setReleaseVersion,
   sharedHeadTags
 } from '../../site/.vitepress/landing.mjs'
 import { cspFor, injectCsp, verifyCsp } from '../../site/scripts/csp.mjs'
@@ -90,6 +99,17 @@ const PROVIDERS = resolveSiteSettings({
 
 describe('appVersion', () => {
   it('reads the version from the root package.json (one source)', () => {
+    expect(appVersion()).toBe(PKG.version)
+  })
+
+  it('returns the pinned release after setReleaseVersion, and the package version again once reset', () => {
+    setReleaseVersion('9.9.9')
+    try {
+      expect(appVersion()).toBe('9.9.9')
+      expect(JSON.parse(jsonLd(SETTINGS))['@graph'][0].softwareVersion).toBe('9.9.9')
+    } finally {
+      setReleaseVersion(undefined)
+    }
     expect(appVersion()).toBe(PKG.version)
   })
 })

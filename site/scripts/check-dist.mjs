@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // FILE: site/scripts/check-dist.mjs
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Gate the built site before deploy — every internal link/asset in
 //            every dist HTML page must resolve to a file in dist, and the
@@ -12,12 +12,15 @@
 //          script/style hosts beyond the site's configured analytics); check
 //          the SEO set (llms.txt sections, .well-known/security.txt contact +
 //          expiry, landing apple-itunes-app / og-card / parseable JSON-LD
-//          SoftwareApplication at the released version, track.js iff GA4);
-//          check the CSP (every page has the meta, every inline script hash
-//          present — scripts/csp.mjs verifyCsp).
-//   DEPENDS: ../.vitepress/landing.mjs (resolveSiteSettings, appVersion),
+//          SoftwareApplication at the resolved release version — the same
+//          latest-GitHub-release resolution as the build, SITE_RELEASE=offline
+//          respected, #version carrying it and no unfilled %VERSION%/%DMG_/
+//          %EXE_ tokens, track.js iff GA4); check the CSP (every page has the
+//          meta, every inline script hash present — scripts/csp.mjs verifyCsp).
+//   DEPENDS: ../.vitepress/landing.mjs (resolveSiteSettings, appVersion,
+//            setReleaseVersion), ./release.mjs (latestRelease, releaseFacts),
 //            ./csp.mjs (verifyCsp), ../gallery/examples.mjs (example count)
-//   LINKS: M-053 SiteBuild; C-22; C-58 R-6; C-64 T-003 R-8/R-9;
+//   LINKS: M-053 SiteBuild; C-22; C-58 R-6; C-64 T-003 R-8/R-9, version sync;
 //          .github/workflows/site.yml
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -26,6 +29,7 @@
 // START_MODULE_MAP
 //   dist - absolute path of the built site
 //   base - site base path from resolveSiteSettings(process.env)
+//   release - release facts resolved like the build (github, or package.json via SITE_RELEASE=offline)
 //   walk - recursive list of dist files
 //   resolveTarget - URL path -> candidate dist file (dir index, .html, as-is)
 //   analytics - analytics settings from resolveSiteSettings (provider ids)
@@ -35,7 +39,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.4.0 - 2026-10-18 C-64 T-007: the track.js gate accepts the ?v= content-hash query]
+//   LAST_CHANGE: [v1.5.0 - 2026-10-19 C-64 version sync: the gate resolves
+//                 the release exactly like the build (latestRelease +
+//                 releaseFacts + setReleaseVersion, SITE_RELEASE=offline
+//                 respected) so softwareVersion compares against the release
+//                 not package.json; new gates — the landing carries
+//                 <span id="version">v<release></span> and no unfilled
+//                 %VERSION%/%DMG_/%EXE_ tokens.]
+//   PREV: [v1.4.0 - 2026-10-18 C-64 T-007: the track.js gate accepts the ?v= content-hash query]
 //   PREV: [v1.3.0 - 2026-10-18 C-64 T-006: the llms.txt gate pins the
 //                 canonical tap-free one-liner "brew install --cask
 //                 xronocode/mark/mark" (F-1).]
@@ -58,12 +69,19 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { appVersion, resolveSiteSettings } from '../.vitepress/landing.mjs'
+import { appVersion, resolveSiteSettings, setReleaseVersion } from '../.vitepress/landing.mjs'
 import { verifyCsp } from './csp.mjs'
+import { latestRelease, releaseFacts } from './release.mjs'
 import { EXAMPLES } from '../gallery/examples.mjs'
 
 const dist = fileURLToPath(new URL('../.vitepress/dist/', import.meta.url))
 const { base, analytics } = resolveSiteSettings(process.env)
+
+// The build resolved the version in its own process; check-dist must resolve
+// it the same way (SITE_RELEASE=offline skips the API) so the gates compare
+// against the release, not the possibly-drifting package.json.
+const release = releaseFacts(process.env.SITE_RELEASE === 'offline' ? null : await latestRelease(), appVersion())
+setReleaseVersion(release.version)
 
 const GALLERY_MAX_BYTES = 400 * 1024
 
@@ -211,8 +229,14 @@ function main () {
     const app = graph.find((n) => n['@type'] === 'SoftwareApplication')
     if (!app) {
       if (!parseFailed) seoProblems.push('index.html JSON-LD has no SoftwareApplication node')
-    } else if (app.softwareVersion !== appVersion()) {
-      seoProblems.push(`index.html softwareVersion ${app.softwareVersion} != package.json ${appVersion()}`)
+    } else if (app.softwareVersion !== release.version) {
+      seoProblems.push(`index.html softwareVersion ${app.softwareVersion} != release ${release.version}`)
+    }
+    if (!landingHtml.includes(`<span id="version">v${release.version}</span>`)) {
+      seoProblems.push(`index.html #version does not carry the released v${release.version}`)
+    }
+    if (['%VERSION%', '%DMG_', '%EXE_'].some((token) => landingHtml.includes(token))) {
+      seoProblems.push('index.html still contains unfilled release tokens (%VERSION%/%DMG_/%EXE_)')
     }
     const hasGa4 = analytics.some((a) => a.provider === 'ga4')
     const hasTrack = /<script\b[^>]*\ssrc="[^"]*track\.js(\?v=[0-9a-f]+)?"/.test(landingHtml)
@@ -223,7 +247,7 @@ function main () {
   if (seoProblems.length) {
     console.error(`[SiteBuild][checkDist][BLOCK_CHECK_SEO] FAIL problems=${seoProblems.length}`)
   } else {
-    console.log('[SiteBuild][checkDist][BLOCK_CHECK_SEO] OK llms.txt security.txt head version=' + appVersion())
+    console.log(`[SiteBuild][checkDist][BLOCK_CHECK_SEO] OK llms.txt security.txt head version=${release.version} source=${release.source}`)
   }
   problems.push(...seoProblems)
   // END_BLOCK_CHECK_SEO
