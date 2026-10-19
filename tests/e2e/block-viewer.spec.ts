@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.6.0
+// VERSION: 3.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2), the C-51 T-006/T-010 expand affordances (since C-56 T-005: the corner pill on mermaid/vega-lite figures and the standalone glyph on flowchart/sequence/plantuml; since C-65 T-002: the TABLE toolbar on tables — its expand action is the pill-family need-gated button) and the T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd/click, Esc close with focus restore; the T-010 need rules (hidden expand actions on small blocks — no Tab stop; wide/tall blocks get them), the C-56 T-005 pill look (variant C: opacity 0 → 1 on figure hover / :focus-within, never the caret; themed surface pill, label reveal, muted → fg hover), the C-65 table toolbar placement above the table clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -16,14 +16,15 @@
 //   TINY_DIAGRAM_MD - a 2-node graph TD whose natural size is far below the viewer stage (T-014 fit-up case).
 //   EDIT_FLOW_MD - a mermaid diagram and a math block, each followed by a heading (T-014 in-flow edit preview).
 //   WIDE_TABLE_MD - a 12-column table that overflows the column (expand button; resize-handle drag).
-//   MIXED_MD - every viewable block type: small ones keep their expand actions hidden (the mermaid/vega figures still carry the C-56 T-005 pill with Edit/Copy, the tables carry the C-65 toolbar with the always-reachable toggle), the wide mermaid/flowchart and the wide/tall tables get the expand affordance, plus fence/paragraph negatives.
+//   MIXED_MD - every viewable block type: small ones keep their expand actions hidden (the mermaid/vega figures retain Edit/Copy; fitting tables retain Copy with no width toggle), the wide mermaid/flowchart and the wide/tall tables get the expand affordance, plus fence/paragraph negatives.
 //   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors pele-render.spec.ts); extraPrefs override individual preference defaults.
 //   canvasScale - parses the panzoom `scale(s) translate(x,y)` transform of the viewer canvas.
 //   nodeFillIn - computed fill of the first pele node shape (g.pele-node rect/polygon) inside a root element (live figure or viewer clone).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.6.0 - 2026-10-19 Full width default: the wide table's toggle reads «Fit to page», the narrow ones «Full width»; the last-column drag scrolls the editor (the Full width scroller) as well as the wrapper.
+//   LAST_CHANGE: v3.7.0 - 2026-10-20 C-TABLE-FOOTER owner review: fitting tables have no width-toggle Tab stop; Copy as image remains reachable.
+//   PREV: v3.6.0 - 2026-10-19 Full width default: the wide table's toggle reads «Fit to page», the narrow ones «Full width»; the last-column drag scrolls the editor (the Full width scroller) as well as the wrapper.
 //   v3.5.0 - 2026-10-18 C-65 T-002: tables render the TABLE
 //   TOOLBAR instead of the standalone glyph — every table selector moved
 //   from `figure > button.ag-block-expand` to the toolbar's need-gated
@@ -755,16 +756,19 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       expect(state!.offsetParent, `${expandSel} must not be laid out`).toBeNull()
       expect(state!.focused, `${expandSel} must not take focus`).toBe(false)
     }
-    // The small table's toggle is a real Tab stop (the toolbar reveals on
-    // :focus-within — keyboard users see it), like the small pill's Edit.
+    // A fitting table has no width action or Tab stop. Its useful Copy
+    // as image action remains reachable for keyboard users.
     const smallTableToggle = await page.evaluate(() => {
       const figure = document.querySelector("figure[data-role='TABLE']:not(.ag-expand-needed)") as HTMLElement
       const toggle = figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
       toggle.focus()
       return { focused: document.activeElement === toggle, display: getComputedStyle(toggle).display }
     })
-    expect(smallTableToggle.focused).toBe(true)
-    expect(smallTableToggle.display).not.toBe('none')
+    expect(smallTableToggle.focused).toBe(false)
+    expect(smallTableToggle.display).toBe('none')
+    const smallTableCopy = page.locator("figure[data-role='TABLE']:not(.ag-expand-needed)").first().locator('.ag-table-toolbar-copy')
+    await smallTableCopy.focus()
+    await expect(smallTableCopy).toBeFocused()
     // The small mermaid's pill Edit/Copy buttons stay real Tab stops (the
     // pill reveals itself on :focus-within — keyboard users see it).
     const smallPill = await page.evaluate(() => {
@@ -987,14 +991,13 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.locator('figure[data-role="FLOWCHART"].ag-expand-needed div.ag-container-preview svg').first()
       .waitFor({ state: 'visible', timeout: 20_000 })
 
-    // C-56 T-005 + C-65 T-002 Tab landscape: the pill Edit/Copy buttons
-    // and the table toolbar TOGGLES are Tab stops on EVERY figure (small
-    // ones included — keyboard users must reach them), while every hidden
+    // Pill Edit/Copy actions remain Tab stops. Fitting tables keep Copy
+    // while skipping the unnecessary width toggle, and every hidden
     // expand action (small mermaid/vega pills, the small
     // sequence/plantuml glyphs and the small table's toolbar expand) is
     // display:none and skipped. Walk: wide mermaid's pill expand →
-    // flowchart standalone → vega edit → vega copy → the small table's
-    // toggle → the wide table's toggle → the wide table's expand.
+    // flowchart standalone → vega edit → vega copy → small table copy →
+    // wide table toggle → wide table copy → wide table expand.
     // Without the muya keydown guard the editor's tabHandler would
     // preventDefault and trap focus on the first pill button.
     const mermaidButton = page.locator("figure[data-role='MERMAID'].ag-expand-needed div.ag-block-toolbar button.ag-block-toolbar-expand")
@@ -1035,12 +1038,8 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='VEGA-LITE'] button.ag-block-toolbar-copy"), 'Tab must reach the vega pill Copy').toBe(true)
 
-    // The vega pill's hidden expand action is skipped — the next stops are
-    // the SMALL table's toggle (always reachable), then the wide table's
-    // toggle, then its need-gated expand action.
-    await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-toggle"), 'Tab must reach the small table toggle').toBe(true)
-    // C-70: every table toolbar has an always-reachable Copy as image.
+    // Skip Vega's hidden expand and the fitting table's width toggle.
+    // The useful Copy as image action remains reachable on every table.
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-copy"), 'Tab must reach the small table copy').toBe(true)
     await page.keyboard.press('Tab')

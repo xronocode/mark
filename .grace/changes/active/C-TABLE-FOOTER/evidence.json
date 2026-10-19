@@ -11,15 +11,70 @@
   "implementation": "Table then noneditable caption share one scroll wrapper. Reset table block margins; reserve a 20px counter line, 2px gap and 6px scrollbar zone. Compensate actual consumed native scrollbar height so overlaid/classic/no bars retain the same footer height. Empty fitting-table captions, including Full width, remain invisible without collapsing. Sticky inline placement keeps the counter inside the scrollport; selected-column drag handles remain reachable. Existing Full width editor scroll ownership and persisted widths are retained.",
   "verification": {
     "focusedUnitPassed": 115,
-    "fullRendererCoverage": { "filesPassed": 336, "testsPassed": 4633, "existingSkipped": 2, "existingTodo": 3, "statements": 92.43, "branches": 85.84, "functions": 86.97, "lines": 93.5, "thresholds": "unchanged and passing" },
-    "broadBrowserBeforeFinalDragLayerRule": { "passed": 83, "scopes": ["table footer/layout/toolbar/column resize", "C-71 centering/outline/viewer/tooltips", "picture export"] },
+    "fullRendererCoverage": {
+      "filesPassed": 336,
+      "testsPassed": 4633,
+      "existingSkipped": 2,
+      "existingTodo": 3,
+      "statements": 92.43,
+      "branches": 85.84,
+      "functions": 86.97,
+      "lines": 93.5,
+      "thresholds": "unchanged and passing"
+    },
+    "broadBrowserBeforeFinalDragLayerRule": {
+      "passed": 83,
+      "scopes": [
+        "table footer/layout/toolbar/column resize",
+        "C-71 centering/outline/viewer/tooltips",
+        "picture export"
+      ]
+    },
     "finalLayoutBrowserPassed": 48,
-    "engines": ["Chromium", "WebKit"],
-    "finalScenarios": ["counter inside wrapper before scrollbar", "2px gap", "28px footer with hidden or visible caption", "constant counter position on horizontal scroll", "unchanged normalized Markdown/saved state", "bottom drag-handle hit testing", "table editing and column resize", "existing toolbar and overflow behavior"],
+    "engines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "finalScenarios": [
+      "counter inside wrapper before scrollbar",
+      "2px gap",
+      "28px footer with hidden or visible caption",
+      "constant counter position on horizontal scroll",
+      "unchanged normalized Markdown/saved state",
+      "bottom drag-handle hit testing",
+      "table editing and column resize",
+      "existing toolbar and overflow behavior"
+    ],
     "webkitPerformanceGate": "passed after the final drag-layer rule; thresholds unchanged",
     "ipcTypes": "passed",
     "rendererBuild": "passed",
     "graceCurrent": "zero integrity errors; existing baseline/overlap warnings remain"
   },
-  "release": "Separate follow-up admission required; no version, tag or publication authorized."
+  "release": "Separate follow-up admission required; no version, tag or publication authorized.",
+  "ownerReviewFollowup": {
+    "date": "2026-10-20",
+    "acceptance": "Not accepted. Owner reported the fitting-table width action and counter/shade overlap; fresh artifact will be replaced after the follow-up. Earlier C-71 acceptance remains valid.",
+    "presentationCorrection": "The review gallery was opened in the older production app and displaced the test artifact. The exact isolated test app was brought forward and its long-cell Fit-to-page table made visible.",
+    "baseline": "Both engines failed the fitting-table toggle cases and, after correcting the missing-file profile fixture, the restored Full width toggle cases. Both engines also failed the right-shade gap assertion with a 2px text inset.",
+    "implementation": "Gate the width action on actual table width versus text-column width; retain Copy as image. Keep the caption text 18px from the right edge: a 14px shade plus 4px clear space.",
+    "unitPassed": 116,
+    "interactionCorrections": "Persistence now selects Full width on a genuinely widened table and expects no counter when it fits the expanded viewport. The wrapper-scroll case explicitly selects Fit to page instead of racing the automatic resize observer.",
+    "focusedInteractionBrowserPassed": 4,
+    "finalBroadBrowser": {
+      "passed": 62,
+      "engines": [
+        "Chromium",
+        "WebKit"
+      ],
+      "scopes": [
+        "footer",
+        "layout",
+        "toolbar",
+        "column resize",
+        "layout persistence"
+      ]
+    },
+    "freshNativeArtifact": "pending after the separate toolbar-label follow-up",
+    "grace": "0 integrity errors; existing baseline/scope-overlap warnings"
+  }
 }

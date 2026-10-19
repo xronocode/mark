@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/tableResize/tableCue.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-65 T-003 overflow cue for wide tables — the pure «columns X–Y of N» range math (which columns are mostly visible in the C-39 scroll wrapper) plus the DOM sync pass that drives the caption below the table and the edge-shade side classes, live on scroll, resize and drag.
-//   SCOPE: Visible-column range and caption formatting, live full-width fit detection, native scrollbar-space measurement and caption/shade DOM sync. The reserved caption lives inside the scroll wrapper; fitting tables clear its text without removing space. Scroll/resize/render listeners remain in tableResize and expandNeed.
+//   SCOPE: Visible-column range and caption formatting, live full-width fit detection, width-toggle gating against the text column, native scrollbar-space measurement and caption/shade DOM sync. The reserved caption lives inside the scroll wrapper; fitting tables clear its text without removing space. Scroll/resize/render listeners remain in tableResize and expandNeed.
 //   DEPENDS: pure DOM measurements (wrapper/clientWidth/getBoundingClientRect; jsdom's zero rects degrade to a null state — no cue), a translator function (muya options.t or the module-level setTableCueTranslator pin).
 //   LINKS: .grace/changes/active/C-65 T-003; .grace/graph/runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-66; renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; expandNeed.js updateFigureExpandNeed (the funnel call site); the C-65 CSS section of lib/assets/styles/index.css.
 //   ROLE: RUNTIME
@@ -20,12 +20,13 @@
 //   formatColumnsCaption - pure: translator + cue state → the caption text (null when the table fits or the state is unusable; «all N columns» in full-width mode).
 //   setTableCueTranslator - pin the module-level translator used when syncTableCue gets no t (the expandNeed resize funnel has no muya at hand).
 //   tableCueState - DOM gathering + rules for one figure, including a full-width table fitting its viewport.
-//   syncTableCue - apply caption visibility, shades and measured native scrollbar space; return the state without document writes.
+//   syncTableCue - apply width-toggle eligibility, caption visibility, shades and measured native scrollbar space; return the state without document writes.
 //   TABLE_CUE_RIGHT_CLASS - exported helper (TABLE_CUE_RIGHT_CLASS).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FOOTER: retain invisible footer space when fitting, including Full width, and compensate actual native scrollbar height for a stable 2px gap.
+//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: hide the width toggle when the table fits its text column, including restored Full width layouts.
+//   PREV: v1.1.0 - 2026-10-20 C-TABLE-FOOTER: retain invisible footer space when fitting, including Full width, and compensate actual native scrollbar height for a stable 2px gap.
 //   v1.0.0 - 2026-10-18 C-65 T-003: new module. Approved
 //   mockup variant E: no arrows, no chips — an edge shade on each side that
 //   hides columns and a caption BELOW the table, right-aligned on the
@@ -178,6 +179,11 @@ export const tableCueState = (figure) => {
 export const syncTableCue = (figure, t) => {
   const state = tableCueState(figure)
   if (!state) return null
+  // Compare with the text column in either mode: a wide table still needs
+  // its Fit to page action when it fits the expanded editor viewport.
+  const table = figure.querySelector('div.ag-table-scroll > table')
+  figure.classList.toggle('ag-table-width-toggle-needed',
+    figure.clientWidth > 0 && table.getBoundingClientRect().width > figure.clientWidth + CLIP_TOLERANCE_PX)
   const text = formatColumnsCaption(t || cueTranslator, state)
   const wrapper = figure.querySelector('div.ag-table-scroll')
   if (wrapper) {

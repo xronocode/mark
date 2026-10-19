@@ -3,7 +3,7 @@
     <!-- C-63: M-046 owns the explicit C-60/C-62 WebKit CI gate in test.yml. -->
     <GD-RUNTIME>
       <Path>graph/runtime.xml</Path>
-      <!-- C-TABLE-FOOTER: M-012 owns the in-wrapper counter, compact stable footer and measured native scrollbar-space compensation. -->
+      <!-- C-TABLE-FOOTER: M-012 owns the in-wrapper counter, stable footer, measured scrollbar space and fitting-table width-toggle gate. -->
       <!-- C-71-OUTLINE-OCCLUSION: M-011 owns scroll-driven whole-outline hiding, visible rectangle intersection and lifecycle cleanup. -->
       <!-- C-71-TABLE-CENTER: M-012 uses the full editor client viewport independently of outline overlays. -->
       <!-- C-CI-FENCE-TEARDOWN: M-012 real-Muya export verification drains lazy preview imports before suite teardown. -->
