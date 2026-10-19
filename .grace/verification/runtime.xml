@@ -5016,6 +5016,11 @@
           replacement, view unmount and explicit diff exit. All four fail
           on the source implementation and pass after lifetime guards.
           Fallback logs carry a stable reason without raw backend paths.
+          Owner acceptance 2026-10-19: Mark Test bcaebe05, source bcaebe05,
+          binary SHA-256 432318f7a1e97b2a3733eb413cb2814d8212181470cf7b52f007ddca906f52da.
+          Accepted scope: edited-note comparison and the unchanged-note calm
+          notice. C-68 is queued in desktop 2.5.x-next; async race evidence
+          remains automated and publication requires a separate instruction.
         </Scenario>
       </Scenarios>
       <Markers>
@@ -6639,6 +6644,12 @@
           export transport: table/diagram copy + save, index fallback,
           failure notices); e2e: tests/e2e/diagram-export.spec.ts (C-70 cases),
           block-viewer.spec.ts (button count + Tab walk).
+          Owner acceptance 2026-10-19: Mark Test bcaebe05, source bcaebe05,
+          binary SHA-256 432318f7a1e97b2a3733eb413cb2814d8212181470cf7b52f007ddca906f52da.
+          Accepted scope: table image copying and fullscreen PNG export;
+          native SVG export was not separately accepted. C-70 is queued in
+          desktop 2.5.x-next. C-71 table geometry/outline reports remain
+          unaccepted; no publication is authorized by this confirmation.
         </Scenario>
         <Scenario>
           scenario-69 (C-71): Expanded tables center within the available
