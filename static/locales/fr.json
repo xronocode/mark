@@ -556,6 +556,7 @@
         "autoSave": "Enregistrer automatiquement les modifications peu après l'arrêt de la saisie",
         "autoSaveDelay": "Délai d'attente après la dernière frappe avant l'enregistrement",
         "previewModeOnFinderOpen": "Ouvrir les documents depuis le Finder en mode lecture",
+        "restoreSessionOnLaunch": "Rouvrir la dernière session au démarrage",
         "language": "Langue de l'application",
         "defaultEncoding": "Encodage des nouveaux fichiers",
         "endOfLine": "Fins de ligne utilisées pour les nouveaux fichiers et à l'enregistrement",
@@ -621,7 +622,9 @@
       "startup": {
         "title": "Démarrage",
         "previewModeOnFinderOpen": "Ouvrir les documents depuis le Finder en mode lecture",
-        "previewModeOnFinderOpenHelp": "Les fichiers ouverts par double-clic dans le Finder ou depuis le Dock s'ouvrent en lecture seule ; cliquez pour modifier."
+        "previewModeOnFinderOpenHelp": "Les fichiers ouverts par double-clic dans le Finder ou depuis le Dock s'ouvrent en lecture seule ; cliquez pour modifier.",
+        "restoreSessionOnLaunch": "Rouvrir la dernière session au démarrage",
+        "restoreSessionOnLaunchHelp": "Au démarrage, Mark rouvre le dossier et les onglets laissés ouverts."
       },
       "language": {
         "title": "Langue",

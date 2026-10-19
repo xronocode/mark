@@ -552,6 +552,7 @@
         "autoSave": "Änderungen automatisch speichern, kurz nachdem Sie aufhören zu tippen",
         "autoSaveDelay": "Wie lange nach dem letzten Tastendruck gewartet wird, bevor gespeichert wird",
         "previewModeOnFinderOpen": "Dokumente aus dem Finder in der Lesansicht öffnen",
+        "restoreSessionOnLaunch": "Beim Start die letzte Sitzung öffnen",
         "language": "App-Sprache",
         "defaultEncoding": "Dateikodierung für neue Dateien",
         "endOfLine": "Zeilenenden für neue Dateien und beim Speichern",
@@ -617,7 +618,9 @@
       "startup": {
         "title": "Start",
         "previewModeOnFinderOpen": "Dokumente aus dem Finder in der Lesansicht öffnen",
-        "previewModeOnFinderOpenHelp": "Per Doppelklick im Finder oder über das Dock geöffnete Dateien starten schreibgeschützt; zum Bearbeiten klicken."
+        "previewModeOnFinderOpenHelp": "Per Doppelklick im Finder oder über das Dock geöffnete Dateien starten schreibgeschützt; zum Bearbeiten klicken.",
+        "restoreSessionOnLaunch": "Beim Start die letzte Sitzung öffnen",
+        "restoreSessionOnLaunchHelp": "Mark öffnet beim Start den Ordner und die Tabs von zuletzt wieder."
       },
       "language": {
         "title": "Sprache",

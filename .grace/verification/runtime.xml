@@ -5372,6 +5372,22 @@
             column, select-all + typing leaves no stray node outside
             #ag-editor-id, and the RTL column stays inside a narrow window.
           </scenario-23>
+          <scenario-24>
+            C-69 session restore (user request 2026-10-19): store/editor.js
+            writes the session snapshot (lastSessionTabs in order, untitled
+            skipped; lastSessionActive; lastSessionFolders = project roots)
+            on window close and, debounced, on every change once
+            BOOT_SESSION finished — an empty boot never overwrites it. A cold
+            launch without files (bootstrap addBlankTab) with
+            restoreSessionOnLaunch on (Settings › General › Startup, default
+            true) reopens the existing folders (OPEN_RECENT_FOLDER), the
+            existing files through mt::open-file in order, then the saved
+            active tab; missing paths are skipped; a launch with files does
+            not restore. Marker
+            [EditorStore][bootSession][BLOCK_SESSION_RESTORED] folders=N
+            tabs=M skipped=K. Unit: tests/renderer/store/session-restore.test.js;
+            e2e: tests/e2e/session-restore.spec.ts.
+          </scenario-24>
         </scenarios>
         <required-log-markers>
           <marker-1>[Renderer][mount][BLOCK_INSTANTIATE_MUYA]</marker-1>
@@ -6509,6 +6525,24 @@
           drops them, missing file pruned) and table-layout.spec.ts
           v1.4.0 (caption range + shade sides at start/middle/end, no
           cue when it fits) — chromium + webkit-tables.
+        </Scenario>
+        <Scenario>
+          scenario-67: Full width is the DEFAULT for a table wider than the
+          text column (C-65, user decision 2026-10-19): tableResize computes
+          autoFullWidth after every render (overflowsTextColumn: natural
+          width vs the figure's text-column width, zero geometry never
+          triggers, option tableFullWidthDefault and the read-only mirror
+          turn it off); nothing is persisted for the default; «Fit to page»
+          on such a table persists fit: true and survives re-renders and a
+          reopen; a fitting table is untouched. The partialRender
+          serializer (parser/render/snabbdom.js toHTML) hyphenates camelCase
+          dataset keys — the stock snabbdom-to-html module wrote
+          data-tableToolbarAction, so the toolbar toggle (and every other
+          camelCase dataset hook) lost its action after typing elsewhere.
+          Unit: tests/renderer/muya/table-layout-persistence.test.js
+          (default block), tests/renderer/muya/snabbdom-to-html-dataset.test.js;
+          e2e: tests/e2e/table-toolbar.spec.ts, table-layout.spec.ts,
+          block-viewer.spec.ts.
         </Scenario>
       </Scenarios>
       <Markers>

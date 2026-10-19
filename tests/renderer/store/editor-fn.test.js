@@ -466,30 +466,8 @@ describe('store/editor.js — fn coverage', () => {
     expect(ipcPrefs.set).toHaveBeenCalledWith('lastSessionTabs', ['/a.md', '/b.md'])
   })
 
-  it('RESTORE_SESSION opens tabs from saved session paths', async () => {
-    const { ipcPrefs, ipcFs } = await import('@/ipc/runtime')
-    ipcPrefs.get.mockResolvedValueOnce(['/x.md', '/y.md'])
-    ipcFs.read.mockResolvedValueOnce('# X').mockResolvedValueOnce('# Y')
-    await editorStore.RESTORE_SESSION()
-    expect(editorStore.tabs.length).toBeGreaterThanOrEqual(2)
-  })
-
-  it('RESTORE_SESSION returns early when no saved paths', async () => {
-    const { ipcPrefs } = await import('@/ipc/runtime')
-    ipcPrefs.get.mockResolvedValueOnce(null)
-    const tabsBefore = editorStore.tabs.length
-    await editorStore.RESTORE_SESSION()
-    expect(editorStore.tabs.length).toBe(tabsBefore)
-  })
-
-  it('RESTORE_SESSION skips files that no longer exist', async () => {
-    const { ipcPrefs, ipcFs } = await import('@/ipc/runtime')
-    ipcPrefs.get.mockResolvedValueOnce(['/gone.md'])
-    ipcFs.read.mockRejectedValueOnce(new Error('ENOENT'))
-    const tabsBefore = editorStore.tabs.length
-    await editorStore.RESTORE_SESSION()
-    expect(editorStore.tabs.length).toBe(tabsBefore)
-  })
+  // RESTORE_SESSION (C-69: folders + open path + active tab) is pinned in
+  // tests/renderer/store/session-restore.test.js.
 
   it('GET_RECENT_FILES returns list from ipcRecent', async () => {
     const { ipcRecent } = await import('@/ipc/runtime')

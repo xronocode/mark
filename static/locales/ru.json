@@ -567,6 +567,7 @@
         "autoSave": "Автосохранение вскоре после того, как вы перестали печатать",
         "autoSaveDelay": "Интервал ожидания после последнего нажатия клавиши до сохранения",
         "previewModeOnFinderOpen": "Открывать файлы из Finder в режиме чтения",
+        "restoreSessionOnLaunch": "Открывать прошлую сессию при запуске",
         "language": "Язык интерфейса",
         "defaultEncoding": "Кодировка новых файлов",
         "endOfLine": "Концы строк для новых файлов и при сохранении",
@@ -632,7 +633,9 @@
       "startup": {
         "title": "Запуск",
         "previewModeOnFinderOpen": "Открывать файлы из Finder в режиме чтения",
-        "previewModeOnFinderOpenHelp": "Файлы, открытые двойным щелчком в Finder или через Dock, стартуют только для чтения; щёлкните, чтобы править."
+        "previewModeOnFinderOpenHelp": "Файлы, открытые двойным щелчком в Finder или через Dock, стартуют только для чтения; щёлкните, чтобы править.",
+        "restoreSessionOnLaunch": "Открывать прошлую сессию при запуске",
+        "restoreSessionOnLaunchHelp": "При старте Mark вернёт папку и вкладки, открытые в прошлый раз."
       },
       "language": {
         "title": "Язык",

@@ -549,6 +549,7 @@
         "autoSave": "入力を止めてからしばらくすると変更を自動的に保存する",
         "autoSaveDelay": "最後のキー入力から保存までの待ち時間",
         "previewModeOnFinderOpen": "Finder から開いたドキュメントを読み取りビューで開く",
+        "restoreSessionOnLaunch": "起動時に前回のセッションを開く",
         "language": "アプリの言語",
         "defaultEncoding": "新規ファイルのファイルエンコーディング",
         "endOfLine": "新規ファイルと保存時に使用する改行コード",
@@ -614,7 +615,9 @@
       "startup": {
         "title": "起動",
         "previewModeOnFinderOpen": "Finder から開いたドキュメントを読み取りビューで開く",
-        "previewModeOnFinderOpenHelp": "Finder でのダブルクリックや Dock から開いたファイルは読み取り専用で開きます。クリックすると編集できます。"
+        "previewModeOnFinderOpenHelp": "Finder でのダブルクリックや Dock から開いたファイルは読み取り専用で開きます。クリックすると編集できます。",
+        "restoreSessionOnLaunch": "起動時に前回のセッションを開く",
+        "restoreSessionOnLaunchHelp": "Mark の起動時に、前回開いていたフォルダとタブを復元します。"
       },
       "language": {
         "title": "言語",
