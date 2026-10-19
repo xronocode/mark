@@ -61,6 +61,8 @@ export default defineConfig({
     // C-40 T-004: status bar selection counts and the document lock
     // (contenteditable + DOM selection) also gate in WebKit.
     { name: 'webkit-statusbar', use: { browserName: 'webkit' }, testMatch: /(status-bar|lock-document)\.spec\.ts/ },
+    // Native vertical selection must continue while the passive format toolbar is visible.
+    { name: 'webkit-keyboard', use: { browserName: 'webkit' }, testMatch: 'keyboard-selection.spec.ts' },
     // C-40 T-005: native View-menu checkmark re-sync also gates in WebKit
     // (WKWebView is the engine the macOS build ships, where the native
     // menu lives).
