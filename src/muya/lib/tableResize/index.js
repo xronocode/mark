@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Table column resize and per-table layout (C-39 T-002 session widths; C-65 persistent widths + the per-table Full width mode keyed by file-path-stable identities), pointer-drag interaction on header-border handles, double-click reset, reconciliation after every muya re-render, the table toolbar click routing and the overflow-cue refresh.
 //   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), the persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge (R-1/R-3, written only after a real user action), the Full width mode session set + DOM application + toggle routing (R-4/R-6), capture-phase pointer/mouse/click/dblclick/scroll handling on the editor container, and DOM application of widths (colgroup + table-layout fixed).
@@ -10,7 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - TableResize class (muya.tableResize): session column-width store + drag/double-click interaction + post-render reconciliation + persistent identities/adoption + Full width mode + the table toolbar routing.
+//   default - TableResize: column drag/reset, persisted layout identities, available-viewport Full width sizing with CSS centering, and table toolbar routing.
 //   FULL_WIDTH_GUTTER_PX - gap between a Full width table that is wider than the editor and the editor's left edge.
 //   MIN_COLUMN_WIDTH - drag clamp floor for one column (px).
 //   TABLE_FIXED_CLASS - class marking a table that carries session widths (table-layout: fixed + colgroup).
@@ -29,7 +29,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.3.0 - 2026-10-19 C-70: the toolbar's copyImage action
+//   LAST_CHANGE: v2.4.0 - 2026-10-19 C-71: center natural-size tables with
+//   CSS auto margins inside an explicit available viewport; geometry is
+//   scroll-relative and excludes other editors' outline overlays.
+//   v2.3.0 - 2026-10-19 C-70: the toolbar's copyImage action
 //   dispatches muya-diagram-export (copyImageFromElement).
 //   v2.2.0 - 2026-10-19 Full width is the DEFAULT for a
 //   table wider than the text column (user decision after the live
@@ -489,15 +492,15 @@ class TableResize {
       this.applyFullWidthGeometry(figure)
     } else {
       wrapper.style.marginLeft = ''
+      wrapper.style.width = ''
     }
     this.updateToolbarToggleDom(figure, on)
     syncTableCue(figure, this.muya.options && this.muya.options.t)
   }
 
-  // Breakout distance = how far the wrapper's left edge sits from the
-  // scroll container's left content edge, applied as an inline margin so
-  // theme paddings never need hardcoding. Zero-geometry surfaces (jsdom,
-  // hidden panes) keep the CSS margin and lose nothing but the exact inset.
+  // Size and anchor a viewport inside the scroller's available content
+  // area. CSS centers a fitting table; oversized tables start at the
+  // gutter. Hidden/zero-geometry surfaces retain their CSS fallback.
   applyFullWidthGeometry(figure) {
     const wrapper = figure.querySelector('div.ag-table-scroll')
     const editor = wrapper && wrapper.closest
@@ -509,34 +512,27 @@ class TableResize {
     const containerRect = container.getBoundingClientRect()
     // Zero-geometry surfaces (jsdom, hidden panes) keep the CSS margin.
     if (!containerRect || !(containerRect.width > 0)) return
-    const offset = wrapper.getBoundingClientRect().left - containerRect.left
+    const offset = wrapper.getBoundingClientRect().left - containerRect.left + (container.scrollLeft || 0)
     if (!Number.isFinite(offset)) return
     const currentMargin = parseFloat(getComputedStyle(wrapper).marginLeft)
     if (!Number.isFinite(currentMargin)) return
-    // Where the table should start inside the editor area: centred when
-    // its natural width fits (a table a little wider than the column must
-    // not jump to the window edge — user review 2026-10-19), else a small
-    // gutter from the left edge and the editor scrolls horizontally.
-    const table = wrapper.querySelector('table')
-    const natural = table ? table.getBoundingClientRect().width : 0
+    // Give CSS the available width instead of baking a possibly stale
+    // table width into its position. Auto margins keep late font changes
+    // centered and resolve to zero when the table exceeds this viewport.
     // A host overlay pinned to the right of the editor (the outline rail
     // marks itself with data-editor-overlay-right) narrows the room: a
     // centred table must not slide under it.
-    let available = containerRect.width
-    const overlay = typeof document !== 'undefined'
-      ? document.querySelector('[data-editor-overlay-right]')
-      : null
+    let available = container.clientWidth || containerRect.width
+    const overlay = container.closest('.editor-with-tabs')
+      ?.querySelector('[data-editor-overlay-right]')
     if (overlay && overlay.getBoundingClientRect) {
       const o = overlay.getBoundingClientRect()
       if (o.width > 0 && o.left > containerRect.left && o.left < containerRect.left + available) {
         available = o.left - containerRect.left - FULL_WIDTH_GUTTER_PX
       }
     }
-    let target = FULL_WIDTH_GUTTER_PX
-    if (Number.isFinite(natural) && natural > 0 && Number.isFinite(available) &&
-      natural + FULL_WIDTH_GUTTER_PX * 2 <= available) {
-      target = Math.round((available - natural) / 2)
-    }
+    const target = FULL_WIDTH_GUTTER_PX
+    wrapper.style.width = `${Math.max(0, available - FULL_WIDTH_GUTTER_PX * 2)}px`
     if (Math.round(offset) === target) return
     wrapper.style.marginLeft = `${currentMargin - offset + target}px`
   }

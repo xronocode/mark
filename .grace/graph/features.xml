@@ -2342,6 +2342,8 @@
       <Layer>TOOLING</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
       <Summary>
+        vitest.int.config.mjs re-exports the canonical Vitest configuration
+        for portable historical C-71 commands, without machine-specific paths.
         The test workflow gates native Shift+Up/Down selection with
         the passive format toolbar through the webkit-keyboard project.
         C-63: the test workflow explicitly gates the C-60 footnote and

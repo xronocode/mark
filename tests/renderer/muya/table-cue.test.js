@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-cue.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 overflow cue and table toolbar — the pure «columns X–Y of N» range math (start / middle / end / fits / single column / degenerate), the caption formatting incl. the token fallback and the full-width «all N columns», the DOM state gathering and sync (caption text/visibility + shade side classes, live translator pin), the renderTableToolbar vnode (buttons, labels, active state, family classes, dataset actions, need-gated expand) and the C-65 CSS literals (toolbar above the table on the column edge, caption below it, class-gated shades, full-width breakout).
 //   SCOPE: src/muya/lib/tableResize/tableCue.js, src/muya/lib/parser/render/renderBlock/renderTableToolbar.js, the C-65 section of lib/assets/styles/index.css, and the START_BLOCK_TABLE_TOOLBAR_AND_CAPTION placement in renderContainerBlock.js.
@@ -11,7 +11,7 @@
 //
 // START_MODULE_MAP
 //   TEMPLATES - token templates for the params-aware fake translator.
-//   t - fake translator that interpolates {start}/{end}/{total}.
+//   t - params-aware translator, compared with throwing/non-string/token-preserving fallback paths.
 //   identityT - fake translator that ignores params (the fallback path exercises the token replacement).
 //   columnsOf - builds a contiguous column geometry array.
 //   buildFigure - jsdom figure[data-role=TABLE] > div.ag-table-scroll > table with a thead row, with stubbed rects and clientWidth.
@@ -20,8 +20,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-70: the table toolbar carries three buttons (toggle, Copy as image, Open full screen).
-//   PREV: v1.0.0 - 2026-10-18 C-65: new — every case fails without
+//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-71: CSS centers full-width tables;
+//   integrate reviewed c65cov cases for complete cue/toolbar coverage.
+//   v1.1.0 - 2026-10-19 C-70: three table toolbar actions.
+//   C-65 R-7 coverage completion: the
+//   initial identity translator (before any pin — must run before the
+//   pinned-translator case), degenerate column descriptors (null entries,
+//   non-finite geometry, zero/negative widths), the null-last-column
+//   right-edge fallback, the throwing / non-string / token-preserving
+//   translator paths, the all-zero-measure null state and the
+//   missing-caption sync.
+//   v1.0.0 - 2026-10-18 C-65: new — every case fails without
 //   tableCue.js / renderTableToolbar.js (no caption, no shade classes, no
 //   toolbar) or against the pre-C-65 CSS (no placement rules).
 // END_CHANGE_SUMMARY
@@ -180,6 +189,33 @@ describe('visible column range math (C-65 T-003)', () => {
     // The span sits entirely to the right of every column.
     expect(visibleColumnRange({ columns: NINE, spanLeft: 5000, spanWidth: 600 })).toBeNull()
   })
+
+  it('skips degenerate column descriptors: null entries, non-finite geometry, zero widths', () => {
+    const state = visibleColumnRange({
+      spanLeft: 0,
+      spanWidth: 600,
+      columns: [
+        null,                      // null entry: left and width fall back to 0
+        { left: NaN, width: NaN }, // non-finite geometry falls back to 0
+        { left: 0, width: 0 },     // zero width is never visible
+        { left: 0, width: NaN },   // non-finite width falls back to 0
+        { left: -20, width: -5 },  // negative width is never visible
+        { left: 10, width: 50 }    // the one usable column
+      ]
+    })
+    // Only the last column is picked; the degenerate first entry also makes
+    // tableLeft fall back to 0.
+    expect(state).toMatchObject({ fits: true, start: 6, end: 6, total: 6 })
+  })
+
+  it('a null last column degrades the right edge to the table left (no phantom shade)', () => {
+    const state = visibleColumnRange({
+      spanLeft: 0,
+      spanWidth: 600,
+      columns: [{ left: 100, width: 50 }, null]
+    })
+    expect(state).toMatchObject({ fits: true, start: 1, end: 1, total: 2 })
+  })
 })
 // END_BLOCK_CUE_RANGE_ASSERTIONS
 
@@ -200,11 +236,35 @@ describe('caption formatting (C-65 T-003, ten-locale templates)', () => {
     expect(formatColumnsCaption(t, null)).toBeNull()
     expect(formatColumnsCaption(null, { fits: false, start: 1, end: 2, total: 3 })).toBe('tableToolbar.columnsRange')
   })
+
+  it('a throwing translator degrades to the key; a non-string answer formats to nothing', () => {
+    const boom = () => { throw new Error('i18n down') }
+    expect(formatColumnsCaption(boom, { fits: false, start: 1, end: 2, total: 3 })).toBe('tableToolbar.columnsRange')
+    expect(formatColumnsCaption(() => 42, { fits: false, start: 1, end: 2, total: 3 })).toBeNull()
+  })
+
+  it('tokens the params do not carry survive the token pass verbatim', () => {
+    const partial = () => 'cols {unknown} of {total}'
+    expect(formatColumnsCaption(partial, { fits: false, start: 1, end: 2, total: 3 })).toBe('cols {unknown} of 3')
+  })
 })
 // END_BLOCK_CUE_FORMAT_ASSERTIONS
 
 // START_BLOCK_CUE_STATE_ASSERTIONS
 describe('table cue DOM state + sync (C-65 T-003)', () => {
+  // Must run BEFORE any setTableCueTranslator pin in this file: it pins the
+  // module's INITIAL identity translator (the arrow at tableCue.js:49),
+  // which later constructions would otherwise replace forever.
+  it('syncs with the initial identity translator before any pin (the key itself)', () => {
+    const { figure, caption } = buildFigure({
+      headerTexts: ['a', 'b', 'c'],
+      wrapperRect: { left: 100, width: 150 }
+    })
+    const state = syncTableCue(figure)
+    expect(state.start).toBe(1)
+    expect(caption.textContent).toBe('tableToolbar.columnsRange')
+  })
+
   it('gathers the range from the wrapper geometry (middle scroll)', () => {
     const { figure, wrapper } = buildFigure({
       headerTexts: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
@@ -296,6 +356,27 @@ describe('table cue DOM state + sync (C-65 T-003)', () => {
     const second = buildFigure({ headerTexts: ['a', 'b', 'c'], wrapperRect: { left: 100, width: 150 } })
     syncTableCue(second.figure)
     expect(second.caption.textContent).toBe('columns 1–2 of 3')
+  })
+
+  it('a laid-out wrapper whose columns all measure zero yields no state', () => {
+    const { figure } = buildFigure({
+      headerTexts: ['a', 'b'],
+      wrapperRect: { left: 100, width: 200 },
+      cellRects: [{ left: 100, width: 0 }, { left: 100, width: 0 }]
+    })
+    expect(tableCueState(figure)).toBeNull()
+  })
+
+  it('sync tolerates a figure whose caption element is missing', () => {
+    const { figure, wrapper } = buildFigure({
+      headerTexts: ['a', 'b', 'c', 'd', 'e'],
+      wrapperRect: { left: 100, width: 200 },
+      cellRects: columnsOf([100, 100, 100, 100, 100], 100)
+    })
+    figure.querySelector(`div.${TABLE_CAPTION_CLASS}`).remove()
+    const state = syncTableCue(figure, t)
+    expect(state.end).toBe(2)
+    expect(wrapper.classList.contains(TABLE_CUE_RIGHT_CLASS)).toBe(true)
   })
 })
 // END_BLOCK_CUE_STATE_ASSERTIONS
@@ -404,7 +485,7 @@ describe('table cue + toolbar CSS (C-65, mockup variant E)', () => {
     expect(wrapper).toContain('max-width: none')
     expect(wrapper).toContain('padding-left: 0')
     const table = css.split('figure.ag-table-full-width > div.ag-table-scroll > table {')[1].split('}')[0]
-    expect(table).toContain('margin-inline: 0')
+    expect(table).toContain('margin-inline: auto')
     expect(css).toContain('figure.ag-table-full-width > div.ag-table-scroll.ag-table-cue-left,')
   })
 })

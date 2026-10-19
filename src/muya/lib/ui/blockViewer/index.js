@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.4.0
+// VERSION: 3.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
 //   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
@@ -14,7 +14,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.4.0 - 2026-10-19 C-70: tables are exportable — Copy as
+//   LAST_CHANGE: v3.5.0 - 2026-10-19 C-71: use explicit magnifier +/-
+//   glyphs for discoverable viewer zoom; responsive header keeps every
+//   control reachable in narrow windows.
+//   v3.4.0 - 2026-10-19 C-70: tables are exportable — Copy as
 //   image / Save as PNG / Save as SVG show for the table viewer too and
 //   dispatch the live table.
 //   v3.3.0 - 2026-10-18 merge of C-56 onto C-62: the header carries
@@ -212,7 +215,7 @@ class BlockViewer {
     this.isOpen = false
     this.kind = null // 'diagram' | 'table'
     // C-56: the opened source is a MERMAID/VEGA-LITE figure — the export
-    // toolbar shows only then (tables and follow-up diagram roles never).
+    // toolbar shows for those roles and tables (C-70).
     this.exportable = false
     this.returnFocusEl = null
     this.panzoom = null
@@ -275,6 +278,9 @@ class BlockViewer {
     }
     this.zoomOutBtn = makeButton('ag-block-viewer-btn ag-block-viewer-zoom-out', '−')
     this.zoomInBtn = makeButton('ag-block-viewer-btn ag-block-viewer-zoom-in', '+')
+    for (const [button, plus] of [[this.zoomOutBtn, false], [this.zoomInBtn, true]]) {
+      button.innerHTML = `<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="m12 12 5 5M5.5 8h5${plus ? 'M8 5.5v5' : ''}"/></svg>`
+    }
     this.fitBtn = makeButton('ag-block-viewer-btn ag-block-viewer-fit', '⛶')
     this.actualSizeBtn = makeButton('ag-block-viewer-btn ag-block-viewer-actual-size', '1:1')
     this.closeBtn = makeButton('ag-block-viewer-btn ag-block-viewer-close-btn', '✕')

@@ -3,6 +3,7 @@
     <!-- C-63: V-M-046 scenario-13 enforces the footnotes and appearance WebKit projects. -->
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>
+      <!-- C-71: V-M-012 scenario-69 covers table centering, viewer zoom and all tooltip families across ten locales. -->
       <!-- V-M-012 scenario-70 covers native Shift+Up/Down selection and its scoped owner acceptance. -->
       <!-- C-60: V-M-012 scenario-24 and V-M-011 scenario-65 cover live footnote grammar changes. -->
       <!-- C-62: V-M-012 scenario-25 covers local appearance modes, palette safety, history, readonly behavior and viewer/export parity. -->

@@ -1,0 +1,30 @@
+{
+  "change": "C-71",
+  "date": "2026-10-19",
+  "sourceCommit": "c74506a5d905ccf46e6842a4c81d39fb19b8441f",
+  "scope": "Port table/viewer/tooltip repairs and reviewed c65cov tests exactly once, retaining the accepted FIX-001 port.",
+  "historicalEvidence": "evidence.json records the original source-branch checks, not this integration or whole-product readiness.",
+  "freshChecks": {
+    "focusedUnitPassed": 184,
+    "portableConfigCompatibilityPassed": 12,
+    "rendererBuild": "passed",
+    "graceCurrentLint": {
+      "errors": 0,
+      "warnings": 46
+    }
+  },
+  "browserChecks": {
+    "passed": 58,
+    "engines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "specs": [
+      "table-ui-regressions.spec.ts",
+      "table-toolbar.spec.ts",
+      "block-viewer.spec.ts"
+    ]
+  },
+  "ownerAcceptance": "pending for C-70/C-71; FIX-001 acceptance does not accept these features",
+  "release": "not authorized; no version, tag, publishing or store changes"
+}

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001/T-004 persistent table layout behaviour of muya.tableResize — the persistent identity (ordinal + header signature), adoption of stored entries into fresh block keys, the identity-change drop (header edited / column count changed — corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the Full width toggle (class + toolbar DOM + persistence) and the capture-phase toolbar/caption routing incl. the viewer dispatch and the disabled-surface guard.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities, applyPersistedLayouts, serializeTableLayouts, persist, toggle/openViewer, handleToolbarClick/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -16,14 +16,31 @@
 //   buildToolbarDom - the live toolbar DOM TableResize swaps on toggle (button + label span + svg path).
 //   makeWide - stubs a fixture's table natural width and its figure's text-column width (the Full width default trigger).
 //   pidOf - computes the expected ordinal#signature identity of a buildTableFigure fixture.
+//   buildBareTable - jsdom table.ag-paragraph with a thead (or tbody) row of th cells, NOT wrapped in a figure — the guard paths where closest('figure') must miss.
+//   addHandles - appends one .ag-column-resizer span per row cell; returns the handles.
+//   pidOf - computes the expected ordinal#signature identity of a buildTableFigure/buildBareTable fixture.
 //   T - test helper (T).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-19 Full width default: a wide table gets
+//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-71: viewport geometry, scrollbar
+//   coordinates, overlay ownership, removed auto-width entries and C-70
+//   copy routing; integrate and update the reviewed c65cov guard tests.
+//   v1.1.0 - 2026-10-19 Full width default: a wide table gets
 //   the mode with nothing persisted, «Fit to page» on it persists fit: true
 //   and survives a reload, a fitting table / disabled option / mirror stay
 //   untouched; entries now carry the fit flag.
+//   v1.1.0 - 2026-10-19 C-65 R-7 coverage completion: the
+//   finder null guards, the handle-mousedown eat, the caption/scroll
+//   routing guards, the full-width DOM fallbacks (null figure, no wrapper,
+//   no editor anchor, no container, unparseable margin), the key-fallback
+//   toolbar translator, the svg/label-less toolbar swap, identity edge
+//   cases (no id / no header cells / bare-table change / bare full-width
+//   adoption / removed table), applyPersistedLayouts(null), the pointer
+//   guards (non-handle, right button, disabled, unusable cell/table/id/
+//   column index, unmeasurable baseline, existing entry, optional pointer
+//   capture, figure-less pointerup) and the double-click guards (off-handle,
+//   disabled, no entry, bare full reset, thead-less partial reset).
 //   v1.0.0 - 2026-10-18 C-65: new — every adoption/drop/persist
 //   case fails without the identity machinery; the toggle/click cases fail
 //   without the capture-phase routing; the R-3 cases fail when the reset
@@ -33,6 +50,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import TableResize, {
   MIN_COLUMN_WIDTH,
+  RESIZER_CLASS,
   TABLE_FULL_WIDTH_CLASS,
   hashHeaderText,
   overflowsTextColumn,
@@ -40,6 +58,7 @@ import TableResize, {
   tableSignature
 } from 'muya/lib/tableResize'
 import { TABLE_CAPTION_CLASS } from 'muya/lib/tableResize/tableCue'
+import { TOOLBAR_TABLE_FULLWIDTH_ICON_PATH } from 'muya/lib/parser/render/renderBlock/renderTableToolbar'
 
 vi.mock('muya/lib/renderers', () => ({
   default: async () => ({})
@@ -146,6 +165,35 @@ const buildToolbarDom = (figure) => {
 
 const pidOf = (ordinal, headerTexts) =>
   `${ordinal}#${headerTexts.length}:${hashHeaderText(headerTexts.map(t => t.trim()).join('\u0001'))}`
+
+// A table outside any figure — the guard paths where closest('figure')
+// must miss. With inTbody the row lives in a tbody and the table has NO
+// thead at all (the thead-less dblclick/measure paths).
+const buildBareTable = (id, headerTexts, { inTbody = false } = {}) => {
+  const table = document.createElement('table')
+  if (id) table.id = id
+  table.className = 'ag-paragraph'
+  const section = inTbody ? document.createElement('tbody') : table.createTHead()
+  const row = section.insertRow(0)
+  headerTexts.forEach((text) => {
+    const th = document.createElement('th')
+    th.textContent = text
+    row.appendChild(th)
+  })
+  table.appendChild(section)
+  return { table, row }
+}
+
+const addHandles = (row) => {
+  const handles = []
+  for (const cell of row.cells) {
+    const handle = document.createElement('span')
+    handle.className = RESIZER_CLASS
+    cell.appendChild(handle)
+    handles.push(handle)
+  }
+  return handles
+}
 // END_BLOCK_PERSISTENCE_FIXTURES
 
 // START_BLOCK_IDENTITY_ASSERTIONS
@@ -187,6 +235,17 @@ describe('persistent identity (C-65 R-1)', () => {
     expect(entries['3#1:w'].widths).toEqual([90])
     expect(sanitizePersistedEntries(null)).toBeNull()
     expect(sanitizePersistedEntries('x')).toBeNull()
+  })
+
+  it('a fullWidth-only entry without a widths array survives; empty husks drop', () => {
+    const entries = sanitizePersistedEntries({
+      '0#1:fw': { fullWidth: true },
+      '1#1:husk': {},
+      '2#1:manual-only': { manual: [true] }
+    })
+    // The husks have no widths AND no fullWidth — nothing to restore.
+    expect(Object.keys(entries)).toEqual(['0#1:fw'])
+    expect(entries['0#1:fw']).toEqual({ widths: [], manual: [], fullWidth: true, fit: false })
   })
 })
 
@@ -550,8 +609,10 @@ describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
     CLEANUP.push(() => styleSpy.mockRestore())
 
     muya.tableResize.toggleFullWidthFromElement(figure)
-    // (800 - 500) / 2 = 150 from the editor's left edge: -11 - 50 + 150.
-    expect(wrapper.style.marginLeft).toBe('89px')
+    // The viewport starts at the gutter, and CSS auto margins center the
+    // table inside its 752px width even when fonts change after this pass.
+    expect(wrapper.style.marginLeft).toBe('-37px')
+    expect(wrapper.style.width).toBe('752px')
   })
 
   it('scrolling a wrapper refreshes its cue through the capture listener', () => {
@@ -645,3 +706,548 @@ describe('reset paths persist (C-65 R-3)', () => {
   })
 })
 // END_BLOCK_RESET_PERSIST_ASSERTIONS
+
+// START_BLOCK_GUARD_ASSERTIONS
+describe('finder + capture routing guards (C-65 R-7)', () => {
+  it('the target finders return null for null, text-node and non-element targets', () => {
+    const muya = makeFakeMuya()
+    const text = document.createTextNode('x')
+    expect(muya.tableResize.findHandle(null)).toBeNull()
+    expect(muya.tableResize.findHandle(text)).toBeNull()
+    expect(muya.tableResize.findHandle({})).toBeNull()
+    expect(muya.tableResize.findTableToolbarButton(null)).toBeNull()
+    expect(muya.tableResize.findTableToolbarButton(text)).toBeNull()
+    expect(muya.tableResize.findTableFigure(null)).toBeNull()
+    expect(muya.tableResize.findTableFigure(text)).toBeNull()
+    const handle = document.createElement('span')
+    handle.className = RESIZER_CLASS
+    muya.container.appendChild(handle)
+    expect(muya.tableResize.findHandle(handle)).toBe(handle)
+  })
+
+  it('mousedown on a resizer handle is eaten before muya can place the caret', () => {
+    const muya = makeFakeMuya()
+    const { figure, row } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    const [handle] = addHandles(row)
+    const bubbled = vi.fn()
+    muya.container.addEventListener('mousedown', bubbled)
+
+    const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    handle.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(bubbled).not.toHaveBeenCalled()
+  })
+
+  it('mousedown outside the toolbar buttons evaluates the caption branch; a null target is inert', () => {
+    const muya = makeFakeMuya()
+    const { figure, caption } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    const bubbled = vi.fn()
+    muya.container.addEventListener('mousedown', bubbled)
+
+    caption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+    expect(bubbled).not.toHaveBeenCalled()
+
+    const p = document.createElement('p')
+    muya.container.appendChild(p)
+    p.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+    expect(bubbled).toHaveBeenCalled()
+
+    expect(() => muya.tableResize.handleToolbarMousedown({ target: null })).not.toThrow()
+    expect(() => muya.tableResize.handleToolbarClick({
+      target: null, preventDefault: vi.fn(), stopPropagation: vi.fn()
+    })).not.toThrow()
+  })
+
+  it('the scroll capture ignores plain elements, stray wrappers and non-element targets', () => {
+    const muya = makeFakeMuya()
+    const plain = document.createElement('div')
+    muya.container.appendChild(plain)
+    expect(() => plain.dispatchEvent(new Event('scroll'))).not.toThrow()
+
+    // A wrapper-looking div outside any table figure: no cue to refresh.
+    const stray = document.createElement('div')
+    stray.className = 'ag-table-scroll'
+    muya.container.appendChild(stray)
+    expect(() => stray.dispatchEvent(new Event('scroll'))).not.toThrow()
+
+    expect(() => muya.tableResize.handleScrollCapture({ target: null })).not.toThrow()
+    expect(() => muya.tableResize.handleScrollCapture({ target: {} })).not.toThrow()
+    expect(() => muya.tableResize.handleScrollCapture({
+      target: { classList: { contains: () => true } }
+    })).not.toThrow()
+  })
+
+  it('the toggle and the viewer ignore non-figure elements and figures without a usable table', () => {
+    const muya = makeFakeMuya()
+    muya.tableResize.toggleFullWidthFromElement(document.createElement('p'))
+
+    const tableless = document.createElement('figure')
+    tableless.setAttribute('data-role', 'TABLE')
+    muya.container.appendChild(tableless)
+    muya.tableResize.toggleFullWidthFromElement(tableless)
+
+    const idless = document.createElement('figure')
+    idless.setAttribute('data-role', 'TABLE')
+    idless.appendChild(document.createElement('table'))
+    muya.container.appendChild(idless)
+    muya.tableResize.toggleFullWidthFromElement(idless)
+
+    muya.tableResize.openViewerFromElement(document.createElement('p'))
+    expect(muya.eventCenter.dispatch).not.toHaveBeenCalled()
+  })
+})
+
+describe('full-width DOM guards (C-65 R-6/R-7)', () => {
+  it('applyPersistedLayouts(null) keeps a null persisted store', () => {
+    const muya = makeFakeMuya()
+    muya.tableResize.applyPersistedLayouts(null)
+    expect(muya.tableResize.persisted).toBeNull()
+  })
+
+  it('applyFullWidthDom tolerates a null figure and a figure without a wrapper', () => {
+    const muya = makeFakeMuya()
+    expect(() => muya.tableResize.applyFullWidthDom(null, true)).not.toThrow()
+    const bare = document.createElement('figure')
+    muya.tableResize.applyFullWidthDom(bare, true)
+    expect(bare.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(true)
+  })
+
+  it('the breakout geometry refuses unusable anchors: no wrapper, no editor, no container, unparseable margin', () => {
+    const muya = makeFakeMuya()
+    // No wrapper at all.
+    expect(() => muya.tableResize.applyFullWidthGeometry(document.createElement('figure'))).not.toThrow()
+
+    // Wrapper present but no editor anchor: the figure sits outside the
+    // muya container and the container itself is empty.
+    const outside = buildTableFigure('t1', ['Alpha'])
+    expect(() => muya.tableResize.applyFullWidthGeometry(outside.figure)).not.toThrow()
+
+    // Editor anchor found (an #ag-editor-id host) but the muya container is
+    // gone — first missing entirely, then without getBoundingClientRect.
+    const host = document.createElement('div')
+    host.id = 'ag-editor-id'
+    const hosted = buildTableFigure('t2', ['Alpha'])
+    host.appendChild(hosted.figure)
+    document.body.appendChild(host)
+    CLEANUP.push(() => host.remove())
+    const saved = muya.container
+    muya.container = null
+    expect(() => muya.tableResize.applyFullWidthGeometry(hosted.figure)).not.toThrow()
+    muya.container = {}
+    expect(() => muya.tableResize.applyFullWidthGeometry(hosted.figure)).not.toThrow()
+    muya.container = saved
+
+    // A measurable offset but an unparseable current margin: no breakout.
+    const third = buildTableFigure('t3', ['Alpha'])
+    muya.container.appendChild(third.figure)
+    third.wrapper.getBoundingClientRect = () => ({ left: 60, width: 400 })
+    muya.container.getBoundingClientRect = () => ({ left: 10, width: 800 })
+    const styleSpy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({ marginLeft: 'auto' })
+    CLEANUP.push(() => styleSpy.mockRestore())
+    muya.tableResize.applyFullWidthGeometry(third.figure)
+    expect(third.wrapper.style.marginLeft).toBe('')
+  })
+
+  it('the toggle label falls back to the i18n key when muya has no translator', () => {
+    const muya = makeFakeMuya({ t: null })
+    const { figure } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    const { toggle, span } = buildToolbarDom(figure)
+
+    toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+    expect(toggle.title).toBe('tableToolbar.fitToPage')
+    expect(toggle.getAttribute('aria-label')).toBe('tableToolbar.fitToPage')
+    expect(span.textContent).toBe('tableToolbar.fitToPage')
+  })
+
+  it('the icon/label swap tolerates a button without svg or without a label span', () => {
+    const muya = makeFakeMuya()
+    const first = document.createElement('figure')
+    first.setAttribute('data-role', 'TABLE')
+    const spanOnly = document.createElement('button')
+    spanOnly.className = 'ag-table-toolbar-toggle'
+    const span = document.createElement('span')
+    span.className = 'ag-block-toolbar-label'
+    spanOnly.appendChild(span)
+    first.appendChild(spanOnly)
+    muya.container.appendChild(first)
+
+    muya.tableResize.updateToolbarToggleDom(first, true)
+    expect(span.textContent).toBe('Fit to page')
+    expect(spanOnly.classList.contains('ag-table-toolbar-active')).toBe(true)
+
+    const second = document.createElement('figure')
+    second.setAttribute('data-role', 'TABLE')
+    const iconOnly = document.createElement('button')
+    iconOnly.className = 'ag-table-toolbar-toggle'
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    svg.appendChild(path)
+    iconOnly.appendChild(svg)
+    second.appendChild(iconOnly)
+    muya.container.appendChild(second)
+
+    muya.tableResize.updateToolbarToggleDom(second, false)
+    expect(iconOnly.title).toBe('Full width')
+    expect(path.getAttribute('d')).toBe(TOOLBAR_TABLE_FULLWIDTH_ICON_PATH)
+  })
+})
+
+describe('identity edge cases (C-65 R-1/R-7)', () => {
+  it('tables without an id or without header cells never mint an identity', () => {
+    const muya = makeFakeMuya()
+    const noId = buildBareTable('', ['A'])
+    const emptyRow = buildBareTable('t2', [])
+    const good = buildBareTable('t1', ['Alpha'])
+    muya.container.append(noId.table, emptyRow.table, good.table)
+    muya.tableResize.setTableWidths('t1', [120], [true])
+
+    muya.tableResize.reconcileAfterRender()
+
+    expect(muya.tableResize.identities.size).toBe(1)
+    expect(muya.tableResize.identities.has('t1')).toBe(true)
+  })
+
+  it('an identity change on a bare table (no figure) still drops widths and full width', () => {
+    const muya = makeFakeMuya()
+    const built = buildBareTable('t1', ['Alpha', 'Beta'])
+    muya.container.appendChild(built.table)
+    muya.tableResize.setTableWidths('t1', [120, 80], [true, false])
+    muya.tableResize.fullWidth.add('t1')
+    muya.tableResize.reconcileAfterRender()
+
+    built.row.cells[0].textContent = 'Renamed'
+    muya.tableResize.reconcileAfterRender()
+
+    expect(muya.tableResize.getWidths('t1')).toBeUndefined()
+    expect(muya.tableResize.isFullWidth('t1')).toBe(false)
+    expect(built.table.classList.contains('ag-column-widths-fixed')).toBe(false)
+  })
+
+  it('a stored full-width mode adopts onto a bare table without a figure', () => {
+    const muya = makeFakeMuya()
+    const built = buildBareTable('t1', ['Alpha'])
+    muya.container.appendChild(built.table)
+    const pid = pidOf(0, ['Alpha'])
+
+    muya.tableResize.applyPersistedLayouts({ [pid]: { widths: [], manual: [], fullWidth: true } })
+
+    expect(muya.tableResize.isFullWidth('t1')).toBe(true)
+    expect(Object.keys(muya.tableResize.persisted)).toEqual([pid])
+  })
+
+  it('a table removed from the document drops its identity on the next sync', () => {
+    const muya = makeFakeMuya()
+    const built = buildBareTable('t1', ['Alpha'])
+    muya.container.appendChild(built.table)
+    muya.tableResize.setTableWidths('t1', [120], [true])
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.identities.has('t1')).toBe(true)
+
+    built.table.remove()
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.identities.has('t1')).toBe(false)
+  })
+})
+
+describe('pointer + double-click guard paths (C-65 R-3/R-7)', () => {
+  const mkEvent = (target, extra = {}) => Object.assign({
+    target,
+    button: 0,
+    clientX: 100,
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn()
+  }, extra)
+
+  it('ignores non-handle targets, right buttons and disabled surfaces', () => {
+    const muya = makeFakeMuya()
+    const off = mkEvent(document.createElement('span'))
+    muya.tableResize.handlePointerDown(off)
+    expect(muya.tableResize.dragging).toBeNull()
+    expect(off.preventDefault).not.toHaveBeenCalled()
+
+    const built = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(built.figure)
+    const [handle] = addHandles(built.row)
+    const right = mkEvent(handle, { button: 2 })
+    muya.tableResize.handlePointerDown(right)
+    expect(muya.tableResize.dragging).toBeNull()
+    expect(right.preventDefault).not.toHaveBeenCalled()
+
+    const disabled = makeFakeMuya({ disableTableColumnResize: true })
+    const other = buildTableFigure('t2', ['Alpha'])
+    disabled.container.appendChild(other.figure)
+    const [disabledHandle] = addHandles(other.row)
+    const eaten = mkEvent(disabledHandle)
+    disabled.tableResize.handlePointerDown(eaten)
+    expect(eaten.preventDefault).toHaveBeenCalled()
+    expect(eaten.stopPropagation).toHaveBeenCalled()
+    expect(disabled.tableResize.dragging).toBeNull()
+  })
+
+  it('a handle without a usable cell, table, id or column index never starts a drag', () => {
+    const muya = makeFakeMuya()
+    const bare = document.createElement('span')
+    bare.className = RESIZER_CLASS
+    muya.tableResize.handlePointerDown(mkEvent(bare))
+    expect(muya.tableResize.dragging).toBeNull()
+
+    const detachedTh = document.createElement('th')
+    const inner = document.createElement('span')
+    inner.className = RESIZER_CLASS
+    detachedTh.appendChild(inner)
+    muya.tableResize.handlePointerDown(mkEvent(inner))
+    expect(muya.tableResize.dragging).toBeNull()
+
+    const idless = buildBareTable('', ['Alpha'])
+    muya.container.appendChild(idless.table)
+    const [idlessHandle] = addHandles(idless.row)
+    muya.tableResize.handlePointerDown(mkEvent(idlessHandle))
+    expect(muya.tableResize.dragging).toBeNull()
+
+    // A th directly under thead (not in a tr) has cellIndex -1.
+    const odd = document.createElement('table')
+    odd.id = 'odd'
+    odd.className = 'ag-paragraph'
+    const orphan = document.createElement('th')
+    const orphanHandle = document.createElement('span')
+    orphanHandle.className = RESIZER_CLASS
+    orphan.appendChild(orphanHandle)
+    odd.createTHead().appendChild(orphan)
+    muya.container.appendChild(odd)
+    expect(orphan.cellIndex).toBe(-1)
+    muya.tableResize.handlePointerDown(mkEvent(orphanHandle))
+    expect(muya.tableResize.dragging).toBeNull()
+  })
+
+  it('an unmeasurable table refuses to freeze a drag baseline', () => {
+    const muya = makeFakeMuya()
+    const built = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(built.figure)
+    const [handle] = addHandles(built.row)
+    for (const cell of built.row.cells) {
+      cell.getBoundingClientRect = () => ({ left: 0, width: 0, height: 0 })
+    }
+
+    muya.tableResize.handlePointerDown(mkEvent(handle))
+
+    expect(muya.tableResize.dragging).toBeNull()
+    expect(muya.tableResize.getWidths('t1')).toBeUndefined()
+  })
+
+  it('a drag onto a stored entry skips the baseline; a zero-length move keeps the width', () => {
+    const muya = makeFakeMuya()
+    const built = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(built.figure)
+    const [handle] = addHandles(built.row)
+    muya.tableResize.setTableWidths('t1', [120], [false])
+
+    muya.tableResize.handlePointerDown(mkEvent(handle))
+    expect(muya.tableResize.dragging.createdThisDrag).toBe(false)
+    muya.tableResize.handlePointerMove({ clientX: 100 })
+    expect(muya.tableResize.getWidths('t1')).toEqual([120])
+
+    muya.tableResize.handlePointerUp()
+    expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', {
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [120], manual: [true], fullWidth: false, fit: false } }
+    })
+
+    // move/up without an active drag are inert.
+    muya.tableResize.handlePointerMove({ clientX: 50 })
+    muya.tableResize.handlePointerUp()
+  })
+
+  it('pointer capture is optional: a working and a throwing capture both drag', () => {
+    const muya = makeFakeMuya()
+    const built = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(built.figure)
+    const [handle] = addHandles(built.row)
+    muya.tableResize.setTableWidths('t1', [120], [false])
+    handle.setPointerCapture = vi.fn()
+
+    muya.tableResize.handlePointerDown(mkEvent(handle, { pointerId: 7 }))
+    expect(handle.setPointerCapture).toHaveBeenCalledWith(7)
+    muya.tableResize.handlePointerUp()
+
+    const second = buildTableFigure('t2', ['Alpha'])
+    muya.container.appendChild(second.figure)
+    const [throwing] = addHandles(second.row)
+    muya.tableResize.setTableWidths('t2', [120], [false])
+    throwing.setPointerCapture = () => { throw new Error('pointer busy') }
+
+    expect(() => muya.tableResize.handlePointerDown(mkEvent(throwing, { pointerId: 9 }))).not.toThrow()
+    expect(muya.tableResize.dragging.key).toBe('t2')
+    muya.tableResize.handlePointerUp()
+  })
+
+  it('a pointerup on a table without a figure ancestor persists without a cue sync', () => {
+    const muya = makeFakeMuya()
+    const built = buildBareTable('t1', ['Alpha'])
+    muya.container.appendChild(built.table)
+    const [handle] = addHandles(built.row)
+    muya.tableResize.setTableWidths('t1', [120], [false])
+
+    muya.tableResize.handlePointerDown(mkEvent(handle))
+    muya.tableResize.dragging.table.closest = undefined
+    muya.tableResize.handlePointerUp()
+
+    expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', {
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [120], manual: [true], fullWidth: false, fit: false } }
+    })
+  })
+
+  it('double-clicks off the handle, on disabled surfaces or without a table do nothing', () => {
+    const muya = makeFakeMuya()
+    const off = mkEvent(document.createElement('span'))
+    muya.tableResize.handleDoubleClick(off)
+    expect(off.preventDefault).not.toHaveBeenCalled()
+
+    const detached = document.createElement('span')
+    detached.className = RESIZER_CLASS
+    const stray = mkEvent(detached)
+    muya.tableResize.handleDoubleClick(stray)
+    expect(stray.preventDefault).toHaveBeenCalled()
+    expect(stray.stopPropagation).toHaveBeenCalled()
+
+    const disabled = makeFakeMuya({ disableTableColumnResize: true })
+    const other = buildTableFigure('t2', ['Alpha'])
+    disabled.container.appendChild(other.figure)
+    const [handle] = addHandles(other.row)
+    disabled.tableResize.setTableWidths('t2', [120], [true])
+    const event = new MouseEvent('dblclick', { bubbles: true, cancelable: true })
+    handle.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(disabled.tableResize.getWidths('t2')).toEqual([120])
+  })
+
+  it('a double-click on a table without stored widths is a no-op (already auto)', () => {
+    const muya = makeFakeMuya()
+    const built = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(built.figure)
+    const [handle] = addHandles(built.row)
+
+    handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))
+
+    expect(muya.eventCenter.dispatch).not.toHaveBeenCalled()
+  })
+
+  it('the full reset on a bare table (no figure) persists the removal', () => {
+    const muya = makeFakeMuya()
+    const built = buildBareTable('t1', ['Alpha'])
+    muya.container.appendChild(built.table)
+    const [handle] = addHandles(built.row)
+    muya.tableResize.setTableWidths('t1', [120], [true])
+    muya.tableResize.reconcileAfterRender()
+
+    handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))
+
+    expect(muya.tableResize.getWidths('t1')).toBeUndefined()
+    expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', { entries: {} })
+  })
+
+  it('the partial reset on a thead-less table keeps the stored width and persists', () => {
+    const muya = makeFakeMuya()
+    const built = buildBareTable('t1', ['Alpha', 'Beta'], { inTbody: true })
+    muya.container.appendChild(built.table)
+    const handles = addHandles(built.row)
+    muya.tableResize.setTableWidths('t1', [120, 80], [true, true])
+
+    handles[1].dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))
+
+    // No thead row to measure: the reset column keeps its stored width and
+    // only loses its manual flag; the identity never mints (no thead), so
+    // the persist carries no entry.
+    expect(muya.tableResize.getWidths('t1')).toEqual([120, 80])
+    expect(muya.tableResize.widths.get('t1').manual).toEqual([true, false])
+    expect(built.table.classList.contains('ag-column-widths-fixed')).toBe(true)
+    expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', { entries: {} })
+  })
+})
+// END_BLOCK_GUARD_ASSERTIONS
+
+describe('table viewport and export regression paths (C-71)', () => {
+  it('drops removed automatic layouts and restores fit on a bare table', () => {
+    const muya = makeFakeMuya()
+    const { table } = buildTableFigure('bare', ['Alpha'])
+    muya.container.appendChild(table)
+    muya.tableResize.autoFullWidth.add('removed')
+    muya.tableResize.applyPersistedLayouts({ [pidOf(0, ['Alpha'])]: { fit: true } })
+    expect(muya.tableResize.autoFullWidth.has('removed')).toBe(false)
+    expect(muya.tableResize.fitToPage.has('bare')).toBe(true)
+  })
+
+  it('routes Copy as image through the live figure, including the capture click path', () => {
+    const muya = makeFakeMuya()
+    const { figure } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    const { toggle } = buildToolbarDom(figure)
+    toggle.dataset.tableToolbarAction = 'copyImage'
+    toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(muya.eventCenter.dispatch).toHaveBeenCalledExactlyOnceWith('muya-diagram-export', { action: 'copyImage', element: figure })
+    muya.tableResize.copyImageFromElement(document.createElement('p'))
+    expect(muya.eventCenter.dispatch).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [{ left: 700, width: 100 }, '618px'],
+    [{ left: 700, width: 0 }, '752px'],
+    [{ left: 0, width: 100 }, '752px'],
+    [{ left: 1000, width: 100 }, '752px']
+  ])('sizes the table viewport around only a usable own-editor overlay: %j', (rect, expected) => {
+    const muya = makeFakeMuya()
+    const host = document.createElement('div')
+    host.className = 'editor-with-tabs'
+    document.body.appendChild(host)
+    CLEANUP.push(() => host.remove())
+    host.appendChild(muya.container)
+    const { figure, wrapper } = buildTableFigure('t1', ['Alpha'])
+    const editor = document.createElement('div')
+    editor.id = 'ag-editor-id'
+    editor.appendChild(figure)
+    muya.container.appendChild(editor)
+    Object.defineProperty(muya.container, 'clientWidth', { value: 800 })
+    muya.container.scrollLeft = 100
+    muya.container.getBoundingClientRect = () => ({ left: 10, width: 820 })
+    wrapper.getBoundingClientRect = () => ({ left: -66, width: 400 })
+    const overlay = document.createElement('aside')
+    overlay.dataset.editorOverlayRight = ''
+    overlay.getBoundingClientRect = () => rect
+    host.appendChild(overlay)
+    const styleSpy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({ marginLeft: '0px' })
+    CLEANUP.push(() => styleSpy.mockRestore())
+    muya.tableResize.applyFullWidthGeometry(figure)
+    expect(wrapper.style.width).toBe(expected)
+    expect(wrapper.style.marginLeft).toBe('') // content coordinate is already the 24px gutter
+    muya.tableResize.applyFullWidthDom(figure, false)
+    expect(wrapper.style.width).toBe('')
+  })
+
+  it('ignores absent container rectangles and overlays from another editor', () => {
+    const muya = makeFakeMuya()
+    const { figure, wrapper } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    const foreign = document.createElement('aside')
+    foreign.dataset.editorOverlayRight = ''
+    foreign.getBoundingClientRect = () => ({ left: 100, width: 100 })
+    document.body.appendChild(foreign)
+    CLEANUP.push(() => foreign.remove())
+    muya.container.getBoundingClientRect = () => null
+    muya.tableResize.applyFullWidthGeometry(figure)
+    expect(wrapper.style.width).toBe('')
+    muya.container.getBoundingClientRect = () => ({ left: 10, width: 800 })
+    wrapper.getBoundingClientRect = () => ({ left: NaN, width: 400 })
+    muya.tableResize.applyFullWidthGeometry(figure)
+    expect(wrapper.style.width).toBe('')
+    wrapper.getBoundingClientRect = () => ({ left: 60, width: 400 })
+    muya.container.getBoundingClientRect = () => ({ left: 10, width: 800 })
+    const styleSpy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({ marginLeft: '0px' })
+    CLEANUP.push(() => styleSpy.mockRestore())
+    muya.tableResize.applyFullWidthGeometry(figure)
+    expect(wrapper.style.width).toBe('752px')
+    expect(wrapper.style.marginLeft).toBe('-26px')
+  })
+})
