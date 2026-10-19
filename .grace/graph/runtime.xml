@@ -4285,6 +4285,13 @@
             </Attribute>
           </LegacyAttributes>
         </fn-diagramExport>
+        <fn-tableExport>
+          <Purpose>utils/tableExport.js (C-70): buildTableSvg draws a rendered table as a standalone SVG from its live layout (panel/row/cell backgrounds, cell borders incl. the theme's ::before grid box, inline code/mark/kbd chips, one text run per line at its measured box with textLength pinned; muya's hidden syntax markers and editor chrome skipped; no foreignObject) so the C-56 rasterizer and save paths export tables like diagrams; resolveTableExportTable resolves the figure/table/viewer source.</Purpose>
+          <Inputs><Input>The rendered table element (from the table toolbar's Copy as image or the full-screen viewer's export buttons)</Input></Inputs>
+          <Outputs><Output>{ svg, width, height } — the standalone picture, null for a table without layout</Output></Outputs>
+          <SideEffects>None (layout reads); the host editor.vue handleDiagramExportAction table branch owns the clipboard/dialog/fs transports.</SideEffects>
+          <VerificationRef>V-M-012</VerificationRef>
+        </fn-tableExport>
         <fn-renderBlockToolbar>
           <LegacyAttributes>
             <Attribute>

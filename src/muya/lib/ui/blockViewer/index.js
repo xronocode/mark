@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.3.0
+// VERSION: 3.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
 //   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
@@ -14,7 +14,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.3.0 - 2026-10-18 merge of C-56 onto C-62: the header carries
+//   LAST_CHANGE: v3.4.0 - 2026-10-19 C-70: tables are exportable — Copy as
+//   image / Save as PNG / Save as SVG show for the table viewer too and
+//   dispatch the live table.
+//   v3.3.0 - 2026-10-18 merge of C-56 onto C-62: the header carries
 //   both the appearance control and the C-56 export buttons.
 //   v3.2.1 - 2026-10-18 C-56 T-005: close()/reassert focus
 //   restore resolves the figure's LIVE expand button with
@@ -404,13 +407,13 @@ class BlockViewer {
     this.sourceFigureId = sourceFigure && sourceFigure.id ? sourceFigure.id : null
     this.sourceFigureEl = sourceFigure || null
     // C-56: the export toolbar exists only for the exportable roles —
-    // MERMAID (pele) diagrams and VEGA-LITE charts. Tables and the other
-    // diagram roles open the viewer fine but never see the buttons.
+    // MERMAID (pele) diagrams, VEGA-LITE charts and (C-70) tables. The
+    // other diagram roles open the viewer fine but never see the buttons.
+    // C-70: tables export too (drawn from the live table layout).
     this.exportable = !!(
-      kind === 'diagram' &&
       source &&
       source.closest &&
-      source.closest(EXPORTABLE_FIGURE_SELECTOR)
+      ((kind === 'diagram' && source.closest(EXPORTABLE_FIGURE_SELECTOR)) || kind === 'table')
     )
     this.viewerEl.classList.toggle('ag-block-viewer-can-export', this.exportable)
     this.lastClonedToken = this.sourceToken(source)

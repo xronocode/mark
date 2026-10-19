@@ -259,6 +259,7 @@ import {
   resolveImageCopySource,
   suggestFileName
 } from 'muya/lib/utils/diagramExport'
+import { buildTableSvg, resolveTableExportTable, TABLE_EXPORT_FIGURE_SELECTOR } from 'muya/lib/utils/tableExport'
 // C-56 T-006: muya's DOM-side image info (tokenizes the wrapper's raw
 // Markdown) for the right-click Copy Image item.
 import { getImageInfo as getDomImageInfo } from 'muya/lib/utils/getImageInfo'
@@ -1212,21 +1213,50 @@ const diagramIndexInDoc = (figure) => {
   return index >= 0 ? index + 1 : 1
 }
 
+// C-70: 1-based index of a table figure among the document's tables (the
+// <doc>-table-N fallback name).
+const tableIndexInDoc = (figure) => {
+  const root = figure && figure.closest ? figure.closest('#ag-editor-id') : null
+  if (!root) return 1
+  const figures = Array.from(root.querySelectorAll(TABLE_EXPORT_FIGURE_SELECTOR))
+  const index = figures.indexOf(figure)
+  return index >= 0 ? index + 1 : 1
+}
+
+// The picture source of the block: a C-56 diagram SVG made standalone, or
+// (C-70) a table drawn from its live layout. null → nothing to export.
+const resolveExportPicture = (element) => {
+  const isTable = !!(element.closest && element.closest(TABLE_EXPORT_FIGURE_SELECTOR)) ||
+    element.tagName === 'TABLE'
+  if (isTable) {
+    const table = resolveTableExportTable(element)
+    const built = table ? buildTableSvg(table) : null
+    if (!built) return null
+    const figure = table.closest('figure')
+    return { standalone: built.svg, figure, index: tableIndexInDoc(figure), noun: 'table' }
+  }
+  const svg = diagramExportSvg(element)
+  if (!svg) return null
+  const figure = svg.closest('figure')
+  return { svgEl: svg, figure, index: diagramIndexInDoc(figure), noun: 'diagram' }
+}
+
 const handleDiagramExportAction = async ({ action, element } = {}) => {
   if (!action || !element) return
   if (!editor.value) return
-  const svg = diagramExportSvg(element)
-  if (!svg) {
+  const picture = resolveExportPicture(element)
+  if (!picture) {
     // Never-rendered blocks never reach here from the disabled menu items;
     // the viewer dispatches only rendered clones — defensive, not silent.
     console.warn(`${DIAGRAM_EXPORT_MARKER} no rendered svg, action ignored`, { action })
     return
   }
-  const figure = svg.closest('figure')
+  const { figure } = picture
+  const standaloneOf = () => picture.standalone || buildStandaloneSvg(picture.svgEl)
 
   if (action === 'copyImage') {
     try {
-      const standalone = buildStandaloneSvg(svg)
+      const standalone = standaloneOf()
       if (!standalone) return
       const { bytes, width, height } = await rasterizeSvg(standalone, { scale: 2 })
       const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager')
@@ -1251,14 +1281,15 @@ const handleDiagramExportAction = async ({ action, element } = {}) => {
 
   const kind = action === 'saveSvg' ? 'svg' : 'png'
   try {
-    const standalone = buildStandaloneSvg(svg)
+    const standalone = standaloneOf()
     if (!standalone) return
     const fileName = suggestFileName({
       headingText: nearestHeadingText(figure),
       // An unsaved tab's display name (Untitled-N) is not a document name.
       docName: currentFile.value && currentFile.value.pathname ? currentFile.value.filename : '',
-      index: diagramIndexInDoc(figure),
-      ext: kind
+      index: picture.index,
+      ext: kind,
+      noun: picture.noun
     })
     const { save } = await import('@tauri-apps/plugin-dialog')
     // The user-selected path is the sandbox-safe write target (works in

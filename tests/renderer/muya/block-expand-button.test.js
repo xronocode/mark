@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/block-expand-button.test.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-51 T-006/T-010 expand button — vnode placement, marker class and localized a11y attrs on the figures that keep it since C-56 T-005 (flowchart, sequence, plantuml diagrams; mermaid/vega-lite render the corner pill and TABLES render the C-65 table toolbar instead — see block-toolbar.test.js / table-cue.test.js), the drawn M-057 glyph (byte-identical to the canonical chromeIcons descriptor), click routing to the muya-block-viewer event, the keyboard guard that leaves Tab/Enter/arrows AND keyups to the focused button (the keyup selection repair used to steal the focus into the editing host), the copy-icon CSS literals (20 px, 8 px insets, 0/0.5/1 opacity curve, need-gated display, the 44 px strip removed), and the button never reaching export HTML.
 //   SCOPE: START_BLOCK_EXPAND_BUTTON (renderContainerBlock.js + renderExpandButton.js), START_BLOCK_EXPAND_BUTTON_CLICK (clickEvent.js), START_BLOCK_KEYBOARD_EXPAND_BUTTON (keyboard.js, keydown + keyup), the C-51 T-006/T-010 CSS section of lib/assets/styles/index.css, and ExportHtml.renderHtml. The need RULES live in expand-need.test.js; the C-56 T-005 pill lives in block-toolbar.test.js; the C-65 table toolbar lives in table-cue.test.js.
@@ -27,7 +27,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-18 C-65 T-002: tables left the standalone
+//   LAST_CHANGE: v1.7.0 - 2026-10-19 C-70: the table toolbar carries three buttons (toggle, Copy as image, Open full screen).
+//   PREV: v1.6.0 - 2026-10-18 C-65 T-002: tables left the standalone
 //   glyph's scope — the table figure case now pins that tables carry the
 //   C-65 table toolbar (whose expand button keeps the family class and the
 //   ag-has-expand need marker) instead of a direct button.ag-block-expand
@@ -321,9 +322,11 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     // (The table front icon may still precede it; Tab order is what matters.)
     const toolbar = children[toolbarIndex]
     const buttons = (toolbar.children || []).filter((c) => c.sel.includes('ag-table-toolbar-btn'))
-    expect(buttons.length).toBe(2)
-    expect(buttons[1].sel).toContain('ag-block-expand')
-    expect(buttons[1].sel).toContain('ag-block-toolbar-expand')
+    // C-70: toggle, Copy as image, Open full screen.
+    expect(buttons.length).toBe(3)
+    expect(buttons[1].sel).toContain('ag-table-toolbar-copy')
+    expect(buttons[2].sel).toContain('ag-block-expand')
+    expect(buttons[2].sel).toContain('ag-block-toolbar-expand')
     // Not nested inside the wrapper: table clicks/drag stay first-class.
     expect(findVnode(children[wrapperIndex], (v) => v.sel === 'button.ag-block-expand')).toBeNull()
   })

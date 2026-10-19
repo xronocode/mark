@@ -1,0 +1,65 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+<C-70>
+  <ChangeRef>C-70</ChangeRef>
+  <Created>2026-10-19</Created>
+  <IntentSummary>Table picture export through the C-56 transport: a layout-drawn standalone SVG, a toolbar Copy as image button and the viewer export buttons for tables.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/utils/diagramExport.js</File>
+      <Text>rasterizeSvg</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/utils/tableExport.js</File>
+      <Text>buildTableSvg</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>npx vitest run tests/renderer/muya/table-export.test.js</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-012 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-012 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/utils/tableExport.js</File>
+    <File>src/muya/lib/utils/diagramExport.js</File>
+    <File>src/muya/lib/parser/render/renderBlock/renderTableToolbar.js</File>
+    <File>src/muya/lib/tableResize/index.js</File>
+    <File>src/muya/lib/ui/blockViewer/index.js</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>tests/e2e/**</Glob>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>tableExport.js builder + editor.vue table branch + toolbar button + viewer gate</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>R-1..R-3.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/table-export.test.js</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Unit + e2e tests, existing pins, live check</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>R-4.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/table-export.spec.ts</Command></Verification>
+    </T-002>
+  </ImplementationPlan>
+  <Evidence>
+    <T-001>
+      <Status>done 2026-10-19 (orchestrator)</Status>
+      <Note>utils/tableExport.js v1.0.0 (layout-drawn standalone SVG: backgrounds, cell + ::before grid borders, code chips, per-line text runs with textLength, ag-hide markers skipped, decorations from ancestors); editor.vue resolveExportPicture table branch + tableIndexInDoc; diagramExport.suggestFileName noun; renderTableToolbar v1.1.0 copy button; tableResize v2.3.0 copyImageFromElement; renderBlockToolbar syncBlockToolbarState keeps the table copy enabled; blockViewer v3.4.0 exportable tables. A real 2× PNG checked by eye (grid, bold, code chips, underline, strikethrough match the live table).</Note>
+    </T-001>
+    <T-002>
+      <Status>done 2026-10-19 (orchestrator); live check pending</Status>
+      <Note>table-export.test.js 8 cases; table-cue / block-expand-button pins for three buttons; e2e diagram-export (viewer copy 2× PNG + Save as SVG, toolbar copy 2× PNG, table toolbar pin), block-viewer (21 buttons, Tab walk with the copy stops); chromium + webkit-tables 72 passed; muya unit 512 passed; grace lint 0.</Note>
+    </T-002>
+  </Evidence>
+</C-70>
+</GraceChangePlan>
