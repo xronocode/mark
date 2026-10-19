@@ -107,6 +107,10 @@ export default defineConfig({
     // C-52: the clipboard-open flow (menu dispatch, welcome ⌘V, the
     // folder-drop bridge path) also gates in WebKit — the engine WKWebView
     // ships and the one whose keydown/drag-drop events the feature rides.
-    { name: 'webkit-clipboard', use: { browserName: 'webkit' }, testMatch: 'clipboard-open.spec.ts' }
+    { name: 'webkit-clipboard', use: { browserName: 'webkit' }, testMatch: 'clipboard-open.spec.ts' },
+    // C-68: the ⌘D opened-baseline fallback (contenteditable edit before
+    // the diff, CodeMirror MergeView rendering, the calm notice) also gates
+    // in WebKit — the engine WKWebView ships.
+    { name: 'webkit-diff', use: { browserName: 'webkit' }, testMatch: 'diff-*.spec.ts' }
   ]
 })

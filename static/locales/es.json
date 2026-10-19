@@ -1435,9 +1435,10 @@
     "baseline": "Versión base",
     "exit": "Salir del diff",
     "unavailable": "Comparación no disponible",
-    "noPath": "Guarda primero el archivo: una pestaña sin título no tiene versión base con la que comparar.",
-    "noBaseline": "No se encontró una versión base para este archivo.",
+    "noChanges": "No hay cambios desde que abriste el archivo.",
+    "nothingToCompare": "Aún no hay nada que comparar.",
     "sourceSnapshot": "Antes del último guardado externo · {time}",
+    "sourceOpened": "Desde que abriste el archivo · {time}",
     "sourcePrevious": "Versión anterior"
   },
   "updateNotice": {

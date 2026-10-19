@@ -2927,6 +2927,32 @@
         (README_SHOTS=1 only, 1440×900 @2x, Paper/Ink, writes
         docs/assets/readme/01-agents, 03-diagrams, 05-viewer, 07-home
         and 08-dark PNGs).
+        C-68 T-001: ⌘D always has something to compare. store/diffSnapshots.js
+        keeps a second per-tab map — one «opened» snapshot
+        { markdown, takenAt, kind: 'opened' } mirroring the content the tab
+        last loaded from disk — recorded by editor.js
+        NEW_TAB_WITH_CONTENT (open, reopen, session restore; untitled tabs
+        never record, focusing an already-open file keeps the original
+        slot) and by loadChange (an external reload lands the new content
+        while the C-43 ring keeps the pre-reload version); slot and ring
+        never evict each other and both die with the tab.
+        editorWithTabs/diffView.vue resolves the ⌘D baseline as external
+        snapshot → mt_diff_baseline → opened — a backend error («Not a git
+        repository») is only a fallback signal — and exits with calm info
+        notices when nothing compares (untitled → diffView.nothingToCompare;
+        no baseline at all, or a baseline equal to the current markdown →
+        diffView.noChanges; raw backend errors never reach the UI; the
+        view.diff-mode untitled pre-check uses the same calm wording). The
+        diff header labels the opened source («Since you opened the file ·
+        {time}», diffView.sourceOpened in all ten locales; the superseded
+        noPath/noBaseline keys retired from json + min.json). Pinned by
+        tests/renderer/store/diff-snapshots.test.js (slot semantics),
+        tests/renderer/store/opened-snapshots.test.js (load-path wiring),
+        tests/renderer/components/diff-opened-baseline.test.js (priority
+        chain + calm exits) and tests/e2e/diff-opened-baseline.spec.ts
+        (chromium + the webkit-diff playwright project; the swallowed-error
+        invoke trace is part of the gate).
+        Async baseline requests are scoped to their owning tab and view lifetime; stale completions cannot replace another comparison or close another tab.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>

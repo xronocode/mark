@@ -1429,9 +1429,10 @@
     "baseline": "基准版本",
     "exit": "退出对比",
     "unavailable": "无法对比",
-    "noPath": "请先保存文件——未命名的标签页没有可对比的基准版本。",
-    "noBaseline": "未找到此文件的基准版本。",
+    "noChanges": "打开文件后还没有改动。",
+    "nothingToCompare": "暂时没有可对比的内容。",
     "sourceSnapshot": "上次外部保存之前 · {time}",
+    "sourceOpened": "自打开文件以来 · {time}",
     "sourcePrevious": "先前版本"
   },
   "updateNotice": {

@@ -86,9 +86,12 @@ test.describe('M-031 diff-view', () => {
   test('untitled tab: diff mode refuses to hide the editor and explains why', async ({ page }) => {
     await bootEditor(page)
 
-    // Via the command (Cmd+D path): not entered at all.
+    // Via the command (Cmd+D path): not entered at all — C-68 says it
+    // calmly («Nothing to compare yet», an info notice).
     await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.diff-mode'))
-    await expect(page.locator('.mt-notification')).toBeVisible({ timeout: 5_000 })
+    const notice = page.locator('.mt-notification')
+    await expect(notice).toBeVisible({ timeout: 5_000 })
+    await expect(notice).toContainText('Nothing to compare yet')
     await expect(page.locator('.diff-view')).toHaveCount(0)
     await expect(page.locator('.editor-wrapper').first()).toBeVisible()
 
@@ -126,7 +129,35 @@ test.describe('M-031 diff-view', () => {
     expect(calls[0]).toEqual({ path: '/tmp/mark-e2e/test.md' })
   })
 
-  test('diff-view shows error when mt_diff_baseline fails', async ({ page }) => {
+  test('mt_diff_baseline failure falls back to the opened content — no raw error (C-68)', async ({ page }) => {
+    await page.addInitScript(() => {
+      ;(window as any).__mockInvoke.mt_diff_baseline = () => {
+        throw 'not_a_git_repo: /tmp/mark-e2e/test.md is not inside a git repository'
+      }
+    })
+
+    await bootEditor(page)
+    await openFileTab(page)
+
+    // A quick edit so the opened baseline has something to compare against.
+    await page.locator('.editor-with-tabs p').first().click()
+    await page.keyboard.press('End')
+    await page.keyboard.type(' Edited since open.')
+
+    await setDiffMode(page, true)
+
+    // The diff renders against the content at open, with its header label…
+    const diff = page.locator('.diff-view')
+    await diff.waitFor({ state: 'visible', timeout: 5_000 })
+    await expect(diff.locator('.diff-side').nth(1)).toContainText('Since you opened the file')
+    await expect(diff.locator('.diff-body')).toContainText('Edited since open.')
+    await expect(diff.locator('.diff-body')).toContainText('This is the modified content.')
+
+    // …and the raw backend error never becomes a notification.
+    await expect(page.locator('.mt-notification')).toHaveCount(0)
+  })
+
+  test('mt_diff_baseline failure without edits: the calm notice, not the error (C-68)', async ({ page }) => {
     await page.addInitScript(() => {
       ;(window as any).__mockInvoke.mt_diff_baseline = () => {
         throw 'not_a_git_repo: /tmp/mark-e2e/test.md is not inside a git repository'
@@ -138,10 +169,11 @@ test.describe('M-031 diff-view', () => {
 
     await setDiffMode(page, true)
 
-    // No dead end: the error becomes a notification and the editor returns.
+    // No dead end and no raw error: a calm notice, and the editor returns.
     const notice = page.locator('.mt-notification')
     await expect(notice).toBeVisible({ timeout: 5_000 })
-    await expect(notice).toContainText('not_a_git_repo')
+    await expect(notice).toContainText('No changes since you opened the file')
+    await expect(notice).not.toContainText('not_a_git_repo')
     await expect(page.locator('.diff-view')).toHaveCount(0)
     await expect(page.locator('.editor-wrapper').first()).toBeVisible()
   })
