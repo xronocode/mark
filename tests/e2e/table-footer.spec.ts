@@ -1,8 +1,8 @@
 // FILE: tests/e2e/table-footer.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce the owner's table/counter/scrollbar spacing report and pin a compact constant-height reserved footer.
-//   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, sticky counter visibility, fitting-table width-control gating including restored Full width, bottom drag-handle hit testing and unchanged Markdown.
+//   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, continuous shade paint through the noneditable caption, sticky counter visibility, fitting-table width-control gating including restored Full width, bottom drag-handle hit testing and unchanged Markdown.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, built renderer.
 //   LINKS: .grace/changes/active/C-TABLE-FOOTER; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -13,9 +13,11 @@
 //   LEGACY_NARROW_LAYOUT - saved Full width choice for the second table's stable ordinal/header identity.
 //   footer - actual table, caption and native scrollbar geometry for one figure.
 //   documentState - normalized Markdown and saved state for non-editing interactions.
+//   shadePaintDelta - screenshot pixels at the same shade x coordinate inside the caption and its lower gap; detects an opaque noneditable caption patch.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FOOTER owner review: no width toggle or stray counter on fitting tables, including a restored Full width choice.
+//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: screenshot pixels catch the noneditable caption background lightening the edge shade.
+//   PREV: v1.1.0 - 2026-10-20 C-TABLE-FOOTER owner review: no width toggle or stray counter on fitting tables, including a restored Full width choice.
 //   PREV: v1.0.0 - 2026-10-20 C-TABLE-FOOTER: counter inside the scroll block above its scrollbar, with compact stable invisible space when fitting.
 // END_CHANGE_SUMMARY
 
@@ -74,6 +76,24 @@ const documentState = (page: Page) => page.evaluate(() => {
   return { markdown: file.markdown, isSaved: file.isSaved }
 })
 
+const shadePaintDelta = async (page: Page, geometry: Awaited<ReturnType<typeof footer>>) => {
+  const png = (await page.screenshot()).toString('base64')
+  return page.evaluate(async ({ png, x, upperY, lowerY }) => {
+    const image = new Image()
+    image.src = `data:image/png;base64,${png}`
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.width
+    canvas.height = image.height
+    const context = canvas.getContext('2d')!
+    context.drawImage(image, 0, 0)
+    const pixel = (y: number) => Array.from(context.getImageData(Math.floor(x * devicePixelRatio), Math.floor(y * devicePixelRatio), 1, 1).data)
+    const upper = pixel(upperY)
+    const lower = pixel(lowerY)
+    return Math.max(...upper.slice(0, 3).map((value, i) => Math.abs(value - lower[i])))
+  }, { png, x: geometry.wrapperRight - 3, upperY: geometry.captionTop + 4, lowerY: geometry.captionBottom + 1 })
+}
+
 test.beforeEach(async ({ page }) => {
   await installTauriShim(page)
   await page.setViewportSize({ width: 1400, height: 900 })
@@ -97,6 +117,7 @@ test('reserved footer keeps the counter inside and 2px above the scrollbar while
   expect(geometry.footerSpace).toBeLessThanOrEqual(30)
   expect(geometry.captionVisible).toBe('visible')
   expect(geometry.captionText).toMatch(/^columns /)
+  expect(await shadePaintDelta(page, geometry), 'the caption must not lighten the continuous edge shade').toBeLessThanOrEqual(2)
   // The edge shade is 14px wide; leave another 4px of clear space.
   expect(geometry.wrapperRight - geometry.captionTextRight).toBeGreaterThanOrEqual(17)
   expect(geometry.wrapperRight - geometry.captionTextRight).toBeLessThanOrEqual(19)
