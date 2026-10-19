@@ -1,8 +1,8 @@
 // FILE: tests/e2e/table-footer.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce the owner's table/counter/scrollbar spacing report and pin a compact constant-height reserved footer.
-//   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, sticky counter visibility, hidden fitting-table space, bottom drag-handle hit testing and unchanged Markdown.
+//   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, sticky counter visibility, fitting-table width-control gating including restored Full width, bottom drag-handle hit testing and unchanged Markdown.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, built renderer.
 //   LINKS: .grace/changes/active/C-TABLE-FOOTER; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -10,11 +10,13 @@
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
 //   TABLES - long-cell and narrow fixtures with content after each table.
+//   LEGACY_NARROW_LAYOUT - saved Full width choice for the second table's stable ordinal/header identity.
 //   footer - actual table, caption and native scrollbar geometry for one figure.
 //   documentState - normalized Markdown and saved state for non-editing interactions.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-20 C-TABLE-FOOTER: counter inside the scroll block above its scrollbar, with compact stable invisible space when fitting.
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FOOTER owner review: no width toggle or stray counter on fitting tables, including a restored Full width choice.
+//   PREV: v1.0.0 - 2026-10-20 C-TABLE-FOOTER: counter inside the scroll block above its scrollbar, with compact stable invisible space when fitting.
 // END_CHANGE_SUMMARY
 
 import { test, expect, type Page, type Locator } from '@playwright/test'
@@ -36,6 +38,16 @@ Paragraph after the wide table.
 Paragraph after the narrow table.
 `
 
+// Historical profile identity for ordinal 1 with the headers A/B.
+const LEGACY_NARROW_LAYOUT = {
+  version: 1,
+  files: {
+    '/tmp/mark-e2e/table-footer.md': {
+      '1#2:3769c9': { widths: [], manual: [], fullWidth: true }
+    }
+  }
+}
+
 const footer = (figure: Locator) => figure.evaluate(el => {
   const wrapper = el.querySelector('.ag-table-scroll') as HTMLElement
   const table = wrapper.querySelector('table')!
@@ -43,9 +55,12 @@ const footer = (figure: Locator) => figure.evaluate(el => {
   const wr = wrapper.getBoundingClientRect()
   const tr = table.getBoundingClientRect()
   const cr = caption.getBoundingClientRect()
+  const textRange = document.createRange()
+  textRange.selectNodeContents(caption)
   const nativeBar = wrapper.offsetHeight - wrapper.clientHeight
   return { inside: caption.parentElement === wrapper, tableBottom: tr.bottom,
     captionTop: cr.top, captionBottom: cr.bottom, captionRight: cr.right,
+    captionTextRight: textRange.getBoundingClientRect().right,
     wrapperLeft: wr.left, wrapperRight: wr.right, scrollWidth: wrapper.scrollWidth,
     clientWidth: wrapper.clientWidth, footerSpace: wr.bottom - tr.bottom,
     scrollbarTop: wr.bottom - Math.max(6, nativeBar),
@@ -82,6 +97,9 @@ test('reserved footer keeps the counter inside and 2px above the scrollbar while
   expect(geometry.footerSpace).toBeLessThanOrEqual(30)
   expect(geometry.captionVisible).toBe('visible')
   expect(geometry.captionText).toMatch(/^columns /)
+  // The edge shade is 14px wide; leave another 4px of clear space.
+  expect(geometry.wrapperRight - geometry.captionTextRight).toBeGreaterThanOrEqual(17)
+  expect(geometry.wrapperRight - geometry.captionTextRight).toBeLessThanOrEqual(19)
   for (const fraction of [0.5, 1, 0]) {
     await figure.locator('.ag-table-scroll').evaluate((el, fraction) => {
       el.scrollLeft = (el.scrollWidth - el.clientWidth) * fraction
@@ -111,6 +129,39 @@ test('reserved footer is equally tall and invisible when narrow or expanded tabl
   await expect.poll(async () => (await footer(wide)).captionVisible).toBe('visible')
   const overflowing = await footer(wide)
   expect(Math.abs(overflowing.footerSpace - expanded.footerSpace)).toBeLessThanOrEqual(1)
+})
+
+test('a fitting table has no width toggle while copy as image remains reachable', async ({ page }) => {
+  const narrow = page.locator("figure[data-role='TABLE']").nth(1)
+  const before = await documentState(page)
+  await narrow.hover()
+  await expect(narrow.locator('.ag-table-toolbar-toggle')).not.toBeVisible()
+  await expect(narrow.locator('.ag-table-toolbar-copy')).toBeVisible()
+  await expect(narrow.locator('.ag-table-toolbar-expand')).not.toBeVisible()
+  expect((await footer(narrow)).captionText).toBe('')
+  expect(await documentState(page)).toEqual(before)
+})
+
+test('a restored narrow Full width table has no toggle or stray column counter', async ({ page }) => {
+  await page.addInitScript(profile => {
+    const w = window as any
+    w.__mockInvoke = { ...w.__mockInvoke,
+      mt_prefs_get: ({ key }: { key: string }) => key === 'tableLayouts' ? profile : null,
+      mt_fs_stat: ({ path }: { path: string }) => ({
+        isFile: path === '/tmp/mark-e2e/table-footer.md', isDirectory: false
+      }) }
+  }, LEGACY_NARROW_LAYOUT)
+  await bootEditor(page)
+  await openFileTab(page, '/tmp/mark-e2e/table-footer.md', TABLES)
+  const narrow = page.locator("figure[data-role='TABLE']").nth(1)
+  await expect(narrow).toHaveClass(/ag-table-full-width/)
+  const before = await documentState(page)
+  await narrow.hover()
+  await expect(narrow.locator('.ag-table-toolbar-toggle')).not.toBeVisible()
+  const geometry = await footer(narrow)
+  expect(geometry.captionText).toBe('')
+  expect(geometry.captionVisible).toBe('hidden')
+  expect(await documentState(page)).toEqual(before)
 })
 
 test('the selected column drag handle remains reachable over the reserved footer', async ({ page }) => {
