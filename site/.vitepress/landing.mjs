@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.9.0
+// VERSION: 1.10.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the static-page renderers
 //            shared by the VitePress config (dev middleware + buildEnd) and
@@ -11,11 +11,12 @@
 //          theme-color pair, referrer, JSON-LD @graph) and base token; emit
 //          robots.txt and CNAME content; expose the docs-only head list, the
 //          docs BreadcrumbList and FAQPage JSON-LD generators, the plain-text
-//          FAQ mirror for site/guide/faq.md, and the app version read from
-//          the root package.json.
+//          FAQ mirror for site/guide/faq.md, and the app version — the
+//          release pinned by setReleaseVersion when the build resolved one,
+//          the root package.json otherwise.
 //   DEPENDS: node:fs (appVersion reads the root package.json; everything
 //            else stays pure over strings/env)
-//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-003, T-007;
+//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-003, T-007, version sync;
 //          site/landing/index.html; site/public/{consent.js,track.js};
 //          site/guide/faq.md (the human-readable FAQ FAQ_ITEMS mirrors);
 //          site/scripts/{build-gallery.mjs,check-dist.mjs,csp.mjs} (consumers)
@@ -29,7 +30,8 @@
 //   APP_STORE_URL - Mac App Store product URL
 //   GITHUB_REPO - repository URL
 //   GITHUB_RELEASES - latest-release URL (DMG, Windows setup.exe)
-//   appVersion - memoized read of the root package.json version (one source for softwareVersion)
+//   appVersion - the pinned release version after setReleaseVersion, else the memoized root package.json version (one source for softwareVersion)
+//   setReleaseVersion - pin appVersion() to the resolved release (undefined resets to package.json)
 //   resolveSiteSettings - env -> { siteUrl, base, analytics[] }
 //   GA_ID_RE - accepted GA4 measurement id shape, checked before inlining
 //   CF_TOKEN_RE - accepted Cloudflare beacon token shape, checked before inlining
@@ -52,7 +54,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.9.0 - 2026-10-19 C-64: og:image and the JSON-LD image carry a ?v= content hash (ogImageUrl) so link previews pick up a new card.]
+//   LAST_CHANGE: [v1.10.0 - 2026-10-19 C-64 version sync: appVersion() returns
+//                 the release pinned by setReleaseVersion (config.mts and
+//                 check-dist.mjs resolve it from the latest GitHub release);
+//                 the root package.json stays the fallback and
+//                 setReleaseVersion(undefined) resets to it.]
+//   PREV: [v1.9.0 - 2026-10-19 C-64: og:image and the JSON-LD image carry a ?v= content hash (ogImageUrl) so link previews pick up a new card.]
 //   PREV: [v1.8.0 - 2026-10-18 C-64 T-007: consent.js/track.js URLs carry a ?v= content hash (assetVersion) so the Cloudflare cache cannot serve a stale consent script]
 //   PREV: [v1.7.0 - 2026-10-18 C-64 T-007: the SoftwareApplication
 //                 node gains screenshot (/shots/01-agents.jpg), fileSize
@@ -113,14 +120,18 @@ export const GITHUB_REPO = 'https://github.com/xronocode/mark'
 export const GITHUB_RELEASES = 'https://github.com/xronocode/mark/releases/latest'
 
 // START_CONTRACT: appVersion
-//   PURPOSE: One source for the shipped version: the root package.json
-//            (kept in sync with the release by the M-046 preflight).
+//   PURPOSE: One source for the shipped version: the release pinned by
+//            setReleaseVersion (the config and check-dist resolve it from
+//            the latest published GitHub release), the root package.json
+//            otherwise (kept in sync with the release by the M-046 preflight).
 //   INPUTS: {}
-//   OUTPUTS: { string - semver, e.g. "2.5.0" }
+//   OUTPUTS: { string - semver, e.g. "2.5.2" }
 //   SIDE_EFFECTS: reads ../../package.json once, memoized in module state
 // END_CONTRACT: appVersion
 let APP_VERSION
+let RELEASE_VERSION
 export function appVersion () {
+  if (RELEASE_VERSION !== undefined) return RELEASE_VERSION
   if (APP_VERSION === undefined) {
     // vitest's jsdom env serves modules from an http: URL — map it onto the
     // repo checkout so the one-source version read works everywhere.
@@ -129,6 +140,19 @@ export function appVersion () {
     APP_VERSION = JSON.parse(readFileSync(pkgPath, 'utf8')).version
   }
   return APP_VERSION
+}
+
+// START_CONTRACT: setReleaseVersion
+//   PURPOSE: Pin appVersion() to the release the build resolved, so the
+//            JSON-LD softwareVersion and the landing facts agree with the
+//            GitHub release the page links to.
+//   INPUTS: { v: string | undefined - the release version ("2.5.2");
+//             undefined resets to the package.json fallback }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: sets the module-level override read by appVersion()
+// END_CONTRACT: setReleaseVersion
+export function setReleaseVersion (v) {
+  RELEASE_VERSION = v
 }
 
 // Cache-busting for public/ scripts: Cloudflare keeps /consent.js and
@@ -250,7 +274,7 @@ export function analyticsScript (analytics, base = '/') {
 //             opts: { websiteOnly?: boolean } - docs pages emit the WebSite
 //                    node only (C-64 T-003 head split) }
 //   OUTPUTS: { string - the JSON body of a <script type="application/ld+json"> }
-//   SIDE_EFFECTS: none (appVersion reads the root package.json once)
+//   SIDE_EFFECTS: none (appVersion is a memoized read or the pinned release)
 // END_CONTRACT: jsonLd
 // START_BLOCK_JSON_LD
 export function jsonLd (settings, page = {}, opts = {}) {

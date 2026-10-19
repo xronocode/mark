@@ -1,24 +1,33 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.8.0
+// VERSION: 2.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
 //            /diagrams/ (both emitted at build time and served in dev).
 //   SCOPE: nav/sidebar, base + sitemap (lastmod from git via lastUpdated)
-//          from env, per-page canonical/OG plus guide BreadcrumbList and
-//          the FAQPage JSON-LD, dev middleware for the landing and
-//          /diagrams/, buildEnd emission of landing + gallery (+
-//          theme-vars refresh), robots.txt and CNAME.
+//          from env, latest-GitHub-release resolution at config load
+//          (setReleaseVersion pins appVersion; the facts feed fillLanding;
+//          SITE_RELEASE=offline skips the API call), per-page canonical/OG
+//          plus guide BreadcrumbList and the FAQPage JSON-LD, dev middleware
+//          for the landing and /diagrams/, buildEnd emission of landing +
+//          gallery (+ theme-vars refresh), robots.txt and CNAME.
 //   DEPENDS: vitepress, ./landing.mjs, ../scripts/build-gallery.mjs,
-//            ../scripts/gallery-theme-vars.mjs, ../shared/theme-init.mjs
-//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-001, T-007;
+//            ../scripts/gallery-theme-vars.mjs, ../scripts/release.mjs,
+//            ../shared/theme-init.mjs
+//   LINKS: M-053 SiteBuild; C-22; C-58; C-64 T-001, T-007, version sync;
 //          .github/workflows/site.yml
 //   ROLE: CONFIG
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.8.0 - 2026-10-18 C-64 T-007: lastUpdated: true gives
+//   LAST_CHANGE: [v2.9.0 - 2026-10-19 C-64 version sync: the config resolves
+//                 the latest GitHub release once at load (package.json
+//                 fallback, SITE_RELEASE=offline skips the API), pins it via
+//                 setReleaseVersion so JSON-LD/llms.txt agree with the page,
+//                 logs [SiteBuild][release] and passes the facts into
+//                 fillLanding for the %VERSION%/%DMG_*/%EXE_* tokens.]
+//   PREV: [v2.8.0 - 2026-10-18 C-64 T-007: lastUpdated: true gives
 //                 the sitemap a per-page lastmod from git (the docs theme
 //                 showing "Last updated" is accepted); guide pages carry a
 //                 Home → Guide → page BreadcrumbList and guide/faq.md the
@@ -58,6 +67,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig, type HeadConfig } from 'vitepress'
 import {
   SITE_META,
+  appVersion,
   ogImageUrl,
   analyticsTags,
   breadcrumbJsonLd,
@@ -66,7 +76,8 @@ import {
   faqJsonLd,
   renderLanding,
   resolveSiteSettings,
-  robotsTxt
+  robotsTxt,
+  setReleaseVersion
 } from './landing.mjs'
 import { renderGallery } from '../scripts/build-gallery.mjs'
 import { writeThemeVarsFile } from '../scripts/gallery-theme-vars.mjs'
@@ -74,11 +85,19 @@ import { THEME_INIT_JS } from '../shared/theme-init.mjs'
 import { applyCsp } from '../scripts/csp.mjs'
 import { fillLanding } from '../scripts/landing-fill.mjs'
 import { llmsTxt, securityTxt } from '../scripts/seo-files.mjs'
+import { latestRelease, releaseFacts } from '../scripts/release.mjs'
+
+// C-64 version sync: one version source for the whole site — the latest
+// published GitHub release, with the root package.json as the fallback so
+// offline builds still ship. SITE_RELEASE=offline skips the API call.
+const release = releaseFacts(process.env.SITE_RELEASE === 'offline' ? null : await latestRelease(), appVersion())
+setReleaseVersion(release.version)
+console.log(`[SiteBuild][release] version=${release.version} source=${release.source}`)
 
 const settings = resolveSiteSettings(process.env)
 const { siteUrl, base, analytics } = settings
 const landingTemplate = new URL('../landing/index.html', import.meta.url)
-const loadLanding = () => renderLanding(fillLanding(readFileSync(landingTemplate, 'utf8')), settings)
+const loadLanding = () => renderLanding(fillLanding(readFileSync(landingTemplate, 'utf8'), undefined, release), settings)
 
 // START_BLOCK_DOCS_HEAD
 const head: HeadConfig[] = [
