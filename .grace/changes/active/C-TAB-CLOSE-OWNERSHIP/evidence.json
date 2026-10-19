@@ -1,7 +1,7 @@
 {
   "change": "C-TAB-CLOSE-OWNERSHIP",
   "date": "2026-10-19",
-  "status": "verified locally; owner release-train admission pending",
+  "status": "owner accepted; queued in desktop train 2.5.x-next",
   "baseline_regressions": {
     "ownership_cases_failed": 4,
     "cases": [
@@ -38,7 +38,15 @@
       ]
     },
     "build": "passed",
-    "grace_current_and_selected_target": "zero errors; scope/heuristic warnings retained"
+    "grace_current_and_selected_target": "zero errors; scope/heuristic warnings retained",
+    "renderer_artifact": {
+      "source_commit": "943d57d69f7d3b9bf4f896b814649138470e01ac",
+      "files": 738,
+      "manifest_sha256": "efefe957d5887a95529903891fa6fb7bf01d66bd11f41fa7f5da6b4651606163",
+      "manifest_format": "SHA-256, two spaces, relative POSIX path, LF; sorted by relative path",
+      "index_sha256": "cda946b665c01c72f9048c8dfee431635612fb288b0ed1c1901d6d7f9422b7f6",
+      "kind": "built renderer for browser and isolated native synthetic checks; no product installation"
+    }
   },
   "native": {
     "surface": "isolated native macOS WKWebView with the renderer and Tauri shim",
@@ -64,10 +72,22 @@
     "new_ownership_markers": "no document text, paths, filenames or raw payloads"
   },
   "delivery": {
-    "push": "not authorized by this change",
-    "release_train_admission": "awaiting owner approval",
+    "source_commit": "943d57d69f7d3b9bf4f896b814649138470e01ac",
+    "owner_acceptance_date": "2026-10-19",
+    "release_train_admission": "explicitly approved by owner after verified repair review",
+    "train": "2.5.x-next",
+    "state": "queued",
+    "acceptance_record": "docs/release-trains/2.5.x-next.md#c-tab-close-ownership",
+    "integration": "The admission record directly follows the tested source; publish both by ordinary guarded fast-forward to fork/main.",
+    "remaining_gates": [
+      "candidate CI",
+      "full train admission",
+      "release materials",
+      "separate owner release instruction"
+    ],
+    "release_authorized": false,
     "version_or_installed_app_change": false,
-    "local_commit_review": "enforced by mandatory exact-payload hooks"
+    "commit_and_push_review": "mandatory exact-payload static, Gitleaks and two-pass local-model hooks"
   },
   "integration_base": "0e8ffcd9299a7dd2b5ec25e3e677222cd2358960",
   "integration": "Prepared atop the current table-resize and GPU-reviewer safety changes; preserve both routed index annotations."
