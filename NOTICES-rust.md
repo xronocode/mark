@@ -654,7 +654,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | inotify-sys | 0.1.5 | https://github.com/hannobraun/inotify-sys |
 | libloading | 0.7.4 | https://github.com/nagisa/rust_libloading/ |
 | libloading | 0.8.9 | https://github.com/nagisa/rust_libloading/ |
-| rustls-webpki | 0.103.13 | https://github.com/rustls/webpki |
+| rustls-webpki | 0.103.15 | https://github.com/rustls/webpki |
 | untrusted | 0.9.0 | https://github.com/briansmith/untrusted |
 
 ## MPL-2.0 (6)
@@ -702,7 +702,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | Crate | Version | Repository |
 |---|---|---|
 | hyper-rustls | 0.27.9 | https://github.com/rustls/hyper-rustls |
-| rustls | 0.23.40 | https://github.com/rustls/rustls |
+| rustls | 0.23.45 | https://github.com/rustls/rustls |
 | rustls-native-certs | 0.8.4 | https://github.com/rustls/rustls-native-certs |
 
 ## BSD-3-Clause (3)
