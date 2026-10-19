@@ -2307,8 +2307,9 @@
     </V-M-045>
     <V-M-046>
       <Priority>critical</Priority>
-      <Commands><Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff</Command></Commands>
+      <Commands><Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session</Command></Commands>
       <Scenarios>
+        <Scenario>scenario-16: renderer-e2e runs webkit-session after browser installation, including remaining editor content and edit ownership after active-tab close.</Scenario>
         <Scenario>scenario-15: renderer-e2e runs webkit-diff after browser installation, preserving opened-baseline, snapshot-priority and calm-exit checks.</Scenario>
         <Scenario>scenario-14: renderer-e2e runs webkit-keyboard after installing WebKit, preserving native vertical-selection checks in the shipping browser engine.</Scenario>
         <Scenario>scenario-13 (C-63): renderer-e2e invokes the existing C-60 and C-62 WebKit projects after installing WebKit, before the aggregate status can succeed. Both projects pass locally; CI triggers, existing jobs and release workflows remain unchanged.</Scenario>

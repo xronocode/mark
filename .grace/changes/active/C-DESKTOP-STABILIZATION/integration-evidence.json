@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-19",
+  "scope": "Owner-approved steps 1-3, sequential desktop integration; step 4 remains discussion only.",
+  "tasks": {
+    "T-001": "Recovered backlog/previews: 96238ef1; originals and private dirty-layer snapshots preserved.",
+    "T-002": "Accepted FIX-001 and train protocol: 995b01ce; 29 unit and 10 browser cases.",
+    "T-003": "C-71 and all c65cov test names preserved/adapted once: 655d956d; 184 unit and 58 browser cases.",
+    "T-004": "C-68: 2f30dc2d; four async failures reproduced/repaired, 50 scoped unit and 26 browser cases, full Vitest 4609 pass.",
+    "T-005": "42 Chromium/WebKit viewer/session/close cases pass; shipped viewer repair identified; broader tab-close report remains unconfirmed with a reproduction request recorded in the close-report ledger."
+  },
+  "checks": {
+    "fullVitestPassed": 4609,
+    "files": 335,
+    "existingSkipped": 2,
+    "existingTodo": 3,
+    "rendererCoverageBranches": 85.8,
+    "thresholds": "unchanged, passing",
+    "ipcTypes": "passed",
+    "rendererBuild": "passed",
+    "releasePreflight": "2.5.3, six version sources consistent; no bump",
+    "C68FinalAssertionsWithCommands": "passed",
+    "desktopFinalAssertionsWithCommands": "passed",
+    "currentIntegrityErrors": 0,
+    "currentIntegrityWarnings": 55
+  },
+  "limits": [
+    "Remote CI must be read back for the final main commit.",
+    "Renderer shims do not prove native AppKit/dialog/disk behavior or owner acceptance.",
+    "C-70, C-71 and C-68 live acceptance remains separate from integration and publication.",
+    "Global GRACE/module-health reconciliation and store/branch cleanup remain deferred.",
+    "Mobile runtime stays uncommitted in its own preserved worktree/branch; protocol d4125833 is independently pushed."
+  ],
+  "safety": "Every commit and push uses full static scans, two serial local-model passes per complete changed-data chunk and exact raw candidate recheck; private receipts stay outside repository content."
+}

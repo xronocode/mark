@@ -111,6 +111,8 @@ export default defineConfig({
     // C-68: the ⌘D opened-baseline fallback (contenteditable edit before
     // the diff, CodeMirror MergeView rendering, the calm notice) also gates
     // in WebKit — the engine WKWebView ships.
-    { name: 'webkit-diff', use: { browserName: 'webkit' }, testMatch: 'diff-*.spec.ts' }
+    { name: 'webkit-diff', use: { browserName: 'webkit' }, testMatch: 'diff-*.spec.ts' },
+    // Session restore and close/edit ownership in WKWebView's browser engine.
+    { name: 'webkit-session', use: { browserName: 'webkit' }, testMatch: 'session-restore.spec.ts' }
   ]
 })

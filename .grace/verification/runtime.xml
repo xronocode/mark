@@ -5435,7 +5435,12 @@
             not restore. Marker
             [EditorStore][bootSession][BLOCK_SESSION_RESTORED] folders=N
             tabs=M skipped=K. Unit: tests/renderer/store/session-restore.test.js;
-            e2e: tests/e2e/session-restore.spec.ts.
+            e2e: tests/e2e/session-restore.spec.ts. Close-report triage also
+            checks DOM/current-tab agreement after closing the active tab,
+            subsequent edits remain in the remaining document, and a reload
+            restores only remaining paths (Chromium and webkit-session).
+            This is renderer/shim evidence, not native dialog/disk or owner
+            acceptance of an unreported reproduction sequence.
           </scenario-24>
         </scenarios>
         <required-log-markers>
