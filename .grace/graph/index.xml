@@ -7,7 +7,7 @@
       <!-- C-71 follow-up: own outline/scroller observation keeps table viewport geometry current after late visibility changes. -->
       <!-- C-68: M-011/V-M-011 scenario-67 own opened diff baselines and async tab/view isolation. -->
       <!-- C-71: M-012 owns viewport table sizing, resize/font refresh and bounded tooltip layout. -->
-      <!-- M-012 preserves native vertical selection while the passive format toolbar is shown. -->
+      <!-- M-012 preserves native vertical selection across overlapping passive format and hover/action panels. -->
       <!-- C-60: M-012 fn-reparseMarkdown and M-011 footnote tab-cache ownership. -->
       <!-- C-62: M-012 fn-diagramAppearance owns mode metadata, menu and editor/viewer/export palettes; M-011 supplies localized copy. -->
       <!-- C-PRIVATE-OPERATIONS: M-005 owns sanitized legacy preference examples and their publication check. -->
