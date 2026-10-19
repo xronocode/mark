@@ -53,3 +53,12 @@ site/node_modules/
 *.cer
 *.pem
 *.key
+
+# Private operational records live in a separate companion repository.
+/.grace/changes/active/C-59/
+/docs/promotion/
+/docs/backlog.md
+/prototypes/table-copy/
+/fixtures/**/userdata.tar.gz
+/fixtures/**/Local Storage/
+/fixtures/**/*.plist

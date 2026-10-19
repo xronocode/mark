@@ -1,6 +1,6 @@
 {
-	"imageFolderPath": "/Users/myevdokimov/Library/Application Support/marktext/images",
-	"screenshotFolderPath": "/Users/myevdokimov/Library/Application Support/marktext/screenshot",
+	"imageFolderPath": "/Users/<fixture>/Library/Application Support/marktext/images",
+	"screenshotFolderPath": "/Users/<fixture>/Library/Application Support/marktext/screenshot",
 	"webImages": [],
 	"cloudImages": [],
 	"currentUploader": "none",

@@ -65,7 +65,7 @@
 	"searchFollowSymlinks": true,
 	"watcherUsePolling": false,
 	"defaultDirectoryToOpen": "",
-	"lastOpenedFolder": "/Users/myevdokimov/prj/mark/mark-electron",
+	"lastOpenedFolder": "/Users/<fixture>/prj/mark/mark-electron",
 	"treePathExcludePatterns": [],
 	"__internal__": {
 		"migrations": {
