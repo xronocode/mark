@@ -116,7 +116,7 @@ const isDirty = computed(() => {
 })
 
 // from fileMixins
-const handleFileClick = () => {
+const handleFileClick = (event) => {
   const { isMarkdown, pathname } = props.file
   if (!isMarkdown) return
   const openedTab = tabs.value.find((f) => window.fileUtils.isSamePathSync(f.pathname, pathname))
@@ -127,15 +127,22 @@ const handleFileClick = () => {
     editorStore.UPDATE_CURRENT_FILE(openedTab)
   } else {
     // FIX-002 (2026-10-20): phase-0 mark of the sidebar-click open trace
-    // (click → mt::open-file → tab arrival → first paint). The later
-    // markers (bootstrap-ipc BLOCK_NEW_TAB_RECEIVED, editor store
+    // (click → mt::open-file → tab arrival → first paint). dispatch_ms
+    // is performance.now() minus the DOM event timeStamp — it exposes
+    // main-thread congestion BETWEEN the physical click and the handler
+    // (a busy tree re-render would hide there). The later markers
+    // (bootstrap-ipc BLOCK_NEW_TAB_RECEIVED, editor store
     // BLOCK_OPEN_TAB_CREATED, editor.vue BLOCK_OPEN_FIRST_PAINT) diff
     // against this timestamp to attribute the reported multi-second
     // latency to a leg.
     window.__openFileClickAt = performance.now()
+    const dispatchDelay = Math.max(
+      0,
+      Math.round(performance.now() - (event && event.timeStamp ? event.timeStamp : performance.now()))
+    )
     // eslint-disable-next-line no-console
     console.log(
-      `[sidebar][open-file][BLOCK_OPEN_FILE_CLICK path=${pathname.split('/').pop() || pathname}]`
+      `[sidebar][open-file][BLOCK_OPEN_FILE_CLICK dispatch_ms=${dispatchDelay} path=${pathname.split('/').pop() || pathname}]`
     )
     window.electron.ipcRenderer.send('mt::open-file', pathname, {})
   }
