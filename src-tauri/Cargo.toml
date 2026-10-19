@@ -24,14 +24,14 @@ tauri = { version = "2", features = ["devtools", "image-png"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rfd = "0.17"
-notify-debouncer-full = "0.5"
+notify-debouncer-full = "0.7"
 ignore = "0.4"
 regex = "1"
 chardet = "0.2"
 encoding_rs = "0.8"
 clap = { version = "4", features = ["derive"] }
 font-kit = "0.14"
-keyring = "3"
+keyring = "4"
 tauri-plugin-updater = "2"  # non-optional: capabilities/default.json references updater:default, and tauri-build fails without the plugin in the tree even when the app-store cfg never registers it
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-dialog = "2"
@@ -40,15 +40,15 @@ tauri-plugin-opener = "2"
 tauri-plugin-process = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"  # C-15 T-W4: second launch ("Open With") forwards files to the running instance
-reqwest = { version = "0.12", features = ["json"] }
-rand = "0.8"
+reqwest = { version = "0.13", features = ["json"] }
+rand = "0.10"
 tokio = { version = "1", features = ["sync", "rt", "time", "net", "macros"] }
 axum = "0.8"
-signal-hook = "0.3"
+signal-hook = "0.4"
 raw-window-handle = "0.6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.26"
+cocoa = "0.27"
 objc = "0.2"
 core-foundation = "0.10"
 core-foundation-sys = "0.8"
@@ -62,9 +62,9 @@ core-foundation-sys = "0.8"
 # lock, webview2-com's own dependency) supplies Interface::cast/HSTRING.
 # Both resolve to existing lock entries; no new crates.
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-version = "0.1"
-webview2-com = "0.38"
-windows-core = "0.61"
+windows-version = "0.100"
+webview2-com = "0.39"
+windows-core = "0.62"
 
 [dev-dependencies]
 tempfile = "3"
