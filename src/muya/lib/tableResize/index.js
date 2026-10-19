@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 2.4.0
+// VERSION: 2.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Table column resize and per-table layout (C-39 T-002 session widths; C-65 persistent widths + the per-table Full width mode keyed by file-path-stable identities), pointer-drag interaction on header-border handles, double-click reset, reconciliation after every muya re-render, the table toolbar click routing and the overflow-cue refresh.
-//   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), the persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge (R-1/R-3, written only after a real user action), the Full width mode session set + DOM application + toggle routing (R-4/R-6), capture-phase pointer/mouse/click/dblclick/scroll handling on the editor container, and DOM application of widths (colgroup + table-layout fixed).
+//   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), the persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge (R-1/R-3, written only after a real user action), the Full width mode centered in the owning editor client viewport independently of outline overlays + DOM application + toggle routing (R-4/R-6), capture-phase pointer/mouse/click/dblclick/scroll handling on the editor container, and DOM application of widths (colgroup + table-layout fixed).
 //   DEPENDS: muya.eventCenter (capture-phase DOM events on muya.container), window pointer events during a drag, DOM colgroup/th measuring; ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS); ../parser/render/renderBlock/renderTableToolbar (toggle icon paths for the live label swap).
 //   LINKS: .grace/graph/runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21 and scenario-66; .grace/changes/active/C-39 T-002; .grace/changes/active/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side).
 //   ROLE: RUNTIME
@@ -10,7 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - TableResize: column drag/reset, persisted layout identities, available-viewport Full width sizing with CSS centering, and table toolbar routing.
+//   default - TableResize: column drag/reset, persisted layout identities, full-editor Full width sizing with CSS centering, and table toolbar routing.
 //   FULL_WIDTH_GUTTER_PX - gap between a Full width table that is wider than the editor and the editor's left edge.
 //   MIN_COLUMN_WIDTH - drag clamp floor for one column (px).
 //   TABLE_FIXED_CLASS - class marking a table that carries session widths (table-layout: fixed + colgroup).
@@ -29,7 +29,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.4.0 - 2026-10-19 C-71: center natural-size tables with
+//   LAST_CHANGE: v2.5.0 - 2026-10-19 C-71-TABLE-CENTER: use the full editor
+//   client viewport so fitting long-cell tables remain centered even when
+//   the outline overlays their right edge; true overflow retains its gutter.
+//   v2.4.0 - 2026-10-19 C-71: center natural-size tables with
 //   CSS auto margins inside an explicit available viewport; geometry is
 //   scroll-relative and excludes other editors' outline overlays.
 //   v2.3.0 - 2026-10-19 C-70: the toolbar's copyImage action
@@ -498,7 +501,7 @@ class TableResize {
     syncTableCue(figure, this.muya.options && this.muya.options.t)
   }
 
-  // Size and anchor a viewport inside the scroller's available content
+  // Size and anchor a viewport inside the scroller's full client
   // area. CSS centers a fitting table; oversized tables start at the
   // gutter. Hidden/zero-geometry surfaces retain their CSS fallback.
   applyFullWidthGeometry(figure) {
@@ -519,18 +522,9 @@ class TableResize {
     // Give CSS the available width instead of baking a possibly stale
     // table width into its position. Auto margins keep late font changes
     // centered and resolve to zero when the table exceeds this viewport.
-    // A host overlay pinned to the right of the editor (the outline rail
-    // marks itself with data-editor-overlay-right) narrows the room: a
-    // centred table must not slide under it.
-    let available = container.clientWidth || containerRect.width
-    const overlay = container.closest('.editor-with-tabs')
-      ?.querySelector('[data-editor-overlay-right]')
-    if (overlay && overlay.getBoundingClientRect) {
-      const o = overlay.getBoundingClientRect()
-      if (o.width > 0 && o.left > containerRect.left && o.left < containerRect.left + available) {
-        available = o.left - containerRect.left - FULL_WIDTH_GUTTER_PX
-      }
-    }
+    // The outline overlays the page; it must not shift its center or turn
+    // a table that fits the editor into left-anchored overflow.
+    const available = container.clientWidth || containerRect.width
     const target = FULL_WIDTH_GUTTER_PX
     wrapper.style.width = `${Math.max(0, available - FULL_WIDTH_GUTTER_PX * 2)}px`
     if (Math.round(offset) === target) return

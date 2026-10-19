@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001/T-004 persistent table layout behaviour of muya.tableResize — the persistent identity (ordinal + header signature), adoption of stored entries into fresh block keys, the identity-change drop (header edited / column count changed — corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the Full width toggle (class + toolbar DOM + persistence) and the capture-phase toolbar/caption routing incl. the viewer dispatch and the disabled-surface guard.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities, applyPersistedLayouts, serializeTableLayouts, persist, toggle/openViewer, handleToolbarClick/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -14,7 +14,7 @@
 //   makeFakeMuya - fake muya {container, options, eventCenter with REAL addEventListener-backed attachDOMEvent, dispatch spy} with a real TableResize.
 //   buildTableFigure - jsdom figure[data-role=TABLE] > div.ag-table-scroll > table.ag-paragraph with header texts, ids and stubbed cell rects.
 //   buildToolbarDom - the live toolbar DOM TableResize swaps on toggle (button + label span + svg path).
-//   makeWide - stubs a fixture's table natural width and its figure's text-column width (the Full width default trigger).
+//   makeWide - stubs natural and text-column widths for Full width defaults; geometry cases pin the client viewport independently of the outline.
 //   pidOf - computes the expected ordinal#signature identity of a buildTableFigure fixture.
 //   buildBareTable - jsdom table.ag-paragraph with a thead (or tbody) row of th cells, NOT wrapped in a figure — the guard paths where closest('figure') must miss.
 //   addHandles - appends one .ag-column-resizer span per row cell; returns the handles.
@@ -23,7 +23,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-71: viewport geometry, scrollbar
+//   LAST_CHANGE: v1.3.0 - 2026-10-19 C-71-TABLE-CENTER: outline geometry never reserves table viewport width or shifts the page center.
+//   v1.2.0 - 2026-10-19 C-71: viewport geometry, scrollbar
 //   coordinates, overlay ownership, removed auto-width entries and C-70
 //   copy routing; integrate and update the reviewed c65cov guard tests.
 //   v1.1.0 - 2026-10-19 Full width default: a wide table gets
@@ -1193,11 +1194,11 @@ describe('table viewport and export regression paths (C-71)', () => {
   })
 
   it.each([
-    [{ left: 700, width: 100 }, '618px'],
+    [{ left: 700, width: 100 }, '752px'],
     [{ left: 700, width: 0 }, '752px'],
     [{ left: 0, width: 100 }, '752px'],
     [{ left: 1000, width: 100 }, '752px']
-  ])('sizes the table viewport around only a usable own-editor overlay: %j', (rect, expected) => {
+  ])('keeps the full client viewport independently of own-outline geometry: %j', (rect, expected) => {
     const muya = makeFakeMuya()
     const host = document.createElement('div')
     host.className = 'editor-with-tabs'
@@ -1222,6 +1223,7 @@ describe('table viewport and export regression paths (C-71)', () => {
     muya.tableResize.applyFullWidthGeometry(figure)
     expect(wrapper.style.width).toBe(expected)
     expect(wrapper.style.marginLeft).toBe('') // content coordinate is already the 24px gutter
+    expect(muya.eventCenter.dispatch).not.toHaveBeenCalled()
     muya.tableResize.applyFullWidthDom(figure, false)
     expect(wrapper.style.width).toBe('')
   })

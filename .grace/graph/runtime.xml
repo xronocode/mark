@@ -3641,8 +3641,11 @@
         auto margins, so late fonts cannot stale their centering. Resize
         refreshes table geometry on window/container/font changes,
         independently of code line numbers. Content-space coordinates
-        preserve horizontal scrolling; only the owning outline narrows the
-        viewport. Viewer zoom has magnifier +/- glyphs and responsive
+        preserve horizontal scrolling. C-71-TABLE-CENTER supersedes the
+        outline-reduced width: tables center in the full owning editor
+        client viewport, and the outline remains an independent overlay.
+        Fitting long-cell tables no longer fall back to the left gutter.
+        Viewer zoom has magnifier +/- glyphs and responsive
         controls. Intrinsic-width tooltips clamp/flip at viewport edges,
         wrap long labels and remove hover timers on leave/detached sources.
         C-62: Mermaid/Pele diagrams expose Auto/Custom/Light/Dark through
@@ -4194,7 +4197,8 @@
                 dispatch, only after real user actions); the Full width
                 session set + toggleFullWidthFromElement /
                 applyFullWidthDom / applyFullWidthGeometry (measured
-                viewport width and scroll-relative breakout margin, with
+                full owning client viewport width, independent of outline
+                overlays, and scroll-relative breakout margin, with
                 CSS auto margins for centering) implement the R-6 mode; the
                 table toolbar (renderTableToolbar.js) and the caption are
                 routed on CAPTURE PHASE here (toggle, muya-block-viewer,
