@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-cue.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 overflow cue and table toolbar — the pure «columns X–Y of N» range math (start / middle / end / fits / single column / degenerate), the caption formatting incl. the token fallback and the full-width «all N columns», the DOM state gathering and sync (caption text/visibility + shade side classes, live translator pin), the renderTableToolbar vnode (buttons, labels, active state, family classes, dataset actions, need-gated expand) and the C-65 CSS literals (toolbar above the table on the column edge, caption below it, class-gated shades, full-width breakout).
 //   SCOPE: src/muya/lib/tableResize/tableCue.js, src/muya/lib/parser/render/renderBlock/renderTableToolbar.js, the C-65 section of lib/assets/styles/index.css, and the START_BLOCK_TABLE_TOOLBAR_AND_CAPTION placement in renderContainerBlock.js.
@@ -14,13 +14,14 @@
 //   t - params-aware translator, compared with throwing/non-string/token-preserving fallback paths.
 //   identityT - fake translator that ignores params (the fallback path exercises the token replacement).
 //   columnsOf - builds a contiguous column geometry array.
-//   buildFigure - jsdom table/caption scroll-block fixture with header, native scrollbar metrics and viewport geometry.
+//   buildFigure - jsdom table/caption scroll-block fixture with header, native scrollbar metrics, table width, text-column width and viewport geometry.
 //   rangeOf - visibleColumnRange over a columnsOf geometry and a span.
 //   NINE - test helper (NINE).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-20 C-TABLE-FOOTER: caption inside the wrapper, fitting expanded tables clear text, native scrollbar-space compensation retains a fixed footer.
+//   LAST_CHANGE: v1.4.0 - 2026-10-20 C-TABLE-FOOTER owner review: width-toggle eligibility follows actual table versus text-column width in either mode; fitting restored layouts clear the counter.
+//   PREV: v1.3.0 - 2026-10-20 C-TABLE-FOOTER: caption inside the wrapper, fitting expanded tables clear text, native scrollbar-space compensation retains a fixed footer.
 //   v1.2.0 - 2026-10-19 C-71: CSS centers full-width tables;
 //   integrate reviewed c65cov cases for complete cue/toolbar coverage.
 //   v1.1.0 - 2026-10-19 C-70: three table toolbar actions.
@@ -100,7 +101,7 @@ const rangeOf = (columns, spanLeft, spanWidth) =>
 // jsdom figure with stubbed geometry: wrapperRect {left,width}, and one
 // rect per header cell (contiguous, starting at tableLeft inside the
 // wrapper's coordinate space is irrelevant — rects are viewport coords).
-const buildFigure = ({ role = 'TABLE', headerTexts = ['A', 'B', 'C'], wrapperRect = { left: 100, width: 600 }, cellRects = null, clientWidth = null, fullWidth = false } = {}) => {
+const buildFigure = ({ role = 'TABLE', headerTexts = ['A', 'B', 'C'], wrapperRect = { left: 100, width: 600 }, cellRects = null, clientWidth = null, tableWidth = null, figureWidth = null, fullWidth = false } = {}) => {
   const figure = document.createElement('figure')
   if (role) figure.setAttribute('data-role', role)
   if (fullWidth) figure.classList.add(TABLE_FULL_WIDTH_CLASS)
@@ -126,6 +127,8 @@ const buildFigure = ({ role = 'TABLE', headerTexts = ['A', 'B', 'C'], wrapperRec
   })
   const cells = Array.from(row.cells)
   const rects = cellRects || columnsOf(cells.map(() => 100), wrapperRect.left)
+  Object.defineProperty(figure, 'clientWidth', { value: figureWidth ?? wrapperRect.width, configurable: true })
+  table.getBoundingClientRect = () => ({ width: tableWidth ?? rects.reduce((sum, rect) => sum + rect.width, 0) })
   cells.forEach((cell, i) => {
     cell.getBoundingClientRect = () => ({ left: rects[i].left, width: rects[i].width })
   })
@@ -279,7 +282,7 @@ describe('table cue DOM state + sync (C-65 T-003)', () => {
   })
 
   it('full width short-circuits to «all N» with no shades', () => {
-    const { figure } = buildFigure({ fullWidth: true, headerTexts: ['a', 'b'] })
+    const { figure } = buildFigure({ fullWidth: true, tableWidth: 900, headerTexts: ['a', 'b'] })
     const state = tableCueState(figure)
     expect(state).toMatchObject({ fullWidth: true, fits: false, total: 2, hiddenLeft: false, hiddenRight: false })
   })
@@ -331,7 +334,7 @@ describe('table cue DOM state + sync (C-65 T-003)', () => {
   })
 
   it('full width syncs «all N columns» and no shade classes', () => {
-    const { figure, wrapper, caption } = buildFigure({ fullWidth: true, headerTexts: ['a', 'b', 'c'] })
+    const { figure, wrapper, caption } = buildFigure({ fullWidth: true, tableWidth: 900, headerTexts: ['a', 'b', 'c'] })
     syncTableCue(figure, t)
     expect(caption.textContent).toBe('all 3 columns')
     expect(caption.classList.contains(TABLE_CAPTION_ON_CLASS)).toBe(true)
@@ -361,6 +364,20 @@ describe('table cue DOM state + sync (C-65 T-003)', () => {
     syncTableCue(figure, t)
     expect(wrapper.style.getPropertyValue('--ag-table-scrollbar-height')).toBe('0px')
     expect(table.innerHTML).toBe(before)
+  })
+
+  it('gates the width toggle on text-column overflow in either mode and updates after resize', () => {
+    for (const fullWidth of [false, true]) {
+      const { figure } = buildFigure({ fullWidth, tableWidth: 500, figureWidth: 300 })
+      syncTableCue(figure, t)
+      expect(figure.classList.contains('ag-table-width-toggle-needed')).toBe(true)
+      Object.defineProperty(figure, 'clientWidth', { value: 600, configurable: true })
+      syncTableCue(figure, t)
+      expect(figure.classList.contains('ag-table-width-toggle-needed')).toBe(false)
+      Object.defineProperty(figure, 'clientWidth', { value: 300, configurable: true })
+      syncTableCue(figure, t)
+      expect(figure.classList.contains('ag-table-width-toggle-needed')).toBe(true)
+    }
   })
 
   it('a not-laid-out figure is a no-op (no throw, no state)', () => {

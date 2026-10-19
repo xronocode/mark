@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-width-persistence.spec.ts
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001 profile persistence round trip in the built renderer — resized column widths and the per-table Full width mode are written to the tableLayouts prefs key only after a real user action, a close+reopen of the same file restores them, an edited header drops that table's widths (corner-2), and a file the (mocked) filesystem no longer has is pruned instead of applied (corner-3).
 //   SCOPE: The editor.vue BLOCK_TABLE_LAYOUTS_HOST wiring (load after document loads, save on muya-table-layouts dispatches), util/tableLayoutStore.js flows, and muya.tableResize adoption.
@@ -11,11 +11,12 @@
 //
 // START_MODULE_MAP
 //   DOC_PATH - the persisted fixture's fake pathname (stat says it exists).
-//   TABLE_MD - a 3-column fixture with distinct header names.
+//   TABLE_MD - a 3-column fixture with distinct header names; widened before testing the visible width toggle and persisted mode.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FOOTER: test explicit Full width persistence on a genuinely wide table; fitting expanded tables have no counter.
+//   PREV: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.0.0 - 2026-10-18 C-65: new — the round trip fails
 //   without the host wiring (nothing saved), the reopen restore fails
 //   without adoption, the header-edit case fails if the signature drop is
@@ -182,11 +183,16 @@ test.describe('table layout persistence (C-65 T-001)', () => {
     await installPersistingShim(page)
     await openDoc(page)
 
+    // Fitting tables no longer offer an unnecessary width action. Widen
+    // this table first, then choose Full width explicitly regardless of
+    // when its automatic layout refresh ran after the drag.
+    await dragBorder(page, 0, 600)
+    const figure = page.locator("figure[data-role='TABLE']").first()
     const tableBox = await page.locator("figure[data-role='TABLE'] table").first().boundingBox()
     await page.mouse.move(tableBox!.x + tableBox!.width / 2, tableBox!.y + tableBox!.height / 2)
     const toggle = page.locator("figure[data-role='TABLE'] button.ag-table-toolbar-toggle")
-    const box = await toggle.boundingBox()
-    await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2)
+    await toggle.click()
+    if (!await figure.evaluate(el => el.classList.contains('ag-table-full-width'))) await toggle.click()
     expect((await tableState(page))!.fullWidth).toBe(true)
 
     await page.waitForFunction(() => {
@@ -207,7 +213,7 @@ test.describe('table layout persistence (C-65 T-001)', () => {
 
     const reopened = await tableState(page)
     expect(reopened!.fullWidth).toBe(true)
-    expect(reopened!.caption).toBe('all 3 columns')
+    expect(reopened!.caption).toBe('')
   })
 
   test('an edited header drops the restored widths (corner-2)', async ({ page }) => {

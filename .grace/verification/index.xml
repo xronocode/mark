@@ -4,7 +4,7 @@
     <!-- C-63: V-M-046 scenario-13 enforces the footnotes and appearance WebKit projects. -->
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>
-      <!-- C-TABLE-FOOTER: V-M-012 scenario-table-footer verifies compact in-wrapper caption/bar order and stable invisible space in both engines. -->
+      <!-- C-TABLE-FOOTER: V-M-012 scenario-table-footer verifies compact caption/bar order, stable invisible space and fitting/restored-table controls in both engines. -->
       <!-- C-71 owner acceptance on f17b070e is queued in 2.5.x-next; table-footer spacing is a separate pending change. -->
       <!-- C-71-OUTLINE-OCCLUSION: V-M-011 scenario-54 covers whole-outline hide/restore on scroll intersection without geometry or content writes. -->
       <!-- C-71-TABLE-CENTER: V-M-012 scenario-69 reproduces long-cell centering against full editor bounds in both engines. -->

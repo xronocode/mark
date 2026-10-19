@@ -6703,6 +6703,12 @@
           the counter line and scrollbar space invisibly when fitting,
           including Full width; consumed/overlay scrollbar metrics are
           compensated. The counter stays inside the viewport when scrolling.
+          Its text ends 18px before the right edge: 14px for the shade
+          plus a 4px clear gap, pinned with a DOM text-range measurement.
+          Owner-review follow-up: fitting tables hide the width toggle and
+          its Tab stop while retaining Copy as image. A restored Full width
+          choice on a fitting table has no stray counter. The wide fixture
+          is shown in the exact fresh test app for separate owner acceptance.
           Native editing, caption caret guards, drag handles, persistent
           widths and accepted C-71 geometry/outline behavior remain intact.
           Tests: table-footer.spec.ts in Chromium/WebKit, updated table

@@ -4257,7 +4257,8 @@
                 allColumns with a {start}/{end}/{total} token fallback),
                 tableCueState (DOM gathering incl. measured full-width fit;
                 null on hidden panes/jsdom) and
-                syncTableCue (caption text/visibility, consumed native
+                syncTableCue (width-toggle eligibility from table versus
+                text-column width, caption text/visibility, consumed native
                 scrollbar-space CSS variable, and the
                 ag-table-cue-left/right shade classes). setTableCueTranslator
                 pins the live translator for the resize funnel
@@ -4277,13 +4278,15 @@
                 T-002): the TABLE toolbar — div.ag-block-toolbar.ag-table-toolbar,
                 a C-56-family pill as a DIRECT figure child of every table
                 figure, REPLACING the standalone button.ag-block-expand
-                glyph (its old CSS placement rule removed with it). Two
-                buttons: the Full width ↔ Fit to page toggle (per-state
+                glyph (its old CSS placement rule removed with it). Three
+                actions: the Full width ↔ Fit to page toggle (shown only
+                when the table is wider than the text column, including
+                restored mode choices, with per-state
                 icon/label/ag-table-toolbar-active class;
                 TableResize.updateToolbarToggleDom keeps the live DOM in
-                step between renders) and the need-gated Open full screen
+                step between renders), Copy as image, and the need-gated Open full screen
                 action (ag-block-toolbar-expand under the expandNeed.js
-                ag-expand-needed gate). Both carry the ag-block-expand
+                ag-expand-needed gate). All carry the ag-block-expand
                 family class (the keyboard.js key guard) but NOT
                 dataset.blockToolbarAction — routing is capture-phase in
                 TableResize, so clickEvent.js never sees them.
