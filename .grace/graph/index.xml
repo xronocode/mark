@@ -3,6 +3,7 @@
     <!-- C-63: M-046 owns the explicit C-60/C-62 WebKit CI gate in test.yml. -->
     <GD-RUNTIME>
       <Path>graph/runtime.xml</Path>
+      <!-- C-71: M-012 owns viewport table sizing, resize/font refresh and bounded tooltip layout. -->
       <!-- M-012 preserves native vertical selection while the passive format toolbar is shown. -->
       <!-- C-60: M-012 fn-reparseMarkdown and M-011 footnote tab-cache ownership. -->
       <!-- C-62: M-012 fn-diagramAppearance owns mode metadata, menu and editor/viewer/export palettes; M-011 supplies localized copy. -->

@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/ui/imageToolbar/index.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The embedded-image floating toolbar — edit (alt/title/src), the C-56 T-006 Copy image action, alignment and delete for a selected ![](…) image.
-//   SCOPE: the float UI (BaseFloat subclass) and its click routing only: edit dispatches muya-image-selector, alignment goes through contentState.updateImage, delete through contentState.deleteImage, and Copy image dispatches the muya-image-copy event whose imageInfo carries the raw Markdown token (the host transport owns fs/fetch/canvas/clipboard).
+//   SCOPE: Float UI, viewport-clamped/flipped hover labels and action routing: edit dispatches muya-image-selector, alignment/delete use contentState, and Copy image dispatches muya-image-copy with the raw image token; the host owns fs/fetch/canvas/clipboard.
 //   DEPENDS: ui/baseFloat, snabbdom, ui/imageToolbar/config (getIcons), contentState image actions, eventCenter.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-65; .grace/changes/active/C-56 T-006; clickEvent.js (the muya-image-toolbar dispatch on image click); editor.vue handleImageCopyAction (the muya-image-copy subscriber); index.css (the 7-button layout).
 //   ROLE: RUNTIME
@@ -10,11 +10,13 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - ImageToolbar class (pluginName 'imageToolbar'; renders the config entries — PNG icons via the icon-inner background trick, the Copy-image entry as an inline stroke SVG — and routes clicks; selectItem's copyImage case dispatches muya-image-copy and hides).
+//   default - ImageToolbar class: localized image actions, viewport-clamped hover labels and click routing; Copy image dispatches muya-image-copy and hides.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-18 C-56 T-006: the Copy image button
+//   LAST_CHANGE: v1.2.0 - 2026-10-19 C-71: intrinsic-width readable labels,
+//   clamped away from viewport edges with a below-button fallback.
+//   v1.1.0 - 2026-10-18 C-56 T-006: the Copy image button
 //   (config entry type copyImage) between edit and the alignment buttons —
 //   the icon is the T-005 corner-pill copy glyph inlined as SVG (render
 //   gains the i.icon svg branch; the PNG background path is unchanged),
@@ -124,6 +126,7 @@ class ImageToolbar extends BaseFloat {
           tip: i.tooltip
         },
         on: {
+          mouseenter: event => this.positionLabel(event.currentTarget),
           click: event => {
             this.selectItem(event, i)
           }
@@ -140,6 +143,18 @@ class ImageToolbar extends BaseFloat {
     }
     this.oldVnode = vnode
   }
+
+  // START_BLOCK_IMAGE_TOOLTIP_LAYOUT
+  positionLabel (item) {
+    const tooltip = item.querySelector('.tooltip')
+    tooltip.style.setProperty('--tooltip-shift-x', '0px')
+    tooltip.classList.remove('tooltip-below')
+    const rect = tooltip.getBoundingClientRect()
+    const shift = Math.max(8 - rect.left, Math.min(0, window.innerWidth - 8 - rect.right))
+    tooltip.style.setProperty('--tooltip-shift-x', `${shift}px`)
+    tooltip.classList.toggle('tooltip-below', rect.top < 8)
+  }
+  // END_BLOCK_IMAGE_TOOLTIP_LAYOUT
 
   selectItem (event, item) {
     event.preventDefault()

@@ -32,18 +32,36 @@
 
 .ag-image-toolbar li.item div.tooltip {
   min-width: 100px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  overflow-wrap: anywhere;
+  padding: 6px 10px;
+  pointer-events: none;
   box-sizing: border-box;
-  height: 30px;
+  min-height: 30px;
   text-align: center;
   display: block;
   position: absolute;
-  top: -38px;
+  left: calc(50% + var(--tooltip-shift-x, 0px));
+  transform: translateX(-50%);
+  bottom: calc(100% + 8px);
   background: var(--floatBgColor);
   border-radius: 2px;
-  line-height: 30px;
+  line-height: 18px;
+  font-size: 12px;
   color: var(--editorColor);
   box-shadow: var(--floatShadow);
   display: none;
+}
+
+.ag-image-toolbar li.item div.tooltip.tooltip-below {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+
+.ag-image-toolbar li.item div.tooltip.tooltip-below::before {
+  bottom: auto;
+  top: -3px;
 }
 
 .ag-image-toolbar li.item div.tooltip::before {
@@ -55,7 +73,7 @@
   position: absolute;
   bottom: -1px;
   transform: rotate(-45deg) translateX(-50%);
-  left: 50%;
+  left: calc(50% - var(--tooltip-shift-x, 0px));
 }
 
 .ag-image-toolbar li.item:hover {

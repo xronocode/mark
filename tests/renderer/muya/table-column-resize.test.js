@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-column-resize.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-002 session-only table column resize: the width store keyed by table block key, min-width clamping, column-count reconciliation, the re-apply-after-render hook, the colgroup/resizer-handle vnodes, and the guarantee that resizing never touches markdown, history or DOM structure of unresized tables.
 //   SCOPE: src/muya/lib/tableResize/index.js (store, reconcileWidths, reconcileAfterRender) and START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js, plus the full render path via a real Muya in jsdom.
@@ -12,12 +12,18 @@
 // START_MODULE_MAP
 //   CLEANUP - teardown callbacks run after each test.
 //   makeFakeMuya - fake muya {container, options, eventCenter, contentState} with a REAL TableResize instance attached.
-//   buildTable - jsdom <table> with a thead row of N th cells.
+//   buildTable - jsdom table with N header cells; omits the id attribute for missing-id guard scenarios.
 //   stubCellWidths - monkey-patches getBoundingClientRect on the th cells (jsdom has no layout).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-39 T-002: clamp/reconcile maths, store isolation and cleanup, count-mismatch reconcile (incl. hidden-table skip), colgroup + handle vnodes, disabled-surface vnodes, and a full real-Muya render proving widths re-apply while markdown and history stay byte-identical. The colgroup/vnode cases fail without START_BLOCK_TABLE_COLUMN_WIDTHS; the store/reconcile cases fail without lib/tableResize.
+//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-65 R-7 coverage completion: finder
+//   null/text-node/non-element guards, unmeasurable header rows, colgroup
+//   trimming of surplus cols, the missing-container guards of
+//   syncIdentities/reconcileAfterRender/refreshTableSurfaces, the
+//   id-less and thead-less reconcile skips (stale entry kept), and the
+//   figure-less surface-refresh skip.
+//   v1.0.0 - 2026-10-15 C-39 T-002: clamp/reconcile maths, store isolation and cleanup, count-mismatch reconcile (incl. hidden-table skip), colgroup + handle vnodes, disabled-surface vnodes, and a full real-Muya render proving widths re-apply while markdown and history stay byte-identical. The colgroup/vnode cases fail without START_BLOCK_TABLE_COLUMN_WIDTHS; the store/reconcile cases fail without lib/tableResize.
 // END_CHANGE_SUMMARY
 
 import { describe, expect, it, vi, afterEach } from 'vitest'
@@ -62,7 +68,8 @@ const makeFakeMuya = (options = {}) => {
 // would report them.
 const buildTable = (id, columnCount) => {
   const table = document.createElement('table')
-  table.id = id
+  // No id passed → no id attribute (assigning undefined would stringify).
+  if (id) table.id = id
   // muya renders every block with the ag-paragraph class; reconcile finds
   // tables via `table.ag-paragraph`.
   table.className = 'ag-paragraph'
@@ -377,5 +384,91 @@ describe('session resize never touches the document (C-39 T-002)', () => {
     const table = muya.container.querySelector('table.ag-paragraph')
     expect(table.classList.contains(TABLE_FIXED_CLASS)).toBe(false)
     expect(table.querySelector('colgroup')).toBeNull()
+  })
+})
+
+describe('guard paths over unusable surfaces (C-39/C-65 R-7)', () => {
+  it('the target finders return null for null, text-node and non-element targets', () => {
+    const muya = makeFakeMuya()
+    const text = document.createTextNode('x')
+    expect(muya.tableResize.findHandle(null)).toBeNull()
+    expect(muya.tableResize.findHandle(text)).toBeNull()
+    expect(muya.tableResize.findHandle({})).toBeNull()
+    expect(muya.tableResize.findTableToolbarButton(null)).toBeNull()
+    expect(muya.tableResize.findTableToolbarButton(text)).toBeNull()
+    expect(muya.tableResize.findTableFigure(null)).toBeNull()
+    expect(muya.tableResize.findTableFigure(text)).toBeNull()
+    const handle = document.createElement('span')
+    handle.className = RESIZER_CLASS
+    muya.container.appendChild(handle)
+    expect(muya.tableResize.findHandle(handle)).toBe(handle)
+  })
+
+  it('measureColumnWidths refuses tables without a usable header row', () => {
+    const muya = makeFakeMuya()
+    expect(muya.tableResize.measureColumnWidths(document.createElement('table'))).toBeNull()
+    const emptyRow = document.createElement('table')
+    emptyRow.createTHead().insertRow(0)
+    expect(muya.tableResize.measureColumnWidths(emptyRow)).toBeNull()
+  })
+
+  it('applyWidths trims surplus cols from an existing colgroup', () => {
+    const muya = makeFakeMuya()
+    const table = buildTable('t1', 1)
+    const colgroup = document.createElement('colgroup')
+    for (let i = 0; i < 3; i++) colgroup.appendChild(document.createElement('col'))
+    table.insertBefore(colgroup, table.firstChild)
+
+    muya.tableResize.applyWidths(table, { widths: [100], manual: [true] })
+
+    expect(colgroup.children.length).toBe(1)
+    expect(colgroup.children[0].style.width).toBe('100px')
+  })
+
+  it('syncIdentities, reconcileAfterRender and refreshTableSurfaces survive a missing container', () => {
+    const muya = makeFakeMuya()
+    muya.tableResize.setTableWidths('t1', [100], [true])
+    muya.container = null
+    expect(muya.tableResize.syncIdentities()).toBe(false)
+    expect(() => muya.tableResize.reconcileAfterRender()).not.toThrow()
+    expect(() => muya.tableResize.refreshTableSurfaces()).not.toThrow()
+    muya.container = {}
+    expect(muya.tableResize.syncIdentities()).toBe(false)
+    expect(() => muya.tableResize.reconcileAfterRender()).not.toThrow()
+    expect(() => muya.tableResize.refreshTableSurfaces()).not.toThrow()
+    // The stale entry survives for the next render on a real container.
+    expect(muya.tableResize.getWidths('t1')).toEqual([100])
+  })
+
+  it('reconcile skips id-less tables and tables without a header row, keeping their stale entries', () => {
+    const muya = makeFakeMuya()
+    const good = buildTable('t1', 2)
+    const noId = buildTable(undefined, 1)
+    const noHead = document.createElement('table')
+    noHead.id = 't3'
+    noHead.className = 'ag-paragraph'
+    noHead.appendChild(document.createElement('tbody'))
+    muya.container.append(good, noId, noHead)
+    muya.tableResize.setTableWidths('t1', [100, 200], [true, false])
+    muya.tableResize.setTableWidths('t3', [90], [true])
+    stubCellWidths(good, [100, 200])
+
+    muya.tableResize.reconcileAfterRender()
+
+    expect(good.classList.contains(TABLE_FIXED_CLASS)).toBe(true)
+    // t3 has no header row: the entry is kept stale for a later render.
+    expect(muya.tableResize.getWidths('t3')).toEqual([90])
+    expect(muya.tableResize.identities.has('t3')).toBe(false)
+  })
+
+  it('refreshTableSurfaces skips figures without a usable table', () => {
+    const muya = makeFakeMuya()
+    const childless = document.createElement('figure')
+    childless.setAttribute('data-role', 'TABLE')
+    const idless = document.createElement('figure')
+    idless.setAttribute('data-role', 'TABLE')
+    idless.appendChild(buildTable(undefined, 1))
+    muya.container.append(childless, idless)
+    expect(() => muya.tableResize.refreshTableSurfaces()).not.toThrow()
   })
 })
