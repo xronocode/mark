@@ -6691,8 +6691,13 @@
           fresh Mark Test with the selection fixture: vertical Shift-arrow
           behavior accepted. FIX-001 in docs/release-trains/2.5.x-next.md
           retains source 1d594f9c, the tested binary hash and earlier acceptance.
-          Owner report on Mark Test 549542ad reopens the overlapping-panel
-          scope for a fresh check; prior acceptance remains historical.
+          Owner report on Mark Test 549542ad reopened the overlapping-panel
+          scope; prior acceptance remains historical. On 2026-10-19 the
+          owner rechecked isolated Mark Test bcaebe05 (source bcaebe05,
+          binary SHA-256 432318f7a1e97b2a3733eb413cb2814d8212181470cf7b52f007ddca906f52da)
+          and confirmed the reported Shift-arrow flow works after the panel
+          appears. FIX-001 is reaccepted and queued; other candidates retain
+          their own acceptance state and publication remains unauthorized.
           Follow-up evidence: four new unit cases fail on the baseline;
           all 33 focused/neighboring unit cases and 22 Chromium/WebKit
           selection/status-bar cases pass after the repair. Renderer build
