@@ -6652,10 +6652,15 @@
           unaccepted; no publication is authorized by this confirmation.
         </Scenario>
         <Scenario>
-          scenario-69 (C-71): Expanded tables center within the available
+          scenario-69 (C-71): Expanded tables center within the full owning
           editor viewport through resizes, sidebar changes and late fonts;
-          own-editor outline bounds and scrolled content coordinates are
-          respected. Late owning outline show/hide is observed even when
+          scrolled content coordinates are respected. C-71-TABLE-CENTER
+          supersedes outline-reduced table sizing: long-cell tables fitting
+          the editor remain centered even if they intersect the outline.
+          The native Mark Test report and both-engine regression reproduced
+          this left shift before repair (88.09375px in the browser fixture).
+          Outline interaction is verified in its separate follow-up.
+          Late owning outline show/hide is observed even when
           the column/window width stays fixed; scroller size and scrollbar
           changes use the actual client viewport. A real-browser regression
           reproduced the CI 114.5px stale offset before the follow-up repair.

@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-19",
+  "status": "fixed and locally verified; integration CI and fresh native acceptance pending",
+  "reproduction": {
+    "native": "Existing Mark Test 2.5.3, bundle com.xronocode.mark.test, binary SHA-256 1bdd33a5d50b5804bd5139aed7e1ed549789e30ea4d1643caabf3da660c087a5: three long prose cells shift left and intersect the outline. This older local artifact is reproduction evidence, not the final integration build.",
+    "browserBaseline": "Both Chromium and WebKit failed the new long-cell fixture on desktop source 72f8ff11 with 88.09375px center error; threshold 2px.",
+    "cause": "Subtracting the independently overlaid outline from table space makes a fitting long-cell table exceed its artificial viewport and fall back to the left gutter. Moderate tables also center left of the editor center."
+  },
+  "repair": "Use the full owning editor client viewport with existing CSS auto margins and scroll-relative breakout coordinates. Truly oversized tables retain the 24px gutter and editor horizontal scrolling. No Markdown or layout-persistence writes.",
+  "verification": {
+    "focusedUnitPassed": 64,
+    "browserPassed": 28,
+    "engines": ["Chromium", "WebKit"],
+    "scopes": ["long-cell and moderate table centering", "window/sidebar and late outline transitions", "viewer zoom", "localized tooltips", "table toolbar and horizontal overflow"],
+    "rendererBuild": "passed",
+    "graceCurrent": "zero integrity errors; existing baseline/overlap warnings remain"
+  },
+  "acceptance": "Owner acceptance remains pending on one fresh build after the separate outline-interaction fix.",
+  "release": "No version, tag or publication authorized."
+}
