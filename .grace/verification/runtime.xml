@@ -6553,8 +6553,10 @@
           draws the LIVE table through utils/tableExport.js buildTableSvg
           (layout-drawn standalone SVG, no foreignObject) → the C-56 2×
           rasterizer/clipboard/save paths; the fallback file name is
-          &lt;doc&gt;-table-N. Unit: tests/renderer/muya/table-export.test.js;
-          e2e: tests/e2e/diagram-export.spec.ts (C-70 cases),
+          &lt;doc&gt;-table-N. Unit: tests/renderer/muya/table-export.test.js,
+          tests/renderer/components/editor-coverage.test.js (C-70 picture
+          export transport: table/diagram copy + save, index fallback,
+          failure notices); e2e: tests/e2e/diagram-export.spec.ts (C-70 cases),
           block-viewer.spec.ts (button count + Tab walk).
         </Scenario>
       </Scenarios>
