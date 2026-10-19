@@ -78,19 +78,21 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.28.1
+// VERSION: 1.29.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
-//   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
+//   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
 //   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence).
-//   LINKS: docs/knowledge-graph.xml M-011 and M-012; docs/verification-plan.xml V-M-011 scenarios 15-16 and V-M-012; .grace/changes/active/C-56 (diagram export, embedded-image copy); .grace/changes/active/C-65 T-001 (the table layout prefs host wiring).
+//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/active/C-56 (diagram export, embedded-image copy); .grace/changes/active/C-65 T-001 (the table layout prefs host wiring).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   setMarkdownToEditor - Loads a newly opened document into Muya.
-//   handleFileChange - Restores a switched/reloaded tab's document, cursor, history, and scroll state; footnote changes drop cached blocks so activation reparses with the current grammar.
+//   setMarkdownToEditor - Loads only the selected document; equal store text may skip rendering only when Muya already belongs to that tab.
+//   renderedTabId - Identity of the successfully rendered Muya buffer, independent of active-tab selection.
+//   handleFileChange - Restores only the active tab's document, cursor, history and scroll; tracks the owner of successfully rendered content.
+//   reconcileActiveDocument - Restores the selected tab after a missed activation event, without duplicating a successful synchronous render.
 //   scrollToCords - Restores saved scrollTop without leaving the editor hidden behind a delayed animation frame.
 //   scrollToCordsAfterReload - Clamps the pre-edit scrollTop into a reloaded document's real scrollable range (no phantom padding, no blank viewport).
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
@@ -114,7 +116,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.28.1 - 2026-10-19 fix: a fresh open whose content the store already holds still applies the stored table layouts (the early return skipped them).
+//   LAST_CHANGE: v1.29.0 - C-TAB-CLOSE-OWNERSHIP: reject other-tab renders, track the displayed document owner, recover missed activation and prevent stale-surface changes/scroll from reaching a different tab.
+//   PREV: v1.28.1 - 2026-10-19 fix: a fresh open whose content the store already holds still applies the stored table layouts (the early return skipped them).
 //   - 2026-10-18 v1.28.0: C-65 T-001 — persistent table column widths and
 //     the per-table Full width mode. applyStoredTableLayouts runs after
 //     every document load (file-loaded / file-changed): the store util
@@ -363,6 +366,9 @@ const { projectTree } = storeToRefs(projectStore)
 const defaultFontFamily = DEFAULT_EDITOR_FONT_FAMILY
 const selectionChange = ref(null)
 const editor = ref(null)
+// This identity belongs to the Muya buffer, independently of the selected tab.
+// It changes only after a document render succeeds.
+let renderedTabId = null
 const isShowClose = ref(false)
 const dialogTableVisible = ref(false)
 const imageViewerVisible = ref(null)
@@ -508,6 +514,7 @@ const renderMirror = () => {
   const scrollTop = surface ? surface.scrollTop : 0
   const started = performance.now()
   editor.value.setMarkdown(markdown, null, false)
+  renderedTabId = currentFile.value?.id || null
   mirroredMarkdown = markdown
   if (surface) surface.scrollTop = scrollTop
   lastMirrorRenderMs = performance.now() - started
@@ -1594,6 +1601,7 @@ const handleUploadedImage = (url, deletionUrl) => {
 
 const scrollToCursor = (duration = 300) => {
   nextTick(() => {
+    if (!editor.value) return
     const { container } = editor.value
     if (!container) return
     const { y } = editor.value.getSelection().cursorCoords
@@ -1952,13 +1960,14 @@ const handleTableLayoutsChange = async ({ entries } = {}) => {
 
 // listen for `open-single-file` event, it will call this method only when open a new file.
 const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) => {
-  if (id && currentFile.value?.id && id !== currentFile.value.id) {
+  if (id && id !== currentFile.value?.id) {
     console.warn(`[Editor][setMarkdownToEditor][BLOCK_STALE_FILE_LOADED_IGNORED id=${id}]`)
     return
   }
   if (editor.value) {
     if (
       id &&
+      renderedTabId === id &&
       currentFile.value?.id === id &&
       typeof newMarkdown === 'string' &&
       newMarkdown === currentFile.value.markdown
@@ -1977,6 +1986,7 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
       editor.value.setMarkdown(newMarkdown)
     }
     // C-29: the mirror already shows this document; skip the debounced re-render.
+    renderedTabId = currentFile.value?.id || null
     if (props.mirror) mirroredMarkdown = newMarkdown
     // C-65: adopt the stored table layouts of the newly opened document.
     applyStoredTableLayouts()
@@ -2000,6 +2010,15 @@ const handleFileChange = ({
 }) => {
   if (editor.value) {
     const activeFile = currentFile.value
+    // START_BLOCK_RENDER_OWNER_MISMATCH
+    // Selection changes before rendering. A late event from a closed/source
+    // pane must not put its document into the now-selected neighbor.
+    if (id && id !== activeFile?.id) {
+      console.debug('[Editor][handleFileChange][BLOCK_RENDER_OWNER_MISMATCH]')
+      return
+    }
+    if (typeof newMarkdown !== 'string' && renderedTabId !== activeFile?.id) return
+    // END_BLOCK_RENDER_OWNER_MISMATCH
     // A delayed tab/render event must not overwrite newer unsaved Muya
     // content. Legitimate tab switches and disk reloads update the store
     // before emitting file-changed, so their Markdown already matches.
@@ -2022,12 +2041,13 @@ const handleFileChange = ({
     }
 
     if (typeof newMarkdown === 'string') {
-      const sameDocument = id && activeFile?.id === id && newMarkdown === activeFile.markdown
+      const sameDocument = id && renderedTabId === id && activeFile?.id === id && newMarkdown === activeFile.markdown
       if (sameDocument && newCursor && renderCursor !== true && !history && !blocks && !muyaIndexCursor) {
         editor.value.setCursor(newCursor)
       } else {
         editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
       }
+      renderedTabId = activeFile?.id || null
       if (props.mirror) mirroredMarkdown = newMarkdown
     } else if (newCursor) {
       editor.value.setCursor(newCursor)
@@ -2091,6 +2111,26 @@ const hydrateMountedDocument = () => {
   )
 }
 // END_BLOCK_BOOT_DOCUMENT_HYDRATION
+
+// START_CONTRACT: reconcileActiveDocument
+//   PURPOSE: Restore the selected document if its activation event did not render this Muya instance.
+//   INPUTS: { none - reads currentFile and the last successfully rendered tab identity }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: Restores active tab history/content/cursor/scroll through handleFileChange; logs a content-free recovery marker.
+//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument; C-TAB-CLOSE-OWNERSHIP.
+// END_CONTRACT: reconcileActiveDocument
+// START_BLOCK_ACTIVE_DOCUMENT_RECONCILED
+const reconcileActiveDocument = () => {
+  const file = currentFile.value
+  if (!editor.value || !file?.id || file.id === renderedTabId || typeof file.markdown !== 'string') return
+  handleFileChange({ ...file, renderCursor: true })
+  console.debug('[Editor][reconcileActiveDocument][BLOCK_ACTIVE_DOCUMENT_RECONCILED]')
+}
+
+// Ordinary bus delivery is synchronous. Check after Vue has applied the tab
+// selection and mode props, so successful delivery needs no second render.
+watch(() => currentFile.value?.id, reconcileActiveDocument, { flush: 'post' })
+// END_BLOCK_ACTIVE_DOCUMENT_RECONCILED
 
 const handleInsertParagraph = (location) => {
   editor.value && editor.value.insertParagraph(location)
@@ -2503,10 +2543,10 @@ onMounted(() => {
     // C-29: the split mirror renders from the store; never write it back
     // (muya normalizes markdown and would rewrite the source).
     if (props.mirror) return
-    // There is a chance that this event is fired AFTER the tab is switched. If we purely rely on this.currentFile later on
-    // it can cause invalid updates. Hence, we need the id to identify changes as part of each tab
-    const { id } = currentFile.value
-    if (id) {
+    // A selected tab may not have reached the Muya buffer yet. Never attach
+    // the previous surface's text/blocks/history to that new document.
+    const id = renderedTabId
+    if (id && id === currentFile.value?.id) {
       editorStore.LISTEN_FOR_CONTENT_CHANGE(
         Object.assign(changes, { id, blocks: editor.value.contentState.getBlocks() })
       )
@@ -2530,8 +2570,8 @@ onMounted(() => {
 
   editor.value.on('scroll', (scrollEvent) => {
     // C-29: the source pane owns the tab's scroll offset while muya mirrors it.
-    if (props.mirror) return
-    editorStore.updateScrollPosition(currentFile.value.id, scrollEvent.scrollTop)
+    if (props.mirror || !renderedTabId || renderedTabId !== currentFile.value?.id) return
+    editorStore.updateScrollPosition(renderedTabId, scrollEvent.scrollTop)
     // C-19: track the heading the viewport is in (debounced — scroll
     // events fire at frame rate) and tell the TOC to highlight it.
     if (tocActiveTimer) clearTimeout(tocActiveTimer)

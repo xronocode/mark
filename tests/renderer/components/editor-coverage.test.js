@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.15.0
+// VERSION: 1.16.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -19,7 +19,7 @@
 //   i18n - GRACE 4 synchronized symbol
 //   lastMuyaOptions - GRACE 4 synchronized symbol
 //   logMock - GRACE 4 synchronized symbol
-//   mockEditorInstance - Muya mock; footnote watcher cases verify cache invalidation without changing saved/unsaved content or history.
+//   mockEditorInstance - Muya mock; verifies render ownership, activation recovery and grammar cache behavior.
 //   mockPrinter - GRACE 4 synchronized symbol
 //   mockSpellchecker - GRACE 4 synchronized symbol
 //   moveImageToFolderMock - GRACE 4 synchronized symbol
@@ -40,6 +40,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.16.0 - C-TAB-CLOSE-OWNERSHIP: delayed cross-tab render events, missed activation recovery, edit ownership and duplicate-render regressions.
 //   - 2026-10-19 v1.15.0: C-70 — picture export transport: table copy/save (built svg, 1-based table index, bare-table fallback), undrawable table warning, diagram SVG save, copy/save failure notices.
 //   - 2026-10-18 v1.14.0: C-60 — footnote toggles invalidate all cached tab blocks without changing Markdown, history or isSaved.
 //   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
@@ -1830,6 +1831,88 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
   })
 
+  // START_BLOCK_DOCUMENT_RENDER_OWNERSHIP_TESTS
+  it('rejects a delayed render for a closed or background document', async () => {
+    const wrapper = await mountEditor()
+    mockEditorInstance.setMarkdown.mockClear()
+    mockEditorInstance.setHistory.mockClear()
+    mockEditorInstance.setCursor.mockClear()
+
+    getBusHandler('file-changed')({
+      id: 'closed-tab', markdown: '# Closed document',
+      history: { stack: [], index: -1, lastEditIndex: -1 },
+      cursor: { start: { key: 'old', offset: 0 }, end: { key: 'old', offset: 0 } },
+      renderCursor: true
+    })
+
+    expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+    expect(mockEditorInstance.setHistory).not.toHaveBeenCalled()
+    expect(mockEditorInstance.setCursor).not.toHaveBeenCalled()
+    expect(editorStore.currentFile.markdown).toBe('# Hello')
+    wrapper.unmount()
+  })
+
+  it('recovers a missed close activation and blocks old-surface writes before recovery', async () => {
+    const wrapper = await mountEditor()
+    wrapper.find('.editor-component').element.appendChild(document.createElement('div'))
+    const change = mockEditorInstance.on.mock.calls.find(([name]) => name === 'change')[1]
+    const scroll = mockEditorInstance.on.mock.calls.find(([name]) => name === 'scroll')[1]
+    const remaining = {
+      ...editorStore.currentFile, id: 'remaining-tab', markdown: '# Remaining document',
+      history: { stack: [], index: -1, lastEditIndex: -1 }, scrollTop: 150
+    }
+    mockEditorInstance.setMarkdown.mockClear()
+    editorStore.tabs = [remaining]
+    editorStore.currentFile = remaining
+    // The native activation already changed the selected tab, but no render
+    // event arrived. The previous Muya surface must not write into it.
+    change({ markdown: '# Closed document', wordCount: {} })
+    scroll({ scrollTop: 900 })
+    expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).not.toHaveBeenCalled()
+    expect(editorStore.updateScrollPosition).not.toHaveBeenCalled()
+
+    await nextTick()
+    expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+    expect(mockEditorInstance.setMarkdown.mock.calls[0][0]).toBe('# Remaining document')
+    expect(mockEditorInstance.setHistory).toHaveBeenLastCalledWith(remaining.history)
+
+    change({ markdown: '# Remaining document edited', wordCount: {} })
+    expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'remaining-tab', markdown: '# Remaining document edited' })
+    )
+    wrapper.unmount()
+  })
+
+  it('renders file-loaded content when the store selected another tab before its render', async () => {
+    const wrapper = await mountEditor()
+    mockEditorInstance.setMarkdown.mockClear()
+    editorStore.currentFile = { ...editorStore.currentFile, id: 'next-tab', markdown: '# Next document' }
+    getBusHandler('file-loaded')({ id: 'next-tab', markdown: '# Next document' })
+    await nextTick()
+    expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+    expect(mockEditorInstance.setMarkdown.mock.calls[0][0]).toBe('# Next document')
+    wrapper.unmount()
+  })
+
+  it('keeps one ordinary activation render and reconciles only the final rapid selection', async () => {
+    const wrapper = await mountEditor()
+    const next = { ...editorStore.currentFile, id: 'next-tab', markdown: '# Next document' }
+    editorStore.currentFile = next
+    mockEditorInstance.setMarkdown.mockClear()
+    getBusHandler('file-changed')({ ...next, renderCursor: true })
+    await nextTick()
+    expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+
+    mockEditorInstance.setMarkdown.mockClear()
+    editorStore.currentFile = { ...next, id: 'skipped-tab', markdown: '# Skipped document' }
+    editorStore.currentFile = { ...next, id: 'final-tab', markdown: '# Final document' }
+    await nextTick()
+    expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+    expect(mockEditorInstance.setMarkdown.mock.calls[0][0]).toBe('# Final document')
+    wrapper.unmount()
+  })
+  // END_BLOCK_DOCUMENT_RENDER_OWNERSHIP_TESTS
+
   it('handleFileChange without scrollTop scrolls to cursor', async () => {
     await mountEditor()
     animatedScrollToMock.mockClear()
@@ -2276,8 +2359,8 @@ describe('editor.vue — coverage', () => {
     expect(reg).toBeTruthy()
     const handler = reg[1]
     noticeMock.notify.mockClear()
-    await handler(null, { path: '/Users/me/Desktop/a [1].png' })
-    expect(mockEditorInstance.insertImageFromPath).toHaveBeenCalledWith('/Users/me/Desktop/a [1].png', 'a \\[1\\]')
+    await handler(null, { path: '/tmp/mark-image-fixture/a [1].png' })
+    expect(mockEditorInstance.insertImageFromPath).toHaveBeenCalledWith('/tmp/mark-image-fixture/a [1].png', 'a \\[1\\]')
     expect(noticeMock.notify).not.toHaveBeenCalled()
     mockEditorInstance.insertImageFromPath.mockResolvedValueOnce(null)
     await handler(null, { path: '/x/scan.tiff' })

@@ -3247,6 +3247,8 @@
     <V-M-011>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/components/split-view.test.js tests/renderer/store/session-restore.test.js tests/renderer/store/live-reload.test.js tests/renderer/publication-privacy.test.js</Command>
+        <Command>npx playwright test tests/e2e/session-restore.spec.ts tests/e2e/source-code-mode.spec.ts tests/e2e/split-view.spec.ts --project=chromium --project=webkit-session</Command>
         <Command>yarn unit</Command>
         <Command>
           npx vitest run tests/renderer/components/titleBar-deep.test.js
@@ -3421,6 +3423,7 @@
         <Command>npx playwright test tests/e2e/diff-opened-baseline.spec.ts --project=chromium --project=webkit-diff</Command>
       </Commands>
       <Scenarios>
+        <Scenario>scenario-68 (C-TAB-CLOSE-OWNERSHIP): delayed render events for another or closed tab cannot alter active content/history/cursor. A selected tab whose activation event was missed is restored after Vue flush from its own state; normal activation renders once and rapid selection restores only the final tab. Before recovery, old-surface content/scroll events cannot be written into the new tab. File-loaded equality can skip rendering only when that tab owns the current Muya buffer. Structured synthetic close-to-previous/next, repeated switching and edit isolation pass in Chromium/WebKit; isolated native WebKit controlled-delay evidence stays private.</Scenario>
         <Scenario>
           scenario-1: muya mounts and renders a fixture document with all 7 host
           hooks wired.
@@ -5016,6 +5019,8 @@
         </Scenario>
       </Scenarios>
       <Markers>
+        <Marker>[Editor][handleFileChange][BLOCK_RENDER_OWNER_MISMATCH]</Marker>
+        <Marker>[Editor][reconcileActiveDocument][BLOCK_ACTIVE_DOCUMENT_RECONCILED]</Marker>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATED key:from-&gt;to …] — C-41 T-002 retired theme ids migrated at the hydration load point and persisted once per changed key</Marker>
         <Marker>[prefs][theme-migration][BLOCK_RETIRED_THEMES_MIGRATE_FAILED] — C-41 T-002 migration persisted in memory; mt_prefs_set write failed (retries next boot)</Marker>
         <Marker>[prefs][reset][BLOCK_PREFERENCES_RESET keys=&lt;n&gt; failed=&lt;m&gt;] — C-38 T-004 «Restore all defaults» applied the code-level defaults and persisted each resettable preference</Marker>
@@ -5101,6 +5106,7 @@
         <Marker>[autoUpdates][SKIP_VERSION][BLOCK_SKIP_FAILED] — C-66 skippedUpdateVersion write failed; notice still hidden</Marker>
       </Markers>
       <TraceAssertions>
+        <TraceAssertion>Document-ownership rejection/recovery markers contain no pathname, filename, document text or raw event payload.</TraceAssertion>
         <TraceAssertion>Negative assertion: No `console.error` during theme swap.</TraceAssertion>
         <TraceAssertion>
           Negative assertion: C-66 — no mt_updater_check and no update
