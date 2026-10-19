@@ -57,6 +57,7 @@
     </VD-PERFORMANCE>
     <VD-FEATURES>
       <Path>verification/features.xml</Path>
+      <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
       <!-- V-M-046 scenario-14 retains the WebKit keyboard-selection CI gate. -->
       <Owns>
         <V-M-031/>
