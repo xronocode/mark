@@ -21,6 +21,8 @@
     "test:e2e:perf": "npm run build && playwright test --project webkit-perf",
     "test:e2e:ui": "playwright test --ui --project chromium",
     "release:preflight": "node tools/release-preflight.mjs",
+    "safety:install": "python3 tools/security_gate.py install",
+    "safety:test": "python3 -m unittest discover -s tests/security -p 'test_*.py'",
     "bench:launch": "node tools/bench-launch.mjs",
     "dev:smoke": "bash tools/dev-smoke.sh",
     "dev:check": "bash tools/dev-smoke.sh --check",
