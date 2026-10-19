@@ -1,24 +1,33 @@
 # FILE: .github/workflows/site.yml
-# VERSION: 2.2.0
+# VERSION: 2.3.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Site publish pipeline — build the VitePress site (landing is
 #            emitted by the config's buildEnd hook), gate it with the dist
 #            checker, and deploy to GitHub Pages.
-#   SCOPE: PRs build + check only; main pushes and manual runs also deploy.
-#          No release artifacts, no app code.
-#   DEPENDS: Node 22, site/package.json (vitepress), site/scripts/check-dist.mjs.
-#   LINKS: M-053 SiteBuild; C-22 (supersedes the C-14 cp overlay).
+#   SCOPE: PRs build + check only; main pushes, release publishes and
+#          successful release runs also rebuild; every non-pull_request
+#          event deploys. No release artifacts, no app code.
+#   DEPENDS: Node 22, site/package.json (vitepress), site/scripts/check-dist.mjs,
+#          the GitHub releases API (site/scripts/release.mjs; GITHUB_TOKEN on
+#          the build env keeps it off the anonymous rate limit).
+#   LINKS: M-053 SiteBuild; C-22 (supersedes the C-14 cp overlay); C-64
+#          version sync (release/workflow_run triggers); release.yml.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
 #   build - npm ci, vitepress build, dist check, Pages artifact upload.
-#   deploy - Pages deploy (main / workflow_dispatch only).
+#   deploy - Pages deploy (every non-pull_request event).
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: [v2.0.0 - C-22: single build command, dist gate, PR checks,
+#   LAST_CHANGE: [v2.3.0 - 2026-10-19 C-64 version sync: release publish and
+#                 successful release runs also rebuild the site (release +
+#                 workflow_run triggers; workflow_run only on conclusion
+#                 success) so a new release refreshes the version facts, and
+#                 the build env carries GITHUB_TOKEN for the releases API.]
+#   PREV: [v2.0.0 - C-22: single build command, dist gate, PR checks,
 #                 env-driven SITE_URL/SITE_BASE/UMAMI_WEBSITE_ID via repo vars]
 # END_CHANGE_SUMMARY
 #
@@ -44,6 +53,11 @@ on:
     paths:
       - 'site/**'
       - '.github/workflows/site.yml'
+  release:
+    types: [published]
+  workflow_run:
+    workflows: [release]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -55,6 +69,9 @@ concurrency:
 
 jobs:
   build:
+    # workflow_run also fires for failed release runs — rebuild only the
+    # successful ones (a published release already retriggers via `release`).
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
       SITE_URL: ${{ vars.SITE_URL }}
@@ -62,6 +79,7 @@ jobs:
       UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID }}
       GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
       CF_BEACON_TOKEN: ${{ vars.CF_BEACON_TOKEN }}
+      GITHUB_TOKEN: ${{ github.token }}
     defaults:
       run:
         working-directory: site

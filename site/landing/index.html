@@ -1,5 +1,5 @@
 <!-- FILE: site/landing/index.html -->
-<!-- VERSION: 2.3.0 -->
+<!-- VERSION: 2.4.0 -->
 <!-- START_MODULE_CONTRACT -->
 <!--   PURPOSE: The Mark site landing (served at the site root by renderLanding) -->
 <!--            - the mobile-first paragraph-numbered paper/ink/marker page -->
@@ -15,7 +15,11 @@
 <!--          site/shared/brand.css inlined atop the first style block; -->
 <!--          DIAGRAM colon id = build-time Pele SVG for that gallery example -->
 <!--          (unique idPrefix per occurrence); THEME_VARS_JSON = theme chip -->
-<!--          data (id to pele vars plus page and dark). BASE token = the -->
+<!--          data (id to pele vars plus page and dark). Release tokens -->
+<!--          (%VERSION%, %DMG_NAME%, %DMG_URL%, %DMG_MB%, %EXE_NAME%, -->
+<!--          %EXE_URL%, %EXE_MB%) = the latest GitHub release's facts, -->
+<!--          filled by fillLanding at build (left in place when no release -->
+<!--          is passed). BASE token = the -->
 <!--          site base path. Inline JS only: copy buttons, version refresh -->
 <!--          from the GitHub API, the stage slider (pointer + keyboard, rest -->
 <!--          read from the CSS --rest var), the wall chips/auto-cycle, the -->
@@ -55,7 +59,16 @@
 <!--   footer - docs nav, Mark Text credit, © line (cv) -->
 <!-- END_MODULE_MAP -->
 <!-- START_CHANGE_SUMMARY -->
-<!--   LAST_CHANGE: [v2.3.0 - 2026-10-18 C-64 T-007 audit fixes: every -->
+<!--   LAST_CHANGE: [v2.4.0 - 2026-10-19 C-64 version sync: every hardcoded -->
+<!--                 release fact becomes a build token filled from the latest -->
+<!--                 GitHub release — <span id="version">v%VERSION%</span>, the -->
+<!--                 hero and Homebrew "≈ %DMG_MB% MB" / Windows "≈ %EXE_MB% -->
+<!--                 MB" figures, the DMG/EXE link names and the -->
+<!--                 #dmg-hero/#dmg-link/#win-link hrefs. The App Store -->
+<!--                 edition facts stay pinned, and the runtime releases-API -->
+<!--                 swap stays as a refresh.] -->
+<!--   PREV: [v2.3.1 - 2026-10-19 C-64: the stage drags only from the handle strip (pill-wide, full height, pan-y), keeping the grab offset; touches elsewhere just scroll. ¶03 cards share one template — a 16:10 thumbnail (cropped shots or small CSS mock-ups), title, text — so they line up at one height (phone carousel, 2 cols ≥521, 3 cols ≥981).] -->
+<!--   PREV: [v2.3.0 - 2026-10-18 C-64 T-007 audit fixes: every -->
 <!--                 screenshot ships in a <picture> with 400/800/1440 webp -->
 <!--                 sources (jpg <img> kept as the fallback with its srcset, -->
 <!--                 sizes, dimensions, alt, loading — R-2); the stage demo -->
@@ -72,7 +85,8 @@
 <!--                 button gets #win-link and swaps to the exact setup.exe -->
 <!--                 from the releases API; the share URL carries send-to-Mac -->
 <!--                 UTM tags; the hero captions read "v2.1.17 · sandboxed" -->
-<!--                 and "v2.5.0 · latest · ≈ 15 MB" ("latest" ≥521 only, no .opt-i, -->
+<!--                 and "v%VERSION% · latest · ≈ %DMG_MB% MB" (release tokens -->
+<!--                 now; "latest" ≥521 only, no .opt-i, -->
 <!--                 no desktop nowrap); the stage rests on a --rest custom -->
 <!--                 property per breakpoint (34/46/30%) that the sweep, the -->
 <!--                 slider aria and a resize listener all read from the -->
@@ -97,7 +111,8 @@
 <!--                 gutters), draggable/keyboard before/after hero with -->
 <!--                 build-time diagram placeholders, d1 fact strip, d2 wall as -->
 <!--                 ¶ 02 with live theme chips, install cards with verified -->
-<!--                 facts (v2.5.0, App Store id, full brew command, setup.exe), -->
+<!--                 facts (release facts via the %VERSION%/%DMG_NAME%/%EXE_NAME% -->
+<!--                 tokens, App Store id, full brew command, setup.exe), -->
 <!--                 iOS Mark-for-Mac bar (Web Share, remembered dismiss, -->
 <!--                 share_to_mac events) and download_click hooks on every -->
 <!--                 install CTA.] -->
@@ -333,7 +348,7 @@ h2 {
   position: relative; height: 470px; margin-top: 12px;
   margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
   border-radius: 0; overflow: hidden;
-  touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none;
   box-shadow: 0 0 0 .5px rgba(0, 0, 0, .3), 0 30px 80px -30px rgba(40, 30, 10, .45);
 }
 :root.dark .stage, :root[data-theme="dark"] .stage {
@@ -356,13 +371,19 @@ h2 {
 }
 .layer.page .doc .full { grid-column: 1 / -1; }
 .layer.page .doc .hide-sm { display: none; }
-.handle { position: absolute; top: 0; bottom: 0; left: var(--x, 46%); width: 0; z-index: 4; }
+/* The handle is the only drag target: a full-height strip as wide as the
+   "drag" pill, centred on the line. Elsewhere a touch just scrolls the page;
+   inside the strip a vertical swipe still scrolls (pan-y), a sideways one drags. */
+.handle {
+  position: absolute; top: 0; bottom: 0; left: var(--x, 46%); z-index: 4;
+  width: 88px; margin-left: -44px; cursor: ew-resize; touch-action: pan-y;
+}
 .handle::before {
-  content: ""; position: absolute; top: 0; bottom: 0; left: -2px; width: 4px;
+  content: ""; position: absolute; top: 0; bottom: 0; left: calc(50% - 2px); width: 4px;
   background: var(--marker);
 }
 .handle span {
-  position: absolute; top: 50%; left: 0; transform: translate(-50%, -50%);
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--marker); color: var(--on-marker);
   font: 600 12px/1 var(--mono); padding: 10px 12px; border-radius: 999px;
@@ -461,12 +482,12 @@ h2 {
 .cv { content-visibility: auto; }
 /* placeholder heights ≈ measured real heights (phone / ≥981) so the
    scrollbar does not jump as sections render */
-.cv-a { contain-intrinsic-size: auto 560px; }
+.cv-a { contain-intrinsic-size: auto 630px; }
 .cv-b { contain-intrinsic-size: auto 640px; }
 .cv-c { contain-intrinsic-size: auto 850px; }
 .foot.cv { contain-intrinsic-size: auto 270px; }
 @media (min-width: 981px) {
-  .cv-a { contain-intrinsic-size: auto 1300px; }
+  .cv-a { contain-intrinsic-size: auto 1470px; }
   .cv-b { contain-intrinsic-size: auto 670px; }
   .cv-c { contain-intrinsic-size: auto 680px; }
   .foot.cv { contain-intrinsic-size: auto 200px; }
@@ -568,7 +589,7 @@ h2 {
 /* ¶ 03 the page itself */
 .feats3 {
   list-style: none; margin: 20px 0 0; padding: 0;
-  display: flex; gap: 10px; align-items: flex-start;
+  display: flex; gap: 10px; align-items: stretch;
   overflow-x: auto; scroll-snap-type: x mandatory;
   margin-inline: calc(-1 * max(20px, env(safe-area-inset-left, 0px)));
   padding-inline: max(20px, env(safe-area-inset-left, 0px));
@@ -578,12 +599,46 @@ h2 {
 .feats3 li {
   flex: none; width: 78%; scroll-snap-align: center;
   border: 1px solid var(--rule); border-radius: 14px; background: var(--card);
-  padding: 14px; display: grid; gap: 8px; align-content: start;
+  padding: 12px 12px 14px; display: grid; gap: 8px; align-content: start;
+  grid-template-rows: auto auto 1fr;
 }
 .feats3 h3 { font: 700 17px/1.25 var(--display); letter-spacing: -.01em; }
 .feats3 p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.5; }
-.feats3 img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--rule); }
-.feats3 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* every card leads with a 16:10 thumbnail, so cards line up at one height */
+.thumb {
+  aspect-ratio: 16 / 10; border-radius: 9px; overflow: hidden; position: relative;
+  border: 1px solid var(--rule); background: var(--paper); max-width: 100%;
+}
+.thumb picture { display: block; height: 100%; }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.thumb.zoom img { transform: scale(1.75); transform-origin: 22% 60%; }
+.thumb.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); }
+.thumb.pair img { transform: scale(1.6); transform-origin: 30% 0; }
+.thumb i { font-style: normal; }
+.mk-split { display: grid; grid-template-columns: 1fr 1fr; }
+.mk-split .raw { background: #17191E; color: #C9CDD6; border-right: 1px solid var(--rule); padding: 10% 8%; display: grid; align-content: start; gap: 5px; font: 500 clamp(8px, 2.6vw, 11px)/1.3 var(--mono); white-space: nowrap; overflow: hidden; }
+.mk-split .raw .h { color: #8FB0FF; } .mk-split .raw .k { color: #D6A2F2; }
+.mk-split .pg { padding: 10% 9%; display: grid; align-content: start; gap: 7px; }
+.mk-split .pg b { font: 800 clamp(13px, 4vw, 17px)/1 var(--display); }
+.mk-split .tb { display: grid; gap: 3px; } .mk-split .tb i { height: 7px; border-radius: 2px; background: var(--chip); }
+.mk-split .tb i:first-child { background: var(--rule); }
+.mk-split .tk { font: 500 clamp(9px, 2.8vw, 12px)/1 var(--body); color: var(--mute); }
+.mk-copy, .mk-pic { display: grid; align-content: center; justify-items: center; gap: 12px; padding: 8%; }
+.thumb .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+.thumb .chips i { font: 600 clamp(9px, 2.6vw, 11px)/1 var(--mono); padding: 5px 7px; border-radius: 6px; background: var(--chip); color: var(--ink-2); }
+.thumb .chips i.on { background: var(--marker); color: var(--on-marker); }
+.mk-copy .paste { width: 82%; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); padding: 8px 10px; display: grid; gap: 5px; }
+.mk-copy .paste b { font: 600 clamp(9px, 2.6vw, 11px)/1 var(--body); color: var(--mute); }
+.mk-copy .paste i, .mk-print .doc i { height: 6px; border-radius: 2px; background: var(--chip); }
+.mk-copy .paste i.s, .mk-print .doc i.s { width: 60%; }
+.mk-print { display: flex; align-items: center; justify-content: center; gap: 7%; }
+.mk-print .key { font: 700 clamp(16px, 5vw, 22px)/1 var(--body); padding: .55em .7em; border-radius: 10px; background: var(--card); border: 1px solid var(--rule); box-shadow: 0 3px 0 var(--rule); }
+.mk-print .arr { color: var(--mute); font-size: 20px; }
+.mk-print .doc { width: 26%; aspect-ratio: 3 / 4; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 10% 8%; display: grid; align-content: start; gap: 5px; position: relative; }
+.mk-print .doc b { position: absolute; left: 8%; bottom: 8%; font: 700 clamp(9px, 2.6vw, 11px)/1 var(--mono); background: var(--marker); color: var(--on-marker); padding: 3px 5px; border-radius: 4px; }
+.mk-pic svg { width: 78%; height: auto; }
+.mk-pic svg rect { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.5; }
+.mk-pic svg path { stroke: var(--ink-2); stroke-width: 1.5; fill: none; }
 
 /* ¶ 04 numbers */
 .bars-cap { margin: 22px 0 0; font: 600 12px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--mute); }
@@ -674,7 +729,7 @@ h2 {
   .badge { position: absolute; right: 22px; top: -16px; transform: rotate(3deg); }
   .swipe { display: none; }
   .feats3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; overflow: visible; margin-inline: 0; padding-inline: 0; margin-top: 26px; }
-  .feats3 li { width: auto; padding: 18px; }
+  .feats3 li { width: auto; padding: 14px 14px 18px; }
   .bars li { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 6.5rem; gap: 20px; }
   .bars .track { grid-column: auto; }
   .bars .fill { transition: width .6s ease; }
@@ -692,6 +747,7 @@ h2 {
 
 /* ---------- desktop (981+) ---------- */
 @media (min-width: 981px) {
+  .feats3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .hero-grid { grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: end; }
   .side { max-width: 480px; }
   .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding-block: 30px 44px; }
@@ -780,10 +836,10 @@ h2 {
               <span class="fine">v2.1.17 &middot; sandboxed</span>
             </div>
             <div class="get-o">
-              <a class="btn sec" id="dmg-hero" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="dmg" data-placement="hero">
+              <a class="btn sec" id="dmg-hero" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="hero">
                 <svg class="dl" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12"/></svg>Download .dmg
               </a>
-              <span class="fine"><span id="version">v2.5.0</span><span class="more"> &middot; latest</span> &middot; &asymp; 15 MB</span>
+              <span class="fine"><span id="version">v%VERSION%</span><span class="more"> &middot; latest</span> &middot; &asymp; %DMG_MB% MB</span>
             </div>
           </div>
           <button class="brew" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero" aria-label="Copy brew install --cask xronocode/mark/mark"><i>$</i>brew install --cask xronocode/mark/mark<b>Copy</b></button>
@@ -928,28 +984,40 @@ instruction.</pre>
     <p class="lead">Headings, tables, task lists, footnotes, callouts and front matter look done while you type &mdash; and the rest of the page keeps up.</p>
     <ul class="feats3">
       <li>
+        <div class="thumb mk-split" aria-hidden="true">
+          <div class="raw"><i class="h">## Plan</i><i>| Week | Owner |</i><i>| 43 &nbsp; | Ana &nbsp; |</i><i class="k">- [x] Ship</i></div>
+          <div class="pg"><b>Plan</b><span class="tb"><i></i><i></i><i></i></span><span class="tk">&#10003; Ship</span></div>
+        </div>
         <h3>Split View</h3>
         <p>The raw Markdown beside the page when you need it<span class="more">; the rendered page itself is the editor</span>.</p>
       </li>
       <li>
+        <div class="thumb mk-copy" aria-hidden="true">
+          <div class="chips"><i>Markdown</i><i>HTML</i><i>Text</i><i class="on">Structured</i></div>
+          <div class="paste"><b>Pasted into a chat</b><i></i><i class="s"></i><i></i></div>
+        </div>
         <h3>Copy it clean</h3>
         <p>Copy as Markdown, HTML, plain text or structured text<span class="more"> that keeps paragraphs, bullets, links and tables readable wherever you paste them</span>.</p>
       </li>
-      <li class="f-img">
-        <h3>Open anything full screen</h3>
-        <picture>
+      <li>
+        <div class="thumb shot zoom">
+          <picture>
           <source type="image/webp" srcset="%BASE%shots/05-viewer-400.webp 400w, %BASE%shots/05-viewer-800.webp 800w, %BASE%shots/05-viewer-1440.webp 1440w" sizes="(min-width: 981px) 380px, 78vw">
           <img src="%BASE%shots/05-viewer-800.jpg" srcset="%BASE%shots/05-viewer.jpg 1440w, %BASE%shots/05-viewer-800.jpg 800w" sizes="(min-width: 981px) 380px, 78vw" alt="A large release-pipeline diagram open in the fullscreen viewer, zoomed in" width="1440" height="900" loading="lazy">
         </picture>
+        </div>
+        <h3>Open anything full screen</h3>
         <p>Any diagram or wide table opens here, with zoom and pan<span class="more"> and a sticky header for tables</span>.</p>
       </li>
       <li>
+        <div class="thumb mk-print" aria-hidden="true">
+          <span class="key">&#8984;P</span><span class="arr">&rarr;</span><span class="doc"><i></i><i></i><i class="s"></i><b>PDF</b></span>
+        </div>
         <h3>Print &amp; PDF, each direct</h3>
         <p><b>&#8984;P</b> opens the system print panel directly<span class="more">; Export to PDF writes the file through a save dialog, without the print panel &mdash; on macOS and Windows</span>.</p>
       </li>
-      <li class="f-img">
-        <h3>32 themes, light and dark</h3>
-        <div class="pair">
+      <li>
+        <div class="thumb shot pair">
           <picture>
             <source type="image/webp" srcset="%BASE%shots/01-agents-400.webp 400w, %BASE%shots/01-agents-800.webp 800w, %BASE%shots/01-agents-1440.webp 1440w" sizes="(min-width: 981px) 190px, 38vw">
             <img src="%BASE%shots/01-agents-800.jpg" srcset="%BASE%shots/01-agents.jpg 1440w, %BASE%shots/01-agents-800.jpg 800w" sizes="(min-width: 981px) 190px, 38vw" alt="A plan document in the light theme" width="1440" height="900" loading="lazy">
@@ -959,9 +1027,14 @@ instruction.</pre>
             <img src="%BASE%shots/08-dark-800.jpg" srcset="%BASE%shots/08-dark.jpg 1440w, %BASE%shots/08-dark-800.jpg 800w" sizes="(min-width: 981px) 190px, 38vw" alt="The same plan document in the dark theme" width="1440" height="900" loading="lazy">
           </picture>
         </div>
+        <h3>32 themes, light and dark</h3>
         <p>Light and dark members, one title-bar button apart<span class="more"> &mdash; Paper, Ink, Docs, macOS and more; diagrams can follow, or pin their own look</span>.</p>
       </li>
       <li>
+        <div class="thumb mk-pic" aria-hidden="true">
+          <svg viewBox="0 0 160 56"><rect x="2" y="18" width="40" height="20" rx="4"/><rect x="60" y="18" width="40" height="20" rx="4"/><rect x="118" y="18" width="40" height="20" rx="4"/><path d="M42 28h18M100 28h18"/></svg>
+          <div class="chips"><i class="on">PNG</i><i>SVG</i><i>Copy image</i></div>
+        </div>
         <h3>Diagrams as pictures</h3>
         <p>Copy as image, or save as PNG or SVG in the theme&rsquo;s colours<span class="more"> &mdash; from the diagram&rsquo;s corner panel, the context menu or the full-screen view</span>.</p>
       </li>
@@ -1025,12 +1098,12 @@ instruction.</pre>
       <article class="card-i">
         <h3>Homebrew</h3>
         <button class="brew block" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="install" aria-label="Copy brew install --cask xronocode/mark/mark"><span class="cmd"><i>$</i>brew install --cask xronocode/mark/mark</span><b>Copy</b></button>
-        <p>Apple silicon. Developer ID signed and notarized by Apple<span class="more">; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code></span>. Or download <a id="dmg-link" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="dmg" data-placement="install">Mark_2.5.0_aarch64.dmg</a> (&asymp; 15 MB).</p>
+        <p>Apple silicon. Developer ID signed and notarized by Apple<span class="more">; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code></span>. Or download <a id="dmg-link" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="install">%DMG_NAME%</a> (&asymp; %DMG_MB% MB).</p>
       </article>
       <article class="card-i">
         <h3>Windows</h3>
-        <a class="btn sec" id="win-link" href="https://github.com/xronocode/mark/releases/latest" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
-        <p><code>Mark_2.5.0_x64-setup.exe</code>, &asymp; 10 MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo;<span class="more"> &mdash; choose <em>More info</em>, then <em>Run anyway</em></span>.</p>
+        <a class="btn sec" id="win-link" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
+        <p><code>%EXE_NAME%</code>, &asymp; %EXE_MB% MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo;<span class="more"> &mdash; choose <em>More info</em>, then <em>Run anyway</em></span>.</p>
       </article>
     </div>
     <p class="editions"><span class="more">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. </span><a href="%BASE%guide/editions">See the full table</a>.</p>
@@ -1205,15 +1278,21 @@ instruction.</pre>
       if (r.width > 0) setX((cx - r.left) / r.width * 100);
     }
     setX(restX());
-    st.addEventListener('pointerdown', function (e) {
-      drag = true;
-      sweepOn = false;
-      if (st.setPointerCapture) { try { st.setPointerCapture(e.pointerId); } catch (err) {} }
-      setFromClient(e.clientX);
-    });
-    st.addEventListener('pointermove', function (e) { if (drag) setFromClient(e.clientX); });
-    st.addEventListener('pointerup', function () { drag = false; });
-    st.addEventListener('pointercancel', function () { drag = false; });
+    /* Drag only from the handle strip, and keep the grab offset so the line
+       moves with the finger instead of jumping under it. */
+    var grab = 0;
+    if (handle) {
+      handle.addEventListener('pointerdown', function (e) {
+        var r = handle.getBoundingClientRect();
+        grab = e.clientX - (r.left + r.width / 2);
+        drag = true;
+        sweepOn = false;
+        if (handle.setPointerCapture) { try { handle.setPointerCapture(e.pointerId); } catch (err) {} }
+      });
+      handle.addEventListener('pointermove', function (e) { if (drag) setFromClient(e.clientX - grab); });
+      handle.addEventListener('pointerup', function () { drag = false; });
+      handle.addEventListener('pointercancel', function () { drag = false; });
+    }
     window.addEventListener('resize', function () {
       if (!drag && sweepOn) setX(restX());
     }, { passive: true });

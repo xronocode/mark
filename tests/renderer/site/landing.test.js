@@ -79,7 +79,7 @@ describe('renderLanding', () => {
     expect(html).toContain('href="/mark/guide/"')
     expect(html).toContain('src="/mark/logo-96px.png"')
     expect(html).toContain('<link rel="canonical" href="https://x.github.io/mark/">')
-    expect(html).toContain('og:image" content="https://x.github.io/mark/og-card.png"')
+    expect(html).toMatch(/og:image" content="https:\/\/x\.github\.io\/mark\/og-card\.png(\?v=[0-9a-f]{10})?"/)
     expect(html).not.toMatch(/%BASE%|SITE_HEAD/)
   })
 
