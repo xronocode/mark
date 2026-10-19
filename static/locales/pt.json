@@ -556,6 +556,7 @@
         "autoSave": "Salvar as alterações automaticamente pouco depois de você parar de digitar",
         "autoSaveDelay": "Quanto tempo esperar após a última tecla antes de salvar",
         "previewModeOnFinderOpen": "Abrir documentos do Finder no modo de leitura",
+        "restoreSessionOnLaunch": "Reabrir a última sessão ao iniciar",
         "language": "Idioma do aplicativo",
         "defaultEncoding": "Codificação de arquivo para novos arquivos",
         "endOfLine": "Fins de linha usados para novos arquivos e ao salvar",
@@ -621,7 +622,9 @@
       "startup": {
         "title": "Inicialização",
         "previewModeOnFinderOpen": "Abrir documentos do Finder no modo de leitura",
-        "previewModeOnFinderOpenHelp": "Arquivos abertos por duplo clique no Finder ou pelo Dock iniciam como somente leitura; clique para editar."
+        "previewModeOnFinderOpenHelp": "Arquivos abertos por duplo clique no Finder ou pelo Dock iniciam como somente leitura; clique para editar.",
+        "restoreSessionOnLaunch": "Reabrir a última sessão ao iniciar",
+        "restoreSessionOnLaunchHelp": "Ao iniciar, o Mark reabre a pasta e as abas que estavam abertas."
       },
       "language": {
         "title": "Idioma",

@@ -1,0 +1,32 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-69>
+  <Name>Restore the previous session on launch by default: the open folder and the open tabs come back, like Obsidian</Name>
+  <Created>2026-10-19</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M</Complexity>
+  <Summary>User request 2026-10-19 (long-time Obsidian user): Mark does not remember the state it was closed in. A cold launch without a file to open must reopen the folder(s) and the tabs of the last session, with the same active tab. The welcome screen «Last session» row stays as the manual path (pref off, or the restore found nothing).</Summary>
+  <Problem><Description>Only the tab paths are saved (lastSessionTabs), only from the window-close handler (mt::ask-for-close), and they are restored only by clicking «Last session» on the welcome screen; RESTORE_SESSION reads files as utf8/lf without the normal open path. The open project folder is never saved; the startUpAction / lastOpenedFolder prefs are dead since C-38.</Description></Problem>
+  <Goals>
+    <R-1>Session snapshot = { lastSessionTabs: tab paths in order (untitled skipped), lastSessionActive: the active tab path, lastSessionFolders: the open project roots }. It is written on window close AND, debounced (~400 ms), whenever the open paths / the active tab / the roots change after boot — a ⌘Q, a crash or a kill keeps the last state. Writing starts only after the boot restore finished, so an empty boot never overwrites the saved session.</R-1>
+    <R-2>Cold launch without files to open (bootstrap addBlankTab) and preference restoreSessionOnLaunch (default true): reopen the saved folders that still exist (OPEN_RECENT_FOLDER), then the saved files that still exist through the normal open path (mt::open-file — encoding, line endings, watcher, preview rules as a sidebar click), in the saved order, then select the saved active tab. Missing paths are skipped. Launch with a file (Finder / CLI) does not restore. Marker [EditorStore][bootSession][BLOCK_SESSION_RESTORED] folders=N tabs=M skipped=K.</R-2>
+    <R-3>Settings › General › Startup gets the switch «Reopen the last session on launch» (ten locales, native copy); off = today's behaviour (welcome screen with the «Last session» row).</R-3>
+    <R-4>The welcome screen «Last session» row is kept (it is shown whenever a saved session exists and no tab is open) and uses the same restore routine (folders + tabs + active).</R-4>
+    <R-5>Unit tests for snapshot, debounce/boot gate, restore order/skip/active, pref off, Finder-launch no-restore; e2e: a reload with a saved session reopens folder + tabs + active. grace lint 0.</R-5>
+  </Goals>
+  <Constraints><Item>No Rust change: the bootstrap config already says whether the launch had files (addBlankTab).</Item><Item>Saved session lives in the prefs store (ipcPrefs), like lastSessionTabs today.</Item></Constraints>
+  <NonGoals><Item>Per-tab cursor / scroll restore.</Item><Item>Restoring unsaved untitled tabs (their text is not persisted).</Item><Item>Multi-window sessions.</Item></NonGoals>
+  <AffectedAreas>
+    <Item>src/renderer/src/store/editor.js (session save/restore/autosave, APPLY_BOOTSTRAP_EDITOR), src/renderer/src/store/preferences.js, static/preference.json, src/renderer/src/prefComponents/tabs/general/index.vue, src/renderer/src/components/recent/index.vue, static/locales/*.json</Item>
+    <Item>tests/renderer/store/session-restore.test.js, tests/e2e/session-restore.spec.ts</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria><Criterion>R-1..R-5 done; tests green; grace lint 0; live check: open a folder + 3 files, quit with ⌘Q, launch → the folder and the 3 tabs are back with the same active tab.</Criterion></AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>npx vitest run tests/renderer/store/session-restore.test.js</ExpectedCommand>
+    <ExpectedCommand>npx playwright test tests/e2e/session-restore.spec.ts</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedEvidence>Unit pins for the boot gate and the restore order; e2e reload round trip; live Mark Test check.</ExpectedEvidence>
+  </VerificationIntent>
+</C-69>
+</GraceChangeSpec>

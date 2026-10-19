@@ -557,6 +557,7 @@
         "autoSave": "Save changes automatically shortly after you stop typing",
         "autoSaveDelay": "How long to wait after the last keystroke before saving",
         "previewModeOnFinderOpen": "Open documents from Finder in reading view",
+        "restoreSessionOnLaunch": "Reopen the last session on launch",
         "language": "App language",
         "defaultEncoding": "File encoding for new files",
         "endOfLine": "Line endings used for new files and when saving",
@@ -622,7 +623,9 @@
       "startup": {
         "title": "Startup",
         "previewModeOnFinderOpen": "Open documents from Finder in reading view",
-        "previewModeOnFinderOpenHelp": "Files opened by double-clicking in Finder or via the Dock start read-only; click to edit."
+        "previewModeOnFinderOpenHelp": "Files opened by double-clicking in Finder or via the Dock start read-only; click to edit.",
+        "restoreSessionOnLaunch": "Reopen the last session on launch",
+        "restoreSessionOnLaunchHelp": "The folder and the tabs you had open come back when Mark starts."
       },
       "language": {
         "title": "Language",

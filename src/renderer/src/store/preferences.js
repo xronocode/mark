@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.8.0
+// VERSION: 1.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, and the C-51 T-001 treeShowAllFiles preference.
 //   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001).
@@ -20,7 +20,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.8.0 - 2026-10-19 C-66 T-003: three new persisted
+//   LAST_CHANGE: v1.9.0 - 2026-10-19 C-69 T-002: restoreSessionOnLaunch
+//   (default true, Settings › General › Startup, resettable) — read by
+//   store/editor.js BOOT_SESSION on a cold launch without files.
+//   v1.8.0 - 2026-10-19 C-66 T-003: three new persisted
 //   keys for the launch-time update check — autoCheckUpdates (default
 //   true, the Settings › General › Updates switch, joins
 //   RESETTABLE_PREFERENCE_KEYS) plus the lastUpdateCheckAt /
@@ -275,6 +278,10 @@ export const preferenceDefaults = () => ({
     // (so direct programmatic callers also respect it).
     previewModeOnFinderOpen: true,
 
+    // C-69: a cold launch without files reopens the last session (open
+    // project roots + tabs + active tab). Settings › General › Startup.
+    restoreSessionOnLaunch: true,
+
     // C-66 launch-time update check. autoCheckUpdates is the Settings ›
     // General › Updates switch (default on); lastUpdateCheckAt (ISO) and
     // skippedUpdateVersion are runtime state written by
@@ -328,6 +335,7 @@ export const RESETTABLE_PREFERENCE_KEYS = Object.freeze([
   'autoSave',
   'autoSaveDelay',
   'previewModeOnFinderOpen',
+  'restoreSessionOnLaunch',
   'autoCheckUpdates',
   'language',
   'defaultEncoding',
