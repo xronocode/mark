@@ -25,6 +25,22 @@
       "block-viewer.spec.ts"
     ]
   },
-  "ownerAcceptance": "pending for C-70/C-71; FIX-001 acceptance does not accept these features",
+  "ownerAcceptance": {
+    "date": "2026-10-19",
+    "owner": "repository owner",
+    "confirmation": "Everything described earlier is accepted; the newly noticed table-footer spacing is a separate defect.",
+    "source": "f17b070e2eac144808a6f6aba6d2609ffd3e16bb",
+    "binarySha256": "4b309c9292105a10e33c4281e0e25b56d77ff5dec5d8c22905b3966062a520ea",
+    "scope": [
+      "long-cell table centering",
+      "whole-outline hide/restore on any visible table intersection during scrolling without hover or reflow",
+      "viewer zoom and Fit",
+      "readable tooltips"
+    ],
+    "train": "2.5.x-next",
+    "state": "queued",
+    "record": "docs/release-trains/2.5.x-next.md#c-71",
+    "separateFollowup": "C-TABLE-FOOTER; no release authorization"
+  },
   "release": "not authorized; no version, tag, publishing or store changes"
 }
