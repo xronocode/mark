@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.14.0
+// VERSION: 1.15.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
@@ -35,9 +35,12 @@
 //   writeTextMock - GRACE 4 synchronized symbol (C-10 context-menu copy)
 //   markedMock - GRACE 4 synchronized symbol
 //   sanitizeMock - GRACE 4 synchronized symbol
+//   writeImageMock - C-70 clipboard writeImage mock (picture export)
+//   pictureExportMock - C-70 stubbed muya table/diagram export helpers
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-19 v1.15.0: C-70 — picture export transport: table copy/save (built svg, 1-based table index, bare-table fallback), undrawable table warning, diagram SVG save, copy/save failure notices.
 //   - 2026-10-18 v1.14.0: C-60 — footnote toggles invalidate all cached tab blocks without changing Markdown, history or isSaved.
 //   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
 //   - 2026-08-10 v1.2.0: cover boot hydration when an agent/Finder open selects a tab before editor bus listeners are ready.
@@ -84,6 +87,16 @@ const writeHtmlMock = vi.hoisted(() => vi.fn(async () => undefined))
 const writeTextMock = vi.hoisted(() => vi.fn(async () => undefined))
 const markedMock = vi.hoisted(() => vi.fn((text) => `<p>${text}</p>`))
 const sanitizeMock = vi.hoisted(() => vi.fn((html) => `clean:${html}`))
+const writeImageMock = vi.hoisted(() => vi.fn(async () => undefined))
+const pictureExportMock = vi.hoisted(() => ({
+  buildTableSvg: vi.fn(),
+  resolveTableExportTable: vi.fn(),
+  diagramExportSvg: vi.fn(),
+  buildStandaloneSvg: vi.fn(),
+  rasterizeSvg: vi.fn(),
+  suggestFileName: vi.fn(),
+  nearestHeadingText: vi.fn()
+}))
 
 const mockEditorInstance = vi.hoisted(() => ({
   container: null,
@@ -207,7 +220,23 @@ vi.mock('@/util/fileSystem', () => ({
 vi.mock('@/util/clipboard', () => ({ guessClipboardFilePath: vi.fn() }))
 vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
   writeHtml: writeHtmlMock,
-  writeText: writeTextMock
+  writeText: writeTextMock,
+  writeImage: writeImageMock
+}))
+// C-70: the picture-export transport is driven with stubbed muya helpers;
+// selectors and the remaining helpers stay real.
+vi.mock('muya/lib/utils/tableExport', async (importOriginal) => ({
+  ...(await importOriginal()),
+  buildTableSvg: pictureExportMock.buildTableSvg,
+  resolveTableExportTable: pictureExportMock.resolveTableExportTable
+}))
+vi.mock('muya/lib/utils/diagramExport', async (importOriginal) => ({
+  ...(await importOriginal()),
+  diagramExportSvg: pictureExportMock.diagramExportSvg,
+  buildStandaloneSvg: pictureExportMock.buildStandaloneSvg,
+  rasterizeSvg: pictureExportMock.rasterizeSvg,
+  suggestFileName: pictureExportMock.suggestFileName,
+  nearestHeadingText: pictureExportMock.nearestHeadingText
 }))
 vi.mock('muya/lib/parser/marked', () => ({ default: markedMock }))
 vi.mock('muya/lib/utils', () => ({ sanitize: sanitizeMock }))
@@ -2582,6 +2611,122 @@ describe('editor.vue — coverage', () => {
       const drop = new Event('drop', { bubbles: true, cancelable: true })
       span.dispatchEvent(drop)
       expect(drop.defaultPrevented).toBe(true)
+    })
+  })
+  /* ══════════════════════════════════════════════════════════════
+   *  C-56 / C-70 PICTURE EXPORT (muya-diagram-export)
+   * ══════════════════════════════════════════════════════════════ */
+
+  describe('C-70 picture export transport', () => {
+    const exportHandler = () =>
+      mockEditorInstance.on.mock.calls.find((c) => c[0] === 'muya-diagram-export')[1]
+
+    // Two table figures inside the editor root; returns the second one's cell.
+    const tableDom = () => {
+      const root = document.createElement('div')
+      root.id = 'ag-editor-id'
+      root.innerHTML =
+        "<figure data-role='TABLE'><table></table></figure>" +
+        "<figure data-role='TABLE'><table><tbody><tr><td>x</td></tr></tbody></table></figure>"
+      document.body.appendChild(root)
+      return { root, table: root.querySelectorAll('table')[1], cell: root.querySelector('td') }
+    }
+
+    beforeEach(async () => {
+      document.body.innerHTML = ''
+      Object.values(pictureExportMock).forEach((fn) => fn.mockReset())
+      pictureExportMock.resolveTableExportTable.mockImplementation((el) =>
+        el.tagName === 'TABLE' ? el : el.closest('table'))
+      pictureExportMock.buildTableSvg.mockReturnValue({ svg: '<svg>table</svg>' })
+      pictureExportMock.rasterizeSvg.mockResolvedValue({ bytes: new Uint8Array([1]), width: 2, height: 2 })
+      pictureExportMock.suggestFileName.mockReturnValue('pic.png')
+      pictureExportMock.nearestHeadingText.mockReturnValue(null)
+      writeImageMock.mockReset().mockResolvedValue(undefined)
+      window.fileUtils.writeFile.mockClear()
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockReset().mockResolvedValue(null)
+    })
+
+    it('ignores a dispatch without action or element', async () => {
+      await mountEditor()
+      await exportHandler()({})
+      await exportHandler()()
+      expect(pictureExportMock.diagramExportSvg).not.toHaveBeenCalled()
+      expect(pictureExportMock.resolveTableExportTable).not.toHaveBeenCalled()
+    })
+
+    it('copies a table as a 2× PNG straight from its built svg', async () => {
+      await mountEditor()
+      const { cell } = tableDom()
+      await exportHandler()({ action: 'copyImage', element: cell })
+      expect(pictureExportMock.buildStandaloneSvg).not.toHaveBeenCalled()
+      expect(pictureExportMock.rasterizeSvg).toHaveBeenCalledWith('<svg>table</svg>', { scale: 2 })
+      expect(writeImageMock).toHaveBeenCalledWith(new Uint8Array([1]))
+      expect(noticeMock.notify).toHaveBeenCalledWith(expect.not.objectContaining({ type: 'warning' }))
+    })
+
+    it('saves a table PNG named after its 1-based index among the tables', async () => {
+      await mountEditor()
+      const { table } = tableDom()
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockResolvedValue('/out/doc-table-2.png')
+      await exportHandler()({ action: 'savePng', element: table })
+      expect(pictureExportMock.suggestFileName).toHaveBeenCalledWith(expect.objectContaining({
+        docName: 'test.md', index: 2, ext: 'png', noun: 'table'
+      }))
+      expect(window.fileUtils.writeFile).toHaveBeenCalledWith('/out/doc-table-2.png', new Uint8Array([1]), 'binary')
+    })
+
+    it('falls back to index 1 for a bare table outside the editor root', async () => {
+      await mountEditor()
+      const table = document.createElement('table')
+      document.body.appendChild(table)
+      await exportHandler()({ action: 'saveSvg', element: table })
+      expect(pictureExportMock.suggestFileName).toHaveBeenCalledWith(expect.objectContaining({ index: 1, ext: 'svg', noun: 'table' }))
+      expect(window.fileUtils.writeFile).not.toHaveBeenCalled()
+    })
+
+    it('warns and writes nothing when the table cannot be drawn', async () => {
+      await mountEditor()
+      const { cell } = tableDom()
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      pictureExportMock.buildTableSvg.mockReturnValue(null)
+      await exportHandler()({ action: 'copyImage', element: cell })
+      pictureExportMock.resolveTableExportTable.mockReturnValue(null)
+      await exportHandler()({ action: 'copyImage', element: cell })
+      expect(warn).toHaveBeenCalledTimes(2)
+      expect(warn.mock.calls[0][0]).toContain('[Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT] no rendered svg')
+      expect(writeImageMock).not.toHaveBeenCalled()
+      warn.mockRestore()
+    })
+
+    it('saves a diagram SVG through buildStandaloneSvg with the diagram noun', async () => {
+      await mountEditor()
+      const figure = document.createElement('figure')
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      figure.appendChild(svg)
+      document.body.appendChild(figure)
+      pictureExportMock.diagramExportSvg.mockReturnValue(svg)
+      pictureExportMock.buildStandaloneSvg.mockReturnValue('<svg>diagram</svg>')
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockResolvedValue('/out/d.svg')
+      await exportHandler()({ action: 'saveSvg', element: svg })
+      expect(pictureExportMock.suggestFileName).toHaveBeenCalledWith(expect.objectContaining({ noun: 'diagram', ext: 'svg' }))
+      expect(window.fileUtils.writeFile).toHaveBeenCalledWith('/out/d.svg', '<svg>diagram</svg>')
+    })
+
+    it('surfaces copy and save failures as warning notices', async () => {
+      await mountEditor()
+      const { cell } = tableDom()
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      writeImageMock.mockRejectedValue(new Error('denied'))
+      await exportHandler()({ action: 'copyImage', element: cell })
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      save.mockRejectedValue(new Error('dialog gone'))
+      await exportHandler()({ action: 'savePng', element: cell })
+      const warnings = noticeMock.notify.mock.calls.filter(([n]) => n.type === 'warning')
+      expect(warnings).toHaveLength(2)
+      warn.mockRestore()
     })
   })
 })
