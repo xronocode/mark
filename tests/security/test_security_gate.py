@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.0.0
+# VERSION: 1.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
-#   SCOPE: Real temporary Git indexes, Gitleaks rejection, network isolation, review responses and outgoing intermediate commits; never create or publish fixture commits.
+#   SCOPE: Real temporary Git indexes, Gitleaks rejection, network isolation, complete locale deltas, review responses and outgoing intermediate commits; never create or publish fixture commits.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, exact-index, local-only review and outgoing-history failure scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: executable fail-closed safety contracts.
+#   LAST_CHANGE: 1.1.0 - 2026-10-19: prove locale deltas retain nested changes and raw fallback without reducing static scans.
+#   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: executable fail-closed safety contracts.
 # END_CHANGE_SUMMARY
 
 import importlib.util
@@ -35,6 +36,57 @@ spec.loader.exec_module(gate)
 
 
 class SafetyGateTests(unittest.TestCase):
+    @staticmethod
+    def locale_patch(before, after):
+        name = "static/locales/en.min.json"
+        return "diff --git a/" + name + " b/" + name + "\nindex abc123..def456 100644\n--- a/" + name + "\n+++ b/" + name + "\n@@ -1 +1 @@\n-" + before + "\n+" + after + "\n"
+
+    def test_locale_review_retains_all_nested_changes_and_omits_only_unchanged_fields(self):
+        before = {"stable": "unchanged corpus", "nested": {"removed": "old", "changed": "before"}, "list": [1]}
+        after = {"stable": "unchanged corpus", "nested": {"changed": "after", "added": "new"}, "list": [1, 2]}
+        raw = self.locale_patch(json.dumps(before), json.dumps(after))
+        viewed = gate.review_view(raw)
+        self.assertIn('-JSON ["nested", "removed"] "old"', viewed)
+        self.assertIn('-JSON ["nested", "changed"] "before"', viewed)
+        self.assertIn('+JSON ["nested", "changed"] "after"', viewed)
+        self.assertIn('+JSON ["nested", "added"] "new"', viewed)
+        self.assertIn('-JSON ["list"] [1]', viewed)
+        self.assertIn('+JSON ["list"] [1, 2]', viewed)
+        self.assertNotIn("unchanged corpus", viewed)
+
+    def test_locale_review_preserves_value_type_changes_at_every_depth(self):
+        viewed = gate.review_view(self.locale_patch('{"nested":{"value":1}}', '{"nested":{"value":true}}'))
+        self.assertIn('-JSON ["nested", "value"] 1', viewed)
+        self.assertIn('+JSON ["nested", "value"] true', viewed)
+        viewed = gate.review_view(self.locale_patch('{"list":[{"value":1}]}', '{"list":[{"value":true}]}'))
+        self.assertIn('-JSON ["list"] [{"value": 1}]', viewed)
+        self.assertIn('+JSON ["list"] [{"value": true}]', viewed)
+
+    def test_ambiguous_or_unsupported_locale_json_retains_raw_diff(self):
+        for before, after in [('{"a":1}', '{"a":2,"a":3}'), ('{"a":1}', '{"a":NaN}'), ('{"a":1}', '{"a":1.5}'), ('{"a":1}', 'invalid'), ('[]', '{}')]:
+            raw = self.locale_patch(before, after)
+            self.assertEqual(gate.review_view(raw), raw)
+        raw = self.locale_patch('{"a":1}', '{"a":2}')
+        for edited in [raw.replace('@@ -1 +1 @@', '@@ -2 +2 @@'), raw + ' context\n', raw.replace('100644', '100755')]:
+            self.assertEqual(gate.review_view(edited), edited)
+
+    def test_added_locale_exposure_stays_visible_and_full_blob_scan_still_blocks_it(self):
+        value = "/Users/" + "private-person" + "/notes"
+        added = json.dumps({"path": value})
+        viewed = gate.review_view(self.locale_patch('{}', added))
+        self.assertIn(value, viewed)
+        with self.assertRaises(gate.GateError):
+            gate.scan({"blobs": [("static/locales/en.min.json", added.encode())], "payload": "raw identity-bound payload"})
+
+    def test_multiple_locale_sections_preserve_other_diff_and_commit_context(self):
+        first = self.locale_patch('{"a":"old"}', '{"a":"new"}')
+        second = first.replace('en.min.json', 'fr.min.json')
+        other = 'diff --git a/file.md b/file.md\n+independent changed text\n'
+        viewed = gate.review_view('COMMIT identity\n' + first + second + other)
+        self.assertIn('COMMIT identity', viewed)
+        self.assertEqual(viewed.count('+JSON ["a"] "new"'), 2)
+        self.assertIn(other, viewed)
+
     def test_desktop_rejects_mobile_owned_source_and_mobile_rejects_release_state(self):
         with self.assertRaises(gate.GateError):
             gate.validate_lane(Path("."), [("src/renderer/src/mobile/viewer.js", b"source")], "integ/desktop")

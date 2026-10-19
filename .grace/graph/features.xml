@@ -2770,7 +2770,11 @@
     </M-056>
     <M-064>
       <Name>RepositorySafetyGate</Name><Type>SCRIPT</Type><Status>implemented</Status><Layer>TOOLING</Layer>
-      <Summary>C-SAFE-DELIVERY: exact staged/outgoing secret, private-path and artifact checks; two serial local-only model passes; candidate recheck and shared commit/push hooks for independent desktop/mobile lanes.</Summary>
+      <Summary>
+        Strict one-line locale replacements retain every changed JSON field
+        and value for both model passes; unsupported input uses the raw diff.
+        Complete raw blobs and candidate identity remain scan/recheck inputs.
+C-SAFE-DELIVERY: exact staged/outgoing secret, private-path and artifact checks; two serial local-only model passes; candidate recheck and shared commit/push hooks for independent desktop/mobile lanes.</Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>
       <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic and local-model review.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message or outgoing refs/commits</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete local review, unsupported payload, engine conflict or changed candidate.</Description></Error></Errors></Contract>
