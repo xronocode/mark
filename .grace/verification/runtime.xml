@@ -6683,6 +6683,10 @@
           placement clamps/flips at viewport edges, long labels wrap within
           a bounded automatic height, and leave/removal cancels timers.
           Element Plus labels are audited with the same locale corpus.
+          Owner accepted the C-71 geometry/outline/viewer/tooltip scope on
+          2026-10-19 in Mark Test C71 f17b070e; exact artifact and queued
+          scope: docs/release-trains/2.5.x-next.md#c-71. The newly reported
+          table-footer spacing is a separate C-TABLE-FOOTER follow-up.
           Tests: table-ui-regressions.spec.ts, tooltip-layout.test.js,
           resize-surfaces.test.js and the extended table layout suites.
           Reviewed c65cov additions exercise store default IO/error paths,
