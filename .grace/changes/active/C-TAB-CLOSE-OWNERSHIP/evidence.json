@@ -1,0 +1,74 @@
+{
+  "change": "C-TAB-CLOSE-OWNERSHIP",
+  "date": "2026-10-19",
+  "status": "verified locally; owner release-train admission pending",
+  "baseline_regressions": {
+    "ownership_cases_failed": 4,
+    "cases": [
+      "late render from another or closed tab",
+      "old-surface writes before a missed activation is recovered",
+      "file-loaded optimization before the selected tab owns Muya",
+      "final rapid selection without an activation render"
+    ]
+  },
+  "verification": {
+    "focused_unit": {
+      "passed": 245,
+      "skipped": 2
+    },
+    "full_unit": {
+      "files_passed": 336,
+      "passed": 4617,
+      "skipped": 2,
+      "todo": 3,
+      "command": "npx vitest run --maxWorkers=2"
+    },
+    "browser": {
+      "passed": 20,
+      "projects": [
+        "chromium",
+        "webkit-session"
+      ],
+      "covers": [
+        "structured close-to-previous with edit isolation",
+        "close-to-next and repeated switches",
+        "session persistence",
+        "Source Code round trip",
+        "Split View roles and editing"
+      ]
+    },
+    "build": "passed",
+    "grace_current_and_selected_target": "zero errors; scope/heuristic warnings retained"
+  },
+  "native": {
+    "surface": "isolated native macOS WKWebView with the renderer and Tauri shim",
+    "fixtures": "synthetic only",
+    "controlled_failure": "omit an activation render and deliver a delayed render owned by the closed document",
+    "baseline": {
+      "ordinary_close": true,
+      "missed_activation_recovered": false,
+      "late_closed_render_rejected": false,
+      "remaining_store_intact": false
+    },
+    "repaired": {
+      "ordinary_close": true,
+      "missed_activation_recovered": true,
+      "late_closed_render_rejected": true,
+      "remaining_store_intact": true
+    },
+    "limitation": "The exact original native event sequence was not captured. Controlled native timing reproduces the observed mismatch and verifies the repaired ownership invariant; this is not full native-backend integration testing."
+  },
+  "privacy": {
+    "public_fixtures": "constructed examples only",
+    "private_documents_screenshots_and_raw_logs": "kept outside public source",
+    "new_ownership_markers": "no document text, paths, filenames or raw payloads"
+  },
+  "delivery": {
+    "push": "not authorized by this change",
+    "release_train_admission": "awaiting owner approval",
+    "version_or_installed_app_change": false,
+    "local_commit_review": "enforced by mandatory exact-payload hooks"
+  },
+  "integration_base": "0e8ffcd9299a7dd2b5ec25e3e677222cd2358960",
+  "integration": "Prepared atop the current table-resize and GPU-reviewer safety changes; preserve both routed index annotations."
+}

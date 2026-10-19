@@ -22,6 +22,7 @@
         <M-009/>
         <M-010/>
         <M-011/>
+        <!-- C-TAB-CLOSE-OWNERSHIP: M-011 owns active/rendered document identity and missed-activation recovery. -->
         <M-012/>
         <M-013/>
         <M-013-A/>

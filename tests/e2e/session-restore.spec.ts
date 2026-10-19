@@ -1,5 +1,5 @@
 // FILE: tests/e2e/session-restore.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-69 cold-launch session restore in the built renderer — with a saved session (folder + tabs + active tab) a launch without files reopens the folder in the sidebar, the tabs in order through mt_open_file and selects the saved active tab; open/close changes are autosaved into the prefs and survive a reload; a launch with files does not restore.
 //   SCOPE: Session restore/autosave and active-tab close DOM/store/edit isolation over the Tauri shim; no native dialogs or real user files.
@@ -11,13 +11,14 @@
 //
 // START_MODULE_MAP
 //   ROOT - the fake project folder of the saved session.
-//   installSessionShim - per-test fake prefs (sessionStorage, reload-safe), filesystem and open-file round trip.
+//   installSessionShim - per-test fake prefs, filesystem and open-file round trip with optional synthetic document bodies.
 //   boot - loads the editor and emits mt::bootstrap-editor (addBlankTab = cold launch without files).
 //   tabNames - the tab bar file names in order plus the active one.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-19: triage stale content after active-tab close; pin remaining DOM/store content and edit ownership in both browser engines.
+//   LAST_CHANGE: v1.2.0 - C-TAB-CLOSE-OWNERSHIP: structured-document close-to-previous/next and edit isolation in both engines.
+//   PREV: v1.1.0 - 2026-10-19: triage stale content after active-tab close; pin remaining DOM/store content and edit ownership in both browser engines.
 //   PREV: v1.0.0 - 2026-10-19 C-69: new — fails without the boot restore (welcome screen instead of the tabs), without the active-tab step, and when the autosave does not persist a closed tab.
 // END_CHANGE_SUMMARY
 
@@ -26,8 +27,8 @@ import { installTauriShim } from './fixtures/tauri-shim'
 
 const ROOT = '/tmp/mark-e2e-session'
 
-async function installSessionShim(page: Page, seed: Record<string, unknown>) {
-  await page.addInitScript(({ root, seedPrefs }) => {
+async function installSessionShim(page: Page, seed: Record<string, unknown>, documents: Record<string, string> = {}) {
+  await page.addInitScript(({ root, seedPrefs, documents }) => {
     const KEY = '__e2eSessionPrefs'
     if (!sessionStorage.getItem(KEY)) sessionStorage.setItem(KEY, JSON.stringify(seedPrefs))
     const read = () => JSON.parse(sessionStorage.getItem(KEY) || '{}')
@@ -57,7 +58,7 @@ async function installSessionShim(page: Page, seed: Record<string, unknown>) {
         ;(window as any).__emitFakeEvent('mt::open-new-tab', {
           pathname: p,
           filename: p.split('/').pop(),
-          markdown: `# ${p.split('/').pop()}\n`,
+          markdown: documents[p] ?? `# ${p.split('/').pop()}\n`,
           isUtf8BomEncoded: false,
           lineEnding: 'lf',
           adjustLineEndingOnSave: false
@@ -65,7 +66,7 @@ async function installSessionShim(page: Page, seed: Record<string, unknown>) {
         return null
       }
     }
-  }, { root: ROOT, seedPrefs: seed })
+  }, { root: ROOT, seedPrefs: seed, documents })
 }
 
 async function boot(page: Page, { addBlankTab = true } = {}) {
@@ -166,6 +167,56 @@ test.describe('session restore (C-69)', () => {
       return { pathname: editor.currentFile.pathname, markdown: editor.currentFile.markdown, paths: editor.tabs.map((tab: any) => tab.pathname) }
     })).toEqual({ pathname: `${ROOT}/alpha.md`, markdown: '# alpha.md retained edit\n', paths: [`${ROOT}/alpha.md`] })
   })
+
+  // START_BLOCK_STRUCTURED_DOCUMENT_CLOSE
+  test('closing a structured report restores the previous draft and keeps its edits isolated', async ({ page }) => {
+    const alpha = `${ROOT}/alpha.md`
+    const beta = `${ROOT}/beta.md`
+    const gamma = `${ROOT}/gamma.md`
+    await installSessionShim(page, {
+      lastSessionTabs: [alpha, beta, gamma], lastSessionActive: gamma
+    }, {
+      [alpha]: '# Alpha reference\n\nUnchanged reference body.\n',
+      [beta]: '---\ntitle: Synthetic draft\nstatus: draft\n---\n\n# Beta draft\n\nDraft body ready for editing.\n',
+      [gamma]: '# Gamma report\n\n' + Array.from({ length: 12 }, (_, i) =>
+        `## Section ${i + 1}\n\n| Item | State |\n| --- | --- |\n| Record ${i + 1} | Synthetic |\n\n- First finding\n- Second finding\n\n`
+      ).join('')
+    })
+    await boot(page)
+    await expect(page.locator('#ag-editor-id')).toContainText('Gamma report')
+    await page.locator('.editor-component').evaluate((el) => { el.scrollTop = 600 })
+    await page.locator('.tabs-container li.active .close-icon').click()
+    await expect(page.locator('.tabs-container li.active')).toContainText('beta.md')
+    await expect(page.locator('#ag-editor-id')).toContainText('Beta draft')
+    await expect(page.locator('#ag-editor-id')).not.toContainText('Gamma report')
+    await page.locator('#ag-editor-id h1').click()
+    await page.keyboard.press('End')
+    await page.keyboard.type(' retained edit')
+    await expect.poll(() => page.evaluate(() => {
+      const state = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor
+      return { active: state.currentFile.filename, bodies: state.tabs.map((tab: any) => [tab.filename, tab.markdown]) }
+    })).toEqual({ active: 'beta.md', bodies: [
+      ['alpha.md', '# Alpha reference\n\nUnchanged reference body.\n'],
+      ['beta.md', '---\ntitle: Synthetic draft\nstatus: draft\n---\n\n# Beta draft retained edit\n\nDraft body ready for editing.\n']
+    ] })
+  })
+
+  test('closing the middle active tab renders its next neighbor through repeated switches', async ({ page }) => {
+    await installSessionShim(page, {
+      lastSessionTabs: [`${ROOT}/alpha.md`, `${ROOT}/beta.md`, `${ROOT}/gamma.md`],
+      lastSessionActive: `${ROOT}/beta.md`
+    })
+    await boot(page)
+    await expect(page.locator('.tabs-container li.active')).toContainText('beta.md')
+    await page.locator('.tabs-container li.active .close-icon').click()
+    await expect(page.locator('#ag-editor-id')).toContainText('gamma.md')
+    for (const name of ['alpha.md', 'gamma.md', 'alpha.md', 'gamma.md']) {
+      await page.locator('.tabs-container li').filter({ hasText: name }).click()
+      await expect(page.locator('#ag-editor-id')).toContainText(name)
+      await expect(page.locator('#ag-editor-id')).not.toContainText('beta.md')
+    }
+  })
+  // END_BLOCK_STRUCTURED_DOCUMENT_CLOSE
 
   test('a launch with files does not restore the session', async ({ page }) => {
     await installSessionShim(page, { lastSessionTabs: [`${ROOT}/alpha.md`] })

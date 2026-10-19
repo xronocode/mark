@@ -2990,6 +2990,11 @@
         <Errors/>
       </Contract>
       <Interface>
+        <fn-reconcileActiveDocument>
+          <Purpose>Track the rendered Muya document independently of the active tab, restore a missed activation after Vue flush, and block stale-surface content/scroll writes into another tab.</Purpose>
+          <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+          <VerificationRef>V-M-011</VerificationRef>
+        </fn-reconcileActiveDocument>
         <fn-mountApp>
           <LegacyAttributes>
             <Attribute>
@@ -3435,9 +3440,9 @@
               <Attribute>
                 <Name>PURPOSE</Name>
                 <Value>
-                  editorWithTabs/editor.vue rejects delayed file-changed
-                  Markdown when it differs from newer unsaved content in the
-                  same active tab
+                  editorWithTabs/editor.vue rejects file-changed events owned
+                  by another or closed tab and delayed Markdown differing from
+                  newer unsaved content in the same active tab
                 </Value>
               </Attribute>
             </LegacyAttributes>
