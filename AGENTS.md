@@ -230,6 +230,10 @@ Releases are tag-triggered via `.github/workflows/release.yml` — **do NOT buil
 
 **Semantics that matter:** beta tags are published as **normal releases** (`PRERELEASE=false` in the workflow, asserted by tests) so the `/releases/latest` feed advances — the in-app updater reads `https://github.com/xronocode/mark/releases/latest/download/latest.json`. A release is live iff that `latest.json` serves the new version.
 
+## Commit and push safety
+
+Before every local commit and push, follow [the mandatory safety protocol](docs/commit-push-safety.md): exact staged/outgoing checks, Gitleaks, two serial local-model passes, independent final diff inspection and candidate identity recheck. No hook bypass, cloud fallback or commit containing private recovery/build/session material. Install the shared hooks with `python3 tools/security_gate.py install`; stage the reviewed gate before installation. Apply merges/cherry-picks with `--no-commit`, then commit through the hooks. Desktop and mobile keep independent branches, versions, acceptance ledgers and release cadences.
+
 ## Local AI safety
 
 If this project runs local AI inference — ollama, LM Studio, mlx/mlx-whisper, or llama.cpp — follow the canonical protocol (the full reference lives outside this repo):

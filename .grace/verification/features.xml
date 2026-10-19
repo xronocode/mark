@@ -1476,7 +1476,7 @@
         </test-targets>
         <commands>
           <module-local>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            cd ~/prj/mark &amp;&amp; npx vitest run
             tests/renderer/muya/clipboardPayload.test.js
             tests/renderer/muya/pasteSourceDetector.test.js
             tests/renderer/muya/pasteSourceAdapters.test.js
@@ -1486,7 +1486,7 @@
             tests/renderer/util/dompurify-deep.test.js
           </module-local>
           <e2e>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test
+            cd ~/prj/mark &amp;&amp; npx playwright test
             tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts
           </e2e>
         </commands>
@@ -1551,7 +1551,7 @@
         </test-targets>
         <commands>
           <module-local>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            cd ~/prj/mark &amp;&amp; npx vitest run
             tests/renderer/muya/clipboardPayload.test.js
           </module-local>
         </commands>
@@ -1604,7 +1604,7 @@
         </test-targets>
         <commands>
           <module-local>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            cd ~/prj/mark &amp;&amp; npx vitest run
             tests/renderer/muya/pasteSourceDetector.test.js
           </module-local>
         </commands>
@@ -1666,7 +1666,7 @@
         </test-targets>
         <commands>
           <module-local>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            cd ~/prj/mark &amp;&amp; npx vitest run
             tests/renderer/muya/pasteSourceAdapters.test.js
           </module-local>
         </commands>
@@ -1773,12 +1773,12 @@
         </test-targets>
         <commands>
           <module-local>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            cd ~/prj/mark &amp;&amp; npx vitest run
             tests/renderer/muya/pasteHtmlNormalizer.test.js
             tests/renderer/util/dompurify-deep.test.js
           </module-local>
           <e2e>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test
+            cd ~/prj/mark &amp;&amp; npx playwright test
             tests/e2e/html-paste-images.spec.ts
           </e2e>
         </commands>
@@ -1843,7 +1843,7 @@
         </test-targets>
         <commands>
           <module-local>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            cd ~/prj/mark &amp;&amp; npx vitest run
             tests/renderer/muya/smartPasteImport.test.js
           </module-local>
         </commands>
@@ -1918,7 +1918,7 @@
         </test-targets>
         <commands>
           <module-local>
-            cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run
+            cd ~/prj/mark &amp;&amp; npx vitest run
             tests/renderer/util/clipboard-fixture-capture.test.js
           </module-local>
         </commands>
@@ -2290,7 +2290,7 @@
           <test>src-tauri/src/m045_ext/tests.rs</test>
         </test-targets>
         <commands>
-          <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; cargo test --bin mark m045_ext</module-local>
+          <module-local>cd ~/prj/mark &amp;&amp; cargo test --bin mark m045_ext</module-local>
         </commands>
         <wave-follow-up>
           When a second extension type is added beyond TokMo, verify that no
@@ -2550,5 +2550,11 @@
       </Scenarios>
       <Markers/>
     </V-M-056>
+    <V-M-064>
+      <Priority>critical</Priority><Commands><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Commands>
+      <Scenarios><Scenario>Reject credentials and personal paths without printing values; reject generated, binary and symlink payloads.</Scenario><Scenario>Review exact staged blobs rather than unstaged files; inspect every outgoing intermediate commit.</Scenario><Scenario>Engine conflicts, unavailable local inference, redirects, malformed/truncated verdicts and changed candidates stop commit/push.</Scenario><Scenario>Every complete bounded chunk receives two serial local-model passes; shared hooks remain active across worktrees.</Scenario></Scenarios>
+      <Markers><Marker>[RepositorySafety][review][BLOCK_SAFETY_REVIEW_PASS]</Marker><Marker>[RepositorySafety][review][BLOCK_SAFETY_REVIEW_STOP]</Marker></Markers>
+      <TraceAssertions><TraceAssertion>No raw candidate or matched secret appears in console output; no cloud fallback or hook bypass.</TraceAssertion></TraceAssertions>
+    </V-M-064>
   </VD-FEATURES>
 </GraceVerificationDocument>

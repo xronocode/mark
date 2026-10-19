@@ -1,0 +1,16 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-SAFE-DELIVERY>
+    <ChangeRef>C-SAFE-DELIVERY</ChangeRef><Created>2026-10-19</Created>
+    <IntentSummary>Execute the owner's explicitly approved sequential preservation and integration directive with a fail-closed commit/push gate before any new commit or push.</IntentSummary>
+    <ApprovalBasis>2026-10-19 owner directive: steps 1, 2 and 3 approved, integrate after each task, discuss step 4 later, mobile fully independent of desktop commits/releases, mandatory local-model safety review and recheck before every commit and push.</ApprovalBasis>
+    <BaselineAssertions><MustContain><File>AGENTS.md</File><Text>Local AI safety</Text></MustContain></BaselineAssertions>
+    <TargetAssertions><MustContain><File>tools/security_gate.py</File><Text>BLOCK_SAFETY_REVIEW_PASS</Text></MustContain><MustContain><File>docs/commit-push-safety.md</File><Text>second, skeptical</Text></MustContain><MustPassCommand><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></MustPassCommand></TargetAssertions>
+    <DurableScope><GraphAnchors><M-064 /></GraphAnchors><VerificationAnchors><V-M-064 /></VerificationAnchors></DurableScope>
+    <ObservedWriteScope><File>tools/security_gate.py</File><Glob>tests/security/**</Glob><File>docs/commit-push-safety.md</File><File>AGENTS.md</File><File>package.json</File><File>.grace/graph/features.xml</File><File>.grace/graph/index.xml</File><File>.grace/verification/features.xml</File><File>.grace/verification/index.xml</File><Glob>.grace/changes/active/C-SAFE-DELIVERY/**</Glob></ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001><Title>Preserve recoverable refs and private dirty layers</Title><DependsOn /><AcceptanceCriteria><Criterion>Recovery refs and private file/hash manifests exist; no raw backup is staged or pushed.</Criterion></AcceptanceCriteria><Verification><Command>git show-ref --verify refs/heads/recovery/product-backlog-20261019</Command><Command>git show-ref --verify refs/heads/recovery/table-copy-previews-20261019</Command></Verification></T-001>
+      <T-002><Title>Implement, test, self-review and install the mandatory gate</Title><DependsOn>T-001</DependsOn><AcceptanceCriteria><Criterion>Static scanner, local two-pass model review, identity recheck and shared hooks fail closed; meaningful tests pass.</Criterion></AcceptanceCriteria><Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Verification></T-002>
+      <T-003><Title>Land the gate as its own desktop integration task</Title><DependsOn>T-002</DependsOn><AcceptanceCriteria><Criterion>Commit and outgoing push pass the installed gate and fresh CI; subsequent tasks use it.</Criterion></AcceptanceCriteria><Verification><Command>python3 tools/security_gate.py review-staged --message 'safety gate integration'</Command></Verification></T-003>
+    </ImplementationPlan>
+  </C-SAFE-DELIVERY>
+</GraceChangePlan>
