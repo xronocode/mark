@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-20",
+  "status": "implemented and locally verified; owner accepted on the exact immutable native snapshot; protected commits and integration CI pending",
+  "baseline": {
+    "failed": 6,
+    "engines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "roles": [
+      "TABLE",
+      "MERMAID",
+      "VEGA-LITE"
+    ],
+    "reason": "Moving to the next button hid the earlier visited label."
+  },
+  "implementation": "Both existing vnode factories use toolbarLabelEvents. Visits add a class to each enabled button; whole-panel pointer/focus exit clears only that panel. CSS retains visited labels. No global listeners or document/persistence writes.",
+  "verification": {
+    "focusedUnitPassed": 56,
+    "fullRenderer": {
+      "filesPassed": 336,
+      "testsPassed": 4638,
+      "existingSkipped": 2,
+      "existingTodo": 3,
+      "coverage": {
+        "statements": 92.55,
+        "branches": 85.91,
+        "functions": 87.1,
+        "lines": 93.62
+      },
+      "thresholds": "unchanged and passing"
+    },
+    "labelAndFooterBrowserPassed": 16,
+    "viewerOutlineExport": "62 broad cases passed; outdated fitting-table Tab assertions corrected, then all four affected keyboard/resize checks passed in both engines. A WebKit bootstrap interruption during rebuild passed on the isolated rerun.",
+    "grace": "0 integrity errors; existing baseline/scope-overlap warnings"
+  },
+  "ownerAcceptance": {
+    "date": "2026-10-20",
+    "basis": "Owner accepted the remaining behavior on Mark Test UI f8af91e9, while reporting a separate caption/shade paint issue and asking about the chart appearance scope.",
+    "scope": "Cumulative table/diagram toolbar labels, fitting-table width-action/counter hiding and prior footer geometry; caption paint remains a separate pending C-TABLE-FOOTER detail.",
+    "artifact": {
+      "sourceBase": "16b59d1b8f718f1390d15663e782adfd263a50f7",
+      "sourceState": "Immutable local QA snapshot; protected follow-up commits pending the shared safety-review slot. Runtime file hashes will be mapped to the protected commit before integration.",
+      "runtimeSnapshotSha256": "f8af91e92d729b61577e68f06ac0307e1f2ecb8ca7a71f95e6ebe210db8312c3",
+      "runtimeFileOverrides": [
+        {
+          "path": "src/muya/lib/assets/styles/index.css",
+          "sha256": "4d68af25137fbfc42775c70d7aacaa77c3237eec92c0a7e85504262d3dc6b3e7"
+        },
+        {
+          "path": "src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js",
+          "sha256": "1eb1010cc6ce340a44f2ef9721b418f9c68ab8b2170f8085fdcfc4bb85fda85c"
+        },
+        {
+          "path": "src/muya/lib/parser/render/renderBlock/renderTableToolbar.js",
+          "sha256": "f444d6732200b525308eaf56c1fb0bbd2bcdb4c40f7fc710545ac49ce17bbbc3"
+        },
+        {
+          "path": "src/muya/lib/tableResize/tableCue.js",
+          "sha256": "cf01cd6d6a41d3c74e25319fcb6e74c22311802e5f60f2f0518f1ac558ccb26c"
+        }
+      ],
+      "identifier": "com.xronocode.mark.test.uif8af91e9",
+      "productName": "Mark Test UI f8af91e9",
+      "testOnlyRustIdentityOverrides": [
+        "src-tauri/src/mt_paths.rs",
+        "src-tauri/src/m019_datacenter.rs",
+        "src-tauri/src/m021_default_handler.rs",
+        "src-tauri/src/m045_ext/discovery.rs",
+        "src-tauri/src/m045_ext/auth.rs",
+        "src-tauri/src/m045_ext/live_endpoint.rs"
+      ],
+      "rendererFiles": 738,
+      "rendererManifestSha256": "2f2e99695a2eb84b05d5402ece84f81d240d3fc3a6d34ee4e8212fe2a44806e9",
+      "checks": {
+        "fullRendererUnitPassed": 4638,
+        "tableFooterBrowserPassed": 62,
+        "labelsAndFooterBrowserPassed": 16
+      },
+      "purpose": "Isolated debug acceptance artifact; no version/tag/updater/release publication.",
+      "binarySha256": "cf6b6f4f5af5ec37ae71d85e23a794f3179f35441f10480a1507078528a5c908",
+      "nativeObservation": "Exact isolated app brought forward with the wide overflowing long-cell table visible, counter above the scrollbar and clear of the right shade; fitting table and diagram/chart fixtures below. No gallery or production-app substitution."
+    }
+  },
+  "release": "No version, tag, release or updater publication authorized."
+}

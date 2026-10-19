@@ -4414,10 +4414,20 @@
                 while the block has no rendered svg (corner-4). The
                 expand action stays need-gated by ag-expand-needed; the
                 pill reveals on figure hover / :focus-within only.
+                C-TOOLBAR-LABELS: toolbarLabelEvents is also used by the
+                table toolbar. Visited inline labels stay open between
+                adjacent buttons and reset on whole-panel pointer/focus
+                exit, with no global listeners or document writes.
               </Value>
             </Attribute>
           </LegacyAttributes>
         </fn-renderBlockToolbar>
+        <fn-toolbarLabelVisits>
+          <Path>src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js; src/muya/lib/parser/render/renderBlock/renderTableToolbar.js</Path>
+          <Purpose>Keep visited inline labels open within each live table/Mermaid/Vega-Lite corner panel; reset its button classes only on whole-panel pointer or focus exit. Preserve disabled controls and existing keyboard/action routing.</Purpose>
+          <Exports>toolbarLabelEvents</Exports>
+          <VerificationRef>V-M-012 scenario-toolbar-label-visits</VerificationRef>
+        </fn-toolbarLabelVisits>
       </Interface>
       <Sources>
         <Source>src/muya/</Source>
