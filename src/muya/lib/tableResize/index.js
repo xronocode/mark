@@ -461,7 +461,19 @@ class TableResize {
     // gutter from the left edge and the editor scrolls horizontally.
     const table = wrapper.querySelector('table')
     const natural = table ? table.getBoundingClientRect().width : 0
-    const available = containerRect.width
+    // A host overlay pinned to the right of the editor (the outline rail
+    // marks itself with data-editor-overlay-right) narrows the room: a
+    // centred table must not slide under it.
+    let available = containerRect.width
+    const overlay = typeof document !== 'undefined'
+      ? document.querySelector('[data-editor-overlay-right]')
+      : null
+    if (overlay && overlay.getBoundingClientRect) {
+      const o = overlay.getBoundingClientRect()
+      if (o.width > 0 && o.left > containerRect.left && o.left < containerRect.left + available) {
+        available = o.left - containerRect.left - FULL_WIDTH_GUTTER_PX
+      }
+    }
     let target = FULL_WIDTH_GUTTER_PX
     if (Number.isFinite(natural) && natural > 0 && Number.isFinite(available) &&
       natural + FULL_WIDTH_GUTTER_PX * 2 <= available) {
