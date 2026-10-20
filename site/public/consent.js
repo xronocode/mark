@@ -101,11 +101,28 @@
   var gaPrimed = false;
   // js + config go into dataLayer (free, no request) so any events flushed
   // by a grant land after them — gtag.js drains the queue in order.
+  // URL sanitation (tracking plan, checklist item 7): page_location keeps only
+  // named UTM tags; the rest of the query and the hash are dropped, the
+  // referrer is passed as origin only.
+  function gaPageLocation() {
+    try {
+      var keep = ["utm_source", "utm_medium", "utm_campaign"], q = new URLSearchParams(location.search), parts = [];
+      for (var i = 0; i < keep.length; i++) { var v = q.get(keep[i]); if (v) parts.push(keep[i] + "=" + encodeURIComponent(v.slice(0, 100))); }
+      return location.origin + location.pathname + (parts.length ? "?" + parts.join("&") : "");
+    } catch (e) { return location.href.split("#")[0]; }
+  }
+  function gaReferrerOrigin() {
+    try { return document.referrer ? new URL(document.referrer).origin : null; } catch (e) { return null; }
+  }
   function primeGA() {
     if (!GA || gaPrimed) return;
     gaPrimed = true;
     gtag("js", new Date());
-    gtag("config", GA);
+    gtag("set", { language: (document.documentElement.lang || "en").slice(0, 8).toLowerCase() });
+    var cfg = { page_location: gaPageLocation() };
+    var ro = gaReferrerOrigin();
+    if (ro) cfg.page_referrer = ro;
+    gtag("config", GA, cfg);
   }
   var gaLoaded = false;
   function loadGA() {

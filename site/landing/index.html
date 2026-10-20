@@ -1271,6 +1271,7 @@ instruction.</pre>
       copyText(src.textContent).then(function () {
         el.classList.add('is-copied');
         el.textContent = 'Copied';
+        if (el.getAttribute('data-copy-target') === 'agent-snippet' && window.markTrack) window.markTrack('snippet_copy', {});
         clearTimeout(t);
         t = setTimeout(function () {
           el.classList.remove('is-copied');
