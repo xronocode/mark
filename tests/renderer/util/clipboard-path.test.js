@@ -57,7 +57,7 @@ describe('util/clipboardPath (C-52)', () => {
 
   describe('parseClipboardTextToPath', () => {
     it('accepts a bare absolute path', () => {
-      expect(parseClipboardTextToPath('/Users/agent/docs', '')).toBe('/Users/agent/docs')
+      expect(parseClipboardTextToPath('/Users/<fixture>/docs', '')).toBe('/Users/<fixture>/docs')
     })
 
     it('trims surrounding whitespace and a trailing newline', () => {
@@ -75,10 +75,10 @@ describe('util/clipboardPath (C-52)', () => {
     })
 
     it('expands ~ against the home directory', () => {
-      expect(parseClipboardTextToPath('~/Documents/notes', '/Users/agent')).toBe(
-        '/Users/agent/Documents/notes'
+      expect(parseClipboardTextToPath('~/Documents/notes', '/Users/<fixture>')).toBe(
+        '/Users/<fixture>/Documents/notes'
       )
-      expect(parseClipboardTextToPath('~/Documents', '/Users/agent/')).toBe('/Users/agent/Documents')
+      expect(parseClipboardTextToPath('~/Documents', '/Users/<fixture>/')).toBe('/Users/<fixture>/Documents')
     })
 
     it('rejects ~ when no home directory is known', () => {
@@ -86,14 +86,14 @@ describe('util/clipboardPath (C-52)', () => {
     })
 
     it('decodes a file:// URL with percent escapes', () => {
-      expect(parseClipboardTextToPath('file:///Users/agent/My%20Docs', '')).toBe(
-        '/Users/agent/My Docs'
+      expect(parseClipboardTextToPath('file:///Users/<fixture>/My%20Docs', '')).toBe(
+        '/Users/<fixture>/My Docs'
       )
     })
 
     it('accepts file://localhost and a Windows drive-letter URL', () => {
       expect(parseClipboardTextToPath('file://localhost/tmp/x', '')).toBe('/tmp/x')
-      expect(parseClipboardTextToPath('file:///C:/Users/x/notes.md', '')).toBe('C:/Users/x/notes.md')
+      expect(parseClipboardTextToPath('file:///C:/Users/<fixture>/notes.md', '')).toBe('C:/Users/<fixture>/notes.md')
     })
 
     it('returns null for garbage, relative paths, remote hosts and empty text', () => {
@@ -129,7 +129,7 @@ describe('util/clipboardPath (C-52)', () => {
       expect(isAbsolutePath('/a')).toBe(true)
       expect(isAbsolutePath('\\\\server\\share')).toBe(true)
       expect(isAbsolutePath('C:\\Users\\x')).toBe(true)
-      expect(isAbsolutePath('C:/Users/x')).toBe(true)
+      expect(isAbsolutePath('C:/Users/<fixture>')).toBe(true)
       expect(isAbsolutePath('a/b')).toBe(false)
       expect(isAbsolutePath('~/x')).toBe(false)
     })
@@ -192,9 +192,9 @@ describe('util/clipboardPath (C-52)', () => {
       const stat = vi.fn(async () => ({ isDirectory: true }))
       const target = await resolveClipboardTarget(
         { filePaths: [], text: '~/prj' },
-        { stat, homeDir: '/Users/agent' }
+        { stat, homeDir: '/Users/<fixture>' }
       )
-      expect(target).toEqual({ kind: 'folder', path: '/Users/agent/prj' })
+      expect(target).toEqual({ kind: 'folder', path: '/Users/<fixture>/prj' })
     })
 
     it('returns null when nothing stats as folder or Markdown', async () => {

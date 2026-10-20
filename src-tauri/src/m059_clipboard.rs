@@ -442,8 +442,8 @@ mod tests {
     #[test]
     fn file_url_to_path_decodes_posix_path() {
         assert_eq!(
-            file_url_to_path("file:///Users/agent/My%20Docs"),
-            Some("/Users/agent/My Docs".to_string())
+            file_url_to_path("file:///Users/<fixture>/My%20Docs"),
+            Some("/Users/<fixture>/My Docs".to_string())
         );
     }
 
@@ -459,8 +459,8 @@ mod tests {
     #[test]
     fn file_url_to_path_strips_drive_letter_slash() {
         assert_eq!(
-            file_url_to_path("file:///C:/Users/x/notes.md"),
-            Some("C:/Users/x/notes.md".to_string())
+            file_url_to_path("file:///C:/Users/<fixture>/notes.md"),
+            Some("C:/Users/<fixture>/notes.md".to_string())
         );
     }
 
