@@ -205,3 +205,34 @@ html.platform-darwin .ag-block-viewer-header {
   border-collapse: collapse;
 }
 /* END_BLOCK_CSS_TABLE */
+
+/* START_BLOCK_CSS_PAN_CUES */
+/* FIX-008 reopen: horizontal navigation is pan-only, so the clipped sides
+ * are signalled by subtle edge gradients. Non-interactive by design — a
+ * drag starting inside a shadow must keep panning the canvas — and only
+ * ever toggled for table sources (index.js updateClipShadows). */
+.ag-block-viewer-clip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 1;
+}
+
+.ag-block-viewer-clip-left {
+  left: 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0));
+}
+
+.ag-block-viewer-clip-right {
+  right: 0;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0));
+}
+
+.ag-block-viewer-clip.ag-block-viewer-clip-on {
+  opacity: 1;
+}
+/* END_BLOCK_CSS_PAN_CUES */

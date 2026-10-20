@@ -3435,6 +3435,10 @@
           tests/renderer/muya/edit-preview-flow.test.js
         </Command>
         <Command>
+          npx vitest run -c vitest.int.config.mjs --maxWorkers=1
+          tests/renderer/muya/block-viewer-pan-cues.test.js
+        </Command>
+        <Command>
           npm run build &amp;&amp; npx playwright test tests/e2e/block-viewer.spec.ts
           --project=chromium --project=webkit-block-viewer
         </Command>
@@ -6009,9 +6013,18 @@
           duplicate ids stripped; sticky thead); pan/zoom via
           @panzoom/panzoom 4.6.2 —
           pinch / Cmd+Ctrl+wheel zoom (zoomWithWheel), drag pan, plain wheel
-          pans diagrams and natively scrolls capped tables so the sticky
-          header works, keys + = − _ 0 (fit) 1 (100%) zoom, Esc closes,
-          close button and backdrop click close; focus is trapped inside
+          pans diagrams and natively scrolls capped tables VERTICALLY so the
+          sticky header works, keys + = − _ 0 (fit) 1 (100%) zoom, Esc closes,
+          close button and backdrop click close; FIX-008 reopen
+          (C-FIX-008-VIEWER-PAN-CUES): a table canvas never paints a native
+          horizontal scrollbar or bottom track at any zoom — drag/pan is the
+          single horizontal-navigation model — and the clipped sides are
+          marked by subtle non-interactive gradient shadows
+          (tableClipShadows over the live canvas/stage rects, 1px
+          tolerance): left bound only the right shadow, middle both, right
+          bound only the left, centered 1:1 both when both sides clip, Fit
+          neither; the vertical axis keeps native auto exactly when the
+          scaled content is taller than the stage; focus is trapped inside
           while open (Tab cycling) and restored on close to the element
           that had it at open — the C-51 expand button when it opened the
           viewer (close() re-asserts re-resolve the LIVE button from
@@ -6026,7 +6039,10 @@
           destroyed and listeners removed on close and plugin destroy;
           strings in all 20 locale files (10 × .json + .min.json).
           Unit-pinned in tests/renderer/muya/block-viewer.test.js (jsdom,
-          @panzoom/panzoom mocked); open/zoom/Esc and Cmd+click vs plain
+          @panzoom/panzoom mocked) and
+          tests/renderer/muya/block-viewer-pan-cues.test.js (the pure
+          tableClipShadows bound maths and the overlay wiring);
+          open/zoom/Esc and Cmd+click vs plain
           click end-to-end in tests/e2e/block-viewer.spec.ts.
         </Scenario>
         <Scenario>

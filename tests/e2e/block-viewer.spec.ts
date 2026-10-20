@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.7.0
+// VERSION: 3.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2), the C-51 T-006/T-010 expand affordances (since C-56 T-005: the corner pill on mermaid/vega-lite figures and the standalone glyph on flowchart/sequence/plantuml; since C-65 T-002: the TABLE toolbar on tables — its expand action is the pill-family need-gated button) and the T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd/click, Esc close with focus restore; the T-010 need rules (hidden expand actions on small blocks — no Tab stop; wide/tall blocks get them), the C-56 T-005 pill look (variant C: opacity 0 → 1 on figure hover / :focus-within, never the caret; themed surface pill, label reveal, muted → fg hover), the C-65 table toolbar placement above the table clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -23,7 +23,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.7.0 - 2026-10-20 C-TABLE-FOOTER owner review: fitting tables have no width-toggle Tab stop; Copy as image remains reachable.
+//   LAST_CHANGE: v3.8.0 - 2026-10-20 C-FIX-008-VIEWER-PAN-CUES: the FIX-008
+//   case is rewritten to the pan-only contract — no horizontal track at any
+//   zoom, drag reveals the last column, the edge clip shadows track the
+//   left/middle/right pan positions and clear at Fit.
+//   PREV: v3.7.0 - 2026-10-20 C-TABLE-FOOTER owner review: fitting tables have no width-toggle Tab stop; Copy as image remains reachable.
 //   PREV: v3.6.0 - 2026-10-19 Full width default: the wide table's toggle reads «Fit to page», the narrow ones «Full width»; the last-column drag scrolls the editor (the Full width scroller) as well as the wrapper.
 //   v3.5.0 - 2026-10-18 C-65 T-002: tables render the TABLE
 //   TOOLBAR instead of the standalone glyph — every table selector moved
@@ -622,16 +626,18 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })).toBe(true)
   })
 
-  // FIX-008 (2026-10-20): the table canvas keeps `overflow: auto` while
-  // panzoom only scales visually, so the natural-width layout box painted
-  // a phantom horizontal scrollbar track even at Fit. updateTableOverflow
-  // now enables a native scrollbar per axis only when the SCALED content
-  // actually overflows the stage.
-  test('table: no horizontal scrollbar track at Fit; a real scrollbar returns at 1:1 (FIX-008)', async ({ page }) => {
-    // Wider than WIDE_TABLE_MD: the default viewport stage is ~1280px, and
-    // the 12-column table still fits it at 1:1 — the phantom track the
-    // owners saw was a 1px layout-only overflow at Fit. 18 long columns
-    // genuinely overflow at 1:1, so the returning scrollbar is real.
+  // FIX-008 reopen (2026-10-20, C-FIX-008-VIEWER-PAN-CUES): the table
+  // viewer is pan-only horizontally — no native horizontal scrollbar or
+  // bottom track exists at any zoom, drag/pan is the single horizontal
+  // navigation model, and the clipped sides are marked by the edge
+  // shadows (tableClipShadows over the live canvas/stage rects). On the
+  // rejected bae95a97 revision this spec fails: overflowX computes to
+  // 'auto' at 1:1 (the phantom track) while providing no meaningful
+  // navigation range.
+  test('table: pan-only horizontal navigation with edge clip shadows, no scrollbar at any zoom (FIX-008)', async ({ page }) => {
+    // Wider than WIDE_TABLE_MD: the default viewport stage is ~1280px; 18
+    // long columns genuinely overflow at 1:1, so both clip shadows show at
+    // the centered natural size and panning has real range.
     const header = Array.from({ length: 18 }, (_, i) => `column-header-${i + 1}`).join(' | ')
     const WIDER_TABLE_MD = `# Block Viewer Overflow Table\n\n| ${header} |\n| ${'---|'.repeat(18)}\n| ${header} |\n`
     await bootstrapWithMarkdown(page, WIDER_TABLE_MD)
@@ -645,35 +651,86 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     const viewer = page.locator('.ag-block-viewer')
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
 
-    // Let the deferred post-layout fit run before asserting the axis.
+    // Let the deferred post-layout fit run before asserting state.
     await page.waitForTimeout(250)
-    const canvasState = () => page.evaluate(() => {
+    const viewerState = () => page.evaluate(() => {
       const canvas = document.querySelector('.ag-block-viewer-canvas') as HTMLElement
       const stage = document.querySelector('.ag-block-viewer-stage') as HTMLElement
-      // The canvas box is content-sized (max-content); genuine overflow
-      // means the box itself is wider than the stage it must fit.
+      const clipOn = (sel: string) =>
+        !!document.querySelector(`.ag-block-viewer-clip-${sel}`)?.classList.contains('ag-block-viewer-clip-on')
       return {
         overflowX: window.getComputedStyle(canvas).overflowX,
-        boxWiderThanStage: canvas.offsetWidth > stage.clientWidth + 1
+        overflowY: window.getComputedStyle(canvas).overflowY,
+        clipLeft: clipOn('left'),
+        clipRight: clipOn('right'),
+        boxWiderThanStage: canvas.offsetWidth > stage.clientWidth + 1,
+        stageRect: stage.getBoundingClientRect(),
+        canvasRect: canvas.getBoundingClientRect()
       }
     })
 
-    // Fit: the scaled table fits the stage — no phantom horizontal track.
-    const fit = await canvasState()
+    // Fit: the scaled table fits the stage — no track, no shadows.
+    const fit = await viewerState()
     expect(fit.overflowX).toBe('hidden')
+    expect(fit.clipLeft).toBe(false)
+    expect(fit.clipRight).toBe(false)
 
-    // 1:1: the wide table genuinely overflows — the scrollbar comes back.
+    // 1:1: the wide table genuinely overflows — STILL no horizontal track
+    // (pan is the model), both sides are clipped at the centered position,
+    // so both shadows show.
     await page.keyboard.press('1')
     await page.waitForTimeout(150)
-    const actual = await canvasState()
-    expect(actual.overflowX).toBe('auto')
+    const actual = await viewerState()
+    expect(actual.overflowX).toBe('hidden')
     expect(actual.boxWiderThanStage).toBe(true)
+    expect(actual.clipLeft).toBe(true)
+    expect(actual.clipRight).toBe(true)
 
-    // Back to Fit (key '0') the track disappears again.
+    // Pan to the LEFT bound (drag the canvas right): only the right
+    // shadow remains; the FIRST column is fully visible. The drag delta is
+    // measured from the live rects so the bound is reached in every engine
+    // regardless of the exact table width.
+    const stageRight = actual.stageRect.x + actual.stageRect.width
+    const stageCenterY = actual.stageRect.y + actual.stageRect.height / 2
+    const toLeftBound = -actual.canvasRect.left + 20
+    await page.mouse.move(actual.stageRect.x + actual.stageRect.width / 2, stageCenterY)
+    await page.mouse.down()
+    await page.mouse.move(actual.stageRect.x + actual.stageRect.width / 2 + toLeftBound, stageCenterY, { steps: 12 })
+    await page.mouse.up()
+    await page.waitForTimeout(120)
+    const leftBound = await viewerState()
+    expect(leftBound.overflowX).toBe('hidden')
+    expect(leftBound.clipLeft).toBe(false)
+    expect(leftBound.clipRight).toBe(true)
+
+    // Pan to the RIGHT bound (drag the canvas left): only the left shadow
+    // remains — and the drag reveals the LAST column, proving pan is the
+    // working horizontal navigation the rejected scrollbar was not. The
+    // delta is measured from the CURRENT (post-left-bound) rects because
+    // panzoom drags pan relatively.
+    const toRightBound = -(leftBound.canvasRect.right - stageRight) - 20
+    await page.mouse.move(actual.stageRect.x + actual.stageRect.width / 2, stageCenterY)
+    await page.mouse.down()
+    await page.mouse.move(actual.stageRect.x + actual.stageRect.width / 2 + toRightBound, stageCenterY, { steps: 24 })
+    await page.mouse.up()
+    await page.waitForTimeout(120)
+    const rightBound = await viewerState()
+    expect(rightBound.clipLeft).toBe(true)
+    expect(rightBound.clipRight).toBe(false)
+    const lastTh = page.locator('.ag-block-viewer-canvas thead th').last()
+    const lastBox = await lastTh.boundingBox()
+    expect(lastBox).not.toBeNull()
+    expect(lastBox!.x).toBeGreaterThanOrEqual(rightBound.stageRect.x - 1)
+    expect(lastBox!.x + lastBox!.width).toBeLessThanOrEqual(rightBound.stageRect.x + rightBound.stageRect.width + 1)
+
+    // Back to Fit (key '0'): the whole table shows, both shadows clear and
+    // no track appears.
     await page.keyboard.press('0')
     await page.waitForTimeout(150)
-    const refit = await canvasState()
+    const refit = await viewerState()
     expect(refit.overflowX).toBe('hidden')
+    expect(refit.clipLeft).toBe(false)
+    expect(refit.clipRight).toBe(false)
   })
 
 
