@@ -2595,6 +2595,13 @@
       <Status>partial</Status>
       <Layer>2</Layer>
       <Summary>
+        FIX-011 (2026-10-20): the dirty-tab close confirm is the
+        three-action unsavedCloseDialog (default Save &amp; Close — for an
+        untitled tab Save As, closing only after the write succeeds;
+        separate non-default Discard; visible Cancel with Escape/glyph
+        equivalence), reusing the FIX-007 float tokens; the named
+        mt::save-and-close-tabs path is unchanged and the window-close
+        batch dialog stays on its own semantics (V-M-011 scenario-69).
         C-62: all ten locales provide native diagram-appearance menu copy;
         document locks and source-side Split View mirrors permit only
         temporary view choices (V-M-011 scenario-66; M-012 owns the control).

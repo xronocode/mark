@@ -32,6 +32,7 @@ import {
 } from '../util/guideDoc'
 import { syncViewMenuChecks } from '../util/menuChecks'
 import { moveTableLayoutsEntry } from '../util/tableLayoutStore'
+import { askUnsavedClose, UNSAVED_CLOSE_ACTIONS } from '../components/editorWithTabs/unsavedCloseDialog'
 
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
@@ -1159,40 +1160,57 @@ export const useEditorStore = defineStore('editor', {
 
     async CLOSE_UNSAVED_TAB(file) {
       // F-LIFECYCLE-WIRE (B4-pre-alpha-step-3): renderer-driven confirm
-      // dialog before discarding/saving an unsaved tab on Cmd+W. v1.2.3
+      // dialog before saving/discarding an unsaved tab on Cmd+W. v1.2.3
       // would silently save+close which surprised the 2026-05-08 smoke
-      // user ("nothing appears"). Three outcomes mirror the
-      // window-close dialog in LISTEN_FOR_CLOSE.
+      // user ("nothing appears"). FIX-011 (2026-10-20): the owner-approved
+      // action model — default Save & Close, a separate non-default
+      // Discard, and a visible Cancel (Escape and the close glyph are
+      // Cancel). For an untitled tab, Save & Close leads into Save As and
+      // the tab closes ONLY after the write succeeds; cancelling or
+      // failing the save leaves the tab and its content open.
       const { id, pathname, filename, markdown } = file
       const options = getOptionsFromState(file)
       const named = !!pathname
-      const message = named
-        ? `"${filename}" has unsaved changes. Save before closing the tab?`
-        : `"${filename}" is unsaved and untitled — closing the tab will discard it.`
+      const action = await askUnsavedClose({ filename, named })
+      if (action === UNSAVED_CLOSE_ACTIONS.CANCEL) return
+      if (action === UNSAVED_CLOSE_ACTIONS.DISCARD) {
+        this.FORCE_CLOSE_TAB(file)
+        return
+      }
+      if (named) {
+        window.electron.ipcRenderer.send('mt::save-and-close-tabs', [
+          { id, pathname, filename, markdown, options: deepClone(options) }
+        ])
+        return
+      }
+      // Untitled: Save As through the same transport FILE_SAVE_AS uses,
+      // applied to THIS tab's identity (it may not be the current tab).
+      // A cancelled dialog (falsy outcome) resolves without closing.
+      const revision = file.contentRevision || 0
       try {
-        await ElMessageBox.confirm(message, 'Unsaved changes', {
-          confirmButtonText: named ? 'Save & Close' : 'Discard & Close',
-          cancelButtonText: "Don't Save",
-          type: 'warning',
-          distinguishCancelAndClose: true,
-          closeOnClickModal: false,
-          closeOnPressEscape: true
+        const { invoke } = await import('@tauri-apps/api/core')
+        const outcome = await invoke('mt_response_file_save_as', {
+          id,
+          filename,
+          markdown,
+          defaultPath: getRootFolderFromState(useProjectStore()) || null
         })
-        // Confirm
-        if (named) {
-          window.electron.ipcRenderer.send('mt::save-and-close-tabs', [
-            { id, pathname, filename, markdown, options: deepClone(options) }
-          ])
+        if (outcome) {
+          this.APPLY_SAVE_OUTCOME(outcome, revision)
+          this.FORCE_CLOSE_TAB(file)
+          console.debug(`[Editor][CLOSE_UNSAVED_TAB][BLOCK_UNSAVED_CLOSE_SAVED_AND_CLOSED id=${id}]`)
         } else {
-          // No path → can't save; treat confirm as Discard
-          this.FORCE_CLOSE_TAB(file)
+          console.debug(`[Editor][CLOSE_UNSAVED_TAB][BLOCK_UNSAVED_CLOSE_SAVE_CANCELLED id=${id}]`)
         }
-      } catch (action) {
-        if (action === 'cancel') {
-          // "Don't Save" → discard tab
-          this.FORCE_CLOSE_TAB(file)
-        }
-        // 'close' (X) or 'pressEscape' → keep tab open
+      } catch (e) {
+        notice.notify({
+          title: i18n.global.t('dialog.saveFailure'),
+          message: String(e),
+          type: 'error',
+          time: 20000,
+          showConfirm: false
+        })
+        console.warn(`[Editor][CLOSE_UNSAVED_TAB][BLOCK_UNSAVED_CLOSE_SAVE_FAILED id=${id}] ${e}`)
       }
     },
 
@@ -2312,7 +2330,7 @@ export const useEditorStore = defineStore('editor', {
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, and per-tab diff baselines (recording only — resolution lives in diffView.vue).
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus, store/diffSnapshots.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print).
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -2323,6 +2341,14 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-20 FIX-011 (C-FIX-011-UNTITLED-CLOSE-ACTIONS):
+//     CLOSE_UNSAVED_TAB uses the three-action unsavedCloseDialog —
+//     default Save & Close, separate non-default Discard, visible Cancel
+//     (Escape/close glyph are Cancel). Untitled Save & Close runs the
+//     mt_response_file_save_as transport for the closing tab's own
+//     identity and closes only on a truthy outcome; a cancelled or failed
+//     Save As keeps the tab open (the failure path keeps the notice).
+//     The named-file path (mt::save-and-close-tabs) is unchanged.
 //   - 2026-10-19 C-68 T-001: opened baselines. NEW_TAB_WITH_CONTENT (open,
 //     reopen, session restore — every disk-load funnel) and loadChange
 //     (external reload) record the content they land into the per-tab
