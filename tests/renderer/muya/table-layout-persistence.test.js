@@ -1,8 +1,8 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 1.4.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-65 T-001/T-004 persistent table layout behaviour of muya.tableResize — the persistent identity (ordinal + header signature), adoption of stored entries into fresh block keys, the identity-change drop (header edited / column count changed — corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the Full width toggle (class + toolbar DOM + persistence) and the capture-phase toolbar/caption routing incl. the viewer dispatch and the disabled-surface guard.
-//   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities, applyPersistedLayouts, serializeTableLayouts, persist, toggle/openViewer, handleToolbarClick/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
+//   PURPOSE: Pin the C-65 T-001/T-004 persistent table layout behaviour of muya.tableResize — the persistent identity (ordinal + header signature), adoption of stored entries into fresh block keys, stale-adoption suppression during user writes, the identity-change drop (header edited / column count changed — corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the Full width toggle (class + toolbar DOM + explicit Fit persistence) and the native-safe bubble toolbar/capture caption routing incl. the viewer dispatch and the disabled-surface guard.
+//   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities load versus write modes, applyPersistedLayouts, serializeTableLayouts, persist snapshot refresh, toggle/openViewer, handleToolbarAction/Click/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
 //   DEPENDS: TableResize with a real-listener event-center double, Vitest + jsdom.
 //   LINKS: .grace/changes/archive/C-65 T-001/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; the store twin tests/renderer/store/table-layout-store.test.js; the C-39 maths twin tests/renderer/muya/table-column-resize.test.js; e2e tests/e2e/table-width-persistence.spec.ts.
 //   ROLE: TEST
@@ -23,7 +23,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-20 C-TABLE-FOOTER: caption click guards run against the actual nested scroll-block structure.
+//   LAST_CHANGE: v1.7.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY: reproduce the physical-only-looking failure from an adopted {fullWidth:true} profile entry; Fit must replace that snapshot instead of persist() re-adopting it and restoring Full width.
+//   PREV: v1.6.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY: toolbar mousedown reaches the real target and the normal bubble route owns each action exactly once before the generic Muya click handler; caption isolation stays capture-only.
+//   PREV: v1.5.0 - the explicit Fit command is pinned against layout-dependent measurements — expanded geometry may fit while the same table overflows the text column, but reconcile must not undo the user's choice.
+//   PREV: v1.4.0 - 2026-10-20 C-TABLE-FOOTER: caption click guards run against the actual nested scroll-block structure.
 //   v1.3.0 - 2026-10-19 C-71-TABLE-CENTER: outline geometry never reserves table viewport width or shifts the page center.
 //   v1.2.0 - 2026-10-19 C-71: viewport geometry, scrollbar
 //   coordinates, overlay ownership, removed auto-width entries and C-70
@@ -455,6 +458,40 @@ describe('Full width is the default for wide tables (C-65 R-6, 2026-10-19)', () 
     })
   })
 
+  it('keeps an explicit Fit choice when expanded and fitted geometry disagree', () => {
+    const muya = makeFakeMuya()
+    const { figure, table } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    const { toggle } = buildToolbarDom(figure)
+    Object.defineProperty(figure, 'clientWidth', { configurable: true, value: 700 })
+    table.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      right: figure.classList.contains(TABLE_FULL_WIDTH_CLASS) ? 600 : 1200,
+      bottom: 40,
+      width: figure.classList.contains(TABLE_FULL_WIDTH_CLASS) ? 600 : 1200,
+      height: 40
+    })
+
+    // In-column geometry triggers the automatic Full width default. Once
+    // expanded, the same content reflows below the column-width threshold.
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.autoFullWidth.has('t1')).toBe(true)
+    expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(true)
+
+    toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(muya.tableResize.fitToPage.has('t1')).toBe(true)
+    expect(muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', {
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: false, fit: true } }
+    })
+
+    // A resize/render reconciliation must respect the explicit command, not
+    // restore the automatic state from the now-wide fitted geometry.
+    muya.tableResize.reconcileAfterRender()
+    expect(muya.tableResize.isFullWidth('t1')).toBe(false)
+    expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(false)
+  })
+
   it('the default follows the table: it narrows back when the table becomes narrow', () => {
     const muya = makeFakeMuya()
     const { figure } = buildTableFigure('t1', ['Alpha'])
@@ -492,11 +529,13 @@ describe('Full width is the default for wide tables (C-65 R-6, 2026-10-19)', () 
 
 // START_BLOCK_TOGGLE_ASSERTIONS
 describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
-  it('a capture-phase click on the toggle flips the class, swaps the label/icon and persists', () => {
+  it('the bubble action route flips the toggle exactly once before generic Muya click handling', () => {
     const muya = makeFakeMuya()
     const { figure, wrapper } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
     const { toggle, span, path } = buildToolbarDom(figure)
+    const genericMuyaClick = vi.fn()
+    muya.container.addEventListener('click', genericMuyaClick)
 
     toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
 
@@ -511,11 +550,41 @@ describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
     expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', {
       entries: { [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: true, fit: false } }
     })
+    expect(genericMuyaClick).not.toHaveBeenCalled()
 
-    // Back to Fit to page: the entry disappears (nothing user-made remains).
+    // Back to Fit to page: the explicit command is persisted.
     toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(false)
-    expect(muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', { entries: {} })
+    expect(muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', {
+      entries: { [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fullWidth: false, fit: true } }
+    })
+  })
+
+  it('Fit replaces an adopted Full width entry instead of re-adopting stale persisted state', () => {
+    const muya = makeFakeMuya()
+    const { figure } = buildTableFigure('t1', ['Alpha'])
+    muya.container.appendChild(figure)
+    const { toggle } = buildToolbarDom(figure)
+    const pid = pidOf(0, ['Alpha'])
+
+    // Native reproduction: the file opens with an explicit Full width
+    // profile entry. The old persist() called syncIdentities(), which
+    // re-adopted this stale entry after the click had selected Fit and
+    // immediately restored the Full width DOM.
+    muya.tableResize.applyPersistedLayouts({
+      [pid]: { widths: [], manual: [], fullWidth: true, fit: false }
+    })
+    expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(true)
+    expect(toggle.title).toBe('Fit to page')
+
+    toggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+    expect(muya.tableResize.isFullWidth('t1')).toBe(false)
+    expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(false)
+    expect(toggle.title).toBe('Full width')
+    expect(muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', {
+      entries: { [pid]: { widths: [], manual: [], fullWidth: false, fit: true } }
+    })
   })
 
   it('the expand button dispatches muya-block-viewer with the figure', () => {
@@ -541,18 +610,22 @@ describe('full width toggle + toolbar routing (C-65 R-4/R-6)', () => {
     expect(muya.eventCenter.dispatch).not.toHaveBeenCalled()
   })
 
-  it('mousedown on a toolbar button stops propagation without eating the focus default', () => {
+  it('toolbar mousedown reaches the target and outer host without being cancelled', () => {
     const muya = makeFakeMuya()
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
     const { toggle } = buildToolbarDom(figure)
-    const bubbled = vi.fn()
-    muya.container.addEventListener('mousedown', bubbled)
+    const targetReached = vi.fn()
+    const outerReached = vi.fn()
+    toggle.addEventListener('mousedown', targetReached)
+    document.body.addEventListener('mousedown', outerReached)
 
     const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
     toggle.dispatchEvent(event)
+    document.body.removeEventListener('mousedown', outerReached)
 
-    expect(bubbled).not.toHaveBeenCalled()
+    expect(targetReached).toHaveBeenCalledTimes(1)
+    expect(outerReached).toHaveBeenCalledTimes(1)
     expect(event.defaultPrevented).toBe(false)
   })
 

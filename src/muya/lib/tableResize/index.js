@@ -1,16 +1,16 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 2.5.0
+// VERSION: 2.8.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Table column resize and per-table layout (C-39 T-002 session widths; C-65 persistent widths + the per-table Full width mode keyed by file-path-stable identities), pointer-drag interaction on header-border handles, double-click reset, reconciliation after every muya re-render, the table toolbar click routing and the overflow-cue refresh.
-//   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), the persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge (R-1/R-3, written only after a real user action), the Full width mode centered in the owning editor client viewport independently of outline overlays + DOM application + toggle routing (R-4/R-6), capture-phase pointer/mouse/click/dblclick/scroll handling on the editor container, and DOM application of widths (colgroup + table-layout fixed).
-//   DEPENDS: muya.eventCenter (capture-phase DOM events on muya.container), window pointer events during a drag, DOM colgroup/th measuring; ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS); ../parser/render/renderBlock/renderTableToolbar (toggle icon paths for the live label swap).
+//   PURPOSE: Table column resize and per-table layout (C-39 T-002 session widths; C-65 persistent widths + the per-table Full width mode keyed by file-path-stable identities), pointer-drag interaction on header-border handles, double-click reset, reconciliation after every muya re-render, robust Full width/Fit state transitions, native-safe table toolbar click routing and the overflow-cue refresh.
+//   SCOPE: The width store keyed by table block key (set/get/reset/clear), MIN_COLUMN_WIDTH clamping, column-count reconciliation, the persistent identity map (table ordinal in the document + header signature), persisted-entry adoption/drop rules (R-1), the serialize/dispatch persistence bridge with stale-adoption suppression and local snapshot refresh after user writes (R-1/R-3), the Full width mode centered in the owning editor client viewport independently of outline overlays + DOM application + explicit Fit transition (R-4/R-6), capture-phase pointer/dblclick/scroll guards, a normal bubble-phase toolbar action route, caption isolation, and DOM application of widths (colgroup + table-layout fixed).
+//   DEPENDS: muya.eventCenter (capture- and bubble-phase DOM events on muya.container), window pointer events during a drag, DOM colgroup/th measuring; ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS); ../parser/render/renderBlock/renderTableToolbar (toggle icon paths for the live label swap).
 //   LINKS: .grace/graph/runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21 and scenario-66; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - TableResize: column drag/reset, persisted layout identities, full-editor Full width sizing with CSS centering, and table toolbar routing.
+//   default - TableResize: column drag/reset, persisted layout identities, full-editor Full width sizing with CSS centering, explicit Fit state, and native-safe bubble toolbar routing.
 //   FULL_WIDTH_GUTTER_PX - gap between a Full width table that is wider than the editor and the editor's left edge.
 //   MIN_COLUMN_WIDTH - drag clamp floor for one column (px).
 //   TABLE_FIXED_CLASS - class marking a table that carries session widths (table-layout: fixed + colgroup).
@@ -18,7 +18,7 @@
 //   RESIZING_HANDLE_CLASS - class on the active handle while dragging (accent hairline).
 //   RESIZER_CLASS - class of the invisible header-border drag handle rendered into each th.
 //   TABLE_FULL_WIDTH_CLASS - re-export of the tableCue figure class for the renderContainerBlock vnode ("ag-table-full-width").
-//   TABLE_TOOLBAR_BUTTON_SELECTOR - selector of the table toolbar buttons (from renderTableToolbar; routed here on capture phase).
+//   TABLE_TOOLBAR_BUTTON_SELECTOR - selector of the table toolbar buttons (from renderTableToolbar; routed here on normal bubble phase).
 //   sanitizePersistedEntries - pure: clamp/boolean-coerce a raw persisted entries object into {widths, manual, fullWidth, fit} entries (invalid dropped).
 //   overflowsTextColumn - pure: true when a table's natural width exceeds its figure's text-column width (the Full width default trigger).
 //   tableSignature - pure-ish: header signature of a thead row (column count + hash of the header cell texts).
@@ -29,7 +29,21 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.5.0 - 2026-10-19 C-71-TABLE-CENTER: use the full editor
+//   LAST_CHANGE: v2.8.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY:
+//   persist() refreshes identities without re-adopting the previously loaded
+//   profile snapshot, then replaces that snapshot with the serialized user
+//   state. Otherwise an adopted {fullWidth:true} entry immediately restored
+//   Full width while handling Fit, making the physical click look inert.
+//   PREV: v2.7.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY:
+//   toolbar mousedown and click now reach their real button target; one
+//   bubble-phase handler, registered before Muya's generic click router,
+//   owns all table actions and stops the generic block-toolbar fallback.
+//   This avoids WKWebView's failed capture-only activation path.
+//   PREV: v2.6.0 - leaving Full width always records the user's explicit
+//   Fit-to-page choice before DOM geometry changes. The old live-width
+//   recheck could see a reflowed table as fitting while expanded, omit
+//   `fit`, and let the next resize/reconcile restore automatic Full width.
+//   PREV: v2.5.0 - 2026-10-19 C-71-TABLE-CENTER: use the full editor
 //   client viewport so fitting long-cell tables remain centered even when
 //   the outline overlays their right edge; true overflow retains its gutter.
 //   v2.4.0 - 2026-10-19 C-71: center natural-size tables with
@@ -214,13 +228,13 @@ class TableResize {
     eventCenter.attachDOMEvent(container, 'mousedown', this.blockHandleEvent, true)
     eventCenter.attachDOMEvent(container, 'click', this.blockHandleEvent, true)
     eventCenter.attachDOMEvent(container, 'dblclick', this.handleDoubleClick, true)
-    // C-65 T-002: the table toolbar buttons are routed HERE (capture phase)
-    // — clickEvent.js's generic branches never see them. mousedown only
-    // stops propagation (no preventDefault) so the buttons still take
-    // keyboard focus; the caption swallows muya's caret routing the same
-    // way while keeping native text selection.
+    // C-65 T-002 / C-TABLE-NATIVE-TOOLBAR-DELIVERY: toolbar mouse events
+    // must reach the real button target in WKWebView. Capture owns only the
+    // caption isolation; one normal bubble listener owns the three actions
+    // before clickEvent.js's later generic block-toolbar fallback.
     eventCenter.attachDOMEvent(container, 'mousedown', this.handleToolbarMousedown, true)
     eventCenter.attachDOMEvent(container, 'click', this.handleToolbarClick, true)
+    eventCenter.attachDOMEvent(container, 'click', this.handleToolbarAction)
     // C-65 T-003: scroll of a table wrapper does not bubble, but it DOES
     // capture — one delegated listener keeps every caption/shade live.
     eventCenter.attachDOMEvent(container, 'scroll', this.handleScrollCapture, true)
@@ -363,7 +377,7 @@ class TableResize {
   // entries whose identity disappeared, and reset a table whose identity
   // CHANGED under it (header edited — corner-2: that table's widths are
   // dropped, the others keep theirs).
-  syncIdentities() {
+  syncIdentities({ adoptPersisted = true } = {}) {
     const { container } = this.muya
     if (!container || !container.querySelectorAll) return false
     const tables = container.querySelectorAll('table.ag-paragraph')
@@ -395,7 +409,10 @@ class TableResize {
       }
       this.identities.set(key, pid)
       seen.add(pid)
-      const stored = this.persisted ? this.persisted[pid] : null
+      // A load/re-render adopts the host snapshot. A user write only needs
+      // fresh identities: re-adopting the OLD snapshot here would undo the
+      // mutation that is about to replace it (for example Full width → Fit).
+      const stored = adoptPersisted && this.persisted ? this.persisted[pid] : null
       if (stored) {
         const columnCount = row.cells.length
         if (!this.widths.has(key) &&
@@ -472,8 +489,12 @@ class TableResize {
   // The ONLY persistence write path (C-65 R-1: written after a real
   // resize / reset / mode toggle — never on adoption or reconciliation).
   persist() {
-    this.syncIdentities()
+    this.syncIdentities({ adoptPersisted: false })
     const entries = this.serializeTableLayouts()
+    // Keep the in-memory host snapshot aligned with the just-dispatched
+    // state. Later render reconciliation may adopt it, so it must never
+    // retain the pre-action Full width/Fit/column-width values.
+    this.persisted = entries
     this.muya.eventCenter.dispatch('muya-table-layouts', { entries })
     console.debug(
       `[Muya][tableResize][BLOCK_TABLE_LAYOUTS_PERSISTED tables=${Object.keys(entries).length}]`
@@ -557,18 +578,19 @@ class TableResize {
     const key = table && table.id
     if (!key) return
     const on = !this.isFullWidth(key)
-    // The choice becomes explicit and survives the default; «Fit to page»
-    // is recorded only where the default would otherwise apply (a table
-    // that fits the column simply returns to the default).
-    const wide = this.defaultFullWidth() &&
-      overflowsTextColumn(table.getBoundingClientRect().width, figure.clientWidth)
+    // The button is an explicit two-state command. In particular, leaving
+    // Full width MUST record Fit before changing the DOM: a table can reflow
+    // to fit while expanded even though it overflows again inside the text
+    // column. Re-measuring the expanded geometry here used to omit `fit`, so
+    // the next ResizeObserver/reconcile pass immediately restored the
+    // automatic Full width state and made the click look inert.
     this.autoFullWidth.delete(key)
     if (on) {
       this.fullWidth.add(key)
       this.fitToPage.delete(key)
     } else {
       this.fullWidth.delete(key)
-      if (wide) this.fitToPage.add(key)
+      this.fitToPage.add(key)
     }
     this.applyFullWidthDom(figure, on)
     console.debug(
@@ -593,14 +615,14 @@ class TableResize {
     this.muya.eventCenter.dispatch('muya-diagram-export', { action: 'copyImage', element: figure })
   }
 
-  // ---- Toolbar + caption event routing (capture phase) ----
+  // ---- Toolbar + caption event routing ----
 
   handleToolbarMousedown = event => {
     const button = this.findTableToolbarButton(event.target)
     if (button) {
-      // Focus must still move to the button (keyboard reveal, Tab walk) —
-      // stopPropagation only, never preventDefault on mousedown.
-      event.stopPropagation()
+      // Let the event reach the target: WKWebView derives native button
+      // activation from that path. The button is outside table rows, so
+      // Muya's cell/caret mousedown handler is inert for this target.
       return
     }
     const caption = event.target && event.target.closest
@@ -611,23 +633,26 @@ class TableResize {
 
   handleToolbarClick = event => {
     const button = this.findTableToolbarButton(event.target)
-    if (button) {
-      event.preventDefault()
-      event.stopPropagation()
-      const action = button.dataset.tableToolbarAction
-      if (action === 'toggleFullWidth') {
-        this.toggleFullWidthFromElement(button)
-      } else if (action === 'copyImage') {
-        this.copyImageFromElement(button)
-      } else {
-        this.openViewerFromElement(button)
-      }
-      return
-    }
+    if (button) return
     const caption = event.target && event.target.closest
       ? event.target.closest(`div.${TABLE_CAPTION_CLASS}`)
       : null
     if (caption) event.stopPropagation()
+  }
+
+  handleToolbarAction = event => {
+    const button = this.findTableToolbarButton(event.target)
+    if (!button) return
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    const action = button.dataset.tableToolbarAction
+    if (action === 'toggleFullWidth') {
+      this.toggleFullWidthFromElement(button)
+    } else if (action === 'copyImage') {
+      this.copyImageFromElement(button)
+    } else {
+      this.openViewerFromElement(button)
+    }
   }
 
   // C-65 T-003: wrapper scrolls keep their caption/shades live (scroll

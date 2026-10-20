@@ -6852,16 +6852,48 @@
           so the toggle's persist() payload round-trips save → load and a
           reopened wide table stays out of Full width with the toggle
           still labelled «Full width». The transition itself is immediate:
-          one click leaves ag-table-full-width and flips the label in the
-          same tick. Pinned by the fit cases in
+          one real pointer click leaves ag-table-full-width and flips the
+          label; opening and closing the sidebar preserves that reverse
+          action and fitted mode before and after reopen. Pinned by the fit cases in
           tests/renderer/store/table-layout-store.test.js (sanitize + the
           save→load roundtrip, failing before the repair) and the
           C-TABLE-FIT-PERSISTENCE case in tests/e2e/table-layout.spec.ts
-          (chromium + webkit-tables: same-tick flip, the fit flag saved
-          through mt::prefs::set, and reopen via open-new-tab dedup
-          re-adopting the stored fit). The native same-frame transition
-          remains to be confirmed on the fresh isolated artifact before
-          C-TABLE-FOOTER re-acceptance.
+          (chromium + webkit-tables: real pointer flip, sidebar off → on →
+          reopen → off, the fit flag saved through mt::prefs::set, and
+          open-new-tab dedup re-adopting the stored fit). The fresh native
+          a0a524fd artifact failed this boundary before host persistence:
+          its action label/layout and on-disk table-layout entry stayed
+          unchanged. Native action delivery therefore remains an explicit
+          acceptance gate before C-TABLE-FOOTER re-acceptance.
+        </Scenario>
+        <Scenario>
+          scenario-73 (C-TABLE-NATIVE-TOOLBAR-DELIVERY): a physical click was
+          delivered, but Fit appeared inert after an explicit Full width entry
+          had been loaded. History comparison identifies v2.5.2 as the
+          last-known-good session-only path: db68b065 introduced profile
+          adoption plus persist() → syncIdentities(), and 3344ab1d added the
+          persisted Fit choice without testing adopted Full width → Fit on
+          one reopened instance; both shipped in v2.5.3. The failing-first unit in
+          tests/renderer/muya/table-layout-persistence.test.js adopts
+          {fullWidth:true}, activates Fit and fails because persist() calls
+          syncIdentities(), which re-adopts the stale host snapshot and restores
+          Full width (60 passed / 1 failed). The repair refreshes identities
+          with adoptPersisted=false during user writes, serializes the new
+          state, then replaces the local persisted snapshot; the focused unit
+          passes 61/61. tests/e2e/table-layout.spec.ts uses real pointer input
+          for sidebar-hidden Fit, sibling viewer, sidebar-visible Full width
+          save, reopen/adoption, Fit replacement, fit save and second reopen;
+          the focused scenario passes in Chromium and webkit-tables (2/2).
+          This scenario therefore requires save → reopen → adopt → mutate on
+          the reopened instance; click-only and load-only coverage is
+          insufficient for persisted-state transitions.
+          Earlier f683f9e6, fa211037, eb54f840, 767d168c, 37ee10b2 and fb5157ef
+          native attempts are retained as failures because they did not model
+          the adopted-state rollback. The owner physically accepted the fixed
+          transition on Mark Test TABLE-STATE 35fc0895 (bundle
+          com.xronocode.mark.test.tablestate.35fc0895, binary SHA-256
+          d78732b7a12988a052b585915529af9514e67d1744b9ac608ca7e6468bf9825e).
+          Release remains a separate explicitly authorized gate.
         </Scenario>
       </Scenarios>
       <Markers>

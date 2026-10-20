@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-20",
+  "status": "implemented, automated focused gates passed, physically owner accepted on isolated native artifact, and queued in the collecting train; release not authorized",
+  "rootCause": {
+    "observedBoundary": "Physical input reached the shared toolbar route: Full width, Copy as image and Open full screen worked, while only Fit failed after Full width had been made explicit.",
+    "proven": "After applyPersistedLayouts adopted an explicit { fullWidth: true } entry, toggleFullWidthFromElement selected Fit and called persist(). persist() called syncIdentities(), which re-adopted the old host snapshot, re-added Full width and restored the Full width DOM before serialization. The click therefore appeared inert even though it was delivered.",
+    "regressionHistory": {
+      "lastKnownGood": "v2.5.2 and earlier used the v1 session-only TableResize path: a user action could not re-adopt a profile snapshot because table layout persistence did not exist.",
+      "introduced": "db68b065 (2026-10-19 00:42 +05, C-65) introduced profile adoption and made persist() call syncIdentities(), while syncIdentities() also applied the previously loaded snapshot. This conflated identity refresh with load-time state adoption.",
+      "exposed": "3344ab1d (2026-10-19 10:59 +05) added automatic Full width and the explicit persisted Fit choice without separating those responsibilities. Its reload test adopted Fit on a fresh instance but performed the reverse toggle on the original instance, so it never exercised adopted Full width → Fit on one reopened instance.",
+      "shipped": "Both commits are ancestors of v2.5.3; the state rollback is therefore a v2.5.3 regression rather than a table-footer or later event-routing regression."
+    },
+    "whyItWorkedEarlier": "The pre-C-65 session-only implementation had no saved snapshot to re-adopt. Even after C-65, automatic Full width has no persisted fullWidth entry, so the first Fit transition can work until Full width is explicitly saved and later adopted; the next Fit activation then hits the stale-snapshot rollback.",
+    "repair": "syncIdentities accepts adoptPersisted=false for user writes. persist() refreshes identities without adopting the old snapshot, serializes the current user state, replaces the local persisted snapshot with those entries, and only then dispatches muya-table-layouts. The persistence schema, table visuals and width policy are unchanged.",
+    "failingFirst": "The adopted-fullWidth unit failed before repair with 60 passed / 1 failed: isFullWidth remained true after Fit. It passes after repair in the 61/61 focused file.",
+    "lessonLearned": "Start this class of regression from the last-known-good implementation and compare the complete state lifecycle, not only event delivery. A persistence interaction test must exercise save → reopen → adopt → mutate on the reopened instance; a click-only or load-only test cannot detect stale-snapshot rollback."
+  },
+  "verification": {
+    "unit": "npx vitest run tests/renderer/muya/table-layout-persistence.test.js — 61 passed. Coverage includes adopted Full width → Fit replacement, explicit-fit geometry, shared toolbar routing, caption/resizer guards, persistence, drag and reset paths.",
+    "browserFocused": "npm run build, then npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables --grep 'Full width → Fit to page' — 2 passed. The real-pointer flow saves Full width, reopens/adopts it, selects Fit, verifies the fit payload, reopens again, exercises sidebar hidden/visible and the sibling viewer.",
+    "rendererBuild": "npm run build — passed; only existing Vite warnings.",
+    "nativeBuild": "A no-sign debug app build with an isolated repository-local CARGO target, productName, identifier and data/keychain path substitutions passed; existing Rust warnings only.",
+    "fullSuite": "The exact staged candidate was applied to an isolated clean worktree at d642ccfe and npm test passed: 341 test files, 4675 tests, 2 skipped and 3 todo, with zero failures. This supersedes the earlier mixed-working-tree run whose unrelated C-WINDOWS-TITLEBAR-ALIGNMENT files failed.",
+    "governance": "M-012 and V-M-012 scenario-73 record stale persisted-state re-adoption as the proven cause and the last-known-good comparison. On the isolated staged candidate, grace lint --path . --assertions current passed with 0 errors / 15 existing warnings, and grace status --path . --with modules --json reported 0 integrity errors / 15 warnings. JSON/XML and git diff checks pass."
+  },
+  "failedNativeHistory": [
+    "Mark Test FIX008-FIT a0a524fd — host fit sanitizer fixed, native Fit still failed.",
+    "Mark Test TABLE-NATIVE f683f9e6 — accessibility false-positive; physical click failed.",
+    "Mark Test TABLE-NATIVE fa211037 — physical click failed.",
+    "Mark Test TABLE-NATIVE eb54f840 — physical click failed.",
+    "Mark Test TABLE-NATIVE 767d168c / TABLE-INSPECT 767d168c — physical click failed.",
+    "Mark Test TABLE-FIT 37ee10b2 — physical click failed.",
+    "Mark Test TABLE-FIT fb5157ef — physical click failed. These attempts changed event phase or Fit choice logic but did not reproduce an adopted stale fullWidth snapshot."
+  ],
+  "acceptedNativeArtifact": {
+    "name": "Mark Test TABLE-STATE 35fc0895",
+    "sourceBase": "d642ccfeb2973095417a162c57a7fec9d48f7e9e",
+    "runtimeAndTestPatchIdentity": "35fc08958f2532646a86a18d47d27d0f6a27f1c161d3bf802902370e4bf7769e",
+    "bundleId": "com.xronocode.mark.test.tablestate.35fc0895",
+    "binarySha256": "d78732b7a12988a052b585915529af9514e67d1744b9ac608ca7e6468bf9825e",
+    "fixture": "/tmp/mark-table-footer-check.md",
+    "ownerAcceptance": "2026-10-20: owner reported 'тут работает' after physically testing the fresh isolated artifact. Accepted scope is the previously failing Full width → Fit transition with persisted/adopted state; it does not imply release authorization or acceptance of unrelated changes."
+  },
+  "delivery": "C-TABLE-FOOTER's remaining Fit-only gap is accepted and the scoped item is queued in 2.5.x-next. The train remains Collecting; candidate freeze, final CI and release require separate steps and release authorization."
+}
