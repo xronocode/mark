@@ -1,5 +1,5 @@
 # FILE: .github/workflows/promote-release.yml
-# VERSION: 1.1.0
+# VERSION: 1.1.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Turn one merged Ready release seal into its computed annotated tag only after an explicit owner-approved release-authorize deployment.
 #   SCOPE: Read-only Ready/seal/check admission followed by idempotent tag creation through a purpose-specific GitHub App; never builds, signs, or publishes.
@@ -15,6 +15,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-21 v1.1.1: preserve complete main ancestry so strict payload-to-seal merge-base proofs work on GitHub runners.
 #   - 2026-10-20 v1.1.0: remove manual promotion, revalidate main/check evidence after approval, and verify existing annotated tag metadata exactly.
 #   - 2026-10-20 v1.0.0: add input-free owner-approved, App-authenticated annotated release-tag promotion.
 # END_CHANGE_SUMMARY
@@ -64,7 +65,7 @@ jobs:
         id: identity
         run: |
           set -euo pipefail
-          git fetch origin main --depth=1
+          git fetch origin main
           HEAD_SHA=$(git rev-parse HEAD)
           MAIN_SHA=$(git rev-parse origin/main)
           [ "$HEAD_SHA" = "$MAIN_SHA" ]
@@ -145,7 +146,7 @@ jobs:
           SEAL: ${{ needs.preflight.outputs.seal }}
         run: |
           set -euo pipefail
-          git fetch origin main --depth=1
+          git fetch origin main
           [ "$(git rev-parse HEAD)" = "$SEAL" ]
           [ "$(git rev-parse origin/main)" = "$SEAL" ]
           node -e "const f=require('fs'),m=JSON.parse(f.readFileSync('docs/release-trains/2.5.x-next.json'));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
