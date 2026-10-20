@@ -21,6 +21,14 @@
     "test:e2e:perf": "npm run build && playwright test --project webkit-perf",
     "test:e2e:ui": "playwright test --ui --project chromium",
     "release:preflight": "node tools/release-preflight.mjs",
+    "release:materials": "node tools/release-materials.mjs",
+    "release:governance": "node tools/release-governance.mjs",
+    "release:github-controls": "node tools/release-github-controls.mjs",
+    "release:project-sync": "node tools/release-project-sync.mjs",
+    "release:notes": "node tools/release-notes.mjs",
+    "release:normalize": "node tools/release-normalize.mjs",
+    "release:prepare:dry-run": "release-please release-pr --dry-run --repo-url xronocode/mark --target-branch main",
+    "release:readiness": "node tools/release-readiness.mjs",
     "safety:install": "python3 tools/security_gate.py install",
     "safety:test": "python3 -m unittest discover -s tests/security -p 'test_*.py'",
     "bench:launch": "node tools/bench-launch.mjs",
@@ -64,8 +72,8 @@
     "path-browserify": "^1.0.1",
     "path-win32": "^1.0.1",
     "pele": "1.6.0",
-    "plist": "^3.1.1",
     "pinia": "^3.0.4",
+    "plist": "^3.1.1",
     "prismjs": "^1.30.0",
     "snabbdom": "^3.6.3",
     "snabbdom-to-html": "^7.1.0",
@@ -77,8 +85,7 @@
     "vue": "^3.5.44",
     "vue-i18n": "^11.2.2",
     "vue-router": "^4.6.4",
-    "webfontloader": "^1.6.28",
-    "yaml": "2.8.3"
+    "webfontloader": "^1.6.28"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
@@ -88,10 +95,12 @@
     "@vue/test-utils": "^2.4.10",
     "jsdom": "^29.1.1",
     "postcss-preset-env": "^10.5.0",
+    "release-please": "17.11.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
     "vite-plugin-prismjs": "^0.0.11",
     "vite-svg-loader": "^5.1.0",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "yaml": "2.8.3"
   }
 }
