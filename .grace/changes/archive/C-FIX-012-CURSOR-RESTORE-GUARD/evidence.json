@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "failingFirst": "Cursor-restoration fixtures initially passed only the complete cursor control and failed five null/incomplete selection or render-range cases.",
+  "verification": {
+    "focused": "content-state-cursor-restore.test.js passes all 6 invalid/valid cursor cases.",
+    "browser": "Affordance audit passes 6, fails 0, skips 1; the complete command walk is warning-clean.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0; shared ContentState links and V-M-012 projections are well-formed."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "clean after corrections",
+      "corrections": "Added this companion to the shared ContentState contract link set."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean",
+      "corrections": "Final source, fixture and marker scan found no remaining selection-restoration issue."
+    }
+  ],
+  "integration": "No commit, push, train admission, release or publication performed."
+}

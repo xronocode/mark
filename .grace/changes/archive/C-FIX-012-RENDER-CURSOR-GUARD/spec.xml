@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-012-RENDER-CURSOR-GUARD>
+  <Name>Render blocks safely while the cursor has no start point</Name><Created>2026-10-20</Created>
+  <Summary>Complete the attributed FIX-012 repair at the next renderer boundary: selector construction must remain valid when accumulated editor commands leave no active block and the current cursor has no start point.</Summary>
+  <Problem>After the active-block ancestry repair, the reduced Guide-cycle case passes but the complete registry walk still reaches tabs.cycleForward with an empty active-block chain and cursor.start absent. StateRender.getSelector then reads cursor.start.key and aborts the tab render.</Problem>
+  <ApprovalBasis>This is a narrow failing-evidence companion to the owner-approved C-FIX-012-TAB-CYCLE-RENDER work. StateRender was not in the earlier companion's observed write scope, so a separate approved bundle preserves immutable-plan discipline.</ApprovalBasis>
+  <Goals><Goal>Build selectors when cursor or cursor.start is absent.</Goal><Goal>Keep active selector behavior unchanged whenever a valid cursor start or active block exists.</Goal><Goal>Make the exact full registry walk warning-clean.</Goal></Goals>
+  <Constraints><Constraint>Normalize only selector activity detection; do not synthesize cursor state, swallow render exceptions, or alter block trees.</Constraint></Constraints>
+  <NonGoals><NonGoal>No tab UX redesign, unrelated renderer hardening, Windows/Linux work, release or publication.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>getSelector does not throw for null cursor or a cursor without start.</Criterion><Criterion>A matching valid cursor start still adds the active class.</Criterion><Criterion>The complete affordance registry walk emits no tabs.cycleForward warning.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-012/></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>npx vitest run tests/renderer/muya/state-render-selector.test.js</ExpectedCommand><ExpectedCommand>npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</ExpectedCommand><ExpectedEvidence>Direct missing-cursor selector fixtures plus the complete browser command walk.</ExpectedEvidence></VerificationIntent>
+</C-FIX-012-RENDER-CURSOR-GUARD></GraceChangeSpec>

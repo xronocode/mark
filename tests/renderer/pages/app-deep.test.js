@@ -3,6 +3,11 @@ import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 import { nextTick } from 'vue'
 
+const { executeCommandByIdMock, listenCommandCenterBusMock } = vi.hoisted(() => ({
+  executeCommandByIdMock: vi.fn(),
+  listenCommandCenterBusMock: vi.fn(async () => {})
+}))
+
 // C-48: the What's New gate and the review request run detached IPC work
 // after mount; left real, a previous test's still-pending startup leaks
 // into the next test's fresh pinia (order-dependent failures).
@@ -42,7 +47,8 @@ vi.mock('@/store/listenForMain', () => ({
 }))
 vi.mock('@/store/commandCenter', () => ({
   useCommandCenterStore: () => ({
-    LISTEN_COMMAND_CENTER_BUS: vi.fn(async () => {}),
+    LISTEN_COMMAND_CENTER_BUS: listenCommandCenterBusMock,
+    EXECUTE_COMMAND_BY_ID: executeCommandByIdMock,
     rootCommand: {}
   })
 }))
@@ -66,6 +72,9 @@ describe('App.vue page — deep coverage', () => {
   let pinia, bus, AppPage, _wrapper
 
   beforeEach(async () => {
+    executeCommandByIdMock.mockClear()
+    listenCommandCenterBusMock.mockReset()
+    listenCommandCenterBusMock.mockResolvedValue()
     pinia = setupTestPinia()
     bus = (await import('@/bus')).default
 
@@ -386,11 +395,14 @@ describe('App.vue page — deep coverage', () => {
     const flush = () => new Promise(r => setTimeout(r, 0))
     const settleDebounce = () => new Promise(r => setTimeout(r, 220))
 
-    const fireKeydown = (key, { metaKey = false, ctrlKey = false } = {}) => {
+    const fireKeydown = (key, { code = '', metaKey = false, ctrlKey = false, altKey = false, shiftKey = false } = {}) => {
       const evt = new KeyboardEvent('keydown', {
         key,
+        code,
         metaKey,
         ctrlKey,
+        altKey,
+        shiftKey,
         bubbles: true,
         cancelable: true
       })
@@ -482,6 +494,82 @@ describe('App.vue page — deep coverage', () => {
       expect(prefStore.fontSize).toBe(18)
       await settleDebounce()
       expect(persistSpy).toHaveBeenCalledWith({ type: 'fontSize', value: 18 })
+    })
+  })
+
+  describe('Command Palette shortcut (FIX-010)', () => {
+    const flush = () => new Promise(r => setTimeout(r, 0))
+
+    it.runIf(process.platform === 'darwin')('dispatches the root palette by physical KeyP on Shift+Command+P', async () => {
+      mountComponent()
+      await flush()
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: true,
+        bubbles: true, cancelable: true
+      })
+      document.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
+      expect(executeCommandByIdMock).toHaveBeenCalledWith('view.command-palette')
+    })
+
+    it.runIf(process.platform === 'darwin')('ignores composing, repeated and mismatched chords', async () => {
+      mountComponent()
+      await flush()
+      executeCommandByIdMock.mockClear()
+
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: false, bubbles: true
+      }))
+      const composing = new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: true, bubbles: true
+      })
+      Object.defineProperty(composing, 'isComposing', { value: true })
+      document.dispatchEvent(composing)
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: true, repeat: true, bubbles: true
+      }))
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: true, ctrlKey: true, bubbles: true
+      }))
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: true, altKey: true, bubbles: true
+      }))
+
+      expect(executeCommandByIdMock).not.toHaveBeenCalled()
+    })
+
+    it.runIf(process.platform === 'darwin')('removes the capture route on unmount', async () => {
+      const wrapper = mountComponent()
+      await flush()
+      wrapper.unmount()
+      _wrapper = null
+      executeCommandByIdMock.mockClear()
+
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: true, bubbles: true
+      }))
+
+      expect(executeCommandByIdMock).not.toHaveBeenCalled()
+    })
+
+    it.runIf(process.platform === 'darwin')('does not install the route after an interrupted mount', async () => {
+      let finishRegistration
+      listenCommandCenterBusMock.mockImplementationOnce(() => new Promise((resolve) => {
+        finishRegistration = resolve
+      }))
+      const wrapper = mountComponent()
+      wrapper.unmount()
+      _wrapper = null
+      finishRegistration()
+      await flush()
+
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'P', code: 'KeyP', metaKey: true, shiftKey: true, bubbles: true
+      }))
+
+      expect(executeCommandByIdMock).not.toHaveBeenCalled()
     })
   })
 

@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "failingFirst": "After selector repair, the accumulated walk reached StateRender#checkConflicted without complete cursor endpoints and failed before token-range evaluation.",
+  "verification": {
+    "focused": "state-render-selector.test.js passes incomplete-cursor no-conflict cases and complete-cursor overlapping/non-overlapping controls.",
+    "browser": "Affordance audit passes 6, fails 0, skips 1; the complete command walk is warning-clean.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0; the separate spec/plan, graph and verification projections are well-formed."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "behavior clean",
+      "corrections": "No runtime correction was needed after the endpoint guard and direct regression."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean after governance correction",
+      "corrections": "Created this companion to preserve immutable-plan scope and added a complete-cursor control."
+    }
+  ],
+  "integration": "No commit, push, train admission, release or publication performed."
+}

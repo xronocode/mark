@@ -1,0 +1,13 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-016-AUTOSAVE-DISABLE-RACE>
+  <Name>Honor Auto Save when disabled during debounce</Name><Created>2026-10-20</Created>
+  <Summary>Prevent a queued Auto Save timer from writing after the user turns Auto Save off. The timer callback must re-read the current preference immediately before invoking the save transport.</Summary>
+  <Problem>Risk-30 records that HANDLE_AUTO_SAVE captures only the delay. A timer already queued while Auto Save is enabled still saves after the preference becomes false.</Problem>
+  <ApprovalBasis>The owner instructed the standard GRACE plan, verification and two-clean-review workflow for the agreed post-2.6 stabilization boundary on 2026-10-20.</ApprovalBasis>
+  <Goals><Goal>Make disabling Auto Save an immediate barrier for queued debounce callbacks.</Goal><Goal>Preserve normal debounce, already-saved checks, errors and later re-enabled saves.</Goal></Goals>
+  <Constraints><Constraint>Re-read the Pinia preference at callback time; do not add a second timer registry or cancel unrelated document timers globally.</Constraint></Constraints>
+  <NonGoals><NonGoal>No preference UI redesign, session autosave change, manual-save change, release or platform work.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>A dirty named tab queued while Auto Save is true is not written if the preference is false when the timer fires.</Criterion><Criterion>Re-enabling Auto Save allows the next content change to queue and save normally; existing debounce and saved-tab guards stay green.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-011/></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>npx vitest run tests/renderer/store/editor-coverage.test.js tests/renderer/store/editor.test.ts</ExpectedCommand><ExpectedEvidence>Fake-timer tests assert disabled-at-fire skip, normal save after re-enable and no transport invocation for the cancelled write.</ExpectedEvidence></VerificationIntent>
+  <Assumptions><Assumption>The preference store is available in the timer callback because HANDLE_AUTO_SAVE already depends on it at scheduling time.</Assumption></Assumptions>
+</C-FIX-016-AUTOSAVE-DISABLE-RACE></GraceChangeSpec>

@@ -3,6 +3,13 @@
     <!-- C-63: M-046 owns the explicit C-60/C-62 WebKit CI gate in test.yml. -->
     <GD-RUNTIME>
       <Path>graph/runtime.xml</Path>
+      <!-- C-FIX-010-COMMAND-PALETTE-SHORTCUT: M-009/M-011/M-012 own the macOS-only native, registry, app-keydown and focused-editor route for view.command-palette. -->
+      <!-- C-FIX-012-TAB-CYCLE-RENDER + C-FIX-012-ACTIVE-BLOCK-ANCESTRY: M-011/M-012 own clean tab-cycle dispatch and null-safe active-block ancestry after Guide replacement. -->
+      <!-- C-FIX-012-RENDER-CURSOR-GUARD: M-012 selector activity tolerates a transient null or start-less cursor after an accumulated command walk. -->
+      <!-- C-FIX-012-RENDER-CONFLICT-GUARD: M-012 treats incomplete cursor endpoints as no token-selection conflict. -->
+      <!-- C-FIX-012-CURSOR-RESTORE-GUARD: M-012 skips DOM selection restoration and uses a full render range when cursor endpoints are incomplete. -->
+      <!-- C-FIX-015-TABLE-EXPORT-INTEGRITY: M-012 owns parity-aware table-pipe escaping and rectangular export of ragged real rows. -->
+      <!-- C-FIX-016-AUTOSAVE-DISABLE-RACE: M-011 owns the live preference guard at autosave timer fire. -->
       <!-- C-TOOLBAR-LABELS: M-012 shares cumulative panel-local label visits between diagram and table toolbar factories. -->
       <!-- C-TABLE-FOOTER: M-012 owns the in-wrapper counter, stable footer, measured scrollbar space and fitting-table width-toggle gate. -->
       <!-- C-71-OUTLINE-OCCLUSION: M-011 owns scroll-driven whole-outline hiding, visible rectangle intersection and lifecycle cleanup. -->

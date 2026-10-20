@@ -134,6 +134,12 @@ describe('static commands array', () => {
     }
   })
 
+  it('includes the macOS Command Palette command (FIX-010)', () => {
+    const command = commands.find((item) => item.id === 'view.command-palette')
+    expect(command).toBeDefined()
+    expect(command.shortcut).toEqual(['Cmd', 'Shift', 'P'])
+  })
+
   it('includes view.text-direction with subcommands', () => {
     const c = commands.find((c) => c.id === 'view.text-direction')
     expect(c).toBeDefined()
@@ -207,6 +213,12 @@ describe('command execute actions', () => {
     const cmd = commands.find((c) => c.id === 'view.toggle-sidebar')
     await cmd.execute()
     expect(bus.emit).toHaveBeenCalledWith('view:toggle-layout-entry', 'showSideBar')
+  })
+
+  it('view.command-palette opens the root palette (FIX-010)', async () => {
+    const cmd = commands.find((c) => c.id === 'view.command-palette')
+    await cmd.execute()
+    expect(bus.emit).toHaveBeenCalledWith('show-command-palette')
   })
 
   it('view.zoom-in / view.zoom-out step the unified zoom (C-49)', async () => {
