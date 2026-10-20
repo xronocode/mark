@@ -1,9 +1,9 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.17.0
+// VERSION: 2.18.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify exact release metadata/tag consistency, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
-//   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
-//   DEPENDS: Vitest, Node.js child_process/fs/path, tools/release-preflight.mjs, .github/workflows/release.yml.
+//   PURPOSE: Verify exact release metadata/tag consistency, unprivileged candidate packaging, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
+//   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static dry-run/production workflow assertions.
+//   DEPENDS: Vitest, Node.js child_process/fs/path, tools/release-preflight.mjs, .github/workflows/release-tauri.yml, .github/workflows/release.yml.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; .grace/context/requirements.xml UC-032.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -15,7 +15,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-20 v2.17.0 - follow the deterministic prepare/publication split and assert direct normal-release publication without a mutable prerelease flag.
+//   LAST_CHANGE: 2026-10-21 v2.18.0 - require the unprivileged Tauri dry-run to disable updater artifacts while production packaging retains updater signing.
+//   PREV: 2026-10-20 v2.17.0 - follow the deterministic prepare/publication split and assert direct normal-release publication without a mutable prerelease flag.
 //   PREV: 2026-10-20 v2.16.0 - bind packaging to strict
 //   readiness/materials, pin the production action, and keep manual
 //   dispatch unsigned and publication-ineligible.
@@ -126,6 +127,29 @@ describe('M-046 release version preflight', () => {
 })
 // END_BLOCK_RELEASE_VERSION_TESTS
 
+// START_BLOCK_RELEASE_DRY_RUN_WORKFLOW_TESTS
+describe('unprivileged Tauri release dry-run workflow', () => {
+  const dryRunWorkflow = readFileSync(
+    resolve(workspaceRoot, '.github/workflows/release-tauri.yml'),
+    'utf8'
+  )
+
+  it('builds app and DMG candidates without requesting updater signatures', () => {
+    const buildStep = dryRunWorkflow.match(
+      /- name: tauri build[\s\S]*?(?=\n      # ── ad-hoc signing)/
+    )?.[0]
+
+    expect(buildStep).toBeDefined()
+    expect(buildStep).not.toContain('\n        env:')
+    expect(dryRunWorkflow).toContain('uses: tauri-apps/tauri-action@')
+    expect(dryRunWorkflow).toContain(
+      `--config '{"bundle":{"createUpdaterArtifacts":false}}'`
+    )
+    expect(dryRunWorkflow).toContain("DMG=$(find target -name '*.dmg'")
+  })
+})
+// END_BLOCK_RELEASE_DRY_RUN_WORKFLOW_TESTS
+
 // START_BLOCK_RELEASE_WORKFLOW_TESTS
 describe('production release workflow', () => {
   const workflow = readFileSync(
@@ -175,6 +199,7 @@ describe('production release workflow', () => {
   })
 
   it('writes strict SemVer to the updater feed while keeping v-prefixed release tags', () => {
+    expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true)
     expect(workflow).toContain('VER="${TAG#v}"')
     // C-15 T-W3: the feed is composed in the publish job by merging
     // per-platform latest-platform.json fragments — strict SemVer enters
