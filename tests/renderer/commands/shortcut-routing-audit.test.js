@@ -44,7 +44,9 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const ROOT = resolve(__dirname, '..', '..', '..')
-const readSource = (relPath) => readFileSync(resolve(ROOT, relPath), 'utf-8')
+// CRLF checkout portability: normalize line endings so source-level
+// string comparisons hold on Windows checkouts too.
+const readSource = (relPath) => readFileSync(resolve(ROOT, relPath), 'utf-8').replace(/\r\n/g, '\n')
 
 // ─── canonical chord form ─────────────────────────────────────────
 // Darwin terms throughout: Cmd/CmdOrCtrl → Meta, Ctrl stays Ctrl,
