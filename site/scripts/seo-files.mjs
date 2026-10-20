@@ -1,5 +1,5 @@
 // FILE: site/scripts/seo-files.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pure builders for the machine-facing site files — llms.txt
 //            (llmstxt.org: what Mark is, install paths, docs map, source)
@@ -23,7 +23,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.1.0 - 2026-10-18 C-64 T-006: BREW_INSTALL is the
+//   LAST_CHANGE: [v1.2.0 - 2026-10-21 C-64: llms.txt lists the AI Agents & Clients guide.]
+//   PREV: [v1.1.0 - 2026-10-18 C-64 T-006: BREW_INSTALL is the
 //                 tap-free one-liner "brew install --cask xronocode/mark/mark"
 //                 (brew taps xronocode/mark automatically); the old
 //                 tap-then-install pair failed when copied without the tap.]
@@ -70,6 +71,7 @@ sandboxed Mac App Store build.
 - [Installation](${u}/guide/installation): every install path and its updates
 - [Editions](${u}/guide/editions): what differs between the Homebrew/download and App Store builds
 - [Quick start](${u}/guide/quickstart): open a file, follow an agent, edit in place
+- [AI Agents & Clients](${u}/guide/ai-agents): put the mark CLI in PATH, live preview for agent output, default editor, clients with fixed editor menus, an AGENTS.md snippet
 - [Editor basics](${u}/guide/editor): the editing model and view modes
 - [Keyboard shortcuts](${u}/guide/shortcuts): the full shortcut list
 - [Themes](${u}/guide/themes): the theme families and custom CSS
