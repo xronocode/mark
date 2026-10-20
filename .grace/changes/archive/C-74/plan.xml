@@ -1,0 +1,120 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-74>
+  <ChangeRef>C-74</ChangeRef><Created>2026-10-20</Created>
+  <IntentSummary>Close C-72 through a successor disposition: record the archive basis and the post-review stabilization states in evidence, move the C-72 bundle to the archive with only the status-attribute transition the archive convention requires, verify the lint boundary, then archive C-74 itself so the ledger ends with no consumed-baseline residue.</IntentSummary>
+  <ExecutionPolicy>Execute sequentially. No parallel change-bundle execution while C-74 is open. The working tree already carries the reviewed FIX-wave and C-73 artifacts from the same stabilization session; C-74 does not touch, revert or adjudicate them — their landing is governed by their own bundles and the train ledger.</ExecutionPolicy>
+  <BaselineAssertions>
+    <MustExist>
+      <Value>.grace/changes/active/C-72/spec.xml</Value>
+      <Value>.grace/changes/active/C-72/plan.xml</Value>
+      <Value>.grace/changes/active/C-72/baseline.json</Value>
+      <Value>.grace/changes/active/C-72/evidence.json</Value>
+    </MustExist>
+    <MustContain>
+      <File>.grace/changes/active/C-72/plan.xml</File>
+      <Text>post-execution-four-corner-review-round-G</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/changes/active/C-72/evidence.json</File>
+      <Text>&quot;mainWorktreeStructuralErrors&quot;: 0</Text>
+    </MustContain>
+    <MustContain>
+      <File>docs/release-trains/2.5.x-next-followups.md</File>
+      <Text>EP-2.5X-FOLLOWUPS-2026-10-20</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustExist>
+      <Value>.grace/changes/archive/C-72/spec.xml</Value>
+      <Value>.grace/changes/archive/C-72/plan.xml</Value>
+      <Value>.grace/changes/archive/C-72/baseline.json</Value>
+      <Value>.grace/changes/archive/C-72/evidence.json</Value>
+      <Value>.grace/changes/active/C-74/evidence.json</Value>
+    </MustExist>
+    <MustContain>
+      <File>.grace/changes/active/C-74/evidence.json</File>
+      <Text>&quot;disposition&quot;: &quot;archive-complete&quot;</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/changes/active/C-74/evidence.json</File>
+      <Text>&quot;postReviewStates&quot;</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/changes/active/C-74/evidence.json</File>
+      <Text>&quot;selfArchived&quot;: true</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope><None /></DurableScope>
+  <ObservedWriteScope>
+    <Glob>.grace/changes/active/C-74/**</Glob>
+    <Glob>.grace/changes/archive/C-72/**</Glob>
+    <Glob>.grace/changes/archive/C-74/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner><Name>Correctness — intact archival</Name><Expected>The four C-72 files land in .grace/changes/archive/C-72/ identical to their committed HEAD blobs except the single status attribute transition approved→applied on spec.xml and plan.xml (the archive convention the linter enforces); nothing else in archive/ is touched.</Expected></Corner>
+    <Corner><Name>Correctness — lint truth</Name><Expected>After C-72 archival and C-74 self-archival, grace lint --assertions current reports zero errors: the four consumed C-72 baseline assertions disappear with the bundle, C-74 leaves no consumed residue behind, and no active bundle gains a failure; warnings may remain.</Expected></Corner>
+    <Corner><Name>Correctness — honest states</Name><Expected>evidence.json postReviewStates copies only facts already recorded by their owning documents (train ledger, follow-up epic, C-TABLE-FOOTER evidence): FIX-003..007 accepted on bae95a97, FIX-008 reopened, FIX-010/FIX-011 reported, C-TABLE-FOOTER partial acceptance with the Fit defect open, C-73 landing; no acceptance is invented or upgraded.</Expected></Corner>
+    <Corner><Name>Security and Privacy</Name><Expected>No secrets, signing material, absolute home paths or owner-private data in the new artifacts; evidence contains repository-derived facts and public document pointers only.</Expected></Corner>
+    <Corner><Name>UX and Docs</Name><Expected>No user-facing surface touched; the spec and plan follow the English-only policy and the anchor-tag convention (C-74 as the tag, metadata as child elements).</Expected></Corner>
+    <Corner><Name>Performance and Footprint</Name><Expected>No build, dependency or test-budget change; the only gates are grace lint/status runs.</Expected></Corner>
+    <Corner><Name>Concurrency</Name><Expected>The uncommitted FIX-wave/C-73 artifacts in the working tree are disclosed, not adjudicated; no file outside the C-74, archive/C-72 and archive/C-74 scopes is modified by this change.</Expected></Corner>
+    <Corner><Name>Lifecycle compliance</Name><Expected>The archival follows the house rule that a bundle is archived only with a compliant plan and recorded evidence; C-72's own ReviewLog rounds F and G are the clean-review basis cited. C-74 self-archives with its evidence complete and its own status transitioned to applied — the same convention, recorded in the evidence file.</Expected></Corner>
+    <Corner><Name>Delivery discipline</Name><Expected>Nothing is queued, admitted, frozen or published by C-74; the train ledger and the follow-up epic keep their authority over acceptance and release.</Expected></Corner>
+    <Corner><Name>Reversibility</Name><Expected>Both moves are pure renames plus one attribute each; restoring the active paths reproduces the pre-C-74 state exactly, so a mistake costs one revert, not reconstruction.</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Write the C-74 disposition evidence</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>evidence.json records date, disposition archive-complete, the C-72 closure basis (executed; four-corner rounds F and G consecutively clean; the four consumed baseline assertions enumerated), the postReviewStates map with owning-document pointers, the concurrent-working-tree disclosure, and the self-archival decision with its rule.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>node -e "const e=require('./.grace/changes/active/C-74/evidence.json'); if(e.disposition!=='archive-complete'||!e.postReviewStates) process.exit(1)"</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Archive C-72 with the status transition</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The four C-72 files are verified against their HEAD blobs (baseline.json and evidence.json byte-identical; spec.xml and plan.xml identical after the approved→applied status substitution), then moved to .grace/changes/archive/C-72/ with the active directory removed; archive neighbors are untouched.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>test -f .grace/changes/archive/C-72/plan.xml &amp;&amp; ! test -d .grace/changes/active/C-72</Command>
+        <Command>diff &lt;(git show HEAD:.grace/changes/active/C-72/baseline.json) .grace/changes/archive/C-72/baseline.json &amp;&amp; diff &lt;(git show HEAD:.grace/changes/active/C-72/evidence.json) .grace/changes/archive/C-72/evidence.json &amp;&amp; diff &lt;(git show HEAD:.grace/changes/active/C-72/plan.xml | sed s/status=\&quot;approved\&quot;/status=\&quot;applied\&quot;/) .grace/changes/archive/C-72/plan.xml</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Verify the boundary and self-archive C-74</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>grace lint reports zero errors other than C-74's own consumed baseline assertions, and grace status lists no structural complaint about the archived C-72; then C-74's spec and plan transition to applied and the bundle moves to .grace/changes/archive/C-74/ with evidence.json recording selfArchived true, leaving grace lint --assertions current at zero errors as the outer gate.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path .</Command>
+        <Command>grace status --path . --with modules --json</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-10-20" verdict="green-after-fixes" task="plan-four-corner-review">
+      <Findings>
+        Correctness and Contracts: the four enumerated lint errors were re-derived from a live grace run before drafting (two graph-path MustContains, one train-wording MustContain, one C-34 archive MustExist) — they are consumed baseline assertions, matching the C-72 ReviewLog rounds F/G statement that the current lint equals exactly the consumed baseline. FINDING (fixed): the first draft let the diff-based intactness check shell-fail silently; the verification now compares each archived file against its HEAD blob explicitly. Security and Privacy: clean; the evidence template was checked against the publication policy — no ASC identifiers, owner backlog or promo planning in the public bundle. UX and Docs: no user-facing surface; English-only holds. Performance and Footprint: clean; only lint/status gates. The CornerMatrix (10 corners) was added before approval.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-10-20" verdict="green-after-fixes" task="plan-four-corner-review-recheck">
+      <Findings>
+        None outstanding after fixes: plan XML validates against the anchor-tag convention; DurableScope declares an explicit None (the first draft's empty element violated the lint shape rule — fixed); the TargetAssertions MustPassCommand invoking --assertions current violated the phase-compatibility rule (fixed: the lint runs as the outer gate in T-003 verification, not as an in-plan MustPassCommand); every acceptance criterion maps to a task and a target assertion; the execution policy discloses the concurrent working-tree artifacts without adjudicating them.
+      </Findings>
+    </Review>
+    <Review number="3" date="2026-10-20" verdict="green-after-fixes" task="plan-executor-feasibility-pass">
+      <Findings>
+        Executor walk confirmed the runnable surface (grace and node on PATH, HEAD blobs resolvable) and surfaced two execution-shape facts now baked into the plan: (1) archived bundles must carry status applied, so the archival step includes the single-attribute transition rather than a byte-identical move — the intactness corner and T-002 verification were amended to the sed-substituted comparison; (2) an executed C-74 left active would reproduce the consumed-baseline residue this change exists to remove, so T-003 self-archives C-74 with evidence recording the decision. Two XML typos found by the linter during drafting (mismatched MustExist close, mismatched T-002 close) were fixed.
+      </Findings>
+    </Review>
+    <Review number="4" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review">
+      <Findings>
+        Four independent passes over the executed change. Correctness and Contracts: the move executed as a rename; baseline.json and evidence.json verified byte-identical to HEAD; spec.xml and plan.xml verified identical modulo the approved→applied status attribute; archive neighbors untouched; post-execution grace lint showed zero errors beyond C-74's own consumed baseline assertions, exactly as predicted. Security and Privacy: clean — the new artifacts contain repository-derived facts and public pointers only, no home paths, no signing material. UX and Docs: clean — English-only holds, no user-facing surface. Performance and Footprint: clean — no build or dependency change, gates are lint/status runs. Lifecycle: the self-archival rule and the status transition are recorded in evidence.json; the terminal state (C-74 archived) leaves grace lint --assertions current at zero errors.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-74></GraceChangePlan>
