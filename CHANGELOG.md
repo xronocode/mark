@@ -2,16 +2,7 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
-## [Unreleased]
-
-### Known gaps
-Carried over from the old status table in the README:
-- Saving does not yet preserve a non-UTF-8 source encoding, and there is no manual encoding picker.
-- Multiple windows: `--new-window` is accepted but has no effect yet.
-- Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
-- Image upload services (PicGo and similar) are not supported.
-
-<!-- release-draft:start -->
+## [2.6.0] - 2026-10-20
 
 Tables can leave Mark as pictures, wide-table controls stay stable, and a focused stabilization pass repairs editing, tab ownership and close dialogs.
 
@@ -34,7 +25,16 @@ Tables can leave Mark as pictures, wide-table controls stay stable, and a focuse
 - The unsaved-changes dialog follows the active light or dark theme.
 - Closing a dirty untitled tab now offers three distinct actions: Save & Close opens Save As, Discard is explicit and non-default, and Cancel keeps the tab and its content.
 
-<!-- release-draft:end -->
+## [Unreleased]
+
+### Known gaps
+Carried over from the old status table in the README:
+- Saving does not yet preserve a non-UTF-8 source encoding, and there is no manual encoding picker.
+- Multiple windows: `--new-window` is accepted but has no effect yet.
+- Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
+- Image upload services (PicGo and similar) are not supported.
+
+
 
 <!-- #region releases -->
 
