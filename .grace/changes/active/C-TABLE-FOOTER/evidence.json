@@ -137,6 +137,6 @@
     "automated": "Failing-first unit 60 pass / 1 fail; repaired unit 61/61. Strengthened real-pointer save Full width → reopen/adopt → Fit scenario passes Chromium and WebKit 2/2; renderer and isolated native builds pass.",
     "artifact": "Mark Test TABLE-STATE 35fc0895; bundle com.xronocode.mark.test.tablestate.35fc0895; binary SHA-256 d78732b7a12988a052b585915529af9514e67d1744b9ac608ca7e6468bf9825e.",
     "ownerAcceptance": "Owner physically tested the fresh artifact and confirmed 'тут работает' on 2026-10-20.",
-    "admission": "The remaining Fit-only gap is closed. C-TABLE-FOOTER is owner accepted and queued in 2.5.x-next; release remains separately authorized."
+    "admission": "The remaining Fit-only gap is closed. C-TABLE-FOOTER is owner accepted, integrated into local main at 674f91b6 and queued in 2.5.x-next; push/candidate CI and release remain separate gates, with release separately authorized."
   }
 }

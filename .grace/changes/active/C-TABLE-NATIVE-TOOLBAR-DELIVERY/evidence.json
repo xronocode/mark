@@ -1,6 +1,6 @@
 {
   "date": "2026-10-20",
-  "status": "implemented, automated focused gates passed, physically owner accepted on isolated native artifact, and queued in the collecting train; release not authorized",
+  "status": "implemented, automated gates passed, physically owner accepted on the isolated native artifact, integrated into local main at 674f91b6, and queued in the collecting train; release not authorized",
   "rootCause": {
     "observedBoundary": "Physical input reached the shared toolbar route: Full width, Copy as image and Open full screen worked, while only Fit failed after Full width had been made explicit.",
     "proven": "After applyPersistedLayouts adopted an explicit { fullWidth: true } entry, toggleFullWidthFromElement selected Fit and called persist(). persist() called syncIdentities(), which re-adopted the old host snapshot, re-added Full width and restored the Full width DOM before serialization. The click therefore appeared inert even though it was delivered.",
@@ -41,5 +41,6 @@
     "fixture": "/tmp/mark-table-footer-check.md",
     "ownerAcceptance": "2026-10-20: owner reported 'тут работает' after physically testing the fresh isolated artifact. Accepted scope is the previously failing Full width → Fit transition with persisted/adopted state; it does not imply release authorization or acceptance of unrelated changes."
   },
-  "delivery": "C-TABLE-FOOTER's remaining Fit-only gap is accepted and the scoped item is queued in 2.5.x-next. The train remains Collecting; candidate freeze, final CI and release require separate steps and release authorization."
+  "integrationCommit": "674f91b6 — fix(tables): preserve Fit after adopted Full width; local main only, not pushed by this operation.",
+  "delivery": "C-TABLE-FOOTER's remaining Fit-only gap is accepted, locally integrated and queued in 2.5.x-next. The train remains Collecting; remote/candidate CI, freeze and release require separate steps, and release requires explicit authorization."
 }
