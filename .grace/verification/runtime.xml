@@ -3,6 +3,7 @@
     <V-M-001>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/whatsNew/content.test.js tests/renderer/whatsNew/gate.test.js tests/renderer/components/whatsNew.test.js</Command>
         <Command>
           cd src-tauri &amp;&amp; cargo test --manifest-path
           src-tauri/Cargo.toml -p mt-tauri-shell
@@ -3995,7 +3996,10 @@
           window. Help › What's New (menu id help.whats-new, every
           build, no accelerator) reopens the sheet any time through the
           same whatsNewDialog bus event, falling back to the newest
-          version with content (resolveWhatsNewVersion); the strings ship in all ten
+          version with content (resolveWhatsNewVersion; 2.6.0 while its
+          reviewed draft entry is current); the global Also key follows the
+          current release-wide copy even when a historical item list is opened;
+          the strings ship in all ten
           locales (whatsNew.* incl. v2_3_1 items and the C-53 also /
           seeEverything keys, commands.help.*; tests/renderer/whatsNew/
           content.test.js pins per locale: all four item keys present,
@@ -4005,6 +4009,12 @@
           release-URL lookup incl. the prerelease normalization and the
           unknown-version '' case).
           The App Store review request runs only when the m048 review
+          C-RELEASE-PIPELINE-AUTOMATION extends this scenario to 2.6.0:
+          release-materials must find one to four ordered items and matching
+          native copy in every one of the ten source and minified locale
+          catalogs, with title ≤ 32, text ≤ 90 and Also ≤ 120 characters,
+          exact release URL and preserved product names/shortcuts. Release
+          admission remains V-M-046; this scenario verifies only the sheet.
           capability is true (app-store build on macOS; desktop
           m048_build_mode.rs pins review=false and m053_review.rs
           mt_request_review resolves Ok(false) outside the store

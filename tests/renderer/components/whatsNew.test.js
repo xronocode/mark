@@ -1,9 +1,9 @@
 // FILE: tests/renderer/components/whatsNew.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48/C-53 What's New sheet component — opens on the
 //            whatsNewDialog bus event, renders the 2.5.0 C-55 items from
-//            the en table plus the C-53 «Also» line and «See everything
+//            the en table plus the current release-wide «Also» line and «See everything
 //            new» external link, Esc/Continue close it, focus is trapped
 //            across the three footer controls and returned, "See the
 //            guide" opens the guide at the top (mt::open-guide with {}),
@@ -24,7 +24,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
+//   LAST_CHANGE: v1.4.0 - 2026-10-20 release 2.6.0 draft: historical item rendering keeps using the current release-wide Also copy.
+//   PREV: v1.3.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
 //   v1.2.0 - 2026-10-17 C-53 T-001/R-1: pins the four D-1
 //   items (native look, home screen, themed diagrams, Markdown-only
 //   folders) with the new icon set, the «Also» line, the «See everything
@@ -83,7 +84,7 @@ describe('components/whatsNew — sheet', () => {
     wrapper.unmount()
   })
 
-  it('renders the eyebrow, title, the four 2.5.0 C-55 items and the also line from the en table', async () => {
+  it('renders the four 2.5.0 items and the current release-wide also line from the en table', async () => {
     const wrapper = mountSheet()
     bus.emit('whatsNewDialog', { version: '2.5.0' })
     await nextTick()
@@ -101,10 +102,9 @@ describe('components/whatsNew — sheet', () => {
     // icons stay in the board-3 glyph style (C-55 set)
     const icons = wrapper.findAll('.news-icon').map((i) => i.text())
     expect(icons).toEqual(['⧉', '◐', '⎙', '▣'])
-    // the C-55 «Also» line under the items
-    // (the also key is release-wide; since 2.5.3 it names the broom + ⌘W)
+    // The Also key is intentionally release-wide rather than versioned.
     expect(wrapper.find('.also').text()).toBe(
-      'Also: a broom clears Recent in the sidebar, and ⌘W closes Settings'
+      'Also: safer tab closing, reliable Shift selection, themed dialogs, and clearer menus'
     )
     const footLinks = wrapper.findAll('.foot-links .guide-link')
     expect(footLinks[0].text()).toBe('See everything new ↗')

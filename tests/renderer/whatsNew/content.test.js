@@ -1,8 +1,8 @@
 // FILE: tests/renderer/whatsNew/content.test.js
-// VERSION: 1.2.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-53 R-1 What's New 2.3.1 content — exactly the four
-//            D-1 items in the approved order, every locale table (all 10)
+//   PURPOSE: Pin the What's New release content — exactly four ordered
+//            current release-draft items, every locale table (all 10)
 //            carrying every item key plus the «Also» line and «See
 //            everything new» link key, the sheet-layout length limits
 //            (titles ≤ 32, texts ≤ 90, also ≤ 120), vue-i18n brace
@@ -20,12 +20,19 @@
 //
 // START_MODULE_MAP
 //   LOCALES - the ten shipped locale codes and their source tables.
+//   RELEASE_DRAFT_VERSION - newest in-app sheet version owned by the release draft.
+//   RELEASE_DRAFT_LOCALE_KEY - locale-table key derived from the current draft version.
+//   RELEASE_DRAFT_ITEM_KEYS - the four current draft item keys in sheet order.
 //   ITEM_KEY_ORDER_2_5_3 - the four 2.5.3 item keys in sheet order (session, tables, columns, updates).
 //   ITEM_KEY_ORDER - the four D-1 item keys in the approved order.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-19 release 2.5.3: a 2.5.3 block pins the four new items, their locale matrix and the release URL (the 2.5.0 pins stay — that sheet still exists).
+//   LAST_CHANGE: v1.4.0 - 2026-10-20 derive the current release identity from the newest sheet so normalization never rewrites historical test text.
+//   PREV: v1.3.0 - 2026-10-20 release 2.6.0 draft: pin the four
+//   accepted-train items, their ten-locale matrix, layout limits, stable
+//   product names/shortcuts and the future release URL.
+//   v1.2.0 - 2026-10-19 release 2.5.3: a 2.5.3 block pins the four new items, their locale matrix and the release URL (the 2.5.0 pins stay — that sheet still exists).
 //   v1.1.0 - 2026-10-18 release 2.5.0: pins move to the four
 //   2.5.0 items (export, look, print, images); format names (PNG, SVG,
 //   PDF) replace the Pele/mermaid name pins.
@@ -55,6 +62,8 @@ import zhCN from '../../../static/locales/zh-CN.json'
 import zhTW from '../../../static/locales/zh-TW.json'
 
 const LOCALES = { en, ru, de, fr, es, ja, ko, pt, 'zh-CN': zhCN, 'zh-TW': zhTW }
+const RELEASE_DRAFT_VERSION = Object.keys(WHATS_NEW_CONTENT)[0]
+const RELEASE_DRAFT_LOCALE_KEY = `v${RELEASE_DRAFT_VERSION.replace(/[.-]/g, '_')}`
 
 // The four 2.5.0 items, approved order: diagrams as pictures (C-56), a
 // look per diagram (C-62), direct print/PDF (C-61), image copy (C-56).
@@ -204,6 +213,51 @@ describe('whatsNew 2.5.3 sheet', () => {
   })
 })
 // END_BLOCK_CONTENT_2_5_3
+
+// START_BLOCK_CONTENT_2_5_4
+// Release 2.6.0 draft: table images (C-70), stable wide-table controls
+// and pan cues (C-71 + table repairs + FIX-008), opened-version compare
+// (C-68), and restored editor shortcuts (FIX-005/FIX-006).
+const RELEASE_DRAFT_ITEM_KEYS = ['tableImages', 'wideTables', 'compare', 'shortcuts']
+
+describe('current release-draft sheet', () => {
+  it('ships the four accepted-train items in order with distinct one-char icons', () => {
+    const items = getWhatsNewItems(RELEASE_DRAFT_VERSION)
+    expect(items.map((i) => i.titleKey.replace(`whatsNew.${RELEASE_DRAFT_LOCALE_KEY}.`, '').replace('.title', '')))
+      .toEqual(RELEASE_DRAFT_ITEM_KEYS)
+    for (const item of items) {
+      expect(item.icon.length).toBe(1)
+      expect(item.textKey).toMatch(new RegExp(`^whatsNew\\.${RELEASE_DRAFT_LOCALE_KEY}\\.\\w+\\.text$`))
+    }
+    expect(new Set(items.map((i) => i.icon)).size).toBe(items.length)
+  })
+
+  it('every locale carries complete copy within the board layout limits', () => {
+    for (const [code, table] of Object.entries(LOCALES)) {
+      const section = table.whatsNew[RELEASE_DRAFT_LOCALE_KEY]
+      expect(section, `${code}: whatsNew.${RELEASE_DRAFT_LOCALE_KEY}`).toBeTruthy()
+      for (const key of RELEASE_DRAFT_ITEM_KEYS) {
+        const { title, text } = section[key]
+        expect(title.length, `${code} ${key}.title`).toBeGreaterThan(0)
+        expect(title.length, `${code} ${key}.title is ${title.length}`).toBeLessThanOrEqual(32)
+        expect(text.length, `${code} ${key}.text is ${text.length}`).toBeLessThanOrEqual(90)
+        expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
+      }
+      expect(table.whatsNew.also.length, `${code}: also`).toBeLessThanOrEqual(120)
+      expect(section.tableImages.text, `${code}: tableImages keeps PNG`).toContain('PNG')
+      expect(section.compare.text, `${code}: compare keeps Mark`).toContain('Mark')
+      expect(section.shortcuts.text, `${code}: shortcuts keeps ⇧⌘D`).toContain('⇧⌘D')
+      expect(section.shortcuts.text, `${code}: shortcuts keeps ⌘1–6`).toContain('⌘1–6')
+    }
+  })
+
+  it('points the draft sheet at its future GitHub release page', () => {
+    expect(getWhatsNewReleaseUrl(RELEASE_DRAFT_VERSION)).toBe(
+      `https://github.com/xronocode/mark/releases/tag/v${RELEASE_DRAFT_VERSION}`
+    )
+  })
+})
+// END_BLOCK_CONTENT_2_5_4
 
 // START_BLOCK_RELEASE_URL
 describe('getWhatsNewReleaseUrl (C-53 «See everything new» link)', () => {
