@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-materials.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin exact 2.6.0 release-material identity across train scope, public prose, ten locales, README image references, tracked files, and screenshot digests.
 //   SCOPE: Repository-positive integration plus isolated locale, image-set, review, and digest negative fixtures; no screenshot capture or publication.
@@ -18,6 +18,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 v1.3.0: prove Windows CRLF checkouts retain the same README, CHANGELOG, and release-notes identity.
 //   - 2026-10-20 v1.2.0: pin the single unversioned CHANGELOG draft and exact-one numbered handoff contract.
 //   - 2026-10-20 v1.1.0: add independent README, CHANGELOG, notes, in-app source, URL, and missing-PNG negative fixtures.
 //   - 2026-10-20 v1.0.0: add the mandatory release-material and screenshot-manifest regression matrix.
@@ -65,6 +66,14 @@ describe('release materials', () => {
       screenshots: { imageCount: 9 },
       scopeItems: 14
     })
+  })
+
+  it('validates human material headers after a Windows CRLF checkout', () => {
+    const materials = materialHeaders()
+    materials.readme = materials.readme.replaceAll('\n', '\r\n')
+    materials.changelog = materials.changelog.replaceAll('\n', '\r\n')
+    materials.notes = materials.notes.replaceAll('\n', '\r\n')
+    expect(validateMaterialHeaders(materials)).toBeUndefined()
   })
 
   it('extracts local Markdown and HTML image references while ignoring remote badges', () => {
