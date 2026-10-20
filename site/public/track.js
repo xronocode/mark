@@ -1,17 +1,20 @@
 /*
  * FILE: site/public/track.js
- * VERSION: 1.2.0
+ * VERSION: 1.3.0
  * START_MODULE_CONTRACT
- *   PURPOSE: Consent-gated GA4 events for the site — download_click from
- *            any element marked data-track, outbound_click for plain
- *            off-site links, share_to_mac from the iPhone bar via
- *            window.markTrack (C-64 R-7/D-7, T-006 M-1, T-007 P-1).
+ *   PURPOSE: Consent-gated GA4 events for the site — download and outbound
+ *            clicks, donations, content interactions, and guide completion
+ *            through delegated tags or window.markTrack (C-64 R-7/D-7,
+ *            T-006 M-1, T-007 P-1).
  *   SCOPE: delegated click listener for [data-track="download_click"]
  *          (method/placement from data-method/data-placement; copy buttons
  *          report only once their copy succeeded) and for
  *          [data-track="outbound_click"] (link_target from data-target,
  *          placement from data-placement) plus the markTrack() entry
- *          point. Events fired while consent is granted send through a
+ *          point; kofi_click is derived from Ko-fi anchors and doc_read is
+ *          emitted once at 75% scroll depth on guide pages under either the
+ *          root or a configured deployment base. Events fired
+ *          while consent is granted send through a
  *          live window.gtag as before; events fired BEFORE a decision
  *          (markConsent.decided() false, card unanswered) are held in an
  *          in-memory queue (max 10, no storage of any kind, nothing
@@ -40,7 +43,12 @@
  *   window.markTrack('share_to_mac', { result: 'shared' | 'copied' | 'dismissed' })
  *
  * START_CHANGE_SUMMARY
- *   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-007 (P-1): events fired
+ *   LAST_CHANGE: [v1.3.0 - 2026-10-21 GA4 tracking regression: use the
+ *                 injected window.location and window event APIs for guide
+ *                 completion tracking, including a prefixed deployment
+ *                 base; this keeps browser dependencies explicit and makes
+ *                 doc_read independently verifiable.]
+ *   PREV: [v1.2.0 - 2026-10-18 C-64 T-007 (P-1): events fired
  *                 before a consent decision are held in an in-memory
  *                 queue (max 10, no storage, nothing crosses pages),
  *                 flushed through gtag on grant after consent.js has
@@ -140,18 +148,19 @@
   // START_BLOCK_DOC_READ
   // Guide pages: one doc_read per page at 75% scroll depth (tracking plan
   // 2026-10); undecided visitors are covered by the consent queue.
-  if (/^\/guide\//.test(location.pathname)) {
+  var guideMatch = window.location.pathname.match(/(?:^|\/)guide(?:\/([^/]+))?(?:\/|$)/);
+  if (guideMatch) {
     var docSent = false;
     var onDocScroll = function () {
       if (docSent) return;
       var h = document.documentElement;
       if (h.scrollTop + window.innerHeight >= h.scrollHeight * 0.75) {
         docSent = true;
-        removeEventListener("scroll", onDocScroll);
-        send("doc_read", { doc_id: location.pathname.split("/")[2] || "guide" });
+        window.removeEventListener("scroll", onDocScroll);
+        send("doc_read", { doc_id: guideMatch[1] || "guide" });
       }
     };
-    addEventListener("scroll", onDocScroll, { passive: true });
+    window.addEventListener("scroll", onDocScroll, { passive: true });
   }
   // END_BLOCK_DOC_READ
 })();
