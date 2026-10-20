@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-20",
+  "status": "implemented and locally verified; fresh isolated artifact and owner acceptance pending",
+  "repair": {
+    "module": "src/muya/lib/ui/blockViewer/index.js v3.7.0 (+ index.css pan-cue gradients)",
+    "behavior": "overflowX hidden for table canvases at every zoom (no native horizontal scrollbar or bottom track); drag/pan stays the single horizontal-navigation model; tableClipShadows drives two non-interactive edge gradient overlays refreshed on open, fit, 1:1, zoom and every panzoomchange; vertical native scroll (auto exactly when the scaled content exceeds the stage) and the sticky header cap are unchanged.",
+    "replaces": "the rejected v3.6.0 per-axis scrollport from a2d77872 (updateTableOverflow)"
+  },
+  "verification": {
+    "unit": "npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya/block-viewer-pan-cues.test.js — 7 tests: left bound (right only), middle (both), right bound (left only), fitted (neither), sub-pixel tolerance both ways, the overlay wiring across the four positions, and close clearing the overlays. Existing tests/renderer/muya/block-viewer.test.js unchanged and green (26 tests; combined run 33 passed).",
+    "e2e": "npm run build && npx playwright test tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-block-viewer — 36 passed (both engines): the rewritten FIX-008 case proves overflowX hidden at Fit, 1:1 and intermediate positions, both shadows at the centered 1:1, shadow sides tracking measured left/right bounds, the last column revealed by drag at the right bound, and Fit clearing both; the remaining zoom, focus-trap, export, sticky-header and clone cases stayed green.",
+    "failingOnRejectedRevision": "The rewritten case asserts overflowX 'hidden' at 1:1 where bae95a97 computes 'auto' (the phantom track with no meaningful navigation range), so it fails on the rejected revision exactly as the EP-01 exit gate requires.",
+    "governance": "V-M-012 scenario-19 amended to the pan-only model; the pan-cues unit command added beside the existing block-viewer command; grace lint --assertions current zero errors (verified after this bundle's edits together with the C-74 terminal state)."
+  },
+  "scopeHygiene": "Only ui/blockViewer files, the bundle's own tests and the verification projections were touched; the C-TABLE-FOOTER-owned files (tableResize, tableCue, renderContainerBlock, table-* specs) are untouched.",
+  "pending": "Fresh isolated Mark Test artifact (source, bundle id, binary SHA-256) and the owner's focused FIX-008 acceptance; queueing returns only after that gate (EP-01)."
+}

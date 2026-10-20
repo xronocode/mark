@@ -1,0 +1,124 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><C-FIX-008-VIEWER-PAN-CUES>
+  <ChangeRef>C-FIX-008-VIEWER-PAN-CUES</ChangeRef><Created>2026-10-20</Created>
+  <IntentSummary>Turn the fullscreen table viewer into a pan-only horizontal surface with live edge clipping shadows: overflowX always hidden, a pure tableClipShadows bounds function driving two gradient overlays, shadow refresh on every pan/zoom/fit/open, and the FIX-008 e2e rewritten to prove no bar exists while drag still reveals the last column and the shadow sides track the pan position.</IntentSummary>
+  <ExecutionPolicy>Execute sequentially after C-73/C-74 land. The shared M-012/V-M-012 durable scope overlaps C-TABLE-FOOTER (both edit the viewer/table surface family); the overlap is acknowledged — this bundle touches only ui/blockViewer files and its own tests, never the tableResize/tableCue/renderContainerBlock files C-TABLE-FOOTER owns.</ExecutionPolicy>
+  <BaselineAssertions>
+    <!-- The pre-repair markers (blockViewer v3.6.0 updateTableOverflow and
+         the old e2e title) are pinned by git history at bae95a97 and quoted
+         in the spec ProblemEvidence; asserting them here would only turn
+         consumed baselines into standing lint errors while the bundle waits
+         for owner acceptance. -->
+    <MustContain>
+      <File>docs/release-trains/2.5.x-next.md</File>
+      <Text>reopened for one pan model plus edge clipping shadows</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/ui/blockViewer/index.js</File>
+      <Text>tableClipShadows</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/muya/lib/ui/blockViewer/index.js</File>
+      <Text>BLOCK_VIEWER_PAN_CUES</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/muya/lib/ui/blockViewer/index.css</File>
+      <Text>ag-block-viewer-clip-left</Text>
+    </MustContain>
+    <MustExist>
+      <Value>tests/renderer/muya/block-viewer-pan-cues.test.js</Value>
+      <Value>.grace/changes/active/C-FIX-008-VIEWER-PAN-CUES/evidence.json</Value>
+    </MustExist>
+    <MustContain>
+      <File>tests/e2e/block-viewer.spec.ts</File>
+      <Text>pan-only</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-012/></GraphAnchors><VerificationAnchors><V-M-012/></VerificationAnchors><VerificationDocuments><VD-RUNTIME/></VerificationDocuments></DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/ui/blockViewer/index.js</File>
+    <File>src/muya/lib/ui/blockViewer/index.css</File>
+    <File>tests/renderer/muya/block-viewer-pan-cues.test.js</File>
+    <File>tests/e2e/block-viewer.spec.ts</File>
+    <Glob>.grace/verification/*.xml</Glob>
+    <Glob>.grace/changes/active/C-FIX-008-VIEWER-PAN-CUES/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner><Name>Correctness — no false bar</Name><Expected>overflowX computes to hidden for the table canvas at every zoom in both engines; no bottom track is painted anywhere; scrollLeft stays 0; the guard that previously re-derived per-axis overflow is replaced, not merely bypassed.</Expected></Corner>
+    <Corner><Name>Correctness — shadow truth</Name><Expected>tableClipShadows derives both sides from the transformed canvas rect versus the stage rect with a 1px tolerance; unit pins cover left bound (right only), middle (both), right bound (left only), fully fitted (neither) and the sub-pixel case; the live refresh runs on open, fit, 1:1, zoom and every panzoomchange so the cues never lie about the current position.</Expected></Corner>
+    <Corner><Name>Correctness — navigation still works</Name><Expected>Drag pan reveals the last column of the 18-column fixture at 1:1 in both engines; wheel keeps native vertical scrolling for the capped sticky-header case and pans otherwise; no keyboard or focus behavior regresses (zoom keys, Esc, focus trap).</Expected></Corner>
+    <Corner><Name>Correctness — vertical independence</Name><Expected>The vertical axis still computes to auto exactly when the scaled content is taller than the stage (maxHeight cap logic untouched); the sticky header keeps sticking at 1:1.</Expected></Corner>
+    <Corner><Name>Correctness — failing-on-bae95a97</Name><Expected>The rewritten regression demonstrates the defect contract: on bae95a97 the track exists at 1:1 (overflowX auto) while providing no meaningful range — the new assertion overflowX hidden fails on that revision and passes after the repair; the last-column reveal assertion pins that removing the bar costs no navigation.</Expected></Corner>
+    <Corner><Name>Security and Privacy</Name><Expected>Test-only fixtures are synthetic markdown tables; no owner content, no paths outside the repo and /tmp/mark-e2e; no secrets.</Expected></Corner>
+    <Corner><Name>UX</Name><Expected>Shadows are subtle non-interactive gradients that never block pointer events (drag-through), fade with a short transition, and appear only for table sources; diagrams keep their exact current behavior.</Expected></Corner>
+    <Corner><Name>Performance</Name><Expected>Shadow refresh reads two getBoundingClientRect values per panzoom event (no layout thrash beyond the existing transform writes); CSS uses opacity transitions on compositor-friendly gradients; no new dependency.</Expected></Corner>
+    <Corner><Name>Scope hygiene</Name><Expected>blockViewer files and the bundle's own tests only; C-TABLE-FOOTER-owned files (tableResize, tableCue, renderContainerBlock, table-* specs) are not touched; the durable overlap is disclosed in the execution policy.</Expected></Corner>
+    <Corner><Name>Delivery discipline</Name><Expected>The bundle repairs and verifies; it queues nothing. Returning FIX-008 to the queued table requires owner acceptance on a fresh isolated artifact identified by source, bundle id and binary SHA-256 (EP-01 exit gate).</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Pure shadow-state maths and unit pins</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tableClipShadows(contentLeft, contentRight, stageLeft, stageRight) exported from ui/blockViewer with the 1px tolerance; tests/renderer/muya/block-viewer-pan-cues.test.js pins left/middle/right/fit and the sub-pixel case and fails loudly on shape drift.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya/block-viewer-pan-cues.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Viewer repair: overflowX hidden, clip overlays, live refresh</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>updateTableOverflow is replaced by a vertical-only scroll derivation (auto exactly when scaled content exceeds the stage height); two gradient overlays are built in the stage and toggled by a tableClipShadows-driven refresh wired into open, fitToScreen, actualSize and panzoomchange; wheel handling keeps native vertical scroll and pans otherwise; module contract VERSION/CHANGE_SUMMARY/MAP updated.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya/block-viewer.test.js tests/renderer/muya/block-viewer-pan-cues.test.js</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Both-engine behavioral evidence</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The FIX-008 e2e is rewritten to the pan-cue contract (no horizontal bar at any zoom; drag reveals the last column; shadow sides track left/middle/right; Fit clears both) and passes with the full block-viewer spec in Chromium and WebKit; existing zoom, focus-trap, export, vertical-cap and sticky-header cases stay green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-block-viewer</Command>
+      </Verification>
+    </T-003>
+    <T-004>
+      <Title>Projections, gate and fresh artifact handoff</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>V-M-012 scenario-19 describes the pan-only model and the clip cues, the unit command is recorded; grace lint --assertions current stays at zero errors; evidence.json records the runs; the repair is handed to the shared isolated Mark Test build for the owner's focused FIX-008 acceptance.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+        <Command>grace status --path . --with modules --json</Command>
+      </Verification>
+    </T-004>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-10-20" verdict="green-after-fixes" task="plan-four-corner-review">
+      <Findings>
+        Correctness and Contracts: the defect contract was re-derived from the rejected implementation (updateTableOverflow, blockViewer/index.js v3.6.0) and the owner's reopened statement; the corner matrix adds the failing-on-bae95a97 corner so the regression proves the defect rather than the new behavior only. FINDING (fixed): the first draft left the wheel path editing the shared onWheel without pinning the vertical-native case — corner-3 now requires the sticky-header native scroll to survive and T-001b lists it. Security and Privacy: clean; synthetic fixtures only. UX and Docs: shadows specified as pointer-events:none gradients that fade, so drag-through panning never hits a dead zone. Performance and Footprint: two rect reads per pan event and no new dependency; budgets unchanged. CornerMatrix (10 corners) added before approval.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-10-20" verdict="clean" task="plan-four-corner-review-recheck">
+      <Findings>
+        None. XML validates under the anchor-tag convention; DurableScope declares M-012/V-M-012/VD-RUNTIME with the C-TABLE-FOOTER overlap disclosed in the execution policy; every acceptance criterion maps to a task, a verification command and a target assertion; the baseline pins the rejected revision's own markers so the plan is unambiguous about what must disappear.
+      </Findings>
+    </Review>
+    <Review number="3" date="2026-10-20" verdict="clean" task="plan-executor-feasibility-pass">
+      <Findings>
+        None. Executor walk: ui/blockViewer/index.js v3.6.0 carries updateTableOverflow and the FIX-008 CHANGE_SUMMARY entry pinned by the baseline; the webkit-block-viewer playwright project exists (config line 106); vitest.int.config.mjs covers tests/renderer/muya; the 18-column fixture from the existing spec is reusable for the last-column reveal; no missing tooling.
+      </Findings>
+    </Review>
+    <Review number="4" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review">
+      <Findings>
+        Four independent passes over the executed change. Correctness and Contracts: FINDING (fixed): the first draft pinned the consumed pre-repair markers (updateTableOverflow, the old e2e title) as active baseline assertions, which turn into standing lint errors while the bundle awaits owner acceptance — replaced by a comment pointing at the git-history pin at bae95a97 and the spec ProblemEvidence; task anchors renumbered to canonical T-001..T-004 with the dependency chain corrected. FINDING (fixed): the e2e right-bound drag computed its delta from the pre-drag rect although panzoom pans relatively — the delta now derives from the post-left-bound rect, and both deltas are measured from live rects so engine width differences cannot break the bounds. Security and Privacy: clean; synthetic fixtures only, portable paths. UX and Docs: module contract VERSION/CHANGE_SUMMARY/MAP updated; scenario-19 amended; English-only holds. Performance and Footprint: two rect reads per panzoom event; no dependency change; both-engine suite 36 passed in ~32s, within the existing budget. The failing-on-bae95a97 contract holds: the new overflowX-hidden assertion at 1:1 fails on the rejected revision. Owner acceptance on a fresh isolated artifact remains the queueing gate.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-FIX-008-VIEWER-PAN-CUES></GraceChangePlan>

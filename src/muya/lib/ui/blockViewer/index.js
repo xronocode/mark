@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.6.0
+// VERSION: 3.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
 //   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
@@ -11,10 +11,19 @@
 //
 // START_MODULE_MAP
 //   default - BlockViewer muya UI plugin (pluginName 'blockViewer'): builds the overlay once, opens on 'muya-block-viewer' events (the persistent button.ag-block-expand clicks, Cmd/Ctrl+click on a preview), closes on Esc/close/backdrop; on 'muya-options-rerender' (theme switch full re-render) an open viewer polls the live block until its content differs from the last clone (outerHTML token; the mermaid pipeline re-inserts the last-good OLD-theme svg synchronously before the async re-draw lands) and swaps the clone in place, keeping the panzoom transform; C-56: the toolbar carries three export actions (ag-block-viewer-export-btn) that appear only when the opened source is a MERMAID/VEGA-LITE figure (ag-block-viewer-can-export) and dispatch muya-diagram-export { action, element: LIVE source } — the export always describes the WHOLE diagram at natural size, never the zoomed viewport crop.; Mermaid diagrams also expose the shared C-62 appearance control in the header.
+//   tableClipShadows - pure: which sides of a transformed canvas rect are clipped by the stage rect (1px tolerance) — drives the pan-cue edge shadows.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.6.0 - 2026-10-20 FIX-008: updateTableOverflow keeps
+//   LAST_CHANGE: v3.7.0 - 2026-10-20 FIX-008 reopen (pan cues): the table
+//   canvas never paints a native horizontal scrollbar at any zoom —
+//   drag/pan is the single horizontal-navigation model; subtle left/right
+//   gradient shadows (tableClipShadows over the live canvas/stage rects)
+//   mark the clipped sides and update on every pan, zoom, fit and open,
+//   clearing at Fit; vertical overflow keeps its native sticky-header
+//   scroll. Replaces the rejected v3.6.0 per-axis scrollport, whose 1:1
+//   track had no meaningful navigation range.
+//   PREV: v3.6.0 - 2026-10-20 FIX-008: updateTableOverflow keeps
 //   the table canvas scrollport per-axis — a native scrollbar exists
 //   only when the SCALED content overflows the stage, so a fitted table
 //   no longer paints a phantom horizontal scrollbar track (the layout
@@ -154,6 +163,17 @@ const DIAGRAM_FIGURE_SELECTOR = [
   "figure[data-role='VEGA-LITE']"
 ].join(', ')
 
+// START_BLOCK_VIEWER_PAN_CUES
+// FIX-008 reopen (2026-10-20): horizontal navigation in the table viewer
+// is pan-only, so the clipped sides are signalled by edge shadows instead
+// of a native scrollbar. Pure maths on the TRANSFORMED canvas rect versus
+// the stage rect — engine- and panzoom-internals-free, unit-pinned.
+export const tableClipShadows = (contentLeft, contentRight, stageLeft, stageRight, tolerance = 1) => ({
+  left: Number.isFinite(contentLeft) && Number.isFinite(stageLeft) && contentLeft < stageLeft - tolerance,
+  right: Number.isFinite(contentRight) && Number.isFinite(stageRight) && contentRight > stageRight + tolerance
+})
+// END_BLOCK_VIEWER_PAN_CUES
+
 // START_BLOCK_VIEWER_TABLE_CLONE
 // The viewer table is a read-only snapshot: drop the editing affordances
 // (drag bars, table tools, contenteditable, duplicate DOM ids) so nothing
@@ -268,6 +288,15 @@ class BlockViewer {
     const canvas = document.createElement('div')
     canvas.className = 'ag-block-viewer-canvas'
     stage.appendChild(canvas)
+    // FIX-008 reopen: the pan cues — non-interactive gradients marking the
+    // clipped sides of a table canvas (pointer-events: none in CSS, so a
+    // drag that starts inside a shadow still pans).
+    this.clipLeftEl = document.createElement('div')
+    this.clipLeftEl.className = 'ag-block-viewer-clip ag-block-viewer-clip-left'
+    this.clipRightEl = document.createElement('div')
+    this.clipRightEl.className = 'ag-block-viewer-clip ag-block-viewer-clip-right'
+    stage.appendChild(this.clipLeftEl)
+    stage.appendChild(this.clipRightEl)
 
     viewer.appendChild(backdrop)
     viewer.appendChild(header)
@@ -450,12 +479,13 @@ class BlockViewer {
     )
     this.canvas.className = 'ag-block-viewer-canvas'
     this.canvas.style.maxHeight = ''
-    // FIX-008: a fresh open must re-derive the scrollport (the scale
-    // guard would otherwise keep the previous table's overflow axes) and
-    // diagram opens must not inherit a table's inline overflow at all.
-    this._overflowScale = null
+    // A fresh open must re-derive the scroll state (pan-only horizontal,
+    // vertical by scaled height) and the pan cues; diagram opens must not
+    // inherit a table's inline overflow or shadow state at all.
     this.canvas.style.overflowX = ''
     this.canvas.style.overflowY = ''
+    this.clipLeftEl.classList.remove('ag-block-viewer-clip-on')
+    this.clipRightEl.classList.remove('ag-block-viewer-clip-on')
     this.canvas.innerHTML = ''
     if (kind === 'table') {
       this.canvas.classList.add('ag-block-viewer-scrollable')
@@ -476,7 +506,10 @@ class BlockViewer {
     // after init, which left a wide diagram off-centre in Chromium/WebKit).
     setTimeout(() => {
       requestAnimationFrame(() => {
-        if (this.isOpen) this.fitToScreen()
+        if (this.isOpen) {
+          this.fitToScreen()
+          this.updateClipShadows()
+        }
       })
     }, 0)
     console.debug('[Muya][blockViewer][BLOCK_VIEWER_OPEN] viewer opened', { kind })
@@ -598,6 +631,7 @@ class BlockViewer {
     const scale = this.computeFitScale()
     this.panzoom.zoom(scale, { animate: false })
     this.centerContent(scale)
+    this.updateClipShadows()
     console.debug('[Muya][blockViewer][BLOCK_VIEWER_FIT] fit to screen', { scale })
   }
 
@@ -606,6 +640,7 @@ class BlockViewer {
     this.panzoom.zoom(1, { animate: false })
     this.applyTableScrollCap(1)
     this.centerContent(1)
+    this.updateClipShadows()
   }
 
   zoomAtCenter (toScale) {
@@ -637,23 +672,19 @@ class BlockViewer {
       this.panzoom.zoomWithWheel(event)
       return
     }
-    if (this.kind === 'table' && this.tableCanScroll(event)) {
-      // Native scrolling keeps the sticky header row working.
+    if (this.kind === 'table' && this.tableCanScrollY(event)) {
+      // Native VERTICAL scrolling keeps the sticky header row working;
+      // horizontal navigation is pan-only (FIX-008 reopen).
       return
     }
     event.preventDefault()
     this.panzoom.pan(-event.deltaX, -event.deltaY, { relative: true, animate: false })
   }
 
-  tableCanScroll (event) {
+  tableCanScrollY (event) {
     const el = this.canvas
-    const canY =
-      (event.deltaY < 0 && el.scrollTop > 0) ||
+    return (event.deltaY < 0 && el.scrollTop > 0) ||
       (event.deltaY > 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1)
-    const canX =
-      (event.deltaX < 0 && el.scrollLeft > 0) ||
-      (event.deltaX > 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
-    return canY || canX
   }
   // END_BLOCK_VIEWER_PANZOOM
 
@@ -665,6 +696,7 @@ class BlockViewer {
     if (!this.isOpen || this.kind !== 'table') return
     const detail = event.detail || {}
     this.applyTableScrollCap(detail.scale)
+    this.updateClipShadows()
   }
 
   applyTableScrollCap (scale) {
@@ -673,40 +705,43 @@ class BlockViewer {
     } else {
       this.canvas.style.maxHeight = `${Math.round(this.stage.clientHeight / scale)}px`
     }
-    this.updateTableOverflow(scale)
+    this.updateTableScrollState(scale)
   }
 
   // START_BLOCK_VIEWER_FIT_OVERFLOW
-  // FIX-008 (2026-10-20): the table canvas is `width: max-content` capped
-  // by the stage, and panzoom only scales it VISUALLY — the layout box
-  // still spans the table's natural width, so `overflow: auto` painted a
-  // horizontal scrollbar track even at Fit, where the scaled-down table
-  // already fits (scrolling it revealed empty space). The scrollport is
-  // now per-axis: a native scrollbar exists only when the SCALED content
-  // actually overflows the stage; otherwise the axis is hidden, which
-  // removes the phantom track. Sticky-header scrolling (scale ≥ 1 with
-  // the maxHeight cap) keeps its native vertical scroll.
-  updateTableOverflow (scale = 1) {
+  // FIX-008 reopen (2026-10-20): horizontal navigation is pan-only — the
+  // table canvas NEVER paints a native horizontal scrollbar or bottom
+  // track, at Fit, 1:1 or any intermediate zoom (the rejected v3.6.0
+  // per-axis scrollport produced a 1:1 track with no meaningful range
+  // because the layout box spans the natural width while panzoom scales
+  // visually). The clipped sides are signalled by the pan-cue shadows
+  // instead. The VERTICAL axis keeps its native scroll exactly when the
+  // scaled content is taller than the stage, so the capped sticky-header
+  // scrollport at >=100% is unchanged.
+  updateTableScrollState (scale = 1) {
     if (this.kind !== 'table' || !this.canvas || !this.stage) return
-    // Pan events carry the same scale; the scroll region only changes
-    // with zoom (content size is static), so skip the layout reads.
-    if (this._overflowScale === scale && this.canvas.style.overflowX) return
-    this._overflowScale = scale
-    const stageW = this.stage.clientWidth
+    this.canvas.style.overflowX = 'hidden'
+    if (this.canvas.scrollLeft) this.canvas.scrollLeft = 0
     const stageH = this.stage.clientHeight
-    if (!stageW || !stageH) return
-    const contentW = this.canvas.scrollWidth
+    if (!stageH) return
     const contentH = this.canvas.scrollHeight
-    const overflowX = contentW * scale > stageW + 1 ? 'auto' : 'hidden'
     const overflowY = contentH * scale > stageH + 1 ? 'auto' : 'hidden'
-    if (this.canvas.style.overflowX !== overflowX) {
-      this.canvas.style.overflowX = overflowX
-      if (overflowX === 'hidden') this.canvas.scrollLeft = 0
-    }
     if (this.canvas.style.overflowY !== overflowY) {
       this.canvas.style.overflowY = overflowY
       if (overflowY === 'hidden') this.canvas.scrollTop = 0
     }
+  }
+
+  // Pan cues: refresh the edge shadows from the live transformed canvas
+  // rect versus the stage rect. Runs on open, fit, 1:1, zoom and every
+  // panzoomchange, so the cues always describe the current position.
+  updateClipShadows () {
+    if (!this.isOpen || this.kind !== 'table' || !this.canvas || !this.stage) return
+    const cRect = this.canvas.getBoundingClientRect()
+    const sRect = this.stage.getBoundingClientRect()
+    const shadows = tableClipShadows(cRect.left, cRect.right, sRect.left, sRect.right)
+    this.clipLeftEl.classList.toggle('ag-block-viewer-clip-on', shadows.left)
+    this.clipRightEl.classList.toggle('ag-block-viewer-clip-on', shadows.right)
   }
   // END_BLOCK_VIEWER_FIT_OVERFLOW
   // END_BLOCK_VIEWER_STICKY_CAP
@@ -795,6 +830,10 @@ class BlockViewer {
     this.canvas.style.maxHeight = ''
     this.canvas.innerHTML = ''
     this.canvas.style.transform = ''
+    this.canvas.style.overflowX = ''
+    this.canvas.style.overflowY = ''
+    this.clipLeftEl.classList.remove('ag-block-viewer-clip-on')
+    this.clipRightEl.classList.remove('ag-block-viewer-clip-on')
     this.viewerEl.classList.remove('ag-block-viewer-open')
     this.kind = null
     let el = this.returnFocusEl
