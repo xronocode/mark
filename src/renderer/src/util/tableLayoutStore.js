@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/util/tableLayoutStore.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-65 T-001 the per-file table layout profile store — one prefs key (tableLayouts) holding per-file entries of persisted table column widths and the per-table Full width mode, with sanitize/normalize, missing-file pruning, a bounded size cap and the rename move.
 //   SCOPE: Pure store transforms (normalizeStore, storeWithFileEntries, capStoreFiles, moveFileEntry, sanitizeEntry) plus the IO-bound high-level flows (loadTableLayoutsFor = read + prune missing files + cap + write-back when changed; saveTableLayoutsFor = write one file's entries, deleting the file entry when empty; moveTableLayoutsEntry = the Mark-rename move). The persistent table identities (ordinal#headerSignature strings) are opaque to this module — muya's TableResize mints and consumes them.
@@ -13,7 +13,7 @@
 //   TABLE_LAYOUTS_PREFS_KEY - the single prefs key holding the whole store ("tableLayouts").
 //   MAX_TABLE_LAYOUT_FILES - cap on remembered files (30, newest by updatedAt kept).
 //   EMPTY_STORE - the canonical empty store shape ({ version: 1, files: {} }).
-//   sanitizeEntry - pure: coerce one raw entry into { widths, manual, fullWidth } or null.
+//   sanitizeEntry - pure: coerce one raw entry into { widths, manual, fullWidth, fit } or null (Full width wins a contradictory fit).
 //   normalizeStore - pure: any raw prefs value → a valid store (invalid shapes collapse to EMPTY_STORE).
 //   storeWithFileEntries - pure: set/replace/delete one file's entries (empty entries delete the file entry) with an updatedAt stamp.
 //   capStoreFiles - pure: keep at most max files, newest updatedAt first (ties by path for determinism).
@@ -28,7 +28,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-65 T-001: new module. Widths and
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FIT-PERSISTENCE: the
+//   sanitizer keeps muya's fit flag, so an explicit «Fit to page» choice
+//   survives the host save/load path (the native owner review showed the
+//   flag was silently dropped here and a wide table reverted to Full
+//   width after reload; muya's own sanitizer always kept it). Full width
+//   still wins a contradictory entry.
+//   PREV: v1.0.0 - 2026-10-18 C-65 T-001: new module. Widths and
 //   the per-table Full width mode persist per FILE in the Mark profile
 //   (option 2 of the 2026-10-18 user review) — never written into the
 //   Markdown. One prefs key holds { version, files: { path: {
@@ -60,8 +66,12 @@ export const sanitizeEntry = (raw) => {
     ? raw.manual.map(m => !!m)
     : widths.map(() => false)
   const fullWidth = !!raw.fullWidth
-  if (widths.length === 0 && !fullWidth) return null
-  return { widths, manual, fullWidth }
+  // C-TABLE-FIT-PERSISTENCE: an explicit «Fit to page» choice (muya's fit
+  // flag) must survive the host save/load path; Full width wins a
+  // contradictory entry — the same rule muya's sanitizer applies.
+  const fit = !fullWidth && !!raw.fit
+  if (widths.length === 0 && !fullWidth && !fit) return null
+  return { widths, manual, fullWidth, fit }
 }
 
 export const normalizeStore = (raw) => {
