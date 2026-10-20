@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.15.0
+// VERSION: 2.17.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static release-workflow assertions.
@@ -15,7 +15,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-19 v2.15.0 - advance the release fixture to
+//   LAST_CHANGE: 2026-10-20 v2.17.0 - follow the deterministic prepare/publication split and assert direct normal-release publication without a mutable prerelease flag.
+//   PREV: 2026-10-20 v2.16.0 - bind packaging to strict
+//   readiness/materials, pin the production action, and keep manual
+//   dispatch unsigned and publication-ineligible.
+//   PREV: 2026-10-19 v2.15.0 - advance the release fixture to
 //   v2.5.3 (C-69 session restore, C-65 wide tables, C-66 daily update
 //   check, C-67 Clear Recent).
 //   PREV: 2026-10-18 v2.14.0 - advance the release fixture to
@@ -138,8 +142,10 @@ describe('production release workflow', () => {
   }
 
   it('runs metadata and complete automated verification before packaging', () => {
-    const buildIndex = commandIndex('uses: tauri-apps/tauri-action@v0')
+    const buildIndex = commandIndex('uses: tauri-apps/tauri-action@')
     for (const command of [
+      'npm run release:readiness --',
+      'npm run release:materials',
       'npm run release:preflight',
       'npm run typecheck:ipc',
       'npm test',
@@ -183,10 +189,11 @@ describe('production release workflow', () => {
     expect(tauriConfig.plugins.updater.endpoints).toEqual([
       'https://github.com/xronocode/mark/releases/latest/download/latest.json'
     ])
-    expect(workflow).toContain('PRERELEASE=false')
+    expect(workflow).toContain('--draft=false --prerelease=false')
     expect(workflow).not.toContain('if [[ "$VER" == *-* ]]')
     expect(workflow).not.toContain('PRERELEASE=true')
-    expect(workflow.match(/--prerelease="\$PRERELEASE"/g)).toHaveLength(2)
+    expect(workflow).not.toContain('--prerelease="$PRERELEASE"')
+    expect(workflow).toContain('publish verified draft as final mutation')
   })
 
   it('rejects a Homebrew cask whose URL does not match the staged Tauri DMG', () => {
@@ -202,9 +209,10 @@ describe('production release workflow', () => {
     expect(workflow).toContain('name: windows-x64')
     expect(workflow).toContain('x86_64-pc-windows-msvc')
     expect(workflow).toContain('vars.WINDOWS_RELEASE')
-    // Manual dispatch defaults to build-only so QA runs never clobber
-    // live release assets; tag pushes publish.
-    expect(workflow).toContain("if: needs.build.outputs.publish == 'true'")
+    expect(workflow).toContain("if: github.event_name == 'workflow_dispatch'")
+    expect(workflow).toContain('name: unsigned QA build')
+    expect(workflow).toContain('environment: release-signing')
+    expect(workflow).toContain('environment: release')
   })
 })
 // END_BLOCK_RELEASE_WORKFLOW_TESTS
