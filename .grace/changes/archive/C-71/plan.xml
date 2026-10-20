@@ -1,0 +1,15 @@
+<GraceChangePlan graceVersion='4.0' status='applied'>
+<C-71>
+  <ChangeRef>C-71</ChangeRef><Created>2026-10-19</Created>
+  <IntentSummary>Repair the owner's explicitly requested table/viewer/tooltip regressions; use CSS centering within a measured viewport and the existing resize lifecycle, preserve natural-size overflow, and verify all ten localized image labels in real engines.</IntentSummary>
+  <BaselineAssertions><MustContain><File>src/muya/lib/tableResize/index.js</File><Text>applyFullWidthGeometry</Text></MustContain></BaselineAssertions>
+  <TargetAssertions><MustVerify><Module>M-012</Module></MustVerify></TargetAssertions>
+  <DurableScope><GraphAnchors><M-012 /></GraphAnchors><VerificationAnchors><V-M-012 /></VerificationAnchors></DurableScope>
+  <ObservedWriteScope><Glob>src/muya/lib/tableResize/**</Glob><Glob>src/muya/lib/ui/**</Glob><File>src/muya/lib/assets/styles/index.css</File><File>src/muya/lib/eventHandler/resize.js</File><Glob>tests/renderer/muya/**</Glob><Glob>tests/e2e/table-*.spec.ts</Glob><Glob>.grace/**</Glob></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001><Title>Reproduce centering, zoom and localized tooltip geometry</Title><DependsOn /><AcceptanceCriteria><Criterion>Real-browser assertions isolate the reported symptoms before editing runtime code.</Criterion></AcceptanceCriteria><Verification><Command>npx playwright test tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</Command></Verification></T-001>
+    <T-002><Title>Repair table and tooltip layout; keep zoom controls reachable</Title><DependsOn>T-001</DependsOn><AcceptanceCriteria><Criterion>Natural table sizing remains centered after late fonts/resizes; zoom operates and long labels stay readable.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Command></Verification></T-002>
+    <T-003><Title>Verify both engines and record graph/evidence</Title><DependsOn>T-002</DependsOn><AcceptanceCriteria><Criterion>Browser regressions and existing table/viewer checks pass; GRACE artifacts describe the final behavior.</Criterion></AcceptanceCriteria><Verification><Command>npx playwright test tests/e2e/table-ui-regressions.spec.ts tests/e2e/table-toolbar.spec.ts --project=chromium --project=webkit-tables</Command></Verification></T-003>
+  </ImplementationPlan>
+</C-71>
+</GraceChangePlan>

@@ -32,7 +32,7 @@
 //   PURPOSE: Settings text-field row (C-38 T-003 anatomy) — label + optional help left, right-aligned mockup field (150px, placeholder) right, with the v1 debounce + regex validation contract unchanged.
 //   SCOPE: Row rendering, debounced onChange, invalid-input marking; same props/events as v1 plus help.
 //   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

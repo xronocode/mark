@@ -13,7 +13,7 @@ import { readLastTab, tabPath, LEGACY_ROUTE_REDIRECTS } from '@/prefComponents/t
 //   PURPOSE: Renderer hash-router — editor window routes to the app, settings window routes to the C-38 5-tab preference shell with every legacy deep link redirected to its new tab.
 //   SCOPE: Route table only (no guards); redirect resolution for the settings root and the 6 retired section paths.
 //   DEPENDS: pages, prefComponents/tabs/*, prefComponents/tabsBar/config (readLastTab/tabPath/LEGACY_ROUTE_REDIRECTS).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

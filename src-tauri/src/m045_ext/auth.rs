@@ -7,8 +7,8 @@
 //   SCOPE:   Generate / store / retrieve / revoke / validate shared
 //            secrets. One secret per extension id.
 //   DEPENDS: keyring 3, rand 0.8 (hex secret generation).
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B2b.
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
 //   STATUS:  Phase-B2b initial.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

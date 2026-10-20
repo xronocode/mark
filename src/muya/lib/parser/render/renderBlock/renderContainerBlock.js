@@ -4,7 +4,7 @@
 //   PURPOSE: Render a muya container block (blockquote, list, table, figure, pre) to a snabbdom vnode.
 //   SCOPE: Selectors, data attributes and auxiliary children (tools, icons, copy buttons, the C-51 expand button, the C-56 T-005 corner pill on mermaid/vega-lite figures, the C-65 table toolbar, code-block line-number gutter, table column-resize handle) per container type; the table and reserved noneditable caption return inside one horizontal scroll wrapper, with the session colgroup when widths are stored. C-62/C-56 T-007: nonempty Mermaid figures carry the appearance button as the pill's leading item.
 //   DEPENDS: muya config, render helpers, snabbdom, ../../../utils/callout, ../../../tableResize (width constants + TABLE_FULL_WIDTH_CLASS).; ./renderDiagramAppearance; ./renderTableToolbar.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21, scenario-60, scenario-64 and scenario-66; .grace/changes/active/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010, C-56 T-005, C-65 T-002/T-003.; .grace/changes/archive/C-62.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-18, scenario-20, scenario-21, scenario-60, scenario-64 and scenario-66; .grace/changes/archive/C-39 T-001 and T-002, C-38 T-005, C-51 T-006 and T-010, C-56 T-005, C-65 T-002/T-003.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

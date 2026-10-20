@@ -5,17 +5,45 @@
 #   PURPOSE: Generate every Mark icon source (macOS art, full-bleed raster source, Icon Composer layers) from one pilcrow geometry (C-33).
 #   SCOPE: Writes SVGs and AppIcon.icon/icon.json next to this file; no rasterisation (build.sh does that).
 #   DEPENDS: python3 stdlib only.
-#   LINKS: .grace/changes/active/C-33; assets/icon/build.sh
+#   LINKS: .grace/changes/archive/C-33; assets/icon/build.sh
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-#   PAPER/INK/MARKER/... - palette (light, dark, tinted reference).
+#   HERE - directory of this script; all outputs land next to it.
+#   PAPER_TOP - light squircle canvas gradient top stop.
+#   PAPER_BOTTOM - light squircle canvas gradient bottom stop.
+#   DARK_TOP - dark squircle canvas gradient top stop.
+#   DARK_BOTTOM - dark squircle canvas gradient bottom stop.
+#   INK - glyph ink colour.
+#   MARKER - marker highlight colour.
+#   CREAM - cream reference colour.
+#   MARKER_DARK_TOP - dark-mode marker gradient top stop.
+#   MARKER_DARK_BOTTOM - dark-mode marker gradient bottom stop.
+#   TINT_TOP - tinted (mono) palette top stop.
+#   TINT_BOTTOM - tinted (mono) palette bottom stop.
+#   TINT_BOWL - tinted (mono) bowl stop.
+#   BODY - squircle body size in the 1024 art frame.
+#   BODY_AT - squircle body inset in the art frame.
+#   RADIUS - squircle corner radius.
+#   BOWL - chisel-tip bowl path (round-4 anti-lookalike geometry).
+#   RING - evenodd ink outline grown around the bowl.
+#   STEMS - the two pilcrow stem rectangles (right stem shorter).
+#   GLYPH_SHIFT - glyph nudge inside the art frame.
+#   SHADOW - drop-shadow filter defs for the classic icns look.
+#   gradient - linear-gradient defs string from two stops.
 #   glyph - ink outline + stems and bowl fill for a given transform.
-#   macos_art - squircle-on-canvas art with drop shadow (classic icns look); glyph_scale enlarges the glyph for 32/64 px renditions.
+#   svg - wrap a body/defs into the standalone SVG document.
+#   macos_art - squircle-on-canvas art with drop shadow; glyph_scale enlarges the glyph for 32/64 px renditions.
+#   SCALE - squircle-to-full-canvas scale factor.
+#   FULL - full-bleed translate+scale transform for the canvas-filling squircle.
 #   full_bleed - squircle filling the canvas, no shadow (Windows/Linux/web).
+#   layer - single-color AppIcon layer body for one palette entry.
+#   write - LF-normalized file write (byte-stable on every OS).
+#   srgb - hex colour to the sRGB wrapper Icon Composer expects.
 #   icon_composer - AppIcon.icon bundle: layer SVGs + icon.json with dark specializations.
+#   main - generate every artifact next to this file.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY

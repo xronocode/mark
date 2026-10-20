@@ -10,7 +10,7 @@
 //            globally mocked @tauri-apps/api/event.
 //   DEPENDS: vitest, tests/renderer/setup.ts (window.* globals +
 //            @tauri-apps mocks), @/ipc/runtime mock.
-//   LINKS: .grace/changes/active/C-52/spec.xml R-3;
+//   LINKS: .grace/changes/archive/C-52/spec.xml R-3;
 //          .grace/verification/runtime.xml V-M-011 scenario-62.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

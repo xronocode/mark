@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-49 transient zoom pill — shows round(fontSize / baseFontSize × 100) + ' %' on mt::zoom-level-changed, hides after ~1 s, restarts the timer on repeat events, is aria-live polite, and drops the transition under prefers-reduced-motion.
 //   SCOPE: components/zoomIndicator/index.vue only (event → pill lifecycle).
 //   DEPENDS: @vue/test-utils, mocked @/bus, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-49 R-5; .grace/verification/runtime.xml V-M-011 scenario-41.
+//   LINKS: .grace/changes/archive/C-49 R-5; .grace/verification/runtime.xml V-M-011 scenario-41.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

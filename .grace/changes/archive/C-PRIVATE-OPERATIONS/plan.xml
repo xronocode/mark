@@ -1,0 +1,57 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-PRIVATE-OPERATIONS>
+    <IntentSummary>Apply the owner's authorized public/private boundary cleanup in an isolated worktree while preserving exact private copies and all unrelated local work. The preparation was reviewed and the owner subsequently authorized ordinary publication to main without rewriting server history.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain><File>tools/release/asc-api.py</File><Text>START_MODULE_CONTRACT</Text></MustContain>
+      <MustContain><File>fixtures/fixture-pin.lock</File><Text># fixture-pin.lock</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand><Command>npx vitest run tests/renderer/publication-privacy.test.js</Command></MustPassCommand>
+      <MustContain><File>docs/publication-policy.md</File><Text>private companion</Text></MustContain>
+      <MustContain><File>fixtures/fixture-pin.lock</File><Text>Sanitized preference examples</Text></MustContain>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-005/><M-046/></GraphAnchors>
+      <VerificationAnchors><V-M-005/><V-M-046/></VerificationAnchors>
+      <ContextArtifact>deployment.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.gitignore</File>
+      <Glob>.grace/changes/active/C-59/**</Glob>
+      <Glob>.grace/changes/active/C-PRIVATE-OPERATIONS/**</Glob>
+      <File>.grace/context/deployment.xml</File>
+      <File>.grace/graph/index.xml</File><File>.grace/graph/runtime.xml</File><File>.grace/graph/features.xml</File>
+      <File>.grace/verification/index.xml</File><File>.grace/verification/runtime.xml</File><File>.grace/verification/features.xml</File>
+      <Glob>docs/promotion/**</Glob><File>docs/publication-policy.md</File>
+      <File>docs/backlog.md</File><Glob>prototypes/table-copy/**</Glob>
+      <Glob>fixtures/**</Glob><File>tests/renderer/publication-privacy.test.js</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Preserve published and current operational records plus original profile captures privately</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>Exact copied hashes are recorded outside public Mark; no operational API is invoked.</Criterion></AcceptanceCriteria>
+        <Verification><Command>Verify the private preservation receipt and source hashes.</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Remove private operations and captured profiles from the candidate public tree</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>C-59 and promotion planning are private; retained preference examples use a synthetic identity and a regenerated manifest; publication rules preserve required public source.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/renderer/publication-privacy.test.js</Command></Verification>
+      </T-002>
+      <T-003>
+        <Title>Verify the boundary, commit the candidate cleanup and prepare a plain-language publication summary</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria><Criterion>Focused checks pass; frozen provenance bytes are unchanged; private and candidate public changes are separately committed; no public history rewrite or push is performed in this preparation.</Criterion></AcceptanceCriteria>
+        <Verification><Command>git diff --check</Command><Command>npx vitest run tests/renderer/publication-privacy.test.js</Command></Verification>
+      </T-003>
+      <T-004>
+        <Title>Publish the reviewed cleanup on the current public main without unrelated work</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria><Criterion>Preserve and remove the subsequently republished session notes; retain newer public contracts and selection checks; pass focused verification and safety gates; fast-forward only the public main ref and verify the remote tree.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/renderer/publication-privacy.test.js tests/renderer/release-preflight.test.js</Command><Command>grace lint --path . --assertions current</Command><Command>Verify the exact remote main tree after publication.</Command></Verification>
+      </T-004>
+    </ImplementationPlan>
+    <Approval><Scope>Owner-authorized local privatization and verification, followed by the explicit instruction to clean public main. Earlier preparation and one-time commit exception remain separate historical events; current safety gates apply.</Scope></Approval>
+  </C-PRIVATE-OPERATIONS>
+</GraceChangePlan>

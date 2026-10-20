@@ -99,7 +99,7 @@
 //   PURPOSE: The two collapsible sidebar sections above the folder tree (C-51 T-002) — Recent (existing recent-files list, newest first, up to 10) and Pinned (persisted pinnedFiles list, drag to reorder); rows open the file through the existing open path, missing files render greyed with a Remove action, and section collapsed state persists.
 //   SCOPE: recent list load/refresh/remove, pinned list render/unpin/drag-reorder, per-path missing detection via ipcFs.stat, collapse persistence via ipcPrefs.
 //   DEPENDS: vue, pinia, store/editor (GET_RECENT_FILES, tabs, currentFile), store/pinned, ipc/runtime (ipcFs, ipcPrefs, ipcRecent), ../icons/chromeIcons.js, vue-i18n.
-//   LINKS: .grace/changes/active/C-51 T-002/T-013; .grace/changes/active/C-67; .canvas/MacOS.dc.html (Recent/Pinned); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-002/T-013; .grace/changes/archive/C-67; .canvas/MacOS.dc.html (Recent/Pinned); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

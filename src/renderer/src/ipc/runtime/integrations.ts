@@ -6,7 +6,7 @@
 //            secrets. fs/watch/search/prefs/workspace/fonts/recent live
 //            in their own files.
 //   DEPENDS: M-013-A contract.
-//   LINKS:   docs/development-plan.xml Phase-B3 step-4..12.
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B3) step-4..12.
 //   STATUS:  Phase-B3 step-12 — facade roll-up.
 //
 // CHANGE_SUMMARY:

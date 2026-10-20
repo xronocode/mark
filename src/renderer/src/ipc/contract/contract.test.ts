@@ -25,7 +25,7 @@ import {
 
 // ---------------------------------------------------------------
 // 1. The four error codes named in the M-013-A contract MUST exist.
-//    docs/development-plan.xml M-013-A contract.errors lists exactly:
+//    .grace/graph/runtime.xml M-013 M-013-A contract.errors lists exactly:
 //    MT_IPC_UNKNOWN_COMMAND, MT_IPC_TIMEOUT, MT_IPC_VALIDATION,
 //    MT_IPC_UNKNOWN_CHANNEL.
 // ---------------------------------------------------------------

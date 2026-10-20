@@ -4,7 +4,7 @@
 //   PURPOSE: Pin that a fenced code block whose content contains backtick runs re-exports inside a fence longer than any inner run (C-51 T-009 BLOCK_FENCE_LENGTH_KEEP).
 //   SCOPE: Real Muya/Guide fence-export round trips and completion of their lazy preview imports before test-environment teardown.
 //   DEPENDS: src/muya/lib (Muya), src/renderer/src/util/guideDoc.js (guide source).
-//   LINKS: .grace/changes/active/C-51 T-009; .grace/changes/archive/C-CI-FENCE-TEARDOWN; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-011 scenario-59 and V-M-012 scenario-muya-fence-import-teardown.
+//   LINKS: .grace/changes/archive/C-51 T-009; .grace/changes/archive/C-CI-FENCE-TEARDOWN; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-011 scenario-59 and V-M-012 scenario-muya-fence-import-teardown.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

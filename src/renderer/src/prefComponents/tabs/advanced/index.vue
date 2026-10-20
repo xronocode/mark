@@ -129,7 +129,7 @@
 //   PURPOSE: Advanced tab of the C-38 Settings window — Images and uploads (insert action, folder chooser, relative-folder rows, no upload (image upload stays retired)), Customise (shortcuts/extensions/custom-CSS sheets) and the destructive Reset with an in-app confirmation, per the N2 IA §3.5 and C-38 decisions 3–4.
 //   SCOPE: Row composition; image folder path field + Choose/Open; the three sheets; reset confirmation driving store RESET_PREFERENCES_TO_DEFAULTS.
 //   DEPENDS: prefComponents/common/{compound,bool,select,textBox,buttonRow}, tabs/advanced/config, tabs/advanced/sheets/*, store/preferences, vue-i18n.
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.5; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.5; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

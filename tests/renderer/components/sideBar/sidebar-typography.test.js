@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-013 typography pins — no leading file-type icon on any sidebar file row (tree, Recent, Pinned, Opened files), folder rows and the root folder switcher semibold (600), every file row explicitly regular weight (the current file marked by the highlight/accent colour, never bold), names on the shared --sideBarRowInset text grid.
 //   SCOPE: source-level pins over the five sidebar SFCs (jsdom does not apply SFC styles, so weights are pinned on the source like toc.test.js pins retirement) plus full mounts asserting the icon absence in the rendered DOM; the filled pin descriptor is pinned in chrome-icons.test.js and the computed weights in tests/e2e/sidebar-tree-redesign.spec.ts.
 //   DEPENDS: node fs/path, Vitest, @vue/test-utils, tests/renderer/pinia, vue-i18n.
-//   LINKS: .grace/changes/active/C-51 T-013; .grace/verification/runtime.xml V-M-011 scenario-63.
+//   LINKS: .grace/changes/archive/C-51 T-013; .grace/verification/runtime.xml V-M-011 scenario-63.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

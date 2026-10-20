@@ -6,7 +6,7 @@
 //            Modes: -i (interactive selection), -w (window), -m (main
 //            display). All write to a temp file we then read + delete.
 //   DEPENDS: stdlib std::process::Command + std::fs.
-//   LINKS:   docs/development-plan.xml Phase-B3 step-11.
+//   LINKS:   .grace/graph/runtime.xml M-018 (PhaseRef Phase-B3) step-11.
 //   STATUS:  Phase-B3 step-11 shipped (macOS only).
 //
 // CHANGE_SUMMARY:

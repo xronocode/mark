@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-40 T-003 outline-rail component — rendering, scrollspy highlight, click-to-jump, and every visibility gate (preference, source/split/diff modes, ≥3 headings, editor-area width, no-overlap fit).
 //   SCOPE: outlineRail.vue in jsdom with fake ResizeObserver, owned scroll/mutation-driven table occlusion and cleanup, stubbed element geometry, mocked bus; editorWithTabs wiring and sidebar TOC retirement.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, vue-i18n, outlineRail.vue, editorWithTabs/index.vue, sideBar/index.vue.
-//   LINKS: .grace/changes/active/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
+//   LINKS: .grace/changes/archive/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

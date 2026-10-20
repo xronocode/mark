@@ -128,7 +128,7 @@
 //   PURPOSE: Appearance tab of the C-38 Settings window — Theme group (Auto/Light/Dark segmented control + the compact 8-per-row family swatch grid), Text group (font, size, line spacing, writing-area width) and Window-and-panels group per the N2 IA §3.2 and the approved mockup.
 //   SCOPE: Row composition; title-bar-identical theme mode semantics; family picking that sets both mode members; swatch colours read from the shipped theme CSS variables.
 //   DEPENDS: prefComponents/common/{compound,bool,select,range,textBox,fontTextBox,segmented}, store/preferences, util/themeFamilies, util/autoTheme, util/themeSwatchColors, util (isOsx), i18n.
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.2; components/titleBar START_BLOCK_THEME_CYCLE (same mode semantics); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.2; components/titleBar START_BLOCK_THEME_CYCLE (same mode semantics); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -14,7 +14,7 @@
 //            tauri-plugin-global-shortcut (default: Cmd+Shift+M → show
 //            main window).
 //   DEPENDS: m005_prefs (PrefsState), tauri_plugin_global_shortcut.
-//   LINKS:   docs/development-plan.xml Phase-B3 step-4 (parser),
+//   LINKS:   .grace/graph/runtime.xml M-006 (PhaseRef Phase-B3) step-4 (parser),
 //            Phase-B4-pre-alpha step-2 (platform binding closes
 //            F-SHORTCUT-PLATFORM-BIND).
 //   STATUS:  Phase-B4-pre-alpha step-2 — global-shortcut wired.

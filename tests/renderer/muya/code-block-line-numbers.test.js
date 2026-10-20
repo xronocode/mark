@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-38 T-005 (#1648) code-block line numbers — render on/off, one row per logical line across edits, fence/indent-only scope, the non-editable gutter attrs, the measurement queue, resizeCodeBlockLineNumber sizing, and the un-force-disabled setOptions.
 //   SCOPE: START_BLOCK_CODE_LINE_NUMBERS in renderContainerBlock.js, renderLineNumber.js, utils/resizeCodeLineNumber.js, contentState/codeBlockCtrl.js resizeLineNumber, and Muya#setOptions / Muya#refreshCodeBlockLineNumbers.
 //   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, muya snabbdom h, codeBlockCtrl mixin, Muya prototype, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-38 T-005; .grace/verification/runtime.xml V-M-012 scenario-20; tests/e2e/code-block-line-numbers.spec.ts for the laid-out alignment.
+//   LINKS: .grace/changes/archive/C-38 T-005; .grace/verification/runtime.xml V-M-012 scenario-20; tests/e2e/code-block-line-numbers.spec.ts for the laid-out alignment.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

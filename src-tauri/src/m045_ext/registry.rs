@@ -5,8 +5,8 @@
 //   SCOPE:   State management only. No I/O, no HTTP. Enable/disable
 //            persists to m005_prefs via a helper (deferred to B2b wiring).
 //   DEPENDS: manifest::ExtensionManifest, std::sync::Mutex.
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B2b.
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
 //   STATUS:  Phase-B2b initial.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

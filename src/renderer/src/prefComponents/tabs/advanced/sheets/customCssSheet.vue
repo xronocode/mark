@@ -32,7 +32,7 @@
 //   PURPOSE: The Custom CSS sheet (C-38 T-004) — a textarea over the customCss preference with an explicit Save (the key keeps its name and its apply-on-top-of-theme behaviour in util/theme.addCustomStyle).
 //   SCOPE: Draft editing (opened with the stored value, discarded on close without Save) and the SET_SINGLE_PREFERENCE write.
 //   DEPENDS: prefComponents/common/sheet, store/preferences, vue-i18n.
-//   LINKS: .grace/changes/active/C-38 T-004; util/theme.js addCustomStyle; .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; util/theme.js addCustomStyle; .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-40 T-004 status bar — canvas layout slot, whole-document counts, selection-aware replacement counts, document type, and the statusBarVisibility preference gate.
 //   SCOPE: Vue/jsdom component tests with stubbed i18n (EN plural forms), real Pinia stores, and a stubbed document.getSelection.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, editorWithTabs/statusBar.vue.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/active/C-40 T-004.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/archive/C-40 T-004.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

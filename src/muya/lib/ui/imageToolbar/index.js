@@ -4,7 +4,7 @@
 //   PURPOSE: The embedded-image floating toolbar — edit (alt/title/src), the C-56 T-006 Copy image action, alignment and delete for a selected ![](…) image.
 //   SCOPE: Float UI, viewport-clamped/flipped hover labels and action routing: edit dispatches muya-image-selector, alignment/delete use contentState, and Copy image dispatches muya-image-copy with the raw image token; the host owns fs/fetch/canvas/clipboard.
 //   DEPENDS: ui/baseFloat, snabbdom, ui/imageToolbar/config (getIcons), contentState image actions, eventCenter.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-65; .grace/changes/active/C-56 T-006; clickEvent.js (the muya-image-toolbar dispatch on image click); editor.vue handleImageCopyAction (the muya-image-copy subscriber); index.css (the 7-button layout).
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-65; .grace/changes/archive/C-56 T-006; clickEvent.js (the muya-image-toolbar dispatch on image click); editor.vue handleImageCopyAction (the muya-image-copy subscriber); index.css (the 7-button layout).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

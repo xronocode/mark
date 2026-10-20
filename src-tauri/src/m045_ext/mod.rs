@@ -13,8 +13,8 @@
 //            No remote marketplace (out of scope).
 //   DEPENDS: reqwest (HTTP client), keyring (keychain), rand (secret gen),
 //            serde/serde_json (manifest), tokio (async), axum (HTTP server).
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B2b, Phase-B5a;
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b,) Phase-B5a;
 //            ROADMAP.md Decisions D1 (HTTP POST IPC), D10 (notarized DMG).
 //   STATUS:  Phase-B5b — live_bridge + LiveViewer.vue added;
 //            Phase-B4 — text_ops (text.insert + text.transform) added.

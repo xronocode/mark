@@ -9,8 +9,8 @@
 //   DEPENDS: chardet (legacy non-WHATWG detection — CP-1251 / Shift_JIS
 //            / Big5 / KOI-8R that BOM/UTF-validation can't classify),
 //            encoding_rs (decode by label).
-//   LINKS:   docs/development-plan.xml Phase-B3 step-2;
-//            docs/verification-plan.xml V-M-014.
+//   LINKS:   .grace/graph/runtime.xml M-014 (PhaseRef Phase-B3) step-2;
+//            .grace/verification/runtime.xml V-M-014.
 //   STATUS:  Phase-B3 step-2 lite shipped — covers UTF-8/16/BOM +
 //            chardet best-guess. Manual encoding override (renderer
 //            picks from list) is F-ENCODING-MANUAL-PICK followup.

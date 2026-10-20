@@ -14,7 +14,7 @@
 //            those wire up in post-B1 once M-013-B ships real impls
 //            and we have real windows to attach event handlers to.
 //   DEPENDS: stdlib only (sync::atomic).
-//   LINKS:   docs/development-plan.xml Phase-B1 step-11;
+//   LINKS:   .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-11;
 //            verification-plan.xml VF-016 (lifecycle gate).
 //   STATUS:  Phase-B1 step-11. Stub-level: types + invariants +
 //            BLOCK markers. Runtime wiring in B2/B3.

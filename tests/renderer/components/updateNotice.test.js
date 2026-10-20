@@ -11,7 +11,7 @@
 //          plus the static/locales C-66 key inventory.
 //   DEPENDS: @vue/test-utils, tests/renderer/pinia, real i18n t (en
 //          table; ru pinned by swapping the locale messages).
-//   LINKS: .grace/changes/active/C-66/spec.xml R-2/R-6;
+//   LINKS: .grace/changes/archive/C-66/spec.xml R-2/R-6;
 //          .grace/verification/runtime.xml V-M-011 scenario-67.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

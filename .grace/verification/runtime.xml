@@ -1547,8 +1547,7 @@
       <Priority>medium</Priority>
       <Commands>
         <Command>
-          cd src-tauri &amp;&amp; cargo test --manifest-path
-          src-tauri/Cargo.toml shortcuts
+          cargo test --manifest-path src-tauri/Cargo.toml shortcuts
         </Command>
       </Commands>
       <Scenarios>
@@ -1830,7 +1829,7 @@
     <V-M-007>
       <Priority>medium</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml spell</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml spell</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -2107,7 +2106,7 @@
     <V-M-008>
       <Priority>low</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml fonts</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml fonts</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: List returns non-empty set; includes system default (SF on macOS).</Scenario>
@@ -2824,11 +2823,7 @@
     <V-M-010>
       <Priority>critical</Priority>
       <Commands>
-        <Command>
-          cd src-tauri &amp;&amp; cargo test --manifest-path
-          src-tauri/Cargo.toml security
-        </Command>
-        <Command>yarn unit -- test/specs/security</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml security</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -3249,7 +3244,7 @@
       <Commands>
         <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/components/split-view.test.js tests/renderer/store/session-restore.test.js tests/renderer/store/live-reload.test.js tests/renderer/publication-privacy.test.js</Command>
         <Command>npx playwright test tests/e2e/session-restore.spec.ts tests/e2e/source-code-mode.spec.ts tests/e2e/split-view.spec.ts --project=chromium --project=webkit-session</Command>
-        <Command>yarn unit</Command>
+        <Command>npx vitest run</Command>
         <Command>
           npx vitest run tests/renderer/components/titleBar-deep.test.js
           tests/renderer/components/editor-coverage.test.js
@@ -3274,7 +3269,7 @@
           tests/renderer/prefComponents/tabs-appearance.test.js
           tests/renderer/prefComponents/schema-t004.test.js
         </Command>
-        <Command>cargo test m009</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml m009</Command>
         <Command>
           npx playwright test tests/e2e/status-bar.spec.ts
           tests/e2e/lock-document.spec.ts
@@ -3344,7 +3339,6 @@
           tests/renderer/pages/theme-paper-ink.test.js
           tests/renderer/util/themeColor.test.js
           tests/renderer/util/theme-families.test.js
-          tests/renderer/pages/theme-config.test.js
           tests/renderer/store/config-coverage.test.js
           tests/renderer/util/theme.test.js
           tests/renderer/commands/menu-consistency.test.js
@@ -4151,9 +4145,11 @@
           tests/renderer/util/themeColor.test.js (22 kept factories,
           retired ones undefined) + tests/renderer/util/theme.test.js
           (kept-id injection) + tests/renderer/store/config-coverage.test.js
-          + tests/renderer/pages/theme-config.test.js (family-derived
-          picker config) + tests/renderer/commands/index.test.js (22
-          palette subcommands, none retired).
+          + tests/renderer/commands/index.test.js (22
+          palette subcommands, none retired). Historical note: the former
+          tests/renderer/pages/theme-config.test.js (family-derived picker
+          config) was deleted with its feature in C-38 T-004 and is no
+          longer coverage for this scenario.
           scenario-49: six new family members + WCAG AA contrast pass
           (C-41 T-003): one-light (Atom One Light), alucard (official
           Dracula light), nord-light (Nord Snow Storm), kanagawa-lotus
@@ -5716,8 +5712,8 @@
     <V-M-012>
       <Priority>critical</Priority>
       <Commands>
-        <Command>yarn test:specs</Command>
-        <Command>yarn unit -- test/unit/muya/api-snapshot.spec.js</Command>
+        <Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Command>
+        <Command>npx vitest run tests/renderer/muya/markdown-round-trip.test.js tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/inline-token-parity.test.js</Command>
         <Command>
           npx vitest run tests/renderer/muya/keyboard-undo.test.js
           tests/renderer/muya/copy-data.test.js
@@ -8039,7 +8035,8 @@
     <V-M-013>
       <Priority>high</Priority>
       <Commands>
-        <Command>yarn unit -- src/renderer/src/ipc</Command>
+        <Command>npm run typecheck:ipc</Command>
+        <Command>npx vitest run src/renderer/src/ipc/contract/contract.test.ts src/renderer/src/ipc/runtime/runtime.test.ts tests/renderer/ipc</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -8829,8 +8826,7 @@
       <Priority>high</Priority>
       <Commands>
         <Command>
-          cd src-tauri &amp;&amp; cargo test --manifest-path
-          src-tauri/Cargo.toml encoding
+          cargo test --manifest-path src-tauri/Cargo.toml encoding
         </Command>
       </Commands>
       <Scenarios>
@@ -10016,7 +10012,7 @@
     <V-M-017>
       <Priority>medium</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml recent</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml recent</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: Add 20 paths; list returns last 12 deduplicated.</Scenario>
@@ -10316,8 +10312,7 @@
       <Priority>low</Priority>
       <Commands>
         <Command>
-          cd src-tauri &amp;&amp; cargo test --manifest-path
-          src-tauri/Cargo.toml screenshot
+          cargo test --manifest-path src-tauri/Cargo.toml screenshot
         </Command>
       </Commands>
       <Scenarios>
@@ -10612,11 +10607,17 @@
       <Priority>high</Priority>
       <Commands>
         <Command>
-          cd src-tauri &amp;&amp; cargo test --manifest-path
-          src-tauri/Cargo.toml datacenter
+          cargo test --manifest-path src-tauri/Cargo.toml datacenter
         </Command>
       </Commands>
       <Scenarios>
+        <Scenario>
+          scenario-0: COVERAGE NOTE — src-tauri/src/m019_datacenter.rs currently
+          contains no module-local tests; the command above selects zero tests
+          and serves only as a build/link gate for the module. The behavioral
+          scenarios below are exercised through integration surfaces; add
+          module-local tests to this filter when they land.
+        </Scenario>
         <Scenario>scenario-1: set/get GitHub token via keyring; value never in log output.</Scenario>
         <Scenario>
           scenario-2: Legacy `marktext` keychain service migrated to
@@ -10969,7 +10970,7 @@
     <V-M-020>
       <Priority>medium</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml cli</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml cli</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -11243,7 +11244,7 @@
     <V-M-021>
       <Priority>critical</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test -p mark fs_core</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml fs_core</Command>
         <Command>
           rg
           &quot;fs_core_open_validated|fs_core_write_bytes_atomic|BLOCK_FS_CORE_ATOMIC_RENAME&quot; src-tauri/src/fs_core
@@ -11254,6 +11255,12 @@
         </Command>
       </Commands>
       <Scenarios>
+        <Scenario>
+          scenario-0: FUTURE — M-021 fs_core is planned and unimplemented; the
+          commands above are explicitly future and non-executable until
+          src-tauri/src/fs_core exists. They stay recorded so implementing the
+          module activates them without rewriting this contract.
+        </Scenario>
         <Scenario>
           scenario-1: Symlink-swap after validation but before read is blocked
           by held fd and post-open canonical path verification.
@@ -11469,10 +11476,10 @@
     <V-M-022>
       <Priority>high</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test -p mark mt_paths</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml mt_paths</Command>
         <Command>
           rg
-          &quot;cache_root|app_support_root|logs_root|BLOCK_RESOLVE_CACHE_ROOT&quot; src-tauri/src/mt_paths
+          &quot;cache_root|app_support_root|logs_root|BLOCK_RESOLVE_CACHE_ROOT&quot; src-tauri/src/mt_paths.rs
         </Command>
       </Commands>
       <Scenarios>
@@ -11526,7 +11533,7 @@
           <check-1>cargo test -p mark mt_paths</check-1>
           <check-2>
             rg
-            &quot;cache_root|app_support_root|logs_root|BLOCK_RESOLVE_CACHE_ROOT&quot; src-tauri/src/mt_paths
+            &quot;cache_root|app_support_root|logs_root|BLOCK_RESOLVE_CACHE_ROOT&quot; src-tauri/src/mt_paths.rs
           </check-2>
         </module-checks>
         <scenarios>

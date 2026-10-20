@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-51 T-010 expand-need rules (user decision D-7) — the pure thresholds (diagram drawn ≥ 2 px narrower than its natural size or taller than 600 px; table overflowing its C-39 wrapper by > 1 px or taller than 600 px), the DOM gathering (SVG viewBox / px width attribute / img naturalWidth, percentage widths rejected), the ag-expand-needed class toggle with the BLOCK_EXPAND_NEED log anchor, the render-path sync, and the ONE shared ResizeObserver (observe new figures, unobserve removed ones, release on editor destroy, no crash without ResizeObserver — jsdom).
 //   SCOPE: src/muya/lib/parser/render/renderBlock/expandNeed.js only.
 //   DEPENDS: muya/lib/parser/render/renderBlock/expandNeed (re-imported per test via vi.resetModules so the module-scoped shared observer is isolated), Vitest + jsdom (no real layout: rects and scroll sizes are monkey-patched).
-//   LINKS: .grace/changes/active/C-51 T-010; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-60; tests/renderer/muya/block-expand-button.test.js (the button vnode + CSS); tests/e2e/block-viewer.spec.ts (laid-out behaviour).
+//   LINKS: .grace/changes/archive/C-51 T-010; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-60; tests/renderer/muya/block-expand-button.test.js (the button vnode + CSS); tests/e2e/block-viewer.spec.ts (laid-out behaviour).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

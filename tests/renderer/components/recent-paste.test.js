@@ -11,7 +11,7 @@
 //          tests/renderer/util/clipboard-open.test.js.
 //   DEPENDS: @vue/test-utils, vitest, pinia, mocked stores/IPC/i18n
 //            harness (mirrors tests/renderer/components/recent.test.js).
-//   LINKS: .grace/changes/active/C-52/spec.xml R-2;
+//   LINKS: .grace/changes/archive/C-52/spec.xml R-2;
 //          .grace/verification/runtime.xml V-M-011 scenario-62.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

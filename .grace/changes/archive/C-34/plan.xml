@@ -1,0 +1,80 @@
+<GraceChangePlan graceVersion='4.0' status='applied'>
+<C-34>
+  <ChangeRef>C-34</ChangeRef>
+  <Created>2026-10-15</Created>
+  <IntentSummary>R2.1 resilient Mermaid render pipeline in muya: SVG cache keyed by code+theme hash (no re-render of unchanged diagrams), keep the last good diagram on a syntax error and show mermaid's error message under it, debounce re-renders while typing (~250 ms), and render at natural size with horizontal scroll instead of squeezing wide diagrams into the text column. Delegated to a ZCode agent; reviewed and merged by the orchestrator.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/render/index.js</File>
+      <Text>renderMermaid</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/muya/lib/parser/render/index.js</File>
+      <Text>BLOCK_MERMAID</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope>
+    <M-011/>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/parser/render/index.js</File>
+    <File>src/muya/lib/assets/styles/index.css</File>
+    <File>tests/renderer/muya/*mermaid*.test.js</File>
+    <File>tests/e2e/mermaid-render.spec.ts</File>
+    <File>.grace/verification/*.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>R2.1 render pipeline: cache, keep-last-good + error text, debounce, natural size</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Unchanged diagrams are not re-rendered on unrelated edits (cache hit by hash of code + theme); a theme switch re-renders.</Criterion>
+        <Criterion>A syntax error keeps the previous SVG visible and shows mermaid's own error text beneath it (escaped, no HTML injection); a diagram that never rendered shows the error text alone.</Criterion>
+        <Criterion>Typing in a diagram re-renders at most once per ~250 ms of quiet.</Criterion>
+        <Criterion>Wide diagrams keep their natural size inside a horizontally scrollable container (mermaid useMaxWidth disabled for flowcharts/sequence etc.); narrow diagrams look as before.</Criterion>
+        <Criterion>The WKWebView CSP style-hoisting behaviour is preserved; log markers [Muya][renderMermaid][BLOCK_MERMAID_…] on cache hit / render / error.</Criterion>
+        <Criterion>Unit tests for cache, keep-last-good, error escaping and debounce; e2e mermaid-render.spec.ts extended (wide diagram scrolls, syntax error keeps the last diagram).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya</Command>
+        <Command>npm test</Command>
+        <Command>npm run build &amp;&amp; npx playwright test --project=chromium tests/e2e/mermaid-render.spec.ts</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>R2.2 + C-39 T2: shared fullscreen block viewer (Mermaid diagrams and tables) with hover toolbar</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>One viewer module (e.g. src/muya/lib/ui/blockViewer/) opens a Mermaid SVG (from the R2.1 cache / current preview, no re-render) or a read-only clone of a rendered table in a fullscreen overlay.</Criterion>
+        <Criterion>Pan/zoom via @panzoom/panzoom 4.6.2 (already installed): pinch, Cmd/Ctrl+wheel, drag pan, keys + − 0 (fit) 1 (100%), Esc closes; close button; focus trapped while open and restored to the block on close; tables show a sticky header row in the viewer.</Criterion>
+        <Criterion>Hover toolbar on Mermaid previews and tables: expand (⤢) and, for Mermaid, fit/100% placeholder-free; appears on hover and keyboard focus; a plain click on a diagram still opens the source; table editing is unaffected.</Criterion>
+        <Criterion>Shortcut: Cmd/Ctrl+click on a diagram or Space on a focused block opens the viewer.</Criterion>
+        <Criterion>Light/dark parity, works under the WKWebView CSP (no inline style tags created at runtime beyond what muya already does), no new IPC permissions; strings in all locale files.</Criterion>
+        <Criterion>Unit tests for the viewer lifecycle; e2e (Chromium + WebKit): open from toolbar, zoom in, pan, Esc restores focus — for both a diagram and a table.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/muya</Command>
+        <Command>npm test</Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/block-viewer.spec.ts</Command>
+      </Verification>
+    </T-002>
+  </ImplementationPlan>
+
+  <Evidence>
+    <T-001>
+      <Status>done</Status>
+      <Commits>91fef46d (ZCode agent code + tests; no shell in headless edit mode — orchestrator fixed two wrong assertions: SVG-namespace style localName), 4672b088 merge, follow-up module contract for render/index.js</Commits>
+      <Gates>Old-code proof: with the pre-R2.1 render/index.js the StateRender cache test and keep-last-good test fail (2 of 15), all 15 pass with the change. On main: tests/renderer/muya 172 passed; npm test 3395 passed (one split-view timeout under machine load, 16/16 when re-run alone); grace lint Errors: 0; e2e mermaid-render 4/4 in Chromium and 4/4 in WebKit (wide diagram scrolls, syntax error keeps the SVG + error element).</Gates>
+      <Pending>Live check in the real app (typing in a diagram, theme switch) — part of the C-23 release smoke. Known nit: a diagram that never rendered successfully re-renders on every keystroke (no debounce until the first success).</Pending>
+    </T-001>
+    <T-002>
+      <Status>done</Status>
+      <Commits>agent/c34-viewer (ZCode agent, no shell) merged into main 2026-10-15; orchestrator resolved the runtime.xml scenario-18 collision (viewer → scenario-19), fixed MODULE_MAP parity, and corrected one wrong e2e assertion.</Commits>
+      <Gates>Old-code proof: with Muya.use(BlockViewer) removed all 3 e2e cases fail; unit block-viewer 12/12; e2e block-viewer + mermaid-render + table-layout 24/24 in Chromium and WebKit on a separate preview port; grace lint Errors: 0.</Gates>
+      <Pending>Live trackpad pinch check in the real WKWebView app; R2.3 copy/export SVG/PNG.</Pending>
+    </T-002>
+  </Evidence>
+</C-34>
+</GraceChangePlan>

@@ -11,7 +11,7 @@
 //   DEPENDS: @/ipc/runtime (ipc namespace), path-browserify (already
 //            aliased in vite.config.js), @tauri-apps/api/* for clipboard
 //            / shell / process compatibility.
-//   LINKS:   docs/development-plan.xml F-MAIN-ENTRY-DISABLED;
+//   LINKS:   .grace/graph/runtime.xml M-013 F-MAIN-ENTRY-DISABLED;
 //            v1.2.3 src/preload/index.js (the API shape this shim
 //            emulates).
 //   STATUS:  Phase-B-MAIN-ENTRY-WIRING shipped 2026-04-29.

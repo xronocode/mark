@@ -29,7 +29,7 @@
 //   PURPOSE: Sidebar shell (Files tree + width drag) — the sidebar is Files-only since the TOC panel moved to the outline rail (C-40 T-003).
 //   SCOPE: Sidebar visibility/width composition; no right-column switching anymore.
 //   DEPENDS: layout/editor/project stores, tree.vue.
-//   LINKS: .grace/changes/active/C-40 T-003; .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-40 T-003; .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

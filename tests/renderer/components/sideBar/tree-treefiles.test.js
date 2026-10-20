@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-001 unit tests for tree.vue's root view (Markdown-only filter, empty-root placeholder on visible lists, folder-switcher row) and treeFile.vue's context-menu pin options.
 //   SCOPE: shallowMount of tree.vue with Folder/File/OpenedFile/FileSections stubbed; mount of treeFile.vue with the context menu mocked.
 //   DEPENDS: components/sideBar/{tree.vue,treeFile.vue}, store/{project,preferences,pinned}, tests/renderer/setup.ts.
-//   LINKS: .grace/changes/active/C-51 T-001/T-002; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-001/T-002; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

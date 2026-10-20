@@ -1936,10 +1936,76 @@
     </V-M-044>
     <V-M-045>
       <Priority>critical</Priority>
-      <Commands/>
-      <Scenarios/>
-      <Markers/>
-      <TraceAssertions/>
+      <Commands>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml m045_ext</Command>
+        <Command>
+          rg "BLOCK_EXT_CONTEXT_REQUEST|BLOCK_EXT_APPLY_OK" src-tauri/src/m045_ext
+        </Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          scenario-1: manifest-parse — valid and minimal extension manifests
+          parse with defaults; wrong schema, empty id, empty name, missing
+          capabilities, invalid base_url and non-JSON bodies are rejected with
+          specific errors (tests.rs manifest family).
+        </Scenario>
+        <Scenario>
+          scenario-2: registry-lifecycle — register and list, enable/disable
+          transitions, idempotent re-enable, not-found errors, capability and
+          manifest lookups, health updates and re-register overwrite behave as
+          pinned (tests.rs registry family).
+        </Scenario>
+        <Scenario>
+          scenario-3: auth-secrets — secrets generate with unique 32-byte
+          entropy, hex encoding round-trips, and comparison is constant-time
+          across equal, different and length-mismatched inputs (tests.rs auth
+          family).
+        </Scenario>
+        <Scenario>
+          scenario-4: loopback-only-invocation — base URLs are accepted only
+          for localhost/127.0.0.1 with a scheme; non-loopback hosts, external
+          IPs and scheme-less URLs are rejected before any request (tests.rs
+          base-url family).
+        </Scenario>
+        <Scenario>
+          scenario-5: live-context-and-apply — the live server answers context
+          requests and applies document patches through the
+          BLOCK_EXT_CONTEXT_* and BLOCK_EXT_APPLY_* anchors, reporting
+          timeouts, emit failures, closed channels and unknown ops through
+          their dedicated anchors (live_server.rs).
+        </Scenario>
+        <Scenario>
+          scenario-6: load-smoke — the 30-minute synthetic load smoke
+          exercises the real patch core; it is #[ignore]-gated and runs
+          manually via cargo test load_smoke -- --ignored (tests.rs
+          test_b5b_load_smoke_30min_synthetic).
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_CONTEXT_REQUEST]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_CONTEXT_TIMEOUT]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_CONTEXT_EMIT_FAILED]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_CONTEXT_CHANNEL_CLOSED]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_APPLY]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_APPLY_OK]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_APPLY_UNKNOWN_OP]</Marker>
+        <Marker>[ExtHost][live_server][BLOCK_EXT_APPLY_EMIT_FAILED]</Marker>
+      </Markers>
+      <TraceAssertions>
+        <TraceAssertion>
+          Extension auth secrets never appear in logs or error payloads; only
+          service names and status fields are serialized.
+        </TraceAssertion>
+        <TraceAssertion>
+          Negative: invocation never reaches a non-loopback address; manifests
+          with non-loopback base URLs are rejected before any HTTP request.
+        </TraceAssertion>
+        <TraceAssertion>
+          Ordering: BLOCK_EXT_APPLY follows a successful BLOCK_EXT_CONTEXT
+          flow for the same session; unknown ops never emit BLOCK_EXT_APPLY_OK.
+        </TraceAssertion>
+      </TraceAssertions>
       <LegacyMatrixEvidence>
         <Module>M-045</Module>
         <VM>V-M-045</VM>

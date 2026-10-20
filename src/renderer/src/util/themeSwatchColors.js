@@ -4,7 +4,7 @@
 //   PURPOSE: Resolve the three swatch colours (background, text, accent) for every theme id straight from the shipped theme CSS, so the Settings family tiles can never drift from the real themes (C-38 T-004).
 //   SCOPE: Pure string parsing over the themeCssFactories output; one-level var() resolution and safe fallbacks. No DOM, no window access.
 //   DEPENDS: util/themeColor (themeCssFactories).
-//   LINKS: .grace/changes/active/C-38 T-004; prefComponents/tabs/appearance; .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; prefComponents/tabs/appearance; .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

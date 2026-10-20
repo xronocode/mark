@@ -11,7 +11,7 @@
 //          fake prefs facade, fake invoker and fake clock; the signed
 //          install flow is a mocked commands export.
 //   DEPENDS: src/renderer/src/store/autoUpdates.js, tests/renderer/pinia.
-//   LINKS: .grace/changes/active/C-66/spec.xml R-1..R-5 + CornerMatrix;
+//   LINKS: .grace/changes/archive/C-66/spec.xml R-1..R-5 + CornerMatrix;
 //          .grace/verification/runtime.xml V-M-016 scenario-8.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

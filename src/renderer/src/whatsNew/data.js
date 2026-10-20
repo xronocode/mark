@@ -9,7 +9,7 @@
 //   SCOPE: static content tables + lookups; no logic beyond the lookups,
 //          the max-4 clamp and the latest-with-content fallback.
 //   DEPENDS: util/version.js (normalizeVersion, compareVersions).
-//   LINKS: .grace/changes/active/C-56, C-61 and archive/C-62 (2.5.0
+//   LINKS: .grace/changes/archive/C-56, C-61 and archive/C-62 (2.5.0
 //          sheet — diagram pictures, per-diagram look, direct print/PDF,
 //          image copy); .grace/changes/archive/C-55 (2.4.0 sheet);
 //          .grace/changes/archive/C-53 (2.3.1 sheet); components/

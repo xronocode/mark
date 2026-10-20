@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-61 macOS print/pdf container lifecycle through editor.vue's handleExport with isOsx=true — the print container is cleared after mt_print_webview resolves (the backend resolves when the panel closes) and after every Export-to-PDF outcome (saved, cancelled, failed).
 //   SCOPE: The bus 'export' handler for types print/pdf only; same harness as editor-coverage.test.js but with the macOS util flag.
 //   DEPENDS: Vitest, editor.vue (mounted with mocked Muya/Printer/Tauri surfaces), global @tauri-apps mocks from tests/renderer/setup.ts.
-//   LINKS: .grace/verification/runtime.xml V-M-052 scenario-2; .grace/changes/active/C-61 (R-1, corner-2).
+//   LINKS: .grace/verification/runtime.xml V-M-052 scenario-2; .grace/changes/archive/C-61 (R-1, corner-2).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

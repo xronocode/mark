@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-002 unit tests for components/sideBar/fileSections.vue — Recent/Pinned sections render with order + cap, missing rows greyed with Remove, unpin/remove actions, click-to-open (tab select vs mt::open-file), collapse persistence, and drag-reorder dispatch to the pinned store; C-51 T-013 pins the icon-less regular-weight rows.
 //   SCOPE: real mount over the mocked @tauri-apps/api/core invoke (recent list, prefs, fs stat) with ChromeIcon stubbed.
 //   DEPENDS: components/sideBar/fileSections.vue, store/{editor,pinned}, tests/renderer/setup.ts.
-//   LINKS: .grace/changes/active/C-51 T-002/T-013; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-002/T-013; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

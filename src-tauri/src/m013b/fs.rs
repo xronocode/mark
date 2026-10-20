@@ -17,8 +17,8 @@
 //            m013b::state::SecurityCtx (active sandbox),
 //            m013b::error::IpcError (typed error envelope),
 //            stdlib std::fs.
-//   LINKS:   docs/development-plan.xml Phase-B2 step-2;
-//            docs/verification-plan.xml V-M-002 (5 scenarios + 12
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-2;
+//            .grace/verification/runtime.xml V-M-002 (5 scenarios + 12
 //            adversarial edge cases — this commit covers ~6 of them
 //            backend-side).
 //   STATUS:  Phase-B2 step-2 real-impl shipped. Atomic-write semantics

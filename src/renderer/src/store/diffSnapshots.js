@@ -4,7 +4,7 @@
 //   PURPOSE: In-memory per-tab diff baselines — the C-43 ring of pre-reload snapshots plus the C-68 «opened» slot holding the last content loaded from disk — so ⌘D always has something to compare without a .before sidecar or git.
 //   SCOPE: recordSnapshot (dedupe + 5-per-tab cap), recordOpenedSnapshot (single replaceable slot), latestSnapshot, openedSnapshot, snapshotCount, clearSnapshots (drops ring + slot), and a test-only reset. No disk writes, no IPC.
 //   DEPENDS: none (plain module state).
-//   LINKS: .grace/changes/archive/C-43/spec.xml R-1/R-4; .grace/changes/active/C-68/spec.xml R-1/R-2; .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67; consumed by store/editor.js load paths (NEW_TAB_WITH_CONTENT, loadChange, APPLY_FILE_CHANGE) and editorWithTabs/diffView.vue.
+//   LINKS: .grace/changes/archive/C-43/spec.xml R-1/R-4; .grace/changes/archive/C-68/spec.xml R-1/R-2; .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67; consumed by store/editor.js load paths (NEW_TAB_WITH_CONTENT, loadChange, APPLY_FILE_CHANGE) and editorWithTabs/diffView.vue.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

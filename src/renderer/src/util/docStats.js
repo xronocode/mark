@@ -4,7 +4,7 @@
 //   PURPOSE: Shared document-statistics helpers (lines, reading minutes, selection counts, status-bar visibility default) used by the C-40 T-002 title-bar document info popover and the C-40 T-004 status bar.
 //   SCOPE: Pure computations over markdown/selection text plus the lazy per-OS statusBarVisibility default resolver; no DOM, no stores, no i18n.
 //   DEPENDS: muya/lib/utils (wordCount).
-//   LINKS: .grace/graph/runtime.xml M-011 fn-docStats; .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/active/C-40 T-002/T-004.
+//   LINKS: .grace/graph/runtime.xml M-011 fn-docStats; .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/archive/C-40 T-002/T-004.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Push the effective renderer state of the four native View-menu CheckMenuItems (C-40 T-005) to the backend so their checkmarks always follow the real state — at boot after hydration and on every later change from any toggle surface (palette, title bar button, Settings, keyboard, the menu itself).
 //   SCOPE: The id→state mapping for view.toggle-sidebar / view.toggle-tabbar / view.outline / view.status-bar, the best-effort mt_menu_set_checked push, the boot sync (syncViewMenuChecks), and the per-item change watchers (watchViewMenuChecks). Failures are swallowed with a warn — never break boot or toggles.
 //   DEPENDS: vue (watch), @tauri-apps/api/core (dynamic import), store/layout, store/preferences.
-//   LINKS: src-tauri/src/m009_menu.rs mt_menu_set_checked + SYNCABLE_CHECK_IDS (id contract, recursive allow-listed walker); .grace/graph/runtime.xml M-009 fn-set_app_menu_check, M-011 fn-menuChecks; .grace/verification/runtime.xml V-M-009 scenario-16, V-M-011 scenario-57; .grace/changes/active/C-40 T-005.
+//   LINKS: src-tauri/src/m009_menu.rs mt_menu_set_checked + SYNCABLE_CHECK_IDS (id contract, recursive allow-listed walker); .grace/graph/runtime.xml M-009 fn-set_app_menu_check, M-011 fn-menuChecks; .grace/verification/runtime.xml V-M-009 scenario-16, V-M-011 scenario-57; .grace/changes/archive/C-40 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

@@ -12,7 +12,7 @@
 //   DEPENDS: vitest, tests/renderer/setup.ts (@tauri-apps mocks +
 //            window globals), real @/i18n (en.json is statically loaded,
 //            so the notification strings assert real EN text).
-//   LINKS: .grace/changes/active/C-52/spec.xml R-1/R-5;
+//   LINKS: .grace/changes/archive/C-52/spec.xml R-1/R-5;
 //          .grace/verification/runtime.xml V-M-011 scenario-62.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

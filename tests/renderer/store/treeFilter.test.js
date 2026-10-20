@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-001 unit tests for store/treeFilter.js — the Markdown-only default view (files and folders with Markdown anywhere below), the treeShowAllFiles restore, and folder appear/disappear as Markdown files come and go through the real treeCtrl model mutations.
 //   SCOPE: pure predicate/list tests plus an integration pass over treeCtrl.addFile/addDirectory/unlinkFile mutations.
 //   DEPENDS: src/renderer/src/store/treeFilter.js, src/renderer/src/store/treeCtrl.js, tests/renderer/setup.ts window.path shim.
-//   LINKS: .grace/changes/active/C-51 T-001; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-001; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

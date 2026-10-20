@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-40 T-003 outline-rail pure gates — h1–h3 extraction, current-heading resolution (nearest visible ancestor), and the width/heading-count/no-overlap fit rules.
 //   SCOPE: util/outlineRail.js pure heading/gate functions and strict table/rail/scrollport intersection, including clipping and invalid geometry.
 //   DEPENDS: util/outlineRail.js, Vitest.
-//   LINKS: .grace/changes/active/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
+//   LINKS: .grace/changes/archive/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

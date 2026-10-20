@@ -6,7 +6,7 @@
 //            NO router. Only muya + the fixture markdown.
 //   DEPENDS: muya/lib (the v1.2.3 frontend tree), bench/fixture.js
 //            (FIXTURE_MARKDOWN constant).
-//   LINKS:   docs/development-plan.xml Phase-B1 step-2.5;
+//   LINKS:   .grace/graph/runtime.xml M-012 (PhaseRef Phase-B1) step-2.5;
 //            verification-plan V-M-012-VB-08.
 //   STATUS:  Phase-B1 step-2.5a — initial-render phase wired; typing +
 //            scroll phases stubbed with TODO markers (will be filled in

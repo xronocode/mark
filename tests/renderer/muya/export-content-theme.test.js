@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-51 T-005 export wiring — ExportHtml.renderDiagram renders vega-lite, flowchart.js and sequence diagrams with the same theme-driven configs as the editor (contentTheme.js, tokens read from the live document), replacing the old hard-coded latimes vega theme and the un-coloured flowchart/sequence options.
 //   SCOPE: renderDiagram on src/muya/lib/utils/exportHtml.js with the renderer loader mocked; the config builders themselves are pinned in content-theme.test.js.
 //   DEPENDS: src/muya/lib/utils/exportHtml.js, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-51 T-005; .grace/verification/runtime.xml V-M-012 scenario-23.
+//   LINKS: .grace/changes/archive/C-51 T-005; .grace/verification/runtime.xml V-M-012 scenario-23.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

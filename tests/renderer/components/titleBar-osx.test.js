@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the macOS titlebar variant — no Settings gear (the app menu owns Settings), no hamburger, traffic-light nav shift.
 //   SCOPE: Vue/jsdom component tests with @/util mocked to darwin (C-38 N1) plus an SFC source pin for the isOsx gate.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, i18n, titleBar/index.vue.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-37; .grace/changes/active/C-38 T-001.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-37; .grace/changes/archive/C-38 T-001.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

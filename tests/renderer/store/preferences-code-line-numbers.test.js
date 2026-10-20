@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-38 T-005 codeBlockLineNumbers default flip — false for new profiles, one-time migration of a stored true (the never-user-settable old default) via ASK_FOR_USER_PREFERENCE, and the codeBlockLineNumbersMigrated flag that keeps later user choices.
 //   SCOPE: store/preferences.js state defaults, MIGRATE_CODE_BLOCK_LINE_NUMBERS, and its invocation at the end of ASK_FOR_USER_PREFERENCE.
 //   DEPENDS: src/renderer/src/store/preferences.js, src/renderer/src/_shims/preferences/schema.json, Vitest + jsdom, mocked @tauri-apps/api/core + bus.
-//   LINKS: .grace/changes/active/C-38 T-005; .grace/verification/runtime.xml V-M-012 scenario-20.
+//   LINKS: .grace/changes/archive/C-38 T-005; .grace/verification/runtime.xml V-M-012 scenario-20.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

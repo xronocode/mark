@@ -1,0 +1,59 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-56>
+  <Name>Diagram and chart export: Copy as Image, Save as PNG…, Save as SVG… for Pele diagrams and Vega-Lite charts</Name>
+  <Created>2026-10-18</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M</Complexity>
+  <Summary>User decision 2026-10-18: a rendered diagram (```mermaid → Pele, C-55) or chart (```vega-lite) can leave Mark as a picture — copied to the clipboard as a 2× PNG, or saved to disk as PNG or SVG — from the block's right-click menu and from the fullscreen block viewer's toolbar. The picture looks like it does in Mark (theme panel background, theme colours, theme font). No competitor ships this per block (Obsidian needs plugins, Typora exports whole documents); it closes the "paste the diagram into a slide / chat / Figma" loop for agent-written docs.</Summary>
+  <Problem><Description>Today a diagram can only leave Mark as Markdown source, as HTML (C-3) or inside a full-document export. Users who want the picture in Keynote, Slack, Figma or an issue take a screenshot, which crops badly, loses resolution and drags editor chrome along. The clipboard plugin is already present but its capabilities allow only text and HTML writes; Pele SVGs reference --pele-* CSS variables, so a raw SVG copied out of the DOM renders uncoloured anywhere else.</Description></Problem>
+  <Goals>
+    <R-1>A shared exporter (muya util) turns a rendered diagram/chart block into a self-contained SVG string: --pele-* variables (and the Vega-Lite theme colours) resolved/inlined from the live document, the theme font declared, the theme code-panel background as a rect behind the content (default) or none (transparent option), width/height/viewBox set from the block's natural size (not the zoomed or viewer-scaled size).</R-1>
+    <R-2>PNG rasterization: the self-contained SVG is drawn onto a canvas at 2× natural size (Retina) and encoded as PNG; works in WKWebView (macOS) and WebView2 (Windows). Vega-Lite uses its own view.toSVG()/toCanvas() path when the view instance is reachable, else the same SVG path.</R-2>
+    <R-3>Copy as Image writes the PNG to the system clipboard through tauri-plugin-clipboard-manager writeImage; capabilities default.json AND mas.json gain clipboard-manager:allow-write-image (nothing else). A short confirmation (existing toast/notice mechanism) says "Copied".</R-3>
+    <R-4>Save as PNG… / Save as SVG… open the system save dialog with a default file name derived from the nearest preceding heading (slugified, e.g. how-a-release-moves.png), falling back to the document name + "-diagram-N"; the bytes are written through the existing fs write path. Works in the App Store sandbox (user-selected file).</R-4>
+    <R-5>Entry points: (a) the editor context menu on a rendered diagram/chart block shows "Copy as Image", "Save as PNG…", "Save as SVG…" (below the existing copy items, only when the right-click target is inside such a block); (b) the fullscreen block viewer toolbar gains the same three actions (icon buttons with tooltips), exporting the WHOLE diagram regardless of the viewer's zoom/pan.</R-5>
+    <R-6>All new strings in all ten static/locales (+ regenerated *.min.json); native copy, product names untranslated.</R-6>
+    <R-7>Tests: unit (SVG self-containment — no var(--pele-*) left, background rect present/absent, natural size, file-name slug), e2e (context menu items present only on diagram/chart blocks; Save writes a valid PNG/SVG via the shim; Copy calls writeImage with PNG bytes of 2× size; viewer toolbar buttons export the full diagram while zoomed). grace lint 0; graph + verification updated in the same commit.</R-7>
+  </Goals>
+  <Constraints>
+    <Item>No new npm or Cargo dependencies: canvas + the existing clipboard/dialog/fs plugins only.</Item>
+    <Item>Capability change is exactly one permission (clipboard-manager:allow-write-image) in default.json and mas.json; no read-image, no broader fs scope.</Item>
+    <Item>The exported SVG must contain no &lt;script&gt;, no external references and no editor chrome (expand button, selection outline, error overlay).</Item>
+    <Item>A block in error state (keep-last-good showing a stale SVG) exports the last good SVG; a block that never rendered shows the items disabled.</Item>
+    <Item>Every GRACE-governed edit ships its MODULE_CONTRACT/MAP update; grace lint --assertions current = 0.</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>KaTeX math and tables as images (HTML → image needs a foreignObject/html-to-image path) — a follow-up change.</Item>
+    <Item>flowchart.js / js-sequence / PlantUML blocks — follow-up if requested.</Item>
+    <Item>Clipboard SVG (text/svg) or PDF export of a single block.</Item>
+    <Item>A preference UI for scale/background beyond the transparent-background option exposed in the Save dialog flow (default: theme background, 2×).</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>src/muya/lib/utils/diagramExport.js (new: buildStandaloneSvg, rasterizeSvg, suggestFileName)</Item>
+    <Item>src/muya/lib/ui/blockViewer/index.js (+ index.css): toolbar actions</Item>
+    <Item>src/renderer/src/components/editorWithTabs/editor.vue: context-menu items + handlers (clipboard writeImage, dialog save, fs write)</Item>
+    <Item>src-tauri/capabilities/default.json, src-tauri/capabilities/mas.json</Item>
+    <Item>static/locales/*.json (+ *.min.json)</Item>
+    <Item>tests/renderer/muya/diagram-export.test.js (new), tests/e2e/diagram-export.spec.ts (new), tests/e2e/fixtures/tauri-shim (writeImage/save mocks if missing)</Item>
+    <Item>.grace/graph/runtime.xml (M-012 + editor module), .grace/verification/runtime.xml (V-M-012 new scenario)</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-7 done; npx vitest run green; Playwright chromium + webkit green for diagram-export.spec.ts and the touched block-viewer/context-menu specs; grace lint 0.</Criterion>
+    <Criterion>Live check (tauri-shim e2e is the app-level evidence): Paper and Ink — a flowchart, a sankey and a Vega-Lite chart each copy and save; the PNG is 2× natural size with the theme panel background; the SVG opens standalone in a browser with correct colours and no var(--pele-*) references.</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>npx vitest run tests/renderer/muya/diagram-export.test.js</ExpectedCommand>
+    <ExpectedCommand>npm test</ExpectedCommand>
+    <ExpectedCommand>npx playwright test tests/e2e/diagram-export.spec.ts tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedEvidence>Standalone SVG has zero var(--pele- occurrences and a background rect with the theme panel colour; PNG IHDR = 2 × natural width/height; context menu shows the three items only on diagram/chart blocks; viewer export ignores zoom; capabilities diff = one permission in two files.</ExpectedEvidence>
+  </VerificationIntent>
+  <Assumptions>
+    <Assumption>tauri-plugin-clipboard-manager v2 writeImage accepts PNG bytes (Image from bytes) on macOS and Windows.</Assumption>
+    <Assumption>Drawing a data: SVG image onto a canvas does not taint it in WKWebView when the SVG is self-contained (no external refs).</Assumption>
+    <Assumption>The Vega-Lite embed result (view) is reachable from the rendered block or can be re-derived by re-rendering the spec to SVG.</Assumption>
+  </Assumptions>
+</C-56>
+</GraceChangeSpec>

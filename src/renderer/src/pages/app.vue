@@ -56,7 +56,7 @@
 //            composition.
 //   DEPENDS: Pinia stores, bus, util/theme helpers, shell components.
 //   LINKS:   docs/knowledge-graph.xml M-011; docs/verification-plan.xml
-//            V-M-011 theme swap expectations; .grace/changes/active/C-49.
+//            V-M-011 theme swap expectations; .grace/changes/archive/C-49.
 //   STATUS:  Initial mount path dedupes theme application so raw theme CSS
 //            is injected once while common styles still initialize on boot.
 //

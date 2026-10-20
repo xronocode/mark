@@ -168,7 +168,7 @@
 //            _shims/install-window-globals.js).
 //   LINKS:   .grace/changes/archive/C-46 (approved mockups boards 1-2);
 //            .grace/verification/runtime.xml V-M-011 scenario-47;
-//            .grace/changes/active/C-52 (welcome ⌘V, R-2);
+//            .grace/changes/archive/C-52 (welcome ⌘V, R-2);
 //            C-40 R-1a (agent prompt + 'mt::open-guide' section).
 //   ROLE:    RUNTIME
 //   MAP_MODE: LOCALS

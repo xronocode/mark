@@ -4,7 +4,7 @@
 //   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d), the document-surface expand glyph (C-51 T-006) and the pinned-file row mark (C-51 T-011; redrawn as a filled pushpin silhouette in C-51 T-013 — the set's one fill-only glyph).
 //   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC. The expand descriptor is the canonical drawing — muya duplicates it inline (EXPAND_ICON_PATH) and a unit test pins the two identical.
 //   DEPENDS: vue (h).
-//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .canvas/Mermaid.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/active/C-40 T-002; .grace/changes/active/C-38 T-006; .grace/changes/active/C-51 T-006; .grace/changes/active/C-51 T-011; .grace/changes/active/C-51 T-013.
+//   LINKS: .canvas/Icons.dc.html; .canvas/Window.dc.html; .canvas/Mermaid.dc.html; .grace/graph/runtime.xml M-057; .grace/changes/archive/C-40 T-002; .grace/changes/archive/C-38 T-006; .grace/changes/archive/C-51 T-006; .grace/changes/archive/C-51 T-011; .grace/changes/archive/C-51 T-013.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

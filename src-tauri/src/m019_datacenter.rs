@@ -10,7 +10,7 @@
 //            UPLOAD; that's a substantial feature that integrates with
 //            the renderer image-paste flow.
 //   DEPENDS: keyring 3 — cross-platform OS-secret-store binding.
-//   LINKS:   docs/development-plan.xml Phase-B3 step-7.
+//   LINKS:   .grace/graph/runtime.xml M-019 (PhaseRef Phase-B3) step-7.
 //   STATUS:  Phase-B3 step-7 lite — keyring CRUD only.
 //
 // CHANGE_SUMMARY:

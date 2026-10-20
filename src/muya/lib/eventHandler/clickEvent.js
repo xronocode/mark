@@ -4,7 +4,7 @@
 //   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes, the C-51 expand button, the C-56 T-005 corner-pill actions — to contentState actions or eventCenter events.
 //   SCOPE: clickBinding and contextClickBinding only.
 //   DEPENDS: muya/lib/utils (domManipulate, getImageInfo), muya/lib/config, muya/lib/selection, contentState handlers.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19, scenario-60 and scenario-64; .grace/changes/active/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK) and T-010; C-56 T-005 (BLOCK_TOOLBAR_CLICK).
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19, scenario-60 and scenario-64; .grace/changes/archive/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK) and T-010; C-56 T-005 (BLOCK_TOOLBAR_CLICK).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

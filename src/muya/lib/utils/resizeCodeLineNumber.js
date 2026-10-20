@@ -4,7 +4,7 @@
 //   PURPOSE: Size the line-numbers gutter of one code block so every number sits on the first visual row of its logical line (C-38 T-005, #1648).
 //   SCOPE: resizeCodeBlockLineNumber(preEle) — non-wrapping code clears measured heights (natural one-line rows); wrapping code measures each logical line's top from the rendered text via collapsed caret rects and sets each row's height to bridge to the next line.
 //   DEPENDS: DOM Range/TreeWalker/getComputedStyle; the .line-numbers CSS section in lib/assets/styles/index.css; called from contentState.resizeLineNumber (postRender + forced refreshes).
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-20; .grace/changes/active/C-38 T-005.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-20; .grace/changes/archive/C-38 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

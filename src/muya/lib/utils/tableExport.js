@@ -4,7 +4,7 @@
 //   PURPOSE: C-70 table picture export — turn a rendered GFM table into a self-contained standalone SVG string drawn from its live layout (cell/row backgrounds, cell borders, inline-code chips, every text run at its measured position in its computed font and colour), so the C-56 rasterizer (diagramExport.rasterizeSvg) can copy it as a 2× PNG or the host can save it as PNG/SVG exactly like a diagram.
 //   SCOPE: pure DOM reads (getBoundingClientRect / getClientRects / getComputedStyle incl. the ::before/::after grid boxes themes draw / Range) + string building; muya's hidden syntax markers (ag-hide) and invisible text skipped; text decorations collected from ancestors; no foreignObject (a foreignObject SVG taints the canvas in WKWebView), no editor chrome (resize handles, toolbar, caption), images inside cells are skipped; injectable style/measure/range factories for tests. No clipboard, dialog or fs I/O.
 //   DEPENDS: none (DOM only).
-//   LINKS: .grace/changes/active/C-70 R-1/R-2; consumers: src/renderer/src/components/editorWithTabs/editor.vue handleDiagramExportAction (table branch); muya tableResize (toolbar copyImage dispatch) and ui/blockViewer (table export buttons) dispatch muya-diagram-export with the table figure / live table.
+//   LINKS: .grace/changes/archive/C-70 R-1/R-2; consumers: src/renderer/src/components/editorWithTabs/editor.vue handleDiagramExportAction (table branch); muya tableResize (toolbar copyImage dispatch) and ui/blockViewer (table export buttons) dispatch muya-diagram-export with the table figure / live table.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

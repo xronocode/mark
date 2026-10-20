@@ -116,7 +116,7 @@
 //   PURPOSE: Markdown tab of the C-38 Settings window — Lists (spacing as a Compact/Spaced segmented control, bullet character, ordered format, indentation), Extensions (footnotes, math, super/subscript, front matter) and Compatibility (HTML, GitLab, sequence diagrams) per the N2 IA §3.4.
 //   SCOPE: Row composition; preferLooseListItem presented through the compact/spaced mapping (key semantics unchanged); sequence diagrams fold into Compatibility (IA §2.3).
 //   DEPENDS: prefComponents/common/{compound,bool,select,segmented}, tabs/markdown/config, store/preferences, i18n.
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.4; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.4; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
