@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-normalize.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove Release Please is the only version authority and Mark's secondary release surfaces normalize through one deterministic, idempotent allowlisted patch.
 //   SCOPE: Temporary-workspace golden patch, check/write/idempotence, forbidden override, and package/manifest mismatch regressions.
@@ -19,10 +19,12 @@
 //   writeJson - Stable pretty-JSON fixture writer.
 //   restoreChangelogDraft - Reconstruct the curated draft markers after Release Please promotion.
 //   restoreCollectingLedger - Reconstruct the human train ledger before preparation.
+//   windowsNewlines - Produce exactly one CRLF sequence per logical line break.
 //   copyFixture - Build a pre-normalization 2.5.4 draft plus generated 2.6.0 Release Please fixture.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.4.0: prove train-ledger normalization preserves Windows CRLF bytes and remains idempotent.
 //   - 2026-10-21 v1.3.0: prove atomic Collecting-to-Preparing synchronization across the machine train and human ledger.
 //   - 2026-10-21 v1.2.0: make golden fixtures and checkout assertions valid in both collecting main and prepared release-PR states.
 //   - 2026-10-20 v1.1.0: prove structural draft-only updates, curated CHANGELOG promotion, history preservation, and last-release boundary retirement.
@@ -101,6 +103,8 @@ const restoreCollectingLedger = (source) =>
       /^- The checked-in train is \*\*Preparing\*\*\.[^\n]*$/m,
       '- The checked-in train remains **Collecting**. Release Please deterministically proposes 2.6.0, while package/Cargo/Tauri metadata remains at 2.5.3 until the preparation PR.'
     )
+const windowsNewlines = (source) =>
+  source.replace(/\r\n?/g, '\n').replaceAll('\n', '\r\n')
 
 const copyFixture = () => {
   const root = mkdtempSync(resolve(tmpdir(), 'mark-release-normalize-'))
@@ -294,6 +298,22 @@ describe('release normalization', () => {
     const plan = planReleaseNormalization(root, { date: '2026-10-20' })
     const result = applyReleaseNormalization(root, plan, { date: '2026-10-20' })
     expect(result.written).toEqual(plan.changes.map(({ path }) => path))
+    expect(planReleaseNormalization(root, { date: '2026-10-20' }).changes).toEqual([])
+  })
+
+  it('preserves Windows CRLF in the prepared human train ledger', () => {
+    const root = copyFixture()
+    const ledgerPath = resolve(root, 'docs/release-trains/2.5.x-next.md')
+    writeFileSync(
+      ledgerPath,
+      windowsNewlines(readFileSync(ledgerPath, 'utf8'))
+    )
+    const plan = planReleaseNormalization(root, { date: '2026-10-20' })
+    const normalizedLedger = plan.changes.find(
+      ({ path }) => path === 'docs/release-trains/2.5.x-next.md'
+    ).after
+    expect(normalizedLedger.replaceAll('\r\n', '')).not.toContain('\n')
+    applyReleaseNormalization(root, plan, { date: '2026-10-20' })
     expect(planReleaseNormalization(root, { date: '2026-10-20' }).changes).toEqual([])
   })
 

@@ -1,5 +1,5 @@
 // FILE: tools/release-normalize.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Propagate the Release Please-owned package/manifest version into Mark's secondary Cargo, Tauri, fixture, and version-bound material surfaces without calculating a version.
 //   SCOPE: Deterministic plan/check/write over an allowlisted file set, including one explicit CHANGELOG draft handoff and atomic machine/human train preparation; never edits package authority, tags, GitHub Releases, or external state.
@@ -33,6 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.3.0: preserve LF or CRLF while synchronizing the human train ledger on every runner OS.
 //   - 2026-10-21 v1.2.0: synchronize the human train ledger with the machine-readable Collecting-to-Preparing transition.
 //   - 2026-10-20 v1.1.0: normalize only explicit draft surfaces, promote curated CHANGELOG copy into one generated section, and retire the one-use last-release boundary.
 //   - 2026-10-20 v1.0.0: add Release Please-owned version propagation with no independent SemVer override.
@@ -201,18 +202,22 @@ const promoteChangelogDraft = (source, targetVersion, date) => {
 }
 
 const prepareTrainLedger = (source, targetVersion) => {
-  const statePattern = /^\| State \| (Collecting|Preparing) \|$/gm
+  const statePattern = /^(\| State \| )(Collecting|Preparing)( \|)(\r?)$/gm
   const stateRows = [...source.matchAll(statePattern)]
   if (stateRows.length !== 1) {
     fail('MT_RELEASE_NORMALIZE_LEDGER_INVALID', `stateRows=${stateRows.length}`)
   }
-  let updated = source.replace(statePattern, '| State | Preparing |')
+  let updated = source.replace(
+    statePattern,
+    (_match, prefix, _state, suffix, carriageReturn) =>
+      `${prefix}Preparing${suffix}${carriageReturn}`
+  )
   const preparedStatus = `- The checked-in train is **Preparing**. Release Please prepared ${targetVersion} and synchronized package, Cargo, Tauri, and train-ledger metadata in the preparation PR; no tag or publication was created.`
   if (updated.includes(preparedStatus)) return updated
   updated = replaceExact(
     updated,
-    /^- The checked-in train remains \*\*Collecting\*\*\. Release Please deterministically proposes [^,\n]+, while package\/Cargo\/Tauri metadata remains at [^ \n]+ until the preparation PR\.$/m,
-    preparedStatus,
+    /^- The checked-in train remains \*\*Collecting\*\*\. Release Please deterministically proposes [^,\r\n]+, while package\/Cargo\/Tauri metadata remains at [^ \r\n]+ until the preparation PR\.(\r?)$/m,
+    (_match, carriageReturn) => `${preparedStatus}${carriageReturn}`,
     'MT_RELEASE_NORMALIZE_LEDGER_INVALID',
     'preparation status'
   )
