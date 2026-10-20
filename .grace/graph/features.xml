@@ -2354,6 +2354,11 @@
         Release Please lifecycle metadata permissions are isolated from release
         publication. Manual dispatch is unsigned build-only; Projects never
         becomes gate authority; secrets and admin apply are isolated by purpose.
+        The pull-request Tauri dry-run also remains unprivileged: it disables
+        updater artifacts through a narrow CLI config override while retaining
+        .app/DMG packaging, ad-hoc signing, install smoke, size and warning
+        evidence. Production tag builds keep updater artifacts enabled and
+        receive the updater private key only inside release-signing.
         Retained synthetic preference JSON and its manifest use LF checkout
         bytes; privacy verification normalizes host path separators and
         accepts manifest line delimiters on Windows, macOS and Linux.
@@ -2384,8 +2389,8 @@
         Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
         docs/release-trains/*.json, docs/assets/readme/*.manifest.json,
         .github/release-governance.json,
-        .github/workflows/{release,release-please,release-governance,
-        promote-release,test}.yml
+        .github/workflows/{release,release-tauri,release-please,
+        release-governance,promote-release,test}.yml
       </PlannedPath>
       <PublicationBoundary>
         C-PRIVATE-OPERATIONS: reusable tools/release/ scripts remain public.
@@ -2514,6 +2519,7 @@
           docs/release-trains/2.5.x-next.json,
           docs/release-trains/2.5.x-next.md,
           .github/workflows/release.yml,
+          .github/workflows/release-tauri.yml,
           .github/workflows/release-please.yml,
           .github/workflows/release-governance.yml,
           .github/workflows/promote-release.yml
