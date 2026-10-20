@@ -2,7 +2,7 @@
 
 Owner instruction recorded on 2026-10-19: a confirmed fix joins a release train; accepting it does not start a release. This protocol governs delivery bookkeeping and release admission. Existing GRACE specs/plans still govern implementation and structural refactors.
 
-Current train: [2.5.x-next](2.5.x-next.md). It collects stabilization work after 2.5.3; its version and publication date are unassigned.
+Current train: [2.5.x-next](2.5.x-next.md). It collects stabilization work after 2.5.3. Release Please currently computes 2.6.0 from the Conventional Commit history; the publication date remains unscheduled.
 
 ## A fix moves through these stages
 
@@ -32,9 +32,14 @@ Acceptance covers the scenarios actually reviewed. Testing Shift+Up/Down does no
 
 ## The train has its own lifecycle
 
-- **Collecting:** accepted items accumulate. Version/date, integration and candidate checks can remain pending.
-- **Frozen:** exact item scope and candidate commit are recorded, included user-facing changes are accounted for, and applicable checks/acceptance pass. Freezing or reviewing a candidate does not authorize publication.
-- **Released:** the separately authorized release has shipped and its actual channel results are recorded.
+- **Collecting:** accepted items accumulate. Membership, materials and code may still change. `payloadSha`, live check evidence and candidate digests are unset.
+- **Preparing:** Release Please owns the proposed SemVer, primary package version and CHANGELOG in a preparation PR; trusted normalization updates the remaining version surfaces. Preparation never creates a tag or release.
+- **Frozen:** the product payload is immutable and every commit since the previous boundary is classified. A following metadata-only seal records `payloadSha`, fresh screenshot review and final evidence; the seal may change only allowlisted release records.
+- **Ready:** strict readiness has proved the payload-to-seal delta, owner acceptance, live checks, materials and digests. The train may now present the input-free `release-authorize` deployment. Ready is not itself authorization.
+- **Released:** the owner-approved bot tag has passed tag-only signing and the separately approved draft-first publication. Actual GitHub/updater/Homebrew outcomes are appended.
+- **Aborted:** the train is permanently retired without publication. Released and Aborted are terminal; continue work under a new immutable train ID.
+
+Any membership, runtime or release-material change after Frozen or Ready returns the train to Collecting and clears payload/check/digest readiness. Preserve historical owner acceptance unless the accepted behavior itself changed; changed behavior becomes `needs-recheck`. Rejection or timeout of an Environment approval fails that attempt but does not automatically move the train to Aborted.
 
 Keep one collecting stabilization train. On completion, retain its record with the released version and start a new file with a distinct train ID. Train IDs, item IDs and file paths remain stable and are never reused; update the Current train link above to select the new train. Record moved/deferred items and destination rather than silently removing their history.
 
@@ -47,6 +52,103 @@ Required release admission evidence:
 - No known content-loss or release-blocking defect in the included flows.
 - Reviewed contents and release materials covering both C-* changes and small FIX-* repairs.
 - The owner's explicit instruction to release this train/version. Record it separately from acceptance.
+
+## Automated preparation and publication boundary
+
+`docs/release-trains/<train>.json` is the reproducible authority. GitHub Projects is a public, one-way operational mirror: an outage or missing Project scope is visible drift, not permission to bypass readiness. Conventional PR titles determine SemVer (`fix` patch, `feat` minor, `!`/`BREAKING CHANGE` major); Release Please prepares a PR and never tags or publishes.
+
+After a Ready seal is merged, `release/promote` derives the tag and seal from the checked-out repository. The `release-authorize` Environment is the explicit owner release instruction. A purpose-specific GitHub App creates one annotated tag at that seal; reruns are no-op only for the same peeled target. The tag workflow rejects another actor, a lightweight/wrong-target tag, stale checks or a non-Ready train before signing. Manual dispatch is always unsigned build-only.
+
+Production signing uses only the tag-restricted `release-signing` Environment. GitHub publication uses the separate `release` Environment as the owner's second confirmation. It creates or resumes a draft, compares every existing asset byte-for-byte, verifies the asset digest inventory, `latest.json` and reviewed notes, and changes `draft=false` only as its final mutation. Automation never clobbers a published asset or retargets/deletes a published tag. With immutable releases enabled, a post-publication text correction uses GitHub's allowed notes-only edit path; binaries and tags require a new release.
+
+## Recovery matrix
+
+| Failure | Required recovery |
+|---|---|
+| Release-preparation PR fails or is closed | Fix or regenerate the PR. No tag exists; return to Preparing or Collecting. |
+| Preparation merges but no seal/tag exists | Reconcile the exact diff, acceptance and materials; create a new metadata-only seal only after the payload is stable. |
+| Payload/check/screenshot evidence is stale | Return to Collecting, clear readiness evidence, rebuild the payload and obtain fresh affected acceptance. |
+| `release-authorize`, signing or publication approval is rejected/times out | Record the failed attempt and retry the same unchanged seal later; do not mark Aborted automatically. |
+| Project sync lacks scope or GitHub Projects is unavailable | Keep the repository manifest authoritative, report non-required mirror drift and retry the one-way sync. |
+| GitHub control apply stops part-way | Stop on the first mismatch, retain the external snapshot and append-only journal, then use the owner-local reverse-order rollback or resume after read-back. Never copy Environment secret values. |
+| Draft upload/read-back fails | Leave the release as a draft. A rerun may add missing assets or accept identical bytes; differing existing bytes require investigation, never `--clobber`. |
+| Tag exists but build/publication fails | Preserve the annotated tag and append the attempt result. Repair by a new payload/version unless the same immutable inputs can be safely rerun. |
+| GitHub release succeeds but Homebrew fails | Keep the GitHub/updater channel recorded as released and retry only the cask PR with the published DMG sidecar hash. |
+
+Post-tag attempts and per-channel outcomes are append-only. Accepted, queued, Frozen, Ready, a green workflow, or a reviewed draft never substitutes for release authorization.
+
+### Retry a failed Homebrew handoff
+
+The `publish-cask` job is idempotent: an existing exact open PR is success, while a branch without that PR or a mismatched PR fails closed. If GitHub publication succeeded and `publish-cask` is the only failed job, retry it from the same release run while its artifacts are retained (30 days):
+
+```bash
+gh run list --repo xronocode/mark --workflow release.yml --limit 10
+gh run view <run-id> --repo xronocode/mark --json jobs \
+  --jq '.jobs[] | {name, conclusion, databaseId}'
+gh run rerun <run-id> --repo xronocode/mark --failed
+```
+
+Before rerunning, fix only the external cause (for example the `release-cask` Environment credentials or the tap repository permission). Do not delete or recreate the release tag, upload replacement assets, use `--clobber`, or start a new release. The rerun consumes the retained `Mark_<version>_aarch64.dmg.sha256` sidecar and either verifies the existing exact cask PR or opens it once.
+
+If the workflow artifacts have expired, stop. Downloading a public sidecar and creating a replacement cask-only automation path requires a separately reviewed recovery change; it is not permission to rebuild or republish the released version.
+
+## Owner-only GitHub rollout
+
+Repository files describe the desired controls, but they cannot safely install Apps, copy secret values, or approve their own protections. The owner completes the following once, outside CI, before activating the rulesets.
+
+1. Create or verify the purpose-specific GitHub App installations:
+   - release preparation on `xronocode/mark`: Contents write and Pull requests write;
+   - release authorization on `xronocode/mark`: Contents write only;
+   - cask handoff on `xronocode/homebrew-mark`: Contents write and Pull requests write.
+2. Configure release preparation on `xronocode/mark`:
+   - repository variable `RELEASE_PREP_APP_ID`;
+   - repository secret `RELEASE_PREP_APP_PRIVATE_KEY`.
+3. Run the staged controls apply with a fresh absolute journal path outside the repository. This creates the four Environments, enables immutable releases, sets default workflow permissions to read, and creates both rulesets with enforcement still disabled:
+
+   ```bash
+   npm run release:github-controls -- \
+     --apply \
+     --confirm-owner xronocode \
+     --journal <absolute-path-outside-repo>/mark-release-controls-stage.ndjson
+   ```
+
+4. Populate Environment secrets manually; never copy them into the repository or journal:
+   - `release-authorize`: `RELEASE_BOT_APP_ID`, `RELEASE_BOT_PRIVATE_KEY`;
+   - `release-signing`: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`;
+   - `release-cask`: `CASK_BOT_APP_ID`, `CASK_BOT_PRIVATE_KEY`;
+   - `release` intentionally has no secret; it is the second owner approval boundary.
+5. Verify Environment policies match `.github/release-governance.json`: `release-authorize` accepts only `main`; `release-signing`, `release`, and `release-cask` accept only `v*` tags; `xronocode` is the required reviewer for `release-authorize` and `release`.
+6. Bootstrap the public Project mirror with a local token that can manage the owner's Projects v2, then commit the recorded Project number/node ID through the normal safety gate:
+
+   ```bash
+   PROJECT_MIRROR_AUTH=<owner-local-project-credential> \
+     npm run release:project-sync -- \
+       --apply --record-identity --confirm-owner=xronocode
+   ```
+
+   After the identity is recorded, add `PROJECT_MIRROR_AUTH` as the repository secret used only by the non-required `release/project-mirror` job. A Project outage remains visible drift and never weakens repository readiness.
+7. Merge the automation through normal review and let `main` produce exactly one successful `GitHub Actions` check for each canary name: `status check`, `release/governance`, and `release/readiness`.
+8. Run read-only confirmation, then activate the rulesets with a different fresh journal path:
+
+   ```bash
+   npm run release:github-controls -- --check
+   npm run release:github-controls -- \
+     --activate \
+     --confirm-owner xronocode \
+     --journal <absolute-path-outside-repo>/mark-release-controls-activate.ndjson
+   npm run release:github-controls -- --check
+   ```
+
+Activation fails if a forbidden signing/App secret remains at repository scope, an Environment secret name is missing, staged controls drift, or any exact canary check is absent, duplicated, or not successful. Each apply/activate journal has a mode-`0600` snapshot beside it. Preserve both until rollout is accepted; rollback is owner-local and exact:
+
+```bash
+npm run release:github-controls -- \
+  --rollback \
+  --confirm-owner xronocode \
+  --journal <the-corresponding-absolute-journal-path>
+```
+
+These actions configure the pipeline only. They do not freeze a train, approve an Environment deployment, create a tag, publish a release, or open a cask PR.
 
 Statements such as “works”, “accepted”, “mark for release”, “include in the next patch”, and a request to freeze/review the candidate authorize the corresponding preparation or queue update. They do not authorize version bumps, tags, publishing workflow dispatches, store uploads or tap publication. An explicit release instruction authorizes its stated release scope; do not ask again for steps already authorized by it.
 

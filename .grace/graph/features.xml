@@ -2342,6 +2342,17 @@
       <Layer>TOOLING</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
       <Summary>
+        C-RELEASE-PIPELINE-AUTOMATION (2026-10-20): M-046 now owns the
+        repository release train authority, Release Please preparation and
+        version normalization, exact README/CHANGELOG/release-note/What&apos;s New
+        material checks, payload-to-seal readiness, the public one-way Project
+        mirror, owner-local GitHub control reconciliation, input-free
+        owner-approved annotated-tag promotion, tag-only signing, read-only
+        publication-bundle preparation, fixed-command digest-verified
+        draft-first publication, and an idempotent downstream cask handoff.
+        Release Please lifecycle metadata permissions are isolated from release
+        publication. Manual dispatch is unsigned build-only; Projects never
+        becomes gate authority; secrets and admin apply are isolated by purpose.
         Retained synthetic preference JSON and its manifest use LF checkout
         bytes; privacy verification normalizes host path separators and
         accepts manifest line delimiters on Windows, macOS and Linux.
@@ -2367,9 +2378,13 @@
         gate.
       </Summary>
       <PlannedPath>
-        tools/release-preflight.mjs, package.json, package-lock.json,
+        tools/release-{preflight,governance,readiness,materials,project-sync,
+        github-controls,normalize,notes}.mjs, package.json, package-lock.json,
         Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
-        .github/workflows/release.yml, .github/workflows/test.yml
+        docs/release-trains/*.json, docs/assets/readme/*.manifest.json,
+        .github/release-governance.json,
+        .github/workflows/{release,release-please,release-governance,
+        promote-release,test}.yml
       </PlannedPath>
       <PublicationBoundary>
         C-PRIVATE-OPERATIONS: reusable tools/release/ scripts remain public.
@@ -2384,9 +2399,10 @@
       <VerificationRef>V-M-046</VerificationRef>
       <Contract>
         <Purpose>
-          Fail a release before packaging when version metadata, the requested
-          tag, automated verification, or macOS signature evidence is
-          inconsistent.
+          Prepare and admit a release from reproducible repository evidence,
+          then fail closed before packaging or publication when version,
+          membership, acceptance, payload/seal/tag, material, permission,
+          signature or asset evidence is inconsistent.
         </Purpose>
         <Inputs>
           <Input>
@@ -2404,6 +2420,16 @@
           <Output>
             <Name>versionEvidence</Name>
             <Type>VersionEvidence</Type>
+          <Input>
+            <Name>trainManifest</Name>
+            <Type>ReleaseTrain</Type>
+            <Description>Checked-in lifecycle, payload, membership, acceptance, check and material authority</Description>
+          </Input>
+          <Input>
+            <Name>githubEvidence</Name>
+            <Type>CheckRuns|ControlSnapshot?</Type>
+            <Description>Live payload check identities or owner-local control read-back; never secret values</Description>
+          </Input>
             <Description>Normalized version values from all authoritative release metadata</Description>
           </Output>
           <Output>
@@ -2416,6 +2442,11 @@
           <Error>
             <Code>MT_RELEASE_VERSION_MISMATCH</Code>
             <Description>One or more package, lockfile, Cargo, or Tauri versions differ</Description>
+          <Output>
+            <Name>releasePreparation</Name>
+            <Type>ReleasePR|AnnotatedTag|VerifiedDraft</Type>
+            <Description>Stage-specific result; each later mutation requires its own approved trust boundary, and privileged publication never executes candidate repository code</Description>
+          </Output>
           </Error>
           <Error>
             <Code>MT_RELEASE_TAG_MISMATCH</Code>
@@ -2430,9 +2461,26 @@
       <Interface>
         <fn-readVersionEvidence>
           <LegacyAttributes>
+          <Error>
+            <Code>MT_RELEASE_CONTROLS_DRIFT</Code>
+            <Description>Managed GitHub permissions, Environments, immutable-release setting, or rulesets do not match source control</Description>
+          </Error>
+          <Error>
+            <Code>MT_RELEASE_CHECK_EVIDENCE_INVALID</Code>
+            <Description>Required payload check is missing, failed, emitted by the wrong App, or bound to another SHA</Description>
+          </Error>
             <Attribute>
               <Name>PURPOSE</Name>
               <Value>
+        <fn-runReleaseReadiness>
+          <LegacyAttributes><Attribute><Name>PURPOSE</Name><Value>Validate offline train evidence and strict payload-to-seal/tag/check identity</Value></Attribute></LegacyAttributes>
+        </fn-runReleaseReadiness>
+        <fn-runReleaseGovernance>
+          <LegacyAttributes><Attribute><Name>PURPOSE</Name><Value>Validate Conventional admission, immutable action pins and source-controlled control contracts</Value></Attribute></LegacyAttributes>
+        </fn-runReleaseGovernance>
+        <fn-reconcileGithubControls>
+          <LegacyAttributes><Attribute><Name>PURPOSE</Name><Value>Dry-run, read back, stage and recover managed GitHub controls from an owner-local session</Value></Attribute></LegacyAttributes>
+        </fn-reconcileGithubControls>
                 Read normalized versions from package.json, package-lock.json,
                 Cargo.toml, Cargo.lock, and tauri.conf.json
               </Value>
@@ -2458,12 +2506,18 @@
       </Interface>
       <Sources>
         <Source>
-          tools/release-preflight.mjs, package.json, package-lock.json,
-          Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
-          .github/workflows/release.yml
+          tools/release-preflight.mjs, tools/release-governance.mjs,
+          tools/release-readiness.mjs, tools/release-materials.mjs,
+          tools/release-project-sync.mjs, tools/release-github-controls.mjs,
+          tools/release-normalize.mjs, tools/release-notes.mjs,
+          docs/release-trains/2.5.x-next.json,
+          .github/workflows/release.yml,
+          .github/workflows/release-please.yml,
+          .github/workflows/release-governance.yml,
+          .github/workflows/promote-release.yml
         </Source>
-        <KnowledgeGraphPath>tools/release-preflight.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
-        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/publication-privacy.test.js</Tests>
+        <KnowledgeGraphPath>tools/release-readiness.mjs, tools/release-github-controls.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
+        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/publication-privacy.test.js</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>
