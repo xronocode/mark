@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-normalize.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove Release Please is the only version authority and Mark's secondary release surfaces normalize through one deterministic, idempotent allowlisted patch.
 //   SCOPE: Temporary-workspace golden patch, check/write/idempotence, forbidden override, and package/manifest mismatch regressions.
@@ -10,14 +10,19 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   BOOTSTRAP_SHA - Pinned v2.5.3 release boundary used for version-surface fixtures.
 //   COPY_PATHS - Repository files copied into the normalization fixture.
+//   VERSION_BASELINE_PATHS - Versioned surfaces restored from the pinned bootstrap tree.
 //   LOCALES - Ten source/minified locale identifiers.
 //   git - Run a read-only git identity query.
+//   gitFile - Read one fixture file from a pinned git tree.
 //   writeJson - Stable pretty-JSON fixture writer.
+//   restoreChangelogDraft - Reconstruct the curated draft markers after Release Please promotion.
 //   copyFixture - Build a pre-normalization 2.5.4 draft plus generated 2.6.0 Release Please fixture.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.2.0: make golden fixtures and checkout assertions valid in both collecting main and prepared release-PR states.
 //   - 2026-10-20 v1.1.0: prove structural draft-only updates, curated CHANGELOG promotion, history preservation, and last-release boundary retirement.
 //   - 2026-10-20 v1.0.0: add golden 2.5.4-to-2.6.0 propagation, no-write, and idempotence coverage.
 // END_CHANGE_SUMMARY
@@ -40,6 +45,13 @@ import {
 } from '../../tools/release-normalize.mjs'
 
 const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
+const BOOTSTRAP_SHA = '0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6'
+const VERSION_BASELINE_PATHS = [
+  'Cargo.toml',
+  'Cargo.lock',
+  'src-tauri/tauri.conf.json',
+  'tests/renderer/release-preflight.test.js'
+]
 const COPY_PATHS = [
   'Cargo.toml',
   'Cargo.lock',
@@ -58,14 +70,36 @@ const COPY_PATHS = [
 
 const git = (...args) =>
   execFileSync('git', args, { cwd: process.cwd(), encoding: 'utf8' }).trim()
+const gitFile = (ref, path) =>
+  execFileSync('git', ['show', `${ref}:${path}`], {
+    cwd: process.cwd(),
+    encoding: 'utf8'
+  })
 const writeJson = (path, value) =>
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
+const restoreChangelogDraft = (source, version) => {
+  if (source.includes('<!-- release-draft:start -->')) return source
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const section = new RegExp(
+    `^## \\[${escaped}\\][^\\n]*\\n+([\\s\\S]*?)(?=^## \\[)`,
+    'm'
+  )
+  const match = section.exec(source)
+  if (!match) throw new Error(`Cannot restore CHANGELOG draft for ${version}`)
+  return source.replace(
+    match[0],
+    `<!-- release-draft:start -->\n\n${match[1].trim()}\n\n<!-- release-draft:end -->\n\n`
+  )
+}
 
 const copyFixture = () => {
   const root = mkdtempSync(resolve(tmpdir(), 'mark-release-normalize-'))
   for (const path of COPY_PATHS) {
     mkdirSync(dirname(resolve(root, path)), { recursive: true })
     copyFileSync(resolve(path), resolve(root, path))
+  }
+  for (const path of VERSION_BASELINE_PATHS) {
+    writeFileSync(resolve(root, path), gitFile(BOOTSTRAP_SHA, path))
   }
   const packageJson = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
   packageJson.version = '2.6.0'
@@ -75,6 +109,8 @@ const copyFixture = () => {
   const train = JSON.parse(
     readFileSync(resolve('docs/release-trains/2.5.x-next.json'), 'utf8')
   )
+  train.state = 'Collecting'
+  train.transitions = train.transitions.filter(({ state }) => state !== 'Preparing')
   train.computedVersion = '2.5.4'
   train.materials.screenshotManifest = 'docs/assets/readme/2.5.4.manifest.json'
   mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
@@ -111,11 +147,15 @@ const copyFixture = () => {
   const changelogPath = resolve(root, 'CHANGELOG.md')
   writeFileSync(
     changelogPath,
-    readFileSync(changelogPath, 'utf8').replace(
+    restoreChangelogDraft(readFileSync(changelogPath, 'utf8'), '2.6.0').replace(
       '<!-- #region releases -->',
       '<!-- #region releases -->\n## [2.6.0] - 2026-10-20\n\nGenerated placeholder.\n'
     )
   )
+  const releasePleasePath = resolve(root, 'release-please-config.json')
+  const releasePlease = JSON.parse(readFileSync(releasePleasePath, 'utf8'))
+  releasePlease['last-release-sha'] = BOOTSTRAP_SHA
+  writeJson(releasePleasePath, releasePlease)
   const screenshots = JSON.parse(
     readFileSync(resolve('docs/assets/readme/2.6.0.manifest.json'), 'utf8')
   )
@@ -136,11 +176,13 @@ describe('release normalization', () => {
       readFileSync(resolve('.release-please-manifest.json'), 'utf8')
     )
     expect(packageJson.devDependencies['release-please']).toBe('17.11.2')
-    expect(manifest).toEqual({ '.': '2.5.3' })
+    expect(manifest).toEqual({ '.': packageJson.version })
     expect(config['bootstrap-sha']).toBe(
-      '0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6'
+      BOOTSTRAP_SHA
     )
-    expect(config['last-release-sha']).toBe(config['bootstrap-sha'])
+    if ('last-release-sha' in config) {
+      expect(config['last-release-sha']).toBe(config['bootstrap-sha'])
+    }
     expect(config['skip-github-release']).toBe(true)
     expect(config.packages['.']['skip-github-release']).toBe(true)
     expect(JSON.stringify(config)).not.toContain('release-as')
@@ -239,12 +281,18 @@ describe('release normalization', () => {
     )
   })
 
-  it('keeps the current repository untouched while Release Please still owns 2.5.3', () => {
-    expect(planReleaseNormalization(process.cwd())).toMatchObject({
-      version: '2.5.3',
-      state: 'awaiting-release-please',
-      changes: []
-    })
+  it('derives the current checkout from Release Please authority without writing', () => {
+    const packageVersion = JSON.parse(readFileSync(resolve('package.json'), 'utf8')).version
+    const trainPath = resolve('docs/release-trains/2.5.x-next.json')
+    const trainBefore = readFileSync(trainPath, 'utf8')
+    const previousVersion = JSON.parse(trainBefore).previousRelease.tag.replace(/^v/, '')
+    const plan = planReleaseNormalization(process.cwd())
+    expect(plan.version).toBe(packageVersion)
+    expect(plan.state).toBe(
+      packageVersion === previousVersion ? 'awaiting-release-please' : 'planned'
+    )
+    if (packageVersion === previousVersion) expect(plan.changes).toEqual([])
+    expect(readFileSync(trainPath, 'utf8')).toBe(trainBefore)
   })
 })
 // END_BLOCK_RELEASE_NORMALIZE_TESTS

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-readiness.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
@@ -20,6 +20,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.3.0: validate the checked-in train in either collecting main or prepared release-PR lifecycle state.
 //   - 2026-10-20 v1.2.0: cover trusted previous-release boundaries, many-to-many item accounting, and exact non-seal check policy.
 //   - 2026-10-20 v1.1.0: add payload/seal/tag/check/fresh-screenshot strict identity regressions.
 //   - 2026-10-20 v1.0.0: pin the C-RELEASE-PIPELINE-AUTOMATION train authority and independent negative conditions.
@@ -209,7 +210,7 @@ const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
 
 // START_BLOCK_RELEASE_READINESS_TESTS
 describe('release train authority', () => {
-  it('parses the checked-in collecting train and records the expected 2.6.0 identity', () => {
+  it('parses the checked-in train and records its expected 2.6.0 lifecycle identity', () => {
     const manifest = readTrainManifest(process.cwd())
     const result = validateTrainManifest(manifest, {
       workspaceRoot: process.cwd(),
@@ -217,7 +218,7 @@ describe('release train authority', () => {
     })
     expect(result).toMatchObject({
       trainId: '2.5.x-next',
-      state: 'Collecting',
+      state: manifest.state,
       version: '2.6.0'
     })
     expect(result.itemCounts.userFacing).toBeGreaterThan(10)
