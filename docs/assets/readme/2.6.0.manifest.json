@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "releaseVersion": "2.6.0",
+  "payloadSha": null,
+  "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
+  "captureState": "retained-reviewed-images",
+  "freezeRequirement": "Run the capture command from the final payload and replace this state with fresh-reviewed before Frozen.",
+  "review": {
+    "reviewer": "xronocode",
+    "reviewedAt": "2026-10-19",
+    "scenarios": [
+      "The retained README cover and gallery images were reviewed as release materials before this train.",
+      "This digest set proves the retained bytes only; it does not claim a fresh 2.6.0 payload capture.",
+      "A fresh payload capture and visual re-review remain mandatory before the train can become Frozen."
+    ]
+  },
+  "images": [
+    {
+      "path": "docs/assets/readme/cover-dark.png",
+      "sha256": "70a1ec52eca75b8a22fcb7a74b57ecdc01079515e883147c31f06b1d8244b270"
+    },
+    {
+      "path": "docs/assets/readme/cover.png",
+      "sha256": "ce5bcc1ef2db7910c38416b62a58d2178a3d7b6e695d5e753c95339569f69448"
+    },
+    {
+      "path": "docs/assets/readme/01-agents.png",
+      "sha256": "8d03aac1b71ccb35729e30e828eb208fbd4f2fcb678c3a16ca88a6418853bbb4"
+    },
+    {
+      "path": "docs/assets/readme/07-home.png",
+      "sha256": "177715a0d1f3120f3fda19c9747c210edef5211730bedf42d26a87124b165958"
+    },
+    {
+      "path": "docs/assets/readme/06-split.png",
+      "sha256": "6f790e5cadb137ec3aebfdfb225c6e827f4e37232fc84b89a279ddf01680b9b2"
+    },
+    {
+      "path": "docs/assets/readme/03-diagrams.png",
+      "sha256": "d599c76b87dc223f1947fc7687d53af4ef056a917e455db936b87b69a7a0b7c2"
+    },
+    {
+      "path": "docs/assets/readme/05-viewer.png",
+      "sha256": "5171f520a85ad680200452fc801b4fb7d93bbd91c02aba94e191b131d1fe81c0"
+    },
+    {
+      "path": "docs/assets/readme/04-copy.png",
+      "sha256": "2b31145af792f7f9a5dc34aa9abf03a540d0bb5228177384c5214ca0a2d182ad"
+    },
+    {
+      "path": "docs/assets/readme/08-dark.png",
+      "sha256": "809bb86dafa68d84d3babe5d71c4fc920b9f04767b75b3c9df773d97def59b1b"
+    }
+  ]
+}
