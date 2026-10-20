@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 2.2.0
+# VERSION: 2.3.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage and publish one digest-verified draft release after a separate owner approval.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, draft-first GitHub publication, and downstream Homebrew handoff.
@@ -20,6 +20,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-21 v2.3.0: restore the remote annotated tag object after checkout rewrites the local tag ref to its peeled commit.
 #   - 2026-10-20 v2.2.0: isolate Release Please metadata permissions from publication, compare release notes byte-for-byte, and document rerunnable cask handoff.
 #   - 2026-10-20 v2.1.0: separate privileged publication preparation, make updater metadata deterministic, narrow platform secrets, and add idempotent publication recovery.
 #   - 2026-10-20 v2.0.0: require the owner-approved bot tag and Ready seal, isolate tag-only signing, keep manual runs unsigned, and publish only after draft asset/note/read-back verification.
@@ -102,8 +103,10 @@ jobs:
           [ "$REF_TYPE" = tag ]
           [ "$PUSH_ACTOR" = "$EXPECTED_TAGGER" ]
           node -e "if(!/^v(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$/.test(process.env.REF_NAME))process.exit(1)"
-          [ "$(git cat-file -t "$REF_NAME")" = tag ]
-          SEAL=$(git rev-parse "$REF_NAME^{commit}")
+          git fetch --force --no-tags origin "refs/tags/$REF_NAME:refs/tags/$REF_NAME"
+          TAG_REF="refs/tags/$REF_NAME"
+          [ "$(git cat-file -t "$TAG_REF")" = tag ]
+          SEAL=$(git rev-parse "$TAG_REF^{commit}")
           HEAD_SHA=$(git rev-parse HEAD)
           [ "$HEAD_SHA" = "$SEAL" ]
           STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).state")

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.6.0: require tag admission to restore the remote annotated object after checkout peels the local tag ref.
 //   - 2026-10-21 v1.5.0: require complete promotion history for payload-to-seal ancestry proofs before and after approval.
 //   - 2026-10-20 v1.4.0: use a minimal non-credential constructor sentinel in API-failure coverage.
 //   - 2026-10-20 v1.3.0: verify read-only publication preparation, narrow publication permissions, deterministic updater dates, exact public-release recovery, and rerunnable cask handoff.
@@ -154,8 +155,15 @@ describe('release GitHub trust boundaries', () => {
   it('rejects out-of-band or lightweight tags before any signing job', () => {
     const admission = commands(release.jobs['authorize-tag'])
     expect(JSON.stringify(release.jobs['authorize-tag'])).toContain('xronocode-release-bot[bot]')
-    expect(admission).toContain('git cat-file -t "$REF_NAME"')
-    expect(admission).toContain('git rev-parse "$REF_NAME^{commit}"')
+    expect(admission).toContain(
+      'git fetch --force --no-tags origin "refs/tags/$REF_NAME:refs/tags/$REF_NAME"'
+    )
+    expect(admission).toContain('TAG_REF="refs/tags/$REF_NAME"')
+    expect(admission).toContain('git cat-file -t "$TAG_REF"')
+    expect(admission).toContain('git rev-parse "$TAG_REF^{commit}"')
+    expect(admission.indexOf('git fetch --force --no-tags origin')).toBeLessThan(
+      admission.indexOf('git cat-file -t "$TAG_REF"')
+    )
     expect(admission).toContain('[ "$HEAD_SHA" = "$SEAL" ]')
     expect(admission).toContain('npm run release:readiness --')
     expect(admission).toContain('--checks-file /tmp/release-checks.json')
