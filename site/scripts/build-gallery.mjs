@@ -294,7 +294,7 @@ function apply(id,scroll){var t=THEMES[id];if(!t)return;cur=id;
 function stop(){if(timer){clearInterval(timer);timer=null}play.setAttribute('aria-pressed','false');play.querySelector('.ic').textContent='▶';play.querySelector('.lb').textContent='Slideshow';play.setAttribute('aria-label','Play through themes')}
 function go(){apply(ids[(ids.indexOf(cur)+1)%ids.length],true)}
 play.addEventListener('click',function(){if(timer){stop();return}go();timer=setInterval(go,1500);play.setAttribute('aria-pressed','true');play.querySelector('.ic').textContent='❚❚';play.querySelector('.lb').textContent='Pause';play.setAttribute('aria-label','Pause slideshow')});
-strip.querySelectorAll('.chip').forEach(function(b){b.addEventListener('click',function(){stop();apply(b.dataset.t,true)})});
+strip.querySelectorAll('.chip').forEach(function(b){b.addEventListener('click',function(){stop();if(window.markTrack)window.markTrack('diagram_filter',{kind:'theme'});apply(b.dataset.t,true)})});
 // The page theme was resolved before first paint by the shared head script
 // (same storage key as the docs); start the diagrams on the matching
 // brand pair unless the visitor already picked a Mark theme here.
@@ -310,7 +310,7 @@ tgl.addEventListener('click',function(){var dark=!root.classList.contains('dark'
  tgl.setAttribute('aria-pressed',String(dark));
  try{localStorage.setItem('vitepress-theme-appearance',dark?'dark':'light')}catch(e){}
  if(cur==='paper'||cur==='ink')apply(dark?'ink':'paper',true)});
-document.querySelectorAll('.filters button').forEach(function(b){b.addEventListener('click',function(){var g=b.dataset.g;
+document.querySelectorAll('.filters button').forEach(function(b){b.addEventListener('click',function(){if(window.markTrack)window.markTrack('diagram_filter',{kind:'group'});var g=b.dataset.g;
  document.querySelectorAll('.filters button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
  var n=0;document.querySelectorAll('.card,.ghead').forEach(function(c){var on=g==='all'||c.dataset.group===g;c.hidden=!on;if(on&&c.classList.contains('card'))n++});
  document.querySelector('.empty').hidden=n>0})});
@@ -318,7 +318,7 @@ function copyText(text){if(navigator.clipboard&&navigator.clipboard.writeText)re
  return new Promise(function(ok,fail){var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;pointer-events:none';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')?ok():fail()}catch(e){fail(e)}ta.remove()})}
 document.querySelectorAll('.copy').forEach(function(b){b.addEventListener('click',function(){
  var code=document.getElementById('src-'+b.dataset.id);
- copyText(code.textContent).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1400)},
+ copyText(code.textContent).then(function(){if(window.markTrack)window.markTrack('diagram_copy',{doc_id:b.dataset.id});b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1400)},
  function(){var r=document.createRange();r.selectNodeContents(code);var s=getSelection();s.removeAllRanges();s.addRange(r)})})});
 var box=document.getElementById('showbox'),shs=document.getElementById('shstage');
 var si=0,sTimer=null,sPaused=false,prevTheme=null;
