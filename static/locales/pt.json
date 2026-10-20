@@ -1453,7 +1453,7 @@
     "title": "Novidades",
     "seeGuide": "Ver o guia",
     "continue": "Continuar",
-    "also": "E mais: uma vassoura limpa os Recentes na barra lateral, e ⌘W fecha os Ajustes",
+    "also": "E mais: fechamento de abas mais seguro, seleção Shift confiável, diálogos no tema e menus claros",
     "seeEverything": "Ver todas as novidades",
     "v2_3_1": {
       "look": {
@@ -1525,6 +1525,24 @@
       "updates": {
         "title": "As atualizações vêm até você",
         "text": "Uma vez por dia o Mark procura uma versão nova: atualizar agora, depois ou pular."
+      }
+    },
+    "v2_6_0": {
+      "tableImages": {
+        "title": "Tabelas como imagens",
+        "text": "Copie uma tabela como imagem ou salve um PNG na visualização em tela cheia."
+      },
+      "wideTables": {
+        "title": "Tabelas largas sob controle",
+        "text": "Ajustar e Largura total ficam; sinais mostram as colunas ocultas ao mover."
+      },
+      "compare": {
+        "title": "Compare com a versão aberta",
+        "text": "⌘D compara a nota com a versão aberta pelo Mark, mesmo sem repositório Git."
+      },
+      "shortcuts": {
+        "title": "Atalhos de edição restaurados",
+        "text": "⇧⌘D duplica um parágrafo; ⌘1–6 o transforma em título H1–H6."
       }
     }
   },

@@ -38,15 +38,15 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
-## What's new in 2.5.3
+## What's new in 2.6.0
 
-- **Picks up where you left off.** Launch Mark and the folder and tabs you had open come back, with the same tab active — like Obsidian. Files that are gone are skipped; opening a file from Finder starts with that file. Turn it off in Settings › General › Startup.
-- **Wide tables at full width.** A table wider than the text column opens at its natural width: centred when it fits the window, otherwise starting just inside the edge, with the editor scrolling sideways. «Fit to page» in the table toolbar keeps it in the column, and Mark remembers that per table.
-- **Column widths that stay.** Drag a column border once and the width is kept for that file across restarts — in your Mark profile, never in the Markdown. A double click on the border resets it.
-- **Updates come to you.** The download and Homebrew build checks for a new version once a day and offers Update, Later or Skip this version.
-- **And the rest.** A broom clears Recent in the sidebar; ⌘W closes Settings; the update check in Settings reports in its own row.
+- **Tables travel as pictures.** Copy a table as an image, or save a PNG from the fullscreen table viewer — useful for reviews, chats and presentations where Markdown tables fall apart.
+- **Wide tables stay under control.** Full width and Fit to page keep their state through editor updates. The fullscreen viewer uses one clear navigation model — drag to pan — with edge shadows showing where more columns remain.
+- **Compare with what Mark opened.** ⌘D compares a note with the version that was present when Mark opened it, even outside a Git repository; an unchanged note gets a calm, explicit result.
+- **Editing shortcuts work again.** ⇧⌘D duplicates the current paragraph, while ⌘1–6 turns it into H1–H6. The Russian paragraph menu stays readable instead of wrapping shortcuts over labels.
+- **And the rest.** Shift+Up/Down selection no longer stalls under a toolbar; closing a tab keeps the right document active; stale outline entries clear; dark and untitled close dialogs are safer and clearer.
 
-The 2.5.0 highlights — diagrams as pictures, a look for each diagram, direct print and PDF — are in [CHANGELOG.md](CHANGELOG.md).
+The 2.5.3 highlights — session restore, full-width tables, remembered column widths and daily update checks — are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Why Mark
 

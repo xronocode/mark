@@ -11,7 +11,33 @@ Carried over from the old status table in the README:
 - Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
 - Image upload services (PicGo and similar) are not supported.
 
+<!-- release-draft:start -->
+
+Tables can leave Mark as pictures, wide-table controls stay stable, and a focused stabilization pass repairs editing, tab ownership and close dialogs.
+
+### Tables
+- Copy a table as an image from the editor, or save it as PNG from the fullscreen table viewer.
+- Full width and Fit to page keep their chosen state through editor updates; fitting tables keep their compact toolbar and footer geometry.
+- The fullscreen table viewer uses drag-to-pan as its only horizontal navigation model. It no longer paints a misleading bottom scrollbar, and subtle edge shadows show which side still contains clipped columns.
+- Wide tables stay centred when they fit, start inside the editor edge when they do not, and temporarily move the outline out of their way instead of sliding underneath it.
+- Inline table and diagram toolbar labels remain visible after visiting an action, then clear when the pointer leaves the panel.
+
+### Editor and navigation
+- ⌘D compares a note with the version Mark opened, including outside a Git repository; unchanged notes report that clearly.
+- ⇧⌘D duplicates the current paragraph. ⌘1–6 converts it to H1–H6 and persists the change to Markdown and the outline.
+- Shift+Up/Down selection continues expanding while passive formatting panels are visible.
+- Opening a new document after closing a file clears the old file's outline instead of retaining stale headings.
+- The localized paragraph transform menu sizes itself to long labels and shortcut columns instead of wrapping or colliding.
+
+### Tabs and dialogs
+- Closing the active tab keeps the selected tab, editor body and later edits owned by the same document, including delayed background events.
+- The unsaved-changes dialog follows the active light or dark theme.
+- Closing a dirty untitled tab now offers three distinct actions: Save & Close opens Save As, Discard is explicit and non-default, and Cancel keeps the tab and its content.
+
+<!-- release-draft:end -->
+
 <!-- #region releases -->
+
 ## [2.5.3] - 2026-10-19
 
 Mark now remembers where you were, and wide tables get the room they need.

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/whatsNew/gate.test.js
-// VERSION: 1.2.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New startup gate — fresh install records
 //            silently, an upgrade shows the sheet once and stamps
@@ -17,11 +17,15 @@
 // START_MODULE_MAP
 //   NOW - fixed fake-clock instant shared by every case.
 //   NOW_SECS - NOW as unix seconds (m005 mt_migration.marker_written_at unit).
+//   LATEST_WHATS_NEW_VERSION - newest shipped sheet used by fallback assertions.
 //   makeFakeIpc - in-memory prefs facade (get/set/getAll) capturing set() calls.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
+//   LAST_CHANGE: v1.4.0 - 2026-10-20 derive fallback identity from the newest sheet so version normalization does not rewrite test history.
+//   PREV: v1.3.0 - 2026-10-20 release 2.6.0 draft: fallback
+//   resolution now pins the newest available sheet at 2.6.0.
+//   v1.2.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
 //   v1.1.0 - 2026-10-15 C-48 review fix: legacy-install pins —
 //   a 2.3.0 profile (no lastSeenVersion, but an old mt_migration marker or
 //   session/recent-folder history) is an upgrade and shows the sheet once;
@@ -42,10 +46,11 @@ import {
   LAST_SEEN_VERSION_KEY,
   LAST_UPDATE_AT_KEY
 } from '@/whatsNew/gate'
-import { getWhatsNewItems, resolveWhatsNewVersion, WHATS_NEW_MAX_ITEMS } from '@/whatsNew/data'
+import { getWhatsNewItems, resolveWhatsNewVersion, WHATS_NEW_CONTENT, WHATS_NEW_MAX_ITEMS } from '@/whatsNew/data'
 
 const NOW = new Date('2026-10-15T10:30:00')
 const NOW_SECS = Math.floor(NOW.getTime() / 1000)
+const LATEST_WHATS_NEW_VERSION = Object.keys(WHATS_NEW_CONTENT)[0]
 
 // TOP-LEVEL fake prefs facade (TEST/LOCALS: top-level locals only).
 const makeFakeIpc = (initial = {}) => {
@@ -84,8 +89,8 @@ describe('whatsNew/data', () => {
 
   it('resolveWhatsNewVersion keeps a version with content and falls back to the newest otherwise', () => {
     expect(resolveWhatsNewVersion('2.5.0-beta')).toBe('2.5.0')
-    expect(resolveWhatsNewVersion('2.5.1')).toBe('2.5.3')
-    expect(resolveWhatsNewVersion('0.0.0')).toBe('2.5.3')
+    expect(resolveWhatsNewVersion('2.5.1')).toBe(LATEST_WHATS_NEW_VERSION)
+    expect(resolveWhatsNewVersion('0.0.0')).toBe(LATEST_WHATS_NEW_VERSION)
     expect(getWhatsNewItems(resolveWhatsNewVersion('garbage')).length).toBeGreaterThan(0)
   })
 })

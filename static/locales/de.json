@@ -1449,7 +1449,7 @@
     "title": "Was ist neu",
     "seeGuide": "Anleitung ansehen",
     "continue": "Weiter",
-    "also": "Außerdem: Ein Besen leert „Zuletzt“ in der Seitenleiste, und ⌘W schließt die Einstellungen",
+    "also": "Außerdem: sichereres Tab-Schließen, zuverlässige Shift-Auswahl, passende Dialoge und klare Menüs",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "v2_3_1": {
       "look": {
@@ -1521,6 +1521,24 @@
       "updates": {
         "title": "Updates kommen zu Ihnen",
         "text": "Mark sucht täglich nach einer neuen Version: jetzt, später oder überspringen."
+      }
+    },
+    "v2_6_0": {
+      "tableImages": {
+        "title": "Tabellen als Bilder",
+        "text": "Tabelle als Bild kopieren oder im Vollbild als PNG sichern."
+      },
+      "wideTables": {
+        "title": "Breite Tabellen im Griff",
+        "text": "Anpassen und Volle Breite bleiben; Hinweise zeigen weitere Spalten beim Schwenken."
+      },
+      "compare": {
+        "title": "Vergleich mit geöffneter Fassung",
+        "text": "⌘D vergleicht die Notiz mit Marks geöffneter Fassung, auch ohne Git-Repository."
+      },
+      "shortcuts": {
+        "title": "Kurzbefehle wieder da",
+        "text": "⇧⌘D dupliziert einen Absatz; ⌘1–6 macht daraus H1–H6."
       }
     }
   },

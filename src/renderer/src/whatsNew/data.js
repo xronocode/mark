@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
 //            (max 4 items, icon + i18n title/text keys) keyed by the
@@ -14,7 +14,7 @@
 //          image copy); .grace/changes/archive/C-55 (2.4.0 sheet);
 //          .grace/changes/archive/C-53 (2.3.1 sheet); components/
 //          whatsNew renders the items, the also line and the release link;
-//          locales whatsNew.v2_5_0.* carry the text.
+//          locales whatsNew.v2_6_0.* carry the current text.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -31,7 +31,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-19 release 2.5.3: the sheet shows the
+//   LAST_CHANGE: v1.6.0 - 2026-10-20 release 2.6.0 draft: the sheet shows
+//   tables as pictures, wide-table controls, comparison with the opened
+//   version and restored editing shortcuts, and points at the future
+//   v2.6.0 release URL. Publication remains separately authorized.
+//   v1.5.0 - 2026-10-19 release 2.5.3: the sheet shows the
 //   four 2.5.3 items (session restore C-69, wide tables at full width
 //   C-65, remembered column widths C-65, daily update check C-66) and
 //   points at the v2.5.3 release; the also line names the Clear Recent
@@ -71,6 +75,28 @@ export const WHATS_NEW_MAX_ITEMS = 4
 // ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
 // under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
+  '2.6.0': [
+    {
+      icon: '▦',
+      titleKey: 'whatsNew.v2_6_0.tableImages.title',
+      textKey: 'whatsNew.v2_6_0.tableImages.text'
+    },
+    {
+      icon: '↔',
+      titleKey: 'whatsNew.v2_6_0.wideTables.title',
+      textKey: 'whatsNew.v2_6_0.wideTables.text'
+    },
+    {
+      icon: '◫',
+      titleKey: 'whatsNew.v2_6_0.compare.title',
+      textKey: 'whatsNew.v2_6_0.compare.text'
+    },
+    {
+      icon: '⌘',
+      titleKey: 'whatsNew.v2_6_0.shortcuts.title',
+      textKey: 'whatsNew.v2_6_0.shortcuts.text'
+    }
+  ],
   '2.5.3': [
     {
       icon: '↺',
@@ -126,6 +152,7 @@ export const WHATS_NEW_CONTENT = {
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_RELEASE_URLS = {
+  '2.6.0': 'https://github.com/xronocode/mark/releases/tag/v2.6.0',
   '2.5.3': 'https://github.com/xronocode/mark/releases/tag/v2.5.3',
   '2.5.0': 'https://github.com/xronocode/mark/releases/tag/v2.5.0'
 }
