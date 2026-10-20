@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.9.0
+// VERSION: 2.10.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
@@ -21,7 +21,10 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.9.0 - 2026-10-19 C-64 version sync: the config resolves
+//   LAST_CHANGE: [v2.10.0 - 2026-10-21 base-path regression: the Diagrams
+//                 theme-nav link is expressed as a root-relative VitePress
+//                 route so VitePress applies SITE_BASE exactly once.]
+//   PREV: [v2.9.0 - 2026-10-19 C-64 version sync: the config resolves
 //                 the latest GitHub release once at load (package.json
 //                 fallback, SITE_RELEASE=offline skips the API), pins it via
 //                 setReleaseVersion so JSON-LD/llms.txt agree with the page,
@@ -229,7 +232,7 @@ export default defineConfig({
     // is emitted outside VitePress: a plain same-tab link (any `target`
     // attribute opts out of the SPA router) that dead-link checks ignore.
     nav: [
-      { text: 'Diagrams', link: `${base}diagrams/`, target: '_self' },
+      { text: 'Diagrams', link: '/diagrams/', target: '_self' },
       { text: 'Guide', link: '/guide/' },
       { text: 'Reference', link: '/reference/' },
       { text: 'Changelog', link: '/changelog' }

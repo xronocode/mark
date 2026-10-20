@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/head.test.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 head/consent/analytics/SEO/CSP/FAQ surface —
 //            the shared head's SEO tags, the JSON-LD @graph (version: the
@@ -12,8 +12,8 @@
 //            hashing, ld+json exclusion, provider host toggles, first-in-head
 //            idempotent injection, tamper detection) plus the runtime
 //            behaviour of public/track.js and public/consent.js (grant-gated
-//            GA load, undecided click queue) booted on fake window/document
-//            globals.
+//            GA load, undecided click queue, guide completion, and sanitized
+//            analytics locations) booted on fake window/document globals.
 //   SCOPE: site/.vitepress/landing.mjs (jsonLd, breadcrumbJsonLd, FAQ_ITEMS,
 //          faqJsonLd, sharedHeadTags, docsHeadTags, analyticsTags,
 //          appVersion, setReleaseVersion), site/scripts/csp.mjs,
@@ -45,7 +45,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.3.0 - 2026-10-19 C-64 version sync: appVersion() returns
+//   LAST_CHANGE: [v1.4.0 - 2026-10-21 GA4 tracking regression: the fake
+//                 browser supplies an explicit location and window scroll
+//                 APIs; tests pin one-shot guide doc_read at root and under
+//                 a deployment base, and verify that GA config strips
+//                 non-campaign query fields/hash while retaining named UTM values
+//                 and referrer origin only; analytics fixtures use explicitly
+//                 generated low-entropy placeholders.]
+//   PREV: [v1.3.0 - 2026-10-19 C-64 version sync: appVersion() returns
 //                 the pinned release after setReleaseVersion(v) (including in
 //                 the JSON-LD softwareVersion) and falls back to the root
 //                 package.json after setReleaseVersion(undefined), so the
@@ -93,8 +100,8 @@ const FAQ_MD = readFileSync(resolve(import.meta.dirname, '../../site/guide/faq.m
 const SETTINGS = resolveSiteSettings({})
 const BASE_SETTINGS = resolveSiteSettings({ SITE_URL: 'https://xronocode.github.io/mark', SITE_BASE: 'mark' })
 const PROVIDERS = resolveSiteSettings({
-  GA_MEASUREMENT_ID: 'G-KW57Y3CRPY',
-  CF_BEACON_TOKEN: '0123456789abcdef0123456789abcdef'
+  GA_MEASUREMENT_ID: `G-${'0'.repeat(10)}`,
+  CF_BEACON_TOKEN: '0'.repeat(32)
 }).analytics
 
 describe('appVersion', () => {
@@ -342,11 +349,15 @@ describe('llmsTxt / securityTxt', () => {
 
 const TRACK_SRC = readFileSync(resolve(import.meta.dirname, '../../site/public/track.js'), 'utf8')
 
-function bootTrack ({ granted = false, decided = true, withGtag = true } = {}) {
+function bootTrack ({ granted = false, decided = true, withGtag = true, pathname = '/' } = {}) {
   const calls = []
   const docListeners = {}
+  const winListeners = {}
   const consentListeners = []
-  const document = { addEventListener (type, cb) { docListeners[type] = cb } }
+  const document = {
+    documentElement: { scrollTop: 0, scrollHeight: 1000 },
+    addEventListener (type, cb) { docListeners[type] = cb }
+  }
   const markConsent = {
     granted: () => granted,
     // A harness without `decided` (undefined) behaves like a decided state,
@@ -357,13 +368,19 @@ function bootTrack ({ granted = false, decided = true, withGtag = true } = {}) {
   const window = {
     document,
     markConsent,
+    location: { pathname },
+    innerHeight: 100,
+    addEventListener: (type, cb) => { winListeners[type] = cb },
+    removeEventListener: (type, cb) => { if (winListeners[type] === cb) delete winListeners[type] },
     ...(withGtag ? { gtag: (...args) => calls.push(args) } : {})
   }
   new Function('window', 'document', TRACK_SRC)(window, document)
   return {
     calls,
     docListeners,
+    document,
     window,
+    winListeners,
     consentListeners,
     set: (g, d) => { granted = g; decided = d }
   }
@@ -471,6 +488,25 @@ describe('public/track.js', () => {
     for (const cb of t.consentListeners) cb(true)
     expect(t.calls).toHaveLength(10)
   })
+
+  it.each([
+    ['/guide/getting-started', 'getting-started'],
+    ['/mark/guide/themes', 'themes']
+  ])('sends doc_read once at 75%% scroll depth for %s', (pathname, docId) => {
+    const t = bootTrack({ granted: true, pathname })
+    const onScroll = t.winListeners.scroll
+    expect(onScroll).toBeTypeOf('function')
+    t.document.documentElement.scrollTop = 649
+    onScroll()
+    expect(t.calls).toEqual([])
+    t.document.documentElement.scrollTop = 650
+    onScroll()
+    onScroll()
+    expect(t.calls).toEqual([
+      ['event', 'doc_read', { doc_id: docId, transport_type: 'beacon' }]
+    ])
+    expect(t.winListeners.scroll).toBeUndefined()
+  })
 })
 
 /* ---------- public/consent.js on fake globals (no DOM) ---------- */
@@ -501,6 +537,7 @@ async function bootConsent ({ geo = { consent: false }, saved = null, noRic = fa
       })[n] ?? null
     },
     documentElement: { lang: 'en', appendChild () {} },
+    referrer: 'https://ref.example/full/path?preview=internal-only#details',
     addEventListener: (t, cb) => { docListeners[t] = cb },
     getElementById: () => null,
     createElement: () => {
@@ -514,6 +551,12 @@ async function bootConsent ({ geo = { consent: false }, saved = null, noRic = fa
   const window = {
     document,
     dataLayer,
+    location: {
+      href: 'https://mark.xronocode.com/guide/install?utm_source=newsletter&preview=internal-only&utm_medium=email&utm_campaign=launch%20day#details',
+      origin: 'https://mark.xronocode.com',
+      pathname: '/guide/install',
+      search: '?utm_source=newsletter&preview=internal-only&utm_medium=email&utm_campaign=launch%20day'
+    },
     gtag: function (...args) { dataLayer.push(args) },
     addEventListener: (t, cb) => { winListeners[t] = cb },
     removeEventListener: () => {},
@@ -560,6 +603,18 @@ describe('public/consent.js', () => {
     expect(created.length).toBe(0)             // load fired, still waiting for idle
     window.__flushIdle()
     expect(created[0].src).toBe('https://www.googletagmanager.com/gtag/js?id=G-TEST00000')
+  })
+
+  it('sanitizes page_location and page_referrer before GA config', async () => {
+    const { dataLayer } = await bootConsent()
+    const config = dataLayer.find((c) => c[0] === 'config' && c[1] === 'G-TEST00000')
+    expect(config[2]).toEqual({
+      page_location: 'https://mark.xronocode.com/guide/install?utm_source=newsletter&utm_medium=email&utm_campaign=launch%20day',
+      page_referrer: 'https://ref.example'
+    })
+    expect(JSON.stringify(config[2])).not.toContain('preview=internal-only')
+    expect(JSON.stringify(config[2])).not.toContain('#details')
+    expect(JSON.stringify(config[2])).not.toContain('/full/path')
   })
 
   it('falls back to a 2 s setTimeout when requestIdleCallback is missing', async () => {
