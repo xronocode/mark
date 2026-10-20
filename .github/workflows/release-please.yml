@@ -1,0 +1,270 @@
+# FILE: .github/workflows/release-please.yml
+# VERSION: 1.0.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Let the pinned Release Please CLI calculate SemVer and open/update a preparation PR, then normalize Mark-specific version surfaces without tagging or publishing.
+#   SCOPE: Trusted main/scheduled/manual release-PR preparation, unprivileged candidate normalization/testing, and patch-only bot commit; no release tag, GitHub Release, signing, deployment, store, cask, Project, Environment, or ruleset mutation.
+#   DEPENDS: release-please 17.11.2 lockfile dependency; RELEASE_PREP_APP_ID variable; RELEASE_PREP_APP_PRIVATE_KEY secret; M-046 normalization and material gates.
+#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
+#   ROLE: CONFIG
+#   MAP_MODE: SUMMARY
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   prepare - Run the pinned Release Please CLI with a purpose-specific GitHub App token.
+#   normalize - Discover the bot-owned PR, normalize it with trusted main tooling, and verify the token-free candidate.
+#   commit-normalization - Apply only the verified patch to the unchanged PR head and push with a fresh narrow token.
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   - 2026-10-20 v1.0.0: add PR-only Conventional SemVer preparation and split unprivileged normalization from privileged patch commit.
+# END_CHANGE_SUMMARY
+
+name: release-please
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * 1'
+
+concurrency:
+  group: release-please-main
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  prepare:
+    name: prepare release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: create preparation token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          # Symbolic GitHub secret lookup only; credential bytes are stored in repository settings, never in source.
+          app-id: ${{ vars.RELEASE_PREP_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PREP_APP_PRIVATE_KEY }}
+          owner: xronocode
+          repositories: mark
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: checkout trusted main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: guard the preparation window
+        id: window
+        run: |
+          set -euo pipefail
+          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).state")
+          if [ "$STATE" = Collecting ]; then
+            echo "prepare=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prepare=false" >> "$GITHUB_OUTPUT"
+            echo "Release preparation is a no-op while train state is $STATE." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: prepare PR only
+        if: steps.window.outputs.prepare == 'true'
+        env:
+          RELEASE_PREP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: >-
+          npx --no-install release-please release-pr
+          --repo-url xronocode/mark
+          --target-branch main
+          --token "$RELEASE_PREP_TOKEN"
+
+  normalize:
+    name: normalize and verify PR head
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      has_pr: ${{ steps.discover.outputs.has_pr }}
+      has_patch: ${{ steps.patch.outputs.has_patch }}
+      head_ref: ${{ steps.discover.outputs.head_ref }}
+      head_sha: ${{ steps.discover.outputs.head_sha }}
+      patch_sha256: ${{ steps.patch.outputs.patch_sha256 }}
+    steps:
+      - name: checkout trusted main tooling
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          path: trusted
+          persist-credentials: false
+
+      - name: discover the single bot-owned release PR
+        id: discover
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          json=$(gh pr list --repo xronocode/mark --state open --label 'autorelease: pending' --base main --json number,headRefName,headRefOid,headRepositoryOwner --limit 2)
+          count=$(jq 'length' <<<"$json")
+          if [ "$count" = 0 ]; then
+            echo "has_pr=false" >> "$GITHUB_OUTPUT"
+            echo "No pending release PR; normalization is a no-op." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          test "$count" = 1
+          head_ref=$(jq -r '.[0].headRefName' <<<"$json")
+          head_sha=$(jq -r '.[0].headRefOid' <<<"$json")
+          head_owner=$(jq -r '.[0].headRepositoryOwner.login' <<<"$json")
+          [[ "$head_ref" == release-please--branches--main--components--reborn-mark ]]
+          test "$head_owner" = xronocode
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "has_pr=true" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: checkout exact release PR head without credentials
+        if: steps.discover.outputs.has_pr == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.discover.outputs.head_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup Node 22
+        if: steps.discover.outputs.has_pr == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: candidate/package-lock.json
+
+      - name: normalize with trusted tooling
+        if: steps.discover.outputs.has_pr == 'true'
+        working-directory: candidate
+        run: node ../trusted/tools/release-normalize.mjs --write
+
+      - name: constrain normalized paths
+        if: steps.discover.outputs.has_pr == 'true'
+        working-directory: candidate
+        run: |
+          set -euo pipefail
+          git diff --name-only --diff-filter=ACMRTUXB > ../changed-paths.txt
+          while IFS= read -r path; do
+            case "$path" in
+              Cargo.toml|Cargo.lock|src-tauri/tauri.conf.json|tests/renderer/release-preflight.test.js|docs/release-trains/2.5.x-next.json|README.md|CHANGELOG.md|docs/release-notes-en-drafts.md|release-please-config.json|src/renderer/src/whatsNew/data.js|static/locales/*.json|docs/assets/readme/*.manifest.json) ;;
+              *) echo "unexpected normalized path: $path" >&2; exit 1 ;;
+            esac
+          done < ../changed-paths.txt
+          git diff --check
+          node ../trusted/tools/release-normalize.mjs --check --require-clean
+
+      - name: install candidate dependencies without lifecycle scripts
+        if: steps.discover.outputs.has_pr == 'true'
+        working-directory: candidate
+        run: npm ci --ignore-scripts
+
+      - name: verify normalized candidate without privileged token
+        if: steps.discover.outputs.has_pr == 'true'
+        working-directory: candidate
+        run: >-
+          npx vitest run
+          tests/renderer/release-normalize.test.js
+          tests/renderer/release-preflight.test.js
+          tests/renderer/release-materials.test.js
+          tests/renderer/release-readiness.test.js
+          tests/renderer/whatsNew/content.test.js
+
+      - name: create identity-bound patch
+        id: patch
+        if: steps.discover.outputs.has_pr == 'true'
+        working-directory: candidate
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "has_patch=false" >> "$GITHUB_OUTPUT"
+            echo "Normalization is already byte-clean." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git diff --binary --full-index > ../release-normalization.patch
+          patch_sha256=$(sha256sum ../release-normalization.patch | awk '{print $1}')
+          echo "has_patch=true" >> "$GITHUB_OUTPUT"
+          echo "patch_sha256=$patch_sha256" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "head=${{ steps.discover.outputs.head_sha }}" "patch_sha256=$patch_sha256" > ../release-normalization.identity
+
+      - name: upload verified normalization patch
+        if: steps.patch.outputs.has_patch == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-normalization-${{ steps.discover.outputs.head_sha }}
+          path: |
+            release-normalization.patch
+            release-normalization.identity
+            changed-paths.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  commit-normalization:
+    name: commit verified normalization
+    needs: normalize
+    if: needs.normalize.outputs.has_patch == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: create narrow commit token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          # Symbolic GitHub secret lookup only; credential bytes are stored in repository settings, never in source.
+          app-id: ${{ vars.RELEASE_PREP_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PREP_APP_PRIVATE_KEY }}
+          owner: xronocode
+          repositories: mark
+          permission-contents: write
+
+      - name: checkout unchanged PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.normalize.outputs.head_sha }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: download verified patch
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-normalization-${{ needs.normalize.outputs.head_sha }}
+          path: verified
+
+      - name: verify and commit patch without executing candidate code
+        env:
+          EXPECTED_HEAD: ${{ needs.normalize.outputs.head_sha }}
+          EXPECTED_PATCH_SHA256: ${{ needs.normalize.outputs.patch_sha256 }}
+          HEAD_REF: ${{ needs.normalize.outputs.head_ref }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test "$(sha256sum verified/release-normalization.patch | awk '{print $1}')" = "$EXPECTED_PATCH_SHA256"
+          grep -Fxq "head=$EXPECTED_HEAD" verified/release-normalization.identity
+          grep -Fxq "patch_sha256=$EXPECTED_PATCH_SHA256" verified/release-normalization.identity
+          git apply --check verified/release-normalization.patch
+          git apply verified/release-normalization.patch
+          git diff --check
+          git config user.name 'mark-release-prep[bot]'
+          git config user.email 'mark-release-prep[bot]@users.noreply.github.com'
+          git add -- $(cat verified/changed-paths.txt)
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore(release): normalize generated release PR'
+          git push origin "HEAD:$HEAD_REF"
