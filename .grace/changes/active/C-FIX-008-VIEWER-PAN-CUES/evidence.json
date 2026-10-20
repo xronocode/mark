@@ -1,6 +1,6 @@
 {
   "date": "2026-10-20",
-  "status": "implemented and locally verified; fresh isolated artifact and owner acceptance pending",
+  "status": "implemented, verified, owner accepted and queued in 2.5.x-next",
   "repair": {
     "module": "src/muya/lib/ui/blockViewer/index.js v3.7.0 (+ index.css pan-cue gradients)",
     "behavior": "overflowX hidden for table canvases at every zoom (no native horizontal scrollbar or bottom track); drag/pan stays the single horizontal-navigation model; tableClipShadows drives two non-interactive edge gradient overlays refreshed on open, fit, 1:1, zoom and every panzoomchange; vertical native scroll (auto exactly when the scaled content exceeds the stage) and the sticky header cap are unchanged.",
@@ -13,5 +13,13 @@
     "governance": "V-M-012 scenario-19 amended to the pan-only model; the pan-cues unit command added beside the existing block-viewer command; grace lint --assertions current zero errors (verified after this bundle's edits together with the C-74 terminal state)."
   },
   "scopeHygiene": "Only ui/blockViewer files, the bundle's own tests and the verification projections were touched; the C-TABLE-FOOTER-owned files (tableResize, tableCue, renderContainerBlock, table-* specs) are untouched.",
-  "pending": "Fresh isolated Mark Test artifact (source, bundle id, binary SHA-256) and the owner's focused FIX-008 acceptance; queueing returns only after that gate (EP-01)."
+  "ownerAcceptance": {
+    "date": "2026-10-20",
+    "acceptanceRecord": "docs/release-trains/2.5.x-next.md#fix-008",
+    "testedBuild": "Mark Test TABLE-STATE 35fc0895; the public train ledger retains the exact source, bundle and binary identity.",
+    "confirmation": "After the correct TABLE-STATE artifact replaced the earlier failing FIX008-FIT window, the owner completed the requested checks and replied 'everything works'.",
+    "acceptedScope": "Fullscreen wide table at 1:1 has no bottom scrollbar; drag/pan reveals clipped content; left/right edge shadows track the clipped sides; Fit shows the whole table and clears both shadows.",
+    "excludedScope": "Only the requested fullscreen pan-cue scenario is accepted here; FIX-011 and the table-width transition have their own acceptance records even though the same artifact was used."
+  },
+  "integration": "Repair debfe5ee is present in fork/main candidate a0a1e1f0. Candidate validation passed: CI 39426430442, full test matrix 39426430518 and CodeQL 39426429592. Complete train admission and separate release authorization remain pending."
 }
