@@ -1,0 +1,107 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-TABLE-NATIVE-TOOLBAR-DELIVERY>
+    <IntentSummary>Make the native Full width to Fit action replace an adopted profile entry without changing accepted visuals, schema or width policy: pin stale re-adoption first, separate load adoption from user-write identity refresh, then verify unit, both browser engines, and a fresh native sidebar matrix.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/muya/lib/tableResize/index.js</Value>
+        <Value>tests/renderer/muya/table-layout-persistence.test.js</Value>
+        <Value>tests/e2e/table-layout.spec.ts</Value>
+        <Value>.grace/changes/active/C-TABLE-FIT-PERSISTENCE/evidence.json</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>adoptPersisted = true</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+        <Text>re-adopting stale persisted state</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/table-layout.spec.ts</File>
+        <Text>reopening so that entry is adopted</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>scenario-73 (C-TABLE-NATIVE-TOOLBAR-DELIVERY)</Text>
+      </MustContain>
+      <MustExist>
+        <Value>.grace/changes/active/C-TABLE-NATIVE-TOOLBAR-DELIVERY/evidence.json</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-012</Module>
+      </MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-012 /></GraphAnchors>
+      <VerificationAnchors><V-M-012 /></VerificationAnchors>
+      <VerificationDocuments><VD-RUNTIME /></VerificationDocuments>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+      <File>tests/e2e/table-layout.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <Glob>.grace/changes/active/C-TABLE-NATIVE-TOOLBAR-DELIVERY/**</Glob>
+      <File>.grace/changes/active/C-TABLE-FIT-PERSISTENCE/evidence.json</File>
+      <File>.grace/changes/active/C-TABLE-FOOTER/evidence.json</File>
+      <File>docs/release-trains/2.5.x-next-followups.md</File>
+      <File>docs/release-trains/2.5.x-next.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Pin stale Full width re-adoption during Fit persistence</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>A focused unit loads an explicit fullWidth entry, clicks Fit, and fails because persist re-adopts the stale entry and restores Full width.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/muya/table-layout-persistence.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Separate load adoption from user-write identity refresh</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>persist refreshes identities without adopting the old host snapshot, replaces its local snapshot with the serialized user state, and preserves click, caption and resizer ownership.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/muya/table-layout-persistence.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Exercise real pointer and sidebar transitions in both browser engines</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The focused table-layout scenario covers sidebar hidden → Fit → sidebar visible → Full width save → reopen/adopt → Fit replacement → reopen → sidebar hidden, with the viewer action present and the persisted fit entry intact; the complete file passes in Chromium and WebKit.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run build</Command>
+          <Command>npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Build and inspect the native regression matrix</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>A fresh isolated-name native bundle visibly delivers Fit and reverse Full width actions with sidebar hidden and visible, keeps the viewer affordance available, does not dirty the document, and updates the synthetic fixture preference entry.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run tauri:build:test</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Record GRACE and delivery evidence</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>M-012 and V-M-012 describe the repaired state contract; evidence.json records commands, failed artifacts, accepted artifact hash and native observations; the accepted scope is queued in the collecting train without starting a release.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-TABLE-NATIVE-TOOLBAR-DELIVERY>
+</GraceChangePlan>

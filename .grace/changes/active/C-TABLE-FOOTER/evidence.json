@@ -1,6 +1,6 @@
 {
   "date": "2026-10-20",
-  "status": "implemented and locally verified; partially owner accepted on bae95a97; Fit to page defect open, so release admission remains pending",
+  "status": "implemented, locally verified and fully owner accepted across bae95a97 visual review plus TABLE-STATE 35fc0895 Fit recheck; queued in the collecting train",
   "acceptedPriorScope": "The owner accepted C-71 on Mark Test C71 f17b070e before reporting this separate footer defect. Acceptance is recorded in 35f99e19 and docs/release-trains/2.5.x-next.md#c-71.",
   "reproduction": {
     "ownerReport": "Long-cell table in Fit to page mode: an excessive gap precedes the scrollbar, with the column counter outside and below the scroll block.",
@@ -113,5 +113,30 @@
       "notYetProven": "The host serialization gap does not by itself prove the same-frame native click failure; the event/state transition still needs a deterministic native or browser reproducer before repair attribution is final."
     },
     "admission": "Partial acceptance only. Keep C-TABLE-FOOTER outside the queued train until Fit to page is repaired, verified and rechecked; the accepted visual details do not need to be reopened unless the repair changes them."
+  },
+  "freshNativeFitReview": {
+    "date": "2026-10-20",
+    "artifact": "Mark Test FIX008-FIT a0a524fd; source a0a524fdc5812c8361600e671e741527b7e3ebe5; bundle com.xronocode.mark.test.fix008fit.a0a524fd; binary SHA-256 e7ef73611e5ad25932309fd28194507b9a2a7d3d6bdd01a3919d97499adc29e9",
+    "result": "Failed. The owner reported that the visible «Fit to page» action did not switch to the reverse «Full width» action. Independent native pointer/accessibility activation reproduced the unchanged label and Full width layout with the sidebar hidden and visible.",
+    "control": "A strengthened renderer test uses a real pointer click and covers sidebar off → on → reopen → off; it passes in Chromium and Playwright WebKit (2 focused cases). The native preferences file and fixture table-layout entry remained byte-for-byte/state unchanged after the grounded native click, placing the remaining defect before Muya layout emission and the repaired host save boundary.",
+    "admission": "Still partial and not queued. Preserve the previously accepted visual scope; repair native action delivery, verify both sidebar states in a fresh artifact and obtain the Fit-only owner recheck."
+  },
+  "nativeDeliveryRepair": {
+    "date": "2026-10-20",
+    "change": "C-TABLE-NATIVE-TOOLBAR-DELIVERY",
+    "failedArtifact": "Mark Test TABLE-NATIVE f683f9e6; patch f683f9e66e99f2754eb7200b5799ab28a7fe7e93; bundle com.xronocode.mark.test.tablenative.f683f9e6; binary SHA-256 979710f1679631bfc390e5840bdc9644e11b41e02a51dc149710727fe6fa434a. Accessibility activation was a false-positive: a physical coordinate click and the owner's click did not toggle the mode.",
+    "candidateArtifact": "Mark Test TABLE-NATIVE fa211037; source base d642ccfeb2973095417a162c57a7fec9d48f7e9e plus runtime/test patch identity fa211037ebeb17c2e7d2fe6fcddc9ae1f6b3aa61; bundle com.xronocode.mark.test.tablenative.fa211037; binary SHA-256 b7e000cfba2decf942bfa48e536ddec652b645462755dbc112d2be9820c98f09.",
+    "result": "Automated and build gates pass, but the refined candidate has not yet received a physical native pointer pass. No native success is claimed from accessibility activation.",
+    "automated": "The refined 59/59 unit contract requires mousedown to pass through the target, editor container and outer host without cancellation; renderer build is green; the complete table-layout file passes 16/16 in Chromium and WebKit with real pointer/sidebar/reverse/viewer/reopen coverage; full suite passes 342 files / 4675 tests with 2 skipped and 3 todo.",
+    "admission": "Superseded by the state-boundary diagnosis below; fa211037 remained a physical failure and is retained as historical evidence."
+  },
+  "nativeStateRepairAndAcceptance": {
+    "date": "2026-10-20",
+    "rootCause": "The physical click was delivered. When Full width had been loaded from the profile, persist() re-ran syncIdentities(), re-adopted the stale {fullWidth:true} snapshot and restored Full width before Fit could be serialized.",
+    "repair": "User writes refresh identities without persisted adoption and replace the local snapshot with the newly serialized entries. No footer visual, schema or width-policy change.",
+    "automated": "Failing-first unit 60 pass / 1 fail; repaired unit 61/61. Strengthened real-pointer save Full width → reopen/adopt → Fit scenario passes Chromium and WebKit 2/2; renderer and isolated native builds pass.",
+    "artifact": "Mark Test TABLE-STATE 35fc0895; bundle com.xronocode.mark.test.tablestate.35fc0895; binary SHA-256 d78732b7a12988a052b585915529af9514e67d1744b9ac608ca7e6468bf9825e.",
+    "ownerAcceptance": "Owner physically tested the fresh artifact and confirmed 'тут работает' on 2026-10-20.",
+    "admission": "The remaining Fit-only gap is closed. C-TABLE-FOOTER is owner accepted and queued in 2.5.x-next; release remains separately authorized."
   }
 }

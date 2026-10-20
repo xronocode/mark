@@ -1,6 +1,6 @@
 {
   "date": "2026-10-20",
-  "status": "implemented and locally verified (browser); native same-frame confirmation pending on the fresh isolated artifact",
+  "status": "host persistence repair verified; the remaining native Fit rollback is repaired, physically owner accepted on TABLE-STATE 35fc0895, and the scoped C-TABLE-FOOTER item is queued",
   "rootCause": {
     "proven": "src/renderer/src/util/tableLayoutStore.js sanitizeEntry kept only widths/manual/fullWidth, so muya's persist() payload lost the fit flag at the host boundary; on reload the wide table reverted to the auto Full-width default.",
     "repair": "sanitizeEntry v1.1.0 keeps fit (Full width wins a contradictory entry — muya's own rule); no muya change was needed (its sanitizer always kept fit).",
@@ -8,13 +8,32 @@
   },
   "verification": {
     "unit": "npx vitest run tests/renderer/store/table-layout-store.test.js tests/renderer/store/editor-table-layouts.test.js — 24 tests green: sanitize keeps fit (and drops it under fullWidth), the save → load roundtrip restores the fit entry, and every pre-existing expectation carries the extended schema.",
-    "e2e": "npm run build && npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables — 16 passed including the new C-TABLE-FIT-PERSISTENCE case: the same-tick transition (class leaves and the label flips to «Full width» inside the click evaluation), the fit flag observed in the mt::prefs::set payload, and reopen (open-new-tab dedup → UPDATE_CURRENT_FILE → the C-65 load hook) keeping the wide table out of Full width. The stat mock is path-aware so pruning keeps the document while the `.before`-sidecar auto-diff does not hijack the editor.",
+    "e2e": "npm run build && npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables — 16 passed for the original bundle. The 2026-10-20 native follow-up strengthened the focused case from HTMLElement.click() to a real Playwright pointer click and added sidebar off → on → reopen → off assertions: the action remains visible as «Full width», Fit remains selected and the persisted fit flag is re-adopted. Focused rerun: 2 passed (Chromium + webkit-tables). The stat mock is path-aware so pruning keeps the document while the `.before` sidecar auto-diff does not hijack the editor.",
     "governance": "V-M-012 scenario-72 recorded; M-012 graph summary line added; grace lint --assertions current zero errors."
   },
   "nativeBoundary": {
-    "remaining": "The owner's native observation ('invoking Fit to page does not visibly leave Full width') is not claimed fixed by the host repair — the browser transition passes, so per the owner's instruction the native check happens on the fresh isolated Mark Test.",
-    "conditionalInstrumentation": "If the native transition still fails there: record the three state points (toolbar action received → Muya layout emitted → host payload saved) and repair only the segment where the transition is actually lost.",
-    "reacceptanceScope": "Fit only: enable Full width, return to Fit to page, reopen the document. Accepted caption/footer/counter visuals are not rechecked."
+    "result": "Failed on 2026-10-20 in Mark Test FIX008-FIT a0a524fd (source a0a524fdc5812c8361600e671e741527b7e3ebe5, bundle com.xronocode.mark.test.fix008fit.a0a524fd, binary SHA-256 e7ef73611e5ad25932309fd28194507b9a2a7d3d6bdd01a3919d97499adc29e9). The owner reported that clicking «Fit to page» did not expose the reverse «Full width» action. Independent native pointer and accessibility activation reproduced the unchanged label/layout with the sidebar both hidden and visible.",
+    "browserControl": "The equivalent real-pointer scenario passes in Chromium and Playwright WebKit with sidebar off, sidebar on, live sidebar toggles and reopen. The browser control therefore rules out the repaired host sanitizer and ordinary renderer resize reconciliation as the remaining failure point.",
+    "threePointObservation": {
+      "toolbarAction": "No successful native action transition was observed: the button remained labelled «Fit to page» and the figure remained in Full width.",
+      "muyaLayoutEmission": "No downstream layout transition was observable after the native activation; browser pointer activation emits and transitions normally.",
+      "hostPayloadSaved": "Absent: the app preferences file kept the same mtime (2026-10-20 15:45:59 +05) and the synthetic fixture entry stayed { fit: false, fullWidth: true } after a correctly grounded native pointer click. The failure is before the repaired host save/load boundary."
+    },
+    "next": "C-TABLE-NATIVE-TOOLBAR-DELIVERY refines the native toolbar action segment without changing accepted visuals. Verify its fresh isolated artifact with a physical pointer before the Fit-only owner recheck; do not reopen caption/footer/counter visuals unless the owner observes a new visual regression.",
+    "reacceptanceScope": "Fit only: with the sidebar hidden and visible, enable Full width, return to Fit to page, confirm the reverse action remains available, reopen the document and confirm Fit persists."
   },
-  "pending": "C-TABLE-FOOTER re-acceptance and queueing wait for the focused native recheck on the fresh artifact."
+  "nativeDeliveryResolution": {
+    "change": "C-TABLE-NATIVE-TOOLBAR-DELIVERY",
+    "rootCause": "Superseded diagnosis: later physical evidence proved the shared action route and Full width direction worked. The actual failure was persist() re-adopting a previously loaded {fullWidth:true} snapshot during Fit serialization and restoring Full width in the same interaction.",
+    "automated": "Original failing-first unit: 58 passed / 1 failed. Refined state-boundary unit: 60 passed / 1 failed before repair and 61/61 after. Complete table-layout browser file: 16/16 in Chromium and WebKit with real-pointer save → reopen/adopt → Fit, sidebar-hidden/visible forward/reverse actions and viewer availability. The exact clean staged candidate passed 341 files / 4675 tests, with 2 skipped and 3 todo.",
+    "native": "All event-phase candidates through TABLE-FIT fb5157ef are recorded failures. The state-boundary repair was accepted on Mark Test TABLE-STATE 35fc0895 (bundle com.xronocode.mark.test.tablestate.35fc0895; binary SHA-256 d78732b7a12988a052b585915529af9514e67d1744b9ac608ca7e6468bf9825e).",
+    "acceptance": "Owner confirmed 'тут работает' on 2026-10-20 after physically testing the fresh isolated artifact."
+  },
+  "nativeStateResolution": {
+    "repair": "persist refreshes table identities with adoptPersisted=false and replaces its local host snapshot with the current serialized entries, so an adopted Full width choice cannot overwrite the new Fit choice.",
+    "failingFirst": "60 passed / 1 failed before repair; 61/61 after repair.",
+    "browser": "The strengthened real-pointer scenario saves Full width, reopens/adopts it, then selects Fit; Chromium and WebKit pass 2/2.",
+    "acceptedArtifact": "Mark Test TABLE-STATE 35fc0895; patch 35fc08958f2532646a86a18d47d27d0f6a27f1c161d3bf802902370e4bf7769e; owner accepted 2026-10-20."
+  },
+  "pending": "No Fit-only acceptance gap remains. Candidate CI/freeze and release authorization remain separate delivery gates."
 }
