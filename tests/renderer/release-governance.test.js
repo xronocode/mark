@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, PR-only preparation boundary, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
@@ -12,10 +12,12 @@
 // START_MODULE_MAP
 //   config - Checked-in Release Please configuration.
 //   prepWorkflow - Checked-in preparation workflow source.
+//   governanceWorkflow - Stable governance workflow whose history-sensitive regression requires a complete checkout.
 //   governanceConfig - Checked-in GitHub control contract.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 v1.3.0: pin a full governance-job checkout before the normalization test inspects the bootstrap boundary.
 //   - 2026-10-20 v1.2.0: cover perf/revert patch admission and fail closed on unmarked BREAKING CHANGE body trailers.
 //   - 2026-10-20 v1.1.0: pin the public unbound Project mirror contract in ordinary governance.
 //   - 2026-10-20 v1.0.0: add ordinary governance and Conventional SemVer boundary regressions.
@@ -36,6 +38,10 @@ import {
 const config = JSON.parse(readFileSync(resolve('release-please-config.json'), 'utf8'))
 const prepWorkflow = readFileSync(
   resolve('.github/workflows/release-please.yml'),
+  'utf8'
+)
+const governanceWorkflow = readFileSync(
+  resolve('.github/workflows/release-governance.yml'),
   'utf8'
 )
 const governanceConfig = JSON.parse(
@@ -129,6 +135,12 @@ describe('release governance', () => {
     expect(() =>
       validatePinnedActions({ unsafe: 'steps:\n  - uses: actions/checkout@v4\n' })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_ACTION_UNPINNED' }))
+  })
+
+  it('fetches full history before running the history-sensitive normalization regression', () => {
+    const governanceJob = governanceWorkflow.split(/^  readiness:/m)[0]
+    expect(governanceJob).toContain('fetch-depth: 0')
+    expect(governanceJob).toContain('tests/renderer/release-normalize.test.js')
   })
 
   it('keeps control resources disabled until an explicit owner activation', () => {
