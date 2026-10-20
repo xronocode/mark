@@ -1,16 +1,17 @@
 // @vitest-environment node
 // FILE: tests/site/brand.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 brand foundation — the shared tokens
 //            (site/shared/brand.css) carry the icon palette exactly with a
 //            dark set, the no-flash THEME_INIT_JS script resolves the
 //            VitePress storage key and survives a throwing localStorage,
 //            the gallery output carries no pre-brand palette, and the docs
-//            nav keeps ≤ 5 top-level items with a Diagrams link.
+//            nav keeps ≤ 5 top-level items with a base-safe Diagrams link.
 //   SCOPE: site/shared/brand.css, site/shared/theme-init.mjs (+ the .js it
 //          exports), site/scripts/build-gallery.mjs output,
-//          site/.vitepress/config.mts themeConfig nav (text-parsed).
+//          site/.vitepress/config.mts themeConfig nav and
+//          site/guide/themes.md gallery link (text-parsed).
 //   DEPENDS: site scripts, Vitest (node environment — fakes, no DOM).
 //   LINKS: M-053 SiteBuild; V-M-053 scenario-8; C-64 R-1/R-2/R-10, T-001;
 //          corner-4 (dark choice shared docs -> gallery)
@@ -24,12 +25,17 @@
 //   LIGHT - light token block regex
 //   DARK - dark token block regex
 //   DARK_FALLBACK - no-JS dark fallback block regex
+//   THEMES_MD - theme guide text with the full-navigation gallery link
 //   blockVars - CSS selector block text -> { --token: value } map
 //   runThemeInit - fakes (storage value/matches/throws) -> what the script set
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-64 T-001: first version.
+//   LAST_CHANGE: [v1.1.0 - 2026-10-21 base-path regression: the docs nav
+//                 passes /diagrams/ to VitePress for one base application,
+//                 while the raw guide anchor uses a base-agnostic relative
+//                 URL and keeps full-page navigation.]
+//   PREV: [v1.0.0 - 2026-10-18 C-64 T-001: first version.]
 // END_CHANGE_SUMMARY
 
 import { readFileSync } from 'node:fs'
@@ -41,6 +47,7 @@ import { THEME_INIT_JS } from '../../site/shared/theme-init.mjs'
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const BRAND_CSS = read('../../site/shared/brand.css')
+const THEMES_MD = read('../../site/guide/themes.md')
 
 // The declarations of one selector block, e.g. `:root{--a:#FFF;}` ->
 // { '--a': '#FFF' } (values trimmed, no comments expected inside).
@@ -185,6 +192,8 @@ describe('docs themeConfig nav (C-64 R-10)', () => {
     const items = [...navBody.matchAll(/\{\s*text:/g)]
     expect(items.length).toBeLessThanOrEqual(5)
     expect(navBody).toMatch(/text:\s*'Diagrams'/)
-    expect(navBody).toMatch(/link:[^,]*diagrams\//)
+    expect(navBody).toMatch(/link:\s*'\/diagrams\/'/)
+    expect(navBody).not.toContain('${base}diagrams/')
+    expect(THEMES_MD).toContain('href="../diagrams/" target="_self"')
   })
 })
