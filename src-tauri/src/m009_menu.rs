@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.1.14-beta
+// VERSION: 2.1.15-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -53,6 +53,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 FIX-010: add the macOS-only View › Command Palette…
+//                row (view.command-palette, Cmd+Shift+P). The cfg guard
+//                keeps Windows/Linux behavior unchanged until separately
+//                authorized; renderer and native paths share the same id.
 //   - 2026-10-16 C-52 T-001: add File › "Open from Clipboard"
 //                (file.open-from-clipboard, Alt+CmdOrCtrl+V) to the
 //                taxonomy and the native menu — dispatched by id to the
@@ -646,6 +650,14 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                #[cfg(target_os = "macos")]
+                MenuItem {
+                    id: "view.command-palette".to_string(),
+                    label: "Command Palette…".to_string(),
+                    command: None,
+                    accelerator: Some("Cmd+Shift+P".to_string()),
+                    items: None,
+                },
                 MenuItem {
                     id: "view.source-code-mode".to_string(),
                     label: "Source Code Mode".to_string(),
@@ -1114,7 +1126,18 @@ pub fn build_native_menu<R: tauri::Runtime>(
             &tauri::menu::CheckMenuItemBuilder::with_id("view.status-bar", "Status Bar")
                 .checked(false)
                 .build(handle)?,
-        )
+        );
+
+    #[cfg(target_os = "macos")]
+    let view_submenu = view_submenu.item(
+        // FIX-010: macOS-only until the owner separately authorizes
+        // Windows/Linux scope. Native and renderer paths share this id.
+        &MenuItemBuilder::with_id("view.command-palette", "Command Palette…")
+            .accelerator("Cmd+Shift+P")
+            .build(handle)?,
+    );
+
+    let view_submenu = view_submenu
         .separator()
         .item(
             &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
@@ -1638,6 +1661,8 @@ mod tests {
             // commands of the same ids — id-dispatched only.
             // C-57: help.support opens the Ko-fi page via the renderer
             // help.support command — id-dispatched only.
+            // FIX-010: the macOS-only Command Palette row dispatches its
+            // view.command-palette id through the renderer menu bridge.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1647,6 +1672,7 @@ mod tests {
                     | "view.actual-size"
                     | "help.guide"
                     | "help.support"
+                    | "view.command-palette"
                     | "view.outline"
                     | "view.status-bar"
                     | "view.lock-document"

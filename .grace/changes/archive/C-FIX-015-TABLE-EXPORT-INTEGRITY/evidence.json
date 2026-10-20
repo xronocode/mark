@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "failingFirst": "Direct exporter baseline passed 1 and failed 2: a leading/parity-sensitive pipe was malformed and ragged geometry dereferenced a missing cell.",
+  "verification": {
+    "focused": "Table-export plus copy-data integration passes 10, fails 0; regular aligned output remains byte-stable.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0; risks 28/29 are projected as repaired while unrelated upstream table/list/performance defects remain open."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "clean",
+      "corrections": "Parity escaping, advisory geometry, synthesized blanks, extra-cell retention and alignment were rechecked."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean",
+      "corrections": "Final diff and full-suite rerun found no data-loss, undefined-access or scope issue."
+    }
+  ],
+  "integration": "Shared serializer correctness is platform-neutral; no Windows/Linux packaging or platform work, commit, push, train admission, release or publication performed."
+}

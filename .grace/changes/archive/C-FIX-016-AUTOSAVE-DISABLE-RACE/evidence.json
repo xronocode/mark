@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "failingFirst": "The editor coverage baseline passed 50 and failed 2 because a queued debounce still wrote after Auto Save was disabled and contaminated the re-enable control.",
+  "verification": {
+    "focused": "editor-coverage plus editor.test.ts passes 164, fails 0; disabled-at-fire skips transport and a later fresh save invokes exactly once.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0; M-011/V-M-011 project the live preference guard."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "clean",
+      "corrections": "Timer removal, live preference read, transport ordering and re-enable behavior were rechecked."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean",
+      "corrections": "Final diff and full-suite rerun found no debounce, revision or scope regression."
+    }
+  ],
+  "integration": "Shared autosave correctness is platform-neutral; no Windows/Linux packaging or platform work, commit, push, train admission, release or publication performed."
+}

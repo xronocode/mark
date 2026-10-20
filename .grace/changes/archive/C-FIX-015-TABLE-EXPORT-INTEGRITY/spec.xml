@@ -1,0 +1,13 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-015-TABLE-EXPORT-INTEGRITY>
+  <Name>Preserve table data during Markdown export</Name><Created>2026-10-20</Created>
+  <Summary>Make table Markdown export lossless for cell-leading pipes and total for ragged rows. Unescaped pipes at any position become escaped exactly once; missing cells become empty cells rather than exceptions or the text undefined.</Summary>
+  <Problem>Risk-28 records that the current regex misses a pipe at index zero. Risk-29 records irregular-row export as unsafe because width calculation dereferences missing cells.</Problem>
+  <ApprovalBasis>The owner instructed the standard GRACE plan, verification and two-clean-review workflow for the agreed post-2.6 stabilization boundary on 2026-10-20.</ApprovalBasis>
+  <Goals><Goal>Escape each structurally significant pipe while preserving already escaped pipes.</Goal><Goal>Normalize ragged header/body geometry to a rectangular Markdown table with empty synthesized cells.</Goal></Goals>
+  <Constraints><Constraint>Preserve alignment markers, indentation and ordinary regular-table byte shape.</Constraint><Constraint>No parser rewrite or table editing/UI change.</Constraint></Constraints>
+  <NonGoals><NonGoal>No nested-list, empty-table-delete, IME, performance, release or platform work.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>Leading, middle and even-backslash-preceded unescaped pipes are escaped; already escaped pipes are not double escaped.</Criterion><Criterion>Rows shorter or longer than the header export without throwing, retain all real cells, synthesize blanks, and never emit undefined.</Criterion><Criterion>Regular aligned tables remain stable.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-012/></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>npx vitest run tests/renderer/muya/export-markdown-table.test.js tests/renderer/muya/copy-data.test.js</ExpectedCommand><ExpectedEvidence>Direct exporter fixtures cover pipe parity, missing cells, extra cells, alignment and regular output.</ExpectedEvidence></VerificationIntent>
+  <Assumptions><Assumption>Table metadata row/column values are advisory; actual header/body cell arrays are the source of truth and the widest observed row defines preserved geometry.</Assumption></Assumptions>
+</C-FIX-015-TABLE-EXPORT-INTEGRITY></GraceChangeSpec>

@@ -53,14 +53,20 @@
 //            store listener registration, drag-drop bootstrap, the unified
 //            fontSize zoom key/wheel handlers (C-49), the --mark-zoom
 //            document property for diagram scaling, and shell component
-//            composition.
+//            composition; FIX-010's macOS root Command Palette key route.
 //   DEPENDS: Pinia stores, bus, util/theme helpers, shell components.
-//   LINKS:   docs/knowledge-graph.xml M-011; docs/verification-plan.xml
-//            V-M-011 theme swap expectations; .grace/changes/archive/C-49.
+//   LINKS:   .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml
+//            V-M-011; .grace/changes/archive/C-FIX-010-COMMAND-PALETTE-SHORTCUT;
+//            .grace/changes/archive/C-49.
 //   STATUS:  Initial mount path dedupes theme application so raw theme CSS
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-20 FIX-010: install one macOS-only, layout-independent
+//     Shift+Command+KeyP capture route for view.command-palette. It works
+//     from editor and welcome surfaces, ignores composition/repeat, and
+//     is removed with the other window listeners on unmount; a post-await
+//     guard prevents late installation when mount is cancelled.
 //   - 2026-10-19 C-66: the shell mounts the update notice
 //     (components/updateNotice) and the detached startup chain grows the
 //     automatic update check as its last step
@@ -130,6 +136,7 @@ import { addCommonStyle, addThemeStyle, addCustomStyle } from '@/util/theme'
 import { resolveAutoTheme, watchSystemColorScheme } from '@/util/autoTheme'
 import { installMicaWindowEffect, syncMicaTheme } from '@/util/micaWindow'
 import { watchViewMenuChecks } from '@/util/menuChecks'
+import { isOsx } from '@/util'
 import Recent from '@/components/recent'
 import EditorWithTabs from '@/components/editorWithTabs'
 import TitleBar from '@/components/titleBar'
@@ -173,6 +180,7 @@ const timer = ref(null)
 let cleanupPinchZoom = null
 let cleanupDragDrop = null
 let cleanupNativeZoom = null
+let cleanupCommandPaletteShortcut = null
 
 // States from Pini
 const { windowActive, platform, init } = storeToRefs(mainStore)
@@ -358,6 +366,27 @@ const setupZoomKeysFontSize = () => {
 }
 // END_BLOCK_ZOOM_KEYS_FONT_SIZE
 
+// START_BLOCK_COMMAND_PALETTE_SHORTCUT
+// FIX-010 / UC-025: packaged macOS builds normally receive this chord
+// through the native View menu. The capture route keeps the browser harness
+// and webview surfaces without a native accelerator honest. Physical KeyP
+// makes the chord independent of the active keyboard layout.
+const setupCommandPaletteShortcut = () => {
+  if (!isOsx) return () => {}
+
+  const handler = (e) => {
+    if (e.isComposing || e.repeat) return
+    if (!e.metaKey || !e.shiftKey || e.ctrlKey || e.altKey || e.code !== 'KeyP') return
+    e.preventDefault()
+    e.stopPropagation()
+    commandCenterStore.EXECUTE_COMMAND_BY_ID('view.command-palette')
+  }
+
+  window.addEventListener('keydown', handler, true)
+  return () => window.removeEventListener('keydown', handler, true)
+}
+// END_BLOCK_COMMAND_PALETTE_SHORTCUT
+
 // START_BLOCK_MARK_ZOOM
 // C-49 R-1: --mark-zoom = fontSize / 16 on the document element. The
 // pele pipeline stores each diagram's natural width and computes
@@ -395,6 +424,10 @@ onMounted(async () => {
   }
 
   await commandCenterStore.LISTEN_COMMAND_CENTER_BUS()
+  if (isUnmounted) return
+  // Install immediately after the registry is ready so an early boot event
+  // cannot expose the editor before UC-025's app-level fallback exists.
+  cleanupCommandPaletteShortcut = setupCommandPaletteShortcut()
   tweetStore.LISTEN_FOR_TWEET()
   layoutStore.LISTEN_FOR_LAYOUT()
   listenForMainStore.LISTEN_FOR_EDIT()
@@ -512,6 +545,7 @@ onUnmounted(() => {
   if (cleanupDragDrop) cleanupDragDrop()
   if (cleanupPinchZoom) cleanupPinchZoom()
   if (cleanupNativeZoom) cleanupNativeZoom()
+  if (cleanupCommandPaletteShortcut) cleanupCommandPaletteShortcut()
   // C-41 T-001: drop the prefers-color-scheme listener with the window.
   stopColorSchemeWatch()
 })
