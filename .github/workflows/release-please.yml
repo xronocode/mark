@@ -1,8 +1,8 @@
 # FILE: .github/workflows/release-please.yml
-# VERSION: 1.0.0
+# VERSION: 1.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Let the pinned Release Please CLI calculate SemVer and open/update a preparation PR, then normalize Mark-specific version surfaces without tagging or publishing.
-#   SCOPE: Trusted main/scheduled/manual release-PR preparation, unprivileged candidate normalization/testing, and patch-only bot commit; no release tag, GitHub Release, signing, deployment, store, cask, Project, Environment, or ruleset mutation.
+#   SCOPE: Trusted main/scheduled/manual release-PR preparation, unprivileged candidate normalization/testing including machine/human train-ledger synchronization, and patch-only bot commit; no release tag, GitHub Release, signing, deployment, store, cask, Project, Environment, or ruleset mutation.
 #   DEPENDS: release-please 17.11.2 lockfile dependency; RELEASE_PREP_APP_ID variable; RELEASE_PREP_APP_PRIVATE_KEY secret; M-046 normalization and material gates.
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
@@ -16,6 +16,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-21 v1.1.0: allow the verified normalization patch to synchronize the human train ledger with its JSON authority.
 #   - 2026-10-20 v1.0.0: add PR-only Conventional SemVer preparation and split unprivileged normalization from privileged patch commit.
 # END_CHANGE_SUMMARY
 
@@ -164,7 +165,7 @@ jobs:
           git diff --name-only --diff-filter=ACMRTUXB > ../changed-paths.txt
           while IFS= read -r path; do
             case "$path" in
-              Cargo.toml|Cargo.lock|src-tauri/tauri.conf.json|tests/renderer/release-preflight.test.js|docs/release-trains/2.5.x-next.json|README.md|CHANGELOG.md|docs/release-notes-en-drafts.md|release-please-config.json|src/renderer/src/whatsNew/data.js|static/locales/*.json|docs/assets/readme/*.manifest.json) ;;
+              Cargo.toml|Cargo.lock|src-tauri/tauri.conf.json|tests/renderer/release-preflight.test.js|docs/release-trains/2.5.x-next.json|docs/release-trains/2.5.x-next.md|README.md|CHANGELOG.md|docs/release-notes-en-drafts.md|release-please-config.json|src/renderer/src/whatsNew/data.js|static/locales/*.json|docs/assets/readme/*.manifest.json) ;;
               *) echo "unexpected normalized path: $path" >&2; exit 1 ;;
             esac
           done < ../changed-paths.txt

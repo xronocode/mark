@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-normalize.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove Release Please is the only version authority and Mark's secondary release surfaces normalize through one deterministic, idempotent allowlisted patch.
 //   SCOPE: Temporary-workspace golden patch, check/write/idempotence, forbidden override, and package/manifest mismatch regressions.
@@ -18,10 +18,12 @@
 //   gitFile - Read one fixture file from a pinned git tree.
 //   writeJson - Stable pretty-JSON fixture writer.
 //   restoreChangelogDraft - Reconstruct the curated draft markers after Release Please promotion.
+//   restoreCollectingLedger - Reconstruct the human train ledger before preparation.
 //   copyFixture - Build a pre-normalization 2.5.4 draft plus generated 2.6.0 Release Please fixture.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.3.0: prove atomic Collecting-to-Preparing synchronization across the machine train and human ledger.
 //   - 2026-10-21 v1.2.0: make golden fixtures and checkout assertions valid in both collecting main and prepared release-PR states.
 //   - 2026-10-20 v1.1.0: prove structural draft-only updates, curated CHANGELOG promotion, history preservation, and last-release boundary retirement.
 //   - 2026-10-20 v1.0.0: add golden 2.5.4-to-2.6.0 propagation, no-write, and idempotence coverage.
@@ -59,6 +61,7 @@ const COPY_PATHS = [
   'tests/renderer/release-preflight.test.js',
   'CHANGELOG.md',
   'README.md',
+  'docs/release-trains/2.5.x-next.md',
   'docs/release-notes-en-drafts.md',
   'release-please-config.json',
   'src/renderer/src/whatsNew/data.js',
@@ -91,6 +94,13 @@ const restoreChangelogDraft = (source, version) => {
     `<!-- release-draft:start -->\n\n${match[1].trim()}\n\n<!-- release-draft:end -->\n\n`
   )
 }
+const restoreCollectingLedger = (source) =>
+  source
+    .replace('| State | Preparing |', '| State | Collecting |')
+    .replace(
+      /^- The checked-in train is \*\*Preparing\*\*\.[^\n]*$/m,
+      '- The checked-in train remains **Collecting**. Release Please deterministically proposes 2.6.0, while package/Cargo/Tauri metadata remains at 2.5.3 until the preparation PR.'
+    )
 
 const copyFixture = () => {
   const root = mkdtempSync(resolve(tmpdir(), 'mark-release-normalize-'))
@@ -115,6 +125,11 @@ const copyFixture = () => {
   train.materials.screenshotManifest = 'docs/assets/readme/2.5.4.manifest.json'
   mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
   writeJson(resolve(root, 'docs/release-trains/2.5.x-next.json'), train)
+  const trainLedgerPath = resolve(root, 'docs/release-trains/2.5.x-next.md')
+  writeFileSync(
+    trainLedgerPath,
+    restoreCollectingLedger(readFileSync(trainLedgerPath, 'utf8'))
+  )
 
   writeFileSync(
     resolve(root, 'README.md'),
@@ -211,6 +226,7 @@ describe('release normalization', () => {
       'src-tauri/tauri.conf.json',
       'tests/renderer/release-preflight.test.js',
       'docs/release-trains/2.5.x-next.json',
+      'docs/release-trains/2.5.x-next.md',
       'README.md',
       'docs/release-notes-en-drafts.md',
       'src/renderer/src/whatsNew/data.js',
@@ -255,6 +271,14 @@ describe('release normalization', () => {
       state: 'Preparing',
       actor: 'mark-release-prep[bot]'
     })
+    const normalizedLedger = plan.changes.find(
+      ({ path }) => path === 'docs/release-trains/2.5.x-next.md'
+    ).after
+    expect(normalizedLedger).toContain('| State | Preparing |')
+    expect(normalizedLedger).toContain(
+      'Release Please prepared 2.6.0 and synchronized package, Cargo, Tauri, and train-ledger metadata'
+    )
+    expect(normalizedLedger).not.toContain('remains **Collecting**')
   })
 
   it('check mode never writes and can report the pending patch', () => {

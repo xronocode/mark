@@ -2344,7 +2344,8 @@
       <Summary>
         C-RELEASE-PIPELINE-AUTOMATION (2026-10-20): M-046 now owns the
         repository release train authority, Release Please preparation and
-        version normalization, exact README/CHANGELOG/release-note/What&apos;s New
+        atomic JSON/Markdown train-ledger plus version normalization, exact
+        README/CHANGELOG/release-note/What&apos;s New
         material checks, payload-to-seal readiness, the public one-way Project
         mirror, owner-local GitHub control reconciliation, input-free
         owner-approved annotated-tag promotion, tag-only signing, read-only
@@ -2511,6 +2512,7 @@
           tools/release-project-sync.mjs, tools/release-github-controls.mjs,
           tools/release-normalize.mjs, tools/release-notes.mjs,
           docs/release-trains/2.5.x-next.json,
+          docs/release-trains/2.5.x-next.md,
           .github/workflows/release.yml,
           .github/workflows/release-please.yml,
           .github/workflows/release-governance.yml,
