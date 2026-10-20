@@ -1,0 +1,127 @@
+# FILE: .github/workflows/release-governance.yml
+# VERSION: 1.2.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Expose the stable release/governance required check for ordinary pull requests and main without demanding a frozen release train.
+#   SCOPE: Read-only Conventional title/admission, repository governance, schema, and focused regression validation; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
+#   DEPENDS: M-046 release-governance and Project-sync tools; Node 22; locked npm dependencies; PROJECT_MIRROR_AUTH for the optional push-main mirror only.
+#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
+#   ROLE: CONFIG
+#   MAP_MODE: SUMMARY
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   governance - Read-only stable aggregate check used by the main ruleset.
+#   readiness - Repository-only train/material identity check recorded on each candidate payload for later strict tag admission.
+#   project-mirror - Non-required push-main reconciliation isolated to its dedicated Project token.
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   - 2026-10-20 v1.2.0: state the optional Project mirror's dedicated-secret boundary explicitly instead of describing the whole workflow as token-free.
+#   - 2026-10-20 v1.1.0: record a repository-only release/readiness check on candidate payload commits and cover the public Project mirror.
+#   - 2026-10-20 v1.0.0: add the stable ordinary-PR governance check distinct from strict release readiness.
+# END_CHANGE_SUMMARY
+
+name: release/governance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-governance-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: release/governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: validate ordinary governance
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: npm run release:governance
+
+      - name: focused governance regressions
+        run: >-
+          npx vitest run
+          tests/renderer/release-governance.test.js
+          tests/renderer/release-github-controls.test.js
+          tests/renderer/release-project-sync.test.js
+          tests/renderer/release-normalize.test.js
+          tests/renderer/release-readiness.test.js
+          tests/renderer/release-materials.test.js
+          tests/renderer/release-notes.test.js
+
+  readiness:
+    name: release/readiness
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: validate repository release evidence
+        run: |
+          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).computedVersion")
+          npm run release:readiness -- --tag "$TAG"
+          npm run release:materials -- --tag "$TAG"
+
+  project-mirror:
+    name: release/project-mirror
+    needs: governance
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: reconcile non-authoritative Project mirror
+        env:
+          PROJECT_MIRROR_AUTH: ${{ secrets.PROJECT_MIRROR_AUTH }}
+        run: npm run release:project-sync -- --apply
