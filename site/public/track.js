@@ -388,6 +388,10 @@
   // Docs nav: the VitePress router swallows clicks on internal links before
   // they bubble to document, so doc_nav listens on window in the capture
   // phase (it only reads the link; the router still navigates).
+  // The router may already have moved the URL when this runs, so the page
+  // the visitor clicked FROM is snapshotted on pointerdown.
+  var navFrom = "";
+  onWin("pointerdown", function () { navFrom = docId(); }, true);
   onWin("click", function (e) {
     var t = e.target;
     if (!t || typeof t.closest !== "function") return;
@@ -399,7 +403,8 @@
       if (box.classList.contains("VPDocAsideOutline")) nk = "outline";
       else if (box.classList.contains("pager")) nk = "prev_next";
     }
-    send("doc_nav", { kind: nk, doc_id: docId() });
+    send("doc_nav", { kind: nk, doc_id: navFrom || docId() });
+    navFrom = "";
   }, true);
   // END_BLOCK_CLICKS
 
