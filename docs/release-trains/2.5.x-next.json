@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.5.x-next",
-  "state": "Preparing",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.5.3",
     "commit": "acad9988220c9a1a6d28ea4e94b69d69d774f805",
@@ -9,13 +9,13 @@
     "tree": "49877bed7a06a76c8fdde1e5f272b7d3c57cdce1"
   },
   "computedVersion": "2.6.0",
-  "payloadSha": null,
+  "payloadSha": "900509fed6b179786f7de16b282d953dca36bd7b",
   "sealSha": null,
   "releaseAuthorization": {
-    "authorized": false,
-    "owner": null,
-    "date": null,
-    "evidence": "No release instruction has been given. Acceptance and queueing are not publication authorization."
+    "authorized": true,
+    "owner": "xronocode",
+    "date": "2026-10-21",
+    "evidence": "The owner explicitly confirmed the reviewed screenshot package and instructed Mark 2.6.0 to be released on 2026-10-21."
   },
   "items": {
     "userFacing": [
@@ -91,6 +91,7 @@
         "state": "queued",
         "commits": [
           "655d956d295f63d0d0d09d6bc5b9d3b938f4d14c",
+          "0e8ffcd9299a7dd2b5ec25e3e677222cd2358960",
           "073f9494c5bac43a0e0cdf06c4e584432675dd70",
           "f17b070e2eac144808a6f6aba6d2609ffd3e16bb"
         ],
@@ -255,9 +256,73 @@
     "operational": [
       {
         "id": "TRAIN-BOOKKEEPING",
-        "summary": "Maintain GRACE reconciliation, acceptance ledger, privacy, safety, and test-only release records.",
+        "summary": "Maintain GRACE reconciliation, acceptance, privacy, safety, release automation, dependencies, tests, and independently delivered site work outside the desktop 2.6.0 product materials.",
         "commits": [
-          "4146fdbb1e43ab63df1f9a6115d9a89a9e0d62bd"
+          "c412919b759c94e8c8319ca4f92b0ffa04198a16",
+          "17e1dc024a1f6a3641d8749d78cdb5de3a9b3ad1",
+          "764e1b8b665a900a48e07e84d7aa2f7fa93ed2ef",
+          "2fa5d44bc10e7f59ceea7d54d23f980947fe1c79",
+          "5cfeeffbc8c0d9848e924270332ab0b56a114e1f",
+          "60f5d9ef921098bbe0b733b10f6e6a7a1e780b83",
+          "96238ef1ed759f6db08700388f697a794f7a3b48",
+          "3691fa48ce550fcacfd61c2443ef0bc25a39f476",
+          "c27523a9c5a83c60ca6f4693f5340a2e34ccfbc3",
+          "19c32d855f4ca7c295425d92e0eb5be493cfd184",
+          "1c25aba282e56757c5b7414882b5e5d5b560cf7f",
+          "449d4636a3fc2645ee236a6572e9e490206d3edb",
+          "6150d17418ded3a3e7a1f91d65928c10546be934",
+          "961119104b711acc29f6ea4d54f95cd20bb10c30",
+          "549542adb476132bdb4551c02293220cf9c8764f",
+          "ac29a4c0255b78154dea6bc51e6ea685606ec0cf",
+          "72f8ff11965c06c98118dfee5bf0254d84d7bb95",
+          "35f99e19a253e62bc0d21c3ebd1e7a04d0e438e6",
+          "f8fcce3ed5b4b569535bb418762ad2e54083901c",
+          "2dc2f7b84a5ec6cf6d7288692e14bf0e93bd9995",
+          "43f8dfc03188d4e171669e2152670ecbf61aaf30",
+          "c97c1a6f160881d6c830657a7a096e222efd7be1",
+          "e08441c952f0bb9e8bd69cd7a4737ab8d494c08b",
+          "f96b0b5bc84e857526741db70f29b4c8b9bbbb7d",
+          "ca34254ff3894e5b14f0344677d699cb0b7a9680",
+          "41347e1405f7470ffa889f5e59f909563fe6700c",
+          "eca8fee5f149762cf882ed99f9bb33a6ec082467",
+          "bae95a974517e5a0ef95bcd022f50e8b6fd66f5a",
+          "c5159a569b16b15c09101515074f53c655a26357",
+          "c00a04482eee493a518ed820f848f1f59c14221c",
+          "956c78045cd544e8be2b2f2a1e97b526bef0586f",
+          "d642ccfeb2973095417a162c57a7fec9d48f7e9e",
+          "a0a1e1f0609f088bb641f2f32ffa7889d389162d",
+          "4146fdbb1e43ab63df1f9a6115d9a89a9e0d62bd",
+          "32f75bf569aee76151beb693d255e05586441e63",
+          "160293e8031930bd57b25a2f84a6ae568dc6fbe2",
+          "e7dbec635dd7c8f7d787b0aa82cb8d4571a75f67",
+          "634b49fe2d6890a03a53c6e86b95b3d878934598",
+          "d8f666accca753ac758d593bcdcf0eb0561b5d19",
+          "1e7832e1876cfc9c1532d26aa709b5453a98ed9c",
+          "16a6d35c011c9f41c9cf84d8a72ffbf00f0d8f9f",
+          "a5b369eb1c4ab6325f3dead022de4b789eb5d9df",
+          "0d4946d78644c9c6de6c994c7ffb98fbfc457f51",
+          "f759a1bdb5e1d9617564a8050624184a0300c029",
+          "3ff31f857a0ce457702dc899eea4acd8f9e5cba9",
+          "a7fec9c9e2c9924cec5a4af3e2ca6d1577224814",
+          "70ee8dad568b4f7f6d41d4165b3b042d7a76b860",
+          "79aafe9c1b2eb5f6e2d390f8f096837afa2226c5",
+          "f0225f12714dbf39d674c65c90c1f3581542a080",
+          "f604e519880564a30161abc8d0c3013ce9ee1134",
+          "8485fe76418a165611e4428aafe1ad04b0245eee",
+          "2de2987d91a11f7d79298de24999993c5565cf2c",
+          "1f21e9c36aa7f8bf50099e927f88389e5f985205",
+          "1ef5019c4e25e331f75ad58397486441f55bcf45",
+          "601d5a536d4effb8a7d9b24c46ea9e9a6f68b9dd",
+          "a0d7581a2c49d08f1d39bcf04b494c8f60200d7b",
+          "4ea7b8c37d2fc122884fca88610e0b6e9e579691",
+          "8846052213d2292539c879a9d0e93e34b4629a42",
+          "fe9b23b052883b58aca915dee7081d372447d41e",
+          "79e484c5a444543b4379d9358b5a4a1f27506de2",
+          "846395110383bd0e0415176580ec6d2b18f813c3",
+          "3e29c2428997e24fabfa32cb5e0ca084d9d0596d",
+          "ee585a4284459af7e774d64387d95bb65bdb7a12",
+          "4380d240b1e1d4ae706ee34733b605203932a0eb",
+          "900509fed6b179786f7de16b282d953dca36bd7b"
         ]
       }
     ],
@@ -296,31 +361,452 @@
   },
   "commitAccounting": {
     "fromExclusive": "0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6",
-    "throughInclusive": null,
-    "entries": []
+    "throughInclusive": "900509fed6b179786f7de16b282d953dca36bd7b",
+    "entries": [
+      {
+        "sha": "c94c2287562071b5ed775d6c0d72332e754581f9",
+        "classification": "user-facing",
+        "itemIds": ["C-70"]
+      },
+      {
+        "sha": "d2f6364e3114c14f1b2814361b6c02db503cf0ce",
+        "classification": "user-facing",
+        "itemIds": ["C-70"]
+      },
+      {
+        "sha": "c412919b759c94e8c8319ca4f92b0ffa04198a16",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "17e1dc024a1f6a3641d8749d78cdb5de3a9b3ad1",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "764e1b8b665a900a48e07e84d7aa2f7fa93ed2ef",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "2fa5d44bc10e7f59ceea7d54d23f980947fe1c79",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "5cfeeffbc8c0d9848e924270332ab0b56a114e1f",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "60f5d9ef921098bbe0b733b10f6e6a7a1e780b83",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "96238ef1ed759f6db08700388f697a794f7a3b48",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "995b01ce65906108dcd8fefa95ccae7dd799cba5",
+        "classification": "user-facing",
+        "itemIds": ["FIX-001"]
+      },
+      {
+        "sha": "655d956d295f63d0d0d09d6bc5b9d3b938f4d14c",
+        "classification": "user-facing",
+        "itemIds": ["C-71"]
+      },
+      {
+        "sha": "3691fa48ce550fcacfd61c2443ef0bc25a39f476",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "2f30dc2dda7064583e2f140c47aad9cf0d8adcec",
+        "classification": "user-facing",
+        "itemIds": ["C-68"]
+      },
+      {
+        "sha": "c27523a9c5a83c60ca6f4693f5340a2e34ccfbc3",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "19c32d855f4ca7c295425d92e0eb5be493cfd184",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "1c25aba282e56757c5b7414882b5e5d5b560cf7f",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "449d4636a3fc2645ee236a6572e9e490206d3edb",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "6150d17418ded3a3e7a1f91d65928c10546be934",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "0e8ffcd9299a7dd2b5ec25e3e677222cd2358960",
+        "classification": "user-facing",
+        "itemIds": ["C-71"]
+      },
+      {
+        "sha": "943d57d69f7d3b9bf4f896b814649138470e01ac",
+        "classification": "user-facing",
+        "itemIds": ["C-TAB-CLOSE-OWNERSHIP"]
+      },
+      {
+        "sha": "961119104b711acc29f6ea4d54f95cd20bb10c30",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "549542adb476132bdb4551c02293220cf9c8764f",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "bcaebe05b071aaa8466132b5dd7c457b1fdba0c9",
+        "classification": "user-facing",
+        "itemIds": ["FIX-001"]
+      },
+      {
+        "sha": "ac29a4c0255b78154dea6bc51e6ea685606ec0cf",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "72f8ff11965c06c98118dfee5bf0254d84d7bb95",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "073f9494c5bac43a0e0cdf06c4e584432675dd70",
+        "classification": "user-facing",
+        "itemIds": ["C-71"]
+      },
+      {
+        "sha": "f17b070e2eac144808a6f6aba6d2609ffd3e16bb",
+        "classification": "user-facing",
+        "itemIds": ["C-71"]
+      },
+      {
+        "sha": "35f99e19a253e62bc0d21c3ebd1e7a04d0e438e6",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "16b59d1b8f718f1390d15663e782adfd263a50f7",
+        "classification": "user-facing",
+        "itemIds": ["C-TABLE-FOOTER"]
+      },
+      {
+        "sha": "9d413febf20a3c4e821c7dadcff412015d86cf11",
+        "classification": "user-facing",
+        "itemIds": ["C-TABLE-FOOTER"]
+      },
+      {
+        "sha": "46b255c240c08dbfa1a8e26d526ef2fcb6a58754",
+        "classification": "user-facing",
+        "itemIds": ["C-TOOLBAR-LABELS"]
+      },
+      {
+        "sha": "abf29f139ba9f31d1aee62826a177957f301b538",
+        "classification": "user-facing",
+        "itemIds": ["C-TABLE-FOOTER"]
+      },
+      {
+        "sha": "f8fcce3ed5b4b569535bb418762ad2e54083901c",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "2dc2f7b84a5ec6cf6d7288692e14bf0e93bd9995",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "43f8dfc03188d4e171669e2152670ecbf61aaf30",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "a2d778729f416e407377cc879b9bd7644fb9a6b5",
+        "classification": "user-facing",
+        "itemIds": ["FIX-003", "FIX-004", "FIX-005", "FIX-006", "FIX-007"]
+      },
+      {
+        "sha": "c97c1a6f160881d6c830657a7a096e222efd7be1",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "e08441c952f0bb9e8bd69cd7a4737ab8d494c08b",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "f96b0b5bc84e857526741db70f29b4c8b9bbbb7d",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "ca34254ff3894e5b14f0344677d699cb0b7a9680",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "41347e1405f7470ffa889f5e59f909563fe6700c",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "eca8fee5f149762cf882ed99f9bb33a6ec082467",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "bae95a974517e5a0ef95bcd022f50e8b6fd66f5a",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "c5159a569b16b15c09101515074f53c655a26357",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "c00a04482eee493a518ed820f848f1f59c14221c",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "956c78045cd544e8be2b2f2a1e97b526bef0586f",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "debfe5eef8d72a1e6ddf110d5c78eeec2ee0c121",
+        "classification": "user-facing",
+        "itemIds": ["FIX-008"]
+      },
+      {
+        "sha": "4e676c00674bd11e6656f782cf35737aa6fae4b1",
+        "classification": "user-facing",
+        "itemIds": ["FIX-011"]
+      },
+      {
+        "sha": "a0a524fdc5812c8361600e671e741527b7e3ebe5",
+        "classification": "user-facing",
+        "itemIds": ["C-TABLE-FOOTER"]
+      },
+      {
+        "sha": "d642ccfeb2973095417a162c57a7fec9d48f7e9e",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "674f91b6535fb35a47e4a1c960fa3f9a57d4e7ac",
+        "classification": "user-facing",
+        "itemIds": ["C-TABLE-FOOTER"]
+      },
+      {
+        "sha": "a0a1e1f0609f088bb641f2f32ffa7889d389162d",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "4146fdbb1e43ab63df1f9a6115d9a89a9e0d62bd",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "32f75bf569aee76151beb693d255e05586441e63",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "160293e8031930bd57b25a2f84a6ae568dc6fbe2",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "e7dbec635dd7c8f7d787b0aa82cb8d4571a75f67",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "634b49fe2d6890a03a53c6e86b95b3d878934598",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "d8f666accca753ac758d593bcdcf0eb0561b5d19",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "1e7832e1876cfc9c1532d26aa709b5453a98ed9c",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "16a6d35c011c9f41c9cf84d8a72ffbf00f0d8f9f",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "a5b369eb1c4ab6325f3dead022de4b789eb5d9df",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "0d4946d78644c9c6de6c994c7ffb98fbfc457f51",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "f759a1bdb5e1d9617564a8050624184a0300c029",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "3ff31f857a0ce457702dc899eea4acd8f9e5cba9",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "a7fec9c9e2c9924cec5a4af3e2ca6d1577224814",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "70ee8dad568b4f7f6d41d4165b3b042d7a76b860",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "79aafe9c1b2eb5f6e2d390f8f096837afa2226c5",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "f0225f12714dbf39d674c65c90c1f3581542a080",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "f604e519880564a30161abc8d0c3013ce9ee1134",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "8485fe76418a165611e4428aafe1ad04b0245eee",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "2de2987d91a11f7d79298de24999993c5565cf2c",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "1f21e9c36aa7f8bf50099e927f88389e5f985205",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "1ef5019c4e25e331f75ad58397486441f55bcf45",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "601d5a536d4effb8a7d9b24c46ea9e9a6f68b9dd",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "a0d7581a2c49d08f1d39bcf04b494c8f60200d7b",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "4ea7b8c37d2fc122884fca88610e0b6e9e579691",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "8846052213d2292539c879a9d0e93e34b4629a42",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "fe9b23b052883b58aca915dee7081d372447d41e",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "79e484c5a444543b4379d9358b5a4a1f27506de2",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "846395110383bd0e0415176580ec6d2b18f813c3",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "3e29c2428997e24fabfa32cb5e0ca084d9d0596d",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "ee585a4284459af7e774d64387d95bb65bdb7a12",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "4380d240b1e1d4ae706ee34733b605203932a0eb",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "900509fed6b179786f7de16b282d953dca36bd7b",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      }
+    ]
   },
   "requiredChecks": [
     {
       "name": "status check",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": null
+      "status": "success",
+      "sha": "900509fed6b179786f7de16b282d953dca36bd7b"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": null
+      "status": "success",
+      "sha": "900509fed6b179786f7de16b282d953dca36bd7b"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": null
+      "status": "success",
+      "sha": "900509fed6b179786f7de16b282d953dca36bd7b"
     }
   ],
   "materials": {
-    "status": "draft",
+    "status": "ready",
     "readme": "README.md",
     "changelog": "CHANGELOG.md",
     "releaseNotes": "docs/release-notes-en-drafts.md",
@@ -356,6 +842,18 @@
       "date": "2026-10-20",
       "actor": "mark-release-prep[bot]",
       "evidence": "Release Please prepared 2.6.0; no tag or publication was created."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-21",
+      "actor": "xronocode",
+      "evidence": "Payload 900509fed6b179786f7de16b282d953dca36bd7b completed the accepted screenshot and safety follow-up; all 84 commits since the bootstrap boundary are classified, the fresh README screenshot bytes were reproduced unchanged on the exact payload, and exact-SHA candidate checks are recorded above."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-21",
+      "actor": "xronocode",
+      "evidence": "The owner explicitly authorized Mark 2.6.0 release after reviewing the fresh screenshot package; the metadata-only seal is ready for strict online admission."
     }
   ]
 }
