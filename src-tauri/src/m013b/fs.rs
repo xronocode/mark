@@ -706,7 +706,7 @@ mod tests {
 
     #[test]
     fn redact_returns_basename_only() {
-        assert_eq!(redact("/Users/secret/folder/note.md"), "…/note.md");
+        assert_eq!(redact("/Users/<fixture>/folder/note.md"), "…/note.md");
         assert_eq!(redact("note.md"), "…/note.md");
         assert_eq!(redact("/"), "…");
     }

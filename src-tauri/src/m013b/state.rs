@@ -76,8 +76,8 @@ mod tests {
     #[test]
     fn set_sandbox_updates() {
         let ctx = SecurityCtx::default();
-        ctx.set_sandbox(PathBuf::from("/Users/me/work"));
-        assert_eq!(ctx.sandbox(), PathBuf::from("/Users/me/work"));
+        ctx.set_sandbox(PathBuf::from("/Users/<fixture>/work"));
+        assert_eq!(ctx.sandbox(), PathBuf::from("/Users/<fixture>/work"));
     }
 
     #[test]

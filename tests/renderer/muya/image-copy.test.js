@@ -72,9 +72,9 @@ const makeFakeCanvas = () => {
 // START_BLOCK_IMAGE_COPY_SOURCE_TESTS
 describe('C-56 T-006 resolveImageCopySource', () => {
   it('classifies absolute local paths (unix and windows) untouched', () => {
-    expect(resolveImageCopySource('/Users/x/img.png')).toEqual({
+    expect(resolveImageCopySource('/Users/<fixture>/img.png')).toEqual({
       kind: 'local',
-      path: '/Users/x/img.png'
+      path: '/Users/<fixture>/img.png'
     })
     expect(resolveImageCopySource('C:\\docs\\img.png')).toEqual({
       kind: 'local',
@@ -87,9 +87,9 @@ describe('C-56 T-006 resolveImageCopySource', () => {
   })
 
   it('decodes file:// URLs exactly like the render bridge', () => {
-    expect(resolveImageCopySource('file:///Users/x/my%20img.png')).toEqual({
+    expect(resolveImageCopySource('file:///Users/<fixture>/my%20img.png')).toEqual({
       kind: 'local',
-      path: '/Users/x/my img.png'
+      path: '/Users/<fixture>/my img.png'
     })
     // Windows file URL — the drive stays.
     expect(resolveImageCopySource('file:///C:/docs/img.png')).toEqual({
@@ -99,10 +99,10 @@ describe('C-56 T-006 resolveImageCopySource', () => {
   })
 
   it('decodes Tauri asset://localhost URLs to the OS path', () => {
-    const assetUrl = `asset://localhost/${encodeURIComponent('/Users/x/assets/logo v2.png')}`
+    const assetUrl = `asset://localhost/${encodeURIComponent('/Users/<fixture>/assets/logo v2.png')}`
     expect(resolveImageCopySource(assetUrl)).toEqual({
       kind: 'local',
-      path: '/Users/x/assets/logo v2.png'
+      path: '/Users/<fixture>/assets/logo v2.png'
     })
   })
 
