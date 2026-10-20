@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.9.0
+// VERSION: 2.10.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
@@ -21,7 +21,8 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.9.0 - 2026-10-19 C-64 version sync: the config resolves
+//   LAST_CHANGE: [v2.10.0 - 2026-10-21 C-64: guide sidebar gains AI Agents & Clients (/guide/ai-agents) after CLI Usage.]
+//   PREV: [v2.9.0 - 2026-10-19 C-64 version sync: the config resolves
 //                 the latest GitHub release once at load (package.json
 //                 fallback, SITE_RELEASE=offline skips the API), pins it via
 //                 setReleaseVersion so JSON-LD/llms.txt agree with the page,
@@ -256,6 +257,7 @@ export default defineConfig({
             { text: 'Search', link: '/guide/search' },
             { text: 'Diff View', link: '/guide/diff-view' },
             { text: 'CLI Usage', link: '/guide/cli' },
+            { text: 'AI Agents & Clients', link: '/guide/ai-agents' },
             { text: 'Export', link: '/guide/export' }
           ]
         }

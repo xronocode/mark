@@ -50,7 +50,7 @@ If you type `mark` often, add an alias to your shell profile:
 alias mark="/Applications/Mark.app/Contents/MacOS/mark"
 ```
 
-The flags above take effect when that binary starts Mark. When Mark is already running, files opened through it join the running app.
+The flags above take effect when that binary starts Mark. When Mark is already running, files opened through it join the running app. Agents run non-interactive shells that ignore aliases — for them, put a symlink on your `PATH` instead, as described in [AI Agents & Clients](/guide/ai-agents).
 
 ## Preview mode
 
