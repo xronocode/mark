@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-TABLE-NATIVE-TOOLBAR-DELIVERY>
     <IntentSummary>Make the native Full width to Fit action replace an adopted profile entry without changing accepted visuals, schema or width policy: pin stale re-adoption first, separate load adoption from user-write identity refresh, then verify unit, both browser engines, and a fresh native sidebar matrix.</IntentSummary>
     <BaselineAssertions>
