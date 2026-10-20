@@ -14,6 +14,9 @@
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
+#   API - App Store Connect API v1 base URL.
+#   APP_BUNDLE - our bundle identifier used by default queries.
+#   b64u - base64url without padding (JWT segments).
 #   make_jwt - ES256-sign a 20-min JWT from the .p8
 #   get - signed GET against api.appstoreconnect.itunes.apple.com... (v1)
 #   main - default: list latest builds for com.xronocode.mark

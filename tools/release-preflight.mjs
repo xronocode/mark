@@ -4,7 +4,7 @@
 //   PURPOSE: Stop release packaging when Node, Cargo, Tauri, lockfile, or requested-tag versions disagree.
 //   SCOPE: Read public version metadata, normalize exact values, validate equality, and emit stable release-gate diagnostics; never reads signing credentials.
 //   DEPENDS: Node.js fs, path, and url standard-library modules; package.json; package-lock.json; Cargo.toml; Cargo.lock; src-tauri/tauri.conf.json.
-//   LINKS: docs/knowledge-graph.xml M-046; docs/verification-plan.xml V-M-046; docs/requirements.xml UC-032.
+//   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; .grace/context/requirements.xml UC-032.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -58,7 +58,7 @@ const matchVersion = (contents, pattern, sourceName) => {
 //   INPUTS: { workspaceRoot: string - absolute or relative repository root }
 //   OUTPUTS: { Record<string, string> - source label to exact version value }
 //   SIDE_EFFECTS: Reads six public metadata values from five repository files.
-//   LINKS: docs/verification-plan.xml V-M-046 S1-S2
+//   LINKS: .grace/verification/features.xml V-M-046 S1-S2
 // END_CONTRACT: readVersionEvidence
 // START_BLOCK_READ_RELEASE_VERSION_EVIDENCE
 export const readVersionEvidence = (workspaceRoot) => {
@@ -93,7 +93,7 @@ export const readVersionEvidence = (workspaceRoot) => {
 //   INPUTS: { evidence: Record<string, string> - normalized source versions, expectedTag: string|undefined - requested release tag }
 //   OUTPUTS: { { version: string, tag: string|null, sourceCount: number } - validated release identity }
 //   SIDE_EFFECTS: none; throws ReleasePreflightError on mismatch.
-//   LINKS: docs/verification-plan.xml V-M-046 S1-S3
+//   LINKS: .grace/verification/features.xml V-M-046 S1-S3
 // END_CONTRACT: validateVersionEvidence
 // START_BLOCK_VALIDATE_RELEASE_VERSION_EVIDENCE
 export const validateVersionEvidence = (evidence, expectedTag) => {
@@ -132,7 +132,7 @@ export const validateVersionEvidence = (evidence, expectedTag) => {
 //   INPUTS: { workspaceRoot: string - repository root, expectedTag: string|undefined - optional release tag }
 //   OUTPUTS: { validated release identity from validateVersionEvidence }
 //   SIDE_EFFECTS: Reads metadata files and writes one path-free success marker to stdout.
-//   LINKS: docs/verification-plan.xml V-M-046 required-log-markers
+//   LINKS: .grace/verification/features.xml V-M-046 required-log-markers
 // END_CONTRACT: runReleasePreflight
 // START_BLOCK_RUN_RELEASE_PREFLIGHT
 export const runReleasePreflight = (workspaceRoot, expectedTag) => {
