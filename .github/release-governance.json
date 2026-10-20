@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "1.0.0",
+  "repository": "xronocode/mark",
+  "actions": {
+    "defaultWorkflowPermissions": "read",
+    "canApprovePullRequestReviews": false
+  },
+  "immutableReleases": {
+    "enabled": true
+  },
+  "rulesetActivation": {
+    "stagedEnforcement": "disabled",
+    "activeEnforcement": "active",
+    "requiresOwnerConfirmation": true,
+    "requiresLiveCheckCanary": true
+  },
+  "secretBoundaries": {
+    "release-authorize": ["RELEASE_BOT_APP_ID", "RELEASE_BOT_PRIVATE_KEY"],
+    "release-signing": ["TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD", "APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD", "APPLE_SIGNING_IDENTITY", "APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID"],
+    "release-cask": ["CASK_BOT_APP_ID", "CASK_BOT_PRIVATE_KEY"],
+    "forbiddenAtRepository": ["RELEASE_BOT_APP_ID", "RELEASE_BOT_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD", "APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD", "APPLE_SIGNING_IDENTITY", "APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID", "CASK_BOT_APP_ID", "CASK_BOT_PRIVATE_KEY"]
+  },
+  "strictRequiredChecks": [
+    { "name": "status check", "app": "GitHub Actions" },
+    { "name": "release/governance", "app": "GitHub Actions" },
+    { "name": "release/readiness", "app": "GitHub Actions" }
+  ],
+  "project": {
+    "ownerType": "user",
+    "owner": "xronocode",
+    "title": "Mark release trains",
+    "public": true,
+    "number": null,
+    "nodeId": null,
+    "fields": [
+      { "name": "Train", "dataType": "SINGLE_SELECT", "options": ["2.5.x-next"] },
+      { "name": "Admission", "dataType": "SINGLE_SELECT", "options": ["included", "operational", "not-present"] },
+      { "name": "Owner acceptance", "dataType": "SINGLE_SELECT", "options": ["accepted", "not-required"] },
+      { "name": "Payload SHA", "dataType": "TEXT" },
+      { "name": "Release state", "dataType": "SINGLE_SELECT", "options": ["Collecting", "Preparing", "Frozen", "Ready", "Released", "Aborted"] },
+      { "name": "Item ID", "dataType": "TEXT" },
+      { "name": "Evidence URL", "dataType": "TEXT" }
+    ]
+  },
+  "environments": {
+    "release-authorize": {
+      "requiredReviewers": ["xronocode"],
+      "preventSelfReview": false,
+      "deploymentBranches": { "protectedBranches": false, "custom": [{ "name": "main", "type": "branch" }] }
+    },
+    "release-signing": {
+      "requiredReviewers": [],
+      "preventSelfReview": false,
+      "deploymentBranches": { "protectedBranches": false, "custom": [{ "name": "v*", "type": "tag" }] }
+    },
+    "release": {
+      "requiredReviewers": ["xronocode"],
+      "preventSelfReview": false,
+      "deploymentBranches": { "protectedBranches": false, "custom": [{ "name": "v*", "type": "tag" }] }
+    },
+    "release-cask": {
+      "requiredReviewers": [],
+      "preventSelfReview": false,
+      "deploymentBranches": { "protectedBranches": false, "custom": [{ "name": "v*", "type": "tag" }] }
+    }
+  },
+  "rulesets": {
+    "main": {
+      "name": "mark-main-protection",
+      "target": "branch",
+      "enforcement": "disabled",
+      "include": ["refs/heads/main"],
+      "requiredChecks": [
+        { "context": "status check", "integrationSlug": "github-actions" },
+        { "context": "release/governance", "integrationSlug": "github-actions" }
+      ],
+      "requirePullRequest": true,
+      "blockForcePush": true,
+      "blockDelete": true,
+      "bypassActors": [
+        { "label": "xronocode recovery", "actorType": "User", "login": "xronocode", "bypassMode": "pull_request" }
+      ]
+    },
+    "releaseTags": {
+      "name": "mark-release-tag-protection",
+      "target": "tag",
+      "enforcement": "disabled",
+      "include": ["refs/tags/v*"],
+      "restrictCreate": true,
+      "restrictUpdate": true,
+      "restrictDelete": true,
+      "bypassActors": [
+        { "label": "xronocode-release-bot", "actorType": "Integration", "appSlug": "xronocode-release-bot", "bypassMode": "always" },
+        { "label": "xronocode recovery", "actorType": "User", "login": "xronocode", "bypassMode": "always" }
+      ]
+    }
+  }
+}
