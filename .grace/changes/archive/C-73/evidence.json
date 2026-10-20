@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-20",
+  "status": "executed and verified; landed in this session",
+  "verification": {
+    "staticAudit": "npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js tests/renderer/commands/paragraph-shortcuts.test.js — 33 tests passed (7 routing-audit assertions with population guards, 20 menu-consistency, 6 paragraph-shortcuts).",
+    "behavioralAudit": "npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium — 4 passed, 1 skipped in 15.0s; the skipped case is the FIX-009 Last-session fixme, visible by design until that repair ships.",
+    "checklist": "tests/regression-tests.json rewritten for the 2.5.x surface (welcome, tabs ownership, split view, diff, lock, viewer, pele, localization) with the executionProtocol binding full passes to train-freeze and targeted passes to repairs.",
+    "governance": "V-M-009 scenario-17 and V-M-012 scenario-71 recorded in .grace/verification/runtime.xml; V-M-009 command and V-M-012 command updated in the same file; index.xml comments updated; grace lint --assertions current zero errors after the C-74 reconciliation in the same session.",
+    "fix012": "The menu-bridge walk reproduces the FIX-012 render TypeError (tabs.cycleForward after the full traversal prefix) deterministically; recorded in docs/release-trains/2.5.x-next.md#fix-012 as found-by-automation, not repaired here."
+  },
+  "concurrency": "FIX-011 numbering preserved for the parallel session's untitled-dialog defect; this change's own finding was numbered FIX-012 per the plan's concurrency corner.",
+  "releaseNote": "Test-only and documentation change; no runtime behavior touched; nothing queued, admitted or published."
+}
