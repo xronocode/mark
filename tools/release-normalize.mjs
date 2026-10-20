@@ -1,8 +1,8 @@
 // FILE: tools/release-normalize.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Propagate the Release Please-owned package/manifest version into Mark's secondary Cargo, Tauri, fixture, and version-bound material surfaces without calculating a version.
-//   SCOPE: Deterministic plan/check/write over an allowlisted file set, including one explicit CHANGELOG draft handoff; never edits package authority, tags, GitHub Releases, or external state.
+//   SCOPE: Deterministic plan/check/write over an allowlisted file set, including one explicit CHANGELOG draft handoff and atomic machine/human train preparation; never edits package authority, tags, GitHub Releases, or external state.
 //   DEPENDS: Node.js fs, path, and url standard-library modules; package.json; .release-please-manifest.json; release-preflight surfaces.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
@@ -26,12 +26,14 @@
 //   replaceWhatsNewVersion - Advance only the current in-app draft entry and URL.
 //   renameLocaleDraft - Rename only one current locale draft key.
 //   promoteChangelogDraft - Move the unversioned curated draft into one Release Please-owned section.
+//   prepareTrainLedger - Keep the human train ledger synchronized with the machine authority.
 //   addChange - Add one changed allowlisted file to the normalization plan.
 //   main - Run the command-line interface.
 //   invokedPath - Detect direct command-line execution.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.2.0: synchronize the human train ledger with the machine-readable Collecting-to-Preparing transition.
 //   - 2026-10-20 v1.1.0: normalize only explicit draft surfaces, promote curated CHANGELOG copy into one generated section, and retire the one-use last-release boundary.
 //   - 2026-10-20 v1.0.0: add Release Please-owned version propagation with no independent SemVer override.
 // END_CHANGE_SUMMARY
@@ -198,6 +200,25 @@ const promoteChangelogDraft = (source, targetVersion, date) => {
   return withoutDraft
 }
 
+const prepareTrainLedger = (source, targetVersion) => {
+  const statePattern = /^\| State \| (Collecting|Preparing) \|$/gm
+  const stateRows = [...source.matchAll(statePattern)]
+  if (stateRows.length !== 1) {
+    fail('MT_RELEASE_NORMALIZE_LEDGER_INVALID', `stateRows=${stateRows.length}`)
+  }
+  let updated = source.replace(statePattern, '| State | Preparing |')
+  const preparedStatus = `- The checked-in train is **Preparing**. Release Please prepared ${targetVersion} and synchronized package, Cargo, Tauri, and train-ledger metadata in the preparation PR; no tag or publication was created.`
+  if (updated.includes(preparedStatus)) return updated
+  updated = replaceExact(
+    updated,
+    /^- The checked-in train remains \*\*Collecting\*\*\. Release Please deterministically proposes [^,\n]+, while package\/Cargo\/Tauri metadata remains at [^ \n]+ until the preparation PR\.$/m,
+    preparedStatus,
+    'MT_RELEASE_NORMALIZE_LEDGER_INVALID',
+    'preparation status'
+  )
+  return updated
+}
+
 const addChange = (changes, root, relativePath, nextContents) => {
   const pathname = resolve(root, relativePath)
   const current = existsSync(pathname) ? readFileSync(pathname, 'utf8') : null
@@ -304,6 +325,13 @@ export const planReleaseNormalization = (
   }
   train.materials.screenshotManifest = `docs/assets/readme/${packageVersion}.manifest.json`
   addChange(changes, root, 'docs/release-trains/2.5.x-next.json', withNewline(train))
+  const trainLedgerPath = 'docs/release-trains/2.5.x-next.md'
+  addChange(
+    changes,
+    root,
+    trainLedgerPath,
+    prepareTrainLedger(readFileSync(resolve(root, trainLedgerPath), 'utf8'), packageVersion)
+  )
 
   addChange(
     changes,
