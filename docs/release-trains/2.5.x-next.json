@@ -9,7 +9,7 @@
     "tree": "49877bed7a06a76c8fdde1e5f272b7d3c57cdce1"
   },
   "computedVersion": "2.6.0",
-  "payloadSha": "900509fed6b179786f7de16b282d953dca36bd7b",
+  "payloadSha": "58c9aca3b79e69b8ae9f7e74228bf741329a332d",
   "sealSha": null,
   "releaseAuthorization": {
     "authorized": true,
@@ -322,7 +322,10 @@
           "3e29c2428997e24fabfa32cb5e0ca084d9d0596d",
           "ee585a4284459af7e774d64387d95bb65bdb7a12",
           "4380d240b1e1d4ae706ee34733b605203932a0eb",
-          "900509fed6b179786f7de16b282d953dca36bd7b"
+          "900509fed6b179786f7de16b282d953dca36bd7b",
+          "60e7ad689ca95d0629a13cc633e2b9abe6630fdb",
+          "3f1e13a96c7eee4810f0b17cda492c13dc8ff480",
+          "58c9aca3b79e69b8ae9f7e74228bf741329a332d"
         ]
       }
     ],
@@ -361,7 +364,7 @@
   },
   "commitAccounting": {
     "fromExclusive": "0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6",
-    "throughInclusive": "900509fed6b179786f7de16b282d953dca36bd7b",
+    "throughInclusive": "58c9aca3b79e69b8ae9f7e74228bf741329a332d",
     "entries": [
       {
         "sha": "c94c2287562071b5ed775d6c0d72332e754581f9",
@@ -782,6 +785,21 @@
         "sha": "900509fed6b179786f7de16b282d953dca36bd7b",
         "classification": "operational",
         "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "60e7ad689ca95d0629a13cc633e2b9abe6630fdb",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "3f1e13a96c7eee4810f0b17cda492c13dc8ff480",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "58c9aca3b79e69b8ae9f7e74228bf741329a332d",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
       }
     ]
   },
@@ -790,19 +808,19 @@
       "name": "status check",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "900509fed6b179786f7de16b282d953dca36bd7b"
+      "sha": "58c9aca3b79e69b8ae9f7e74228bf741329a332d"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "900509fed6b179786f7de16b282d953dca36bd7b"
+      "sha": "58c9aca3b79e69b8ae9f7e74228bf741329a332d"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "900509fed6b179786f7de16b282d953dca36bd7b"
+      "sha": "58c9aca3b79e69b8ae9f7e74228bf741329a332d"
     }
   ],
   "materials": {
@@ -847,7 +865,7 @@
       "state": "Frozen",
       "date": "2026-10-21",
       "actor": "xronocode",
-      "evidence": "Payload 900509fed6b179786f7de16b282d953dca36bd7b completed the accepted screenshot and safety follow-up; all 84 commits since the bootstrap boundary are classified, the fresh README screenshot bytes were reproduced unchanged on the exact payload, and exact-SHA candidate checks are recorded above."
+      "evidence": "Payload 58c9aca3b79e69b8ae9f7e74228bf741329a332d completed the accepted screenshot, safety, and promotion-recovery follow-up; all 87 commits since the bootstrap boundary are classified, the reviewed README screenshot bytes remain unchanged, and exact-SHA candidate checks are recorded above."
     },
     {
       "state": "Ready",
