@@ -5,8 +5,9 @@
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>
       <!-- C-TOOLBAR-LABELS: V-M-012 scenario-toolbar-label-visits verifies cumulative inline labels and whole-panel exit reset for table/Mermaid/Vega-Lite toolbars. -->
-      <!-- C-TABLE-FOOTER: V-M-012 scenario-table-footer verifies compact caption/bar order, stable invisible space and fitting/restored-table controls in both engines. -->
+      <!-- C-TABLE-FOOTER: V-M-012 scenario-table-footer verifies compact caption/bar order, stable invisible space and fitting/restored-table controls in both engines. Owner partially accepted the native visual scope on bae95a97; Fit to page transition/persistence remains open in docs/release-trains/2.5.x-next.md#c-table-footer. -->
       <!-- C-71 owner acceptance on f17b070e is queued in 2.5.x-next; table-footer spacing is a separate pending change. -->
+      <!-- FIX-003..FIX-007 owner acceptance on isolated bae95a97 is queued in 2.5.x-next; docs/release-trains/2.5.x-next-followups.md coordinates rejected FIX-008 first and release-blocker FIX-011 second, without admitting either to release. -->
       <!-- C-71-OUTLINE-OCCLUSION: V-M-011 scenario-54 covers whole-outline hide/restore on scroll intersection without geometry or content writes. -->
       <!-- C-71-TABLE-CENTER: V-M-012 scenario-69 reproduces long-cell centering against full editor bounds in both engines. -->
       <!-- C-CI-FENCE-TEARDOWN: V-M-012 scenario-muya-fence-import-teardown owns deterministic real-import completion. -->

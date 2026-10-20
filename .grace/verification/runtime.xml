@@ -2334,6 +2334,7 @@
       <Priority>high</Priority>
       <Commands>
         <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
+        <Command>npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -2446,6 +2447,26 @@
           labeled "Support Mark…", id-dispatched and accelerator-less in
           every desktop build; absent from app-store cfg builds (no
           donation surface in store builds).
+        </Scenario>
+        <Scenario>
+          scenario-17 (C-73 advertised-chord routing audit): every chord
+          the app advertises has a real dispatch route, and no layer
+          silently claims a reserved chord. Source-level extraction
+          covers the registry shortcut arrays, the m009 taxonomy and
+          builder accelerators, the muya front-menu display strings,
+          the editor.vue paragraph keydown block and the app.vue zoom
+          keys. Assertions: each advertised registry chord is routed
+          (same-id native accelerator, keydown layer or zoom layer);
+          each desktop keydown chord is advertised; each front-menu
+          display chord is advertised and routed; no chord is claimed
+          by two registry ids; registry and native agree per shared
+          id; Meta+Shift+P stays unadvertised and unrouted while
+          UC-025 (Command Palette, FIX-010) is unshipped. This is the
+          generalized whole-registry form of the FIX-005/FIX-006
+          paragraph pin. Pinned by
+          tests/renderer/commands/shortcut-routing-audit.test.js
+          (seven assertions plus population guards that fail loudly on
+          extractor drift).
         </Scenario>
       </Scenarios>
       <Markers>
@@ -5733,10 +5754,10 @@
           tests/renderer/muya/export-pele-theme.test.js
         </Command>
         <Command>npx vitest run tests/renderer/muya/table-scroll-wrapper.test.js</Command>
-        <Command>
-          npm run build &amp;&amp; npx playwright test --project=chromium
+        <Command>npm run build &amp;&amp; npx playwright test --project=chromium
           tests/e2e/pele-render.spec.ts
         </Command>
+        <Command>npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</Command>
         <Command>
           npm run build &amp;&amp; npx playwright test --project=chromium
           --project=webkit-pele-theme tests/e2e/pele-theme.spec.ts
@@ -6781,6 +6802,27 @@
           and C-DESKTOP-STABILIZATION final assertions pass.
           Other changes in that binary retain their own acceptance state;
           this acceptance does not authorize publication.
+        </Scenario>
+        <Scenario>
+          scenario-71 (C-73 affordance audit, behavioral half):
+          everything the UI advertises visibly responds. Non-native
+          advertised chords pressed as real keys (paragraph family and
+          any future keydown-ridden command) produce an observable
+          response — bus event, DOM mutation, invoke attempt or store
+          digest change — with the markdown-anchored duplicate/heading
+          cases asserting the document itself changes. The menu-bridge
+          walk dispatches every registry leaf through mt::menu-invoked:
+          each leaf responds or carries a reasoned harness allowlist
+          entry (native-dialog commands, capability-gated help.rate),
+          and any NEW menu-bridge warning fails the walk — the
+          known-open FIX-012 render TypeError on tabs.cycleForward
+          after the full traversal prefix is the only expected entry
+          until its repair. Welcome action buttons (Open File, Open
+          Folder, New) each produce a response; the FIX-009
+          Last-session restore case stays fixme-visible until that
+          repair ships. Pinned by
+          tests/e2e/affordance-audit.spec.ts (chromium); static
+          advertised-chord agreement lives in V-M-009 scenario-17.
         </Scenario>
       </Scenarios>
       <Markers>
