@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved"><C-TABLE-FIT-PERSISTENCE>
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-TABLE-FIT-PERSISTENCE>
   <Name>Fit to page persists through the host profile</Name>
   <Created>2026-10-20</Created>
   <Summary>The native owner review of bae95a97 partially accepted C-TABLE-FOOTER but Fit to page never left Full width. The proven host-side gap: the renderer tableLayoutStore sanitizer dropped muya's fit flag, so an explicit «Fit to page» choice could not survive the save/reload path. Repair the sanitizer, pin the transition and the persistence in both engines, and leave the native same-frame confirmation to the fresh isolated artifact.</Summary>

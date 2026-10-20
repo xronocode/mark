@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><C-FIX-011-UNTITLED-CLOSE-ACTIONS>
+<GraceChangePlan graceVersion="4.0" status="applied"><C-FIX-011-UNTITLED-CLOSE-ACTIONS>
   <ChangeRef>C-FIX-011-UNTITLED-CLOSE-ACTIONS</ChangeRef><Created>2026-10-20</Created>
   <IntentSummary>Land the owner-approved three-action untitled close model: a promise-based DOM dialog (default Save &amp; Close, separate Discard, visible Cancel with Escape/glyph equivalence) replacing the two-discard ElMessageBox; the store's untitled Save &amp; Close runs Save As for the closing tab and closes only on success; component, store and browser coverage pin every path; FIX-007 dark-theme assertions continue on the new surface.</IntentSummary>
   <ExecutionPolicy>Execute sequentially after C-FIX-008-VIEWER-PAN-CUES. Durable scope M-011/V-M-011 is shared with the renderer family; this bundle does not touch muya or the table surface.</ExecutionPolicy>
