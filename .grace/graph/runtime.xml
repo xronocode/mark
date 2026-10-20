@@ -2957,6 +2957,12 @@
         never record, focusing an already-open file keeps the original
         slot) and by loadChange (an external reload lands the new content
         while the C-43 ring keeps the pre-reload version); slot and ring
+        C-RELEASE-PIPELINE-AUTOMATION: WHATS_NEW_CONTENT and all ten
+        source/minified locale catalogs include the reviewed 2.6.0 entry;
+        release-materials enforces one to four ordered items, title/text/Also
+        limits, exact release URL, product-token preservation, and source ↔
+        minified parity. M-046 owns admission/publication; M-011 owns only the
+        in-app sheet content and rendering contract.
         never evict each other and both die with the tab.
         editorWithTabs/diffView.vue resolves the ⌘D baseline as external
         snapshot → mt_diff_baseline → opened — a backend error («Not a git
@@ -3382,7 +3388,7 @@
       <Sources>
         <Source>src/renderer/</Source>
         <KnowledgeGraphPath>src/renderer/</KnowledgeGraphPath>
-        <Tests>test/unit/renderer/**.spec.js + test/e2e/renderer.spec.ts</Tests>
+        <Tests>test/unit/renderer/**.spec.js + test/e2e/renderer.spec.ts + tests/renderer/whatsNew/content.test.js + tests/renderer/whatsNew/gate.test.js</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Renderer]</LogPrefix>

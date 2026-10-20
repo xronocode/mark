@@ -1,5 +1,5 @@
 // FILE: tests/e2e/whats-new.spec.ts
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New boot flow end to end — a recorded
 //            previous version shows the sheet once, Esc closes it, and
@@ -26,7 +26,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
+//   LAST_CHANGE: v1.4.0 - 2026-10-20 release 2.6.0 draft: historical item rendering follows the current release-wide Also copy.
+//   PREV: v1.3.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
 //   v1.2.0 - 2026-10-17 C-53 T-001/R-1: the D-1 item titles,
 //   the «Also» line and the «See everything new» footer link are pinned;
 //   a new case drives the link and asserts the opener plugin receives the
@@ -126,8 +127,8 @@ test.describe("What's New (C-48)", () => {
     await expect(titles.nth(1)).toHaveText('A look for each diagram')
     await expect(titles.nth(2)).toHaveText('Print and PDF, each direct')
     await expect(titles.nth(3)).toHaveText('Copy images back out')
-    // The «Also» line and both footer links.
-    await expect(sheet.locator('.also')).toContainText('clears Recent')
+    // The Also key is release-wide, even when historical items are opened.
+    await expect(sheet.locator('.also')).toContainText('safer tab closing')
     await expect(sheet.locator('.foot-links .guide-link').first())
       .toHaveText('See everything new ↗')
     await expect(sheet.locator('.foot-links .guide-link').nth(1)).toHaveText('See the guide')

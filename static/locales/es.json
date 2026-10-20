@@ -1452,7 +1452,7 @@
     "title": "Novedades",
     "seeGuide": "Ver la guía",
     "continue": "Continuar",
-    "also": "Además: una escoba vacía Recientes en la barra lateral y ⌘W cierra los Ajustes",
+    "also": "Además: cierre de pestañas más seguro, selección con Shift fiable, diálogos temáticos y menús claros",
     "seeEverything": "Ver todas las novedades",
     "v2_3_1": {
       "look": {
@@ -1524,6 +1524,24 @@
       "updates": {
         "title": "Las novedades llegan solas",
         "text": "Mark busca una versión nueva una vez al día: actualiza ya, luego u omítela."
+      }
+    },
+    "v2_6_0": {
+      "tableImages": {
+        "title": "Tablas como imágenes",
+        "text": "Copia una tabla como imagen o guarda un PNG desde la vista a pantalla completa."
+      },
+      "wideTables": {
+        "title": "Tablas anchas bajo control",
+        "text": "Ajustar y Ancho completo se recuerdan; las pistas muestran columnas ocultas."
+      },
+      "compare": {
+        "title": "Compara con la versión abierta",
+        "text": "⌘D compara la nota con la versión que abrió Mark, incluso sin repositorio Git."
+      },
+      "shortcuts": {
+        "title": "Atajos de edición restaurados",
+        "text": "⇧⌘D duplica un párrafo; ⌘1–6 lo convierte en encabezado H1–H6."
       }
     }
   },

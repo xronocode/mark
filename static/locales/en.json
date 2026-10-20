@@ -1468,7 +1468,7 @@
     "title": "What's new",
     "seeGuide": "See the guide",
     "continue": "Continue",
-    "also": "Also: a broom clears Recent in the sidebar, and ⌘W closes Settings",
+    "also": "Also: safer tab closing, reliable Shift selection, themed dialogs, and clearer menus",
     "seeEverything": "See everything new",
     "v2_3_1": {
       "look": {
@@ -1540,6 +1540,24 @@
       "updates": {
         "title": "Updates come to you",
         "text": "Mark checks for a new version once a day: update now, later, or skip it."
+      }
+    },
+    "v2_6_0": {
+      "tableImages": {
+        "title": "Tables as pictures",
+        "text": "Copy a table as an image, or save a PNG from the full-screen viewer."
+      },
+      "wideTables": {
+        "title": "Wide tables, under control",
+        "text": "Fit and Full width stay put; panning cues show where more columns wait."
+      },
+      "compare": {
+        "title": "Compare with when opened",
+        "text": "⌘D compares a note with the version Mark opened, even outside a Git repository."
+      },
+      "shortcuts": {
+        "title": "Editing shortcuts restored",
+        "text": "⇧⌘D duplicates a paragraph; ⌘1–6 turns it into an H1–H6 heading."
       }
     }
   },

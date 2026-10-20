@@ -1453,7 +1453,7 @@
     "title": "Nouveautés",
     "seeGuide": "Voir le guide",
     "continue": "Continuer",
-    "also": "Aussi : un balai vide Récents dans la barre latérale, et ⌘W ferme les Réglages",
+    "also": "Aussi : fermeture d’onglets plus sûre, sélection Shift fiable, dialogues assortis et menus clairs",
     "seeEverything": "Voir toutes les nouveautés",
     "v2_3_1": {
       "look": {
@@ -1525,6 +1525,24 @@
       "updates": {
         "title": "Les mises à jour viennent à vous",
         "text": "Mark cherche une nouvelle version chaque jour : maintenant, plus tard ou ignorer."
+      }
+    },
+    "v2_6_0": {
+      "tableImages": {
+        "title": "Tableaux en images",
+        "text": "Copiez un tableau comme image ou enregistrez un PNG depuis le plein écran."
+      },
+      "wideTables": {
+        "title": "Tableaux larges maîtrisés",
+        "text": "Ajuster et Pleine largeur restent ; des repères signalent les colonnes masquées."
+      },
+      "compare": {
+        "title": "Comparer à l’ouverture",
+        "text": "⌘D compare la note à sa version ouverte par Mark, même sans dépôt Git."
+      },
+      "shortcuts": {
+        "title": "Raccourcis d’édition rétablis",
+        "text": "⇧⌘D duplique un paragraphe ; ⌘1–6 le transforme en titre H1–H6."
       }
     }
   },

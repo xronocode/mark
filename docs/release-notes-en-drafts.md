@@ -4,10 +4,31 @@ English replacements for the Russian release-note sections in `xronocode/mark`.
 Replace only the human-written section above `---`; preserve the automated
 attestation, cosign, and updater block below it unchanged.
 
-The 12 drafts are listed from newest to oldest. They are saved for review;
+The 13 drafts are listed from newest to oldest. They are saved for review;
 this change does not publish them to GitHub.
 
 ---
+
+## v2.6.0
+
+```markdown
+## What's new
+
+### Tables
+- **Tables as pictures.** Copy a table as an image from the editor, or save a PNG from the fullscreen viewer.
+- **Wide tables stay under control.** Full width and Fit to page keep their state through editor updates. In fullscreen, drag to pan; edge shadows show where more columns remain, without a misleading scrollbar.
+- Wide tables stay centred when they fit and keep clear of the outline when they do not. Compact toolbar labels and the column footer remain stable.
+
+### Editor
+- **Compare with what Mark opened.** ⌘D compares a note with its opened version even outside a Git repository, and reports clearly when nothing changed.
+- **Editing shortcuts restored.** ⇧⌘D duplicates a paragraph; ⌘1–6 turns it into H1–H6 and keeps Markdown and the outline in sync.
+- Shift+Up/Down selection no longer stalls under a formatting toolbar. The Russian transform menu keeps long labels and shortcuts on one readable row.
+
+### Tabs and dialogs
+- Closing a tab no longer leaves another tab selected over the closed document or sends later edits to the wrong file.
+- A new document no longer inherits the outline of the file that was just closed.
+- Unsaved dialogs follow the active theme. A dirty untitled tab now offers three distinct choices: Save & Close, Discard, and Cancel.
+```
 
 ## v2.5.2
 
