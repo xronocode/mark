@@ -1,0 +1,233 @@
+# FILE: .github/workflows/promote-release.yml
+# VERSION: 1.1.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Turn one merged Ready release seal into its computed annotated tag only after an explicit owner-approved release-authorize deployment.
+#   SCOPE: Read-only Ready/seal/check admission followed by idempotent tag creation through a purpose-specific GitHub App; never builds, signs, or publishes.
+#   DEPENDS: M-046 release readiness, release-authorize Environment, xronocode release-bot App credentials, checked-in train authority.
+#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
+#   ROLE: CONFIG
+#   MAP_MODE: SUMMARY
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   preflight - Admit only the current merged Ready seal using live payload check evidence without privileged credentials.
+#   authorize-tag - After owner approval, re-bind identity and create or verify one annotated tag with the Release Bot App.
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   - 2026-10-20 v1.1.0: remove manual promotion, revalidate main/check evidence after approval, and verify existing annotated tag metadata exactly.
+#   - 2026-10-20 v1.0.0: add input-free owner-approved, App-authenticated annotated release-tag promotion.
+# END_CHANGE_SUMMARY
+
+name: release/promote
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/release-trains/2.5.x-next.json'
+      - 'docs/release-trains/2.5.x-next.md'
+      - 'docs/assets/readme/2.6.0.manifest.json'
+
+concurrency:
+  group: release-promote
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  preflight:
+    name: release/promote-preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      payload: ${{ steps.identity.outputs.payload }}
+      seal: ${{ steps.identity.outputs.seal }}
+    steps:
+      - name: checkout merged candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: derive Ready seal identity
+        id: identity
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          HEAD_SHA=$(git rev-parse HEAD)
+          MAIN_SHA=$(git rev-parse origin/main)
+          [ "$HEAD_SHA" = "$MAIN_SHA" ]
+          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).state")
+          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).payloadSha")
+          RECORDED_SEAL=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).sealSha")
+          SEAL=$HEAD_SHA
+          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).computedVersion")
+          [ "$STATE" = Ready ]
+          [ "$RECORDED_SEAL" = null ]
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+          echo "seal=$SEAL" >> "$GITHUB_OUTPUT"
+
+      - name: install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: read exact payload check runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAYLOAD: ${{ steps.identity.outputs.payload }}
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/commits/$PAYLOAD/check-runs?per_page=100" \
+            | jq '[.[].check_runs[]] | sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})' \
+            > /tmp/release-checks.json
+
+      - name: create local proof tag for strict read-only admission
+        env:
+          TAG: ${{ steps.identity.outputs.tag }}
+          SEAL: ${{ steps.identity.outputs.seal }}
+        run: |
+          set -euo pipefail
+          git fetch origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
+          if git rev-parse "$TAG^{commit}" >/dev/null 2>&1; then
+            [ "$(git rev-parse "$TAG^{commit}")" = "$SEAL" ]
+            [ "$(git cat-file -t "$TAG")" = tag ]
+          else
+            git -c user.name='Mark Release Proof' -c user.email='release-proof@mark.invalid' \
+              tag -a "$TAG" "$SEAL" -m "Local readiness proof for $TAG"
+          fi
+
+      - name: strict online release admission
+        env:
+          TAG: ${{ steps.identity.outputs.tag }}
+          PAYLOAD: ${{ steps.identity.outputs.payload }}
+          SEAL: ${{ steps.identity.outputs.seal }}
+          HEAD_SHA: ${{ github.sha }}
+        run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file /tmp/release-checks.json
+
+      - name: materials and version admission
+        env:
+          TAG: ${{ steps.identity.outputs.tag }}
+        run: |
+          npm run release:materials -- --tag "$TAG"
+          npm run release:preflight -- --tag "$TAG"
+
+  authorize-tag:
+    name: release/authorize-tag
+    needs: preflight
+    runs-on: ubuntu-latest
+    environment: release-authorize
+    permissions:
+      contents: read
+    steps:
+      - name: checkout the admitted seal
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.preflight.outputs.seal }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: re-bind approved identity without executing candidate code
+        env:
+          TAG: ${{ needs.preflight.outputs.tag }}
+          PAYLOAD: ${{ needs.preflight.outputs.payload }}
+          SEAL: ${{ needs.preflight.outputs.seal }}
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          [ "$(git rev-parse HEAD)" = "$SEAL" ]
+          [ "$(git rev-parse origin/main)" = "$SEAL" ]
+          node -e "const f=require('fs'),m=JSON.parse(f.readFileSync('docs/release-trains/2.5.x-next.json'));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
+
+      - name: setup Node 22 after approval
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: reinstall locked tools without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: refresh exact payload check evidence after approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAYLOAD: ${{ needs.preflight.outputs.payload }}
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/commits/$PAYLOAD/check-runs?per_page=100" \
+            | jq '[.[].check_runs[]] | sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})' \
+            > /tmp/release-checks-approved.json
+
+      - name: rerun strict admission after approval
+        env:
+          TAG: ${{ needs.preflight.outputs.tag }}
+          PAYLOAD: ${{ needs.preflight.outputs.payload }}
+          SEAL: ${{ needs.preflight.outputs.seal }}
+        run: |
+          set -euo pipefail
+          if ! git rev-parse "$TAG^{commit}" >/dev/null 2>&1; then
+            git -c user.name='Mark Release Proof' -c user.email='release-proof@mark.invalid' \
+              tag -a "$TAG" "$SEAL" -m "Local readiness proof for $TAG"
+          fi
+          npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$SEAL" --checks-file /tmp/release-checks-approved.json
+          npm run release:materials -- --tag "$TAG"
+          npm run release:preflight -- --tag "$TAG"
+
+      - name: mint purpose-specific Release Bot token
+        id: release_bot
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          # Symbolic GitHub secret lookups only; credential bytes are stored in the protected Environment, never in this repository.
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          owner: xronocode
+          repositories: mark
+          permission-contents: write
+
+      - name: create or verify the annotated release tag
+        env:
+          GH_TOKEN: ${{ steps.release_bot.outputs.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          SEAL: ${{ needs.preflight.outputs.seal }}
+        run: |
+          set -euo pipefail
+          EXPECTED_MESSAGE="Mark $TAG approved release seal"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            [ "$(git cat-file -t "$TAG")" = tag ]
+            [ "$(git rev-parse "$TAG^{commit}")" = "$SEAL" ]
+            TAG_OBJECT=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha)
+            gh api "repos/$GITHUB_REPOSITORY/git/tags/$TAG_OBJECT" \
+              | jq -e --arg tag "$TAG" --arg seal "$SEAL" --arg message "$EXPECTED_MESSAGE" \
+                'select(.tag == $tag and .object.type == "commit" and .object.sha == $seal and .message == $message and .tagger.name == "xronocode-release-bot[bot]")' \
+              >/dev/null
+            echo "tag already exists at the approved seal"
+            exit 0
+          fi
+          TAG_OBJECT=$(jq -n \
+            --arg tag "$TAG" \
+            --arg message "$EXPECTED_MESSAGE" \
+            --arg object "$SEAL" \
+            '{tag:$tag,message:$message,object:$object,type:"commit"}' \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/tags" --input - --jq .sha)
+          jq -n --arg ref "refs/tags/$TAG" --arg sha "$TAG_OBJECT" '{ref:$ref,sha:$sha}' \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" --input - >/dev/null
+          REF_OBJECT=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha)
+          [ "$REF_OBJECT" = "$TAG_OBJECT" ]
+          gh api "repos/$GITHUB_REPOSITORY/git/tags/$TAG_OBJECT" \
+            | jq -e --arg tag "$TAG" --arg seal "$SEAL" --arg message "$EXPECTED_MESSAGE" \
+              'select(.tag == $tag and .object.type == "commit" and .object.sha == $seal and .message == $message and .tagger.name == "xronocode-release-bot[bot]")' \
+            >/dev/null
+          echo "[ReleasePromote][tag][BLOCK_RELEASE_TAG_AUTHORIZED] tag=$TAG"
