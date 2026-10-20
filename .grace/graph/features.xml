@@ -2351,6 +2351,9 @@
         owner-approved annotated-tag promotion, tag-only signing, read-only
         publication-bundle preparation, fixed-command digest-verified
         draft-first publication, and an idempotent downstream cask handoff.
+        Tag admission restores the remote annotated tag object after checkout
+        rewrites its local tag ref to the peeled commit, then proves the restored
+        object targets the checked-out seal before packaging.
         Promotion preserves complete main ancestry before both strict admission
         passes so payload-to-seal merge-base evidence is available on hosted runners.
         Release Please lifecycle metadata permissions are isolated from release
