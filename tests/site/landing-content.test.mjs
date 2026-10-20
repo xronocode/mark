@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/landing-content.test.mjs
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-64 T-002 landing content contract — the install
 //            facts render (the download facts as release tokens filled by
@@ -28,7 +28,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.4.0 - 2026-10-19 C-64 version sync: the download facts
+//   LAST_CHANGE: [v1.5.0 - 2026-10-21 C-64 T-009: pins the P3 analytics
+//                 wiring — the hero .alt ways carry placement hero_alt (the
+//                 install-CTA placement regex learns it), "All downloads"
+//                 is a nav_click to all_downloads, the nav/mnav/foot-nav and
+//                 editions links are nav_click (14 total), the six sections
+//                 carry data-section enums, and the script wires stage_drag,
+//                 prompt_open and diagram_filter placement landing.]
+//   PREV: [v1.4.0 - 2026-10-19 C-64 version sync: the download facts
 //                 are asserted as the %VERSION%/%DMG_*/%EXE_* tokens in the
 //                 template (App Store edition facts stay pinned), and a fill
 //                 test proves fillLanding(TEMPLATE, undefined, facts) writes
@@ -147,7 +154,7 @@ describe('landing consent + install analytics wiring', () => {
     for (const tag of CTAS) {
       expect(tag, tag).toContain('data-track="download_click"')
       expect(tag, tag).toMatch(/data-method="(app_store|homebrew_copy|windows|dmg)"/)
-      expect(tag, tag).toMatch(/data-placement="(hero|install|nav|footer|bar)"/)
+      expect(tag, tag).toMatch(/data-placement="(hero|hero_alt|install|nav|footer|bar)"/)
     }
   })
 
@@ -352,7 +359,7 @@ describe('landing C-64 T-006 audit fixes', () => {
     expect(HTML).toMatch(/<footer class="foot cv">/)
     expect(HTML).toMatch(/<section class="top" id="hero"/)
     expect(HTML).toMatch(/<section class="sec" id="diagrams-sec"/)
-    expect(HTML).toMatch(/<section class="sec" aria-labelledby="ag-h">/)
+    expect(HTML).toMatch(/<section class="sec" aria-labelledby="ag-h" data-section="agents">/)
   })
 
   it('darkens the demo meta line to the 4.5:1 ink in the light theme only (A-1)', () => {
@@ -394,5 +401,46 @@ describe('landing C-64 T-007 audit fixes', () => {
   it('gives the footer links a target at least 24 px tall (A-2, WCAG 2.5.8)', () => {
     // 14.5px text at the body's 1.55 line-height (~22.5px) + 2×5px padding ≈ 32px.
     expect(HTML).toMatch(/\.foot-nav a\s*\{[^}]*padding-block:\s*5px/)
+  })
+})
+
+describe('landing C-64 T-009 P3 analytics wiring', () => {
+  it('separates the hero alternative ways (hero_alt) from the main hero buttons', () => {
+    for (const cls of ['x-store', 'x-brew', 'x-mac', 'x-win']) {
+      const tag = [...HTML.matchAll(new RegExp(`<(?:a|button)\\b[^>]*class="[^"]*\\b${cls}\\b[^"]*"[^>]*>`, 'gi'))].map((m) => m[0])[0]
+      expect(tag, cls).toBeTruthy()
+      expect(tag, cls).toContain('data-placement="hero_alt"')
+    }
+    expect(HTML).toMatch(/id="dmg-hero"[^>]*data-placement="hero"/)
+    expect(HTML).toMatch(/id="win-hero"[^>]*data-placement="hero"/)
+  })
+
+  it('makes "All downloads" a nav_click to all_downloads under the hero button', () => {
+    expect(HTML).toMatch(/class="x-all" href="#all-downloads" data-track="nav_click" data-target="all_downloads" data-placement="hero_alt"/)
+  })
+
+  it('tracks the internal nav chrome as nav_click (header, mobile, footer, editions)', () => {
+    const NAVS = [...HTML.matchAll(/<a [^>]*data-track="nav_click"[^>]*>/g)].map((m) => m[0])
+    expect(NAVS).toHaveLength(14)
+    for (const tag of NAVS) expect(tag, tag).toMatch(/data-target="(diagrams|docs|changelog|privacy|editions|all_downloads)"/)
+    expect(NAVS.filter((t) => t.includes('data-placement="nav"'))).toHaveLength(6)      // .nav + .mnav
+    expect(NAVS.filter((t) => t.includes('data-placement="footer"'))).toHaveLength(4)   // .foot-nav internal links
+    expect(NAVS.filter((t) => t.includes('data-placement="hero"'))).toHaveLength(1)     // "What's the difference?"
+    expect(NAVS.filter((t) => t.includes('data-placement="install"'))).toHaveLength(2)  // dnotes + full-table links
+  })
+
+  it('labels the six sections with data-section enums for section_view', () => {
+    expect((HTML.match(/data-section="(hero|agents|diagrams|page|native|install)"/g) || []).length).toBe(6)
+    expect(HTML).toMatch(/<section class="top" id="hero" data-consent-after data-section="hero">/)
+    expect(HTML).toMatch(/<section class="sec" aria-labelledby="ag-h" data-section="agents">/)
+    expect(HTML).toMatch(/<section class="sec cv cv-a" aria-labelledby="pg-h" data-section="page">/)
+  })
+
+  it('wires stage_drag, prompt_open and the landing diagram_filter placement', () => {
+    expect(HTML).toContain("markTrack('stage_drag', { method: method })")
+    expect(HTML).toMatch(/stageDrag\('pointer'\)/)
+    expect(HTML).toMatch(/stageDrag\('keyboard'\)/)
+    expect(HTML).toContain("markTrack('prompt_open', { placement: 'agents' })")
+    expect(HTML).toContain("markTrack('diagram_filter', { kind: 'theme', placement: 'landing' })")
   })
 })
