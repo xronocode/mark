@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-normalize.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove Release Please is the only version authority and Mark's secondary release surfaces normalize through one deterministic, idempotent allowlisted patch.
 //   SCOPE: Temporary-workspace golden patch, check/write/idempotence, forbidden override, and package/manifest mismatch regressions.
@@ -24,6 +24,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.5.0: derive the collecting fixture from every terminal candidate state and assert fail-closed normalization on a live Ready train.
 //   - 2026-10-21 v1.4.0: prove train-ledger normalization preserves Windows CRLF bytes and remains idempotent.
 //   - 2026-10-21 v1.3.0: prove atomic Collecting-to-Preparing synchronization across the machine train and human ledger.
 //   - 2026-10-21 v1.2.0: make golden fixtures and checkout assertions valid in both collecting main and prepared release-PR states.
@@ -98,9 +99,12 @@ const restoreChangelogDraft = (source, version) => {
 }
 const restoreCollectingLedger = (source) =>
   source
-    .replace('| State | Preparing |', '| State | Collecting |')
     .replace(
-      /^- The checked-in train is \*\*Preparing\*\*\.[^\n]*$/m,
+      /\| State \| (?:Collecting|Preparing|Frozen|Ready|Released|Aborted) \|/,
+      '| State | Collecting |'
+    )
+    .replace(
+      /^- The checked-in train (?:is|remains) \*\*(?:Collecting|Preparing|Frozen|Ready|Released|Aborted)\*\*\.[^\n]*$/m,
       '- The checked-in train remains **Collecting**. Release Please deterministically proposes 2.6.0, while package/Cargo/Tauri metadata remains at 2.5.3 until the preparation PR.'
     )
 const windowsNewlines = (source) =>
@@ -325,17 +329,24 @@ describe('release normalization', () => {
     )
   })
 
-  it('derives the current checkout from Release Please authority without writing', () => {
+  it('derives an open current checkout or rejects a sealed lifecycle without writing', () => {
     const packageVersion = JSON.parse(readFileSync(resolve('package.json'), 'utf8')).version
     const trainPath = resolve('docs/release-trains/2.5.x-next.json')
     const trainBefore = readFileSync(trainPath, 'utf8')
-    const previousVersion = JSON.parse(trainBefore).previousRelease.tag.replace(/^v/, '')
-    const plan = planReleaseNormalization(process.cwd())
-    expect(plan.version).toBe(packageVersion)
-    expect(plan.state).toBe(
-      packageVersion === previousVersion ? 'awaiting-release-please' : 'planned'
-    )
-    if (packageVersion === previousVersion) expect(plan.changes).toEqual([])
+    const train = JSON.parse(trainBefore)
+    const previousVersion = train.previousRelease.tag.replace(/^v/, '')
+    if (['Collecting', 'Preparing'].includes(train.state)) {
+      const plan = planReleaseNormalization(process.cwd())
+      expect(plan.version).toBe(packageVersion)
+      expect(plan.state).toBe(
+        packageVersion === previousVersion ? 'awaiting-release-please' : 'planned'
+      )
+      if (packageVersion === previousVersion) expect(plan.changes).toEqual([])
+    } else {
+      expect(() => planReleaseNormalization(process.cwd())).toThrow(
+        expect.objectContaining({ code: 'MT_RELEASE_NORMALIZE_LIFECYCLE_INVALID' })
+      )
+    }
     expect(readFileSync(trainPath, 'utf8')).toBe(trainBefore)
   })
 })
