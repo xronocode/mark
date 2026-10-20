@@ -1,0 +1,182 @@
+{
+  "change": "C-72",
+  "date": "2026-10-20",
+  "commit": "43f8dfc03188d4e171669e2152670ecbf61aaf30",
+  "branch": "main",
+  "version": "2.5.3",
+  "graphModules": 67,
+  "verificationEntries": 67,
+  "preexistingActiveChanges": 33,
+  "preexistingActiveChangeIds": [
+    "C-23", "C-34", "C-35", "C-36", "C-37", "C-47", "C-50", "C-52", "C-53",
+    "C-56", "C-58", "C-61", "C-64", "C-65", "C-66", "C-67", "C-68", "C-69",
+    "C-70", "C-71", "C-71-OUTLINE-OCCLUSION", "C-71-OVERLAY-RESIZE",
+    "C-71-TABLE-CENTER", "C-DESKTOP-STABILIZATION", "C-PRIVATE-OPERATIONS",
+    "C-SAFE-DELIVERY", "C-SAFE-GPU-OWNER", "C-SAFE-LOCALE-REVIEW",
+    "C-SAFE-PUBLIC-BOUNDARY", "C-TAB-CLOSE-OWNERSHIP", "C-TABLE-FOOTER",
+    "C-TOOLBAR-LABELS", "C-WINDOWS-PREF-FIXTURES"
+  ],
+  "warningCategories": {
+    "measurement": "grace lint --assertions current occurrences at baseline",
+    "scope.durable-overlap": 131,
+    "analysis.heuristic-confidence": 14,
+    "analysis.heuristic-map-mismatch": 12,
+    "total": 157,
+    "originatingInRegisteredNestedWorktrees": 20,
+    "originatingInMainWorktree": 137
+  },
+  "staleGraphPaths": {
+    "measurement": "directory-module paths in routed graph documents",
+    ".grace/graph/runtime.xml": {
+      "src-tauri/src/shortcuts/mod.rs": 4,
+      "src-tauri/src/spell/mod.rs": 4,
+      "src-tauri/src/fonts/mod.rs": 4,
+      "src-tauri/src/encoding/mod.rs": 4,
+      "src-tauri/src/recent/mod.rs": 4,
+      "src-tauri/src/screenshot/mod.rs": 4,
+      "src-tauri/src/datacenter/mod.rs": 4,
+      "src-tauri/src/cli/mod.rs": 4,
+      "src-tauri/src/mt_paths/mod.rs": 4,
+      "src-tauri/src/prefs/mod.rs": 1,
+      "src-tauri/src/updater/mod.rs": 2,
+      "src-tauri/src/fs_core/mod.rs": 4
+    },
+    ".grace/graph/features.xml": {
+      "src-tauri/src/m045_ext/mod.rs": 3
+    },
+    "fs_coreNote": "M-021 fs_core is genuinely unimplemented; src-tauri/src/fs_core/mod.rs is a truthful PlannedPath and stays",
+    "m045Note": "src-tauri/src/m045_ext/mod.rs exists on disk; the path was already truthful and only the planned status was stale",
+    "outOfScopeStalePaths": {
+      "M-005": "src-tauri/src/prefs/mod.rs (1) — module not in the approved C-72 durable scope; documented as bounded drift",
+      "M-016": "src-tauri/src/updater/mod.rs (2) — module not in the approved C-72 durable scope; documented as bounded drift"
+    },
+    "flatFileMapping": {
+      "shortcuts": "src-tauri/src/m006_shortcuts.rs",
+      "spell": "src-tauri/src/m007_spell.rs",
+      "fonts": "src-tauri/src/m008_fonts.rs",
+      "encoding": "src-tauri/src/m014_encoding.rs",
+      "recent": "src-tauri/src/m017_recent.rs",
+      "screenshot": "src-tauri/src/m018_screenshot.rs",
+      "datacenter": "src-tauri/src/m019_datacenter.rs",
+      "cli": "src-tauri/src/m020_cli.rs",
+      "prefs": "src-tauri/src/m005_prefs.rs",
+      "updater": "src-tauri/src/m016_updater.rs",
+      "mt_paths": "src-tauri/src/mt_paths.rs",
+      "m045_ext": "src-tauri/src/m045_ext/ (source family)"
+    }
+  },
+  "staleVerification": {
+    "yarnEraCommands": {
+      "yarn unit": 2,
+      "yarn unit -- src": 2,
+      "yarn unit -- test": 4,
+      "yarn test:specs": 2
+    },
+    "cdSrcTauriCommands": {
+      ".grace/verification/runtime.xml": 29,
+      ".grace/verification/features.xml": 1
+    },
+    "emptyCommandsEntries": {
+      ".grace/verification/features.xml <Commands/>": 13
+    }
+  },
+  "legacyOnlyFileLinks": {
+    "total": 58,
+    "inObservedWriteScope": 55,
+    "outOfScopeDocumented": [
+      "src/renderer/bench/README.md",
+      "tools/gen-electron-v1-fixture.mjs",
+      "tools/gen-tauri-v2-fixture.mjs"
+    ]
+  },
+  "releaseTrainDrift": {
+    "file": "docs/release-trains/2.5.x-next.md",
+    "cTableFooterRowSays": "New owner report on 2026-10-19 after C-71 acceptance; implementation pending",
+    "observedImplementationCommitsInMain": [
+      "16b59d1b fix(tables): keep a compact stable caption and scrollbar footer",
+      "9d413feb fix(tables): hide unnecessary width actions and clear the edge shade",
+      "abf29f13 fix(tables): keep the column counter transparent over edge shades"
+    ],
+    "cToolbarLabelsRowMissing": "owner acceptance recorded in its evidence.json and 46b255c2 is in main, but no train row exists",
+    "ciOnMain": "test.yml success at 43f8dfc0 on 2026-10-19 (covers Windows jobs)"
+  },
+  "registeredNestedWorktrees": [
+    { "name": "tmp/mark-integration-check", "branch": "(detached)", "head": "6186a47e" },
+    { "name": "mark-wt/c65", "branch": "agent/c65", "head": "db68b065" },
+    { "name": "mark-wt/c65cov", "branch": "agent/c65-cov", "head": "2d84ae6d" },
+    { "name": "mark-wt/c66", "branch": "agent/c66", "head": "69923628" },
+    { "name": "mark-wt/c68", "branch": "agent/c68", "head": "bc3a6e47" },
+    { "name": "mark-wt/c71-long-table", "branch": "docs/next-release-materials", "head": "0c2d1523" },
+    { "name": "mark-wt/desktop-stabilization-20261019", "branch": "integ/desktop-stabilization-20261019", "head": "0c2d1523" },
+    { "name": "mark-wt/english-language-policy", "branch": "docs/english-language-policy", "head": "2fa5d44b" },
+    { "name": "mark-wt/mas-2.5.0", "branch": "(detached)", "head": "7d12a671" },
+    { "name": "mark-wt/mobile-viewer-mvp", "branch": "mobile/viewer-mvp", "head": "74df9587" },
+    { "name": "mark-wt/privacy-publication-ready", "branch": "chore/privacy-publication-ready", "head": "19c32d85" },
+    { "name": "mark-wt/privacy-windows-checks", "branch": "(detached)", "head": "449d4636" },
+    { "name": "mark-wt/privatize-operational-records", "branch": "chore/publish-privacy-cleanup", "head": "995b01ce" },
+    { "name": "mark-wt/publish-privacy-cleanup", "branch": "chore/public-privacy-cleanup", "head": "3691fa48" },
+    { "name": "mark-wt/ready-merge-20261019", "branch": "integ/ready-20261019", "head": "5cfeeffb" },
+    { "name": "mark-wt/tab-close-stale-content", "branch": "fix/tab-close-train-ready", "head": "96111910" },
+    { "name": "mark-wt/table-copy-context", "branch": "feat/table-copy-context", "head": "ee6d3d0a" },
+    { "name": "mark-wt/table-footer", "branch": "fix/table-footer", "head": "abf29f13" },
+    { "name": ".claude/wt-c67", "branch": "feat/c67-clear-recent", "head": "a9eb6b7f" },
+    { "name": ".claude/wt-final", "branch": "(detached)", "head": "7c9ac22c" },
+    { "name": ".claude/wt-int", "branch": "integ/c65-c66", "head": "0775f720" },
+    { "name": ".claude/wt-logo2", "branch": "fix/pin-labels", "head": "67fc68c1" },
+    { "name": ".claude/wt-spec", "branch": "(detached)", "head": "e84ee084" }
+  ],
+  "frozenProvenanceSha256": {
+    "docs/requirements.xml": "9b624edc2a618f5d76d4d9fe3868ffb5cae75bc488e5d984779b8ca986cda95d",
+    "docs/technology.xml": "49446c7f86e09a2dd107929e44d02b240d63674d650394c795c7df4320f5e4a3",
+    "docs/development-plan.xml": "fd3f20acec1b8945db58fb885680bf18e1219f6add80aab68383c332ac4ad890",
+    "docs/verification-plan.xml": "55ae219004c28fb946c9e1be6bd177d9f21db9182bc6bb8e421e52f6d9df27d2",
+    "docs/knowledge-graph.xml": "93501891039740070988bf3bc8a9ca9ca1c7b418a774371e0681f234174eb8a2",
+    "docs/operational-packets.xml": "f3356d8f1983b538ada7583c7466f843ea467cdaa36cf6c87f077c3abf986cea",
+    "docs/migrations/GRACE3_to_GRACE4_2026-08-30.xml": "ac98c370e77c903d2bce7b7789605de91c6240a5ad0b04f33d13cfe363205aba"
+  },
+  "classifications": {
+    "archiveComplete": [
+      { "id": "C-52", "evidence": "d9c7d28b feat(workspace) folder from clipboard + dropped folders, first tagged v2.3.1" },
+      { "id": "C-53", "evidence": "853bbc34 2.3.1 materials; v2.3.1 tag and release shipped" },
+      { "id": "C-56", "evidence": "73d09ccd feat(export) Copy as Image / Save as PNG/SVG, first tagged v2.5.0" },
+      { "id": "C-58", "evidence": "33ad2883 2.5.0 materials reference gallery links; site gallery live under C-64 brand" },
+      { "id": "C-61", "evidence": "23404243 print/PDF split (renumbered C-59 to C-61 by b8279d2b), first tagged v2.5.0" },
+      { "id": "C-64", "evidence": "site refresh b6e89f63..9f67d809 in main; mark.xronocode.com live; ai-agents guide site integration preserved as a separate follow-up per the train note" },
+      { "id": "C-65", "evidence": "3344ab1d + 2d84ae6d in v2.5.3; plan Evidence T-001..T-006 all done 2026-10-19" },
+      { "id": "C-66", "evidence": "209d244a + 7dc59060 integrated through integ/c65-c66 into v2.5.3" },
+      { "id": "C-67", "evidence": "a9eb6b7f Clear Recent broom, first tagged v2.5.3" },
+      { "id": "C-68", "evidence": "2f30dc2d in main; owner accepted 2026-10-19 on Mark Test bcaebe05 (train #c-68)" },
+      { "id": "C-69", "evidence": "0cb34fb1 session restore by default, first tagged v2.5.3" },
+      { "id": "C-70", "evidence": "c94c2287 + d2f6364e in main; owner accepted 2026-10-19 (train #c-70)" },
+      { "id": "C-71", "evidence": "655d956d, 0e8ffcd9, 073f9494, f17b070e in main; owner accepted everything described (train #c-71)" },
+      { "id": "C-71-OUTLINE-OCCLUSION", "evidence": "f17b070e inside the owner-accepted C-71 scope (train accepted-scope list)" },
+      { "id": "C-71-OVERLAY-RESIZE", "evidence": "0e8ffcd9 inside the owner-accepted C-71 scope" },
+      { "id": "C-71-TABLE-CENTER", "evidence": "073f9494 inside the owner-accepted C-71 scope; train cites this evidence file" },
+      { "id": "C-DESKTOP-STABILIZATION", "evidence": "integration-evidence T-001..T-005 executed (96238ef1, 995b01ce, 655d956d, 2f30dc2d, close-report ledger); train line confirms its integration role is fulfilled" },
+      { "id": "C-PRIVATE-OPERATIONS", "evidence": "19c32d85 privacy removal + 1c25aba2 boundary enforcement in main" },
+      { "id": "C-SAFE-DELIVERY", "evidence": "gate live (60f5d9ef), tests/security suite green, recovery consolidated into main (96238ef1) and recovery/integration-20261019; mobile independence is standing protocol, not open bundle work" },
+      { "id": "C-SAFE-GPU-OWNER", "evidence": "6150d174 prove exclusive GPU ownership in main" },
+      { "id": "C-SAFE-LOCALE-REVIEW", "evidence": "3691fa48 complete locale field review with strict raw fallback in main" },
+      { "id": "C-SAFE-PUBLIC-BOUNDARY", "evidence": "60f5d9ef local review before commits/pushes; tools/security_gate.py + docs/commit-push-safety.md live" },
+      { "id": "C-TAB-CLOSE-OWNERSHIP", "evidence": "943d57d6 in main; owner accepted and queued 2026-10-19 (train #c-tab-close-ownership)" },
+      { "id": "C-TOOLBAR-LABELS", "evidence": "46b255c2 in main; owner accepted per evidence.json with runtime snapshot mapped to the protected commit; test.yml success at 43f8dfc0 covers integration; train row to be added" },
+      { "id": "C-WINDOWS-PREF-FIXTURES", "evidence": "449d4636 in main; grace final with commands passed; fresh Windows CI green in test.yml success at 43f8dfc0" }
+    ],
+    "archiveSuperseded": [
+      { "id": "C-34", "evidence": "mermaid uninstalled and pele GA live since v2.4.0 (C-55); viewer zoom and export shipped through the pele stack (C-56, C-70, block viewer)" },
+      { "id": "C-35", "evidence": "website refresh executed as the newer approved C-64 bundle; mark.xronocode.com live" }
+    ],
+    "archiveObsolete": [
+      { "id": "C-23", "evidence": "draft for a 2.3.0-without-beta release; v2.3.0 and v2.3.1 tags shipped; later trains own release work now" }
+    ],
+    "keepActive": [
+      { "id": "C-47", "reason": "future draft intent (agent hooks); no completion or supersession evidence" },
+      { "id": "C-50", "reason": "explicitly deferred to backlog (fa8fca02); no implementation commits" },
+      { "id": "C-TABLE-FOOTER", "reason": "implemented and verified on main (16b59d1b, 9d413feb, abf29f13) but owner acceptance pending; train row corrected in T-005" }
+    ],
+    "requireOwnerDecision": [
+      { "id": "C-36", "reason": "Avenex-derived private module intent; no repository evidence; owner must decide whether it stays" },
+      { "id": "C-37", "reason": "owner-personal portfolio intent; no repository evidence; owner must decide whether it stays" }
+    ]
+  }
+}

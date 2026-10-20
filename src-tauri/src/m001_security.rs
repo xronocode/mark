@@ -13,7 +13,7 @@
 //            untrusted contexts. If we ever need to override that, the
 //            hook goes here.
 //   DEPENDS: serde_json (parse).
-//   LINKS:   docs/development-plan.xml Phase-B1 step-9;
+//   LINKS:   .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-9;
 //            verification-plan.xml VF-016 (security-shell gate);
 //            docs/phase-b1-security-posture.md (companion doc).
 //   STATUS:  Phase-B1 step-9. Auditing only — Tauri 2 defaults handle

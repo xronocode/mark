@@ -29,7 +29,7 @@
 //   PURPOSE: Settings button row (C-38 T-003) — label + optional help left, a mockup push button right (plain or destructive).
 //   SCOPE: Button rendering and click dispatch (onClick function prop, mirroring the onChange convention of the other controls).
 //   DEPENDS: prefComponents/common/osClass (prefOsClass).
-//   LINKS: .grace/changes/active/C-38 T-003/T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003/T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

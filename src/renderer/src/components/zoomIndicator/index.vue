@@ -9,7 +9,7 @@
 //            round(fontSize / baseFontSize × 100) percentage, and the
 //            auto-hide timer. No zoom logic lives here.
 //   DEPENDS: bus, vue.
-//   LINKS:   .grace/changes/active/C-49 R-5; store/preferences.js
+//   LINKS:   .grace/changes/archive/C-49 R-5; store/preferences.js
 //            START_BLOCK_APPLY_FONT_SIZE; pages/app.vue (mounts it).
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE

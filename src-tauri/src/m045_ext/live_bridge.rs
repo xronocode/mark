@@ -9,8 +9,8 @@
 //            HTTP handling, no session state, no Muya logic. Pure glue
 //            between Rust backend and Vue frontend.
 //   DEPENDS: tauri (AppHandle, Emitter), serde/serde_json.
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B5b;
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B5b);
 //            ROADMAP.md Decision D1 (HTTP POST IPC).
 //   STATUS:  Phase-B5b initial — bridge emit helpers.
 //

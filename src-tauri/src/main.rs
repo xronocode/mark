@@ -20,9 +20,9 @@
 //             retired by C-13; the live m005_prefs store stays.
 //   DEPENDS:  dialog, m001_panic, m001_pdf, m001_security,
 //             m001_validate, m013b, mt_paths.
-//   LINKS:    docs/development-plan.xml Phase-B1 step-7..11 + step-B-pre2;
-//             docs/knowledge-graph.xml M-001;
-//             docs/verification-plan.xml V-M-001;
+//   LINKS:    .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-7..11 + step-B-pre2;
+//             .grace/graph/runtime.xml M-001;
+//             .grace/verification/runtime.xml V-M-001;
 //             docs/gate-phase-b1-closure.md (Gate-Phase-B1 verdict).
 //   STATUS:   Phase-B1 closed; M-001 is partially-implemented at the
 //             boot-orchestration layer. Real impls of M-013-B commands

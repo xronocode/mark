@@ -4,7 +4,7 @@
 //            code enum. NOT runtime — pure types + a string-literal union
 //            that downstream code grep-checks against fixture parity.
 //   DEPENDS: (none — LAYER=0)
-//   LINKS:   docs/knowledge-graph.xml M-013-A, docs/development-plan.xml
+//   LINKS:   .grace/graph/runtime.xml M-013-A, .grace/graph/runtime.xml M-013
 //            Phase-B1 step-2.
 //   STATUS:  Phase-B1 stub. Command set grows in B2 (fs/search/watcher),
 //            B3 (prefs/shortcuts/spell/fonts/menu/recent/datacenter/cli/

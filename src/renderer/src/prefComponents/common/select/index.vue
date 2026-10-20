@@ -35,7 +35,7 @@
 //   PURPOSE: Settings pop-up row (C-38 T-003 anatomy) — label + optional help left, native pop-up button right (OS-drawn chevrons/menu, mockup trigger styling).
 //   SCOPE: Row rendering and change events; same props/events contract as v1 (description/notes/value/options/onChange/more/disable) plus help.
 //   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

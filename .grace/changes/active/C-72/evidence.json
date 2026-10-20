@@ -1,0 +1,141 @@
+{
+  "change": "C-72",
+  "date": "2026-10-20",
+  "preexistingActiveChanges": 33,
+  "changeDispositions": [
+    { "id": "C-23", "disposition": "keep-active", "evidence": "obsolete 2.3.0 draft intent (v2.3.0/v2.3.1 shipped); no plan.xml exists so the bundle is not executable; framework requires a compliant plan for archival, so the draft stays active as an explicitly-retired historical record pending owner cleanup" },
+    { "id": "C-35", "disposition": "keep-active", "evidence": "superseded by the executed C-64 site refresh; no plan.xml exists so the bundle is not executable; stays active as an explicitly-retired historical draft pending owner cleanup" },
+    { "id": "C-34", "disposition": "archive-superseded", "evidence": "pele GA since v2.4.0 (C-55); mermaid uninstalled; viewer/export shipped through the pele stack" },
+    { "id": "C-36", "disposition": "require-owner-decision", "evidence": "Avenex-derived private module intent; no repository evidence" },
+    { "id": "C-37", "disposition": "require-owner-decision", "evidence": "owner-personal portfolio intent; no repository evidence" },
+    { "id": "C-47", "disposition": "keep-active", "evidence": "future draft intent (agent hooks); no completion or supersession evidence" },
+    { "id": "C-50", "disposition": "keep-active", "evidence": "explicitly deferred to backlog (fa8fca02); no implementation commits" },
+    { "id": "C-52", "disposition": "archive-complete", "evidence": "d9c7d28b shipped in v2.3.1" },
+    { "id": "C-53", "disposition": "archive-complete", "evidence": "853bbc34 materials; v2.3.1 released" },
+    { "id": "C-56", "disposition": "archive-complete", "evidence": "73d09ccd shipped in v2.5.0" },
+    { "id": "C-58", "disposition": "archive-complete", "evidence": "33ad2883 gallery links in 2.5.0 materials; site gallery live" },
+    { "id": "C-61", "disposition": "archive-complete", "evidence": "23404243 (renumbered C-59 to C-61) shipped in v2.5.0" },
+    { "id": "C-64", "disposition": "archive-complete", "evidence": "site refresh b6e89f63..9f67d809 in main; site live; ai-agents guide site integration remains a separate follow-up per the train note" },
+    { "id": "C-65", "disposition": "archive-complete", "evidence": "3344ab1d and 2d84ae6d in v2.5.3; plan Evidence T-001..T-006 done" },
+    { "id": "C-66", "disposition": "archive-complete", "evidence": "209d244a + 7dc59060 integrated into v2.5.3" },
+    { "id": "C-67", "disposition": "archive-complete", "evidence": "a9eb6b7f in v2.5.3" },
+    { "id": "C-68", "disposition": "archive-complete", "evidence": "2f30dc2d in main; owner accepted 2026-10-19 (train #c-68)" },
+    { "id": "C-69", "disposition": "archive-complete", "evidence": "0cb34fb1 in v2.5.3" },
+    { "id": "C-70", "disposition": "archive-complete", "evidence": "c94c2287 + d2f6364e in main; owner accepted 2026-10-19 (train #c-70)" },
+    { "id": "C-71", "disposition": "archive-complete", "evidence": "655d956d, 0e8ffcd9, 073f9494, f17b070e in main; owner accepted everything described (train #c-71)" },
+    { "id": "C-71-OUTLINE-OCCLUSION", "disposition": "archive-complete", "evidence": "f17b070e inside the owner-accepted C-71 scope" },
+    { "id": "C-71-OVERLAY-RESIZE", "disposition": "archive-complete", "evidence": "0e8ffcd9 inside the owner-accepted C-71 scope" },
+    { "id": "C-71-TABLE-CENTER", "disposition": "archive-complete", "evidence": "073f9494 inside the owner-accepted C-71 scope" },
+    { "id": "C-DESKTOP-STABILIZATION", "disposition": "archive-complete", "evidence": "integration-evidence T-001..T-005 executed (96238ef1, 995b01ce, 655d956d, 2f30dc2d, close-report ledger)" },
+    { "id": "C-PRIVATE-OPERATIONS", "disposition": "archive-complete", "evidence": "19c32d85 + 1c25aba2 in main" },
+    { "id": "C-SAFE-DELIVERY", "disposition": "archive-complete", "evidence": "gate live (60f5d9ef); recovery consolidated into main (96238ef1) and recovery/integration-20261019" },
+    { "id": "C-SAFE-GPU-OWNER", "disposition": "archive-complete", "evidence": "6150d174 in main" },
+    { "id": "C-SAFE-LOCALE-REVIEW", "disposition": "archive-complete", "evidence": "3691fa48 in main" },
+    { "id": "C-SAFE-PUBLIC-BOUNDARY", "disposition": "archive-complete", "evidence": "60f5d9ef in main; tools/security_gate.py + docs/commit-push-safety.md live" },
+    { "id": "C-TAB-CLOSE-OWNERSHIP", "disposition": "archive-complete", "evidence": "943d57d6 in main; owner accepted and queued 2026-10-19 (train)" },
+    { "id": "C-TABLE-FOOTER", "disposition": "keep-active", "evidence": "implemented and verified on main (16b59d1b, 9d413feb, abf29f13); caption paint detail awaits owner acceptance; train row corrected" },
+    { "id": "C-TOOLBAR-LABELS", "disposition": "archive-complete", "evidence": "46b255c2 in main; owner accepted 2026-10-20 on Mark Test UI f8af91e9; train queued row added" },
+    { "id": "C-WINDOWS-PREF-FIXTURES", "disposition": "archive-complete", "evidence": "449d4636 in main; fresh Windows CI green in test.yml success at 43f8dfc0" }
+  ],
+  "appliedMoves": {
+    "archived": 26,
+    "statusSet": "spec.xml and plan.xml set to applied for every moved bundle (house convention)",
+    "stayedActive": ["C-23", "C-35", "C-36", "C-37", "C-47", "C-50", "C-TABLE-FOOTER"],
+    "classificationRefinements": "baseline draft classified C-23/C-35 as archive-obsolete/superseded; application kept them active because the GRACE framework requires every archived bundle to carry a compliant applied plan and these are spec-only drafts (not executable); the explicit retired-draft treatment replaces the move",
+    "identifiersStable": true,
+    "evidenceIntact": true
+  },
+  "trainLedger": {
+    "file": "docs/release-trains/2.5.x-next.md",
+    "cTableFooterRow": "Implemented and verified on main; owner acceptance pending",
+    "cToolbarLabels": "queued row + detail section added from the 2026-10-20 owner acceptance recorded in its evidence.json",
+    "linksRepointed": ["C-TAB-CLOSE-OWNERSHIP", "C-71-TABLE-CENTER", "C-71-OUTLINE-OCCLUSION"],
+    "closeReportsLinkRepointed": true,
+    "releaseActionTaken": "none"
+  },
+  "activeCommandIssues": 0,
+  "legacyOnlyFileLinks": 0,
+  "frozenProvenanceChanged": false,
+  "mainWorktreeStructuralErrors": 0,
+  "legacyOnlyFileLinksDetail": {
+    "reconciled": 55,
+    "outOfScopeDocumented": ["src/renderer/bench/README.md", "tools/gen-electron-v1-fixture.mjs", "tools/gen-tauri-v2-fixture.mjs", ".github/workflows/release.yml"],
+    "outOfScopeReason": "outside the approved ObservedWriteScope; recorded as bounded drift for a future change",
+    "inventoryMethodNote": "the baseline inventory used ripgrep without hidden directories, so .github/workflows/release.yml was caught only by the round-A review; recorded here for completeness"
+  },
+  "postReviewRoundAFixes": {
+    "vM011Command": "removed the deleted tests/renderer/pages/theme-config.test.js path from V-M-011's active command (blocker found by round-A correctness review)",
+    "vM019Command": "added scenario-0 documenting that m019_datacenter.rs has no module-local tests and the command is a build/link gate until tests land",
+    "c23c35Retirement": "C-23 and C-35 specs now carry Status=retired (element) plus a RETIRED DRAFT summary note visible in place, not only in C-72 evidence",
+    "danglingBundleRefs": "in-scope files repointed from .grace/changes/active/ to archive/ for every moved bundle, including the pre-existing C-14/C-38/C-39/C-51 class (~150 files, comment-only)",
+    "trainWording": "lint-count paragraph qualified as of 2026-10-19 with the post-C-72 state noted; C-64 site-refresh phrasing updated to archived-by-C-72",
+    "roundBAddenda": "V-M-011 scenario-48 now marks the deleted theme-config test as historical; M-010's stale flat Sources path added to outOfScopeKnownDrift"
+  },
+  "concurrentActivity": {
+    "detected": "2026-10-20 during post-review; kept growing through review rounds B-prime and C",
+    "identificationRule": "the concurrent FIX-005/FIX-006 wave owns every functional (non-comment) hunk in the pending diff that is not a C-72 write. C-72's writes are exactly: comment-only LINKS/MODULE_MAP rewrites in source files, the four .grace graph/verification XML documents, .grace/changes moves and statuses, the C-23/C-35 retired-draft annotations, the C-72 bundle files, the two release-train ledger documents, and two comment-only MODULE_MAP lines in the untracked foreign test. Anything else functional in the tree is the wave's, whoever wrote it. Re-derive with git diff -U0 hunk adjudication before any commit; enumerations below are point-in-time snapshots and WILL be stale.",
+    "snapshotAtRoundCClose": {
+      "trackedFunctionalFiles": [
+        "src/renderer/src/components/editorWithTabs/editor.vue (handleParagraphShortcutKeys/handleEditorSurfaceKeydown + keydown template swap)",
+        "src/renderer/src/commands/index.js (shortcut metadata)",
+        "src/muya/lib/ui/frontMenu/config.js (shortcut labels)",
+        "src/muya/lib/contentState/paragraphCtrl.js (one stateChange dispatch, FIX-006)",
+        "tests/e2e/keyboard-shortcuts.spec.ts (new e2e suite)",
+        "tests/regression-tests.json (key-004 pending->pass)"
+      ],
+      "untrackedForeignFiles": [
+        "tests/renderer/commands/paragraph-shortcuts.test.js (FIX wave test; carries the two disclosed C-72 MODULE_MAP comment lines)",
+        "work/ (2 HTML mockups + recently-closed-tabs-mockup.png; not gitignored)"
+      ],
+      "transientDebris": "tests/e2e/zz-probe.spec.ts appeared during round C and was already removed by the wave",
+      "trainDocSections": "FIX-002..FIX-009 sections in docs/release-trains/2.5.x-next.md (owner-reported defects)"
+    },
+    "handling": "C-72 did not modify, revert or complete any wave content beyond the two disclosed comment lines; C-72's own hunks in co-edited files (e.g. editor.vue LINKS) remain comment-only",
+    "commitNote": "DO NOT commit this working tree wholesale under a C-72 message. Apply the identificationRule above: assemble the C-72 commit hunk-aware (comment hunks + .grace + train ledger only) or let the wave's owner land it separately; shipping mixed files silently would violate C-72's no-behavior-change constraint"
+  },
+  "outOfScopeKnownDrift": {
+    "graphPaths": {
+      "M-005": "src-tauri/src/prefs/mod.rs PlannedPath stale; module outside C-72 durable scope",
+      "M-016": "src-tauri/src/updater/mod.rs Sources stale; module outside C-72 durable scope",
+      "M-010": "Sources/Tests cite the former flat file src-tauri/src/security.rs (real path m010_security.rs); graph record M-010 is outside C-72 durable scope — caught by round-B review, recorded here for completeness"
+    },
+    "verificationCommands": "cd src-tauri forms remain in V-M-001..004, V-M-009, V-M-015, V-M-016, V-M-047, V-M-048, V-M-052, V-M-058, V-M-059; those anchors are outside C-72 durable scope",
+    "danglingBundleRefsOutOfScope": "decomposition by cause (recounted at round E): (1) 19 live files outside ObservedWriteScope reference the 26 C-72-moved bundles via .grace/changes/active/ paths — 12 tests/e2e/*.spec.ts plus 7 site/** files (brand.css, theme-init.js, .vitepress theme files, landing/index.html, build-gallery.mjs, gallery-theme-vars.mjs referencing C-64/C-58); comment-level only, non-executable. (2) 14 archived plan.xml files inside .grace/changes/archive reference other moved bundles' old active paths; preserved as historical record per the archive policy (archives are not retro-translated). (3) 15 additional files (tests/e2e, tools/benchmark/editors-bench.sh, docs/design/settings-ia-2026-10-15.md, assets/icon/build.sh and others) carry the pre-existing class: references to bundles archived BEFORE C-72 (C-14, C-38, C-39, C-51 and similar), not caused by this change",
+    "collateralRepairDisclosed": "docs/release-trains/close-reports-2026-10-19.md got a single-line link repoint as direct collateral of the in-scope C-TAB-CLOSE-OWNERSHIP move; disclosed here because the file itself is outside the plan's ObservedWriteScope",
+    "testFixtureString": "tests/renderer/publication-privacy.test.js asserts .grace/changes/active/C-59 must NOT exist (private-path boundary check); the C-59 reference is an executable fixture, left untouched",
+    "staleGitignoreLine": ".gitignore lists /.grace/changes/active/C-59/ which no longer exists (C-59 was renumbered into C-61); outside scope",
+    "untrackedWorkDir": "work/ holds two local HTML mockups (multi-source-workspace*.html), untracked and not part of C-72; must be excluded from any C-72 commit and gitignored in a future change",
+    "preExistingDebt": "asc-api.py default key filename embeds the Apple ASC Key ID (not a credential; pre-existing); cargo check shows 158 pre-existing Rust warnings, none on C-72-touched lines"
+  },
+  "pythonModuleMaps": {
+    "fixed": ["assets/icon/gen.py", "tools/release/asc-api.py"],
+    "remainingHeuristicConfidence": "documented as heuristic-only analysis, not parity proof"
+  },
+  "worktreeBoundary": {
+    "nestedWorktreeWarnings": 20,
+    "mainWorktreeWarnings": 6,
+    "warningTotal": 26,
+    "warningReduction": "157 -> 26 total; durable-overlap 131 -> 2 (both involve C-72 itself against the two remaining scoped active plans and resolve when C-72 archives)",
+    "policy": "nested .claude and mark-wt worktrees are registered and preserved; their warnings are outside the main-worktree mutation boundary; no worktree was deleted or rewritten"
+  },
+  "lintState": {
+    "scope": "C-72-attributable findings only. The working tree is shared with the actively growing concurrent FIX-wave (see concurrentActivity.identificationRule); whole-tree lint counts fluctuate with every wave write and are NOT a C-72 claim. Attribution method: hunk adjudication per the identificationRule — errors on files C-72 never touched, or on wave-written hunks, are foreign.",
+    "finalMode": "grace lint --change C-72 --assertions final --run-commands at closure-time: 0 C-72-attributable errors, 7/7 commands passed (20-24s). Whole-tree error count may include foreign markup errors from wave files lacking contract updates (observed: frontMenu/index.js FIX-004 edit at 03:51 introduced three markup errors after the round-C snapshot).",
+    "currentMode": "C-72-attributable current findings: exactly the 4 consumed baseline assertions in C-72/plan.xml (pre-write state documentation, superseded by the executed target; final mode skips them; they leave current evaluation when C-72 archives). Any additional whole-tree errors are foreign per the identificationRule.",
+    "warnings": "26 at closure-time, none C-72-attributable (20 nested-worktree duplicates, 4 documented heuristic-confidence, 2 durable-overlap notices involving C-72 itself against the two remaining scoped active plans)",
+    "mainWorktreeStructuralErrorsExcludingOwnConsumedBaseline": 0
+  },
+  "graphOwnership": {
+    "modules": 67,
+    "verificationEntries": 67,
+    "routingExact": true
+  },
+  "focusedGates": {
+    "typecheckIpc": "pass",
+    "ipcVitest": "138 passed",
+    "m045Rust": "44 passed, 1 ignored",
+    "mtPathsRust": "4 passed",
+    "securityRust": "30 passed",
+    "muyaVitest": "593 passed"
+  }
+}

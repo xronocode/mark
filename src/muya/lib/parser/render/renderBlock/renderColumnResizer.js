@@ -4,7 +4,7 @@
 //   PURPOSE: C-39 T-002 — the invisible header-border hit zone span rendered into every th of a resizable table.
 //   SCOPE: One vnode factory, mirroring renderTableDargBar's drag bars.
 //   DEPENDS: muya snabbdom h.
-//   LINKS: .grace/changes/active/C-39 T-002; renderContainerBlock START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE; tableResize/index.js (interaction owner).
+//   LINKS: .grace/changes/archive/C-39 T-002; renderContainerBlock START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE; tableResize/index.js (interaction owner).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

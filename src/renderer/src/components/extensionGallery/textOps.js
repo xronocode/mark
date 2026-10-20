@@ -8,8 +8,8 @@
 //            Does NOT own a Muya instance — routes through the bus so
 //            the active editor.vue picks up the operation.
 //   DEPENDS: @tauri-apps/api/event (listen), bus (application event bus).
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B4;
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B4);
 //            src-tauri/src/m045_ext/text_ops.rs (event emitter).
 //   STATUS:  Phase-B4 initial.
 //

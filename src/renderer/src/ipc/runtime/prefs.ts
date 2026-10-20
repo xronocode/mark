@@ -3,7 +3,7 @@
 //            workspace.set wrappers over typed ipcInvoke.
 //   SCOPE:   loose-typed key/value access; renderer holds the schema.
 //   DEPENDS: M-013-A contract.
-//   LINKS:   docs/development-plan.xml Phase-B3 step-1.
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B3) step-1.
 //   STATUS:  Phase-B3 step-1 lite shipped.
 //
 // CHANGE_SUMMARY:

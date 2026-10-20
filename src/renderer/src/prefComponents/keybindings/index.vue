@@ -78,7 +78,7 @@
 //   PURPOSE: The keyboard-shortcuts editor (C-38 T-004) — the same KeybindingConfigurator table/logic the old page owned, now rendered as the body of the Advanced › Customise sheet with its own search field and the Settings palette.
 //   SCOPE: Search filtering (description + accelerator), the el-table with edit/reset/unbind, save/restore-defaults footer, debug dump; key capture stays in key-input-dialog.
 //   DEPENDS: KeybindingConfigurator, key-input-dialog, @hfelix/electron-localshortcut atom-keymap (keyboard layout), services/notification, element-plus table, vue-i18n.
-//   LINKS: .grace/changes/active/C-38 T-004 (decision 4: shortcuts open as a sheet from Advanced); prefComponents/tabs/advanced/sheets/shortcutsSheet.vue; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004 (decision 4: shortcuts open as a sheet from Advanced); prefComponents/tabs/advanced/sheets/shortcutsSheet.vue; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

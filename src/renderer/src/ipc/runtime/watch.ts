@@ -9,7 +9,7 @@
 //            'mt::watch::event' Tauri channel; we filter by
 //            subscriptionId so multiple subscriptions don't cross-feed.
 //   DEPENDS: M-013-A contract (ipcInvoke, useIpcListener, IpcError).
-//   LINKS:   docs/development-plan.xml Phase-B2 step-5;
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-5;
 //            src-tauri/src/m013b/watch.rs WATCH_EVENT_CHANNEL constant.
 //   STATUS:  Phase-B2 step-5 shipped. C-2: listener registration failure
 //            after a successful subscribe now unwinds the backend watcher

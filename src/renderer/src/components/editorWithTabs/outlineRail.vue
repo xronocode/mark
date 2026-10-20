@@ -36,7 +36,7 @@
 //   PURPOSE: C-40 T-003 «On this page» outline rail — a slim absolute rail right of the centred text column listing h1–h3, tracking the section in view, and smooth-jumping on click.
 //   SCOPE: Rendering + visibility gates (preference, WYSIWYG-only modes, ≥3 h1–h3 headings, ≥1000px editor area, no text overlap), scrollspy highlight, click-to-jump; hide the whole rail without reflow during visible table intersection, using owned scroll/resize/column mutation observation with unmount cleanup.
 //   DEPENDS: editor/preferences stores, bus (toc-active-heading, scroll-to-header), util/outlineRail.js, ResizeObserver, scoped MutationObserver, animation frames.
-//   LINKS: .grace/changes/active/C-40 T-003; .grace/graph/runtime.xml M-011 fn-extractRailHeadings; .grace/verification/runtime.xml V-M-011 scenario-54.
+//   LINKS: .grace/changes/archive/C-40 T-003; .grace/graph/runtime.xml M-011 fn-extractRailHeadings; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

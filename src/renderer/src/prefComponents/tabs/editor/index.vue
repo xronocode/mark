@@ -156,7 +156,7 @@
 //   PURPOSE: Editor tab of the C-38 Settings window — Typing, Tabs and indentation, Spelling (with the custom dictionary on non-macOS) and Code blocks groups per the N2 IA §3.3.
 //   SCOPE: Row composition; inverted spellcheckerNoUnderline control; macOS vs non-macOS spelling rows; dictionary/language loading through the spellchecker shims.
 //   DEPENDS: prefComponents/common/{compound,bool,select,range,fontTextBox}, tabs/editor/dictionaryList, tabs/editor/config, store/preferences, @/spellchecker (+languageMap), @tauri-apps/api/core (mt_spell_set_lang), util (isOsx), i18n.
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.3; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.3; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

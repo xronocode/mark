@@ -12,7 +12,7 @@
  * layer and consumed here.
  * DEPENDS: prismjs/light.theme.css, renderer-injected CSS variables,
  * bundled font assets.
- * LINKS: docs/knowledge-graph.xml M-012, M-011.
+ * LINKS: .grace/graph/runtime.xml M-012, M-011.
  * STATUS: Live editor rules are emitted directly; only the dedicated print
  * section remains media-scoped.
  *

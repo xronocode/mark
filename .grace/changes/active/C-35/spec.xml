@@ -3,12 +3,16 @@
   <Name>Website refresh in the ¶ paper/ink/marker style, mobile-first, with Mac install bar and Avenex-grade SEO/consent/security</Name>
   <Created>2026-10-14</Created>
   <Priority>high</Priority>
-  <Status>draft</Status>
+  <Status>retired</Status>
   <RoadmapPhase>S</RoadmapPhase>
   <Complexity>L (≈2–3 weeks)</Complexity>
 
   <Summary>
-    Rebuild mark.xronocode.com (VitePress docs + 58 KB hand-built landing on GitHub Pages) in the new brand system from the icon and store screenshots. Mobile first: the current page is ≈10 iPhone screens long and the cookie banner covers the hero. Carry over the Avenex outreach site practices (numbered sections, single accent, no-flash theme, self-hosted Plex subsets, 980/520 breakpoints with dvh/safe-area, browser screenshot matrix, per-language SEO and OG images, JSON-LD SoftwareApplication, llms.txt, hashed CSP headers, geo-gated Consent Mode v2, GA4 download_click).
+    RETIRED DRAFT (C-72 disposition, 2026-10-20): superseded by the newer approved
+    C-64 site-refresh bundle, which shipped — mark.xronocode.com is live. The bundle
+    stays active only because the GRACE framework requires a compliant applied plan
+    for archival and this spec never had one; it is not executable and awaits owner
+    cleanup. Original intent: Rebuild mark.xronocode.com (VitePress docs + 58 KB hand-built landing on GitHub Pages) in the new brand system from the icon and store screenshots. Mobile first: the current page is ≈10 iPhone screens long and the cookie banner covers the hero. Carry over the Avenex outreach site practices (numbered sections, single accent, no-flash theme, self-hosted Plex subsets, 980/520 breakpoints with dvh/safe-area, browser screenshot matrix, per-language SEO and OG images, JSON-LD SoftwareApplication, llms.txt, hashed CSP headers, geo-gated Consent Mode v2, GA4 download_click).
   </Summary>
 
   <Problem>

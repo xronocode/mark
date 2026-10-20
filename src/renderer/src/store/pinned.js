@@ -4,7 +4,7 @@
 //   PURPOSE: Pinia store for the Pinned sidebar section (C-51 T-002) — a persisted, user-ordered list of absolute file paths pinned from the tree or tab context menu.
 //   SCOPE: pinnedFiles state, isPinned getter, LOAD_PINNED_FILES hydration, PIN_FILE / UNPIN_FILE / TOGGLE_PIN mutations, MOVE_PINNED drag reorder; persistence through ipcPrefs key `pinnedFiles`.
 //   DEPENDS: pinia, ipc/runtime (ipcPrefs).
-//   LINKS: components/sideBar/fileSections.vue; contextMenu/sideBar + contextMenu/tabs (pin/unpin items); store/project.js SIDEBAR::pin-file; .grace/changes/active/C-51 T-002; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: components/sideBar/fileSections.vue; contextMenu/sideBar + contextMenu/tabs (pin/unpin items); store/project.js SIDEBAR::pin-file; .grace/changes/archive/C-51 T-002; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

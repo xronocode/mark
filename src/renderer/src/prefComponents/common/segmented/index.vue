@@ -36,7 +36,7 @@
 //   PURPOSE: Settings segmented-control row (C-38 T-003) — label + optional help left, a mockup segmented control (Light/Dark/Auto style) right.
 //   SCOPE: Segment rendering and single-selection; v-model-style contract matching the other controls (value/options/onChange).
 //   DEPENDS: prefComponents/common/osClass (prefOsClass).
-//   LINKS: .grace/changes/active/C-38 T-003/T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003/T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

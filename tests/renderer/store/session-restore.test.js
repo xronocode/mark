@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-69 session restore of store/editor.js — the snapshot (tab paths in order, active tab, project roots), the boot gate (restore only on a cold launch without files and with restoreSessionOnLaunch on; the debounced autosave starts only after it), the restore order (folders → files through mt::open-file → active tab) and the skip of missing paths.
 //   SCOPE: _sessionSnapshot, _saveSessionState, START_SESSION_AUTOSAVE, BOOT_SESSION, RESTORE_SESSION, the APPLY_BOOTSTRAP_EDITOR hook.
 //   DEPENDS: Vitest + jsdom, real pinia stores (editor, project, preferences) with an in-memory ipcPrefs and a stubbed window.electron.ipcRenderer.
-//   LINKS: .grace/changes/active/C-69 R-1/R-2/R-4; e2e tests/e2e/session-restore.spec.ts.
+//   LINKS: .grace/changes/archive/C-69 R-1/R-2/R-4; e2e tests/e2e/session-restore.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

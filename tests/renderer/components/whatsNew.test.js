@@ -13,7 +13,7 @@
 //   SCOPE: src/renderer/src/components/whatsNew/index.vue behaviour.
 //   DEPENDS: @vue/test-utils, mocked @/bus, real i18n t (en table),
 //          tests/renderer/setup.ts window.electron.shell.openExternal.
-//   LINKS: .grace/changes/active/C-53/spec.xml R-1 (D-1 sheet);
+//   LINKS: .grace/changes/archive/C-53/spec.xml R-1 (D-1 sheet);
 //          .grace/verification/runtime.xml V-M-011 scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

@@ -1,0 +1,524 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+<C-72>
+  <ChangeRef>C-72</ChangeRef>
+  <Created>2026-10-20</Created>
+  <IntentSummary>
+    Reconcile the post-2.5.3 observed repository with durable GRACE 4 current
+    state in six evidence-led tasks: inventory the drift, correct routed graph
+    records, repair executable verification, update file-local projections,
+    settle active-change and train bookkeeping, and close the lint boundary.
+    Preserve product behavior, frozen GRACE 3 provenance, historical evidence,
+    owner-acceptance boundaries, registered worktrees, and release authority.
+  </IntentSummary>
+
+  <ExecutionPolicy>
+    Execute C-72 sequentially and do not run it in parallel with other active
+    change bundles. The repository-wide parallel preflight currently reports
+    444 overlap blockers among the preexisting approved plans; lifecycle
+    classification and evidence-backed archival in T-001 and T-005 are part of
+    resolving that condition, not permission to overwrite concurrent work.
+  </ExecutionPolicy>
+
+  <BaselineAssertions>
+    <MustContain>
+      <File>package.json</File>
+      <Text>&quot;version&quot;: &quot;2.5.3&quot;</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/graph/runtime.xml</File>
+      <Text>src-tauri/src/shortcuts/mod.rs</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/graph/runtime.xml</File>
+      <Text>src-tauri/src/mt_paths/mod.rs</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>yarn unit -- src/renderer/src/ipc</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/features.xml</File>
+      <Text>&lt;V-M-045&gt;</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/features.xml</File>
+      <Text>&lt;Commands/&gt;</Text>
+    </MustContain>
+    <MustContain>
+      <File>docs/release-trains/2.5.x-next.md</File>
+      <Text>C-TABLE-FOOTER — Compact caption and scrollbar spacing | New owner report on 2026-10-19 after C-71 acceptance; implementation pending</Text>
+    </MustContain>
+    <MustExist>
+      <Value>.grace/changes/active/C-23/spec.xml</Value>
+      <Value>.grace/changes/active/C-34/plan.xml</Value>
+      <Value>.grace/changes/active/C-TABLE-FOOTER/evidence.json</Value>
+    </MustExist>
+  </BaselineAssertions>
+
+  <TargetAssertions>
+    <MustExist>
+      <Value>.grace/changes/active/C-72/baseline.json</Value>
+      <Value>.grace/changes/active/C-72/evidence.json</Value>
+    </MustExist>
+    <MustContain>
+      <File>.grace/changes/active/C-72/baseline.json</File>
+      <Text>&quot;preexistingActiveChanges&quot;: 33</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/changes/active/C-72/evidence.json</File>
+      <Text>&quot;activeCommandIssues&quot;: 0</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/changes/active/C-72/evidence.json</File>
+      <Text>&quot;legacyOnlyFileLinks&quot;: 0</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/changes/active/C-72/evidence.json</File>
+      <Text>&quot;frozenProvenanceChanged&quot;: false</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/changes/active/C-72/evidence.json</File>
+      <Text>&quot;mainWorktreeStructuralErrors&quot;: 0</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/graph/runtime.xml</File>
+      <Text>src-tauri/src/m006_shortcuts.rs</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/graph/runtime.xml</File>
+      <Text>src-tauri/src/mt_paths.rs</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/graph/features.xml</File>
+      <Text>&lt;Name&gt;ExtensionHost&lt;/Name&gt;
+      &lt;DisplayName&gt;ExtensionHost&lt;/DisplayName&gt;
+      &lt;Type&gt;CORE_LOGIC&lt;/Type&gt;
+      &lt;Status&gt;shipped&lt;/Status&gt;</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>npm run typecheck:ipc</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>src-tauri/src/mt_paths.rs</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/features.xml</File>
+      <Text>cargo test --manifest-path src-tauri/Cargo.toml m045_ext</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/features.xml</File>
+      <Text>BLOCK_EXT_CONTEXT_REQUEST</Text>
+    </MustContain>
+    <MustContain>
+      <File>docs/release-trains/2.5.x-next.md</File>
+      <Text>Implemented and verified on main; owner acceptance pending</Text>
+    </MustContain>
+    <MustVerify>
+      <Module>M-006</Module>
+      <Module>M-007</Module>
+      <Module>M-008</Module>
+      <Module>M-010</Module>
+      <Module>M-011</Module>
+      <Module>M-012</Module>
+      <Module>M-013</Module>
+      <Module>M-014</Module>
+      <Module>M-017</Module>
+      <Module>M-018</Module>
+      <Module>M-019</Module>
+      <Module>M-020</Module>
+      <Module>M-021</Module>
+      <Module>M-022</Module>
+      <Module>M-045</Module>
+    </MustVerify>
+    <MustPassCommand>
+      <Command budgetSeconds="30">npm run typecheck:ipc</Command>
+      <Command budgetSeconds="30">npx vitest run src/renderer/src/ipc/contract/contract.test.ts src/renderer/src/ipc/runtime/runtime.test.ts tests/renderer/ipc</Command>
+      <Command budgetSeconds="120">cargo test --manifest-path src-tauri/Cargo.toml m045_ext</Command>
+      <Command budgetSeconds="60">cargo test --manifest-path src-tauri/Cargo.toml mt_paths</Command>
+      <Command budgetSeconds="60">cargo test --manifest-path src-tauri/Cargo.toml security</Command>
+      <Command budgetSeconds="60">npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Command>
+      <Command budgetSeconds="10">git diff --check</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+
+  <DurableScope>
+    <GraphAnchors>
+      <M-006/>
+      <M-007/>
+      <M-008/>
+      <M-014/>
+      <M-017/>
+      <M-018/>
+      <M-019/>
+      <M-020/>
+      <M-021/>
+      <M-022/>
+      <M-045/>
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-006/>
+      <V-M-007/>
+      <V-M-008/>
+      <V-M-010/>
+      <V-M-011/>
+      <V-M-012/>
+      <V-M-013/>
+      <V-M-014/>
+      <V-M-017/>
+      <V-M-018/>
+      <V-M-019/>
+      <V-M-020/>
+      <V-M-021/>
+      <V-M-022/>
+      <V-M-045/>
+    </VerificationAnchors>
+    <GraphDocuments>
+      <GD-RUNTIME/>
+      <GD-FEATURES/>
+    </GraphDocuments>
+    <VerificationDocuments>
+      <VD-RUNTIME/>
+      <VD-FEATURES/>
+    </VerificationDocuments>
+  </DurableScope>
+
+  <ObservedWriteScope>
+    <File>.grace/graph/index.xml</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/index.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <Glob>.grace/changes/active/C-*/**</Glob>
+    <Glob>.grace/changes/archive/C-*/**</Glob>
+    <File>docs/release-trains/2.5.x-next.md</File>
+    <Glob>src-tauri/src/**/*.rs</Glob>
+    <Glob>src/muya/**/*.js</Glob>
+    <Glob>src/muya/**/*.css</Glob>
+    <Glob>src/renderer/**/*.js</Glob>
+    <Glob>src/renderer/**/*.ts</Glob>
+    <Glob>src/renderer/**/*.vue</Glob>
+    <Glob>tests/renderer/**/*.js</Glob>
+    <Glob>tests/renderer/**/*.ts</Glob>
+    <File>tools/release-preflight.mjs</File>
+    <File>assets/icon/gen.py</File>
+    <File>tools/release/asc-api.py</File>
+  </ObservedWriteScope>
+
+  <CornerMatrix>
+    <Corner id="corner-1"><Situation>Look up M-006, M-007, M-008, M-014, M-017, M-018, M-019, M-020, and M-022 in .grace/graph/runtime.xml and check every recorded path on disk</Situation><Expected>each active path points to an existing shipped file (flat Rust files such as src-tauri/src/m006_shortcuts.rs and src-tauri/src/mt_paths.rs); no directory-module path like src-tauri/src/shortcuts/mod.rs remains in active current-state records; LegacyBase provenance stays separated</Expected></Corner>
+    <Corner id="corner-2"><Situation>Run every active command of V-M-010 through V-M-013 verbatim from repository root</Situation><Expected>each command exists in the current npm/cargo/playwright toolchain and exits 0; no yarn-era script and no deleted test path appears in any active command</Expected></Corner>
+    <Corner id="corner-3"><Situation>Open V-M-045 in .grace/verification/features.xml and follow its commands and markers</Situation><Expected>nonempty active Commands, Scenarios, Markers, and TraceAssertions tied to existing m045_ext tests and stable log anchors such as BLOCK_EXT_CONTEXT_REQUEST; migrated LegacyBase bodies remain historical and are never presented as active truth</Expected></Corner>
+    <Corner id="corner-4"><Situation>Open a governed source or test file listed in baseline.json and follow its MODULE_CONTRACT LINKS</Situation><Expected>links resolve to routed .grace/graph/*.xml or .grace/verification/*.xml anchors; no governed file in scope relies exclusively on frozen docs/knowledge-graph.xml, docs/verification-plan.xml, or docs/development-plan.xml</Expected></Corner>
+    <Corner id="corner-5"><Situation>Compare docs/*.xml and docs/migrations against the SHA-256 hashes recorded in baseline.json after all edits</Situation><Expected>byte-for-byte unchanged; git diff --exit-code -- docs/requirements.xml docs/technology.xml docs/development-plan.xml docs/verification-plan.xml docs/knowledge-graph.xml docs/operational-packets.xml docs/migrations passes</Expected></Corner>
+    <Corner id="corner-6"><Situation>Inspect any bundle moved from .grace/changes/active to .grace/changes/archive</Situation><Expected>content and evidence are intact at the archive path with a stable identifier, nothing was deleted, and every bundle that stayed active carries a recorded evidence-backed reason</Expected></Corner>
+    <Corner id="corner-7"><Situation>Read the C-TABLE-FOOTER row in docs/release-trains/2.5.x-next.md</Situation><Expected>it records implementation and verification observed on main and keeps owner acceptance, queueing, candidate freeze, and release explicitly pending; no acceptance or release state is invented</Expected></Corner>
+    <Corner id="corner-8"><Situation>Diff every source file touched by C-72</Situation><Expected>no executable line changes — only comments, semantic projections, and metadata; the targeted suites pass with unchanged counts (IPC typecheck, 138 IPC tests, 593 Muya tests, 44 M-045 tests, 4 mt_paths tests, 30 security tests)</Expected></Corner>
+    <Corner id="corner-9"><Situation>Count GRACE lint findings after reconciliation</Situation><Expected>main-worktree structural errors are zero; warnings originating in registered nested worktrees are counted separately in evidence.json and documented as outside the mutation boundary; no worktree is deleted or rewritten</Expected></Corner>
+    <Corner id="corner-10"><Situation>Publish-scan the new C-72 artifacts (baseline.json, evidence.json, dispositions) and every edited file</Situation><Expected>no secrets, credentials, private owner data, or non-English committed content beyond the documented Language Policy exceptions; evidence files contain only repository-derived facts</Expected></Corner>
+  </CornerMatrix>
+
+  <ImplementationPlan>
+    <T-001>
+      <Title>Freeze the reconciliation baseline and classify every preexisting active change</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>baseline.json records commit identity, version 2.5.3, 67 graph modules, 67 verification entries, the 33 preexisting active changes, warning categories, stale paths and commands, legacy-only file links, release-train drift, registered nested worktrees (by registered name, branch, and HEAD only — never absolute home paths), and SHA-256 hashes for frozen GRACE 3 provenance.</Criterion>
+        <Criterion>Every preexisting active bundle receives one evidence-backed disposition: keep active, archive complete, archive superseded, retire obsolete, or require owner decision; draft intent is never treated as shipped work.</Criterion>
+        <Criterion>No bundle is moved during classification, and ambiguous acceptance or integration evidence remains explicitly unresolved.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>node -e "const b=require('./.grace/changes/active/C-72/baseline.json'); if(b.preexistingActiveChanges!==33||!b.commit||!b.frozenProvenanceSha256) process.exit(1)"</Command>
+      </Verification>
+    </T-001>
+
+    <T-002>
+      <Title>Reconcile shipped Rust module paths and lifecycle states in the routed graph</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>M-006, M-007, M-008, M-014, M-017, M-018, M-019, and M-020 identify their compiled flat Rust source files instead of obsolete directory module paths.</Criterion>
+        <Criterion>M-022 points to src-tauri/src/mt_paths.rs and records its observed shipped state; M-045 records its observed shipped state and implemented source family without changing its contract.</Criterion>
+        <Criterion>Graph index routing and owned-anchor inventories remain exact, with preserved LegacyBase provenance clearly separated from current paths and states.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml m045_ext</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml mt_paths</Command>
+      </Verification>
+    </T-002>
+
+    <T-003>
+      <Title>Repair active verification commands and complete V-M-045 evidence</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Active commands for the affected Rust modules execute from repository root with the current manifest path; V-M-010 through V-M-013 use current Rust, Vitest, Playwright, and IPC typecheck surfaces rather than Yarn-era scripts or deleted files.</Criterion>
+        <Criterion>V-M-021 keeps its unimplemented fs_core commands explicitly future and non-executable, while V-M-022 uses the compiled flat path.</Criterion>
+        <Criterion>V-M-045 has nonempty active Commands, Scenarios, Markers, and TraceAssertions tied to existing extension-host tests and stable log anchors.</Criterion>
+        <Criterion>Migrated LegacyBase bodies remain historical evidence and are not rewritten as active truth.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run typecheck:ipc</Command>
+        <Command>npx vitest run src/renderer/src/ipc/contract/contract.test.ts src/renderer/src/ipc/runtime/runtime.test.ts tests/renderer/ipc</Command>
+        <Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml security</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml m045_ext</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml mt_paths</Command>
+      </Verification>
+    </T-003>
+
+    <T-004>
+      <Title>Move file-local semantic projections from frozen GRACE 3 routes to routed GRACE 4 anchors</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Each governed source, test, and script identified in baseline.json links to its owning .grace/graph and .grace/verification anchors instead of relying exclusively on docs/knowledge-graph.xml, docs/verification-plan.xml, or docs/development-plan.xml.</Criterion>
+        <Criterion>MODULE_CONTRACT responsibility, MODULE_MAP role semantics, VERSION, and CHANGE_SUMMARY remain synchronized wherever the projection edit changes governed metadata.</Criterion>
+        <Criterion>The known main-worktree Python MODULE_MAP mismatches are corrected without changing executable behavior; heuristic-confidence warnings may remain documented.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>git diff --check</Command>
+        <Command>git diff --exit-code -- docs/requirements.xml docs/technology.xml docs/development-plan.xml docs/verification-plan.xml docs/knowledge-graph.xml docs/operational-packets.xml docs/migrations</Command>
+      </Verification>
+    </T-004>
+
+    <T-005>
+      <Title>Apply evidence-backed change lifecycles and correct the current delivery ledger</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Bundles classified as complete, superseded, or obsolete and authorized by existing evidence are moved intact to archive with stable identifiers; ongoing and ambiguous bundles stay active with their reason recorded.</Criterion>
+        <Criterion>C-23 and C-34 receive explicit treatment for obsolete 2.3.0 intent and C-55 supersession rather than being silently left executable.</Criterion>
+        <Criterion>The C-TABLE-FOOTER train row records observed implementation and verification on main while leaving owner acceptance, queueing, candidate freeze, and release pending unless separately evidenced.</Criterion>
+        <Criterion>Archive history, evidence, worktrees, and branches are preserved; no release action is taken.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>rg -n "Implemented and verified on main; owner acceptance pending" docs/release-trains/2.5.x-next.md</Command>
+        <Command>node -e "const e=require('./.grace/changes/active/C-72/evidence.json'); if(!Array.isArray(e.changeDispositions)||e.changeDispositions.length!==33) process.exit(1)"</Command>
+      </Verification>
+    </T-005>
+
+    <T-006>
+      <Title>Close the main-worktree lint boundary and record final reconciliation evidence</Title>
+      <DependsOn>T-002, T-003, T-004, T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>evidence.json records zero structural errors, zero active command issues, zero legacy-only file links, exact graph and verification ownership, passing focused gates, and unchanged frozen provenance hashes.</Criterion>
+        <Criterion>Warnings originating in registered nested .claude worktrees are counted separately and documented as outside the main-worktree mutation boundary; no worktree is deleted or rewritten.</Criterion>
+        <Criterion>Any remaining main-worktree heuristic-confidence warning is explained, while fixable main MODULE_MAP mismatches and stale durable-state warnings are closed.</Criterion>
+        <Criterion>The selected C-72 target and final assertion gates pass after the outer GRACE current-state lint and module-aware status checks.</Criterion>
+        <Criterion>Four-corner post-review (1 Correctness and Contracts, 2 Security and Privacy, 3 UX and Docs, 4 Performance and Footprint) runs against the executed change with every finding fixed; the final two consecutive review rounds are clean and recorded with verdicts in ReviewLog.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>git diff --check</Command>
+        <Command>node -e "const e=require('./.grace/changes/active/C-72/evidence.json'); if(e.activeCommandIssues||e.legacyOnlyFileLinks||e.frozenProvenanceChanged||e.mainWorktreeStructuralErrors) process.exit(1)"</Command>
+      </Verification>
+    </T-006>
+  </ImplementationPlan>
+
+  <ReviewLog>
+    <Review number="1" date="2026-10-20" verdict="green-after-fixes" task="plan-four-corner-review">
+      <Findings>
+        Correctness and Contracts: baseline assertions re-verified against the
+        working tree (package.json 2.5.3, stale graph directory paths, yarn-era
+        command, empty V-M-045 commands, train drift, 33 preexisting active
+        bundles); six tasks cover every spec goal and acceptance criterion;
+        execution is sequential per the 444-blocker preflight. FINDING (fixed):
+        DurableScope GraphAnchors omitted M-021 although the approved spec
+        AffectedAreas and this plan's own MustVerify list it — M-021 added
+        (fs_core verified genuinely unimplemented, so its planned graph state
+        needs no rewrite, only ownership). Security and Privacy: FINDING
+        (fixed): T-001 as drafted could invite absolute worktree paths into
+        the public baseline.json — criterion now binds worktree recording to
+        registered name, branch, and HEAD only. UX and Docs: no user-visible
+        surface touched; the plan now carries the standing corner-matrix and
+        four-corner review template. Performance and Footprint: no build,
+        bundle, or test-budget change; every gate budget carries a measured
+        baseline. Same-day amendment recorded: CornerMatrix corner-1..corner-10
+        and the T-006 four-corner post-review criterion with the
+        two-consecutive-clean rule were added before approval.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-10-20" verdict="clean" task="plan-four-corner-review-recheck">
+      <Findings>
+        None. Post-fix verification sweep: plan XML validates; grace lint
+        0 errors and the same preexisting 129 warnings (no new findings from
+        the amendments); DurableScope GraphAnchors now exactly match the spec
+        AffectedAreas graph modules (M-006..M-008, M-014, M-017..M-022, M-045
+        including M-021); spec verification modules are covered by the owned
+        verification anchors; every spec goal and acceptance criterion maps
+        to a task and a target assertion; T-001 now excludes absolute home
+        paths from baseline.json.
+      </Findings>
+    </Review>
+    <Review number="3" date="2026-10-20" verdict="clean" task="plan-executor-feasibility-pass">
+      <Findings>
+        None. Executor-lens walk of all six tasks against the working tree:
+        flat Rust sources confirmed on disk (m006_shortcuts.rs through
+        m020_cli.rs, mt_paths.rs, m045_ext/); fs_core confirmed absent so
+        M-021 stays planned; npm run typecheck:ipc, vitest.int.config.mjs,
+        tests/renderer/muya, and the cargo test filters all exist; the 33
+        bundles, train row, and frozen provenance set are enumerable for
+        baseline.json; all seven MustPassCommand gates are runnable from
+        repository root within their budgets.
+      </Findings>
+    </Review>
+    <Review number="4" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review-round-A">
+      <Findings>
+        Four independent reviewer passes over the executed change. Correctness
+        and Contracts: found V-M-011's active command still referencing the
+        deleted tests/renderer/pages/theme-config.test.js (fixed: path removed);
+        V-M-019's command selecting zero tests (fixed: scenario-0 coverage note
+        added); a fourth legacy-only file .github/workflows/release.yml missed
+        by the hidden-directory-blind baseline scan (fixed: evidence disclosure
+        corrected); C-23/C-35 retirement living only in C-72 evidence (fixed:
+        Status=retired element plus RETIRED DRAFT summary note in both specs).
+        Security and Privacy: clean; two notes (pre-existing ASC Key ID in the
+        asc-api.py default filename, untracked work/ mockups) recorded as
+        known non-C-72 debt. UX and Docs: found 67 in-scope files plus a
+        pre-existing class carrying dangling .grace/changes/active references
+        to moved bundles (fixed: repointed to archive across the observed
+        write scope, comment-only; out-of-scope files documented); two stale
+        train phrasings (fixed: as-of qualifier and archived-C-64 wording).
+        Performance and Footprint: clean; comment-only diff re-verified,
+        cargo check unchanged, no dependency edits, 26-bundle moves are pure
+        renames; the untracked work/ directory must stay out of any C-72
+        commit (documented). All fixes verified: lint 0 new errors, frozen
+        provenance unchanged.
+      </Findings>
+    </Review>
+    <Review number="5" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review-round-B">
+      <Findings>
+        Four fresh independent passes. Security and Privacy: clean. UX and
+        Docs: clean (all links resolve, ledger honest, English-only holds,
+        ReviewLog accurate). Performance and Footprint: clean (comment-only
+        diff, pure renames, gates within budget, no dependency edits).
+        Correctness and Contracts: two LOW findings, both fixed in place —
+        V-M-011 scenario-48 still cited the deleted theme-config test as
+        current coverage (fixed: historical note) and the M-010 stale flat
+        Sources path was missing from the drift disclosure (fixed: evidence
+        outOfScopeKnownDrift entry). Concurrent non-C-72 activity detected
+        during the round (untracked FIX-005/FIX-006 test file and FIX-002..009
+        train sections); recorded in evidence concurrentActivity, not touched.
+        Because this round was not fully clean, the two-consecutive-clean
+        count restarts with the next round.
+      </Findings>
+    </Review>
+    <Review number="6" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review-round-B-prime">
+      <Findings>
+        Four fresh passes. Security and Privacy: clean. UX and Docs: clean
+        (all links resolve including live CI references; ledger honest;
+        English-only holds). Correctness and Contracts: one finding — the
+        concurrent FIX-wave's functional code in four tracked files
+        (editor.vue, commands/index.js, frontMenu/config.js,
+        tests/e2e/keyboard-shortcuts.spec.ts) was not enumerated in the
+        concurrency disclosure (fixed: evidence concurrentActivity now lists
+        the files, their content class, the point-in-time measurement, and a
+        hunk-aware commit warning; C-72's own hunks in those files verified
+        comment-only, and all other correctness checks passed including 7/7
+        final commands). Performance and Footprint: same class — foreign
+        executable lines break the mechanical comment-only expectation
+        without a disclosed basis (fixed by the same disclosure); C-72's
+        attributable footprint verified clean (pure renames, no dependency
+        edits, gates within budget). The two-consecutive-clean count restarts
+        again with the next round.
+      </Findings>
+    </Review>
+    <Review number="7" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review-round-C">
+      <Findings>
+        Four fresh passes. Security and Privacy: clean. UX and Docs: clean
+        (37 links resolve, ledger honest, English-only holds, ReviewLog
+        truthful). Correctness and Contracts: one class — the concurrent
+        FIX-wave outgrew the enumerated disclosure mid-round (paragraphCtrl.js
+        functional line, regression-tests.json flip, transient zz-probe
+        debris); fixed by replacing the enumeration with an identification
+        rule plus a point-in-time snapshot in evidence concurrentActivity, so
+        accuracy no longer depends on winning a race with the concurrent
+        writer; every other correctness check passed including 7/7 final
+        commands and attributable comment-only purity. Performance and
+        Footprint: same growth class (work/ gained a PNG); C-72's own
+        footprint verified clean on every measure. The
+        two-consecutive-clean count restarts with the next round.
+      </Findings>
+    </Review>
+    <Review number="8" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review-round-D">
+      <Findings>
+        Four passes under the new identification-rule disclosure. Security
+        and Privacy: clean (full pending state including foreign lines
+        scanned; no secrets or private data anywhere). UX and Docs: clean
+        (37 links resolve, ledger honest, English-only holds with foreign
+        localization fixtures correctly excepted). Performance and
+        Footprint: clean — C-72's attributable footprint verified clean on
+        every measure; the three new markup errors on frontMenu/index.js
+        adjudicated foreign (FIX-004 wave edit at 03:51, after the round-C
+        snapshot, lacking its own contract updates — debt for the wave's
+        owner). Correctness and Contracts: C-72's contract held on every
+        check (hunk adjudication, rule accuracy, gates 7/7, evidence,
+        ReviewLog), but the recorded whole-tree lint counts no longer
+        reproduced because the wave grew after the evidence was written;
+        fixed by scoping the lintState claims to C-72-attributable findings
+        with the attribution method, instead of point-in-time global
+        counts that race the concurrent writer. The
+        two-consecutive-clean count restarts with the next round.
+      </Findings>
+    </Review>
+    <Review number="9" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review-round-E">
+      <Findings>
+        Four passes under the attributed-scope verdict rule. Correctness
+        and Contracts: clean. Security and Privacy: clean. Performance and
+        Footprint: clean. UX and Docs: one finding — the out-of-scope
+        dangling-reference disclosure miscounted (23 unreconstructable) and
+        omitted the site/** class (7 files referencing moved C-64/C-58) and
+        the in-archive historical cross-references; fixed by an exact
+        cause-based decomposition: 19 live out-of-scope files C-72 caused,
+        14 frozen archive-internal records preserved as history, 15 files
+        carrying the pre-existing earlier-archived class. The
+        two-consecutive-clean count restarts with the next round.
+      </Findings>
+    </Review>
+    <Review number="10" date="2026-10-20" verdict="clean" task="post-execution-four-corner-review-round-F">
+      <Findings>
+        None. Four independent passes, all clean. Correctness and Contracts:
+        hunk adjudication clean (every functional line self-identifies as
+        concurrent wave work; C-72's hunks comment-only), evidence spot-audit
+        exact (19 + 14 + 15 dangling decomposition independently reproduced,
+        33 dispositions, 26 archived applied, frozen hashes byte-exact),
+        current lint = exactly the 4 consumed baseline assertions, final gate
+        7/7 commands with 0 C-72-attributable errors, XML valid, ReviewLog
+        truthful. Security and Privacy: clean across the entire pending
+        state including foreign lines. UX and Docs: clean (all links resolve
+        including live external checks, ledger honest, English-only holds,
+        disclosure decomposition re-derived exactly). Performance and
+        Footprint: clean (footprint untouched, Rust purity, gates within
+        budget, 26-bundle pure renames, warnings exactly as disclosed).
+        Foreign observations recorded by reviewers (wave growth into
+        .grace/verification/performance.xml V-M-025, frontMenu markup debt
+        later self-repaired by the wave) are adjudicated wave-owned per the
+        identification rule. First fully clean post-execution round; one
+        more consecutive clean round satisfies the T-006 criterion.
+      </Findings>
+    </Review>
+    <Review number="11" date="2026-10-20" verdict="clean" task="post-execution-four-corner-review-round-G">
+      <Findings>
+        None. The confirmation round: four independent passes, all clean.
+        Correctness and Contracts: hunk adjudication clean, evidence exact,
+        current lint exactly the 4 consumed baseline assertions, final gate
+        7/7 commands with 0 C-72-attributable errors, XML valid, ReviewLog
+        truthful through review 10. Security and Privacy: clean across the
+        full pending state. UX and Docs: clean (33 links verified including
+        live external targets, ledger honest, decomposition reproduced).
+        Performance and Footprint: clean (renames verified at content level,
+        17 byte-identical plus 52 status-only transitions across the 26
+        bundles, zero other differences). Reviewers recorded that the
+        concurrent wave committed a2d77872 and c97c1a6f mid-round, carrying
+        parts of C-72's comment-only repoints and wave edits to graph and
+        verification documents into HEAD; adjudicated wave-owned per the
+        identification rule. With round F also clean, the T-006 criterion
+        of two consecutive clean four-corner rounds is satisfied: rounds F
+        and G, reviews 10 and 11.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-72>
+</GraceChangePlan>

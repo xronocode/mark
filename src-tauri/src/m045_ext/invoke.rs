@@ -6,8 +6,8 @@
 //   SCOPE:   Build request, send with timeout + 1 retry on 503,
 //            return JSON response. No streaming (v1 scope).
 //   DEPENDS: reqwest (HTTP client), manifest::ExtensionManifest.
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B2b;
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b);
 //            ROADMAP.md Decision D1 (IPC is HTTP POST).
 //   STATUS:  Phase-B2b initial.
 //   ROLE: RUNTIME

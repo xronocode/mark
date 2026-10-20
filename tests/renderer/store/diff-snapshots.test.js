@@ -4,7 +4,7 @@
 //   PURPOSE: Unit tests for store/diffSnapshots.js — the C-43 per-tab pre-reload snapshot ring (record/latest/clear, dedupe, 5-per-tab cap, independent tabs, copy contract) and the C-68 «opened» slot (record/replace/clear, isolation from the ring).
 //   SCOPE: The snapshots module only — editor.js wiring is covered by tests/renderer/store/live-reload-snapshots.test.js (ring) and tests/renderer/store/opened-snapshots.test.js (opened slot).
 //   DEPENDS: src/renderer/src/store/diffSnapshots.js
-//   LINKS: .grace/changes/archive/C-43 R-1/R-4; .grace/changes/active/C-68 R-1; .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67
+//   LINKS: .grace/changes/archive/C-43 R-1/R-4; .grace/changes/archive/C-68 R-1; .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

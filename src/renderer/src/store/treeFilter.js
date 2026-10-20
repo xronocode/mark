@@ -4,7 +4,7 @@
 //   PURPOSE: Pure view-model filter for the sidebar folder tree (C-51 T-001) — by default only Markdown files are shown and folders with no Markdown anywhere below are hidden; treeShowAllFiles restores everything.
 //   SCOPE: Three pure predicates/lists over the treeCtrl model shape ({ files: [{isMarkdown}], folders: [...] }); no state, no IPC, no DOM.
 //   DEPENDS: none (operates on plain tree model objects passed in).
-//   LINKS: components/sideBar/{tree.vue,treeFolder.vue,treeFile.vue}; store/preferences.js treeShowAllFiles; .grace/changes/active/C-51 T-001; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: components/sideBar/{tree.vue,treeFolder.vue,treeFile.vue}; store/preferences.js treeShowAllFiles; .grace/changes/archive/C-51 T-001; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

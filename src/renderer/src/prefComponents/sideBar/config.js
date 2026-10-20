@@ -16,7 +16,7 @@ import { CATEGORY_TO_TAB, TAB_IDS } from '../tabsBar/config'
 //   PURPOSE: Settings search index (C-38 T-003/T-004) — builds the searchable preference list from schema.json and resolves each hit's routeCategory against the 5 new tabs; owns the locale-refresh plumbing and the i18n debug popup.
 //   SCOPE: Index building, category translation with fallbacks, languageChanged refresh helpers, debugLanguageState; no rendering.
 //   DEPENDS: _shims/preferences/schema.json, i18n (t), prefComponents/tabsBar/config (CATEGORY_TO_TAB/TAB_IDS).
-//   LINKS: .grace/changes/active/C-38 T-003/T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003/T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

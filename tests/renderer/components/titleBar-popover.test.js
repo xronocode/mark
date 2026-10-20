@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-40 T-002 title-bar trim and document info popover — exact Linux button set, «?» guide entry, popover contents (name, ~-folder, size, edited-relative, stats), actions (Rename / reveal / copy path), untitled gating, and Esc/outside-click close.
 //   SCOPE: Vue/jsdom component tests with mocked platform (linux), bus, clipboard plugin, and the setup.ts window.fileUtils/window.electron doubles.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, i18n, titleBar/index.vue, @tauri-apps/plugin-clipboard-manager mock.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-53; .grace/changes/active/C-40 T-002.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-53; .grace/changes/archive/C-40 T-002.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

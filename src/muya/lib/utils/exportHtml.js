@@ -10,8 +10,8 @@
 //            variables), parser/render/peleOptions (C-55 per-type options),
 //            parser/render/contentTheme (C-51 T-005 diagram theming).
 //   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml
-//          V-M-012 export scenarios; .grace/changes/active/C-39 T-001;
-//          .grace/changes/active/C-51 T-003 (export uses the app theme)
+//          V-M-012 export scenarios; .grace/changes/archive/C-39 T-001;
+//          .grace/changes/archive/C-51 T-003 (export uses the app theme)
 //          and T-005 (vega-lite/flowchart/sequence export with the same
 //          themed configs as the editor).
 //   STATUS: Screen layout CSS no longer uses `@media not print`; print

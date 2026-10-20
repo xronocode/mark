@@ -35,7 +35,7 @@
 //   PURPOSE: C-40 T-004 status bar — a slim 24 px strip at the bottom of the editor area showing lines · words · characters · reading time (selection-aware) left and the document type right.
 //   SCOPE: Rendering plus document/selection count plumbing: tab wordCount + markdown via util/docStats, DOM-selection tracking scoped to the editor area, the statusBarVisibility preference gate; toggling lives in the view.status-bar command / View › Status Bar / Settings.
 //   DEPENDS: editor/preferences stores, vue-i18n (t), util/docStats, document selectionchange.
-//   LINKS: .grace/changes/active/C-40 T-004; .grace/graph/runtime.xml M-011 fn-docStats; .grace/verification/runtime.xml V-M-011 scenario-55.
+//   LINKS: .grace/changes/archive/C-40 T-004; .grace/graph/runtime.xml M-011 fn-docStats; .grace/verification/runtime.xml V-M-011 scenario-55.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

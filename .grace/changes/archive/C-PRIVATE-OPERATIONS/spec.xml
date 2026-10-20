@@ -1,0 +1,38 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-PRIVATE-OPERATIONS>
+    <Name>Keep operational records and captured user profiles outside public source</Name>
+    <Created>2026-10-19</Created>
+    <Summary>Separate private App Store submission records and promotion planning from the public product repository, and retain only sanitized historical preference examples in public fixtures.</Summary>
+    <Problem>Public source includes operational submission state, internal launch planning and captured legacy user profiles that are not required by the current application or its tests.</Problem>
+    <Goals>
+      <Goal>Preserve published versions and current local edits in the private companion before removing public copies of the C-59 operational bundle and promotion planning.</Goal>
+      <Goal>Replace actual host paths in retained preference examples with a synthetic fixture identity; remove captured browser profiles and incidental runtime records; regenerate fixture hashes.</Goal>
+      <Goal>Remove the subsequently republished session backlog and table-copy previews after preserving those exact public versions privately.</Goal>
+      <Goal>Document the public/private boundary and add focused verification that prevents accidental reintroduction of these records.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Preserve unrelated working changes and reusable release tooling; make no App Store API writes.</Constraint>
+      <Constraint>Leave frozen docs/*.xml and docs/migrations provenance byte-for-byte unchanged.</Constraint>
+      <Constraint>No runtime behavior change, remote history rewrite, release retagging or credential rotation. The owner subsequently authorized ordinary public main cleanup in this session; release publication remains outside scope.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Removing technical GRACE contracts, current application source, required tests or public release tooling.</NonGoal>
+      <NonGoal>Repeating the independently completed secret-scanning enablement or legacy-branch retirement.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Private backups match their sources by SHA-256, including current uncommitted operational edits.</Criterion>
+      <Criterion>The candidate public tree excludes the operational bundle, promotion planning, captured profile archives and browser runtime records.</Criterion>
+      <Criterion>Retained examples contain only synthetic home paths and have an exact hash/size manifest; focused checks and GRACE lint pass.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas><M-005/><M-046/></AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run tests/renderer/publication-privacy.test.js</ExpectedCommand>
+      <ExpectedEvidence>Private backup receipts, fixture hashes, a clean publication boundary check, and unchanged frozen provenance hashes.</ExpectedEvidence>
+    </VerificationIntent>
+    <Approval>
+      <ApprovedBy>Owner, 2026-10-19</ApprovedBy>
+      <Scope>Explicit instruction to privatize the App Store Connect records and promotion strategy, and replace real computer paths in fixtures, following the publication audit proposal.</Scope>
+      <PublicationAuthorization>Owner explicitly instructed public cleanup after reviewing the local commit; this also carries forward the earlier instruction to keep backlog and table-copy previews private. Ordinary main publication only; no history rewriting or release.</PublicationAuthorization>
+    </Approval>
+  </C-PRIVATE-OPERATIONS>
+</GraceChangeSpec>

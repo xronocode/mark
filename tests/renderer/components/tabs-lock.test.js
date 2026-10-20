@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-40 T-004 tab-chrome pieces — the lock badge on read-only tabs and the tab-context-menu bus handlers (lock/unlock, split view, copy-document flavors).
 //   SCOPE: Vue/jsdom component tests over editorWithTabs/tabs.vue with mocked bus/dragula/contextMenu and a stubbed i18n.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, tests/renderer/setup.ts window shims.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/active/C-40 T-004.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/archive/C-40 T-004.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

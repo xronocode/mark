@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-70 table picture builder — the SVG is drawn from the live layout (size + padding, panel/row/cell backgrounds, borders, code chips, one text per word at its measured box with textLength), editor chrome is skipped, text is XML-escaped, zero-size tables yield null; plus the table toolbar's Copy as image button and the <doc>-table-N file name fallback.
 //   SCOPE: src/muya/lib/utils/tableExport.js, renderTableToolbar.js copy button, diagramExport.suggestFileName noun.
 //   DEPENDS: Vitest + jsdom with stubbed rects/styles/ranges (jsdom has no layout).
-//   LINKS: .grace/changes/active/C-70 R-1/R-2/R-3; e2e tests/e2e/table-export.spec.ts.
+//   LINKS: .grace/changes/archive/C-70 R-1/R-2/R-3; e2e tests/e2e/table-export.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-001 unit tests for the Settings › General › Files and saving «Show all files» switch — row presence/binding, SET_SINGLE_PREFERENCE persistence, the store default, RESETTABLE membership, and the schema.json entry.
 //   SCOPE: prefComponents/tabs/general/index.vue row composition over stubbed controls + store/schema assertions.
 //   DEPENDS: prefComponents/tabs/general/index.vue, store/preferences, _shims/preferences/schema.json, tests/renderer/setup.ts.
-//   LINKS: .grace/changes/active/C-51 T-001; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-001; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

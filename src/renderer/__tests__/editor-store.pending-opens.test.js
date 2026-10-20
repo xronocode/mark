@@ -10,7 +10,7 @@
 //            Pinia" under vi.mock); muya / commands / element-plus
 //            stubbed so the heavyweight editor module loads cleanly.
 //   DEPENDS: pinia, vitest, store/editor (real impl).
-//   LINKS:   docs/verification-plan.xml V-M-025 race-conditions R-2 +
+//   LINKS:   .grace/verification/runtime.xml V-M-025 race-conditions R-2 +
 //            integration line ("preview-mode preserved").
 
 import { setupTestPinia } from '../../../tests/renderer/pinia'

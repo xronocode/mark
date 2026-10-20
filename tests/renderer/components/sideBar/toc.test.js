@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-40 T-003 sidebar TOC retirement — no component mounts sideBar/toc.vue and the sidebar has no right-column 'toc' mode anymore.
 //   SCOPE: Source-level retirement assertions only (the retired component itself is listed for deletion; importing it here would break once it is removed).
 //   DEPENDS: node fs/path, Vitest.
-//   LINKS: .grace/changes/active/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
+//   LINKS: .grace/changes/archive/C-40 T-003; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

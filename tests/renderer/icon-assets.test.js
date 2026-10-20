@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-33 icon wiring and keep the committed icon sources in sync with their generator.
 //   SCOPE: Info.plist CFBundleIconName, tauri.conf bundle.macOS.files → Assets.car, Icon Composer icon.json appearances, gen.py output == committed SVGs/icon.json.
 //   DEPENDS: python3 (gen.py, stdlib only), assets/icon/*, src-tauri/*.
-//   LINKS: .grace/changes/active/C-33; assets/icon/gen.py; assets/icon/build.sh
+//   LINKS: .grace/changes/archive/C-33; assets/icon/gen.py; assets/icon/build.sh
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

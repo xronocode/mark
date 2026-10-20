@@ -10,7 +10,7 @@
 //              - cold-launch with N=0 (drain-empty)
 //              - drain-rejection (DRAIN_FAILED)
 //   DEPENDS: vitest, @tauri-apps/api/{event,core} (mocked), bootstrap-ipc.
-//   LINKS:   docs/verification-plan.xml V-M-025 ordering-invariants.
+//   LINKS:   .grace/verification/runtime.xml V-M-025 ordering-invariants.
 
 // ─── per-file mocks (mirror bootstrap-ipc.test.js) ─────────────────
 

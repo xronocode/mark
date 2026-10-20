@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-40 T-004 renderer commands — view.status-bar (persisted preference toggle), view.lock-document (per-tab lock dispatch), and edit.copy-as-markdown (copyAsMarkdown bus event).
 //   SCOPE: Registry execute paths with mocked stores/bus (focusEditorAndExecute delays under fake timers).
 //   DEPENDS: Vitest, @/commands/index, mocked stores/bus/i18n.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55, V-M-014; .grace/changes/active/C-40 T-004.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55, V-M-014; .grace/changes/archive/C-40 T-004.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

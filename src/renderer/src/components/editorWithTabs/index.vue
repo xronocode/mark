@@ -62,7 +62,7 @@
 //   PURPOSE: Compose the editor column — tabs, split/source/diff surfaces, the C-40 T-003 outline rail, and the C-40 T-004 status bar — inside the editorWithTabs container.
 //   SCOPE: Layout composition and prop pass-through only; mode state lives in the stores and the child components.
 //   DEPENDS: layout store, tabs/editor/sourceCode/diffView/splitView/notifications components, outlineRail.vue, statusBar.vue.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/changes/active/C-40 T-003/T-004.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/changes/archive/C-40 T-003/T-004.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

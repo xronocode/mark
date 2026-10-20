@@ -16,7 +16,7 @@
 //            (injectable); @tauri-apps/api/core invoke (lazy, injectable);
 //            commands/index.js installSignedUpdate (lazy — avoids the
 //            commands-module side effects at store import time).
-//   LINKS: .grace/changes/active/C-66/spec.xml R-1..R-5;
+//   LINKS: .grace/changes/archive/C-66/spec.xml R-1..R-5;
 //          pages/app.vue START_BLOCK_C66_UPDATE_CHECK (boot wiring after
 //          the What's New gate + FETCH_BUILD_MODE);
 //          components/updateNotice (renders this.notice);

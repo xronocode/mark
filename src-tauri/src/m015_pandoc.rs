@@ -7,7 +7,7 @@
 //   SCOPE:   is_pandoc_available + export(input, format) + version
 //            string. NO bundled pandoc; user installs externally.
 //   DEPENDS: stdlib std::process::Command.
-//   LINKS:   docs/development-plan.xml Phase-B3 step-9;
+//   LINKS:   .grace/graph/runtime.xml M-015 (PhaseRef Phase-B3) step-9;
 //            docs/phase-b1-pdf-export-strategy.md (decision: PDF
 //            export delegates here, mt::print_to_pdf returns
 //            MT_UNSUPPORTED).

@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-65 R-2 rename hooks in store/editor.js — RENAME (the title-bar card › Rename… flow) and RENAME_IF_NEEDED (the sidebar rename) both move the file's stored table layouts to the new path through util/tableLayoutStore.moveTableLayoutsEntry.
 //   SCOPE: store/editor.js RENAME + RENAME_IF_NEEDED (the move call sites only — the store util itself is pinned in table-layout-store.test.js).
 //   DEPENDS: the tests/renderer/store pinia harness with the standard store mocks; util/tableLayoutStore mocked with a spy.
-//   LINKS: .grace/changes/active/C-65 R-2; .grace/verification/runtime.xml V-M-012 scenario-66; util/tableLayoutStore.js.
+//   LINKS: .grace/changes/archive/C-65 R-2; .grace/verification/runtime.xml V-M-012 scenario-66; util/tableLayoutStore.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

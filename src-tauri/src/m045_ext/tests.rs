@@ -6,7 +6,7 @@
 //            require integration tests). Discovery path resolution is
 //            tested by asserting known patterns.
 //   DEPENDS: super::*.
-//   LINKS:   docs/verification-plan.xml V-M-045.
+//   LINKS:   .grace/verification/features.xml V-M-045.
 //   STATUS:  Phase-B2b initial.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

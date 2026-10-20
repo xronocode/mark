@@ -4,7 +4,7 @@
 //   PURPOSE: Option builders for the Advanced tab (C-38 T-004) — the image insert-action pop-up (IA §3.5 labels). Image upload stays retired in every edition (user decision 2026-10-15, 0c17da80), so there is no upload action and no uploader list.
 //   SCOPE: Pure i18n-backed option lists and the uploader service metadata the form needs; no store or window access.
 //   DEPENDS: i18n (t).
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.5; .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.5; .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

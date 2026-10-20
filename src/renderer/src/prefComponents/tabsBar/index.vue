@@ -35,7 +35,7 @@
 //   PURPOSE: The C-38 T-003 Settings toolbar — 5 icon tabs (centred macOS-style on macOS, underline tabs on Windows/Linux) that drive the /preference router-view, plus the ⌘F/Ctrl+F settings-search panel.
 //   SCOPE: Tab rendering and routing, active-tab tracking from the route, search-panel open/close on Cmd/Ctrl+F.
 //   DEPENDS: prefComponents/tabsBar/config (TABS), tabsBar/icons (TAB_ICONS), tabsBar/searchPanel, vue-router, vue-i18n, util (isOsx).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

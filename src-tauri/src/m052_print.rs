@@ -4,7 +4,7 @@
 //   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe).
 //   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer.
 //   DEPENDS: tauri 2 WebviewWindow::with_webview on the main thread (PlatformWebview: WKWebView pointer on macOS; ICoreWebView2Controller + ICoreWebView2Environment on Windows); cocoa/objc 0.2 on macOS; webview2-com 0.38 + windows-core 0.61 on Windows; tokio oneshot for main-thread→async-command results; serde for the pageOptions payload.
-//   LINKS: .grace/changes/active/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow).
+//   LINKS: .grace/changes/archive/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

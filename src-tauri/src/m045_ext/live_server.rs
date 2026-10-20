@@ -9,8 +9,8 @@
 //            Heartbeat timeout (15s) auto-closes stale sessions.
 //   DEPENDS: axum 0.8, tokio (net, rt, time, sync), serde/serde_json,
 //            super::auth (validate_token, generate_secret, store_secret).
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B5a;
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B5a);
 //            ROADMAP.md Decision D1 (HTTP POST IPC).
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //

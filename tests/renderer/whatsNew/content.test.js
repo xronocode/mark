@@ -12,7 +12,7 @@
 //          static/locales/*.json whatsNew sections (source tables — the
 //          .min.json files are regenerated from them).
 //   DEPENDS: vitest, whatsNew/data.js, static/locales/*.json.
-//   LINKS: .grace/changes/active/C-53/spec.xml R-1 + D-1; V-M-011
+//   LINKS: .grace/changes/archive/C-53/spec.xml R-1 + D-1; V-M-011
 //          scenario-46.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

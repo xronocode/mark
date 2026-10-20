@@ -4,7 +4,7 @@
 //   PURPOSE: Tell whether a key event target is a text control (input, textarea, select, contenteditable) so a global paste handler leaves native paste alone.
 //   SCOPE: isEditableTarget — pure, no imports (safe in the boot chunk; C-52 orchestrator fix: importing it from clipboardPath pulled ipc/runtime, which reads window.electron at import time, before the shim installs it).
 //   DEPENDS: none.
-//   LINKS: .grace/changes/active/C-52; util/clipboardPath.js (re-export); components/recent/index.vue.
+//   LINKS: .grace/changes/archive/C-52; util/clipboardPath.js (re-export); components/recent/index.vue.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

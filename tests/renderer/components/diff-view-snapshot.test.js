@@ -14,7 +14,7 @@
 //   PURPOSE: Pin the C-43 baseline priority in diffView.vue — latest per-tab snapshot wins over mt_diff_baseline — and the header source label for both paths; since C-68 a backend failure with no snapshot at all is a calm info notice (never the raw error).
 //   SCOPE: createMergeView baseline resolution + baselineSideLabel; MergeView receives the snapshot as orig when present.
 //   DEPENDS: src/renderer/src/components/editorWithTabs/diffView.vue, src/renderer/src/store/diffSnapshots.js (real module)
-//   LINKS: .grace/changes/archive/C-43 R-2/R-3; .grace/changes/active/C-68 R-2/R-3 (calm no-baseline exit); .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67
+//   LINKS: .grace/changes/archive/C-43 R-2/R-3; .grace/changes/archive/C-68 R-2/R-3 (calm no-baseline exit); .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

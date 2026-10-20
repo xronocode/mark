@@ -8,7 +8,7 @@
 //   SCOPE:   single command; no implementation body — by design.
 //   DEPENDS: serde::Serialize (via the IpcError shape).
 //   LINKS:   docs/phase-b1-pdf-export-strategy.md (decision rationale);
-//            docs/development-plan.xml Phase-B1 step-8;
+//            .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-8;
 //            M-015 mt-pandoc-bridge (Phase-B3 step-9 — actual export).
 //   STATUS:  Phase-B1 final — stays a stub permanently. Real PDF
 //            export goes through pandoc-bridge.

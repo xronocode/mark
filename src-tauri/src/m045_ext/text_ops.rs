@@ -10,8 +10,8 @@
 //            is enabled, then emits a typed event to the renderer.
 //            Actual text manipulation happens in the frontend via Muya API.
 //   DEPENDS: tauri (AppHandle, Emitter), serde/serde_json, ExtRegistry.
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B4;
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B4);
 //            ROADMAP.md Decision D1 (HTTP POST IPC).
 //   STATUS:  Phase-B4 initial — text.insert + text.transform.
 //

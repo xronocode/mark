@@ -39,7 +39,7 @@
 //   PURPOSE: Modal sheet over the Settings window (C-38 T-004) — a centred 560px panel with a title, Close button and Esc handling that hosts the Advanced-tab pop-ups (keyboard shortcuts, extensions gallery, custom CSS).
 //   SCOPE: Overlay/panel rendering, Esc key handling, close emission; content comes from the default slot and optional actions from the foot slot.
 //   DEPENDS: vue-i18n (sheet close label).
-//   LINKS: .grace/changes/active/C-38 T-004; prefComponents/tabs/advanced; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; prefComponents/tabs/advanced; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-002 unit tests for the Pin/Unpin context-menu items — label factories, handler dispatch, and the sidebar menu spec (item present for Markdown files only, labelled by pinned state).
 //   SCOPE: contextMenu/sideBar/{menuItems,index,actions} and contextMenu/tabs/{menuItems,actions} exports over the mocked i18n t (key passthrough) and ipcRenderer invoke.
 //   DEPENDS: src/renderer/src/contextMenu/**, src/renderer/src/store/pinned, tests/renderer/setup.ts window.electron shim.
-//   LINKS: .grace/changes/active/C-51 T-002; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-002; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

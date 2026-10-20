@@ -21,7 +21,7 @@
 //   PURPOSE: Settings grouped section (C-38 T-003 anatomy) — 13px semibold title above an inset group card (white/#2f2f2f, per-OS radius, hairline border) whose direct children are separated by hairlines.
 //   SCOPE: Pure layout; head/children slots and notes prop from v1 unchanged.
 //   DEPENDS: none (palette vars come from the shell).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT

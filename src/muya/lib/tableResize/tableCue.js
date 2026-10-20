@@ -4,7 +4,7 @@
 //   PURPOSE: C-65 T-003 overflow cue for wide tables — the pure «columns X–Y of N» range math (which columns are mostly visible in the C-39 scroll wrapper) plus the DOM sync pass that drives the caption below the table and the edge-shade side classes, live on scroll, resize and drag.
 //   SCOPE: Visible-column range and caption formatting, live full-width fit detection, width-toggle gating against the text column, native scrollbar-space measurement and caption/shade DOM sync. The reserved caption lives inside the scroll wrapper; fitting tables clear its text without removing space. Scroll/resize/render listeners remain in tableResize and expandNeed.
 //   DEPENDS: pure DOM measurements (wrapper/clientWidth/getBoundingClientRect; jsdom's zero rects degrade to a null state — no cue), a translator function (muya options.t or the module-level setTableCueTranslator pin).
-//   LINKS: .grace/changes/active/C-65 T-003; .grace/graph/runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-66; renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; expandNeed.js updateFigureExpandNeed (the funnel call site); the C-65 CSS section of lib/assets/styles/index.css.
+//   LINKS: .grace/changes/archive/C-65 T-003; .grace/graph/runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-66; renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; expandNeed.js updateFigureExpandNeed (the funnel call site); the C-65 CSS section of lib/assets/styles/index.css.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

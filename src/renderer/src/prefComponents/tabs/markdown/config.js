@@ -4,7 +4,7 @@
 //   PURPOSE: Option builders for the Markdown tab (C-38 T-004) — lists/bullet/ordered-format/indentation, front matter format and sequence-diagram pop-ups in IA §3.4 wording.
 //   SCOPE: Pure i18n-backed option lists; no store or window access.
 //   DEPENDS: i18n (t).
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.4; .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.4; .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

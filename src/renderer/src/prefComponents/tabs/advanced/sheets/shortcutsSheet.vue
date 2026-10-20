@@ -17,7 +17,7 @@
 //   PURPOSE: The Keyboard shortcuts sheet (C-38 T-004 decision 4) — a 560px modal panel over the Settings window hosting the existing keybindings editor with its own search field.
 //   SCOPE: Pure composition; the sheet frame supplies title/Close/Esc, the keybindings page keeps all table/configurator logic.
 //   DEPENDS: prefComponents/common/sheet, prefComponents/keybindings.
-//   LINKS: .grace/changes/active/C-38 T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT

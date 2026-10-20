@@ -9,7 +9,7 @@
 //   PURPOSE: Hairline separator between settings groups (C-38 T-003) — the v1 2px bar becomes the 0.5px hairline the mockup uses between rows/sections.
 //   SCOPE: Pure presentational divider.
 //   DEPENDS: none (palette vars come from the shell).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT

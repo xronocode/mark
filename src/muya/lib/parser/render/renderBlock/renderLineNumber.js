@@ -4,7 +4,7 @@
 //   PURPOSE: Build the non-editable line-numbers gutter vnode for a rendered code block (C-38 T-005, #1648).
 //   SCOPE: Count the logical lines of the code block's text and render one empty counter span per line.
 //   DEPENDS: muya snabbdom h; the .line-numbers CSS section in lib/assets/styles/index.css.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-20; .grace/changes/active/C-38 T-005.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-20; .grace/changes/archive/C-38 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-45 'system' interface language — navigator.languages resolution rules, setLanguage('system') applying the effective locale, and the localized "As in system" option label.
 //   SCOPE: i18n/systemLocale.js pure resolution; i18n/index.js setLanguage('system'); prefComponents/general/config.js getLanguageOptions; preferences.language.system present in every shipped table.
 //   DEPENDS: src/renderer/src/i18n/systemLocale.js, src/renderer/src/i18n/index.js, src/renderer/src/i18n/localeLoader.js, static/locales/*.
-//   LINKS: .grace/changes/active/C-45 spec R-1..R-3; tests/renderer/store/preferences-language.test.js (store wiring).
+//   LINKS: .grace/changes/archive/C-45 spec R-1..R-3; tests/renderer/store/preferences-language.test.js (store wiring).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

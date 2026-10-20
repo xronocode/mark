@@ -1,0 +1,13 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-71>
+  <Name>Table centering, discoverable viewer zoom and readable tooltips</Name>
+  <Created>2026-10-19</Created>
+  <Summary>Fix the three defects reported by the owner on 2026-10-19. The owner clarified that the missing viewer tool means zoom in/out. Existing table, viewer and tooltip contracts remain the behavior baseline.</Summary>
+  <Goals><R-1>Expanded tables center within available editor space, track window/sidebar/font changes, and retain reachable horizontal overflow for oversized content.</R-1><R-2>Viewer zoom in/out and fit controls remain visible, labeled and clickable at supported window sizes.</R-2><R-3>All shipped short image/tooltips fit on one readable line; exceptionally long tooltips remain bounded and readable.</R-3></Goals>
+  <Constraints><Item>No new release/tag or release publication; preserve the owner's working trees and documents.</Item><Item>Reproduce geometry in Chromium and WebKit. Keep thresholds intact.</Item></Constraints>
+  <NonGoals><Item>No change to Markdown, table persistence identity or export formats.</Item><Item>Whole-product coverage completion is tracked separately by C-72.</Item></NonGoals>
+  <AcceptanceCriteria><Criterion>Regression tests fail on the reported layout faults and pass after the fixes in both engines; unit tests, build and GRACE checks pass.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><Item>M-012 table layout, resize events, fullscreen viewer, image/general tooltip styles and tests.</Item></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</ExpectedCommand><ExpectedCommand>npx playwright test tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</ExpectedCommand></VerificationIntent>
+</C-71>
+</GraceChangeSpec>

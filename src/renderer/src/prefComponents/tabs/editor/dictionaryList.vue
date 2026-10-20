@@ -34,7 +34,7 @@
 //   PURPOSE: Custom spellchecking dictionary list under the Editor › Spelling group (C-38 T-004) — words from mt_spell_get_custom_dictionary_words with a per-word remove action.
 //   SCOPE: List rendering, backend word loading (guarded — the custom-dictionary backend may not exist yet), removal via mt_spell_remove_word.
 //   DEPENDS: @tauri-apps/api/core (invoke), services/notification, vue-i18n.
-//   LINKS: .grace/changes/active/C-38 T-004; retired prefComponents/spellchecker (same commands, new anatomy); .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; retired prefComponents/spellchecker (same commands, new anatomy); .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

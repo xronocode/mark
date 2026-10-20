@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-40 T-004 statusBarVisibility preference — the per-OS default resolved lazily at store creation, persistence through SET_SINGLE_PREFERENCE, and the «Restore all defaults» reset.
 //   SCOPE: preferenceDefaults platform resolution (darwin/win32/linux), RESETTABLE_PREFERENCE_KEYS membership, RESET_PREFERENCES_TO_DEFAULTS write.
 //   DEPENDS: src/renderer/src/store/preferences.js, Pinia, Vitest, tests/renderer/setup.ts window shims.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/active/C-40 T-004.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/archive/C-40 T-004.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

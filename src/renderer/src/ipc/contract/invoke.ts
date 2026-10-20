@@ -8,7 +8,7 @@
 //            through ipcCorrelated.
 //   DEPENDS: types.ts (IpcError + IpcErrorCode + CommandName/Args/Result),
 //            @tauri-apps/api/core invoke().
-//   LINKS:   M-013-A fn-ipcInvoke; docs/verification-plan.xml V-M-013-A.
+//   LINKS:   M-013-A fn-ipcInvoke; .grace/verification/runtime.xml V-M-013-A.
 //   STATUS:  Phase-B1 stub. Schema validation is a no-op pass-through
 //            until ts-rs codegen lands in B1 step-3/4. Default 10s timeout.
 //

@@ -127,7 +127,7 @@
 //   PURPOSE: The sidebar Files column — Recent/Pinned sections (fileSections.vue), the opened-tabs list, and the multi-root folder tree with the C-51 T-001 folder-switcher header (semibold like folder rows, C-51 T-013) and Markdown-only view filter.
 //   SCOPE: Section composition, per-root collapse state, root-level filtered folder/file lists (store/treeFilter.js per the treeShowAllFiles preference), root close/create wiring; with no folder open only the file sections remain (C-51 T-011 removed the empty-state Open Folder button and RECENT folders list — both live on the welcome screen, C-46).
 //   DEPENDS: vue, pinia, store/project, store/editor, store/preferences, store/treeFilter, ./treeFolder.vue, ./treeFile.vue, ./treeOpenedTab.vue, ./fileSections.vue, ../icons/chromeIcons.js, bus, vue-i18n.
-//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011/T-013; .canvas/Main.dc.html (switcher + tree); .canvas/MacOS.dc.html (sections); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-001/T-002/T-011/T-013; .canvas/Main.dc.html (switcher + tree); .canvas/MacOS.dc.html (sections); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the user-visible Help-menu updater command and the C-66 shared signed install flow across current, available, missing-feed, and failure states.
 //   SCOPE: Renderer command orchestration with mocked Tauri APIs; network, signature cryptography, and bundle replacement are out of scope.
 //   DEPENDS: src/renderer/src/commands/index.js, @tauri-apps/plugin-updater, @tauri-apps/plugin-process.
-//   LINKS: docs/knowledge-graph.xml M-016; docs/verification-plan.xml V-M-016; .grace/changes/active/C-66 (shared installSignedUpdate).
+//   LINKS: docs/knowledge-graph.xml M-016; docs/verification-plan.xml V-M-016; .grace/changes/archive/C-66 (shared installSignedUpdate).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

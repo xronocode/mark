@@ -1706,7 +1706,7 @@
       <Name>ExtensionHost</Name>
       <DisplayName>ExtensionHost</DisplayName>
       <Type>CORE_LOGIC</Type>
-      <Status>planned</Status>
+      <Status>shipped</Status>
       <Layer>APPLICATION</Layer>
       <PhaseRef>B11-ext-host</PhaseRef>
       <Summary>

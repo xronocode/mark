@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-51 T-014 edit-mode preview geometry — while a container block's source is edited, its div.ag-container-preview sits BELOW the source in normal flow (the inherited MarkText float was position:absolute and covered the following blocks), framed like the float was; multiplemath shares the rule unscoped, the html preview keeps its own hide-while-active behaviour, and no per-theme stylesheet reintroduces the absolute float.
 //   SCOPE: the figure.ag-active.ag-container-block > div.ag-container-preview rule of src/muya/lib/assets/styles/index.css plus the same selector in every src/renderer/src/assets/themes/*.theme.css.
 //   DEPENDS: node:fs/node:path/node:url reads of the stylesheets; Vitest.
-//   LINKS: .grace/changes/active/C-51 T-014; .grace/verification/runtime.xml V-M-011 scenario-64; the viewer twin tests/renderer/muya/block-viewer.test.js.
+//   LINKS: .grace/changes/archive/C-51 T-014; .grace/verification/runtime.xml V-M-011 scenario-64; the viewer twin tests/renderer/muya/block-viewer.test.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

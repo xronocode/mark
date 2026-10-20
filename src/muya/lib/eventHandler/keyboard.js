@@ -4,7 +4,7 @@
 //   PURPOSE: Route Muya keyboard events to editing commands, including layout-independent undo and redo.
 //   SCOPE: Composition tracking, editor state dispatch, keydown/keyup/input routing, floating-tool keyboard handling, native Shift+Up/Down selection with overlapping passive panels, direct Muya history shortcuts, and leaving keys alone (keydown AND keyup) when expand/appearance buttons hold focus (C-62).
 //   DEPENDS: Muya event center/content state, selection helpers, editor config, emoji UI.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenarios 10 and 70; .grace/changes/active/C-51 T-006 and T-010 (BLOCK_KEYBOARD_EXPAND_BUTTON).
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenarios 10 and 70; .grace/changes/archive/C-51 T-006 and T-010 (BLOCK_KEYBOARD_EXPAND_BUTTON).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

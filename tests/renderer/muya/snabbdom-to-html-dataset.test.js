@@ -4,7 +4,7 @@
 //   PURPOSE: Pin that muya's toHTML (the partialRender serializer) writes camelCase dataset keys as hyphenated data-* attributes, so a block re-rendered through partialRender keeps dataset.tableToolbarAction / blockToolbarAction / calloutKey etc.
 //   SCOPE: src/muya/lib/parser/render/snabbdom.js toHTML + datasetAttributeName.
 //   DEPENDS: Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-65 (table toolbar toggle after a partial render, 2026-10-19).
+//   LINKS: .grace/changes/archive/C-65 (table toolbar toggle after a partial render, 2026-10-19).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

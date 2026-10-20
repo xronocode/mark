@@ -9,7 +9,7 @@
 //            macOS (NSSpellChecker) and Windows (Edge Chromium); F-
 //            SPELL-HUNSPELL-EMBED tracks bundled-dict path for Linux.
 //   DEPENDS: m005_prefs (prefs[spellchecker]).
-//   LINKS:   docs/development-plan.xml Phase-B3 step-5.
+//   LINKS:   .grace/graph/runtime.xml M-007 (PhaseRef Phase-B3) step-5.
 //   STATUS:  Phase-B3 step-5 lite — config surface only.
 //
 // CHANGE_SUMMARY:
