@@ -1,0 +1,274 @@
+{
+  "schemaVersion": "1.0.0",
+  "trainId": "2.5.x-next",
+  "state": "Collecting",
+  "previousRelease": {
+    "tag": "v2.5.3",
+    "commit": "acad9988220c9a1a6d28ea4e94b69d69d774f805",
+    "bootstrapSha": "0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6",
+    "tree": "49877bed7a06a76c8fdde1e5f272b7d3c57cdce1"
+  },
+  "computedVersion": "2.6.0",
+  "payloadSha": null,
+  "sealSha": null,
+  "releaseAuthorization": {
+    "authorized": false,
+    "owner": null,
+    "date": null,
+    "evidence": "No release instruction has been given. Acceptance and queueing are not publication authorization."
+  },
+  "items": {
+    "userFacing": [
+      {
+        "id": "FIX-001",
+        "summary": "Keep Shift+Up/Down selection active while passive editor toolbars are visible.",
+        "state": "queued",
+        "commits": ["995b01ce65906108dcd8fefa95ccae7dd799cba5", "bcaebe05b071aaa8466132b5dd7c457b1fdba0c9"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-19",
+          "testedArtifact": "Mark Test bcaebe05; binary sha256 432318f7a1e97b2a3733eb413cb2814d8212181470cf7b52f007ddca906f52da",
+          "scenarios": ["Shift+Up/Down continues selecting after the passive formatting panel appears."]
+        }
+      },
+      {
+        "id": "C-TAB-CLOSE-OWNERSHIP",
+        "summary": "Keep the selected tab, rendered document, and subsequent edits owned by the same document after close.",
+        "state": "queued",
+        "commits": ["943d57d69f7d3b9bf4f896b814649138470e01ac"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-19",
+          "testedArtifact": "Renderer test artifact at 943d57d6; manifest sha256 efefe957d5887a95529903891fa6fb7bf01d66bd11f41fa7f5da6b4651606163",
+          "scenarios": ["Close to the neighboring tab without retaining or writing through the closed document surface."]
+        }
+      },
+      {
+        "id": "C-70",
+        "summary": "Export a table as a PNG from copy and fullscreen actions.",
+        "state": "queued",
+        "commits": ["c94c2287562071b5ed775d6c0d72332e754581f9", "d2f6364e3114c14f1b2814361b6c02db503cf0ce"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-19",
+          "testedArtifact": "Mark Test bcaebe05",
+          "scenarios": ["Copy table as image and fullscreen PNG export work."]
+        }
+      },
+      {
+        "id": "C-68",
+        "summary": "Compare an opened note against its baseline.",
+        "state": "queued",
+        "commits": ["2f30dc2dda7064583e2f140c47aad9cf0d8adcec"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-19",
+          "testedArtifact": "Mark Test bcaebe05",
+          "scenarios": ["Edited and unchanged-note Command-D comparison flows work."]
+        }
+      },
+      {
+        "id": "C-71",
+        "summary": "Refine table geometry, outline behavior, viewer controls, and tooltips.",
+        "state": "queued",
+        "commits": ["655d956d295f63d0d0d09d6bc5b9d3b938f4d14c", "073f9494c5bac43a0e0cdf06c4e584432675dd70", "f17b070e2eac144808a6f6aba6d2609ffd3e16bb"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-19",
+          "testedArtifact": "Mark Test C71 f17b070e",
+          "scenarios": ["The complete previously described C-71 table, outline, viewer, and tooltip behavior works."]
+        }
+      },
+      {
+        "id": "C-TOOLBAR-LABELS",
+        "summary": "Retain visited toolbar labels and keep width actions contextual.",
+        "state": "queued",
+        "commits": ["46b255c240c08dbfa1a8e26d526ef2fcb6a58754"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test UI f8af91e9",
+          "scenarios": ["Visited labels accumulate, unnecessary width actions stay hidden, and footer geometry remains stable."]
+        }
+      },
+      {
+        "id": "C-TABLE-FOOTER",
+        "summary": "Keep a compact table caption/footer and preserve Fit after adopted Full width state.",
+        "state": "queued",
+        "commits": ["16b59d1b8f718f1390d15663e782adfd263a50f7", "9d413febf20a3c4e821c7dadcff412015d86cf11", "abf29f139ba9f31d1aee62826a177957f301b538", "a0a524fdc5812c8361600e671e741527b7e3ebe5", "674f91b6535fb35a47e4a1c960fa3f9a57d4e7ac"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test TABLE-STATE 35fc0895; binary sha256 d78732b7a12988a052b585915529af9514e67d1744b9ac608ca7e6468bf9825e",
+          "scenarios": ["Caption/footer visuals are accepted and the physical Full width to Fit transition works."]
+        }
+      },
+      {
+        "id": "FIX-003",
+        "summary": "Clear stale outline navigation after closing a file and creating a new document.",
+        "state": "queued",
+        "commits": ["a2d778729f416e407377cc879b9bd7644fb9a6b5"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test FIX003-008 bae95a97; binary sha256 ba30f5c2d3c19d8e696aa5edababcbe969e172541607f0b6217f5be8242ec991",
+          "scenarios": ["The new document contains no headings from the closed file."]
+        }
+      },
+      {
+        "id": "FIX-004",
+        "summary": "Keep the localized paragraph-transform menu readable.",
+        "state": "queued",
+        "commits": ["a2d778729f416e407377cc879b9bd7644fb9a6b5"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test FIX003-008 bae95a97",
+          "scenarios": ["Russian transform labels, shortcuts, and submenu affordance remain readable without collision."]
+        }
+      },
+      {
+        "id": "FIX-005",
+        "summary": "Restore paragraph duplication on Shift-Command-D without stealing Shift-Command-P.",
+        "state": "queued",
+        "commits": ["a2d778729f416e407377cc879b9bd7644fb9a6b5"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test FIX003-008 bae95a97",
+          "scenarios": ["Shift-Command-D creates one adjacent duplicate and Shift-Command-P creates none."]
+        }
+      },
+      {
+        "id": "FIX-006",
+        "summary": "Restore persistent Command-1 through Command-6 heading transformations.",
+        "state": "queued",
+        "commits": ["a2d778729f416e407377cc879b9bd7644fb9a6b5"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test FIX003-008 bae95a97",
+          "scenarios": ["Command-1 and Command-3 create persistent H1/H3 headings and outline entries."]
+        }
+      },
+      {
+        "id": "FIX-007",
+        "summary": "Render the unsaved-changes dialog with the active dark theme.",
+        "state": "queued",
+        "commits": ["a2d778729f416e407377cc879b9bd7644fb9a6b5"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test FIX003-008 bae95a97",
+          "scenarios": ["The dialog surface, text, borders, controls, and warning emphasis are readable in dark mode."]
+        }
+      },
+      {
+        "id": "FIX-008",
+        "summary": "Use pan-only fullscreen table navigation with side-aware clipping cues and no bottom scrollbar strip.",
+        "state": "queued",
+        "commits": ["debfe5eef8d72a1e6ddf110d5c78eeec2ee0c121"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test TABLE-STATE 35fc0895",
+          "scenarios": ["No bottom bar, pan navigation, side-aware clipping shadows, and clear Fit state."]
+        }
+      },
+      {
+        "id": "FIX-011",
+        "summary": "Give dirty untitled tabs separate Save and Close, Discard, and Cancel actions.",
+        "state": "queued",
+        "commits": ["4e676c00674bd11e6656f782cf35737aa6fae4b1"],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-20",
+          "testedArtifact": "Mark Test TABLE-STATE 35fc0895",
+          "scenarios": ["Three explicit actions are visible and Cancel preserves the tab and content."]
+        }
+      }
+    ],
+    "operational": [
+      {
+        "id": "TRAIN-BOOKKEEPING",
+        "summary": "Maintain GRACE reconciliation, acceptance ledger, privacy, safety, and test-only release records.",
+        "commits": ["4146fdbb1e43ab63df1f9a6115d9a89a9e0d62bd"]
+      }
+    ],
+    "notPresent": [
+      {
+        "id": "FIX-009",
+        "summary": "Separate cold-start session restore from in-session closed-tab recovery.",
+        "reason": "Reported and backlogged; no repair is admitted to this train.",
+        "codePresent": false
+      },
+      {
+        "id": "FIX-010",
+        "summary": "Route Shift-Command-P to the Command Palette.",
+        "reason": "Reported and attributed; repair and acceptance are pending.",
+        "codePresent": false
+      },
+      {
+        "id": "FIX-012",
+        "summary": "Repair the render-time TypeError found by the command-sequence audit.",
+        "reason": "Automated finding remains open and is explicitly excluded from the accepted train.",
+        "codePresent": false
+      },
+      {
+        "id": "FIX-013",
+        "summary": "Keep jsdom localStorage authoritative under Node 25 test workers.",
+        "reason": "Repair exists only as unaccepted working-tree work and is not admitted to the release train.",
+        "codePresent": false
+      },
+      {
+        "id": "FIX-014",
+        "summary": "Align the Windows and Linux titlebar with the approved platform treatment.",
+        "reason": "Repair exists only as unaccepted working-tree work and is not admitted to the release train.",
+        "codePresent": false
+      }
+    ]
+  },
+  "commitAccounting": {
+    "fromExclusive": "0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6",
+    "throughInclusive": null,
+    "entries": []
+  },
+  "requiredChecks": [
+    { "name": "status check", "app": "GitHub Actions", "status": "pending", "sha": null },
+    { "name": "release/governance", "app": "GitHub Actions", "status": "pending", "sha": null },
+    { "name": "release/readiness", "app": "GitHub Actions", "status": "pending", "sha": null }
+  ],
+  "materials": {
+    "status": "draft",
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "releaseNotes": "docs/release-notes-en-drafts.md",
+    "whatsNew": "src/renderer/src/whatsNew/data.js",
+    "localeCount": 10,
+    "screenshotManifest": "docs/assets/readme/2.6.0.manifest.json",
+    "itemIds": [
+      "FIX-001",
+      "C-TAB-CLOSE-OWNERSHIP",
+      "C-70",
+      "C-68",
+      "C-71",
+      "C-TOOLBAR-LABELS",
+      "C-TABLE-FOOTER",
+      "FIX-003",
+      "FIX-004",
+      "FIX-005",
+      "FIX-006",
+      "FIX-007",
+      "FIX-008",
+      "FIX-011"
+    ]
+  },
+  "transitions": [
+    {
+      "state": "Collecting",
+      "date": "2026-10-20",
+      "actor": "xronocode",
+      "evidence": "Owner approved implementing release-pipeline automation; no candidate freeze or release authorization was given."
+    }
+  ]
+}
