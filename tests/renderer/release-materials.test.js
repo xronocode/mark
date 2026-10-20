@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-materials.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin exact 2.6.0 release-material identity across train scope, public prose, ten locales, README image references, tracked files, and screenshot digests.
 //   SCOPE: Repository-positive integration plus isolated locale, image-set, review, and digest negative fixtures; no screenshot capture or publication.
@@ -14,10 +14,13 @@
 //   readJson - Read one repository JSON fixture.
 //   localeTables - Load source and minified locale tables for pure validation.
 //   rejectedWith - Assert one stable materials failure code.
+//   restoreChangelogDraft - Reconstruct a stable draft fixture from a promoted release section.
+//   windowsNewlines - Produce exactly one CRLF sequence per logical line break.
 //   materialHeaders - Load the three human release-material sources.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.4.0: keep negative material fixtures stable across collecting and prepared release-PR states.
 //   - 2026-10-20 v1.3.0: prove Windows CRLF checkouts retain the same README, CHANGELOG, and release-notes identity.
 //   - 2026-10-20 v1.2.0: pin the single unversioned CHANGELOG draft and exact-one numbered handoff contract.
 //   - 2026-10-20 v1.1.0: add independent README, CHANGELOG, notes, in-app source, URL, and missing-PNG negative fixtures.
@@ -50,9 +53,28 @@ const localeTables = () => ({
 const rejectedWith = (callback, code) => {
   expect(callback).toThrow(expect.objectContaining({ code }))
 }
+const restoreChangelogDraft = (source, version) => {
+  if (source.includes('<!-- release-draft:start -->')) return source
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const section = new RegExp(
+    `^## \\[${escaped}\\][^\\n]*\\n+([\\s\\S]*?)(?=^## \\[)`,
+    'm'
+  )
+  const match = section.exec(source)
+  if (!match) throw new Error(`Cannot restore CHANGELOG draft for ${version}`)
+  return source.replace(
+    match[0],
+    `<!-- release-draft:start -->\n\n${match[1].trim()}\n\n<!-- release-draft:end -->\n\n`
+  )
+}
+const windowsNewlines = (source) =>
+  source.replace(/\r\n?/g, '\n').replaceAll('\n', '\r\n')
 const materialHeaders = () => ({
   readme: readFileSync(resolve('README.md'), 'utf8'),
-  changelog: readFileSync(resolve('CHANGELOG.md'), 'utf8'),
+  changelog: restoreChangelogDraft(
+    readFileSync(resolve('CHANGELOG.md'), 'utf8'),
+    '2.6.0'
+  ),
   notes: readFileSync(resolve('docs/release-notes-en-drafts.md'), 'utf8'),
   version: '2.6.0'
 })
@@ -70,9 +92,9 @@ describe('release materials', () => {
 
   it('validates human material headers after a Windows CRLF checkout', () => {
     const materials = materialHeaders()
-    materials.readme = materials.readme.replaceAll('\n', '\r\n')
-    materials.changelog = materials.changelog.replaceAll('\n', '\r\n')
-    materials.notes = materials.notes.replaceAll('\n', '\r\n')
+    materials.readme = windowsNewlines(materials.readme)
+    materials.changelog = windowsNewlines(materials.changelog)
+    materials.notes = windowsNewlines(materials.notes)
     expect(validateMaterialHeaders(materials)).toBeUndefined()
   })
 
