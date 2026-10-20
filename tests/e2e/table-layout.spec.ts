@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling) and the C-65 T-003 overflow cue of the same wrapper (class-gated edge shades + the «columns X–Y of N» caption below the table on the column edge, live on scroll).
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, and lib/tableResize/tableCue.js.
@@ -20,7 +20,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-20 C-TABLE-FOOTER: counter remains inside its wrapper and fitting tables retain an invisible footer.
+//   LAST_CHANGE: v1.7.0 - 2026-10-20 C-TABLE-FIT-PERSISTENCE: Full
+//   width → Fit to page flips the mode and label in the same tick, saves
+//   the fit flag through the host prefs path, and survives reopening the
+//   document (path-aware stat mock: the file exists, no `.before`
+//   sidecar).
+//   PREV: v1.6.0 - 2026-10-20 C-TABLE-FOOTER: counter remains inside its wrapper and fitting tables retain an invisible footer.
 //   v1.5.0 - 2026-10-19 Full width is the default for wide tables: the C-39 wrapper-scroll cases first choose «Fit to page» (fitToPage); a new case pins the default itself.
 //   v1.4.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.4.0 - 2026-10-18 C-65 T-003: the shade pins moved from
@@ -37,6 +42,7 @@
 
 import { test, expect, Page } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
+import { openFileTab } from './fixtures/helpers'
 
 // 15 columns with multi-word content: natural (max-content) width is far
 // beyond the ~650px text column, so the wrapper must scroll.
@@ -252,6 +258,80 @@ test.describe('table layout (C-39 T-001)', () => {
       !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
     )
     expect(narrowFull).toBe(false)
+  })
+
+  // C-TABLE-FIT-PERSISTENCE (2026-10-20): the native owner review showed
+  // an explicit «Fit to page» choice not surviving — the host sanitizer
+  // dropped muya's fit flag, so a wide table reverted to Full width after
+  // reload. The transition must flip the mode and the label immediately,
+  // and the choice must persist through save → reopen (in-memory prefs
+  // backing stands in for the profile).
+  test('Full width → Fit to page flips mode and label immediately and survives reopen (C-TABLE-FIT-PERSISTENCE)', async ({ page }) => {
+    await page.addInitScript(() => {
+      const backing = Object.create(null)
+      const w = window as any
+      w.__mockInvoke = {
+        ...(w.__mockInvoke || {}),
+        // The load path prunes entries whose file no longer exists, and
+        // open-new-tab auto-diffs a file with a `.before` sidecar — the
+        // stat mock is path-aware so the document exists but no sidecar
+        // does.
+        mt_fs_stat: (args: any) => ({
+          isFile: args?.path === '/tmp/mark-e2e/fit-persist.md',
+          isDirectory: false
+        }),
+        mt_prefs_get: (args: any) => (args && args.key in backing ? backing[args.key] : null),
+        mt_prefs_set: (args: any) => {
+          backing[args.key] = args.value
+          if (args.key === 'tableLayouts') w.__lastTableLayouts = args.value
+          return null
+        }
+      }
+    })
+    await bootstrapWithMarkdown(page, '')
+    await openFileTab(page, '/tmp/mark-e2e/fit-persist.md', WIDE_15COL_MD)
+    await waitForTable(page)
+    await page.waitForFunction(() =>
+      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
+    , undefined, { timeout: 5_000 })
+
+    // The transition: click the «Fit to page» toggle — the class leaves and
+    // the label flips to «Full width» in the same tick (no re-render lag).
+    const afterClick = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+      const toggle = figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
+      toggle.click()
+      const label = (figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement).title
+      return { full: figure.classList.contains('ag-table-full-width'), label }
+    })
+    expect(afterClick.full).toBe(false)
+    expect(afterClick.label).toBe('Full width')
+
+    // The choice was saved with the fit flag (the host sanitizer keeps it).
+    const saved = await page.evaluate(() => {
+      const store = (window as any).__lastTableLayouts
+      const entries = store?.files?.['/tmp/mark-e2e/fit-persist.md'] || {}
+      const fits = Object.values(entries).filter((e: any) => e && e.fit === true)
+      return { fitCount: fits.length }
+    })
+    expect(saved.fitCount).toBeGreaterThanOrEqual(1)
+
+    // Reopen the document: open-new-tab dedupes to the existing tab and
+    // re-activates it, which reruns the C-65 load hook
+    // (applyStoredTableLayouts) — the wide table must NOT return to Full
+    // width; the label stays «Full width».
+    await openFileTab(page, '/tmp/mark-e2e/fit-persist.md', WIDE_15COL_MD)
+    await waitForTable(page)
+    const reopened = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+      const toggle = figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
+      return {
+        full: figure.classList.contains('ag-table-full-width'),
+        label: toggle ? toggle.title : null
+      }
+    })
+    expect(reopened.full).toBe(false)
+    expect(reopened.label).toBe('Full width')
   })
 
   test('a 15-column table scrolls horizontally inside the text column', async ({ page }) => {

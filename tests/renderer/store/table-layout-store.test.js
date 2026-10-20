@@ -51,7 +51,7 @@ import {
 } from '@/util/tableLayoutStore'
 import { ipcPrefs } from '@/ipc/runtime'
 
-const entryFor = (widths, manual, fullWidth = false) => ({ widths, manual, fullWidth })
+const entryFor = (widths, manual, fullWidth = false, fit = false) => ({ widths, manual, fullWidth, fit })
 
 const makeIo = (initial = null) => {
   const backing = { [TABLE_LAYOUTS_PREFS_KEY]: initial }
@@ -73,24 +73,45 @@ describe('pure store transforms (C-65 T-001)', () => {
   it('sanitizes entries: positive finite widths kept, invalid dropped, fullWidth-only kept', () => {
     expect(sanitizeEntry(ENTRY)).toEqual(ENTRY)
     expect(sanitizeEntry({ widths: [120.4, -5], manual: [true], fullWidth: false })).toEqual({
-      widths: [120], manual: [true], fullWidth: false
+      widths: [120], manual: [true], fullWidth: false, fit: false
     })
     expect(sanitizeEntry({ widths: [], manual: [], fullWidth: false })).toBeNull()
     expect(sanitizeEntry({ widths: [], manual: [], fullWidth: true })).toEqual({
-      widths: [], manual: [], fullWidth: true
+      widths: [], manual: [], fullWidth: true, fit: false
     })
     expect(sanitizeEntry(null)).toBeNull()
     expect(sanitizeEntry([1, 2])).toBeNull()
   })
 
+  it('keeps an explicit fit choice through sanitize (C-TABLE-FIT-PERSISTENCE)', () => {
+    // The Muya fit flag survives the host sanitizer: an explicit «Fit to
+    // page» choice must persist even with no dragged widths.
+    expect(sanitizeEntry({ widths: [], manual: [], fullWidth: false, fit: true })).toEqual({
+      widths: [], manual: [], fullWidth: false, fit: true
+    })
+    expect(sanitizeEntry({ widths: [90], manual: [true], fullWidth: false, fit: true })).toEqual({
+      widths: [90], manual: [true], fullWidth: false, fit: true
+    })
+    // Full width wins a contradictory entry (the Muya rule).
+    expect(sanitizeEntry({ widths: [], manual: [], fullWidth: true, fit: true }).fit).toBe(false)
+  })
+
+  it('a fit entry survives the save → load roundtrip (C-TABLE-FIT-PERSISTENCE)', async () => {
+    const io = makeIo({})
+    const entries = { '0#2:x': { widths: [], manual: [], fullWidth: false, fit: true } }
+    await saveTableLayoutsFor('/doc.md', entries, io)
+    const restored = await loadTableLayoutsFor('/doc.md', io)
+    expect(restored['0#2:x']).toEqual({ widths: [], manual: [], fullWidth: false, fit: true })
+  })
+
   it('derives the manual flags from the kept widths when the raw entry has none', () => {
     // No manual array: one auto flag per kept width.
     expect(sanitizeEntry({ widths: [90, 70] })).toEqual({
-      widths: [90, 70], manual: [false, false], fullWidth: false
+      widths: [90, 70], manual: [false, false], fullWidth: false, fit: false
     })
     // No widths array at all: an empty-but-valid fullWidth-only entry.
     expect(sanitizeEntry({ fullWidth: true })).toEqual({
-      widths: [], manual: [], fullWidth: true
+      widths: [], manual: [], fullWidth: true, fit: false
     })
   })
 

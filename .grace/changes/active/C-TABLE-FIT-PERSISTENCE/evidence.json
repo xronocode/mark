@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-20",
+  "status": "implemented and locally verified (browser); native same-frame confirmation pending on the fresh isolated artifact",
+  "rootCause": {
+    "proven": "src/renderer/src/util/tableLayoutStore.js sanitizeEntry kept only widths/manual/fullWidth, so muya's persist() payload lost the fit flag at the host boundary; on reload the wide table reverted to the auto Full-width default.",
+    "repair": "sanitizeEntry v1.1.0 keeps fit (Full width wins a contradictory entry — muya's own rule); no muya change was needed (its sanitizer always kept fit).",
+    "failingFirst": "The two new unit cases were verified red on the unmodified sanitizer before the fix, then green."
+  },
+  "verification": {
+    "unit": "npx vitest run tests/renderer/store/table-layout-store.test.js tests/renderer/store/editor-table-layouts.test.js — 24 tests green: sanitize keeps fit (and drops it under fullWidth), the save → load roundtrip restores the fit entry, and every pre-existing expectation carries the extended schema.",
+    "e2e": "npm run build && npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables — 16 passed including the new C-TABLE-FIT-PERSISTENCE case: the same-tick transition (class leaves and the label flips to «Full width» inside the click evaluation), the fit flag observed in the mt::prefs::set payload, and reopen (open-new-tab dedup → UPDATE_CURRENT_FILE → the C-65 load hook) keeping the wide table out of Full width. The stat mock is path-aware so pruning keeps the document while the `.before`-sidecar auto-diff does not hijack the editor.",
+    "governance": "V-M-012 scenario-72 recorded; M-012 graph summary line added; grace lint --assertions current zero errors."
+  },
+  "nativeBoundary": {
+    "remaining": "The owner's native observation ('invoking Fit to page does not visibly leave Full width') is not claimed fixed by the host repair — the browser transition passes, so per the owner's instruction the native check happens on the fresh isolated Mark Test.",
+    "conditionalInstrumentation": "If the native transition still fails there: record the three state points (toolbar action received → Muya layout emitted → host payload saved) and repair only the segment where the transition is actually lost.",
+    "reacceptanceScope": "Fit only: enable Full width, return to Fit to page, reopen the document. Accepted caption/footer/counter visuals are not rechecked."
+  },
+  "pending": "C-TABLE-FOOTER re-acceptance and queueing wait for the focused native recheck on the fresh artifact."
+}

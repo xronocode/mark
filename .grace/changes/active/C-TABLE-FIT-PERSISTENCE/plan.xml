@@ -1,0 +1,114 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><C-TABLE-FIT-PERSISTENCE>
+  <ChangeRef>C-TABLE-FIT-PERSISTENCE</ChangeRef><Created>2026-10-20</Created>
+  <IntentSummary>Repair the host fit-serialization gap the C-TABLE-FOOTER native review exposed: a failing unit first, then sanitizeEntry keeps muya's fit flag (Full width wins contradictions), the same-tick transition and the save→reopen persistence pinned in both engines, and the native same-frame confirmation handed to the fresh isolated artifact with the conditional three-point instrumentation rule.</IntentSummary>
+  <ExecutionPolicy>Execute sequentially after the FIX-008 and FIX-011 bundles. Durable scope M-012/V-M-012 overlaps C-TABLE-FOOTER (which stays active pending its focused re-acceptance) and C-FIX-008-VIEWER-PAN-CUES; this bundle touches only the host store util, its tests and the table-layout spec.</ExecutionPolicy>
+  <BaselineAssertions>
+    <!-- The defective pre-state (sanitizeEntry without fit) is pinned by git
+         history at HEAD before this bundle and quoted in the spec
+         ProblemEvidence; asserting it here would only turn consumed
+         baselines into standing lint errors while the bundle awaits the
+         native confirmation. -->
+    <MustExist>
+      <Value>src/renderer/src/util/tableLayoutStore.js</Value>
+      <Value>tests/renderer/store/table-layout-store.test.js</Value>
+      <Value>.grace/changes/active/C-TABLE-FOOTER/evidence.json</Value>
+    </MustExist>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/util/tableLayoutStore.js</File>
+      <Text>const fit = !fullWidth &amp;&amp; !!raw.fit</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/store/table-layout-store.test.js</File>
+      <Text>a fit entry survives the save → load roundtrip (C-TABLE-FIT-PERSISTENCE)</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/e2e/table-layout.spec.ts</File>
+      <Text>survives reopen (C-TABLE-FIT-PERSISTENCE)</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>scenario-72 (C-TABLE-FIT-PERSISTENCE)</Text>
+    </MustContain>
+    <MustExist>
+      <Value>.grace/changes/active/C-TABLE-FIT-PERSISTENCE/evidence.json</Value>
+    </MustExist>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-012/></GraphAnchors><VerificationAnchors><V-M-012/></VerificationAnchors><VerificationDocuments><VD-RUNTIME/></VerificationDocuments></DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/util/tableLayoutStore.js</File>
+    <File>tests/renderer/store/table-layout-store.test.js</File>
+    <File>tests/e2e/table-layout.spec.ts</File>
+    <Glob>.grace/verification/*.xml</Glob>
+    <Glob>.grace/graph/*.xml</Glob>
+    <Glob>.grace/changes/active/C-TABLE-FIT-PERSISTENCE/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner><Name>Correctness — the gap</Name><Expected>The failing unit reproduces the owner-visible defect class on main (fit dropped by sanitizeEntry), then the repair keeps fit through sanitize, normalizeStore, storeWithFileEntries and both IO flows; Full width wins a contradictory entry exactly as muya's sanitizer rules.</Expected></Corner>
+    <Corner><Name>Correctness — schema extension honesty</Name><Expected>The pre-existing exact-shape expectations gain the fit field rather than being loosened; entryFor carries fit; no old case is deleted.</Expected></Corner>
+    <Corner><Name>Correctness — transition</Name><Expected>One click on the «Fit to page» toggle leaves ag-table-full-width and flips the label in the same tick (asserted synchronously after click(), no re-render wait).</Expected></Corner>
+    <Corner><Name>Correctness — persistence</Name><Expected>The e2e proves the fit flag in the mt::prefs::set payload and, after reopen (open-new-tab dedup → UPDATE_CURRENT_FILE → the C-65 load hook), the wide table stays out of Full width with the label «Full width»; the stat mock is path-aware so the pruning keeps the document while the `.before` sidecar auto-diff does not fire.</Expected></Corner>
+    <Corner><Name>Correctness — native boundary</Name><Expected>The native same-frame transition is NOT claimed fixed by the host repair; the evidence names the fresh-artifact confirmation as the remaining step, with the three-point instrumentation rule (toolbar action received → Muya layout emitted → host payload saved) if browser passes and native fails.</Expected></Corner>
+    <Corner><Name>Security and Privacy</Name><Expected>Synthetic fixtures under /tmp/mark-e2e only; the prefs mock lives in the page; no secrets or owner data.</Expected></Corner>
+    <Corner><Name>UX</Name><Expected>Accepted C-TABLE-FOOTER visuals are untouched; the focused owner recheck covers only Full width → Fit to page → reopen.</Expected></Corner>
+    <Corner><Name>Performance and Footprint</Name><Expected>One extra boolean per stored entry; no IO or render-path change; suite budgets unchanged.</Expected></Corner>
+    <Corner><Name>Scope hygiene</Name><Expected>Only the host util, its tests, the table-layout spec and projections; muya is untouched (its sanitizer already kept fit).</Expected></Corner>
+    <Corner><Name>Delivery discipline</Name><Expected>Nothing is queued or accepted here; C-TABLE-FOOTER re-acceptance and admission wait for the focused native recheck on the fresh artifact.</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Failing unit, then the sanitizer repair</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The fit cases fail on the unmodified sanitizeEntry (verified before the fix), then sanitizeEntry keeps fit with the Full-width-wins rule; the pre-existing suite passes on the extended schema; the module contract bumps to v1.1.0.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/table-layout-store.test.js tests/renderer/store/editor-table-layouts.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Both-engine transition and persistence evidence</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The table-layout spec gains the C-TABLE-FIT-PERSISTENCE case: same-tick flip, fit flag in the prefs payload, reopen keeps Fit — green in chromium and webkit-tables with the rest of the spec.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Projections, evidence and the native handoff</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>V-M-012 scenario-72 recorded; M-012 graph summary line added; evidence.json names the native confirmation and the conditional instrumentation rule; grace lint --assertions current zero errors; the repair joins the fresh isolated Mark Test for the owner's Fit-only recheck.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+        <Command>grace status --path . --with modules --json</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-10-20" verdict="green-after-fixes" task="plan-four-corner-review">
+      <Findings>
+        Correctness and Contracts: the defect chain was re-derived from the C-TABLE-FOOTER evidence diagnosticBoundary (host sanitizer gap proven; native same-frame unproven) — the plan keeps those two claims separate rather than letting the host fix imply the native one. FINDING (fixed): the first draft asserted the pre-state markers as active baselines; replaced with existence pins plus the git-history pointer (the FIX-008/FIX-011 lesson). Security and Privacy: clean. UX and Docs: the Fit-only recheck boundary is explicit. Performance and Footprint: one boolean per entry. CornerMatrix (10 corners) added before approval.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-10-20" verdict="clean" task="plan-four-corner-review-recheck">
+      <Findings>
+        None. The targets pin the exact sanitizer line, both test surfaces and the V-M-012 scenario; every criterion maps to a task and a command; the muya non-goal and the native boundary are unambiguous.
+      </Findings>
+    </Review>
+    <Review number="3" date="2026-10-20" verdict="green-after-fixes" task="plan-executor-feasibility-pass">
+      <Findings>
+        Executor walk surfaced two harness facts now baked into the corners: the table-layout spec boots untitled documents (a named file must be opened over the empty boot tab for the persistence path) and the shim's default mt_fs_stat reports "not a file", which would prune the persisted entry — the path-aware stat mock also prevents the `.before`-sidecar auto-diff from hijacking the editor.
+      </Findings>
+    </Review>
+    <Review number="4" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review">
+      <Findings>
+        Four independent passes over the executed change. Correctness and Contracts: the failing-first sequence was honored (2 tests red on main, green after); the schema extension updated every exact-shape expectation; the e2e proves both halves in both engines (16 passed). FINDING (fixed): a first-draft reopen via CLOSE_TAB landed on the welcome screen (opening a file had replaced the empty boot tab) — the reopen now rides the open-new-tab dedup path (UPDATE_CURRENT_FILE → the C-65 load hook), which is also the closer analogue of the owner's scenario. Security and Privacy: clean. UX and Docs: contracts bumped (v1.1.0 / spec v1.7.0); scenario-72 and the M-012 summary line recorded. Performance and Footprint: clean. The native same-frame confirmation on the fresh artifact remains the named next step.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-TABLE-FIT-PERSISTENCE></GraceChangePlan>
