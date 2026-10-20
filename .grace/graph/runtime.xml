@@ -3650,6 +3650,11 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
+        C-TABLE-FIT-PERSISTENCE (2026-10-20): the host tableLayoutStore
+        sanitizer keeps muya's fit flag, so an explicit «Fit to page»
+        choice survives save → load and a reopened wide table stays out of
+        Full width (V-M-012 scenario-72); the native same-frame transition
+        awaits the fresh-artifact confirmation.
         C-TABLE-FOOTER: the table scroll wrapper contains its table and
         a fixed 20px noneditable counter line, followed by a 2px gap and
         one reserved 6px native scrollbar zone. Measured consumed native

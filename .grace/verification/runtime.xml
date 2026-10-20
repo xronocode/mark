@@ -6845,6 +6845,24 @@
           tests/e2e/affordance-audit.spec.ts (chromium); static
           advertised-chord agreement lives in V-M-009 scenario-17.
         </Scenario>
+        <Scenario>
+          scenario-72 (C-TABLE-FIT-PERSISTENCE): an explicit «Fit to page»
+          choice survives the host profile path. sanitizeEntry keeps
+          muya's fit flag (Full width still wins a contradictory entry),
+          so the toggle's persist() payload round-trips save → load and a
+          reopened wide table stays out of Full width with the toggle
+          still labelled «Full width». The transition itself is immediate:
+          one click leaves ag-table-full-width and flips the label in the
+          same tick. Pinned by the fit cases in
+          tests/renderer/store/table-layout-store.test.js (sanitize + the
+          save→load roundtrip, failing before the repair) and the
+          C-TABLE-FIT-PERSISTENCE case in tests/e2e/table-layout.spec.ts
+          (chromium + webkit-tables: same-tick flip, the fit flag saved
+          through mt::prefs::set, and reopen via open-new-tab dedup
+          re-adopting the stored fit). The native same-frame transition
+          remains to be confirmed on the fresh isolated artifact before
+          C-TABLE-FOOTER re-acceptance.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
