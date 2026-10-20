@@ -1,5 +1,5 @@
 <!-- FILE: site/landing/index.html -->
-<!-- VERSION: 2.4.0 -->
+<!-- VERSION: 2.5.0 -->
 <!-- START_MODULE_CONTRACT -->
 <!--   PURPOSE: The Mark site landing (served at the site root by renderLanding) -->
 <!--            - the mobile-first paragraph-numbered paper/ink/marker page -->
@@ -59,7 +59,8 @@
 <!--   footer - docs nav, Mark Text credit, © line (cv) -->
 <!-- END_MODULE_MAP -->
 <!-- START_CHANGE_SUMMARY -->
-<!--   LAST_CHANGE: [v2.4.0 - 2026-10-19 C-64 version sync: every hardcoded -->
+<!--   LAST_CHANGE: [v2.5.0 - 2026-10-21 C-64: one hero download button per system (html.os-mac/win/linux before paint; brand Windows tiles; Linux = build from source, no packaged build), other ways as text links under it; ¶05 becomes a tappable all-downloads list; Android gets "Send Mark to your computer"; links refreshed by data-asset.] -->
+<!--   PREV: [v2.4.0 - 2026-10-19 C-64 version sync: every hardcoded -->
 <!--                 release fact becomes a build token filled from the latest -->
 <!--                 GitHub release — <span id="version">v%VERSION%</span>, the -->
 <!--                 hero and Homebrew "≈ %DMG_MB% MB" / Windows "≈ %EXE_MB% -->
@@ -142,6 +143,10 @@
   var ios = /iPhone|iPad/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (ios) document.documentElement.classList.add('ios');
+  var ua = navigator.userAgent, p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+  var os = /Win/i.test(p) || /Windows/.test(ua) ? 'win' : (/Linux/i.test(p) || /Linux|X11|CrOS/.test(ua)) && !/Android/.test(ua) ? 'linux' : 'mac';
+  document.documentElement.classList.add('os-' + os);
+  if (/Android/.test(ua)) document.documentElement.classList.add('android');
 })();
 </script>
 <!-- END_BLOCK_IOS_DETECT -->
@@ -219,26 +224,6 @@ h2 {
 .btn.sec { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); padding-block: 15px; }
 @media (hover: hover) and (pointer: fine) { .btn.sec:hover { background: var(--chip); } }
 .send-mac svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.brew {
-  display: inline-flex; align-items: center; gap: 10px;
-  border: 1px solid var(--rule); border-radius: 12px;
-  padding: 13px 10px 13px 16px;
-  font: 500 14px var(--mono); white-space: nowrap;
-  background: transparent; color: var(--ink);
-  cursor: pointer; max-width: 100%; overflow: hidden;
-}
-.brew i { font-style: normal; color: var(--mute); }
-.brew b {
-  font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
-  padding: 7px 9px; border-radius: 7px; background: var(--chip); flex: none;
-}
-.brew.is-copied { border-color: var(--ink); }
-.brew.is-copied b { background: var(--marker); color: var(--on-marker); }
-@media (hover: hover) and (pointer: fine) { .brew:hover { border-color: var(--mute); } }
-.brew.block { display: flex; width: 100%; min-height: 64px; align-items: center; text-align: left; }
-.brew.block .cmd { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
-.brew.block .cmd::-webkit-scrollbar { display: none; }
-.brew.block b { margin-left: 10px; }
 .fine { font: 500 12.5px/1.5 var(--mono); color: var(--mute); letter-spacing: .02em; }
 .fine a, .lead a { color: var(--ink); }
 
@@ -295,6 +280,8 @@ h2 {
 .only-ios { display: none !important; }
 .ios .only-ios { display: inline-flex !important; }
 .ios .no-ios { display: none !important; }
+.android .only-ios { display: inline-flex !important; }
+.android .no-ios { display: none !important; }
 
 /* ---------- the iOS "Mark for Mac" bar ---------- */
 .macbar {
@@ -330,12 +317,35 @@ h2 {
 .lede { margin: 0; color: var(--mute); font-size: 16.5px; line-height: 1.5; max-width: 40em; }
 .side { display: grid; gap: 18px; justify-items: start; }
 .acts .btn { flex: 1 1 auto; }
-.acts .brew { display: none; }
-.get { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 10px 12px; width: 100%; }
 .side .acts { width: 100%; }
-.get-o { display: grid; gap: 6px; min-width: 0; align-content: start; }
-.get-o .btn { width: 100%; padding-inline: 14px; }
-.get-o .fine { font-size: 11.5px; }
+/* the download button: one per system, picked before paint by html.os-* */
+.dl { display: grid; gap: 12px; width: 100%; justify-items: start; }
+.dlbtn {
+  display: none; align-items: center; gap: 14px; text-decoration: none;
+  background: var(--ink); color: var(--paper); border-radius: 16px;
+  padding: 13px 26px 13px 20px; min-height: 64px; max-width: 100%;
+  box-shadow: 0 10px 26px -14px rgba(23, 25, 30, .55);
+}
+.dlbtn:active { transform: scale(.985); }
+@media (hover: hover) and (pointer: fine) { .dlbtn:hover { opacity: .9; } }
+.dl-mac { display: inline-flex; }
+.os-win .dl-mac, .os-linux .dl-mac { display: none; }
+.os-win .dl-win, .os-linux .dl-linux { display: inline-flex; }
+.dlbtn .dt { display: grid; gap: 3px; min-width: 0; }
+.dlbtn b { font: 700 17px/1.15 var(--body); letter-spacing: -.005em; }
+.dlbtn small { font: 500 12.5px/1.3 var(--mono); opacity: .66; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.os-ic { width: 26px; height: 26px; flex: none; display: block; }
+.os-ic.apple { width: 22px; height: 26px; fill: currentColor; }
+.os-ic.term { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.dlbtn .os-ic.term rect { stroke: var(--marker); }
+.alt { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font: 500 13.5px/1.4 var(--body); color: var(--mute); }
+.alt a, .alt .linklike { color: var(--ink); text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.linklike { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+.linklike .ok { display: none; } .linklike.is-copied .ok { display: inline; color: var(--mute); }
+.linklike.is-copied .ok::before { content: "— "; }
+.x-mac { display: none; }
+.os-win .x-mac, .os-linux .x-mac { display: inline; }
+.os-win .x-win, .os-linux .x-store, .os-linux .x-brew, .os-win .x-brew { display: none; }
 .btn .dl { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 /* the before/after stage (design d3). --x rests at var(--rest), set per
@@ -659,18 +669,34 @@ h2 {
 .method { margin-top: 14px; font-size: 13px; line-height: 1.6; color: var(--mute); max-width: 78ch; }
 
 /* ¶ 05 install */
-.cards { display: grid; gap: 12px; margin-top: 22px; }
-.card-i {
-  border: 1px solid var(--rule); border-radius: 14px; background: var(--card);
-  padding: 14px; display: grid; gap: 10px; align-content: start;
-}
-.card-i h3 { font: 700 17px/1.2 var(--display); letter-spacing: -.01em; }
-.card-i { min-width: 0; }
-.card-i .btn { width: 100%; flex: none; }
 .stats .opt { display: none; }
-.card-i p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.55; }
-.card-i p a { color: var(--ink); }
-.card-i code { font: 500 .9em var(--mono); color: var(--ink); background: var(--chip); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+/* all downloads: one tappable row per way in, full width on phones */
+.dlist { display: grid; margin-top: 22px; border: 1px solid var(--rule); border-radius: 14px; background: var(--card); overflow: hidden; }
+.dlist .row {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 4px 14px;
+  min-height: 64px; padding: 12px 16px; text-decoration: none; color: var(--ink);
+  background: none; border: 0; border-top: 1px solid var(--rule); font: inherit; text-align: left; cursor: pointer; width: 100%;
+}
+.dlist .row:first-child { border-top: 0; }
+@media (hover: hover) and (pointer: fine) { .dlist .row:hover { background: var(--chip); } }
+.dlist .os-ic { color: var(--ink); }
+.dlist .nm { display: grid; gap: 2px; min-width: 0; }
+.dlist .nm b { font: 700 15.5px/1.2 var(--body); }
+.dlist .nm small { font-size: 13px; line-height: 1.35; color: var(--mute); overflow-wrap: anywhere; }
+.dlist .nm code, .dlist .fn { font: 500 12px var(--mono); }
+.dlist .meta { font: 500 12.5px/1.2 var(--mono); color: var(--mute); white-space: nowrap; }
+.dlist .row.copyrow .meta b { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 7px 9px; border-radius: 7px; background: var(--chip); color: var(--ink); }
+.dlist .row.copyrow.is-copied .meta b { background: var(--marker); color: var(--on-marker); }
+#install .send-mac { margin-top: 20px; }
+.dnotes { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.55; color: var(--mute); max-width: 90ch; }
+.dnotes b { color: var(--ink); font-weight: 600; }
+.dnotes a { color: var(--ink); }
+.dnotes code { font: 500 .92em var(--mono); color: var(--ink); background: var(--chip); padding: 1px 5px; border-radius: 5px; }
+@media (max-width: 520px) {
+  .dlist .row { grid-template-columns: 24px minmax(0, 1fr); padding: 12px 14px; }
+  .dlist .meta { grid-column: 2; }
+  .dlbtn { width: 100%; }
+}
 .editions { margin-top: 14px; font-size: 14px; line-height: 1.6; color: var(--mute); max-width: 90ch; }
 .editions a { color: var(--ink); }
 
@@ -702,7 +728,6 @@ h2 {
   .side { max-width: 440px; padding-bottom: 6px; }
   .lede { font-size: 19px; }
   .acts .btn { flex: 0 0 auto; }
-  .acts .brew { display: inline-flex; }
   .stage { --rest: 46%; height: 520px; margin-top: 24px; margin-inline: 0; border-radius: 14px; }
   .layer.raw .body { padding: 22px 34px; font-size: 14px; line-height: 1.75; }
   .layer.page .doc { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; padding: 26px 0 0 34px; width: calc(100% - 68px); }
@@ -737,9 +762,7 @@ h2 {
   .bars { gap: 16px; }
   .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 26px; }
   .method { margin-top: 26px; }
-  .cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 30px; }
-  .card-i { padding: 20px; gap: 13px; }
-  .card-i h3 { font-size: 19px; }
+  .dlist { margin-top: 30px; }
   .editions { margin-top: 22px; }
   .foot-in { grid-template-columns: auto 1fr; justify-items: end; align-items: start; }
   .foot-nav { justify-content: flex-end; }
@@ -828,23 +851,28 @@ h2 {
           <button class="btn pri only-ios send-mac" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span class="lb">Send Mark to your Mac</span>
           </button>
-          <div class="get no-ios">
-            <div class="get-o">
-              <a class="btn pri" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="hero">
-                <svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store
-              </a>
-              <span class="fine">v2.1.17 &middot; sandboxed</span>
-            </div>
-            <div class="get-o">
-              <a class="btn sec" id="dmg-hero" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="hero">
-                <svg class="dl" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4-4-4M4 16h12"/></svg>Download .dmg
-              </a>
-              <span class="fine"><span id="version">v%VERSION%</span><span class="more"> &middot; latest</span> &middot; &asymp; %DMG_MB% MB</span>
-            </div>
+          <div class="dl no-ios">
+            <!-- One button for the visitor's system (html.os-mac / os-win / os-linux, set before paint;
+                 macOS is the no-JS default). The other ways in sit as text links under it. -->
+            <a class="dlbtn dl-mac" id="dmg-hero" data-asset="dmg" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="hero">
+              <svg class="os-ic apple" viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg><span class="dt"><b>Download Mark</b><small>for macOS &middot; Apple silicon &middot; <span id="version">v%VERSION%</span></small></span>
+            </a>
+            <a class="dlbtn dl-win" id="win-hero" data-asset="exe" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="hero">
+              <svg class="os-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.5" height="9.5" fill="#F25022"/><rect x="12.5" y="2" width="9.5" height="9.5" fill="#7FBA00"/><rect x="2" y="12.5" width="9.5" height="9.5" fill="#00A4EF"/><rect x="12.5" y="12.5" width="9.5" height="9.5" fill="#FFB900"/></svg><span class="dt"><b>Download Mark</b><small>for Windows &middot; x64 &middot; <span class="ver">v%VERSION%</span></small></span>
+            </a>
+            <a class="dlbtn dl-linux" href="https://github.com/xronocode/mark#build-from-source" data-track="outbound_click" data-target="github" data-placement="hero">
+              <svg class="os-ic term" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="3"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/></svg><span class="dt"><b>Build Mark from source</b><small>Linux &middot; no packaged build yet</small></span>
+            </a>
+            <p class="alt">
+              <a class="x-store" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="hero">Mac App Store</a>
+              <button class="x-brew linklike" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero" aria-label="Copy brew install --cask xronocode/mark/mark">Homebrew <span class="ok">copied</span></button>
+              <a class="x-mac" data-asset="dmg" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="hero">macOS</a>
+              <a class="x-win" data-asset="exe" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="hero">Windows</a>
+              <a class="x-all" href="#all-downloads">All downloads</a>
+            </p>
           </div>
-          <button class="brew" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero" aria-label="Copy brew install --cask xronocode/mark/mark"><i>$</i>brew install --cask xronocode/mark/mark<b>Copy</b></button>
         </div>
-        <p class="fine">Same editor, two editions &middot; <a href="%BASE%guide/editions">What&rsquo;s the difference?</a> &middot; Windows too &middot; free, MIT</p>
+        <p class="fine">Free, MIT &middot; same editor, two editions &middot; <a href="%BASE%guide/editions">What&rsquo;s the difference?</a></p>
       </div>
     </div>
 
@@ -1084,28 +1112,31 @@ instruction.</pre>
     <p class="no">&para; 05</p>
     <h2 id="in-h">Get Mark</h2>
     <p class="lead">Free and open source, MIT licence. No account, no analytics, no telemetry in the app.</p>
-    <div class="cards">
-      <article class="card-i">
-        <h3>Mac App Store</h3>
-        <a class="btn pri no-ios" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="install">
-          <svg viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Mac App Store
-        </a>
-        <button class="btn pri only-ios send-mac" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span class="lb">Send Mark to your Mac</span>
-        </button>
-        <p>Requires macOS 12 or later. The App Store edition is 2.1.17 today<span class="more">; its next update brings 2.5.0</span>. <a href="%BASE%guide/editions#when-the-app-store-catches-up">When does it catch up?</a></p>
-      </article>
-      <article class="card-i">
-        <h3>Homebrew</h3>
-        <button class="brew block" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="install" aria-label="Copy brew install --cask xronocode/mark/mark"><span class="cmd"><i>$</i>brew install --cask xronocode/mark/mark</span><b>Copy</b></button>
-        <p>Apple silicon. Developer ID signed and notarized by Apple<span class="more">; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code></span>. Or download <a id="dmg-link" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="install">%DMG_NAME%</a> (&asymp; %DMG_MB% MB).</p>
-      </article>
-      <article class="card-i">
-        <h3>Windows</h3>
-        <a class="btn sec" id="win-link" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="install">Download for Windows</a>
-        <p><code>%EXE_NAME%</code>, &asymp; %EXE_MB% MB, x64. The installer is not code-signed yet: SmartScreen shows &ldquo;Windows protected your PC&rdquo;<span class="more"> &mdash; choose <em>More info</em>, then <em>Run anyway</em></span>.</p>
-      </article>
+    <button class="btn pri only-ios send-mac" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span class="lb">Send Mark to your Mac</span>
+    </button>
+    <div class="dlist" id="all-downloads">
+      <a class="row" id="dmg-link" data-asset="dmg" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="install">
+        <svg class="os-ic apple" viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg><span class="nm"><b>macOS</b><small>Apple silicon &middot; <span class="fn">%DMG_NAME%</span></small></span><span class="meta"><span class="ver">v%VERSION%</span> &middot; &asymp; %DMG_MB% MB</span>
+      </a>
+      <a class="row no-ios" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="install">
+        <svg class="os-ic apple" viewBox="0 0 16 19" aria-hidden="true"><path d="M13.2 10.1c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-3.8zM10.8 3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg><span class="nm"><b>Mac App Store</b><small>macOS 12 or later &middot; sandboxed</small></span><span class="meta">v2.1.17</span>
+      </a>
+      <button class="row copyrow" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="install" aria-label="Copy brew install --cask xronocode/mark/mark">
+        <svg class="os-ic term" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="3"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/></svg><span class="nm"><b>Homebrew</b><small><code>brew install --cask xronocode/mark/mark</code></small></span><span class="meta"><b>Copy</b></span>
+      </button>
+      <a class="row" id="win-link" data-asset="exe" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="install">
+        <svg class="os-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.5" height="9.5" fill="#F25022"/><rect x="12.5" y="2" width="9.5" height="9.5" fill="#7FBA00"/><rect x="2" y="12.5" width="9.5" height="9.5" fill="#00A4EF"/><rect x="12.5" y="12.5" width="9.5" height="9.5" fill="#FFB900"/></svg><span class="nm"><b>Windows</b><small>x64 &middot; <span class="fn">%EXE_NAME%</span></small></span><span class="meta"><span class="ver">v%VERSION%</span> &middot; &asymp; %EXE_MB% MB</span>
+      </a>
+      <a class="row" href="https://github.com/xronocode/mark#build-from-source" data-track="outbound_click" data-target="github" data-placement="install">
+        <svg class="os-ic term" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="3"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/></svg><span class="nm"><b>Linux</b><small>No packaged build yet &middot; build from source</small></span><span class="meta">GitHub</span>
+      </a>
     </div>
+    <ul class="dnotes">
+      <li><b>macOS:</b> Developer ID signed and notarized by Apple; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code>.</li>
+      <li><b>App Store:</b> the App Store edition is 2.1.17 today; its next update brings 2.5.0. <a href="%BASE%guide/editions#when-the-app-store-catches-up">When does it catch up?</a></li>
+      <li><b>Windows:</b> the installer is not code-signed yet, so SmartScreen shows &ldquo;Windows protected your PC&rdquo; &mdash; choose <em>More info</em>, then <em>Run anyway</em>.</li>
+    </ul>
     <p class="editions"><span class="more">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. </span><a href="%BASE%guide/editions">See the full table</a>.</p>
   </div>
 </section>
@@ -1192,18 +1223,13 @@ instruction.</pre>
       if (!rel || !rel.tag_name) return;
       var v = document.getElementById('version');
       if (v) v.textContent = rel.tag_name;
-      var asset = (rel.assets || []).filter(function (a) { return /Mark_.*_aarch64\.dmg$/.test(a.name || ''); })[0];
-      if (asset && asset.browser_download_url) {
-        ['dmg-link', 'dmg-hero'].forEach(function (id) {
-          var d = document.getElementById(id);
-          if (d) d.href = asset.browser_download_url;
-        });
-      }
-      var winAsset = (rel.assets || []).filter(function (a) { return /Mark_.*_x64-setup\.exe$/.test(a.name || ''); })[0];
-      if (winAsset && winAsset.browser_download_url) {
-        var w = document.getElementById('win-link');
-        if (w) w.href = winAsset.browser_download_url;
-      }
+      document.querySelectorAll('.ver').forEach(function (e) { e.textContent = rel.tag_name; });
+      var pick = function (re) { return (rel.assets || []).filter(function (a) { return re.test(a.name || ''); })[0]; };
+      var urls = { dmg: pick(/Mark_.*_aarch64\.dmg$/), exe: pick(/Mark_.*_x64-setup\.exe$/) };
+      document.querySelectorAll('[data-asset]').forEach(function (a) {
+        var hit = urls[a.getAttribute('data-asset')];
+        if (hit && hit.browser_download_url) a.href = hit.browser_download_url;
+      });
     })
     .catch(function () {});
   /* END_BLOCK_VERSION */
@@ -1466,6 +1492,7 @@ instruction.</pre>
       }, function () {});
     }
   }
+  if (document.documentElement.classList.contains('android')) $$('.send-mac .lb').forEach(function (l) { l.textContent = 'Send Mark to your computer'; });
   $$('.send-mac').forEach(function (b) {
     b.addEventListener('click', function () { sendToMac(b); });
   });
