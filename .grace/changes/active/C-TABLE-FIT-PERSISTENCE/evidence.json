@@ -35,5 +35,5 @@
     "browser": "The strengthened real-pointer scenario saves Full width, reopens/adopts it, then selects Fit; Chromium and WebKit pass 2/2.",
     "acceptedArtifact": "Mark Test TABLE-STATE 35fc0895; patch 35fc08958f2532646a86a18d47d27d0f6a27f1c161d3bf802902370e4bf7769e; owner accepted 2026-10-20."
   },
-  "pending": "No Fit-only acceptance gap remains. Candidate CI/freeze and release authorization remain separate delivery gates."
+  "pending": "No Fit-only acceptance or local-integration gap remains; the state repair is in local main at 674f91b6. Push/remote candidate CI, freeze and release authorization remain separate delivery gates."
 }
