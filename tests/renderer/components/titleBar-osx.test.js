@@ -115,7 +115,7 @@ describe('titleBar/index.vue — macOS variant (C-38 N1)', () => {
       props: {
         project: null,
         filename: 'notes.md',
-        pathname: '/Users/user/Documents/notes.md',
+        pathname: '/Users/<fixture>/Documents/notes.md',
         active: true,
         wordCount: { word: 1, character: 1, paragraph: 1, all: 1 },
         platform: 'darwin',

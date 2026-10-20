@@ -107,12 +107,12 @@ let TitleBar = null
 
 const mountBar = (propsOverride = {}) => {
   // setup.ts installs window.fileUtils/window.electron fresh per test;
-  // homeDir is mocked to /tmp/home so /tmp/home/... abbreviates to ~/...
+  // homeDir is mocked to /tmp/home; the synthetic child stays portable.
   return shallowMount(TitleBar, {
     props: {
       project: null,
       filename: 'notes.md',
-      pathname: '/tmp/home/Notes/notes.md',
+      pathname: '/tmp/home/<fixture>/Notes/notes.md',
       active: true,
       wordCount: { word: 58, character: 312, paragraph: 5, all: 400 },
       markdown: MARKDOWN_21_LINES,
@@ -218,8 +218,8 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       const wrapper = mountBar()
       await openPopover(wrapper)
       expect(wrapper.find('.doc-info-name').text()).toBe('notes.md')
-      // homeDir is mocked to /tmp/home → /tmp/home/Notes abbreviates to ~/Notes
-      expect(wrapper.find('.doc-info-meta').text()).toBe('~/Notes · 2.1 KB · edited 4 min ago')
+      // The synthetic child of mocked /tmp/home abbreviates beneath ~.
+      expect(wrapper.find('.doc-info-meta').text()).toBe('~/<fixture>/Notes · 2.1 KB · edited 4 min ago')
       vi.useRealTimers()
     })
 
@@ -289,7 +289,7 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       const reveal = wrapper.findAll('.doc-info-action').find((a) => a.text() === 'Show in folder')
       expect(reveal).toBeTruthy()
       await reveal.trigger('click')
-      expect(window.electron.shell.showItemInFolder).toHaveBeenCalledWith('/tmp/home/Notes/notes.md')
+      expect(window.electron.shell.showItemInFolder).toHaveBeenCalledWith('/tmp/home/<fixture>/Notes/notes.md')
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
     })
 
@@ -300,7 +300,7 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       expect(copy).toBeTruthy()
       await copy.trigger('click')
       await flushPromises()
-      expect(writeClipboardTextMock).toHaveBeenCalledWith('/tmp/home/Notes/notes.md')
+      expect(writeClipboardTextMock).toHaveBeenCalledWith('/tmp/home/<fixture>/Notes/notes.md')
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
     })
   })
@@ -373,10 +373,10 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       await openPopover(wrapper)
       expect(window.fileUtils.stat).toHaveBeenCalledTimes(1)
 
-      await wrapper.setProps({ pathname: '/tmp/home/Docs/other.md', filename: 'other.md' })
+      await wrapper.setProps({ pathname: '/tmp/home/<fixture>/Docs/other.md', filename: 'other.md' })
       await flushPromises()
       expect(window.fileUtils.stat).toHaveBeenCalledTimes(2)
-      expect(wrapper.find('.doc-info-meta').text()).toContain('~/Docs')
+      expect(wrapper.find('.doc-info-meta').text()).toContain('~/<fixture>/Docs')
     })
   })
   // END_BLOCK_POPOVER_CLOSE
