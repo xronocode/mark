@@ -2,62 +2,7 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
-## [2.6.0](https://github.com/xronocode/mark/compare/v2.5.3...v2.6.0) (2026-10-20)
-
-
-### Features
-
-* **safety:** manual override lane for model-review false positives ([2dc2f7b](https://github.com/xronocode/mark/commit/2dc2f7b84a5ec6cf6d7288692e14bf0e93bd9995))
-* **safety:** require local review before commits and pushes ([60f5d9e](https://github.com/xronocode/mark/commit/60f5d9ef921098bbe0b733b10f6e6a7a1e780b83))
-* **site:** C-64 one hero download button per system (brand Windows tiles, macOS default, Linux build-from-source), other ways as text links; ¶05 becomes a tappable all-downloads list; Android gets Send Mark to your computer ([1f21e9c](https://github.com/xronocode/mark/commit/1f21e9c36aa7f8bf50099e927f88389e5f985205))
-* **site:** C-64 T-009 deep GA4 layer — os on install intent, hero_alt, nav_click, section_view, stage_drag, prompt_open, appearance_toggle, scroll_depth, code_copy, doc_nav (window capture, VitePress router), diagram_code_view, not_found, per-route re-arm of doc_read/scroll_depth; all through the consent queue; P3 tests in track-p3.test.mjs ([fe9b23b](https://github.com/xronocode/mark/commit/fe9b23b052883b58aca915dee7081d372447d41e))
-
-
-### Bug Fixes
-
-* **C-68:** integrate opened baselines with async tab and view isolation ([2f30dc2](https://github.com/xronocode/mark/commit/2f30dc2dda7064583e2f140c47aad9cf0d8adcec))
-* **C-71:** integrate table geometry, viewer controls and c65cov regressions ([655d956](https://github.com/xronocode/mark/commit/655d956d295f63d0d0d09d6bc5b9d3b938f4d14c))
-* **C-71:** refresh table viewport on late owning outline and scroller changes ([0e8ffcd](https://github.com/xronocode/mark/commit/0e8ffcd9299a7dd2b5ec25e3e677222cd2358960))
-* **editor:** FIX-011 — three-action untitled close dialog (Save & Close default) ([4e676c0](https://github.com/xronocode/mark/commit/4e676c00674bd11e6656f782cf35737aa6fae4b1))
-* **editor:** keep active tab and rendered document in sync ([943d57d](https://github.com/xronocode/mark/commit/943d57d69f7d3b9bf4f896b814649138470e01ac))
-* **editor:** land the 2026-10-20 defect-catalog repairs (FIX-003..FIX-008) ([a2d7787](https://github.com/xronocode/mark/commit/a2d778729f416e407377cc879b9bd7644fb9a6b5))
-* **editor:** preserve Shift-arrow selection across passive panels ([bcaebe0](https://github.com/xronocode/mark/commit/bcaebe05b071aaa8466132b5dd7c457b1fdba0c9))
-* integrate accepted native vertical selection repair and train protocol ([995b01c](https://github.com/xronocode/mark/commit/995b01ce65906108dcd8fefa95ccae7dd799cba5))
-* **outline:** hide contents whenever a visible table intersects it ([f17b070](https://github.com/xronocode/mark/commit/f17b070e2eac144808a6f6aba6d2609ffd3e16bb))
-* **release:** normalize material line endings ([70ee8da](https://github.com/xronocode/mark/commit/70ee8dad568b4f7f6d41d4165b3b042d7a76b860))
-* **release:** preserve Windows train ledger bytes ([8485fe7](https://github.com/xronocode/mark/commit/8485fe76418a165611e4428aafe1ad04b0245eee))
-* **release:** synchronize prepared train ledger ([f604e51](https://github.com/xronocode/mark/commit/f604e519880564a30161abc8d0c3013ce9ee1134))
-* **safety:** enforce approved private operations and fixture boundaries ([1c25aba](https://github.com/xronocode/mark/commit/1c25aba282e56757c5b7414882b5e5d5b560cf7f))
-* **safety:** prove exclusive GPU ownership before loading the reviewer ([6150d17](https://github.com/xronocode/mark/commit/6150d17418ded3a3e7a1f91d65928c10546be934))
-* **site:** C-64 T-009 doc_nav reports the page clicked from (snapshot on pointerdown; the VitePress router moves the URL first) ([79e484c](https://github.com/xronocode/mark/commit/79e484c5a444543b4379d9358b5a4a1f27506de2))
-* **site:** stabilize analytics and base links ([a0d7581](https://github.com/xronocode/mark/commit/a0d7581a2c49d08f1d39bcf04b494c8f60200d7b))
-* **tables:** C-TABLE-FIT-PERSISTENCE — keep the fit flag in the host sanitizer ([a0a524f](https://github.com/xronocode/mark/commit/a0a524fdc5812c8361600e671e741527b7e3ebe5))
-* **tables:** center long-cell tables in the full editor viewport ([073f949](https://github.com/xronocode/mark/commit/073f9494c5bac43a0e0cdf06c4e584432675dd70))
-* **tables:** hide unnecessary width actions and clear the edge shade ([9d413fe](https://github.com/xronocode/mark/commit/9d413febf20a3c4e821c7dadcff412015d86cf11))
-* **tables:** keep a compact stable caption and scrollbar footer ([16b59d1](https://github.com/xronocode/mark/commit/16b59d1b8f718f1390d15663e782adfd263a50f7))
-* **tables:** keep the column counter transparent over edge shades ([abf29f1](https://github.com/xronocode/mark/commit/abf29f139ba9f31d1aee62826a177957f301b538))
-* **tables:** preserve Fit after adopted Full width ([674f91b](https://github.com/xronocode/mark/commit/674f91b6535fb35a47e4a1c960fa3f9a57d4e7ac))
-* **test:** await diagram imports before fence suite teardown ([549542a](https://github.com/xronocode/mark/commit/549542adb476132bdb4551c02293220cf9c8764f))
-* **test:** preserve portable privacy fixture paths and bytes on Windows ([449d463](https://github.com/xronocode/mark/commit/449d4636a3fc2645ee236a6572e9e490206d3edb))
-* **toolbars:** retain visited labels until leaving the panel ([46b255c](https://github.com/xronocode/mark/commit/46b255c240c08dbfa1a8e26d526ef2fcb6a58754))
-* **trace:** attribute FIX-002 with a real-app open-file trace; add dispatch_ms ([e08441c](https://github.com/xronocode/mark/commit/e08441c952f0bb9e8bd69cd7a4737ab8d494c08b))
-* **viewer:** FIX-008 reopen — pan-only table navigation with edge clip shadows ([debfe5e](https://github.com/xronocode/mark/commit/debfe5eef8d72a1e6ddf110d5c78eeec2ee0c121))
-
-
-### Performance
-
-* **safety:** review complete locale field changes with strict raw fallback ([3691fa4](https://github.com/xronocode/mark/commit/3691fa48ce550fcacfd61c2443ef0bc25a39f476))
-
-## [Unreleased]
-
-### Known gaps
-Carried over from the old status table in the README:
-- Saving does not yet preserve a non-UTF-8 source encoding, and there is no manual encoding picker.
-- Multiple windows: `--new-window` is accepted but has no effect yet.
-- Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
-- Image upload services (PicGo and similar) are not supported.
-
-<!-- release-draft:start -->
+## [2.6.0] - 2026-10-20
 
 Tables can leave Mark as pictures, wide-table controls stay stable, and a focused stabilization pass repairs editing, tab ownership and close dialogs.
 
@@ -80,7 +25,16 @@ Tables can leave Mark as pictures, wide-table controls stay stable, and a focuse
 - The unsaved-changes dialog follows the active light or dark theme.
 - Closing a dirty untitled tab now offers three distinct actions: Save & Close opens Save As, Discard is explicit and non-default, and Cancel keeps the tab and its content.
 
-<!-- release-draft:end -->
+## [Unreleased]
+
+### Known gaps
+Carried over from the old status table in the README:
+- Saving does not yet preserve a non-UTF-8 source encoding, and there is no manual encoding picker.
+- Multiple windows: `--new-window` is accepted but has no effect yet.
+- Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
+- Image upload services (PicGo and similar) are not supported.
+
+
 
 <!-- #region releases -->
 
