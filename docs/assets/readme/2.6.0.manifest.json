@@ -1,17 +1,17 @@
 {
   "schemaVersion": "1.0.0",
   "releaseVersion": "2.6.0",
-  "payloadSha": null,
+  "payloadSha": "4380d240b1e1d4ae706ee34733b605203932a0eb",
   "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
-  "captureState": "retained-reviewed-images",
-  "freezeRequirement": "Run the capture command from the final payload and replace this state with fresh-reviewed before Frozen.",
+  "captureState": "fresh-reviewed",
+  "freezeRequirement": "Satisfied from the final payload before the Ready seal.",
   "review": {
     "reviewer": "xronocode",
-    "reviewedAt": "2026-10-19",
+    "reviewedAt": "2026-10-21",
     "scenarios": [
-      "The retained README cover and gallery images were reviewed as release materials before this train.",
-      "This digest set proves the retained bytes only; it does not claim a fresh 2.6.0 payload capture.",
-      "A fresh payload capture and visual re-review remain mandatory before the train can become Frozen."
+      "The five payload-generated README scenes were captured from 4380d240 and reviewed together in one contact sheet.",
+      "The light and dark editor, welcome screen, diagrams, and fullscreen viewer are visually coherent and free of visible clipping or stale release content.",
+      "The retained cover, split-view, and copy images were rechecked as part of the complete README image set; these digests bind the reviewed bytes."
     ]
   },
   "images": [
@@ -25,11 +25,11 @@
     },
     {
       "path": "docs/assets/readme/01-agents.png",
-      "sha256": "8d03aac1b71ccb35729e30e828eb208fbd4f2fcb678c3a16ca88a6418853bbb4"
+      "sha256": "62057588f6ddfdeffc9135e5d44e570f8a0603a4aa8bb4519ca6e46540e9d722"
     },
     {
       "path": "docs/assets/readme/07-home.png",
-      "sha256": "177715a0d1f3120f3fda19c9747c210edef5211730bedf42d26a87124b165958"
+      "sha256": "0f0e13e1b48a1d0854c1af6a022dcff112898936af860f51b8fcd0a943f91553"
     },
     {
       "path": "docs/assets/readme/06-split.png",
@@ -41,7 +41,7 @@
     },
     {
       "path": "docs/assets/readme/05-viewer.png",
-      "sha256": "5171f520a85ad680200452fc801b4fb7d93bbd91c02aba94e191b131d1fe81c0"
+      "sha256": "648c53ffd4c98ee20d79a64221b1ede41823df5257cf51358c68a99ba9907dbd"
     },
     {
       "path": "docs/assets/readme/04-copy.png",
@@ -49,7 +49,7 @@
     },
     {
       "path": "docs/assets/readme/08-dark.png",
-      "sha256": "809bb86dafa68d84d3babe5d71c4fc920b9f04767b75b3c9df773d97def59b1b"
+      "sha256": "b4118bf8b91ca6fdec1cb9fedda68115099354d186fc4dcf119114298a3d534f"
     }
   ]
 }

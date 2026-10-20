@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.3.0
+# VERSION: 1.4.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
-#   SCOPE: Reserved private paths, retained fixture examples, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
+#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, exact-index, local-only review and outgoing-history failure scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before model loading, including one-other-engine and multiple-model failures.
+#   LAST_CHANGE: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
+#   PREV: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before model loading, including one-other-engine and multiple-model failures.
 #   PREV: 1.2.0 - 2026-10-19: reject reserved private operations and captured profiles while retaining synthetic examples and reusable tooling.
 #   PREV: 1.1.0 - 2026-10-19: prove locale deltas retain nested changes and raw fallback without reducing static scans.
 #   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: executable fail-closed safety contracts.
@@ -38,6 +39,21 @@ spec.loader.exec_module(gate)
 
 
 class SafetyGateTests(unittest.TestCase):
+    @staticmethod
+    def reviewed_screenshot_blobs(path="docs/assets/readme/01-agents.png", data=b"\x89PNG\r\n\x1a\nreviewed\0pixels"):
+        manifest = {
+            "schemaVersion": "1.0.0",
+            "releaseVersion": "2.6.0",
+            "captureState": "fresh-reviewed",
+            "review": {
+                "reviewer": "owner",
+                "reviewedAt": "2026-10-21",
+                "scenarios": ["Reviewed in the complete release contact sheet."]
+            },
+            "images": [{"path": path, "sha256": gate.hashlib.sha256(data).hexdigest()}]
+        }
+        return [(path, data), ("docs/assets/readme/2.6.0.manifest.json", json.dumps(manifest).encode())]
+
     def test_gpu_preflight_timeout_is_bounded_and_does_not_echo_command(self):
         with patch.object(gate.subprocess, "run", side_effect=subprocess.TimeoutExpired(["private-host-command"], 60)):
             with self.assertRaises(gate.GateError) as found:
@@ -176,6 +192,43 @@ class SafetyGateTests(unittest.TestCase):
         for data in [b"image\0pixels", bytes([255, 254, 253])]:
             with self.assertRaises(gate.GateError):
                 gate.validate_content([("docs/image.png", data)])
+
+    def test_reviewed_readme_png_requires_exact_same_candidate_manifest_evidence(self):
+        blobs = self.reviewed_screenshot_blobs()
+        gate.validate_content(blobs)
+        with self.assertRaises(gate.GateError):
+            gate.validate_content([blobs[0]])
+        changed = list(blobs)
+        changed[0] = (changed[0][0], changed[0][1] + b"changed")
+        with self.assertRaises(gate.GateError):
+            gate.validate_content(changed)
+
+    def test_reviewed_screenshot_lane_rejects_wrong_path_signature_or_review_state(self):
+        blobs = self.reviewed_screenshot_blobs()
+        with self.assertRaises(gate.GateError):
+            gate.validate_content(self.reviewed_screenshot_blobs(path="docs/other/image.png"))
+        with self.assertRaises(gate.GateError):
+            gate.validate_content(self.reviewed_screenshot_blobs(data=b"not-a-png\0payload"))
+        manifest = json.loads(blobs[1][1])
+        manifest["captureState"] = "retained"
+        with self.assertRaises(gate.GateError):
+            gate.validate_content([blobs[0], (blobs[1][0], json.dumps(manifest).encode())])
+
+    def test_reviewed_screenshot_lane_rejects_duplicate_or_malformed_evidence(self):
+        blobs = self.reviewed_screenshot_blobs()
+        manifest = json.loads(blobs[1][1])
+        manifest["images"].append(dict(manifest["images"][0]))
+        with self.assertRaises(gate.GateError):
+            gate.validate_content([blobs[0], (blobs[1][0], json.dumps(manifest).encode())])
+        duplicate_key = blobs[1][1].decode().replace('{"schemaVersion":', '{"schemaVersion":"1.0.0","schemaVersion":')
+        with self.assertRaises(gate.GateError):
+            gate.validate_content([blobs[0], (blobs[1][0], duplicate_key.encode())])
+
+    def test_push_groups_do_not_borrow_later_manifest_evidence(self):
+        png, manifest = self.reviewed_screenshot_blobs()
+        candidate = {"blobs": [png, manifest], "blobGroups": [[png], [manifest]], "payload": "binary commit then evidence commit"}
+        with patch.object(gate.shutil, "which", return_value="gitleaks"), self.assertRaises(gate.GateError):
+            gate.scan(candidate)
 
     def test_chunks_preserve_every_character_with_a_utf8_byte_bound(self):
         text = ("plain \u4e2d\U0001f642" * 4000)

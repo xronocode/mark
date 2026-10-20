@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.4.0
+# VERSION: 1.5.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes static exposure checks and two serial local-model reviews, with an explicit human override lane for model-review false positives.
-#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, complete locale field review, two-pass local review, optional identity-bound manual override of the model-review phase only, identity recheck and common hooks.
+#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, manifest-bound human-reviewed README screenshots, complete locale field review, two-pass local review, optional identity-bound manual override of the model-review phase only, identity recheck and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks, loopback Ollama, canonical local-ai-safety preflight.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFE-DELIVERY.
 #   ROLE: SCRIPT
@@ -19,6 +19,7 @@
 #   validate_lane - keep mobile runtime and desktop release/version writes in their own lanes.
 #   staged_candidate - bind staged blobs, diff and commit message to an index tree.
 #   push_candidate - inspect every outgoing commit and proposed ref update.
+#   validate_reviewed_screenshot_binaries - admit only exact reviewed README PNG bytes named by a same-candidate release manifest.
 #   validate_content - reject private material, personal paths and unsupported payloads.
 #   scan - run trusted Gitleaks rules against exact candidate blobs.
 #   chunks - divide complete text into bounded review chunks without truncation.
@@ -32,7 +33,8 @@
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.4.0 - 2026-10-20: add MARK_SAFETY_OVERRIDE — a human-set reason that skips only the local-model review phase after static scans pass, writing an identity-bound private receipt; deterministic exposure and Gitleaks checks stay mandatory.
+#   LAST_CHANGE: 1.5.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: admit only exact README PNG bytes bound to complete same-candidate human-review manifest evidence; all other binaries still fail closed.
+#   PREV: 1.4.0 - 2026-10-20: add MARK_SAFETY_OVERRIDE — a human-set reason that skips only the local-model review phase after static scans pass, writing an identity-bound private receipt; deterministic exposure and Gitleaks checks stay mandatory.
 #   PREV: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before loading the reviewer, including single-other-engine and multiple-model states.
 #   PREV: 1.2.0 - 2026-10-19: enforce the approved public/private operational and captured-profile path boundary before inference.
 #   PREV: 1.1.0 - 2026-10-19: review complete generated-locale field deltas; full-blob scans and exact raw identity rechecks remain unchanged.
@@ -185,7 +187,7 @@ def staged_candidate(root, message):
     if len(payload.encode()) > 2_000_000:
         raise GateError("Staged scope exceeds review budget; split the task")
     identity = hashlib.sha256((tree + "\n" + payload).encode()).hexdigest()
-    return {"identity": identity, "payload": payload, "scanText": message + "\n" + publication_lines(patch), "blobs": blobs, "tree": tree}
+    return {"identity": identity, "payload": payload, "scanText": message + "\n" + publication_lines(patch), "blobs": blobs, "blobGroups": [blobs], "tree": tree}
 
 
 def push_candidate(root, remote, updates):
@@ -216,19 +218,23 @@ def push_candidate(root, remote, updates):
             args += ["--not", *exclusions]
         commits += git(root, *args).decode().splitlines()
     blobs = []
+    blob_groups = []
     payload = "OPERATION: push\nREF UPDATES:\n" + updates
     scan_text = updates
     for oid in dict.fromkeys(commits):
         parents = git(root, "rev-list", "--parents", "-n", "1", oid).decode().split()[1:]
         parent = parents[0] if parents else git(root, "hash-object", "-t", "tree", "--stdin", data=b"").decode().strip()
         names = git(root, "diff", "--name-only", "--diff-filter=ACMRT", "-z", parent, oid).split(b"\0")
+        commit_blobs = []
         for name in names:
             if not name:
                 continue
             entry = git(root, "ls-tree", oid, "--", name.decode())
             if entry.startswith((b"120000 ", b"160000 ")):
                 raise GateError("Outgoing symlink or submodule requires separate review")
-            blobs.append((name.decode(), git(root, "show", oid + ":" + name.decode())))
+            commit_blobs.append((name.decode(), git(root, "show", oid + ":" + name.decode())))
+        blobs.extend(commit_blobs)
+        blob_groups.append(commit_blobs)
         message = git(root, "show", "-s", "--format=%B", oid).decode("utf-8", "strict")
         patch = git(root, "diff", "--no-ext-diff", "--no-textconv", "--unified=3", parent, oid).decode("utf-8", "strict")
         payload += "\nCOMMIT " + oid + "\n" + message + patch
@@ -238,11 +244,85 @@ def push_candidate(root, remote, updates):
     if len(lanes) > 1:
         raise GateError("Push desktop and mobile tasks separately")
     validate_lane(root, blobs, "mobile/" if True in lanes else "desktop")
-    return {"identity": hashlib.sha256(payload.encode()).hexdigest(), "payload": payload, "scanText": scan_text, "blobs": blobs, "commits": commits}
+    return {"identity": hashlib.sha256(payload.encode()).hexdigest(), "payload": payload, "scanText": scan_text, "blobs": blobs, "blobGroups": blob_groups, "commits": commits}
+
+
+def validate_reviewed_screenshot_binaries(blobs):
+    # START_BLOCK_MANIFEST_BOUND_SCREENSHOT_REVIEW
+    screenshots = {
+        name: data
+        for name, data in blobs
+        if re.fullmatch(r"docs/assets/readme/[^/]+\.png", name)
+    }
+    if not screenshots:
+        return set()
+
+    manifest_blobs = [
+        (name, data)
+        for name, data in blobs
+        if re.fullmatch(r"docs/assets/readme/[^/]+\.manifest\.json", name)
+    ]
+    if not manifest_blobs:
+        raise GateError("Reviewed README screenshot requires a staged release manifest")
+
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON key")
+            result[key] = value
+        return result
+
+    evidence = {}
+    for manifest_name, raw in manifest_blobs:
+        try:
+            manifest = json.loads(raw.decode("utf-8", "strict"), object_pairs_hook=unique_object)
+        except (UnicodeError, ValueError):
+            raise GateError("Screenshot review manifest is malformed: " + manifest_name) from None
+        review = manifest.get("review") if isinstance(manifest, dict) else None
+        scenarios = review.get("scenarios") if isinstance(review, dict) else None
+        if (
+            manifest.get("schemaVersion") != "1.0.0"
+            or not re.fullmatch(r"\d+\.\d+\.\d+", manifest.get("releaseVersion", ""))
+            or manifest.get("captureState") != "fresh-reviewed"
+            or not isinstance(review.get("reviewer") if isinstance(review, dict) else None, str)
+            or not review["reviewer"].strip()
+            or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", review.get("reviewedAt", "") if isinstance(review, dict) else "")
+            or not isinstance(scenarios, list)
+            or not scenarios
+            or any(not isinstance(value, str) or not value.strip() for value in scenarios)
+            or not isinstance(manifest.get("images"), list)
+        ):
+            raise GateError("Screenshot review manifest evidence is incomplete: " + manifest_name)
+        local_paths = set()
+        for entry in manifest["images"]:
+            path = entry.get("path") if isinstance(entry, dict) else None
+            digest = entry.get("sha256") if isinstance(entry, dict) else None
+            if (
+                not isinstance(path, str)
+                or not re.fullmatch(r"docs/assets/readme/[^/]+\.png", path)
+                or path in local_paths
+                or not isinstance(digest, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", digest)
+            ):
+                raise GateError("Screenshot review manifest image evidence is invalid: " + manifest_name)
+            local_paths.add(path)
+            if path in evidence:
+                raise GateError("Screenshot review evidence is ambiguous: " + path)
+            evidence[path] = digest
+
+    for name, data in screenshots.items():
+        if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise GateError("Reviewed screenshot has an invalid PNG signature: " + name)
+        if evidence.get(name) != hashlib.sha256(data).hexdigest():
+            raise GateError("Reviewed screenshot digest evidence mismatch: " + name)
+    return set(screenshots)
+    # END_BLOCK_MANIFEST_BOUND_SCREENSHOT_REVIEW
 
 
 def validate_content(blobs):
     # START_BLOCK_STATIC_EXPOSURE_CHECKS
+    reviewed_screenshots = validate_reviewed_screenshot_binaries(blobs)
     for name, data in blobs:
         path = Path(name)
         if path.is_absolute() or ".." in path.parts:
@@ -264,6 +344,8 @@ def validate_content(blobs):
             raise GateError("Environment file: " + name)
         if path.suffix.lower() in {".p8", ".p12", ".pem", ".key", ".mobileprovision", ".log", ".crash"} or path.name in {"id_rsa", "id_ed25519"}:
             raise GateError("Signing, credential or local log file: " + name)
+        if name in reviewed_screenshots:
+            continue
         if b"\0" in data:
             raise GateError("Binary requires separate local multimodal review: " + name)
         try:
@@ -279,7 +361,9 @@ def validate_content(blobs):
 
 def scan(candidate):
     scan_text = candidate.get("scanText", candidate["payload"])
-    validate_content(candidate["blobs"] + [("commit-message-and-diff.txt", scan_text.encode())])
+    for group in candidate.get("blobGroups", [candidate["blobs"]]):
+        validate_content(group)
+    validate_content([("commit-message-and-diff.txt", scan_text.encode())])
     if not shutil.which("gitleaks"):
         raise GateError("Required Gitleaks executable is unavailable")
     with tempfile.TemporaryDirectory(prefix="mark-safety-") as name:

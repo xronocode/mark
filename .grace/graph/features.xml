@@ -2866,10 +2866,15 @@
         Strict one-line locale replacements retain every changed JSON field
         and value for both model passes; unsupported input uses the raw diff.
         Complete raw blobs and candidate identity remain scan/recheck inputs.
+
+        C-SAFE-SCREENSHOT-REVIEW admits only regular README PNG bytes whose
+        exact SHA-256 identity and completed human visual review are present
+        in a changed release screenshot manifest in the same commit. Outgoing
+        commits are evaluated independently; every other binary stays blocked.
 C-SAFE-DELIVERY: exact staged/outgoing secret, private-path and artifact checks; two serial local-only model passes; candidate recheck and shared commit/push hooks for independent desktop/mobile lanes.</Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>
-      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic and local-model review.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message or outgoing refs/commits</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete local review, unsupported payload, engine conflict or changed candidate.</Description></Error></Errors></Contract>
+      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic and local-model review, with manifest-bound human visual-review evidence for changed release README PNGs.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message or independently grouped outgoing commits</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete local or screenshot review evidence, unsupported payload, engine conflict or changed candidate.</Description></Error></Errors></Contract>
       <Sources><Source>tools/security_gate.py</Source><Tests>tests/security/test_security_gate.py</Tests></Sources>
     </M-064>
   </GD-FEATURES>
