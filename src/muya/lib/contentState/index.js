@@ -1,3 +1,23 @@
+// FILE: src/muya/lib/contentState/index.js
+// VERSION: 1.2.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Manage Muya's mutable block tree, cursor state, editing controllers, and render coordination.
+//   SCOPE: Block-tree lifecycle, active-block ancestry, controller composition, cursor state, history, and rendering entry points.
+//   DEPENDS: Muya parser/render, selection, block utilities, history, and editing controller modules.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-FIX-012-ACTIVE-BLOCK-ANCESTRY; .grace/changes/archive/C-FIX-012-CURSOR-RESTORE-GUARD.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - ContentState class composed with Muya editing controllers and render state.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.2.0 - 2026-10-20 FIX-012: skip DOM selection restoration for incomplete cursor state and keep null-cursor render ranges safe.
+//   PREV: v1.1.0 - 2026-10-20 FIX-012: stop active-block ancestry at a missing parent so render selectors never receive undefined blocks.
+// END_CHANGE_SUMMARY
+//
 // contentState is responsible for managing the main Vnodes (stored in this.blocks)
 // importMarkdown() is responsible for the initial parsing of markdown into vnodes
 // insertAfter(), insertBefore(), insertChild() etc. can then be used to add new vnodes
@@ -211,14 +231,25 @@ class ContentState {
     }
   }
 
+  // START_BLOCK_CURSOR_RESTORE_GUARD
   setCursor() {
-    selection.setCursorRange(this.cursor)
+    const { cursor } = this
+    if (!cursor?.anchor?.key || !cursor?.focus?.key) {
+      return
+    }
+    selection.setCursorRange(cursor)
   }
+  // END_BLOCK_CURSOR_RESTORE_GUARD
 
   setNextRenderRange() {
-    const { start, end } = this.cursor
-    const startBlock = this.getBlock(start ? start.key : null)
-    const endBlock = this.getBlock(end ? end.key : null)
+    // START_BLOCK_RENDER_RANGE_CURSOR_GUARD
+    const { start, end } = this.cursor || {}
+    if (!start || !end) {
+      this.renderRange = [null, null]
+      return
+    }
+    const startBlock = this.getBlock(start.key)
+    const endBlock = this.getBlock(end.key)
     if (!startBlock || !endBlock) {
       this.renderRange = [null, null]
       return
@@ -227,6 +258,7 @@ class ContentState {
     const endOutMostBlock = this.findOutMostBlock(endBlock)
 
     this.renderRange = [startOutMostBlock.preSibling, endOutMostBlock.nextSibling]
+    // END_BLOCK_RENDER_RANGE_CURSOR_GUARD
   }
 
   postRender() {
@@ -583,6 +615,7 @@ class ContentState {
     remove(Array.isArray(fromBlocks) ? fromBlocks : fromBlocks.children, block)
   }
 
+  // START_BLOCK_ACTIVE_BLOCK_ANCESTRY
   getActiveBlocks() {
     const result = []
     if (!this.cursor || !this.cursor.start) {
@@ -593,11 +626,16 @@ class ContentState {
       result.push(block)
     }
     while (block && block.parent) {
-      block = this.getBlock(block.parent)
-      result.push(block)
+      const parent = this.getBlock(block.parent)
+      if (!parent) {
+        break
+      }
+      result.push(parent)
+      block = parent
     }
     return result
   }
+  // END_BLOCK_ACTIVE_BLOCK_ANCESTRY
 
   insertAfter(newBlock, oldBlock) {
     const siblings = oldBlock.parent ? this.getBlock(oldBlock.parent).children : this.blocks

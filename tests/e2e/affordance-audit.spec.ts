@@ -1,5 +1,5 @@
 // FILE: tests/e2e/affordance-audit.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Behavioral half of the C-73 affordance audit — everything the UI advertises must visibly respond when used: desktop chords pressed as real keys, every registry leaf command dispatched through the mt::menu-invoked bridge, and welcome-screen action buttons.
 //   SCOPE: Real-key presses on the booted Muya surface; menu-bridge walk over registry leaf ids parsed from source; welcome action-button responses. Static advertised-chord ↔ route agreement lives in tests/renderer/commands/shortcut-routing-audit.test.js.
@@ -12,7 +12,7 @@
 // START_MODULE_MAP
 //   MOD - Platform modifier name for Playwright key presses (Meta on darwin, Control elsewhere).
 //   ROOT - repository root resolved from this spec for source reads.
-//   registryLeafIds - Leaf command ids parsed from commands/index.js (ids followed by a subcommands: line are parents and excluded).
+//   registryLeafIds - Leaf command ids parsed from commands/index.js (parents and platform-excluded macOS-only leaves are excluded).
 //   registryAdvertisedChords - { id, keys } for every shortcut: array in the registry (darwin branch), driving the pressed-chord cases.
 //   Snapshot - Response counters captured before an action (bus calls, mutations, invokes, state digest).
 //   installResponseRecorder - Wraps the app bus emit, counts body mutations, opts into the shim invoke log and exposes a state digest.
@@ -24,10 +24,12 @@
 //   dispatchMenuId - Emits mt::menu-invoked through the shim and returns the listener count (0 means the bridge never installed).
 //   nativeRiddenIds - Registry ids whose chord rides a native m009 accelerator and therefore cannot be pressed in a browser.
 //   NO_RESPONSE_ALLOWLIST - Registry ids whose execution legitimately cannot show a response in the browser harness, each with a reason.
-//   EXPECTED_BRIDGE_WARNINGS - Already-tracked bridge-warning findings (help.rate capability gate, FIX-012); anything new fails the walk.
+//   EXPECTED_BRIDGE_WARNINGS - Already-tracked bridge-warning findings (help.rate capability gate); anything new fails the walk.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-73: initial audit — desktop keydown/zoom chords as real key presses with generic response detection (bus event, DOM mutation, invoke or state digest), menu-bridge walk over all registry leaves, welcome action-button responses; the FIX-009 Last-session case lands as fixme until its repair ships.
+//   LAST_CHANGE: v1.1.1 - 2026-10-20 FIX-010 review: exclude the explicitly macOS-only registry leaf from non-Darwin bridge walks.
+//   PREV: v1.1.0 - 2026-10-20 FIX-010/FIX-012: Shift+Meta+P opens the populated root Command Palette on macOS; tab cycling after opening the Guide must keep render ancestry valid.
+//   v1.0.0 - C-73: initial audit — desktop keydown/zoom chords as real key presses with generic response detection (bus event, DOM mutation, invoke or state digest), menu-bridge walk over all registry leaves, welcome action-button responses; the FIX-009 Last-session case lands as fixme until its repair ships.
 // END_CHANGE_SUMMARY
 
 import { test, expect, type Page } from '@playwright/test'
@@ -53,7 +55,7 @@ const registryLeafIds = (): string[] => {
     const isParent = lines.slice(i, i + 10).some((l) => /^\s*subcommands:/.test(l))
     if (!isParent) ids.push(m[1])
   }
-  return ids
+  return ids.filter((id) => process.platform === 'darwin' || id !== 'view.command-palette')
 }
 
 const registryAdvertisedChords = (): Array<{ id: string, keys: string[] }> => {
@@ -195,8 +197,7 @@ const NO_RESPONSE_ALLOWLIST: Record<string, string> = {
 // Bridge warnings that are already-tracked findings. A NEW warning
 // fails the walk; removing the underlying defect removes its entry.
 const EXPECTED_BRIDGE_WARNINGS: Record<string, string> = {
-  'help.rate': 'no-command warning from the capability gate (see NO_RESPONSE_ALLOWLIST)',
-  'tabs.cycleForward': 'FIX-012 (open, 2026-10-20): render TypeError after the full walk prefix — exact reproduction is this walk; tracked in docs/release-trains/2.5.x-next.md'
+  'help.rate': 'no-command warning from the capability gate (see NO_RESPONSE_ALLOWLIST)'
 }
 
 // Chords whose route is the native menu accelerator cannot be pressed
@@ -262,6 +263,19 @@ test.describe('affordance audit — desktop chords (C-73)', () => {
     await page.keyboard.press(`Shift+${MOD}+D`)
     await expect.poll(markdown, { timeout: 3000 }).toContain('## first paragraph\n\n## first paragraph')
   })
+
+  test('Shift+Command+P opens and closes the root Command Palette (FIX-010)', async ({ page }) => {
+    test.skip(process.platform !== 'darwin', 'FIX-010 is intentionally scoped to macOS')
+    await bootWithDocument(page)
+    await focusFirstParagraph(page)
+
+    await page.keyboard.press('Shift+Meta+P')
+    const palette = page.locator('.command-palette input.search')
+    await expect(palette).toBeVisible()
+    await expect(page.locator('.command-palette .commands li')).not.toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(palette).toBeHidden()
+  })
 })
 
 test.describe('affordance audit — menu bridge walk (C-73)', () => {
@@ -296,6 +310,24 @@ test.describe('affordance audit — menu bridge walk (C-73)', () => {
     })
     const unexpected = warnedFor.filter((id) => !EXPECTED_BRIDGE_WARNINGS[id])
     expect(unexpected, `new menu-bridge warnings during the walk:\n${bridgeWarnings.join('\n')}`).toEqual([])
+  })
+
+  test('Guide then tab cycling keeps active-block ancestry renderable (FIX-012)', async ({ page }) => {
+    await bootWithDocument(page)
+    const bridgeWarnings: string[] = []
+    page.on('console', (msg) => {
+      const text = msg.text()
+      if (text.includes('[menu-bridge]')) bridgeWarnings.push(text)
+    })
+
+    await dispatchMenuId(page, 'file.new-tab')
+    await dispatchMenuId(page, 'help.guide')
+    await page.waitForTimeout(100)
+    await dispatchMenuId(page, 'tabs.cycleForward')
+    await page.waitForTimeout(100)
+
+    expect(bridgeWarnings).toEqual([])
+    await expect(page.locator('.editor-with-tabs')).toBeVisible()
   })
 })
 

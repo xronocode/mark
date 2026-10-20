@@ -1,0 +1,14 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-FIX-015-TABLE-EXPORT-INTEGRITY>
+  <ChangeRef>C-FIX-015-TABLE-EXPORT-INTEGRITY</ChangeRef><Created>2026-10-20</Created>
+  <IntentSummary>Add direct failing exporter fixtures, replace the one-character-lookbehind pipe regex with parity-aware escaping, rectangularize actual table rows, and project the repaired M-012 contract.</IntentSummary>
+  <ExecutionPolicy>Sequential after FIX-012 because M-012 and V-M-012 are shared.</ExecutionPolicy>
+  <BaselineAssertions><MustExist><Value>src/muya/lib/utils/exportMarkdown.js</Value><Value>tests/renderer/muya/copy-data.test.js</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustExist><Value>tests/renderer/muya/export-markdown-table.test.js</Value></MustExist><MustContain><File>src/muya/lib/utils/exportMarkdown.js</File><Text>START_BLOCK_NORMALIZE_TABLE_GRID</Text></MustContain><MustContain><File>.grace/verification/runtime.xml</File><Text>FIX-015 table export integrity</Text></MustContain></TargetAssertions>
+  <DurableScope><GraphAnchors><M-012/></GraphAnchors><VerificationAnchors><V-M-012/></VerificationAnchors><VerificationDocuments><VD-RUNTIME/></VerificationDocuments></DurableScope>
+  <ObservedWriteScope><File>src/muya/lib/utils/exportMarkdown.js</File><File>tests/renderer/muya/export-markdown-table.test.js</File><File>tests/renderer/muya/copy-data.test.js</File><Glob>.grace/graph/*.xml</Glob><Glob>.grace/verification/*.xml</Glob><Glob>.grace/changes/archive/C-FIX-015-TABLE-EXPORT-INTEGRITY/**</Glob></ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001><Title>Add failing pipe and ragged-grid regressions</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Tests reproduce the leading-pipe corruption and missing-cell throw before runtime edits, with a regular-table control.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/renderer/muya/export-markdown-table.test.js</Command></Verification></T-001>
+    <T-002><Title>Normalize escaping and rectangular geometry</Title><DependsOn>T-001</DependsOn><AcceptanceCriteria><Criterion>Pipe escaping uses backslash parity; rows are padded to the widest real/advisory geometry; extra real cells are retained; width and render loops only consume strings.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/renderer/muya/export-markdown-table.test.js tests/renderer/muya/copy-data.test.js</Command></Verification></T-002>
+    <T-003><Title>Update M-012 projections and evidence</Title><DependsOn>T-002</DependsOn><AcceptanceCriteria><Criterion>Graph and verification state retire risks 28/29 as fixed by scenario evidence; GRACE target/final checks pass.</Criterion></AcceptanceCriteria><Verification><Command>grace lint --path . --change C-FIX-015-TABLE-EXPORT-INTEGRITY --assertions target</Command></Verification></T-003>
+  </ImplementationPlan>
+</C-FIX-015-TABLE-EXPORT-INTEGRITY></GraceChangePlan>

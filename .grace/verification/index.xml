@@ -4,6 +4,13 @@
     <!-- C-63: V-M-046 scenario-13 enforces the footnotes and appearance WebKit projects. -->
     <VD-RUNTIME>
       <Path>verification/runtime.xml</Path>
+      <!-- FIX-010 Command Palette shortcut: V-M-009/V-M-011/V-M-012 verify the macOS-only native, registry, app and real-key route. -->
+      <!-- FIX-012 tab-cycle render integrity: V-M-011/V-M-012 verify Guide replacement, null-safe active ancestry and a warning-clean full registry walk. -->
+      <!-- FIX-012 render cursor guard: V-M-012 verifies selector construction with null/start-less cursors and the complete warning-clean registry walk. -->
+      <!-- FIX-012 render conflict guard: V-M-012 verifies incomplete cursor endpoints bypass token-conflict range evaluation. -->
+      <!-- FIX-012 cursor restore guard: V-M-012 verifies incomplete-cursor selection handoff, null-cursor render range and the complete warning-clean registry walk. -->
+      <!-- FIX-015 table export integrity: V-M-012 verifies pipe parity, ragged-grid padding, extra-cell retention and stable regular output. -->
+      <!-- FIX-016 Auto Save disable race: V-M-011 verifies disable-during-debounce and a later save after re-enable. -->
       <!-- C-TOOLBAR-LABELS: V-M-012 scenario-toolbar-label-visits verifies cumulative inline labels and whole-panel exit reset for table/Mermaid/Vega-Lite toolbars. -->
       <!-- C-TABLE-FOOTER: V-M-012 scenario-table-footer verifies compact caption/bar order, stable invisible space and fitting/restored-table controls in both engines. Owner partially accepted the native visual scope on bae95a97; Fit to page transition/persistence remains open in docs/release-trains/2.5.x-next.md#c-table-footer. -->
       <!-- C-71 owner acceptance on f17b070e is queued in 2.5.x-next; table-footer spacing is a separate pending change. -->
