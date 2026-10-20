@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release-governance.yml
-# VERSION: 1.2.0
+# VERSION: 1.3.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Expose the stable release/governance required check for ordinary pull requests and main without demanding a frozen release train.
 #   SCOPE: Read-only Conventional title/admission, repository governance, schema, and focused regression validation; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
@@ -16,6 +16,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-20 v1.3.0: fetch full history for the governance job so the release-boundary normalization regression can inspect its pinned bootstrap commit in CI.
 #   - 2026-10-20 v1.2.0: state the optional Project mirror's dedicated-secret boundary explicitly instead of describing the whole workflow as token-free.
 #   - 2026-10-20 v1.1.0: record a repository-only release/readiness check on candidate payload commits and cover the public Project mirror.
 #   - 2026-10-20 v1.0.0: add the stable ordinary-PR governance check distinct from strict release readiness.
@@ -44,6 +45,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: setup Node 22
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
