@@ -1,5 +1,5 @@
 <!-- FILE: site/landing/index.html -->
-<!-- VERSION: 2.5.0 -->
+<!-- VERSION: 2.6.0 -->
 <!-- START_MODULE_CONTRACT -->
 <!--   PURPOSE: The Mark site landing (served at the site root by renderLanding) -->
 <!--            - the mobile-first paragraph-numbered paper/ink/marker page -->
@@ -25,7 +25,8 @@
 <!--          read from the CSS --rest var), the wall chips/auto-cycle, the -->
 <!--          lazy template mount for the wall SVGs (IntersectionObserver), -->
 <!--          the appearance toggle (VitePress storage key) and the iOS share -->
-<!--          bar. -->
+<!--          bar, plus the C-64 T-009 P3 signals (stage_drag, prompt_open, -->
+<!--          diagram_filter placement landing). -->
 <!--   DEPENDS: site/shared/brand.css (tokens inlined at build), -->
 <!--            site/shared/theme-init.js (THEME_INIT_JS), the gallery pele -->
 <!--            renderer (fills the DIAGRAM placeholders), -->
@@ -57,9 +58,21 @@
 <!--   ¶ 05 Install - App Store / Homebrew copy / #dmg-link / #win-link cards -->
 <!--             (cv); editions link -->
 <!--   footer - docs nav, Mark Text credit, © line (cv) -->
+<!--   P3 attrs - data-section on the six sections, nav_click on the nav/ -->
+<!--             footer/editions links, hero_alt placements on the .alt ways, -->
+<!--             stage_drag/prompt_open/diagram_filter(landing) in the script -->
+<!--             (C-64 T-009; consumed by public/track.js) -->
 <!-- END_MODULE_MAP -->
 <!-- START_CHANGE_SUMMARY -->
-<!--   LAST_CHANGE: [v2.5.0 - 2026-10-21 C-64: one hero download button per system (html.os-mac/win/linux before paint; brand Windows tiles; Linux = build from source, no packaged build), other ways as text links under it; ¶05 becomes a tappable all-downloads list; Android gets "Send Mark to your computer"; links refreshed by data-asset.] -->
+<!--   LAST_CHANGE: [v2.6.0 - 2026-10-21 C-64 T-009 (P3 deep analytics): -->
+<!--                 data-section on the six ¶ sections for section_view; -->
+<!--                 nav_click on the header/mobile/footer nav and the -->
+<!--                 editions links; the hero .alt ways become placement -->
+<!--                 hero_alt and "All downloads" a nav_click to -->
+<!--                 all_downloads; stage_drag on the first handle move, -->
+<!--                 prompt_open on the user-opened agent prompt, and the -->
+<!--                 wall chips report diagram_filter with placement landing.] -->
+<!--   PREV: [v2.5.0 - 2026-10-21 C-64: one hero download button per system (html.os-mac/win/linux before paint; brand Windows tiles; Linux = build from source, no packaged build), other ways as text links under it; ¶05 becomes a tappable all-downloads list; Android gets "Send Mark to your computer"; links refreshed by data-asset.] -->
 <!--   PREV: [v2.4.0 - 2026-10-19 C-64 version sync: every hardcoded -->
 <!--                 release fact becomes a build token filled from the latest -->
 <!--                 GitHub release — <span id="version">v%VERSION%</span>, the -->
@@ -815,9 +828,9 @@ h2 {
       <img src="%BASE%mark-icon.svg" alt="" width="32" height="32">Mark
     </a>
     <nav class="nav" aria-label="Site">
-      <a href="%BASE%diagrams/">Diagrams</a>
-      <a href="%BASE%guide/">Docs</a>
-      <a href="%BASE%changelog">Changelog</a>
+      <a href="%BASE%diagrams/" data-track="nav_click" data-target="diagrams" data-placement="nav">Diagrams</a>
+      <a href="%BASE%guide/" data-track="nav_click" data-target="docs" data-placement="nav">Docs</a>
+      <a href="%BASE%changelog" data-track="nav_click" data-target="changelog" data-placement="nav">Changelog</a>
       <a class="gh" href="https://github.com/xronocode/mark" data-track="outbound_click" data-target="github" data-placement="nav">GitHub</a>
     </nav>
     <div class="hdr-r">
@@ -825,9 +838,9 @@ h2 {
       <details class="mnav">
         <summary aria-haspopup="menu">Menu</summary>
         <nav aria-label="Site">
-          <a href="%BASE%diagrams/">Diagrams</a>
-          <a href="%BASE%guide/">Docs</a>
-          <a href="%BASE%changelog">Changelog</a>
+          <a href="%BASE%diagrams/" data-track="nav_click" data-target="diagrams" data-placement="nav">Diagrams</a>
+          <a href="%BASE%guide/" data-track="nav_click" data-target="docs" data-placement="nav">Docs</a>
+          <a href="%BASE%changelog" data-track="nav_click" data-target="changelog" data-placement="nav">Changelog</a>
           <a href="https://github.com/xronocode/mark" data-track="outbound_click" data-target="github" data-placement="nav">GitHub</a>
         </nav>
       </details>
@@ -841,7 +854,7 @@ h2 {
 <!-- START_BLOCK_HERO -->
 <!-- data-consent-after: the consent card (consent.js) waits until this whole
      section has left the viewport — it never covers the first screen. -->
-<section class="top" id="hero" data-consent-after>
+<section class="top" id="hero" data-consent-after data-section="hero">
   <div class="wrap">
     <div class="hero-grid">
       <h1>Agents write Markdown. <span class="hl">Mark draws it.</span></h1>
@@ -864,15 +877,15 @@ h2 {
               <svg class="os-ic term" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="3"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/></svg><span class="dt"><b>Build Mark from source</b><small>Linux &middot; no packaged build yet</small></span>
             </a>
             <p class="alt">
-              <a class="x-store" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="hero">Mac App Store</a>
-              <button class="x-brew linklike" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero" aria-label="Copy brew install --cask xronocode/mark/mark">Homebrew <span class="ok">copied</span></button>
-              <a class="x-mac" data-asset="dmg" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="hero">macOS</a>
-              <a class="x-win" data-asset="exe" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="hero">Windows</a>
-              <a class="x-all" href="#all-downloads">All downloads</a>
+              <a class="x-store" href="https://apps.apple.com/app/id6814590464" data-track="download_click" data-method="app_store" data-placement="hero_alt">Mac App Store</a>
+              <button class="x-brew linklike" type="button" data-copy="brew install --cask xronocode/mark/mark" data-track="download_click" data-method="homebrew_copy" data-placement="hero_alt" aria-label="Copy brew install --cask xronocode/mark/mark">Homebrew <span class="ok">copied</span></button>
+              <a class="x-mac" data-asset="dmg" href="%DMG_URL%" data-track="download_click" data-method="dmg" data-placement="hero_alt">macOS</a>
+              <a class="x-win" data-asset="exe" href="%EXE_URL%" data-track="download_click" data-method="windows" data-placement="hero_alt">Windows</a>
+              <a class="x-all" href="#all-downloads" data-track="nav_click" data-target="all_downloads" data-placement="hero_alt">All downloads</a>
             </p>
           </div>
         </div>
-        <p class="fine">Free, MIT &middot; same editor, two editions &middot; <a href="%BASE%guide/editions">What&rsquo;s the difference?</a></p>
+        <p class="fine">Free, MIT &middot; same editor, two editions &middot; <a href="%BASE%guide/editions" data-track="nav_click" data-target="editions" data-placement="hero">What&rsquo;s the difference?</a></p>
       </div>
     </div>
 
@@ -942,7 +955,7 @@ Signed up,Activated,470
 <!-- END_BLOCK_HERO -->
 
 <!-- START_BLOCK_SECTION_AGENTS -->
-<section class="sec" aria-labelledby="ag-h">
+<section class="sec" aria-labelledby="ag-h" data-section="agents">
   <div class="wrap">
     <p class="no">&para; 01</p>
     <h2 id="ag-h">Watch your agent write.</h2>
@@ -980,7 +993,7 @@ instruction.</pre>
 <!-- END_BLOCK_SECTION_AGENTS -->
 
 <!-- START_BLOCK_SECTION_DIAGRAMS -->
-<section class="sec" id="diagrams-sec" aria-labelledby="dg-h">
+<section class="sec" id="diagrams-sec" aria-labelledby="dg-h" data-section="diagrams">
   <div class="wrap">
     <p class="no">&para; 02</p>
     <h2 id="dg-h"><span class="hl">32 kinds of diagrams,</span> drawn as your agent saves.</h2>
@@ -1005,7 +1018,7 @@ instruction.</pre>
 <!-- END_BLOCK_SECTION_DIAGRAMS -->
 
 <!-- START_BLOCK_SECTION_PAGE -->
-<section class="sec cv cv-a" aria-labelledby="pg-h">
+<section class="sec cv cv-a" aria-labelledby="pg-h" data-section="page">
   <div class="wrap">
     <p class="no">&para; 03</p>
     <h2 id="pg-h">Write in the finished page.</h2>
@@ -1072,7 +1085,7 @@ instruction.</pre>
 <!-- END_BLOCK_SECTION_PAGE -->
 
 <!-- START_BLOCK_SECTION_NUMBERS -->
-<section class="sec cv cv-b" aria-labelledby="fp-h">
+<section class="sec cv cv-b" aria-labelledby="fp-h" data-section="native">
   <div class="wrap">
     <p class="no">&para; 04</p>
     <h2 id="fp-h">Small and native.</h2>
@@ -1107,7 +1120,7 @@ instruction.</pre>
 <!-- END_BLOCK_SECTION_NUMBERS -->
 
 <!-- START_BLOCK_SECTION_INSTALL -->
-<section class="sec cv cv-c" id="install" aria-labelledby="in-h">
+<section class="sec cv cv-c" id="install" aria-labelledby="in-h" data-section="install">
   <div class="wrap">
     <p class="no">&para; 05</p>
     <h2 id="in-h">Get Mark</h2>
@@ -1134,10 +1147,10 @@ instruction.</pre>
     </div>
     <ul class="dnotes">
       <li><b>macOS:</b> Developer ID signed and notarized by Apple; updates arrive through the in-app updater or <code>brew upgrade --cask mark</code>.</li>
-      <li><b>App Store:</b> the App Store edition is 2.1.17 today; its next update brings 2.5.0. <a href="%BASE%guide/editions#when-the-app-store-catches-up">When does it catch up?</a></li>
+      <li><b>App Store:</b> the App Store edition is 2.1.17 today; its next update brings 2.5.0. <a href="%BASE%guide/editions#when-the-app-store-catches-up" data-track="nav_click" data-target="editions" data-placement="install">When does it catch up?</a></li>
       <li><b>Windows:</b> the installer is not code-signed yet, so SmartScreen shows &ldquo;Windows protected your PC&rdquo; &mdash; choose <em>More info</em>, then <em>Run anyway</em>.</li>
     </ul>
-    <p class="editions"><span class="more">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. </span><a href="%BASE%guide/editions">See the full table</a>.</p>
+    <p class="editions"><span class="more">Two editions, the same editor. Homebrew/download adds pandoc export, insert screenshot, the default-Markdown-app setting, git diff, a local live server for agents and the in-app updater; the App Store edition is sandboxed and reviewed by Apple. </span><a href="%BASE%guide/editions" data-track="nav_click" data-target="editions" data-placement="install">See the full table</a>.</p>
   </div>
 </section>
 <!-- END_BLOCK_SECTION_INSTALL -->
@@ -1152,10 +1165,10 @@ instruction.</pre>
       <p class="copr">&copy; <span id="year">2026</span> xronocode &middot; MIT</p>
     </div>
     <nav class="foot-nav" aria-label="Footer">
-      <a href="%BASE%guide/">Docs</a>
-      <a href="%BASE%diagrams/">Diagrams</a>
-      <a href="%BASE%changelog">Changelog</a>
-      <a href="%BASE%privacy">Privacy</a>
+      <a href="%BASE%guide/" data-track="nav_click" data-target="docs" data-placement="footer">Docs</a>
+      <a href="%BASE%diagrams/" data-track="nav_click" data-target="diagrams" data-placement="footer">Diagrams</a>
+      <a href="%BASE%changelog" data-track="nav_click" data-target="changelog" data-placement="footer">Changelog</a>
+      <a href="%BASE%privacy" data-track="nav_click" data-target="privacy" data-placement="footer">Privacy</a>
       <a href="#cookie-settings">Cookie settings</a>
       <a href="https://ko-fi.com/xronocode">Support</a>
       <a href="https://github.com/xronocode/mark" data-track="outbound_click" data-target="github" data-placement="footer">GitHub</a>
@@ -1308,6 +1321,14 @@ instruction.</pre>
     /* Drag only from the handle strip, and keep the grab offset so the line
        moves with the finger instead of jumping under it. */
     var grab = 0;
+    /* C-64 T-009: the first handle movement reports stage_drag once per page
+       (pointer or keyboard); a press without a move does not count. */
+    var stageDragged = false;
+    function stageDrag (method) {
+      if (stageDragged) return;
+      stageDragged = true;
+      if (window.markTrack) window.markTrack('stage_drag', { method: method });
+    }
     if (handle) {
       handle.addEventListener('pointerdown', function (e) {
         var r = handle.getBoundingClientRect();
@@ -1316,7 +1337,7 @@ instruction.</pre>
         sweepOn = false;
         if (handle.setPointerCapture) { try { handle.setPointerCapture(e.pointerId); } catch (err) {} }
       });
-      handle.addEventListener('pointermove', function (e) { if (drag) setFromClient(e.clientX - grab); });
+      handle.addEventListener('pointermove', function (e) { if (drag) { stageDrag('pointer'); setFromClient(e.clientX - grab); } });
       handle.addEventListener('pointerup', function () { drag = false; });
       handle.addEventListener('pointercancel', function () { drag = false; });
     }
@@ -1327,9 +1348,9 @@ instruction.</pre>
       handle.addEventListener('keydown', function (e) {
         var now = parseFloat(handle.getAttribute('aria-valuenow')) || restX();
         var step = { ArrowLeft: -5, ArrowDown: -5, ArrowRight: 5, ArrowUp: 5 }[e.key];
-        if (typeof step === 'number') { e.preventDefault(); sweepOn = false; setX(now + step); }
-        else if (e.key === 'Home') { e.preventDefault(); sweepOn = false; setX(4); }
-        else if (e.key === 'End') { e.preventDefault(); sweepOn = false; setX(96); }
+        if (typeof step === 'number') { e.preventDefault(); sweepOn = false; setX(now + step); stageDrag('keyboard'); }
+        else if (e.key === 'Home') { e.preventDefault(); sweepOn = false; setX(4); stageDrag('keyboard'); }
+        else if (e.key === 'End') { e.preventDefault(); sweepOn = false; setX(96); stageDrag('keyboard'); }
       });
     }
     /* One sweep on load so the idea reads without touching it: it starts and
@@ -1361,6 +1382,15 @@ instruction.</pre>
     syncPrompt(phone.matches);
     if (phone.addEventListener) {
       phone.addEventListener('change', function (e) { syncPrompt(e.matches); });
+    }
+    /* C-64 T-009: a click on the summary while the details is closed is the
+       visitor opening it (Enter/Space synthesize the same click); the
+       programmatic sync above never reports. */
+    var promptSumm = promptBox.querySelector('summary');
+    if (promptSumm) {
+      promptSumm.addEventListener('click', function () {
+        if (!promptBox.open && window.markTrack) window.markTrack('prompt_open', { placement: 'agents' });
+      });
     }
   }
   /* END_BLOCK_PROMPT_DETAILS */
@@ -1400,7 +1430,11 @@ instruction.</pre>
       sw.style.background = 'linear-gradient(135deg,' + v['--pele-bg'] + ' 50%,' + v['--pele-accent'] + ' 50%)';
       b.appendChild(sw);
       b.appendChild(document.createTextNode(pair[1]));
-      b.addEventListener('click', function () { wallStop(); wallSet(pair[0]); });
+      b.addEventListener('click', function () {
+        wallStop();
+        if (window.markTrack) window.markTrack('diagram_filter', { kind: 'theme', placement: 'landing' });
+        wallSet(pair[0]);
+      });
       themesBox.appendChild(b);
     });
     var count = document.createElement('span');

@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/gallery.test.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the gallery corpus and the built /diagrams/ page
 //            (C-58 R-1/R-3, T-001/T-002) — every example renders with pele
@@ -24,7 +24,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-18 C-64 T-007: cards gain
+//   LAST_CHANGE: v1.4.0 - 2026-10-21 C-64 T-009: pins the P3 wiring — the
+//   folio nav reports nav_click with placement gallery_nav (repo link
+//   outbound_click), diagram_filter carries placement gallery on both the
+//   theme strip and the group filters, and opening a card's Source details
+//   sends diagram_code_view with the card's id.
+//   PREV: v1.3.0 - 2026-10-18 C-64 T-007: cards gain
 //   content-visibility with tuned intrinsic sizes (420px, wide 480px) and
 //   a visually-hidden h2 per group (data-group aware) between the cards.
 //   PREV: v1.2.0 - 2026-10-18 C-64 T-001+T-003 merge: fonts from
@@ -156,5 +161,16 @@ describe('renderGallery (the built page)', () => {
     expect(html).toContain('href="/mark/guide/"')
     expect(html).toContain('url("/mark/fonts/brand/BricolageGrotesque-800.woff2")')
     expect(html).not.toMatch(/%BASE%|(href|src)="\/(?!mark\/)/)
+  })
+
+  it('tracks the folio nav as gallery_nav and the P3 diagram events (C-64 T-009)', () => {
+    for (const t of ['diagrams', 'docs', 'changelog']) {
+      expect(HTML).toContain(`data-track="nav_click" data-target="${t}" data-placement="gallery_nav"`)
+    }
+    expect(HTML).toContain('data-track="outbound_click" data-target="github" data-placement="gallery_nav"')
+    expect((HTML.match(/data-placement="gallery_nav"/g) || []).length).toBe(4)
+    expect(HTML).toContain("markTrack('diagram_filter',{kind:'theme',placement:'gallery'})")
+    expect(HTML).toContain("markTrack('diagram_filter',{kind:'group',placement:'gallery'})")
+    expect(HTML).toContain("markTrack('diagram_code_view',{doc_id:")
   })
 })
