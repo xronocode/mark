@@ -1,0 +1,101 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+<C-72>
+  <Name>Reconcile GRACE 4 current state after the 2.5.3 stabilization wave</Name>
+  <Created>2026-10-20</Created>
+
+  <Summary>
+    Reconcile durable GRACE 4 current-state artifacts, file-local semantic projections,
+    executable verification, active change lifecycles, and delivery bookkeeping with
+    the observed repository state after the 2.5.3 stabilization wave. The reconciliation
+    must preserve runtime behavior and historical evidence while making future semantic
+    navigation and verification truthful again.
+  </Summary>
+
+  <Goals>
+    <Goal>Classify every active change bundle as ongoing, completed, superseded, obsolete, or otherwise requiring an explicit evidence-backed disposition.</Goal>
+    <Goal>Correct routed graph module paths and lifecycle states where shipped source differs from durable current state, including M-045 and the flat Rust module paths.</Goal>
+    <Goal>Replace stale or non-executable verification entries with current commands, scenarios, markers, and assertion evidence, including a complete V-M-045 contract.</Goal>
+    <Goal>Replace legacy-only file-local LINKS projections with routed GRACE 4 graph and verification references without changing code behavior.</Goal>
+    <Goal>Correct the current 2.5.x delivery ledger to reflect observed implementation and verification evidence without inventing acceptance or release state.</Goal>
+    <Goal>Resolve main-worktree GRACE lint drift and document an intentional boundary for registered nested worktrees.</Goal>
+  </Goals>
+
+  <Constraints>
+    <Constraint>Preserve all GRACE 3 provenance under docs/*.xml and docs/migrations byte-for-byte.</Constraint>
+    <Constraint>Base lifecycle and delivery decisions only on repository evidence; do not reconstruct historical work as retroactive change bundles.</Constraint>
+    <Constraint>Keep archive paths and identifiers stable, and preserve existing evidence when moving an eligible bundle from active to archive.</Constraint>
+    <Constraint>Keep runtime and user-visible behavior unchanged.</Constraint>
+    <Constraint>Do not delete registered worktrees, branches, historical evidence, or archived change material.</Constraint>
+    <Constraint>Use current repository package-manager and test conventions rather than obsolete Yarn-era commands.</Constraint>
+    <Constraint>Follow the current release train protocol and keep implementation, verification, owner acceptance, queueing, and release states distinct.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Implement product features, bug fixes, runtime refactors, or UI changes.</NonGoal>
+    <NonGoal>Cut a release, bump a version, create or push a tag, publish artifacts, or edit GitHub release notes.</NonGoal>
+    <NonGoal>Claim owner acceptance, queueing, or release status that is not supported by the current delivery ledger.</NonGoal>
+    <NonGoal>Rewrite frozen GRACE 3 provenance or historical archived change records.</NonGoal>
+    <NonGoal>Remove nested worktrees or discard uncommitted work from any worktree.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>All active change bundles have an explicit evidence-backed disposition, and completed or superseded bundles approved for archival are moved with their evidence intact.</Criterion>
+    <Criterion>M-045 and other shipped modules covered by this change have truthful current paths and lifecycle states in the routed graph.</Criterion>
+    <Criterion>V-M-045 contains active commands, scenarios, markers, and assertion evidence, and the affected active command surfaces no longer use obsolete Yarn-era commands or deleted test paths; migrated LegacyBase evidence remains historical.</Criterion>
+    <Criterion>Governed source and test files in scope no longer rely exclusively on frozen GRACE 3 documents for file-local LINKS navigation.</Criterion>
+    <Criterion>The current 2.5.x release train records the observed table-footer implementation and verification state while preserving unaccepted and unreleased status unless separately evidenced.</Criterion>
+    <Criterion>Main-worktree current-state lint has no unresolved structural errors; any remaining warnings are intentional, explained, and bounded.</Criterion>
+    <Criterion>Current assertions, targeted IPC and Rust verification, and repository diff checks pass within declared budgets.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <GraphModules>
+      <M-006/>
+      <M-007/>
+      <M-008/>
+      <M-014/>
+      <M-017/>
+      <M-018/>
+      <M-019/>
+      <M-020/>
+      <M-021/>
+      <M-022/>
+      <M-045/>
+    </GraphModules>
+    <VerificationModules>
+      <V-M-010/>
+      <V-M-011/>
+      <V-M-012/>
+      <V-M-013/>
+      <V-M-021/>
+      <V-M-022/>
+      <V-M-045/>
+    </VerificationModules>
+    <CurrentStateArtifacts>
+      <Artifact>.grace/graph/runtime.xml</Artifact>
+      <Artifact>.grace/graph/features.xml</Artifact>
+      <Artifact>.grace/verification/runtime.xml</Artifact>
+      <Artifact>.grace/verification/features.xml</Artifact>
+      <Artifact>file-local MODULE_CONTRACT and MODULE_MAP projections</Artifact>
+    </CurrentStateArtifacts>
+    <GovernanceRecords>
+      <Record>.grace/changes/active</Record>
+      <Record>.grace/changes/archive</Record>
+      <Record>docs/release-trains/2.5.x-next.md</Record>
+    </GovernanceRecords>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    <Intent>Run GRACE current-assertion lint and module-aware status after reconciliation.</Intent>
+    <Intent>Use focused IPC type and Vitest checks for updated renderer verification entries.</Intent>
+    <Intent>Use filtered Rust tests for M-045 extension hosting and M-022 path handling.</Intent>
+    <Intent>Assert that obsolete commands, stale module paths, and legacy-only file-local LINKS are absent from the reconciled scope.</Intent>
+    <Intent>Verify that frozen GRACE 3 provenance remains unchanged and that the final repository diff is structurally clean.</Intent>
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>Owner, 2026-10-20: "OK" to the recommendation to create C-72 through grace-spec followed by grace-plan.</ApprovedBy>
+    <ApprovalScope>Create the approved C-72 specification and a reviewable draft plan for the bounded current-state reconciliation described here.</ApprovalScope>
+  </Approval>
+</C-72>
+</GraceChangeSpec>

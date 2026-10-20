@@ -16,7 +16,7 @@
 //   PURPOSE: Pin the C-68 baseline priority chain in diffView.vue — external snapshot → stored backend baseline → opened snapshot — plus the calm info notices for no-baseline, equal-content and untitled cases (raw backend errors never surface).
 //   SCOPE: Baseline priority, calm notices, path/tab supersession, exit/unmount cancellation and selected MergeView contents.
 //   DEPENDS: src/renderer/src/components/editorWithTabs/diffView.vue, src/renderer/src/store/diffSnapshots.js (real module)
-//   LINKS: .grace/changes/active/C-68 R-2/R-3/R-4; .grace/verification/runtime.xml V-M-011 scenario-67
+//   LINKS: .grace/changes/archive/C-68 R-2/R-3/R-4; .grace/verification/runtime.xml V-M-011 scenario-67
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

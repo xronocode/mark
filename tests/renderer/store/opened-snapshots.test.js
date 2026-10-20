@@ -18,7 +18,7 @@
 //   PURPOSE: Prove editor.js records the opened baseline on every disk-load path (NEW_TAB_WITH_CONTENT, RESTORE_SESSION, loadChange via APPLY_FILE_CHANGE), never for untitled tabs, keeps it across re-focus, and clears it with the tab.
 //   SCOPE: editor.js NEW_TAB_WITH_CONTENT / NEW_UNTITLED_TAB / RESTORE_SESSION / APPLY_FILE_CHANGE-loadChange / FORCE_CLOSE_TAB against the real store/diffSnapshots opened slot.
 //   DEPENDS: src/renderer/src/store/editor.js, src/renderer/src/store/diffSnapshots.js, tests/renderer/pinia
-//   LINKS: .grace/changes/active/C-68 R-1; .grace/verification/runtime.xml V-M-011 scenario-67
+//   LINKS: .grace/changes/archive/C-68 R-1; .grace/verification/runtime.xml V-M-011 scenario-67
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

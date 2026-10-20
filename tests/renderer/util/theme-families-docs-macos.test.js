@@ -16,7 +16,7 @@
 //            util/autoTheme, util/themeMigration, config.js,
 //            muya/lib/parser/render/mermaidTheme, theme css files,
 //            static/locales/*.json, commands/index.js, m009_menu.rs.
-//   LINKS: .grace/changes/active/C-51 T-007 (R-5);
+//   LINKS: .grace/changes/archive/C-51 T-007 (R-5);
 //          .grace/verification/runtime.xml V-M-011 scenario-60.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

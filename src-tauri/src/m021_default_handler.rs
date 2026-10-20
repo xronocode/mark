@@ -14,9 +14,9 @@
 //   DEPENDS: stdlib std::process::Command (production runner only),
 //            std::time (lsregister duration timer),
 //            serde (DefaultHandlerInfo serialization).
-//   LINKS:   docs/development-plan.xml Phase-B4-pre-alpha-add M-021;
-//            docs/verification-plan.xml V-M-021;
-//            docs/knowledge-graph.xml M-021.
+//   LINKS:   .grace/graph/runtime.xml M-001 (PhaseRef Phase-B4-pre-alpha-add) M-021;
+//            .grace/verification/runtime.xml V-M-021;
+//            .grace/graph/runtime.xml M-021.
 //   STATUS:  Phase-B4-pre-alpha-add: shipped 2026-05-09 with the 8
 //            module-local tests covering V-M-021 S-01, S-02, S-04,
 //            S-05, F-01, F-03, I-01, RC-01.

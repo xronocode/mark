@@ -41,7 +41,7 @@
 //   PURPOSE: Settings search panel (C-38 T-003) — filters the schema.json index from sideBar/config.js and routes every hit to its new 5-tab home; opened with ⌘F/Ctrl+F because the approved mockup toolbar has no search field.
 //   SCOPE: Query filtering, keyboard navigation (↑/↓/Enter/Esc), locale-refresh via the languageChanged window event, routing on select.
 //   DEPENDS: prefComponents/sideBar/config (getTranslatedSearchContent), prefComponents/tabsBar/config (tabPath), vue-router, vue-i18n.
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

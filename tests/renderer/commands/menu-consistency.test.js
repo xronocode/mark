@@ -4,7 +4,7 @@
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
 //   DEPENDS: src-tauri/src/m009_menu.rs, src/renderer/src/commands/index.js, Vitest, Node fs/path.
-//   LINKS: docs/verification-plan.xml V-M-009 and V-M-012 scenario-10; docs/knowledge-graph.xml M-009 and M-012.
+//   LINKS: .grace/verification/runtime.xml V-M-009 and V-M-012 scenario-10; .grace/graph/runtime.xml M-009 and M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

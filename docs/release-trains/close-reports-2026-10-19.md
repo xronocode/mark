@@ -21,6 +21,6 @@ The installed ordinary application was previously observed as 2.5.0, while the d
 
 On 2026-10-19, C-TAB-CLOSE-OWNERSHIP demonstrated four deterministic ownership defects despite the passing ordinary close checks above: late events from another/closed tab, writes from an old surface, an incorrect equal-content render shortcut and missed activation recovery. Source `943d57d69f7d3b9bf4f896b814649138470e01ac` repairs those boundaries.
 
-The repaired combined base passes 4617 unit cases, 20 Chromium/WebKit cases and controlled native macOS WKWebView timing checks with synthetic documents. The original native producer sequence remains uncaptured; the native shim check is not full backend integration coverage. See the [sanitized GRACE evidence](../../.grace/changes/active/C-TAB-CLOSE-OWNERSHIP/evidence.json).
+The repaired combined base passes 4617 unit cases, 20 Chromium/WebKit cases and controlled native macOS WKWebView timing checks with synthetic documents. The original native producer sequence remains uncaptured; the native shim check is not full backend integration coverage. See the [sanitized GRACE evidence](../../.grace/changes/archive/C-TAB-CLOSE-OWNERSHIP/evidence.json).
 
 The owner reviewed the completed repair and explicitly approved release-train admission on 2026-10-19. Its state is now **queued**, with exact source/artifact identity, accepted scope and remaining gates in the [current train item](2.5.x-next.md#c-tab-close-ownership). This acceptance does not start a release or accept other changes in the same base.

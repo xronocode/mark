@@ -18,7 +18,7 @@
 //            mt::ask-for-close + advance state machine).
 //   DEPENDS: m001_lifecycle (state machine), m013b::fs (mt_fs_write),
 //            m013b::state::SecurityCtx, tauri::Emitter, tauri::Manager.
-//   LINKS:   docs/development-plan.xml Phase-B4-pre-alpha step-3
+//   LINKS:   .grace/graph/runtime.xml M-001 (PhaseRef Phase-B4-pre-alpha) step-3
 //            (closes F-LIFECYCLE-WIRE; introduces save-flow wiring
 //            that v1.2.3 main process did and was missing in Tauri
 //            port — tracked as F-SAVE-FLOW-WIRE in followups).

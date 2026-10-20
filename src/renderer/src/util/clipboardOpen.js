@@ -17,7 +17,7 @@
 //            @tauri-apps/api/core, @tauri-apps/api/path,
 //            @/services/notification, @/store/project,
 //            @/store/preferences (lazy — no Pinia at import time).
-//   LINKS: .grace/changes/active/C-52/spec.xml R-1/R-2/R-5;
+//   LINKS: .grace/changes/archive/C-52/spec.xml R-1/R-2/R-5;
 //            commands/index.js file.open-from-clipboard;
 //            components/recent/index.vue START_BLOCK_PASTE_OPEN.
 //   ROLE: RUNTIME

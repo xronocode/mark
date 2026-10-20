@@ -17,7 +17,7 @@
 //            cocoa + objc (macOS pasteboard),
 //            tauri-plugin-clipboard-manager (non-macOS text),
 //            m_v1_compat::is_markdown (classification).
-//   LINKS: .grace/changes/active/C-52/spec.xml R-3; renderer resolver
+//   LINKS: .grace/changes/archive/C-52/spec.xml R-3; renderer resolver
 //          src/renderer/src/util/clipboardPath.js + util/clipboardOpen.js;
 //          m009_menu.rs file.open-from-clipboard (⌥⌘V).
 //   ROLE: RUNTIME

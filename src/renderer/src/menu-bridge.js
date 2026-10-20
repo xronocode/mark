@@ -9,7 +9,7 @@
 //   DEPENDS: window.electron.ipcRenderer.on (provided by
 //            _shims/install-window-globals.js — must be loaded
 //            BEFORE this module).
-//   LINKS:   docs/development-plan.xml Phase-B4-pre-alpha step-1
+//   LINKS:   .grace/graph/runtime.xml M-009 (PhaseRef Phase-B4-pre-alpha) step-1
 //            (closes F-MENU-WIRE-TAURI together with backend changes
 //            in src-tauri/src/m009_menu.rs + main.rs).
 //

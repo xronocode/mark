@@ -1,0 +1,185 @@
+<GraceChangePlan graceVersion='4.0' status='applied'>
+<C-56>
+  <ChangeRef>C-56</ChangeRef>
+  <Created>2026-10-18</Created>
+  <IntentSummary>Per-block diagram/chart export: a shared muya exporter builds a self-contained SVG (inlined --pele-* / Vega colours, theme font, theme panel background, natural size) and rasterizes it to a 2× PNG; the editor context menu and the fullscreen block viewer toolbar offer Copy as Image (clipboard writeImage, one new capability), Save as PNG… and Save as SVG… (save dialog + fs write, heading-derived file name); strings in ten locales; unit + e2e coverage; graph and verification updated.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src-tauri/capabilities/default.json</File>
+      <Text>clipboard-manager:allow-write-html</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-012</Module>
+    </MustVerify>
+    <MustContain>
+      <File>src/muya/lib/utils/diagramExport.js</File>
+      <Text>buildStandaloneSvg</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/capabilities/default.json</File>
+      <Text>clipboard-manager:allow-write-image</Text>
+    </MustContain>
+    <MustContain>
+      <File>src-tauri/capabilities/mas.json</File>
+      <Text>clipboard-manager:allow-write-image</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>npx vitest run</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command>npm run build</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-012 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-012 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src-tauri/Cargo.toml</File>
+    <File>Cargo.lock</File>
+    <File>src/muya/lib/utils/diagramExport.js</File>
+    <File>src/muya/lib/ui/blockViewer/index.js</File>
+    <File>src/muya/lib/ui/blockViewer/index.css</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <File>src-tauri/capabilities/default.json</File>
+    <File>src-tauri/capabilities/mas.json</File>
+    <Glob>static/locales/*.json</Glob>
+    <Glob>tests/renderer/muya/*.test.js</Glob>
+    <Glob>tests/e2e/*.spec.ts</Glob>
+    <Glob>tests/e2e/fixtures/**</Glob>
+    <Glob>.grace/**</Glob>
+    <Glob>src/muya/lib/parser/render/renderBlock/**</Glob>
+    <File>src/muya/lib/eventHandler/clickEvent.js</File>
+    <Glob>src/muya/lib/ui/imageToolbar/**</Glob>
+    <Glob>src/muya/lib/assets/pngicon/**</Glob>
+    <Glob>src/renderer/src/util/**</Glob>
+    <File>src/muya/lib/assets/styles/index.css</File>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id='corner-1'>
+      <Situation>Export a Pele diagram in Ink (dark) with the default background</Situation>
+      <Expected>SVG/PNG carry the Ink code-panel background rect and resolved colours; no var(--pele-*) remains; text stays readable outside Mark</Expected>
+    </Corner>
+    <Corner id='corner-2'>
+      <Situation>Export from the block viewer while zoomed ×3 and panned</Situation>
+      <Expected>the full diagram at natural size (PNG 2× natural), not the visible viewport crop</Expected>
+    </Corner>
+    <Corner id='corner-3'>
+      <Situation>Right-click on a paragraph, table, code block or KaTeX block</Situation>
+      <Expected>no image export items in the menu (non-goal types excluded)</Expected>
+    </Corner>
+    <Corner id='corner-4'>
+      <Situation>Block in error (keep-last-good stale SVG) / block that never rendered</Situation>
+      <Expected>stale: exports the last good SVG; never rendered: items disabled, no exception</Expected>
+    </Corner>
+    <Corner id='corner-5'>
+      <Situation>Save dialog cancelled; clipboard write rejected</Situation>
+      <Expected>no file, no toast of success; a failure notice with a log marker, no unhandled rejection</Expected>
+    </Corner>
+    <Corner id='corner-6'>
+      <Situation>Document with no heading above the block / heading with non-ASCII (Russian) text</Situation>
+      <Expected>file name falls back to "&lt;doc&gt;-diagram-N"; non-ASCII headings slug to a safe, non-empty name</Expected>
+    </Corner>
+    <Corner id='corner-7'>
+      <Situation>App Store build (mas capabilities)</Situation>
+      <Expected>writeImage permitted; save works only through the user-selected dialog path; no new entitlement</Expected>
+    </Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>muya util diagramExport.js: buildStandaloneSvg, rasterizeSvg (2× PNG), suggestFileName + unit tests</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>Unit tests cover var inlining, background rect on/off, natural size, chrome stripped, no script/external refs, slug + fallbacks (corners 1, 4, 6).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/muya/diagram-export.test.js</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Editor context-menu items + handlers (clipboard writeImage, save dialog, fs write, toast) and the capability permission in default.json + mas.json</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Items only on Pele/Vega-Lite blocks; Copy writes PNG bytes; Save writes PNG/SVG; cancel/failure paths per corner-5; capabilities diff is exactly one permission per file.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/diagram-export.spec.ts --project=chromium</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Block viewer toolbar: Copy as Image / Save as PNG… / Save as SVG… exporting the whole diagram regardless of zoom/pan</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Corner-2 pinned in e2e; existing block-viewer spec stays green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/block-viewer.spec.ts tests/e2e/diagram-export.spec.ts --project=chromium --project=webkit</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Locales (10 + min.json), graph M-012 + editor module notes, verification V-M-012 new scenario, MODULE_MAP/CHANGE_SUMMARY</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>grace lint --path . --assertions current = 0; locale suites green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-004>
+    <T-005>
+      <Title>Diagram corner toolbar (user choice 2026-10-18, variant C): one hover pill with three same-family icons — Edit source, Copy as image, Open full screen — replacing the old PNG edit icon and the separate expand glyph on Pele diagram and Vega-Lite figures</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Look (approved mockup ~/prj/mark-media/corner/corner.html, variant C): a pill at the figure's top-right inside the diagram panel (top/right 8px), background color-mix(--pele-surface 95%), 1px border color-mix(--pele-fg 12%), radius 8px, padding 2px; three buttons with 16px stroke icons (1.5px stroke, round caps — the exact SVG paths from the mockup: code «‹ ›», copy-image «two rects + mountain», expand «two diagonal arrows»), colour --pele-muted, hover colour --pele-fg on a 10% fg tint; on button hover a short text label slides in next to the icon (Edit source / Copy as image / Open full screen), localized; tooltips (title + aria-label) carry the same text.</Criterion>
+        <Criterion>Visibility exactly as today: the pill appears ONLY while the pointer is over the figure (opacity 0 → 1, 150 ms), never because the caret is inside; the expand button inside the pill keeps the expandNeed.js gate (shown only on figures marked ag-expand-needed; Cmd/Ctrl+click still opens the viewer everywhere); Edit source and Copy as image always show on hover. Keyboard focus inside the pill makes it visible (focus-visible).</Criterion>
+        <Criterion>Behaviour: Edit source = the existing container edit action (contentState.handleContainerBlockClick on the figure); Copy as image = the T-002 copyAsImage transport (2× PNG to the clipboard, same toast/failure paths); Expand = the existing block viewer open. Copy is disabled (not hidden) on a never-rendered block. Other figure types (html, multiplemath, flowchart.js, sequence, plantuml, tables) keep today's icons unchanged.</Criterion>
+        <Criterion>Strings: blockToolbar.editSource / copyImage / openFullScreen in all ten static/locales (+ regenerated min.json), native copy.</Criterion>
+        <Criterion>Tests: unit (render: pill + three buttons on mermaid/vega-lite figures only, expand still need-gated), e2e chromium + webkit (hover shows the pill, caret-only does not; each button does its action; copy writes a 2× PNG; labels localized), every existing selector that assumed `figure > button.ag-block-expand` updated; block-viewer, diagram-export, pele-render specs green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/diagram-export.spec.ts tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit</Command></Verification>
+    </T-005>
+    <T-006>
+      <Title>Copy image for embedded Markdown images (user request 2026-10-18): an already-inserted ![](…) image can be put back on the clipboard as a picture — image toolbar button + editor context-menu item</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Entry points: (a) the muya image toolbar (ui/imageToolbar) gains a "Copy image" button (same icon family as the T-005 copy glyph, tooltip localized) between edit and the alignment buttons; (b) right-clicking an image in the editor adds "Copy Image" to the native context menu (only when the target is an img inside the editor; the existing items stay).</Criterion>
+        <Criterion>Bytes: local images (absolute/relative paths, file://, asset: URLs) are read through the existing renderer fs read-binary path (no new fs scope); PNG bytes go to clipboard writeImage as-is; JPEG/WebP/GIF/SVG/other are drawn to a canvas at natural size and encoded as PNG first; remote http(s) images are fetched and converted the same way — a CORS-tainted or failed load shows the existing failure notice ("Could not copy the image") with a log marker, never an unhandled rejection. Success shows the T-002 "Copied" toast.</Criterion>
+        <Criterion>Strings in ten locales (+ min.json), native copy. No new capabilities beyond T-002's clipboard-manager:allow-write-image.</Criterion>
+        <Criterion>Tests: unit (source resolution: local path / relative to the document / asset URL / data: URL / remote; PNG pass-through vs canvas conversion), e2e chromium + webkit (toolbar button and context-menu item write PNG bytes to the clipboard mock; a broken image shows the failure notice).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/diagram-export.spec.ts --project=chromium --project=webkit</Command></Verification>
+    </T-006>
+    <T-007>
+      <Title>Fold the C-62 appearance control into the corner pill (user report 2026-10-18): the separate always-visible theme button drew off-design and floated at fixed offsets; it becomes the pill's leading item, revealed only on hover and anchored to the figure's right edge</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>On nonempty ```mermaid figures the pill renders [appearance ▾][edit source][copy as image][open full screen]; Vega-Lite pills keep the three actions; the figure carries no separate appearance child, no fixed right offsets and no reserved 36 px top padding.</Criterion>
+        <Criterion>The appearance button matches the pill family (16-grid 1.5-stroke icon, --pele-muted → --pele-fg, 10 % fg tint on hover/open, transparent at rest) and an open appearance menu keeps the pill visible.</Criterion>
+        <Criterion>C-62 behaviour is unchanged (menu, persistence, undo, viewer header control); the fullscreen viewer header keeps its own appearance button.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/diagram-appearance.spec.ts tests/e2e/diagram-export.spec.ts --project=chromium</Command></Verification>
+    </T-007>
+  </ImplementationPlan>
+  <Evidence>
+    <T-001>
+      <Status>implemented 2026-10-18 (ZCode agent, worktree agent/c56)</Status>
+      <Notes>src/muya/lib/utils/diagramExport.js v1.0.0 (MODULE_CONTRACT/MAP/CHANGE_SUMMARY + START_BLOCK anchors): buildStandaloneSvg (clone-only — the live SVG is never mutated; every var(--pele-*) replaced with the buildPeleVariables(readActiveThemeTokens()) value, resolved values XML-escaped so a quoted font stack cannot break serialization; theme font on the root when absent; background rect of vars['--pele-bg'] first child, background:false = transparent; natural size = data-natural-width → viewBox width → px width attr, height by viewBox ratio, getBoundingClientRect last resort, null when underivable; root id + data-natural-width dropped, width/height/viewBox set to natural, inline width/height/max-width/min-width cleared; script/.ag-pele-error removed, on* attrs and javascript: hrefs stripped), rasterizeSvg (data: URL → img.decode() → canvas at scale× (default 2) → toBlob PNG → bytes; createCanvas/makeImage injectable for jsdom), pngIhdrSize (IHDR width/height reader shared by the e2e), suggestFileName/slugifyName (unicode \p{L}\p{N} kept — Cyrillic headings slug to Cyrillic; whitespace/_ → '-'; 64-char cap; &lt;doc&gt;-diagram-N fallback), nearestHeadingText (previous-sibling + ancestor walk, last heading in document order, stops at #ag-editor-id), resolveDiagramExportFigure/diagramExportSvg (role-gated MERMAID/VEGA-LITE; accepts figure, any inner target, or the LIVE preview div the viewer dispatches; null for never-rendered blocks). Unit tests/renderer/muya/diagram-export.test.js v1.0.0 (corners 1/4/6 + the rasterizer). Gates to be run by the orchestrator: npx vitest run tests/renderer/muya/diagram-export.test.js.</Notes>
+    </T-001>
+    <T-002>
+      <Status>implemented 2026-10-18 (ZCode agent)</Status>
+      <Notes>editor.vue v1.24.0: handleDiagramExportAction({ action, element }) is the single transport (START_BLOCK_DIAGRAM_EXPORT + START_CONTRACT) — copyImage: buildStandaloneSvg → rasterizeSvg 2× → dynamic-import @tauri-apps/plugin-clipboard-manager writeImage(bytes) → «Copied» notice (editor.diagramExport.title/copied); savePng/saveSvg: suggestFileName(nearestHeadingText, currentFile.filename, diagramIndexInDoc) → dynamic-import @tauri-apps/plugin-dialog save (localized title, defaultPath, PNG/SVG filter) → window.fileUtils.writeFile (string SVG / binary PNG — mt::fs::write / mt_fs_write_binary) → the existing store.editor export-success notice; corner-5 — cancelled save returns early (no write, no toast), every failure path warns [Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT] + localized warning notice, never rejects. handleEditorContextMenu (v updated contract) inserts { type: separator } + copyAsImage/saveDiagramPng/saveDiagramSvg between copyAsStructuredText and paste ONLY when resolveDiagramExportFigure(event.target) hits (corner-3), each with enabled:false when the figure's preview has no svg (corner-4 — enabled is a supported m009 ContextMenuItemSpec field); the ids dispatch the shared handler with the figure element. capabilities/default.json + mas.json: exactly one permission each (clipboard-manager:allow-write-image after allow-write-html). e2e: tests/e2e/diagram-export.spec.ts + tauri-shim defaults (mt_window_popup_context_menu → null, plugin:clipboard-manager|write_image → null, plugin:dialog|save → null, mt_fs_write_binary → null) so specs capture/drive via __mockInvoke.</Notes>
+    </T-002>
+    <T-003>
+      <Status>implemented 2026-10-18 (ZCode agent)</Status>
+      <Notes>ui/blockViewer v3.2.0 (+ index.css START_BLOCK_CSS_EXPORT): three buttons between 1:1 and close — ag-block-viewer-copy-image (inline currentColor two-cards glyph), -save-png, -save-svg (shared ag-block-viewer-export-btn, display:none unless the overlay carries ag-block-viewer-can-export). open() computes exportable = kind==='diagram' &amp;&amp; source.closest(EXPORTABLE_FIGURE_SELECTOR) (tables and flowchart/sequence/plantuml never qualify) and toggles the class; close() resets it. refreshViewerLabels localizes blockViewer.copyImage/savePng/saveSvg tooltips + aria-labels. dispatchDiagramExport(action) dispatches muya-diagram-export { action, element: resolveLiveSource() || sourceEl } — the LIVE block, never the zoomed clone, with the [Muya][blockViewer][BLOCK_VIEWER_EXPORT] marker; editor.vue subscribes (on/off around the muya lifecycle). The buttons stay out of the focus trap when hidden (display:none). Corner-2 pinned in tests/e2e/diagram-export.spec.ts (zoom ×8 presses, IHDR = 2× natural) plus the table-viewer hidden-button negative. NOTE for the orchestrator: playwright.config.ts defines no bare `webkit` project (per-spec named webkit-* projects only) and is outside this change's ObservedWriteScope — the T-003 gate command should run `--project=chromium` (or a webkit-diagram-export project should be added separately); block-viewer.spec.ts continues to run under webkit-block-viewer.</Notes>
+    </T-003>
+    <T-004>
+      <Status>implemented 2026-10-18 (ZCode agent)</Status>
+      <Notes>All ten static/locales pairs edited in lockstep (json + min.json, same key order, native copy, PNG/SVG/Mark kept untranslated): contextMenu.editor.{copyAsImage,saveAsPng,saveAsSvg}, blockViewer.{copyImage,savePng,saveSvg}, editor.diagramExport.{title,copied,copyFailed,saveFailed}. graph/runtime.xml M-012: C-56 summary paragraph + Interface fn-diagramExport. verification/runtime.xml V-M-012: scenario-63 (picture export, corners 1-7), the vitest + e2e commands, marker [Muya][blockViewer][BLOCK_VIEWER_EXPORT] (the host-side [Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT] marker is named inside the scenario). MODULE_MAP/CHANGE_SUMMARY updated in diagramExport.js, editor.vue (v1.24.0) and blockViewer/index.js (v3.2.0); the test files carry their own contracts. Orchestrator TODO: run npx vitest run, npm run build, the diagram-export + block-viewer e2e (chromium), and grace lint --path . --assertions current.</Notes>
+    </T-004>
+    <T-005>
+      <Status>implemented 2026-10-18 (ZCode agent, worktree agent/c56)</Status>
+      <Notes>New renderBlock/renderBlockToolbar.js v1.0.0: the variant-C pill vnode (div.ag-block-toolbar, direct figure child — survives pele innerHTML inserts) with the three mockup glyphs (TOOLBAR_EDIT_ICON_PATH / TOOLBAR_COPY_ICON_RECT+PATHS / TOOLBAR_EXPAND_ICON_PATH, 16-grid 1.5 stroke round caps) and syncBlockToolbarState (corner-4 copy-disabled pass). renderContainerBlock.js v1.7.0 (START_BLOCK_TOOLBAR_RENDER): mermaid/vega-lite figures with non-empty source get the pill INSTEAD of renderEditIcon + the standalone renderExpandButton; they keep the ag-has-expand marker (expandNeed still gates); empty fences and every other role unchanged. expandNeed.js v1.1.0: updateFigureExpandNeed also runs syncBlockToolbarState — the existing funnel (every render path, pelePipeline insert line 210, awaited vega embed render/index.js:278, ResizeObserver) covers the disabled flip with NO new call sites in out-of-scope files. clickEvent.js v1.4.0 (START_BLOCK_TOOLBAR_CLICK, before the generic expand branch): editSource → handleContainerBlockClick(figure), copyImage → muya-diagram-export {copyImage, figure} (editor.vue v1.24.1 doc-only — the T-002 handler serves it unchanged), expand → muya-block-viewer; disabled pill buttons route nowhere (synthetic clicks guarded). Every pill button carries the ag-block-expand class = the keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON guard hook (keyboard.js is outside ObservedWriteScope and needed no edit); the nested buttons escape every `figure &gt; button.ag-block-expand` CSS rule. index.css: the C-56 T-005 section — variant-C literals (color-mix surface 95%/fg 12%, radius 8, padding 2, buttons 4/8 radius 6, --pele-muted → --pele-fg on the 10% tint, label span revealed on button hover, disabled 0.45), reveal = figure:hover / :focus-within (150 ms), ag-active display:none, expand gated by ag-expand-needed. blockViewer/index.js v3.2.1: close()/reassert restore prefers the pill expand (expandButtonOf). Locales: blockToolbar.{editSource,copyImage,openFullScreen} native copy in all ten json + min.json (same key order, inserted between blockViewer and recent). diagramExport.js v1.0.1: the T-005 grace-lint fixes (pngIhdrSize in MODULE_MAP; buildStandaloneSvg/rasterizeSvg START_CONTRACTs moved outside their START_BLOCKs) — markup only, no behavior change. Tests: new tests/renderer/muya/block-toolbar.test.js v1.0.0; block-expand-button.test.js v1.5.0 (standalone-glyph cases on flowchart/sequence/plantuml + tables; mermaid/vega pill split; export case also pins no ag-block-toolbar); block-viewer.test.js v2.4.0 (pill focus-restore preference); e2e diagram-export.spec.ts v1.1.0 (new pill group; zoomed-viewer opens via the pill expand; SVG-save pins no pill chrome), block-viewer.spec.ts v3.3.0 (all mermaid selectors → pill expand, 15 family buttons + per-action labels, small-mermaid hidden-expand/focusable-edit-copy, pill look incl. caret-only invisibility + :focus-within, Tab walk over pill stops), readme-shots.spec.ts v1.1.1 (05-viewer opens via the pill). GRACE: graph M-012 T-005 paragraph + Interface fn-renderBlockToolbar; verification V-M-012 scenario-64. Residual for the orchestrator: the pill-copy DISABLED state on a genuinely never-rendering non-empty block is unit-pinned only (an e2e would need a deterministic never-rendering fence; the empty fence renders no pill by design); gates to run: npx vitest run, the diagram-export + block-viewer e2e (--project=chromium; webkit via the per-spec webkit-block-viewer project per the T-003 note), npm run build, grace lint --path . --assertions current.</Notes>
+    </T-005>
+    <T-006>
+      <Status>implemented 2026-10-18 (ZCode agent, worktree agent/c56)</Status>
+      <Notes>diagramExport.js v1.1.0 — the T-006 image-copy helpers (START_BLOCK_IMAGE_COPY_SOURCE / START_BLOCK_IMAGE_COPY_PNG + START_CONTRACTs; the img load/decode wait extracted into the shared waitDecodedImage so rasterizeSvg keeps the orchestrator-pinned src-before-decode ordering): resolveImageCopySource (raw Markdown src → { kind: 'local', path } for absolute / file:/// (decodeURIComponent exactly like loadImageAsync's bridge) / Tauri asset://localhost/ENC (and bare asset://ENC) / relative resolved against dirname(docPath) with POSIX-segment normalization and windows separators folded (null without a saved document); { kind: 'remote', url } for http(s); { kind: 'data', bytes, mime } decoded inline via decodeDataUrl (header-split mime + ;base64 flag, atob/TextEncoder payloads, null on malformed); null for blob:/empty), isPngBytes (8-byte magic gate), imageBytesToPng (bytes → injectable object URL → decoded img → NATURAL-size canvas → PNG bytes; rejects empty bytes and zero natural size — the sizeless-SVG failure path; default-created object URLs revoked in finally), imageCopyPngBytes (the transport's single call: PNG passes through untouched with its IHDR size, everything else converts). ui/imageToolbar v1.1.0 (index.js + config.js + index.css, first GRACE contracts): the Copy image entry between edit and the alignment buttons — tooltip editor.image.toolbar.copyImage, the exact T-005 corner-pill copy glyph (TOOLBAR_COPY_ICON_RECT+PATHS) inlined as a 16-grid 1.5-stroke currentColor SVG (render's new i.svg branch; the PNG background path untouched), li margin-right 8px, toolbar width 240→274px for the seventh button; selectItem's copyImage case hides the float and dispatches muya-image-copy { imageInfo }. editor.vue v1.25.0: handleImageCopyAction (START_BLOCK_IMAGE_COPY + START_CONTRACT; subscribed to muya-image-copy and dispatched by the copyEmbeddedImage menu id) — resolveImageCopySource against currentFile.pathname; local bytes through the EXISTING read-binary bridge (window.__markImageLoader → mt::fs::read_binary, the same path the display uses — blob URL fetched in-page and revoked; NO new fs scope), remotes via fetch (HTTP status checked; CORS/network rejections land in the catch-all), imageCopyPngBytes for the passthrough/re-encode, dynamic-import writeImage (the T-002 capability — nothing new), the T-002 «Copied» toast, and every failure warns [Editor][handleImageCopyAction][BLOCK_IMAGE_COPY] + the existing «Could not copy the image» notice, never rejects. handleEditorContextMenu computes contextImageInfo via muya's DOM getImageInfo ONLY when event.target is an IMG inside span.ag-inline-image (a failed image has its img removed → no item) and appends the separator + contextMenu.editor.copyImage item after the diagram group. Locales: editor.image.toolbar.copyImage (between edit and inline) + contextMenu.editor.copyImage (after copyAsImage) native copy in all ten json + min.json, same key order — ru «Скопировать изображение», de «Bild kopieren», es «Copiar imagen», fr «Copier l'image», ja «画像をコピー», ko «이미지 복사», pt «Copiar imagem», zh-CN «复制图片», zh-TW «複製圖片». Tests: new tests/renderer/muya/image-copy.test.js v1.0.0 (source classification incl. windows/file:///asset:///relative-…/relative-without-doc, decodeDataUrl params/malformed, isPngBytes gate, natural-size canvas draw + rejections, imageCopyPngBytes pass-through-vs-convert); e2e diagram-export.spec.ts v1.2.0 START_BLOCK_EXPORT_E2E_IMAGE_COPY (file:// image srcs served by an mt_fs_read_binary mock built from real in-page canvas PNG/JPEG bytes — the display load and the copy read share the bridge: toolbar button position between edit/inline + EXACT-byte PNG passthrough + toast; the context-menu item on an img target only + exact bytes; JPEG → PNG re-encode with IHDR = the 24×16 natural size; a read that breaks after the display load → failure notice, clipboard untouched, no page error); tauri-shim gains the mt_fs_read_binary → null default. GRACE: graph M-012 T-006 paragraph + fn-diagramExport value; verification V-M-012 scenario-65 + the host-side marker comment. NOTE for the orchestrator: the T-006 gate command's bare `--project=webkit` has the same playwright.config.ts caveat as T-003 (no bare webkit project — run --project=chromium); gates to run: npx vitest run tests/renderer/muya/image-copy.test.js tests/renderer/muya/diagram-export.test.js, the diagram-export e2e (--project=chromium), npm run build, grace lint --path . --assertions current.</Notes>
+    </T-006>
+    <T-007>
+      <Status>implemented 2026-10-18 (orchestrator, merge branch integ/merge-gate)</Status>
+      <Notes>renderBlockToolbar v1.1.0 takes optional leading vnodes; renderContainerBlock v1.8.0 hoists the diagram source (diagramCode) and passes renderDiagramAppearance(t, diagramCode) as the Mermaid pill's leading item, dropping the separate figure child; renderDiagramAppearance v1.0.1 uses the pill's 1.5 stroke; diagramAppearance/index.css drops the absolute offsets, the 36/56 px preview padding and the container-icon offsets, styles the in-pill control at pill-button specificity and keeps the pill visible while the menu is open. Tests: block-toolbar.test.js v1.1.0 (leading control on Mermaid only, family buttons via pillButtons), diagram-export.spec.ts v1.3.0 (leading control pinned, labels read from family buttons), diagram-appearance.spec.ts v1.1.0 (hover reveal + right-edge anchor replaces the clearance check; viewer opened via the pill expand). Visual check on Paper and Ink: the appearance glyph shares colour, height and padding with the neighbouring pill buttons.</Notes>
+    </T-007>
+      <OrchestratorReview date="2026-10-18">Review fixes before merge: (1) PRODUCT BUG — writeImage(pngBytes) fails at runtime without tauri's image-png feature ("expected RGBA image data, found raw bytes"); enabled features = ["devtools", "image-png"] on the existing tauri dependency (the png crate was already in Cargo.lock — one lock line, no new crate); the e2e mock could not catch it. (2) PRODUCT BUG — a right-click on a rendered diagram preview (contenteditable=false) collapses the selection, muya's contextmenu handler early-returned, so the export items were unreachable in the real app; clickEvent.js v1.3.0 dispatches 'contextmenu' for figure targets without a cursor. (3) rasterizeSvg called img.decode() before setting src (rejects in Chromium/WebKit) → onload/onerror after src. (4) untitled tabs no longer leak "Untitled-N" into the default file name; (5) suggestFileName fallback produced diagram-diagram-N. (6) menu order: image items after copy/paste. (7) e2e: the dialog mock reads { options }, the empty-fence right-click re-locates after the caret click. Gates: diagram-export unit 20/20; Playwright chromium + webkit (diagram-export, block-viewer, pele-render, zoom) 74/74; cargo check 0 errors.</OrchestratorReview>
+  </Evidence>
+</C-56>
+</GraceChangePlan>

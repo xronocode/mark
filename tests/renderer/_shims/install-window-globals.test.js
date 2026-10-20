@@ -18,7 +18,7 @@
 //            tests/renderer/assets/symbolIcon.test.js (which pins
 //            main.js the same way) is used here.
 //   DEPENDS: vitest, node:fs, node:path.
-//   LINKS: .grace/changes/active/C-52 (gate fix);
+//   LINKS: .grace/changes/archive/C-52 (gate fix);
 //          .grace/verification/runtime.xml V-M-059;
 //          src/renderer/src/_shims/install-window-globals.js
 //          START_BLOCK_DROP_FOLDER_WORKSPACE.

@@ -4,7 +4,7 @@
 //   PURPOSE: Pure helpers for the outline rail — heading extraction, current-heading resolution, visibility gates and visible table intersection.
 //   SCOPE: Pure functions only (no DOM, no store access): extractRailHeadings, resolveCurrentHeading, railFitsWithoutOverlap, shouldShowRail, railIntersectsTable.
 //   DEPENDS: none.
-//   LINKS: .grace/changes/active/C-40 T-003; C-71-OUTLINE-OCCLUSION; components/editorWithTabs/outlineRail.vue; .grace/graph/runtime.xml M-011 fn-extractRailHeadings and fn-railIntersectsTable; .grace/verification/runtime.xml V-M-011 scenario-54.
+//   LINKS: .grace/changes/archive/C-40 T-003; C-71-OUTLINE-OCCLUSION; components/editorWithTabs/outlineRail.vue; .grace/graph/runtime.xml M-011 fn-extractRailHeadings and fn-railIntersectsTable; .grace/verification/runtime.xml V-M-011 scenario-54.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Shared diagram theming (renamed from mermaidTheme.js in C-55) — the OKLCH categorical palette, the active-theme token reading, the WCAG node-contrast derivation against the code-block panel (C-51 T-012 / C-54), and the C-55 pele CSS-variable block (--pele-bg/fg/muted/line/surface/surface-alt/border/accent + --pele-series-1..8) that themes pele SVGs through the cascade with zero re-renders.
 //   SCOPE: OKLCH colour math (oklch/hueOf/palette), the theme token reader (CSS variables + body dark flag, translucent values composited), the categorical chartPalette shared with contentTheme.js (Vega-Lite/flowchart/sequence), nodeContrastColors with its WCAG gates, buildPeleVariables (tokens → the pele variable map), and the theme signature used by the StateRender diagram log.
 //   DEPENDS: none — pure colour math plus lazy DOM reads (window/document are touched only inside functions so tests can import the module cold).
-//   LINKS: .grace/changes/archive/C-55 R-3; .grace/changes/archive/C-51 T-003/T-004/T-005/T-012; .grace/changes/active/C-54; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-17.
+//   LINKS: .grace/changes/archive/C-55 R-3; .grace/changes/archive/C-51 T-003/T-004/T-005/T-012; .grace/changes/archive/C-54; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-17.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

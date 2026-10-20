@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the C-40 T-004 per-tab read-only lock — editorStore.TOGGLE_LOCK_DOCUMENT semantics over the M-022 previewMode surface.
 //   SCOPE: Store-level tests with stubbed sibling stores/bus/i18n (muya never loads): lock entry/exit, sidebar semantics, Finder-preview interplay, background tabs, no-op guards.
 //   DEPENDS: Vitest, Pinia test setup, store/editor.js.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/active/C-40 T-004.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/archive/C-40 T-004.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

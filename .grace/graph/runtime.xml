@@ -1485,7 +1485,7 @@
         Global/local keyboard shortcut registration and dispatch (accelerator
         parser honors capitalized modifiers per #4134).
       </Summary>
-      <PlannedPath>src-tauri/src/shortcuts/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m006_shortcuts.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-006</VerificationRef>
       <Contract>
@@ -1534,9 +1534,9 @@
         </fn-shortcuts_unregister>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/shortcuts/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/shortcuts/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/shortcuts/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m006_shortcuts.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m006_shortcuts.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m006_shortcuts.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Shortcuts]</LogPrefix>
@@ -1639,7 +1639,7 @@
         hunspell dictionaries for extra languages; thin shim over
         tauri-plugin-spellcheck if available or manual session config.
       </Summary>
-      <PlannedPath>src-tauri/src/spell/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m007_spell.rs</PlannedPath>
       <Dependencies>
         <M-005/>
       </Dependencies>
@@ -1731,9 +1731,9 @@
         </fn-spell_get_custom_words>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/spell/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/spell/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/spell/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m007_spell.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m007_spell.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m007_spell.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Spell]</LogPrefix>
@@ -1857,7 +1857,7 @@
       <Layer>0</Layer>
       <PhaseRef>B3-step-6</PhaseRef>
       <Summary>System font enumeration via `font-kit`; per-session cache.</Summary>
-      <PlannedPath>src-tauri/src/fonts/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m008_fonts.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-008</VerificationRef>
       <Contract>
@@ -1882,9 +1882,9 @@
         </fn-fonts_list>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/fonts/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/fonts/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/fonts/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m008_fonts.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m008_fonts.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m008_fonts.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Fonts]</LogPrefix>
@@ -5467,7 +5467,7 @@
         Text encoding detection + conversion + line-ending normalization;
         replaces upstream ced + iconv-lite.
       </Summary>
-      <PlannedPath>src-tauri/src/encoding/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m014_encoding.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-014</VerificationRef>
       <Contract>
@@ -5556,9 +5556,9 @@
         </type-EncodingPrefs>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/encoding/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/encoding/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/encoding/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m014_encoding.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m014_encoding.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m014_encoding.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Encoding]</LogPrefix>
@@ -6101,7 +6101,7 @@
         "Remove from list" + 5-second Undo toast restore the exact previous
         order.
       </Summary>
-      <PlannedPath>src-tauri/src/recent/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m017_recent.rs</PlannedPath>
       <Dependencies>
         <M-010/>
       </Dependencies>
@@ -6152,9 +6152,9 @@
         </fn-recent_clear>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/recent/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/recent/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/recent/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m017_recent.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m017_recent.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m017_recent.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Recent]</LogPrefix>
@@ -6278,7 +6278,7 @@
         macOS-only screenshot capture via `screencapture -i -c`; clipboard PNG →
         workspace file.
       </Summary>
-      <PlannedPath>src-tauri/src/screenshot/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m018_screenshot.rs</PlannedPath>
       <Dependencies>
         <M-002/>
       </Dependencies>
@@ -6320,9 +6320,9 @@
         </fn-screenshot_capture>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/screenshot/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/screenshot/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/screenshot/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m018_screenshot.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m018_screenshot.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m018_screenshot.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Screenshot]</LogPrefix>
@@ -6421,7 +6421,7 @@
         User image history, ImageBed config, and secrets (GitHub token) via
         keychain; legacy serviceName migration marktext → com.xronocode.mark.
       </Summary>
-      <PlannedPath>src-tauri/src/datacenter/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m019_datacenter.rs</PlannedPath>
       <Dependencies>
         <M-005/>
       </Dependencies>
@@ -6497,9 +6497,9 @@
         </fn-dc_migrate>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/datacenter/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/datacenter/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/datacenter/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m019_datacenter.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m019_datacenter.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m019_datacenter.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[DataCenter]</LogPrefix>
@@ -6636,7 +6636,7 @@
         Parse CLI args --safe, --user-data-dir, --debug, --new-window,
         --disable-gpu, --disable-spellcheck, plus portable-mode auto-detect.
       </Summary>
-      <PlannedPath>src-tauri/src/cli/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/m020_cli.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-020</VerificationRef>
       <Contract>
@@ -6681,9 +6681,9 @@
         </type-CliFlags>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/cli/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/cli/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/cli/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m020_cli.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m020_cli.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m020_cli.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Cli]</LogPrefix>
@@ -7040,10 +7040,10 @@
       <Name>mt-paths</Name>
       <DisplayName>mt-paths</DisplayName>
       <Type>UTILITY</Type>
-      <Status>planned</Status>
+      <Status>shipped</Status>
       <Layer>0</Layer>
       <Summary>Cross-platform path helper for cache, app support, and logs roots.</Summary>
-      <PlannedPath>src-tauri/src/mt_paths/mod.rs</PlannedPath>
+      <PlannedPath>src-tauri/src/mt_paths.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-022</VerificationRef>
       <Contract>
@@ -7093,9 +7093,9 @@
         </fn-logs_root>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/mt_paths/mod.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/mt_paths/mod.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/mt_paths/mod.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/mt_paths.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/mt_paths.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/mt_paths.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Paths]</LogPrefix>

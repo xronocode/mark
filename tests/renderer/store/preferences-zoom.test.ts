@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-49 unified zoom in store/preferences.js — clamped ZOOM_STEP / ZOOM_ACTUAL_SIZE, debounced persistence, the mt::zoom-level-changed indicator event, the baseFontSize mirror in SET_USER_PREFERENCE, and the one-time legacy `zoom` migration.
 //   SCOPE: preferences store zoom actions + migration only; key/wheel wiring is pinned in tests/renderer/pages/app-deep.test.js.
 //   DEPENDS: src/renderer/src/store/preferences.js, Vitest + jsdom, mocked @tauri-apps/api/core + bus.
-//   LINKS: .grace/changes/active/C-49 R-1/R-2/R-4/R-5; .grace/verification/runtime.xml V-M-011 scenario-41.
+//   LINKS: .grace/changes/archive/C-49 R-1/R-2/R-4/R-5; .grace/verification/runtime.xml V-M-011 scenario-41.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

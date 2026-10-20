@@ -38,7 +38,7 @@
 //   PURPOSE: Settings font-chooser row (C-38 T-003 anatomy) — label + optional help left, the el-autocomplete font picker (system font enumeration from preload) right.
 //   SCOPE: Row rendering + font suggestion/selection contract from v1; props plus help.
 //   DEPENDS: element-plus el-autocomplete, @element-plus/icons-vue, vue-i18n, prefComponents/common/osClass (prefOsClass), window.electron.fonts.list.
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

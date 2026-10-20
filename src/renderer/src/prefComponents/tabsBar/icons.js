@@ -4,7 +4,7 @@
 //   PURPOSE: The five Settings toolbar tab icons as inline SVG functional components, drawn to the approved C-38 N3 mockup metrics (22×22, 1.6 stroke, currentColor).
 //   SCOPE: Presentational SVG components only — no state, no props, no events.
 //   DEPENDS: vue (h).
-//   LINKS: .grace/changes/active/C-38 (mockup .c38-mockup/Settings.dc.html); .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 (mockup .c38-mockup/Settings.dc.html); .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

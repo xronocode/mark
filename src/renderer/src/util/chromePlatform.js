@@ -4,7 +4,7 @@
 //   PURPOSE: Per-OS chrome identity for C-38 T-006 N4 — the root platform class the accent fallback CSS keys on, plus the single-source tables for the system UI font stack and the per-OS accent fallbacks.
 //   SCOPE: Pure platform→class/color resolution and one installer that puts the class on the document root; reads the platform lazily (never at import).
 //   DEPENDS: window.electron.process.platform (window shim).
-//   LINKS: assets/styles/index.css (consumes the class + mirrors the values); .grace/graph/runtime.xml M-011, M-057; .grace/changes/active/C-38 T-006; tests/renderer/chrome/chrome-platform.test.js.
+//   LINKS: assets/styles/index.css (consumes the class + mirrors the values); .grace/graph/runtime.xml M-011, M-057; .grace/changes/archive/C-38 T-006; tests/renderer/chrome/chrome-platform.test.js.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

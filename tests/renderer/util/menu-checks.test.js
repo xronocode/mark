@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-40 T-005 View-menu checkmark sync — util/menuChecks pushes the effective state of the four native View CheckMenuItems (boot full sync after hydration, per-change single pushes) and never throws on backend rejection.
 //   SCOPE: viewMenuCheckStates / syncViewMenuChecks value mapping incl. the per-OS statusBarVisibility default and stored-user-value precedence, watchViewMenuChecks one-push-per-flip behaviour, rejection swallowing in pushViewMenuCheck.
 //   DEPENDS: src/renderer/src/util/menuChecks.js, store/layout, store/preferences, Pinia, Vitest, tests/renderer/setup.ts window shims + auto-mocked invoke.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-57 (renderer half) and V-M-009 scenario-16 (backend half); .grace/changes/active/C-40 T-005.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-57 (renderer half) and V-M-009 scenario-16 (backend half); .grace/changes/archive/C-40 T-005.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

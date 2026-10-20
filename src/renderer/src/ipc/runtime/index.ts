@@ -4,8 +4,8 @@
 //            facades.
 //   SCOPE:   re-exports only.
 //   DEPENDS: fs.ts, watch.ts, search.ts.
-//   LINKS:   docs/development-plan.xml Phase-B2 step-5;
-//            docs/knowledge-graph.xml M-013-B runtime.
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-5;
+//            .grace/graph/runtime.xml M-013-B runtime.
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-28 B2-step-5: initial barrel.

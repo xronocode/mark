@@ -17,7 +17,7 @@
 //   PURPOSE: The Extensions sheet (C-38 T-004) — the existing extension gallery rendered as a sheet over the Settings window from Advanced › Customise «Browse…».
 //   SCOPE: Pure composition; the gallery keeps its discovery/enable/disable logic.
 //   DEPENDS: prefComponents/common/sheet, components/extensionGallery.
-//   LINKS: .grace/changes/active/C-38 T-004; .grace/graph/runtime.xml M-011 (M-045 extension host UI).
+//   LINKS: .grace/changes/archive/C-38 T-004; .grace/graph/runtime.xml M-011 (M-045 extension host UI).
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT

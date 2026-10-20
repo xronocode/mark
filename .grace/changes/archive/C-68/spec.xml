@@ -1,0 +1,40 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-68>
+  <Name>⌘D always has something to compare: a baseline snapshot when the file is opened, and no raw «Not a git repository» errors</Name>
+  <Created>2026-10-19</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>User report 2026-10-19: in the download build ⌘D keeps showing «Not a git repository». The diff baseline today is (1) Mark's snapshot taken before an external reload, else (2) the backend baseline (a .before sidecar or the last git commit); outside git with no external change the raw Rust error reaches the user. Decision (options A + D): Mark records a baseline snapshot when a tab loads a file, so ⌘D can always show «what changed since I opened it»; when there is genuinely nothing to compare, a calm localized message replaces the error.</Summary>
+  <Problem><Description>diffView.vue START_BLOCK_RESOLVE_BASELINE: snapshot → mt_diff_baseline → failAndExit(raw error string). m031_diff.rs returns «Not a git repository» / «File is outside the git repository» for ordinary notes.</Description></Problem>
+  <Goals>
+    <R-1>Opened baseline: when a tab loads a file from disk (open, reopen, session restore, and the content an external reload replaces), store/diffSnapshots keeps one «opened» snapshot per tab ({ markdown, takenAt, kind: 'opened' }), separate from the external-change ring and never evicted by it; cleared with the tab like the ring.</R-1>
+    <R-2>Baseline priority in diffView: (1) the newest external-change snapshot (unchanged behaviour), (2) the backend baseline (.before / git HEAD), (3) the opened snapshot. A backend error is a fallback signal, never shown raw.</R-2>
+    <R-3>Nothing to compare: if no baseline resolves, or the chosen baseline equals the current markdown, ⌘D does not enter diff mode and shows a calm info notice — «No changes since you opened the file» (or «Nothing to compare yet» for an untitled tab) — localized in ten locales. The raw «Not a git repository» text never reaches the UI.</R-3>
+    <R-4>The diff header names the source of the «opened» baseline: «Since you opened the file · {time}» (ten locales), alongside the existing snapshot/previous labels.</R-4>
+    <R-5>Tests: unit (diffSnapshots opened slot record/replace/clear and isolation from the ring; diffView baseline priority incl. backend error → opened fallback; equal-content → no diff + notice; untitled), e2e chromium + webkit (a file outside git: edit then ⌘D shows the diff against the opened content; no edits → notice, no diff, no raw error). grace lint 0; graph/verification for the owning modules updated.</R-5>
+  </Goals>
+  <Constraints>
+    <Item>No backend change required; m031_diff stays as is (its errors become fallback signals).</Item>
+    <Item>No new persistence: snapshots stay in memory per session.</Item>
+    <Item>App Store build works the same (no git, no .before needed).</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>Persistent local history / version picker (possible later change, options B + C).</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>src/renderer/src/store/diffSnapshots.js, src/renderer/src/store/editor.js (record the opened snapshot on load), src/renderer/src/components/editorWithTabs/diffView.vue, src/renderer/src/commands/index.js (⌘D entry if it pre-checks)</Item>
+    <Item>static/locales/*.json, tests/renderer/**, tests/e2e/*.spec.ts, .grace/**</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-5 done; vitest and the e2e specs green; grace lint 0.</Criterion>
+    <Criterion>Live check (user): open a note outside git, edit, ⌘D shows the edit against the opened version; open and ⌘D without edits shows «No changes since you opened the file», never «Not a git repository».</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>npx vitest run tests/renderer/store tests/renderer/components</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedEvidence>Unit pins for the priority chain and the notice; e2e invoke trace showing the backend error is swallowed into the opened fallback.</ExpectedEvidence>
+  </VerificationIntent>
+</C-68>
+</GraceChangeSpec>

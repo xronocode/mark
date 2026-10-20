@@ -15,7 +15,7 @@
 //   DEPENDS: @/ipc/runtime (ipc.fs read/stat), @tauri-apps/api/event
 //            (emit mt::open-new-tab). window.fileUtils is read lazily
 //            inside functions, never at import time (test-setup rule).
-//   LINKS: .grace/changes/active/C-52/spec.xml R-3/R-4;
+//   LINKS: .grace/changes/archive/C-52/spec.xml R-3/R-4;
 //            _shims/install-window-globals.js (drop path);
 //            util/clipboardOpen.js (orchestrator); m059_clipboard.rs
 //            (mt_read_clipboard_paths).

@@ -4,7 +4,7 @@
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, mocked Muya and renderer services.
-//   LINKS: docs/verification-plan.xml V-M-011 scenarios 15-16; docs/knowledge-graph.xml M-011.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenarios 15-16; .grace/graph/runtime.xml M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

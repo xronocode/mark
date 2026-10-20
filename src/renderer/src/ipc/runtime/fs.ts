@@ -7,7 +7,7 @@
 //   SCOPE:   read / write / stat / readdir / unlink. Watcher → watch.ts;
 //            search → search.ts.
 //   DEPENDS: M-013-A contract (ipcInvoke + types).
-//   LINKS:   docs/development-plan.xml Phase-B2 step-5;
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-5;
 //            v1.2.3 src/preload/index.js fileUtilsAPI for the API
 //            shape M-013-B emulates.
 //   STATUS:  Phase-B2 step-5 shipped.

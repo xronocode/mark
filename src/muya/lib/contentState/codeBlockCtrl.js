@@ -4,7 +4,7 @@
 //   PURPOSE: Code-block editing control (language pick, block create/update, copy) plus the post-render line-number gutter measurement dispatch (C-38 T-005).
 //   SCOPE: checkEditLanguage/selectLanguage/updateCodeLanguage/codeBlockUpdate/copyCodeBlock on the ContentState prototype, and resizeLineNumber (drain stateRender.lineNumberPreKeys or force every gutter in the container).
 //   DEPENDS: muya prism loader, utils (escapeHTML, resizeCodeBlockLineNumber), selection.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-20; .grace/changes/active/C-38 T-005.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-012 scenario-20; .grace/changes/archive/C-38 T-005.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

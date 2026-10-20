@@ -35,7 +35,7 @@
 //   PURPOSE: Settings switch row (C-38 T-003 anatomy) — label + optional secondary help left, mockup-spec switch right (macOS 32×18 filled / Windows 40×20 outlined).
 //   SCOPE: Row rendering and toggle interaction; same props/events contract as v1 (description/notes/bool/onChange/more/detailedDescription/disable) plus help.
 //   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

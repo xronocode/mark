@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-39 T-001 table scroll wrapper: the table element renders inside div.ag-table-scroll between the figure and the table, the table tools bar and front icon stay direct children of the figure, and the drag bars stay children of their cells.
 //   SCOPE: START_BLOCK_TABLE_SCROLL_WRAPPER in src/muya/lib/parser/render/renderBlock/renderContainerBlock.js.
 //   DEPENDS: StateRender (muya/lib/parser/render/index.js) with a mocked renderer loader, muya snabbdom h, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-39 T-001; .grace/verification/runtime.xml V-M-012 scenario-18; tests/e2e/table-layout.spec.ts for the laid-out behaviour.
+//   LINKS: .grace/changes/archive/C-39 T-001; .grace/verification/runtime.xml V-M-012 scenario-18; tests/e2e/table-layout.spec.ts for the laid-out behaviour.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,8 +4,8 @@
 //   SCOPE:   Filesystem scan + HTTP health probe. Does NOT register
 //            extensions — that's registry.rs.
 //   DEPENDS: manifest (parse), reqwest (health probe), mt_paths.
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B2b.
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
 //   STATUS:  Phase-B2b initial.
 
 use crate::m045_ext::manifest::{parse_manifest, ExtensionManifest};

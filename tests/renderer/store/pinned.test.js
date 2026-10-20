@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-002 unit tests for store/pinned.js — pin/unpin/toggle, append order, drag reorder bounds, persistence through the ipcPrefs key, load sanitizing, and the SIDEBAR::pin-file + TABS::pin-file wiring.
 //   SCOPE: Pinia store actions over the mocked @tauri-apps/api/core invoke; project-store bus handler dispatch.
 //   DEPENDS: src/renderer/src/store/pinned.js, src/renderer/src/store/project.js, tests/renderer/setup.ts (invoke mock + window shims).
-//   LINKS: .grace/changes/active/C-51 T-002; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-002; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

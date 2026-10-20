@@ -4,7 +4,7 @@
 //   PURPOSE: Data model of the embedded-image floating toolbar — the ordered button list (edit, C-56 T-006 Copy image, alignment, delete) with localized tooltips and icons.
 //   SCOPE: the getIcons(translateFn) factory only; the Copy-image glyph reuses the C-56 T-005 corner-pill copy geometry (renderBlockToolbar) as inline-SVG data instead of a PNG asset.
 //   DEPENDS: pngicon assets (edit/inline/align×3/delete), renderBlockToolbar (TOOLBAR_COPY_ICON_RECT + TOOLBAR_COPY_ICON_PATHS — data constants only).
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/changes/active/C-56 T-006; ui/imageToolbar/index.js (the renderer + click routing); static/locales editor.image.toolbar.* strings.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/changes/archive/C-56 T-006; ui/imageToolbar/index.js (the renderer + click routing); static/locales editor.image.toolbar.* strings.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

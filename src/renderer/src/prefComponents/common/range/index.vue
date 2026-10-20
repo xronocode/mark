@@ -49,7 +49,7 @@
 //   PURPOSE: Settings numeric row (C-38 T-003 anatomy) — the old range slider rendered as the mockup stepper: label + help left, value (unit once) with up/down steppers right, honouring the same min/max/step/onChange contract.
 //   SCOPE: Stepping, clamping and float-safe rounding; props-compatible with every existing range caller.
 //   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 (unit-rendered-once regression).
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 (unit-rendered-once regression).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

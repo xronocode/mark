@@ -4,7 +4,7 @@
 //   PURPOSE: Theme the non-Mermaid rendered content (C-51 T-005 / R-3) — build the Vega-Lite embed config, the flowchart.js drawSVG options and the js-sequence drawSVG options from the active app theme's tokens (readActiveThemeTokens from diagramTheme.js), and re-colour the js-sequence SVG after drawing.
 //   SCOPE: pure config/option builders over the theme-token shape plus a lazy DOM post-pass over a drawn js-sequence SVG (svg.sequence) — no renderer loading, no caching, no markdown mutation (theming is render-time only).
 //   DEPENDS: ./diagramTheme (chartPalette, palette — the SAME categorical palette the pele variables use; renamed from mermaidTheme.js in C-55).
-//   LINKS: .grace/changes/active/C-51 T-005 (R-3); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-23; consumers: parser/render/index.js renderDiagram, utils/exportHtml.js renderDiagram.
+//   LINKS: .grace/changes/archive/C-51 T-005 (R-3); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-23; consumers: parser/render/index.js renderDiagram, utils/exportHtml.js renderDiagram.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

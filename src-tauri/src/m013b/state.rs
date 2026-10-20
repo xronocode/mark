@@ -9,8 +9,8 @@
 //   SCOPE:   state container only. No IO, no command dispatch.
 //   DEPENDS: stdlib + std::sync::Mutex for interior mutability behind
 //            Tauri's State<'_, T> requirement.
-//   LINKS:   docs/development-plan.xml Phase-B2 step-2;
-//            docs/knowledge-graph.xml M-013-B state holder;
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-2;
+//            .grace/graph/runtime.xml M-013-B state holder;
 //            M-010 mt-security check_path consumer;
 //            M-005 mt-prefs (B3 step-1) sets the sandbox via menu/prefs.
 //   STATUS:  Phase-B2 step-2 stub-shipped with permissive default.

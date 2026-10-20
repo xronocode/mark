@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the shared C-40 document-statistics helpers — line counting, reading minutes, selection counts, and the per-OS status-bar visibility default.
 //   SCOPE: Pure-function tests over util/docStats.js plus the lazy window.electron platform resolution.
 //   DEPENDS: Vitest, util/docStats.js (real muya/lib/utils wordCount), tests/renderer/setup.ts window shims.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/active/C-40 T-002/T-004.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-55; .grace/changes/archive/C-40 T-002/T-004.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

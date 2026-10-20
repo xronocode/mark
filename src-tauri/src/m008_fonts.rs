@@ -9,7 +9,7 @@
 //   DEPENDS: font-kit 0.14 — Servo's cross-platform font enumeration
 //            (Core Text on macOS, DirectWrite on Windows, fontconfig
 //            on Linux).
-//   LINKS:   docs/development-plan.xml Phase-B3 step-6;
+//   LINKS:   .grace/graph/runtime.xml M-008 (PhaseRef Phase-B3) step-6;
 //            v1.2.3 src/preload/index.js fonts.list shape.
 //   STATUS:  Phase-B3 step-6 shipped.
 //

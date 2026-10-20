@@ -7,7 +7,7 @@
 //            decides what to do with the parsed intent. Designed so
 //            tests can construct synthetic argv.
 //   DEPENDS: clap = "4" with derive.
-//   LINKS:   docs/development-plan.xml Phase-B3 step-3;
+//   LINKS:   .grace/graph/runtime.xml M-020 (PhaseRef Phase-B3) step-3;
 //            v1.2.3 src/main/cli/index.js for the legacy flag set.
 //   STATUS:  Phase-B3 step-3 shipped.
 //

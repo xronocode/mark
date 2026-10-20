@@ -4,7 +4,7 @@
 //   PURPOSE: Verify that Muya undo/redo shortcuts reach internal history across keyboard layouts.
 //   SCOPE: Cmd/Ctrl+Z and shifted redo dispatch for Latin and non-Latin event keys.
 //   DEPENDS: src/muya/lib/eventHandler/keyboard.js, Vitest, jsdom KeyboardEvent.
-//   LINKS: docs/verification-plan.xml V-M-012 scenario-10; docs/knowledge-graph.xml M-012.
+//   LINKS: .grace/verification/runtime.xml V-M-012 scenario-10; .grace/graph/runtime.xml M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

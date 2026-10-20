@@ -9,7 +9,7 @@
 //            M-003 watch, M-004 search) ship in Phase-B2 and SHADOW
 //            this module's signatures rather than coexist.
 //   DEPENDS: serde, tauri::command, error::IpcError.
-//   LINKS:   docs/development-plan.xml Phase-B1 step-6;
+//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B1) step-6;
 //            verification-plan.xml V-M-013-B;
 //            test/fixtures/ipc-channels/{electron.v1,tauri.v2}.json.
 //   STATUS:  Phase-B1 stub. 9 commands total: 5 fs + 2 search + 2 watch.

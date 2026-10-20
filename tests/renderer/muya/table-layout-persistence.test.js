@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-65 T-001/T-004 persistent table layout behaviour of muya.tableResize — the persistent identity (ordinal + header signature), adoption of stored entries into fresh block keys, the identity-change drop (header edited / column count changed — corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the Full width toggle (class + toolbar DOM + persistence) and the capture-phase toolbar/caption routing incl. the viewer dispatch and the disabled-surface guard.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities, applyPersistedLayouts, serializeTableLayouts, persist, toggle/openViewer, handleToolbarClick/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
 //   DEPENDS: TableResize with a real-listener event-center double, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-65 T-001/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; the store twin tests/renderer/store/table-layout-store.test.js; the C-39 maths twin tests/renderer/muya/table-column-resize.test.js; e2e tests/e2e/table-width-persistence.spec.ts.
+//   LINKS: .grace/changes/archive/C-65 T-001/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; the store twin tests/renderer/store/table-layout-store.test.js; the C-39 maths twin tests/renderer/muya/table-column-resize.test.js; e2e tests/e2e/table-width-persistence.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

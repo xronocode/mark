@@ -9,7 +9,7 @@
 //            mocked in tests/renderer/setup.ts; this file extends with
 //            per-test mockImplementation.
 //   DEPENDS: vitest, @tauri-apps/api/{event,core} (mocked), bootstrap-ipc.
-//   LINKS:   docs/verification-plan.xml V-M-025 ordering-invariants 1-6.
+//   LINKS:   .grace/verification/runtime.xml V-M-025 ordering-invariants 1-6.
 
 // ─── per-file mocks ────────────────────────────────────────────────
 

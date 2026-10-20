@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-56 per-block picture exporter (muya utils/diagramExport.js) — standalone-SVG self-containment (zero var(--pele-* survivors, theme panel background rect on/off, natural size from data-natural-width/viewBox, editor chrome and unsafe markup stripped), the 2× PNG rasterizer (canvas draw + PNG bytes), the heading-slug file-name suggestion with the document-name fallback (unicode headings slug to Cyrillic, corner-6), and the exportable-role block resolution (MERMAID/VEGA-LITE only, corner-3/4).
 //   SCOPE: src/muya/lib/utils/diagramExport.js against jsdom with injectable tokens/canvas/image doubles (buildStandaloneSvg and rasterizeSvg are dependency-injected the same way the pele pipeline is).
 //   DEPENDS: vitest + jsdom; muya/lib/utils/diagramExport; muya diagramTheme buildPeleVariables for the composed variable map.
-//   LINKS: .grace/changes/active/C-56 R-1/R-2/R-4, T-001 (corners 1, 4, 6); .grace/verification/runtime.xml V-M-012 scenario-63; e2e twin tests/e2e/diagram-export.spec.ts.
+//   LINKS: .grace/changes/archive/C-56 R-1/R-2/R-4, T-001 (corners 1, 4, 6); .grace/verification/runtime.xml V-M-012 scenario-63; e2e twin tests/e2e/diagram-export.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

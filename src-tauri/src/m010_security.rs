@@ -17,11 +17,11 @@
 //              - Windows UNC + device-namespace (\\?\, \\.\) → v2.1+
 //              - Windows case-fold path traversal → v2.1+
 //   DEPENDS: stdlib only. No url crate, no idna, no path-clean.
-//   LINKS:   docs/development-plan.xml Phase-B2 step-1;
-//            docs/verification-plan.xml V-M-010 (10 scenarios + 9
+//   LINKS:   .grace/graph/runtime.xml M-010 (PhaseRef Phase-B2) step-1;
+//            .grace/verification/runtime.xml V-M-010 (10 scenarios + 9
 //            adversarial edge cases — this module covers ~6 of them
 //            plus the pure-logic subset of the rest);
-//            docs/knowledge-graph.xml M-010.
+//            .grace/graph/runtime.xml M-010.
 //   STATUS:  Phase-B2 step-1 stub-shipped. NEVER panics — every public
 //            fn returns Result<_, SecurityError>. V-M-010 hard
 //            requirement: rejected paths/URLs/exts MUST reach no

@@ -62,7 +62,7 @@
 //   PURPOSE: One folder row of the sidebar tree — semibold name (C-51 T-013) beside the folder/folder-open line icon and right disclosure chevron, its nested contents behind a 1px guide line per level, and the C-51 T-001 Markdown-only view filter over children.
 //   SCOPE: Row rendering (rename input, active state, context menu wiring, create-input), collapse toggle, child folder/file lists filtered through store/treeFilter.js per the treeShowAllFiles preference.
 //   DEPENDS: vue, pinia, store/project, store/preferences, store/treeFilter, contextMenu/sideBar, bus, ./treeFile.vue, ../icons/chromeIcons.js.
-//   LINKS: .grace/changes/active/C-51 T-001/T-013; .canvas/Main.dc.html (folder rows + guide lines); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-001/T-013; .canvas/Main.dc.html (folder rows + guide lines); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

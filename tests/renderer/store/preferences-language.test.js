@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-45 language preference wiring — fresh-profile default 'system' (store + schema), stored concrete locales preserved, and the languagechange/focus re-resolution guards.
 //   SCOPE: store/preferences.js language default, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE pass-through, LISTEN_SYSTEM_LANGUAGE binding; _shims/preferences/schema.json default.
 //   DEPENDS: src/renderer/src/store/preferences.js, src/renderer/src/_shims/preferences/schema.json, Pinia, Vitest.
-//   LINKS: .grace/changes/active/C-45 spec R-1..R-3; tests/renderer/i18n/system-language.test.js (real setLanguage resolution).
+//   LINKS: .grace/changes/archive/C-45 spec R-1..R-3; tests/renderer/i18n/system-language.test.js (real setLanguage resolution).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -25,7 +25,7 @@
 //   PURPOSE: Prove APPLY_FILE_CHANGE records the pre-reload markdown into the C-43 snapshot ring on every apply path, skips identical content, and FORCE_CLOSE_TAB clears the ring.
 //   SCOPE: editor.js APPLY_FILE_CHANGE (data, disk-read, conflict-confirm branches) + FORCE_CLOSE_TAB against the real store/diffSnapshots ring.
 //   DEPENDS: src/renderer/src/store/editor.js, src/renderer/src/store/diffSnapshots.js, tests/renderer/pinia
-//   LINKS: .grace/changes/active/C-43 R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-39
+//   LINKS: .grace/changes/archive/C-43 R-1/R-4; .grace/verification/runtime.xml V-M-011 scenario-39
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

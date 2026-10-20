@@ -4,7 +4,7 @@
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, and the C-51 T-001 treeShowAllFiles preference.
 //   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001).
 //   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js.
-//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); .grace/changes/active/C-49; .grace/changes/active/C-38 T-004; .grace/changes/active/C-51 T-001.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); .grace/changes/archive/C-49; .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -584,7 +584,7 @@ export const usePreferencesStore = defineStore('preferences', {
     },
 
     // ─── C-49 unified zoom ────────────────────────────────────────────
-    // One zoom for everything: ⌘+/⌘−/⌘0 keys, Ctrl+wheel/pinch (app.vue),
+    // One zoom for everything: ⌘+/⌘−/⌘0 shortcuts, Ctrl+wheel/pinch (app.vue),
     // and the View-menu commands (view.zoom-in/out/actual-size) all land
     // here. The live fontSize state write applies instantly (editor.vue
     // watch → muya setFont); persistence is debounced. Each applied change

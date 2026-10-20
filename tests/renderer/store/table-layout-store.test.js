@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-65 T-001 per-file table layout profile store — sanitize/normalize, the file-entries set/replace/delete transform, the bounded size cap, the missing-file prune (stat false / stat throws / no stat capability), the rename move, and the three IO flows (load prunes+caps+writes back, save replaces one file, move follows a rename) with an injected fake prefs IO.
 //   SCOPE: src/renderer/src/util/tableLayoutStore.js (pure transforms + IO flows with defaultIo swapped by injection).
 //   DEPENDS: Vitest, a fake { get, set } IO recording writes.
-//   LINKS: .grace/changes/active/C-65 R-1/R-2 (T-001); .grace/verification/runtime.xml V-M-012 scenario-66; the muya twin tests/renderer/muya/table-layout-persistence.test.js; the host wiring in editor.vue (BLOCK_TABLE_LAYOUTS_HOST) and store/editor.js RENAME/RENAME_IF_NEEDED.
+//   LINKS: .grace/changes/archive/C-65 R-1/R-2 (T-001); .grace/verification/runtime.xml V-M-012 scenario-66; the muya twin tests/renderer/muya/table-layout-persistence.test.js; the host wiring in editor.vue (BLOCK_TABLE_LAYOUTS_HOST) and store/editor.js RENAME/RENAME_IF_NEEDED.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

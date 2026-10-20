@@ -4,7 +4,7 @@
 //   PURPOSE: Pin C-39 T-002 session-only table column resize: the width store keyed by table block key, min-width clamping, column-count reconciliation, the re-apply-after-render hook, the colgroup/resizer-handle vnodes, and the guarantee that resizing never touches markdown, history or DOM structure of unresized tables.
 //   SCOPE: src/muya/lib/tableResize/index.js (store, reconcileWidths, reconcileAfterRender) and START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js, plus the full render path via a real Muya in jsdom.
 //   DEPENDS: TableResize, StateRender (mocked renderer loader), Muya (real instance), Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-39 T-002; .grace/verification/runtime.xml V-M-012 scenario-21; tests/e2e/table-column-resize.spec.ts for the laid-out drag behaviour; tests/renderer/muya/table-scroll-wrapper.test.js for the T-001 twin.
+//   LINKS: .grace/changes/archive/C-39 T-002; .grace/verification/runtime.xml V-M-012 scenario-21; tests/e2e/table-column-resize.spec.ts for the laid-out drag behaviour; tests/renderer/muya/table-scroll-wrapper.test.js for the T-001 twin.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

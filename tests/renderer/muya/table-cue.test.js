@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-65 overflow cue and table toolbar — the pure «columns X–Y of N» range math (start / middle / end / fits / single column / degenerate), the caption formatting incl. the token fallback and the full-width «all N columns», the DOM state gathering and sync (caption text/visibility + shade side classes, live translator pin), the renderTableToolbar vnode (buttons, labels, active state, family classes, dataset actions, need-gated expand) and the C-65 CSS literals (toolbar above the table on the column edge, caption below it, class-gated shades, full-width breakout).
 //   SCOPE: src/muya/lib/tableResize/tableCue.js, src/muya/lib/parser/render/renderBlock/renderTableToolbar.js, the C-65 section of lib/assets/styles/index.css, and the START_BLOCK_TABLE_TOOLBAR_AND_CAPTION placement in renderContainerBlock.js.
 //   DEPENDS: Vitest + jsdom, muya snabbdom h, node:fs for the CSS read.
-//   LINKS: .grace/changes/active/C-65 T-002/T-003; .grace/verification/runtime.xml V-M-012 scenario-66; the persistence twin tests/renderer/muya/table-layout-persistence.test.js; e2e tests/e2e/table-toolbar.spec.ts and table-layout.spec.ts.
+//   LINKS: .grace/changes/archive/C-65 T-002/T-003; .grace/verification/runtime.xml V-M-012 scenario-66; the persistence twin tests/renderer/muya/table-layout-persistence.test.js; e2e tests/e2e/table-toolbar.spec.ts and table-layout.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

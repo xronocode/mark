@@ -143,7 +143,7 @@
 //   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode, C-69 session restore), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates (C-66 automatic-check switch + manual check) per the N2 IA §3.1.
 //   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings; treeShowAllFiles switch binding (C-51 T-001); autoCheckUpdates switch binding (C-66 T-003).
 //   DEPENDS: prefComponents/common/{compound,bool,select,range,buttonRow}, tabs/general/config, store/preferences, util (isOsx), @tauri-apps/api/app (getVersion, lazy).
-//   LINKS: .grace/changes/active/C-38 T-004; .grace/changes/active/C-51 T-001; .grace/changes/active/C-66 R-4; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001; .grace/changes/archive/C-66 R-4; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

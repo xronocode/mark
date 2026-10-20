@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the "Two editions, same editor" tables in README.md and site/guide/editions.md to the M-048 build-mode flags, so the documented desktop-only features cannot drift from the code.
 //   SCOPE: Parses both BuildMode literals in src-tauri/src/m048_build_mode.rs, derives the flags that are off in the app-store variant and on in the macOS desktop variant, and checks each one is documented as desktop-only; checks share is documented as available in both editions.
 //   DEPENDS: Vitest, node:fs, src-tauri/src/m048_build_mode.rs, README.md, site/guide/editions.md.
-//   LINKS: .grace/verification/runtime.xml V-M-048 scenario-4 (C-42 R-5); .grace/changes/active/C-42/spec.xml.
+//   LINKS: .grace/verification/runtime.xml V-M-048 scenario-4 (C-42 R-5); .grace/changes/archive/C-42/spec.xml.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

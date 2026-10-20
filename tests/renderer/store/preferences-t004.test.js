@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-38 T-004 store behaviours — the null-stomp guard for boot URL params (IA §5 bug 15), the image-upload retirement (user decision 0c17da80), and RESET_PREFERENCES_TO_DEFAULTS (Advanced › Reset).
 //   SCOPE: SET_USER_PREFERENCE guards/fallbacks and the reset action over the preferenceDefaults factory.
 //   DEPENDS: src/renderer/src/store/preferences.js, Pinia, Vitest.
-//   LINKS: .grace/changes/active/C-38 T-004; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

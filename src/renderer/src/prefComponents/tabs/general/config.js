@@ -4,7 +4,7 @@
 //   PURPOSE: Option builders for the General tab (C-38 T-004) — the app-language pop-up (with the 'system' sentinel), the line-endings pop-up labels and the file-encoding list.
 //   SCOPE: Pure i18n-backed option lists; no store or window access.
 //   DEPENDS: i18n (t), i18n/systemLocale (SYSTEM_LANGUAGE), common/encoding (ENCODING_NAME_MAP).
-//   LINKS: .grace/changes/active/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 T-004; docs/design/settings-ia-2026-10-15.md §3.1; .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

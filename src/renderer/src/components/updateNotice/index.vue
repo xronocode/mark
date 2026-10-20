@@ -10,7 +10,7 @@
 //          here; visibility is store-owned so boot races can never flash
 //          an empty notice.
 //   DEPENDS: store/autoUpdates (notice + actions), i18n t.
-//   LINKS: .grace/changes/active/C-66/spec.xml R-2;
+//   LINKS: .grace/changes/archive/C-66/spec.xml R-2;
 //          pages/app.vue mounts it next to the zoom indicator;
 //          commands/index.js installSignedUpdate (via INSTALL_UPDATE).
 //   ROLE: RUNTIME

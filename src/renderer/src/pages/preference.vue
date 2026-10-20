@@ -14,7 +14,7 @@
 //   PURPOSE: The C-38 T-003 Settings window shell — native-titlebar window (title follows the active tab), 5-tab toolbar, scrollable grouped body, remembered tab, and the theme/auto-theme wiring the settings webview has always owned.
 //   SCOPE: Shell layout + palette (per-OS metrics, dark parity via body.dark), tab-title sync (document + native window), last-tab persistence, theme application for this window.
 //   DEPENDS: prefComponents/tabsBar, prefComponents/tabsBar/config (TAB_IDS/tabTitle/writeLastTab), util/theme, util/autoTheme, store/preferences, util (isOsx), @tauri-apps/api/window (setTitle).
-//   LINKS: .grace/changes/active/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

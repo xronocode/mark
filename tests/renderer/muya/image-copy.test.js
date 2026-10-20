@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-56 T-006 embedded-image copy helpers of muya utils/diagramExport.js — source classification (absolute/relative/file:///asset:// local paths resolved against the document, remote http(s), data: with inline decode, blob:/empty never resolve), the data-URL decoder, the PNG magic-bytes gate, the natural-size canvas PNG re-encoder and the pass-through-vs-convert decision of imageCopyPngBytes.
 //   SCOPE: src/muya/lib/utils/diagramExport.js (the T-006 exports) against jsdom with injectable canvas/image/object-URL doubles (the same dependency-injection style as diagram-export.test.js).
 //   DEPENDS: vitest + jsdom; muya/lib/utils/diagramExport.
-//   LINKS: .grace/changes/active/C-56 T-006; .grace/verification/runtime.xml V-M-012 scenario-65; e2e twin tests/e2e/diagram-export.spec.ts (embedded-image copy group); consumers editor.vue handleImageCopyAction + ui/imageToolbar.
+//   LINKS: .grace/changes/archive/C-56 T-006; .grace/verification/runtime.xml V-M-012 scenario-65; e2e twin tests/e2e/diagram-export.spec.ts (embedded-image copy group); consumers editor.vue handleImageCopyAction + ui/imageToolbar.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

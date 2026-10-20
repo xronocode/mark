@@ -12,7 +12,7 @@
 //            V-M-001 contract.
 //   DEPENDS: serde_json (parse), dialog::ask_native_error (display),
 //            std::process::exit.
-//   LINKS:   docs/development-plan.xml Phase-B1 step-7;
+//   LINKS:   .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-7;
 //            verification-plan.xml V-M-001;
 //            test/fixtures/ipc-channels/tauri.v2.json.
 //   STATUS:  Phase-B1 step-7. The const REGISTERED_COMMANDS MUST be

@@ -7,8 +7,8 @@
 //            graceful exit, stale PID detection. No HTTP, no session
 //            state.
 //   DEPENDS: serde/serde_json, std::fs, std::process.
-//   LINKS:   docs/knowledge-graph.xml M-045;
-//            docs/development-plan.xml Phase-B5a;
+//   LINKS:   .grace/graph/features.xml M-045;
+//            .grace/graph/features.xml M-045 (PhaseRef Phase-B5a);
 //            ROADMAP.md Decision D1 (HTTP POST IPC).
 //   STATUS:  Phase-B5a initial — discovery file write/cleanup/stale.
 //

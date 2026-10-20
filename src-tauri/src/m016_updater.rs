@@ -10,7 +10,7 @@
 //   DEPENDS: tauri-plugin-updater (B4 step-5 wired); std::env for
 //            CARGO_PKG_VERSION fallback when the plugin endpoint is
 //            unreachable.
-//   LINKS:   docs/development-plan.xml Phase-B4 step-5/6;
+//   LINKS:   .grace/graph/runtime.xml M-016 (PhaseRef Phase-B4) step-5/6;
 //            tauri.conf.json plugins.updater config;
 //            docs/F-UPDATER-WIRE-PLUGIN-handoff.md (user setup).
 //   STATUS:  Phase-B4 step-5 wired 2026-05-08 — plugin loaded in
