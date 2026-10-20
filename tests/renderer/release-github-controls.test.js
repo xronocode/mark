@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.5.0: require complete promotion history for payload-to-seal ancestry proofs before and after approval.
 //   - 2026-10-20 v1.4.0: use a minimal non-credential constructor sentinel in API-failure coverage.
 //   - 2026-10-20 v1.3.0: verify read-only publication preparation, narrow publication permissions, deterministic updater dates, exact public-release recovery, and rerunnable cask handoff.
 //   - 2026-10-20 v1.2.0: pin disabled staging, explicit activation, exact immutable parsing, non-retried mutations, and tamper-evident rollback journals.
@@ -128,6 +129,15 @@ describe('release GitHub trust boundaries', () => {
     expect(promoteSource).toContain('actions/create-github-app-token@')
     expect(promoteSource).toContain('git/tags')
     expect(promoteSource).toContain('git/refs')
+  })
+
+  it('keeps complete main ancestry for strict payload-to-seal admission', () => {
+    const preflight = commands(promote.jobs.preflight)
+    const authorized = commands(promote.jobs['authorize-tag'])
+    expect(preflight).toContain('git fetch origin main')
+    expect(authorized).toContain('git fetch origin main')
+    expect(preflight).not.toMatch(/git fetch origin main[^\n]*--depth/)
+    expect(authorized).not.toMatch(/git fetch origin main[^\n]*--depth/)
   })
 
   it('keeps manual dispatch unsigned and unable to reach signing or publication', () => {

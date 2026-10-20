@@ -2351,6 +2351,8 @@
         owner-approved annotated-tag promotion, tag-only signing, read-only
         publication-bundle preparation, fixed-command digest-verified
         draft-first publication, and an idempotent downstream cask handoff.
+        Promotion preserves complete main ancestry before both strict admission
+        passes so payload-to-seal merge-base evidence is available on hosted runners.
         Release Please lifecycle metadata permissions are isolated from release
         publication. Manual dispatch is unsigned build-only; Projects never
         becomes gate authority; secrets and admin apply are isolated by purpose.
