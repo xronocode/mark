@@ -1,0 +1,127 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><C-FIX-011-UNTITLED-CLOSE-ACTIONS>
+  <ChangeRef>C-FIX-011-UNTITLED-CLOSE-ACTIONS</ChangeRef><Created>2026-10-20</Created>
+  <IntentSummary>Land the owner-approved three-action untitled close model: a promise-based DOM dialog (default Save &amp; Close, separate Discard, visible Cancel with Escape/glyph equivalence) replacing the two-discard ElMessageBox; the store's untitled Save &amp; Close runs Save As for the closing tab and closes only on success; component, store and browser coverage pin every path; FIX-007 dark-theme assertions continue on the new surface.</IntentSummary>
+  <ExecutionPolicy>Execute sequentially after C-FIX-008-VIEWER-PAN-CUES. Durable scope M-011/V-M-011 is shared with the renderer family; this bundle does not touch muya or the table surface.</ExecutionPolicy>
+  <BaselineAssertions>
+    <!-- The defective pre-state markers (the two-discard ElMessageBox
+         literals in CLOSE_UNSAVED_TAB and the .el-message-box selectors in
+         the theme spec) are pinned by git history at HEAD before this
+         bundle and quoted in the spec ProblemEvidence; asserting them here
+         would only turn consumed baselines into standing lint errors while
+         the bundle waits for owner acceptance. -->
+    <MustExist>
+      <Value>src/renderer/src/store/editor.js</Value>
+      <Value>tests/e2e/unsaved-dialog-theme.spec.ts</Value>
+    </MustExist>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustExist>
+      <Value>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js</Value>
+      <Value>tests/renderer/components/unsaved-close-dialog.test.js</Value>
+      <Value>tests/e2e/unsaved-close-actions.spec.ts</Value>
+      <Value>.grace/changes/active/C-FIX-011-UNTITLED-CLOSE-ACTIONS/evidence.json</Value>
+    </MustExist>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js</File>
+      <Text>BLOCK_UNSAVED_CLOSE_DIALOG_OPEN</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>BLOCK_UNSAVED_CLOSE_SAVED_AND_CLOSED</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>scenario-69 (FIX-011 untitled close actions</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-011/></GraphAnchors><VerificationAnchors><V-M-011/></VerificationAnchors><VerificationDocuments><VD-RUNTIME/></VerificationDocuments></DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js</File>
+    <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>tests/renderer/components/unsaved-close-dialog.test.js</File>
+    <File>tests/renderer/store/editor-coverage.test.js</File>
+    <File>tests/e2e/unsaved-close-actions.spec.ts</File>
+    <File>tests/e2e/unsaved-dialog-theme.spec.ts</File>
+    <Glob>.grace/verification/*.xml</Glob>
+    <Glob>.grace/graph/*.xml</Glob>
+    <Glob>.grace/changes/active/C-FIX-011-UNTITLED-CLOSE-ACTIONS/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner><Name>Correctness — three actions, three results</Name><Expected>The dialog resolves exactly one of save/discard/cancel; every exit (three buttons, Escape, close glyph, backdrop) funnels through the idempotent finish; Enter on the default focuses Save &amp; Close so nothing defaults to discard; nothing is labeled "Close".</Expected></Corner>
+    <Corner><Name>Correctness — untitled save flow</Name><Expected>Save &amp; Close invokes mt_response_file_save_as with the closing tab's own id/filename/markdown (not currentFile), applies the outcome with the revision guard, and closes only on truthy outcome; cancelled (null) and thrown failures leave the tab and content intact, failures keep the notice.</Expected></Corner>
+    <Corner><Name>Correctness — named regression boundary</Name><Expected>Named Save &amp; Close still sends the mt::save-and-close-tabs payload with deep-cloned options; explicit Discard closes directly; Cancel keeps the tab.</Expected></Corner>
+    <Corner><Name>Correctness — coverage honesty</Name><Expected>Component tests assert labels, results, focus and classes; store tests assert the transports and tab fate per action; e2e drives the real store funnel through all seven untitled flows plus the named pair — no case passes vacuously.</Expected></Corner>
+    <Corner><Name>Security and Privacy</Name><Expected>The dialog renders user-controlled filenames via textContent (no innerHTML on data); synthetic fixtures only; no secrets; no owner data in committed artifacts.</Expected></Corner>
+    <Corner><Name>UX</Name><Expected>macOS action order (Discard, Cancel, Save &amp; Close) keeps the destructive action away from the default; focus-visible outlines; aria-modal dialog with labelled title and an aria-labelled cancel glyph; the untitled message announces that Save &amp; Close will ask where to save.</Expected></Corner>
+    <Corner><Name>UX — theme continuity</Name><Expected>The FIX-007 dark-theme regression continues against the new surface with computed colours (float background, editor title, theme-accent default, delete-colour destructive) — ported, not dropped.</Expected></Corner>
+    <Corner><Name>Performance and Footprint</Name><Expected>A plain DOM dialog with one CSS file; no new dependency (Element Plus stays for other surfaces); focus trap is a four-element array; no build-size-sensitive additions.</Expected></Corner>
+    <Corner><Name>Scope hygiene</Name><Expected>LISTEN_FOR_CLOSE (window-close batch) is explicitly untouched and recorded as a follow-up candidate with its owner-decision reason; muya and the table surface are untouched.</Expected></Corner>
+    <Corner><Name>Delivery discipline</Name><Expected>The bundle repairs and verifies; queueing waits for the owner's focused acceptance on the fresh isolated artifact (EP-02 exit gate); no version, tag or publication.</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Dialog module and component coverage</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>unsavedCloseDialog.js/.css land with the module contract; tests/renderer/components/unsaved-close-dialog.test.js pins three labels/results, default focus/styling classes and the Cancel-equivalence of Escape, glyph and backdrop.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/unsaved-close-dialog.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Store integration and coverage rewrite</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>CLOSE_UNSAVED_TAB resolves the dialog action; untitled Save &amp; Close runs the Save As transport for the closing tab and closes only on success; editor-coverage.test.js CLOSE_UNSAVED_TAB cases rewritten to the new model (including the delegated CLOSE_TAB case) and green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/editor-coverage.test.js tests/renderer/store/editor.test.ts</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Browser coverage and theme port</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>unsaved-close-actions.spec.ts drives the seven untitled flows and the named pair through the real store funnel; unsaved-dialog-theme.spec.ts asserts the dark-theme surface and the default/destructive computed colours on the new dialog; both green in Chromium.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/unsaved-close-actions.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts --project=chromium</Command>
+      </Verification>
+    </T-003>
+    <T-004>
+      <Title>Projections, gate and handoff</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>V-M-011 scenario-69 and commands recorded; M-011 graph summary line added; grace lint --assertions current zero errors; evidence.json written; the repair joins the shared isolated Mark Test build for the owner's focused acceptance.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+        <Command>grace status --path . --with modules --json</Command>
+      </Verification>
+    </T-004>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-10-20" verdict="green-after-fixes" task="plan-four-corner-review">
+      <Findings>
+        Correctness and Contracts: the defect was re-derived from the live CLOSE_UNSAVED_TAB source (both buttons discard; no visible Cancel); the untitled Save As path was checked against APPLY_SAVE_OUTCOME (id-keyed, revision-guarded) so closing a non-current tab works. FINDING (fixed): the first draft drove Save As through FILE_SAVE_AS, which reads currentFile — the plan now requires the closing tab's own identity through the same transport. Security and Privacy: filenames render via textContent only. UX and Docs: macOS order + aria labels specified up front. Performance and Footprint: no new dependency. CornerMatrix (10 corners) added before approval. Same-day amendment: the three consumed pre-state baseline MustContains were replaced with existence pins (the FIX-008 lesson) so the active bundle lints clean while awaiting acceptance.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-10-20" verdict="clean" task="plan-four-corner-review-recheck">
+      <Findings>
+        None. Baselines pin the defective markers (including the escaped literal) so the plan is unambiguous about what must disappear; targets pin the new module, markers and the V-M-011 scenario; every criterion maps to a task and a verification command; the window-close batch dialog is disclosed as untouched with its reason.
+      </Findings>
+    </Review>
+    <Review number="3" date="2026-10-20" verdict="clean" task="plan-executor-feasibility-pass">
+      <Findings>
+        None. Executor walk: editor-coverage.test.js already mocks @tauri-apps/api/core invoke globally (the new untitled cases reuse it); the e2e harness exposes the store through the documented __vue_app__ pinia pattern; opening a file replaces the empty untitled boot tab (accounted in the named regression expectations); the notice DOM is .mt-notification.
+      </Findings>
+    </Review>
+    <Review number="4" date="2026-10-20" verdict="green-after-fixes" task="post-execution-four-corner-review">
+      <Findings>
+        Four independent passes over the executed change. Correctness and Contracts: FINDING (fixed): the consumed pre-state baselines were replaced with existence pins after the FIX-008 lesson; FINDING (fixed): the named-regression e2e initially expected the empty untitled boot tab to survive opening a file — the harness replaces it, and the expectations now model that. All seven untitled flows and the named pair verified against the real store funnel; APPLY_SAVE_OUTCOME integration confirmed by the save-as-success case. Security and Privacy: clean; filenames render via textContent. UX and Docs: contracts, CHANGE_SUMMARY and M-011 summary updated; English-only holds. Performance and Footprint: no new dependency; 10 e2e tests in ~6s; suite budgets unchanged. Owner acceptance on the fresh isolated artifact remains the admission gate.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-FIX-011-UNTITLED-CLOSE-ACTIONS></GraceChangePlan>
