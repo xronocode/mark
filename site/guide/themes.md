@@ -29,7 +29,7 @@ Mark ships with 32 built-in themes — 15 families with a light and a dark membe
 - Alucard
 - Dracula
 
-Every theme is in the <a href="/diagrams/" target="_self">diagram gallery</a> too — pick a theme there and watch every diagram type recolour.
+Every theme is in the <a href="../diagrams/" target="_self">diagram gallery</a> too — pick a theme there and watch every diagram type recolour.
 
 ## Custom CSS
 

@@ -2708,8 +2708,14 @@
         package.json + WebSite; docs pages get docsHeadTags with WebSite
         only); GA4 loads consent.js (Consent Mode v2, geo gate, card shown
         only after the [data-consent-after] hero leaves the viewport) plus
-        track.js (consent-gated download_click / share_to_mac via
-        window.markTrack); buildEnd also emits llms.txt and
+        track.js (consent-gated download_click / outbound_click / kofi_click,
+        one-shot guide doc_read at 75% depth, and share_to_mac /
+        snippet_copy / diagram_copy / diagram_filter via window.markTrack).
+        GA configuration strips the URL hash and non-campaign query fields,
+        preserves only named UTM values, and reduces referrers to their
+        origin. VitePress owns SITE_BASE application for theme-nav routes;
+        full-navigation links from guide content stay base-agnostic. buildEnd
+        also emits llms.txt and
         .well-known/security.txt (site/scripts/seo-files.mjs) and rewrites
         every built page with a meta CSP pinning each inline script by its
         exact-content sha256 (site/scripts/csp.mjs: cspFor / injectCsp /
@@ -2761,6 +2767,8 @@
         <fn-applyCsp>outDir + opts -> rewrite every built .html with its policy, {files, hashes}</fn-applyCsp>
         <fn-verifyCsp>html -> inline script hashes missing from the page's own CSP meta</fn-verifyCsp>
         <fn-checkDist>fail the build on unresolved internal links, leftover tokens, an incomplete gallery page, a missing/broken SEO set, or an unpinned inline script</fn-checkDist>
+        <fn-windowMarkTrack>name + params -> consent-gated GA4 event with an in-memory pre-decision queue</fn-windowMarkTrack>
+        <fn-gaPageLocation>window.location -> GA4 page URL containing only origin, path and named UTM parameters</fn-gaPageLocation>
       </Interface>
       <ChangeRefs>
         <C-14/>

@@ -1,6 +1,6 @@
 /*
  * FILE: site/public/consent.js
- * VERSION: 3.0.0
+ * VERSION: 3.1.0
  * START_MODULE_CONTRACT
  *   PURPOSE: Consent-gated Google Analytics loader with Consent Mode v2 and
  *            a slim brand consent card that never covers the landing hero
@@ -17,7 +17,9 @@
  *          where it is not, and show the card only after the
  *          [data-consent-after] element has fully left the viewport
  *          (IntersectionObserver, scroll fallback) or, on pages without
- *          such an element, after the first scroll or 6 s.
+ *          such an element, after the first scroll or 6 s. GA configuration
+ *          keeps only named campaign parameters in page_location and reduces
+ *          page_referrer to its origin.
  *   DEPENDS: none (self-contained; sibling public/track.js reads markConsent)
  *   LINKS: M-053 SiteBuild; C-64 T-003, T-007; site/.vitepress/landing.mjs
  *          analyticsTags (emits the tag); site/public/track.js (consumer)
@@ -41,7 +43,11 @@
  *             only while the card is unanswered (queue-hold window for track.js).
  *
  * START_CHANGE_SUMMARY
- *   LAST_CHANGE: [v3.0.0 - 2026-10-18 C-64 T-007 (M2+P1 owner decision:
+ *   LAST_CHANGE: [v3.1.0 - 2026-10-21 GA4 tracking regression: URL
+ *                 sanitization reads the explicit window.location object,
+ *                 so config priming remains deterministic in the browser
+ *                 harness and cannot fail on a missing ambient binding.]
+ *   PREV: [v3.0.0 - 2026-10-18 C-64 T-007 (M2+P1 owner decision:
  *                 basic consent mode): the gtag script is requested only
  *                 once analytics is granted — at boot on a stored "granted",
  *                 on the geo auto-grant, or when the visitor clicks Allow —
@@ -106,10 +112,10 @@
   // referrer is passed as origin only.
   function gaPageLocation() {
     try {
-      var keep = ["utm_source", "utm_medium", "utm_campaign"], q = new URLSearchParams(location.search), parts = [];
+      var keep = ["utm_source", "utm_medium", "utm_campaign"], q = new URLSearchParams(window.location.search), parts = [];
       for (var i = 0; i < keep.length; i++) { var v = q.get(keep[i]); if (v) parts.push(keep[i] + "=" + encodeURIComponent(v.slice(0, 100))); }
-      return location.origin + location.pathname + (parts.length ? "?" + parts.join("&") : "");
-    } catch (e) { return location.href.split("#")[0]; }
+      return window.location.origin + window.location.pathname + (parts.length ? "?" + parts.join("&") : "");
+    } catch (e) { return window.location.href.split("#")[0]; }
   }
   function gaReferrerOrigin() {
     try { return document.referrer ? new URL(document.referrer).origin : null; } catch (e) { return null; }
