@@ -1,5 +1,5 @@
 // FILE: tools/release-notes.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Extract the reviewed human release-note draft for one tag and compose it above an untouched automated verification block.
 //   SCOPE: Parse the English draft ledger and combine Markdown strings; never creates, edits, or publishes a GitHub Release.
@@ -15,12 +15,14 @@
 //   composeReleaseBody - Places reviewed notes above one preserved automated block separator.
 //   fail - Raise one stable release-note error.
 //   escapeRegExp - Escape one tag for exact section matching.
+//   normalizeNewlines - Normalize checkout-dependent CRLF/CR text before Markdown parsing.
 //   optionValue - Read one named command-line option.
 //   main - Run the command-line interface.
 //   invokedPath - Detect direct command-line execution.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 v1.1.0: normalize draft newlines before exact-section parsing so Windows CRLF checkouts are equivalent to LF.
 //   - 2026-10-20 v1.0.0: add deterministic reviewed-draft extraction and automated-block preservation for 2.6.0.
 // END_CHANGE_SUMMARY
 
@@ -41,6 +43,7 @@ const fail = (code, message) => {
 }
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const normalizeNewlines = (value) => value.replace(/\r\n?/g, '\n')
 
 // START_CONTRACT: extractReleaseNotes
 //   PURPOSE: Extract exactly one reviewed fenced Markdown section for a release tag.
@@ -54,12 +57,13 @@ export const extractReleaseNotes = (source, tag) => {
   if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag ?? '')) {
     fail('MT_RELEASE_NOTES_TAG_INVALID', `tag=${tag ?? 'missing'}`)
   }
+  const normalizedSource = normalizeNewlines(source)
   const section = new RegExp(
     '^## ' +
       escapeRegExp(tag) +
       '\\s*\\n+```markdown\\n([\\s\\S]*?)\\n```(?=\\n+## v|$)',
     'm'
-  ).exec(source)
+  ).exec(normalizedSource)
   if (!section) fail('MT_RELEASE_NOTES_MISSING', `tag=${tag}`)
   const notes = section[1].trim()
   if (!notes.startsWith("## What's new")) {

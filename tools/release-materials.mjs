@@ -1,5 +1,5 @@
 // FILE: tools/release-materials.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify that every public 2.6.0 release-material surface and screenshot digest describes one admitted release-train identity.
 //   SCOPE: Repository-only README, CHANGELOG, English notes, What's New, ten source/minified locales, train scope, and tracked PNG validation; no image capture or publication.
@@ -21,6 +21,7 @@
 //   LOCALES - Exact supported release-copy locale set.
 //   SHA_PATTERN - Exact lowercase SHA-256 digest grammar.
 //   fail - Raise one stable release-material error.
+//   normalizeNewlines - Normalize checkout-dependent CRLF/CR text before Markdown parsing.
 //   readJson - Read one JSON material authority.
 //   sha256 - Compute one tracked file digest.
 //   parseTag - Extract the release version from a valid tag.
@@ -32,6 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 v1.2.0: normalize Markdown newlines so Windows CRLF checkouts validate the same release identity as LF checkouts.
 //   - 2026-10-20 v1.1.0: distinguish the unversioned release draft from Release Please-owned numbered CHANGELOG sections and reject duplicate headings.
 //   - 2026-10-20 v1.0.0: add the mandatory 2.6.0 material and screenshot-identity gate.
 // END_CHANGE_SUMMARY
@@ -59,6 +61,7 @@ const fail = (code, message) => {
   throw new ReleaseMaterialsError(code, message)
 }
 
+const normalizeNewlines = (value) => value.replace(/\r\n?/g, '\n')
 const readJson = (pathname) => JSON.parse(readFileSync(pathname, 'utf8'))
 const sha256 = (pathname) =>
   createHash('sha256').update(readFileSync(pathname)).digest('hex')
@@ -221,13 +224,16 @@ export const validateScreenshotManifest = ({
 // END_BLOCK_VALIDATE_SCREENSHOT_MANIFEST
 
 export const validateMaterialHeaders = ({ readme, changelog, notes, version, state = 'Collecting' }) => {
-  const readmeMatch = /^## What's new in ([^\n]+)$/m.exec(readme)
+  const readmeText = normalizeNewlines(readme)
+  const changelogText = normalizeNewlines(changelog)
+  const notesText = normalizeNewlines(notes)
+  const readmeMatch = /^## What's new in ([^\n]+)$/m.exec(readmeText)
   const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const numberedHeadings = changelog.match(
+  const numberedHeadings = changelogText.match(
     new RegExp(`^## \\[${escapedVersion}\\](?: - [^\\n]+)?$`, 'gm')
   ) ?? []
-  const draftStarts = changelog.match(/^<!-- release-draft:start -->$/gm) ?? []
-  const draftEnds = changelog.match(/^<!-- release-draft:end -->$/gm) ?? []
+  const draftStarts = changelogText.match(/^<!-- release-draft:start -->$/gm) ?? []
+  const draftEnds = changelogText.match(/^<!-- release-draft:end -->$/gm) ?? []
   if (readmeMatch?.[1] !== version) {
     fail('MT_RELEASE_README_VERSION_MISMATCH', `expected=${version};actual=${readmeMatch?.[1] ?? 'missing'}`)
   }
@@ -245,7 +251,7 @@ export const validateMaterialHeaders = ({ readme, changelog, notes, version, sta
       `version=${version};numbered=${numberedHeadings.length};draft=${hasDraft}`
     )
   }
-  extractReleaseNotes(notes, `v${version}`)
+  extractReleaseNotes(notesText, `v${version}`)
 }
 
 export const validateWhatsNewSource = (source, version) => {
