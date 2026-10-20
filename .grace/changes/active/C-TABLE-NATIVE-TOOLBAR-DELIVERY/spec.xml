@@ -1,0 +1,42 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-TABLE-NATIVE-TOOLBAR-DELIVERY>
+    <Summary>Restore the native Full width to Fit transition after the 2.5.3 stabilization changes. Physical-click evidence proved the shared toolbar route works for Full width, Copy as image and Open full screen; the apparent click failure occurs only after an explicit Full width entry has been loaded. During Fit persistence, syncIdentities re-adopts that stale profile entry and immediately restores Full width. Keep the accepted visuals and schema intact, and separate load-time adoption from user-write identity refresh.</Summary>
+    <Goals>
+      <Goal>A native pointer activation of the table width toggle reaches the action exactly once, replaces an adopted Full width entry with Fit in the same interaction, and emits the fit layout update.</Goal>
+      <Goal>The table toolbar remains usable with the sidebar both hidden and visible, including the reverse Full width action and the Open full screen affordance on an overflowing table.</Goal>
+      <Goal>Caption and column-resizer event ownership remain unchanged, and toolbar activation never mutates Markdown or dirty state.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Change only the proven TableResize persisted-state boundary; do not alter accepted table/footer geometry, labels, icons, width policy, or persistence schema.</Constraint>
+      <Constraint>Add a failing-first deterministic test that adopts fullWidth from the host snapshot before physically equivalent Fit activation.</Constraint>
+      <Constraint>Verify real pointer interaction in Chromium and WebKit plus a fresh native artifact with the sidebar hidden, visible, and toggled during the session.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No redesign of the table toolbar, label-visit behavior, table footer, scrollbar, or viewer.</NonGoal>
+      <NonGoal>No release, train freeze, version bump, tag, publication, or acceptance claim.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>The failing-first unit proves that an adopted fullWidth profile entry is not re-applied while the Fit user action is being serialized; resizer, caption and sibling toolbar actions retain their behavior.</Criterion>
+      <Criterion>The table-layout e2e uses real pointer clicks and passes Full width save, reopen/adoption, Fit replacement, reverse action, persistence, Open full screen availability, and sidebar off/on in Chromium and WebKit.</Criterion>
+      <Criterion>A fresh native test build visibly changes an adopted Full width state to Fit to page, retains the reverse action with either sidebar state, and writes the fixture's fit entry.</Criterion>
+      <Criterion>V-M-012, M-012, and change evidence record the proven root cause, test artifact, native artifact identity, and remaining owner acceptance step.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-012 />
+      <V-M-012 />
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+      <File>tests/e2e/table-layout.spec.ts</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run tests/renderer/muya/table-layout-persistence.test.js</ExpectedCommand>
+      <ExpectedCommand>npm run build</ExpectedCommand>
+      <ExpectedCommand>npx playwright test tests/e2e/table-layout.spec.ts --project=chromium --project=webkit-tables</ExpectedCommand>
+      <ExpectedEvidence>Fresh native bundle source revision and binary hash; sidebar-hidden, sidebar-visible, reverse-action, persistence-write, and no-dirty-state observations.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The owner's 2026-10-20 instruction “делаем и не забудь про тесты” approves this narrow repair after the reported native/sidebar regression and the proposed failing-first verification boundary.</Assumption>
+      <Assumption>The owner's physical observation that every toolbar action and Full width work while only Fit fails localizes the defect after shared click routing and inside the Full width to Fit state transition.</Assumption>
+    </Assumptions>
+  </C-TABLE-NATIVE-TOOLBAR-DELIVERY>
+</GraceChangeSpec>

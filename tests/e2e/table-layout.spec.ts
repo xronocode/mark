@@ -1,8 +1,8 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.7.0
+// VERSION: 1.11.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling) and the C-65 T-003 overflow cue of the same wrapper (class-gated edge shades + the «columns X–Y of N» caption below the table on the column edge, live on scroll).
-//   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, and lib/tableResize/tableCue.js.
+//   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling), the C-65 T-003 overflow cue of the same wrapper, and the real-pointer Full width/Fit transition, sibling viewer availability, reverse action, and persistence across sidebar visibility changes.
+//   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, lib/tableResize/tableCue.js, C-TABLE-FIT-PERSISTENCE's pointer/sidebar/reopen boundary, and C-TABLE-NATIVE-TOOLBAR-DELIVERY's sidebar-hidden/sidebar-visible action matrix.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, the built renderer served by `npm run preview`.
 //   LINKS: .grace/changes/active/C-39 T-001; .grace/changes/active/C-65 T-003; .grace/verification/runtime.xml V-M-012 scenario-18 and scenario-66; unit structure twin tests/renderer/muya/table-scroll-wrapper.test.js + table-cue.test.js.
 //   ROLE: TEST
@@ -17,10 +17,24 @@
 //   LONG_URL - a 200-character URL.
 //   LONG_URL_MD - table fixture with LONG_URL in a body cell.
 //   EDIT_AFTER_SCROLL_MD - wide table used for the editing-after-scroll cases.
+//   C-TABLE-FIT-PERSISTENCE/C-TABLE-NATIVE-TOOLBAR-DELIVERY scenario - real pointer activation, sibling viewer reveal, reverse action, live sidebar on/off, persisted fit payload and reopen.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.7.0 - 2026-10-20 C-TABLE-FIT-PERSISTENCE: Full
+//   LAST_CHANGE: v1.11.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY:
+//   reproduce the native stale-adoption path by persisting Full width,
+//   reopening so that entry is adopted, and only then clicking Fit; the
+//   old persist() immediately re-adopted Full width and failed this step.
+//   PREV: v1.10.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY:
+//   the real-pointer matrix now opens and closes the sibling table viewer,
+//   proving that the shared action route serves both toolbar actions.
+//   PREV: v1.9.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY:
+//   sidebar-hidden and sidebar-visible native parity now includes the
+//   sibling viewer reveal plus Full width → Fit → Full width → Fit actions.
+//   PREV: v1.8.0 - 2026-10-20 C-TABLE-FIT-PERSISTENCE native
+//   follow-up: use a real pointer click and keep the Full width action
+//   visible and state-stable while the sidebar opens/closes and after reopen.
+//   PREV: v1.7.0 - 2026-10-20 C-TABLE-FIT-PERSISTENCE: Full
 //   width → Fit to page flips the mode and label in the same tick, saves
 //   the fit flag through the host prefs path, and survives reopening the
 //   document (path-aware stat mock: the file exists, no `.before`
@@ -297,15 +311,64 @@ test.describe('table layout (C-39 T-001)', () => {
 
     // The transition: click the «Fit to page» toggle — the class leaves and
     // the label flips to «Full width» in the same tick (no re-render lag).
-    const afterClick = await page.evaluate(() => {
-      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
-      const toggle = figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
-      toggle.click()
-      const label = (figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement).title
-      return { full: figure.classList.contains('ag-table-full-width'), label }
+    const figure = page.locator("figure[data-role='TABLE']").first()
+    const widthToggle = figure.locator('button.ag-table-toolbar-toggle')
+    const viewerButton = figure.locator('button.ag-table-toolbar-expand')
+    await expect(widthToggle).toHaveAttribute('title', 'Fit to page')
+    await expect(viewerButton).toBeVisible()
+    await viewerButton.hover()
+    await expect(viewerButton.locator('span.ag-block-toolbar-label')).toBeVisible()
+    await viewerButton.click()
+    const viewer = page.locator('.ag-block-viewer')
+    await expect(viewer).toHaveClass(/ag-block-viewer-open/)
+    await expect(viewer.locator('.ag-block-viewer-title')).toHaveText('Table')
+    await viewer.locator('.ag-block-viewer-close-btn').click()
+    await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
+    await widthToggle.click()
+    const afterClick = await figure.evaluate((node) => {
+      const toggle = node.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
+      return {
+        full: node.classList.contains('ag-table-full-width'),
+        label: toggle.title
+      }
     })
     expect(afterClick.full).toBe(false)
     expect(afterClick.label).toBe('Full width')
+
+    // The owner found the native failure while changing sidebar state.
+    // Keep the fitted mode and its reverse action available when the
+    // editor viewport shrinks, and persist/reopen from that geometry.
+    const sidebarToggle = page.locator('.titlebar-nav-btn[title="Toggle Sidebar"]')
+    await sidebarToggle.click()
+    await expect(page.locator('.side-bar')).toBeVisible()
+    await expect(figure).not.toHaveClass(/ag-table-full-width/)
+    await expect(widthToggle).toBeVisible()
+    await expect(widthToggle).toHaveAttribute('title', 'Full width')
+    await expect(viewerButton).toBeVisible()
+
+    // Reverse while the sidebar is visible, then REOPEN with the saved
+    // Full width entry before selecting Fit. That adopted entry is the
+    // exact native regression: persist() used to re-adopt its stale value
+    // during the Fit click and instantly restore Full width.
+    await widthToggle.click()
+    await expect(figure).toHaveClass(/ag-table-full-width/)
+    await expect(widthToggle).toHaveAttribute('title', 'Fit to page')
+
+    const savedFullWidth = await page.evaluate(() => {
+      const store = (window as any).__lastTableLayouts
+      const entries = store?.files?.['/tmp/mark-e2e/fit-persist.md'] || {}
+      return Object.values(entries).filter((e: any) => e && e.fullWidth === true).length
+    })
+    expect(savedFullWidth).toBeGreaterThanOrEqual(1)
+
+    await openFileTab(page, '/tmp/mark-e2e/fit-persist.md', WIDE_15COL_MD)
+    await waitForTable(page)
+    await expect(figure).toHaveClass(/ag-table-full-width/)
+    await expect(widthToggle).toHaveAttribute('title', 'Fit to page')
+
+    await widthToggle.click()
+    await expect(figure).not.toHaveClass(/ag-table-full-width/)
+    await expect(widthToggle).toHaveAttribute('title', 'Full width')
 
     // The choice was saved with the fit flag (the host sanitizer keeps it).
     const saved = await page.evaluate(() => {
@@ -332,6 +395,13 @@ test.describe('table layout (C-39 T-001)', () => {
     })
     expect(reopened.full).toBe(false)
     expect(reopened.label).toBe('Full width')
+
+    await sidebarToggle.click()
+    await expect(page.locator('.side-bar')).not.toBeVisible()
+    await expect(figure).not.toHaveClass(/ag-table-full-width/)
+    await expect(widthToggle).toBeVisible()
+    await expect(widthToggle).toHaveAttribute('title', 'Full width')
+    await expect(viewerButton).toBeVisible()
   })
 
   test('a 15-column table scrolls horizontally inside the text column', async ({ page }) => {
