@@ -55,6 +55,16 @@ vi.mock('element-plus/es/components/message-box/index.mjs', () => ({
   }
 }))
 
+// FIX-011 (C-FIX-011-UNTITLED-CLOSE-ACTIONS): CLOSE_UNSAVED_TAB uses the
+// three-action unsavedCloseDialog; mock the ask so each case can resolve
+// its action. The real dialog surface is pinned in
+// tests/renderer/components/unsaved-close-dialog.test.js.
+const askUnsavedCloseMock = vi.fn(async () => 'save')
+vi.mock('@/components/editorWithTabs/unsavedCloseDialog', () => ({
+  askUnsavedClose: (...args) => askUnsavedCloseMock(...args),
+  UNSAVED_CLOSE_ACTIONS: Object.freeze({ SAVE: 'save', DISCARD: 'discard', CANCEL: 'cancel' })
+}))
+
 const __ipcFsMock = {
   read: vi.fn(async () => 'mocked'),
   write: vi.fn(),
@@ -397,8 +407,8 @@ describe('store/editor — coverage gaps', () => {
   // synchronously; if not, these will timeout.
 
   describe('CLOSE_UNSAVED_TAB', () => {
-    it('confirm + named file → sends mt::save-and-close-tabs', async () => {
-      elMessageBoxConfirmMock.mockResolvedValue('confirm')
+    it('save + named file → sends mt::save-and-close-tabs', async () => {
+      askUnsavedCloseMock.mockResolvedValueOnce('save')
       const tab = makeTab({ id: 'u1', pathname: '/tmp/dirty.md', filename: 'dirty.md', isSaved: false })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -412,8 +422,9 @@ describe('store/editor — coverage gaps', () => {
       )
     }, 10000)
 
-    it('confirm + untitled (no pathname) → FORCE_CLOSE_TAB (discard)', async () => {
-      elMessageBoxConfirmMock.mockResolvedValue('confirm')
+    it('save + untitled + Save As succeeds → outcome applied and the tab closes', async () => {
+      askUnsavedCloseMock.mockResolvedValueOnce('save')
+      invoke.mockResolvedValueOnce({ id: 'u2', pathname: '/tmp/saved.md', filename: 'saved.md', isSaved: true })
       const tab = makeTab({ id: 'u2', pathname: '', filename: 'Untitled-1', isSaved: false })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -421,12 +432,26 @@ describe('store/editor — coverage gaps', () => {
 
       await editor.CLOSE_UNSAVED_TAB(tab)
 
-      // Tab should have been force-closed
+      expect(invoke).toHaveBeenCalledWith('mt_response_file_save_as', expect.objectContaining({ id: 'u2' }))
       expect(editor.tabs.find((t) => t.id === 'u2')).toBeUndefined()
     }, 10000)
 
-    it('cancel ("Don\'t Save") → FORCE_CLOSE_TAB (discard)', async () => {
-      elMessageBoxConfirmMock.mockRejectedValue('cancel')
+    it('save + untitled + Save As cancelled (falsy outcome) → the tab stays open', async () => {
+      askUnsavedCloseMock.mockResolvedValueOnce('save')
+      invoke.mockResolvedValueOnce(null)
+      const tab = makeTab({ id: 'u2b', pathname: '', filename: 'Untitled-2', isSaved: false })
+      editor.tabs = [tab]
+      editor.currentFile = tab
+      editor.updateTabIdToIndex()
+
+      await editor.CLOSE_UNSAVED_TAB(tab)
+
+      expect(editor.tabs.find((t) => t.id === 'u2b')).toBeDefined()
+    }, 10000)
+
+    it('discard → FORCE_CLOSE_TAB with no save transport', async () => {
+      askUnsavedCloseMock.mockResolvedValueOnce('discard')
+      invoke.mockClear()
       const tab = makeTab({ id: 'u3', pathname: '/tmp/x.md', isSaved: false })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -435,10 +460,11 @@ describe('store/editor — coverage gaps', () => {
       await editor.CLOSE_UNSAVED_TAB(tab)
 
       expect(editor.tabs.find((t) => t.id === 'u3')).toBeUndefined()
+      expect(invoke).not.toHaveBeenCalled()
     }, 10000)
 
-    it('close (X/Escape) → tab stays open', async () => {
-      elMessageBoxConfirmMock.mockRejectedValue('close')
+    it('cancel → tab stays open', async () => {
+      askUnsavedCloseMock.mockResolvedValueOnce('cancel')
       const tab = makeTab({ id: 'u4', pathname: '/tmp/x.md', isSaved: false })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -446,7 +472,6 @@ describe('store/editor — coverage gaps', () => {
 
       await editor.CLOSE_UNSAVED_TAB(tab)
 
-      // Tab should still be there
       expect(editor.tabs.find((t) => t.id === 'u4')).toBeDefined()
     }, 10000)
   })
@@ -791,7 +816,7 @@ describe('store/editor — coverage gaps', () => {
 
   describe('CLOSE_TAB — unsaved branch', () => {
     it('unsaved tab → delegates to CLOSE_UNSAVED_TAB', async () => {
-      elMessageBoxConfirmMock.mockRejectedValue('cancel')
+      askUnsavedCloseMock.mockResolvedValueOnce('discard')
       const tab = makeTab({ id: 'dirty', isSaved: false, pathname: '/tmp/x.md' })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -803,7 +828,7 @@ describe('store/editor — coverage gaps', () => {
       // Wait for async dialog to resolve
       await new Promise((r) => setTimeout(r, 50))
 
-      // "cancel" → FORCE_CLOSE_TAB → tab removed
+      // Discard → FORCE_CLOSE_TAB → tab removed
       expect(editor.tabs.find((t) => t.id === 'dirty')).toBeUndefined()
     }, 10000)
   })

@@ -1,0 +1,102 @@
+/*
+ * FIX-011 (C-FIX-011-UNTITLED-CLOSE-ACTIONS): the three-action
+ * unsaved-changes dialog. Reuses the FIX-007 float tokens so light and
+ * dark themes both render correctly — the surface must never be white
+ * over a dark editor.
+ */
+
+.ag-unsaved-close-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.ag-unsaved-close-dialog {
+  display: flex;
+  flex-direction: column;
+  min-width: 340px;
+  max-width: 440px;
+  padding: 16px 20px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--floatBorderColor, var(--editorColor10));
+  background-color: var(--floatBgColor);
+  box-shadow: 0 4px 8px 0 var(--floatBorderColor);
+}
+
+.ag-unsaved-close-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.ag-unsaved-close-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--editorColor);
+}
+
+.ag-unsaved-close-x {
+  border: none;
+  background: transparent;
+  color: var(--editorColor50);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.ag-unsaved-close-x:hover {
+  color: var(--editorColor);
+}
+
+.ag-unsaved-close-message {
+  font-size: 13px;
+  color: var(--editorColor80);
+  margin-bottom: 16px;
+}
+
+.ag-unsaved-close-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ag-unsaved-close-btn {
+  min-width: 84px;
+  height: 28px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--editorColor10);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--editorColor);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* The destructive action is visually distinct and never primary. */
+.ag-unsaved-close-btn.ag-unsaved-close-discard {
+  color: var(--deleteColor);
+  border-color: var(--deleteColor);
+}
+
+/* The default action carries the theme accent. */
+.ag-unsaved-close-btn.ag-unsaved-close-save {
+  color: var(--themeColor);
+  border-color: var(--themeColor);
+}
+
+.ag-unsaved-close-btn:focus-visible {
+  outline: 2px solid var(--themeColor);
+  outline-offset: 1px;
+}

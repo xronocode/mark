@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-20",
+  "status": "implemented and locally verified; fresh isolated artifact and owner acceptance pending",
+  "repair": {
+    "newModule": "src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js v1.0.0 (+ unsavedCloseDialog.css)",
+    "store": "src/renderer/src/store/editor.js CLOSE_UNSAVED_TAB: askUnsavedClose drives the model; named files keep mt::save-and-close-tabs; untitled Save & Close runs mt_response_file_save_as with the closing tab's own identity and closes only on a truthy outcome (markers BLOCK_UNSAVED_CLOSE_SAVED_AND_CLOSED / _SAVE_CANCELLED / _SAVE_FAILED)",
+    "replaces": "the two-discard ElMessageBox.confirm ('Discard & Close' + \"Don't Save\") with no visible Cancel"
+  },
+  "verification": {
+    "component": "npx vitest run tests/renderer/components/unsaved-close-dialog.test.js — 7 tests: three visible labels in order, default focus + separated default/destructive classes, three distinct results with DOM cleanup, Escape/glyph/backdrop Cancel-equivalence, Tab containment, and the untitled-vs-named messages.",
+    "store": "npx vitest run tests/renderer/store/editor-coverage.test.js tests/renderer/store/editor.test.ts — 162 tests green; the CLOSE_UNSAVED_TAB cases now cover named save, untitled save-as success (outcome applied + tab closed), cancelled (tab stays), discard (no save transport), cancel (tab stays) and the delegated CLOSE_TAB branch.",
+    "e2e": "npm run build && npx playwright test tests/e2e/unsaved-close-actions.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts --project=chromium — 10 passed: the seven real-store untitled flows (successful/cancelled/failed Save As, Discard, Cancel, Escape, close glyph) plus the named pair (transport payload with the right pathname; Discard closes, Cancel keeps) and the FIX-007 dark-theme pass with computed colours on the new surface (float background, editor title, theme-accent default, delete-colour destructive).",
+    "governance": "V-M-011 scenario-69 recorded with the commands; M-011 graph summary line added; grace lint --assertions current zero errors."
+  },
+  "scopeNotes": "LISTEN_FOR_CLOSE (window-close batch dialog) is deliberately untouched — its mixed named/untitled semantics need their own owner decision; recorded here and in the spec constraints as a follow-up candidate. Localization stays out of scope (the previous dialog was not localized either).",
+  "pending": "Fresh isolated Mark Test artifact (source, bundle id, binary SHA-256) and the owner's focused FIX-011 acceptance; admission to the queued train waits for that gate (EP-02)."
+}
