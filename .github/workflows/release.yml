@@ -1,21 +1,28 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 1.7.0
+# VERSION: 2.2.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Build, verify, sign, notarize, smoke-test, attest, publish to the GitHub latest feed used by the app, and route a verified artifact URL into the Homebrew update.
-#   SCOPE: Tag-triggered production release orchestration; does not own application runtime behavior or signing credentials.
-#   DEPENDS: M-046 release preflight, Node 22, Rust stable, Playwright Chromium, tauri-action, Apple signing/notary secrets, GitHub OIDC, release environment.
-#   LINKS: docs/knowledge-graph.xml M-046; docs/verification-plan.xml V-M-046; docs/requirements.xml UC-032.
+#   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage and publish one digest-verified draft release after a separate owner approval.
+#   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, draft-first GitHub publication, and downstream Homebrew handoff.
+#   DEPENDS: M-046 release readiness/materials/preflight, Node 22, Rust stable, Playwright Chromium, tauri-action, tag-restricted release-signing secrets, GitHub OIDC, release environment.
+#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-#   build - Validate metadata and tests, create the signed/notarized app and release artifacts, and enforce smoke/supply-chain gates.
-#   publish - Publish or update the GitHub Release only after build succeeds.
+#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute.
+#   manual-build - Run unsigned build-only QA from an input-free manual dispatch.
+#   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing.
+#   prepare-publication - Render and digest the exact release body and asset set without write credentials.
+#   publish - Reconcile and verify an immutable asset set on a draft, then expose it only as the final release-environment step.
+#   close-release-please - Verify the public latest release and close the exact merged Release Please PR lifecycle with narrow metadata permissions.
 #   publish-cask - Open the downstream Homebrew cask update after build and publication succeed.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-20 v2.2.0: isolate Release Please metadata permissions from publication, compare release notes byte-for-byte, and document rerunnable cask handoff.
+#   - 2026-10-20 v2.1.0: separate privileged publication preparation, make updater metadata deterministic, narrow platform secrets, and add idempotent publication recovery.
+#   - 2026-10-20 v2.0.0: require the owner-approved bot tag and Ready seal, isolate tag-only signing, keep manual runs unsigned, and publish only after draft asset/note/read-back verification.
 #   - 2026-10-07 v1.7.1: fix compose-latest.json — the bash builtin is
 #     lowercase `mapfile`; `MAPFILE` was command-not-found (exit 127) the
 #     first time the merge path ran with WINDOWS_RELEASE=true (v2.2.0-beta
@@ -49,29 +56,152 @@ on:
       - 'v*.*.*'
       - 'v*.*.*-*'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag name to release (e.g. v2.0.0). Leave empty for current ref.'
-        required: false
-        default: ''
-      publish:
-        description: 'Also run the publish job. Default false = build-only run for manual QA (artifacts stay on the run page).'
-        type: boolean
-        required: false
-        default: false
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: write   # gh release create needs write
-  id-token: write   # B4 step-11 SLSA + Sigstore OIDC (wired in follow-up PR)
-  attestations: write  # B4 step-11 actions/attest-build-provenance (follow-up)
+permissions: {}
 
 jobs:
+  authorize-tag:
+    name: release/readiness
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      payload: ${{ steps.identity.outputs.payload }}
+      seal: ${{ steps.identity.outputs.seal }}
+    steps:
+      - name: checkout exact tag
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: derive and validate immutable identity
+        id: identity
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          PUSH_ACTOR: ${{ github.actor }}
+          EXPECTED_TAGGER: xronocode-release-bot[bot]
+        run: |
+          set -euo pipefail
+          [ "$EVENT_NAME" = push ]
+          [ "$REF_TYPE" = tag ]
+          [ "$PUSH_ACTOR" = "$EXPECTED_TAGGER" ]
+          node -e "if(!/^v(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$/.test(process.env.REF_NAME))process.exit(1)"
+          [ "$(git cat-file -t "$REF_NAME")" = tag ]
+          SEAL=$(git rev-parse "$REF_NAME^{commit}")
+          HEAD_SHA=$(git rev-parse HEAD)
+          [ "$HEAD_SHA" = "$SEAL" ]
+          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).state")
+          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).payloadSha")
+          EXPECTED_TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).computedVersion")
+          [ "$STATE" = Ready ]
+          [ "$REF_NAME" = "$EXPECTED_TAG" ]
+          echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
+          echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+          echo "seal=$SEAL" >> "$GITHUB_OUTPUT"
+
+      - name: install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: read exact payload check runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAYLOAD: ${{ steps.identity.outputs.payload }}
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/commits/$PAYLOAD/check-runs?per_page=100" \
+            | jq '[.[].check_runs[]] | sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})' \
+            > /tmp/release-checks.json
+
+      - name: strict online release admission
+        env:
+          TAG: ${{ steps.identity.outputs.tag }}
+          PAYLOAD: ${{ steps.identity.outputs.payload }}
+          SEAL: ${{ steps.identity.outputs.seal }}
+          HEAD_SHA: ${{ github.sha }}
+        run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file /tmp/release-checks.json
+
+      - name: materials and version admission
+        env:
+          TAG: ${{ steps.identity.outputs.tag }}
+        run: |
+          npm run release:materials -- --tag "$TAG"
+          npm run release:preflight -- --tag "$TAG"
+
+      - name: preserve checked identity for packaging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-identity
+          path: /tmp/release-checks.json
+          if-no-files-found: error
+          retention-days: 1
+
+  manual-build:
+    name: unsigned QA build (${{ matrix.platform.name }})
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.platform.os }}
+    permissions:
+      contents: read
+    steps:
+      - name: checkout selected commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: setup Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          targets: ${{ matrix.platform.target }}
+      - name: unsigned build-only verification
+        run: |
+          npm ci
+          npm run release:governance
+          npm run typecheck:ipc
+          npm test
+          npm run build
+          cargo test --bin mark --manifest-path src-tauri/Cargo.toml
+          npm run tauri:build -- --target "${{ matrix.platform.target }}"
+
   build:
     name: build (${{ matrix.platform.name }})
+    needs: authorize-tag
+    if: github.event_name == 'push' && needs.authorize-tag.result == 'success'
+    environment: release-signing
+    permissions:
+      contents: read
+      checks: read
+      id-token: write
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -97,54 +227,39 @@ jobs:
 
     outputs:
       tag: ${{ steps.resolve_tag.outputs.tag }}
-      # C-15 T-W3: tag pushes publish; manual dispatches are build-only
-      # (QA artifacts) unless inputs.publish is explicitly true. Prevents
-      # an accidental clobber of live release assets during manual QA.
-      publish: ${{ steps.publish_mode.outputs.publish }}
 
     steps:
       # ── checkout + tooling ────────────────────────────────────────
       - name: checkout
-        uses: actions/checkout@v4
-
-      - name: resolve publish mode
-        id: publish_mode
-        run: |
-          if [ "${{ github.event_name }}" = "push" ] || [ "${{ inputs.publish }}" = "true" ]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=false (workflow_dispatch build-only run; set inputs.publish=true to publish)"
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          fi
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: resolve tag
         id: resolve_tag
         run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            TAG="${{ inputs.tag }}"
-          else
-            TAG="${GITHUB_REF#refs/tags/}"
-          fi
+          TAG="${GITHUB_REF#refs/tags/}"
           if [ -z "$TAG" ] || [ "$TAG" = "$GITHUB_REF" ]; then
-            echo "::error::could not resolve tag from ref=$GITHUB_REF inputs.tag='${{ inputs.tag }}'"
+            echo "::error::could not resolve tag from the pushed tag ref"
             exit 1
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "resolved tag: $TAG"
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
 
       - name: setup rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
           targets: ${{ matrix.platform.target }}
 
       - name: cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -155,12 +270,34 @@ jobs:
             cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}-
             cargo-${{ matrix.platform.target }}-
 
+      - name: download admitted check evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-identity
+          path: ${{ runner.temp }}/release-identity
+
       # ── install + build frontend ─────────────────────────────────
       - name: npm ci
         run: npm ci
 
+      - name: repeat strict release admission before packaging
+        env:
+          TAG: ${{ needs.authorize-tag.outputs.tag }}
+          PAYLOAD: ${{ needs.authorize-tag.outputs.payload }}
+          SEAL: ${{ needs.authorize-tag.outputs.seal }}
+          HEAD_SHA: ${{ github.sha }}
+          CHECKS_FILE: ${{ runner.temp }}/release-identity/release-checks.json
+        run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file "$CHECKS_FILE"
+
+      - name: release materials gate
+        env:
+          TAG: ${{ needs.authorize-tag.outputs.tag }}
+        run: npm run release:materials -- --tag "$TAG"
+
       - name: release metadata preflight
-        run: npm run release:preflight -- --tag "${{ steps.resolve_tag.outputs.tag }}"
+        env:
+          TAG: ${{ steps.resolve_tag.outputs.tag }}
+        run: npm run release:preflight -- --tag "$TAG"
 
       - name: renderer IPC typecheck
         run: npm run typecheck:ipc
@@ -189,9 +326,9 @@ jobs:
       # APPLE_* env vars → tauri-action imports .p12, signs with
       # Developer ID, submits to Apple notary, staples ticket.
       # TAURI_SIGNING_PRIVATE_KEY → ed25519 updater signature.
-      - name: tauri build
-        id: tauri
-        uses: tauri-apps/tauri-action@v0
+      - name: tauri build (macOS signed and notarized)
+        if: runner.os == 'macOS'
+        uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -201,6 +338,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          args: --target ${{ matrix.platform.target }}
+
+      - name: tauri build (Windows updater-signed only)
+        if: runner.os == 'Windows'
+        uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           args: --target ${{ matrix.platform.target }}
 
@@ -287,7 +433,7 @@ jobs:
       # line fail the build.
       - name: install cargo-bundle-licenses
         if: runner.os == 'macOS'
-        run: cargo install cargo-bundle-licenses
+        run: cargo install cargo-bundle-licenses --version 4.2.0 --locked
 
       - name: verify attributions
         if: runner.os == 'macOS'
@@ -299,7 +445,7 @@ jobs:
       # downstream auditors can verify the supply chain.
       - name: install cargo-cyclonedx
         if: runner.os == 'macOS'
-        run: cargo install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx --version 0.5.9 --locked
 
       - name: generate SBOM
         if: runner.os == 'macOS'
@@ -307,7 +453,7 @@ jobs:
           set -euo pipefail
           mkdir -p sbom
           # Node side: production deps only
-          npx --yes --package @cyclonedx/cyclonedx-npm -- cyclonedx-npm \
+          npx --yes --package @cyclonedx/cyclonedx-npm@6.0.1 -- cyclonedx-npm \
             --output-format JSON \
             --output-file sbom/sbom-node.cdx.json \
             --omit dev \
@@ -327,9 +473,10 @@ jobs:
       - name: build updater feed fragment (macos)
         if: runner.os == 'macOS'
         id: feed
+        env:
+          TAG: ${{ steps.resolve_tag.outputs.tag }}
         run: |
           set -euo pipefail
-          TAG=${{ steps.resolve_tag.outputs.tag }}
           VER="${TAG#v}"
           SIG_FILE=$(find target -name '*.app.tar.gz.sig' | head -1)
           TGZ_FILE=$(find target -name '*.app.tar.gz' ! -name '*.sig' | head -1)
@@ -362,6 +509,8 @@ jobs:
       - name: stage release artifacts
         if: runner.os == 'macOS'
         id: stage
+        env:
+          TAG: ${{ steps.resolve_tag.outputs.tag }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/release
@@ -370,7 +519,6 @@ jobs:
             echo "::error::no .dmg artifact produced"
             exit 1
           fi
-          TAG=${{ steps.resolve_tag.outputs.tag }}
           # Strip leading 'v' from tag for filename version segment
           # (matches v1 cask convention: Mark_1.2.3_aarch64.dmg).
           VER=${TAG#v}
@@ -472,9 +620,10 @@ jobs:
       - name: build updater feed fragment (windows)
         if: runner.os == 'Windows'
         id: feed_win
+        env:
+          TAG: ${{ steps.resolve_tag.outputs.tag }}
         run: |
           set -euo pipefail
-          TAG=${{ steps.resolve_tag.outputs.tag }}
           VER="${TAG#v}"
           SIG_FILE=$(find target -name '*-setup.exe.sig' | head -1)
           EXE_FILE=$(find target -name '*-setup.exe' ! -name '*.sig' | head -1)
@@ -503,9 +652,10 @@ jobs:
       - name: stage release artifacts (windows)
         if: runner.os == 'Windows'
         id: stage_win
+        env:
+          TAG: ${{ steps.resolve_tag.outputs.tag }}
         run: |
           set -euo pipefail
-          TAG=${{ steps.resolve_tag.outputs.tag }}
           VER="${TAG#v}"
           STAGE_DIR="$RUNNER_TEMP/release"
           mkdir -p "$STAGE_DIR"
@@ -534,13 +684,13 @@ jobs:
       #   gh attestation verify Mark_v2.0.0_aarch64.dmg --owner xronocode
       - name: SLSA build provenance
         if: runner.os == 'macOS'
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
         with:
           subject-path: '/tmp/release/Mark_*.dmg'
 
       - name: SLSA build provenance (windows)
         if: runner.os == 'Windows'
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
         with:
           subject-path: '${{ runner.temp }}\release\Mark_*_x64-setup.exe'
 
@@ -555,7 +705,7 @@ jobs:
       #     Mark_v2.0.0_aarch64.dmg
       - name: install cosign
         if: runner.os == 'macOS'
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
         with:
           cosign-release: 'v2.4.1'
 
@@ -572,7 +722,7 @@ jobs:
 
       - name: install cosign (windows)
         if: runner.os == 'Windows'
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
         with:
           cosign-release: 'v2.4.1'
 
@@ -590,7 +740,7 @@ jobs:
 
       - name: upload release artifacts
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mark-${{ matrix.platform.name }}-release
           path: |
@@ -608,101 +758,104 @@ jobs:
       # downloadable from the run page for manual QA on a real machine.
       - name: upload release artifacts (windows)
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mark-${{ matrix.platform.name }}-release
           path: ${{ runner.temp }}\release\*
           if-no-files-found: error
           retention-days: 30
 
-  publish:
-    name: publish github release
+  prepare-publication:
+    name: prepare immutable publication bundle
     needs: build
-    if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
-      contents: write
+      contents: read
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
+      - name: checkout exact release seal without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.build.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: /tmp/release-stage
 
-      - name: list staged
-        run: |
-          find /tmp/release-stage -type f -exec ls -la {} \;
-
-      # ── C-15 T-W3: Windows staging gate ─────────────────────────
-      # Until the WINDOWS_RELEASE repo variable is set to "true", the
-      # Windows lane is build-only: its workflow artifact stays on the
-      # run page for manual QA, but its assets are dropped here so the
-      # GitHub release (and the updater feed below) stay macOS-only.
-      - name: apply WINDOWS_RELEASE staging gate
-        run: |
-          if [ "${{ vars.WINDOWS_RELEASE }}" != "true" ]; then
-            rm -rf /tmp/release-stage/mark-windows-x64-release
-            echo "windows assets: BUILD-ONLY (vars.WINDOWS_RELEASE != true)"
-          else
-            echo "windows assets: PUBLISHING (vars.WINDOWS_RELEASE == true)"
-          fi
-
-      # ── compose latest.json from per-platform fragments ─────────
-      # Each build lane staged a latest-platform.json fragment; merge
-      # every surviving fragment into one feed with a single pub_date.
-      # Missing fragments (lane skipped / gated off) simply don't
-      # contribute; no fragments at all → warning, no feed asset.
-      - name: compose latest.json
+      - name: constrain staged platforms
+        env:
+          WINDOWS_RELEASE: ${{ vars.WINDOWS_RELEASE }}
         run: |
           set -euo pipefail
-          TAG=${{ needs.build.outputs.tag }}
-          VER="${TAG#v}"
-          PUB_DATE=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-          mapfile -t FRAGS < <(find /tmp/release-stage -name latest-platform.json | sort)
-          if [ "${#FRAGS[@]}" -eq 0 ]; then
-            echo "::warning::no updater feed fragments staged; latest.json not composed."
-            exit 0
+          if [ "$WINDOWS_RELEASE" != true ]; then
+            rm -rf /tmp/release-stage/mark-windows-x64-release
+            echo 'windows assets: build-only'
+          else
+            echo 'windows assets: included'
           fi
-          jq -s \
-            --arg ver "$VER" \
-            --arg tag "$TAG" \
-            --arg date "$PUB_DATE" \
+
+      - name: compose deterministic updater feed
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+          PUB_DATE=$(git show -s --format=%cI "$TAG^{commit}")
+          mapfile -t FRAGS < <(find /tmp/release-stage -name latest-platform.json | sort)
+          [ "${#FRAGS[@]}" -gt 0 ]
+          jq -s --arg ver "$VER" --arg tag "$TAG" --arg date "$PUB_DATE" \
             '{version:$ver, notes:("See release notes at https://github.com/xronocode/mark/releases/tag/"+$tag), pub_date:$date, platforms:(map(.platforms) | add)}' \
             "${FRAGS[@]}" > /tmp/release-stage/latest.json
-          # Fragments are build-internal; only the merged feed ships.
           rm -f "${FRAGS[@]}"
-          # Place the feed into the mac artifact dir so the asset glob below picks it up.
           MAC_DIR=/tmp/release-stage/mark-macos-arm64-release
-          if [ -d "$MAC_DIR" ]; then
-            mv /tmp/release-stage/latest.json "$MAC_DIR/latest.json"
-          else
-            echo "::warning::mac artifact dir missing; latest.json not published."
-          fi
-          cat "$MAC_DIR/latest.json"
+          test -d "$MAC_DIR"
+          mv /tmp/release-stage/latest.json "$MAC_DIR/latest.json"
 
-      # ── create GitHub release + upload assets ────────────────────
-      # B4 step-15 will replace this with cross-repo cask PR via the
-      # xronocode-release-bot GitHub App + environment-protection
-      # `release` requiring manual approval. For now, ambient
-      # GITHUB_TOKEN with contents:write permission ships the build
-      # to the project's own Releases page.
-      - name: gh release create
+      - name: assemble exact asset inventory
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.build.outputs.tag }}
+          WINDOWS_RELEASE: ${{ vars.WINDOWS_RELEASE }}
         run: |
           set -euo pipefail
-          TAG=${{ needs.build.outputs.tag }}
           VER="${TAG#v}"
-          FILES=$(find /tmp/release-stage -type f)
-          # Mark's updater endpoint is /releases/latest/download/latest.json.
-          # GitHub excludes prereleases from /latest, so signed beta tags must
-          # remain normal releases even though SemVer carries a -beta suffix.
-          PRERELEASE=false
+          ASSETS=/tmp/release-assets
+          mkdir -p "$ASSETS"
+          copy_one() {
+            NAME=$1
+            mapfile -t MATCHES < <(find /tmp/release-stage -type f -name "$NAME")
+            [ "${#MATCHES[@]}" = 1 ] || { echo "::error::expected exactly one $NAME"; exit 1; }
+            cp "${MATCHES[0]}" "$ASSETS/$NAME"
+          }
+          for NAME in \
+            "Mark_${VER}_aarch64.dmg" \
+            "Mark_${VER}_aarch64.dmg.sha256" \
+            "Mark_${VER}_aarch64.dmg.bundle" \
+            "Mark_${VER}_aarch64.app.tar.gz" \
+            "Mark_${VER}_sbom-node.cdx.json" \
+            "Mark_${VER}_sbom-rust.cdx.json" \
+            NOTICES-node.md NOTICES-rust.md latest.json
+          do
+            copy_one "$NAME"
+          done
+          if [ "$WINDOWS_RELEASE" = true ]; then
+            for NAME in "Mark_${VER}_x64-setup.exe" "Mark_${VER}_x64-setup.exe.sha256" "Mark_${VER}_x64-setup.exe.bundle"; do
+              copy_one "$NAME"
+            done
+          fi
+          (cd "$ASSETS" && sha256sum * > release-assets.sha256)
+          jq -e --arg version "$VER" '.version == $version and (.platforms["darwin-aarch64"] != null)' "$ASSETS/latest.json" >/dev/null
 
-          NOTES=$(cat <<NOTES_EOF
+      - name: render reviewed release body without write credentials
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+          WINDOWS_RELEASE: ${{ vars.WINDOWS_RELEASE }}
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+          cat > /tmp/automated-release-body.md <<NOTES_EOF
           Automated release from \`$GITHUB_SHA\`.
 
           **Verification:**
@@ -714,98 +867,205 @@ jobs:
 
           Cosign keyless signature:
           \`\`\`
-          cosign verify-blob \\
-            --bundle Mark_${VER}_aarch64.dmg.bundle \\
-            --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \\
-            Mark_${VER}_aarch64.dmg
+          cosign verify-blob --bundle Mark_${VER}_aarch64.dmg.bundle Mark_${VER}_aarch64.dmg
           \`\`\`
 
-          DMG SHA-256 sidecar published as \`Mark_${VER}_aarch64.dmg.sha256\`.
+          DMG SHA-256, CycloneDX SBOMs, attribution notices, and the ed25519-signed updater feed are published as release assets.
 
-          CycloneDX SBOMs published for both Node renderer and Rust backend
-          dependency closures. NOTICES-{node,rust}.md attribution lists
-          shipped alongside.
-
-          **Updater:** ed25519-signed feed (\`latest.json\` + \`Mark_${VER}_aarch64.app.tar.gz\`) shipped.
-          tauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade
-          outside the in-app updater:
           \`\`\`
           brew upgrade --cask mark
           \`\`\`
           NOTES_EOF
-          )
-
-          # C-15 T-W3: append the Windows section only when windows assets
-          # survived the WINDOWS_RELEASE gate above.
-          if find /tmp/release-stage -name '*_x64-setup.exe' | grep -q .; then
-            NOTES="$NOTES
-
-          **Windows (x64):** NSIS installer \`Mark_${VER}_x64-setup.exe\` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the \`latest.json\` updater feed as \`windows-x86_64\`."
+          if [ "$WINDOWS_RELEASE" = true ]; then
+            printf '\n**Windows (x64):** NSIS installer `Mark_%s_x64-setup.exe` is included in the updater feed.\n' "$VER" >> /tmp/automated-release-body.md
           fi
+          node tools/release-notes.mjs --tag "$TAG" --automated-body /tmp/automated-release-body.md > /tmp/release-body.md
 
+      - name: seal publication bundle
+        run: |
+          set -euo pipefail
+          (cd /tmp && sha256sum release-body.md release-assets/* > publication.sha256)
+
+      - name: upload publication bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-publication-${{ needs.build.outputs.tag }}
+          path: |
+            /tmp/release-assets
+            /tmp/release-body.md
+            /tmp/publication.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: publish github release
+    needs: [build, prepare-publication]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: download immutable publication bundle
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-publication-${{ needs.build.outputs.tag }}
+          path: /tmp/publication
+
+      - name: verify publication bundle digest
+        run: |
+          set -euo pipefail
+          cd /tmp/publication
+          sha256sum -c publication.sha256
+
+      - name: reconcile and verify draft or exact public release
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          ASSETS=/tmp/publication/release-assets
+          BODY=/tmp/publication/release-body.md
+          ALREADY_PUBLISHED=false
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "release $TAG already exists; uploading assets idempotently"
-            gh release upload "$TAG" $FILES --repo "$GITHUB_REPOSITORY" --clobber
+            DRAFT=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)
+            if [ "$DRAFT" = true ]; then
+              gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$BODY"
+            else
+              ALREADY_PUBLISHED=true
+            fi
           else
-            gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Mark $TAG" \
-              --notes "$NOTES" \
-              --prerelease="$PRERELEASE" \
-              $FILES
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "Mark $TAG" --notes-file "$BODY"
           fi
+          RELEASE_ID=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .id)
+          if [ "$ALREADY_PUBLISHED" = false ]; then
+            for FILE in "$ASSETS"/*; do
+              NAME=$(basename "$FILE")
+              ASSET_ID=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" --paginate --jq ".[] | select(.name == \"$NAME\") | .id")
+              if [ -n "$ASSET_ID" ]; then
+                gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID" > "/tmp/server-$NAME"
+                cmp "$FILE" "/tmp/server-$NAME" || { echo "::error::existing draft asset differs: $NAME"; exit 1; }
+              else
+                gh release upload "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY"
+              fi
+            done
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > /tmp/release-readback.json
+          jq -je '.body' /tmp/release-readback.json > /tmp/server-body.md
+          cmp "$BODY" /tmp/server-body.md
+          find "$ASSETS" -maxdepth 1 -type f -exec basename {} \; | sort > /tmp/expected-assets.txt
+          jq -er '.assets[].name' /tmp/release-readback.json | sort > /tmp/server-assets.txt
+          diff -u /tmp/expected-assets.txt /tmp/server-assets.txt
+          mkdir /tmp/release-readback
+          while read -r NAME; do
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$NAME" --dir /tmp/release-readback
+          done < /tmp/expected-assets.txt
+          (cd /tmp/release-readback && sha256sum -c release-assets.sha256)
+          cmp "$ASSETS/latest.json" /tmp/release-readback/latest.json
+          echo "already_published=$ALREADY_PUBLISHED" >> "$GITHUB_OUTPUT"
 
-          # Keep reruns idempotent: tauri-action may create a draft and an
-          # existing release may still carry stale stable/prerelease metadata.
-          gh release edit "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --draft=false \
-            --prerelease="$PRERELEASE"
+      - name: publish verified draft as final mutation
+        if: steps.draft.outputs.already_published != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,tagName \
+            | jq -e --arg tag "$TAG" 'select(.isDraft == false and .isPrerelease == false and .tagName == $tag)' >/dev/null
+
+  close-release-please:
+    name: close release please lifecycle
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: verify latest and close exact Release Please lifecycle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          for ATTEMPT in 1 2 3 4 5; do
+            LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            [ "$LATEST" = "$TAG" ] && break
+            [ "$ATTEMPT" = 5 ] && { echo "::error::latest release feed did not advance to $TAG"; exit 1; }
+            sleep $((ATTEMPT * 3))
+          done
+          VER="${TAG#v}"
+          gh pr list --repo "$GITHUB_REPOSITORY" --state merged --base main --limit 100 \
+            --json number,title,headRefName,headRefOid,headRepositoryOwner,mergeCommit,labels > /tmp/release-prs.json
+          jq -e --arg title "chore(release): v$VER" \
+            '[.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark" and .headRepositoryOwner.login == "xronocode")] | length == 1' \
+            /tmp/release-prs.json >/dev/null
+          PR_NUMBER=$(jq -r --arg title "chore(release): v$VER" '.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark") | .number' /tmp/release-prs.json)
+          MERGE_SHA=$(jq -r --arg title "chore(release): v$VER" '.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark") | .mergeCommit.oid' /tmp/release-prs.json)
+          HEAD_SHA=$(jq -r --arg title "chore(release): v$VER" '.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark") | .headRefOid' /tmp/release-prs.json)
+          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ && "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/compare/$MERGE_SHA...$TAG" \
+            | jq -e 'select(.status == "ahead" or .status == "identical")' >/dev/null
+          VERSION_AT_MERGE=$(gh api "repos/$GITHUB_REPOSITORY/contents/.release-please-manifest.json?ref=$MERGE_SHA" --jq .content | tr -d '\n' | base64 -d | jq -r '.["."]')
+          [ "$VERSION_AT_MERGE" = "$VER" ]
+          LABELS=$(jq -r --argjson number "$PR_NUMBER" '.[] | select(.number == $number) | [.labels[].name] | join("\n")' /tmp/release-prs.json)
+          if grep -Fxq 'autorelease: tagged' <<<"$LABELS"; then
+            exit 0
+          fi
+          grep -Fxq 'autorelease: pending' <<<"$LABELS"
+          gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label 'autorelease: pending' --add-label 'autorelease: tagged'
 
   publish-cask:
     name: cross-repo cask PR
     needs: [build, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: release  # gates on environment-protection approval
+    environment: release-cask
+    permissions:
+      contents: read
     # B4 step-15: cross-repo PR via xronocode-release-bot GitHub App.
     # The App's installation token has contents:write on
     # xronocode/homebrew-mark and pull-requests:write to open the bump
-    # PR. Falls through with a noisy warning if APP_ID/PRIVATE_KEY
-    # secrets are missing — this lets the rest of the release ship
-    # while the App is being provisioned.
+    # PR. Missing credentials fail explicitly. While workflow artifacts
+    # are retained, `gh run rerun --failed` retries this idempotent job
+    # without retagging, rebuilding, or republishing the release.
     steps:
       - name: checkout reborn-mark
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: /tmp/release-stage
 
       - name: gate on App secrets
-        id: gate
+        env:
+          CASK_BOT_APP_ID: ${{ secrets.CASK_BOT_APP_ID }}
+          CASK_BOT_PRIVATE_KEY: ${{ secrets.CASK_BOT_PRIVATE_KEY }}
         run: |
-          if [ -z "${{ secrets.RELEASE_BOT_APP_ID }}" ] || [ -z "${{ secrets.RELEASE_BOT_PRIVATE_KEY }}" ]; then
-            echo "::warning::xronocode-release-bot App secrets not configured; skipping cask PR. See docs/F-CASK-PUBLISH-HANDOFF.md."
-            echo "skip=1" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=0" >> "$GITHUB_OUTPUT"
-          fi
+          set -euo pipefail
+          test -n "$CASK_BOT_APP_ID"
+          test -n "$CASK_BOT_PRIVATE_KEY"
 
       - name: mint app installation token
-        if: steps.gate.outputs.skip == '0'
         id: app_token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
-          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
-          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          # Symbolic GitHub secret lookups only; credential bytes are stored in the release-cask Environment, never in source.
+          app-id: ${{ secrets.CASK_BOT_APP_ID }}
+          private-key: ${{ secrets.CASK_BOT_PRIVATE_KEY }}
           owner: xronocode
           repositories: homebrew-mark
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: open cask bump PR
-        if: steps.gate.outputs.skip == '0'
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
           TAG: ${{ needs.build.outputs.tag }}
@@ -843,6 +1103,19 @@ jobs:
           fi
 
           BRANCH="bump/${CASK_NAME}-${VER}"
+          EXISTING=$(gh pr list --repo xronocode/homebrew-mark --state open --head "xronocode:$BRANCH" --json number,title,headRefName --limit 2)
+          COUNT=$(jq 'length' <<<"$EXISTING")
+          if [ "$COUNT" = 1 ]; then
+            jq -e --arg title "Bump ${CASK_NAME} to ${VER}" --arg branch "$BRANCH" \
+              '.[0] | select(.title == $title and .headRefName == $branch)' <<<"$EXISTING" >/dev/null
+            echo "cask PR already exists for $TAG"
+            exit 0
+          fi
+          [ "$COUNT" = 0 ]
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "::error::cask branch exists without the exact open PR"
+            exit 1
+          fi
           git checkout -b "$BRANCH"
 
           sed -i'' -e "s|version \".*\"|version \"$VER\"|" "$CASK"
