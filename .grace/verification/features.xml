@@ -2374,11 +2374,22 @@
     <V-M-046>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npm run release:governance</Command>
+        <Command>npm run release:readiness -- --tag v2.6.0 --payload PAYLOAD_SHA</Command>
+        <Command>npm run release:materials -- --tag v2.6.0</Command>
+        <Command>npm run release:project-sync -- --dry-run</Command>
+        <Command>npm run release:github-controls -- --dry-run</Command>
+        <Command>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/release-governance.test.js tests/renderer/release-readiness.test.js tests/renderer/release-materials.test.js tests/renderer/release-project-sync.test.js tests/renderer/release-github-controls.test.js tests/renderer/release-notes.test.js tests/renderer/release-normalize.test.js</Command>
         <Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session</Command>
         <Command>npx vitest run tests/renderer/publication-privacy.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-16: renderer-e2e runs webkit-session after browser installation, including remaining editor content and edit ownership after active-tab close.</Scenario>
+        <Scenario>scenario-19 (C-RELEASE-PIPELINE-AUTOMATION): the checked-in train JSON is the gate authority; exact membership, owner acceptance, commit accounting, payload-to-seal allowlist, fresh screenshot digests and live payload check name/App/SHA/conclusion are independently fail-closed.</Scenario>
+        <Scenario>scenario-20 (C-RELEASE-PIPELINE-AUTOMATION): Release Please computes Conventional SemVer and prepares only a PR; trusted normalization updates the other version surfaces idempotently and neither path can tag or publish.</Scenario>
+        <Scenario>scenario-21 (C-RELEASE-PIPELINE-AUTOMATION): the one-way public Project mirror preserves unowned fields and cannot weaken readiness; owner-local GitHub-control apply is journaled/read-back, forbidden in CI and leaves unknown resources untouched.</Scenario>
+        <Scenario>scenario-22 (C-RELEASE-PIPELINE-AUTOMATION): input-free owner approval creates one annotated App-authored tag at the Ready seal; manual dispatch is unsigned, signing is tag-only, a read-only job creates the deterministic publication bundle, and the contents-only publication job exposes a byte/digest/note-verified draft only as its final mutation without executing candidate code or clobbering assets.</Scenario>
+        <Scenario>scenario-23 (C-RELEASE-PIPELINE-AUTOMATION): Release Please lifecycle labels use a separate narrow metadata job; an exact already-public release and exact existing cask PR are idempotent success, and a cask-only failure can be retried from the retained workflow artifacts with `gh run rerun --failed` without recreating the tag or republishing assets.</Scenario>
         <Scenario>scenario-15: renderer-e2e runs webkit-diff after browser installation, preserving opened-baseline, snapshot-priority and calm-exit checks.</Scenario>
         <Scenario>scenario-14: renderer-e2e runs webkit-keyboard after installing WebKit, preserving native vertical-selection checks in the shipping browser engine.</Scenario>
         <Scenario>scenario-17 (C-PRIVATE-OPERATIONS): the public tree excludes C-59 operational submission records, docs/promotion planning, the owner backlog and table-copy discussion previews while retaining reusable release tooling; legacy fixture publication checks pass on all hosts with native-separator normalization and byte-stable LF examples/manifests.</Scenario>
@@ -2400,6 +2411,13 @@
       <Markers>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_MISMATCH]</Marker>
+        <Marker>[ReleaseGovernance][validate][BLOCK_RELEASE_GOVERNANCE_CONFIRMED]</Marker>
+        <Marker>[ReleaseReadiness][validateTrain][BLOCK_RELEASE_TRAIN_VALID]</Marker>
+        <Marker>[ReleaseReadiness][validateTrain][BLOCK_RELEASE_READINESS_CONFIRMED]</Marker>
+        <Marker>[ReleaseMaterials][validate][BLOCK_RELEASE_MATERIALS_CONSISTENT]</Marker>
+        <Marker>[ReleaseProject][sync][BLOCK_RELEASE_PROJECT_DRY_RUN]</Marker>
+        <Marker>[ReleaseControls][reconcile][BLOCK_RELEASE_CONTROLS_DRY_RUN]</Marker>
+        <Marker>[ReleasePromote][tag][BLOCK_RELEASE_TAG_AUTHORIZED]</Marker>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_TAG_MISMATCH]</Marker>
       </Markers>
       <TraceAssertions/>
@@ -2524,8 +2542,10 @@
           </N5>
         </negative-assertions>
         <phase-follow-up>
-          Tag and push remain explicit maintainer actions after the clean
-          release commit and green remote CI.
+          A release-authorize Environment approval is the explicit owner
+          instruction after a Ready seal; the App creates the tag. The
+          separate release Environment approval exposes the verified draft.
+          Neither approval is implied by green CI, acceptance or queueing.
         </phase-follow-up>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-046</LegacySource>
