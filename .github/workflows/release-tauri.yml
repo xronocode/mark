@@ -1,8 +1,27 @@
-# Phase-B1.5 dry-run workflow.
+# FILE: .github/workflows/release-tauri.yml
+# VERSION: 1.0.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Build and smoke-test unsigned macOS candidate bundles without exposing production signing credentials.
+#   SCOPE: Path-filtered PR/tauri-branch builds, updater-disabled Tauri packaging, ad-hoc app signing, installed-app smoke, size evidence, warning checks, and short-lived artifacts.
+#   DEPENDS: Node 22, Rust stable, Tauri CLI/action, macos-14, M-046 release configuration.
+#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
+#   ROLE: CONFIG
+#   MAP_MODE: SUMMARY
+# END_MODULE_CONTRACT
 #
-# Triggered by pushes to `modernize-tauri` branch — NOT by tags. The
-# tag-triggered production release workflow (which this becomes after
-# Phase-B4 step-1 rename) lives in release.yml and replaces this file.
+# START_MODULE_MAP
+#   build - Produce an unsigned, updater-disabled .app/DMG candidate and verify its ad-hoc signed install path without release secrets.
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   LAST_CHANGE: 2026-10-21 v1.0.0 - disable updater artifact signing in the unprivileged dry-run while retaining .app/DMG packaging and smoke coverage.
+# END_CHANGE_SUMMARY
+#
+# Phase-B1.5 dry-run workflow retained as the unprivileged candidate bundle
+# check alongside the separate tag-triggered production release workflow.
+#
+# Triggered by pushes to `tauri`, pull requests to `main` or `tauri`, and
+# explicit workflow dispatch. It never handles release tags or secrets.
 #
 # Path filter keeps the runner idle on doc-only commits. concurrency
 # cancel-in-progress=true means a follow-up push supersedes the in-flight
@@ -106,7 +125,12 @@ jobs:
         id: tauri
         uses: tauri-apps/tauri-action@v0
         with:
-          args: --target ${{ matrix.platform.target }}
+          # The production config requests signed updater archives. This
+          # unprivileged check intentionally overrides only that setting: it
+          # still emits the .app and DMG used by every later dry-run gate.
+          args: >-
+            --target ${{ matrix.platform.target }}
+            --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
       # ── ad-hoc signing (Phase-B1.5 step-5) ───────────────────────
       # codesign --force --deep --sign - re-signs every nested binary
