@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-20",
+  "status": "executed",
+  "subject": "C-72 closure and post-review stabilization reconciliation",
+  "disposition": "archive-complete",
+  "closureBasis": {
+    "change": "C-72",
+    "executed": "All six tasks executed per the plan; final gates 7/7 commands with 0 C-72-attributable errors.",
+    "cleanReview": "Post-execution four-corner rounds F and G (ReviewLog reviews 10 and 11) were consecutively clean, satisfying the T-006 two-consecutive-clean criterion.",
+    "consumedBaselineAssertions": [
+      "MustContain .grace/graph/runtime.xml src-tauri/src/shortcuts/mod.rs (pre-fix stale path, removed by T-002)",
+      "MustContain .grace/graph/runtime.xml src-tauri/src/mt_paths/mod.rs (pre-fix stale path, removed by T-002)",
+      "MustContain docs/release-trains/2.5.x-next.md 'New owner report on 2026-10-19 ... implementation pending' (pre-acceptance C-TABLE-FOOTER wording, superseded by the wave records)",
+      "MustExist .grace/changes/active/C-34/plan.xml (archived by C-72 T-005 itself)"
+    ],
+    "successorRule": "The approved C-72 plan is history; its baseline describes the drift it was approved to remove, so the errors are consumed rather than violated. The owner instructed a successor bundle (C-74) instead of a retro-edit."
+  },
+  "postReviewStates": {
+    "fixWaveAcceptance": "FIX-003..FIX-007 owner-accepted 2026-10-20 on the isolated artifact 'Mark Test FIX003-008 bae95a97' and queued; recorded in docs/release-trains/2.5.x-next.md (queued items and per-item records).",
+    "fix008": "Owner acceptance failed on bae95a97; reopened with pan-only navigation plus edge clipping shadows as the preferred affordance; owned by docs/release-trains/2.5.x-next-followups.md EP-01.",
+    "fix010": "Command Palette chord has no route (UC-025 unshipped); reported and source-attributed; owned by the follow-up epic EP-04.",
+    "fix011": "Untitled close dialog duplicate-discard defect; owner-approved action model (default Save & Close, separate Discard, visible Cancel); owned by the follow-up epic EP-02.",
+    "cTableFooter": "Partially owner-accepted on bae95a97 (caption paint, counter/footer appearance, fitting-table controls); the Fit to page transition/persistence defect stays open with the host sanitizer gap confirmed; owned by the follow-up epic EP-03 and .grace/changes/active/C-TABLE-FOOTER/evidence.json.",
+    "c73": "Approved three-layer regression baseline (static chord audit, behavioral affordance e2e, 2.5.x checklist revival); artifacts verified green in this session and landing under its own bundle.",
+    "epic": "EP-2.5X-FOLLOWUPS-2026-10-20 coordinates every unaccepted item; it admits nothing to a release by itself."
+  },
+  "concurrentWorkingTree": {
+    "disclosure": "At execution the working tree carried the uncommitted stabilization-session artifacts: the train ledger updates, the follow-up epic document, the C-TABLE-FOOTER evidence update, the C-73 bundle and its tests, and the verification projections. C-74 did not modify, revert or adjudicate any of them; they land through their own commits.",
+    "identificationRule": "Any file outside .grace/changes/active/C-74/** and .grace/changes/archive/C-72/** changed during C-74's execution belongs to the stabilization session, not to C-74."
+  },
+  "intactness": "baseline.json and evidence.json moved byte-identical to HEAD; spec.xml and plan.xml identical to HEAD except the single status attribute transition approved→applied required by the archive convention (verified by sed-substituted diff in T-002).",
+  "selfArchived": true,
+  "selfArchivalRule": "An executed C-74 left active would reproduce the consumed-baseline lint residue this change exists to remove (its own BaselineAssertions pin the pre-move active C-72 paths). With the evidence complete and the post-execution four-corner review recorded, C-74 transitions its spec/plan status to applied and moves itself to .grace/changes/archive/C-74/ — the same lifecycle every completed bundle follows.",
+  "lintState": {
+    "afterC72Archival": "Zero errors except C-74's own consumed baseline assertions (verified live: the four C-72 errors gone, no other bundle affected).",
+    "terminal": "grace lint --assertions current reports zero errors with C-74 archived; recorded after the self-archival step."
+  },
+  "executionNotes": [
+    "2026-10-20: two XML typos in the draft plan (mismatched MustExist/T-002 closing tags) surfaced by the linter and fixed before approval; the DurableScope None marker and the outer-gate lint placement were lint-rule fixes from the same pass.",
+    "2026-10-20: the archive status convention (applied, not approved) was discovered at execution time and folded into the plan and this evidence rather than silently bypassed."
+  ]
+}

@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
 <C-72>
   <Name>Reconcile GRACE 4 current state after the 2.5.3 stabilization wave</Name>
   <Created>2026-10-20</Created>
