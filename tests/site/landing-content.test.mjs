@@ -82,9 +82,10 @@ describe('landing install facts', () => {
     expect(TEMPLATE).toContain('%DMG_NAME%')
     expect(TEMPLATE).toContain('%EXE_NAME%')
     expect(TEMPLATE).toMatch(/id="version">v%VERSION%</)
-    expect(TEMPLATE).toContain('id="dmg-hero" href="%DMG_URL%"')
-    expect(TEMPLATE).toContain('id="dmg-link" href="%DMG_URL%"')
-    expect(TEMPLATE).toContain('id="win-link" href="%EXE_URL%"')
+    expect(TEMPLATE).toContain('id="dmg-hero" data-asset="dmg" href="%DMG_URL%"')
+    expect(TEMPLATE).toContain('id="win-hero" data-asset="exe" href="%EXE_URL%"')
+    expect(TEMPLATE).toContain('id="dmg-link" data-asset="dmg" href="%DMG_URL%"')
+    expect(TEMPLATE).toContain('id="win-link" data-asset="exe" href="%EXE_URL%"')
     expect(TEMPLATE).toContain('&asymp; %DMG_MB% MB')
     expect(TEMPLATE).toContain('&asymp; %EXE_MB% MB')
   })
@@ -201,10 +202,10 @@ describe('landing hero stage and iOS surface', () => {
     expect(HTML).toContain("localStorage.setItem('mark-mac-bar'")
   })
 
-  it('swaps the Windows button to the exact x64 setup.exe from the releases API', () => {
-    expect(HTML).toMatch(/class="btn sec" id="win-link"[^>]*data-method="windows"/)
+  it('refreshes every data-asset link (dmg / exe) from the releases API', () => {
+    expect(HTML).toMatch(/id="win-link" data-asset="exe"[^>]*data-method="windows"/)
     expect(HTML).toContain('/Mark_.*_x64-setup\\.exe$/')
-    expect(HTML).toContain("getElementById('win-link')")
+    expect(HTML).toContain("querySelectorAll('[data-asset]')")
   })
 })
 
@@ -281,13 +282,15 @@ describe('landing round-2 review fixes', () => {
     expect(HTML).toMatch(/rest - \(rest - 10\) \* Math\.sin/)
   })
 
-  it('keeps the install brew command on one line, scrollable inside the chip', () => {
-    expect(HTML).toMatch(/\.brew\.block\s+\.cmd\s*\{[^}]*overflow-x:\s*auto/)
-    expect(HTML).toMatch(/\.brew\.block\s+\.cmd\s*\{[^}]*white-space:\s*nowrap/)
+  it('lets the install brew command wrap inside its row instead of widening the page', () => {
+    expect(HTML).toMatch(/\.dlist \.nm small \{[^}]*overflow-wrap:\s*anywhere/)
   })
 
-  it('styles the Windows download as a secondary button', () => {
-    expect(HTML).toMatch(/class="btn sec"[^>]*data-method="windows"/)
+  it('picks the hero download button per system before paint (mac default, win, linux)', () => {
+    expect(HTML).toContain("classList.add('os-' + os)")
+    expect(HTML).toMatch(/\.dl-mac \{ display: inline-flex; \}/)
+    expect(HTML).toMatch(/\.os-win \.dl-win, \.os-linux \.dl-linux \{ display: inline-flex; \}/)
+    expect(HTML).toMatch(/class="dlbtn dl-linux" href="https:\/\/github\.com\/xronocode\/mark#build-from-source"/)
   })
 
   it('folds the agent prompt into a details that is closed on phones by script', () => {
@@ -318,15 +321,15 @@ describe('landing C-64 T-006 audit fixes', () => {
   const ALL_TAGS = [...HTML.matchAll(/<(?:a|button)\b[^>]*>/gi)].map((m) => m[0])
 
   it('states the hero version captions as one-line facts (D-2)', () => {
-    expect(HTML).toContain('v2.1.17 &middot; sandboxed')
-    expect(TEMPLATE).toContain('<span id="version">v%VERSION%</span><span class="more"> &middot; latest</span> &middot; &asymp; %DMG_MB% MB')
+    expect(HTML).toContain('macOS 12 or later &middot; sandboxed')
+    expect(TEMPLATE).toContain('for macOS &middot; Apple silicon &middot; <span id="version">v%VERSION%</span>')
     expect(HTML).not.toContain('opt-i')
     expect(HTML).not.toContain('is coming')
     expect(HTML).not.toMatch(/\.get-o \.fine\s*\{\s*white-space/)
   })
 
   it('names both brew buttons with the visible command (A-1)', () => {
-    const brew = ALL_TAGS.filter((t) => /class="brew/.test(t))
+    const brew = ALL_TAGS.filter((t) => /data-method="homebrew_copy"/.test(t))
     expect(brew).toHaveLength(2)
     for (const tag of brew) {
       expect(tag, tag).toContain('aria-label="Copy brew install --cask xronocode/mark/mark"')
