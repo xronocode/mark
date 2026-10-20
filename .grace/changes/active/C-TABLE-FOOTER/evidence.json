@@ -1,6 +1,6 @@
 {
   "date": "2026-10-20",
-  "status": "implemented and locally verified; protected integration, CI and owner acceptance pending",
+  "status": "implemented and locally verified; partially owner accepted on bae95a97; Fit to page defect open, so release admission remains pending",
   "acceptedPriorScope": "The owner accepted C-71 on Mark Test C71 f17b070e before reporting this separate footer defect. Acceptance is recorded in 35f99e19 and docs/release-trains/2.5.x-next.md#c-71.",
   "reproduction": {
     "ownerReport": "Long-cell table in Fit to page mode: an excessive gap precedes the scrollbar, with the column counter outside and below the scroll block.",
@@ -91,5 +91,27 @@
       ],
       "scope": "caption shade-pixel continuity, footer geometry, fitting/restored controls, resize handle and cumulative labels"
     }
+  },
+  "nativeOwnerReview": {
+    "date": "2026-10-20",
+    "artifact": {
+      "name": "Mark Test FIX003-008 bae95a97",
+      "source": "bae95a974517e5a0ef95bcd022f50e8b6fd66f5a",
+      "bundleId": "com.xronocode.mark.test.fix003008.bae95a97",
+      "binarySha256": "ba30f5c2d3c19d8e696aa5edababcbe969e172541607f0b6217f5be8242ec991"
+    },
+    "ownerConfirmation": "The owner confirmed every presented C-TABLE-FOOTER detail except Fit to page.",
+    "acceptedScope": [
+      "transparent caption paint without the earlier pale patch",
+      "current counter/footer appearance and spacing shown in the native fixture",
+      "no stray width action or counter on the fitting table, with Copy as image retained"
+    ],
+    "openDefect": "Fit to page appears broken in the native artifact: invoking the action does not visibly leave Full width.",
+    "independentObservation": "During the same native session, repeated accessibility and pixel activation attempts also left the action labelled Fit to page and the table in Full width.",
+    "diagnosticBoundary": {
+      "confirmedGap": "The renderer host tableLayoutStore sanitizer omits the Muya fit flag, so an explicit Fit to page choice cannot survive the host save/reload path even though Muya-local persistence tests pass.",
+      "notYetProven": "The host serialization gap does not by itself prove the same-frame native click failure; the event/state transition still needs a deterministic native or browser reproducer before repair attribution is final."
+    },
+    "admission": "Partial acceptance only. Keep C-TABLE-FOOTER outside the queued train until Fit to page is repaired, verified and rechecked; the accepted visual details do not need to be reopened unless the repair changes them."
   }
 }
