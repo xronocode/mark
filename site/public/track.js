@@ -114,6 +114,9 @@
     })();
   }
   document.addEventListener("click", function (e) {
+    // Ko-fi donations (tracking plan 2026-10): placement defaults to footer.
+    var kofi = e.target && e.target.closest ? e.target.closest('a[href*="ko-fi.com"]') : null;
+    if (kofi) send("kofi_click", { placement: kofi.getAttribute("data-placement") || "footer" });
     var el = e.target && e.target.closest ? e.target.closest("[data-track]") : null;
     if (!el) return;
     var kind = el.getAttribute("data-track");
@@ -133,4 +136,22 @@
     else send("download_click", params);
   }, false);
   // END_BLOCK_DOWNLOAD_CLICK
+
+  // START_BLOCK_DOC_READ
+  // Guide pages: one doc_read per page at 75% scroll depth (tracking plan
+  // 2026-10); undecided visitors are covered by the consent queue.
+  if (/^\/guide\//.test(location.pathname)) {
+    var docSent = false;
+    var onDocScroll = function () {
+      if (docSent) return;
+      var h = document.documentElement;
+      if (h.scrollTop + window.innerHeight >= h.scrollHeight * 0.75) {
+        docSent = true;
+        removeEventListener("scroll", onDocScroll);
+        send("doc_read", { doc_id: location.pathname.split("/")[2] || "guide" });
+      }
+    };
+    addEventListener("scroll", onDocScroll, { passive: true });
+  }
+  // END_BLOCK_DOC_READ
 })();
