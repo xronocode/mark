@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-notes.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove the reviewed English release-note draft is selected by exact tag and the automated verification block remains byte-stable below one separator.
 //   SCOPE: Pure extraction/composition regressions; no GitHub API calls or publication.
@@ -11,9 +11,11 @@
 //
 // START_MODULE_MAP
 //   drafts - Checked-in English release-note draft ledger.
+//   windowsDrafts - The same ledger with one canonical CRLF sequence per line break.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 v1.2.0: build the CRLF fixture from normalized LF so the regression itself is platform-independent.
 //   - 2026-10-20 v1.1.0: cover exact-tag extraction from Windows CRLF checkouts.
 //   - 2026-10-20 v1.0.0: pin exact-tag note extraction and automated-block preservation for 2.6.0.
 // END_CHANGE_SUMMARY
@@ -27,6 +29,7 @@ import {
 } from '../../tools/release-notes.mjs'
 
 const drafts = readFileSync(resolve('docs/release-notes-en-drafts.md'), 'utf8')
+const windowsDrafts = drafts.replace(/\r\n?/g, '\n').replaceAll('\n', '\r\n')
 
 // START_BLOCK_RELEASE_NOTES_TESTS
 describe('release notes', () => {
@@ -39,9 +42,7 @@ describe('release notes', () => {
   })
 
   it('extracts the same reviewed section from a Windows CRLF checkout', () => {
-    expect(extractReleaseNotes(drafts.replaceAll('\n', '\r\n'), 'v2.6.0')).toBe(
-      extractReleaseNotes(drafts, 'v2.6.0')
-    )
+    expect(extractReleaseNotes(windowsDrafts, 'v2.6.0')).toBe(extractReleaseNotes(drafts, 'v2.6.0'))
   })
 
   it('rejects an absent or malformed tag independently', () => {
