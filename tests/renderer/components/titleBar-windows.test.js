@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-windows.test.js
-// VERSION: 1.2.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the Windows titlebar layout — forced custom style, window-controls cluster, unshifted nav.
 //   SCOPE: Vue/jsdom component tests with @/util mocked to win32 (C-15 T-W1).
@@ -16,6 +16,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.4.0 C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 pins:
+//     Segoe E921/E922/E8BB on win32 (no svg caption glyph), kept ☰/⚙
+//     with handlers, no «?», the theme caption cell, and the
+//     no-separator pin (amendment 2).
+
 //   - 2026-09-28 v1.0.0: C-15 T-W1 — pin the Windows variant: decorations are
 //     unconditionally off (tauri.windows.conf.json), so effectiveTitleBarStyle
 //     is always 'custom' and the min/max/close cluster renders even when the
@@ -158,6 +163,12 @@ describe('titleBar/index.vue — Windows variant (C-15 T-W1)', () => {
     // The 4th cell is the theme toggle (shallowMount stubs its icon; the
     // three window controls render Segoe code points, not svgs).
     expect(wrapper.find('.frameless-titlebar-theme').exists()).toBe(true)
+    // Amendment 2: native Win10/11 caption cells carry NO separators —
+    // hover-only separation, as native.
+    const style = wrapper.find('.titlebar-right').attributes('style') || ''
+    const html = wrapper.find('.titlebar-right').html()
+    expect(html).not.toMatch(/caption-separator|border-(left|right):\s*1px/)
+    expect(style).not.toContain('border')
   })
 
   it('clears the widened caption strip (theme rides it as the 4th cell)', async () => {

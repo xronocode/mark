@@ -137,5 +137,10 @@
         The 2026-10-21 owner PR review found the normative sections still described the pre-amendment state (contract/code inversion). This plan and the spec were rewritten around amendment 5: Segoe captions without separators, kept ☰/⚙, no «?», the theme caption cell, the 30-theme fill-rule removal; target assertions and gates now prove the final state (Segoe font reference, caption-glyph class, amendment-5 marker, E921 pin); the theme files and the amendment-history task entered the observed scope; macOS is no longer claimed byte-identical (the global guide-button removal changes it).
       </Findings>
     </Review>
+    <Review number="3" date="2026-10-21" verdict="green-after-fixes" task="two-independent-clean-reviews">
+      <Findings>
+        Two independent review passes (A: correctness and GRACE contracts; B: security, verification and train governance) both returned CHANGES_REQUESTED on the same two blockers: the durable anchors this plan owns — the M-011 SummaryDelta in .grace/graph/runtime.xml and V-M-011 scenario-74 in .grace/verification/runtime.xml — still described the superseded pre-amendment state (gear/menu removed, separators present, 156 px, «?» kept), the same contract-inversion class relocated from the spec into the graph/verification layer. Both fixed in the same pass, together with the minor findings: the promised no-separators pin now exists in titleBar-windows.test.js; both bundle evidence.json files point at the 2.6.x-next ledger with the correct 83-test count and trailing newlines; the stale 156px/«?»-cluster CSS comments and the ellipsis attribution in the v2.2.0 CHANGE_SUMMARY entry are corrected; the five touched test files gain CHANGE_SUMMARY entries; chromeIcons wording states the 13 px fallback precisely. Security pass: no personal paths or secrets in committed content; Node-22 claim verified accurate everywhere; scenario-18 and the M-046 delta match the code.
+      </Findings>
+    </Review>
   </ReviewLog>
 </C-WINDOWS-TITLEBAR-ALIGNMENT></GraceChangePlan>
