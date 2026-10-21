@@ -216,27 +216,34 @@
     <DF-007>
       <Name>ExportHtmlOrPdf</Name>
       <Summary>
-        Renderer requests muya.exportHtml (M-012). For PDF: renderer uses
-        Tauri&apos;s window.printToPDF API via M-001 shell.
-        `ipc.fs.write(exportPath, bytes)` → M-002 with sandbox check.
+        The renderer generates one styled HTML string through muya
+        exportStyledHTML (M-012; CSS, KaTeX and pele diagrams inlined).
+        For HTML (styledHtml): the M-065 pass embeds local images as
+        data-URLs, then ipcFs.write saves the self-contained file. For
+        PDF/print: the printService container renders the HTML and
+        re-resolves img src itself (GH#678); the native m052 surface
+        writes the PDF (mt_export_pdf) or opens the panel
+        (mt_print_webview).
       </Summary>
       <Steps>
         <Step>
           <Order>1</Order>
-          <Description>Renderer requests muya.exportHtml (M-012).</Description>
+          <Description>Renderer requests muya.exportStyledHTML (M-012) — one shared HTML string with inline CSS/KaTeX/pele.</Description>
         </Step>
         <Step>
           <Order>2</Order>
-          <Description>For PDF: renderer uses Tauri&apos;s window.printToPDF API via M-001 shell.</Description>
+          <Description>styledHtml: M-065 embedLocalImages resolves local img src against the document directory and rewrites them to base64 data-URLs (stat-gated 8 MiB cap, readBinary, skipped accounting); editorStore.EXPORT saves via plugin:dialog|save + ipcFs.write.</Description>
         </Step>
         <Step>
           <Order>3</Order>
-          <Description>`ipc.fs.write(exportPath, bytes)` → M-002 with sandbox check.</Description>
+          <Description>pdf/print: printService.renderMarkdown(html, renderStatic=true) fixes image src in the hidden print container; mt_export_pdf silently writes the PDF (NSPrintSaveJob / WebView2 PrintToPdf) or mt_print_webview opens the platform panel (m052).</Description>
         </Step>
       </Steps>
-      <Modules/>
+      <Modules>
+        <Module>M-065</Module>
+      </Modules>
       <LegacyDetail>
-        <evidence>BLOCK_EXPORT_HTML / BLOCK_EXPORT_PDF in [Renderer].</evidence>
+        <evidence>BLOCK_EXPORT_HTML / BLOCK_EXPORT_PDF in [Renderer]; BLOCK_EMBED_IMAGES in [export][embed-images] (C-SELF-CONTAINED-HTML-EXPORT).</evidence>
       </LegacyDetail>
       <LegacySource>docs/development-plan.xml: DF-007</LegacySource>
     </DF-007>

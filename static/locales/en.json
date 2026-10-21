@@ -1356,7 +1356,9 @@
     "export": {
       "error": "Export error",
       "errorExporting": "Error exporting {type} file",
-      "failed": "{type} export failed"
+      "failed": "{type} export failed",
+      "imagesEmbeddedTitle": "Some images were not embedded",
+      "imagesEmbeddedMessage": "{embedded} of {total} images embedded — large or missing images keep their original links"
     },
     "diagramExport": {
       "title": "Diagram",

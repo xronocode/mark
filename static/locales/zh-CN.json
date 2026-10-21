@@ -1352,7 +1352,9 @@
     "export": {
       "error": "导出错误",
       "errorExporting": "导出文件时出错",
-      "failed": "导出失败"
+      "failed": "导出失败",
+      "imagesEmbeddedTitle": "部分图片未嵌入",
+      "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 张图片——过大或不存在的图片保留原链接"
     },
     "diagramExport": {
       "title": "图表",

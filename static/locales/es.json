@@ -1338,7 +1338,9 @@
     "export": {
       "error": "Error de exportación",
       "errorExporting": "Error al exportar archivo {type}",
-      "failed": "Falló la exportación de {type}"
+      "failed": "Falló la exportación de {type}",
+      "imagesEmbeddedTitle": "Algunas imágenes no se incrustaron",
+      "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales"
     },
     "diagramExport": {
       "title": "Diagrama",

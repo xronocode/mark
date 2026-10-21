@@ -1360,7 +1360,9 @@
     "export": {
       "error": "Ошибка экспорта",
       "errorExporting": "Ошибка экспорта файла {type}",
-      "failed": "Сбой экспорта в {type}"
+      "failed": "Сбой экспорта в {type}",
+      "imagesEmbeddedTitle": "Часть изображений не встроена",
+      "imagesEmbeddedMessage": "Встроено {embedded} из {total} изображений — слишком большие или отсутствующие остались исходными ссылками"
     },
     "diagramExport": {
       "title": "Диаграмма",

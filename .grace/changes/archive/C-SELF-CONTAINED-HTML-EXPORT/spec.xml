@@ -1,0 +1,63 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-SELF-CONTAINED-HTML-EXPORT>
+  <Name>Export to HTML becomes truly self-contained: local images are embedded as data-URLs so the single .html file carries every raster/SVG image the document references</Name>
+  <Created>2026-10-21</Created>
+  <Approved>2026-10-21</Approved>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>The styled-HTML export already inlines everything except raster images: CSS (github-markdown base, Prism, KaTeX, export theme), TOC, and pele diagrams (C-55 resolved --pele-* variables at export time "so the standalone file carries its colours"). Image src attributes, however, leave muya exactly as written in the markdown, so a local image breaks the moment the .html travels: absolute paths point into the author's disk, relative paths need the sibling folder shipped along. This change embeds every locally readable image as a base64 data-URL during Export → HTML, with a per-image size cap, read-failure fallback to the original src, deduplicated reads, and a localized skipped-count notice. PDF and print flows are untouched: the print container resolves image sources itself at render time (printService GH#678 fix) and is guarded by a regression test.</Summary>
+  <ApprovalBasis>Owner chat approval 2026-10-21 (translated from Russian: "ok"), given after the two-clean-passes review report on this bundle (Pass A correctness/GRACE contracts and Pass B security/verification/UX; verdict green-after-fixes recorded in design-context ReviewLog).</ApprovalBasis>
+  <Problem><Description>muya's ExportHtml.generate() (src/muya/lib/utils/exportHtml.js) performs no image-src rewriting — no data-URL inlining exists anywhere in the export path — and editorStore.EXPORT writes the generated string to disk unchanged. The live editor preview loads local images fine (loadImageAsync) and the print container re-resolves src for PDF/print (src/renderer/src/services/printService.js renderStatic branch), so the defect is invisible in-app and only hits the recipient of the exported file. Owner question 2026-10-21 after the export-format research (translated from Russian: "do we currently produce self-contained HTML? in the current implementation?"): it does not, for raster images.</Description></Problem>
+  <Goals>
+    <R-1>Export → HTML (the styledHtml branch of handleExport) embeds every locally readable image as a data-URL: relative paths resolve against the exporting document's directory, absolute POSIX paths and Windows drive-letter/extended-prefix (\\?\) paths normalize through muya's correctImageSrc semantics, shed their file:// scheme before reading, and percent-encoded src values (%20, unicode) decode before reading; generic UNC \\server\share sources match no normalization branch anywhere in muya and pass through unchanged, uncounted. Known image extensions (png, jpg, jpeg, gif, webp, bmp, svg, avif, ico) map to their MIME type; unknown extensions keep their src and count as skipped.</R-1>
+    <R-2>Remote http(s):// URLs and existing data: URLs are never fetched and never rewritten — export stays offline-deterministic and makes zero network requests.</R-2>
+    <R-3>A per-image cap of 8 MiB (raw file size) bounds the output; images at or above the cap keep their original src and count as skipped. Each distinct resolved path is read once and the resulting data-URL is reused for repeated references.</R-3>
+    <R-4>Read failures (missing file, permission, read error) keep the original src and count as skipped; the export itself never fails because of an image. An untitled document (no directory) exports relative image src unchanged and does not count them — they are unresolvable by construction, not skipped failures.</R-4>
+    <R-5>When at least one image was skipped, a localized info notice reports how many images were embedded out of how many local candidates (for example "3 of 5 images embedded"); ten locales, native copy. The success path and its notice stay exactly as today.</R-5>
+    <R-6>The embedding pass is renderer-side: a new util performs a DOM pass over the generated HTML string before the save (the same detached-container pattern printService already uses for its image fix), reusing the existing binary read channel ipcFs.readBinary (mt::fs::read_binary, Vec of bytes, MAX_READ_BYTES 10 MiB — already serving the shim's image loader) and the arrayBufferToBase64 helper (src/renderer/src/util/fileSystem.js:50-57). muya stays file-IO-free. The pdf and print branches of handleExport do not call the pass (regression-pinned).</R-6>
+  </Goals>
+  <Constraints>
+    <Item>No new IPC commands, Tauri capabilities, or backend changes: reading goes through the existing ipcFs.readBinary command (mt::fs::read_binary); saving through the existing plugin-dialog save + ipcFs.write. The review passes proved window.fileUtils.readFile returns UTF-8 text (mt_fs_read) and must not be used for image bytes.</Item>
+    <Item>No new export-dialog options — embedding is default-on for the styledHtml flow; no new settings keys.</Item>
+    <Item>No network requests during export (remote images stay as URLs in the output).</Item>
+    <Item>Only img src attributes are mutated by the pass; the serialized output of non-image nodes is unchanged (the muya DOMPurify pass has already run and is not bypassed or repeated).</Item>
+    <Item>Every governed edit ships MODULE_CONTRACT / MODULE_MAP / CHANGE_SUMMARY; the notice lands in all ten static/locales/*.json as native copy; grace lint --assertions current = 0.</Item>
+  </Constraints>
+  <NonGoals>
+    <NonGoal>PDF and print export image handling — the print container resolves sources at print time and is out of scope here.</NonGoal>
+    <NonGoal>Fetching or inlining remote http(s) images (possible future opt-in; rejected now for offline determinism and failure modes).</NonGoal>
+    <NonGoal>New export-dialog settings (an "embed images" checkbox, a configurable cap, remote-fetch toggle).</NonGoal>
+    <NonGoal>Re-encoding, compression, or downscaling of images; total-output-size caps.</NonGoal>
+    <NonGoal>Video/iframe/audio embeds; pandoc (DOCX and friends) export paths.</NonGoal>
+  </NonGoals>
+  <AcceptanceCriteria>
+    <Criterion>Unit matrix on the new util is green: embed for each known extension with the right MIME; skip http/data URLs; skip missing file; skip ≥ 8 MiB; single read for a thrice-referenced image; relative resolution against the document directory; Windows drive, UNC and %20/space paths; unknown extension passthrough; untitled no-base-dir passthrough; DOM pass leaves non-img markup unchanged.</Criterion>
+    <Criterion>Component level: handleExport styledHtml invokes the pass with the active document's directory; the pdf and print branches do not (regression pin).</Criterion>
+    <Criterion>e2e: exporting a fixture document with one local PNG produces a saved .html whose img src is a data:image/png;base64 URL that decodes to the fixture bytes; opening it from a directory without the image files renders the image.</Criterion>
+    <Criterion>Skipped-image notice: localized in all ten locales (native copy, placeholders correct); shown only when skipped > 0; success notice unchanged.</Criterion>
+    <Criterion>npx vitest run green; tests/e2e/print-export.spec.ts still green (PDF/print untouched); grace lint 0; .grace graph DF-007 (ExportHtmlOrPdf) and the owning verification document updated.</Criterion>
+  </AcceptanceCriteria>
+  <AffectedAreas>
+    <Item>src/renderer/src/util/exportImages.js (new, RUNTIME+EXPORTS contract: resolve+read+embed pass, MIME map, cap, dedup, skipped accounting)</Item>
+    <Item>src/renderer/src/components/editorWithTabs/editor.vue (handleExport styledHtml branch: run the pass with currentFile's directory, surface the skipped-count notice)</Item>
+    <Item>src/renderer/src/util/fileSystem.js (export/reuse arrayBufferToBase64 for the new util)</Item>
+    <Item>static/locales/*.json (ten locales: the images-embedded notice key)</Item>
+    <Item>tests/renderer/util/exportImages.test.js (new), tests/renderer/components/editor-export-images.test.js (new), tests/e2e/export-html-images.spec.ts (new), tests/e2e/print-export.spec.ts (regression, unchanged expectations)</Item>
+    <Item>.grace/graph/flows.xml DF-007 (ExportHtmlOrPdf gains the embedding step), .grace/graph/runtime.xml (new util module entry), .grace/verification/features.xml (export-images test entry)</Item>
+  </AffectedAreas>
+  <VerificationIntent>
+    <ExpectedCommand>npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js</ExpectedCommand>
+    <ExpectedCommand>npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/print-export.spec.ts --project=chromium</ExpectedCommand>
+    <ExpectedCommand>npm test</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --assertions current</ExpectedCommand>
+    <ExpectedEvidence>Unit matrix covering every corner of the pass (embed/skip/dedup/resolve/passthrough); e2e artifact assertion: saved .html contains the fixture PNG as a base64 data-URL and decodes byte-identical; standalone-open check from an image-less directory; skipped-notice locale parity check; zero behavioral diff on the print/pdf e2e spec.</ExpectedEvidence>
+  </VerificationIntent>
+  <Assumptions>
+    <Assumption>Binary reads: ipcFs.readBinary returns lossless bytes up to its 10 MiB MAX_READ_BYTES, comfortably above this change's 8 MiB per-image cap; images at or above the cap are skipped without a read attempt (the plan pins the size-check mechanism).</Assumption>
+    <Assumption>Path normalization is re-expressed in the new util, not imported: muya's correctImageSrc is not exported through the muya/lib/utils barrel (verified by the review passes — printService imports a different getImageInfo defined in the barrel itself), its Windows branches are isWin-gated, and it yields file:// URLs rather than filesystem paths; the util needs plain paths resolved against the exporting document's directory, so the semantics are translated, not the function.</Assumption>
+    <Assumption>Base64 data-URL images render in every browser a recipient realistically opens the file in; typical documents reference at most a few dozen images, so sequential async reads need no worker.</Assumption>
+  </Assumptions>
+</C-SELF-CONTAINED-HTML-EXPORT>
+</GraceChangeSpec>

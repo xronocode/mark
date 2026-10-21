@@ -1332,7 +1332,9 @@
     "export": {
       "error": "エクスポートエラー",
       "errorExporting": "ファイルのエクスポート中にエラーが発生しました",
-      "failed": "エクスポートに失敗しました"
+      "failed": "エクスポートに失敗しました",
+      "imagesEmbeddedTitle": "一部の画像は埋め込まれませんでした",
+      "imagesEmbeddedMessage": "{total}枚中{embedded}枚の画像を埋め込みました。サイズ超過や見つからない画像は元のリンクのままです"
     },
     "diagramExport": {
       "title": "図",

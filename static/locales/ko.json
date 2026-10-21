@@ -1332,7 +1332,9 @@
     "export": {
       "error": "내보내기 오류",
       "errorExporting": "파일 내보내기 오류",
-      "failed": "내보내기 실패"
+      "failed": "내보내기 실패",
+      "imagesEmbeddedTitle": "일부 이미지가 포함되지 않았습니다",
+      "imagesEmbeddedMessage": "전체 {total}개 중 {embedded}개의 이미지를 포함했습니다. 크기가 크거나 찾을 수 없는 이미지는 원래 링크로 유지됩니다"
     },
     "diagramExport": {
       "title": "다이어그램",
