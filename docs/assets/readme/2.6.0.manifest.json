@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "releaseVersion": "2.6.0",
-  "payloadSha": "58c9aca3b79e69b8ae9f7e74228bf741329a332d",
+  "payloadSha": "8076de2040cfe7d3d616355c4907181d6da150c4",
   "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
   "captureState": "fresh-reviewed",
   "freezeRequirement": "Satisfied from the final payload before the Ready seal.",
@@ -9,7 +9,7 @@
     "reviewer": "xronocode",
     "reviewedAt": "2026-10-21",
     "scenarios": [
-      "The five payload-generated README scenes were reviewed together in one contact sheet; a repeat on 900509fe reproduced the accepted PNG bytes unchanged, and the operational recovery commits through 58c9aca3 did not change them.",
+      "The five payload-generated README scenes were reviewed together in one contact sheet; a repeat on 900509fe reproduced the accepted PNG bytes unchanged, and the operational recovery commits through 8076de20 did not change them.",
       "The light and dark editor, welcome screen, diagrams, and fullscreen viewer are visually coherent and free of visible clipping or stale release content.",
       "The retained cover, split-view, and copy images were rechecked as part of the complete README image set; these digests bind the reviewed bytes."
     ]
