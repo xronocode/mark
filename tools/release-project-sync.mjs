@@ -1,5 +1,5 @@
 // FILE: tools/release-project-sync.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Mirror the checked-in release train into one user-owned GitHub Project without making Project availability part of release admission.
 //   SCOPE: Public-field projection, paginated read, deterministic dry-run/check/apply planning, idempotent owned-field writes, and duplicate protection; never reverse-syncs or deletes.
@@ -29,6 +29,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.3.0: use the current draft-item payload field, skip absent values on new items, and clear existing empty values through the dedicated GraphQL mutation.
 //   - 2026-10-20 v1.2.0: name the dedicated external credential PROJECT_MIRROR_AUTH consistently across local and Actions callers.
 //   - 2026-10-20 v1.1.0: reject ambiguous Project identity and support explicit owner-local number/node-ID recording after bootstrap.
 //   - 2026-10-20 v1.0.0: add the one-way train-to-Project mirror with dry-run, idempotence, pagination, and public-data guards.
@@ -390,11 +391,19 @@ export class GraphqlProjectClient {
     const setField = async (itemId, fieldName, value) => {
       const field = snapshot.fields.find(({ name }) => name === fieldName)
       if (!field?.id) fail('MT_RELEASE_PROJECT_APPLY_FAILED', `field=${fieldName};missing`)
+      const normalizedValue = String(value ?? '')
+      if (!normalizedValue) {
+        await this.request(
+          `mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!){clearProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId}){projectV2Item{id}}}`,
+          { projectId, itemId, fieldId: field.id }
+        )
+        return
+      }
       const fieldValue = field.dataType === 'SINGLE_SELECT'
         ? {
             singleSelectOptionId: field.options?.find(({ name }) => name === value)?.id
           }
-        : { text: String(value ?? '') }
+        : { text: normalizedValue }
       if (field.dataType === 'SINGLE_SELECT' && !fieldValue.singleSelectOptionId) {
         fail('MT_RELEASE_PROJECT_APPLY_FAILED', `field=${fieldName};option=${value};missing`)
       }
@@ -405,12 +414,14 @@ export class GraphqlProjectClient {
     }
     if (operation.type === 'create-item') {
       const created = await this.request(
-        `mutation($projectId:ID!,$title:String!,$body:String!){addProjectV2DraftIssue(input:{projectId:$projectId,title:$title,body:$body}){projectV2Item{id}}}`,
+        `mutation($projectId:ID!,$title:String!,$body:String!){addProjectV2DraftIssue(input:{projectId:$projectId,title:$title,body:$body}){projectItem{id}}}`,
         { projectId, title: operation.row.title, body: operation.row.body }
       )
-      const itemId = created.addProjectV2DraftIssue.projectV2Item.id
+      const itemId = created.addProjectV2DraftIssue.projectItem.id
       for (const fieldName of ['Item ID', ...OWNED_FIELDS.filter((name) => name !== 'Item ID')]) {
-        await setField(itemId, fieldName, operation.row.fields[fieldName] ?? '')
+        const value = operation.row.fields[fieldName] ?? ''
+        if (String(value) === '') continue
+        await setField(itemId, fieldName, value)
       }
       return
     }
