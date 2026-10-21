@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-readiness.test.js
-// VERSION: 1.3.0
+// VERSION: 1.3.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
@@ -20,6 +20,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.3.1: derive the collecting-train item count from the checked-in manifest so routine admissions do not require a duplicate fixture edit.
 //   - 2026-10-21 v1.3.0: validate the checked-in train in either collecting main or prepared release-PR lifecycle state.
 //   - 2026-10-20 v1.2.0: cover trusted previous-release boundaries, many-to-many item accounting, and exact non-seal check policy.
 //   - 2026-10-20 v1.1.0: add payload/seal/tag/check/fresh-screenshot strict identity regressions.

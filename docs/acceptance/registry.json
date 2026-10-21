@@ -1,0 +1,380 @@
+{
+  "schemaVersion": "1.0.0",
+  "protocol": "docs/acceptance/README.md",
+  "scope": "Delivery items of the 2.6.x-next train onward. Pre-2.6.0 acceptance history is frozen prose in the Released 2.5.x-next record.",
+  "lastSynced": "2026-10-22",
+  "artifacts": [
+    {
+      "id": "mark-test-fix009-7057d645",
+      "source": {
+        "sha": "7057d645f83bef3383d9db4183f720238f1fe0dc",
+        "branch": "feat/fix009-session-recovery",
+        "pr": 19
+      },
+      "platform": "macos-arm64-debug",
+      "bundleIdentity": "com.xronocode.mark.test.fix009.7057d645",
+      "productName": "Mark Test FIX009",
+      "binarySha256": "0b5de28f859778e46ad4963633842889c58033e2f2ed9191fecb9a61d3b49a13",
+      "productVersion": "2.6.0",
+      "builtAt": "2026-10-21",
+      "builtBy": "tools/build-test-artifact.mjs procedure (temporary merge config; updater artifacts off)",
+      "covers": [
+        "FIX-009"
+      ],
+      "location": "target/debug/bundle/macos/Mark Test FIX009.app (repo build dir; rebuild via the builder)",
+      "smoke": "launch + 39s alive + clean quit on macOS 26.6.2"
+    }
+  ],
+  "items": [
+    {
+      "id": "FIX-010",
+      "summary": "Shift+Command+P opens the root Command Palette on macOS.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "owner",
+          "detail": "EP-04 follow-up epic; palette chord unreachable."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-20",
+          "actor": "codex-release-agent",
+          "detail": "C-FIX-010-COMMAND-PALETTE-SHORTCUT applied and archived."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-21",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "detail": "PR 16 review: focused suite 186 passed, all required checks green; accepted with the pack.",
+          "artifact": null,
+          "scenarios": [
+            "Shift+Command+P opens the root palette through the shared view.command-palette id; Windows and Linux unchanged."
+          ]
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "Admitted to 2.6.x-next (PR 16 merged as 21793f11)."
+        }
+      ]
+    },
+    {
+      "id": "FIX-012",
+      "summary": "Tab-cycle render cascade repaired at its attributed boundaries.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "c73-audit",
+          "detail": "Render TypeError after the registry walk; EXPECTED_BRIDGE_WARNINGS allowance added."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-20",
+          "actor": "codex-release-agent",
+          "detail": "C-FIX-012 bundles applied; allowance removed."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-21",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "detail": "PR 16 review.",
+          "artifact": null,
+          "scenarios": [
+            "Ancestry stops at a missing parent; transient cursor state tolerated; incomplete selections skipped."
+          ]
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "Admitted to 2.6.x-next (21793f11)."
+        }
+      ]
+    },
+    {
+      "id": "FIX-015",
+      "summary": "Table Markdown export lossless (pipe parity, rectangularized rows).",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "codex-release-agent",
+          "detail": "Walk finding."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-20",
+          "actor": "codex-release-agent",
+          "detail": "C-FIX-015-TABLE-EXPORT-INTEGRITY applied."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-21",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "detail": "PR 16 review.",
+          "artifact": null,
+          "scenarios": [
+            "Pipes escaped by backslash parity; ragged rows rectangularized without dropping real cells."
+          ]
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "Admitted to 2.6.x-next (21793f11)."
+        }
+      ]
+    },
+    {
+      "id": "FIX-016",
+      "summary": "Disabling Auto Save cancels queued writes.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "codex-release-agent",
+          "detail": "Walk finding."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-20",
+          "actor": "codex-release-agent",
+          "detail": "C-FIX-016-AUTOSAVE-DISABLE-RACE applied."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-21",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "detail": "PR 16 review.",
+          "artifact": null,
+          "scenarios": [
+            "Debounced save removed before fire when the preference is off; later edits save after re-enable."
+          ]
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "Admitted to 2.6.x-next (21793f11)."
+        }
+      ]
+    },
+    {
+      "id": "DEPS-FOLLOW-REDIRECTS",
+      "summary": "follow-redirects 1.16.1 (Dependabot highs 144/145).",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-21",
+          "actor": "dependabot",
+          "detail": "Two high advisories via dev-side axios."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "PR 18 lockfile bump."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-21",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "detail": "PR 18 review: lockfile-only, advisories gone from audit.",
+          "artifact": null,
+          "scenarios": [
+            "npm audit shows no follow-redirects/axios entries on the PR tree."
+          ]
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "Merged; operational admission pending the next train accounting update."
+        }
+      ]
+    },
+    {
+      "id": "FIX-013",
+      "summary": "Node >= 25 Web Storage vitest compatibility.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "owner",
+          "detail": "Polygon bring-up: 66 files / 841 failures on Node v25.8.1."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-20",
+          "actor": "agent",
+          "detail": "C-FIX-013 applied: version-gated execArgv, .nvmrc, regression test."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-21",
+          "actor": "two-clean-passes",
+          "verdict": "approve",
+          "detail": "Node-22 wording corrected (flag exists since 22.4.0); ledger moved to 2.6.x-next."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "artifact": null,
+          "notApplicable": "Tooling-only change with no product behavior; acceptance evidence is the suite result (Node 25 polygon green without env overrides; Node 22 byte-identical args). Owner may accept by review."
+        }
+      ]
+    },
+    {
+      "id": "FIX-014",
+      "summary": "Win/Linux titlebar, owner-final amendment-5 state.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "owner",
+          "detail": "Polygon crops: alien caption buttons, toolbar mismatch, right overhang."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-20",
+          "actor": "agent",
+          "detail": "Five amendment rounds, eight polygon rebuilds, pixel-verified final state."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-21",
+          "actor": "two-clean-passes",
+          "verdict": "changes-requested",
+          "detail": "Contract inversion in spec/plan and durable anchors; fixed in the same wave (3466941e) incl. the no-separator pin."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "artifact": null,
+          "blocked": "Windows artifact required; polygon (kari) offline 2026-10-21 (ping 100% loss). Owner options: (a) polygon online -> NSIS from the branch via the standard procedure; (b) accept on the pixel-measured amendment-5 crops of polygon rebuild 8 already reviewed."
+        }
+      ]
+    },
+    {
+      "id": "FIX-009",
+      "summary": "Cold-start session restore honesty + current-run recently-closed recovery.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "owner",
+          "detail": "Last session row stale no-op after closing all tabs."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "Two bundles (cold start + recently closed), full local gates."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-21",
+          "actor": "owner",
+          "verdict": "changes-requested",
+          "detail": "P1 frozen-offer race (diagnostic: expected 1 restored tab, got 0); REOPEN_ALL accuracy; GRACE drift; released-ledger writes."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "detail": "Wave 2: frozen complete payload, RESTORE_SESSION {from}, reopen-all accuracy, contracts and ledger repaired."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-21",
+          "actor": "two-clean-passes",
+          "verdict": "approve",
+          "detail": "Both passes verified the P1/P2 fixes with evidence; minors fixed in the review commit."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-21",
+          "actor": "local-model-qwen3-4b",
+          "verdict": "two-actionable",
+          "detail": "Basename logging + from-shape hardening applied; five findings dismissed with evidence (chunk artifacts, Node-22 flag knowledge gap, by-design drop)."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-10-21",
+          "actor": "agent",
+          "artifact": "mark-test-fix009-7057d645",
+          "checklist": "7 scenarios offered to the owner (3 cold-start incl. the P1 frozen-restore case, 4 current-run recovery); per-item verdicts pending."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-22",
+          "actor": "owner",
+          "verdict": "accepted-with-followups",
+          "artifact": "mark-test-fix009-7057d645",
+          "detail": "All 7 scenarios passed on the offered artifact (C1 frozen cold-start incl. the P1 race, C2a partial-missing, C2b all-missing notice, C3 auto-restore, C4 reopen one, C5 reopen all, C6 empty-screen + missing file, C7 history bounds/clear). Verdict: accepted with followups. Non-blocking followups recorded from the protocol's section 6 (7 items: silent partial skip toast, menu-name/productName, shared APP_BUNDLE_ID isolation defect, HIG design review of the history button/popover, tab count in the last-session row, test-build visual identity, checkbox-toggle dirty-flag suspicion) plus tab-strip drag reordering filed to the product backlog. Protocol retained by the owner as local working copies (protocol .md + .manifest.yaml)."
+        }
+      ]
+    },
+    {
+      "id": "C-SELF-CONTAINED-HTML-EXPORT",
+      "summary": "Export to HTML embeds locally readable images as base64 data-URLs so the single .html file is self-contained.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-21",
+          "actor": "owner",
+          "detail": "After the export-format research the owner asked (translated from Russian: 'do we currently produce self-contained HTML? in the current implementation?'); the styled-HTML export was not self-contained for raster images — raw markdown src survived into the file."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "detail": "C-SELF-CONTAINED-HTML-EXPORT implemented: the M-065 exportImages pass (stat-gated 8 MiB cap, ipcFs.readBinary, extension-mapped MIME, dedup, skipped accounting) wired into the styledHtml branch of editor.vue only; notice keys in ten locales plus min mirrors; graph M-065/V-M-065 and the DF-007 refresh; grace lint 0 errors. Uncommitted in the main checkout (branch feat/fix009-session-recovery); the commit lands through the safety gate on owner instruction."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "verdict": "approve",
+          "detail": "Two clean passes on the spec (verdict approve after fixes) (Pass A correctness/GRACE contracts, Pass B security/verification/UX) caught the false readFile-binary assumption and fixed it to readBinary before implementation. Implementation gates: unit 19/19, component 6/6 plus printService neighbor 3/3, e2e 4/4 on chromium (byte-identical embed through mt_fs_stat + mt_fs_read_binary, never the UTF-8 mt_fs_read; remote URL untouched), print-export.spec.ts regression green, npm test 4824 passed (the single remaining suite failure is the parallel session's unresolved merge-conflict marker in release-readiness.test.js)."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "notApplicable": "No isolated test artifact was built: the owner accepted on the in-session automated evidence (unit/component/e2e matrix above); a live manual export on macOS was not performed by the owner."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-22",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "artifact": null,
+          "detail": "Owner chat acceptance 2026-10-22 (translated from Russian: 'ready to accept'), given after the implementation evidence review of this session.",
+          "scenarios": [
+            "Export as HTML embeds locally readable images (relative, absolute and file:/// src forms) as base64 data-URLs; unit 19/19, component 6/6, e2e byte-identity on chromium.",
+            "Remote http(s) images stay untouched and the export makes no network requests.",
+            "Missing, over-cap (8 MiB) and unknown-extension images keep their src and a localized count warning appears (ten locales).",
+            "PDF and print flows are unchanged (print-export.spec.ts regression green in the same run)."
+          ]
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "detail": "Admitted to 2.6.x-next (userFacing); source commits recorded when the safety-gated commit lands."
+        }
+      ]
+    }
+  ]
+}
