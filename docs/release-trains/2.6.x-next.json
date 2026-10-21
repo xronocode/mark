@@ -82,7 +82,7 @@
         "id": "C-SELF-CONTAINED-HTML-EXPORT",
         "summary": "Embed local images as data-URLs in the styled-HTML export.",
         "state": "queued",
-        "commits": [],
+        "commits": ["a5707758e4e94ec7c848890c43350c325afca982"],
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-22",
