@@ -78,7 +78,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.30.0
+// VERSION: 1.31.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
@@ -98,7 +98,7 @@
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
 //   imageAction - Applies configured local/upload image insertion behavior; with the relative preference on a saved document it writes straight into the relative folder (C-24).
 //   handleDropImage - Inserts an image dropped from Finder (mt::drop-image) at the cursor through imageAction (C-24 R-4).
-//   handleExport - Routes supported export formats to renderer services; C-61 splits print (direct native panel, remembered options) from pdf (settings → save dialog → mt_export_pdf, container cleared on every outcome).
+//   handleExport - Routes supported export formats to renderer services; C-61 splits print (direct native panel, remembered options) from pdf (settings → save dialog → mt_export_pdf, container cleared on every outcome); C-SELF-CONTAINED-HTML-EXPORT runs the M-065 embedLocalImages pass (local images → data-URLs, skipped-count warning) on the styledHtml branch only.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   copyRenderedAsPlainText - Shared C-12/C-32 render → convert → single text/plain write pipeline.
 //   diffGuarded - M-031: document-mutating bus handlers become no-ops while the diff view replaces the editing surface.
@@ -119,7 +119,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.30.0 - 2026-10-20 FIX-005/FIX-006: the desktop
+//   LAST_CHANGE: v1.31.0 - 2026-10-22 C-SELF-CONTAINED-HTML-EXPORT: the
+//   styledHtml export runs embedLocalImages (M-065) over the generated
+//   HTML before saving — local images become base64 data-URLs so the
+//   single .html file is self-contained; a warning notice reports the
+//   embedded/total counts when some images were skipped. pdf/print
+//   branches never run the pass (their print container resolves image
+//   src itself at print time).
+//   PREV: v1.30.0 - 2026-10-20 FIX-005/FIX-006: the desktop
 //   paragraph shortcuts are wired through a capture keydown on the
 //   editor wrapper (handleEditorSurfaceKeydown →
 //   handleParagraphShortcutKeys): ⇧⌘D duplicate, ⇧⌘N new paragraph,
@@ -279,6 +286,7 @@ import { buildTableSvg, resolveTableExportTable, TABLE_EXPORT_FIGURE_SELECTOR } 
 // Markdown) for the right-click Copy Image item.
 import { getImageInfo as getDomImageInfo } from 'muya/lib/utils/getImageInfo'
 import { getCssForOptions, getHtmlToc } from '@/util/pdf'
+import { embedLocalImages } from '@/util/exportImages'
 import { loadTableLayoutsFor, saveTableLayoutsFor } from '@/util/tableLayoutStore'
 import { addCommonStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
 import { usePreferencesStore } from '@/store/preferences'
@@ -1815,13 +1823,31 @@ const handleExport = async (options) => {
   switch (type) {
     case 'styledHtml': {
       try {
-        const content = await editor.value.exportStyledHTML({
+        const rawHtml = await editor.value.exportStyledHTML({
           title: htmlTitle || '',
           printOptimization: false,
           extraCss,
           toc: htmlToc
         })
-        editorStore.EXPORT({ type, content })
+        // C-SELF-CONTAINED-HTML-EXPORT R-1..R-5: embed locally readable
+        // images as data-URLs so the single .html carries them; remote
+        // and already-embedded sources stay untouched. Only this branch
+        // runs the pass — pdf/print containers resolve src at print
+        // time (corner C-12 in the design context).
+        const { pathname } = editorStore.currentFile || {}
+        const documentDir = pathname ? window.path.dirname(pathname) : null
+        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir)
+        // Counts only, never paths (console-privacy convention).
+        // eslint-disable-next-line no-console
+        console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
+        if (skipped > 0) {
+          notice.notify({
+            title: t('editor.export.imagesEmbeddedTitle'),
+            message: t('editor.export.imagesEmbeddedMessage', { embedded, total }),
+            type: 'warning'
+          })
+        }
+        editorStore.EXPORT({ type, content: html })
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({

@@ -1335,7 +1335,9 @@
     "export": {
       "error": "Export-Fehler",
       "errorExporting": "Fehler beim Exportieren der {type}-Datei",
-      "failed": "{type}-Export fehlgeschlagen"
+      "failed": "{type}-Export fehlgeschlagen",
+      "imagesEmbeddedTitle": "Einige Bilder wurden nicht eingebettet",
+      "imagesEmbeddedMessage": "{embedded} von {total} Bildern eingebettet — große oder fehlende Bilder behalten ihre ursprünglichen Verweise"
     },
     "diagramExport": {
       "title": "Diagramm",

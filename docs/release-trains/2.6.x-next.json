@@ -77,6 +77,23 @@
             "Disabling Auto Save cancels already queued writes (the debounce re-reads the live preference when it fires)."
           ]
         }
+      },
+      {
+        "id": "C-SELF-CONTAINED-HTML-EXPORT",
+        "summary": "Embed local images as data-URLs in the styled-HTML export.",
+        "state": "queued",
+        "commits": [],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-22",
+          "testedArtifact": "Working tree (uncommitted) at 2026-10-22 on feat/fix009-session-recovery plus local dist rebuild; unit 19/19, component 6/6, e2e 4/4 (chromium), grace lint 0 errors. Commits recorded when the safety-gated commit lands.",
+          "scenarios": [
+            "Export as HTML embeds locally readable images (relative, absolute and file:/// src forms) as base64 data-URLs; unit 19/19, component 6/6, e2e byte-identity on chromium.",
+            "Remote http(s) images stay untouched and the export makes no network requests.",
+            "Missing, over-cap (8 MiB) and unknown-extension images keep their src and a localized count warning appears (ten locales).",
+            "PDF and print flows are unchanged (print-export.spec.ts regression green in the same run)."
+          ]
+        }
       }
     ],
     "operational": [
@@ -91,6 +108,21 @@
           "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
           "21793f1100a4eea8584a0f664e6b26e092868383"
         ]
+      },
+      {
+        "id": "DEPS-FOLLOW-REDIRECTS",
+        "summary": "follow-redirects 1.16.1 security bump closing Dependabot highs 144/145 (dev-side axios transitive; lockfile-only).",
+        "commits": [
+          "8108a7ac0b3a832e40805e65e6f245199ee701db"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-21",
+          "testedArtifact": "PR 18 review: lockfile-only diff, npm ls resolves 1.16.1, advisories gone from the PR audit",
+          "scenarios": [
+            "npm audit reports no follow-redirects or axios advisories on the PR tree."
+          ]
+        }
       }
     ],
     "notPresent": []
@@ -148,6 +180,13 @@
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8108a7ac0b3a832e40805e65e6f245199ee701db",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-FOLLOW-REDIRECTS"
         ]
       }
     ]
