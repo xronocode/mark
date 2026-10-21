@@ -78,7 +78,7 @@
       <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- M-046 gates WebKit session restore and close/edit isolation. -->
       <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
-      <!-- C-SAFE-PUBLIC-GITHUB-REFERENCES: M-064 distinguishes public GitHub identifiers/lookups from literal credential bytes without masking input. -->
+      <!-- C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: M-064 distinguishes public GitHub identifiers/lookups from literal credential bytes without masking input. -->
       <!-- M-046 gates the WebKit keyboard-selection project in test.yml. -->
       <!-- C-PRIVATE-OPERATIONS: M-046 owns the public/private release-operations boundary. -->
       <Owns>

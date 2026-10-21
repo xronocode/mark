@@ -1,5 +1,5 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.5.0
+# VERSION: 1.5.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
 #   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, exact-index, local-only review and outgoing-history failure scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.5.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: pin the public GitHub reference forms and literal-secret failure boundary used by both local review passes.
+#   LAST_CHANGE: 1.5.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: pin that workflow/governance paths do not turn public references into secrets during outgoing review.
+#   PREV: 1.5.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: pin the public GitHub reference forms and literal-secret failure boundary used by both local review passes.
 #   PREV: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
 #   PREV: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before model loading, including one-other-engine and multiple-model failures.
 #   PREV: 1.2.0 - 2026-10-19: reject reserved private operations and captured profiles while retaining synthetic examples and reusable tooling.
@@ -61,6 +62,9 @@ class SafetyGateTests(unittest.TestCase):
             self.assertIn(reference, prompt)
         self.assertIn("cannot alone justify a private-key or credential finding", prompt)
         self.assertIn("A literal credential, private key, token value, or private data", prompt)
+        self.assertIn(".github/workflows/release.yml", prompt)
+        self.assertIn(".github/release-governance.json", prompt)
+        self.assertIn("neither the file path nor a symbolic lookup name is evidence of a secret", prompt)
         self.assertIn("Do not report a file solely because it contains these reference forms", prompt)
 
     def test_gpu_preflight_timeout_is_bounded_and_does_not_echo_command(self):

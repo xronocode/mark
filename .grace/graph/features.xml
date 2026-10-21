@@ -2876,7 +2876,7 @@
         and value for both model passes; unsupported input uses the raw diff.
         Complete raw blobs and candidate identity remain scan/recheck inputs.
 
-        C-SAFE-PUBLIC-GITHUB-REFERENCES makes the reviewer distinguish public
+        C-SAFE-PUBLIC-GITHUB-REFERENCES-V2 makes the reviewer distinguish public
         GitHub GraphQL node IDs, App slugs and symbolic Actions lookups from
         literal credential bytes. No candidate byte is masked or allowlisted.
 
