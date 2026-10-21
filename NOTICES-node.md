@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **318 packages**.
+Generated from `license-checker --production` over **317 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -15,7 +15,7 @@ npx --package license-checker -- license-checker --production --json | \
 |---|---:|
 | MIT | 222 |
 | BSD-3-Clause | 40 |
-| ISC | 35 |
+| ISC | 34 |
 | Apache-2.0 | 6 |
 | MIT OR Apache-2.0 | 5 |
 | BSD-2-Clause | 2 |
@@ -299,7 +299,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-voronoi | 5.1.0 | https://github.com/vega/vega |
 | vega-wordcloud | 5.1.0 | https://github.com/vega/vega |
 
-## ISC (35)
+## ISC (34)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -336,7 +336,6 @@ npx --package license-checker -- license-checker --production --json | \
 | universal-user-agent | 7.0.3 | https://github.com/gr2m/universal-user-agent |
 | y18n | 5.0.8 | https://github.com/yargs/y18n |
 | yallist | 3.1.1 | https://github.com/isaacs/yallist |
-| yaml | 2.8.3 | https://github.com/eemeli/yaml |
 | yargs-parser | 22.0.0 | https://github.com/yargs/yargs-parser |
 
 ## Apache-2.0 (6)
