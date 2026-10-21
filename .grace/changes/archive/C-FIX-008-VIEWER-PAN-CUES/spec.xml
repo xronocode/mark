@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved"><C-FIX-008-VIEWER-PAN-CUES>
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-008-VIEWER-PAN-CUES>
   <Name>Fullscreen table viewer: pan-only navigation with edge clipping shadows</Name>
   <Created>2026-10-20</Created>
   <Summary>Replace the rejected FIX-008 per-axis scrollport with the owner's preferred affordance: the fullscreen table viewer never paints a native horizontal scrollbar or bottom track at any zoom; drag/pan is the single horizontal-navigation model; subtle left/right edge shadows indicate that table content is clipped, updating live with pan and zoom and clearing at Fit. Vertical overflow and the sticky header keep their native scrolling.</Summary>

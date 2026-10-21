@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved"><C-FIX-011-UNTITLED-CLOSE-ACTIONS>
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-011-UNTITLED-CLOSE-ACTIONS>
   <Name>Untitled close dialog: default Save &amp; Close, separate Discard, visible Cancel</Name>
   <Created>2026-10-20</Created>
   <Summary>Replace the dirty-tab close confirmation that offered two discard-equivalent actions ("Discard &amp; Close" and "Don't Save") with no visible Cancel by the owner-approved three-action model: Save &amp; Close is the default (for an untitled tab it opens Save As and the tab closes only after the write succeeds), Discard is a separate non-default destructive action, and Cancel is a visible nondestructive action whose result Escape and the close glyph share.</Summary>

@@ -1721,6 +1721,16 @@ export const useEditorStore = defineStore('editor', {
       const timer = setTimeout(async () => {
         autoSaveTimers.delete(id)
 
+        // START_BLOCK_AUTO_SAVE_DISABLED_AT_FIRE
+        // The preference can change while this callback is debounced. Read
+        // the live store again so disabling Auto Save also cancels work that
+        // was already queued, without preventing a later save after re-enable.
+        const currentPreferencesStore = usePreferencesStore()
+        if (!currentPreferencesStore.autoSave) {
+          return
+        }
+        // END_BLOCK_AUTO_SAVE_DISABLED_AT_FIRE
+
         const tab = this.tabs.find((t) => t.id === id)
         if (tab && !tab.isSaved) {
           const defaultPath = getRootFolderFromState(projectStore)
@@ -2330,7 +2340,7 @@ export const useEditorStore = defineStore('editor', {
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, and per-tab diff baselines (recording only — resolution lives in diffView.vue).
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus, store/diffSnapshots.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm).
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -2341,6 +2351,10 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-20 FIX-016 (C-FIX-016-AUTOSAVE-DISABLE-RACE):
+//     HANDLE_AUTO_SAVE re-checks the live Auto Save preference when its
+//     debounce fires, so disabling the setting cancels already queued writes
+//     while a later edit can save normally after the setting is re-enabled.
 //   - 2026-10-20 FIX-011 (C-FIX-011-UNTITLED-CLOSE-ACTIONS):
 //     CLOSE_UNSAVED_TAB uses the three-action unsavedCloseDialog —
 //     default Save & Close, separate non-default Discard, visible Cancel

@@ -1,3 +1,29 @@
+// FILE: tests/renderer/store/editor-coverage.test.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Exercise editor-store persistence, tab, watcher, selection, and export branches that need direct regression coverage.
+//   SCOPE: Editor Pinia actions with mocked IPC, preferences, dialogs, timers, filesystem services, and Tauri invoke.
+//   DEPENDS: src/renderer/src/store/editor.js, Pinia test setup, Vitest fake timers and mocks.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   askUnsavedCloseMock - Controls three-action unsaved-close dialog outcomes.
+//   elMessageBoxConfirmMock - Controls legacy confirmation-dialog outcomes.
+//   __ipcFsMock - Provides deterministic filesystem IPC behavior.
+//   __ipcWatchMock - Provides deterministic file-watch subscriptions.
+//   __preferencesStub - Mutable preferences-store fixture, including Auto Save state and delay.
+//   __projectStub - Mutable project-store fixture.
+//   __layoutStub - Mutable layout-store fixture.
+//   __mainStub - Mutable main-store initialization fixture.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 FIX-016: pin disabling Auto Save during debounce and saving again after re-enable.
+// END_CHANGE_SUMMARY
+//
 /**
  * Additional coverage tests for src/renderer/src/store/editor.js
  *
@@ -253,6 +279,81 @@ describe('store/editor — coverage gaps', () => {
       expect(invoke).toHaveBeenCalledWith('mt_response_file_save', expect.objectContaining({
         id: 't1',
         pathname: '/tmp/a.md'
+      }))
+    })
+
+    it('skips a queued save when Auto Save is disabled before the timer fires', async () => {
+      vi.useFakeTimers()
+      __preferencesStub.autoSave = true
+      __preferencesStub.autoSaveDelay = 50
+      invoke.mockClear()
+
+      const tab = makeTab({
+        id: 'disable-race',
+        pathname: '/tmp/disable-race.md',
+        filename: 'disable-race.md',
+        isSaved: false
+      })
+      editor.tabs = [tab]
+
+      editor.HANDLE_AUTO_SAVE({
+        id: tab.id,
+        filename: tab.filename,
+        pathname: tab.pathname,
+        markdown: 'queued before disable',
+        options: {}
+      })
+      __preferencesStub.autoSave = false
+
+      await vi.advanceTimersByTimeAsync(60)
+
+      expect(invoke).not.toHaveBeenCalledWith('mt_response_file_save', expect.anything())
+    })
+
+    it('allows a later queued save after Auto Save is re-enabled', async () => {
+      vi.useFakeTimers()
+      __preferencesStub.autoSaveDelay = 50
+      invoke.mockClear()
+
+      const tab = makeTab({
+        id: 'reenable-race',
+        pathname: '/tmp/reenable-race.md',
+        filename: 'reenable-race.md',
+        isSaved: false
+      })
+      editor.tabs = [tab]
+
+      __preferencesStub.autoSave = true
+      editor.HANDLE_AUTO_SAVE({
+        id: tab.id,
+        filename: tab.filename,
+        pathname: tab.pathname,
+        markdown: 'stale queued content',
+        options: {}
+      })
+      __preferencesStub.autoSave = false
+      await vi.advanceTimersByTimeAsync(60)
+
+      __preferencesStub.autoSave = true
+      invoke.mockResolvedValueOnce({
+        id: tab.id,
+        pathname: tab.pathname,
+        filename: tab.filename,
+        isSaved: true
+      })
+      editor.HANDLE_AUTO_SAVE({
+        id: tab.id,
+        filename: tab.filename,
+        pathname: tab.pathname,
+        markdown: 'fresh content after re-enable',
+        options: {}
+      })
+      await vi.advanceTimersByTimeAsync(60)
+
+      expect(invoke).toHaveBeenCalledTimes(1)
+      expect(invoke).toHaveBeenCalledWith('mt_response_file_save', expect.objectContaining({
+        id: tab.id,
+        markdown: 'fresh content after re-enable'
       }))
     })
 

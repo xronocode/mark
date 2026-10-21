@@ -1982,7 +1982,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059. C-57: Help › Support Mark… (help.support, no accelerator, desktop builds only — cfg(not(app-store)) plus the m048 `support` capability) opens ko-fi.com/xronocode through the id-dispatched renderer command; store builds ship no donation surface.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. FIX-010 (2026-10-20): on macOS, View › Command Palette… owns id view.command-palette and accelerator Cmd+Shift+P, matching the renderer registry and app-level physical-key route; Windows/Linux remain excluded from this addition. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059. C-57: Help › Support Mark… (help.support, no accelerator, desktop builds only — cfg(not(app-store)) plus the m048 `support` capability) opens ko-fi.com/xronocode through the id-dispatched renderer command; store builds ship no donation surface.</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -2595,6 +2595,18 @@
       <Status>partial</Status>
       <Layer>2</Layer>
       <Summary>
+        FIX-016 (2026-10-20): HANDLE_AUTO_SAVE removes its fired timer and
+        re-reads the live Auto Save preference before resolving the tab or
+        invoking the save transport. Disabling Auto Save during the debounce
+        cancels that queued write; re-enabling permits a later edit to queue
+        and save normally (V-M-011 scenario-fix-016-autosave-disable-race).
+        FIX-012 (2026-10-20): tab cycling after the Guide replaces the current
+        document remains warning-clean; M-012 owns the attributed missing-parent
+        ancestry invariant and this renderer owns the command/tab integration.
+        FIX-010 (2026-10-20): the macOS command registry and app shell route
+        physical Shift+Command+KeyP to view.command-palette once, ignore
+        composition/repeat or modifier mismatches, and remove the listener on
+        unmount. Windows/Linux receive no registry or app-keydown route.
         FIX-011 (2026-10-20): the dirty-tab close confirm is the
         three-action unsavedCloseDialog (default Save &amp; Close — for an
         untitled tab Save As, closing only after the write succeeds;
@@ -3656,6 +3668,25 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
+        FIX-015 (2026-10-20): Markdown table export escapes each unescaped
+        pipe by preceding-backslash parity and rectangularizes the widest
+        advisory or real row. Missing cells become empty strings, extra real
+        cells survive, and regular aligned output remains byte-stable.
+        FIX-012 (2026-10-20): ContentState active-block ancestry appends a
+        parent only after resolving it. Guide replacement may briefly leave a
+        stale parent key, but getActiveBlocks now returns the valid leaf-to-root
+        prefix and never passes undefined into StateRender selectors. After an
+        accumulated command walk, StateRender selector activity also treats a
+        null or start-less cursor as inactive rather than dereferencing it,
+        and token-conflict evaluation treats incomplete endpoints as no
+        selection conflict.
+        ContentState restores a DOM selection only for a cursor with anchor and
+        focus keys, and an incomplete cursor derives a full render range. The
+        full tab-cycle registry walk is warning-clean.
+        FIX-010 (2026-10-20): focused Muya content leaves the macOS
+        Shift+Command+P chord available to the app-level physical-key route,
+        and real-key verification proves the populated root palette opens and
+        closes without changing editor content.
         C-TABLE-NATIVE-TOOLBAR-DELIVERY (2026-10-20): the apparent native
         Fit click failure was a TableResize state rollback, not undelivered
         input. The last-known-good v2.5.2 path was session-only; db68b065
@@ -4587,13 +4618,13 @@
             removal.
           </note-2>
           <note-3>
-            **Known upstream bugs to preserve as regressions (do NOT silently
-            fix during port)**: (a) `exportMarkdown.js:300` pipe-escape misses
-            cell-start; (b) `exportMarkdown.js:303-306` irregular table produces
-            &quot;undefined&quot; literal; (c) `paragraphCtrl.js:116` nested
-            list items without listType; (d) `enterCtrl.js:18` chopBlockByCursor
-            O(n²) perf; (e) `deleteCtrl.js:27` empty-table delete crash (#67).
-            Track each as separate bugfix PR after v1.0.
+            **Known upstream bugs retained as regressions unless separately
+            approved**: FIX-015 repaired the former exportMarkdown pipe-at-cell-
+            start and irregular-table undefined failures with direct fixtures.
+            Still open: (a) `paragraphCtrl.js:116` nested list items without
+            listType; (b) `enterCtrl.js:18` chopBlockByCursor O(n²) perf;
+            (c) `deleteCtrl.js:27` empty-table delete crash (#67). Track each
+            remaining item as a separate approved bugfix.
           </note-3>
           <note-4>
             **CJK/IME safety** — upstream has NO compositionstart lock in 6
