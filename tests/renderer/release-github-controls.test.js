@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.7.0: pin bounded draft-ID discovery and ID-based read-back across GitHub tag-index eventual consistency.
 //   - 2026-10-21 v1.6.0: require tag admission to restore the remote annotated object after checkout peels the local tag ref.
 //   - 2026-10-21 v1.5.0: require complete promotion history for payload-to-seal ancestry proofs before and after approval.
 //   - 2026-10-20 v1.4.0: use a minimal non-credential constructor sentinel in API-failure coverage.
@@ -206,6 +207,10 @@ describe('release GitHub trust boundaries', () => {
     expect(releaseSource).toContain('release-assets.sha256')
     expect(releaseSource).toContain('existing draft asset differs')
     expect(releaseSource).toContain('ALREADY_PUBLISHED=true')
+    expect(releaseSource).toContain('--json databaseId,isDraft')
+    expect(releaseSource).toContain('release draft was not readable after creation')
+    expect(releaseSource).toContain('"repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" > /tmp/release-readback.json')
+    expect(releaseSource).not.toContain('releases/tags/$TAG')
     expect(releaseSource).toContain("jq -je '.body'")
     expect(releaseSource).not.toContain('--clobber')
     expect(releaseSource.indexOf('cmp "$ASSETS/latest.json"')).toBeLessThan(
