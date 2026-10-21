@@ -276,10 +276,14 @@ export const validateWhatsNewSource = (source, version) => {
 //   LINKS: .grace/verification/features.xml V-M-046; .grace/verification/runtime.xml V-M-011
 // END_CONTRACT: validateReleaseMaterials
 // START_BLOCK_VALIDATE_RELEASE_MATERIALS
-export const validateReleaseMaterials = (workspaceRoot, tag) => {
+export const validateReleaseMaterials = (workspaceRoot, tag, { trainPath } = {}) => {
   const root = resolve(workspaceRoot)
   const version = parseTag(tag)
-  const train = readTrainManifest(root)
+  // The default resolves the collecting train; a rolled-out release's
+  // materials validate against its own released-train manifest.
+  const train = trainPath
+    ? readTrainManifest(root, trainPath)
+    : readTrainManifest(root)
   validateTrainManifest(train, { workspaceRoot: root, tag })
   if (train.computedVersion !== version) {
     fail('MT_RELEASE_MATERIALS_VERSION_MISMATCH', `train=${train.computedVersion};tag=${version}`)

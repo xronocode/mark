@@ -2,7 +2,7 @@
 
 Owner instruction recorded on 2026-10-19: a confirmed fix joins a release train; accepting it does not start a release. This protocol governs delivery bookkeeping and release admission. Existing GRACE specs/plans still govern implementation and structural refactors.
 
-Current train: [2.5.x-next](2.5.x-next.md). It collects stabilization work after 2.5.3. Release Please currently computes 2.6.0 from the Conventional Commit history; the publication date remains unscheduled.
+Current train: [2.6.x-next](2.6.x-next.md). It collects the post-2.6.0 stabilization wave (PRs #16–#19, pending owner acceptance). The predecessor [2.5.x-next](2.5.x-next.md) is Released as v2.6.0.
 
 ## A fix moves through these stages
 

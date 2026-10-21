@@ -110,9 +110,9 @@ jobs:
           SEAL=$(git rev-parse "$TAG_REF^{commit}")
           HEAD_SHA=$(git rev-parse HEAD)
           [ "$HEAD_SHA" = "$SEAL" ]
-          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).state")
-          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).payloadSha")
-          EXPECTED_TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).computedVersion")
+          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.6.x-next.json')).state")
+          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.6.x-next.json')).payloadSha")
+          EXPECTED_TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.6.x-next.json')).computedVersion")
           [ "$STATE" = Ready ]
           [ "$REF_NAME" = "$EXPECTED_TAG" ]
           echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
@@ -972,7 +972,11 @@ jobs:
           diff -u /tmp/expected-assets.txt /tmp/server-assets.txt
           mkdir /tmp/release-readback
           while read -r NAME; do
-            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$NAME" --dir /tmp/release-readback
+            # Same draft caveat: fetch each asset by its id from the
+            # readback instead of gh release download's tag lookup.
+            ASSET_URL=$(jq -r --arg name "$NAME" '.assets[] | select(.name == $name) | .url' /tmp/release-readback.json)
+            [ -n "$ASSET_URL" ] || { echo "::error::asset missing from readback: $NAME"; exit 1; }
+            gh api -H 'Accept: application/octet-stream' "$ASSET_URL" > "/tmp/release-readback/$NAME"
           done < /tmp/expected-assets.txt
           (cd /tmp/release-readback && sha256sum -c release-assets.sha256)
           cmp "$ASSETS/latest.json" /tmp/release-readback/latest.json

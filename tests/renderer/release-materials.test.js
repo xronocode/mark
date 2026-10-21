@@ -82,7 +82,13 @@ const materialHeaders = () => ({
 // START_BLOCK_RELEASE_MATERIALS_TESTS
 describe('release materials', () => {
   it('validates every checked-in 2.6.0 material surface together', () => {
-    expect(validateReleaseMaterials(process.cwd(), 'v2.6.0')).toMatchObject({
+    // v2.6.0 shipped from the rolled-out train; its materials validate
+    // against that Released manifest, not the collecting successor.
+    expect(
+      validateReleaseMaterials(process.cwd(), 'v2.6.0', {
+        trainPath: 'docs/release-trains/2.5.x-next.json'
+      })
+    ).toMatchObject({
       version: '2.6.0',
       locales: { localeCount: 10, itemCount: 4 },
       screenshots: { imageCount: 9 },
