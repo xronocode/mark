@@ -19,6 +19,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v2.x C-WINDOWS-TITLEBAR-ALIGNMENT: cluster selector
+//     updates for the amendment-5 bar (no «?»; Linux svg caption
+//     fallback assertions).
+
 //   LAST_CHANGE: v1.1.0 - 2026-10-18 fix: a press on the empty title bar
 //   closes the popover although Tauri drag.js stops mousedown propagation
 //   (the closer listens on window in the capture phase).

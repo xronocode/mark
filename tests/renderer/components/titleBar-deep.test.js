@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-deep.test.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify titleBar/index.vue computed state, native actions, popover rename, window controls, and lifecycle behavior.
 //   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
@@ -16,6 +16,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.7.0 C-WINDOWS-TITLEBAR-ALIGNMENT amendment 5: the
+//     menu/settings handler pins are RESTORED (showCustomTitleBar,
+//     handleMenuClick, handleSettingsClick) behind the documented
+//     supersession-and-restore trail.
+
 //   - 2026-08-07 v1.2.0: require native clipboard dispatch and production plugin/capability wiring for Copy Path.
 //   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
 //   - 2026-09-28 v1.3.0: C-15 T-W1 — dblclick-maximize is cross-platform (both directions pinned).
