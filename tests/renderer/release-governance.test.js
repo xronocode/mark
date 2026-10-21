@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, PR-only preparation boundary, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
@@ -18,6 +18,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.5.0: keep the partial-Project-identity negative fixture valid after the real Project identity is recorded.
 //   - 2026-10-20 v1.4.0: require complete history in both governance and cross-platform renderer-unit jobs.
 //   - 2026-10-20 v1.3.0: pin a full governance-job checkout before the normalization test inspects the bootstrap boundary.
 //   - 2026-10-20 v1.2.0: cover perf/revert patch admission and fail closed on unmarked BREAKING CHANGE body trailers.
@@ -168,7 +169,7 @@ describe('release governance', () => {
       expect.objectContaining({ code: 'MT_RELEASE_GOVERNANCE_CONFIG_INVALID' })
     )
     const partiallyBoundProject = structuredClone(governanceConfig)
-    partiallyBoundProject.project.number = 7
+    partiallyBoundProject.project.nodeId = null
     expect(() => validateGovernanceConfig(partiallyBoundProject)).toThrow(
       expect.objectContaining({ code: 'MT_RELEASE_GOVERNANCE_CONFIG_INVALID' })
     )

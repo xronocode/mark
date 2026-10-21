@@ -83,6 +83,7 @@
       <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- V-M-046 scenario-16 retains the webkit-session CI gate. -->
       <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
+      <!-- C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: V-M-064 pins safe public reference forms and the unchanged literal-secret failure boundary. -->
       <!-- V-M-046 scenario-14 retains the WebKit keyboard-selection CI gate. -->
       <!-- C-PRIVATE-OPERATIONS: V-M-046 scenario-15 verifies private operational records stay outside public source. -->
       <Owns>

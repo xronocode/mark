@@ -1,0 +1,46 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-RELEASE-PIPELINE-CLOSEOUT>
+    <Summary>Close the remaining release-automation gaps by converging the GitHub Project mirror, activating the reviewed Mark rulesets, and gating automatic Homebrew cask merges on repository-owned validation.</Summary>
+    <Problem>Mark 2.6.0 proved the release artifact, updater, recovery, and cask-PR paths, but the non-authoritative Project mirror still lacks its recorded GitHub identity, the reviewed main/tag rulesets remain disabled, and the downstream tap stops at an unchecked pull request that requires a manual merge.</Problem>
+    <ApprovalBasis>The owner explicitly instructed “чини” after reviewing the exact Project mirror, ruleset, Homebrew validation, and auto-merge gaps on 2026-10-21.</ApprovalBasis>
+    <Goals>
+      <Goal>Bootstrap and record the public GitHub Project identity once, preserve the checked-in train manifest as gate authority, and make subsequent main pushes converge the Project mirror idempotently.</Goal>
+      <Goal>Activate the existing reviewed main and v* tag rulesets after live check and bypass-actor read-back.</Goal>
+      <Goal>Add a required Homebrew tap validation check and let the release App schedule only its exact generated cask pull request for squash auto-merge after that check succeeds.</Goal>
+      <Goal>Repair the stale release-project-sync test module map and leave reproducible regression and live read-back evidence.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Release Please preparation must still never publish; production tag creation and GitHub Release publication retain their separate owner approvals.</Constraint>
+      <Constraint>The Project is an operational one-way mirror and cannot become release gate authority or weaken repository-local readiness.</Constraint>
+      <Constraint>Homebrew auto-merge applies only to the exact xronocode-cask-bot cask bump branch and title created from a published Mark tag, after a required repository-owned check succeeds.</Constraint>
+      <Constraint>The cask check executes only trusted tap code, verifies Ruby style/audit plus the published artifact URL and checksum, and receives no Mark signing or publication secrets.</Constraint>
+      <Constraint>Ruleset activation must preserve the documented owner recovery path and the release-bot-only normal tag path.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Do not remove owner approval from release-authorize or release publication.</NonGoal>
+      <NonGoal>Do not auto-accept train items, infer release membership, publish a new Mark version, or change application behavior.</NonGoal>
+      <NonGoal>Do not make GitHub Projects availability a required release dependency.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>The source-controlled Project number and node ID identify one public “Mark release trains” Project, local apply/read-back converges with zero remaining operations, and release/project-mirror succeeds on a main push.</Criterion>
+      <Criterion>The Mark main ruleset is active with the selected GitHub Actions checks and pull-request/force-push/delete protections; the v* tag ruleset is active with the release App and owner recovery identities read back exactly.</Criterion>
+      <Criterion>The Homebrew tap reports one stable cask/validate check on pull requests, its main protection requires that check, repository auto-merge is enabled, and a failing or missing check cannot merge.</Criterion>
+      <Criterion>The Mark release workflow creates or reuses one exact cask PR, verifies its bot branch/title identity, schedules squash auto-merge, and remains idempotent under gh run rerun --failed.</Criterion>
+      <Criterion>The release-governance suite derives the checked-in collecting-train item count from the manifest, so admitting accepted items does not require a second hard-coded fixture edit.</Criterion>
+      <Criterion>Focused M-046 tests, GRACE lint/status, live GitHub control read-back, and the tap validation canary pass without staging unrelated workspace files.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run tests/renderer/release-project-sync.test.js tests/renderer/release-github-controls.test.js</ExpectedCommand>
+      <ExpectedCommand>npm run release:project-sync -- --check</ExpectedCommand>
+      <ExpectedCommand>npm run release:github-controls -- --check</ExpectedCommand>
+      <ExpectedEvidence>Green release/governance including the Project mirror, active ruleset API read-back, one green required tap check, and an auto-merged synthetic cask canary or the next exact release cask PR.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The owner-authenticated GitHub credential can administer the personal public Project and repository rulesets without exposing credential bytes.</Assumption>
+      <Assumption>The release GitHub App installation on xronocode/homebrew-mark retains contents:write and pull-requests:write permissions needed to create and schedule its cask PR.</Assumption>
+    </Assumptions>
+  </C-RELEASE-PIPELINE-CLOSEOUT>
+</GraceChangeSpec>

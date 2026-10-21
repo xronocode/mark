@@ -30,10 +30,10 @@
     "owner": "xronocode",
     "title": "Mark release trains",
     "public": true,
-    "number": null,
-    "nodeId": null,
+    "number": 1,
+    "nodeId": "PVT_kwHODITnSM4BoA5l",
     "fields": [
-      { "name": "Train", "dataType": "SINGLE_SELECT", "options": ["2.5.x-next"] },
+      { "name": "Train", "dataType": "SINGLE_SELECT", "options": ["2.5.x-next", "2.6.x-next"] },
       { "name": "Admission", "dataType": "SINGLE_SELECT", "options": ["included", "operational", "not-present"] },
       { "name": "Owner acceptance", "dataType": "SINGLE_SELECT", "options": ["accepted", "not-required"] },
       { "name": "Payload SHA", "dataType": "TEXT" },
@@ -72,7 +72,8 @@
       "include": ["refs/heads/main"],
       "requiredChecks": [
         { "context": "status check", "integrationSlug": "github-actions" },
-        { "context": "release/governance", "integrationSlug": "github-actions" }
+        { "context": "release/governance", "integrationSlug": "github-actions" },
+        { "context": "release/readiness", "integrationSlug": "github-actions" }
       ],
       "requirePullRequest": true,
       "blockForcePush": true,
