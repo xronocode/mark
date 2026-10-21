@@ -11,7 +11,7 @@ Current train: [2.6.x-next](2.6.x-next.md). It collects the post-2.6.0 stabiliza
 | Reported | Stable item ID, date, symptom, expected behavior and reproduction or missing details | Investigate and scope the repair. |
 | Fixed | Source commit(s), affected behavior and remaining limitations | Run the relevant checks. |
 | Verified | Automated evidence and the exact test build | Present the fix for owner acceptance. |
-| Accepted | Owner, date, tested build, accepted scenarios and explicit confirmation | Queue the accepted scope in the current train. |
+| Accepted | Owner, date, tested build, accepted scenarios and explicit confirmation — recorded in the [acceptance registry](../acceptance/README.md) | Queue the accepted scope in the current train. |
 | Queued | Train ID plus integration state and remaining release gates | Continue collecting or prepare a candidate. |
 | Released | Version/tag/commit, release run and actual channel evidence | Close this delivery record. |
 

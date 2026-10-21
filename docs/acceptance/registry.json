@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1.0.0",
+  "protocol": "docs/acceptance/README.md",
+  "scope": "Delivery items of the 2.6.x-next train onward. Pre-2.6.0 acceptance history is frozen prose in the Released 2.5.x-next record.",
+  "lastSynced": "2026-10-21",
+  "artifacts": [
+    {
+      "id": "mark-test-fix009-7057d645",
+      "source": { "sha": "7057d645f83bef3383d9db4183f720238f1fe0dc", "branch": "feat/fix009-session-recovery", "pr": 19 },
+      "platform": "macos-arm64-debug",
+      "bundleIdentity": "com.xronocode.mark.test.fix009.7057d645",
+      "productName": "Mark Test FIX009",
+      "binarySha256": "0b5de28f859778e46ad4963633842889c58033e2f2ed9191fecb9a61d3b49a13",
+      "productVersion": "2.6.0",
+      "builtAt": "2026-10-21",
+      "builtBy": "tools/build-test-artifact.mjs procedure (temporary merge config; updater artifacts off)",
+      "covers": ["FIX-009"],
+      "location": "target/debug/bundle/macos/Mark Test FIX009.app (repo build dir; rebuild via the builder)",
+      "smoke": "launch + 39s alive + clean quit on macOS 26.6.2"
+    }
+  ],
+  "items": [
+    {
+      "id": "FIX-010",
+      "summary": "Shift+Command+P opens the root Command Palette on macOS.",
+      "events": [
+        { "state": "reported", "date": "2026-10-20", "actor": "owner", "detail": "EP-04 follow-up epic; palette chord unreachable." },
+        { "state": "repaired", "date": "2026-10-20", "actor": "codex-release-agent", "detail": "C-FIX-010-COMMAND-PALETTE-SHORTCUT applied and archived." },
+        { "state": "owner-verdict", "date": "2026-10-21", "actor": "xronocode", "verdict": "accepted", "detail": "PR 16 review: focused suite 186 passed, all required checks green; accepted with the pack.", "artifact": null, "scenarios": ["Shift+Command+P opens the root palette through the shared view.command-palette id; Windows and Linux unchanged."] },
+        { "state": "queued", "date": "2026-10-21", "actor": "agent", "detail": "Admitted to 2.6.x-next (PR 16 merged as 21793f11)." }
+      ]
+    },
+    {
+      "id": "FIX-012",
+      "summary": "Tab-cycle render cascade repaired at its attributed boundaries.",
+      "events": [
+        { "state": "reported", "date": "2026-10-20", "actor": "c73-audit", "detail": "Render TypeError after the registry walk; EXPECTED_BRIDGE_WARNINGS allowance added." },
+        { "state": "repaired", "date": "2026-10-20", "actor": "codex-release-agent", "detail": "C-FIX-012 bundles applied; allowance removed." },
+        { "state": "owner-verdict", "date": "2026-10-21", "actor": "xronocode", "verdict": "accepted", "detail": "PR 16 review.", "artifact": null, "scenarios": ["Ancestry stops at a missing parent; transient cursor state tolerated; incomplete selections skipped."] },
+        { "state": "queued", "date": "2026-10-21", "actor": "agent", "detail": "Admitted to 2.6.x-next (21793f11)." }
+      ]
+    },
+    {
+      "id": "FIX-015",
+      "summary": "Table Markdown export lossless (pipe parity, rectangularized rows).",
+      "events": [
+        { "state": "reported", "date": "2026-10-20", "actor": "codex-release-agent", "detail": "Walk finding." },
+        { "state": "repaired", "date": "2026-10-20", "actor": "codex-release-agent", "detail": "C-FIX-015-TABLE-EXPORT-INTEGRITY applied." },
+        { "state": "owner-verdict", "date": "2026-10-21", "actor": "xronocode", "verdict": "accepted", "detail": "PR 16 review.", "artifact": null, "scenarios": ["Pipes escaped by backslash parity; ragged rows rectangularized without dropping real cells."] },
+        { "state": "queued", "date": "2026-10-21", "actor": "agent", "detail": "Admitted to 2.6.x-next (21793f11)." }
+      ]
+    },
+    {
+      "id": "FIX-016",
+      "summary": "Disabling Auto Save cancels queued writes.",
+      "events": [
+        { "state": "reported", "date": "2026-10-20", "actor": "codex-release-agent", "detail": "Walk finding." },
+        { "state": "repaired", "date": "2026-10-20", "actor": "codex-release-agent", "detail": "C-FIX-016-AUTOSAVE-DISABLE-RACE applied." },
+        { "state": "owner-verdict", "date": "2026-10-21", "actor": "xronocode", "verdict": "accepted", "detail": "PR 16 review.", "artifact": null, "scenarios": ["Debounced save removed before fire when the preference is off; later edits save after re-enable."] },
+        { "state": "queued", "date": "2026-10-21", "actor": "agent", "detail": "Admitted to 2.6.x-next (21793f11)." }
+      ]
+    },
+    {
+      "id": "DEPS-FOLLOW-REDIRECTS",
+      "summary": "follow-redirects 1.16.1 (Dependabot highs 144/145).",
+      "events": [
+        { "state": "reported", "date": "2026-10-21", "actor": "dependabot", "detail": "Two high advisories via dev-side axios." },
+        { "state": "repaired", "date": "2026-10-21", "actor": "agent", "detail": "PR 18 lockfile bump." },
+        { "state": "owner-verdict", "date": "2026-10-21", "actor": "xronocode", "verdict": "accepted", "detail": "PR 18 review: lockfile-only, advisories gone from audit.", "artifact": null, "scenarios": ["npm audit shows no follow-redirects/axios entries on the PR tree."] },
+        { "state": "queued", "date": "2026-10-21", "actor": "agent", "detail": "Merged; operational admission pending the next train accounting update." }
+      ]
+    },
+    {
+      "id": "FIX-013",
+      "summary": "Node >= 25 Web Storage vitest compatibility.",
+      "events": [
+        { "state": "reported", "date": "2026-10-20", "actor": "owner", "detail": "Polygon bring-up: 66 files / 841 failures on Node v25.8.1." },
+        { "state": "repaired", "date": "2026-10-20", "actor": "agent", "detail": "C-FIX-013 applied: version-gated execArgv, .nvmrc, regression test." },
+        { "state": "reviewed", "date": "2026-10-21", "actor": "two-clean-passes", "verdict": "approve", "detail": "Node-22 wording corrected (flag exists since 22.4.0); ledger moved to 2.6.x-next." },
+        { "state": "artifact-offered", "date": "2026-10-21", "actor": "agent", "artifact": null, "notApplicable": "Tooling-only change with no product behavior; acceptance evidence is the suite result (Node 25 polygon green without env overrides; Node 22 byte-identical args). Owner may accept by review." }
+      ]
+    },
+    {
+      "id": "FIX-014",
+      "summary": "Win/Linux titlebar, owner-final amendment-5 state.",
+      "events": [
+        { "state": "reported", "date": "2026-10-20", "actor": "owner", "detail": "Polygon crops: alien caption buttons, toolbar mismatch, right overhang." },
+        { "state": "repaired", "date": "2026-10-20", "actor": "agent", "detail": "Five amendment rounds, eight polygon rebuilds, pixel-verified final state." },
+        { "state": "reviewed", "date": "2026-10-21", "actor": "two-clean-passes", "verdict": "changes-requested", "detail": "Contract inversion in spec/plan and durable anchors; fixed in the same wave (3466941e) incl. the no-separator pin." },
+        { "state": "artifact-offered", "date": "2026-10-21", "actor": "agent", "artifact": null, "blocked": "Windows artifact required; polygon (kari) offline 2026-10-21 (ping 100% loss). Owner options: (a) polygon online -> NSIS from the branch via the standard procedure; (b) accept on the pixel-measured amendment-5 crops of polygon rebuild 8 already reviewed." }
+      ]
+    },
+    {
+      "id": "FIX-009",
+      "summary": "Cold-start session restore honesty + current-run recently-closed recovery.",
+      "events": [
+        { "state": "reported", "date": "2026-10-20", "actor": "owner", "detail": "Last session row stale no-op after closing all tabs." },
+        { "state": "repaired", "date": "2026-10-21", "actor": "agent", "detail": "Two bundles (cold start + recently closed), full local gates." },
+        { "state": "reviewed", "date": "2026-10-21", "actor": "owner", "verdict": "changes-requested", "detail": "P1 frozen-offer race (diagnostic: expected 1 restored tab, got 0); REOPEN_ALL accuracy; GRACE drift; released-ledger writes." },
+        { "state": "repaired", "date": "2026-10-21", "actor": "agent", "detail": "Wave 2: frozen complete payload, RESTORE_SESSION {from}, reopen-all accuracy, contracts and ledger repaired." },
+        { "state": "reviewed", "date": "2026-10-21", "actor": "two-clean-passes", "verdict": "approve", "detail": "Both passes verified the P1/P2 fixes with evidence; minors fixed in the review commit." },
+        { "state": "reviewed", "date": "2026-10-21", "actor": "local-model-qwen3-4b", "verdict": "two-actionable", "detail": "Basename logging + from-shape hardening applied; five findings dismissed with evidence (chunk artifacts, Node-22 flag knowledge gap, by-design drop)." },
+        { "state": "artifact-offered", "date": "2026-10-21", "actor": "agent", "artifact": "mark-test-fix009-7057d645", "checklist": "7 scenarios offered to the owner (3 cold-start incl. the P1 frozen-restore case, 4 current-run recovery); per-item verdicts pending." }
+      ]
+    }
+  ]
+}

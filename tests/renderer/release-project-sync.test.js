@@ -12,6 +12,8 @@
 // START_MODULE_MAP
 //   checkedIn - Current checked-in train before the synthetic-item fallback used by reconciliation cases.
 //   manifest - Checked-in machine-readable train fixture.
+//   checkedIn - Raw checked-in train manifest (may be a rolled, empty collecting train).
+//   manifest - Test manifest: the checked-in train, or with one synthetic accepted item when the rolled train is empty.
 //   governance - Checked-in Project schema and identity fixture.
 //   desired - Checked-in train projected into managed Project rows.
 //   privateHomePath - Builds a synthetic macOS home path without committing a personal absolute-path literal.

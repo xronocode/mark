@@ -222,6 +222,12 @@ describe('release train authority', () => {
       state: manifest.state,
       version: 'v2.6.1'.slice(1)
     })
+<<<<<<< HEAD
+=======
+    // Admission items arrive with owner acceptance, not with the train:
+    // the count must mirror the checked-in manifest exactly (empty right
+    // after a roll; four after the PR 16 acceptance).
+>>>>>>> cccbe338 (feat(acceptance): standardize the acceptance trail — registry, validator, builder)
     expect(result.itemCounts.userFacing).toBe(manifest.items.userFacing.length)
     expect(
       validateTrainLedger(
