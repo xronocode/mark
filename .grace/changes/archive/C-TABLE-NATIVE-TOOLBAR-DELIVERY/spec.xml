@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-TABLE-NATIVE-TOOLBAR-DELIVERY>
     <Summary>Restore the native Full width to Fit transition after the 2.5.3 stabilization changes. Physical-click evidence proved the shared toolbar route works for Full width, Copy as image and Open full screen; the apparent click failure occurs only after an explicit Full width entry has been loaded. During Fit persistence, syncIdentities re-adopts that stale profile entry and immediately restores Full width. Keep the accepted visuals and schema intact, and separate load-time adoption from user-write identity refresh.</Summary>
     <Goals>

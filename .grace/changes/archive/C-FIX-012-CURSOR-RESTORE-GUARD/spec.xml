@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-012-CURSOR-RESTORE-GUARD>
+  <Name>Skip cursor restoration when no complete cursor exists</Name><Created>2026-10-20</Created>
+  <Summary>Complete FIX-012 at the ContentState post-render boundary by treating a null or endpoint-less cursor as having no selection to restore.</Summary>
+  <Problem>After selector construction became cursor-safe, the complete registry walk rendered the cycled tab but ContentState.setCursor still forwarded an empty cursor to selection.setCursorRange, which dereferenced anchor.key and aborted the command.</Problem>
+  <ApprovalBasis>This is the next narrow failing-evidence companion to the owner-approved C-FIX-012-TAB-CYCLE-RENDER work. It keeps the newly attributed ContentState restoration behavior explicit rather than silently broadening either prior plan.</ApprovalBasis>
+  <Goals><Goal>Skip DOM selection restoration when cursor anchor/focus are absent.</Goal><Goal>Keep valid cursor restoration unchanged.</Goal><Goal>Keep render-range derivation safe for null cursor state.</Goal></Goals>
+  <Constraints><Constraint>Do not synthesize cursor positions, mutate stored tab state, or catch downstream exceptions.</Constraint></Constraints>
+  <NonGoals><NonGoal>No selection subsystem rewrite, tab UX change, Windows/Linux work, release or publication.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>setCursor does not call selection.setCursorRange for null or incomplete cursor state.</Criterion><Criterion>A cursor with anchor/focus is forwarded unchanged.</Criterion><Criterion>The full registry walk completes without a tabs.cycleForward warning.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-012/></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>npx vitest run tests/renderer/muya/content-state-cursor-restore.test.js</ExpectedCommand><ExpectedCommand>npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</ExpectedCommand><ExpectedEvidence>Direct selection-restoration fixtures and the complete browser command walk.</ExpectedEvidence></VerificationIntent>
+</C-FIX-012-CURSOR-RESTORE-GUARD></GraceChangeSpec>

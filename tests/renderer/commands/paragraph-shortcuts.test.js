@@ -1,8 +1,8 @@
 // FILE: tests/renderer/commands/paragraph-shortcuts.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the FIX-005/FIX-006 paragraph shortcut wave — one canonical binding per command across the registry (palette display), the desktop keydown layer (editor.vue) and the muya front-menu hints.
-//   SCOPE: Registry shortcut arrays, source-level keydown chord extraction, frontMenu display strings, and their cross-layer agreement; ⇧⌘P must stay unclaimed by duplicate.
+//   SCOPE: Registry shortcut arrays, source-level keydown chord extraction, frontMenu display strings, and their cross-layer agreement; ⇧⌘P belongs only to view.command-palette.
 //   DEPENDS: src/renderer/src/commands/index.js, src/renderer/src/components/editorWithTabs/editor.vue, src/muya/lib/ui/frontMenu/config.js, Vitest, Node fs/path.
 //   LINKS: .grace/graph/runtime.xml M-009, M-012; .grace/verification/runtime.xml V-M-009; docs/release-trains/2.5.x-next.md FIX-005/FIX-006.
 //   ROLE: TEST
@@ -19,7 +19,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-20 FIX-005/FIX-006 wave: pin duplicate ⇧⌘D / new paragraph ⇧⌘N / delete ⇧⌘⌫ / headings ⌘1–6 across registry, keydown layer and front-menu hints.
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 FIX-010: replace the temporary unclaimed reservation with the single view.command-palette owner while keeping duplicate on ⇧⌘D.
+//   PREV: v1.0.0 - 2026-10-20 FIX-005/FIX-006 wave: pin duplicate ⇧⌘D / new paragraph ⇧⌘N / delete ⇧⌘⌫ / headings ⌘1–6 across registry, keydown layer and front-menu hints.
 // END_CHANGE_SUMMARY
 
 import { readFileSync } from 'node:fs'
@@ -121,12 +122,12 @@ describe('FIX-005/FIX-006 paragraph shortcut wave', () => {
     }
   })
 
-  it('duplicate no longer claims the Command Palette chord (UC-025)', () => {
+  it('only view.command-palette claims the Command Palette chord (UC-025)', () => {
     expect(registryShortcut('edit.duplicate')).not.toEqual(['Cmd', 'Shift', 'P'])
-    const duplicates = commands.filter(
+    const owners = commands.filter(
       (c) => Array.isArray(c?.shortcut) && c.shortcut.join('+') === 'Cmd+Shift+P'
     )
-    expect(duplicates).toEqual([])
+    expect(owners.map((command) => command.id)).toEqual(['view.command-palette'])
   })
 
   it('the desktop keydown layer dispatches the same chords', () => {

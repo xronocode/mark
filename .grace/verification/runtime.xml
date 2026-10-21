@@ -2336,6 +2336,7 @@
       <Commands>
         <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
         <Command>npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js</Command>
+        <Command>npx vitest run tests/renderer/commands/index.test.js tests/renderer/commands/paragraph-shortcuts.test.js tests/renderer/pages/app-deep.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -2450,24 +2451,16 @@
           donation surface in store builds).
         </Scenario>
         <Scenario>
-          scenario-17 (C-73 advertised-chord routing audit): every chord
-          the app advertises has a real dispatch route, and no layer
-          silently claims a reserved chord. Source-level extraction
-          covers the registry shortcut arrays, the m009 taxonomy and
-          builder accelerators, the muya front-menu display strings,
-          the editor.vue paragraph keydown block and the app.vue zoom
-          keys. Assertions: each advertised registry chord is routed
-          (same-id native accelerator, keydown layer or zoom layer);
-          each desktop keydown chord is advertised; each front-menu
-          display chord is advertised and routed; no chord is claimed
-          by two registry ids; registry and native agree per shared
-          id; Meta+Shift+P stays unadvertised and unrouted while
-          UC-025 (Command Palette, FIX-010) is unshipped. This is the
-          generalized whole-registry form of the FIX-005/FIX-006
-          paragraph pin. Pinned by
-          tests/renderer/commands/shortcut-routing-audit.test.js
-          (seven assertions plus population guards that fail loudly on
-          extractor drift).
+          scenario-17 (FIX-010 Command Palette shortcut; C-73 advertised-chord
+          routing audit): on macOS, view.command-palette is the single registry
+          owner of Shift+Command+P, the native View menu exposes the same id and
+          accelerator, and app.vue routes physical KeyP so keyboard-layout
+          changes cannot break it. Composition, repeats and modifier mismatches
+          do not dispatch; the listener is removed on unmount. Windows/Linux
+          have no new registry item, app keydown route or native menu row.
+          Source-level tests pin ownership and platform guards; the macOS
+          app-deep and Playwright cases pin one dispatch plus visible populated
+          palette open/close behavior.
         </Scenario>
       </Scenarios>
       <Markers>
@@ -3449,8 +3442,13 @@
         </Command>
         <Command>npx vitest run tests/renderer/store/opened-snapshots.test.js tests/renderer/components/diff-opened-baseline.test.js</Command>
         <Command>npx playwright test tests/e2e/diff-opened-baseline.spec.ts --project=chromium --project=webkit-diff</Command>
+        <Command>npx vitest run tests/renderer/pages/app-deep.test.js tests/renderer/store/editor-coverage.test.js tests/renderer/store/editor.test.ts</Command>
+        <Command>npm run build &amp;&amp; npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</Command>
       </Commands>
       <Scenarios>
+        <Scenario>scenario-fix-010-command-palette-shell (FIX-010 Command Palette shortcut): on macOS the app shell captures physical Shift+Command+KeyP after command-center registration, prevents the browser default, dispatches view.command-palette once, and cleans the capture listener on unmount. Composition, repeats, missing Shift and extra Ctrl/Alt are ignored. The real focused-editor chord opens a populated palette and Escape closes it. Windows/Linux are intentionally excluded.</Scenario>
+        <Scenario>scenario-fix-012-tab-cycle-render (FIX-012 tab-cycle render integrity): file.new-tab → help.guide → tabs.cycleForward completes without a menu-bridge warning or render exception, the editor remains visible, and the complete registry-leaf walk no longer allowlists tabs.cycleForward. M-012 owns the attributed missing-parent ancestry repair.</Scenario>
+        <Scenario>scenario-fix-016-autosave-disable-race (FIX-016 Auto Save disable race): a save queued while Auto Save is enabled is removed from the timer map but does not invoke mt_response_file_save if the preference is disabled before debounce fire. Re-enabling and queuing a later edit invokes exactly once with the fresh Markdown. Existing dirty-tab, closed-tab, canonical transport and revision guards remain intact.</Scenario>
         <Scenario>scenario-69 (FIX-011 untitled close actions, C-FIX-011-UNTITLED-CLOSE-ACTIONS): the dirty-tab close confirm exposes the owner-approved three-action model — default Save &amp; Close, a separate non-default Discard, and a visible Cancel whose result Escape and the close glyph share; nothing is labelled "Close" and no discard path is default. For an untitled tab, Save &amp; Close runs the mt_response_file_save_as transport for the closing tab's own identity and closes ONLY on a truthy outcome: a cancelled Save As keeps the tab and its content, a failed Save As keeps the tab and raises the failure notice, Discard closes with no save transport, and Cancel/Escape/close-glyph keep the tab. Named files keep the mt::save-and-close-tabs payload path and explicit discard behavior. The dialog (components/editorWithTabs/unsavedCloseDialog.js) reuses the FIX-007 float tokens: dark-theme surface, title, and the default/destructive action colours are asserted, not inferred from button order. Pinned by tests/renderer/components/unsaved-close-dialog.test.js (three visible labels, three distinct results, default focus/styling, Cancel-equivalence) and tests/e2e/unsaved-close-actions.spec.ts + tests/e2e/unsaved-dialog-theme.spec.ts (chromium, the seven real-store flows and the dark-theme/styling pass).</Scenario>
         <Scenario>scenario-68 (C-TAB-CLOSE-OWNERSHIP): delayed render events for another or closed tab cannot alter active content/history/cursor. A selected tab whose activation event was missed is restored after Vue flush from its own state; normal activation renders once and rapid selection restores only the final tab. Before recovery, old-surface content/scroll events cannot be written into the new tab. File-loaded equality can skip rendering only when that tab owns the current Muya buffer. Structured synthetic close-to-previous/next, repeated switching and edit isolation pass in Chromium/WebKit; isolated native WebKit controlled-delay evidence stays private.</Scenario>
         <Scenario>
@@ -3472,8 +3470,8 @@
           time; no writes after close.
         </Scenario>
         <Scenario>
-          scenario-6: Auto-save timer re-checks autoSave preference at fire time
-          (fixes R-30).
+          scenario-6: Auto-save timer re-checks the live autoSave preference at
+          fire time after removing itself from the timer map (FIX-016, risk-30).
         </Scenario>
         <Scenario>
           scenario-7: File watcher self-emit suppression: main writes file →
@@ -5838,6 +5836,9 @@
         <Command>npx playwright test tests/e2e/keyboard-selection.spec.ts --project=chromium --project=webkit-keyboard</Command>
         <Command>npx vitest run tests/renderer/muya/tooltip-layout.test.js tests/renderer/muya/resize-surfaces.test.js tests/renderer/muya/table-layout-persistence.test.js</Command>
         <Command>npx playwright test tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</Command>
+        <Command>npx vitest run tests/renderer/muya/content-state-active-blocks.test.js tests/renderer/muya/export-markdown-table.test.js tests/renderer/muya/copy-data.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/state-render-selector.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/content-state-cursor-restore.test.js</Command>
       </Commands>
       <Scenarios>
         <scenario-muya-fence-import-teardown>
@@ -6845,15 +6846,63 @@
           walk dispatches every registry leaf through mt::menu-invoked:
           each leaf responds or carries a reasoned harness allowlist
           entry (native-dialog commands, capability-gated help.rate),
-          and any NEW menu-bridge warning fails the walk — the
-          known-open FIX-012 render TypeError on tabs.cycleForward
-          after the full traversal prefix is the only expected entry
-          until its repair. Welcome action buttons (Open File, Open
+          and any NEW menu-bridge warning fails the walk. FIX-012 removed the
+          tabs.cycleForward allowance after the Guide-cycle reproducer proved
+          active-block ancestry remains renderable. Welcome action buttons (Open File, Open
           Folder, New) each produce a response; the FIX-009
           Last-session restore case stays fixme-visible until that
           repair ships. Pinned by
           tests/e2e/affordance-audit.spec.ts (chromium); static
           advertised-chord agreement lives in V-M-009 scenario-17.
+        </Scenario>
+        <Scenario>
+          scenario-fix-010-command-palette-editor (FIX-010 Command Palette
+          shortcut): with the Muya editor focused on macOS, real
+          Shift+Command+P reaches the app physical-key route, opens the
+          populated root palette, and Escape closes it without editing the
+          document. No Windows/Linux behavior is admitted by this scenario.
+        </Scenario>
+        <Scenario>
+          scenario-fix-012-active-block-ancestry (FIX-012 tab-cycle render
+          integrity): ContentState#getActiveBlocks returns leaf-to-root for a
+          valid tree and only the valid prefix when an immediate or deeper
+          parent key cannot be resolved. It never appends undefined. The exact
+          file.new-tab → help.guide → tabs.cycleForward browser sequence keeps
+          the editor visible with no menu-bridge warning, and the complete
+          registry-leaf walk is clean apart from separately allowlisted
+          capability gates.
+        </Scenario>
+        <Scenario>
+          scenario-fix-012-render-cursor-guard (FIX-012 render cursor guard):
+          StateRender#getSelector treats a null cursor or cursor without start
+          as having no cursor-active key, while a matching valid cursor or
+          active block still adds the active class. This completes the full
+          accumulated registry-walk boundary after the active-block ancestry
+          companion and leaves tabs.cycleForward warning-free.
+        </Scenario>
+        <Scenario>
+          scenario-fix-012-render-conflict-guard (FIX-012 render conflict guard):
+          StateRender#checkConflicted returns no selection conflict when cursor
+          start or end is absent, before accessing endpoint keys or offsets.
+          Complete cursor overlap behavior remains unchanged, and the complete
+          registry walk leaves tabs.cycleForward warning-free.
+        </Scenario>
+        <Scenario>
+          scenario-fix-012-cursor-restore-guard (FIX-012 cursor restore guard):
+          ContentState forwards only a cursor with anchor/focus keys to DOM
+          selection restoration. Null or incomplete cursor state skips that
+          handoff, derives a full render range without block lookup, and leaves
+          valid cursor restoration unchanged. The complete registry walk
+          cycles tabs without a render or selection warning.
+        </Scenario>
+        <Scenario>
+          scenario-fix-015-table-export-integrity (FIX-015 table export integrity):
+          Markdown export escapes leading and embedded unescaped
+          pipes by preceding-backslash parity, preserves already escaped pipes,
+          pads short rows, retains real cells wider than header/advisory
+          geometry, never reads undefined, and keeps ordinary aligned-table
+          output byte-stable. Direct exporter fixtures and copy-data integration
+          remain green.
         </Scenario>
         <Scenario>
           scenario-72 (C-TABLE-FIT-PERSISTENCE): an explicit «Fit to page»

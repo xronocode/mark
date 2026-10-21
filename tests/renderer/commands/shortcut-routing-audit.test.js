@@ -1,8 +1,8 @@
 // FILE: tests/renderer/commands/shortcut-routing-audit.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Systematic affordance audit — every chord the app advertises (palette registry, native menu accelerators, front-menu hints) must have a real dispatch route, and no route may silently claim a reserved chord.
-//   SCOPE: Source-level extraction and cross-check of advertised chords (commands/index.js shortcut arrays, m009_menu.rs accelerators, muya frontMenu/config.js hints) against dispatch routes (native accelerators, editor.vue BLOCK_PARAGRAPH_SHORTCUTS, app.vue BLOCK_ZOOM_KEYS_FONT_SIZE); collision and reservation checks. No runtime execution.
+//   SCOPE: Source-level extraction and cross-check of advertised chords (commands/index.js shortcut arrays, m009_menu.rs accelerators, muya frontMenu/config.js hints) against dispatch routes (native accelerators, editor.vue BLOCK_PARAGRAPH_SHORTCUTS, app.vue command-palette/zoom blocks); collision and platform guards. No runtime execution.
 //   DEPENDS: src/renderer/src/commands/index.js, src-tauri/src/m009_menu.rs, src/renderer/src/components/editorWithTabs/editor.vue, src/renderer/src/pages/app.vue, src/muya/lib/ui/frontMenu/config.js, Vitest, Node fs/path.
 //   LINKS: .grace/graph/runtime.xml M-006, M-009, M-012; .grace/verification/runtime.xml V-M-009, V-M-012; docs/release-trains/2.5.x-next.md FIX-005/FIX-006/FIX-010; .grace/changes/active/C-73.
 //   ROLE: TEST
@@ -22,10 +22,13 @@
 //   parseNativeAccelerators - { id, chord } for every accelerator in the m009 native-menu taxonomy and builder chains.
 //   parseKeydownChords - chords dispatched by editor.vue BLOCK_PARAGRAPH_SHORTCUTS (physical codes).
 //   parseZoomChords - chords dispatched by app.vue BLOCK_ZOOM_KEYS_FONT_SIZE.
+//   parseCommandPaletteChords - macOS-only chord dispatched by app.vue BLOCK_COMMAND_PALETTE_SHORTCUT.
 //   parseFrontMenuChords - display chords rendered by the muya paragraph front menu.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-73: generalize the FIX-005/FIX-006 paragraph pin into a whole-registry advertised-chord routing audit (registry/menu/front-menu advertised ↔ native/keydown/zoom routes, collision detection, UC-025 reservation).
+//   LAST_CHANGE: v1.1.1 - 2026-10-20 FIX-010 review: assert macOS-only guards at registry, app-keydown, and native-menu layers.
+//   PREV: v1.1.0 - FIX-010: the UC-025 reservation is now shipped; parse the app-level physical-code route and assert its macOS-only guard.
+//   v1.0.0 - C-73: generalize the FIX-005/FIX-006 paragraph pin into a whole-registry advertised-chord routing audit (registry/menu/front-menu advertised ↔ native/keydown/zoom routes, collision detection, UC-025 reservation).
 // END_CHANGE_SUMMARY
 //
 // The 2026-10-20 defect wave showed the failure class this file owns:
@@ -41,7 +44,9 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const ROOT = resolve(__dirname, '..', '..', '..')
-const readSource = (relPath) => readFileSync(resolve(ROOT, relPath), 'utf-8')
+// CRLF checkout portability: normalize line endings so source-level
+// string comparisons hold on Windows checkouts too.
+const readSource = (relPath) => readFileSync(resolve(ROOT, relPath), 'utf-8').replace(/\r\n/g, '\n')
 
 // ─── canonical chord form ─────────────────────────────────────────
 // Darwin terms throughout: Cmd/CmdOrCtrl → Meta, Ctrl stays Ctrl,
@@ -62,8 +67,8 @@ const registryArrayToParts = (line) => {
   const parts = []
   for (const token of inner.split(',')) {
     const t = token.trim()
-    if (t === 'isOsx ? \'Cmd\' : \'Ctrl\'') parts.push('Meta')
-    else if (t === '\'Cmd\'' || t === '\'Ctrl\'' || t === '\'Alt\'' || t === '\'Shift\'' || t === '\'+\'') {
+    if (t === 'isOsx ? \'Cmd\' : \'Ctrl\'' || t === '\'Cmd\'') parts.push('Meta')
+    else if (t === '\'Ctrl\'' || t === '\'Alt\'' || t === '\'Shift\'' || t === '\'+\'') {
       parts.push(t.slice(1, -1))
     } else {
       const m = t.match(/^'([^']+)'$/)
@@ -191,6 +196,21 @@ const parseZoomChords = () => {
   return chords
 }
 
+const parseCommandPaletteChords = () => {
+  const registry = readSource('src/renderer/src/commands/index.js')
+  const vue = readSource('src/renderer/src/pages/app.vue')
+  const rust = readSource('src-tauri/src/m009_menu.rs')
+  const block = blockOf(vue, 'START_BLOCK_COMMAND_PALETTE_SHORTCUT', 'END_BLOCK_COMMAND_PALETTE_SHORTCUT')
+  if (!registry.includes("...(isOsx ? [{\n    // FIX-010 / UC-025")) throw new Error('Command Palette registry command must stay macOS-only')
+  if (!block.includes('if (!isOsx)')) throw new Error('Command Palette key route must stay macOS-only')
+  if (!block.includes("e.code !== 'KeyP'")) throw new Error('Command Palette must use physical KeyP for layout independence')
+  if (!block.includes("EXECUTE_COMMAND_BY_ID('view.command-palette')")) throw new Error('Command Palette route must dispatch its registry id')
+  if (!/#\[cfg\(target_os = "macos"\)\]\s*let view_submenu = view_submenu\.item\([\s\S]*?with_id\("view\.command-palette"/.test(rust)) {
+    throw new Error('Command Palette native menu row must stay macOS-only')
+  }
+  return [chordKey(['Meta', 'Shift', 'P'])]
+}
+
 const parseFrontMenuChords = () => {
   const js = readSource('src/muya/lib/ui/frontMenu/config.js')
   const out = []
@@ -207,14 +227,8 @@ describe('advertised-chord routing audit (C-73)', () => {
   const native = parseNativeAccelerators()
   const keydown = parseKeydownChords()
   const zoom = parseZoomChords()
+  const commandPalette = parseCommandPaletteChords()
   const frontMenu = parseFrontMenuChords()
-
-  // Chords deliberately reserved for unshipped owners. Advertising or
-  // routing one of these without removing its reservation is a defect
-  // (FIX-010: ⇧⌘P is reserved for the UC-025 Command Palette).
-  const RESERVED_CHORDS = [
-    { chord: 'Meta+Shift+P', owner: 'UC-025 Command Palette', issue: 'FIX-010' }
-  ]
 
   // Registry commands whose advertised chord is dispatched by a layer
   // this audit does not parse (muya keyboard bindings, search bar,
@@ -231,12 +245,13 @@ describe('advertised-chord routing audit (C-73)', () => {
     expect(registry.length).toBeGreaterThanOrEqual(20)
     expect(native.length).toBeGreaterThanOrEqual(20)
     expect(keydown.length).toBeGreaterThanOrEqual(9)
+    expect(commandPalette).toEqual(['Meta+Shift+P'])
     expect(frontMenu.length).toBeGreaterThanOrEqual(3)
   })
 
   it('every registry-advertised chord has a dispatch route', () => {
     const nativeById = new Map(native.map((n) => [n.id, n.chord]))
-    const routes = new Set([...keydown, ...zoom, ...native.map((n) => n.chord)])
+    const routes = new Set([...keydown, ...zoom, ...commandPalette, ...native.map((n) => n.chord)])
     const unrouted = registry.filter(
       (r) => !routes.has(r.chord) && nativeById.get(r.id) !== r.chord && !ROUTED_ELSEWHERE[r.id]
     )
@@ -248,7 +263,7 @@ describe('advertised-chord routing audit (C-73)', () => {
     // '+' is an accepted alias of the advertised '=' zoom step, not a
     // separate binding.
     const aliasOfAdvertised = new Set([chordKey(['Meta', '+'])])
-    const silent = [...keydown, ...zoom].filter((c) => !advertised.has(c) && !aliasOfAdvertised.has(c))
+    const silent = [...keydown, ...zoom, ...commandPalette].filter((c) => !advertised.has(c) && !aliasOfAdvertised.has(c))
     expect(silent).toEqual([])
   })
 
@@ -279,10 +294,10 @@ describe('advertised-chord routing audit (C-73)', () => {
     expect(disagreements).toEqual([])
   })
 
-  it('reserved chords stay unadvertised and unrouted until their owner ships', () => {
-    const advertised = new Set([...registry.map((r) => r.chord), ...frontMenu])
-    const routes = new Set([...keydown, ...zoom, ...native.map((n) => n.chord)])
-    const violations = RESERVED_CHORDS.filter((r) => advertised.has(r.chord) || routes.has(r.chord))
-    expect(violations.map((r) => `${r.chord} (${r.owner}, ${r.issue})`)).toEqual([])
+  it('UC-025 has one advertised owner and both native and app-level macOS routes', () => {
+    const owners = registry.filter((item) => item.chord === 'Meta+Shift+P')
+    expect(owners).toEqual([{ id: 'view.command-palette', chord: 'Meta+Shift+P' }])
+    expect(commandPalette).toEqual(['Meta+Shift+P'])
+    expect(native).toContainEqual({ id: 'view.command-palette', chord: 'Meta+Shift+P' })
   })
 })

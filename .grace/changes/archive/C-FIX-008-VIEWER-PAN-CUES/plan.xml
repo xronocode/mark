@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><C-FIX-008-VIEWER-PAN-CUES>
+<GraceChangePlan graceVersion="4.0" status="applied"><C-FIX-008-VIEWER-PAN-CUES>
   <ChangeRef>C-FIX-008-VIEWER-PAN-CUES</ChangeRef><Created>2026-10-20</Created>
   <IntentSummary>Turn the fullscreen table viewer into a pan-only horizontal surface with live edge clipping shadows: overflowX always hidden, a pure tableClipShadows bounds function driving two gradient overlays, shadow refresh on every pan/zoom/fit/open, and the FIX-008 e2e rewritten to prove no bar exists while drag still reveals the last column and the shadow sides track the pan position.</IntentSummary>
   <ExecutionPolicy>Execute sequentially after C-73/C-74 land. The shared M-012/V-M-012 durable scope overlaps C-TABLE-FOOTER (both edit the viewer/table surface family); the overlap is acknowledged — this bundle touches only ui/blockViewer files and its own tests, never the tableResize/tableCue/renderContainerBlock files C-TABLE-FOOTER owns.</ExecutionPolicy>

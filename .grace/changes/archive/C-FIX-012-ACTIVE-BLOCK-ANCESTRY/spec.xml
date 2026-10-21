@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-012-ACTIVE-BLOCK-ANCESTRY>
+  <Name>Stop active-block ancestry at a missing parent</Name><Created>2026-10-20</Created>
+  <Summary>Implement the attributed FIX-012 repair in Muya ContentState: when a transient cursor block names a parent no longer present in the block index, return the valid active prefix and never append undefined for the renderer to dereference.</Summary>
+  <Problem>The failing full command walk was reduced to file.new-tab, help.guide, then tabs.cycleForward. getActiveBlocks resolves a missing parent and unconditionally pushes the undefined result; StateRender.getSelector then reads b.key during the tab-triggered render.</Problem>
+  <ApprovalBasis>This is the narrow attributed implementation companion to the owner-approved C-FIX-012-TAB-CYCLE-RENDER bundle. That approved plan did not list ContentState as an observed write, so this bundle preserves immutable-plan discipline instead of silently expanding it.</ApprovalBasis>
+  <Goals><Goal>Return only real blocks from getActiveBlocks, in leaf-to-root order.</Goal><Goal>Keep the exact Guide-then-cycle reproducer and the full affordance walk free of render exceptions.</Goal></Goals>
+  <Constraints><Constraint>Stop only when ancestry cannot be resolved; do not synthesize blocks, mutate the cursor, catch renderer exceptions or change valid parent traversal.</Constraint></Constraints>
+  <NonGoals><NonGoal>No Guide content rewrite, tab UX change, Windows/Linux-specific work, release or publication.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>A missing immediate or deeper parent ends traversal and the returned array contains no nullish member.</Criterion><Criterion>Valid multi-level ancestry remains leaf-to-root and unchanged.</Criterion><Criterion>file.new-tab → help.guide → tabs.cycleForward and the full registry walk emit no TypeError; the FIX-012 warning allowance remains removed.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-012/></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>npx vitest run tests/renderer/muya/content-state-active-blocks.test.js</ExpectedCommand><ExpectedCommand>npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</ExpectedCommand><ExpectedEvidence>Unit ancestry boundary plus exact reduced and full browser reproductions.</ExpectedEvidence></VerificationIntent>
+</C-FIX-012-ACTIVE-BLOCK-ANCESTRY></GraceChangeSpec>

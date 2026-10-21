@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><C-TABLE-FIT-PERSISTENCE>
+<GraceChangePlan graceVersion="4.0" status="applied"><C-TABLE-FIT-PERSISTENCE>
   <ChangeRef>C-TABLE-FIT-PERSISTENCE</ChangeRef><Created>2026-10-20</Created>
   <IntentSummary>Repair the host fit-serialization gap the C-TABLE-FOOTER native review exposed: a failing unit first, then sanitizeEntry keeps muya's fit flag (Full width wins contradictions), the same-tick transition and the save→reopen persistence pinned in both engines, and the native same-frame confirmation handed to the fresh isolated artifact with the conditional three-point instrumentation rule.</IntentSummary>
   <ExecutionPolicy>Execute sequentially after the FIX-008 and FIX-011 bundles. Durable scope M-012/V-M-012 overlaps C-TABLE-FOOTER (which stays active pending its focused re-acceptance) and C-FIX-008-VIEWER-PAN-CUES; this bundle touches only the host store util, its tests and the table-layout spec.</ExecutionPolicy>

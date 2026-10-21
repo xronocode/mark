@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.5.4-fixwave
+// VERSION: 2.5.5-fixwave
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -19,6 +19,7 @@
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
 //   edit.copy-as-markdown - Copies selection (or whole document) as raw Markdown text (C-40 T-004).
 //   view.zoom-in / view.zoom-out / view.actual-size - Unified zoom via preferences ZOOM_STEP/ZOOM_ACTUAL_SIZE (C-49).
+//   view.command-palette - FIX-010 macOS root-palette command (Shift+Command+P); emits the existing show-command-palette route.
 //   help.guide - Opens the localized Mark Guide as a temporary untitled tab (C-40 G-3).
 //   view.outline - Toggles the «On this page» outline rail via the persisted outlineRailVisible preference (C-40 T-003).
 //   view.status-bar - Toggles the optional status bar via the persisted statusBarVisibility preference (C-40 T-004).
@@ -40,6 +41,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 FIX-010: add the macOS-only view.command-palette
+//     registry command and canonical Shift+Command+P display chord. The
+//     command opens the existing root palette through its established bus
+//     listener; app.vue owns the browser/global key fallback and the
+//     native View menu owns the packaged accelerator.
 //   - 2026-10-20 FIX-005/FIX-006: the paragraph commands gain their
 //     canonical palette shortcuts — edit.duplicate ⇧⌘D (moved off ⇧⌘P,
 //     which UC-025 reserves for the Command Palette),
@@ -824,6 +830,17 @@ const commands = [
 
   // --------------------------------------------------------------------------
   // View
+
+  ...(isOsx ? [{
+    // FIX-010 / UC-025: one root-palette command for the native menu,
+    // global key route and command registry. A missing payload tells the
+    // palette component to use commandCenterStore.rootCommand.
+    id: 'view.command-palette',
+    shortcut: ['Cmd', 'Shift', 'P'],
+    execute: async () => {
+      bus.emit('show-command-palette')
+    }
+  }] : []),
 
   {
     id: 'view.source-code-mode',
