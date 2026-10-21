@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "boundary": "macOS-only Command Palette delivery; no Windows/Linux route, release version, tag or publication",
+  "failingFirst": "Focused command, routing, app-shell and real-key checks failed because view.command-palette had no registry owner, native accelerator or global dispatch route.",
+  "verification": {
+    "focused": "Command/menu/routing/app tests pass, including physical KeyP dispatch with IME, repeat and modifier guards, unmount cleanup and interrupted-mount cleanup.",
+    "browser": "npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium — 6 passed, 0 failed, 1 skipped; real Shift+Meta+P opens a populated palette and Escape closes it.",
+    "rust": "cargo check -p mark — 0 errors (159 existing warnings); cargo test -p mark m009 — 27 passed, 410 filtered.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0. Current-state lint has one expected consumed-baseline error in C-FIX-012-TAB-CYCLE-RENDER until ordered apply/archive; 86 overlap/heuristic warnings remain visible."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "clean after corrections",
+      "corrections": "Excluded the macOS-only leaf from non-Darwin E2E walks, pinned all platform guards, completed lifecycle assertions and repaired current GRACE links."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean after corrections and full rerun",
+      "corrections": "Added the post-registration unmount guard and its interrupted-mount regression; final diff, XML and scope scan found no remaining issue."
+    }
+  ],
+  "integration": "No commit, push, train admission, release or publication performed."
+}

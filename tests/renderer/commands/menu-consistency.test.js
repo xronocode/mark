@@ -1,10 +1,10 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.6.0
+// VERSION: 1.6.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
 //   DEPENDS: src-tauri/src/m009_menu.rs, src/renderer/src/commands/index.js, Vitest, Node fs/path.
-//   LINKS: .grace/verification/runtime.xml V-M-009 and V-M-012 scenario-10; .grace/graph/runtime.xml M-009 and M-012.
+//   LINKS: .grace/verification/runtime.xml V-M-009 and V-M-012 scenario-10; .grace/graph/runtime.xml M-009 and M-012; .grace/changes/archive/C-FIX-010-COMMAND-PALETTE-SHORTCUT.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -19,7 +19,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - C-40 T-004: pin view.status-bar (CheckMenuItem,
+//   LAST_CHANGE: v1.6.1 - 2026-10-20 FIX-010 review: pin both macOS cfg guards around the Command Palette taxonomy and native-menu row.
+//   PREV: v1.6.0 - C-40 T-004: pin view.status-bar (CheckMenuItem,
 //   no accelerator) and view.lock-document (plain item, no accelerator)
 //   View-menu items — both id-dispatched to renderer commands of the same
 //   ids — plus edit.copy-as-markdown (no accelerator).
@@ -353,6 +354,25 @@ describe('menu ↔ commands consistency', () => {
     expect(taxonomy).toContain('id: "view.zoom-in".to_string()')
     expect(taxonomy).toContain('id: "view.zoom-out".to_string()')
     expect(taxonomy).toContain('id: "view.actual-size".to_string()')
+  })
+
+  it('pins the macOS View-menu Command Palette id and accelerator (FIX-010)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    expect(buildFn).toMatch(
+      /with_id\("view\.command-palette", "Command Palette…"\)[\s\S]*?accelerator\("Cmd\+Shift\+P"\)/
+    )
+    expect(taxonomy).toContain('id: "view.command-palette".to_string()')
+    expect(taxonomy).toContain('accelerator: Some("Cmd+Shift+P".to_string())')
+    expect(buildFn.match(/Cmd\+Shift\+P"/g)).toHaveLength(1)
+    expect(taxonomy).toMatch(
+      /#\[cfg\(target_os = "macos"\)\]\s*MenuItem \{\s*id: "view\.command-palette"/
+    )
+    expect(buildFn).toMatch(
+      /#\[cfg\(target_os = "macos"\)\]\s*let view_submenu = view_submenu\.item\([\s\S]*?with_id\("view\.command-palette"/
+    )
   })
 
   it('the retired percentage zoom has neither menu ids nor renderer commands (C-49)', () => {

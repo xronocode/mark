@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "failingFirst": "Direct ancestry fixtures passed the valid chain but failed the missing-immediate-parent and missing-deeper-parent cases because undefined was appended.",
+  "verification": {
+    "focused": "content-state-active-blocks.test.js passes all 3 valid/broken ancestry cases.",
+    "browser": "Affordance audit passes 6, fails 0, skips 1; the reduced Guide-cycle and complete walk are warning-clean.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0; graph and V-M-012 projections are well-formed."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "clean after corrections",
+      "corrections": "Added the companion link to the shared ContentState contract."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean",
+      "corrections": "No ancestry behavior or scope issue remained in the final diff."
+    }
+  ],
+  "integration": "No commit, push, train admission, release or publication performed."
+}

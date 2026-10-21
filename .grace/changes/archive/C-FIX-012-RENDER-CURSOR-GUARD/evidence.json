@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "failingFirst": "StateRender#getSelector fixtures reproduced cursor.start dereferences for null and start-less cursor state while valid active-class cases remained controls.",
+  "verification": {
+    "focused": "state-render-selector.test.js passes cursor-safe selector cases and the separately governed conflict cases.",
+    "browser": "Affordance audit passes 6, fails 0, skips 1; the complete command walk is warning-clean.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0; M-012/V-M-012 projections are well-formed."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "clean after corrections",
+      "corrections": "Clarified the source change summary for cursor-safe selector behavior."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean after scope correction",
+      "corrections": "Moved token-conflict ownership to C-FIX-012-RENDER-CONFLICT-GUARD rather than expanding this plan."
+    }
+  ],
+  "integration": "No commit, push, train admission, release or publication performed."
+}

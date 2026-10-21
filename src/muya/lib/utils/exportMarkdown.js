@@ -1,3 +1,22 @@
+// FILE: src/muya/lib/utils/exportMarkdown.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Serialize Muya's block tree into standards-compatible Markdown without losing document content.
+//   SCOPE: Block traversal plus paragraph, list, code, table, container, HTML, and footnote normalization.
+//   DEPENDS: Muya block shapes and CommonMark, GitHub Flavored Markdown, and Pandoc Markdown conventions.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-FIX-015-TABLE-EXPORT-INTEGRITY.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - ExportMarkdown serializer for a Muya block tree.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - 2026-10-20 FIX-015: escape table pipes by backslash parity and rectangularize ragged rows without dropping real cells.
+// END_CHANGE_SUMMARY
+//
 /**
  * Hi contributors!
  *
@@ -313,32 +332,57 @@ class ExportMarkdown {
   }
 
   normalizeTable(table, indent) {
+    // START_BLOCK_NORMALIZE_TABLE_GRID
     const result = []
-    const { row, column } = table
-    const tableData = []
+    const { column } = table
     const tHeader = table.children[0]
     const tBody = table.children[1]
-    const escapeText = (str) => {
-      return str.replace(/([^\\])\|/g, '$1\\|')
+    const escapeText = (value) => {
+      const text = String(value ?? '')
+      let escaped = ''
+      let precedingBackslashes = 0
+
+      for (const character of text) {
+        if (character === '|') {
+          if (precedingBackslashes % 2 === 0) {
+            escaped += '\\'
+          }
+          escaped += character
+          precedingBackslashes = 0
+        } else {
+          escaped += character
+          precedingBackslashes = character === '\\' ? precedingBackslashes + 1 : 0
+        }
+      }
+
+      return escaped
     }
 
-    tableData.push(tHeader.children[0].children.map((th) => escapeText(th.children[0].text).trim()))
+    const headerCells = tHeader?.children?.[0]?.children || []
+    const realRows = [headerCells.map((th) => escapeText(th.children[0]?.text).trim())]
     if (tBody) {
       tBody.children.forEach((bodyRow) => {
-        tableData.push(bodyRow.children.map((td) => escapeText(td.children[0].text).trim()))
+        realRows.push(bodyRow.children.map((td) => escapeText(td.children[0]?.text).trim()))
       })
     }
 
-    const columnWidth = tHeader.children[0].children.map((th) => ({ width: 5, align: th.align }))
+    const advisoryColumnCount = Number.isInteger(column) ? Math.max(0, column + 1) : 0
+    const columnCount = Math.max(1, advisoryColumnCount, ...realRows.map((row) => row.length))
+    const tableData = realRows.map((row) =>
+      Array.from({ length: columnCount }, (_, index) => String(row[index] ?? ''))
+    )
+    const columnWidth = Array.from({ length: columnCount }, (_, index) => ({
+      width: 5,
+      align: headerCells[index]?.align
+    }))
 
-    let i
-    let j
+    tableData.forEach((row) => {
+      row.forEach((cell, index) => {
+        // Add two because rendered cells have one padding space on each side.
+        columnWidth[index].width = Math.max(columnWidth[index].width, cell.length + 2)
+      })
+    })
 
-    for (i = 0; i <= row; i++) {
-      for (j = 0; j <= column; j++) {
-        columnWidth[j].width = Math.max(columnWidth[j].width, tableData[i][j].length + 2) // add 2, because have two space around text
-      }
-    }
     tableData.forEach((r, i) => {
       const rs =
         indent +
@@ -379,6 +423,7 @@ class ExportMarkdown {
         result.push(cutOff)
       }
     })
+    // END_BLOCK_NORMALIZE_TABLE_GRID
     return result.join('\n') + '\n'
   }
 

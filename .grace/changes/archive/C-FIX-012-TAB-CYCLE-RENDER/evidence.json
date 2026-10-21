@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-20",
+  "status": "applied and archived on owner confirmation 2026-10-20; committed on codex/post-2.6-stabilization; landing on main, train admission and push pending",
+  "failingFirst": "The complete registry walk reproduced a render TypeError at tabs.cycleForward; reduction found file.new-tab → help.guide → tabs.cycleForward and exposed four sequential owner-boundary invariants.",
+  "repairAttribution": [
+    "C-FIX-012-ACTIVE-BLOCK-ANCESTRY",
+    "C-FIX-012-RENDER-CURSOR-GUARD",
+    "C-FIX-012-RENDER-CONFLICT-GUARD",
+    "C-FIX-012-CURSOR-RESTORE-GUARD"
+  ],
+  "verification": {
+    "browser": "npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium — 6 passed, 0 failed, 1 skipped; reduced Guide-cycle and full leaf walk are warning-clean apart from the separately allowlisted help.rate capability gate.",
+    "package": "npm test — 345 files passed; 4702 passed, 2 skipped, 3 todo. npm run build passed.",
+    "grace": "Target assertion gate exited 0. Current-state lint intentionally reports the plan's consumed baseline MustContain as stale until ordered apply/archive; the approved plan was not rewritten."
+  },
+  "reviews": [
+    {
+      "pass": 1,
+      "verdict": "clean after corrections",
+      "corrections": "Reconciled source links and eliminated stale FIX-012 allowlist language."
+    },
+    {
+      "pass": 2,
+      "verdict": "clean after corrections and full rerun",
+      "corrections": "Separated the independently failing token-conflict boundary into its own companion instead of broadening this approved plan."
+    }
+  ],
+  "integration": "No commit, push, train admission, release or publication performed."
+}

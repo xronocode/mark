@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><C-TABLE-FOOTER>
+<GraceChangePlan graceVersion="4.0" status="applied"><C-TABLE-FOOTER>
   <ChangeRef>C-TABLE-FOOTER</ChangeRef><Created>2026-10-20</Created><IntentSummary>Reproduce the caption/scrollbar ordering and duplicate bottom spacing, place a constant-height caption in the scroll block, compensate actual native scrollbar space, and verify compact geometry and existing interactions.</IntentSummary>
   <BaselineAssertions><MustContain><File>src/muya/lib/tableResize/tableCue.js</File><Text>syncTableCue</Text></MustContain></BaselineAssertions>
   <TargetAssertions><MustContain><File>tests/e2e/table-footer.spec.ts</File><Text>reserved footer</Text></MustContain></TargetAssertions>

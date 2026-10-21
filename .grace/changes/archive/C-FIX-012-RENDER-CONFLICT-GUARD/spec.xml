@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIX-012-RENDER-CONFLICT-GUARD>
+  <Name>Skip token-conflict checks without complete cursor endpoints</Name><Created>2026-10-20</Created>
+  <Summary>Complete the attributed FIX-012 renderer repair at the token-conflict boundary: an absent cursor start or end means no selection conflict, not an endpoint dereference.</Summary>
+  <Problem>After selector activity became null-safe, the full command walk reached StateRender.checkConflicted with incomplete cursor state. The method then dereferenced missing start/end endpoints and aborted the cycled-tab render.</Problem>
+  <ApprovalBasis>This is a narrow failing-evidence companion to the owner-approved C-FIX-012-TAB-CYCLE-RENDER work. The approved selector companion constrained itself to activity detection, so this separately approved bundle preserves immutable-plan discipline.</ApprovalBasis>
+  <Goals><Goal>Return no conflict when either cursor endpoint is absent.</Goal><Goal>Preserve the existing overlap calculation for a complete cursor.</Goal><Goal>Keep the full accumulated registry walk warning-free.</Goal></Goals>
+  <Constraints><Constraint>Guard only the token-conflict precondition; do not synthesize cursor state, change token ranges, or suppress renderer exceptions.</Constraint></Constraints>
+  <NonGoals><NonGoal>No selector-activity change, selection restoration rewrite, tab UX change, Windows/Linux work, release or publication.</NonGoal></NonGoals>
+  <AcceptanceCriteria><Criterion>checkConflicted returns false for null or endpoint-less cursor state without throwing.</Criterion><Criterion>Complete cursor overlap behavior remains unchanged.</Criterion><Criterion>The full registry walk emits no tabs.cycleForward warning.</Criterion></AcceptanceCriteria>
+  <AffectedAreas><M-012/></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>npx vitest run tests/renderer/muya/state-render-selector.test.js</ExpectedCommand><ExpectedCommand>npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</ExpectedCommand><ExpectedEvidence>Direct incomplete-cursor token-conflict fixtures plus the complete browser command walk.</ExpectedEvidence></VerificationIntent>
+</C-FIX-012-RENDER-CONFLICT-GUARD></GraceChangeSpec>
