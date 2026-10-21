@@ -13,13 +13,144 @@
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
-    "userFacing": [],
-    "operational": [],
+    "userFacing": [
+      {
+        "id": "FIX-010",
+        "summary": "Route Shift+Command+P to the root Command Palette on macOS.",
+        "state": "queued",
+        "commits": [
+          "639517476674dd55079cec2c57ff9e40a87c195c"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-21",
+          "testedArtifact": "PR 16 review worktree 300465526150a6261d360bd4ea227caabd7b9ec2: focused suite 186 passed / 0 failed; all named required checks green on the PR head",
+          "scenarios": [
+            "Shift+Command+P opens the root palette through the shared view.command-palette id; Windows and Linux are unchanged."
+          ]
+        }
+      },
+      {
+        "id": "FIX-012",
+        "summary": "Repair the tab-cycle render cascade at its attributed boundaries.",
+        "state": "queued",
+        "commits": [
+          "639517476674dd55079cec2c57ff9e40a87c195c"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-21",
+          "testedArtifact": "PR 16 review worktree 300465526150a6261d360bd4ea227caabd7b9ec2: focused suite 186 passed / 0 failed; all named required checks green on the PR head",
+          "scenarios": [
+            "Active-block ancestry stops at a missing parent; selector and token-conflict checks tolerate transient cursor state; cursor restoration skips incomplete selections."
+          ]
+        }
+      },
+      {
+        "id": "FIX-015",
+        "summary": "Keep table Markdown export lossless: pipe parity and rectangularized rows.",
+        "state": "queued",
+        "commits": [
+          "639517476674dd55079cec2c57ff9e40a87c195c"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-21",
+          "testedArtifact": "PR 16 review worktree 300465526150a6261d360bd4ea227caabd7b9ec2: focused suite 186 passed / 0 failed; all named required checks green on the PR head",
+          "scenarios": [
+            "Exported tables escape pipes by backslash parity and rectangularize ragged rows without dropping real cells."
+          ]
+        }
+      },
+      {
+        "id": "FIX-016",
+        "summary": "Cancel queued Auto Save writes when the preference turns off.",
+        "state": "queued",
+        "commits": [
+          "639517476674dd55079cec2c57ff9e40a87c195c"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-21",
+          "testedArtifact": "PR 16 review worktree 300465526150a6261d360bd4ea227caabd7b9ec2: focused suite 186 passed / 0 failed; all named required checks green on the PR head",
+          "scenarios": [
+            "Disabling Auto Save cancels already queued writes (the debounce re-reads the live preference when it fires)."
+          ]
+        }
+      }
+    ],
+    "operational": [
+      {
+        "id": "TRAIN-BOOKKEEPING",
+        "summary": "Post-2.6.0 release operations: draft-publication recovery fixes, the train roll with materials-admission gating, GRACE archival of the accepted table/viewer bundles, CRLF portability of the shortcut-routing source read, and the PR 16 merge.",
+        "commits": [
+          "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
+          "c9a944fbd4952ac694e2ad8830ed2592a6f17a57",
+          "ff44062321ecfe3751971327e81afb7fad492577",
+          "8cad1d259a5691097aa5cc4072a61bdb893716d9",
+          "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
+          "21793f1100a4eea8584a0f664e6b26e092868383"
+        ]
+      }
+    ],
     "notPresent": []
   },
   "commitAccounting": {
     "fromExclusive": "de16653229170226060a6f2f8f6e36df02e2c452",
-    "entries": []
+    "entries": [
+      {
+        "sha": "639517476674dd55079cec2c57ff9e40a87c195c",
+        "classification": "user-facing",
+        "itemIds": [
+          "FIX-010",
+          "FIX-012",
+          "FIX-015",
+          "FIX-016"
+        ]
+      },
+      {
+        "sha": "8cad1d259a5691097aa5cc4072a61bdb893716d9",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c9a944fbd4952ac694e2ad8830ed2592a6f17a57",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ff44062321ecfe3751971327e81afb7fad492577",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "21793f1100a4eea8584a0f664e6b26e092868383",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      }
+    ]
   },
   "requiredChecks": [
     {
