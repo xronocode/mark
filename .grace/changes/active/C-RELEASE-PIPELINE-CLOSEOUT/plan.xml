@@ -1,0 +1,114 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-RELEASE-PIPELINE-CLOSEOUT>
+    <ChangeRef>C-RELEASE-PIPELINE-CLOSEOUT</ChangeRef>
+    <Created>2026-10-21</Created>
+    <IntentSummary>Finish the shipped M-046 release control plane without weakening its owner approvals: repair the Project mirror bootstrap, activate reviewed Mark rulesets, add a protected Homebrew validation lane, and make the exact bot-generated cask PR auto-merge only after that lane succeeds.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.github/release-governance.json</File>
+        <Text>"title": "Mark release trains"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/release-governance.json</File>
+        <Text>"enforcement": "disabled"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>gh pr create</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-project-sync.test.js</File>
+        <Text>const checkedIn</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>gh pr merge</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/release-governance.json</File>
+        <Text>"nodeId": "PVT_kwHODITnSM4BoA5l"</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="180">npx vitest run tests/renderer/release-project-sync.test.js tests/renderer/release-github-controls.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="180">npm run release:governance</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+      <ContextArtifact>deployment.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/release-governance.json</File>
+      <File>.github/workflows/release.yml</File>
+      <File>tools/release-project-sync.mjs</File>
+      <File>docs/release-trains/README.md</File>
+      <File>tests/renderer/release-project-sync.test.js</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+      <File>tests/renderer/release-governance.test.js</File>
+      <File>tests/renderer/release-readiness.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <Glob>.grace/changes/active/C-RELEASE-PIPELINE-CLOSEOUT/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Repair and bootstrap the Project mirror</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The test module map is current; owner-local bootstrap records the unique public Project identity; apply/read-back is idempotent; CI receives only the dedicated mirror credential.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/release-project-sync.test.js</Command>
+          <Command>npm run release:project-sync -- --check</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Protect and auto-merge validated tap updates</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The tap validates cask style, audit, URL, and checksum in one stable check; main requires it; the exact release-bot PR is scheduled for squash auto-merge and no other PR identity is accepted.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/release-github-controls.test.js</Command>
+          <Command>gh api repos/xronocode/homebrew-mark/rulesets</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Activate and read back Mark repository protections</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The source contract and live main/tag rulesets are active, required check identities and bypass actors match, and owner recovery remains explicit.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run release:github-controls -- --check</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Run integrated canaries and reconcile M-046 evidence</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Mark required checks and optional Project mirror are green, checked-in collecting-train admissions do not require a duplicate count fixture edit, the tap canary proves required-check auto-merge behavior, and graph/verification records describe the final control plane.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run release:governance</Command>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-RELEASE-PIPELINE-CLOSEOUT>
+</GraceChangePlan>

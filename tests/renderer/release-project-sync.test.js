@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-project-sync.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove the GitHub Project mirror is public-data-only, one-way, duplicate-safe, paginated/retry-capable, non-destructive, and idempotent.
 //   SCOPE: Pure projection/planning plus an in-memory apply adapter and bounded request retry; no live GitHub mutation.
@@ -10,6 +10,8 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   checkedIn - Current checked-in train before the synthetic-item fallback used by reconciliation cases.
+//   manifest - Checked-in machine-readable train fixture.
 //   checkedIn - Raw checked-in train manifest (may be a rolled, empty collecting train).
 //   manifest - Test manifest: the checked-in train, or with one synthetic accepted item when the rolled train is empty.
 //   governance - Checked-in Project schema and identity fixture.
@@ -19,6 +21,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.4.0: pin the current draft-item payload field and prove empty optional values are skipped on create and cleared with GitHub's dedicated field-value mutation.
+//   - 2026-10-21 v1.3.1: keep the test module map aligned with the checked-in collecting-train fixture.
 //   - 2026-10-20 v1.3.0: use minimal non-credential constructor sentinels in GraphQL transport coverage.
 //   - 2026-10-20 v1.2.0: construct private-path fixtures portably so the repository safety gate can review them without admitting a personal absolute-path literal.
 //   - 2026-10-20 v1.1.0: prove multi-page reads, managed option migration, and resume after a partial apply failure.
@@ -197,7 +201,7 @@ describe('release Project mirror', () => {
   it('retries transient GraphQL failures with a bounded attempt count', async () => {
     let attempts = 0
     const client = new GraphqlProjectClient({
-      token: 'x',
+      token: 'synthetic-noncredential',
       owner: 'xronocode',
       fetchImpl: async () => {
         attempts += 1
@@ -229,10 +233,55 @@ describe('release Project mirror', () => {
     expect(attempts).toBe(1)
   })
 
+  it('skips empty fields on item creation and clears existing values explicitly', async () => {
+    const requests = []
+    const client = new GraphqlProjectClient({
+      token: 'x',
+      owner: 'xronocode',
+      fetchImpl: async (_url, options) => {
+        const request = JSON.parse(options.body)
+        requests.push(request)
+        const data = request.query.includes('addProjectV2DraftIssue')
+          ? { addProjectV2DraftIssue: { projectItem: { id: 'ITEM' } } }
+          : request.query.includes('clearProjectV2ItemFieldValue')
+            ? { clearProjectV2ItemFieldValue: { projectV2Item: { id: 'ITEM' } } }
+            : { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'ITEM' } } }
+        return { ok: true, json: async () => ({ data }) }
+      }
+    })
+    const snapshot = {
+      project: { id: 'PROJECT' },
+      fields: desired.fields.map((field, index) => ({
+        id: `FIELD_${index}`,
+        ...structuredClone(field),
+        options: (field.options ?? []).map((name, optionIndex) => ({ id: `${index}_${optionIndex}`, name }))
+      })),
+      items: []
+    }
+    client.read = async () => structuredClone(snapshot)
+    const row = structuredClone(desired.rows[0])
+    row.fields['Payload SHA'] = ''
+
+    await client.apply({ type: 'create-item', row }, desired)
+    expect(requests[0].query).toContain('projectItem{id}')
+    expect(requests[0].query).not.toContain('projectV2Item{id}')
+    expect(requests.some(({ variables }) => variables.fieldId === snapshot.fields[3].id)).toBe(false)
+
+    requests.length = 0
+    await client.apply({
+      type: 'set-field',
+      itemId: 'ITEM',
+      field: 'Payload SHA',
+      value: ''
+    }, desired)
+    expect(requests).toHaveLength(1)
+    expect(requests[0].query).toContain('clearProjectV2ItemFieldValue')
+  })
+
   it('follows Project, field, and item cursors before planning', async () => {
     const responses = [
       { user: { id: 'USER', projectsV2: { nodes: [{ id: 'OTHER', number: 9, title: 'Other', public: true, closed: false }], pageInfo: { hasNextPage: true, endCursor: 'projects-2' } } } },
-      { user: { id: 'USER', projectsV2: { nodes: [{ id: 'PROJECT', number: 1, title: desired.title, public: true, closed: false }], pageInfo: { hasNextPage: false, endCursor: null } } } },
+      { user: { id: 'USER', projectsV2: { nodes: [{ id: desired.nodeId ?? 'PROJECT', number: 1, title: desired.title, public: true, closed: false }], pageInfo: { hasNextPage: false, endCursor: null } } } },
       { node: { fields: { nodes: [{ id: 'F1', name: 'Train', dataType: 'SINGLE_SELECT', options: [] }], pageInfo: { hasNextPage: true, endCursor: 'fields-2' } } } },
       { node: { fields: { nodes: [{ id: 'F2', name: 'Item ID', dataType: 'TEXT' }], pageInfo: { hasNextPage: false, endCursor: null } } } },
       { node: { items: { nodes: [{ id: 'I1', content: { id: 'D1', title: 'one' }, fieldValues: { nodes: [] } }], pageInfo: { hasNextPage: true, endCursor: 'items-2' } } } },
@@ -287,11 +336,12 @@ describe('release Project mirror', () => {
   })
 
   it('records the stable Project number/node ID only from converged read-back', () => {
+    const originalProject = structuredClone(governance.project)
     const updated = recordProjectIdentity(governance, {
       project: { id: 'PVT_fixture', number: 17 }
     })
     expect(updated.project).toMatchObject({ nodeId: 'PVT_fixture', number: 17 })
-    expect(governance.project).toMatchObject({ nodeId: null, number: null })
+    expect(governance.project).toEqual(originalProject)
     expect(() => recordProjectIdentity(governance, { project: null })).toThrow(
       expect.objectContaining({ code: 'MT_RELEASE_PROJECT_IDENTITY_MISMATCH' })
     )
