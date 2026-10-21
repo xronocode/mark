@@ -487,6 +487,7 @@
     "recentFolders": "Dossiers récents",
     "noRecentFiles": "Aucun fichier récent",
     "lastSession": "Dernière session",
+    "lastSessionWithCount": "Dernière session ({count})",
     "lastSessionEmpty": "Rien à restaurer — les fichiers de la session précédente ne sont plus disponibles",
     "filesCount": {
       "one": "{count} fichier",

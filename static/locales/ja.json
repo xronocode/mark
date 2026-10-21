@@ -482,6 +482,7 @@
     "recentFolders": "最近のフォルダー",
     "noRecentFiles": "最近のファイルはありません",
     "lastSession": "前回のセッション",
+    "lastSessionWithCount": "前回のセッション ({count})",
     "lastSessionEmpty": "復元できるものがありません。前回のセッションのファイルは利用できなくなりました",
     "filesCount": {
       "other": "{count} 件のファイル"

@@ -482,6 +482,7 @@
     "recentFolders": "最近的文件夹",
     "noRecentFiles": "暂无最近文件",
     "lastSession": "上次会话",
+    "lastSessionWithCount": "上次会话（{count}）",
     "lastSessionEmpty": "没有可恢复的内容 — 上次会话的文件已不可用",
     "filesCount": {
       "other": "{count} 个文件"

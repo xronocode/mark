@@ -497,6 +497,7 @@
     "recentFolders": "Недавние папки",
     "noRecentFiles": "Нет недавних файлов",
     "lastSession": "Последняя сессия",
+    "lastSessionWithCount": "Последняя сессия ({count})",
     "lastSessionEmpty": "Восстанавливать нечего — файлы последней сессии больше недоступны",
     "filesCount": {
       "one": "{count} файл",
