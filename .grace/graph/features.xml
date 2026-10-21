@@ -2351,6 +2351,10 @@
         owner-approved annotated-tag promotion, tag-only signing, read-only
         publication-bundle preparation, fixed-command digest-verified
         draft-first publication, and an idempotent downstream cask handoff.
+        C-RELEASE-PIPELINE-CLOSEOUT records the public Project identity,
+        activates the reviewed main/tag rulesets, and extends the cask handoff
+        with tap-owned validation plus exact-bot-PR auto-merge behind the
+        required check; Projects remains a non-authoritative one-way mirror.
         Tag admission restores the remote annotated tag object after checkout
         rewrites its local tag ref to the peeled commit, then proves the restored
         object targets the checked-out seal before packaging.
@@ -2872,6 +2876,10 @@
         and value for both model passes; unsupported input uses the raw diff.
         Complete raw blobs and candidate identity remain scan/recheck inputs.
 
+        C-SAFE-PUBLIC-GITHUB-REFERENCES-V2 makes the reviewer distinguish public
+        GitHub GraphQL node IDs, App slugs and symbolic Actions lookups from
+        literal credential bytes. No candidate byte is masked or allowlisted.
+
         C-SAFE-SCREENSHOT-REVIEW admits only regular README PNG bytes whose
         exact SHA-256 identity and completed human visual review are present
         in a changed release screenshot manifest in the same commit. Outgoing
@@ -2879,7 +2887,7 @@
 C-SAFE-DELIVERY: exact staged/outgoing secret, private-path and artifact checks; two serial local-only model passes; candidate recheck and shared commit/push hooks for independent desktop/mobile lanes.</Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>
-      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic and local-model review, with manifest-bound human visual-review evidence for changed release README PNGs.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message or independently grouped outgoing commits</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete local or screenshot review evidence, unsupported payload, engine conflict or changed candidate.</Description></Error></Errors></Contract>
+      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic and local-model review, distinguishing public GitHub references from literal secrets and requiring manifest-bound human visual-review evidence for changed release README PNGs.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message or independently grouped outgoing commits</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete local or screenshot review evidence, unsupported payload, engine conflict or changed candidate.</Description></Error></Errors></Contract>
       <Sources><Source>tools/security_gate.py</Source><Tests>tests/security/test_security_gate.py</Tests></Sources>
     </M-064>
   </GD-FEATURES>

@@ -79,7 +79,7 @@ Post-tag attempts and per-channel outcomes are append-only. Accepted, queued, Fr
 
 ### Retry a failed Homebrew handoff
 
-The `publish-cask` job is idempotent: an existing exact open PR is success, while a branch without that PR or a mismatched PR fails closed. If GitHub publication succeeded and `publish-cask` is the only failed job, retry it from the same release run while its artifacts are retained (30 days):
+The `publish-cask` job is idempotent: an exact open bot PR is re-verified and scheduled for squash auto-merge behind the tap's required `cask/validate` check; an exact already-merged PR is success after the main-branch version and sidecar hash are read back. A branch without that PR, a mismatched author/title/base, or a closed-unmerged PR fails closed. If GitHub publication succeeded and `publish-cask` is the only failed job, retry it from the same release run while its artifacts are retained (30 days):
 
 ```bash
 gh run list --repo xronocode/mark --workflow release.yml --limit 10
@@ -88,13 +88,13 @@ gh run view <run-id> --repo xronocode/mark --json jobs \
 gh run rerun <run-id> --repo xronocode/mark --failed
 ```
 
-Before rerunning, fix only the external cause (for example the `release-cask` Environment credentials or the tap repository permission). Do not delete or recreate the release tag, upload replacement assets, use `--clobber`, or start a new release. The rerun consumes the retained `Mark_<version>_aarch64.dmg.sha256` sidecar and either verifies the existing exact cask PR or opens it once.
+Before rerunning, fix only the external cause (for example the `release-cask` Environment credentials, tap repository permission, or required tap check). Do not delete or recreate the release tag, upload replacement assets, use `--clobber`, or start a new release. The rerun consumes the retained `Mark_<version>_aarch64.dmg.sha256` sidecar and either verifies the exact merged cask, re-arms auto-merge on the exact open PR, or opens it once.
 
 If the workflow artifacts have expired, stop. Downloading a public sidecar and creating a replacement cask-only automation path requires a separately reviewed recovery change; it is not permission to rebuild or republish the released version.
 
 ## Owner-only GitHub rollout
 
-Repository files describe the desired controls, but they cannot safely install Apps, copy secret values, or approve their own protections. The owner completes the following once, outside CI, before activating the rulesets.
+Repository files describe the desired controls, but they cannot safely install Apps, copy secret values, or approve their own protections. GitHub Project node IDs recorded in the governance manifest are public GraphQL resource identifiers, not credentials. The owner completes the following once, outside CI, before activating the rulesets.
 
 1. Create or verify the purpose-specific GitHub App installations:
    - release preparation on `xronocode/mark`: Contents write and Pull requests write;
@@ -138,6 +138,7 @@ Repository files describe the desired controls, but they cannot safely install A
      --journal <absolute-path-outside-repo>/mark-release-controls-activate.ndjson
    npm run release:github-controls -- --check
    ```
+9. In `xronocode/homebrew-mark`, enable repository auto-merge and activate the source-controlled `homebrew-mark-main-protection` ruleset only after the `cask/validate` canary succeeds. The ruleset requires a pull request plus the strict GitHub Actions check; it blocks force-push and deletion. The release App schedules, but cannot bypass, that required check.
 
 Activation fails if a forbidden signing/App secret remains at repository scope, an Environment secret name is missing, staged controls drift, or any exact canary check is absent, duplicated, or not successful. Each apply/activate journal has a mode-`0600` snapshot beside it. Preserve both until rollout is accepted; rollback is owner-local and exact:
 

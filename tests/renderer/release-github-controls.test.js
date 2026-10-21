@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.8.0: require exact cask-bot PR identity, merged-state idempotence, and required-check-gated tap auto-merge.
 //   - 2026-10-21 v1.7.0: pin bounded draft-ID discovery and ID-based read-back across GitHub tag-index eventual consistency.
 //   - 2026-10-21 v1.6.0: require tag admission to restore the remote annotated object after checkout peels the local tag ref.
 //   - 2026-10-21 v1.5.0: require complete promotion history for payload-to-seal ancestry proofs before and after approval.
@@ -225,7 +226,15 @@ describe('release GitHub trust boundaries', () => {
       releaseSource.indexOf('--draft=false')
     )
     expect(releaseSource).not.toMatch(/date\s+(?:-u\s+)?\+[^\n]*pub_date/i)
-    expect(commands(release.jobs['publish-cask'])).toContain('cask PR already exists for $TAG')
+    const caskJob = release.jobs['publish-cask']
+    const cask = commands(caskJob)
+    expect(cask).toContain('--state all')
+    expect(cask).toContain('EXPECTED_CASK_PR_AUTHOR')
+    expect(JSON.stringify(caskJob)).toContain('app/xronocode-cask-bot')
+    expect(cask).toContain('exact cask PR already merged for $TAG')
+    expect(cask).toContain('gh pr merge "$PR_NUMBER"')
+    expect(cask).toContain('--auto --squash --delete-branch')
+    expect(cask).toContain('cask/validate check must pass')
     expect(releaseSource).toContain('gh run rerun --failed')
   })
 
