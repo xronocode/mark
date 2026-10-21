@@ -1,5 +1,5 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.4.0
+# VERSION: 1.5.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
 #   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, exact-index, local-only review and outgoing-history failure scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
+#   LAST_CHANGE: 1.5.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: pin the public GitHub reference forms and literal-secret failure boundary used by both local review passes.
+#   PREV: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
 #   PREV: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before model loading, including one-other-engine and multiple-model failures.
 #   PREV: 1.2.0 - 2026-10-19: reject reserved private operations and captured profiles while retaining synthetic examples and reusable tooling.
 #   PREV: 1.1.0 - 2026-10-19: prove locale deltas retain nested changes and raw fallback without reducing static scans.
@@ -53,6 +54,14 @@ class SafetyGateTests(unittest.TestCase):
             "images": [{"path": path, "sha256": gate.hashlib.sha256(data).hexdigest()}]
         }
         return [(path, data), ("docs/assets/readme/2.6.0.manifest.json", json.dumps(manifest).encode())]
+
+    def test_review_prompt_distinguishes_public_github_references_from_literal_secrets(self):
+        prompt = gate.PUBLICATION_REVIEW_PROMPT
+        for reference in ["GitHub GraphQL node IDs", "PVT_", "app/example-bot", "${{ secrets.NAME }}", "${{ steps.example.outputs.token }}"]:
+            self.assertIn(reference, prompt)
+        self.assertIn("cannot alone justify a private-key or credential finding", prompt)
+        self.assertIn("A literal credential, private key, token value, or private data", prompt)
+        self.assertIn("Do not report a file solely because it contains these reference forms", prompt)
 
     def test_gpu_preflight_timeout_is_bounded_and_does_not_echo_command(self):
         with patch.object(gate.subprocess, "run", side_effect=subprocess.TimeoutExpired(["private-host-command"], 60)):
