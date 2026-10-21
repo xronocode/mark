@@ -482,6 +482,7 @@
     "recentFolders": "最近的資料夾",
     "noRecentFiles": "沒有最近的檔案",
     "lastSession": "上次工作階段",
+    "lastSessionWithCount": "上次工作階段（{count}）",
     "lastSessionEmpty": "沒有可還原的內容 — 上次工作階段的檔案已無法使用",
     "filesCount": {
       "other": "{count} 個檔案"

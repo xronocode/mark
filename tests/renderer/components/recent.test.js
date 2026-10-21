@@ -67,6 +67,10 @@ vi.mock('@/i18n', () => ({
         return __i18nState.lang === 'ru' ? `${params?.count} файлов` : key
       case 'recent.filesCount.other':
         return __i18nState.lang === 'ru' ? `${params?.count} файла` : `${params?.count} files`
+      case 'recent.lastSessionWithCount':
+        return __i18nState.lang === 'ru'
+          ? `Последняя сессия (${params?.count})`
+          : `Last session (${params?.count})`
       case 'recent.removedToast':
         return `Removed "${params?.name}" from Recent`
       case 'recent.recentlyClosed.title':
@@ -357,7 +361,7 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     const wrapper = await hydrateWith({ session: ['/tmp/a.md', '/tmp/b.md'] })
     const sessionRow = wrapper.find('.row-session')
     expect(sessionRow.exists()).toBe(true)
-    expect(sessionRow.text()).toContain('2 files')
+    expect(sessionRow.find('.row-name').text()).toBe('Last session (2)')
     expect(sessionRow.find('.row-path').text()).toBe('a.md, b.md')
     await sessionRow.trigger('click')
     expect(__editorStoreMock.RESTORE_SESSION).toHaveBeenCalledTimes(1)
@@ -370,20 +374,21 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     expect(wrapper.find('.row-session .row-path').text()).toBe('a.md, b.md, c.md, …')
   })
 
-  it('renders "1 file" for a one-file session (plural category one)', async () => {
+  it('renders the tab count in the row title for a one-file session', async () => {
     const wrapper = await hydrateWith({ session: ['/tmp/only.md'] })
-    expect(wrapper.find('.row-session .row-time').text()).toBe('1 file')
+    expect(wrapper.find('.row-session .row-name').text()).toBe('Last session (1)')
+    expect(wrapper.find('.row-session .row-time').exists()).toBe(false)
   })
 
-  it('picks the Russian few/many plural forms by count', async () => {
+  it('renders the count inside the Russian row title for any plural category', async () => {
     __i18nState.lang = 'ru'
     let wrapper = await hydrateWith({ session: ['/a.md', '/b.md', '/c.md'] })
-    expect(wrapper.find('.row-session .row-time').text()).toBe('3 файла')
+    expect(wrapper.find('.row-session .row-name').text()).toBe('Последняя сессия (3)')
     wrapper.unmount()
     wrapper = await hydrateWith({
       session: ['/1.md', '/2.md', '/3.md', '/4.md', '/5.md']
     })
-    expect(wrapper.find('.row-session .row-time').text()).toBe('5 файлов')
+    expect(wrapper.find('.row-session .row-name').text()).toBe('Последняя сессия (5)')
   })
 
   it('splits Windows paths on backslashes for the name and parent folder', async () => {

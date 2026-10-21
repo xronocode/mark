@@ -482,6 +482,7 @@
     "recentFolders": "최근 폴더",
     "noRecentFiles": "최근 파일이 없습니다",
     "lastSession": "마지막 세션",
+    "lastSessionWithCount": "마지막 세션 ({count})",
     "lastSessionEmpty": "복원할 항목이 없습니다. 이전 세션의 파일을 더 이상 사용할 수 없어요",
     "filesCount": {
       "other": "파일 {count}개"
