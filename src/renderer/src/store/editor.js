@@ -676,8 +676,12 @@ export const useEditorStore = defineStore('editor', {
     // normal open path (mt::open-file: encoding, line endings, watcher) in
     // the saved order, then the saved active tab. Missing paths are
     // skipped. Also the welcome screen «Last session» action.
-    async RESTORE_SESSION({ from } = {}) {
+    async RESTORE_SESSION({ from: rawFrom } = {}) {
       const projectStore = useProjectStore()
+      // Hardened shape check (local-model review): a malformed frozen
+      // payload falls back to the live-preference path instead of
+      // throwing mid-restore.
+      const from = rawFrom && Array.isArray(rawFrom.tabs) ? rawFrom : null
       // `from` restores a frozen payload (the cold-start offer) instead
       // of rereading the live autosaved preferences — the session
       // autosave legitimately rewrites them during the run, and the
