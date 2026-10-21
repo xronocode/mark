@@ -528,6 +528,15 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: Some("CmdOrCtrl+W".to_string()),
                     items: None,
                 },
+                // C-FIX-009-RECENTLY-CLOSED: taxonomy parity with the
+                // built menu's File › Reopen Closed Tab.
+                MenuItem {
+                    id: "file.reopen-closed-tab".to_string(),
+                    label: "Reopen Closed Tab".to_string(),
+                    command: Some("reopenClosedTab".to_string()),
+                    accelerator: Some("Shift+CmdOrCtrl+T".to_string()),
+                    items: None,
+                },
                 MenuItem {
                     id: "file.share".to_string(),
                     label: "Share…".to_string(),
