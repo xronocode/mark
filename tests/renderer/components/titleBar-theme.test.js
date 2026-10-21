@@ -14,6 +14,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v2.x C-WINDOWS-TITLEBAR-ALIGNMENT: selectors follow
+//     the amendment-5 clusters (no guide button; theme caption cell).
+
 //   LAST_CHANGE: v1.1.0 - 2026-10-15 C-40 T-002: the theme button moved to
 //   the .titlebar-right cluster (guide «?» / theme / Share) and its icons
 //   come from the redrawn chrome set (auto = circle r6 + fill wedge,
