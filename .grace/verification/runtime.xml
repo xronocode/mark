@@ -3450,6 +3450,7 @@
         <Scenario>scenario-fix-012-tab-cycle-render (FIX-012 tab-cycle render integrity): file.new-tab → help.guide → tabs.cycleForward completes without a menu-bridge warning or render exception, the editor remains visible, and the complete registry-leaf walk no longer allowlists tabs.cycleForward. M-012 owns the attributed missing-parent ancestry repair.</Scenario>
         <Scenario>scenario-fix-016-autosave-disable-race (FIX-016 Auto Save disable race): a save queued while Auto Save is enabled is removed from the timer map but does not invoke mt_response_file_save if the preference is disabled before debounce fire. Re-enabling and queuing a later edit invokes exactly once with the fresh Markdown. Existing dirty-tab, closed-tab, canonical transport and revision guards remain intact.</Scenario>
         <Scenario>scenario-69 (FIX-011 untitled close actions, C-FIX-011-UNTITLED-CLOSE-ACTIONS): the dirty-tab close confirm exposes the owner-approved three-action model — default Save &amp; Close, a separate non-default Discard, and a visible Cancel whose result Escape and the close glyph share; nothing is labelled "Close" and no discard path is default. For an untitled tab, Save &amp; Close runs the mt_response_file_save_as transport for the closing tab's own identity and closes ONLY on a truthy outcome: a cancelled Save As keeps the tab and its content, a failed Save As keeps the tab and raises the failure notice, Discard closes with no save transport, and Cancel/Escape/close-glyph keep the tab. Named files keep the mt::save-and-close-tabs payload path and explicit discard behavior. The dialog (components/editorWithTabs/unsavedCloseDialog.js) reuses the FIX-007 float tokens: dark-theme surface, title, and the default/destructive action colours are asserted, not inferred from button order. Pinned by tests/renderer/components/unsaved-close-dialog.test.js (three visible labels, three distinct results, default focus/styling, Cancel-equivalence) and tests/e2e/unsaved-close-actions.spec.ts + tests/e2e/unsaved-dialog-theme.spec.ts (chromium, the seven real-store flows and the dark-theme/styling pass).</Scenario>
+          <Scenario>scenario-74 (C-WINDOWS-TITLEBAR-ALIGNMENT): the Win/Linux titlebar renders the C-40-trimmed clusters (sidebar toggle left; no ☰ menu, no ⚙ gear — Settings rides the command palette file.preferences; «?» guide stays), Windows-style caption buttons (13 px butt-cap descriptors, 1 px separators, single neutral hover) and the 156 px right-cluster clearance; macOS rendering is unchanged.</Scenario>
         <Scenario>scenario-68 (C-TAB-CLOSE-OWNERSHIP): delayed render events for another or closed tab cannot alter active content/history/cursor. A selected tab whose activation event was missed is restored after Vue flush from its own state; normal activation renders once and rapid selection restores only the final tab. Before recovery, old-surface content/scroll events cannot be written into the new tab. File-loaded equality can skip rendering only when that tab owns the current Muya buffer. Structured synthetic close-to-previous/next, repeated switching and edit isolation pass in Chromium/WebKit; isolated native WebKit controlled-delay evidence stays private.</Scenario>
         <Scenario>
           scenario-1: muya mounts and renders a fixture document with all 7 host
@@ -4006,13 +4007,13 @@
           Paper/Ink/Docs/macOS/Mermaid/Markdown kept verbatim, and the
           release-URL lookup incl. the prerelease normalization and the
           unknown-version '' case).
-          The App Store review request runs only when the m048 review
           C-RELEASE-PIPELINE-AUTOMATION extends this scenario to 2.6.0:
           release-materials must find one to four ordered items and matching
           native copy in every one of the ten source and minified locale
           catalogs, with title ≤ 32, text ≤ 90 and Also ≤ 120 characters,
           exact release URL and preserved product names/shortcuts. Release
           admission remains V-M-046; this scenario verifies only the sheet.
+          The App Store review request runs only when the m048 review
           capability is true (app-store build on macOS; desktop
           m048_build_mode.rs pins review=false and m053_review.rs
           mt_request_review resolves Ok(false) outside the store

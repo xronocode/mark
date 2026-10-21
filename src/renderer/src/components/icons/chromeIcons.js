@@ -18,7 +18,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.4.0 - 2026-10-19 C-67: «broom» glyph for Clear Recent.
+//   LAST_CHANGE: v2.5.0 - 2026-10-20 C-WINDOWS-TITLEBAR-ALIGNMENT: the four
+//   caption glyphs (window-minimize/maximize/restore/close) are redrawn
+//   Windows-style — butt caps (the round-cap flag is gone) and full-width
+//   geometry — because at the old 10 px render the round-cap hairlines read
+//   as alien on a 100% Windows display (polygon review 2026-10-20). The
+//   titlebar now renders them at 13 px. Names, the frozen set, the shared
+//   1.4 stroke and the 16-grid viewBox are unchanged (chrome-icons pins).
+//   v2.4.0 - 2026-10-19 C-67: «broom» glyph for Clear Recent.
 //   v2.3.0 - 2026-10-17 C-51 T-013: the «pin» glyph is
 //   redrawn as a FILLED pushpin silhouette (round head circle, tapering
 //   body, needle — all fill currentColor, no stroke parts): at its 12 px
@@ -265,19 +272,21 @@ export const CHROME_ICONS = Object.freeze({
     }, { fill: true })
   ]),
 
-  // ── Win/Linux caption buttons (rendered at 10 px, same 16 grid) ──
+  // ── Win/Linux caption buttons (rendered at 13 px, same 16 grid) ──
+  // C-WINDOWS-TITLEBAR-ALIGNMENT: butt caps + full-width geometry — the
+  // Windows-convention reading (— □ □□ ✕); no round-cap flags left.
   'window-minimize': Object.freeze([
-    part('path', { d: 'M3.4 8h9.2' }, { cap: 'round' })
+    part('path', { d: 'M3 8h10' })
   ]),
   'window-maximize': Object.freeze([
-    part('rect', { x: 4, y: 4, width: 8, height: 8, rx: 0.6 })
+    part('rect', { x: 3.5, y: 3.5, width: 9, height: 9, rx: 0.4 })
   ]),
   'window-restore': Object.freeze([
-    part('path', { d: 'M6 3.4h6.6v6.6' }, { cap: 'round', join: 'round' }),
-    part('rect', { x: 3.4, y: 6, width: 6.6, height: 6.6, rx: 0.6 })
+    part('path', { d: 'M5.5 3.5h7v7' }),
+    part('rect', { x: 3.5, y: 5.5, width: 7, height: 7, rx: 0.4 })
   ]),
   'window-close': Object.freeze([
-    part('path', { d: 'M4 4l8 8M12 4l-8 8' }, { cap: 'round' })
+    part('path', { d: 'M3.5 3.5l9 9M12.5 3.5l-9 9' })
   ]),
 
   // ── C-51 T-006: the document-surface expand button (canvas Mermaid) ──

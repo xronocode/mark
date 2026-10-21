@@ -99,10 +99,18 @@ describe('chromeIcons shared set (C-40 T-002, C-38 T-006)', () => {
     }
   })
 
-  it('every stroked path declares round caps (closed shapes may add round joins)', () => {
+  it('every stroked path declares round caps (caption glyphs and closed shapes excepted)', () => {
+    // C-WINDOWS-TITLEBAR-ALIGNMENT: the four window-* caption glyphs use
+    // butt caps (Windows-convention flat terminals) and are exempt from the
+    // hand-drawn round-cap invariant that governs the rest of the set.
+    const FLAT_CAP = new Set(['window-minimize', 'window-maximize', 'window-restore', 'window-close'])
     for (const name of ICON_NAMES) {
       for (const part of CHROME_ICONS[name]) {
         if (part.tag !== 'path' || part.fill) continue
+        if (FLAT_CAP.has(name)) {
+          expect(part.cap, `${name} caption paths must stay flat-capped`).toBeUndefined()
+          continue
+        }
         expect(
           part.cap,
           `${name} path "${part.attrs.d}" must declare cap: 'round'`

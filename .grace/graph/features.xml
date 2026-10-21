@@ -2370,6 +2370,12 @@
 
         vitest.int.config.mjs re-exports the canonical Vitest configuration
         for portable historical C-71 commands, without machine-specific paths.
+        C-FIX-013: the canonical vitest config guards Node >= 25 default-on
+        experimental Web Storage with a conditional test.execArgv
+        (--no-experimental-webstorage, passed only on major >= 25 so the
+        Node 22 reference runtime keeps byte-identical worker arguments)
+        so the jsdom localStorage implementation stays authoritative;
+        .nvmrc pins the Node 22 reference runtime.
         The test workflow gates session restore and close/edit ownership
         in WKWebView's browser engine through webkit-session.
         The test workflow also gates C-68 diff priority/opened-baseline
