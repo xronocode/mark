@@ -291,4 +291,3 @@ describe('store/editor.js — FIX-009 cold start + record hooks', () => {
     })
   })
 })
-})
