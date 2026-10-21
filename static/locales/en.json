@@ -489,6 +489,7 @@
     "recentFolders": "Recent folders",
     "noRecentFiles": "No recent files",
     "lastSession": "Last session",
+    "lastSessionWithCount": "Last session ({count})",
     "lastSessionEmpty": "Nothing to restore — the previous session's files are no longer available",
     "filesCount": {
       "one": "{count} file",

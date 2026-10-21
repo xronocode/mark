@@ -486,6 +486,7 @@
     "recentFolders": "Carpetas recientes",
     "noRecentFiles": "No hay archivos recientes",
     "lastSession": "Última sesión",
+    "lastSessionWithCount": "Última sesión ({count})",
     "lastSessionEmpty": "No hay nada que restaurar: los archivos de la sesión anterior ya no están disponibles",
     "filesCount": {
       "one": "{count} archivo",

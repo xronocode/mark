@@ -82,12 +82,11 @@
             <button type="button" class="row-button row-session" @click="restoreSession">
               <span class="row-icon" aria-hidden="true">↺</span>
               <span class="row-main">
-                <span class="row-name">{{ t('recent.lastSession') }}</span>
+                <span class="row-name">{{
+                  t('recent.lastSessionWithCount', { count: coldStartSessionTabs.length })
+                }}</span>
                 <span class="row-path">{{ sessionSummary }}</span>
               </span>
-              <span class="row-time">{{
-                filesCountLabel(coldStartSessionTabs.length)
-              }}</span>
             </button>
           </li>
           <li
@@ -234,13 +233,19 @@
 //   showRecentlyClosed / recentlyClosedCount / recentlyClosedEntries - FIX-009 current-run recovery block gates and data (store/recentlyClosed).
 //   reopenNewestClosed / reopenClosedEntry / reopenAllClosed - FIX-009 recovery actions delegating to the store.
 //   isMissingPathError - stat rejection → "path is gone" (IpcError cause.code, message fallback)
-//   filesCountLabel - plural-aware "N files" via Intl.PluralRules category keys
 //   onNativeDrag - welcome drop-zone highlight driven by the native drag-drop bridge
 //   onPasteKeyDown - C-52 plain ⌘V/Ctrl+V → util/clipboardOpen resolver (ignored in text inputs; editor paste untouched)
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.2.0 - 2026-10-21 C-FIX-009: the "Last session" row
+//   LAST_CHANGE: v2.2.1 - 2026-10-22 FIX-009 acceptance follow-up: the
+//     tab count moved INTO the row title (recent.lastSessionWithCount,
+//     «Last session (N)»), replacing the separate plural label on the
+//     right; the now-unused filesCountLabel plural helper and its row
+//     slot are gone (the recent.filesCount.* locale keys stay for
+//     potential reuse). Owner request from the 2026-10-22 acceptance
+//     protocol, section 6 item 5.
+//   v2.2.0 - 2026-10-21 C-FIX-009: the "Last session" row
 //     reflects the editor store's boot-time cold-start snapshot (offered
 //     only when this launch skipped auto-restore) instead of the
 //     mount-time capture that went stale after the session autosave
@@ -312,7 +317,7 @@ import { shortenMiddle, pathBasename, pathDirname } from '@/util/pathDisplay'
 import { formatRelativeTime } from '@/util/relativeTime'
 import { getAgentPrompt } from '@/util/agentPrompt'
 import { getRunningVersion, LAST_UPDATE_AT_KEY } from '@/whatsNew/gate'
-import { t, getCurrentLanguage } from '../../i18n'
+import { t } from '../../i18n'
 import bus from '@/bus'
 import { storeToRefs } from 'pinia'
 import { usePreferencesStore } from '@/store/preferences.js'
@@ -406,26 +411,6 @@ const hydrateFolders = async (paths) => {
   recentFolders.value = await statRows(paths, MAX_RECENT_FOLDERS_SHOWN)
 }
 // END_BLOCK_HYDRATE_LISTS
-
-// START_BLOCK_FILES_COUNT_PLURAL
-// The app's vue-i18n instance disables "a | b" plural parsing (i18n/
-// index.js returns any message containing "|" verbatim), so the plural
-// forms live as CLDR-category sub-keys — recent.filesCount.one / few /
-// many / other — picked with Intl.PluralRules for the UI language and
-// falling back to .other when a locale has no form for that category.
-const filesCountLabel = (count) => {
-  let category = 'other'
-  try {
-    category = new Intl.PluralRules(getCurrentLanguage() || 'en').select(count)
-  } catch {
-    // unknown locale tag → 'other'
-  }
-  const key = `recent.filesCount.${category}`
-  const label = t(key, { count })
-  if (label && label !== key) return label
-  return t('recent.filesCount.other', { count })
-}
-// END_BLOCK_FILES_COUNT_PLURAL
 
 // START_BLOCK_WHATS_NEW_GATE
 // The What's-new footer link is visible only within 7 days after an
