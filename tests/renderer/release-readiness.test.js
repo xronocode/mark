@@ -221,9 +221,10 @@ describe('release train authority', () => {
       state: manifest.state,
       version: 'v2.6.1'.slice(1)
     })
-    // The collecting train opens empty: admission items arrive with
-    // owner acceptance, not with the train.
-    expect(result.itemCounts.userFacing).toBe(0)
+    // Admission items arrive with owner acceptance, not with the train:
+    // the count must mirror the checked-in manifest exactly (empty right
+    // after a roll; four after the PR 16 acceptance).
+    expect(result.itemCounts.userFacing).toBe(manifest.items.userFacing.length)
     expect(
       validateTrainLedger(
         readFileSync(resolve('docs/release-trains/2.6.x-next.md'), 'utf8'),

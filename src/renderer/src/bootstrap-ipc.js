@@ -11,10 +11,20 @@
 //            AFTER user interaction stay in their component as bus.on
 //            or local listen() calls.
 //   DEPENDS: @tauri-apps/api/event, @tauri-apps/api/core, pinia stores
-//            (preferences, project, editor).
-//   LINKS:   verification-plan.xml V-Phase-Bclean-W1 + V-M-025.
+//            (preferences, project, editor) and the dynamically imported
+//            store/recentlyClosed (C-FIX-009: the mt::open-new-tab
+//            arrival consumes the matching closed-tab history entry).
+//   LINKS:   .grace/verification/runtime.xml V-M-011 scenario-75 and
+//            V-M-025 (pending-opens markers); the GRACE 3
+//            verification-plan.xml V-Phase-Bclean-W1 reference is
+//            retained as migration provenance.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-21 C-FIX-009-RECENTLY-CLOSED: the mt::open-new-tab arrival
+//                consumes a matching closed-tab history entry — every
+//                open surface (popover, ⇧⌘T, Reopen all, Recent files,
+//                dialog, drag-drop, clipboard) funnels through this
+//                handler, so the recovery list can never go stale.
 //   - 2026-05-09 W1 initial: prefs broadcast + window-active-status +
 //                language-changed listeners.
 //   - 2026-05-09 audit-M-1: delete 37 dead listeners (24 menu-driven +
@@ -275,6 +285,18 @@ const setupIpcListenersImpl = async () => {
         editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument, options, selected })
       } else {
         editorStore.NEW_UNTITLED_TAB({})
+      }
+      // C-FIX-009-RECENTLY-CLOSED: every open path funnels through this
+      // arrival, so an independently opened file consumes its closed-tab
+      // history entry here (popover rows, ⇧⌘T, Reopen all, Recent files,
+      // dialog, drag-drop and clipboard all land on mt::open-new-tab).
+      // Harness contexts exercise this listener without an active pinia
+      // (no UI history to update) — skip rather than fail the arrival.
+      if (p.pathname) {
+        try {
+          const { useRecentlyClosedStore } = await import('./store/recentlyClosed')
+          useRecentlyClosedStore().CONSUME(p.pathname)
+        } catch { /* no active pinia — nothing to consume */ }
       }
       const tabs = Array.isArray(editorStore.tabs) ? editorStore.tabs : []
       const targetTab = selected
