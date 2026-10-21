@@ -1,8 +1,8 @@
 // FILE: tools/release-github-controls.mjs
-// VERSION: 1.1.1
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reconcile Mark's source-controlled release permissions, Environments, immutable-release setting, and managed rulesets from an explicit owner-admin session.
-//   SCOPE: Offline dry-run, live read-only check, staged non-destructive apply with snapshot/journal/read-back, and reverse-order rollback of managed operations; never reads or copies secret values.
+//   SCOPE: Offline dry-run, staged/active live checks, staged non-destructive apply, explicit activation with snapshot/journal/read-back, and reverse-order rollback of managed operations; never reads or copies secret values.
 //   DEPENDS: Node.js child_process/crypto/fs/path/url; GitHub REST API; .github/release-governance.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
@@ -15,7 +15,7 @@
 //   planGithubControls - Produce ordered managed-resource mutations without deleting unknown resources.
 //   buildRollbackPlan - Reverse a journal into out-of-band recovery operations.
 //   GitHubControlsClient - Read, mutate, and read back GitHub repository controls with bounded retries.
-//   reconcileGithubControls - Run dry-run/check/apply and prove convergence after each staged mutation.
+//   reconcileGithubControls - Run dry-run/check/apply/activation and prove convergence after each mutation.
 //   createControlJournalHeader - Bind an exclusive journal to repository, config, and pre-mutation snapshot.
 //   createControlJournalRecord - Extend the tamper-evident operation hash chain.
 //   parseControlJournal - Validate a complete journal header, identity, and hash chain.
@@ -41,6 +41,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.2.0: execute activation mutations and add an explicit active-state read-back mode instead of reporting an unapplied plan as success.
 //   - 2026-10-20 v1.1.1: synchronize MODULE_MAP with the journal record hash helper.
 //   - 2026-10-20 v1.1.0: stop retrying uncertain mutations, parse immutable-release state exactly, and add snapshot-bound hash-chained journal primitives.
 //   - 2026-10-20 v1.0.0: add owner-local dry-run/read-back/apply/rollback for release controls with immutable-release support and no secret-value migration.
@@ -646,10 +647,10 @@ export class GitHubControlsClient {
 }
 
 // START_CONTRACT: reconcileGithubControls
-//   PURPOSE: Run dry-run/check/apply with one-operation-at-a-time read-back and append-only journal evidence.
+//   PURPOSE: Run dry-run/check/apply/activation with one-operation-at-a-time read-back and append-only journal evidence.
 //   INPUTS: { client: object|null - live/fake adapter, desired: object, actual: object, mode: string, identities: object, onJournal: function }
 //   OUTPUTS: { object - planned operation names and convergence }
-//   SIDE_EFFECTS: Apply mode invokes managed mutations and journal callback; other modes are read-only.
+//   SIDE_EFFECTS: Apply and activate modes invoke managed mutations and journal callback; other modes are read-only.
 //   LINKS: .grace/verification/features.xml V-M-046 control-plane scenarios
 // END_CONTRACT: reconcileGithubControls
 // START_BLOCK_RECONCILE_GITHUB_CONTROLS
@@ -667,7 +668,8 @@ export const reconcileGithubControls = async ({
   if (mode === 'check' && operations.length) {
     fail('MT_RELEASE_CONTROLS_DRIFT', `operations=${operations.length}`)
   }
-  if (mode === 'apply') {
+  const mutates = mode === 'apply' || mode === 'activate'
+  if (mutates) {
     let count = 0
     while (operations.length) {
       count += 1
@@ -688,7 +690,7 @@ export const reconcileGithubControls = async ({
       operations = planGithubControls(desired, current)
     }
   }
-  return { mode, operations: initial, converged: mode === 'apply' ? operations.length === 0 : initial.length === 0 }
+  return { mode, operations: initial, converged: mutates ? operations.length === 0 : initial.length === 0 }
 }
 // END_BLOCK_RECONCILE_GITHUB_CONTROLS
 
@@ -735,13 +737,15 @@ const main = async () => {
     const args = process.argv.slice(2)
     const mode = args.includes('--activate')
       ? 'activate'
-      : args.includes('--apply')
-        ? 'apply'
-      : args.includes('--check')
-        ? 'check'
-        : args.includes('--rollback')
-          ? 'rollback'
-          : 'dry-run'
+      : args.includes('--check-active')
+        ? 'check-active'
+        : args.includes('--apply')
+          ? 'apply'
+          : args.includes('--check')
+            ? 'check'
+            : args.includes('--rollback')
+              ? 'rollback'
+              : 'dry-run'
     const config = JSON.parse(readFileSync(resolve(root, '.github/release-governance.json'), 'utf8'))
     if (mode === 'dry-run') {
       const fixtureIdentities = {
@@ -765,7 +769,7 @@ const main = async () => {
     }
     const identities = await client.resolveIdentities(config)
     const stagedDesired = buildDesiredControls(config, identities)
-    const desired = mode === 'activate'
+    const desired = mode === 'activate' || mode === 'check-active'
       ? buildDesiredControls(config, identities, { activate: true })
       : stagedDesired
     if (mode === 'rollback') {
@@ -849,8 +853,11 @@ const main = async () => {
       console.info(`[ReleaseControls][reconcile][BLOCK_RELEASE_CONTROLS_APPLIED] operations=${result.operations.length}`)
       return
     }
-    await reconcileGithubControls({ client, desired, mode })
-    console.info('[ReleaseControls][reconcile][BLOCK_RELEASE_CONTROLS_CONFIRMED] operations=0')
+    await reconcileGithubControls({ client, desired, mode: 'check' })
+    const marker = mode === 'check-active'
+      ? 'BLOCK_RELEASE_CONTROLS_ACTIVE_CONFIRMED'
+      : 'BLOCK_RELEASE_CONTROLS_CONFIRMED'
+    console.info(`[ReleaseControls][reconcile][${marker}] operations=0`)
   } catch (error) {
     const code = error?.code ?? 'MT_RELEASE_CONTROLS_INVALID'
     console.error(`[ReleaseControls][reconcile][BLOCK_RELEASE_CONTROLS_REJECTED] code=${code} ${error.message}`)
