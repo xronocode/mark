@@ -145,19 +145,26 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
 
   // START_BLOCK_TRIMMED_BUTTON_SET
   describe('trimmed button set (linux frameless)', () => {
-    it('left cluster = app menu + sidebar toggle + Settings; right = guide + theme + share', () => {
+    it('left cluster = app menu + sidebar toggle + Settings (amendment 5); right = share only', () => {
+      // Amendment 5: ☰ and ⚙ returned after a day of palette-only
+      // reachability proved undiscoverable; the guide button stays gone.
       const wrapper = mountBar()
       const left = wrapper.findAll('.titlebar-nav .titlebar-nav-btn')
       expect(left.length).toBe(3)
       expect(left[0].classes()).toContain('titlebar-nav-menu')
-      expect(left[1].attributes('title')).toBe('Toggle Sidebar')
       expect(left[2].attributes('title')).toBe('Settings')
 
+      // Amendment 3: the right cluster holds Share only on Win/Linux
+      // (theme rides the caption row; the guide button is gone).
       const right = wrapper.findAll('.titlebar-right .titlebar-nav-btn')
-      expect(right.length).toBe(3)
-      expect(right[0].attributes('title')).toBe('Mark Guide')
-      expect(right[1].attributes('title')).toMatch(/^Theme: /)
-      expect(right[2].attributes('title')).toBe('Share')
+      expect(right.length).toBe(1)
+      expect(right[0].attributes('title')).toBe('Share')
+      // Non-Windows frameless keeps the drawn SVG fallback in the caption
+      // cells (the Segoe code points are the Windows-only path) and the
+      // 4th theme cell is present in the strip.
+      expect(wrapper.findAll('.caption-glyph').length).toBe(0)
+      expect(wrapper.find('.frameless-titlebar-theme').exists()).toBe(true)
+      expect(wrapper.find('.right-toolbar svg').exists()).toBe(true)
     })
 
     it('the Files and TOC buttons, the breadcrumb and the word count are gone', () => {
@@ -180,11 +187,10 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
   // END_BLOCK_TRIMMED_BUTTON_SET
 
   // START_BLOCK_GUIDE_BUTTON
-  describe('«?» Mark Guide entry (Win/Linux)', () => {
-    it('emits mt::open-guide on the bus', async () => {
+  describe('«?» Mark Guide entry (removed by amendment 3)', () => {
+    it('is gone — Help › Mark Guide in the window menu bar covers it', () => {
       const wrapper = mountBar()
-      await wrapper.find('.titlebar-guide-btn').trigger('click')
-      expect(bus.emit).toHaveBeenCalledWith('mt::open-guide', {})
+      expect(wrapper.find('.titlebar-guide-btn').exists()).toBe(false)
     })
   })
   // END_BLOCK_GUIDE_BUTTON
