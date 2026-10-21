@@ -136,8 +136,12 @@ Repository files describe the desired controls, but they cannot safely install A
      --activate \
      --confirm-owner xronocode \
      --journal <absolute-path-outside-repo>/mark-release-controls-activate.ndjson
-   npm run release:github-controls -- --check
+   npm run release:github-controls -- --check-active
    ```
+
+   The first check proves the deliberately disabled staging state. The final
+   `--check-active` proves both managed rulesets were actually mutated to and
+   read back as `active`; it must never accept the staged disabled state.
 9. In `xronocode/homebrew-mark`, enable repository auto-merge and activate the source-controlled `homebrew-mark-main-protection` ruleset only after the `cask/validate` canary succeeds. The ruleset requires a pull request plus the strict GitHub Actions check; it blocks force-push and deletion. The release App schedules, but cannot bypass, that required check.
 
 Activation fails if a forbidden signing/App secret remains at repository scope, an Environment secret name is missing, staged controls drift, or any exact canary check is absent, duplicated, or not successful. Each apply/activate journal has a mode-`0600` snapshot beside it. Preserve both until rollout is accepted; rollback is owner-local and exact:
