@@ -1339,7 +1339,9 @@
     "export": {
       "error": "Erreur d'exportation",
       "errorExporting": "Erreur lors de l'exportation du fichier",
-      "failed": "Échec de l'exportation"
+      "failed": "Échec de l'exportation",
+      "imagesEmbeddedTitle": "Certaines images n'ont pas été intégrées",
+      "imagesEmbeddedMessage": "{embedded} sur {total} images intégrées — les images trop volumineuses ou introuvables conservent leur lien d'origine"
     },
     "diagramExport": {
       "title": "Diagramme",

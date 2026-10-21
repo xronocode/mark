@@ -1340,7 +1340,9 @@
     "export": {
       "error": "匯出錯誤",
       "errorExporting": "匯出檔案時發生錯誤",
-      "failed": "匯出失敗"
+      "failed": "匯出失敗",
+      "imagesEmbeddedTitle": "部分圖片未嵌入",
+      "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 張圖片——過大或不存在的圖片保留原始連結"
     },
     "diagramExport": {
       "title": "圖表",
