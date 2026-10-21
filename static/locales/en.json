@@ -489,6 +489,7 @@
     "recentFolders": "Recent folders",
     "noRecentFiles": "No recent files",
     "lastSession": "Last session",
+    "lastSessionEmpty": "Nothing to restore — the previous session's files are no longer available",
     "filesCount": {
       "one": "{count} file",
       "other": "{count} files"
@@ -514,6 +515,15 @@
       "todayAt": "today {time}",
       "yesterday": "yesterday",
       "daysAgo": "{count} days ago"
+    },
+    "recentlyClosed": {
+      "title": "Recently closed",
+      "clear": "Clear",
+      "reopenAll": "Reopen all {count}",
+      "reopenClosedTab": "Reopen closed tab",
+      "missingNotice": "{name} is no longer available",
+      "someMissingNotice": "{count} of the closed files are no longer available",
+      "buttonLabel": "Reopen closed tabs ({count})"
     }
   },
   "clipboardOpen": {
@@ -919,7 +929,8 @@
       "zoom": "Zoom",
       "checkUpdate": "Check for Updates",
       "lineEnding": "Line Ending",
-      "close": "Close"
+      "close": "Close",
+      "reopenClosedTab": "Reopen Closed Tab"
     },
     "edit": {
       "undo": "Undo",

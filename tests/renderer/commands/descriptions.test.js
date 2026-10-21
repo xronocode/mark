@@ -87,6 +87,7 @@ describe('getCommandDescriptionById', () => {
       'file.toggle-auto-save', 'file.change-encoding', 'file.line-ending',
       'file.trailing-newline', 'file.preferences', 'file.print',
       'file.check-update', 'file.close', 'file.close-tab', 'file.close-window',
+      'file.reopen-closed-tab',
       'file.quit'
     ]
     for (const cmd of fileCommands) {

@@ -482,6 +482,7 @@
     "recentFolders": "最近のフォルダー",
     "noRecentFiles": "最近のファイルはありません",
     "lastSession": "前回のセッション",
+    "lastSessionEmpty": "復元できるものがありません。前回のセッションのファイルは利用できなくなりました",
     "filesCount": {
       "other": "{count} 件のファイル"
     },
@@ -506,6 +507,15 @@
       "todayAt": "今日 {time}",
       "yesterday": "昨日",
       "daysAgo": "{count} 日前"
+    },
+    "recentlyClosed": {
+      "title": "最近閉じたタブ",
+      "clear": "クリア",
+      "reopenAll": "{count}件すべて再び開く",
+      "reopenClosedTab": "閉じたタブを再び開く",
+      "missingNotice": "{name} は利用できなくなりました",
+      "someMissingNotice": "閉じたファイルのうち {count} 件が利用できなくなりました",
+      "buttonLabel": "閉じたタブを再び開く（{count}）"
     }
   },
   "clipboardOpen": {
@@ -902,7 +912,8 @@
       "zoom": "ズーム",
       "checkUpdate": "アップデートを確認",
       "lineEnding": "行末文字",
-      "close": "閉じる"
+      "close": "閉じる",
+      "reopenClosedTab": "閉じたタブを再び開く"
     },
     "edit": {
       "undo": "元に戻す",

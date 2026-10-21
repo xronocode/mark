@@ -928,6 +928,14 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .build(handle)?,
         )
         .item(
+            // C-FIX-009-RECENTLY-CLOSED: reopens the newest closed-tab
+            // history entry; the renderer command owns the empty-history
+            // no-op semantics.
+            &MenuItemBuilder::with_id("file.reopen-closed-tab", "Reopen Closed Tab")
+                .accelerator("Shift+CmdOrCtrl+T")
+                .build(handle)?,
+        )
+        .item(
             &MenuItemBuilder::with_id("file.share", "Share…")
                 .build(handle)?,
         )

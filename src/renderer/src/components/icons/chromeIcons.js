@@ -280,6 +280,15 @@ export const CHROME_ICONS = Object.freeze({
     part('path', { d: 'M4 4l8 8M12 4l-8 8' }, { cap: 'round' })
   ]),
 
+  // ── C-FIX-009-RECENTLY-CLOSED: the tab-strip recovery button (↺) ──
+  // Counterclockwise open circle with the arrowhead at the top-right
+  // break — the universal "reopen closed tab" glyph, drawn on the
+  // shared 16 grid / 1.4 stroke.
+  reopen: Object.freeze([
+    part('path', { d: 'M12.9 6.1A5.3 5.3 0 1 1 11 3.35' }, { cap: 'round' }),
+    part('path', { d: 'M12.9 2.6v3.5H9.4' }, { cap: 'round', join: 'round' })
+  ]),
+
   // ── C-51 T-006: the document-surface expand button (canvas Mermaid) ──
   // Two outward corner brackets and the diagonal — the glyph muya renders
   // inline on every diagram/table figure; this descriptor is the twin

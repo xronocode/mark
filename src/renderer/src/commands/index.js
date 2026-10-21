@@ -41,6 +41,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 C-FIX-009-RECENTLY-CLOSED: new file.reopen-closed-tab
+//     command (File › Reopen Closed Tab, Shift+Cmd/Ctrl+T) reopens the
+//     newest closed-tab history entry through the
+//     mt::editor-reopen-closed-tab bus event; empty history is a quiet
+//     no-op.
 //   - 2026-10-20 FIX-010: add the macOS-only view.command-palette
 //     registry command and canonical Shift+Command+P display chord. The
 //     command opens the existing root palette through its established bus
@@ -317,6 +322,16 @@ const commands = [
     id: 'file.close-tab',
     execute: async () => {
       bus.emit('mt::editor-close-tab', null)
+    }
+  },
+  {
+    // C-FIX-009-RECENTLY-CLOSED: File › Reopen Closed Tab (Shift+Cmd/Ctrl+T)
+    // — reopens the newest closed-tab history entry; empty history is a
+    // quiet no-op. The store listener (LISTEN_FOR_REOPEN_CLOSED) owns the
+    // semantics; an empty history never steals the chord.
+    id: 'file.reopen-closed-tab',
+    execute: async () => {
+      bus.emit('mt::editor-reopen-closed-tab', null)
     }
   },
   {
