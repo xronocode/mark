@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "trainId": "2.6.x-next",
+  "state": "Collecting",
+  "previousRelease": {
+    "tag": "v2.6.0",
+    "commit": "085e0c3853d34d219700d85621204f97227bcb40",
+    "bootstrapSha": "de16653229170226060a6f2f8f6e36df02e2c452",
+    "tree": "010ab79a204e81add9651486be82c726ca53bd68"
+  },
+  "computedVersion": "2.6.1",
+  "payloadSha": null,
+  "sealSha": null,
+  "releaseAuthorization": null,
+  "items": {
+    "userFacing": [],
+    "operational": [],
+    "notPresent": []
+  },
+  "commitAccounting": {
+    "fromExclusive": "de16653229170226060a6f2f8f6e36df02e2c452",
+    "entries": []
+  },
+  "requiredChecks": [
+    {
+      "name": "status check",
+      "app": "GitHub Actions",
+      "status": "success",
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+    },
+    {
+      "name": "release/governance",
+      "app": "GitHub Actions",
+      "status": "success",
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+    },
+    {
+      "name": "release/readiness",
+      "app": "GitHub Actions",
+      "status": "success",
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+    }
+  ],
+  "materials": {
+    "status": "pending"
+  },
+  "transitions": [
+    {
+      "state": "Collecting",
+      "date": "2026-10-21",
+      "actor": "xronocode",
+      "evidence": "Train opened after the v2.6.0 release (tag v2.6.0 at seal 085e0c3853d34d219700d85621204f97227bcb40). The post-release wave collects here: the editor stabilization pack FIX-010, FIX-012, FIX-015 and FIX-016 (PR 16), the platform repairs FIX-013 and FIX-014 (PR 17), the follow-redirects dependency bump (PR 18) and the FIX-009 session recovery (PR 19), each pending owner acceptance and admission."
+    }
+  ]
+}

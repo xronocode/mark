@@ -74,8 +74,8 @@ const STRICT_STATES = new Set(['Frozen', 'Ready', 'Released'])
 const SHA_PATTERN = /^[0-9a-f]{40}$/
 const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/
 const SEAL_ALLOWLIST = [
-  'docs/release-trains/2.5.x-next.json',
-  'docs/release-trains/2.5.x-next.md',
+  'docs/release-trains/2.6.x-next.json',
+  'docs/release-trains/2.6.x-next.md',
   'docs/assets/readme/2.6.0.manifest.json'
 ]
 const GOVERNANCE_CONFIG_PATH = '.github/release-governance.json'
@@ -124,7 +124,7 @@ const normalizeItems = (manifest) => {
 // START_BLOCK_READ_TRAIN_MANIFEST
 export const readTrainManifest = (
   workspaceRoot,
-  trainPath = 'docs/release-trains/2.5.x-next.json'
+  trainPath = 'docs/release-trains/2.6.x-next.json'
 ) => {
   const pathname = resolve(workspaceRoot, trainPath)
   try {
@@ -559,7 +559,7 @@ export const runReleaseReadiness = (workspaceRoot, options = {}) => {
     manifest,
     { workspaceRoot, tag: options.tag, payload: options.payload }
   )
-  const ledgerPath = (options.trainPath ?? 'docs/release-trains/2.5.x-next.json').replace(
+  const ledgerPath = (options.trainPath ?? 'docs/release-trains/2.6.x-next.json').replace(
     /\.json$/,
     '.md'
   )

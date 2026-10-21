@@ -3,7 +3,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
-//   DEPENDS: Vitest; tools/release-readiness.mjs; docs/release-trains/2.5.x-next.json.
+//   DEPENDS: Vitest; tools/release-readiness.mjs; docs/release-trains/2.6.x-next.json.
 //   LINKS: .grace/verification/features.xml V-M-046.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -182,10 +182,10 @@ const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
   manifest.requiredChecks = structuredClone(STRICT_CHECKS)
   manifest.transitions.push({ state: 'Ready', date: '2026-10-20' })
   write(
-    'docs/release-trains/2.5.x-next.json',
+    'docs/release-trains/2.6.x-next.json',
     `${JSON.stringify(manifest, null, 2)}\n`
   )
-  write('docs/release-trains/2.5.x-next.md', '| State | Ready |\n')
+  write('docs/release-trains/2.6.x-next.md', '| State | Ready |\n')
   write(
     'docs/assets/readme/1.1.0.manifest.json',
     `${JSON.stringify({
@@ -210,21 +210,23 @@ const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
 
 // START_BLOCK_RELEASE_READINESS_TESTS
 describe('release train authority', () => {
-  it('parses the checked-in train and records its expected 2.6.0 lifecycle identity', () => {
+  it('parses the checked-in train and records its expected post-2.6.0 lifecycle identity', () => {
     const manifest = readTrainManifest(process.cwd())
     const result = validateTrainManifest(manifest, {
       workspaceRoot: process.cwd(),
-      tag: 'v2.6.0'
+      tag: 'v2.6.1'
     })
     expect(result).toMatchObject({
-      trainId: '2.5.x-next',
+      trainId: '2.6.x-next',
       state: manifest.state,
-      version: '2.6.0'
+      version: 'v2.6.1'.slice(1)
     })
-    expect(result.itemCounts.userFacing).toBeGreaterThan(10)
+    // The collecting train opens empty: admission items arrive with
+    // owner acceptance, not with the train.
+    expect(result.itemCounts.userFacing).toBe(0)
     expect(
       validateTrainLedger(
-        readFileSync(resolve('docs/release-trains/2.5.x-next.md'), 'utf8'),
+        readFileSync(resolve('docs/release-trains/2.6.x-next.md'), 'utf8'),
         manifest
       )
     ).toBe(true)
@@ -362,7 +364,7 @@ describe('release train authority', () => {
 
   it('keeps the manifest valid JSON with no machine-specific path', () => {
     const source = readFileSync(
-      resolve('docs/release-trains/2.5.x-next.json'),
+      resolve('docs/release-trains/2.6.x-next.json'),
       'utf8'
     )
     expect(() => JSON.parse(source)).not.toThrow()
