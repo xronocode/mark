@@ -482,6 +482,8 @@
     "recentFolders": "最近的文件夹",
     "noRecentFiles": "暂无最近文件",
     "lastSession": "上次会话",
+    "lastSessionWithCount": "上次会话（{count}）",
+    "lastSessionEmpty": "没有可恢复的内容 — 上次会话的文件已不可用",
     "filesCount": {
       "other": "{count} 个文件"
     },
@@ -506,6 +508,15 @@
       "todayAt": "今天 {time}",
       "yesterday": "昨天",
       "daysAgo": "{count} 天前"
+    },
+    "recentlyClosed": {
+      "title": "最近关闭",
+      "clear": "清除",
+      "reopenAll": "重新打开全部 {count} 个",
+      "reopenClosedTab": "重新打开已关闭标签页",
+      "missingNotice": "{name} 已不可用",
+      "someMissingNotice": "{count} 个已关闭的文件已不可用",
+      "buttonLabel": "重新打开已关闭标签页（{count}）"
     }
   },
   "clipboardOpen": {
@@ -910,7 +921,8 @@
       "exportFilePdf": "导出为 PDF",
       "zoom": "缩放",
       "checkUpdate": "检查更新",
-      "changeLineEnding": "更改行结束符"
+      "changeLineEnding": "更改行结束符",
+      "reopenClosedTab": "重新打开已关闭标签页"
     },
     "edit": {
       "undo": "撤销",
@@ -1340,7 +1352,9 @@
     "export": {
       "error": "导出错误",
       "errorExporting": "导出文件时出错",
-      "failed": "导出失败"
+      "failed": "导出失败",
+      "imagesEmbeddedTitle": "部分图片未嵌入",
+      "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 张图片——过大或不存在的图片保留原链接"
     },
     "diagramExport": {
       "title": "图表",

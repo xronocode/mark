@@ -10,6 +10,7 @@ import {
   getBlankFileState
 } from './help'
 import notice from '../services/notification'
+import { useRecentlyClosedStore } from './recentlyClosed'
 import {
   FileEncodingCommand,
   LineEndingCommand,
@@ -93,7 +94,12 @@ export const useEditorStore = defineStore('editor', {
     tabs: [],
     tabIdToIndex: {},
     listToc: [], // Used for equal check and for searching for the correct github-slug to jump to
-    toc: []
+    toc: [],
+    // C-FIX-009-SESSION-COLD-START: the boot-time restorable snapshot
+    // offered on the welcome screen when this launch skipped auto-restore
+    // (restoreSessionOnLaunch off). Null otherwise; never updated from
+    // the live autosaved preference afterwards.
+    coldStartSession: null
   }),
 
   actions: {
@@ -637,7 +643,29 @@ export const useEditorStore = defineStore('editor', {
           if (enabled === undefined) {
             enabled = await ipcPrefs.get('restoreSessionOnLaunch').catch(() => undefined)
           }
-          if (enabled !== false) await this.RESTORE_SESSION()
+          if (enabled !== false) {
+            await this.RESTORE_SESSION()
+          } else {
+            // C-FIX-009-SESSION-COLD-START: restore was skipped by the
+            // preference — freeze the COMPLETE restorable payload once
+            // for the welcome screen's explicit cold-start action: tabs,
+            // the active pathname and the workspace roots. The frozen
+            // offer is what the row shows AND what an explicit restore
+            // reopens (review wave 2: the live autosaved preferences can
+            // legitimately change mid-run, so the click path must not
+            // reread them); never refreshed afterwards.
+            const readList = async (key) => {
+              const value = await ipcPrefs.get(key).catch(() => null)
+              return Array.isArray(value) ? value.filter((x) => typeof x === 'string' && x) : []
+            }
+            const [tabs, folders, activeRaw] = await Promise.all([
+              readList('lastSessionTabs'),
+              readList('lastSessionFolders'),
+              ipcPrefs.get('lastSessionActive').catch(() => null)
+            ])
+            const active = typeof activeRaw === 'string' && activeRaw ? activeRaw : null
+            if (tabs.length) this.coldStartSession = { tabs, folders, active }
+          }
         }
       } finally {
         this.START_SESSION_AUTOSAVE()
@@ -648,9 +676,23 @@ export const useEditorStore = defineStore('editor', {
     // normal open path (mt::open-file: encoding, line endings, watcher) in
     // the saved order, then the saved active tab. Missing paths are
     // skipped. Also the welcome screen «Last session» action.
-    async RESTORE_SESSION() {
+    async RESTORE_SESSION({ from: rawFrom } = {}) {
       const projectStore = useProjectStore()
+      // Hardened shape check (local-model review): a malformed frozen
+      // payload falls back to the live-preference path instead of
+      // throwing mid-restore.
+      const from = rawFrom && Array.isArray(rawFrom.tabs) ? rawFrom : null
+      // `from` restores a frozen payload (the cold-start offer) instead
+      // of rereading the live autosaved preferences — the session
+      // autosave legitimately rewrites them during the run, and the
+      // offer must reopen exactly what it advertises. The automatic
+      // startup path passes nothing and reads the preferences as before.
       const readList = async (key) => {
+        if (from) {
+          if (key === 'lastSessionTabs') return [...from.tabs]
+          if (key === 'lastSessionFolders') return [...(from.folders || [])]
+          return null
+        }
         const value = await ipcPrefs.get(key).catch(() => null)
         return Array.isArray(value) ? value.filter((p) => typeof p === 'string' && p) : []
       }
@@ -664,7 +706,7 @@ export const useEditorStore = defineStore('editor', {
       }
       const folders = await readList('lastSessionFolders')
       const paths = await readList('lastSessionTabs')
-      const active = await ipcPrefs.get('lastSessionActive').catch(() => null)
+      const active = from ? (from.active || null) : await ipcPrefs.get('lastSessionActive').catch(() => null)
       let skipped = 0
       let restoredFolders = 0
       let restoredTabs = 0
@@ -695,9 +737,15 @@ export const useEditorStore = defineStore('editor', {
           await new Promise((resolve) => setTimeout(resolve, 50))
         }
       }
+      const result = { folders: restoredFolders, tabs: restoredTabs, skipped }
+      // C-FIX-009-SESSION-COLD-START: a successful explicit restore
+      // consumes the welcome offer so the row cannot advertise a
+      // snapshot that is already open.
+      if (result.folders + result.tabs > 0) this.coldStartSession = null
       console.debug(
         `[EditorStore][bootSession][BLOCK_SESSION_RESTORED] folders=${restoredFolders} tabs=${restoredTabs} skipped=${skipped}`
       )
+      return result
     },
     // END_BLOCK_SESSION_RESTORE
 
@@ -1095,10 +1143,50 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    // C-FIX-009-RECENTLY-CLOSED: File › Reopen Closed Tab (Shift+Cmd/Ctrl+T)
+    // reopens the newest closed entry; an empty history is a quiet no-op
+    // (the chord is never stolen from the editor). The Reopen-all active
+    // selection arrives on the same channel family.
+    LISTEN_FOR_REOPEN_CLOSED() {
+      bus.on('mt::editor-reopen-closed-tab', () => {
+        void useRecentlyClosedStore().REOPEN_NEWEST()
+      })
+      bus.on('mt::recently-closed-select', async ({ pathname } = {}) => {
+        if (typeof pathname !== 'string' || !pathname) return
+        // Same wait shape as RESTORE_SESSION's active-tab selection.
+        for (let i = 0; i < 40; i++) {
+          const tab = this.tabs.find((t) => t.pathname === pathname)
+          if (tab) {
+            if (this.currentFile !== tab) this.UPDATE_CURRENT_FILE(tab)
+            return
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50))
+        }
+      })
+    },
+
     FORCE_CLOSE_TAB(file) {
       const { tabs, currentFile } = this
       const index = tabs.findIndex((t) => t.id === file.id)
       if (index > -1) {
+        // C-FIX-009-RECENTLY-CLOSED: record BEFORE the splice so
+        // stripIndex is the tab's original position. Only saved-file
+        // tabs (pathname) are recoverable — untitled drafts stay outside
+        // by owner decision.
+        if (file.pathname) {
+          const projectStore = useProjectStore()
+          const root =
+            (projectStore.projectTrees || []).find((r) => file.pathname.startsWith(r.pathname))
+              ?.pathname || ''
+          useRecentlyClosedStore().RECORD_CLOSE({
+            pathname: file.pathname,
+            filename: file.filename,
+            stripIndex: index,
+            wasActive: file.id === currentFile.id,
+            root,
+            closedAt: Date.now()
+          })
+        }
         tabs.splice(index, 1)
         this.updateTabIdToIndex()
       }
@@ -2338,9 +2426,9 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, and per-tab diff baselines (recording only — resolution lives in diffView.vue).
-//   DEPENDS: ipc runtime, Pinia, editor/project/preferences stores, renderer bus, store/diffSnapshots.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm).
+//   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
+//   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots.
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -2351,6 +2439,16 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-21 FIX-009 (C-FIX-009-SESSION-COLD-START +
+//     C-FIX-009-RECENTLY-CLOSED): BOOT_SESSION records the boot-time
+//     cold-start offer (coldStartSession) when the restore preference
+//     is off and a non-empty snapshot exists; RESTORE_SESSION returns
+//     { folders, tabs, skipped } and a successful restore consumes the
+//     offer. FORCE_CLOSE_TAB records pathname tabs into the
+//     recently-closed history (strip position + active flag + root)
+//     before the splice; LISTEN_FOR_REOPEN_CLOSED wires the
+//     file.reopen-closed-tab chord and the Reopen-all active-tab
+//     selection.
 //   - 2026-10-20 FIX-016 (C-FIX-016-AUTOSAVE-DISABLE-RACE):
 //     HANDLE_AUTO_SAVE re-checks the live Auto Save preference when its
 //     debounce fires, so disabling the setting cancels already queued writes

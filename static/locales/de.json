@@ -484,6 +484,8 @@
     "recentFolders": "Letzte Ordner",
     "noRecentFiles": "Keine letzten Dateien",
     "lastSession": "Letzte Sitzung",
+    "lastSessionWithCount": "Letzte Sitzung ({count})",
+    "lastSessionEmpty": "Nichts wiederherzustellen — die Dateien der letzten Sitzung sind nicht mehr verfügbar",
     "filesCount": {
       "one": "{count} Datei",
       "other": "{count} Dateien"
@@ -509,6 +511,15 @@
       "todayAt": "heute {time}",
       "yesterday": "gestern",
       "daysAgo": "vor {count} Tagen"
+    },
+    "recentlyClosed": {
+      "title": "Kürzlich geschlossen",
+      "clear": "Leeren",
+      "reopenAll": "Alle {count} wieder öffnen",
+      "reopenClosedTab": "Geschlossenen Tab wieder öffnen",
+      "missingNotice": "{name} ist nicht mehr verfügbar",
+      "someMissingNotice": "{count} der geschlossenen Dateien sind nicht mehr verfügbar",
+      "buttonLabel": "Geschlossene Tabs wieder öffnen ({count})"
     }
   },
   "clipboardOpen": {
@@ -905,7 +916,8 @@
       "zoom": "Zoom",
       "checkUpdate": "Nach Updates suchen",
       "lineEnding": "Zeilenende",
-      "close": "Schließen"
+      "close": "Schließen",
+      "reopenClosedTab": "Geschlossenen Tab wieder öffnen"
     },
     "edit": {
       "undo": "Rückgängig",
@@ -1323,7 +1335,9 @@
     "export": {
       "error": "Export-Fehler",
       "errorExporting": "Fehler beim Exportieren der {type}-Datei",
-      "failed": "{type}-Export fehlgeschlagen"
+      "failed": "{type}-Export fehlgeschlagen",
+      "imagesEmbeddedTitle": "Einige Bilder wurden nicht eingebettet",
+      "imagesEmbeddedMessage": "{embedded} von {total} Bildern eingebettet — große oder fehlende Bilder behalten ihre ursprünglichen Verweise"
     },
     "diagramExport": {
       "title": "Diagramm",
