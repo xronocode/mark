@@ -196,10 +196,10 @@ describe('titleBar/index.vue — macOS variant (C-38 N1)', () => {
     wrapper.unmount()
   })
 
-  it('gates the gear with the isOsx flag in the SFC source', () => {
+  it('keeps the gear gated to Win/Linux in the SFC source (amendment 5)', () => {
+    // The gear returned for Win/Linux; the v-if="!isOsx" gate keeps macOS
+    // clean (the native app menu owns Settings there).
     const sfc = readSfc()
-    expect(sfc).toMatch(
-      /v-if="!isOsx"[\s\S]*?:title="t\('sideBar\.icons\.settings'\)"/
-    )
+    expect(sfc).toMatch(/v-if="!isOsx"[\s\S]*?:title="t\('sideBar\.icons\.settings'\)"/)
   })
 })

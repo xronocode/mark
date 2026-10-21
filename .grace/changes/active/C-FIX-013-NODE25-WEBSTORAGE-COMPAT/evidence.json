@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-20",
+  "status": "implemented and verified on Node 22 and Node 25; owner acceptance and commit pending",
+  "repair": {
+    "config": "vitest.config.ts: nodeMajor = Number(process.versions.node.split('.')[0]); execArgv = nodeMajor >= 25 ? [...process.execArgv, '--no-experimental-webstorage'] : process.execArgv (C-FIX-013 comment block in-file)",
+    "regression": "tests/renderer/localstorage-webstorage-compat.test.js (TEST/LOCALS contract): function-typed getItem/setItem/removeItem/clear/key + set/get/key/remove/clear/length roundtrip, marker BLOCK_LOCALSTORAGE_CONTRACT_OK",
+    "runtimePin": ".nvmrc = 22 (mirrors .github/workflows/test.yml node-version '22'; README 'Requirements: Node.js 22' already documents it)"
+  },
+  "verification": {
+    "node22-local": "npx vitest run tests/renderer/localstorage-webstorage-compat.test.js — 2 passed, marker emitted; full npm test — Test Files 342 passed (342), Tests 4675 passed | 2 skipped | 3 todo, 46.18s. Flag correctly absent on Node 22.",
+    "node25-negative-control": "Windows polygon (laptop-kari, Windows 10 22H2, Node v25.8.1): same test file against a guard-off copy of the config (execArgv line stripped) — both tests FAIL with TypeError: localStorage.clear is not a function, proving the check detects the shadowed Node webstorage global rather than passing vacuously. Guard-off config deleted after the control.",
+    "node25-positive": "same file with the canonical config — 2 passed, BLOCK_LOCALSTORAGE_CONTRACT_OK emitted, no --localstorage-file warnings.",
+    "node25-full": "Windows polygon canonical npm test with NO NODE_OPTIONS override (main@bae95a9 + the three bundle files): Test Files 339 passed (339), exit 0, no --localstorage-file worker warnings. The 66-file/841-test failure class from the morning run is gone. sideBar/index.test.js passed on the idle machine this run; its earlier 5s cold-start timeout under load/cold transform remains the separately tracked harness-portability item (cause unproven beyond slow cold start; no global timeout raised).",
+    "governance": "grace lint --path . --assertions current — zero errors; graph M-046 summary line added; V-M-046 gained the regression command + scenario-18; train item FIX-013 recorded in docs/release-trains/2.5.x-next.md."
+  },
+  "scopeNotes": "Claims deliberately narrowed per the owner's review of the polygon session: the NSIS 9.47 MB local build is size parity with the 9.5 MB release artifact, not byte identity (no SHA-256 comparison, no updater artifacts — the pre-existing V-M-046 local-bundle mode was used); 'no Windows-specific product defects' covers the renderer unit set only — Windows Playwright/native install, dialogs, drag-and-drop and the updater remain untested and the current e2e lane is macOS-only. The finding is a Node >= 25 tooling-compatibility break (Node.js v25.9.0 globals docs; vitest-dev/vitest#8757), not a Windows bug and not an app bug.",
+  "pending": "Owner acceptance of FIX-013; the working tree stays uncommitted until the owner's commit/push instruction."
+}
