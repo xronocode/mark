@@ -9,7 +9,7 @@
     "tree": "49877bed7a06a76c8fdde1e5f272b7d3c57cdce1"
   },
   "computedVersion": "2.6.0",
-  "payloadSha": "8076de2040cfe7d3d616355c4907181d6da150c4",
+  "payloadSha": "de16653229170226060a6f2f8f6e36df02e2c452",
   "sealSha": null,
   "releaseAuthorization": {
     "authorized": true,
@@ -327,7 +327,9 @@
           "3f1e13a96c7eee4810f0b17cda492c13dc8ff480",
           "58c9aca3b79e69b8ae9f7e74228bf741329a332d",
           "7ada03d5f5a95ecafbf1b0042d9760880eb87063",
-          "8076de2040cfe7d3d616355c4907181d6da150c4"
+          "8076de2040cfe7d3d616355c4907181d6da150c4",
+          "759dc91b34b695e9d3a052adea30681041a82b33",
+          "de16653229170226060a6f2f8f6e36df02e2c452"
         ]
       }
     ],
@@ -366,7 +368,7 @@
   },
   "commitAccounting": {
     "fromExclusive": "0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6",
-    "throughInclusive": "8076de2040cfe7d3d616355c4907181d6da150c4",
+    "throughInclusive": "de16653229170226060a6f2f8f6e36df02e2c452",
     "entries": [
       {
         "sha": "c94c2287562071b5ed775d6c0d72332e754581f9",
@@ -812,6 +814,16 @@
         "sha": "8076de2040cfe7d3d616355c4907181d6da150c4",
         "classification": "operational",
         "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "759dc91b34b695e9d3a052adea30681041a82b33",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
+      },
+      {
+        "sha": "de16653229170226060a6f2f8f6e36df02e2c452",
+        "classification": "operational",
+        "itemIds": ["TRAIN-BOOKKEEPING"]
       }
     ]
   },
@@ -820,19 +832,19 @@
       "name": "status check",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "8076de2040cfe7d3d616355c4907181d6da150c4"
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "8076de2040cfe7d3d616355c4907181d6da150c4"
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "8076de2040cfe7d3d616355c4907181d6da150c4"
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
     }
   ],
   "materials": {
@@ -884,6 +896,30 @@
       "date": "2026-10-21",
       "actor": "xronocode",
       "evidence": "The owner explicitly authorized Mark 2.6.0 release after reviewing the fresh screenshot package; the metadata-only seal is ready for strict online admission."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-10-21",
+      "actor": "codex-release-agent",
+      "evidence": "The first tag-triggered build reached signed and notarized artifacts but failed closed because NOTICES-node.md still named one removed production dependency; the unpublished tag was deleted and the prior Ready identity was invalidated."
+    },
+    {
+      "state": "Preparing",
+      "date": "2026-10-21",
+      "actor": "codex-release-agent",
+      "evidence": "The canonical attribution generator refreshed NOTICES-node.md to the 317-package production graph in payload de16653229170226060a6f2f8f6e36df02e2c452; product behavior and reviewed screenshot bytes are unchanged."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-21",
+      "actor": "codex-release-agent",
+      "evidence": "Payload de16653229170226060a6f2f8f6e36df02e2c452 completed exact-SHA CI, test, release/governance, and release/readiness checks; all 91 commits since the bootstrap boundary are classified."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-21",
+      "actor": "xronocode",
+      "evidence": "The owner's explicit Mark 2.6.0 release authorization remains applicable to the attribution-only recovery payload; the replacement metadata-only seal is ready for strict online admission."
     }
   ]
 }
