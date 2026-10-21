@@ -497,6 +497,7 @@
     "recentFolders": "Недавние папки",
     "noRecentFiles": "Нет недавних файлов",
     "lastSession": "Последняя сессия",
+    "lastSessionEmpty": "Восстанавливать нечего — файлы прошлого сеанса больше недоступны",
     "filesCount": {
       "one": "{count} файл",
       "few": "{count} файла",
@@ -524,6 +525,15 @@
       "todayAt": "сегодня в {time}",
       "yesterday": "вчера",
       "daysAgo": "{count} дн. назад"
+    },
+    "recentlyClosed": {
+      "title": "Недавно закрытые",
+      "clear": "Очистить",
+      "reopenAll": "Вернуть все {count}",
+      "reopenClosedTab": "Вернуть закрытую вкладку",
+      "missingNotice": "Файл «{name}» больше недоступен",
+      "someMissingNotice": "{count} из закрытых файлов больше недоступны",
+      "buttonLabel": "Вернуть закрытые вкладки ({count})"
     }
   },
   "clipboardOpen": {
@@ -929,7 +939,8 @@
       "zoom": "Масштаб",
       "checkUpdate": "Проверить обновления",
       "lineEnding": "Перевод строки",
-      "close": "Закрыть"
+      "close": "Закрыть",
+      "reopenClosedTab": "Вернуть закрытую вкладку"
     },
     "edit": {
       "undo": "Отменить",

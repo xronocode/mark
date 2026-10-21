@@ -487,6 +487,7 @@
     "recentFolders": "Dossiers récents",
     "noRecentFiles": "Aucun fichier récent",
     "lastSession": "Dernière session",
+    "lastSessionEmpty": "Rien à restaurer — les fichiers de la session précédente ne sont plus disponibles",
     "filesCount": {
       "one": "{count} fichier",
       "many": "{count} fichiers",
@@ -513,6 +514,15 @@
       "todayAt": "aujourd'hui à {time}",
       "yesterday": "hier",
       "daysAgo": "il y a {count} jours"
+    },
+    "recentlyClosed": {
+      "title": "Fermés récemment",
+      "clear": "Effacer",
+      "reopenAll": "Rouvrir les {count}",
+      "reopenClosedTab": "Rouvrir l'onglet fermé",
+      "missingNotice": "{name} n'est plus disponible",
+      "someMissingNotice": "{count} des fichiers fermés ne sont plus disponibles",
+      "buttonLabel": "Rouvrir les onglets fermés ({count})"
     }
   },
   "clipboardOpen": {
@@ -909,7 +919,8 @@
       "zoom": "Zoom",
       "checkUpdate": "Vérifier les mises à jour",
       "lineEnding": "Fin de ligne",
-      "close": "Fermer"
+      "close": "Fermer",
+      "reopenClosedTab": "Rouvrir l'onglet fermé"
     },
     "edit": {
       "undo": "Annuler",

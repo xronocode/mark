@@ -474,6 +474,7 @@ onMounted(async () => {
   editorStore.LISTEN_FOR_NEW_TAB()
   editorStore.LISTEN_FOR_CLOSE_TAB()
   editorStore.LISTEN_FOR_TAB_CYCLE()
+  editorStore.LISTEN_FOR_REOPEN_CLOSED()
   // C-40 G-3: 'mt::open-guide' (Help › Mark Guide / help.guide palette
   // command) opens the localized guide document as a temporary tab.
   editorStore.LISTEN_FOR_OPEN_GUIDE()
