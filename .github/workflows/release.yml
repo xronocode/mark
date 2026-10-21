@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 2.3.0
+# VERSION: 2.3.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage and publish one digest-verified draft release after a separate owner approval.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, draft-first GitHub publication, and downstream Homebrew handoff.
@@ -20,6 +20,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-21 v2.3.1: bind a newly created draft by database ID with bounded retry before asset reconciliation and read-back.
 #   - 2026-10-21 v2.3.0: restore the remote annotated tag object after checkout rewrites the local tag ref to its peeled commit.
 #   - 2026-10-20 v2.2.0: isolate Release Please metadata permissions from publication, compare release notes byte-for-byte, and document rerunnable cask handoff.
 #   - 2026-10-20 v2.1.0: separate privileged publication preparation, make updater metadata deterministic, narrow platform secrets, and add idempotent publication recovery.
@@ -931,8 +932,10 @@ jobs:
           ASSETS=/tmp/publication/release-assets
           BODY=/tmp/publication/release-body.md
           ALREADY_PUBLISHED=false
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            DRAFT=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)
+          RELEASE_JSON=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json databaseId,isDraft 2>/dev/null || true)
+          if [ -n "$RELEASE_JSON" ]; then
+            RELEASE_ID=$(jq -r .databaseId <<<"$RELEASE_JSON")
+            DRAFT=$(jq -r .isDraft <<<"$RELEASE_JSON")
             if [ "$DRAFT" = true ]; then
               gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$BODY"
             else
@@ -940,8 +943,15 @@ jobs:
             fi
           else
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "Mark $TAG" --notes-file "$BODY"
+            RELEASE_ID=
+            for ATTEMPT in 1 2 3 4 5; do
+              RELEASE_ID=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json databaseId --jq .databaseId 2>/dev/null || true)
+              [ -n "$RELEASE_ID" ] && break
+              [ "$ATTEMPT" = 5 ] && { echo "::error::release draft was not readable after creation"; exit 1; }
+              sleep $((ATTEMPT * 2))
+            done
           fi
-          RELEASE_ID=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .id)
+          [[ "$RELEASE_ID" =~ ^[0-9]+$ ]]
           if [ "$ALREADY_PUBLISHED" = false ]; then
             for FILE in "$ASSETS"/*; do
               NAME=$(basename "$FILE")
@@ -954,7 +964,7 @@ jobs:
               fi
             done
           fi
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > /tmp/release-readback.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" > /tmp/release-readback.json
           jq -je '.body' /tmp/release-readback.json > /tmp/server-body.md
           cmp "$BODY" /tmp/server-body.md
           find "$ASSETS" -maxdepth 1 -type f -exec basename {} \; | sort > /tmp/expected-assets.txt
