@@ -482,6 +482,8 @@
     "recentFolders": "최근 폴더",
     "noRecentFiles": "최근 파일이 없습니다",
     "lastSession": "마지막 세션",
+    "lastSessionWithCount": "마지막 세션 ({count})",
+    "lastSessionEmpty": "복원할 항목이 없습니다. 이전 세션의 파일을 더 이상 사용할 수 없어요",
     "filesCount": {
       "other": "파일 {count}개"
     },
@@ -506,6 +508,15 @@
       "todayAt": "오늘 {time}",
       "yesterday": "어제",
       "daysAgo": "{count}일 전"
+    },
+    "recentlyClosed": {
+      "title": "최근에 닫은 탭",
+      "clear": "지우기",
+      "reopenAll": "{count}개 모두 다시 열기",
+      "reopenClosedTab": "닫은 탭 다시 열기",
+      "missingNotice": "{name}은(는) 더 이상 사용할 수 없어요",
+      "someMissingNotice": "닫은 파일 중 {count}개를 더 이상 사용할 수 없어요",
+      "buttonLabel": "닫은 탭 다시 열기 ({count}개)"
     }
   },
   "clipboardOpen": {
@@ -902,7 +913,8 @@
       "zoom": "확대/축소",
       "checkUpdate": "업데이트 확인",
       "lineEnding": "줄 끝",
-      "close": "닫기"
+      "close": "닫기",
+      "reopenClosedTab": "닫은 탭 다시 열기"
     },
     "edit": {
       "undo": "실행 취소",
@@ -1320,7 +1332,9 @@
     "export": {
       "error": "내보내기 오류",
       "errorExporting": "파일 내보내기 오류",
-      "failed": "내보내기 실패"
+      "failed": "내보내기 실패",
+      "imagesEmbeddedTitle": "일부 이미지가 포함되지 않았습니다",
+      "imagesEmbeddedMessage": "전체 {total}개 중 {embedded}개의 이미지를 포함했습니다. 크기가 크거나 찾을 수 없는 이미지는 원래 링크로 유지됩니다"
     },
     "diagramExport": {
       "title": "다이어그램",

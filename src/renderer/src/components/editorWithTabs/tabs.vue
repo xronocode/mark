@@ -44,6 +44,59 @@
         </li>
       </ul>
     </div>
+    <!-- C-FIX-009-RECENTLY-CLOSED: the count-badged recovery button sits
+         left of the + (owner mockup); the popover reopens one entry or
+         all, and clears. Rendered only while the history is non-empty. -->
+    <div
+      v-if="recentlyClosedCount > 0"
+      ref="recentlyClosedToggleRef"
+      class="recently-closed-toggle"
+      :class="{ open: recentlyClosedOpen }"
+      role="button"
+      tabindex="0"
+      :aria-expanded="recentlyClosedOpen ? 'true' : 'false'"
+      aria-haspopup="dialog"
+      :aria-label="t('recent.recentlyClosed.buttonLabel', { count: recentlyClosedCount })"
+      :title="t('recent.recentlyClosed.buttonLabel', { count: recentlyClosedCount })"
+      @click.stop="toggleRecentlyClosed"
+      @keydown.enter.prevent="toggleRecentlyClosed"
+    >
+      <chrome-icon name="reopen" :size="16" aria-hidden="true"></chrome-icon>
+      <span class="recently-closed-badge" aria-hidden="true">{{ recentlyClosedCount }}</span>
+    </div>
+    <teleport v-if="recentlyClosedOpen" to="body">
+      <div
+        class="recently-closed-popover"
+        role="dialog"
+        :aria-label="t('recent.recentlyClosed.title')"
+        :style="recentlyClosedPopoverStyle"
+      >
+        <div class="rc-header">
+          <span class="rc-title">{{ t('recent.recentlyClosed.title') }}</span>
+          <button type="button" class="rc-clear" @click.stop="clearRecentlyClosed">
+            {{ t('recent.recentlyClosed.clear') }}
+          </button>
+        </div>
+        <ul class="rc-list">
+          <li v-for="entry in recentlyClosedEntries" :key="entry.pathname" class="rc-row">
+            <button
+              type="button"
+              class="rc-row-button"
+              :title="entry.pathname"
+              @click.stop="reopenRecentlyClosedEntry(entry)"
+            >
+              <span class="rc-name">{{ entry.filename }}</span>
+              <span class="rc-meta">
+                {{ entry.root ? rootLabel(entry.root) + ' · ' : '' }}{{ relativeTime(entry.closedAt) }}
+              </span>
+            </button>
+          </li>
+        </ul>
+        <button type="button" class="rc-reopen-all" @click.stop="reopenAllRecentlyClosed">
+          {{ t('recent.recentlyClosed.reopenAll', { count: recentlyClosedCount }) }}
+        </button>
+      </div>
+    </teleport>
     <div class="new-file" @click.stop="newFile()">
       <chrome-icon name="plus" :size="16" aria-hidden="true"></chrome-icon>
     </div>
@@ -52,8 +105,14 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/tabs.vue
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.7.0: C-FIX-009-RECENTLY-CLOSED — a count-badged
+//     recovery button renders left of the + while the closed-tab
+//     history is non-empty; its popover (teleported past the strip's
+//     overflow clip, float tokens) lists entries with root · relative
+//     time, reopens one on row click, offers Reopen all N and Clear,
+//     and closes on Escape / outside mousedown.
 //   - 2026-10-16 v1.5.0: C-51 T-002 — the tab context menu gains
 //     Pin/Unpin: TABS::pin-file resolves the tab pathname and toggles
 //     the persisted Pinned sidebar list (store/pinned); untitled tabs
@@ -75,16 +134,19 @@
 //   - 2026-09-16 v1.1.0: auto-scroll the strip so the active tab is always visible (C-6) — activation via cycling, sidebar, close-to-neighbor, restore, or reorder no longer leaves the active tab off-screen.
 //   - 2026-09-16 v1.2.0: ResizeObserver on the strip re-reveals the active tab after container resize (C-7).
 // END_CHANGE_SUMMARY
-import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { useLayoutStore } from '@/store/layout'
 import { usePinnedStore } from '@/store/pinned'
+import { useRecentlyClosedStore } from '@/store/recentlyClosed'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import autoScroll from 'dom-autoscroller'
 import dragula from 'dragula'
 import { showContextMenu } from '../../contextMenu/tabs'
 import { computeActiveTabScroll } from '@/util/tabsScroll'
+import { formatRelativeTime } from '@/util/relativeTime'
+import { pathBasename, shortenMiddle } from '@/util/pathDisplay'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 import bus from '../../bus'
 
@@ -92,6 +154,7 @@ const { t } = useI18n()
 
 const editorStore = useEditorStore()
 const layoutStore = useLayoutStore()
+const recentlyClosedStore = useRecentlyClosedStore()
 
 const { currentFile, tabs } = storeToRefs(editorStore)
 
@@ -122,6 +185,85 @@ const removeFileInTab = (file) => {
 const newFile = () => {
   editorStore.NEW_UNTITLED_TAB({})
 }
+
+// ── C-FIX-009-RECENTLY-CLOSED: strip recovery button + popover ──────
+
+// START_BLOCK_RECENTLY_CLOSED_POPOVER
+// The popover is pure UI over the store's actions (reopenOne/reopenAll/
+// clear); Escape and an outside mousedown close it without acting, and
+// the listeners live exactly as long as the popover is open.
+const recentlyClosedCount = computed(() => recentlyClosedStore.count)
+const recentlyClosedEntries = computed(() => recentlyClosedStore.entries)
+const recentlyClosedOpen = ref(false)
+const recentlyClosedPopoverStyle = ref({})
+const recentlyClosedToggleRef = ref(null)
+
+// .editor-tabs clips (overflow:hidden), so the popover teleports to
+// body and anchors fixed under the toggle, right-aligned to it.
+const toggleRecentlyClosed = () => {
+  if (recentlyClosedOpen.value) {
+    closeRecentlyClosed()
+    return
+  }
+  const rect = recentlyClosedToggleRef.value?.getBoundingClientRect?.()
+  if (rect) {
+    const width = 300
+    const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))
+    recentlyClosedPopoverStyle.value = { left: `${Math.round(left)}px`, top: `${Math.round(rect.bottom + 6)}px` }
+  }
+  recentlyClosedOpen.value = true
+}
+
+const closeRecentlyClosed = () => {
+  recentlyClosedOpen.value = false
+}
+
+const clearRecentlyClosed = () => {
+  recentlyClosedStore.CLEAR()
+  closeRecentlyClosed()
+}
+
+const reopenRecentlyClosedEntry = async (entry) => {
+  closeRecentlyClosed()
+  await recentlyClosedStore.REOPEN_ONE(entry)
+}
+
+const reopenAllRecentlyClosed = async () => {
+  closeRecentlyClosed()
+  await recentlyClosedStore.REOPEN_ALL()
+}
+
+const relativeTime = (ts) => formatRelativeTime(ts, Date.now(), t)
+
+// The row meta shows the workspace-root basename (shortened), not the
+// absolute path — the full pathname stays in the row tooltip.
+const rootLabel = (root) => shortenMiddle(pathBasename(root) || root, 24)
+
+const onRecentlyClosedKeydown = (event) => {
+  if (event.key === 'Escape') closeRecentlyClosed()
+}
+
+const onRecentlyClosedOutside = (event) => {
+  const toggle = event.target?.closest?.('.recently-closed-toggle')
+  const popover = event.target?.closest?.('.recently-closed-popover')
+  if (!toggle && !popover) closeRecentlyClosed()
+}
+
+watch(recentlyClosedOpen, (open) => {
+  if (open) {
+    window.addEventListener('keydown', onRecentlyClosedKeydown, true)
+    window.addEventListener('mousedown', onRecentlyClosedOutside, true)
+  } else {
+    window.removeEventListener('keydown', onRecentlyClosedKeydown, true)
+    window.removeEventListener('mousedown', onRecentlyClosedOutside, true)
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onRecentlyClosedKeydown, true)
+  window.removeEventListener('mousedown', onRecentlyClosedOutside, true)
+})
+// END_BLOCK_RECENTLY_CLOSED_POPOVER
 
 // START_BLOCK_SCROLL_ACTIVE_TAB_INTO_VIEW
 // C-6: activation can change without a click on the strip (Ctrl+Tab cycling,
@@ -572,5 +714,158 @@ svg.unsaved-dot {
 }
 .gu-transit {
   opacity: 0.2;
+}
+
+/* ── C-FIX-009-RECENTLY-CLOSED: recovery button + teleported popover ── */
+
+.recently-closed-toggle {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  margin-right: 2px;
+  color: var(--editorColor60, var(--editorColor50));
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.recently-closed-toggle:hover,
+.recently-closed-toggle.open {
+  color: var(--editorColor);
+  background: var(--itemBgColor, var(--sideBarItemHoverBgColor));
+}
+
+.recently-closed-toggle:focus-visible {
+  outline: 2px solid var(--focusColor, var(--themeColor));
+  outline-offset: -2px;
+}
+
+.recently-closed-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--themeColor);
+  color: var(--buttonPrimaryFontColor, #fff);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Teleported to body (the strip clips), positioned fixed by the
+   toggle's rect — float tokens per FIX-007 dialog theming. */
+.recently-closed-popover {
+  position: fixed;
+  z-index: 3000;
+  width: 300px;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  background: var(--floatBgColor, var(--editorBgColor));
+  color: var(--floatFontColor, var(--editorColor));
+  border: 1px solid var(--tableBorderColor, var(--editorColor10));
+  box-shadow: 0 10px 28px -10px var(--floatShadow, rgba(0, 0, 0, 0.4));
+  overflow: hidden;
+}
+
+.rc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+}
+
+.rc-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.rc-clear {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-size: 11.5px;
+  color: var(--editorColor60, var(--editorColor50));
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.rc-clear:hover {
+  color: var(--editorColor);
+  background: color-mix(in srgb, var(--editorColor) 8%, transparent);
+}
+
+.rc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.rc-row-button {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--editorColor);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rc-row-button:hover,
+.rc-row-button:focus-visible {
+  background: var(--inputBgColor, var(--sideBarItemHoverBgColor));
+}
+
+.rc-row-button:focus-visible {
+  outline: 2px solid var(--focusColor, var(--themeColor));
+  outline-offset: -2px;
+}
+
+.rc-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc-meta {
+  font-size: 11px;
+  color: var(--editorColor50, var(--editorColor60));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc-reopen-all {
+  margin: 8px 12px 12px;
+  padding: 0 12px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: var(--buttonPrimaryBgColor, var(--themeColor));
+  color: var(--buttonPrimaryFontColor, #fff);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rc-reopen-all:hover {
+  background: var(--buttonPrimaryBgColorHover, var(--themeColor));
 }
 </style>

@@ -2667,5 +2667,15 @@
       <Markers><Marker>[RepositorySafety][review][BLOCK_SAFETY_REVIEW_PASS]</Marker><Marker>[RepositorySafety][review][BLOCK_SAFETY_REVIEW_STOP]</Marker></Markers>
       <TraceAssertions><TraceAssertion>No raw candidate or matched secret appears in console output; no cloud fallback or hook bypass.</TraceAssertion></TraceAssertions>
     </V-M-064>
+    <V-M-065>
+      <Priority>high</Priority><Commands><Command>npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/components/editor-print-clearup.test.js</Command><Command>npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/print-export.spec.ts --project=chromium</Command></Commands>
+      <Scenarios>
+        <Scenario>Unit matrix (corners C-1..C-4, C-6..C-11): document-relative and absolute PNGs embed against the right resolved path with the right MIME; file:/// URLs strip their scheme; %20/unicode decodes before reading; remote http(s) and data: sources are untouched with zero stat/read calls; missing files skip without a read and count; the 8 MiB cap skips without reading; read failures count as skipped, never fail the export; unknown extensions never embed with a guessed MIME; dedup reads one path once across references while accounting counts references; drive-letter and \?\ extended-prefix Windows forms normalize isWin-gated while generic UNC passes through uncounted; non-image markup round-trips unchanged.</Scenario>
+        <Scenario>Component wiring: the styledHtml branch runs the pass with the document directory and warns with {embedded}/{total} counts only when something was skipped (ten locales carry the keys); the untitled document passes null; the pdf and print branches never invoke the pass (corner C-12, printService neighbor regression green).</Scenario>
+        <Scenario>e2e artifact assertion: Export as HTML saves a file whose local img src is a data:image/png;base64 URL byte-identical to the fixture bytes, the relative/file:// src appears nowhere, the remote URL survives verbatim, and the pass used mt_fs_stat + mt_fs_read_binary — never the UTF-8 mt_fs_read; the C-61 print/export-pdf spec stays green in the same run.</Scenario>
+      </Scenarios>
+      <Markers><Marker>[export][embed-images][BLOCK_EMBED_IMAGES]</Marker></Markers>
+      <TraceAssertions><TraceAssertion>The marker logs counts only — embedded/total/skipped — never image paths (console-privacy convention).</TraceAssertion></TraceAssertions>
+    </V-M-065>
   </VD-FEATURES>
 </GraceVerificationDocument>

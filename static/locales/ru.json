@@ -497,6 +497,8 @@
     "recentFolders": "Недавние папки",
     "noRecentFiles": "Нет недавних файлов",
     "lastSession": "Последняя сессия",
+    "lastSessionWithCount": "Последняя сессия ({count})",
+    "lastSessionEmpty": "Восстанавливать нечего — файлы последней сессии больше недоступны",
     "filesCount": {
       "one": "{count} файл",
       "few": "{count} файла",
@@ -524,6 +526,15 @@
       "todayAt": "сегодня в {time}",
       "yesterday": "вчера",
       "daysAgo": "{count} дн. назад"
+    },
+    "recentlyClosed": {
+      "title": "Недавно закрытые",
+      "clear": "Очистить",
+      "reopenAll": "Вернуть все {count}",
+      "reopenClosedTab": "Вернуть закрытую вкладку",
+      "missingNotice": "Файл «{name}» больше недоступен",
+      "someMissingNotice": "{count} из закрытых файлов больше недоступны",
+      "buttonLabel": "Вернуть закрытые вкладки ({count})"
     }
   },
   "clipboardOpen": {
@@ -929,7 +940,8 @@
       "zoom": "Масштаб",
       "checkUpdate": "Проверить обновления",
       "lineEnding": "Перевод строки",
-      "close": "Закрыть"
+      "close": "Закрыть",
+      "reopenClosedTab": "Вернуть закрытую вкладку"
     },
     "edit": {
       "undo": "Отменить",
@@ -1348,7 +1360,9 @@
     "export": {
       "error": "Ошибка экспорта",
       "errorExporting": "Ошибка экспорта файла {type}",
-      "failed": "Сбой экспорта в {type}"
+      "failed": "Сбой экспорта в {type}",
+      "imagesEmbeddedTitle": "Часть изображений не встроена",
+      "imagesEmbeddedMessage": "Встроено {embedded} из {total} изображений — слишком большие или отсутствующие остались исходными ссылками"
     },
     "diagramExport": {
       "title": "Диаграмма",

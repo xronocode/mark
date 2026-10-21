@@ -2904,5 +2904,27 @@ C-SAFE-DELIVERY: exact staged/outgoing secret, private-path and artifact checks;
       <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic and local-model review, distinguishing public GitHub references from literal secrets and requiring manifest-bound human visual-review evidence for changed release README PNGs.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message or independently grouped outgoing commits</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete local or screenshot review evidence, unsupported payload, engine conflict or changed candidate.</Description></Error></Errors></Contract>
       <Sources><Source>tools/security_gate.py</Source><Tests>tests/security/test_security_gate.py</Tests></Sources>
     </M-064>
+    <M-065>
+      <Name>ExportImagesEmbed</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
+      <Summary>
+        The styledHtml export pass that makes the exported .html self-contained: img src values
+        resolve against the exporting document's directory (muya exports relative images as
+        absolute file:// URLs; drive-letter and \\?\ extended-prefix forms are isWin-gated
+        correctImageSrc semantics re-expressed locally), percent-encoding decodes, ipcFs.stat
+        gates each distinct path at the 8 MiB per-image cap without a read, and ipcFs.readBinary
+        (the lossless channel — window.fileUtils.readFile returns UTF-8 text and corrupts
+        binary) base64-embeds the bytes with an extension-mapped MIME. Remote http(s) and
+        existing data: URLs are never fetched or rewritten; generic UNC, unknown extensions and
+        missing/over-cap/unreadable files keep their src and count as skipped references; an
+        untitled document passes relative src through uncounted. Accounting counts references,
+        reads dedupe by resolved path. C-SELF-CONTAINED-HTML-EXPORT wires it into the
+        styledHtml branch of editor.vue handleExport only — pdf/print containers resolve src
+        themselves at print time.
+      </Summary>
+      <Path>src/renderer/src/util/exportImages.js</Path><PlannedPath>src/renderer/src/util/exportImages.js, tests/renderer/util/exportImages.test.js, tests/renderer/components/editor-export-images.test.js, tests/e2e/export-html-images.spec.ts</PlannedPath>
+      <Dependencies>M-013-B ipcFs (stat, readBinary); arrayBufferToBase64 from src/renderer/src/util/fileSystem.js; isWindows from src/renderer/src/util/index.js; called by the styledHtml branch of editor.vue handleExport</Dependencies><VerificationRef>V-M-065</VerificationRef>
+      <Contract><Purpose>Turn the generated styled-HTML export into a single self-contained file by embedding local images as data-URLs, without ever fetching remote content or failing the export on an image.</Purpose><Inputs><Input><Name>html</Name><Type>string — muya exportStyledHTML output</Type></Input><Input><Name>baseDir</Name><Type>string|null — exporting document's directory (null for untitled)</Type></Input></Inputs><Outputs><Output><Name>result</Name><Type>{ html, embedded, total, skipped } — html differs from the input only in img src values</Type></Output></Outputs><Errors><Error><Code>skipped reference</Code><Description>missing, over-cap, unreadable or unknown-extension local images keep their original src; the caller warns with embedded/total counts</Description></Error></Errors></Contract>
+      <Sources><Source>src/renderer/src/util/exportImages.js</Source><Tests>tests/renderer/util/exportImages.test.js</Tests><Tests>tests/renderer/components/editor-export-images.test.js</Tests><Tests>tests/e2e/export-html-images.spec.ts</Tests></Sources>
+    </M-065>
   </GD-FEATURES>
 </GraceGraphDocument>

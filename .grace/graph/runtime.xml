@@ -2610,6 +2610,21 @@
       <Status>partial</Status>
       <Layer>2</Layer>
       <Summary>
+        FIX-009 (2026-10-21, C-FIX-009-SESSION-COLD-START +
+        C-FIX-009-RECENTLY-CLOSED): the welcome "Last session" row
+        reflects the editor store's boot-time cold-start snapshot
+        (offered only when restoreSessionOnLaunch skipped the
+        auto-restore) and a restore that opens nothing raises a notice;
+        current-run recovery is the session-scoped store/recentlyClosed
+        history — FORCE_CLOSE_TAB records pathname tabs (strip index,
+        active flag, root), the mt::open-new-tab arrival consumes
+        entries, the strip renders a count-badged reopen button with a
+        teleported popover (reopen one / Reopen all N in strip order
+        with the was-active tab re-selected / Clear), the welcome screen
+        shows the same recovery after the last tab closes, and
+        File › Reopen Closed Tab (Shift+Cmd/Ctrl+T, id
+        file.reopen-closed-tab) reopens newest-to-oldest with an
+        empty-history quiet no-op.
         FIX-016 (2026-10-20): HANDLE_AUTO_SAVE removes its fired timer and
         re-reads the live Auto Save preference before resolving the tab or
         invoking the save transport. Disabling Auto Save during the debounce

@@ -63,7 +63,9 @@ const ICON_NAMES = [
   // C-51 T-006: the diagram/table expand button glyph.
   'expand',
   // C-51 T-011: the pinned-file row mark (sidebar tree + Opened files).
-  'pin'
+  'pin',
+  // C-FIX-009-RECENTLY-CLOSED: the tab-strip recovery button (↺).
+  'reopen'
 ]
 
 const COLOR_LITERAL = /#(?:[0-9a-f]{3,8})\b|rgb\(|rgba\(|hsl\(|hsla\(/i

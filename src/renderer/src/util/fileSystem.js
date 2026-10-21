@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/util/fileSystem.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Renderer file helpers for the sidebar (create/paste/rename), content hashing and image placement (local folders or upload).
 //   SCOPE: Thin wrappers over window.fileUtils / window.path (M-013-B IPC) plus the image save, relative-folder and uploader flows used by editor.vue imageAction.
@@ -24,11 +24,13 @@
 //   moveImageToFolder - copy a path image (hash name) or write a bitmap (<timestamp>-<hash8>-<name>) into a folder.
 //   uploadImage - uploads an image through the configured image bed.
 //   isFileExecutable - checks the executable bit of a path.
+//   arrayBufferToBase64 - step-8j binary→base64 helper; exported for the export-images pass (M-065).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream helpers ported in step-8a/8h/8j, previously ungoverned.)
 //   - 2026-10-13 v1.1.0: C-24 — START_BLOCK_IMAGE_RELATIVE_SAVE (saveImageToRelativeFolder, resolveImageFolder); bitmap file names gain a content-hash suffix so two pastes in one second cannot overwrite each other; START_BLOCK_IMAGE_FOLDER_ACCESS asks for folder access in the App Store sandbox.
+//   - 2026-10-22 v1.2.0: C-SELF-CONTAINED-HTML-EXPORT — arrayBufferToBase64 exported for the M-065 export-images pass (no behavior change here).
 // END_CHANGE_SUMMARY
 //
 // step-8a: removed `import { statSync, constants } from 'fs'`.
@@ -47,7 +49,9 @@ import { isWindows } from './index'
 // Walks bytes building a binary string and uses btoa(). Acceptable
 // for the image-upload path: max payload is 5 MB (MAX_SIZE below)
 // so the temporary string never exceeds a few megabytes.
-const arrayBufferToBase64 = (buffer) => {
+// C-SELF-CONTAINED-HTML-EXPORT: exported for the M-065 export-images
+// pass, which encodes embedded images up to its 8 MiB cap.
+export const arrayBufferToBase64 = (buffer) => {
   const bytes = new Uint8Array(buffer)
   let binary = ''
   for (let i = 0; i < bytes.byteLength; i++) {
