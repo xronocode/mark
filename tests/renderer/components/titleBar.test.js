@@ -60,7 +60,7 @@ describe('titleBar/index.vue', () => {
       props: {
         project: null,
         filename: 'notes.md',
-        pathname: '/home/user/notes.md',
+        pathname: '/tmp/home/<fixture>/notes.md',
         active: true,
         wordCount: null,
         platform: 'linux',
@@ -118,13 +118,17 @@ describe('titleBar/index.vue', () => {
       }
     })
     expect(wrapper.find('.titlebar-nav').exists()).toBe(true)
-    // Linux frameless: left = menu + sidebar toggle + settings (C-38 N1);
-    // the Files and TOC buttons left the title bar with C-40 T-002.
+    // Amendment 5: left = menu + sidebar toggle + gear on Win/Linux
+    // mounts (Files/TOC were gone since C-40 T-002).
     const navBtns = wrapper.findAll('.titlebar-nav .titlebar-nav-btn')
     expect(navBtns.length).toBe(3)
-    // right cluster: guide + theme + share
+    // right cluster after amendment 3: Share only — this mount mocks
+    // isOsx=false, so theme rides the caption row and the guide button
+    // is gone everywhere.
     const rightBtns = wrapper.findAll('.titlebar-right .titlebar-nav-btn')
-    expect(rightBtns.length).toBe(3)
+    expect(rightBtns.length).toBe(1)
+    expect(rightBtns[0].attributes('title')).toBe('titleBar.share')
+    expect(wrapper.find('.frameless-titlebar-theme').exists()).toBe(true)
   })
 
   it('shows share button when pathname is set', async () => {

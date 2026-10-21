@@ -1,0 +1,141 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><C-WINDOWS-TITLEBAR-ALIGNMENT>
+  <ChangeRef>C-WINDOWS-TITLEBAR-ALIGNMENT</ChangeRef><Created>2026-10-20</Created>
+  <IntentSummary>Bring the Win/Linux custom titlebar to the owner-final amended state: Windows renders caption buttons from the native Segoe MDL2/Fluent code points with no separators and one neutral hover; ☰ and ⚙ stay on the bar (amendment 5), «?» is removed everywhere, the theme toggle is a flush fourth 46 px caption cell (strip 184 px), and the 30 themes lose the legacy caption-svg fill rule (the white-dot root cause). macOS keeps the minimal bar minus the guide button.</IntentSummary>
+  <ExecutionPolicy>Sequential, no dependencies on other active bundles; touches the M-011 renderer family (titleBar + chromeIcons + themes). Polygon rebuilds use the cached cargo target from the FIX-013 session.</ExecutionPolicy>
+  <BaselineAssertions>
+    <MustExist>
+      <Value>src/renderer/src/components/titleBar/index.vue</Value>
+      <Value>src/renderer/src/components/icons/chromeIcons.js</Value>
+      <Value>tests/renderer/components/titleBar-windows.test.js</Value>
+    </MustExist>
+    <!-- The pre-state gear pin ("keeps the Settings gear reachable", C-38
+         N1) is quoted in the spec ProblemEvidence; asserting it here would
+         turn a consumed baseline into a standing lint error while the
+         bundle awaits acceptance (the FIX-011 lesson). -->
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/icons/chromeIcons.js</File>
+      <Text>C-WINDOWS-TITLEBAR-ALIGNMENT</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>Segoe MDL2 Assets</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>caption-glyph</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>amendment 5</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>text-overflow: ellipsis</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/components/titleBar-windows.test.js</File>
+      <Text>E921</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/runtime.xml</File>
+      <Text>scenario-74 (C-WINDOWS-TITLEBAR-ALIGNMENT</Text>
+    </MustContain>
+    <MustExist>
+      <Value>.grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT/evidence.json</Value>
+    </MustExist>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-011/></GraphAnchors><VerificationAnchors><V-M-011/></VerificationAnchors><VerificationDocuments><VD-RUNTIME/></VerificationDocuments></DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/icons/chromeIcons.js</File>
+    <File>src/renderer/src/components/titleBar/index.vue</File>
+    <Glob>src/renderer/src/assets/themes/*.theme.css</Glob>
+    <File>tests/renderer/components/titleBar-windows.test.js</File>
+    <File>tests/renderer/components/titleBar-deep.test.js</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>docs/release-trains/2.6.x-next.md</File>
+    <File>.grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT/evidence.json</File>
+  </ObservedWriteScope>
+  <VerificationGates>
+    <Gate><Name>unit</Name><Command>npx vitest run tests/renderer/components/titleBar-windows.test.js tests/renderer/components/titleBar-deep.test.js tests/renderer/components/chrome-icons.test.js tests/renderer/components/titleBar.test.js tests/renderer/components/titleBar-theme.test.js tests/renderer/components/titleBar-popover.test.js tests/renderer/components/titleBar-osx.test.js</Command><Expect>all green with the amendment-5 pins</Expect></Gate>
+    <Gate><Name>full-suite</Name><Command>npm test</Command><Expect>green on Node 22 (local)</Expect></Gate>
+    <Gate><Name>polygon-visual</Name><Command>Windows polygon: npm run tauri:build -- --config createUpdaterArtifacts=false, silent reinstall, cua screenshot + right-zone crop</Command><Expect>Segoe glyphs pixel-measured against the native Explorer reference, no separators, ☰/⚙ present, no «?», theme icon a ring+half in its caption cell; before/after crops recorded</Expect></Gate>
+    <Gate><Name>governance</Name><Command>grace lint --path . --assertions current</Command><Expect>zero errors</Expect></Gate>
+  </VerificationGates>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Fallback caption glyph descriptors</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>window-minimize/maximize/restore/close descriptors redrawn with butt caps (no cap flag) and full-width geometry on the 16-grid; names, frozen set, 1.4 stroke and viewBox untouched; the round-cap invariant documents the FLAT_CAP exemption; CHANGE_SUMMARY entry added.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/chrome-icons.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Amended bar: Segoe captions, kept ☰/⚙, no «?», theme caption cell</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Windows caption cells render the Segoe MDL2/Fluent code points (E921/E922/E923/E8BB) via .caption-glyph; Linux keeps the 13 px drawn fallback; ☰/⚙ handlers and showCustomTitleBar stay; the guide button block leaves every platform; the theme toggle mounts as the flush fourth 46 px caption cell (strip 184 px); one neutral hover; title-plate ellipsis; CHANGE_SUMMARY entry.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/titleBar-windows.test.js tests/renderer/components/titleBar-osx.test.js</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Theme fill-rule removal (white-dot root cause)</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The legacy ".title-bar .frameless-titlebar-button > div > svg { fill: … }" rule leaves all 30 themes so the caption-cell theme icon renders as the designed ring+half (root cause found via CDP on the live polygon app).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -rc "frameless-titlebar-button > div > svg" src/renderer/src/assets/themes/ | grep -v ":0" ; echo "must print nothing"</Command>
+      </Verification>
+    </T-003>
+    <T-004>
+      <Title>Amendment-5 test pins</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>titleBar-windows pins: Segoe code points on win32 with no svg caption glyph, the Linux svg fallback, ☰/⚙ restored with handlers, no «?», the theme caption cell, no separators — the gear assertion cites the amendment trail (C-38 N1 superseded then restored); titleBar-deep re-pins the restored handlers and computed.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/titleBar-windows.test.js tests/renderer/components/titleBar-deep.test.js</Command>
+      </Verification>
+    </T-004>
+    <T-005>
+      <Title>Governance + polygon visual proof</Title>
+      <DependsOn>T-003, T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>M-011 summary line, V-M-011 scenario-74, train FIX-014 in 2.6.x-next, evidence.json with the amendment history and before/after pixel measurements; polygon rebuild shows the amended bar.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-005>
+  </ImplementationPlan>
+  <CornerMatrix>
+    <Corner name="Correctness"><Expected>Kept handlers keep their wiring (menu popup, settings window, showCustomTitleBar); the Segoe path is win32-only behind isWindows with the drawn fallback elsewhere; the theme caption cell is DOM-last under row-reverse so it renders flush-left of the controls; ellipsis clip only activates when the flex row overflows.</Expected></Corner>
+    <Corner name="Platform conventions"><Expected>Caption order stays min/max/close left-to-right (row-reverse); Segoe code points match the native Explorer reference pixel-for-pixel; NO separators (native has none); hover neutral on every cell.</Expected></Corner>
+    <Corner name="Contracts"><Expected>Touched files gain CHANGE_SUMMARY entries with coherent VERSIONs; M-011/V-M-011 stay the durable owners; chromeIcons keeps its TEST-pinned invariants.</Expected></Corner>
+    <Corner name="Verification"><Expected>Before/after polygon crops with pixel measurement are part of the evidence; the gear pin cites the supersession-and-restore trail rather than silently flipping.</Expected></Corner>
+    <Corner name="Security"><Expected>No new surface; the popup-menu IPC command and settings window routes remain guarded as today.</Expected></Corner>
+    <Corner name="Performance"><Expected>Same four caption cells, one extra glyph span on Windows; no layout-thrash (absolute strip unchanged).</Expected></Corner>
+    <Corner name="Scope discipline"><Expected>No native-frame return, no entry-point removal for minimalism (amendment 5), no sidebar/status work.</Expected></Corner>
+    <Corner name="Delivery"><Expected>Train FIX-014 records the amended decision chain in 2.6.x-next; acceptance pending on a fresh artifact.</Expected></Corner>
+  </CornerMatrix>
+  <ReviewLog>
+    <Review number="1" date="2026-10-20" verdict="green" task="plan-four-corner-review">
+      <Findings>
+        Correctness (round 1): descriptor-only glyph changes keep the chrome-icons byte-pins intact; macOS branches untouched. Platform: row-reverse order re-verified for separator placement (later removed by amendment 2). Verification: polygon before-crops captured in the FIX-013 session; after-crops required by the gate.
+      </Findings>
+    </Review>
+    <Review number="2" date="2026-10-21" verdict="green" task="owner-PR-review-reconciliation">
+      <Findings>
+        The 2026-10-21 owner PR review found the normative sections still described the pre-amendment state (contract/code inversion). This plan and the spec were rewritten around amendment 5: Segoe captions without separators, kept ☰/⚙, no «?», the theme caption cell, the 30-theme fill-rule removal; target assertions and gates now prove the final state (Segoe font reference, caption-glyph class, amendment-5 marker, E921 pin); the theme files and the amendment-history task entered the observed scope; macOS is no longer claimed byte-identical (the global guide-button removal changes it).
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-WINDOWS-TITLEBAR-ALIGNMENT></GraceChangePlan>

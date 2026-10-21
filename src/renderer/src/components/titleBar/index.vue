@@ -12,10 +12,10 @@
       ]"
       @dblclick.stop="handleTitleBarDblclick"
     >
-      <!-- C-40 T-002 trim (canvas option A): left = sidebar toggle
-           (+ the Win/Linux custom-titlebar menu and Settings gear).
-           The Files and TOC buttons, the breadcrumb path and the word
-           count are gone from the title bar. -->
+      <!-- Amendment 5 (owner, 2026-10-20): the ☰ app-menu button and ⚙
+           Settings gear RETURN to the Win/Linux bar — palette-only
+           reachability proved undiscoverable in real use. macOS keeps its
+           minimal bar (the native menu owns both there). -->
       <div
         class="titlebar-nav title-no-drag"
         :class="{ 'titlebar-nav--osx': isOsx }"
@@ -67,21 +67,13 @@
         </button>
       </div>
 
-      <!-- C-40 T-002 right side: «?» (Win/Linux), theme, Share. -->
+      <!-- Right side: theme (macOS — on Win/Linux it lives as the 4th
+           caption cell, amendment 3) and Share. The «?» guide button is
+           gone everywhere: Help › Mark Guide in the window menu bar
+           covers it (owner, 2026-10-20). -->
       <div class="titlebar-right title-no-drag">
         <div
-          v-if="!isOsx"
-          class="titlebar-nav-btn titlebar-guide-btn"
-          role="button"
-          tabindex="0"
-          :aria-label="t('titleBar.guide')"
-          :title="t('titleBar.guide')"
-          @click.stop="handleGuideClick"
-          @keydown.enter.prevent="handleGuideClick"
-        >
-          <chrome-icon name="guide"></chrome-icon>
-        </div>
-        <div
+          v-if="isOsx"
           class="titlebar-nav-btn"
           role="button"
           tabindex="0"
@@ -116,7 +108,12 @@
           @click.stop="handleCloseClick"
         >
           <div>
-            <chrome-icon name="window-close" :size="10" aria-hidden="true" />
+            <!-- C-WINDOWS-TITLEBAR-ALIGNMENT: on Windows render the SAME
+                 glyphs native caption buttons use — Segoe MDL2/Fluent code
+                 points from the system font; the drawn chrome-icon stays
+                 as the non-Windows fallback. -->
+            <span v-if="isWindows" class="caption-glyph" aria-hidden="true">&#xE8BB;</span>
+            <chrome-icon v-else name="window-close" :size="13" aria-hidden="true" />
           </div>
         </div>
         <div
@@ -124,8 +121,9 @@
           @click.stop="handleMaximizeClick"
         >
           <div>
-            <chrome-icon v-if="!isMaximized" name="window-maximize" :size="10" aria-hidden="true" />
-            <chrome-icon v-else name="window-restore" :size="10" aria-hidden="true" />
+            <span v-if="isWindows" class="caption-glyph" aria-hidden="true">{{ isMaximized ? '\uE923' : '\uE922' }}</span>
+            <chrome-icon v-else-if="!isMaximized" name="window-maximize" :size="13" aria-hidden="true" />
+            <chrome-icon v-else name="window-restore" :size="13" aria-hidden="true" />
           </div>
         </div>
         <div
@@ -133,7 +131,25 @@
           @click.stop="handleMinimizeClick"
         >
           <div>
-            <chrome-icon name="window-minimize" :size="10" aria-hidden="true" />
+            <span v-if="isWindows" class="caption-glyph" aria-hidden="true">&#xE921;</span>
+            <chrome-icon v-else name="window-minimize" :size="13" aria-hidden="true" />
+          </div>
+        </div>
+        <!-- Amendment 3 (owner, 2026-10-20): the theme toggle rides the
+             caption row as a 4th cell — same 46px cell, same neutral
+             hover, flush with the window controls. DOM-last under
+             row-reverse renders it as the visual leftmost cell. -->
+        <div
+          class="frameless-titlebar-button frameless-titlebar-theme"
+          role="button"
+          tabindex="0"
+          :aria-label="themeTooltip"
+          :title="themeTooltip"
+          @click.stop="handleThemeToggle"
+          @keydown.enter.prevent="handleThemeToggle"
+        >
+          <div>
+            <chrome-icon :name="themeMode" :size="13" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -195,12 +211,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.1.3
+// VERSION: 2.2.5
 // START_MODULE_CONTRACT
-//   PURPOSE: Render the trimmed main-window title bar (sidebar toggle left, document title centre, theme/Share/guide right) with the document info popover and native file-path actions, window controls, and drag affordances.
-//   SCOPE: Renderer-side titlebar behavior: sidebar toggle, the C-40 T-002 document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the Win/Linux «?» Mark Guide entry, native title context menu, direct window controls, and WKWebView/macOS drag fallbacks.
+//   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover, native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it).
+//   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks.
 //   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, util/docStats, components/icons/chromeIcons.
-//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53.
+//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -215,7 +231,8 @@
 //   ownsTauriDragRegion - True when the target itself carries data-tauri-drag-region (Tauri's drag.js owns its double click).
 //   handleTitleBarDblclick - Bar double click → maximize toggle, except on interactive zones and on drag-region targets.
 //   handleMinimizeClick - Requests native window minimize.
-//   handleMenuClick - Opens the native application menu at the pointer.
+//   handleMenuClick - Opens the native application menu at the pointer (Win/Linux, amendment 5).
+//   handleSettingsClick - Opens the Settings window (Win/Linux gear, amendment 5).
 //   themeMode - Title-bar theme button state: auto | light | dark (C-41 T-001).
 //   themeTooltip - Localized tooltip/aria-label for the theme button (C-41 T-001).
 //   handleThemeToggle - Cycles Auto → Light → Dark → Auto and persists followSystemTheme/theme (C-41 T-001).
@@ -226,11 +243,43 @@
 //   handleRenameClick - Popover Rename… → editorStore.RESPONSE_FOR_RENAME (the old click-to-rename path).
 //   handleRevealClick - Popover reveal → window.electron.shell.showItemInFolder.
 //   handleCopyPathClick - Popover Copy path → native clipboard plugin write (WKWebView-safe).
-//   handleGuideClick - Win/Linux «?» → bus mt::open-guide (C-40 T-002 / C-40 R-1).
 //   onDocMouseDown/onDocKeydown - Outside-click (window capture phase, ahead of Tauri drag.js) and Escape closers for the popover.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-20 v2.2.5: owner amendment 5 — the ☰ app-menu button and ⚙
+//     Settings gear return to the Win/Linux bar: palette-only
+//     reachability proved undiscoverable in real use. Everything else
+//     from the alignment work stays (Segoe captions, no separators,
+//     theme as the 4th caption cell, no «?»).
+//   - 2026-10-20 v2.2.4: amendment 3 follow-up — the legacy theme rule
+//     ".title-bar .frameless-titlebar-button > div > svg { fill: … }"
+//     (30 theme files, the retired window-controls.js glyph era) filled
+//     the theme icon's svg once it moved into the caption cell, turning
+//     Auto's half-disc into a solid dot on Win/Linux; the dead rule is
+//     removed from every theme.
+//   - 2026-10-20 v2.2.3: owner amendment 3 — the «?» guide button is
+//     gone on every platform (Help › Mark Guide in the window menu bar
+//     covers it) and the theme toggle rides the Win/Linux caption row as
+//     a flush 4th cell (184px strip); macOS keeps theme in the right
+//     cluster next to Share.
+//   - 2026-10-20 v2.2.2: owner second amendment — the caption cell
+//     separators are removed: native Win10/11 caption buttons have none.
+//   - 2026-10-20 v2.2.1: owner follow-up — on Windows the caption glyphs
+//     render from the system Segoe MDL2/Fluent icon font (the exact
+//     code points native caption buttons draw: E921/E922/E923/E8BB) in
+//     10 px; the redrawn chrome-icon descriptors stay as the non-Windows
+//     fallback. No more hand-drawn approximation on the Windows path.
+//   - 2026-10-20 v2.2.0: C-WINDOWS-TITLEBAR-ALIGNMENT — the Win/Linux bar
+//     joins the C-40 trim: the ☰ app-menu button and the ⚙ Settings gear
+//     leave the titlebar (Settings stays reachable via the command palette
+//     file.preferences; the mt::window-popup-app-menu IPC stays for future
+//     surfaces); caption buttons render Windows-style (13 px butt-cap glyphs
+//     from the redrawn descriptors, 1 px separators between cells, one
+//     neutral hover — the macOS-red close hover is retired); the
+//     ?/theme/share cluster gets an 18 px gap to the caption strip
+//     (margin-right 146 → 156 px) and the file plate name clips with an
+//     ellipsis instead of crowding the right zone on narrow windows.
 //   - 2026-10-18 v2.1.3: the popover actions sit in one row of equal-width
 //     buttons (the popover grew 360 → 420 px; Russian labels wrapped to a
 //     second line).
@@ -287,13 +336,13 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { usePreferencesStore } from '@/store/preferences.js'
 import { useLayoutStore } from '@/store/layout.js'
-import { useProjectStore } from '@/store/project'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import bus from '@/bus'
 import { PATH_SEPARATOR, isDarkTheme } from '../../config'
 import { isOsx as isOsxPlatform, isWindows } from '@/util'
 import { useEditorStore } from '@/store/editor'
+import { useProjectStore } from '@/store/project'
 import { useI18n } from 'vue-i18n'
 import { writeText as writeClipboardText } from '@tauri-apps/plugin-clipboard-manager'
 import { ChromeIcon } from '../icons/chromeIcons.js'
@@ -532,11 +581,6 @@ const onDocKeydown = (event) => {
 }
 // END_BLOCK_DOC_INFO_POPOVER
 
-const handleGuideClick = () => {
-  // Same channel as Help › Mark Guide and the palette (C-40 R-1).
-  bus.emit('mt::open-guide', {})
-}
-
 // START_CONTRACT: handleTitleContextMenu
 //   PURPOSE: Open a native context menu for the active title path and copy the exact pathname only after explicit user selection.
 //   INPUTS: { event: MouseEvent - context-menu pointer coordinates }
@@ -627,8 +671,22 @@ const handleSidebarToggleClick = () => {
   bus.emit('view:toggle-layout-entry', 'showSideBar')
 }
 
+// Amendment 5: both entry points returned — direct window for Settings,
+// pointer-anchored popup for the app menu.
 const handleSettingsClick = () => {
   projectStore.OPEN_SETTING_WINDOW()
+}
+
+const handleMenuClick = async (event) => {
+  try {
+    const rect = event.currentTarget.getBoundingClientRect()
+    await window.electron.ipcRenderer.invoke('mt::window-popup-app-menu', {
+      x: rect.left,
+      y: rect.bottom
+    })
+  } catch (e) {
+    console.warn('[titleBar] menu popup failed:', e)
+  }
 }
 
 const handleShareClick = async () => {
@@ -693,18 +751,6 @@ const handleTitleBarDblclick = (event) => {
 
 const handleMinimizeClick = async () => {
   await getCurrentWindow().minimize()
-}
-
-const handleMenuClick = async (event) => {
-  try {
-    const rect = event.currentTarget.getBoundingClientRect()
-    await window.electron.ipcRenderer.invoke('mt::window-popup-app-menu', {
-      x: rect.left,
-      y: rect.bottom
-    })
-  } catch (e) {
-    console.warn('[titleBar] menu popup failed:', e)
-  }
 }
 
 // Tauri 2 doesn't expose discrete max/unmax/fullscreen events the way
@@ -906,8 +952,10 @@ img {
   gap: 2px;
   margin-right: 6px;
 }
+/* C-WINDOWS-TITLEBAR-ALIGNMENT: 156px = 138px caption strip + 18px gap
+   (was 146px — the ?/theme/share cluster rode 8px from the buttons). */
 .title-bar.frameless:not(.isOsx) .titlebar-right {
-  margin-right: 146px;
+  margin-right: 184px;
 }
 
 .title-no-drag {
@@ -1008,7 +1056,8 @@ img {
   position: absolute;
   top: 0;
   right: 0;
-  width: 138px;
+  /* amendment 3: 4 cells — theme | min | max | close. */
+  width: 184px;
   display: flex;
   align-items: center;
   flex-direction: row-reverse;
@@ -1031,17 +1080,19 @@ img {
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
 }
-.frameless-titlebar-close:hover {
-  background-color: rgb(228, 79, 79);
-}
-.frameless-titlebar-minimize:hover,
-.frameless-titlebar-toggle:hover {
+/* C-WINDOWS-TITLEBAR-ALIGNMENT: one neutral hover for every caption
+   button (the macOS-red close hover is retired); no separators — native
+   caption buttons have none (owner, second amendment). */
+.frameless-titlebar-button:hover {
   background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.1));
 }
 .frameless-titlebar-button svg {
   color: currentColor;
 }
-.frameless-titlebar-close:hover svg {
-  fill: #ffffff;
+.caption-glyph {
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', sans-serif;
+  font-size: 10px;
+  line-height: 1;
+  user-select: none;
 }
 </style>
