@@ -2372,6 +2372,14 @@
         bytes; privacy verification normalizes host path separators and
         accepts manifest line delimiters on Windows, macOS and Linux.
 
+        C-ACCEPTANCE-REGISTRY (2026-10-21): M-046 admission gains an
+        ordered evidence trail — docs/acceptance/registry.json registers
+        every isolated test artifact (source sha, bundle identity,
+        binary digest, build recipe via tools/build-test-artifact.mjs)
+        and every review wave and owner verdict per delivery item;
+        tools/acceptance-registry.mjs --check enforces schema, git sha
+        resolvability and two-way consistency with the collecting train
+        inside the standard vitest matrix (V-M-046).
         vitest.int.config.mjs re-exports the canonical Vitest configuration
         for portable historical C-71 commands, without machine-specific paths.
         The test workflow gates session restore and close/edit ownership

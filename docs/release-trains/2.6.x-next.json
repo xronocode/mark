@@ -91,6 +91,21 @@
           "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
           "21793f1100a4eea8584a0f664e6b26e092868383"
         ]
+      },
+      {
+        "id": "DEPS-FOLLOW-REDIRECTS",
+        "summary": "follow-redirects 1.16.1 security bump closing Dependabot highs 144/145 (dev-side axios transitive; lockfile-only).",
+        "commits": [
+          "8108a7ac0b3a832e40805e65e6f245199ee701db"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-21",
+          "testedArtifact": "PR 18 review: lockfile-only diff, npm ls resolves 1.16.1, advisories gone from the PR audit",
+          "scenarios": [
+            "npm audit reports no follow-redirects or axios advisories on the PR tree."
+          ]
+        }
       }
     ],
     "notPresent": []
@@ -148,6 +163,13 @@
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8108a7ac0b3a832e40805e65e6f245199ee701db",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-FOLLOW-REDIRECTS"
         ]
       }
     ]
