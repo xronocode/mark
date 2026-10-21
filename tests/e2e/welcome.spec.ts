@@ -55,9 +55,9 @@ async function bootWelcome(page: Page): Promise<void> {
     }
     ;(window as any).__mockInvoke = {
       mt_recent_list: () => [
-        '/Users/e2e/docs/launch-plan.md',
-        '/Users/e2e/docs/release-notes.md',
-        '/Users/e2e/docs/architecture.md'
+        '/Users/<fixture>/docs/launch-plan.md',
+        '/Users/<fixture>/docs/release-notes.md',
+        '/Users/<fixture>/docs/architecture.md'
       ],
       mt_recent_remove: () => 1,
       mt_recent_insert: () => null,
@@ -71,7 +71,10 @@ async function bootWelcome(page: Page): Promise<void> {
       }),
       mt_prefs_get: (args: any) => {
         if (args?.key === 'lastSessionTabs') return ['/tmp/one.md', '/tmp/two.md']
-        if (args?.key === 'recentFolders') return ['/Users/e2e/prj/pebble']
+        if (args?.key === 'recentFolders') return ['/Users/<fixture>/prj/pebble']
+        // C-FIX-009-SESSION-COLD-START: auto-restore off, so the boot
+        // records the seeded snapshot as the welcome cold-start offer.
+        if (args?.key === 'restoreSessionOnLaunch') return false
         return null
       },
       mt_prefs_set: () => null
@@ -87,10 +90,19 @@ async function bootWelcome(page: Page): Promise<void> {
     return false
   }, undefined, { timeout: 15_000 })
 
-  // No document + no blank tab → the welcome screen mounts.
+  // Cold launch without files (C-FIX-009 contract): addBlankTab boots
+  // the session path, the off-preference skips auto-restore, no tab is
+  // created (the blank tab is skipped) → the welcome screen mounts with
+  // the cold-start "Last session" offer. The preferences store defaults
+  // restoreSessionOnLaunch to true, so the harness sets it off directly
+  // (the prefs mock is the same user state, read by the BOOT_SESSION
+  // fallback when the store value is undefined).
   await page.evaluate(() => {
+    const app = document.querySelector('#app') as any
+    const prefs = app?.__vue_app__?.config?.globalProperties?.$pinia?.state?.value?.preferences
+    if (prefs) prefs.restoreSessionOnLaunch = false
     ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
-      addBlankTab: false,
+      addBlankTab: true,
       markdownList: [],
       lineEnding: 'lf',
       sideBarVisibility: false,
@@ -133,8 +145,8 @@ test.describe('welcome screen (C-46)', () => {
 
     // Last session is the first recent row.
     const sessionRow = filesSection.locator('.row-session')
-    await expect(sessionRow.locator('.row-name')).toHaveText('Last session')
-    await expect(sessionRow.locator('.row-time')).toHaveText('2 files')
+    // The row title carries the frozen tab count (acceptance follow-up 5).
+    await expect(sessionRow.locator('.row-name')).toHaveText('Last session (2)')
     await expect(sessionRow.locator('.row-path')).toContainText('one.md, two.md')
 
     // Session row + three recent files with the relative mtime.
@@ -142,7 +154,7 @@ test.describe('welcome screen (C-46)', () => {
     await expect(names).toHaveCount(4)
     await expect(names.nth(1)).toHaveText('launch-plan.md')
     const fileRow = filesSection.locator('.recent-item').nth(1)
-    await expect(fileRow.locator('.row-path')).toContainText('/Users/e2e/docs')
+    await expect(fileRow.locator('.row-path')).toContainText('/Users/<fixture>/docs')
     await expect(fileRow.locator('.row-time')).toHaveText('3 min ago')
 
     // Recent folders section with the folder row.
@@ -215,8 +227,8 @@ test.describe('welcome screen (C-46)', () => {
       page.locator('.welcome-screen .welcome-section').first().locator('.row-name').nth(2)
     ).toHaveText('release-notes.md')
 
-    expect(removeCalls).toEqual(['/Users/e2e/docs/release-notes.md'])
-    expect(inserts).toEqual([{ path: '/Users/e2e/docs/release-notes.md', index: 1 }])
+    expect(removeCalls).toEqual(['/Users/<fixture>/docs/release-notes.md'])
+    expect(inserts).toEqual([{ path: '/Users/<fixture>/docs/release-notes.md', index: 1 }])
   })
 
   test('the What’s-new footer link stays hidden without a lastUpdateAt preference', async ({
@@ -243,7 +255,7 @@ test.describe('welcome screen (C-46)', () => {
     await fileRow.locator('.row-button').click()
 
     await expect.poll(() => opened.length).toBe(1)
-    expect(opened[0]).toEqual({ args: ['/Users/e2e/docs/launch-plan.md', {}] })
+    expect(opened[0]).toEqual({ args: ['/Users/<fixture>/docs/launch-plan.md', {}] })
   })
 
   test('Copy prompt puts the macOS prompt on the clipboard', async ({ page }) => {
@@ -288,5 +300,92 @@ test.describe('welcome screen (C-46)', () => {
     await expect(overlay).toHaveCount(0)
     // The bridge (not the welcome screen) opens the drop: it reads the file.
     await expect.poll(() => read).toEqual(['/tmp/dropped.md'])
+  })
+})
+
+test.describe('welcome cold-start offer (FIX-009)', () => {
+  const tabNames = (page: Page) => page.evaluate(() =>
+    Array.from(document.querySelectorAll('.tabs-container li')).map((li) => li.textContent || '')
+  )
+
+  test('the frozen offer still restores after the live session changes (review wave 2)', async ({ page }) => {
+    await installTauriShim(page)
+    let liveTabs = ['/tmp/previous.md']
+    await page.addInitScript(() => {
+      ;(window as any).__mockInvoke = {
+        ...(window as any).__mockInvoke,
+        mt_prefs_get: (args: any) => {
+          const w = window as any
+          if (args?.key === 'lastSessionTabs') return w.__liveTabs
+          if (args?.key === 'restoreSessionOnLaunch') return false
+          if (args?.key === 'recentFolders') return []
+          return null
+        },
+        mt_prefs_set: (args: any) => {
+          const w = window as any
+          if (args?.key === 'lastSessionTabs') w.__liveTabs = args.value
+          return null
+        },
+        mt_fs_stat: ({ path }: { path: string }) => ({
+          isFile: path.endsWith('.md'),
+          isDirectory: false,
+          size: 10,
+          mode: 0,
+          mtimeMs: Date.now(),
+          isSymbolicLink: false
+        }),
+        mt_walk_project: () => null,
+        mt_open_file: (args: any) => {
+          const p = Array.isArray(args?.args) ? args.args[0] : args?.pathname
+          ;(window as any).__emitFakeEvent('mt::open-new-tab', {
+            pathname: p,
+            filename: p.split('/').pop(),
+            markdown: `# ${p.split('/').pop()}\n`,
+            isUtf8BomEncoded: false,
+            lineEnding: 'lf',
+            adjustLineEndingOnSave: false
+          })
+          return null
+        }
+      }
+      ;(window as any).__liveTabs = ['/tmp/previous.md']
+    })
+
+    await page.goto('/?type=editor&wid=0&udp=/tmp/mark-e2e&debug=0')
+    await page.waitForFunction(() => {
+      const ls = (window as any).__shimListeners
+      if (!ls) return false
+      for (const m of ls.values()) if (m.event === 'mt::bootstrap-editor') return true
+      return false
+    }, undefined, { timeout: 15_000 })
+    await page.evaluate(() => {
+      const app = document.querySelector('#app') as any
+      const prefs = app?.__vue_app__?.config?.globalProperties?.$pinia?.state?.value?.preferences
+      if (prefs) prefs.restoreSessionOnLaunch = false
+      ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
+        addBlankTab: true,
+        markdownList: [],
+        lineEnding: 'lf',
+        sideBarVisibility: false,
+        tabBarVisibility: true,
+        sourceCodeModeEnabled: false
+      })
+    })
+    await page.locator('.welcome-screen').waitFor({ state: 'visible', timeout: 15_000 })
+
+    // The frozen offer shows the boot-time snapshot.
+    const row = page.locator('.row-session')
+    await expect(row).toBeVisible()
+    await expect(row.locator('.row-path')).toContainText('previous.md')
+
+    // Mid-run, the session autosave rewrites the live preference to an
+    // empty session (e.g. a tab was opened and closed again).
+    await page.evaluate(() => { (window as any).__liveTabs = [] })
+
+    // The click must still restore the FROZEN offer — not the empty
+    // live preference.
+    await row.click()
+    await expect.poll(async () => (await tabNames(page)).length, { timeout: 10_000 }).toBeGreaterThan(0)
+    expect((await tabNames(page)).join(' ')).toContain('previous.md')
   })
 })

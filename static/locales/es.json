@@ -486,6 +486,8 @@
     "recentFolders": "Carpetas recientes",
     "noRecentFiles": "No hay archivos recientes",
     "lastSession": "Última sesión",
+    "lastSessionWithCount": "Última sesión ({count})",
+    "lastSessionEmpty": "No hay nada que restaurar: los archivos de la sesión anterior ya no están disponibles",
     "filesCount": {
       "one": "{count} archivo",
       "many": "{count} archivos",
@@ -512,6 +514,15 @@
       "todayAt": "hoy a las {time}",
       "yesterday": "ayer",
       "daysAgo": "hace {count} días"
+    },
+    "recentlyClosed": {
+      "title": "Cerradas recientemente",
+      "clear": "Limpiar",
+      "reopenAll": "Reabrir las {count}",
+      "reopenClosedTab": "Reabrir pestaña cerrada",
+      "missingNotice": "{name} ya no está disponible",
+      "someMissingNotice": "{count} de los archivos cerrados ya no están disponibles",
+      "buttonLabel": "Reabrir pestañas cerradas ({count})"
     }
   },
   "clipboardOpen": {
@@ -908,7 +919,8 @@
       "zoom": "Zoom",
       "checkUpdate": "Buscar Actualizaciones",
       "lineEnding": "Final de línea",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "reopenClosedTab": "Reabrir pestaña cerrada"
     },
     "edit": {
       "undo": "Deshacer",
@@ -1326,7 +1338,9 @@
     "export": {
       "error": "Error de exportación",
       "errorExporting": "Error al exportar archivo {type}",
-      "failed": "Falló la exportación de {type}"
+      "failed": "Falló la exportación de {type}",
+      "imagesEmbeddedTitle": "Algunas imágenes no se incrustaron",
+      "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales"
     },
     "diagramExport": {
       "title": "Diagrama",

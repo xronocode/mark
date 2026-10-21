@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-21",
+  "status": "implemented and locally verified; owner acceptance and commit pending",
+  "repair": {
+    "store": "editor.js BOOT_SESSION: when restore was requested but restoreSessionOnLaunch is false, the COMPLETE restorable payload is frozen once — tabs, the active pathname and the workspace roots (coldStartSession = { tabs, folders, active }); the auto-restore path and empty tab lists leave it null.",
+    "row": "recent/index.vue: the welcome 'Last session' row reads editorStore.coldStartSession (summary + plural count) instead of the mount-time GET_SESSION_PATHS capture; the row renders only while the offer exists and is never sourced from the live autosaved preference.",
+    "result": "RESTORE_SESSION accepts { from } — the explicit welcome action passes the frozen offer so the click path never rereads the live autosaved preferences (review wave 2 P1: the session autosave may have rewritten them since boot; the frozen-offer-after-autosave-overwrite regression pins it). Returns { folders, tabs, skipped }; a successful restore (folders+tabs > 0) clears coldStartSession; a restore that opens nothing raises the localized notice."
+  },
+  "verification": {
+    "unit": "tests/renderer/store/editor-session-coldstart.test.js — 12 cases: preference on auto-restores and offers nothing; preference off freezes the complete payload; empty tabs offer nothing; restore=false never offers; the review wave-2 regression (live preferences overwritten after boot — the explicit restore still reopens the frozen path); RESTORE_SESSION counts missing paths as skipped; success consumes the offer; a nothing-restored click keeps the offer (notice path).",
+    "component": "tests/renderer/components/recent.test.js — the C-46 session-row cases re-pinned to the coldStartSession contract; the FIX-009 recovery describe adds 'a mid-run empty session never conjures the stale Last session row'.",
+    "browser": "tests/e2e/recently-closed.spec.ts covers the mid-run zero-tabs welcome state (no stale row); the on/off cold-start branches beyond C-69 remain native-build checks.",
+    "governance": "grace lint --assertions current zero errors on the branch; graph M-011 SummaryDelta; V-M-011 scenario-75; train FIX-009 record updated."
+  },
+  "pending": "Owner acceptance on a fresh artifact (P1 regression fixed in review wave 2)."
+}

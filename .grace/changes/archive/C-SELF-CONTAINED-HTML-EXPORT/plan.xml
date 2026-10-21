@@ -1,0 +1,122 @@
+<GraceChangePlan graceVersion='4.0' status='applied'>
+<C-SELF-CONTAINED-HTML-EXPORT>
+  <ChangeRef>C-SELF-CONTAINED-HTML-EXPORT</ChangeRef>
+  <Created>2026-10-21</Created>
+  <ApprovalBasis>Owner chat approval 2026-10-21 (translated from Russian: "ok") was given to the explicitly enumerated pipeline — spec approval, then this plan, then implementation — after the two-clean-passes review report; the plan adds no product decision beyond the approved spec.</ApprovalBasis>
+  <IntentSummary>Renderer-side embedding of local images into the styledHtml export: a new util resolves img src against the exporting document's directory, reads each distinct local image through ipcFs.readBinary (size-checked via ipcFs.stat against the 8 MiB cap), rewrites src to base64 data-URLs with extension-mapped MIME, accounts skipped references (remote/data/unknown-ext/missing/too-large/unresolvable), and the styledHtml branch of handleExport runs it before the save dialog write; a localized skipped-count notice lands in ten locales; pdf/print branches and their e2e stay untouched. Corners C-1..C-12 live in the sibling design-context CornerMatrix and are cited by task criteria.</IntentSummary>
+  <BaselineAssertions>
+    <MustExist>
+      <Value>M-012</Value>
+    </MustExist>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>printOptimization: false</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/ipc/runtime/fs.ts</File>
+      <Text>readBinary</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/ipc/runtime/fs.ts</File>
+      <Text>stat</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-065</Module>
+    </MustVerify>
+    <MustContain>
+      <File>src/renderer/src/util/exportImages.js</File>
+      <Text>embedLocalImages</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <Text>embedLocalImages</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command>npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/components/editor-print-clearup.test.js</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command>npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/print-export.spec.ts --project=chromium</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-065 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-065 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/util/exportImages.js</File>
+    <File>src/renderer/src/util/fileSystem.js</File>
+    <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+    <Glob>static/locales/*.json</Glob>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>tests/e2e/*.spec.ts</Glob>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Util: exportImages.js — resolve (relative-to-doc-dir, POSIX absolute, Windows drive/extended-prefix via re-expressed correctImageSrc semantics with file:// strip, %20/unicode decode), stat-size gate (8 MiB), readBinary + base64 data-URL with extension-mapped MIME (png jpg jpeg gif webp bmp svg avif ico), dedup by resolved path, skipped accounting (remote/data/unknown-ext/missing/too-large/unresolvable-unc/untitled-no-dir), MODULE_CONTRACT + full unit matrix</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Corners C-1..C-4, C-6..C-11 green in the unit matrix; corners C-1 (relative PNG), C-2 (POSIX absolute), C-5 (remote untouched, no network), C-8 (≥8 MiB skipped without a read), C-10 (dedup single read) pinned by assertions; unknown extensions and generic UNC pass through uncounted-vs-counted exactly as the spec's R-1/R-4 split defines.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/util/exportImages.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>Wire the pass into handleExport's styledHtml branch: embedLocalImages over the generated HTML with currentFile's directory before editorStore.EXPORT, skipped-count notice (warning type) only when skipped > 0, pdf/print branches untouched; arrayBufferToBase64 exported from fileSystem.js for reuse; editor.vue CHANGE_SUMMARY entry; component test pinning branch wiring + pdf/print non-invocation (corner C-12) + printService neighbor regression</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Component test proves: styledHtml export runs the pass with the document directory and surfaces the notice on skips; pdf and print flows never invoke embedLocalImages (corner C-12); untitled documents pass no directory and export without a notice (corner C-9); editor-print-clearup neighbor still green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/editor-export-images.test.js tests/renderer/components/editor-print-clearup.test.js</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Locales: editor.export.imagesEmbeddedTitle + editor.export.imagesEmbeddedMessage ({embedded}/{total}) as native copy in all ten static/locales/*.json (en framing: "Some images were not embedded" / "{embedded} of {total} images embedded — large or missing images keep their original links")</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>All ten source locales carry both keys with the two placeholders present; wording is native copy per locale, not literal translation; en.json is the reference.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>node -e "const fs=require('fs');const ls=['de','en','es','fr','ja','ko','pt','ru','zh-CN','zh-TW'];for(const l of ls){const j=JSON.parse(fs.readFileSync('static/locales/'+l+'.json','utf8'));const e=j.editor&amp;&amp;j.editor.export;if(!e||!e.imagesEmbeddedTitle||!e.imagesEmbeddedMessage||!/\{embedded\}/.test(e.imagesEmbeddedMessage)||!/\{total\}/.test(e.imagesEmbeddedMessage))throw new Error(l)}console.log('ten locales OK')"</Command>
+      </Verification>
+    </T-003>
+    <T-004>
+      <Title>e2e: tests/e2e/export-html-images.spec.ts — fixture document with one local PNG exports through the tauri-shim (plugin:dialog|save override capturing the path, mt_fs_write capturing content, mt_fs_read_binary feeding fixture bytes, mt_fs_stat feeding size) and the saved HTML's img src is a data:image/png;base64 URL decoding to the fixture bytes; remote-src image stays a URL in the same export</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Spec green on chromium: byte-identical embed assertion (spec AC-3), remote passthrough, and the print-export.spec.ts regression neighbor stays green in the same run.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/print-export.spec.ts --project=chromium</Command>
+      </Verification>
+    </T-004>
+    <T-005>
+      <Title>Graph + verification + hygiene: register M-065 (new util, features graph) and V-M-065 (export-images tests, features verification), add the embedding step to DF-007 (ExportHtmlOrPdf) in the flows graph, index entries if required by routing, contracts/CHANGE_SUMMARY present in every touched governed file</Title>
+      <DependsOn>T-001, T-002, T-003, T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>grace lint --path . reports 0 errors attributable to this bundle (pre-existing parallel-session errors in C-ACCEPTANCE-REGISTRY and release bundles are not this bundle's); M-065/V-M-065/DF-007 entries name the real files and commands.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path .</Command>
+      </Verification>
+    </T-005>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Review number="1" date="2026-10-22" verdict="green" task="implementation-gates">
+      <Findings>
+        All five tasks executed. T-001: src/renderer/src/util/exportImages.js v1.0.0 (START_BLOCK_RESOLVE_SRC / START_BLOCK_EMBED_PASS) + 19-test unit matrix green. T-002: styledHtml branch wiring in editor.vue v1.31.0 (BLOCK_EMBED_IMAGES counts-only marker, MODULE_MAP/CHANGE_SUMMARY updated), arrayBufferToBase64 exported from fileSystem.js v1.2.0, 6-test component pin + printService neighbor regression green (pdf/print never invoke the pass). T-003: imagesEmbeddedTitle/Message keys in all ten source locales + min mirrors. T-004: e2e byte-identity assertion green on chromium (local PNG embeds through mt_fs_stat + mt_fs_read_binary, never mt_fs_read; remote URL survives); print-export.spec.ts 3/3 green in the same run; dist rebuilt (preview server serves the built bundle — the pass is invisible until `npm run build`). T-005: M-065 + V-M-065 + graph/verification index entries and the DF-007 refresh landed; grace lint --assertions current = 0 errors.
+        Two integration facts discovered and handled: (1) muya's export renders relative image src as absolute file:/// URLs — the pass resolves file URLs back to paths, so both spellings embed; the e2e fixture covers the file:/// form. (2) release-materials validates source/min locale mirrors with stable-JSON equality on every npm test run, so the ten .min.json mirrors must be regenerated in the same change — done; the 3 release-materials failures this caused mid-wave disappeared after regeneration. The single remaining npm-test failure (release-readiness.test.js:225, an unresolved merge-conflict marker) is the parallel session's in-flight file, untouched by this bundle.
+        Known accepted gaps: no live macOS check yet (owner acceptance pending); the standalone-open-from-imageless-directory criterion is proven by the byte-identical data-URL assertion rather than by literally opening the file elsewhere.
+      </Findings>
+    </Review>
+  </ReviewLog>
+</C-SELF-CONTAINED-HTML-EXPORT>
+</GraceChangePlan>

@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-21",
+  "status": "implemented and locally verified; owner acceptance and commit pending",
+  "repair": {
+    "store": "store/recentlyClosed.js (new): session-scoped memory-only history — RECORD_CLOSE dedups by pathname to the newest close and bounds the list at 25; CONSUME removes a matching entry; REOPEN_ONE stats first (missing → drop + localized notice naming the file), opens through mt::open-file and consumes only on success; REOPEN_NEWEST feeds the chord; REOPEN_ALL accepts only isFile===true stats, reopens in ascending recorded strip order, counts only successful invokes (failed entries stay recoverable), re-selects the newest was-active entry among successes via the mt::recently-closed-select bus event (fallback: last successful reopen; no event when everything fails), drops missing entries up front with one combined notice.",
+    "hooks": "editor.js FORCE_CLOSE_TAB records pathname tabs (strip index, wasActive, workspace root) before the splice; bootstrap-ipc.js consumes the entry in the mt::open-new-tab arrival — every open surface funnels there.",
+    "strip": "tabs.vue: count-badged reopen button (new chromeIcons 'reopen' glyph) left of the +, visible only while the history is non-empty; the popover teleports to body past the strip's overflow clip, anchors fixed under the button, lists entries (filename, root · relative time), reopens one on row click, offers Reopen all N and Clear, closes on Escape/outside mousedown.",
+    "welcome": "recent/index.vue recovery block (visible only at zero tabs with non-empty history): primary Reopen closed tab row with the platform chord hint, up to three older entries, Reopen all N chip.",
+    "command": "commands/index.js file.reopen-closed-tab → bus mt::editor-reopen-closed-tab → REOPEN_NEWEST (quiet no-op when empty); m009_menu.rs File › Reopen Closed Tab with Shift+CmdOrCtrl+T; descriptions.js + descriptions test pin the palette entry; affordance-audit NO_RESPONSE_ALLOWLIST documents the empty-history no-op."
+  },
+  "verification": {
+    "unit": "tests/renderer/store/recently-closed.test.js — 16 cases (wave 2: directory-stat rejection, invoke-failure accounting and the no-selection-when-all-fail case): newest-first recording, untitled exclusion, dedup-to-newest, bound eviction, consume, clear, reopen-one success/failure/missing semantics, reopen-newest no-op, deterministic Reopen-all ordering + active selection + missing-continue, close/reopen cycle drain.",
+    "component": "tests/renderer/components/tabs-recently-closed.test.js — 7 cases: no button at empty, count badge and DOM order left of +, popover rows/title/action routing, Reopen-all and Clear wiring, Escape and outside-mousedown close, reactive disappearance on consume.",
+    "welcome": "tests/renderer/components/recent.test.js FIX-009 recovery describe — 5 cases: block visibility gates, primary/row actions, Reopen-all chip gating, no stale Last-session row mid-run.",
+    "browser": "tests/e2e/recently-closed.spec.ts — 4 Chromium cases: close-all → Reopen all restores strip order + active; popover single reopen with a missing file dropping to a notice while the rest recover; independent reopen consumes (arrival funnel); welcome primary action recovers the newest after the last close.",
+    "locales": "recent.lastSessionEmpty + recent.recentlyClosed.* + commands.file.reopenClosedTab in all ten source catalogs with exact minified derivatives (native copy; product names untranslated).",
+    "governance": "grace lint --assertions current zero errors on the branch; graph M-011 SummaryDelta; V-M-011 scenario-75 + commands; train FIX-009 record updated."
+  },
+  "pending": "Owner acceptance on a fresh artifact (per the acceptance target in the train entry); native ⇧⌘T accelerator and popover visuals in the isolated Mark Test build."
+}

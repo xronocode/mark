@@ -482,6 +482,8 @@
     "recentFolders": "最近的資料夾",
     "noRecentFiles": "沒有最近的檔案",
     "lastSession": "上次工作階段",
+    "lastSessionWithCount": "上次工作階段（{count}）",
+    "lastSessionEmpty": "沒有可還原的內容 — 上次工作階段的檔案已無法使用",
     "filesCount": {
       "other": "{count} 個檔案"
     },
@@ -506,6 +508,15 @@
       "todayAt": "今天 {time}",
       "yesterday": "昨天",
       "daysAgo": "{count} 天前"
+    },
+    "recentlyClosed": {
+      "title": "最近關閉",
+      "clear": "清除",
+      "reopenAll": "重新開啟全部 {count} 個",
+      "reopenClosedTab": "重新開啟已關閉分頁",
+      "missingNotice": "{name} 已無法使用",
+      "someMissingNotice": "{count} 個已關閉的檔案已無法使用",
+      "buttonLabel": "重新開啟已關閉分頁（{count}）"
     }
   },
   "clipboardOpen": {
@@ -902,7 +913,8 @@
       "zoom": "縮放",
       "checkUpdate": "檢查更新",
       "lineEnding": "行尾字元",
-      "close": "關閉"
+      "close": "關閉",
+      "reopenClosedTab": "重新開啟已關閉分頁"
     },
     "edit": {
       "undo": "復原",
@@ -1328,7 +1340,9 @@
     "export": {
       "error": "匯出錯誤",
       "errorExporting": "匯出檔案時發生錯誤",
-      "failed": "匯出失敗"
+      "failed": "匯出失敗",
+      "imagesEmbeddedTitle": "部分圖片未嵌入",
+      "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 張圖片——過大或不存在的圖片保留原始連結"
     },
     "diagramExport": {
       "title": "圖表",
