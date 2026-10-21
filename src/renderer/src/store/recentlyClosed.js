@@ -124,7 +124,10 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
           showConfirm: false
         })
         console.info(
-          `[RecentlyClosed][REOPEN_ONE][BLOCK_REOPEN_MISSING] path=${entry.pathname}`
+          // Basename only in markers — the repo logging convention keeps
+          // full paths out of the console (bootstrap-ipc's
+          // BLOCK_NEW_TAB_RECEIVED does the same).
+          `[RecentlyClosed][REOPEN_ONE][BLOCK_REOPEN_MISSING] file=${entry.filename || entry.pathname.split('/').pop()}`
         )
         return false
       }
@@ -179,10 +182,11 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
         }
         reopenedCount++
         lastSuccess = entry
-        // The newest wasActive entry among SUCCESSES wins: the selection
-        // request must never name a tab that failed to open (review
-        // wave 2). Deterministic fallback: the last successfully
-        // reopened entry.
+        // The rightmost was-active entry among SUCCESSES wins (the
+        // ascending strip-order loop overwrites, keeping the highest
+        // strip index): the selection request must never name a tab
+        // that failed to open (review wave 2). Deterministic fallback:
+        // the last successfully reopened entry.
         if (entry.wasActive) activeSuccess = entry
         this.CONSUME(entry.pathname)
       }
@@ -202,7 +206,7 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
       }
       console.info(
         `[RecentlyClosed][REOPEN_ALL][BLOCK_REOPEN_ALL] reopened=${reopenedCount} missing=${missing}` +
-          (activeTarget ? ` active=${activeTarget.pathname}` : '')
+          (activeTarget ? ` active=${activeTarget.filename || activeTarget.pathname.split('/').pop()}` : '')
       )
       return { reopened: reopenedCount, missing, active: activeTarget?.pathname || null }
     }

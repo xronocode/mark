@@ -196,7 +196,6 @@ describe('store/editor.js — FIX-009 cold start + record hooks', () => {
       expect(electronInvoke).toHaveBeenCalledWith('mt::open-file', '/tmp/previous.md', {})
       expect(editorStore.coldStartSession).toBeNull()
     })
-  describe('RESTORE_SESSION result + offer consumption', () => {
     it('returns { folders, tabs, skipped } counts for missing paths', async () => {
       vi.mocked(ipcFs.stat).mockImplementation(async (p) => {
         if (p === '/tmp/gone.md') throw new Error('not found')
