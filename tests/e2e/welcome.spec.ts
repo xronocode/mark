@@ -145,7 +145,8 @@ test.describe('welcome screen (C-46)', () => {
 
     // Last session is the first recent row.
     const sessionRow = filesSection.locator('.row-session')
-    await expect(sessionRow.locator('.row-name')).toHaveText('Last session')
+    // The row title carries the frozen tab count (acceptance follow-up 5).
+    await expect(sessionRow.locator('.row-name')).toHaveText('Last session (2)')
     await expect(sessionRow.locator('.row-time')).toHaveText('2 files')
     await expect(sessionRow.locator('.row-path')).toContainText('one.md, two.md')
 
