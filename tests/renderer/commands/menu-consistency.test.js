@@ -238,7 +238,12 @@ describe('menu ↔ commands consistency', () => {
     expect(buildFn).toMatch(
       /with_id\("edit\.go-to-heading", "Go to Heading…"[\s\S]*?accelerator\("CmdOrCtrl\+T"\)/
     )
-    expect(buildFn.match(/CmdOrCtrl\+T/g)).toHaveLength(1)
+    // C-FIX-009-RECENTLY-CLOSED adds File › Reopen Closed Tab on
+    // Shift+CmdOrCtrl+T; the plain CmdOrCtrl+T chord stays unique to
+    // Go to Heading, so count the exact quoted accelerators, not the
+    // substring.
+    expect(buildFn.match(/accelerator\("CmdOrCtrl\+T"\)/g)).toHaveLength(1)
+    expect(buildFn.match(/accelerator\("Shift\+CmdOrCtrl\+T"\)/g)).toHaveLength(1)
   })
 
   it('pins Split View menu item id and accelerator (C-29)', () => {

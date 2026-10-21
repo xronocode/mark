@@ -191,7 +191,8 @@ const dispatchMenuId = (page: Page, id: string): Promise<number> =>
 const NO_RESPONSE_ALLOWLIST: Record<string, string> = {
   'file.open-file': 'opens the native file dialog; the shim invoke returns null with no renderer surface',
   'file.open-folder': 'opens the native folder dialog; the shim invoke returns null with no renderer surface',
-  'help.rate': 'capability-gated (m048 review=false): applyCapabilityGate prunes it in this harness, mirroring the cfg-gated native menu item in non-MAS builds'
+  'help.rate': 'capability-gated (m048 review=false): applyCapabilityGate prunes it in this harness, mirroring the cfg-gated native menu item in non-MAS builds',
+  'file.reopen-closed-tab': 'empty closed-tab history is the owner-approved quiet no-op (FIX-009); the walk boots a fresh document, so the strip button and reopen transport never engage'
 }
 
 // Bridge warnings that are already-tracked findings. A NEW warning

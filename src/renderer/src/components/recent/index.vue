@@ -23,19 +23,70 @@
         </button>
       </div>
 
+      <!-- C-FIX-009-RECENTLY-CLOSED: current-run recovery. Shown only
+           when the last tab closed in THIS run — the cold-start
+           "Last session" row below is a different mechanism and is
+           never offered from live mid-run state. -->
+      <div v-if="showRecentlyClosed" class="welcome-section">
+        <h2 class="section-title">{{ t('recent.recentlyClosed.title') }}</h2>
+        <ul class="recent-list">
+          <li class="recent-item">
+            <button type="button" class="row-button row-recovery" @click="reopenNewestClosed">
+              <span class="row-icon" aria-hidden="true">↺</span>
+              <span class="row-main">
+                <span class="row-name">{{ t('recent.recentlyClosed.reopenClosedTab') }}</span>
+                <span class="row-path">{{ newestClosedLabel }}</span>
+              </span>
+              <span class="row-time"><kbd class="action-kbd">{{ shortcutReopen }}</kbd></span>
+            </button>
+          </li>
+          <li
+            v-for="entry in olderClosedEntries"
+            :key="entry.pathname"
+            class="recent-item"
+          >
+            <div
+              class="row-button"
+              role="button"
+              tabindex="0"
+              :title="entry.pathname"
+              @click="reopenClosedEntry(entry)"
+              @keydown.enter.prevent="reopenClosedEntry(entry)"
+            >
+              <span class="row-icon" aria-hidden="true">▤</span>
+              <span class="row-main">
+                <span class="row-name">{{ entry.filename }}</span>
+                <span class="row-path">{{ entry.root ? tilde(entry.root) : tilde(dirname(entry.pathname)) }}</span>
+              </span>
+            </div>
+          </li>
+        </ul>
+        <button
+          v-if="recentlyClosedCount > 1"
+          type="button"
+          class="chip-button accent reopen-all-chip"
+          @click="reopenAllClosed"
+        >
+          {{ t('recent.recentlyClosed.reopenAll', { count: recentlyClosedCount }) }}
+        </button>
+      </div>
+
       <div class="welcome-section">
         <h2 class="section-title">{{ t('recent.recentFiles') }}</h2>
         <ul class="recent-list">
-          <li v-if="sessionPaths.length" class="recent-item">
+          <!-- C-FIX-009-SESSION-COLD-START: the row reflects the
+               boot-time snapshot held by the editor store (offered only
+               when this launch skipped auto-restore) — never the live
+               autosaved preference, which legitimately empties mid-run. -->
+          <li v-if="coldStartSessionTabs.length" class="recent-item">
             <button type="button" class="row-button row-session" @click="restoreSession">
               <span class="row-icon" aria-hidden="true">↺</span>
               <span class="row-main">
-                <span class="row-name">{{ t('recent.lastSession') }}</span>
+                <span class="row-name">{{
+                  t('recent.lastSessionWithCount', { count: coldStartSessionTabs.length })
+                }}</span>
                 <span class="row-path">{{ sessionSummary }}</span>
               </span>
-              <span class="row-time">{{
-                filesCountLabel(sessionPaths.length)
-              }}</span>
             </button>
           </li>
           <li
@@ -68,7 +119,7 @@
               {{ t('recent.remove') }}
             </button>
           </li>
-          <li v-if="!recentFiles.length && !sessionPaths.length" class="no-recent">
+          <li v-if="!recentFiles.length && !coldStartSessionTabs.length" class="no-recent">
             {{ t('recent.noRecentFiles') }}
           </li>
         </ul>
@@ -160,8 +211,9 @@
 //            editorStore / projectStore / ipcRecent; opening files and
 //            folders reuses the existing IPC actions; the paste gesture
 //            delegates to util/clipboardOpen (no routing here).
-//   DEPENDS: store/editor, store/project, ipc/runtime (ipcRecent,
-//            ipcFs, ipcPrefs), util/pathDisplay, util/relativeTime,
+//   DEPENDS: store/editor (incl. coldStartSession), store/project,
+//            store/recentlyClosed, services/notification, ipc/runtime
+//            (ipcRecent, ipcFs, ipcPrefs), util/pathDisplay, util/relativeTime,
 //            util/agentPrompt, util/clipboardPath (isEditableTarget),
 //            util/clipboardOpen (dynamic, on ⌘V), util (isOsx,
 //            isWindows), i18n, bus ('mt::native-drag' from
@@ -175,15 +227,33 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   (component) - top-level locals: recentFiles, recentFolders, sessionPaths, toast, dragOver, whatsNew
+//   (component) - top-level locals: recentFiles, recentFolders, toast, dragOver, whatsNew
+//   coldStartSessionTabs - FIX-009: the frozen boot-time cold-start offer tabs driving the "Last session" row (never the live autosaved preference).
+//   restoreSession - FIX-009: restores the FROZEN offer payload (RESTORE_SESSION { from }); an empty result raises the localized notice.
+//   showRecentlyClosed / recentlyClosedCount / recentlyClosedEntries - FIX-009 current-run recovery block gates and data (store/recentlyClosed).
+//   reopenNewestClosed / reopenClosedEntry / reopenAllClosed - FIX-009 recovery actions delegating to the store.
 //   isMissingPathError - stat rejection → "path is gone" (IpcError cause.code, message fallback)
-//   filesCountLabel - plural-aware "N files" via Intl.PluralRules category keys
 //   onNativeDrag - welcome drop-zone highlight driven by the native drag-drop bridge
 //   onPasteKeyDown - C-52 plain ⌘V/Ctrl+V → util/clipboardOpen resolver (ignored in text inputs; editor paste untouched)
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.4 - 2026-10-19 the brand mark contrasts with the
+//   LAST_CHANGE: v2.2.1 - 2026-10-22 FIX-009 acceptance follow-up: the
+//     tab count moved INTO the row title (recent.lastSessionWithCount,
+//     «Last session (N)»), replacing the separate plural label on the
+//     right; the now-unused filesCountLabel plural helper and its row
+//     slot are gone (the recent.filesCount.* locale keys stay for
+//     potential reuse). Owner request from the 2026-10-22 acceptance
+//     protocol, section 6 item 5.
+//   v2.2.0 - 2026-10-21 C-FIX-009: the "Last session" row
+//     reflects the editor store's boot-time cold-start snapshot (offered
+//     only when this launch skipped auto-restore) instead of the
+//     mount-time capture that went stale after the session autosave
+//     emptied it — a restore that opens nothing now raises a notice
+//     instead of silently no-op'ing; a current-run recovery block
+//     (reopen newest / older entries / Reopen all) appears when this
+//     run closed its last tab.
+//   v2.1.4 - 2026-10-19 the brand mark contrasts with the
 //     theme: light ¶ on dark themes, dark ¶ on light themes.
 //   v2.1.3 - 2026-10-18 fix: row layout — .row-button gained
 //     box-sizing:border-box (width:100% plus padding overflowed the column
@@ -238,6 +308,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useEditorStore } from '@/store/editor'
 import { useProjectStore } from '@/store/project'
+import { useRecentlyClosedStore } from '@/store/recentlyClosed'
+import notice from '@/services/notification'
 import { ipcRecent, ipcFs, ipcPrefs } from '@/ipc/runtime'
 import { isOsx, isWindows } from '@/util'
 import { isEditableTarget } from '@/util/editableTarget'
@@ -245,7 +317,7 @@ import { shortenMiddle, pathBasename, pathDirname } from '@/util/pathDisplay'
 import { formatRelativeTime } from '@/util/relativeTime'
 import { getAgentPrompt } from '@/util/agentPrompt'
 import { getRunningVersion, LAST_UPDATE_AT_KEY } from '@/whatsNew/gate'
-import { t, getCurrentLanguage } from '../../i18n'
+import { t } from '../../i18n'
 import bus from '@/bus'
 import { storeToRefs } from 'pinia'
 import { usePreferencesStore } from '@/store/preferences.js'
@@ -265,6 +337,7 @@ const MISSING_RE = /MT_FS_NOT_FOUND|No such file/i
 
 const editorStore = useEditorStore()
 const projectStore = useProjectStore()
+const recentlyClosedStore = useRecentlyClosedStore()
 // The brand mark contrasts with the effective theme: the light (paper) ¶
 // icon on dark themes, the dark (ink) one on light themes — a same-tone
 // icon blended into the background (user review 2026-10-19).
@@ -273,7 +346,6 @@ const brandLogo = computed(() => (isDarkTheme(theme.value) ? logoUrl : logoDarkU
 
 const recentFiles = ref([])
 const recentFolders = ref([])
-const sessionPaths = ref([])
 const toast = ref(null)
 const dragOver = ref(false)
 const whatsNew = ref(null)
@@ -284,6 +356,7 @@ let _toastTimer = null
 const shortcutOpenFile = isOsx ? '⌘O' : 'Ctrl+O'
 const shortcutOpenFolder = isOsx ? '⇧⌘O' : 'Ctrl+Shift+O'
 const shortcutNew = isOsx ? '⌘N' : 'Ctrl+N'
+const shortcutReopen = isOsx ? '⇧⌘T' : 'Ctrl+Shift+T'
 
 const basename = pathBasename
 const dirname = pathDirname
@@ -339,26 +412,6 @@ const hydrateFolders = async (paths) => {
 }
 // END_BLOCK_HYDRATE_LISTS
 
-// START_BLOCK_FILES_COUNT_PLURAL
-// The app's vue-i18n instance disables "a | b" plural parsing (i18n/
-// index.js returns any message containing "|" verbatim), so the plural
-// forms live as CLDR-category sub-keys — recent.filesCount.one / few /
-// many / other — picked with Intl.PluralRules for the UI language and
-// falling back to .other when a locale has no form for that category.
-const filesCountLabel = (count) => {
-  let category = 'other'
-  try {
-    category = new Intl.PluralRules(getCurrentLanguage() || 'en').select(count)
-  } catch {
-    // unknown locale tag → 'other'
-  }
-  const key = `recent.filesCount.${category}`
-  const label = t(key, { count })
-  if (label && label !== key) return label
-  return t('recent.filesCount.other', { count })
-}
-// END_BLOCK_FILES_COUNT_PLURAL
-
 // START_BLOCK_WHATS_NEW_GATE
 // The What's-new footer link is visible only within 7 days after an
 // update, keyed on C-48's 'lastUpdateAt' preference (an ISO timestamp
@@ -384,12 +437,10 @@ onMounted(async () => {
     const { homeDir } = await import('@tauri-apps/api/path')
     _homeDir = (await homeDir()).replace(/\/+$/, '')
   } catch { /* dev/test fallback */ }
-  const [recent, session, folders] = await Promise.all([
+  const [recent, folders] = await Promise.all([
     editorStore.GET_RECENT_FILES(),
-    editorStore.GET_SESSION_PATHS(),
     projectStore.GET_RECENT_FOLDERS()
   ])
-  sessionPaths.value = session || []
   await Promise.all([
     hydrateFiles((recent || []).slice(0, 10)),
     // The store keeps ≤5 folders; stat them all so a missing one does
@@ -433,12 +484,42 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onPasteKeyDown)
 })
 
-// First three file names of the last session ("a.md, b.md, c.md, …").
+// First three file names of the offered cold-start snapshot
+// ("a.md, b.md, c.md, …"). C-FIX-009-SESSION-COLD-START: sourced from
+// the editor store's boot-time snapshot, never from the live autosaved
+// preference.
+const coldStartSessionTabs = computed(() => editorStore.coldStartSession?.tabs || [])
 const sessionSummary = computed(() => {
-  const names = sessionPaths.value.slice(0, 3).map(basename)
-  const suffix = sessionPaths.value.length > 3 ? ', …' : ''
+  const names = coldStartSessionTabs.value.slice(0, 3).map(basename)
+  const suffix = coldStartSessionTabs.value.length > 3 ? ', …' : ''
   return names.join(', ') + suffix
 })
+
+// ── C-FIX-009-RECENTLY-CLOSED: current-run recovery on the welcome ──
+
+// START_BLOCK_RECENTLY_CLOSED_RECOVERY
+// The block appears only when this run closed its last tab — the
+// cold-start snapshot row above is a separate mechanism. All actions
+// delegate to the store so the strip button, ⇧⌘T, the popover and this
+// block behave identically.
+const recentlyClosedCount = computed(() => recentlyClosedStore.count)
+const recentlyClosedEntries = computed(() => recentlyClosedStore.entries)
+const showRecentlyClosed = computed(
+  () => (editorStore.tabs || []).length === 0 && recentlyClosedCount.value > 0
+)
+const newestClosedLabel = computed(() => {
+  const entry = recentlyClosedStore.newest
+  if (!entry) return ''
+  return entry.root ? tilde(entry.root) : tilde(dirname(entry.pathname))
+})
+// The primary row already leads with the newest; show up to three
+// older entries as plain rows.
+const olderClosedEntries = computed(() => recentlyClosedEntries.value.slice(1, 4))
+
+const reopenNewestClosed = () => recentlyClosedStore.REOPEN_NEWEST()
+const reopenClosedEntry = (entry) => recentlyClosedStore.REOPEN_ONE(entry)
+const reopenAllClosed = () => recentlyClosedStore.REOPEN_ALL()
+// END_BLOCK_RECENTLY_CLOSED_RECOVERY
 
 const whatsNewVisible = computed(() => !!whatsNew.value)
 const whatsNewVersion = computed(() => whatsNew.value?.version || '')
@@ -463,9 +544,29 @@ const openRecentFolder = (entry) => {
   projectStore.OPEN_RECENT_FOLDER(entry.path)
 }
 
-const restoreSession = () => {
-  editorStore.RESTORE_SESSION()
+// START_BLOCK_RESTORE_SESSION
+// C-FIX-009-SESSION-COLD-START: the explicit cold-start action must
+// never silently no-op — RESTORE_SESSION reports what it did, and a
+// restore that opened nothing (snapshot empty at click time or every
+// path gone) raises a visible notice.
+const restoreSession = async () => {
+  // Restore the FROZEN offer payload, never the live autosaved
+  // preferences (review wave 2: the session autosave may have rewritten
+  // them since boot; the click must reopen exactly what the row shows).
+  const result = await editorStore.RESTORE_SESSION({
+    from: editorStore.coldStartSession
+  })
+  if (result && result.folders + result.tabs === 0) {
+    notice.notify({
+      title: t('recent.lastSession'),
+      message: t('recent.lastSessionEmpty'),
+      type: 'warning',
+      time: 6000,
+      showConfirm: false
+    })
+  }
 }
+// END_BLOCK_RESTORE_SESSION
 
 // ── remove + 5s undo toast ────────────────────────────────────────
 
@@ -934,6 +1035,13 @@ function onNativeDrag(event) {
   align-items: center;
   gap: 12px;
   font-size: 13.5px;
+}
+
+/* C-FIX-009-RECENTLY-CLOSED: the welcome recovery block's trailing
+   Reopen-all chip, centred under the rows. */
+.reopen-all-chip {
+  display: block;
+  margin: 8px auto 0;
 }
 
 .agent-text {

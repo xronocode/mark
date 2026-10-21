@@ -49,6 +49,7 @@ const COMMAND_KEY_MAP = {
   // 文件关闭
   'file.close': 'commands.file.closeTab',
   'file.close-tab': 'commands.file.closeTab',
+  'file.reopen-closed-tab': 'commands.file.reopenClosedTab',
   'file.close-window': 'commands.file.closeWindow',
   'file.quit': 'commands.file.quit',
 

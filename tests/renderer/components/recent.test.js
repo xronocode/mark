@@ -18,6 +18,7 @@
 //   __busMock - bus double; captures the 'mt::native-drag' subscription.
 //   __projectStoreMock - project store double (recent folders).
 //   __editorStoreMock - editor store double (recent files, session).
+//   __recentlyClosedMock - recently-closed store double (FIX-009 recovery block).
 //   NOW - pinned clock for relative-time assertions.
 //   flushAsync - microtask-only flush that works under fake timers.
 //   flushPromises - flushAsync with the default round count.
@@ -66,8 +67,22 @@ vi.mock('@/i18n', () => ({
         return __i18nState.lang === 'ru' ? `${params?.count} файлов` : key
       case 'recent.filesCount.other':
         return __i18nState.lang === 'ru' ? `${params?.count} файла` : `${params?.count} files`
+      case 'recent.lastSessionWithCount':
+        return __i18nState.lang === 'ru'
+          ? `Последняя сессия (${params?.count})`
+          : `Last session (${params?.count})`
       case 'recent.removedToast':
         return `Removed "${params?.name}" from Recent`
+      case 'recent.recentlyClosed.title':
+        return 'Recently closed'
+      case 'recent.recentlyClosed.reopenClosedTab':
+        return 'Reopen closed tab'
+      case 'recent.recentlyClosed.reopenAll':
+        return `Reopen all ${params?.count}`
+      case 'recent.recentlyClosed.clear':
+        return 'Clear'
+      case 'recent.recentlyClosed.buttonLabel':
+        return `Reopen closed tabs (${params?.count})`
       case 'guide.agentPrompt.mac':
         return 'PROMPT[mac]'
       case 'guide.agentPrompt.generic':
@@ -145,9 +160,32 @@ const __editorStoreMock = {
   GET_RECENT_FILES: vi.fn().mockResolvedValue([]),
   GET_SESSION_PATHS: vi.fn().mockResolvedValue([]),
   NEW_UNTITLED_TAB: vi.fn(),
-  RESTORE_SESSION: vi.fn()
+  RESTORE_SESSION: vi.fn(),
+  // C-FIX-009-SESSION-COLD-START: the row now reads the store's
+  // boot-time offer snapshot instead of the live autosaved preference.
+  tabs: [],
+  coldStartSession: null
 }
 vi.mock('@/store/editor', () => ({ useEditorStore: vi.fn(() => __editorStoreMock) }))
+
+// C-FIX-009-RECENTLY-CLOSED: the welcome recovery block reads the
+// session-scoped store; a plain resettable stand-in keeps the component
+// test free of a pinia instance (each case re-mounts, so cross-test
+// reactivity is not needed).
+const __recentlyClosedMock = {
+  entries: [],
+  count: 0,
+  isEmpty: true,
+  newest: null,
+  REOPEN_NEWEST: vi.fn(async () => true),
+  REOPEN_ONE: vi.fn(async () => true),
+  REOPEN_ALL: vi.fn(async () => ({ reopened: 0, missing: 0 })),
+  CLEAR: vi.fn()
+}
+vi.mock('@/store/recentlyClosed', () => ({
+  useRecentlyClosedStore: vi.fn(() => __recentlyClosedMock),
+  RECENTLY_CLOSED_MAX: 25
+}))
 
 // Deterministic "now" so relative-time assertions never flake around
 // minute/day boundaries.
@@ -170,10 +208,18 @@ const mountRecent = async () => {
 }
 
 // Seed the three async sources the screen hydrates from. `statByPath`
-// maps path → resolved stat or an Error to reject with.
+// maps path → resolved stat or an Error to reject with. `session` seeds
+// the boot-time cold-start offer (C-FIX-009: it is the editor store's
+// snapshot, not the autosaved preference).
 const hydrateWith = async ({ files = [], session = [], folders = [], statByPath = {} } = {}) => {
   __editorStoreMock.GET_RECENT_FILES.mockResolvedValue(files)
   __editorStoreMock.GET_SESSION_PATHS.mockResolvedValue(session)
+  __editorStoreMock.coldStartSession = session.length ? { tabs: session } : null
+  __editorStoreMock.RESTORE_SESSION.mockResolvedValue({
+    folders: 0,
+    tabs: session.length,
+    skipped: 0
+  })
   __projectStoreMock.GET_RECENT_FOLDERS.mockResolvedValue(folders)
   __ipcFsMock.stat.mockImplementation((p) => {
     const s = statByPath[p]
@@ -213,6 +259,9 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW)
     __editorStoreMock.GET_RECENT_FILES.mockResolvedValue([])
     __editorStoreMock.GET_SESSION_PATHS.mockResolvedValue([])
+    __editorStoreMock.tabs = []
+    __editorStoreMock.coldStartSession = null
+    __editorStoreMock.RESTORE_SESSION.mockResolvedValue({ folders: 0, tabs: 0, skipped: 0 })
     __editorStoreMock.NEW_UNTITLED_TAB.mockClear()
     __editorStoreMock.RESTORE_SESSION.mockClear()
     __projectStoreMock.GET_RECENT_FOLDERS.mockResolvedValue([])
@@ -243,7 +292,7 @@ describe('recent/index.vue welcome screen (C-46)', () => {
       webUtils: { getPathForFile: vi.fn((f) => `/dropped/${f.name}`) },
       process: { platform: 'darwin', env: { MARKTEXT_VERSION_STRING: '2.3.1-test' } }
     }
-    window.marktext = { env: { HOME: '/Users/test' } }
+    window.marktext = { env: { HOME: "/Users/<fixture>" } }
     window.path = {
       basename: (p) => p.split('/').pop(),
       dirname: (p) => p.substring(0, p.lastIndexOf('/')) || '/',
@@ -312,7 +361,7 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     const wrapper = await hydrateWith({ session: ['/tmp/a.md', '/tmp/b.md'] })
     const sessionRow = wrapper.find('.row-session')
     expect(sessionRow.exists()).toBe(true)
-    expect(sessionRow.text()).toContain('2 files')
+    expect(sessionRow.find('.row-name').text()).toBe('Last session (2)')
     expect(sessionRow.find('.row-path').text()).toBe('a.md, b.md')
     await sessionRow.trigger('click')
     expect(__editorStoreMock.RESTORE_SESSION).toHaveBeenCalledTimes(1)
@@ -325,20 +374,21 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     expect(wrapper.find('.row-session .row-path').text()).toBe('a.md, b.md, c.md, …')
   })
 
-  it('renders "1 file" for a one-file session (plural category one)', async () => {
+  it('renders the tab count in the row title for a one-file session', async () => {
     const wrapper = await hydrateWith({ session: ['/tmp/only.md'] })
-    expect(wrapper.find('.row-session .row-time').text()).toBe('1 file')
+    expect(wrapper.find('.row-session .row-name').text()).toBe('Last session (1)')
+    expect(wrapper.find('.row-session .row-time').exists()).toBe(false)
   })
 
-  it('picks the Russian few/many plural forms by count', async () => {
+  it('renders the count inside the Russian row title for any plural category', async () => {
     __i18nState.lang = 'ru'
     let wrapper = await hydrateWith({ session: ['/a.md', '/b.md', '/c.md'] })
-    expect(wrapper.find('.row-session .row-time').text()).toBe('3 файла')
+    expect(wrapper.find('.row-session .row-name').text()).toBe('Последняя сессия (3)')
     wrapper.unmount()
     wrapper = await hydrateWith({
       session: ['/1.md', '/2.md', '/3.md', '/4.md', '/5.md']
     })
-    expect(wrapper.find('.row-session .row-time').text()).toBe('5 файлов')
+    expect(wrapper.find('.row-session .row-name').text()).toBe('Последняя сессия (5)')
   })
 
   it('splits Windows paths on backslashes for the name and parent folder', async () => {
@@ -358,16 +408,16 @@ describe('recent/index.vue welcome screen (C-46)', () => {
   it('shows up to five recent files with folder path and relative time', async () => {
     const stat = { mtimeMs: NOW - 3 * 60 * 1000, size: 1, isFile: true }
     const wrapper = await hydrateWith({
-      files: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((n) => `/Users/test/docs/${n}.md`),
+      files: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((n) => `/Users/<fixture>/docs/${n}.md`),
       statByPath: Object.fromEntries(
-        ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((n) => [`/Users/test/docs/${n}.md`, stat])
+        ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((n) => [`/Users/<fixture>/docs/${n}.md`, stat])
       )
     })
     const rows = wrapper.findAll('.recent-list .recent-item')
     // 5 files, no session row.
     expect(rows.length).toBe(5)
     expect(rows[0].find('.row-name').text()).toBe('f1.md')
-    expect(rows[0].find('.row-path').text()).toBe('/Users/test/docs')
+    expect(rows[0].find('.row-path').text()).toBe('/Users/<fixture>/docs')
     expect(rows[0].find('.row-time').text()).toBe('3 min ago')
   })
 
@@ -394,19 +444,19 @@ describe('recent/index.vue welcome screen (C-46)', () => {
   })
 
   it('opens a recent file on row click (click and Enter)', async () => {
-    const wrapper = await hydrateWith({ files: ['/Users/test/doc.md'] })
+    const wrapper = await hydrateWith({ files: ['/Users/<fixture>/doc.md'] })
     await wrapper.find('.recent-item .row-button').trigger('click')
     expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-      'mt::open-file', '/Users/test/doc.md', {}
+      'mt::open-file', '/Users/<fixture>/doc.md', {}
     )
     await wrapper.find('.recent-item .row-button').trigger('keydown', { key: 'Enter' })
     expect(window.electron.ipcRenderer.send).toHaveBeenCalledTimes(2)
   })
 
   it('opens a recent folder through the project store', async () => {
-    const wrapper = await hydrateWith({ folders: ['/Users/test/pebble'] })
+    const wrapper = await hydrateWith({ folders: ['/Users/<fixture>/pebble'] })
     await wrapper.find('.recent-item .row-button').trigger('click')
-    expect(__projectStoreMock.OPEN_RECENT_FOLDER).toHaveBeenCalledWith('/Users/test/pebble')
+    expect(__projectStoreMock.OPEN_RECENT_FOLDER).toHaveBeenCalledWith('/Users/<fixture>/pebble')
   })
 
   // ── remove + undo ───────────────────────────────────────────────
@@ -671,5 +721,93 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     const handler = __busMock.on.mock.calls.find(([n]) => n === 'mt::native-drag')[1]
     wrapper.unmount()
     expect(__busMock.off).toHaveBeenCalledWith('mt::native-drag', handler)
+  })
+})
+
+describe('recent/index.vue — FIX-009 current-run recovery block', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ now: NOW, toFake: ['setTimeout', 'clearTimeout'] })
+    vi.spyOn(Date, 'now').mockReturnValue(NOW)
+    __recentlyClosedMock.entries = []
+    __recentlyClosedMock.count = 0
+    __recentlyClosedMock.isEmpty = true
+    __recentlyClosedMock.newest = null
+    __recentlyClosedMock.REOPEN_NEWEST.mockClear()
+    __recentlyClosedMock.REOPEN_ONE.mockClear()
+    __recentlyClosedMock.REOPEN_ALL.mockClear()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  const seedClosed = (paths) => {
+    __recentlyClosedMock.entries = paths.map((pathname, i) => ({
+      pathname,
+      filename: pathname.split('/').pop(),
+      stripIndex: i,
+      wasActive: i === 0,
+      root: '',
+      closedAt: NOW
+    }))
+    __recentlyClosedMock.count = paths.length
+    __recentlyClosedMock.isEmpty = paths.length === 0
+    __recentlyClosedMock.newest = __recentlyClosedMock.entries[0] || null
+  }
+
+  const mountRecovery = async (paths, { tabs = [] } = {}) => {
+    seedClosed(paths)
+    __editorStoreMock.tabs = tabs
+    return mountRecent()
+  }
+
+  it('shows the recovery block when this run closed its last tab', async () => {
+    const wrapper = await mountRecovery(['/tmp/a.md', '/tmp/b.md'])
+    const block = wrapper.findAll('.welcome-section').find((s) => s.text().includes('Recently closed'))
+    expect(block).toBeTruthy()
+    expect(block.text()).toContain('Reopen closed tab')
+    // Newest leads; one older entry follows.
+    expect(block.findAll('.recent-item').length).toBe(2)
+  })
+
+  it('hides the block while tabs remain open or the history is empty', async () => {
+    let wrapper = await mountRecovery(['/tmp/a.md'], { tabs: [{ id: 't1' }] })
+    expect(wrapper.text()).not.toContain('Recently closed')
+    wrapper.unmount()
+    wrapper = await mountRecovery([])
+    expect(wrapper.text()).not.toContain('Recently closed')
+  })
+
+  it('the primary action reopens the newest entry; rows reopen their own', async () => {
+    const wrapper = await mountRecovery(['/tmp/a.md', '/tmp/b.md'])
+    const block = wrapper.findAll('.welcome-section').find((s) => s.text().includes('Recently closed'))
+    await block.findAll('.recent-item')[0].find('.row-button').trigger('click')
+    expect(__recentlyClosedMock.REOPEN_NEWEST).toHaveBeenCalledTimes(1)
+    await block.findAll('.recent-item')[1].find('.row-button').trigger('click')
+    expect(__recentlyClosedMock.REOPEN_ONE).toHaveBeenCalledTimes(1)
+    expect(__recentlyClosedMock.REOPEN_ONE.mock.calls[0][0].pathname).toBe('/tmp/b.md')
+  })
+
+  it('offers Reopen all only when more than one entry remains', async () => {
+    let wrapper = await mountRecovery(['/tmp/a.md'])
+    expect(wrapper.find('.reopen-all-chip').exists()).toBe(false)
+    wrapper.unmount()
+    wrapper = await mountRecovery(['/tmp/a.md', '/tmp/b.md'])
+    const chip = wrapper.find('.reopen-all-chip')
+    expect(chip.exists()).toBe(true)
+    expect(chip.text()).toContain('2')
+    await chip.trigger('click')
+    expect(__recentlyClosedMock.REOPEN_ALL).toHaveBeenCalledTimes(1)
+  })
+
+  it('a mid-run empty session never conjures the stale Last session row', async () => {
+    // The live autosave emptied the preference (GET_SESSION_PATHS is
+    // seeded with [] by the shared beforeEach); with the preference ON
+    // there is no cold-start offer, so no row may render even though a
+    // closing run just happened.
+    __editorStoreMock.coldStartSession = null
+    const wrapper = await mountRecovery(['/tmp/a.md'])
+    expect(wrapper.find('.row-session').exists()).toBe(false)
   })
 })
