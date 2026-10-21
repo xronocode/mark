@@ -944,16 +944,17 @@ img {
   pointer-events: none;
 }
 
-/* Right cluster: «?» (Win/Linux), theme, Share. Frameless Win/Linux
-   keeps clear of the min/max/close cluster on the right edge. */
+/* Right cluster: Share on Win/Linux (theme rides the caption row there
+   as the 4th cell); theme + Share on macOS. */
 .titlebar-right {
   display: flex;
   align-items: center;
   gap: 2px;
   margin-right: 6px;
 }
-/* C-WINDOWS-TITLEBAR-ALIGNMENT: 156px = 138px caption strip + 18px gap
-   (was 146px — the ?/theme/share cluster rode 8px from the buttons). */
+/* C-WINDOWS-TITLEBAR-ALIGNMENT amendment 3: 184px = the flush 4-cell
+   caption strip (theme + min/max/close at 46px each); the right cluster
+   clears it entirely. */
 .title-bar.frameless:not(.isOsx) .titlebar-right {
   margin-right: 184px;
 }

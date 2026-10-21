@@ -2591,12 +2591,19 @@
     <M-011>
       <Name>mt-renderer</Name>
         <SummaryDelta>
-        C-WINDOWS-TITLEBAR-ALIGNMENT (2026-10-20): the Win/Linux titlebar
-        joins the C-40 trim — the ☰ app-menu button and ⚙ Settings gear
-        leave the bar (Settings via the command palette file.preferences),
-        caption buttons render Windows-style (13 px butt-cap glyphs, 1 px
-        cell separators, one neutral hover), and the ?/theme/share cluster
-        clears the caption strip by 18 px (margin 156 px).
+        C-WINDOWS-TITLEBAR-ALIGNMENT (2026-10-20, amendment-5 final state):
+        the Win/Linux titlebar keeps its primary entry points — the ☰
+        app-menu button and ⚙ Settings gear stay on the bar (palette-only
+        reachability proved undiscoverable in real use) — while Windows
+        caption buttons render the native Segoe MDL2/Fluent code points
+        (E921/E922/E923/E8BB at 10 px, no cell separators, one neutral
+        hover) with the redrawn chrome-icon descriptors as the 13 px
+        non-Windows fallback; the «?» guide button is removed on every
+        platform (Help › Mark Guide covers it); the theme toggle rides the
+        caption row as a flush fourth 46 px cell (strip 184 px); and the
+        30 themes drop the legacy caption-svg fill rule that painted the
+        theme icon as a solid white dot. macOS keeps the minimal bar minus
+        the guide button.
         </SummaryDelta>
       <DisplayName>mt-renderer</DisplayName>
       <Type>UI_COMPONENT</Type>

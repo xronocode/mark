@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/chrome-icons.test.js
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / C-51 T-011 / C-51 T-013 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component, the chromeIconMarkup string twin and the filled pin silhouette.
 //   SCOPE: pure module tests over components/icons/chromeIcons.js.
@@ -15,6 +15,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v2.4.0 C-WINDOWS-TITLEBAR-ALIGNMENT: the round-cap
+//     invariant documents the FLAT_CAP exemption for the four redrawn
+//     window-* caption descriptors (butt caps, full-width geometry).
+
 //   LAST_CHANGE: v2.3.0 - 2026-10-17 C-51 T-013: the «pin» descriptor
 //   test flips to the filled pushpin silhouette — every part fills with
 //   currentColor (round head circle + tapering body + needle, no
