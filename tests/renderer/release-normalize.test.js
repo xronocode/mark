@@ -64,7 +64,7 @@ const COPY_PATHS = [
   'tests/renderer/release-preflight.test.js',
   'CHANGELOG.md',
   'README.md',
-  'docs/release-trains/2.5.x-next.md',
+  'docs/release-trains/2.6.x-next.md',
   'docs/release-notes-en-drafts.md',
   'release-please-config.json',
   'src/renderer/src/whatsNew/data.js',
@@ -125,15 +125,21 @@ const copyFixture = () => {
   writeJson(resolve(root, '.release-please-manifest.json'), { '.': '2.6.0' })
 
   const train = JSON.parse(
-    readFileSync(resolve('docs/release-trains/2.5.x-next.json'), 'utf8')
+    readFileSync(resolve('docs/release-trains/2.6.x-next.json'), 'utf8')
   )
   train.state = 'Collecting'
   train.transitions = train.transitions.filter(({ state }) => state !== 'Preparing')
   train.computedVersion = '2.5.4'
+  // The normalization plan propagates the Release Please version while
+  // it differs from the previous RELEASED train tag; the fixture rolls
+  // the previous release back so the synthetic 2.5.4→2.6.0 propagation
+  // has work to do (the checked-in train's v2.6.0 boundary equals the
+  // package version and would correctly plan nothing).
+  train.previousRelease.tag = 'v2.5.3'
   train.materials.screenshotManifest = 'docs/assets/readme/2.5.4.manifest.json'
   mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
-  writeJson(resolve(root, 'docs/release-trains/2.5.x-next.json'), train)
-  const trainLedgerPath = resolve(root, 'docs/release-trains/2.5.x-next.md')
+  writeJson(resolve(root, 'docs/release-trains/2.6.x-next.json'), train)
+  const trainLedgerPath = resolve(root, 'docs/release-trains/2.6.x-next.md')
   writeFileSync(
     trainLedgerPath,
     restoreCollectingLedger(readFileSync(trainLedgerPath, 'utf8'))
@@ -233,8 +239,8 @@ describe('release normalization', () => {
       'Cargo.lock',
       'src-tauri/tauri.conf.json',
       'tests/renderer/release-preflight.test.js',
-      'docs/release-trains/2.5.x-next.json',
-      'docs/release-trains/2.5.x-next.md',
+      'docs/release-trains/2.6.x-next.json',
+      'docs/release-trains/2.6.x-next.md',
       'README.md',
       'docs/release-notes-en-drafts.md',
       'src/renderer/src/whatsNew/data.js',
@@ -272,7 +278,7 @@ describe('release normalization', () => {
       '0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6'
     )
     const normalizedTrain = JSON.parse(
-      plan.changes.find(({ path }) => path === 'docs/release-trains/2.5.x-next.json').after
+      plan.changes.find(({ path }) => path === 'docs/release-trains/2.6.x-next.json').after
     )
     expect(normalizedTrain.state).toBe('Preparing')
     expect(normalizedTrain.transitions.at(-1)).toMatchObject({
@@ -280,7 +286,7 @@ describe('release normalization', () => {
       actor: 'mark-release-prep[bot]'
     })
     const normalizedLedger = plan.changes.find(
-      ({ path }) => path === 'docs/release-trains/2.5.x-next.md'
+      ({ path }) => path === 'docs/release-trains/2.6.x-next.md'
     ).after
     expect(normalizedLedger).toContain('| State | Preparing |')
     expect(normalizedLedger).toContain(
@@ -307,14 +313,14 @@ describe('release normalization', () => {
 
   it('preserves Windows CRLF in the prepared human train ledger', () => {
     const root = copyFixture()
-    const ledgerPath = resolve(root, 'docs/release-trains/2.5.x-next.md')
+    const ledgerPath = resolve(root, 'docs/release-trains/2.6.x-next.md')
     writeFileSync(
       ledgerPath,
       windowsNewlines(readFileSync(ledgerPath, 'utf8'))
     )
     const plan = planReleaseNormalization(root, { date: '2026-10-20' })
     const normalizedLedger = plan.changes.find(
-      ({ path }) => path === 'docs/release-trains/2.5.x-next.md'
+      ({ path }) => path === 'docs/release-trains/2.6.x-next.md'
     ).after
     expect(normalizedLedger.replaceAll('\r\n', '')).not.toContain('\n')
     applyReleaseNormalization(root, plan, { date: '2026-10-20' })
@@ -331,7 +337,7 @@ describe('release normalization', () => {
 
   it('derives an open current checkout or rejects a sealed lifecycle without writing', () => {
     const packageVersion = JSON.parse(readFileSync(resolve('package.json'), 'utf8')).version
-    const trainPath = resolve('docs/release-trains/2.5.x-next.json')
+    const trainPath = resolve('docs/release-trains/2.6.x-next.json')
     const trainBefore = readFileSync(trainPath, 'utf8')
     const train = JSON.parse(trainBefore)
     const previousVersion = train.previousRelease.tag.replace(/^v/, '')

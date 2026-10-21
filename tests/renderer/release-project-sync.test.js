@@ -36,9 +36,35 @@ import {
   validateProjectMutationBoundary
 } from '../../tools/release-project-sync.mjs'
 
-const manifest = JSON.parse(
-  readFileSync(resolve('docs/release-trains/2.5.x-next.json'), 'utf8')
+const checkedIn = JSON.parse(
+  readFileSync(resolve('docs/release-trains/2.6.x-next.json'), 'utf8')
 )
+// A freshly rolled collecting train is legitimately empty, while the
+// reconciliation cases need at least one item row beyond the train
+// summary — fall back to one synthetic accepted item in that case.
+const manifest =
+  checkedIn.items.userFacing.length + checkedIn.items.operational.length > 0
+    ? checkedIn
+    : {
+        ...checkedIn,
+        items: {
+          ...checkedIn.items,
+          userFacing: [
+            {
+              id: 'FIX-SAMPLE',
+              summary: 'Synthetic accepted repair for the mirror cases.',
+              state: 'queued',
+              commits: ['995b01ce65906108dcd8fefa95ccae7dd799cba5'],
+              acceptance: {
+                owner: 'xronocode',
+                date: '2026-10-19',
+                testedArtifact: 'Mark Test bcaebe05',
+                scenarios: ['The accepted scenario works.']
+              }
+            }
+          ]
+        }
+      }
 const governance = JSON.parse(
   readFileSync(resolve('.github/release-governance.json'), 'utf8')
 )
@@ -102,7 +128,7 @@ describe('release Project mirror', () => {
         manifest.items.operational.length +
         manifest.items.notPresent.length
     )
-    expect(desired.rows[0].stableId).toBe('train:2.5.x-next')
+    expect(desired.rows[0].stableId).toBe('train:2.6.x-next')
     expect(JSON.stringify(desired)).not.toContain(privateHomePath(''))
     expect(JSON.stringify(desired)).not.toContain('file://')
   })

@@ -96,7 +96,7 @@ jobs:
 
       - name: validate repository release evidence
         run: |
-          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.5.x-next.json')).computedVersion")
+          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.6.x-next.json')).computedVersion")
           npm run release:readiness -- --tag "$TAG"
           npm run release:materials -- --tag "$TAG"
 

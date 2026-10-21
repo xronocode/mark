@@ -125,7 +125,12 @@ describe('release GitHub trust boundaries', () => {
     expect(promote.jobs.preflight.permissions).toEqual({ contents: 'read', checks: 'read' })
     expect(promote.jobs['authorize-tag'].environment).toBe('release-authorize')
     expect(promote.jobs['authorize-tag'].needs).toBe('preflight')
-    expect(commands(promote.jobs.preflight)).toContain("[ \"$STATE\" = Ready ]")
+    // v1.2.0: a non-Ready train admits the push as bookkeeping and exits
+    // before deriving a seal — promotion still requires the Ready state,
+    // now via the negative guard plus the seal-gated authorize-tag job.
+    expect(commands(promote.jobs.preflight)).toContain('[ "$STATE" != "Ready" ]')
+    expect(commands(promote.jobs.preflight)).toContain('nothing to promote')
+    expect(promote.jobs['authorize-tag'].if).toContain("needs.preflight.outputs.seal != ''")
     expect(JSON.stringify(promote.jobs['authorize-tag'])).toContain('permission-contents')
     expect(commands(promote.jobs['authorize-tag'])).not.toContain('secrets.GITHUB_TOKEN')
     expect(promoteSource).toContain('actions/create-github-app-token@')
