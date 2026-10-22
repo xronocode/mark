@@ -163,24 +163,40 @@ pub async fn mt_request_keybindings(
 /// C-52 R-5: `default_path` (optional) pre-points the panel at a folder
 /// — the App Store build routes a clipboard-resolved folder here because
 /// a pasted path grants no sandbox access (one click «Open» confirms).
+///
+/// C-MULTI-SOURCE-WORKSPACE fix wave: SYNCHRONOUS rfd on the main
+/// thread. The previous callback + oneshot over tauri-plugin-dialog
+/// drove rfd's async sheet-modal future from a spawned block_on thread;
+/// when that future never completed (observed with cloud-storage
+/// folders 2026-10-22) the thread leaked AND the app stayed wedged —
+/// later renderer invokes (walk, session autosave) silently never
+/// dispatched, leaving a root at «Загрузка...» forever. rfd's sync API
+/// runs NSApp.runModal to completion and always ends the session, so it
+/// cannot leak. It panics off the main thread (see m001_save_close
+/// note), hence run_on_main_thread + a channel back to the async
+/// command.
 #[tauri::command]
 pub async fn mt_pick_folder(
     app: tauri::AppHandle,
     default_path: Option<String>,
 ) -> Result<Option<String>, String> {
-    use tauri_plugin_dialog::DialogExt;
-    let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
-    let mut dialog = app.dialog().file().set_title("Open Folder");
-    if let Some(dir) = default_path.as_deref() {
-        if !dir.is_empty() {
-            dialog = dialog.set_directory(dir);
+    safe_eprintln!("[m_fs_ops][open_folder][BLOCK_PICK_SYNC_MAIN begin]");
+    let (tx, rx) = std::sync::mpsc::sync_channel::<Option<std::path::PathBuf>>(1);
+    let dir = default_path.clone();
+    app.run_on_main_thread(move || {
+        let mut dialog = rfd::FileDialog::new().set_title("Open Folder");
+        if let Some(d) = dir.as_deref() {
+            if !d.is_empty() {
+                dialog = dialog.set_directory(d);
+            }
         }
-    }
-    dialog.pick_folder(move |result| {
-        let _ = tx.send(result);
-    });
-    let chosen = rx.await.map_err(|e| e.to_string())?;
-    let path = match chosen.and_then(|p| p.into_path().ok()) {
+        let _ = tx.send(dialog.pick_folder());
+    })
+    .map_err(|e| format!("run_on_main_thread: {e}"))?;
+    let chosen = tokio::task::spawn_blocking(move || rx.recv().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| format!("join: {e}"))??;
+    let path = match chosen {
         Some(p) => {
             let s = p.to_string_lossy().to_string();
             // C-15 T-M3: folder grant moment — bookmark for sandbox re-access.
@@ -200,19 +216,27 @@ pub async fn mt_pick_folder(
 /// C-24: ask the user to grant a folder (opened at `dir`) so images can be
 /// written into `<dir>/assets/` from the App Store sandbox. On a pick the
 /// grant is bookmarked (M-047) and the chosen path returned; cancel → None.
+///
+/// C-MULTI-SOURCE-WORKSPACE fix wave: sync rfd on the main thread for the
+/// same leak reason as mt_pick_folder (the async sheet-modal future could
+/// wedge the app when it never completed).
 #[tauri::command]
 pub async fn mt_grant_folder_access(app: tauri::AppHandle, dir: String) -> Result<Option<String>, String> {
-    use tauri_plugin_dialog::DialogExt;
-    let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
-    app.dialog()
-        .file()
-        .set_title("Allow Mark to save images in this folder")
-        .set_directory(&dir)
-        .pick_folder(move |result| {
-            let _ = tx.send(result);
-        });
-    let chosen = rx.await.map_err(|e| e.to_string())?;
-    match chosen.and_then(|p| p.into_path().ok()) {
+    let (tx, rx) = std::sync::mpsc::sync_channel::<Option<std::path::PathBuf>>(1);
+    let start = dir.clone();
+    app.run_on_main_thread(move || {
+        let _ = tx.send(
+            rfd::FileDialog::new()
+                .set_title("Allow Mark to save images in this folder")
+                .set_directory(&start)
+                .pick_folder(),
+        );
+    })
+    .map_err(|e| format!("run_on_main_thread: {e}"))?;
+    let chosen = tokio::task::spawn_blocking(move || rx.recv().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| format!("join: {e}"))??;
+    match chosen {
         Some(p) => {
             let s = p.to_string_lossy().to_string();
             crate::m047_bookmarks::remember(&s);
@@ -232,6 +256,11 @@ pub async fn mt_grant_folder_access(app: tauri::AppHandle, dir: String) -> Resul
 /// events always find an owning root in _processTreeEvent.
 #[tauri::command]
 pub fn mt_walk_project(path: String, app: tauri::AppHandle) -> Result<(), String> {
+    // C-MULTI-SOURCE-WORKSPACE fix wave: STARTED marker — the cloud-picker
+    // investigation had to prove a negative (no walk thread, no COMPLETE
+    // marker); an explicit start line makes "invoke never arrived" vs
+    // "walk hung" distinguishable in one log read.
+    safe_eprintln!("[m_fs_ops][walk_project][BLOCK_WALK_STARTED path={path}]");
     let walk_path = std::path::PathBuf::from(&path);
     std::thread::spawn(move || {
         if let Err(e) = walk_and_emit_app(&walk_path, &app) {

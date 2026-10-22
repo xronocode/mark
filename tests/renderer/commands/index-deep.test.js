@@ -12,6 +12,7 @@
 // START_MODULE_MAP
 //   deepNotifyMock - Hoisted notification mock.
 //   editorStoreMock - Editor store stub used by command executes.
+//   __projectStoreMockDeep - Project store stub whose ASK_FOR_OPEN_PROJECT spy pins the Add/Replace dispatch modes.
 //   setSinglePreferenceMock - Preferences setter capture.
 //   preferencesStoreMock - Preferences store stub (incl. markdownLint for C-17).
 //   findCmd - Registry lookup by command id.
@@ -34,7 +35,8 @@
  *
  * Covers uncovered code paths:
  *   - All command execute() methods not tested in existing test
- *   - file.new-window, file.open-file, file.open-folder, file.save-as
+ *   - file.new-window, file.open-file, file.add-folder,
+ *     file.replace-workspace, file.save-as
  *   - file.print, file.close-window, file.toggle-auto-save
  *   - file.move-file, file.rename-file, file.import-file
  *   - file.export-file subcommands (html, pdf)
@@ -95,13 +97,17 @@ vi.mock('@/commands/utils', () => ({
   isUpdatable: () => false
 }))
 
+// C-MULTI-SOURCE-WORKSPACE: the mock is a stored ref so tests can assert
+// the Add Folder… / Replace Workspace… dispatch modes.
+const __projectStoreMockDeep = { ASK_FOR_OPEN_PROJECT: vi.fn() }
 vi.mock('@/store/project', () => ({
-  useProjectStore: () => ({
-    ASK_FOR_OPEN_PROJECT: vi.fn()
-  })
+  useProjectStore: () => __projectStoreMockDeep
 }))
 
-const editorStoreMock = { currentFile: null, PRINT_DOCUMENT: vi.fn() }
+// C-MULTI-SOURCE-WORKSPACE fix wave: QUIT_APP mock — file.quit now runs
+// the guarded quit (Save & Quit / Don't Save dialog in the store action)
+// instead of invoking mt_app_quit directly.
+const editorStoreMock = { currentFile: null, PRINT_DOCUMENT: vi.fn(), QUIT_APP: vi.fn() }
 vi.mock('@/store/editor', () => ({
   useEditorStore: () => editorStoreMock
 }))
@@ -146,10 +152,16 @@ describe('commands/index — deep coverage', () => {
       expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::cmd-open-file')
     })
 
-    it('file.open-folder calls projectStore.ASK_FOR_OPEN_PROJECT', async () => {
-      const cmd = findCmd('file.open-folder')
+    it('file.add-folder calls projectStore.ASK_FOR_OPEN_PROJECT in add mode (C-MULTI-SOURCE-WORKSPACE)', async () => {
+      const cmd = findCmd('file.add-folder')
       await cmd.execute()
-      // No throw — project store mock was called
+      expect(__projectStoreMockDeep.ASK_FOR_OPEN_PROJECT).toHaveBeenCalledWith('add')
+    })
+
+    it('file.replace-workspace calls projectStore.ASK_FOR_OPEN_PROJECT in replace mode (C-MULTI-SOURCE-WORKSPACE)', async () => {
+      const cmd = findCmd('file.replace-workspace')
+      await cmd.execute()
+      expect(__projectStoreMockDeep.ASK_FOR_OPEN_PROJECT).toHaveBeenCalledWith('replace')
     })
 
     it('file.save-as emits mt::editor-ask-file-save-as', async () => {
@@ -511,10 +523,9 @@ describe('commands/index — deep coverage', () => {
       expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::open-setting-window')
     })
 
-    it('file.quit invokes mt_app_quit', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+    it('file.quit runs the guarded QUIT_APP action (fix wave)', async () => {
       await findCmd('file.quit').execute()
-      expect(invoke).toHaveBeenCalledWith('mt_app_quit')
+      expect(editorStoreMock.QUIT_APP).toHaveBeenCalledTimes(1)
     })
 
     it('about emits aboutDialog', async () => {

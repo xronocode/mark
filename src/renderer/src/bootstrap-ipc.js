@@ -174,12 +174,14 @@ const setupIpcListenersImpl = async () => {
     }),
 
     // tree-walk events from open-folder backend. Streamed during recursive
-    // walk; renderer's ProjectStore folds each into the sidebar tree via
-    // _processTreeEvent.
+    // walk; the store COALESCES them (C-MULTI-SOURCE-WORKSPACE fix wave —
+    // a whole cloud drive froze the webview when each of ~30k events was
+    // folded synchronously) and folds each batch into the sidebar tree
+    // via _processTreeEvent.
     listen('mt::update-object-tree', (event) => {
       const payload = event?.payload
       if (payload && typeof payload === 'object' && payload.type) {
-        projectStore._processTreeEvent(payload.type, payload.change)
+        projectStore.ENQUEUE_TREE_EVENT(payload)
       }
     }),
 

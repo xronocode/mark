@@ -555,6 +555,84 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    // START_BLOCK_QUIT_APP
+    // C-MULTI-SOURCE-WORKSPACE fix wave: app-level quit with the SAME
+    // dirty-tab guard the window close uses (Save & Quit / Don't Save /
+    // stay). Routes: File→Quit + the app-menu Quit item (⌘Q) and the
+    // command palette's file.quit. Before this action existed, quit went
+    // straight to mt_app_quit — mt_app_quit marks the exit approved and
+    // app.exit(0) never consults the window close lifecycle, so unsaved
+    // tabs were dropped silently (owner acceptance probe 2026-10-22:
+    // instant exit, zero lifecycle markers).
+    async QUIT_APP() {
+      const projectStore = useProjectStore()
+      const unsavedFiles = this.tabs
+        .filter((file) => !file.isSaved)
+        .map((file) => {
+          const { id, filename, pathname, markdown } = file
+          const options = getOptionsFromState(file)
+          return {
+            id,
+            filename,
+            pathname,
+            markdown,
+            options,
+            defaultPath: getRootFolderFromState(projectStore)
+          }
+        })
+
+      if (!unsavedFiles.length) {
+        await this._saveSessionState()
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_app_quit')
+        return
+      }
+
+      const tabCount = unsavedFiles.length
+      const namedCount = unsavedFiles.filter((f) => f.pathname).length
+      const message =
+        namedCount === tabCount
+          ? `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. Save them before quitting?`
+          : `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. ${tabCount - namedCount} ${tabCount - namedCount > 1 ? 'are' : 'is'} untitled and cannot be auto-saved — Save will commit the named ${namedCount} and discard the rest.`
+      try {
+        await ElMessageBox.confirm(message, 'Unsaved changes', {
+          confirmButtonText: namedCount > 0 ? 'Save & Quit' : 'Discard & Quit',
+          cancelButtonText: "Don't Save",
+          type: 'warning',
+          distinguishCancelAndClose: true,
+          closeOnClickModal: false,
+          closeOnPressEscape: true
+        })
+        if (namedCount > 0) {
+          try {
+            await window.electron.ipcRenderer.invoke(
+              'mt::save-and-close-tabs',
+              deepClone(unsavedFiles)
+            )
+          } catch (err) {
+            notice.notify({
+              title: 'Save failed',
+              type: 'error',
+              message: String(err)
+            })
+            return
+          }
+        }
+        await this._saveSessionState()
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('mt_app_quit')
+      } catch (action) {
+        if (action === 'cancel') {
+          // Don't Save — quit without committing the dirty tabs.
+          await this._saveSessionState()
+          const { invoke } = await import('@tauri-apps/api/core')
+          await invoke('mt_app_quit')
+        }
+        // 'close' (Esc/✕) — the user stayed; do not quit.
+      }
+    },
+    // END_BLOCK_QUIT_APP
+
     /**
      * Public action — invoked by bootstrap-ipc.js mt::tab-saved
      * listener for cross-window batch-save. Same logic as the inline
@@ -710,9 +788,18 @@ export const useEditorStore = defineStore('editor', {
       let skipped = 0
       let restoredFolders = 0
       let restoredTabs = 0
+      // C-MULTI-SOURCE-WORKSPACE: unavailable roots degrade VISIBLY — the
+      // notice lists them, they stay in prefs (so they return when the
+      // drive/iCloud account comes back), and the remaining roots, tabs
+      // and the active tab still restore.
+      const skippedFolders = []
       for (const folder of folders) {
         if (projectStore.projectTrees.some((r) => r.pathname === folder)) continue
-        if (!(await exists(folder, 'dir'))) { skipped++; continue }
+        if (!(await exists(folder, 'dir'))) {
+          skipped++
+          skippedFolders.push(folder)
+          continue
+        }
         await projectStore.OPEN_RECENT_FOLDER(folder)
         restoredFolders++
       }
@@ -721,8 +808,15 @@ export const useEditorStore = defineStore('editor', {
         try {
           await window.electron.ipcRenderer.invoke('mt::open-file', p, {})
           restoredTabs++
-        } catch {
+        } catch (e) {
           skipped++
+          notice.notify({
+            title: i18n.global.t('workspace.fileOpenFailedTitle'),
+            message: String(e),
+            type: 'error',
+            time: 20000,
+            showConfirm: false
+          })
         }
       }
       if (typeof active === 'string' && active) {
@@ -745,6 +839,20 @@ export const useEditorStore = defineStore('editor', {
       console.debug(
         `[EditorStore][bootSession][BLOCK_SESSION_RESTORED] folders=${restoredFolders} tabs=${restoredTabs} skipped=${skipped}`
       )
+      // C-MULTI-SOURCE-WORKSPACE: unavailable roots degrade VISIBLY —
+      // the honest notice lists them (copy promises nothing about them
+      // staying in the session).
+      if (skippedFolders.length > 0) {
+        notice.notify({
+          title: i18n.global.t('workspace.restoreSkippedFoldersTitle'),
+          message: i18n.global.t('workspace.restoreSkippedFolders', {
+            paths: skippedFolders.join(', ')
+          }),
+          type: 'warning',
+          time: 10000,
+          showConfirm: false
+        })
+      }
       return result
     },
     // END_BLOCK_SESSION_RESTORE

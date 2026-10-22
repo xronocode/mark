@@ -462,11 +462,23 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: Some("CmdOrCtrl+O".to_string()),
                     items: None,
                 },
+                // C-MULTI-SOURCE-WORKSPACE: explicit Add Folder… (appends
+                // a workspace root) and Replace Workspace… (replaces the
+                // root set) — id-dispatched to the renderer commands of
+                // the same ids like their C-40/FIX-010 siblings; the
+                // overloaded single "Open Folder…" item is retired.
                 MenuItem {
-                    id: "file.open-folder".to_string(),
-                    label: "Open Folder…".to_string(),
-                    command: Some("openFolder".to_string()),
+                    id: "file.add-folder".to_string(),
+                    label: "Add Folder…".to_string(),
+                    command: None,
                     accelerator: Some("CmdOrCtrl+Shift+O".to_string()),
+                    items: None,
+                },
+                MenuItem {
+                    id: "file.replace-workspace".to_string(),
+                    label: "Replace Workspace…".to_string(),
+                    command: None,
+                    accelerator: None,
                     items: None,
                 },
                 // C-52 R-1: reads the clipboard — a folder opens as the
@@ -894,9 +906,17 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .accelerator("CmdOrCtrl+O")
                 .build(handle)?,
         )
+        // C-MULTI-SOURCE-WORKSPACE: File › Add Folder… (⌘⇧O / Ctrl+Shift+O)
+        // appends a workspace root; File › Replace Workspace… replaces the
+        // root set (dirty-guarded in the renderer). Both dispatch their id
+        // through the renderer menu bridge.
         .item(
-            &MenuItemBuilder::with_id("file.open-folder", "Open Folder…")
+            &MenuItemBuilder::with_id("file.add-folder", "Add Folder…")
                 .accelerator("CmdOrCtrl+Shift+O")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.replace-workspace", "Replace Workspace…")
                 .build(handle)?,
         )
         // C-52 R-1: File › Open from Clipboard (⌥⌘V / Ctrl+Alt+V) —
@@ -1333,14 +1353,20 @@ pub fn build_native_menu<R: tauri::Runtime>(
             .hide_others()
             .show_all()
             .separator()
-            // Path B-clean W4: use Tauri's predefined `.quit()` so macOS
-            // Cmd+Q routes through NSApp's standard responder chain
-            // instead of needing our menu accelerator. Custom id was
-            // ignored by macOS (Cmd+Q is system-reserved without a
-            // predefined Quit menu item). Each window's CloseRequested
-            // still fires before NSApp terminate, so the dirty-tab
-            // dialog in m001_save_close.wire_close_handler runs.
-            .quit()
+            // C-MULTI-SOURCE-WORKSPACE fix wave: CUSTOM quit item
+            // dispatching the renderer's guarded file.quit (QUIT_APP —
+            // Save & Quit / Don't Save / stay). The previously used
+            // predefined `.quit()` was assumed to fire each window's
+            // CloseRequested before terminate; probed 2026-10-22 it
+            // does NOT (instant exit, zero lifecycle markers, unsaved
+            // tabs dropped). The W4 note that macOS ignores a custom
+            // Cmd+Q accelerator is re-tested in the fix-wave
+            // verification; the click path works regardless.
+            .item(
+                &MenuItemBuilder::with_id("file.quit", "Quit Mark")
+                    .accelerator("CmdOrCtrl+Q")
+                    .build(handle)?,
+            )
             .build()?;
         top = top.item(&app_submenu);
     }
@@ -1680,6 +1706,9 @@ mod tests {
             // help.support command — id-dispatched only.
             // FIX-010: the macOS-only Command Palette row dispatches its
             // view.command-palette id through the renderer menu bridge.
+            // C-MULTI-SOURCE-WORKSPACE: File › Add Folder… / Replace
+            // Workspace… dispatch their ids to the renderer commands of
+            // the same names — id-dispatched only.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1693,6 +1722,8 @@ mod tests {
                     | "view.outline"
                     | "view.status-bar"
                     | "view.lock-document"
+                    | "file.add-folder"
+                    | "file.replace-workspace"
             );
             if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(
@@ -1846,7 +1877,8 @@ mod tests {
         let flat = flatten(&menu);
         for required in &[
             "file.save",
-            "file.open-folder",
+            "file.add-folder",
+            "file.replace-workspace",
             "file.open-file",
             "file.close-tab",
             "edit.find",
@@ -1860,9 +1892,11 @@ mod tests {
     }
 
     // START_BLOCK_OPEN_FROM_CLIPBOARD_TEST
-    // C-52 R-1: File › Open from Clipboard sits right after Open Folder
-    // with the ⌥⌘V / Ctrl+Alt+V accelerator, in the taxonomy the renderer
-    // command registry mirrors (the native builder adds the same id).
+    // C-52 R-1: File › Open from Clipboard sits right after the folder
+    // commands with the ⌥⌘V / Ctrl+Alt+V accelerator, in the taxonomy the
+    // renderer command registry mirrors (the native builder adds the same
+    // id). C-MULTI-SOURCE-WORKSPACE: its predecessor row became the
+    // Add Folder… / Replace Workspace… pair.
     #[test]
     fn file_menu_has_open_from_clipboard_with_alt_cmd_v() {
         let menu = standard_menu();
@@ -1875,21 +1909,70 @@ mod tests {
         assert_eq!(item.accelerator.as_deref(), Some("Alt+CmdOrCtrl+V"));
         assert_eq!(item.command.as_deref(), Some("openFromClipboard"));
 
-        // It sits directly after Open Folder in the File submenu.
+        // It sits directly after Replace Workspace… in the File submenu.
         let file_menu = menu
             .iter()
             .find(|m| m.id == "file")
             .and_then(|m| m.items.as_ref())
             .expect("File submenu");
         let ids: Vec<&str> = file_menu.iter().map(|i| i.id.as_str()).collect();
-        let folder_idx = ids.iter().position(|id| *id == "file.open-folder").unwrap();
+        let folder_idx = ids
+            .iter()
+            .position(|id| *id == "file.replace-workspace")
+            .unwrap();
         assert_eq!(
             ids.get(folder_idx + 1),
             Some(&"file.open-from-clipboard"),
-            "open-from-clipboard must follow open-folder"
+            "open-from-clipboard must follow replace-workspace"
         );
     }
     // END_BLOCK_OPEN_FROM_CLIPBOARD_TEST
+
+    // START_BLOCK_MULTI_SOURCE_WORKSPACE_MENU_TEST
+    // C-MULTI-SOURCE-WORKSPACE: File › Add Folder… (⌘⇧O / Ctrl+Shift+O,
+    // appends a workspace root) and File › Replace Workspace… (no
+    // accelerator, replaces the root set) — id-dispatched to the renderer
+    // commands of the same ids; the overloaded single "Open Folder…" item
+    // is retired everywhere in the same change.
+    #[test]
+    fn file_menu_has_add_folder_and_replace_workspace() {
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let add = flat
+            .iter()
+            .find(|i| i.id == "file.add-folder")
+            .expect("file.add-folder must be in the taxonomy");
+        assert_eq!(add.label, "Add Folder…");
+        assert_eq!(add.accelerator.as_deref(), Some("CmdOrCtrl+Shift+O"));
+        assert!(add.command.is_none(), "file.add-folder is id-dispatched only");
+
+        let replace = flat
+            .iter()
+            .find(|i| i.id == "file.replace-workspace")
+            .expect("file.replace-workspace must be in the taxonomy");
+        assert_eq!(replace.label, "Replace Workspace…");
+        assert!(replace.accelerator.is_none(), "replace-workspace has no accelerator in v1");
+        assert!(replace.command.is_none(), "file.replace-workspace is id-dispatched only");
+
+        assert!(
+            !flat.iter().any(|i| i.id == "file.open-folder"),
+            "the retired file.open-folder id must be gone"
+        );
+
+        // Order: Open File… → Add Folder… → Replace Workspace… → Open from
+        // Clipboard.
+        let file_menu = menu
+            .iter()
+            .find(|m| m.id == "file")
+            .and_then(|m| m.items.as_ref())
+            .expect("File submenu");
+        let ids: Vec<&str> = file_menu.iter().map(|i| i.id.as_str()).collect();
+        let file_idx = ids.iter().position(|id| *id == "file.open-file").unwrap();
+        assert_eq!(ids.get(file_idx + 1), Some(&"file.add-folder"));
+        assert_eq!(ids.get(file_idx + 2), Some(&"file.replace-workspace"));
+        assert_eq!(ids.get(file_idx + 3), Some(&"file.open-from-clipboard"));
+    }
+    // END_BLOCK_MULTI_SOURCE_WORKSPACE_MENU_TEST
 
     // START_BLOCK_HELP_C48_TESTS
     // C-48: What's New is a Help leaf in EVERY build with a dispatch

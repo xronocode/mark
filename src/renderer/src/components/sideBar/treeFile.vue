@@ -75,6 +75,7 @@ import { useEditorStore } from '@/store/editor'
 import { usePinnedStore } from '@/store/pinned'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 import { showContextMenu } from '../../contextMenu/sideBar'
+import notice from '@/services/notification'
 import bus from '../../bus'
 
 const props = defineProps({
@@ -144,7 +145,18 @@ const handleFileClick = (event) => {
     console.log(
       `[sidebar][open-file][BLOCK_OPEN_FILE_CLICK dispatch_ms=${dispatchDelay} path=${pathname.split('/').pop() || pathname}]`
     )
-    window.electron.ipcRenderer.send('mt::open-file', pathname, {})
+    // C-MULTI-SOURCE-WORKSPACE: invoke (not send) so a failed read — an
+    // evicted iCloud file mid-download, an offline drive — surfaces a
+    // notice instead of a silent no-tab.
+    window.electron.ipcRenderer.invoke('mt::open-file', pathname, {}).catch((e) => {
+      notice.notify({
+        title: t('workspace.fileOpenFailedTitle'),
+        message: String(e),
+        type: 'error',
+        time: 20000,
+        showConfirm: false
+      })
+    })
   }
 }
 
