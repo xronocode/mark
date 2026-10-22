@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.6.x-next",
-  "state": "Preparing",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.6.0",
     "commit": "085e0c3853d34d219700d85621204f97227bcb40",
@@ -9,7 +9,7 @@
     "tree": "010ab79a204e81add9651486be82c726ca53bd68"
   },
   "computedVersion": "2.6.1",
-  "payloadSha": null,
+  "payloadSha": "2e759df57e7a0468565ab168648b7080f1c2301e",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -122,8 +122,7 @@
         "summary": "Win/Linux native title bar final state (amendment 5).",
         "state": "queued",
         "commits": [
-          "423ab2f6437cbb5aa58f09e607cf51c95020b424",
-          "5acd22a357c8ca4655248dc33bf39795ac5d6b3e"
+          "423ab2f6437cbb5aa58f09e607cf51c95020b424"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -171,7 +170,6 @@
         "summary": "Node >= 25 Web Storage vitest compatibility gate.",
         "state": "queued",
         "commits": [
-          "423ab2f6437cbb5aa58f09e607cf51c95020b424",
           "5acd22a357c8ca4655248dc33bf39795ac5d6b3e"
         ],
         "acceptance": {
@@ -189,6 +187,7 @@
   },
   "commitAccounting": {
     "fromExclusive": "de16653229170226060a6f2f8f6e36df02e2c452",
+    "throughInclusive": "2e759df57e7a0468565ab168648b7080f1c2301e",
     "entries": [
       {
         "sha": "639517476674dd55079cec2c57ff9e40a87c195c",
@@ -201,17 +200,31 @@
         ]
       },
       {
-        "sha": "8cad1d259a5691097aa5cc4072a61bdb893716d9",
-        "classification": "operational",
+        "sha": "a5707758e4e94ec7c848890c43350c325afca982",
+        "classification": "user-facing",
         "itemIds": [
-          "TRAIN-BOOKKEEPING"
+          "C-SELF-CONTAINED-HTML-EXPORT"
         ]
       },
       {
-        "sha": "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
+        "sha": "80d6a2673487f588185b5aebd63dad3d317cbed0",
+        "classification": "user-facing",
+        "itemIds": [
+          "FIX-009"
+        ]
+      },
+      {
+        "sha": "423ab2f6437cbb5aa58f09e607cf51c95020b424",
+        "classification": "user-facing",
+        "itemIds": [
+          "FIX-014"
+        ]
+      },
+      {
+        "sha": "5acd22a357c8ca4655248dc33bf39795ac5d6b3e",
         "classification": "operational",
         "itemIds": [
-          "TRAIN-BOOKKEEPING"
+          "FIX-013"
         ]
       },
       {
@@ -230,6 +243,20 @@
       },
       {
         "sha": "ff44062321ecfe3751971327e81afb7fad492577",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8cad1d259a5691097aa5cc4072a61bdb893716d9",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -301,6 +328,18 @@
       "date": "2026-10-22",
       "actor": "mark-release-prep[bot]",
       "evidence": "Release Please prepared 2.6.1; no tag or publication was created."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-22",
+      "actor": "agent-zcode",
+      "evidence": "Payload 2e759df5 completed the accepted 2.6.1 set: seven user-facing items (FIX-009 accepted 7/7 on mark-test-fix009-7057d645, C-SELF-CONTAINED-HTML-EXPORT accepted on automated evidence, FIX-010/012/015/016 accepted with PR 16, FIX-014 accepted on the amendment-5 polygon verification) plus operational FIX-013, TRAIN-BOOKKEEPING and DEPS-FOLLOW-REDIRECTS; preflight sources=6, governance CONFIRMED, materials CONSISTENT (10 locales / 9 images / 7 items)."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-22",
+      "actor": "agent-zcode",
+      "evidence": "The owner explicitly authorized the 2.6.1 release (2026-10-22 goal instruction, translated from Russian: 'everything green and accepted: merge, commit, release') after the merged PR set #16-#19, the 7/7 FIX-009 acceptance, the FIX-013/FIX-014 verdicts and the complete material gates (preflight sources=6, governance CONFIRMED, registry VALID, materials CONSISTENT)."
     }
   ]
 }
