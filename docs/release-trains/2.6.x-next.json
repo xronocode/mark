@@ -9,7 +9,7 @@
     "tree": "b9b043f53bd9457ac04970a00c31cb8f89c0c557"
   },
   "computedVersion": "2.7.0",
-  "payloadSha": "e7804474cd9bfb3e130a17b1495594b0f55f15d2",
+  "payloadSha": "541d62e5fa22d9175ee6201e9f5a69baecfaa3dd",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -178,14 +178,16 @@
           "70bfbc34f328473f475be3d733b8b4d528b1ea1b",
           "46ad76bc17a6ee02cc52676bd6328122471d1740",
           "9093a42129bb0565f780bb525907312460a6f8ff",
-          "e7804474cd9bfb3e130a17b1495594b0f55f15d2"
+          "e7804474cd9bfb3e130a17b1495594b0f55f15d2",
+          "035889be063c6502c4f9ae3a753e5f266c4419e3"
         ]
       },
       {
         "id": "DEPS-FOLLOW-REDIRECTS",
         "summary": "follow-redirects 1.16.1 security bump closing Dependabot highs 144/145 (dev-side axios transitive; lockfile-only).",
         "commits": [
-          "8108a7ac0b3a832e40805e65e6f245199ee701db"
+          "8108a7ac0b3a832e40805e65e6f245199ee701db",
+          "541d62e5fa22d9175ee6201e9f5a69baecfaa3dd"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -218,7 +220,7 @@
   },
   "commitAccounting": {
     "fromExclusive": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
-    "throughInclusive": "e7804474cd9bfb3e130a17b1495594b0f55f15d2",
+    "throughInclusive": "541d62e5fa22d9175ee6201e9f5a69baecfaa3dd",
     "entries": [
       {
         "sha": "639517476674dd55079cec2c57ff9e40a87c195c",
@@ -522,6 +524,20 @@
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "035889be063c6502c4f9ae3a753e5f266c4419e3",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "541d62e5fa22d9175ee6201e9f5a69baecfaa3dd",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-FOLLOW-REDIRECTS"
         ]
       }
     ]
