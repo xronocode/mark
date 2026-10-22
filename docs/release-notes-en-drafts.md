@@ -7,6 +7,17 @@ attestation, cosign, and updater block below it unchanged.
 The 13 drafts are listed from newest to oldest. They are saved for review;
 this change does not publish them to GitHub.
 
+## v2.7.1
+
+```markdown
+## What's new
+
+### Stability
+- **Safer PDF export on macOS.** A rare crash could take Mark down right after you chose where to save a PDF (first observed 2026-10-23). The print job now runs beside the app instead of parking it mid-loop, and print-path failures surface as a notice instead of quitting the app.
+
+This patch changes nothing else. Sessions, self-contained HTML export and the native Windows title bar arrived in 2.7.0 — see the link below for their story.
+```
+
 ## v2.7.0
 
 ```markdown

@@ -1482,7 +1482,7 @@
     "title": "What's new",
     "seeGuide": "See the guide",
     "continue": "Continue",
-    "also": "Also: honest table exports, instant Auto Save off, steadier tab switching, and a security bump",
+    "also": "Also: this patch only hardens PDF export; sessions, HTML export and everything else are unchanged.",
     "seeEverything": "See everything new",
     "v2_3_1": {
       "look": {
@@ -1572,6 +1572,12 @@
       "shortcuts": {
         "title": "Editing shortcuts restored",
         "text": "⇧⌘D duplicates a paragraph; ⌘1–6 turns it into an H1–H6 heading."
+      }
+    },
+    "v2_7_1": {
+      "export": {
+        "title": "Safer PDF export",
+        "text": "Exporting to PDF no longer risks a rare crash right after you pick where to save."
       }
     },
     "v2_7_0": {

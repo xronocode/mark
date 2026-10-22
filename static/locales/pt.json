@@ -1467,7 +1467,7 @@
     "title": "Novidades",
     "seeGuide": "Ver o guia",
     "continue": "Continuar",
-    "also": "Também: exportes de tabela fiéis, Auto Save desligado na hora, troca de abas mais estável",
+    "also": "Além disso: este patch apenas reforça a exportação para PDF; sessões, exportação HTML e o resto seguem iguais.",
     "seeEverything": "Ver todas as novidades",
     "v2_3_1": {
       "look": {
@@ -1557,6 +1557,12 @@
       "shortcuts": {
         "title": "Atalhos de edição restaurados",
         "text": "⇧⌘D duplica um parágrafo; ⌘1–6 o transforma em título H1–H6."
+      }
+    },
+    "v2_7_1": {
+      "export": {
+        "title": "Exportação PDF mais segura",
+        "text": "Exportar para PDF já não arrisca uma falha rara logo após escolher onde salvar."
       }
     },
     "v2_7_0": {

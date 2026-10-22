@@ -211,16 +211,16 @@ const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
 
 // START_BLOCK_RELEASE_READINESS_TESTS
 describe('release train authority', () => {
-  it('parses the checked-in train and records its expected post-2.6.0 lifecycle identity', () => {
+  it('parses the checked-in train and records its expected post-2.7.0 lifecycle identity', () => {
     const manifest = readTrainManifest(process.cwd())
     const result = validateTrainManifest(manifest, {
       workspaceRoot: process.cwd(),
-      tag: 'v2.7.0'
+      tag: 'v2.7.1'
     })
     expect(result).toMatchObject({
-      trainId: '2.6.x-next',
+      trainId: '2.7.x-next',
       state: manifest.state,
-      version: 'v2.7.0'.slice(1)
+      version: 'v2.7.1'.slice(1)
     })
     // Admission items arrive with owner acceptance, not with the train:
     // the count must mirror the checked-in manifest exactly (empty right
@@ -228,7 +228,7 @@ describe('release train authority', () => {
     expect(result.itemCounts.userFacing).toBe(manifest.items.userFacing.length)
     expect(
       validateTrainLedger(
-        readFileSync(resolve('docs/release-trains/2.6.x-next.md'), 'utf8'),
+        readFileSync(resolve('docs/release-trains/2.7.x-next.md'), 'utf8'),
         manifest
       )
     ).toBe(true)

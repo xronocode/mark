@@ -2,6 +2,14 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
+## [2.7.1] - 2026-10-23
+
+A stabilization patch for PDF export on macOS.
+
+### Fixes
+
+- **Export** — de-fanged the PDF-export crash first observed on 2026-10-23 (`mark-2026-10-23-025710.ips`): a foreign macOS exception unwinding through the windowing library's run-loop observer aborted the app right after the save dialog closed. The export print operation now runs detached from the main run loop with an off-main completion watcher, and print-path panics degrade to a logged notice instead of tearing the app down. App-side catching of such exceptions is impossible on the current Rust toolchain, so the fix removes the dangerous configuration itself (`FIX-017`).
+
 ## [2.7.0] - 2026-10-22
 
 Sessions come back the way you left them, HTML exports travel on their own, and Windows gets its real title bar back.

@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
 //            (max 4 items, icon + i18n title/text keys) keyed by the
@@ -31,7 +31,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-20 release 2.6.0 draft: the sheet shows
+//   LAST_CHANGE: v1.7.0 - 2026-10-23 release 2.7.1 patch (FIX-017):
+//   the one-item sheet names the hardened PDF export (detached print
+//   job, off-main completion, panic containment) and points at the
+//   future v2.7.1 release URL; the also line marks the patch scope.
+//   Publication remains separately authorized.
+//   PREV: v1.6.0 - 2026-10-20 release 2.6.0 draft: the sheet shows
 //   tables as pictures, wide-table controls, comparison with the opened
 //   version and restored editing shortcuts, and points at the future
 //   v2.6.0 release URL. Publication remains separately authorized.
@@ -75,6 +80,13 @@ export const WHATS_NEW_MAX_ITEMS = 4
 // ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
 // under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
+  '2.7.1': [
+    {
+      icon: '⇩',
+      titleKey: 'whatsNew.v2_7_1.export.title',
+      textKey: 'whatsNew.v2_7_1.export.text'
+    }
+  ],
   '2.7.0': [
     {
       icon: '↺',
@@ -174,6 +186,7 @@ export const WHATS_NEW_CONTENT = {
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_RELEASE_URLS = {
+  '2.7.1': 'https://github.com/xronocode/mark/releases/tag/v2.7.1',
   '2.7.0': 'https://github.com/xronocode/mark/releases/tag/v2.7.0',
   '2.6.0': 'https://github.com/xronocode/mark/releases/tag/v2.6.0',
   '2.5.3': 'https://github.com/xronocode/mark/releases/tag/v2.5.3',

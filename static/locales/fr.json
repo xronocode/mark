@@ -1467,7 +1467,7 @@
     "title": "Nouveautés",
     "seeGuide": "Voir le guide",
     "continue": "Continuer",
-    "also": "Aussi : exports de tableaux fidèles, Auto Save coupé net, changement d'onglet plus stable",
+    "also": "Aussi : ce correctif ne renforce que l'export PDF ; sessions, export HTML et le reste ne changent pas.",
     "seeEverything": "Voir toutes les nouveautés",
     "v2_3_1": {
       "look": {
@@ -1557,6 +1557,12 @@
       "shortcuts": {
         "title": "Raccourcis d’édition rétablis",
         "text": "⇧⌘D duplique un paragraphe ; ⌘1–6 le transforme en titre H1–H6."
+      }
+    },
+    "v2_7_1": {
+      "export": {
+        "title": "Export PDF fiabilisé",
+        "text": "L'export PDF ne risque plus un plantage rare juste après le choix de l'emplacement."
       }
     },
     "v2_7_0": {

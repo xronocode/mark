@@ -84,7 +84,7 @@
     }
   ],
   "materials": {
-    "status": "pending",
+    "status": "ready",
     "screenshotManifest": "docs/assets/readme/2.7.1.manifest.json",
     "readme": "README.md",
     "changelog": "CHANGELOG.md",

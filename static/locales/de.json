@@ -1463,7 +1463,7 @@
     "title": "Was ist neu",
     "seeGuide": "Anleitung ansehen",
     "continue": "Weiter",
-    "also": "Außerdem: saubere Tabellen-Exporte, Auto-Save sofort aus, ruhigeres Tab-Wechseln, Security-Update",
+    "also": "Außerdem: Dieses Patch härtet nur den PDF-Export ab; Sitzungen, HTML-Export und alles andere bleiben unverändert.",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "v2_3_1": {
       "look": {
@@ -1553,6 +1553,12 @@
       "shortcuts": {
         "title": "Kurzbefehle wieder da",
         "text": "⇧⌘D dupliziert einen Absatz; ⌘1–6 macht daraus H1–H6."
+      }
+    },
+    "v2_7_1": {
+      "export": {
+        "title": "Stabiler PDF-Export",
+        "text": "Der PDF-Export riskiert nach der Wahl des Speicherorts keinen seltenen Absturz mehr."
       }
     },
     "v2_7_0": {

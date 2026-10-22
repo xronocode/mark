@@ -1466,7 +1466,7 @@
     "title": "Novedades",
     "seeGuide": "Ver la guía",
     "continue": "Continuar",
-    "also": "Además: exportes de tabla fieles, Auto Guardado off al instante, cambio de pestaña más estable",
+    "also": "Además: este parche solo reforzó la exportación a PDF; sesiones, exportación HTML y demás sin cambios.",
     "seeEverything": "Ver todas las novedades",
     "v2_3_1": {
       "look": {
@@ -1556,6 +1556,12 @@
       "shortcuts": {
         "title": "Atajos de edición restaurados",
         "text": "⇧⌘D duplica un párrafo; ⌘1–6 lo convierte en encabezado H1–H6."
+      }
+    },
+    "v2_7_1": {
+      "export": {
+        "title": "Exportación PDF más segura",
+        "text": "Exportar a PDF ya no arriesga un fallo raro justo después de elegir dónde guardar."
       }
     },
     "v2_7_0": {

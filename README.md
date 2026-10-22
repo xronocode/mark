@@ -38,6 +38,12 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
+## What's new in 2.7.1
+
+- **Safer PDF export.** On macOS, the print job that writes your PDF now runs beside the app instead of parking it mid-loop, removing the setup behind a rare crash right after choosing where to save. Print-path failures now surface as a notice instead of taking the app down.
+
+This patch changes nothing else. The 2.7.0 highlights — honest session restore, self-contained HTML export, the native Windows title bar — are [below](#whats-new-in-270).
+
 ## What's new in 2.7.0
 
 - **Sessions come back honestly.** Launching Mark restores your tabs, folders and the active tab. Turn that off, and the welcome screen's "Last session (2)" row reopens exactly what was there at launch — never a stale no-op.
