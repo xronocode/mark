@@ -140,7 +140,7 @@ npx --package license-checker -- license-checker --production --json | \
 | fast-json-patch | 3.1.1 | https://github.com/Starcounter-Jack/JSON-Patch |
 | fill-range | 7.1.1 | https://github.com/jonschlinkert/fill-range |
 | flowchart.js | 1.18.0 | https://github.com/adrai/flowchart.js |
-| follow-redirects | 1.16.0 | https://github.com/follow-redirects/follow-redirects |
+| follow-redirects | 1.16.1 | https://github.com/follow-redirects/follow-redirects |
 | for-each | 0.3.5 | https://github.com/Raynos/for-each |
 | form-data | 4.0.6 | https://github.com/form-data/form-data |
 | function-bind | 1.1.2 | https://github.com/Raynos/function-bind |
