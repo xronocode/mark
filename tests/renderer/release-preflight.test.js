@@ -10,12 +10,13 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.6.0 version fixture.
+//   consistentEvidence - Complete v2.6.1 version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-20 v2.19.0 - advance the Release Please-derived positive fixture to v2.6.0.
+//   LAST_CHANGE: 2026-10-22 v2.20.0 - advance the release fixture to v2.6.1.
+//   PREV: 2026-10-20 v2.19.0 - advance the Release Please-derived positive fixture to v2.6.0.
 //   PREV: 2026-10-21 v2.18.0 - require the unprivileged Tauri dry-run to disable updater artifacts while production packaging retains updater signing.
 //   PREV: 2026-10-20 v2.17.0 - follow the deterministic prepare/publication split and assert direct normal-release publication without a mutable prerelease flag.
 //   PREV: 2026-10-20 v2.16.0 - bind packaging to strict
@@ -65,22 +66,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.6.0',
-  packageLock: '2.6.0',
-  packageLockRoot: '2.6.0',
-  cargoWorkspace: '2.6.0',
-  cargoLockMark: '2.6.0',
-  tauriConfig: '2.6.0'
+  packageJson: '2.6.1',
+  packageLock: '2.6.1',
+  packageLockRoot: '2.6.1',
+  cargoWorkspace: '2.6.1',
+  cargoLockMark: '2.6.1',
+  tauriConfig: '2.6.1'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.6.0')
+      validateVersionEvidence(consistentEvidence, 'v2.6.1')
     ).toEqual({
-      version: '2.6.0',
-      tag: 'v2.6.0',
+      version: '2.6.1',
+      tag: 'v2.6.1',
       sourceCount: 6
     })
   })
@@ -89,7 +90,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.6.0'
+        'v2.6.1'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -116,7 +117,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.6.0'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.6.1'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 

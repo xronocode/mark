@@ -38,6 +38,16 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
+## What's new in 2.6.1
+
+- **Sessions come back honestly.** Launching Mark restores your tabs, folders and the active tab. Turn that off, and the welcome screen's "Last session (2)" row reopens exactly what was there at launch — never a stale no-op.
+- **Closed a tab by accident?** A count-badged button beside the tab strip lists recently closed tabs. ⇧⌘T brings the newest one back; repeated presses walk further back; "Reopen all" restores a whole batch in order.
+- **HTML exports travel on their own.** Export as HTML now embeds local images into the file, so one .html opens anywhere without its picture folder. Remote images are never fetched.
+- **⇧⌘P is back** — the command palette shortcut returns on macOS. Table exports keep every real cell, and turning Auto Save off stops pending saves immediately.
+- **Windows gets its real title bar.** Native system caption buttons, the app-menu and settings buttons kept, the theme toggle docked as a fourth cell — no more alien controls.
+
+The 2.6.0 highlights — tables as pictures, stable wide-table controls, ⌘D compare — are in [CHANGELOG.md](CHANGELOG.md).
+
 ## What's new in 2.6.0
 
 - **Tables travel as pictures.** Copy a table as an image, or save a PNG from the fullscreen table viewer — useful for reviews, chats and presentations where Markdown tables fall apart.
