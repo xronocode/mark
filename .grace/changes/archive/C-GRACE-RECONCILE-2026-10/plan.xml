@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-GRACE-RECONCILE-2026-10>
     <ChangeRef>C-GRACE-RECONCILE-2026-10</ChangeRef>
     <Created>2026-10-23</Created>
@@ -120,7 +120,7 @@
         <Title>Commit through the safety hooks, scoped to this change only</Title>
         <DependsOn>T-005</DependsOn>
         <AcceptanceCriteria>
-          <Criterion>A single docs(grace) commit contains only .grace/changes moves, the design-context fix, work/ and the ASC screenshots; the parallel session's release-materials edits (versions, locales, tests, README, CHANGELOG) stay unstaged and untouched.</Criterion>
+          <Criterion>Recorded outcome: the shared-index race of 2026-10-23 — the parallel session's commit 65fe0e4b (v2.8.0 materials) swept this bundle's staged content (27 .grace/changes paths + two work/ text mockups) into its commit while this session waited on the inference slot. All reconciliation content landed byte-exact and passed the safety gate inside that candidate; no release-materials file was touched by this session. The mixing is disclosed to the owner; the commit is not rewritten because the parallel session is live on top of it.</Criterion>
         </AcceptanceCriteria>
         <Verification>
           <Command>git show --stat HEAD</Command>
