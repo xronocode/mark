@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
 <C-GRACE-RECONCILE-2026-10>
   <Name>Anti-drift reconciliation: archive ten executed change bundles, repair governance artifacts, absorb working-file drift</Name>
   <Created>2026-10-23</Created>
   <Priority>high</Priority>
-  <Status>approved</Status>
+  <Status>applied</Status>
   <Complexity>S (half a day)</Complexity>
 
   <Summary>
