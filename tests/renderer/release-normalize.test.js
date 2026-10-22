@@ -51,6 +51,9 @@ import {
 
 const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
 const BOOTSTRAP_SHA = '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
+// The v2.7.0 release commit: version-bound baselines (Cargo, Tauri, the
+// M-046 fixture) propagate FROM the previous release, not the bootstrap.
+const PREV_RELEASE_SHA = '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
 const VERSION_BASELINE_PATHS = [
   'Cargo.toml',
   'Cargo.lock',
@@ -64,7 +67,7 @@ const COPY_PATHS = [
   'tests/renderer/release-preflight.test.js',
   'CHANGELOG.md',
   'README.md',
-  'docs/release-trains/2.6.x-next.md',
+  'docs/release-trains/2.7.x-next.md',
   'docs/release-notes-en-drafts.md',
   'release-please-config.json',
   'src/renderer/src/whatsNew/data.js',
@@ -105,7 +108,7 @@ const restoreCollectingLedger = (source) =>
     )
     .replace(
       /^- The checked-in train (?:is|remains) \*\*(?:Collecting|Preparing|Frozen|Ready|Released|Aborted)\*\*\.[^\n]*$/m,
-      '- The checked-in train remains **Collecting**. Release Please deterministically proposes 2.7.0, while package/Cargo/Tauri metadata remains at 2.6.1 until the preparation PR.'
+      '- The checked-in train remains **Collecting**. Release Please deterministically proposes 2.7.1, while package/Cargo/Tauri metadata remains at 2.7.1 until the preparation PR.'
     )
 const windowsNewlines = (source) =>
   source.replace(/\r\n?/g, '\n').replaceAll('\n', '\r\n')
@@ -117,29 +120,29 @@ const copyFixture = () => {
     copyFileSync(resolve(path), resolve(root, path))
   }
   for (const path of VERSION_BASELINE_PATHS) {
-    writeFileSync(resolve(root, path), gitFile(BOOTSTRAP_SHA, path))
+    writeFileSync(resolve(root, path), gitFile(PREV_RELEASE_SHA, path))
   }
   const packageJson = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
-  packageJson.version = '2.7.0'
+  packageJson.version = '2.7.1'
   writeJson(resolve(root, 'package.json'), packageJson)
-  writeJson(resolve(root, '.release-please-manifest.json'), { '.': '2.7.0' })
+  writeJson(resolve(root, '.release-please-manifest.json'), { '.': '2.7.1' })
 
   const train = JSON.parse(
-    readFileSync(resolve('docs/release-trains/2.6.x-next.json'), 'utf8')
+    readFileSync(resolve('docs/release-trains/2.7.x-next.json'), 'utf8')
   )
   train.state = 'Collecting'
   train.transitions = train.transitions.filter(({ state }) => state !== 'Preparing')
-  train.computedVersion = '2.6.1'
+  train.computedVersion = '2.7.2'
   // The normalization plan propagates the Release Please version while
   // it differs from the previous RELEASED train tag; the fixture rolls
   // the previous release back so the synthetic 2.6.1→2.7.0 propagation
   // has work to do (the checked-in train's v2.7.0 boundary equals the
   // package version and would correctly plan nothing).
-  train.previousRelease.tag = 'v2.6.0'
-  train.materials.screenshotManifest = 'docs/assets/readme/2.6.0.manifest.json'
+  train.previousRelease.tag = 'v2.7.0'
+  train.materials.screenshotManifest = 'docs/assets/readme/2.7.2.manifest.json'
   mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
-  writeJson(resolve(root, 'docs/release-trains/2.6.x-next.json'), train)
-  const trainLedgerPath = resolve(root, 'docs/release-trains/2.6.x-next.md')
+  writeJson(resolve(root, 'docs/release-trains/2.7.x-next.json'), train)
+  const trainLedgerPath = resolve(root, 'docs/release-trains/2.7.x-next.md')
   writeFileSync(
     trainLedgerPath,
     restoreCollectingLedger(readFileSync(trainLedgerPath, 'utf8'))
@@ -148,37 +151,37 @@ const copyFixture = () => {
   writeFileSync(
     resolve(root, 'README.md'),
     readFileSync(resolve(root, 'README.md'), 'utf8')
-      .replace("## What's new in 2.7.0", "## What's new in 2.6.1")
+      .replace("## What's new in 2.7.1", "## What's new in 2.7.2")
   )
   writeFileSync(
     resolve(root, 'docs/release-notes-en-drafts.md'),
     readFileSync(resolve(root, 'docs/release-notes-en-drafts.md'), 'utf8')
-      .replace('## v2.7.0', '## v2.6.1')
+      .replace('## v2.7.1', '## v2.7.2')
   )
   writeFileSync(
     resolve(root, 'src/renderer/src/whatsNew/data.js'),
     readFileSync(resolve(root, 'src/renderer/src/whatsNew/data.js'), 'utf8')
-      .replace("  '2.7.0': [", "  '2.6.1': [")
-      .replaceAll('whatsNew.v2_7_0.', 'whatsNew.v2_6_1.')
+      .replace("  '2.7.1': [", "  '2.7.2': [")
+      .replaceAll('whatsNew.v2_7_1.', 'whatsNew.v2_7_2.')
       .replace(
-        "  '2.7.0': 'https://github.com/xronocode/mark/releases/tag/v2.7.0'",
-        "  '2.6.1': 'https://github.com/xronocode/mark/releases/tag/v2.6.1'"
+        "  '2.7.1': 'https://github.com/xronocode/mark/releases/tag/v2.7.1'",
+        "  '2.7.2': 'https://github.com/xronocode/mark/releases/tag/v2.7.2'"
       )
   )
   for (const locale of LOCALES) {
     const sourcePath = resolve(root, `static/locales/${locale}.json`)
     const source = JSON.parse(readFileSync(sourcePath, 'utf8'))
-    source.whatsNew.v2_6_1 = source.whatsNew.v2_7_0
-    delete source.whatsNew.v2_7_0
+    source.whatsNew.v2_7_2 = source.whatsNew.v2_7_1
+    delete source.whatsNew.v2_7_1
     writeJson(sourcePath, source)
     writeFileSync(resolve(root, `static/locales/${locale}.min.json`), JSON.stringify(source))
   }
   const changelogPath = resolve(root, 'CHANGELOG.md')
   writeFileSync(
     changelogPath,
-    restoreChangelogDraft(readFileSync(changelogPath, 'utf8'), '2.7.0').replace(
+    restoreChangelogDraft(readFileSync(changelogPath, 'utf8'), '2.7.1').replace(
       '<!-- #region releases -->',
-      '<!-- #region releases -->\n## [2.7.0] - 2026-10-20\n\nGenerated placeholder.\n'
+      '<!-- #region releases -->\n## [2.7.1] - 2026-10-20\n\nGenerated placeholder.\n'
     )
   )
   const releasePleasePath = resolve(root, 'release-please-config.json')
@@ -186,11 +189,11 @@ const copyFixture = () => {
   releasePlease['last-release-sha'] = BOOTSTRAP_SHA
   writeJson(releasePleasePath, releasePlease)
   const screenshots = JSON.parse(
-    readFileSync(resolve('docs/assets/readme/2.7.0.manifest.json'), 'utf8')
+    readFileSync(resolve('docs/assets/readme/2.7.1.manifest.json'), 'utf8')
   )
-  screenshots.releaseVersion = '2.6.0'
+  screenshots.releaseVersion = '2.7.2'
   mkdirSync(resolve(root, 'docs/assets/readme'), { recursive: true })
-  writeJson(resolve(root, 'docs/assets/readme/2.6.1.manifest.json'), screenshots)
+  writeJson(resolve(root, 'docs/assets/readme/2.7.2.manifest.json'), screenshots)
   return root
 }
 
@@ -217,27 +220,28 @@ describe('release normalization', () => {
     expect(JSON.stringify(config)).not.toContain('release-as')
   })
 
-  it('proves the divergent v2.6.0 bootstrap tree and current feat history compute the next minor 2.7.0', () => {
-    const boundary = '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
+  it('proves the v2.7.0 release boundary and current fix history compute the next patch 2.7.1', () => {
+    const boundary = '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
     expect(git('merge-base', '--is-ancestor', boundary, 'HEAD')).toBe('')
-    expect(git('rev-parse', 'v2.6.0^{commit}')).toBe(boundary)
+    expect(git('rev-parse', 'v2.7.0^{commit}')).toBe(boundary)
     const subjects = git('log', '--format=%s', `${boundary}..HEAD`).split('\n')
-    expect(subjects.some((subject) => /^feat(?:\([^)]*\))?!?:/.test(subject))).toBe(true)
-    const [major, minor] = '2.6.0'.split('.').map(Number)
-    expect(`${major}.${minor + 1}.0`).toBe('2.7.0')
+    expect(subjects.some((subject) => /^fix(?:\([^)]*\))?!?:/.test(subject))).toBe(true)
+    expect(subjects.some((subject) => /^feat(?:\([^)]*\))?!?:/.test(subject))).toBe(false)
+    const [major, minor, patch] = '2.7.0'.split('.').map(Number)
+    expect(`${major}.${minor}.${patch + 1}`).toBe('2.7.1')
   })
 
-  it('plans the exact allowlisted 2.7.0 propagation without touching package authority or release history', () => {
+  it('plans the exact allowlisted 2.7.1 propagation without touching package authority or release history', () => {
     const root = copyFixture()
     const plan = planReleaseNormalization(root, { date: '2026-10-20' })
-    expect(plan.version).toBe('2.7.0')
+    expect(plan.version).toBe('2.7.1')
     expect(plan.changes.map(({ path }) => path)).toEqual([
       'Cargo.toml',
       'Cargo.lock',
       'src-tauri/tauri.conf.json',
       'tests/renderer/release-preflight.test.js',
-      'docs/release-trains/2.6.x-next.json',
-      'docs/release-trains/2.6.x-next.md',
+      'docs/release-trains/2.7.x-next.json',
+      'docs/release-trains/2.7.x-next.md',
       'README.md',
       'docs/release-notes-en-drafts.md',
       'src/renderer/src/whatsNew/data.js',
@@ -247,26 +251,26 @@ describe('release normalization', () => {
         `static/locales/${locale}.json`,
         `static/locales/${locale}.min.json`
       ]),
-      'docs/assets/readme/2.7.0.manifest.json'
+      'docs/assets/readme/2.7.1.manifest.json'
     ])
     expect(plan.changes.map(({ path }) => path)).not.toContain('package.json')
     expect(plan.changes.find(({ path }) => path === 'Cargo.toml').after).toContain(
-      'version = "2.7.0"'
+      'version = "2.7.1"'
     )
     const fixturePatch = plan.changes.find(
       ({ path }) => path === 'tests/renderer/release-preflight.test.js'
     ).after
-    expect(fixturePatch).toContain("packageJson: '2.7.0'")
-    expect(fixturePatch).toContain("'v2.7.0'")
-    expect(fixturePatch).toContain('Complete v2.7.0 version fixture.')
-    expect(fixturePatch).toContain('2026-10-20 v2.20.0')
-    expect(fixturePatch).toContain("validateVersionEvidence(consistentEvidence, 'v2.1.0-beta')")
+    expect(fixturePatch).toContain("packageJson: '2.7.1'")
+    expect(fixturePatch).toContain("'v2.7.1'")
+    expect(fixturePatch).toContain('Complete v2.7.1 version fixture.')
+    expect(fixturePatch).toContain('2026-10-22 v2.20.0')
+    expect(fixturePatch).toContain("validateVersionEvidence(consistentEvidence, 'v2.7.1')")
     const normalizedChangelog = plan.changes.find(({ path }) => path === 'CHANGELOG.md').after
-    expect(normalizedChangelog.match(/^## \[2\.7\.0\]/gm)).toHaveLength(1)
+    expect(normalizedChangelog.match(/^## \[2\.7\.1\]/gm)).toHaveLength(1)
     expect(normalizedChangelog).not.toContain('release-draft:start')
     expect(normalizedChangelog).toContain('Tables can leave Mark as pictures')
     expect(normalizedChangelog).not.toContain('Generated placeholder.')
-    expect(normalizedChangelog).toContain('## [2.7.0] - 2026-10-20')
+    expect(normalizedChangelog).toContain('## [2.7.1] - 2026-10-20')
     const normalizedConfig = JSON.parse(
       plan.changes.find(({ path }) => path === 'release-please-config.json').after
     )
@@ -275,7 +279,7 @@ describe('release normalization', () => {
       '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
     )
     const normalizedTrain = JSON.parse(
-      plan.changes.find(({ path }) => path === 'docs/release-trains/2.6.x-next.json').after
+      plan.changes.find(({ path }) => path === 'docs/release-trains/2.7.x-next.json').after
     )
     expect(normalizedTrain.state).toBe('Preparing')
     expect(normalizedTrain.transitions.at(-1)).toMatchObject({
@@ -283,11 +287,11 @@ describe('release normalization', () => {
       actor: 'mark-release-prep[bot]'
     })
     const normalizedLedger = plan.changes.find(
-      ({ path }) => path === 'docs/release-trains/2.6.x-next.md'
+      ({ path }) => path === 'docs/release-trains/2.7.x-next.md'
     ).after
     expect(normalizedLedger).toContain('| State | Preparing |')
     expect(normalizedLedger).toContain(
-      'Release Please prepared 2.7.0 and synchronized package, Cargo, Tauri, and train-ledger metadata'
+      'Release Please prepared 2.7.1 and synchronized package, Cargo, Tauri, and train-ledger metadata'
     )
     expect(normalizedLedger).not.toContain('remains **Collecting**')
   })
@@ -310,14 +314,14 @@ describe('release normalization', () => {
 
   it('preserves Windows CRLF in the prepared human train ledger', () => {
     const root = copyFixture()
-    const ledgerPath = resolve(root, 'docs/release-trains/2.6.x-next.md')
+    const ledgerPath = resolve(root, 'docs/release-trains/2.7.x-next.md')
     writeFileSync(
       ledgerPath,
       windowsNewlines(readFileSync(ledgerPath, 'utf8'))
     )
     const plan = planReleaseNormalization(root, { date: '2026-10-20' })
     const normalizedLedger = plan.changes.find(
-      ({ path }) => path === 'docs/release-trains/2.6.x-next.md'
+      ({ path }) => path === 'docs/release-trains/2.7.x-next.md'
     ).after
     expect(normalizedLedger.replaceAll('\r\n', '')).not.toContain('\n')
     applyReleaseNormalization(root, plan, { date: '2026-10-20' })
@@ -334,7 +338,7 @@ describe('release normalization', () => {
 
   it('derives an open current checkout or rejects a sealed lifecycle without writing', () => {
     const packageVersion = JSON.parse(readFileSync(resolve('package.json'), 'utf8')).version
-    const trainPath = resolve('docs/release-trains/2.6.x-next.json')
+    const trainPath = resolve('docs/release-trains/2.7.x-next.json')
     const trainBefore = readFileSync(trainPath, 'utf8')
     const train = JSON.parse(trainBefore)
     const previousVersion = train.previousRelease.tag.replace(/^v/, '')
