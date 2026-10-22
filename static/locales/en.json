@@ -1574,7 +1574,7 @@
         "text": "⇧⌘D duplicates a paragraph; ⌘1–6 turns it into an H1–H6 heading."
       }
     },
-    "v2_6_1": {
+    "v2_7_0": {
       "session": {
         "title": "Sessions, honestly",
         "text": "Mark restores tabs and folder at launch; ⇧⌘T reopens a closed one, counted on the row."

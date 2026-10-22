@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "releaseVersion": "2.6.1",
+  "releaseVersion": "2.7.0",
   "payloadSha": null,
   "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
   "captureState": "fresh-reviewed",

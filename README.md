@@ -38,7 +38,7 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
-## What's new in 2.6.1
+## What's new in 2.7.0
 
 - **Sessions come back honestly.** Launching Mark restores your tabs, folders and the active tab. Turn that off, and the welcome screen's "Last session (2)" row reopens exactly what was there at launch — never a stale no-op.
 - **Closed a tab by accident?** A count-badged button beside the tab strip lists recently closed tabs. ⇧⌘T brings the newest one back; repeated presses walk further back; "Reopen all" restores a whole batch in order.
