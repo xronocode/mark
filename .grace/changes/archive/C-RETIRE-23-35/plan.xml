@@ -1,0 +1,72 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-RETIRE-23-35>
+    <ChangeRef>C-RETIRE-23-35</ChangeRef>
+    <Created>2026-10-23</Created>
+    <IntentSummary>Move the two RETIRED DRAFT bundles C-23 and C-35 from active/ to archive/ with applied status and an owner-decision evidence line, preserving their disposition text byte-identically, then self-archive this closure bundle.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.grace/changes/active/C-23/spec.xml</File>
+        <Text>RETIRED DRAFT (C-72 disposition, 2026-10-20)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/active/C-35/spec.xml</File>
+        <Text>RETIRED DRAFT (C-72 disposition, 2026-10-20)</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-23/spec.xml</File>
+        <Text>RETIRED DRAFT (C-72 disposition, 2026-10-20)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-35/spec.xml</File>
+        <Text>RETIRED DRAFT (C-72 disposition, 2026-10-20)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-23/spec.xml</File>
+        <Text>archived by the owner decision of 2026-10-23 via C-RETIRE-23-35</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-35/spec.xml</File>
+        <Text>archived by the owner decision of 2026-10-23 via C-RETIRE-23-35</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; [ET.parse(p) for p in ['.grace/changes/archive/C-23/spec.xml','.grace/changes/archive/C-35/spec.xml']]"</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <Glob>.grace/changes/archive/C-23/**</Glob>
+      <Glob>.grace/changes/archive/C-35/**</Glob>
+      <Glob>.grace/changes/archive/C-RETIRE-23-35/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Archive both retired drafts</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>git mv both bundles to archive/, wrapper GraceChangeSpec status set to applied, an AppliedEvidence line added to each Approval block naming the owner decision; inner disposition text unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --assertions current</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Gates and self-archival</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Scope-clean result: both drafts archived with closure plans, active set exactly C-36/C-37/C-47/C-50, no new lint errors from these paths. Observed at execution time: one foreign in-flight error outside this scope (markup.module-map-mismatch in tools/acceptance-registry.mjs, owned by the parallel v2.8.0 session) - reported, not touched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --parallel-preflight</Command>
+          <Command>grace status --path . --with modules --json</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-RETIRE-23-35>
+</GraceChangePlan>
