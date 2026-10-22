@@ -7,7 +7,7 @@ attestation, cosign, and updater block below it unchanged.
 The 13 drafts are listed from newest to oldest. They are saved for review;
 this change does not publish them to GitHub.
 
-## v2.6.1
+## v2.7.0
 
 ```markdown
 ## What's new

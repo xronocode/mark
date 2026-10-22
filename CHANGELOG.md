@@ -2,7 +2,7 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
-## [2.6.1] - 2026-10-22
+## [2.7.0] - 2026-10-22
 
 Sessions come back the way you left them, HTML exports travel on their own, and Windows gets its real title bar back.
 

@@ -10,7 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   BOOTSTRAP_SHA - Pinned v2.5.3 release boundary used for version-surface fixtures.
+//   BOOTSTRAP_SHA - Pinned v2.6.0 release boundary used for version-surface fixtures.
 //   COPY_PATHS - Repository files copied into the normalization fixture.
 //   VERSION_BASELINE_PATHS - Versioned surfaces restored from the pinned bootstrap tree.
 //   LOCALES - Ten source/minified locale identifiers.
@@ -20,7 +20,7 @@
 //   restoreChangelogDraft - Reconstruct the curated draft markers after Release Please promotion.
 //   restoreCollectingLedger - Reconstruct the human train ledger before preparation.
 //   windowsNewlines - Produce exactly one CRLF sequence per logical line break.
-//   copyFixture - Build a pre-normalization 2.5.4 draft plus generated 2.6.0 Release Please fixture.
+//   copyFixture - Build a pre-normalization 2.6.1 draft plus generated 2.7.0 Release Please fixture.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -29,7 +29,7 @@
 //   - 2026-10-21 v1.3.0: prove atomic Collecting-to-Preparing synchronization across the machine train and human ledger.
 //   - 2026-10-21 v1.2.0: make golden fixtures and checkout assertions valid in both collecting main and prepared release-PR states.
 //   - 2026-10-20 v1.1.0: prove structural draft-only updates, curated CHANGELOG promotion, history preservation, and last-release boundary retirement.
-//   - 2026-10-20 v1.0.0: add golden 2.5.4-to-2.6.0 propagation, no-write, and idempotence coverage.
+//   - 2026-10-20 v1.0.0: add golden 2.6.0-to-2.7.0 propagation, no-write, and idempotence coverage.
 // END_CHANGE_SUMMARY
 
 import {
@@ -50,7 +50,7 @@ import {
 } from '../../tools/release-normalize.mjs'
 
 const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
-const BOOTSTRAP_SHA = '0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6'
+const BOOTSTRAP_SHA = '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
 const VERSION_BASELINE_PATHS = [
   'Cargo.toml',
   'Cargo.lock',
@@ -105,7 +105,7 @@ const restoreCollectingLedger = (source) =>
     )
     .replace(
       /^- The checked-in train (?:is|remains) \*\*(?:Collecting|Preparing|Frozen|Ready|Released|Aborted)\*\*\.[^\n]*$/m,
-      '- The checked-in train remains **Collecting**. Release Please deterministically proposes 2.6.0, while package/Cargo/Tauri metadata remains at 2.5.3 until the preparation PR.'
+      '- The checked-in train remains **Collecting**. Release Please deterministically proposes 2.7.0, while package/Cargo/Tauri metadata remains at 2.6.1 until the preparation PR.'
     )
 const windowsNewlines = (source) =>
   source.replace(/\r\n?/g, '\n').replaceAll('\n', '\r\n')
@@ -120,23 +120,23 @@ const copyFixture = () => {
     writeFileSync(resolve(root, path), gitFile(BOOTSTRAP_SHA, path))
   }
   const packageJson = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
-  packageJson.version = '2.6.0'
+  packageJson.version = '2.7.0'
   writeJson(resolve(root, 'package.json'), packageJson)
-  writeJson(resolve(root, '.release-please-manifest.json'), { '.': '2.6.0' })
+  writeJson(resolve(root, '.release-please-manifest.json'), { '.': '2.7.0' })
 
   const train = JSON.parse(
     readFileSync(resolve('docs/release-trains/2.6.x-next.json'), 'utf8')
   )
   train.state = 'Collecting'
   train.transitions = train.transitions.filter(({ state }) => state !== 'Preparing')
-  train.computedVersion = '2.5.4'
+  train.computedVersion = '2.6.1'
   // The normalization plan propagates the Release Please version while
   // it differs from the previous RELEASED train tag; the fixture rolls
-  // the previous release back so the synthetic 2.5.4→2.6.0 propagation
-  // has work to do (the checked-in train's v2.6.0 boundary equals the
+  // the previous release back so the synthetic 2.6.1→2.7.0 propagation
+  // has work to do (the checked-in train's v2.7.0 boundary equals the
   // package version and would correctly plan nothing).
-  train.previousRelease.tag = 'v2.5.3'
-  train.materials.screenshotManifest = 'docs/assets/readme/2.5.4.manifest.json'
+  train.previousRelease.tag = 'v2.6.0'
+  train.materials.screenshotManifest = 'docs/assets/readme/2.6.0.manifest.json'
   mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
   writeJson(resolve(root, 'docs/release-trains/2.6.x-next.json'), train)
   const trainLedgerPath = resolve(root, 'docs/release-trains/2.6.x-next.md')
@@ -148,37 +148,37 @@ const copyFixture = () => {
   writeFileSync(
     resolve(root, 'README.md'),
     readFileSync(resolve(root, 'README.md'), 'utf8')
-      .replace("## What's new in 2.6.0", "## What's new in 2.5.4")
+      .replace("## What's new in 2.7.0", "## What's new in 2.6.1")
   )
   writeFileSync(
     resolve(root, 'docs/release-notes-en-drafts.md'),
     readFileSync(resolve(root, 'docs/release-notes-en-drafts.md'), 'utf8')
-      .replace('## v2.6.0', '## v2.5.4')
+      .replace('## v2.7.0', '## v2.6.1')
   )
   writeFileSync(
     resolve(root, 'src/renderer/src/whatsNew/data.js'),
     readFileSync(resolve(root, 'src/renderer/src/whatsNew/data.js'), 'utf8')
-      .replace("  '2.6.0': [", "  '2.5.4': [")
-      .replaceAll('whatsNew.v2_6_0.', 'whatsNew.v2_5_4.')
+      .replace("  '2.7.0': [", "  '2.6.1': [")
+      .replaceAll('whatsNew.v2_7_0.', 'whatsNew.v2_6_1.')
       .replace(
-        "  '2.6.0': 'https://github.com/xronocode/mark/releases/tag/v2.6.0'",
-        "  '2.5.4': 'https://github.com/xronocode/mark/releases/tag/v2.5.4'"
+        "  '2.7.0': 'https://github.com/xronocode/mark/releases/tag/v2.7.0'",
+        "  '2.6.1': 'https://github.com/xronocode/mark/releases/tag/v2.6.1'"
       )
   )
   for (const locale of LOCALES) {
     const sourcePath = resolve(root, `static/locales/${locale}.json`)
     const source = JSON.parse(readFileSync(sourcePath, 'utf8'))
-    source.whatsNew.v2_5_4 = source.whatsNew.v2_6_0
-    delete source.whatsNew.v2_6_0
+    source.whatsNew.v2_6_1 = source.whatsNew.v2_7_0
+    delete source.whatsNew.v2_7_0
     writeJson(sourcePath, source)
     writeFileSync(resolve(root, `static/locales/${locale}.min.json`), JSON.stringify(source))
   }
   const changelogPath = resolve(root, 'CHANGELOG.md')
   writeFileSync(
     changelogPath,
-    restoreChangelogDraft(readFileSync(changelogPath, 'utf8'), '2.6.0').replace(
+    restoreChangelogDraft(readFileSync(changelogPath, 'utf8'), '2.7.0').replace(
       '<!-- #region releases -->',
-      '<!-- #region releases -->\n## [2.6.0] - 2026-10-20\n\nGenerated placeholder.\n'
+      '<!-- #region releases -->\n## [2.7.0] - 2026-10-20\n\nGenerated placeholder.\n'
     )
   )
   const releasePleasePath = resolve(root, 'release-please-config.json')
@@ -186,11 +186,11 @@ const copyFixture = () => {
   releasePlease['last-release-sha'] = BOOTSTRAP_SHA
   writeJson(releasePleasePath, releasePlease)
   const screenshots = JSON.parse(
-    readFileSync(resolve('docs/assets/readme/2.6.0.manifest.json'), 'utf8')
+    readFileSync(resolve('docs/assets/readme/2.7.0.manifest.json'), 'utf8')
   )
-  screenshots.releaseVersion = '2.5.4'
+  screenshots.releaseVersion = '2.6.0'
   mkdirSync(resolve(root, 'docs/assets/readme'), { recursive: true })
-  writeJson(resolve(root, 'docs/assets/readme/2.5.4.manifest.json'), screenshots)
+  writeJson(resolve(root, 'docs/assets/readme/2.6.1.manifest.json'), screenshots)
   return root
 }
 
@@ -217,23 +217,20 @@ describe('release normalization', () => {
     expect(JSON.stringify(config)).not.toContain('release-as')
   })
 
-  it('proves the divergent v2.5.3 bootstrap tree and current feat history compute the next minor 2.6.0', () => {
-    const boundary = '0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6'
-    const tagged = 'acad9988220c9a1a6d28ea4e94b69d69d774f805'
+  it('proves the divergent v2.6.0 bootstrap tree and current feat history compute the next minor 2.7.0', () => {
+    const boundary = '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
     expect(git('merge-base', '--is-ancestor', boundary, 'HEAD')).toBe('')
-    expect(git('rev-parse', `${boundary}^{tree}`)).toBe(
-      git('rev-parse', `${tagged}^{tree}`)
-    )
+    expect(git('rev-parse', 'v2.6.0^{commit}')).toBe(boundary)
     const subjects = git('log', '--format=%s', `${boundary}..HEAD`).split('\n')
     expect(subjects.some((subject) => /^feat(?:\([^)]*\))?!?:/.test(subject))).toBe(true)
-    const [major, minor] = '2.5.3'.split('.').map(Number)
-    expect(`${major}.${minor + 1}.0`).toBe('2.6.0')
+    const [major, minor] = '2.6.0'.split('.').map(Number)
+    expect(`${major}.${minor + 1}.0`).toBe('2.7.0')
   })
 
-  it('plans the exact allowlisted 2.6.0 propagation without touching package authority or release history', () => {
+  it('plans the exact allowlisted 2.7.0 propagation without touching package authority or release history', () => {
     const root = copyFixture()
     const plan = planReleaseNormalization(root, { date: '2026-10-20' })
-    expect(plan.version).toBe('2.6.0')
+    expect(plan.version).toBe('2.7.0')
     expect(plan.changes.map(({ path }) => path)).toEqual([
       'Cargo.toml',
       'Cargo.lock',
@@ -250,32 +247,32 @@ describe('release normalization', () => {
         `static/locales/${locale}.json`,
         `static/locales/${locale}.min.json`
       ]),
-      'docs/assets/readme/2.6.0.manifest.json'
+      'docs/assets/readme/2.7.0.manifest.json'
     ])
     expect(plan.changes.map(({ path }) => path)).not.toContain('package.json')
     expect(plan.changes.find(({ path }) => path === 'Cargo.toml').after).toContain(
-      'version = "2.6.0"'
+      'version = "2.7.0"'
     )
     const fixturePatch = plan.changes.find(
       ({ path }) => path === 'tests/renderer/release-preflight.test.js'
     ).after
-    expect(fixturePatch).toContain("packageJson: '2.6.0'")
-    expect(fixturePatch).toContain("'v2.6.0'")
-    expect(fixturePatch).toContain('Complete v2.6.0 version fixture.')
-    expect(fixturePatch).toContain('2026-10-20 v2.16.0')
+    expect(fixturePatch).toContain("packageJson: '2.7.0'")
+    expect(fixturePatch).toContain("'v2.7.0'")
+    expect(fixturePatch).toContain('Complete v2.7.0 version fixture.')
+    expect(fixturePatch).toContain('2026-10-20 v2.20.0')
     expect(fixturePatch).toContain("validateVersionEvidence(consistentEvidence, 'v2.1.0-beta')")
     const normalizedChangelog = plan.changes.find(({ path }) => path === 'CHANGELOG.md').after
-    expect(normalizedChangelog.match(/^## \[2\.6\.0\]/gm)).toHaveLength(1)
+    expect(normalizedChangelog.match(/^## \[2\.7\.0\]/gm)).toHaveLength(1)
     expect(normalizedChangelog).not.toContain('release-draft:start')
     expect(normalizedChangelog).toContain('Tables can leave Mark as pictures')
     expect(normalizedChangelog).not.toContain('Generated placeholder.')
-    expect(normalizedChangelog).toContain('## [2.5.3] - 2026-10-19')
+    expect(normalizedChangelog).toContain('## [2.7.0] - 2026-10-20')
     const normalizedConfig = JSON.parse(
       plan.changes.find(({ path }) => path === 'release-please-config.json').after
     )
     expect(normalizedConfig).not.toHaveProperty('last-release-sha')
     expect(normalizedConfig['bootstrap-sha']).toBe(
-      '0ed3351ec30aa7b9d9c166bdb4133149e4dd88e6'
+      '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
     )
     const normalizedTrain = JSON.parse(
       plan.changes.find(({ path }) => path === 'docs/release-trains/2.6.x-next.json').after
@@ -290,7 +287,7 @@ describe('release normalization', () => {
     ).after
     expect(normalizedLedger).toContain('| State | Preparing |')
     expect(normalizedLedger).toContain(
-      'Release Please prepared 2.6.0 and synchronized package, Cargo, Tauri, and train-ledger metadata'
+      'Release Please prepared 2.7.0 and synchronized package, Cargo, Tauri, and train-ledger metadata'
     )
     expect(normalizedLedger).not.toContain('remains **Collecting**')
   })
