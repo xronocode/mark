@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "releaseVersion": "2.7.0",
-  "payloadSha": "e7804474cd9bfb3e130a17b1495594b0f55f15d2",
+  "payloadSha": "541d62e5fa22d9175ee6201e9f5a69baecfaa3dd",
   "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
   "captureState": "fresh-reviewed",
   "freezeRequirement": "Satisfied from the final payload before the Ready seal.",
