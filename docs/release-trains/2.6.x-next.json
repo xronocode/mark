@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.6.x-next",
-  "state": "Ready",
+  "state": "Released",
   "previousRelease": {
     "tag": "v2.6.0",
     "commit": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
@@ -604,6 +604,12 @@
       "date": "2026-10-22",
       "actor": "agent-zcode",
       "evidence": "The owner explicitly authorized the 2.6.1 release (2026-10-22 goal instruction, translated from Russian: 'everything green and accepted: merge, commit, release') after the merged PR set #16-#19, the 7/7 FIX-009 acceptance, the FIX-013/FIX-014 verdicts and the complete material gates (preflight sources=6, governance CONFIRMED, registry VALID, materials CONSISTENT)."
+    },
+    {
+      "state": "Released",
+      "date": "2026-10-22",
+      "actor": "agent-zcode",
+      "evidence": "v2.7.0 published 2026-10-22T11:29:11Z from this train (tag v2.7.0 -> 132f2599 on main, 13 assets, normal release); the in-app updater feed (releases/latest/download/latest.json) serves 2.7.0. Recorded 2026-10-23 while opening the next train's release set."
     }
   ]
 }
