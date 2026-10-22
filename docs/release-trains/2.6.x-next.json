@@ -142,15 +142,33 @@
         "id": "TRAIN-BOOKKEEPING",
         "summary": "Post-2.6.0 release operations: draft-publication recovery fixes, the train roll with materials-admission gating, GRACE archival of the accepted table/viewer bundles, CRLF portability of the shortcut-routing source read, and the PR 16 merge.",
         "commits": [
-          "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
+          "8cad1d259a5691097aa5cc4072a61bdb893716d9",
+          "2ab5dc7c7cbb52cb5f80029ebf09c55b4ebca21f",
+          "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
           "c9a944fbd4952ac694e2ad8830ed2592a6f17a57",
           "ff44062321ecfe3751971327e81afb7fad492577",
-          "8cad1d259a5691097aa5cc4072a61bdb893716d9",
-          "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
           "21793f1100a4eea8584a0f664e6b26e092868383",
+          "c2371ca6620270b26603a889d04d5346f2166050",
+          "cf05e29897b4ddec4d33f78aad71339014aad4a4",
+          "6edbf1a66bb1911bfc0cbeccc6d1ae877d87aef8",
+          "7f7cfeef18c8f7283c791d9f4ea350282b96f6a2",
+          "86e431c78e7463cdb09524852de0e568b35c6fe1",
+          "7057d645f83bef3383d9db4183f720238f1fe0dc",
+          "1bab36f125c80abc141758b3bf8ce867914746c8",
+          "ab3367c269d840c630bb4afd0e6426fe8e4147da",
+          "45e6910ae815157482f1816de99733cb46e43867",
+          "d604ab70a9589cf4a8187d3aab1e387058d0071b",
+          "aeca13ca3cd79bf505390e53b14cdb1b9b4fd2fe",
+          "4af301126526fa971612fb1d5e5cc767254c9a42",
+          "0a259a30858ac08a7b0a927d339badff8f05bddd",
+          "308bcbeabe4890e2a5e0687cd1dff0af1aa96286",
+          "ff0164dc82fcabd43f2037c6be2f74e470ddbd49",
+          "2e759df57e7a0468565ab168648b7080f1c2301e",
           "e370b0a88810b31ac15fec868ce368ea335d3e20",
           "48e8d95987bc5d108cab2ce12971b1c7aac55faf",
-          "c89b8d9ec4707c24d81d30008f3c6c7b07bfdd9b"
+          "4e7157ad96002c68a5e3ff7ab91213435edb684b",
+          "c89b8d9ec4707c24d81d30008f3c6c7b07bfdd9b",
+          "ebbdfa26e50160abc3144544c42143dcaf1466d9"
         ]
       },
       {
@@ -203,10 +221,150 @@
         ]
       },
       {
+        "sha": "8cad1d259a5691097aa5cc4072a61bdb893716d9",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2ab5dc7c7cbb52cb5f80029ebf09c55b4ebca21f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c9a944fbd4952ac694e2ad8830ed2592a6f17a57",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ff44062321ecfe3751971327e81afb7fad492577",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "21793f1100a4eea8584a0f664e6b26e092868383",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c2371ca6620270b26603a889d04d5346f2166050",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "cf05e29897b4ddec4d33f78aad71339014aad4a4",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "6edbf1a66bb1911bfc0cbeccc6d1ae877d87aef8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8108a7ac0b3a832e40805e65e6f245199ee701db",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-FOLLOW-REDIRECTS"
+        ]
+      },
+      {
+        "sha": "7f7cfeef18c8f7283c791d9f4ea350282b96f6a2",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "86e431c78e7463cdb09524852de0e568b35c6fe1",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "7057d645f83bef3383d9db4183f720238f1fe0dc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1bab36f125c80abc141758b3bf8ce867914746c8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ab3367c269d840c630bb4afd0e6426fe8e4147da",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "45e6910ae815157482f1816de99733cb46e43867",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "a5707758e4e94ec7c848890c43350c325afca982",
         "classification": "user-facing",
         "itemIds": [
           "C-SELF-CONTAINED-HTML-EXPORT"
+        ]
+      },
+      {
+        "sha": "d604ab70a9589cf4a8187d3aab1e387058d0071b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "aeca13ca3cd79bf505390e53b14cdb1b9b4fd2fe",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "4af301126526fa971612fb1d5e5cc767254c9a42",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "0a259a30858ac08a7b0a927d339badff8f05bddd",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -231,52 +389,24 @@
         ]
       },
       {
-        "sha": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
+        "sha": "308bcbeabe4890e2a5e0687cd1dff0af1aa96286",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "c9a944fbd4952ac694e2ad8830ed2592a6f17a57",
+        "sha": "ff0164dc82fcabd43f2037c6be2f74e470ddbd49",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "ff44062321ecfe3751971327e81afb7fad492577",
+        "sha": "2e759df57e7a0468565ab168648b7080f1c2301e",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8cad1d259a5691097aa5cc4072a61bdb893716d9",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "21793f1100a4eea8584a0f664e6b26e092868383",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8108a7ac0b3a832e40805e65e6f245199ee701db",
-        "classification": "operational",
-        "itemIds": [
-          "DEPS-FOLLOW-REDIRECTS"
         ]
       },
       {
@@ -294,7 +424,21 @@
         ]
       },
       {
+        "sha": "4e7157ad96002c68a5e3ff7ab91213435edb684b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "c89b8d9ec4707c24d81d30008f3c6c7b07bfdd9b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ebbdfa26e50160abc3144544c42143dcaf1466d9",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
