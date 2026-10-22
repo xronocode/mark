@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='draft'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-23>
   <Name>Release 2.3.0 without beta: ship the accumulated fixes, new icon and localized storefront</Name>
   <Created>2026-10-14</Created>
@@ -69,6 +69,7 @@
   <Approval>
     <ApprovedBy>pending — recorded as a draft on the user's request (2026-10-14): «с учетом сложности зафиксируем это фазами в грейс»</ApprovedBy>
     <ApprovalScope>None yet; a plan.xml is written only after approval.</ApprovalScope>
+    <AppliedEvidence>Retired draft archived by the owner decision of 2026-10-23 via C-RETIRE-23-35; nothing was executed - see the RETIRED DRAFT disposition above.</AppliedEvidence>
   </Approval>
 </C-23>
 </GraceChangeSpec>

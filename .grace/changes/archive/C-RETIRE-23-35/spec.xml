@@ -1,0 +1,70 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+<C-RETIRE-23-35>
+  <Name>Retire the superseded drafts C-23 and C-35 from the active set</Name>
+  <Created>2026-10-23</Created>
+  <Priority>medium</Priority>
+  <Status>applied</Status>
+  <Complexity>S (minutes)</Complexity>
+
+  <Summary>
+    C-23 (Release 2.3.0 without beta) and C-35 (Website refresh) are RETIRED
+    DRAFTS by the C-72 disposition of 2026-10-20: the first is obsolete because
+    v2.3.0 and v2.3.1 shipped via the release train, the second is superseded
+    by the approved C-64 site-refresh bundle that shipped
+    (mark.xronocode.com live). Both folders stayed under active/ only because
+    the GRACE framework requires a compliant applied plan for archival and a
+    spec-only draft never had one. The owner decision of 2026-10-23
+    ("архивируй 23 и 35") supplies that closure: this bundle is the applied
+    plan that moves them to archive with their dispositions preserved.
+  </Summary>
+
+  <Problem>
+    <Description>Two retired, non-executable draft bundles pollute the active
+    set: grace status counts them as active changes and every future
+    reconciliation has to step around them.</Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Move C-23 and C-35 from .grace/changes/active/ to
+    .grace/changes/archive/ with wrapper status applied and an AppliedEvidence
+    record naming the owner decision; the RETIRED DRAFT disposition text
+    inside each spec stays byte-identical.</R-1>
+    <R-2>Gates hold after the move: grace lint 0 errors, parallel-preflight
+    clean, active set reduced to four parked drafts plus C-50.</R-2>
+  </Goals>
+
+  <Constraints>
+    <Constraint>No product code changes; only .grace/changes paths move.</Constraint>
+    <Constraint>C-36, C-37, C-47 and C-50 stay untouched (parked backlog,
+    pending their own dispositions).</Constraint>
+    <Constraint>The parallel session's release-materials work stays unstaged
+    and untouched.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Dispositions for C-36/C-37/C-47/C-50.</NonGoal>
+    <NonGoal>Any graph or verification anchor change.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>.grace/changes/active contains exactly C-36, C-37, C-47 and
+    C-50; the archive holds C-23 and C-35 with applied status.</Criterion>
+    <Criterion>grace lint --assertions current reports 0 errors and
+    --parallel-preflight exits clean.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <Governance>.grace/changes/{active,archive}/C-23 and C-35, plus this bundle</Governance>
+  </AffectedAreas>
+
+  <VerificationIntent>grace lint --assertions current; grace lint
+  --parallel-preflight; grace status active-set listing.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>owner (2026-10-23, chat; translated from Russian): "archive
+    23 and 35" - the instruction that followed the anti-drift report
+    explaining both dispositions.</ApprovedBy>
+    <ApprovalScope>Archival of the two retired drafts only.</ApprovalScope>
+  </Approval>
+</C-RETIRE-23-35>
+</GraceChangeSpec>
