@@ -5,8 +5,8 @@
   "previousRelease": {
     "tag": "v2.6.0",
     "commit": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
-    "bootstrapSha": "de16653229170226060a6f2f8f6e36df02e2c452",
-    "tree": "010ab79a204e81add9651486be82c726ca53bd68"
+    "bootstrapSha": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
+    "tree": "b9b043f53bd9457ac04970a00c31cb8f89c0c557"
   },
   "computedVersion": "2.6.1",
   "payloadSha": "2e759df57e7a0468565ab168648b7080f1c2301e",
@@ -186,7 +186,7 @@
     "notPresent": []
   },
   "commitAccounting": {
-    "fromExclusive": "de16653229170226060a6f2f8f6e36df02e2c452",
+    "fromExclusive": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
     "throughInclusive": "2e759df57e7a0468565ab168648b7080f1c2301e",
     "entries": [
       {
