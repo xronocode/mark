@@ -215,12 +215,12 @@ describe('release train authority', () => {
     const manifest = readTrainManifest(process.cwd())
     const result = validateTrainManifest(manifest, {
       workspaceRoot: process.cwd(),
-      tag: 'v2.6.1'
+      tag: 'v2.7.0'
     })
     expect(result).toMatchObject({
       trainId: '2.6.x-next',
       state: manifest.state,
-      version: 'v2.6.1'.slice(1)
+      version: 'v2.7.0'.slice(1)
     })
     // Admission items arrive with owner acceptance, not with the train:
     // the count must mirror the checked-in manifest exactly (empty right

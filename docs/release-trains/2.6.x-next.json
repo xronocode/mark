@@ -8,7 +8,7 @@
     "bootstrapSha": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
     "tree": "b9b043f53bd9457ac04970a00c31cb8f89c0c557"
   },
-  "computedVersion": "2.6.1",
+  "computedVersion": "2.7.0",
   "payloadSha": "ebbdfa26e50160abc3144544c42143dcaf1466d9",
   "sealSha": null,
   "releaseAuthorization": null,
@@ -468,7 +468,7 @@
   ],
   "materials": {
     "status": "ready",
-    "screenshotManifest": "docs/assets/readme/2.6.1.manifest.json",
+    "screenshotManifest": "docs/assets/readme/2.7.0.manifest.json",
     "readme": "README.md",
     "changelog": "CHANGELOG.md",
     "releaseNotes": "docs/release-notes-en-drafts.md",
