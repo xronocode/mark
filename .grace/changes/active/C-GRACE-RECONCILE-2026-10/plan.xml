@@ -1,0 +1,141 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-GRACE-RECONCILE-2026-10>
+    <ChangeRef>C-GRACE-RECONCILE-2026-10</ChangeRef>
+    <Created>2026-10-23</Created>
+    <IntentSummary>Archive ten executed change bundles with applied status and evidence trails, repair the archived design-context XML parse error, supersede four stale evidence.json statuses, and absorb the working-file drift (empty lib.rs, spec-referenced mockups, prepared ASC screenshots) — without touching product code or the parallel session's release-materials work.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT/design-context.xml</File>
+        <Text>Absolute POSIX path</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-FIX-013-NODE25-WEBSTORAGE-COMPAT/evidence.json</File>
+        <Text>--no-experimental-webstorage</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-trains/2.6.x-next.md</File>
+        <Text>PR 19 merged</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT/design-context.xml</File>
+        <Text>&amp;lt;home&amp;gt;/shot.png</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-FIX-013-NODE25-WEBSTORAGE-COMPAT/evidence.json</File>
+        <Text>recordedBy</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-WINDOWS-TITLEBAR-ALIGNMENT/evidence.json</File>
+        <Text>recordedBy</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-FIX-009-RECENTLY-CLOSED/evidence.json</File>
+        <Text>recordedBy</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-FIX-009-SESSION-COLD-START/evidence.json</File>
+        <Text>recordedBy</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT/design-context.xml')"</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <Glob>.grace/changes/archive/C-ACCEPTANCE-REGISTRY/**</Glob>
+      <Glob>.grace/changes/archive/C-FIX-009-RECENTLY-CLOSED/**</Glob>
+      <Glob>.grace/changes/archive/C-FIX-009-SESSION-COLD-START/**</Glob>
+      <Glob>.grace/changes/archive/C-FIX-013-NODE25-WEBSTORAGE-COMPAT/**</Glob>
+      <Glob>.grace/changes/archive/C-RELEASE-CONTROLS-ACTIVATION/**</Glob>
+      <Glob>.grace/changes/archive/C-RELEASE-PIPELINE-AUTOMATION/**</Glob>
+      <Glob>.grace/changes/archive/C-RELEASE-PIPELINE-CLOSEOUT/**</Glob>
+      <Glob>.grace/changes/archive/C-SAFE-PUBLIC-GITHUB-REFERENCES-V2/**</Glob>
+      <Glob>.grace/changes/archive/C-SAFE-SCREENSHOT-REVIEW/**</Glob>
+      <Glob>.grace/changes/archive/C-WINDOWS-TITLEBAR-ALIGNMENT/**</Glob>
+      <Glob>.grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT/design-context.xml</Glob>
+      <Glob>.grace/changes/active/C-GRACE-RECONCILE-2026-10/**</Glob>
+      <Glob>work/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Archive the ten executed bundles with applied status</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>All ten bundle directories live under .grace/changes/archive/ with GraceChangeSpec and GraceChangePlan wrapper status applied and a per-bundle AppliedEvidence trail citing commit, PR, registry and tag evidence.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>ls .grace/changes/active</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Repair the archived design-context XML</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Lines 23-24 escape the literal home/winhome placeholders; the file parses; grace lint reports no xml.parse error.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT/design-context.xml')"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Supersede the four stale evidence.json statuses</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Each file carries a resolution object dated 2026-10-23 recordedBy C-GRACE-RECONCILE-2026-10 with its integration evidence trail.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "import json; [json.load(open(f'.grace/changes/archive/{b}/evidence.json'))['resolution'] for b in ['C-FIX-009-RECENTLY-CLOSED','C-FIX-009-SESSION-COLD-START','C-FIX-013-NODE25-WEBSTORAGE-COMPAT','C-WINDOWS-TITLEBAR-ALIGNMENT']]"</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Absorb file drift within the binary policy</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The empty untracked src-tauri/src/lib.rs is deleted; the two text work/ mockups are committed; the ten PNG binaries (nine ASC screenshots, one mockup) remain untracked because the fail-closed publication gate blocks every non-readme binary — BLOCK_SAFETY_REVIEW_STOP observed on the first commit attempt; their disposition is an owner follow-up.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git status --short</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Gates: lint, status, parallel-preflight</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>grace lint --assertions current exits 0 errors; grace status reports module health without moduleHealthLoadError; grace lint --parallel-preflight reports no scope errors among remaining active bundles.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --assertions current</Command>
+          <Command>grace status --path . --with modules --json</Command>
+          <Command>grace lint --path . --parallel-preflight</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Commit through the safety hooks, scoped to this change only</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>A single docs(grace) commit contains only .grace/changes moves, the design-context fix, work/ and the ASC screenshots; the parallel session's release-materials edits (versions, locales, tests, README, CHANGELOG) stay unstaged and untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git show --stat HEAD</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Self-archival after the gates hold on the committed tree</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>This bundle moves to .grace/changes/archive/ with status applied in a follow-up commit; grace lint still reports 0 errors.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --assertions current</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+  </C-GRACE-RECONCILE-2026-10>
+</GraceChangePlan>

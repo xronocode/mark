@@ -1017,7 +1017,7 @@
   },
   "whatsNew": {
     "title": "Novidades",
-    "also": "Também: exportes de tabela fiéis, Auto Save desligado na hora, troca de abas mais estável",
+    "also": "Também: avisos honestos de pastas ausentes, plurais corretos em dez idiomas e nomes claros para a nuvem",
     "seeEverything": "Ver todas as novidades",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1129,7 +1129,25 @@
       }
     },
     "continue": "Continuar",
-    "seeGuide": "Ver o guia"
+    "seeGuide": "Ver o guia",
+    "v2_8_0": {
+      "folders": {
+        "title": "⇧⌘O adiciona pasta",
+        "text": "Várias pastas abertas ao mesmo tempo; «Substituir espaço…» troca com segurança."
+      },
+      "cloud": {
+        "title": "Pastas da nuvem nativas",
+        "text": "Pastas do iCloud Drive e OneDrive funcionam como raízes; arquivos só online avisam."
+      },
+      "search": {
+        "title": "Busca que acompanha",
+        "text": "A busca em pastas assina cada resultado com a pasta e não perde nada ao digitar."
+      },
+      "quit": {
+        "title": "⌘Q pergunta antes de sair",
+        "text": "O não salvo oferece Salvar ou Descartar — nada desaparece em silêncio."
+      }
+    }
   },
   "store": {
     "editor": {

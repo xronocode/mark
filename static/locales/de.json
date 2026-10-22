@@ -1016,7 +1016,7 @@
   },
   "whatsNew": {
     "title": "Was ist neu",
-    "also": "Außerdem: saubere Tabellen-Exporte, Auto-Save sofort aus, ruhigeres Tab-Wechseln, Security-Update",
+    "also": "Außerdem: ehrliche Hinweise zu fehlenden Ordnern, korrekte Pluralformen in zehn Sprachen und klare Cloud-Namen",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1128,7 +1128,25 @@
       }
     },
     "continue": "Weiter",
-    "seeGuide": "Anleitung ansehen"
+    "seeGuide": "Anleitung ansehen",
+    "v2_8_0": {
+      "folders": {
+        "title": "⇧⌘O fügt einen Ordner hinzu",
+        "text": "Mehrere Ordner parallel offen; „Arbeitsbereich ersetzen …“ wechselt sicher."
+      },
+      "cloud": {
+        "title": "Cloud-Ordner direkt öffnen",
+        "text": "iCloud Drive und OneDrive öffnen sich als Wurzeln; Online-Dateien melden sich einmal."
+      },
+      "search": {
+        "title": "Suche, die mithält",
+        "text": "Die Ordnersuche nennt bei jedem Treffer den Ordner und verliert nichts beim Tippen."
+      },
+      "quit": {
+        "title": "⌘Q fragt vor dem Beenden",
+        "text": "Ungespeichertes bietet Speichern oder Verwerfen an — nichts verschwindet lautlos."
+      }
+    }
   },
   "store": {
     "editor": {

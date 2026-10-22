@@ -4,8 +4,29 @@ English replacements for the Russian release-note sections in `xronocode/mark`.
 Replace only the human-written section above `---`; preserve the automated
 attestation, cosign, and updater block below it unchanged.
 
-The 13 drafts are listed from newest to oldest. They are saved for review;
+The drafts are listed from newest to oldest. They are saved for review;
 this change does not publish them to GitHub.
+
+## v2.8.0
+
+```markdown
+## What's new
+
+**Workspaces**
+- **Several folders, one window.** ⇧⌘O (File › Add Folder…) opens a folder beside the ones already open. Every folder surface — the picker, drops, the clipboard and the welcome screen — goes through one Add-or-Replace chooser, with Add preselected as the safe default.
+- **File › Replace Workspace…** swaps the whole workspace. Tabs with unsaved edits under removed roots raise one dialog first (Save & Close / Don't Save / Cancel); a failed save aborts the replace, and Cancel changes nothing.
+- Tabs that share a filename carry a dimmed owning-folder suffix, and restoring a session brings back every root. Folders that disappeared while you were away degrade visibly — a notice lists them instead of failing silently.
+
+**Cloud folders**
+- iCloud Drive and OneDrive folders open as workspace roots under their real names. Evicted iCloud placeholders never pollute the tree, and a once-per-folder note explains that online-only files appear after they download.
+- Folder picks and drive-sized trees no longer hang the app: the system picker runs to completion and a whole cloud drive streams its tree in batches.
+
+**Search**
+- Folder search labels every hit with its owning folder and keeps results complete while you type. Counts read correctly in all ten languages.
+
+**Safety**
+- Quitting with unsaved tabs asks first: Save & Quit commits them, Don't Save discards on purpose, Escape stays. The silent data-loss path is gone.
+```
 
 ## v2.7.0
 

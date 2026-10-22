@@ -1,0 +1,117 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+<C-GRACE-RECONCILE-2026-10>
+  <Name>Anti-drift reconciliation: archive ten executed change bundles, repair governance artifacts, absorb working-file drift</Name>
+  <Created>2026-10-23</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <Complexity>S (half a day)</Complexity>
+
+  <Summary>
+    The 2026-10-23 anti-drift audit compared all sixteen active change bundles
+    against git history, release trains, the acceptance registry and physical
+    artifacts. Ten of the eleven "ready-to-execute" bundles are already executed
+    — most shipped inside tag v2.7.0 — but their folders remain active, which
+    fabricates a 28-warning scope-overlap web, an unsafe-parallel verdict, and a
+    misleading ready count. This bundle archives the ten with their evidence,
+    repairs the one integrity error (unescaped angle brackets in an archived
+    design-context), supersedes four stale evidence.json status fields, removes
+    one accidental empty file, and commits the working files that already-shipped
+    bundle specs reference by path.
+  </Summary>
+
+  <Problem>
+    <Description>
+      1) Ten executed bundles stay in .grace/changes/active with approved
+      plans, so grace status reports them as ready-to-execute and grace lint
+      emits 28 scope.durable-overlap warnings plus parallel-preflight errors
+      between bundles whose code is already merged and released.
+      2) .grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT/design-context.xml
+      lines 23-24 contain literal &lt;home&gt;/&lt;winhome&gt; placeholders as raw
+      angle brackets; the parse failure is the project's only integrity error
+      and disables module-health navigation entirely.
+      3) Four evidence.json files still say "owner acceptance and commit
+      pending" although acceptance (2026-10-22, docs/acceptance/registry.json)
+      and release (tag v2.7.0) have since happened.
+      4) src-tauri/src/lib.rs is an untracked empty file (0 bytes) not used by
+      any build; work/ holds three mockup files referenced by path from shipped
+      bundle specs; docs/archive/screenshots/2026-09-asc-old-mark/ holds nine
+      prepared archive files referenced by nothing. The ten PNG binaries
+      cannot pass the fail-closed binary policy and remain untracked.
+    </Description>
+  </Problem>
+
+  <Goals>
+    <R-1>Archive the ten executed bundles (list in T-1) from active/ to
+    archive/ with spec and plan status applied and a resolution evidence trail
+    per bundle.</R-1>
+    <R-2>Repair design-context.xml lines 23-24 by escaping the literal
+    placeholders; module-health loads again and grace lint reports zero
+    errors.</R-2>
+    <R-3>Supersede the stale evidence.json status fields with dated resolution
+    records citing commit, PR, acceptance-registry and tag evidence.</R-3>
+    <R-4>Absorb file drift: delete the empty src-tauri/src/lib.rs; commit the
+    two text work/ mockups (spec-referenced). The ten PNG binaries (nine ASC
+    archive screenshots plus work/recently-closed-tabs-mockup.png) stay
+    uncommitted: the fail-closed publication policy permits only
+    manifest-bound docs/assets/readme screenshots, and the safety gate blocks
+    every other binary path pending a sanctioned local multimodal review —
+    the owner's chosen path for them is a recorded follow-up.</R-4>
+  </Goals>
+
+  <ScopeDecision>
+    Owner 2026-10-23 approved items 1-3 of the proposed reconciliation
+    ("1-3 ок"). The disposition of C-50 (backlog feature vs retired
+    annotation) and the archival of retired drafts C-23/C-35 are deliberately
+    excluded and await a separate owner decision.
+  </ScopeDecision>
+
+  <Constraints>
+    <Constraint>No product code changes: nothing under src/, src-tauri/ shipped sources, static/ runtime locales or tools/ runtime behavior is modified.</Constraint>
+    <Constraint>The parallel session's in-flight release-materials edits (version files, locales, What's New, tests, README, CHANGELOG, screenshot refresh) stay unstaged and untouched by this bundle's commit.</Constraint>
+    <Constraint>Dispositions for C-23, C-35, C-36, C-37, C-47 and C-50 are excluded pending the owner's decision.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Any product code change; nothing in src/, src-tauri/ shipped
+    sources, static/ or tools/ runtime behavior is touched.</NonGoal>
+    <NonGoal>Dispositions for C-23, C-35, C-36, C-37, C-47 and C-50.</NonGoal>
+    <NonGoal>Release-train admission: this change is governance bookkeeping
+    with no user-facing surface.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>grace lint --path . --assertions current reports 0 errors and
+    no new warning classes; grace status module-health loads (no
+    moduleHealthLoadError).</Criterion>
+    <Criterion>grace status --with modules --json lists the ten bundles under
+    archive with specStatus applied; active/ contains only the five parked
+    drafts, C-50 and no others.</Criterion>
+    <Criterion>grace lint --parallel-preflight reports no observed-write or
+    durable-overlap errors among remaining active bundles.</Criterion>
+    <Criterion>git status is clean of the previous untracked entries; the
+    committed tree contains work/ mockups and the ASC screenshots; the empty
+    lib.rs is gone.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <Governance>.grace/changes/{active,archive}/ for the ten bundles plus this one; .grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT/design-context.xml</Governance>
+    <Docs>work/ (committed), docs/archive/screenshots/2026-09-asc-old-mark/ (committed)</Docs>
+    <Tree>src-tauri/src/lib.rs (empty file deleted)</Tree>
+  </AffectedAreas>
+
+  <VerificationIntent>
+    grace lint --assertions current; grace status --with modules --json
+    (module-health present, archive counts); grace lint --parallel-preflight;
+    git log v2.6.0..v2.7.0 and docs/acceptance/registry.json as the evidence
+    trail cited by the resolution records.
+  </VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>owner (2026-10-23, chat): approved items 1-3 of the anti-drift
+    reconciliation proposal; item 4 (C-50 / C-23 / C-35 dispositions) explicitly
+    deferred pending explanation.</ApprovedBy>
+    <ApprovalScope>Items 1-3 only: archival of the ten executed bundles, XML
+    and evidence repairs, drift absorption. No C-50/C-23/C-35 action.</ApprovalScope>
+  </Approval>
+</C-GRACE-RECONCILE-2026-10>
+</GraceChangeSpec>
