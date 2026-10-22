@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 1.8.0
+// VERSION: 1.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.9.0: prove activate executes both disabled-to-active ruleset mutations and converges against the active target.
 //   - 2026-10-21 v1.8.0: require exact cask-bot PR identity, merged-state idempotence, and required-check-gated tap auto-merge.
 //   - 2026-10-21 v1.7.0: pin bounded draft-ID discovery and ID-based read-back across GitHub tag-index eventual consistency.
 //   - 2026-10-21 v1.6.0: require tag admission to restore the remote annotated object after checkout peels the local tag ref.
@@ -302,6 +303,43 @@ describe('release GitHub control-plane reconciliation', () => {
     await expect(reconcileGithubControls({
       client,
       desired: desiredControls,
+      mode: 'check'
+    })).resolves.toEqual({ mode: 'check', operations: [], converged: true })
+  })
+
+  it('executes disabled-to-active ruleset activation and reads back the active target', async () => {
+    const client = new FakeControlsClient()
+    await reconcileGithubControls({
+      client,
+      desired: desiredControls,
+      mode: 'apply',
+      identities
+    })
+    client.applied = []
+    const journal = []
+    const active = buildDesiredControls(governance, identities, { activate: true })
+    const result = await reconcileGithubControls({
+      client,
+      desired: active,
+      mode: 'activate',
+      identities,
+      onJournal: (entry) => journal.push(entry)
+    })
+
+    expect(result).toMatchObject({ mode: 'activate', converged: true })
+    expect(result.operations).toEqual([
+      { type: 'update-ruleset', key: 'main' },
+      { type: 'update-ruleset', key: 'releaseTags' }
+    ])
+    expect(client.applied).toEqual(['update-ruleset', 'update-ruleset'])
+    expect(journal).toHaveLength(2)
+    expect(Object.values(client.actual.rulesets).map(({ payload }) => payload.enforcement)).toEqual([
+      'active',
+      'active'
+    ])
+    await expect(reconcileGithubControls({
+      client,
+      desired: active,
       mode: 'check'
     })).resolves.toEqual({ mode: 'check', operations: [], converged: true })
   })
