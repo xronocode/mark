@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/chrome-icons.test.js
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / C-51 T-011 / C-51 T-013 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component, the chromeIconMarkup string twin and the filled pin silhouette.
 //   SCOPE: pure module tests over components/icons/chromeIcons.js.
@@ -15,6 +15,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v2.4.0 C-WINDOWS-TITLEBAR-ALIGNMENT: the round-cap
+//     invariant documents the FLAT_CAP exemption for the four redrawn
+//     window-* caption descriptors (butt caps, full-width geometry).
+
 //   LAST_CHANGE: v2.3.0 - 2026-10-17 C-51 T-013: the «pin» descriptor
 //   test flips to the filled pushpin silhouette — every part fills with
 //   currentColor (round head circle + tapering body + needle, no
@@ -101,10 +105,18 @@ describe('chromeIcons shared set (C-40 T-002, C-38 T-006)', () => {
     }
   })
 
-  it('every stroked path declares round caps (closed shapes may add round joins)', () => {
+  it('every stroked path declares round caps (caption glyphs and closed shapes excepted)', () => {
+    // C-WINDOWS-TITLEBAR-ALIGNMENT: the four window-* caption glyphs use
+    // butt caps (Windows-convention flat terminals) and are exempt from the
+    // hand-drawn round-cap invariant that governs the rest of the set.
+    const FLAT_CAP = new Set(['window-minimize', 'window-maximize', 'window-restore', 'window-close'])
     for (const name of ICON_NAMES) {
       for (const part of CHROME_ICONS[name]) {
         if (part.tag !== 'path' || part.fill) continue
+        if (FLAT_CAP.has(name)) {
+          expect(part.cap, `${name} caption paths must stay flat-capped`).toBeUndefined()
+          continue
+        }
         expect(
           part.cap,
           `${name} path "${part.attrs.d}" must declare cap: 'round'`

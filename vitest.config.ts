@@ -25,6 +25,20 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// C-FIX-013: Node >= 25 enables experimental Web Storage by default and its
+// localStorage global shadows the jsdom implementation inside test workers
+// (TypeError: localStorage.getItem is not a function across every store
+// import — vitest-dev/vitest#8757). Node 22 (the .nvmrc/CI reference
+// runtime, flag accepted since 22.4.0) has no default-on Web Storage and
+// needs nothing; the version gate keeps its worker arguments byte-identical
+// instead of appending an ineffective flag, so the option is passed only
+// on major >= 25.
+const nodeMajor = Number(process.versions.node.split('.')[0])
+const execArgv =
+  nodeMajor >= 25
+    ? [...process.execArgv, '--no-experimental-webstorage']
+    : process.execArgv
+
 export default defineConfig({
   plugins: [vue(), svgLoader()],
   resolve: {
@@ -75,6 +89,7 @@ export default defineConfig({
     ],
     pool: 'forks',
     poolOptions: { forks: { maxForks: 2 } },
+    execArgv,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

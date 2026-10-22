@@ -101,9 +101,6 @@
   box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
 }
 
-.title-bar .frameless-titlebar-button > div > svg {
-  fill: #4c4f69;
-}
 .title-bar .frameless-titlebar-minimize:hover,
 .title-bar .frameless-titlebar-toggle:hover {
   background-color: rgba(76, 79, 105, .08);
