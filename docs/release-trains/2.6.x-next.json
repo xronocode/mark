@@ -9,7 +9,7 @@
     "tree": "b9b043f53bd9457ac04970a00c31cb8f89c0c557"
   },
   "computedVersion": "2.6.1",
-  "payloadSha": "2e759df57e7a0468565ab168648b7080f1c2301e",
+  "payloadSha": "ebbdfa26e50160abc3144544c42143dcaf1466d9",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -147,7 +147,10 @@
           "ff44062321ecfe3751971327e81afb7fad492577",
           "8cad1d259a5691097aa5cc4072a61bdb893716d9",
           "1c487406e2a6e0d3836dbf378ec1bfb5cf255a10",
-          "21793f1100a4eea8584a0f664e6b26e092868383"
+          "21793f1100a4eea8584a0f664e6b26e092868383",
+          "e370b0a88810b31ac15fec868ce368ea335d3e20",
+          "48e8d95987bc5d108cab2ce12971b1c7aac55faf",
+          "c89b8d9ec4707c24d81d30008f3c6c7b07bfdd9b"
         ]
       },
       {
@@ -187,7 +190,7 @@
   },
   "commitAccounting": {
     "fromExclusive": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
-    "throughInclusive": "2e759df57e7a0468565ab168648b7080f1c2301e",
+    "throughInclusive": "ebbdfa26e50160abc3144544c42143dcaf1466d9",
     "entries": [
       {
         "sha": "639517476674dd55079cec2c57ff9e40a87c195c",
@@ -274,6 +277,27 @@
         "classification": "operational",
         "itemIds": [
           "DEPS-FOLLOW-REDIRECTS"
+        ]
+      },
+      {
+        "sha": "e370b0a88810b31ac15fec868ce368ea335d3e20",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "48e8d95987bc5d108cab2ce12971b1c7aac55faf",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c89b8d9ec4707c24d81d30008f3c6c7b07bfdd9b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       }
     ]
