@@ -150,6 +150,9 @@ vi.mock('@/bus', () => ({ default: __busMock }))
 const __projectStoreMock = {
   ASK_FOR_OPEN_PROJECT: vi.fn(),
   OPEN_RECENT_FOLDER: vi.fn(),
+  // C-MULTI-SOURCE-WORKSPACE: Recent-folder rows route through the
+  // OPEN_FOLDER ask dispatcher.
+  OPEN_FOLDER: vi.fn(),
   GET_RECENT_FOLDERS: vi.fn().mockResolvedValue([]),
   SET_RECENT_FOLDERS: vi.fn(async (list) => list),
   projectTrees: []
@@ -453,10 +456,13 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     expect(window.electron.ipcRenderer.send).toHaveBeenCalledTimes(2)
   })
 
-  it('opens a recent folder through the project store', async () => {
+  it('opens a recent folder through the OPEN_FOLDER ask dispatcher (C-MULTI-SOURCE-WORKSPACE)', async () => {
     const wrapper = await hydrateWith({ folders: ['/Users/<fixture>/pebble'] })
     await wrapper.find('.recent-item .row-button').trigger('click')
-    expect(__projectStoreMock.OPEN_RECENT_FOLDER).toHaveBeenCalledWith('/Users/<fixture>/pebble')
+    expect(__projectStoreMock.OPEN_FOLDER).toHaveBeenCalledWith('/Users/<fixture>/pebble', {
+      mode: 'ask',
+      origin: 'recent'
+    })
   })
 
   // ── remove + undo ───────────────────────────────────────────────

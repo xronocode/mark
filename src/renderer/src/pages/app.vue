@@ -41,6 +41,7 @@
       <import-modal></import-modal>
       <zoom-indicator></zoom-indicator>
       <update-notice></update-notice>
+      <workspace-mode-dialog></workspace-mode-dialog>
     </div>
   </div>
 </template>
@@ -153,6 +154,7 @@ import LiveViewer from '@/components/liveViewer'
 import ZoomIndicator from '@/components/zoomIndicator'
 import UpdateNotice from '@/components/updateNotice'
 import WhatsNewDialog from '@/components/whatsNew'
+import WorkspaceModeDialog from '@/components/sideBar/workspaceModeDialog.vue'
 import bus from '@/bus'
 import { DEFAULT_STYLE, isDarkTheme } from '@/config'
 import { initWhatsNew, getRunningVersion, snapshotBootPrefs } from '@/whatsNew/gate'
@@ -404,11 +406,12 @@ watch(
 
 let isUnmounted = false
 
-// C-52: a dropped folder (shim drop bridge) opens as the workspace,
-// replacing the current one — the shim cannot import the store itself.
+// C-MULTI-SOURCE-WORKSPACE: a dropped folder (shim drop bridge) routes
+// through the OPEN_FOLDER ask dispatcher — with roots open the shared
+// Add-or-Replace chooser decides; the shim cannot import the store itself.
 const onOpenFolderAsWorkspace = (pathname) => {
   if (typeof pathname === 'string' && pathname) {
-    projectStore.OPEN_FOLDER_AS_WORKSPACE(pathname)
+    void projectStore.OPEN_FOLDER(pathname, { mode: 'ask', origin: 'drop' })
   }
 }
 bus.on('mt::open-folder-as-workspace', onOpenFolderAsWorkspace)

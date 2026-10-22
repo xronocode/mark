@@ -80,7 +80,10 @@ describe('getCommandDescriptionById', () => {
 
   it('handles all file operation commands', () => {
     const fileCommands = [
-      'file.new-window', 'file.new-tab', 'file.open-file', 'file.open-folder',
+      'file.new-window', 'file.new-tab', 'file.open-file',
+      // C-MULTI-SOURCE-WORKSPACE: the overloaded open-folder id is retired;
+      // its explicit Add Folder… / Replace Workspace… pair replaces it.
+      'file.add-folder', 'file.replace-workspace',
       'file.open-from-clipboard',
       'file.quick-open', 'file.import-file', 'file.save', 'file.save-as',
       'file.export-file', 'file.move-file', 'file.rename-file',

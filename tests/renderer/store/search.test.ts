@@ -352,4 +352,83 @@ describe('store/search', () => {
       expect(() => s.cancelRunning()).not.toThrow()
     })
   })
+
+  // C-MULTI-SOURCE-WORKSPACE fix wave: keystroke-canceled generations
+  // must never write results nor flip running — the pre-fix bug kept a
+  // late root's matches out of the visible result set (owner acceptance
+  // С4: "quarterly" typed char-by-char showed only the first root).
+  describe('generation guard', () => {
+    const tick = async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    }
+
+    it('a stale generation completing while the newest runs leaves running true', async () => {
+      projectStateProxy.projectTrees = [
+        { pathname: '/roots/alpha' },
+        { pathname: '/roots/beta' }
+      ]
+      let resolveGen1: () => void = () => {}
+      let resolveGen2: () => void = () => {}
+      const p1 = new Promise<void>((r) => { resolveGen1 = r })
+      const p2 = new Promise<void>((r) => { resolveGen2 = r })
+      // No .cancel on either promise: gen1 stays live after the second
+      // keystroke, so its late resolution is fully controlled by the test.
+      searchSpy.mockReturnValueOnce(p1).mockReturnValueOnce(p2)
+
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.SET_KEYWORD('quarterl')
+      s.SET_KEYWORD('quarterly')
+      expect(s.running).toBe(true)
+
+      resolveGen1()
+      await tick()
+      // Pre-fix: the stale .then() set running=false (and stomped
+      // activeCancel), leaving the live generation uncancellable.
+      expect(s.running).toBe(true)
+
+      resolveGen2()
+      await tick()
+      expect(s.running).toBe(false)
+    })
+
+    it('a stale generation completing after the newest cannot overwrite its results', async () => {
+      projectStateProxy.projectTrees = [
+        { pathname: '/roots/alpha' },
+        { pathname: '/roots/beta' }
+      ]
+      let resolveGen1: () => void = () => {}
+      let resolveGen2: () => void = () => {}
+      const p1 = new Promise<void>((r) => { resolveGen1 = r })
+      const p2 = new Promise<void>((r) => { resolveGen2 = r })
+      searchSpy.mockImplementationOnce((_dirs: string[], _pat: string, opts: any) => {
+        // Stale generation only ever saw the first root's match.
+        opts.didMatch({ filePath: '/roots/alpha/report.md', matches: [{ lineText: 'quarterly numbers are up' }] })
+        return p1
+      }).mockImplementationOnce((_dirs: string[], _pat: string, opts: any) => {
+        opts.didMatch({ filePath: '/roots/alpha/report.md', matches: [{ lineText: 'quarterly numbers are up' }] })
+        opts.didMatch({ filePath: '/roots/beta/plan.md', matches: [{ lineText: 'quarterly review plan' }] })
+        return p2
+      })
+
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.SET_KEYWORD('quarterl')
+      s.SET_KEYWORD('quarterly')
+
+      resolveGen2()
+      await tick()
+      expect(s.results).toHaveLength(2)
+      expect(s.running).toBe(false)
+
+      // The stale generation lands LAST — pre-fix its partial write
+      // (1 file, first root only) replaced the complete result set.
+      resolveGen1()
+      await tick()
+      expect(s.results).toHaveLength(2)
+      expect(s.running).toBe(false)
+    })
+  })
 })

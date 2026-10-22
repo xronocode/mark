@@ -92,3 +92,74 @@ describe('sideBar/searchResultItem.vue', () => {
     expect(wrapper.find('.matches').exists()).toBe(false)
   })
 })
+
+// ── C-MULTI-SOURCE-WORKSPACE: owning-root label ────────────────────
+
+describe('sideBar/searchResultItem.vue — owning-root label (C-MULTI-SOURCE-WORKSPACE)', () => {
+  let pinia
+
+  const makeResult = (overrides = {}) => ({
+    filePath: '/tmp/test.md',
+    matches: [{ lineText: 'Hello world test match', range: [[1, 6], [1, 11]] }],
+    ...overrides
+  })
+
+  beforeEach(async () => {
+    pinia = setupTestPinia()
+    const { useEditorStore } = await import('@/store/editor')
+    const editorStore = useEditorStore()
+    editorStore.currentFile = { id: 'tab-1', pathname: '/tmp/test.md', filename: 'test.md' }
+    editorStore.tabs = [editorStore.currentFile]
+  })
+
+  const mountItem = async (searchResult) => {
+    const SearchResultItem = (await import('@/components/sideBar/searchResultItem.vue')).default
+    return shallowMount(SearchResultItem, {
+      props: { searchResult },
+      global: { plugins: [pinia, i18n] }
+    })
+  }
+
+  it('shows the root name plus relative directory under the owning root', async () => {
+    const { useProjectStore } = await import('@/store/project')
+    const projectStore = useProjectStore()
+    projectStore.projectTrees = [
+      { pathname: '/tmp/Notes', name: 'Notes' },
+      { pathname: '/tmp/repo', name: 'repo' }
+    ]
+
+    const wrapper = await mountItem(makeResult({ filePath: '/tmp/Notes/2026/plan.md' }))
+    expect(wrapper.find('.folder-path').exists()).toBe(true)
+    expect(wrapper.find('.folder-path').text()).toBe('Notes/2026')
+  })
+
+  it('shows the bare root name when the file sits directly in the root', async () => {
+    const { useProjectStore } = await import('@/store/project')
+    const projectStore = useProjectStore()
+    projectStore.projectTrees = [{ pathname: '/tmp/Notes', name: 'Notes' }]
+
+    const wrapper = await mountItem(makeResult({ filePath: '/tmp/Notes/plan.md' }))
+    expect(wrapper.find('.folder-path').text()).toBe('Notes')
+  })
+
+  it('picks the longest owning root when roots nest', async () => {
+    const { useProjectStore } = await import('@/store/project')
+    const projectStore = useProjectStore()
+    projectStore.projectTrees = [
+      { pathname: '/tmp', name: 'tmp' },
+      { pathname: '/tmp/Notes', name: 'Notes' }
+    ]
+
+    const wrapper = await mountItem(makeResult({ filePath: '/tmp/Notes/plan.md' }))
+    expect(wrapper.find('.folder-path').text()).toBe('Notes')
+  })
+
+  it('hides the label when no open root owns the file', async () => {
+    const { useProjectStore } = await import('@/store/project')
+    const projectStore = useProjectStore()
+    projectStore.projectTrees = []
+
+    const wrapper = await mountItem(makeResult({ filePath: '/tmp/loose/plan.md' }))
+    expect(wrapper.find('.folder-path').exists()).toBe(false)
+  })
+})

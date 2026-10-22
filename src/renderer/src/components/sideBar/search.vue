@@ -17,7 +17,7 @@
       {{ t('sideBar.search.noResultsFound') }}
     </div>
     <template v-else>
-      <div class="result-info">{{ t('search.searchResultInfo', { matchCount, fileCount: results.length }) }}</div>
+      <div class="result-info">{{ resultSummary }}</div>
       <div class="result-list">
         <search-result-item
           v-for="(item, index) of results"
@@ -40,6 +40,7 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/store/project'
 import { useSearchStore } from '@/store/search'
+import { pluralCount } from '@/util/pluralCount'
 import SearchResultItem from './searchResultItem.vue'
 
 const { t } = useI18n()
@@ -51,6 +52,13 @@ const { projectTree } = storeToRefs(projectStore)
 
 const hasQuery = computed(() => searchStore.hasQuery)
 const matchCount = computed(() => searchStore.matchCount)
+
+// C-MULTI-SOURCE-WORKSPACE fix wave: pluralized both nouns via
+// util/pluralCount ("1 совпадение в 1 файле"), same as projectSearch.
+const resultSummary = computed(() => t('search.searchResultInfo', {
+  matches: pluralCount('search.matchesCount', matchCount.value),
+  files: pluralCount('search.filesCount', results.value.length)
+}))
 
 const showNoFolderOpenedMessage = computed(() => {
   return !projectTree.value || !projectTree.value.pathname

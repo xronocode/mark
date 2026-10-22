@@ -14,7 +14,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-46 review: Windows paths (C:\Users\x\doc.md) — basename/dirname on both separators; shortenMiddle keeps the backslash separator.
+//   LAST_CHANGE: v1.1.0 - 2026-10-15 C-46 review: Windows paths (C:\vol\e2e\doc.md) — basename/dirname on both separators; shortenMiddle keeps the backslash separator.
 //   v1.0.0 - 2026-10-15: recent folders ran past the sidebar edge; short paths stay as-is, long ones keep the start and the last segments.
 // END_CHANGE_SUMMARY
 
@@ -45,22 +45,22 @@ describe('shortenMiddle', () => {
 
 describe('pathBasename / pathDirname', () => {
   it('split POSIX paths', () => {
-    expect(pathBasename('/Users/x/doc.md')).toBe('doc.md')
-    expect(pathDirname('/Users/x/doc.md')).toBe('/Users/x')
+    expect(pathBasename('/vol/e2e/doc.md')).toBe('doc.md')
+    expect(pathDirname('/vol/e2e/doc.md')).toBe('/vol/e2e')
     expect(pathDirname('/doc.md')).toBe('/')
     expect(pathBasename('')).toBe('')
     expect(pathDirname('')).toBe('')
   })
 
   it('split Windows paths on backslashes and keep the drive root', () => {
-    expect(pathBasename('C:\\Users\\x\\doc.md')).toBe('doc.md')
-    expect(pathDirname('C:\\Users\\x\\doc.md')).toBe('C:\\Users\\x')
+    expect(pathBasename('C:\\vol\\e2e\\doc.md')).toBe('doc.md')
+    expect(pathDirname('C:\\vol\\e2e\\doc.md')).toBe('C:\\vol\\e2e')
     expect(pathDirname('C:\\doc.md')).toBe('C:\\')
-    expect(pathBasename('C:/Users/x/doc.md')).toBe('doc.md')
+    expect(pathBasename('C:/vol/e2e/doc.md')).toBe('doc.md')
   })
 
   it('shortens a long Windows path with its own separator', () => {
-    expect(shortenMiddle('C:\\Users\\x\\clients\\acme\\very-long-project-name\\docs', 36))
+    expect(shortenMiddle('C:\\vol\\e2e\\clients\\acme\\very-long-project-name\\docs', 36))
       .toBe('C:\\…\\very-long-project-name\\docs')
   })
 })

@@ -17,9 +17,9 @@
           </span>
           <span class="match-count">{{ matchCount }}</span>
         </div>
-        <!-- <div class="folder-path">
-            <span>{{ dirname }}</span>
-          </div> -->
+        <div v-if="ownerPath" class="folder-path">
+          <span>{{ ownerPath }}</span>
+        </div>
       </div>
     </div>
     <div v-if="showSearchMatches" class="matches">
@@ -52,12 +52,19 @@
 
 <script setup>
 // START_CHANGE_SUMMARY
-//   - 2026-10-15 C-38 T-006 N4 d: the match-list arrow renders from the
+//   - 2026-10-15 C-38 T-006 N4 d: the match arrow renders from the
 //     drawn chromeIcons set instead of the iconfont sprite.
+//   - 2026-10-22 C-MULTI-SOURCE-WORKSPACE: the disabled folder-path row is
+//     restored as the owning-root label — root name plus the relative
+//     directory (`Notes/2026`), hidden when no open root owns the file, so
+//     multi-root search results are attributable at a glance.
 // END_CHANGE_SUMMARY
 import { ref, computed } from 'vue'
 import { useEditorStore } from '@/store/editor'
+import { findOwningRoot, useProjectStore } from '@/store/project'
+import notice from '@/services/notification'
 import { storeToRefs } from 'pinia'
+import { PATH_SEPARATOR } from '@/config'
 import bus from '../../bus'
 import { useI18n } from 'vue-i18n'
 import { ChromeIcon } from '../icons/chromeIcons.js'
@@ -99,6 +106,21 @@ const matchCount = computed(() => {
 
 const extension = computed(() => {
   return window.path.extname(props.searchResult.filePath)
+})
+
+// C-MULTI-SOURCE-WORKSPACE: owning-root identity for multi-root results.
+const projectStore = useProjectStore()
+
+const ownerPath = computed(() => {
+  const owner = findOwningRoot(projectStore.projectTrees || [], props.searchResult.filePath)
+  if (!owner) return ''
+  const rootName = window.path.basename(owner.pathname) || owner.pathname
+  const rel = props.searchResult.filePath.slice(owner.pathname.length + 1)
+  const relDir = window.path.dirname(rel)
+  // The path shim can answer '/', '' or '.' for a root-level file — all
+  // mean "directly in the root" and render as the bare root name.
+  const directlyInRoot = !relDir || relDir === '.' || relDir === '/' || relDir === PATH_SEPARATOR
+  return directlyInRoot ? rootName : rootName + PATH_SEPARATOR + relDir
 })
 
 const toggleSearchMatches = () => {
@@ -151,11 +173,22 @@ const handleSearchResultClick = (searchMatch) => {
         history
       })
     }
-  } else {
-    window.electron.ipcRenderer.send('mt::open-file', filePath, {
-      cursor
-    })
-  }
+      } else {
+        // C-MULTI-SOURCE-WORKSPACE: invoke (not send) so a failed read —
+        // an evicted iCloud file mid-download, an offline drive — surfaces
+        // a notice instead of a silent no-tab.
+        window.electron.ipcRenderer.invoke('mt::open-file', filePath, {
+          cursor
+        }).catch((e) => {
+          notice.notify({
+            title: t('workspace.fileOpenFailedTitle'),
+            message: String(e),
+            type: 'error',
+            time: 20000,
+            showConfirm: false
+          })
+        })
+      }
 }
 </script>
 
