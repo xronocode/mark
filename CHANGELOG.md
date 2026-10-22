@@ -2,6 +2,28 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
+## [2.7.0](https://github.com/xronocode/mark/compare/v2.6.0...v2.7.0) (2026-10-22)
+
+
+### Features
+
+* **acceptance:** standardize the acceptance trail — registry, validator, builder ([1bab36f](https://github.com/xronocode/mark/commit/1bab36f125c80abc141758b3bf8ce867914746c8))
+* **editor:** FIX-009 session recovery — frozen cold-start restore and recently closed tabs ([cf05e29](https://github.com/xronocode/mark/commit/cf05e29897b4ddec4d33f78aad71339014aad4a4))
+* **editor:** FIX-009 session recovery — honest cold start and recently closed tabs ([80d6a26](https://github.com/xronocode/mark/commit/80d6a2673487f588185b5aebd63dad3d317cbed0))
+* **export:** embed local images into the styled-HTML export (C-SELF-CONTAINED-HTML-EXPORT) ([a570775](https://github.com/xronocode/mark/commit/a5707758e4e94ec7c848890c43350c325afca982))
+* **recent:** show the tab count in the Last session row title ([45e6910](https://github.com/xronocode/mark/commit/45e6910ae815157482f1816de99733cb46e43867))
+
+
+### Bug Fixes
+
+* **contracts:** align the durable anchors and records with amendment 5 ([5acd22a](https://github.com/xronocode/mark/commit/5acd22a357c8ca4655248dc33bf39795ac5d6b3e))
+* **editor:** stabilization pack FIX-010/012/015/016 + GRACE archival ([21793f1](https://github.com/xronocode/mark/commit/21793f1100a4eea8584a0f664e6b26e092868383))
+* **platform:** land Windows bring-up repairs FIX-013 and FIX-014 ([423ab2f](https://github.com/xronocode/mark/commit/423ab2f6437cbb5aa58f09e607cf51c95020b424))
+* **platform:** Windows bring-up — FIX-013 Node ≥25 webstorage + FIX-014 titlebar final state ([308bcbe](https://github.com/xronocode/mark/commit/308bcbeabe4890e2a5e0687cd1dff0af1aa96286))
+* **release:** close automation gaps ([#21](https://github.com/xronocode/mark/issues/21)) ([6edbf1a](https://github.com/xronocode/mark/commit/6edbf1a66bb1911bfc0cbeccc6d1ae877d87aef8))
+* **release:** defer materials admission for a collecting train ([ff44062](https://github.com/xronocode/mark/commit/ff44062321ecfe3751971327e81afb7fad492577))
+* **store:** harden the frozen-restore payload shape; repair the test file closer ([7057d64](https://github.com/xronocode/mark/commit/7057d645f83bef3383d9db4183f720238f1fe0dc))
+
 ## [2.6.0] - 2026-10-20
 
 Tables can leave Mark as pictures, wide-table controls stay stable, and a focused stabilization pass repairs editing, tab ownership and close dialogs.
