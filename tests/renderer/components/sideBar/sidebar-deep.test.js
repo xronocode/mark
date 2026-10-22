@@ -474,7 +474,9 @@ describe('sideBar/treeFile.vue — deep coverage', () => {
       const wrapper = mountComponent(file)
       wrapper.vm.handleFileClick()
 
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+      // C-MULTI-SOURCE-WORKSPACE: invoke (not send) so a failed read
+      // surfaces a notice instead of a silent no-tab.
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
         'mt::open-file',
         '/tmp/new.md',
         {}
@@ -774,7 +776,9 @@ describe('sideBar/searchResultItem.vue — deep coverage', () => {
       const match = { lineText: 'text', range: [[0, 0], [0, 4]] }
       wrapper.vm.handleSearchResultClick(match)
 
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+      // C-MULTI-SOURCE-WORKSPACE: invoke (not send) so a failed read
+      // surfaces a notice.
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
         'mt::open-file',
         '/tmp/new.md',
         expect.objectContaining({ cursor: expect.any(Object) })
@@ -789,7 +793,7 @@ describe('sideBar/searchResultItem.vue — deep coverage', () => {
       const match = { lineText: 'text', range: [[5, 2], [5, 8]] }
       wrapper.vm.handleSearchResultClick(match)
 
-      const sendCall = window.electron.ipcRenderer.send.mock.calls[0]
+      const sendCall = window.electron.ipcRenderer.invoke.mock.calls[0]
       const cursor = sendCall[2].cursor
       expect(cursor.isCollapsed).toBe(false) // same line
       expect(cursor.anchor).toEqual({ line: 5, ch: 2 })
@@ -803,7 +807,7 @@ describe('sideBar/searchResultItem.vue — deep coverage', () => {
       const match = { lineText: 'text', range: [[1, 0], [3, 5]] }
       wrapper.vm.handleSearchResultClick(match)
 
-      const sendCall = window.electron.ipcRenderer.send.mock.calls[0]
+      const sendCall = window.electron.ipcRenderer.invoke.mock.calls[0]
       expect(sendCall[2].cursor.isCollapsed).toBe(true)
     })
   })

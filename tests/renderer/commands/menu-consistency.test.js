@@ -96,8 +96,6 @@ const RENDERER_ONLY_ALLOWLIST = new Set([
   // C-17: palette-only surfaces (problems overlay + lint toggle)
   'view.problems',
   'view.toggle-markdown-lint',
-  // Tauri predefined .quit() on macOS
-  'file.quit',
   // Multi-window not yet implemented
   'file.new-window',
   'file.close-window',

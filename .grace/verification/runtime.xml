@@ -800,6 +800,16 @@
         <Scenario>scenario-3: Invalid path returns error without leaking a background task.</Scenario>
         <Scenario>scenario-4 (C-2): remove_by_path drops every watcher for the path (both raw + canonical index keys), leaves other paths' watchers alive, idempotent on unknown paths.</Scenario>
         <Scenario>scenario-5 (C-2): mt_close_project_root unwinds the registry entries for a root and logs BLOCK_UNREGISTERED; zero watchers removed for an unknown root (idempotent core, m_v1_compat.rs test).</Scenario>
+        <Scenario>
+          scenario-msw-sync-picker (C-MULTI-SOURCE-WORKSPACE fix wave
+          2026-10-22): mt_pick_folder / mt_grant_folder_access run the
+          SYNCHRONOUS rfd dialog on the main thread (run_on_main_thread +
+          channel back); no spawned block_on(rfd future) thread exists
+          after a pick resolves (the async variant leaked a parked thread
+          and wedged later renderer invokes — cloud roots stuck at
+          «Загрузка...»); mt_walk_project logs BLOCK_WALK_STARTED so a
+          never-arriving invoke is distinguishable from a hung walk.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[FsWatcher][start][BLOCK_REGISTER_NOTIFY]</Marker>
@@ -812,6 +822,8 @@
         <Marker>[m_fs_ops][close_project_root][BLOCK_UNREGISTERED] { path, watchers }</Marker>
         <Marker>[FsWatcher][onEvent][BLOCK_ROOT_GONE]</Marker>
         <Marker>[FsWatcher][onEvent][BLOCK_ROOT_RENAMED]</Marker>
+        <Marker>[m_fs_ops][open_folder][BLOCK_PICK_SYNC_MAIN] { begin }</Marker>
+        <Marker>[m_fs_ops][walk_project][BLOCK_WALK_STARTED] { path }</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>
@@ -1097,6 +1109,15 @@
           scenario-5: An invalid injected rg executable returns a stable spawn
           error without changing process-global PATH or racing parallel tests.
         </Scenario>
+        <Scenario>
+          scenario-msw-generation-guard (C-MULTI-SOURCE-WORKSPACE fix wave
+          2026-10-22): keystroke-canceled search generations must not write
+          results nor flip running — tests/renderer/store/search.test.ts
+          "generation guard" (stale-completing-while-newest-runs and
+          stale-completing-after-newest cannot overwrite). Found live in owner
+          acceptance С4: char-by-char typing showed only the first root's
+          matches while paste-as-one-event found both roots.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[Search][run][BLOCK_COMPILE_MATCHER]</Marker>
@@ -1104,6 +1125,7 @@
         <Marker>[Search][run][BLOCK_SEARCH_TIMEOUT] { path_redacted, elapsed_ms }</Marker>
         <Marker>[Search][run][BLOCK_CANCEL_OBSERVED] { after_batch_seq }</Marker>
         <Marker>[Search][walk][BLOCK_IGNORE_APPLIED] { file_redacted, source }</Marker>
+        <Marker>[SearchStore][runSearch][BLOCK_STALE_GENERATION_DROPPED] { gen, current }</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>
@@ -2342,6 +2364,35 @@
         <Scenario>
           scenario-1: All 128 menu items have explicit command-id and dispatch
           expected command.
+        </Scenario>
+        <Scenario>
+          scenario-msw-folder-menu-pair (C-MULTI-SOURCE-WORKSPACE): File
+          exposes the explicit pair «Add Folder…» (file.add-folder,
+          CmdOrCtrl+Shift+O, appends a workspace root) and «Replace
+          Workspace…» (file.replace-workspace, no accelerator, replaces the
+          root set) directly after Open File… and before «Open from
+          Clipboard»; both are id-dispatched-only to the renderer commands
+          of the same ids; the overloaded file.open-folder id is gone from
+          the taxonomy and the native builder; the alpha-ship id list and
+          the in-file m009 tests (no_duplicate_ids,
+          every_leaf_has_command_or_is_dynamic_submenu, taxonomy order)
+          pass (cargo test m009; menu-consistency both directions;
+          commands/index-deep.test.js mode assertions).
+        </Scenario>
+        <Scenario>
+          scenario-msw-guarded-quit (C-MULTI-SOURCE-WORKSPACE fix wave
+          2026-10-22): the macOS app menu carries a CUSTOM Quit item (id
+          file.quit, CmdOrCtrl+Q accelerator) instead of Tauri's
+          predefined .quit(); it dispatches to the renderer's guarded
+          editor store action QUIT_APP — clean session quits via
+          mt_app_quit, dirty tabs raise the Save &amp; Quit / Don't Save /
+          stay dialog, a failed save aborts the quit. Rationale: the
+          predefined .quit() was probed to bypass every lifecycle hook
+          (instant exit, zero markers, unsaved work dropped). Renderer
+          coverage: editor-deep.test.js "QUIT_APP — guarded quit" (5
+          branches); command coverage: index-deep.test.js file.quit →
+          QUIT_APP; menu-consistency drops file.quit from
+          RENDERER_ONLY_ALLOWLIST (the native id now exists).
         </Scenario>
         <Scenario>
           scenario-2: Context menu on misspelled word shows suggestions (depends
@@ -6957,6 +7008,26 @@
           com.xronocode.mark.test.tablestate.35fc0895, binary SHA-256
           d78732b7a12988a052b585915529af9514e67d1744b9ac608ca7e6468bf9825e).
           Release remains a separate explicitly authorized gate.
+        </Scenario>
+        <Scenario>
+          scenario-74 (C-MULTI-SOURCE-WORKSPACE): the renderer side of the
+          multi-root workspace. Search results show the owning-root label
+          (searchResultItem.vue ownerPath — root name plus relative
+          directory, bare root name at the root, hidden without an owning
+          root; searchResultItem.test.js). Tabs with duplicate filenames
+          show a dimmed owning-root (or parent-directory) suffix, absent
+          for unique names and untitled tabs, never truncating the label
+          (tabs.vue START_BLOCK_DUPLICATE_SUFFIX; tabs.test.js). Session
+          restore degrades visibly: a missing root produces a warning
+          notice listing it (workspace.restoreSkippedFolders) without
+          blocking the remaining roots, tabs or active tab, and a failed
+          file open (synthetic Mobile Documents path) surfaces an error
+          notice instead of silence (session-restore.test.js degradation
+          describe). The tree-file and search-result click opens go
+          through invoke with the workspace.fileOpenFailedTitle notice so
+          an evicted iCloud read never fails silently (treeFile-fn.test.js,
+          sidebar-deep.test.js). Runtime two-root regression:
+          tests/e2e/multi-root-workspace.spec.ts (chromium).
         </Scenario>
       </Scenarios>
       <Markers>

@@ -22,7 +22,7 @@ const i18n = createI18n({ legacy: false, locale: 'en', messages: { en: {
     useRegex: 'Regex', replaceAll: 'All', replaceSingle: 'Single',
     replacementPlaceholder: 'Replace', invalidRegex: 'Invalid: {pattern}',
     regexMatchEmpty: 'Matches empty: {pattern}',
-    searchResultInfo: '{matchCount} results'
+    searchResultInfo: '{matches} in {files}', matchesCount: { one: '1 match', other: '{count} matches' }, filesCount: { one: '1 file', other: '{count} files' }
   }
 } } })
 

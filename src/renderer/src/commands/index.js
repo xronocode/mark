@@ -246,11 +246,25 @@ const commands = [
     }
   },
   {
-    id: 'file.open-folder',
+    // C-MULTI-SOURCE-WORKSPACE: File › Add Folder… (⌘⇧O / Ctrl+Shift+O) —
+    // explicit additive open: picker result appends a workspace root.
+    // Replaces the retired overloaded file.open-folder command.
+    id: 'file.add-folder',
     execute: async () => {
       const { useProjectStore } = await import('../store/project')
       const projectStore = useProjectStore()
-      projectStore.ASK_FOR_OPEN_PROJECT()
+      await projectStore.ASK_FOR_OPEN_PROJECT('add')
+    }
+  },
+  {
+    // C-MULTI-SOURCE-WORKSPACE: File › Replace Workspace… — explicit
+    // replace: picker result replaces the root set (dirty-guarded; tabs
+    // under removed roots close after a save/close confirmation).
+    id: 'file.replace-workspace',
+    execute: async () => {
+      const { useProjectStore } = await import('../store/project')
+      const projectStore = useProjectStore()
+      await projectStore.ASK_FOR_OPEN_PROJECT('replace')
     }
   },
   {
@@ -1048,14 +1062,16 @@ const commands = [
     }
   },
   {
-    // file.quit invokes mt_app_quit which calls app.exit(0). The
-    // wired close-handler in m001_save_close.wire_close_handler still
-    // fires CloseRequested for every window first, so the dirty-tab
-    // dialog runs as expected.
+    // C-MULTI-SOURCE-WORKSPACE fix wave: quit runs the dirty-tab guard
+    // (editorStore.QUIT_APP) — Save & Quit / Don't Save / stay — and only
+    // then calls mt_app_quit. The old comment claimed CloseRequested
+    // fires per window before app.exit; empirically it does NOT (probe
+    // 2026-10-22: zero lifecycle markers, instant exit), so a direct
+    // invoke here silently dropped unsaved changes.
     id: 'file.quit',
     execute: async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
-      await invoke('mt_app_quit')
+      const { useEditorStore } = await import('@/store/editor')
+      await useEditorStore().QUIT_APP()
     }
   },
   {

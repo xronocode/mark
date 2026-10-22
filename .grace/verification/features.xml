@@ -1328,6 +1328,8 @@
       <Priority>low</Priority>
       <Commands>
         <Command>npx vitest run tests/renderer/store/project.test.ts</Command>
+        <Command>npx vitest run tests/renderer/store/project-workspace.test.ts tests/renderer/components/sideBar/workspaceModeDialog.test.js</Command>
+        <Command>npx playwright test tests/e2e/multi-root-workspace.spec.ts --project=chromium</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -1336,8 +1338,33 @@
         <Scenario>
           scenario-c4-tree-follows-rename: macOS reports both halves of a rename as 'modify'. The project watcher stats the path: MT_FS_NOT_FOUND removes it from the tree (unlink + unlinkDir, tab 'unlink'); an existing markdown file is added (addFile dedupes, so plain content modifies are no-ops); any other stat error leaves the tree alone and still notifies the tab (project.test.ts modify cases).
         </Scenario>
+        <Scenario>
+          scenario-msw-open-folder-dispatcher (C-MULTI-SOURCE-WORKSPACE): OPEN_FOLDER(pathname, {mode, origin}) is the single routing API — add appends through ADD_PROJECT (dedup, nested and parent rejection stay authoritative); ask resolves to add with zero roots and otherwise parks pendingFolderChoice for workspaceModeDialog; replace closes foreign roots and opens the target. Markers BLOCK_OPEN_FOLDER_RESOLVED / BLOCK_WORKSPACE_REPLACED / BLOCK_OPEN_FOLDER_CANCELLED. Explicit commands (file.add-folder, file.replace-workspace) never park a choice (project-workspace.test.ts).
+        </Scenario>
+        <Scenario>
+          scenario-msw-replace-dirty-guard (C-MULTI-SOURCE-WORKSPACE): a replace whose removed roots own dirty tabs parks pendingReplaceConfirm BEFORE any mutation — Cancel leaves roots, tabs and dirty flags bit-identical; Don't Save closes the dirty and clean tabs under removed roots; Save &amp; Close persists each dirty tab first (a failed save aborts the replace with the tab kept open); rootless and kept-root tabs always survive; CLOSE_PROJECT (root X) never closes tabs (project-workspace.test.ts dirty matrix, workspaceModeDialog.test.js).
+        </Scenario>
+        <Scenario>
+          scenario-msw-chooser-default (C-MULTI-SOURCE-WORKSPACE): the shared chooser renders three buttons in the FIX-011 macOS order — destructive Replace leftmost, plain Cancel, default Add rightmost with focus; Escape, the close glyph and a backdrop click resolve Cancel (workspaceModeDialog.test.js; e2e multi-root-workspace.spec.ts).
+        </Scenario>
+        <Scenario>
+          scenario-msw-watcher-dot-parity (C-MULTI-SOURCE-WORKSPACE): watcher create/modify never adds dot-prefixed entries to the tree model (iCloud `.icloud` eviction placeholders) while open tabs on hidden files still receive APPLY_FILE_CHANGE notifications; marker BLOCK_HIDDEN_ENTRY (project-workspace.test.ts watcher cases).
+        </Scenario>
+        <Scenario>
+          scenario-msw-two-root-runtime (C-MULTI-SOURCE-WORKSPACE): in the built renderer two restored roots render as independent folder-switcher sections in order; the switcher pick with a root open shows the chooser and Add appends; replace with a dirty tab under a removed root prompts and Cancel leaves state untouched; a missing iCloud-style root (Mobile Documents segment) degrades visibly while the other roots, tabs and the active tab restore (tests/e2e/multi-root-workspace.spec.ts).
+        </Scenario>
+        <Scenario>
+          scenario-msw-cloud-followup (C-MULTI-SOURCE-WORKSPACE fix wave, owner manual acceptance 2026-10-22): walk events coalesce — bootstrap-ipc forwards mt::update-object-tree to ENQUEUE_TREE_EVENT and the store folds batches (timer flush ≤120 ms or 400-event immediate flush; marker BLOCK_TREE_EVENT_BATCH) so adding a whole cloud drive no longer freezes the webview (pre-fix ~30k per-event folds); cloud roots display pretty labels via displayRootName (iCloudDrive-*/com~apple~CloudDocs → «iCloud Drive», OneDrive-* → «OneDrive») and the first add of a cloud root shows the once-per-root online-files hint (workspace.cloudRootHint*, ten locales) — project-workspace.test.ts «cloud follow-up» + bootstrap-ipc.test.ts coalescer forwarding.
+        </Scenario>
       </Scenarios>
-      <Markers/>
+      <Markers>
+        <Marker>[ProjectStore][OPEN_FOLDER][BLOCK_OPEN_FOLDER_RESOLVED]</Marker>
+        <Marker>[ProjectStore][OPEN_FOLDER][BLOCK_OPEN_FOLDER_CANCELLED]</Marker>
+        <Marker>[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACED]</Marker>
+        <Marker>[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACE_ABORTED]</Marker>
+        <Marker>[ProjectStore][Watcher][BLOCK_HIDDEN_ENTRY]</Marker>
+        <Marker>[ProjectStore][TreeEvent][BLOCK_TREE_EVENT_BATCH] { count }</Marker>
+      </Markers>
       <TraceAssertions/>
       <LegacyBase>
         <Source>docs/verification-plan.xml</Source>
