@@ -82,7 +82,9 @@
         "id": "C-SELF-CONTAINED-HTML-EXPORT",
         "summary": "Embed local images as data-URLs in the styled-HTML export.",
         "state": "queued",
-        "commits": ["a5707758e4e94ec7c848890c43350c325afca982"],
+        "commits": [
+          "a5707758e4e94ec7c848890c43350c325afca982"
+        ],
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-22",
@@ -92,6 +94,26 @@
             "Remote http(s) images stay untouched and the export makes no network requests.",
             "Missing, over-cap (8 MiB) and unknown-extension images keep their src and a localized count warning appears (ten locales).",
             "PDF and print flows are unchanged (print-export.spec.ts regression green in the same run)."
+          ]
+        }
+      },
+      {
+        "id": "FIX-009",
+        "summary": "Honest cold-start \"Last session\" restore plus current-run recently-closed recovery (tab count in the row title).",
+        "state": "queued",
+        "commits": [
+          "80d6a2673487f588185b5aebd63dad3d317cbed0"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-22",
+          "testedArtifact": "mark-test-fix009-7057d645 (source 7057d645, binary SHA-256 0b5de28f859778e46ad4963633842889c58033e2f2ed9191fecb9a61d3b49a13)",
+          "scenarios": [
+            "C1 frozen cold-start restore returns exactly the boot snapshot after the live session changed (the review-wave P1 race)",
+            "C2a partial-missing session restores the survivors; C2b fully-missing session raises the localized warning",
+            "C3 auto-restore returns tabs, folders and the active tab",
+            "C4 Shift+Cmd+T reopens one closed tab; C5 Reopen all restores every entry with an honest count",
+            "C6 empty-screen recovery with a missing file notices and keeps working; C7 history bounds, Clear, Escape/outside-close"
           ]
         }
       }

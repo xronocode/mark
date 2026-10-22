@@ -16,7 +16,7 @@ accepted or rejected it, and why anything went back for rework.**
 | `reported` | Symptom with a stable item id | any agent |
 | `repaired` | Source commits exist | implementing agent |
 | `reviewed` | A review pass with its verdict (two clean passes, local model, owner) — one event per pass | reviewer |
-| `artifact-offered` | An isolated test artifact + per-item checklist is in the owner's hands, or an explicit `notApplicable` / `blocked` reason stands in | agent |
+| `artifact-offered` | An isolated test artifact + one Markdown case file per acceptance case is in the owner's hands (see Artifact requirements), or an explicit `notApplicable` / `blocked` reason stands in | agent |
 | `owner-verdict` | The owner's dated verdict: `accepted` with exact scenarios, or `rejected` with the reason and the rework destination | owner (transcribed verbatim-scoped by the agent, same session) |
 | `queued` | Recorded in the collecting train's manifest (`items.userFacing` with acceptance evidence) | agent |
 
@@ -36,8 +36,23 @@ Rules:
 ## Artifact requirements
 
 Isolated identity (never the owner's installed Mark), updater artifacts off, debug build,
-binary SHA-256, launch/quit smoke, and a per-item scenario checklist handed to the owner.
-Tooling-only items may record `notApplicable` with their evidence instead of an artifact.
+binary SHA-256, launch/quit smoke, and a Markdown case file per acceptance case handed to
+the owner. Tooling-only items may record `notApplicable` with their evidence instead of an
+artifact.
+
+### One Markdown file per acceptance case (owner instruction 2026-10-22)
+
+Never hand the owner one long combined checklist. Every acceptance case gets its **own**
+Markdown artifact, opened in Mark (the owner ticks and annotates in Mark itself; live
+reload picks the verdict up):
+
+- Location: `~/Downloads/mark-acceptance/<item-id>/<NN>-<case-slug>.md` — one folder per
+  item, one file per case (`NN` = the case order, e.g. `01-cold-start-restore.md`).
+- Each file carries: the item id and case number, the exact steps to perform, the
+  expected result in verbatim form, a checkbox, and an outcome line
+  (`принято` / `доработка` / `принято-с-замечаниями`) with room for the owner's note.
+- The registry's `owner-verdict.scenarios` mirror the per-case files one to one; verdicts
+  are transcribed by the same session that offered the cases.
 
 ## Survey (generated from registry.json — `node tools/acceptance-registry.mjs --survey`)
 
