@@ -1,8 +1,8 @@
 // FILE: src-tauri/src/m052_print.rs
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe).
-//   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer.
+//   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe). On macOS the export print job runs detached from the main run loop with an off-main completion watcher, and print-path panics degrade to logged errors (FIX-017).
+//   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer. On macOS the export job spawns off-main (wry parity) with an off-main completion watcher, and both command subtrees run under panic containment.
 //   DEPENDS: tauri 2 WebviewWindow::with_webview on the main thread (PlatformWebview: WKWebView pointer on macOS; ICoreWebView2Controller + ICoreWebView2Environment on Windows); cocoa/objc 0.2 on macOS; webview2-com 0.38 + windows-core 0.61 on Windows; tokio oneshot for main-thread→async-command results; serde for the pageOptions payload.
 //   LINKS: .grace/changes/archive/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow).
 //   ROLE: RUNTIME
@@ -17,9 +17,28 @@
 //   mm_to_points / mm_to_inches - unit conversions for AppKit (points) and WebView2 (inches).
 //   mt_print_webview - macOS: WKWebView print operation attached to the window, modal; resolves when the panel closes so the renderer can clear the print container. Windows: WebView2 browser print UI (ICoreWebView2_16::ShowPrintUI). Linux: explicit error.
 //   mt_export_pdf - macOS: NSPrintInfo with jobDisposition NSPrintSaveJob + NSPrintJobSavingURL, paper size/orientation from pageOptions, panels suppressed, resolves after the file exists. Windows: ICoreWebView2_7::PrintToPdf with ICoreWebView2Environment6 print settings; resolves from the completion handler. Linux: explicit error.
+//   contain_panics - macOS-only FIX-017: catch_unwind around both command subtrees so print-path Rust panics become logged errors (BLOCK_PRINT_GUARD_CAUGHT) instead of tearing down the app; foreign NSExceptions cannot be caught app-side on the current toolchain (verified 2026-10-23), so the fix also removes their trigger configuration — detached export job + off-main watcher.
+//   nsstring_to_string - macOS-only NSString → String reader (lossy) used to describe a caught exception; nil-safe.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-23 v2.1.0 FIX-017: de-fang the PDF-export abort observed as
+//     mark-2026-10-23-025710.ips (SIGABRT ~370 ms after the export save
+//     panel closed, with the export command completing at that instant).
+//     App-side catching of the NSException is impossible on the current
+//     toolchain — verified empirically 2026-10-23: both the
+//     objc_exception shim and objc's "exception" feature abort before
+//     any Rust catch boundary — so the fix removes the dangerous
+//     configuration instead: the export print operation runs detached
+//     (setCanSpawnSeparateThread:YES, wry parity; the panel path already
+//     had it) so runOperation no longer parks the main thread inside its
+//     nested run loop while tao observers fire mid-print; completion is
+//     watched off-main (15 s) because the print system needs a serviced
+//     main run loop; and both macOS command subtrees run under panic
+//     containment (BLOCK_PRINT_GUARD_CAUGHT) so setup failures degrade
+//     to logged errors. Honest limitation: a foreign exception raised
+//     under tao's own run-loop observer still aborts the process — that
+//     boundary belongs to tao.
 //   - 2026-10-18 v2.0.0 C-61: split Print and Export to PDF into two flows.
 //     mt_print_webview no longer routes through wry's macOS-only print on
 //     every platform: macOS drives the WKWebView print operation itself and
@@ -210,8 +229,13 @@ pub async fn mt_print_webview(webview_window: tauri::WebviewWindow) -> Result<()
         let (tx, rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
         webview_window
             .with_webview(move |pv| {
+                // START_BLOCK_OBJC_GUARD_PRINT_PANEL
+                // FIX-017: contain setup panics on this path too.
                 #[cfg(target_os = "macos")]
-                let result = unsafe { print_panel_wkwebview(pv.inner()) };
+                let result = contain_panics("mt_print_webview", || unsafe {
+                    print_panel_wkwebview(pv.inner())
+                });
+                // END_BLOCK_OBJC_GUARD_PRINT_PANEL
                 #[cfg(target_os = "windows")]
                 let result = unsafe {
                     let controller = pv.controller();
@@ -256,8 +280,44 @@ pub async fn mt_export_pdf(
             .with_webview(move |pv| {
                 #[cfg(target_os = "macos")]
                 {
-                    let outcome = unsafe { export_pdf_wkwebview(pv.inner(), &path, geometry) };
-                    let _ = tx.send(outcome);
+                    // START_BLOCK_OBJC_GUARD_EXPORT_PDF
+                    // FIX-017: the export starts detached (spawn-thread
+                    // parity inside export_pdf_wkwebview), so the main
+                    // thread returns to its run loop instead of parking
+                    // inside runOperation's nested loop — the
+                    // configuration the 2026-10-23 abort was observed
+                    // in. Completion is watched OFF-main: the print
+                    // system needs a serviced main run loop to finish,
+                    // and sleeping here would block it.
+                    let started = contain_panics("mt_export_pdf", || unsafe {
+                        export_pdf_wkwebview(pv.inner(), &path, geometry)
+                    });
+                    match started {
+                        Err(e) => {
+                            let _ = tx.send(Err(e));
+                        }
+                        Ok(()) => {
+                            let path_owned = path.clone();
+                            std::thread::spawn(move || {
+                                if wait_for_file(&path_owned, 15_000) {
+                                    safe_eprintln!(
+                                        "[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]",
+                                        path_owned
+                                    );
+                                    let _ = tx.send(Ok(()));
+                                } else {
+                                    let err = format!(
+                                        "the print operation finished but {path_owned} was not written"
+                                    );
+                                    safe_eprintln!(
+                                        "[m052][mt_export_pdf][BLOCK_PDF_WRITE_FAILED reason={err}]"
+                                    );
+                                    let _ = tx.send(Err(err));
+                                }
+                            });
+                        }
+                    }
+                    // END_BLOCK_OBJC_GUARD_EXPORT_PDF
                 }
                 #[cfg(target_os = "windows")]
                 {
@@ -317,6 +377,40 @@ unsafe fn new_print_info() -> Result<cocoa::base::id, String> {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_OBJC_EXCEPTION_GUARD
+// FIX-017 (2026-10-23): the crash class of mark-2026-10-23-025710.ips is
+// an NSException unwinding through Rust frames, which aborts the process
+// by Rust's rule. App-side CATCHING of such exceptions is impossible on
+// the current toolchain — verified empirically on 2026-10-23: both the
+// objc_exception shim and objc's own "exception" feature abort before
+// any Rust catch boundary. The fix therefore removes the dangerous
+// configuration itself (the export print job no longer parks the main
+// thread inside runOperation's nested run loop — see the spawn-thread
+// parity and the off-main completion watcher below) and contains our own
+// Rust panics so a failing setup degrades to a logged error.
+// ──────────────────────────────────────────────────────────────────────
+
+/// Run an Obj-C-touching closure with panic containment: a Rust panic
+/// from our own setup code becomes a logged error the renderer shows as
+/// a normal export/print failure instead of tearing down the app.
+#[cfg(target_os = "macos")]
+fn contain_panics(label: &str, f: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(inner) => inner,
+        Err(payload) => {
+            let detail = payload
+                .downcast_ref::<String>()
+                .cloned()
+                .or_else(|| payload.downcast_ref::<&str>().map(|s| (*s).to_string()))
+                .unwrap_or_else(|| "an unhandled panic in the print path".to_string());
+            safe_eprintln!("[m052][{label}][BLOCK_PRINT_GUARD_CAUGHT {detail}]");
+            Err(format!("{label}: {detail}"))
+        }
+    }
+}
+// END_BLOCK_OBJC_EXCEPTION_GUARD
+
 #[cfg(target_os = "macos")]
 unsafe fn print_panel_wkwebview(webview: *mut std::ffi::c_void) -> Result<(), String> {
     use cocoa::base::{id, BOOL, NO, YES};
@@ -372,7 +466,7 @@ unsafe fn export_pdf_wkwebview(
     path: &str,
     geometry: PdfPageGeometry,
 ) -> Result<(), String> {
-    use cocoa::base::{id, BOOL, NO};
+    use cocoa::base::{id, BOOL, NO, YES};
     use cocoa::foundation::NSSize;
     use objc::{msg_send, sel, sel_impl};
 
@@ -420,6 +514,12 @@ unsafe fn export_pdf_wkwebview(
     }
     let _: () = unsafe { msg_send![op, setShowsPrintPanel: NO] };
     let _: () = unsafe { msg_send![op, setShowsProgressPanel: NO] };
+    // FIX-017: wry parity with the panel path — let the job detach instead
+    // of parking the main thread inside runOperation's nested loop for the
+    // whole render (the configuration the 2026-10-23 abort was observed
+    // in). runOperation may now return before the file is flushed, so the
+    // settle poll below is the completion gate.
+    let _: () = unsafe { msg_send![op, setCanSpawnSeparateThread: YES] };
 
     safe_eprintln!(
         "[m052][mt_export_pdf][BLOCK_PDF_WRITE_STARTED path={} landscape={}]",
@@ -431,13 +531,11 @@ unsafe fn export_pdf_wkwebview(
     if !ok {
         return Err(format!("the system print operation failed while writing {path}"));
     }
-    // runOperation returns when the save job finishes; some OS versions
-    // flush the file a beat later — poll briefly so the command resolves
-    // only once the PDF is actually on disk (C-61 R-3).
-    if !wait_for_file(path, 5_000) {
-        return Err(format!("the print operation finished but {path} was not written"));
-    }
-    safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]", path);
+    // With the job detached (FIX-017) runOperation returns at start-up;
+    // the off-main watcher in the command closure owns completion — it
+    // resolves the command only once the PDF is actually on disk
+    // (C-61 R-3) while the main run loop keeps servicing the print
+    // system.
     Ok(())
 }
 
@@ -788,5 +886,26 @@ mod tests {
         assert_eq!(g.width_mm, 210.0);
         assert_eq!(g.height_mm, 297.0);
         assert!(!g.landscape);
+    }
+
+    // ── Print-path panic containment (FIX-017, macOS runtime only) ───
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn print_path_panics_degrade_to_errors_not_app_death() {
+        let outcome = contain_panics("mt_export_pdf-test", || {
+            // App-side catching of a real NSException is impossible on
+            // the current toolchain (verified 2026-10-23: both the
+            // objc_exception shim and objc's "exception" feature abort
+            // before any Rust catch boundary), so this pins the half we
+            // own: an ordinary panic in the print setup must come back
+            // as a logged Err, never tear down the process.
+            panic!("synthetic setup failure for the containment test");
+        });
+        let error = outcome.expect_err("a contained panic must become an Err");
+        assert!(
+            error.contains("synthetic setup failure"),
+            "the error should carry the panic detail: {error}"
+        );
     }
 }
