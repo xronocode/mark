@@ -14,6 +14,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v2.x C-WINDOWS-TITLEBAR-ALIGNMENT: selectors follow
+//     the amendment-5 clusters (no guide button; theme caption cell).
+
 //   LAST_CHANGE: v1.1.0 - 2026-10-15 C-40 T-002: the theme button moved to
 //   the .titlebar-right cluster (guide «?» / theme / Share) and its icons
 //   come from the redrawn chrome set (auto = circle r6 + fill wedge,
@@ -91,13 +94,16 @@ describe('titleBar theme button — Auto/Light/Dark cycle (C-41 T-001)', () => {
       }
     })
 
+  // Amendment 3 (C-WINDOWS-TITLEBAR-ALIGNMENT): the theme button rides
+  // the caption row as the 4th cell (.frameless-titlebar-theme), not the
+  // right cluster.
   const themeButton = (wrapper, mode) =>
-    wrapper.find(`.titlebar-nav-btn[title="Theme: ${mode}"]`)
+    wrapper.find(`.frameless-titlebar-theme[title="Theme: ${mode}"]`)
 
   // C-40 T-002 redrawn chrome icons: auto = circle r6 + filled wedge,
   // light = circle r2.8 + ray path, dark = a single stroke-only crescent.
   const iconKind = (wrapper) => {
-    const btn = wrapper.find('.titlebar-nav-btn[title^="Theme: "]')
+    const btn = wrapper.find('.frameless-titlebar-theme')
     const circles = btn.findAll('circle')
     if (circles.length > 0) {
       return circles[0].attributes('r') === '6' ? 'auto' : 'light'
@@ -170,14 +176,13 @@ describe('titleBar theme button — Auto/Light/Dark cycle (C-41 T-001)', () => {
     expect(iconKind(wrapper)).toBe('light')
   })
 
-  it('keeps the button in the right cluster between guide «?» and Share (C-40 T-002)', () => {
+  it('rides the caption row as the 4th cell (amendment 3), right cluster = Share only', () => {
     const wrapper = mountBar()
+    expect(wrapper.find('.frameless-titlebar-theme').exists()).toBe(true)
+    // Linux frameless right cluster after amendment 3: Share only (the
+    // guide button is gone; theme moved next to the window controls).
     const rightBtns = wrapper.findAll('.titlebar-right .titlebar-nav-btn')
-    // Linux frameless right cluster: guide, theme, share = 3 — the theme
-    // button sits in the middle, after the C-40 T-002 trim moved it there.
-    expect(rightBtns.length).toBe(3)
-    expect(rightBtns[0].attributes('title')).toBe('Mark Guide')
-    expect(rightBtns[1].attributes('title')).toBe('Theme: Auto')
-    expect(rightBtns[2].attributes('title')).toBe('Share')
+    expect(rightBtns.length).toBe(1)
+    expect(rightBtns[0].attributes('title')).toBe('Share')
   })
 })
