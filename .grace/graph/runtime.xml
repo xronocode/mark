@@ -7495,6 +7495,15 @@
         panel output and the saved PDF paginate identically (C-18
         semantics preserved). Linux keeps explicit errors; the only file
         written is the user-selected save-dialog URL (MAS-sandbox-safe).
+        FIX-017 (2026-10-23): the export print job runs detached
+        (setCanSpawnSeparateThread:YES, wry parity) with an off-main
+        15 s completion watcher, so runOperation no longer parks the
+        main thread inside its nested run loop — the configuration the
+        mark-2026-10-23-025710.ips abort was observed in; both command
+        subtrees run under panic containment (catch_unwind,
+        BLOCK_PRINT_GUARD_CAUGHT). Foreign NSExceptions cannot be caught
+        app-side on the current toolchain (verified 2026-10-23) — a
+        tao-observer-boundary exception remains fatal upstream.
       </Summary>
       <PlannedPath>src-tauri/src/m052_print.rs</PlannedPath>
       <Dependencies></Dependencies>
@@ -7504,6 +7513,7 @@
         <fn-mt_export_pdf>silently write the webview content as a PDF to the save-dialog path with the renderer pageOptions (paper size/orientation)</fn-mt_export_pdf>
         <fn-page_geometry>map camelCase PdfPageOptions to a validated PdfPageGeometry (named sizes, custom mm, landscape, margins)</fn-page_geometry>
         <fn-validate_pdf_path>reject empty and non-.pdf destinations</fn-validate_pdf_path>
+        <fn-contain_panics>macOS-only FIX-017: catch_unwind around both command subtrees so print-path Rust panics become logged errors instead of tearing down the app</fn-contain_panics>
       </Interface>
       <ChangeRefs>
         <C-18/>
