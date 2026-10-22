@@ -24,7 +24,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-20 release 2.6.0 draft: historical item rendering keeps using the current release-wide Also copy.
+//   LAST_CHANGE: v1.5.0 - 2026-10-22 release 2.7.0 draft: historical item rendering keeps using the current release-wide Also copy.
 //   PREV: v1.3.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
 //   v1.2.0 - 2026-10-17 C-53 T-001/R-1: pins the four D-1
 //   items (native look, home screen, themed diagrams, Markdown-only
@@ -104,7 +104,7 @@ describe('components/whatsNew — sheet', () => {
     expect(icons).toEqual(['⧉', '◐', '⎙', '▣'])
     // The Also key is intentionally release-wide rather than versioned.
     expect(wrapper.find('.also').text()).toBe(
-      'Also: safer tab closing, reliable Shift selection, themed dialogs, and clearer menus'
+      'Also: honest table exports, instant Auto Save off, steadier tab switching, and a security bump'
     )
     const footLinks = wrapper.findAll('.foot-links .guide-link')
     expect(footLinks[0].text()).toBe('See everything new ↗')
