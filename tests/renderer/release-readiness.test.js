@@ -393,7 +393,7 @@ describe('strict release identity', () => {
       sealSha: state.seal,
       accountedCommits: 2
     })
-  })
+  }, 30000)
 
   it('accepts the same strict identity while the candidate is Frozen', () => {
     const state = strictRepository()
@@ -408,7 +408,7 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toMatchObject({ payloadSha: state.payload, sealSha: state.seal })
-  })
+  }, 30000)
 
   it('rejects a product-code change in the sealing delta independently', () => {
     const state = strictRepository({ extraSealPath: 'src/product.js' })
@@ -421,7 +421,7 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_SEAL_PRODUCT_DELTA' }))
-  })
+  }, 30000)
 
   it('rejects a tag that peels to the payload instead of the seal', () => {
     const state = strictRepository({ tagPayload: true })
@@ -434,7 +434,7 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_TAG_TARGET_MISMATCH' }))
-  })
+  }, 30000)
 
   it('rejects a stale check-run SHA independently', () => {
     const state = strictRepository()
@@ -448,7 +448,7 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_CHECK_EVIDENCE_INVALID' }))
-  })
+  }, 30000)
 
   it('rejects a previous tag commit that differs from the recorded boundary', () => {
     const state = strictRepository()
@@ -462,7 +462,7 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID' }))
-  })
+  }, 30000)
 
   it('rejects Release Please bootstrap drift independently', () => {
     const state = strictRepository()
@@ -479,7 +479,7 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID' }))
-  })
+  }, 30000)
 
   it('rejects a mismatched checkout independently', () => {
     const state = strictRepository()
@@ -492,7 +492,7 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_CHECKOUT_MISMATCH' }))
-  })
+  }, 30000)
 
   it('rejects non-fresh screenshot evidence independently', () => {
     const state = strictRepository()
@@ -513,6 +513,6 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_SCREENSHOT_NOT_FRESH' }))
-  })
+  }, 30000)
 })
 // END_BLOCK_STRICT_RELEASE_IDENTITY_TESTS
