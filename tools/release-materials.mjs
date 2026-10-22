@@ -33,6 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-22 v1.3.0: advance the per-locale product-token pin set to the 2.6.1 sheet (Mark, ⇧⌘T, ⇧⌘P, .html); layout limits and manifest identity checks unchanged.
 //   - 2026-10-20 v1.2.0: normalize Markdown newlines so Windows CRLF checkouts validate the same release identity as LF checkouts.
 //   - 2026-10-20 v1.1.0: distinguish the unversioned release draft from Release Please-owned numbered CHANGELOG sections and reject duplicate headings.
 //   - 2026-10-20 v1.0.0: add the mandatory 2.6.0 material and screenshot-identity gate.
@@ -154,7 +155,7 @@ export const validateLocaleMaterials = (sourceTables, minifiedTables, version) =
       fail('MT_RELEASE_LOCALE_COPY_INVALID', `locale=${locale};footer=missing`)
     }
     const flattened = stableJson(section)
-    for (const token of ['Mark', 'PNG', '⇧⌘D', '⌘1–6']) {
+    for (const token of ['Mark', '⇧⌘T', '⇧⌘P', '.html']) {
       if (!flattened.includes(token)) {
         fail('MT_RELEASE_LOCALE_COPY_INVALID', `locale=${locale};token=${token}`)
       }

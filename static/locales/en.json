@@ -1482,7 +1482,7 @@
     "title": "What's new",
     "seeGuide": "See the guide",
     "continue": "Continue",
-    "also": "Also: safer tab closing, reliable Shift selection, themed dialogs, and clearer menus",
+    "also": "Also: honest table exports, instant Auto Save off, steadier tab switching, and a security bump",
     "seeEverything": "See everything new",
     "v2_3_1": {
       "look": {
@@ -1572,6 +1572,24 @@
       "shortcuts": {
         "title": "Editing shortcuts restored",
         "text": "⇧⌘D duplicates a paragraph; ⌘1–6 turns it into an H1–H6 heading."
+      }
+    },
+    "v2_6_1": {
+      "session": {
+        "title": "Sessions, honestly",
+        "text": "Mark restores tabs and folder at launch; ⇧⌘T reopens a closed one, counted on the row."
+      },
+      "htmlExport": {
+        "title": "Self-contained HTML",
+        "text": "Export as HTML now embeds local images — one .html file travels anywhere on its own."
+      },
+      "shortcuts": {
+        "title": "⇧⌘P opens the palette",
+        "text": "The command palette has its Mac shortcut back, and table exports keep every real cell."
+      },
+      "windowsBar": {
+        "title": "Native Windows title bar",
+        "text": "Windows and Linux get true system caption buttons and the theme toggle inside the bar."
       }
     }
   },

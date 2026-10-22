@@ -1460,7 +1460,7 @@
     "title": "新变化",
     "seeGuide": "查看指南",
     "continue": "继续",
-    "also": "另外：更安全地关闭标签页、稳定的 Shift 选择、跟随主题的对话框和更清晰的菜单",
+    "also": "另有：表格导出保真、自动保存即时关闭、标签切换更稳、安全更新",
     "seeEverything": "查看全部新功能",
     "v2_3_1": {
       "look": {
@@ -1550,6 +1550,24 @@
       "shortcuts": {
         "title": "编辑快捷键已恢复",
         "text": "⇧⌘D 复制段落，⌘1–6 将其转换为 H1–H6 标题。"
+      }
+    },
+    "v2_6_1": {
+      "session": {
+        "title": "会话，如实恢复",
+        "text": "Mark 启动时恢复标签页与文件夹；⇧⌘T 找回刚关闭的标签。"
+      },
+      "htmlExport": {
+        "title": "自包含 HTML",
+        "text": "导出 HTML 时把本地图片嵌入文件——一个 .html 走到哪都能打开。"
+      },
+      "shortcuts": {
+        "title": "⇧⌘P 呼出面板",
+        "text": "命令面板找回 Mac 快捷键；表格导出不再丢任何单元格。"
+      },
+      "windowsBar": {
+        "title": "原生 Windows 标题栏",
+        "text": "Windows 与 Linux 改用真正的系统窗口按钮，主题切换就在栏内。"
       }
     }
   },

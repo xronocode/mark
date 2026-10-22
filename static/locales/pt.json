@@ -1467,7 +1467,7 @@
     "title": "Novidades",
     "seeGuide": "Ver o guia",
     "continue": "Continuar",
-    "also": "E mais: fechamento de abas mais seguro, seleção Shift confiável, diálogos no tema e menus claros",
+    "also": "Também: exportes de tabela fiéis, Auto Save desligado na hora, troca de abas mais estável",
     "seeEverything": "Ver todas as novidades",
     "v2_3_1": {
       "look": {
@@ -1557,6 +1557,24 @@
       "shortcuts": {
         "title": "Atalhos de edição restaurados",
         "text": "⇧⌘D duplica um parágrafo; ⌘1–6 o transforma em título H1–H6."
+      }
+    },
+    "v2_6_1": {
+      "session": {
+        "title": "Sessões sem sustos",
+        "text": "Mark devolve abas e pasta ao abrir; ⇧⌘T recupera uma aba fechada."
+      },
+      "htmlExport": {
+        "title": "HTML autossuficiente",
+        "text": "O export em HTML agora embute imagens locais — um único .html abre em qualquer lugar."
+      },
+      "shortcuts": {
+        "title": "⇧⌘P abre a paleta",
+        "text": "A paleta de comandos recupera o atalho do Mac; tabelas exportam cada célula real."
+      },
+      "windowsBar": {
+        "title": "Barra nativa no Windows",
+        "text": "Windows e Linux ganham botões de sistema reais e o tema dentro da barra."
       }
     }
   },

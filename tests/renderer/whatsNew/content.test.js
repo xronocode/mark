@@ -215,10 +215,12 @@ describe('whatsNew 2.5.3 sheet', () => {
 // END_BLOCK_CONTENT_2_5_3
 
 // START_BLOCK_CONTENT_2_5_4
-// Release 2.6.0 draft: table images (C-70), stable wide-table controls
-// and pan cues (C-71 + table repairs + FIX-008), opened-version compare
-// (C-68), and restored editor shortcuts (FIX-005/FIX-006).
-const RELEASE_DRAFT_ITEM_KEYS = ['tableImages', 'wideTables', 'compare', 'shortcuts']
+// Release 2.6.1 draft: honest session restore + recently closed tabs
+// (FIX-009, owner-accepted 7/7), self-contained HTML export
+// (C-SELF-CONTAINED-HTML-EXPORT), the restored ⇧⌘P palette shortcut
+// with honest table exports (FIX-010/FIX-015), and the native
+// Windows/Linux title bar (FIX-014, amendment 5).
+const RELEASE_DRAFT_ITEM_KEYS = ['session', 'htmlExport', 'shortcuts', 'windowsBar']
 
 describe('current release-draft sheet', () => {
   it('ships the four accepted-train items in order with distinct one-char icons', () => {
@@ -244,10 +246,7 @@ describe('current release-draft sheet', () => {
         expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
       }
       expect(table.whatsNew.also.length, `${code}: also`).toBeLessThanOrEqual(120)
-      expect(section.tableImages.text, `${code}: tableImages keeps PNG`).toContain('PNG')
-      expect(section.compare.text, `${code}: compare keeps Mark`).toContain('Mark')
-      expect(section.shortcuts.text, `${code}: shortcuts keeps ⇧⌘D`).toContain('⇧⌘D')
-      expect(section.shortcuts.text, `${code}: shortcuts keeps ⌘1–6`).toContain('⌘1–6')
+      expect(section.shortcuts.title, `${code}: shortcuts keeps ⇧⌘P`).toContain('⇧⌘P')
     }
   })
 

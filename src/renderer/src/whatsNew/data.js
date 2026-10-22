@@ -75,6 +75,28 @@ export const WHATS_NEW_MAX_ITEMS = 4
 // ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
 // under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
+  '2.6.1': [
+    {
+      icon: '↺',
+      titleKey: 'whatsNew.v2_6_1.session.title',
+      textKey: 'whatsNew.v2_6_1.session.text'
+    },
+    {
+      icon: '▤',
+      titleKey: 'whatsNew.v2_6_1.htmlExport.title',
+      textKey: 'whatsNew.v2_6_1.htmlExport.text'
+    },
+    {
+      icon: '⌘',
+      titleKey: 'whatsNew.v2_6_1.shortcuts.title',
+      textKey: 'whatsNew.v2_6_1.shortcuts.text'
+    },
+    {
+      icon: '▦',
+      titleKey: 'whatsNew.v2_6_1.windowsBar.title',
+      textKey: 'whatsNew.v2_6_1.windowsBar.text'
+    }
+  ],
   '2.6.0': [
     {
       icon: '▦',
@@ -152,6 +174,7 @@ export const WHATS_NEW_CONTENT = {
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_RELEASE_URLS = {
+  '2.6.1': 'https://github.com/xronocode/mark/releases/tag/v2.6.1',
   '2.6.0': 'https://github.com/xronocode/mark/releases/tag/v2.6.0',
   '2.5.3': 'https://github.com/xronocode/mark/releases/tag/v2.5.3',
   '2.5.0': 'https://github.com/xronocode/mark/releases/tag/v2.5.0'

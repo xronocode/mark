@@ -1467,7 +1467,7 @@
     "title": "Nouveautés",
     "seeGuide": "Voir le guide",
     "continue": "Continuer",
-    "also": "Aussi : fermeture d’onglets plus sûre, sélection Shift fiable, dialogues assortis et menus clairs",
+    "also": "Aussi : exports de tableaux fidèles, Auto Save coupé net, changement d'onglet plus stable",
     "seeEverything": "Voir toutes les nouveautés",
     "v2_3_1": {
       "look": {
@@ -1557,6 +1557,24 @@
       "shortcuts": {
         "title": "Raccourcis d’édition rétablis",
         "text": "⇧⌘D duplique un paragraphe ; ⌘1–6 le transforme en titre H1–H6."
+      }
+    },
+    "v2_6_1": {
+      "session": {
+        "title": "Des sessions fiables",
+        "text": "Mark relance vos onglets et le dossier au démarrage ; ⇧⌘T rouvre un onglet fermé."
+      },
+      "htmlExport": {
+        "title": "HTML autonome",
+        "text": "L'export HTML intègre désormais les images locales : un seul .html suffit partout."
+      },
+      "shortcuts": {
+        "title": "⇧⌘P pour la palette",
+        "text": "La palette de commandes retrouve son raccourci Mac ; les tableaux exportés gardent tout."
+      },
+      "windowsBar": {
+        "title": "Barre de titre native",
+        "text": "Windows et Linux passent aux vrais boutons système, avec le thème dans la barre."
       }
     }
   },

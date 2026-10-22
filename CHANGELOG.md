@@ -2,6 +2,30 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
+## [2.6.1] - 2026-10-22
+
+Sessions come back the way you left them, HTML exports travel on their own, and Windows gets its real title bar back.
+
+### Sessions
+- Launching Mark restores the previous session's tabs, folders and active tab; when auto-restore is off, the welcome screen's "Last session (N)" row reopens exactly the boot-time snapshot instead of a stale no-op.
+- A count-badged button beside the tab strip lists recently closed tabs: reopen one with ⇧⌘T (newest to oldest through repeated presses), reopen all in strip order, or clear the history; closing the last tab surfaces the same recovery on the welcome screen.
+- Missing files are skipped honestly: a fully missing session raises a localized warning, and reopening a deleted file reports it instead of failing silently.
+
+### Export
+- Export as HTML embeds locally readable images (relative, absolute and file:/// forms) as base64 data-URLs under an 8 MiB per-image cap, so a single .html file opens anywhere untouched; remote images are never fetched, and PDF/print flows are unchanged.
+
+### Editor
+- ⇧⌘P opens the command palette again on macOS through one owned accelerator.
+- Table Markdown export escapes pipes by parity and keeps every real cell when rows are ragged.
+- Disabling Auto Save cancels already queued writes instead of saving once more.
+- Tab switching no longer cascades render warnings through transient cursor state.
+
+### Windows and Linux
+- The title bar renders native system caption buttons (Segoe MDL2/Fluent code points, no separators), keeps the app-menu and settings buttons, places the theme toggle as a fourth caption cell, and drops the guide button on every platform.
+
+### Security
+- follow-redirects 1.16.1 (Dependabot highs #144/#145).
+
 ## [2.6.0] - 2026-10-20
 
 Tables can leave Mark as pictures, wide-table controls stay stable, and a focused stabilization pass repairs editing, tab ownership and close dialogs.

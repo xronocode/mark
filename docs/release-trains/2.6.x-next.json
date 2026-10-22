@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.6.x-next",
-  "state": "Collecting",
+  "state": "Preparing",
   "previousRelease": {
     "tag": "v2.6.0",
     "commit": "085e0c3853d34d219700d85621204f97227bcb40",
@@ -116,6 +116,26 @@
             "C6 empty-screen recovery with a missing file notices and keeps working; C7 history bounds, Clear, Escape/outside-close"
           ]
         }
+      },
+      {
+        "id": "FIX-014",
+        "summary": "Win/Linux native title bar final state (amendment 5).",
+        "state": "queued",
+        "commits": [
+          "423ab2f6437cbb5aa58f09e607cf51c95020b424",
+          "5acd22a357c8ca4655248dc33bf39795ac5d6b3e"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-22",
+          "testedArtifact": "Windows polygon laptop-kari rebuilds 1-8, owner pixel-verified crops through amendment 5; titlebar family 83/83",
+          "scenarios": [
+            "Segoe MDL2/Fluent caption code points, no separators",
+            "app-menu and settings buttons kept; guide button removed on every platform",
+            "theme toggle as the flush fourth 46px caption cell (184px strip)",
+            "macOS byte-identical bar except the guide removal"
+          ]
+        }
       }
     ],
     "operational": [
@@ -143,6 +163,24 @@
           "testedArtifact": "PR 18 review: lockfile-only diff, npm ls resolves 1.16.1, advisories gone from the PR audit",
           "scenarios": [
             "npm audit reports no follow-redirects or axios advisories on the PR tree."
+          ]
+        }
+      },
+      {
+        "id": "FIX-013",
+        "summary": "Node >= 25 Web Storage vitest compatibility gate.",
+        "state": "queued",
+        "commits": [
+          "423ab2f6437cbb5aa58f09e607cf51c95020b424",
+          "5acd22a357c8ca4655248dc33bf39795ac5d6b3e"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-22",
+          "testedArtifact": "Windows polygon Node v25.8.1 full suite green without NODE_OPTIONS; negative control proven; V-M-046 scenario-18",
+          "scenarios": [
+            "conditional --no-experimental-webstorage execArgv for Node major >= 25 only",
+            "Node 22 worker arguments unchanged"
           ]
         }
       }
@@ -234,7 +272,22 @@
     }
   ],
   "materials": {
-    "status": "pending"
+    "status": "ready",
+    "screenshotManifest": "docs/assets/readme/2.6.1.manifest.json",
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "releaseNotes": "docs/release-notes-en-drafts.md",
+    "whatsNew": "src/renderer/src/whatsNew/data.js",
+    "localeCount": 10,
+    "itemIds": [
+      "FIX-010",
+      "FIX-012",
+      "FIX-015",
+      "FIX-016",
+      "C-SELF-CONTAINED-HTML-EXPORT",
+      "FIX-009",
+      "FIX-014"
+    ]
   },
   "transitions": [
     {
@@ -242,6 +295,12 @@
       "date": "2026-10-21",
       "actor": "xronocode",
       "evidence": "Train opened after the v2.6.0 release (tag v2.6.0 at seal 085e0c3853d34d219700d85621204f97227bcb40). The post-release wave collects here: the editor stabilization pack FIX-010, FIX-012, FIX-015 and FIX-016 (PR 16), the platform repairs FIX-013 and FIX-014 (PR 17), the follow-redirects dependency bump (PR 18) and the FIX-009 session recovery (PR 19), each pending owner acceptance and admission."
+    },
+    {
+      "state": "Preparing",
+      "date": "2026-10-22",
+      "actor": "mark-release-prep[bot]",
+      "evidence": "Release Please prepared 2.6.1; no tag or publication was created."
     }
   ]
 }

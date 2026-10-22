@@ -1463,7 +1463,7 @@
     "title": "Was ist neu",
     "seeGuide": "Anleitung ansehen",
     "continue": "Weiter",
-    "also": "Außerdem: sichereres Tab-Schließen, zuverlässige Shift-Auswahl, passende Dialoge und klare Menüs",
+    "also": "Außerdem: saubere Tabellen-Exporte, Auto-Save sofort aus, ruhigeres Tab-Wechseln, Security-Update",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "v2_3_1": {
       "look": {
@@ -1553,6 +1553,24 @@
       "shortcuts": {
         "title": "Kurzbefehle wieder da",
         "text": "⇧⌘D dupliziert einen Absatz; ⌘1–6 macht daraus H1–H6."
+      }
+    },
+    "v2_6_1": {
+      "session": {
+        "title": "Sitzungen, ehrlich",
+        "text": "Mark stellt Tabs und Ordner beim Start wieder her; ⇧⌘T holt geschlossene zurück."
+      },
+      "htmlExport": {
+        "title": "HTML in einer Datei",
+        "text": "Der HTML-Export bettet lokale Bilder ein — eine .html-Datei reicht überall aus."
+      },
+      "shortcuts": {
+        "title": "⇧⌘P öffnet die Palette",
+        "text": "Die Befehlspalette hat ihre Mac-Kombination zurück; Tabellen-Exporte bleiben vollständig."
+      },
+      "windowsBar": {
+        "title": "Echte Windows-Titelleiste",
+        "text": "Windows und Linux bekommen echte System-Buttons und den Theme-Schalter in der Leiste."
       }
     }
   },

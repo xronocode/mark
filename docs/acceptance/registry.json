@@ -230,6 +230,19 @@
           "actor": "agent",
           "artifact": null,
           "notApplicable": "Tooling-only change with no product behavior; acceptance evidence is the suite result (Node 25 polygon green without env overrides; Node 22 byte-identical args). Owner may accept by review."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-22",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "detail": "Accepted by review on the documented polygon evidence: Windows 10 22H2 / Node v25.8.1 full npm test green with no NODE_OPTIONS override (339/339 in the polygon run), the negative control proving the shadowed-global detection, and the Node 22 reference run byte-identical in worker arguments (V-M-046 scenario-18). Tooling-only change; no isolated artifact applicable. Release instruction 2026-10-22 (\"everything green and accepted: merge, commit, release\").",
+          "scenarios": [
+            "Windows 10 22H2 / Node v25.8.1: full npm test green with no NODE_OPTIONS override (polygon 339/339)",
+            "Negative control: the compat check detects the shadowed localStorage global",
+            "Node 22 reference run: worker arguments byte-identical (flag correctly absent)",
+            "V-M-046 scenario-18 recorded"
+          ]
         }
       ]
     },
@@ -262,6 +275,20 @@
           "actor": "agent",
           "artifact": null,
           "blocked": "Windows artifact required; polygon (kari) offline 2026-10-21 (ping 100% loss). Owner options: (a) polygon online -> NSIS from the branch via the standard procedure; (b) accept on the pixel-measured amendment-5 crops of polygon rebuild 8 already reviewed."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-22",
+          "actor": "xronocode",
+          "verdict": "accepted",
+          "detail": "Accepted on the owner-driven polygon verification: five amendment rounds pixel-verified through eight rebuilds to the amendment-5 final state (Segoe E921/E922/E923/E8BB caption points, no separators, app-menu + settings kept, theme as the fourth 46px cell, 184px strip, white-dot Auto allowed via CDP), 83/83 titlebar family tests, plus the 2026-10-22 merge approval. Release instruction 2026-10-22 (\"everything green and accepted: merge, commit, release\").",
+          "scenarios": [
+            "Caption buttons render from Segoe MDL2/Fluent code points (E921/E922/E923/E8BB) with no separators",
+            "App-menu and settings buttons stay on the Win/Linux bar; the guide button is gone on every platform",
+            "Theme toggle sits as the flush fourth 46px caption cell (184px strip)",
+            "macOS bar stays byte-identical except the guide removal; white-dot Auto allowed via CDP",
+            "Owner pixel-verified crops through five amendment rounds and eight polygon rebuilds; 83/83 titlebar family tests"
+          ]
         }
       ]
     },

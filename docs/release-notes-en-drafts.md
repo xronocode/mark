@@ -7,6 +7,32 @@ attestation, cosign, and updater block below it unchanged.
 The 13 drafts are listed from newest to oldest. They are saved for review;
 this change does not publish them to GitHub.
 
+## v2.6.1
+
+```markdown
+## What's new
+
+### Sessions
+- **Sessions come back honestly.** Launching Mark restores the previous session's tabs, folders and active tab. With auto-restore off, the welcome screen's "Last session (N)" row reopens exactly the boot-time snapshot — never a stale no-op.
+- **Recently closed tabs.** A count-badged button beside the tab strip lists them: ⇧⌘T reopens the newest, repeated presses walk back, "Reopen all" restores a batch in order. Closing the last tab surfaces the same recovery right on the welcome screen.
+- Missing files are handled honestly: a fully missing session raises a warning, and reopening a deleted file says so.
+
+### Export
+- **Self-contained HTML.** Export as HTML embeds locally readable images as base64 data-URLs (8 MiB per-image cap), so a single .html file opens anywhere without its picture folder. Remote images are never fetched; PDF and print are unchanged.
+
+### Editor
+- ⇧⌘P opens the command palette again on macOS.
+- Table Markdown export keeps every real cell and escapes pipes correctly.
+- Turning Auto Save off cancels pending saves immediately.
+- Tab switching no longer cascades render warnings through transient cursor state.
+
+### Windows and Linux
+- **Native title bar.** Real system caption buttons (Segoe MDL2/Fluent code points, no separators), the app-menu and settings buttons kept, the theme toggle as a fourth cell, and the guide button retired on every platform.
+
+### Security
+- follow-redirects 1.16.1 (Dependabot highs #144/#145).
+```
+
 ---
 
 ## v2.6.0
