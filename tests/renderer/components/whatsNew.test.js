@@ -104,7 +104,7 @@ describe('components/whatsNew — sheet', () => {
     expect(icons).toEqual(['⧉', '◐', '⎙', '▣'])
     // The Also key is intentionally release-wide rather than versioned.
     expect(wrapper.find('.also').text()).toBe(
-      'Also: honest table exports, instant Auto Save off, steadier tab switching, and a security bump'
+      'Also: this patch only hardens PDF export; sessions, HTML export and everything else are unchanged.'
     )
     const footLinks = wrapper.findAll('.foot-links .guide-link')
     expect(footLinks[0].text()).toBe('See everything new ↗')
