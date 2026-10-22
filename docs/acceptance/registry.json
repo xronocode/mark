@@ -23,6 +23,24 @@
       ],
       "location": "target/debug/bundle/macos/Mark Test FIX009.app (repo build dir; rebuild via the builder)",
       "smoke": "launch + 39s alive + clean quit on macOS 26.6.2"
+    },
+    {
+      "id": "mark-test-msw-ab3367c2",
+      "source": {
+        "sha": "ab3367c269d840c630bb4afd0e6426fe8e4147da",
+        "branch": "main (working tree; carries the uncommitted C-MULTI-SOURCE-WORKSPACE bundle)"
+      },
+      "platform": "macos-arm64-debug",
+      "bundleIdentity": "com.xronocode.mark.test.msw.ab3367c2",
+      "productName": "Mark Test MSW",
+      "binarySha256": "211375dc4b6df285ed5131544920dfda7b1729aebeaa4ce9aa7a9af8363eab90",
+      "productVersion": "2.6.0",
+      "builtAt": "2026-10-22",
+      "builtBy": "npx tauri build --debug --config /tmp/msw-test-config.json (productName/identifier overrides, targets app, updater artifacts off; installed to /Applications/Mark Test MSW.app)",
+      "covers": [
+        "C-MULTI-SOURCE-WORKSPACE"
+      ],
+      "location": "/Applications/Mark Test MSW.app"
     }
   ],
   "items": [
@@ -400,6 +418,63 @@
           "date": "2026-10-22",
           "actor": "agent",
           "detail": "Admitted to 2.6.x-next (userFacing); source commits recorded when the safety-gated commit lands."
+        }
+      ]
+    },
+    {
+      "id": "C-MULTI-SOURCE-WORKSPACE",
+      "summary": "Multi-root workspaces: Add Folder…/Replace Workspace… with a shared chooser and dirty-tab guard, duplicate tab suffixes, search owner labels, honest restore degradation, iCloud placeholder hygiene; acceptance fix waves added the guarded quit (no silent data loss on Cmd+Q), the search generation guard (char-typed queries keep every root), the sync cloud picker plus tree-event coalescing (whole cloud drives no longer freeze the UI), pretty cloud root names and the online-files hint.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-20",
+          "actor": "owner",
+          "detail": "Owner request (translated from Russian): 'we had a request for multi-tenant (more than one root) and iCloud in the left panel' — backlog item with iCloud research addendum in the private backlog."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "detail": "Implemented per approved C-MULTI-SOURCE-WORKSPACE spec+plan (owner instruction 'го исполнять, ревью 4 угла, 2 чистых подряд'): OPEN_FOLDER dispatcher (add/replace/ask) with chooser + replace dirty-guard, m009 menu pair (Add Folder… Cmd+Shift+O / Replace Workspace…), duplicate tab suffixes, search owner labels, honest restore-degradation copy in ten locales, watcher dot-entry parity (.icloud placeholders never join the tree). Gates: renderer 852/852 batch, cargo m009 28/28, grace lint 0, four-corner review rounds 1-3 with two consecutive clean passes."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "detail": "Mark Test MSW (bundle id com.xronocode.mark.test.msw.ab3367c2), binary sha256 211375dc4b6df285ed5131544920dfda7b1729aebeaa4ce9aa7a9af8363eab90, installed at /Applications/Mark Test MSW.app and launched by the agent; acceptance protocol приемка-mark-test-msw-ab3367c2.md + .manifest.yaml in ~/Downloads/mark-acceptance/ (combined-protocol standard, pre per-case-file rule). Agent self-acceptance first per owner instruction: e2e sweep 9/9 + visual transcription of every decisive crop.",
+          "artifact": "mark-test-msw-ab3367c2"
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "detail": "Owner acceptance fix wave 1 (instruction 'чини, сначала каждый пункт сам потом проверь'): Cmd+Q guard (custom Quit item → QUIT_APP dialog; the predefined .quit() probed to bypass every lifecycle hook and drop unsaved work), search generation guard (stale generations cannot overwrite results; char-typed queries showed only the first root), sync rfd picker (the async sheet-modal leaked a parked block_on thread and jammed later invokes — cloud roots stuck at «Загрузка…»), welcome button relabel, RU plurals. All re-verified in-app (crop + literal transcriptions)."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-22",
+          "actor": "agent",
+          "detail": "Owner manual cloud test follow-up ('айклауд работает, вандрайв зависает, название уродское, бабл про онлайн-файлы'): tree-event coalescer (a whole cloud drive = ~30k per-event reactive folds froze the webview; now batches ≤120ms/400 events), pretty cloud root labels (iCloud Drive / OneDrive), once-per-root online-files hint notice. Verified via session-restore flood: walk complete, webview idle, input processed; known limit (tens of thousands of DOM rows stay heavy — tree virtualization backlogged) disclosed to the owner."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-22",
+          "actor": "owner",
+          "detail": "Accepted with follow-ups (translated from Russian: 'приемку закрываем'). Scenarios verified: two-root add via chooser (С1-С3 owner-ticked + agent-verified), search across roots with owner labels (С4 re-verified post-fix: char-typed query returns both roots), replace with dirty-tab dialog branches (С5-С6), restart restores both roots (С7), missing-folder degradation notice (С8), cloud roots — iCloud owner-verified working, OneDrive owner-verified post-fix plus agent in-vivo flood probe (С9), guarded Cmd+Q dialog, pretty cloud names, online-files hint. Follow-ups: tree virtualization for whole-drive roots (backlog), test-build isolation defect (mt_paths.rs:19, known), welcome-screen per-case file standard applies to future acceptances.",
+          "verdict": "accepted-with-followups",
+          "artifact": "mark-test-msw-ab3367c2",
+          "scenarios": [
+            "С1 native menu pair Add Folder… (⌘⇧O) / Replace Workspace…",
+            "С2 chooser → two roots in the sidebar",
+            "С3 duplicate plan.md tabs with root suffixes",
+            "С4 search across both roots with owner labels (re-verified post-fix: char-typed query returns both roots, pluralized summary)",
+            "С5-С6 replace with unsaved tab — dialog branches (Cancel/Save & Close/Don't Save)",
+            "С7 restart restores both roots",
+            "С8 missing-folder degradation notice",
+            "С9 cloud roots — iCloud owner-verified working; OneDrive owner-verified post-fix (freeze cured) plus agent in-vivo whole-drive flood probe",
+            "guarded Cmd+Q dialog (no silent data loss)",
+            "pretty cloud root names + online-files hint"
+          ]
         }
       ]
     }
