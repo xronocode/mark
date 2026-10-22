@@ -155,7 +155,9 @@ export const validateLocaleMaterials = (sourceTables, minifiedTables, version) =
       fail('MT_RELEASE_LOCALE_COPY_INVALID', `locale=${locale};footer=missing`)
     }
     const flattened = stableJson(section)
-    for (const token of ['Mark', '⇧⌘T', '⇧⌘P', '.html']) {
+    // 2.8.0 sheet tokens (C-MULTI-SOURCE-WORKSPACE): the shortcuts and
+    // cloud product names must survive verbatim in every locale.
+    for (const token of ['⇧⌘O', '⌘Q', 'iCloud Drive', 'OneDrive']) {
       if (!flattened.includes(token)) {
         fail('MT_RELEASE_LOCALE_COPY_INVALID', `locale=${locale};token=${token}`)
       }

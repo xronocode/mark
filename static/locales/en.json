@@ -1027,7 +1027,7 @@
   },
   "whatsNew": {
     "title": "What's new",
-    "also": "Also: honest table exports, instant Auto Save off, steadier tab switching, and a security bump",
+    "also": "Also: honest restore notices for missing folders, correct plurals in ten languages, and pretty names for cloud roots",
     "seeEverything": "See everything new",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1139,7 +1139,25 @@
       }
     },
     "continue": "Continue",
-    "seeGuide": "See the guide"
+    "seeGuide": "See the guide",
+    "v2_8_0": {
+      "folders": {
+        "title": "⇧⌘O adds another folder",
+        "text": "Work in several folders at once; Replace Workspace… swaps them safely."
+      },
+      "cloud": {
+        "title": "Cloud folders open natively",
+        "text": "iCloud Drive and OneDrive folders work as roots; online-only files say so once."
+      },
+      "search": {
+        "title": "Search that keeps up",
+        "text": "Folder search labels each hit with its folder and keeps every result as you type."
+      },
+      "quit": {
+        "title": "⌘Q asks before quitting",
+        "text": "Unsaved edits get Save & Quit or Don’t Save — nothing disappears silently anymore."
+      }
+    }
   },
   "store": {
     "editor": {

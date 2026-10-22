@@ -2,6 +2,27 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
+## [2.8.0] - 2026-10-23
+
+Work in several folders at once, open cloud folders as roots, and trust folder search again.
+
+### Workspaces
+- ⇧⌘O (File › Add Folder…) opens a folder beside the ones already open; every folder surface — the picker, drops, clipboard and the welcome screen — routes through one Add-or-Replace chooser, with Add preselected as the safe default.
+- File › Replace Workspace… swaps the whole workspace; tabs with unsaved edits under removed roots raise one dialog first (Save & Close / Don't Save / Cancel), a failed save aborts the replace, and Cancel touches nothing.
+- Tabs sharing a filename carry a dimmed owning-root suffix (the full path stays in the tooltip); restoring a session brings back every root, and folders that disappeared degrade visibly with a notice that lists them.
+
+### Cloud folders
+- iCloud Drive and OneDrive folders open as workspace roots; evicted iCloud placeholder files never pollute the tree, and a once-per-root notice explains that online-only files appear after they download.
+- Cloud roots read by their product names — "iCloud Drive", "OneDrive" — instead of container identifiers.
+- Folder picks and whole-drive trees no longer hang the app: the system picker runs to completion, and adding a drive-sized root streams its tree in batches instead of freezing the window.
+
+### Search
+- Folder search labels every hit with its owning root and keeps results complete while you type (a race between keystroke-canceled searches could drop late roots).
+- Result counts pluralize correctly in all ten languages.
+
+### Safety
+- Quitting with unsaved tabs asks first (⌘Q and File › Quit): Save & Quit commits them, Don't Save discards on purpose, Escape stays — the silent data-loss path is gone.
+
 ## [2.7.0] - 2026-10-22
 
 Sessions come back the way you left them, HTML exports travel on their own, and Windows gets its real title bar back.

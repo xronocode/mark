@@ -4,9 +4,11 @@
   "state": "Collecting",
   "previousRelease": {
     "tag": "v2.7.0",
-    "commit": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f"
+    "commit": "132f259903e0aca8a3fe661e6f72be052ab16897",
+    "bootstrapSha": "132f259903e0aca8a3fe661e6f72be052ab16897",
+    "tree": "40591bcba06ae955cbc1411052969b1de6f74e58"
   },
-  "computedVersion": null,
+  "computedVersion": "2.8.0",
   "payloadSha": null,
   "sealSha": null,
   "releaseAuthorization": null,
@@ -35,12 +37,28 @@
         }
       }
     ],
-    "operational": [],
+    "operational": [
+      {
+        "id": "RELEASE-CONTROLS-ACTIVATION",
+        "summary": "PR #22: rulesets activation fix — merge to main and v* tags enforced via PR + status checks.",
+        "state": "queued",
+        "commits": [
+          "aa38f35fa7c74f0f859c6e611c8d9004aa1ecf79"
+        ]
+      }
+    ],
     "notPresent": []
   },
   "commitAccounting": {
-    "fromExclusive": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f",
+    "fromExclusive": "132f259903e0aca8a3fe661e6f72be052ab16897",
     "entries": [
+      {
+        "sha": "aa38f35fa7c74f0f859c6e611c8d9004aa1ecf79",
+        "classification": "operational",
+        "itemIds": [
+          "RELEASE-CONTROLS-ACTIVATION"
+        ]
+      },
       {
         "sha": "aebc581f4626328eef9022bdbe0a023c990d367f",
         "classification": "user-facing",
@@ -84,7 +102,18 @@
       "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
     }
   ],
-  "materials": [],
+  "materials": {
+    "status": "ready",
+    "screenshotManifest": "docs/assets/readme/2.8.0.manifest.json",
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "releaseNotes": "docs/release-notes-en-drafts.md",
+    "whatsNew": "src/renderer/src/whatsNew/data.js",
+    "localeCount": 10,
+    "itemIds": [
+      "C-MULTI-SOURCE-WORKSPACE"
+    ]
+  },
   "transitions": [
     {
       "state": "Collecting",
