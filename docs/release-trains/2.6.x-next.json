@@ -4,7 +4,7 @@
   "state": "Ready",
   "previousRelease": {
     "tag": "v2.6.0",
-    "commit": "085e0c3853d34d219700d85621204f97227bcb40",
+    "commit": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
     "bootstrapSha": "de16653229170226060a6f2f8f6e36df02e2c452",
     "tree": "010ab79a204e81add9651486be82c726ca53bd68"
   },
