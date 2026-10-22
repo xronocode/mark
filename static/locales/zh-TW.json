@@ -1468,7 +1468,7 @@
     "title": "新內容",
     "seeGuide": "查看指南",
     "continue": "繼續",
-    "also": "另外：更安全地關閉分頁、穩定的 Shift 選取、跟隨主題的對話框和更清楚的選單",
+    "also": "另有：表格匯出保真、自動儲存立即關閉、分頁切換更穩、安全性更新",
     "seeEverything": "查看全部新功能",
     "v2_3_1": {
       "look": {
@@ -1558,6 +1558,24 @@
       "shortcuts": {
         "title": "編輯快速鍵已恢復",
         "text": "⇧⌘D 複製段落，⌘1–6 將其轉換為 H1–H6 標題。"
+      }
+    },
+    "v2_6_1": {
+      "session": {
+        "title": "工作階段如實還原",
+        "text": "Mark 啟動時還原分頁與資料夾；⇧⌘T 找回剛關閉的分頁。"
+      },
+      "htmlExport": {
+        "title": "自給自足的 HTML",
+        "text": "匯出 HTML 時把本機圖片嵌入檔案——一個 .html 到哪都能開。"
+      },
+      "shortcuts": {
+        "title": "⇧⌘P 呼叫面板",
+        "text": "命令面板找回 Mac 快捷鍵；表格匯出不再漏掉任何儲存格。"
+      },
+      "windowsBar": {
+        "title": "原生 Windows 標題列",
+        "text": "Windows 與 Linux 改用真正的系統視窗按鈕，主題切換就在列上。"
       }
     }
   },

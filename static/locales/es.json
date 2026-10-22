@@ -1466,7 +1466,7 @@
     "title": "Novedades",
     "seeGuide": "Ver la guía",
     "continue": "Continuar",
-    "also": "Además: cierre de pestañas más seguro, selección con Shift fiable, diálogos temáticos y menús claros",
+    "also": "Además: exportes de tabla fieles, Auto Guardado off al instante, cambio de pestaña más estable",
     "seeEverything": "Ver todas las novedades",
     "v2_3_1": {
       "look": {
@@ -1556,6 +1556,24 @@
       "shortcuts": {
         "title": "Atajos de edición restaurados",
         "text": "⇧⌘D duplica un párrafo; ⌘1–6 lo convierte en encabezado H1–H6."
+      }
+    },
+    "v2_6_1": {
+      "session": {
+        "title": "Sesiones sin sorpresas",
+        "text": "Mark recupera tus pestañas y la carpeta al abrir; ⇧⌘T reabre una pestaña cerrada."
+      },
+      "htmlExport": {
+        "title": "HTML autónomo",
+        "text": "Exportar a HTML ahora incrusta las imágenes locales: un .html basta en cualquier sitio."
+      },
+      "shortcuts": {
+        "title": "⇧⌘P abre la paleta",
+        "text": "La paleta de comandos recupera su atajo de Mac y las tablas exportan cada celda real."
+      },
+      "windowsBar": {
+        "title": "Barra de título nativa",
+        "text": "Windows y Linux estrenan botones de sistema reales y el tema dentro de la barra."
       }
     }
   },
