@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-deep.test.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify titleBar/index.vue computed state, native actions, popover rename, window controls, and lifecycle behavior.
 //   SCOPE: Deterministic Vue/jsdom component tests with mocked Tauri and compatibility facades.
@@ -16,6 +16,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-21 v1.7.0 C-WINDOWS-TITLEBAR-ALIGNMENT amendment 5: the
+//     menu/settings handler pins are RESTORED (showCustomTitleBar,
+//     handleMenuClick, handleSettingsClick) behind the documented
+//     supersession-and-restore trail.
+
 //   - 2026-08-07 v1.2.0: require native clipboard dispatch and production plugin/capability wiring for Copy Path.
 //   - 2026-08-07 v1.1.0: add UC-029 title-path context-menu coverage.
 //   - 2026-09-28 v1.3.0: C-15 T-W1 — dblclick-maximize is cross-platform (both directions pinned).
@@ -141,7 +146,7 @@ describe('titleBar/index.vue — deep coverage', () => {
       props: {
         project: null,
         filename: 'test.md',
-        pathname: '/home/user/docs/test.md',
+        pathname: '/tmp/home/<fixture>/docs/test.md',
         active: true,
         wordCount: { word: 10, character: 50, paragraph: 2, all: 60 },
         platform: 'linux',
@@ -154,24 +159,18 @@ describe('titleBar/index.vue — deep coverage', () => {
       }
     })
 
-  // --- showCustomTitleBar computed ---
+  // --- showCustomTitleBar computed (restored by amendment 5) ---
   describe('showCustomTitleBar computed', () => {
     it('returns true when titleBarStyle is custom and not OSX', async () => {
       const { usePreferencesStore } = await import('@/store/preferences.js')
-      const prefStore = usePreferencesStore()
-      prefStore.titleBarStyle = 'custom'
-
-      const wrapper = mountComponent()
-      expect(wrapper.vm.showCustomTitleBar).toBe(true)
+      usePreferencesStore().titleBarStyle = 'custom'
+      expect(mountComponent().vm.showCustomTitleBar).toBe(true)
     })
 
     it('returns false when titleBarStyle is native', async () => {
       const { usePreferencesStore } = await import('@/store/preferences.js')
-      const prefStore = usePreferencesStore()
-      prefStore.titleBarStyle = 'native'
-
-      const wrapper = mountComponent()
-      expect(wrapper.vm.showCustomTitleBar).toBe(false)
+      usePreferencesStore().titleBarStyle = 'native'
+      expect(mountComponent().vm.showCustomTitleBar).toBe(false)
     })
   })
 
@@ -205,15 +204,12 @@ describe('titleBar/index.vue — deep coverage', () => {
   })
 
   // --- handleSettingsClick ---
-  describe('handleSettingsClick', () => {
+  describe('handleSettingsClick (restored by amendment 5)', () => {
     it('calls OPEN_SETTING_WINDOW', async () => {
       const { useProjectStore } = await import('@/store/project')
       const projectStore = useProjectStore()
       projectStore.OPEN_SETTING_WINDOW = vi.fn()
-
-      const wrapper = mountComponent()
-      wrapper.vm.handleSettingsClick()
-
+      mountComponent().vm.handleSettingsClick()
       expect(projectStore.OPEN_SETTING_WINDOW).toHaveBeenCalled()
     })
   })
@@ -292,7 +288,7 @@ describe('titleBar/index.vue — deep coverage', () => {
   })
 
   // --- handleMenuClick ---
-  describe('handleMenuClick', () => {
+  describe('handleMenuClick (restored by amendment 5)', () => {
     it('invokes mt::window-popup-app-menu with position', async () => {
       const wrapper = mountComponent()
       const fakeEvent = {
@@ -300,9 +296,7 @@ describe('titleBar/index.vue — deep coverage', () => {
           getBoundingClientRect: () => ({ left: 10, top: 0, bottom: 30, right: 50 })
         }
       }
-
       await wrapper.vm.handleMenuClick(fakeEvent)
-
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
         'mt::window-popup-app-menu',
         { x: 10, y: 30 }
@@ -313,7 +307,7 @@ describe('titleBar/index.vue — deep coverage', () => {
   // START_BLOCK_TITLE_PATH_CONTEXT_MENU_TESTS
   describe('handleTitleContextMenu', () => {
     it('opens the native menu and copies the exact active pathname', async () => {
-      const wrapper = mountComponent({ pathname: '/home/user/docs/test.md' })
+      const wrapper = mountComponent({ pathname: '/tmp/home/<fixture>/docs/test.md' })
       window.electron.ipcRenderer.invoke.mockResolvedValueOnce('copyPath')
 
       await wrapper.vm.handleTitleContextMenu({ clientX: 48, clientY: 22 })
@@ -327,7 +321,7 @@ describe('titleBar/index.vue — deep coverage', () => {
         }
       )
       expect(writeClipboardTextMock).toHaveBeenCalledWith(
-        '/home/user/docs/test.md'
+        '/tmp/home/<fixture>/docs/test.md'
       )
       expect(window.electron.clipboard.writeText).not.toHaveBeenCalled()
     })
