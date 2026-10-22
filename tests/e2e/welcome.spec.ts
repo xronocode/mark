@@ -138,7 +138,9 @@ test.describe('welcome screen (C-46)', () => {
     await expect(buttons).toHaveCount(3)
     await expect(buttons.nth(0)).toContainText('Open File')
     await expect(buttons.nth(0).locator('.action-kbd')).toHaveText(/⌘O|Ctrl\+O/)
-    await expect(buttons.nth(1)).toContainText('Open Folder')
+    // C-MULTI-SOURCE-WORKSPACE: the second action adds a folder root
+    // (the chooser decides Add vs Replace when roots are open).
+    await expect(buttons.nth(1)).toContainText('Add Folder')
     await expect(buttons.nth(1).locator('.action-kbd')).toHaveText(/⇧⌘O|Ctrl\+Shift\+O/)
     await expect(buttons.nth(2)).toContainText('New')
     await expect(buttons.nth(2).locator('.action-kbd')).toHaveText(/⌘N|Ctrl\+N/)
