@@ -76,6 +76,13 @@
           "date": "2026-10-21",
           "actor": "agent",
           "detail": "Admitted to 2.6.x-next (PR 16 merged as 21793f11)."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-22",
+          "actor": "agent-zcode",
+          "verdict": "approve",
+          "detail": "Release review: ⇧⌘P palette shortcut + honest table exports shipped in v2.7.0 (tag v2.7.0 → 132f2599, published 2026-10-22T11:29:11Z, 13 assets, updater feed serves 2.7.0). Recorded 2026-10-23 when advancing the registry's train reference to 2.7.x-next."
         }
       ]
     },
@@ -111,6 +118,13 @@
           "date": "2026-10-21",
           "actor": "agent",
           "detail": "Admitted to 2.6.x-next (21793f11)."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-22",
+          "actor": "agent-zcode",
+          "verdict": "approve",
+          "detail": "Release review: walk-found render crash repair shipped in v2.7.0 (tag v2.7.0 → 132f2599, published 2026-10-22T11:29:11Z, 13 assets, updater feed serves 2.7.0). Recorded 2026-10-23 when advancing the registry's train reference to 2.7.x-next."
         }
       ]
     },
@@ -146,6 +160,13 @@
           "date": "2026-10-21",
           "actor": "agent",
           "detail": "Admitted to 2.6.x-next (21793f11)."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-22",
+          "actor": "agent-zcode",
+          "verdict": "approve",
+          "detail": "Release review: table export cell fidelity shipped in v2.7.0 (tag v2.7.0 → 132f2599, published 2026-10-22T11:29:11Z, 13 assets, updater feed serves 2.7.0). Recorded 2026-10-23 when advancing the registry's train reference to 2.7.x-next."
         }
       ]
     },
@@ -181,6 +202,13 @@
           "date": "2026-10-21",
           "actor": "agent",
           "detail": "Admitted to 2.6.x-next (21793f11)."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-22",
+          "actor": "agent-zcode",
+          "verdict": "approve",
+          "detail": "Release review: Auto Save off cancels queued writes shipped in v2.7.0 (tag v2.7.0 → 132f2599, published 2026-10-22T11:29:11Z, 13 assets, updater feed serves 2.7.0). Recorded 2026-10-23 when advancing the registry's train reference to 2.7.x-next."
         }
       ]
     },
@@ -216,6 +244,13 @@
           "date": "2026-10-21",
           "actor": "agent",
           "detail": "Merged; operational admission pending the next train accounting update."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-22",
+          "actor": "agent-zcode",
+          "verdict": "approve",
+          "detail": "Release review: follow-redirects 1.16.1 (PR #18) shipped in v2.7.0 (tag v2.7.0 → 132f2599, published 2026-10-22T11:29:11Z, 13 assets, updater feed serves 2.7.0). Recorded 2026-10-23 when advancing the registry's train reference to 2.7.x-next."
         }
       ]
     },
@@ -418,6 +453,13 @@
           "date": "2026-10-22",
           "actor": "agent",
           "detail": "Admitted to 2.6.x-next (userFacing); source commits recorded when the safety-gated commit lands."
+        },
+        {
+          "state": "reviewed",
+          "date": "2026-10-22",
+          "actor": "agent-zcode",
+          "verdict": "approve",
+          "detail": "Release review: self-contained HTML export shipped in v2.7.0 (tag v2.7.0 → 132f2599, published 2026-10-22T11:29:11Z, 13 assets, updater feed serves 2.7.0). Recorded 2026-10-23 when advancing the registry's train reference to 2.7.x-next."
         }
       ]
     },
