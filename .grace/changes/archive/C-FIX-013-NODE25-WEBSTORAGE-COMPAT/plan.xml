@@ -1,0 +1,101 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-FIX-013-NODE25-WEBSTORAGE-COMPAT>
+  <ChangeRef>C-FIX-013-NODE25-WEBSTORAGE-COMPAT</ChangeRef><Created>2026-10-20</Created>
+  <IntentSummary>Guard the canonical vitest configuration against the Node &gt;= 25 default-on experimental Web Storage global (conditional test.execArgv with `--no-experimental-webstorage`), pin a functional jsdom localStorage regression check, and add .nvmrc so the Node 22 reference runtime is mechanical, not tribal knowledge. Tooling compatibility only; the sidebar cold-start timeout stays out of scope per the owner.</IntentSummary>
+  <ExecutionPolicy>Single sequential pass; no dependency on other active bundles. Verification runs locally on Node 22 and on the Windows polygon (laptop-kari, Node 25) with no NODE_OPTIONS override.</ExecutionPolicy>
+  <BaselineAssertions>
+    <MustExist>
+      <Value>vitest.config.ts</Value>
+      <Value>tests/renderer/setup.ts</Value>
+    </MustExist>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustExist>
+      <Value>tests/renderer/localstorage-webstorage-compat.test.js</Value>
+      <Value>.nvmrc</Value>
+      <Value>.grace/changes/active/C-FIX-013-NODE25-WEBSTORAGE-COMPAT/evidence.json</Value>
+    </MustExist>
+    <MustContain>
+      <File>vitest.config.ts</File>
+      <Text>--no-experimental-webstorage</Text>
+    </MustContain>
+    <MustContain>
+      <File>vitest.config.ts</File>
+      <Text>nodeMajor</Text>
+    </MustContain>
+    <MustContain>
+      <File>tests/renderer/localstorage-webstorage-compat.test.js</File>
+      <Text>BLOCK_LOCALSTORAGE_CONTRACT_OK</Text>
+    </MustContain>
+    <MustContain>
+      <File>.nvmrc</File>
+      <Text>22</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/features.xml</File>
+      <Text>scenario-18 (C-FIX-013)</Text>
+    </MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors><VerificationDocuments><VD-FEATURES/></VerificationDocuments></DurableScope>
+  <ObservedWriteScope>
+    <File>vitest.config.ts</File>
+    <File>tests/renderer/localstorage-webstorage-compat.test.js</File>
+    <File>.nvmrc</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>docs/release-trains/2.6.x-next.md</File>
+    <File>.grace/changes/active/C-FIX-013-NODE25-WEBSTORAGE-COMPAT/evidence.json</File>
+  </ObservedWriteScope>
+  <VerificationGates>
+    <Gate><Name>node22-local</Name><Command>npx vitest run tests/renderer/localstorage-webstorage-compat.test.js &amp;&amp; npm test</Command><Expect>new check green; full suite green (66-file class of failures absent by construction on Node 22)</Expect></Gate>
+    <Gate><Name>node25-polygon</Name><Command>Windows polygon: npm test with no NODE_OPTIONS</Command><Expect>localStorage-dependent files green without any env override; only the separately tracked sideBar/index.test.js cold-start timeout may remain red</Expect></Gate>
+    <Gate><Name>governance</Name><Command>grace lint --path . --assertions current</Command><Expect>zero errors</Expect></Gate>
+  </VerificationGates>
+  <ImplementationPlan>
+    <T-001>
+      <Title>execArgv guard in the canonical vitest config</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>vitest.config.ts derives nodeMajor from process.versions.node and passes execArgv = [...process.execArgv, '--no-experimental-webstorage'] only on major >= 25; on Node 22 the flag is absent and inherited execArgv is preserved.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/publication-privacy.test.js tests/renderer/localstorage-webstorage-compat.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>localStorage functional regression check</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tests/renderer/localstorage-webstorage-compat.test.js (TEST/LOCALS contract) pins function-typed getItem/setItem/removeItem/clear/key plus a set/get/key/remove/clear/length roundtrip with marker BLOCK_LOCALSTORAGE_CONTRACT_OK; on Node 25 without the guard it fails with the pointed TypeError, with the guard it passes.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>Windows polygon: npx vitest run tests/renderer/localstorage-webstorage-compat.test.js --config &lt;guard-off copy&gt; (expect FAIL), then with the canonical config (expect PASS)</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>Reference runtime pin and governance records</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>.nvmrc pins the CI Node major (22); graph M-046 summary line, V-M-046 command + scenario-18, train item FIX-013 and bundle evidence.json are recorded; grace lint --assertions current reports zero errors.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <CornerMatrix>
+    <Corner name="Correctness"><Expected>The guard keys strictly on the Node major version; no flag probing at runtime; process.execArgv inherited before the added flag so dev NODE_OPTIONS survive.</Expected></Corner>
+    <Corner name="Portability"><Expected>Node 22 (reference) never receives the flag; Node 25+ workers start with webstorage disabled; nothing platform-specific enters the config.</Expected></Corner>
+    <Corner name="Contracts"><Expected>vitest.config.ts change cited as C-FIX-013 in-file; new test carries FILE/VERSION/MODULE_CONTRACT/MODULE_MAP; M-046/V-M-046 stay the durable owners.</Expected></Corner>
+    <Corner name="Verification"><Expected>Negative control (guard-off config on Node 25) and positive runs on both runtimes recorded in evidence.json; canonical polygon run needs no NODE_OPTIONS.</Expected></Corner>
+    <Corner name="Security"><Expected>No secrets, no network, no new dependency; test writes only its own localStorage keys.</Expected></Corner>
+    <Corner name="Performance"><Expected>execArgv addition is a no-op flag; no measurable startup cost on Node 22.</Expected></Corner>
+    <Corner name="Scope discipline"><Expected>sidebar/index.test.js timeout untouched; no CI workflow edits; no product code.</Expected></Corner>
+    <Corner name="Delivery"><Expected>Train item FIX-013 records reported/owner-scope/repair/evidence; acceptance stays pending.</Expected></Corner>
+  </CornerMatrix>
+  <ReviewLog>
+    <Review number="1" date="2026-10-20" verdict="green" task="plan-four-corner-review">
+      <Findings>
+        Correctness: the flag is version-gated so the Node 22 reference runtime keeps byte-identical worker arguments (it accepts the flag since 22.4.0 but needs nothing — Web Storage is not default-on there).</Findings>
+    </Review>
+  </ReviewLog>
+</C-FIX-013-NODE25-WEBSTORAGE-COMPAT></GraceChangePlan>
