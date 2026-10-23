@@ -152,6 +152,25 @@ describe('fontTextBox/index.vue – deep tests', () => {
     expect(onChangeMock).not.toHaveBeenCalled()
   })
 
+  // The v2.0.1 linear rewrite must accept exactly the v1 language:
+  // non-empty, no leading/trailing whitespace, any internal separators.
+  it('handleSelect rejects trailing whitespace', () => {
+    wrapper = createWrapper()
+    onChangeMock.mockClear()
+    wrapper.vm.handleSelect('Fira Code ')
+    expect(onChangeMock).not.toHaveBeenCalled()
+  })
+
+  it('handleSelect accepts internal separator runs (multi-space, tab, hyphen-space)', () => {
+    wrapper = createWrapper()
+    onChangeMock.mockClear()
+    wrapper.vm.handleSelect('Komika  Title - Bold')
+    expect(onChangeMock).toHaveBeenCalledWith('Komika  Title - Bold')
+    onChangeMock.mockClear()
+    wrapper.vm.handleSelect('SF\tMono')
+    expect(onChangeMock).toHaveBeenCalledWith('SF\tMono')
+  })
+
   // ── handleMoreClick ──────────────────────────────────────────────────
 
   it('handleMoreClick opens external URL when more is string', () => {
