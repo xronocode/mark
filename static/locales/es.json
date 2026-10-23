@@ -1,1517 +1,1082 @@
 {
-  "menu": {
-    "counter": {
-      "words": "Palabras",
-      "characters": "Caracteres",
-      "paragraphs": "Párrafos"
+  "editor": {
+    "click-to-add-image": "Haga clic para agregar imagen",
+    "loading": "Cargando...",
+    "emptyDiagramBlock": "< Bloque de diagrama vacío >",
+    "deleteTable": "Eliminar tabla",
+    "emptyHtmlBlock": "< Bloque HTML vacío >",
+    "front-matter-delimiter": "delimitador de front matter",
+    "fence": "cerca",
+    "alignRight": "Alinear a la derecha",
+    "type-at-to-insert": "Escriba {'@'} para insertar",
+    "insertRowAbove": "Insertar fila arriba",
+    "placeholders": {
+      "languageIdentifier": "Ingrese Identificador de Idioma...",
+      "frontMatter": "Ingrese Metadatos YAML...",
+      "mathFormula": "Ingrese Fórmula Matemática..."
     },
-    "file": {
-      "file": "Archivo",
-      "new": "Nuevo",
-      "newTab": "Nueva Pestaña",
-      "newWindow": "Nueva Ventana",
-      "open": "Abrir",
-      "openFile": "Abrir Archivo...",
-      "openFolder": "Abrir Carpeta...",
-      "openFromClipboard": "Abrir del portapapeles",
-      "openRecent": "Abrir Reciente",
-      "clearRecentlyUsed": "Limpiar Recientes",
-      "save": "Guardar",
-      "saveAs": "Guardar Como...",
-      "autoSave": "Guardado Automático",
-      "moveTo": "Mover A",
-      "rename": "Renombrar",
-      "export": "Exportar",
-      "exportHtml": "Exportar como HTML",
-      "exportPdf": "Exportar como PDF",
-      "import": "Importar",
-      "print": "Imprimir",
-      "recent": "Archivos Recientes",
-      "close": "Cerrar",
-      "closeAll": "Cerrar",
-      "closeTab": "Cerrar Pestaña",
-      "closeWindow": "Cerrar Ventana",
-      "quit": "Salir",
-      "preferences": "Preferencias"
+    "input-yaml-front-matter": "Ingrese front matter YAML",
+    "invalidMathFormula": "< Fórmula matemática inválida >",
+    "highlight-start": "[inicio de resaltado]",
+    "alignCenter": "Alinear al centro",
+    "mermaid-start": "inicio de mermaid",
+    "indent": "sangría",
+    "input-mathematical-formula": "Ingrese fórmula matemática",
+    "center": "centro",
+    "notifications": {
+      "notificationNotFound": "Notificación no encontrada"
     },
-    "edit": {
-      "edit": "Editar",
-      "undo": "Deshacer",
-      "redo": "Rehacer",
-      "cut": "Cortar",
-      "copy": "Copiar",
-      "paste": "Pegar",
-      "copyAsRich": "Copiar Como Texto Enriquecido",
-      "copyAsHtml": "Copiar Como HTML",
-      "pasteAsPlainText": "Pegar como Texto Plano",
-      "selectAll": "Seleccionar",
-      "duplicate": "Duplicar",
-      "createParagraph": "Crear Párrafo",
-      "deleteParagraph": "Eliminar Párrafo",
-      "find": "Buscar",
-      "replace": "Reemplazar",
-      "findNext": "Buscar Siguiente",
-      "findPrevious": "Buscar Anterior",
-      "findInFolder": "Buscar en Carpeta",
-      "screenshot": "Captura de Pantalla",
-      "lineEnding": "Final de Línea",
-      "lineEndingCrlf": "CRLF(Windows)",
-      "lineEndingLf": "LF(Linux/Mac)"
+    "unhandledFunctionType": "Tipo de función no manejado: {functionType}",
+    "insertRowBelow": "Insertar fila abajo",
+    "alignLeft": "Alinear a la izquierda",
+    "onlyTopBlockCanRenderIcon": "Solo el bloque superior puede renderizar el botón de icono frontal.",
+    "removeRow": "Eliminar fila",
+    "input-language-identifier": "Ingrese identificador de idioma",
+    "spellcheck": {
+      "disabled": "Corrector ortográfico deshabilitado",
+      "title": "Corrector ortográfico",
+      "disabledError": "Error al deshabilitar el corrector ortográfico",
+      "enabledError": "Error al habilitar el corrector ortográfico",
+      "errorSwitchingLanguage": "Error al cambiar el idioma del corrector ortográfico {languageCode}",
+      "switchError": "Error del corrector ortográfico para {languageCode}, {error}",
+      "enabled": "Corrector ortográfico habilitado",
+      "languageMissing": "Idioma del corrector ortográfico faltante {languageCode}"
     },
-    "paragraph": {
-      "title": "Párrafo",
-      "paragraph": "Párrafo",
-      "heading1": "Encabezado 1",
-      "heading2": "Encabezado 2",
-      "heading3": "Encabezado 3",
-      "heading4": "Encabezado 4",
-      "heading5": "Encabezado 5",
-      "heading6": "Encabezado 6",
-      "promoteHeading": "Promover Encabezado",
-      "demoteHeading": "Degradar Encabezado",
-      "table": "Tabla",
-      "codeFences": "Bloques de Código",
-      "codeBlock": "Bloque de Código",
-      "quoteBlock": "Bloque de Cita",
-      "mathBlock": "Bloque Matemático",
-      "htmlBlock": "Bloque HTML",
-      "quote": "Cita",
-      "orderedList": "Lista Ordenada",
-      "bulletList": "Lista con Viñetas",
-      "unorderedList": "Lista Desordenada",
-      "taskList": "Lista de Tareas",
-      "looseListItem": "Elemento de Lista Suelto",
-      "paragraphItem": "Elemento de Párrafo",
-      "horizontalRule": "Regla Horizontal",
-      "frontMatter": "Metadatos"
+    "diagramExport": {
+      "copyFailed": "No se pudo copiar la imagen",
+      "title": "Diagrama",
+      "saveFailed": "No se pudo guardar el archivo",
+      "copied": "Copiado"
     },
-    "window": {
-      "title": "Ventana",
-      "window": "Ventana",
-      "minimize": "Minimizar",
-      "close": "Cerrar",
-      "zoom": "Zoom",
-      "zoomIn": "Acercar",
-      "zoomOut": "Alejar",
-      "fullScreen": "Pantalla Completa",
-      "bringAllToFront": "Traer al Frente",
-      "alwaysOnTop": "Siempre Encima"
+    "table": "tabla",
+    "highlight-end": "[fin de resaltado]",
+    "removeColumn": "Eliminar columna",
+    "insertColumnLeft": "Insertar columna a la izquierda",
+    "emptyMathFormula": "< Fórmula matemática vacía >",
+    "copyContent": "Copiar contenido",
+    "insertTable": {
+      "title": "Insertar Tabla",
+      "columns": "Columnas",
+      "rows": "Filas"
     },
-    "help": {
-      "help": "Ayuda",
-      "markdownReference": "Referencia de Markdown",
-      "changelog": "Registro de Cambios",
-      "askQuestion": "Hacer Pregunta",
-      "reportBug": "Reportar Error",
-      "viewSource": "Ver Código Fuente",
-      "license": "Licencia",
-      "checkForUpdates": "Buscar Actualizaciones",
-      "aboutMark": "Acerca de Mark",
-      "about": "Acerca de",
-      "checkUpdates": "Buscar Actualizaciones"
+    "sourceCode": {
+      "cursorNullComment": "Comentario de cursor nulo",
+      "imageStructureDeletedComment": "Comentario de estructura de imagen eliminada"
     },
-    "marktext": {
-      "title": "Mark",
-      "marktext": "Mark",
-      "about": "Acerca de Mark",
-      "checkUpdates": "Buscar Actualizaciones...",
-      "preferences": "Preferencias",
-      "services": "Servicios",
-      "hide": "Ocultar Mark",
-      "hideMark": "Ocultar Mark",
-      "hideOthers": "Ocultar Otros",
-      "showAll": "Mostrar",
-      "quit": "Salir de Mark"
+    "delete": "eliminar",
+    "input-footnote-definition": "Ingrese definición de nota al pie",
+    "print": {
+      "failed": "Impresión fallida",
+      "error": "Error de impresión para \"{title}\""
     },
-    "view": {
-      "view": "Ver",
-      "toggleSidebar": "Alternar Barra Lateral",
-      "toggleTabbar": "Alternar Barra de Pestañas",
-      "commandPalette": "Paleta de Comandos",
-      "sourceCode": "Modo Código Fuente",
-      "sourceCodeMode": "Modo Código Fuente",
-      "typewriter": "Modo Máquina de Escribir",
-      "typewriterMode": "Modo Máquina de Escribir",
-      "focus": "Modo Enfoque",
-      "focusMode": "Modo Enfoque",
-      "showTabBar": "Mostrar Barra de Pestañas",
-      "toc": "Tabla de Contenidos",
-      "toggleTableOfContents": "Alternar Tabla de Contenidos",
-      "reloadImages": "Recargar Imágenes",
-      "showDeveloperTools": "Mostrar Herramientas de Desarrollador",
-      "reloadWindow": "Recargar Ventana",
-      "splitView": "Vista dividida",
-      "outline": "Esquema",
-      "statusBar": "Barra de estado",
-      "lockDocument": "Bloquear documento"
+    "right": "derecha",
+    "flowchart-start": "inicio de diagrama de flujo",
+    "math-delimiter": "delimitador matemático",
+    "load-image-failed": "Error al cargar imagen",
+    "left": "izquierda",
+    "plantuml-start": "inicio de plantuml",
+    "insertColumnRight": "Insertar columna a la derecha",
+    "emptyMermaidBlock": "< Bloque Mermaid vacío >",
+    "export": {
+      "imagesEmbeddedTitle": "Algunas imágenes no se incrustaron",
+      "failed": "Falló la exportación de {type}",
+      "error": "Error de exportación",
+      "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales",
+      "errorExporting": "Error al exportar archivo {type}"
     },
-    "format": {
-      "format": "Formato",
-      "bold": "Negrita",
-      "italic": "Cursiva",
-      "underline": "Subrayado",
-      "strikethrough": "Tachado",
-      "code": "Código en Línea",
-      "codeBlock": "Bloque de Código",
-      "quote": "Cita",
-      "unorderedList": "Lista Desordenada",
-      "orderedList": "Lista Ordenada",
-      "taskList": "Lista de Tareas",
-      "table": "Tabla",
-      "link": "Enlace",
-      "image": "Imagen",
-      "heading1": "Encabezado 1",
-      "heading2": "Encabezado 2",
-      "heading3": "Encabezado 3",
-      "heading4": "Encabezado 4",
-      "heading5": "Encabezado 5",
-      "heading6": "Encabezado 6",
-      "superscript": "Superíndice",
-      "subscript": "Subíndice",
-      "highlight": "Resaltar",
-      "inlineCode": "Código en Línea",
-      "inlineMath": "Matemáticas en Línea",
-      "hyperlink": "Hipervínculo",
-      "clearFormatting": "Limpiar Formato",
-      "clearFormat": "Limpiar Formato"
+    "resizeTable": "Redimensionar tabla",
+    "vega-lite-start": "inicio de vega-lite",
+    "image": {
+      "toolbar": {
+        "alignLeft": "Alinear a la izquierda",
+        "delete": "Eliminar imagen",
+        "edit": "Editar imagen",
+        "copyImage": "Copiar imagen",
+        "alignCenter": "Alinear al centro",
+        "inline": "Imagen en línea",
+        "alignRight": "Alinear a la derecha"
+      },
+      "copyTitle": "Imagen",
+      "selector": {
+        "select": {
+          "chooseButton": "Elegir imagen",
+          "tip": "Elige una imagen de tu ordenador."
+        },
+        "tab": {
+          "select": "Seleccionar",
+          "embedLink": "Insertar enlace"
+        },
+        "hint": {
+          "simple": "modo simple",
+          "full": "modo completo",
+          "prefix": "Pega imagen web o ruta local. Cambiar modo"
+        },
+        "embedButton": "Insertar imagen",
+        "inputs": {
+          "title": "Título de la imagen",
+          "alt": "Texto alternativo",
+          "src": "Enlace de imagen o ruta local"
+        }
+      }
     },
-    "theme": {
-      "theme": "&Tema",
-      "auto": "Automático",
-      "paper": "Paper",
-      "ink": "Ink",
-      "followThemDisabled": "Selección de tema desactivada al seguir el tema del sistema",
-      "lightThemes": "— Temas Claros —",
-      "darkThemes": "— Temas Oscuros —",
-      "ayuDark": "Ayu Oscuro",
-      "ayuLight": "Ayu Claro",
-      "alucard": "Alucard",
-      "catppuccinLatte": "Catppuccin Latte",
-      "catppuccinMocha": "Catppuccin Mocha",
-      "docs": "Docs",
-      "docsDark": "Docs Oscuro",
-      "dracula": "Dracula",
-      "everforestDark": "Everforest Oscuro",
-      "everforestLight": "Everforest Claro",
-      "graphiteDark": "Graphite Dark",
-      "graphiteLight": "Grafito Claro",
-      "gruvboxDark": "Gruvbox Oscuro",
-      "gruvboxLight": "Gruvbox Claro",
-      "kanagawa": "Kanagawa",
-      "kanagawaLotus": "Kanagawa Lotus",
-      "macos": "macOS",
-      "macosDark": "macOS Oscuro",
-      "nord": "Nord",
-      "nordLight": "Nord Light",
-      "oneDark": "One Dark",
-      "oneLight": "One Light",
-      "rosePine": "Rosé Pine",
-      "rosePineDawn": "Rosé Pine Dawn",
-      "solarizedDark": "Solarized Oscuro",
-      "solarizedLight": "Solarized Claro",
-      "tokyoNight": "Tokyo Night",
-      "tokyoNightLight": "Tokyo Night Claro",
-      "ulyssesDark": "Ulysses Dark",
-      "ulyssesLight": "Ulises Claro"
-    }
-  },
-  "contextMenu": {
-    "cut": "Cortar",
-    "copy": "Copiar",
-    "paste": "Pegar",
-    "copyAsRich": "Copiar Como Texto Enriquecido",
-    "copyAsHtml": "Copiar Como HTML",
-    "pasteAsPlainText": "Pegar como Texto Plano",
-    "insertParagraphBefore": "Insertar Párrafo Antes",
-    "insertParagraphAfter": "Insertar Párrafo Después",
-    "spelling": "Ortografía...",
-    "changeLanguage": "Cambiar Idioma...",
-    "addToDictionary": "Agregar al Diccionario",
-    "editDictionary": "Editar Diccionario...",
-    "sideBar": {
-      "newFile": "Nuevo Archivo",
-      "newDirectory": "Nuevo Directorio",
-      "copy": "Copiar",
-      "cut": "Cortar",
-      "paste": "Pegar",
-      "rename": "Renombrar",
-      "moveToTrash": "Mover a la Papelera",
-      "showInFolder": "Mostrar en Carpeta",
-      "pin": "Añadir a Fijados",
-      "unpin": "Quitar de Fijados"
-    },
-    "tabs": {
-      "close": "Cerrar",
-      "closeOthers": "Cerrar otros",
-      "closeSavedTabs": "Cerrar pestañas guardadas",
-      "closeAllTabs": "Cerrar todas las pestañas",
-      "rename": "Renombrar",
-      "copyPath": "Copiar ruta",
-      "showInFolder": "Mostrar en carpeta",
-      "lock": "Bloquear documento",
-      "unlock": "Desbloquear documento",
-      "pin": "Añadir a Fijados",
-      "unpin": "Quitar de Fijados",
-      "splitView": "Vista dividida",
-      "copyAsMarkdown": "Copiar como Markdown",
-      "copyAsHtml": "Copiar como HTML",
-      "copyAsStructuredText": "Copiar como texto estructurado"
-    },
-    "editor": {
-      "undo": "Deshacer",
-      "redo": "Rehacer",
-      "copyAsHtml": "Copiar como HTML",
-      "copyAsPlainText": "Copiar como texto sin formato",
-      "copyAsStructuredText": "Copiar como texto estructurado",
-      "copyAsImage": "Copiar como imagen",
-      "copyImage": "Copiar imagen",
-      "saveAsPng": "Guardar como PNG…",
-      "saveAsSvg": "Guardar como SVG…",
-      "selectAll": "Seleccionar todo",
-      "share": "Compartir"
-    }
-  },
-  "search": {
-    "searchPlaceholder": "Buscar",
-    "caseSensitive": "Distinguir Mayúsculas",
-    "wholeWord": "Seleccionar palabra completa",
-    "useRegex": "Usar consulta como RegEx",
-    "replacementPlaceholder": "Reemplazo",
-    "replaceAll": "Reemplazar",
-    "replaceSingle": "Reemplazar Uno",
-    "invalidRegex": "Expresión regular inválida \"{pattern}\"",
-    "regexMatchEmpty": "La expresión regular coincide con la cadena vacía \"{pattern}\"",
-    "searchResultInfo": "{matchCount} coincidencias en {fileCount} archivos",
-    "searchLimited": "Búsqueda limitada a los primeros {count} resultados",
-    "caseSensitiveTip": "Distinguir mayúsculas (Aa) — «Hello» ≠ «hello»",
-    "wholeWordTip": "Palabra completa (\\b) — «fox» coincide con «fox» pero no con «foxglove»",
-    "useRegexTip": "Expresión regular (.*) — «colou?r» coincide con «color» y «colour»"
+    "sequence-start": "inicio de secuencia"
   },
   "outlineRail": {
     "title": "En esta página"
   },
-  "statusBar": {
-    "title": "Estadísticas del documento",
-    "documentType": "Markdown",
-    "readingTime": "{count} min de lectura",
-    "lines": {
-      "one": "{count} línea",
-      "other": "{count} líneas"
+  "table": {
+    "alignLeft": "Alinear a la Izquierda",
+    "resizeTable": "Redimensionar Tabla",
+    "deleteTable": "Eliminar Tabla",
+    "alignCenter": "Alinear al Centro",
+    "alignRight": "Alinear a la Derecha"
+  },
+  "titleBar": {
+    "popover": {
+      "rename": "Renombrar…",
+      "words": "palabras",
+      "minutes": "{count} min",
+      "lines": "líneas",
+      "edited": "editado {time}",
+      "reading": "lectura",
+      "characters": "caracteres"
     },
-    "words": {
-      "one": "{count} palabra",
-      "other": "{count} palabras"
+    "documentInfo": "Información del documento",
+    "themeMode": {
+      "dark": "Tema: Oscuro",
+      "auto": "Tema: Automático",
+      "light": "Tema: Claro"
     },
-    "characters": {
-      "one": "{count} carácter",
-      "other": "{count} caracteres"
+    "guide": "Guía de Mark"
+  },
+  "guide": {
+    "agentPrompt": {
+      "generic": "Cuando produzcas un plan, una especificación o un informe de más de ~50 líneas, escríbelo en un archivo .md y ábrelo para el usuario en Mark.\nMark renderiza Markdown enriquecido. Usa la herramienta adecuada para cada parte en lugar de prosa simple:\n- Diagramas — bloques ```mermaid; elige el tipo que encaje: flowchart (procesos, decisiones), sequenceDiagram (quién llama a quién), classDiagram, stateDiagram-v2 (ciclos de vida), erDiagram (modelos de datos), gantt (calendarios), timeline (historia, hitos), gitGraph (ramas), mindmap (mapas de ideas), journey (recorridos de usuario), quadrantChart (prioridades), pie, xychart-beta (gráficos de barras/líneas), sankey-beta (flujos de cantidades), block-beta, packet-beta, kanban, architecture-beta, radar-beta, treemap-beta, requirementDiagram, C4Context. Prefiere un diagrama a un párrafo que describa una estructura.\n- Gráficos a partir de datos — ```vega-lite con una especificación JSON; diagramas de flujo rápidos — ```flowchart (flowchart.js); secuencias rápidas — ```sequence.\n- Tablas (con alineación de columnas) para comparaciones, opciones y matrices.\n- Avisos para lo que no debe pasarse por alto: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]; también info, todo, success, question, failure, danger, bug, example, quote, abstract. Pon un título tras la etiqueta; añade - o + para hacerlo plegable.\n- Listas de tareas (- [ ] / - [x]) para próximos pasos y checklists.\n- Matemáticas — $…$ en línea y bloques $$…$$ (KaTeX).\n- Código — bloques cercados con un lenguaje para resaltar la sintaxis.\n- Notas al pie ([^1]) para fuentes y apartes; YAML front matter para metadatos; emoji :shortcodes:; enlaces e imágenes.\n\nMantenlo escaneable: secciones cortas con encabezados, una idea por párrafo.\nCuando el archivo cambie después de escribirlo, vuelve a leerlo: las ediciones del usuario son tu siguiente instrucción.",
+      "mac": "Cuando produzcas un plan, una especificación o un informe de más de ~50 líneas, escríbelo en un archivo .md y ábrelo para el usuario: open -a Mark <file>.md.\nMark renderiza Markdown enriquecido. Usa la herramienta adecuada para cada parte en lugar de prosa simple:\n- Diagramas — bloques ```mermaid; elige el tipo que encaje: flowchart (procesos, decisiones), sequenceDiagram (quién llama a quién), classDiagram, stateDiagram-v2 (ciclos de vida), erDiagram (modelos de datos), gantt (calendarios), timeline (historia, hitos), gitGraph (ramas), mindmap (mapas de ideas), journey (recorridos de usuario), quadrantChart (prioridades), pie, xychart-beta (gráficos de barras/líneas), sankey-beta (flujos de cantidades), block-beta, packet-beta, kanban, architecture-beta, radar-beta, treemap-beta, requirementDiagram, C4Context. Prefiere un diagrama a un párrafo que describa una estructura.\n- Gráficos a partir de datos — ```vega-lite con una especificación JSON; diagramas de flujo rápidos — ```flowchart (flowchart.js); secuencias rápidas — ```sequence.\n- Tablas (con alineación de columnas) para comparaciones, opciones y matrices.\n- Avisos para lo que no debe pasarse por alto: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]; también info, todo, success, question, failure, danger, bug, example, quote, abstract. Pon un título tras la etiqueta; añade - o + para hacerlo plegable.\n- Listas de tareas (- [ ] / - [x]) para próximos pasos y checklists.\n- Matemáticas — $…$ en línea y bloques $$…$$ (KaTeX).\n- Código — bloques cercados con un lenguaje para resaltar la sintaxis.\n- Notas al pie ([^1]) para fuentes y apartes; YAML front matter para metadatos; emoji :shortcodes:; enlaces e imágenes.\n\nMantenlo escaneable: secciones cortas con encabezados, una idea por párrafo.\nCuando el archivo cambie después de escribirlo, vuelve a leerlo: las ediciones del usuario son tu siguiente instrucción."
     },
-    "selectedWords": {
-      "one": "{count} palabra seleccionada",
-      "other": "{count} palabras seleccionadas"
+    "tabTitle": "Guía de Mark"
+  },
+  "commands": {
+    "file": {
+      "moveFile": "Mover Archivo",
+      "newTab": "Nueva Pestaña",
+      "openFolder": null,
+      "toggleAutoSave": "Alternar Guardado Automático",
+      "lineEnding": "Final de línea",
+      "replaceWorkspace": "Reemplazar espacio de trabajo…",
+      "changeLineEnding": "Cambiar Final de Línea",
+      "checkUpdate": "Buscar Actualizaciones",
+      "addFolder": "Añadir carpeta…",
+      "preferences": "Preferencias",
+      "openFile": "Abrir Archivo",
+      "quickOpen": "Apertura Rápida",
+      "zoom": "Zoom",
+      "exportFile": "Exportar Archivo",
+      "print": "Imprimir",
+      "changeEncoding": "Cambiar Codificación",
+      "saveAs": "Guardar Como",
+      "close": "Cerrar",
+      "closeTab": "Cerrar Pestaña",
+      "importFile": "Importar Archivo",
+      "renameFile": "Renombrar Archivo",
+      "quit": "Salir",
+      "closeWindow": "Cerrar Ventana",
+      "trailingNewline": "Nueva Línea Final",
+      "save": "Guardar",
+      "exportFilePdf": "Exportar como PDF",
+      "openFromClipboard": "Abrir del portapapeles",
+      "reopenClosedTab": "Reabrir pestaña cerrada",
+      "newWindow": "Nueva Ventana"
     },
-    "selectedCharacters": {
-      "one": "{count} carácter seleccionado",
-      "other": "{count} caracteres seleccionados"
+    "paragraph": {
+      "table": "Tabla",
+      "heading6": "Encabezado 6",
+      "htmlBlock": "Bloque HTML",
+      "heading5": "Encabezado 5",
+      "looseListItem": "Elemento de Lista Suelto",
+      "bulletList": "Lista con Viñetas",
+      "horizontalLine": "Línea Horizontal",
+      "quoteBlock": "Bloque de Cita",
+      "heading2": "Encabezado 2",
+      "codeFence": "Bloque de Código",
+      "horizontalRule": "Línea horizontal",
+      "degradeHeading": "Degradar Encabezado",
+      "heading3": "Encabezado 3",
+      "paragraph": "Párrafo",
+      "frontMatter": "Metadatos",
+      "heading1": "Encabezado 1",
+      "resetParagraph": "Restablecer Párrafo",
+      "orderList": "Lista Ordenada",
+      "upgradeHeading": "Promover Encabezado",
+      "taskList": "Lista de Tareas",
+      "mathBlock": "Bloque matemático",
+      "heading4": "Encabezado 4",
+      "mathFormula": "Fórmula Matemática"
+    },
+    "window": {
+      "zoomOut": "Alejar",
+      "close": "Cerrar",
+      "zoomIn": "Acercar",
+      "toggleAlwaysOnTop": "Alternar Siempre Encima",
+      "toggleFullScreen": "Alternar Pantalla Completa",
+      "changeTheme": "Cambiar Tema",
+      "minimize": "Minimizar"
+    },
+    "docs": {
+      "userGuide": "Guía del Usuario",
+      "markdownSyntax": "Sintaxis de Markdown"
+    },
+    "tabs": {
+      "switchToLeft": "Cambiar a la Izquierda",
+      "switchToFourth": "Cambiar al Cuarto",
+      "cycleForward": "Ciclar Adelante",
+      "switchToThird": "Cambiar al Tercero",
+      "switchToTenth": "Cambiar al Décimo",
+      "switchToSecond": "Cambiar al Segundo",
+      "switchToFirst": "Cambiar al Primero",
+      "cycleBackward": "Ciclar Atrás",
+      "switchToSeventh": "Cambiar al Séptimo",
+      "switchToEighth": "Cambiar al Octavo",
+      "switchToRight": "Cambiar a la Derecha",
+      "switchToFifth": "Cambiar al Quinto",
+      "switchToNinth": "Cambiar al Noveno",
+      "switchToSixth": "Cambiar al Sexto"
+    },
+    "format": {
+      "superscript": "Superíndice",
+      "clearFormat": "Limpiar Formato",
+      "emphasis": "Cursiva",
+      "subscript": "Subíndice",
+      "hyperlink": "Hipervínculo",
+      "inlineMath": "Matemáticas en Línea",
+      "strong": "Negrita",
+      "inlineCode": "Código en Línea",
+      "strike": "Tachado",
+      "image": "Imagen",
+      "highlight": "Resaltar",
+      "underline": "Subrayado"
+    },
+    "spellchecker": {
+      "switchLanguage": "Cambiar Idioma"
+    },
+    "edit": {
+      "findInFolder": "Buscar en Carpeta",
+      "createParagraph": "Crear Párrafo",
+      "copyAsStructuredText": "Copiar como texto estructurado",
+      "deleteParagraph": "Eliminar Párrafo",
+      "copyAsHtml": "Copiar como HTML",
+      "undo": "Deshacer",
+      "copyAsRich": "Copiar como Texto Enriquecido",
+      "replace": "Reemplazar",
+      "pasteAsPlaintext": "Pegar como Texto Plano",
+      "paste": "Pegar",
+      "copyAsPlainText": "Copiar como texto sin formato",
+      "screenshot": "Captura de Pantalla",
+      "cut": "Cortar",
+      "findNext": "Buscar Siguiente",
+      "redo": "Rehacer",
+      "find": "Buscar",
+      "copyAsMarkdown": "Copiar como Markdown",
+      "copy": "Copiar",
+      "findPrevious": "Buscar Anterior",
+      "selectAll": "Seleccionar",
+      "duplicate": "Duplicar",
+      "mathBlock": "Bloque matemático"
+    },
+    "mt": {
+      "hideOthers": "Ocultar Otros",
+      "hide": "Ocultar Mark"
+    },
+    "help": {
+      "whatsNew": "Novedades",
+      "guide": "Guía de Mark",
+      "rateMark": "Valorar Mark…",
+      "support": "Apoyar a Mark en Ko-fi…"
+    },
+    "view": {
+      "devToggleDeveloperTools": "Alternar herramientas de desarrollador",
+      "zoomIn": "Acercar",
+      "toggleToc": "Alternar Tabla de Contenidos",
+      "toggleSidebar": "Alternar Barra Lateral",
+      "devReload": "Recarga de Desarrollador",
+      "focusMode": "Modo Enfoque",
+      "splitView": "Vista dividida",
+      "sourceCodeMode": "Modo Código Fuente",
+      "toggleTypewriterMode": "Alternar Modo Máquina de Escribir",
+      "lockDocument": "Bloquear el documento actual (solo lectura)",
+      "outline": "Mostrar u ocultar el esquema «En esta página»",
+      "zoomOut": "Alejar",
+      "typewriterMode": "Modo Máquina de Escribir",
+      "toggleDevTools": "Alternar Herramientas de Desarrollador",
+      "toggleSourceCodeMode": "Alternar Modo Código Fuente",
+      "actualSize": "Tamaño real",
+      "commandPalette": "Paleta de Comandos",
+      "toggleFocusMode": "Alternar Modo Enfoque",
+      "textDirection": "Dirección del Texto",
+      "statusBar": "Mostrar u ocultar la barra de estado",
+      "toggleTabbar": "Alternar Barra de Pestañas",
+      "reloadImages": "Recargar Imágenes"
+    },
+    "utils": {
+      "noUpdateResourceFile": "No hay archivo de recurso de actualización",
+      "todoUpdateCheck": "Buscar actualizaciones"
     }
+  },
+  "updateNotice": {
+    "title": "Mark {version} está disponible",
+    "skip": "Omitir esta versión",
+    "later": "Más tarde",
+    "update": "Actualizar"
   },
   "tabs": {
     "lockedTitle": "Solo lectura"
   },
-  "sideBar": {
-    "search": {
-      "searchInFolder": "Buscar en carpeta...",
-      "noFolderOpen": "No hay carpeta abierta",
-      "noResultsFound": "No se encontraron resultados.",
-      "cancel": "Cancelar",
-      "openFolder": "Abrir Carpeta",
-      "showMoreMatches": "Mostrar más coincidencias",
-      "startTyping": "Escriba para buscar en los archivos markdown de la carpeta abierta.",
-      "searching": "Buscando…"
-    },
-    "tree": {
-      "openedFiles": "Archivos abiertos",
-      "saveAll": "Guardar",
-      "closeAll": "Cerrar",
-      "emptyProject": "Proyecto vacío",
-      "createFile": "Crear Archivo",
-      "openFolder": "Abrir Carpeta",
-      "closeFolder": "Cerrar carpeta",
-      "newFile": "Nuevo archivo",
-      "recentFiles": "Recientes",
-      "clearRecent": "Borrar recientes",
-      "pinnedFiles": "Fijados",
-      "pinned": "Fijado",
-      "remove": "Eliminar",
-      "unpin": "Dejar de fijar",
-      "openOrSwitchFolder": "Abrir o cambiar de carpeta"
-    },
-    "toc": {
-      "title": "Tabla de Contenidos"
-    },
-    "icons": {
-      "files": "Archivos",
-      "search": "Buscar",
-      "toc": "Tabla de Contenidos",
-      "settings": "Configuración"
-    }
-  },
-  "commandPalette": {
-    "placeholder": "Escriba un comando para ejecutar",
-    "placeholders": {
-      "selectOption": "Seleccionar opción",
-      "searchFileToOpen": "Buscar archivo para abrir",
-      "selectLanguage": "Seleccionar idioma"
-    }
-  },
-  "exportSettings": {
-    "autoNumberingHeadings": "Numeración automática de encabezados",
-    "title": "Opciones de Exportación",
-    "pdfTitle": "Exportar a PDF",
-    "info": {
-      "label": "Información",
-      "description": "Por favor personalice la apariencia de la página y haga clic en \"exportar\" para continuar."
-    },
-    "page": {
-      "label": "Página",
-      "pageTitle": "El título de la página:",
-      "pageSize": "Tamaño de página:",
-      "landscapeOrientation": "Orientación horizontal:",
-      "pageMargin": "Margen de página en mm:",
-      "topBottom": "Superior/Inferior:",
-      "leftRight": "Izquierda/Derecha:",
-      "widthHeight": "Ancho/Alto en mm:"
-    },
-    "showFrontMatter": "Mostrar metadatos",
-    "style": {
-      "label": "Estilo",
-      "overwriteThemeFont": "Sobrescribir configuración de fuente del tema",
-      "fontFamily": "Familia de fuente:",
-      "fontSize": "Tamaño de fuente",
-      "lineHeight": "Altura de línea"
-    },
-    "theme": {
-      "label": "Tema",
-      "description": "Puede cambiar la apariencia del documento eligiendo un tema o creando uno personalizado.",
-      "theme": "Tema"
-    },
-    "headerFooter": {
-      "allowStyled": "Permitir texto con estilo",
-      "customizeStyle": "Personalizar estilo",
-      "fontSize": "Tamaño de fuente",
-      "footerType": "Tipo de pie de página",
-      "headerType": "Tipo de encabezado",
-      "label": "Encabezado y Pie de Página",
-      "leftFooterText": "Texto del pie izquierdo",
-      "leftHeaderText": "Texto del encabezado izquierdo",
-      "mainFooterText": "Texto del pie principal",
-      "mainHeaderText": "Texto del encabezado principal",
-      "rightFooterText": "Texto del pie derecho",
-      "rightHeaderText": "Texto del encabezado derecho",
-      "description": "El texto aparece en todas las páginas si se define encabezado y/o pie de página."
-    },
-    "toc": {
-      "includeTopHeading": "Incluir encabezado superior",
-      "includeTopHeadingDetail": "Incluir detalle del encabezado superior",
-      "label": "Tabla de Contenidos",
-      "title": "Tabla de Contenidos"
-    },
-    "export": "Exportar...",
-    "options": {
-      "pageSizes": {
-        "a3": "A3",
-        "a4": "A4",
-        "a5": "A5",
-        "legal": "Legal EE.UU. (8.5\" x 13\")",
-        "letter": "Carta EE.UU. (8.5\" x 11\")",
-        "tabloid": "Tabloide (17\" x 11\")",
-        "custom": "Personalizado"
-      },
-      "headerFooterTypes": {
-        "none": "Ninguno",
-        "singleCell": "Celda única",
-        "threeCells": "Tres celdas"
-      },
-      "headerFooterStyles": {
-        "default": "Predeterminado",
-        "simple": "Simple",
-        "styled": "Con estilo"
-      },
-      "themes": {
-        "academic": "Académico",
-        "default": "GitHub (Predeterminado)",
-        "liber": "Liber"
-      }
-    }
-  },
-  "table": {
-    "resizeTable": "Redimensionar Tabla",
-    "alignLeft": "Alinear a la Izquierda",
-    "alignCenter": "Alinear al Centro",
-    "alignRight": "Alinear a la Derecha",
-    "deleteTable": "Eliminar Tabla"
-  },
-  "blockViewer": {
-    "expand": "Ampliar",
-    "close": "Cerrar",
-    "zoomIn": "Acercar",
-    "zoomOut": "Alejar",
-    "fit": "Ajustar a la pantalla",
-    "actualSize": "100%",
-    "copyImage": "Copiar como imagen",
-    "savePng": "Guardar como PNG…",
-    "saveSvg": "Guardar como SVG…",
-    "diagram": "Diagrama",
-    "table": "Tabla"
-  },
-  "blockToolbar": {
-    "editSource": "Editar fuente",
-    "copyImage": "Copiar como imagen",
-    "openFullScreen": "Abrir a pantalla completa"
-  },
-  "tableToolbar": {
-    "fullWidth": "Ancho total",
-    "fitToPage": "Ajustar a la página",
-    "columnsRange": "columnas {start}–{end} de {total}",
-    "allColumns": "todas las {total} columnas"
-  },
-  "recent": {
-    "taglineLead": "Los agentes escriben. Tú",
-    "taglineHighlight": "das forma",
-    "taglineTail": "al resultado.",
-    "openFile": "Abrir archivo…",
-    "openFolder": "Abrir carpeta…",
-    "newButton": "Nuevo",
-    "recentFiles": "Archivos recientes",
-    "recentFolders": "Carpetas recientes",
-    "noRecentFiles": "No hay archivos recientes",
-    "lastSession": "Última sesión",
-    "lastSessionWithCount": "Última sesión ({count})",
-    "lastSessionEmpty": "No hay nada que restaurar: los archivos de la sesión anterior ya no están disponibles",
-    "filesCount": {
-      "one": "{count} archivo",
-      "many": "{count} archivos",
-      "other": "{count} archivos"
-    },
-    "remove": "Quitar de la lista",
-    "removeTooltip": "Solo lo quita de esta lista. El archivo sigue en el disco.",
-    "removedToast": "Se quitó «{name}» de Recientes",
-    "undo": "Deshacer",
-    "open": "Abrir",
-    "copyPath": "Copiar ruta",
-    "showInFinder": "Mostrar en Finder",
-    "showInExplorer": "Mostrar en el Explorador",
-    "showInFolder": "Mostrar en la carpeta",
-    "guide": "Guía",
-    "whatsNewIn": "Novedades de {version}",
-    "connectTitle": "Conecta tu agente.",
-    "connectText": "Un solo prompt hace que abra sus planes aquí y lea tus ediciones.",
-    "copyPrompt": "Copiar prompt",
-    "howItWorks": "Cómo funciona",
-    "time": {
-      "justNow": "ahora mismo",
-      "minutesAgo": "hace {count} min",
-      "todayAt": "hoy a las {time}",
-      "yesterday": "ayer",
-      "daysAgo": "hace {count} días"
-    },
-    "recentlyClosed": {
-      "title": "Cerradas recientemente",
-      "clear": "Limpiar",
-      "reopenAll": "Reabrir las {count}",
-      "reopenClosedTab": "Reabrir pestaña cerrada",
-      "missingNotice": "{name} ya no está disponible",
-      "someMissingNotice": "{count} de los archivos cerrados ya no están disponibles",
-      "buttonLabel": "Reabrir pestañas cerradas ({count})"
-    }
-  },
-  "clipboardOpen": {
-    "nothingFoundTitle": "No hay ninguna carpeta ni archivo Markdown en el portapapeles",
-    "nothingFoundMessage": "Copia una carpeta en Finder o una ruta de archivo y vuelve a intentarlo."
-  },
-  "import": {
-    "title": "Importar o Abrir",
-    "description": "Arrastra aquí para obtener tu contenido en Mark"
-  },
-  "tweet": {
-    "title": "Envíanos comentarios vía tweet",
-    "feelingsQuestion": "¿Cuáles son tus sentimientos sobre la experiencia?",
-    "feedbackQuestion": "¿Cuéntanos tus comentarios?",
-    "reportViaGithub": "Reportar error o solicitud de función vía github",
-    "tweet": "Tweet"
-  },
   "preferences": {
     "title": "Preferencias",
-    "tabs": {
-      "general": "General",
-      "appearance": "Apariencia",
-      "editor": "Editor",
-      "markdown": "Markdown",
-      "advanced": "Avanzado"
-    },
-    "search": {
-      "placeholder": "Buscar preferencias...",
-      "empty": "No hay configuraciones coincidentes",
-      "categories": {
-        "general": "General",
-        "appearance": "Apariencia",
-        "editor": "Editor",
-        "markdown": "Markdown",
-        "advanced": "Avanzado",
-        "view": "Vista",
-        "searcher": "Buscador",
-        "watcher": "Observador"
-      },
-      "items": {
-        "autoSave": "Guardar los cambios automáticamente poco después de dejar de escribir",
-        "autoSaveDelay": "Cuánto esperar tras la última pulsación antes de guardar",
-        "previewModeOnFinderOpen": "Abrir los documentos desde Finder en vista de lectura",
-        "restoreSessionOnLaunch": "Reabrir la última sesión al iniciar",
-        "language": "Idioma de la aplicación",
-        "defaultEncoding": "Codificación de archivo para los archivos nuevos",
-        "endOfLine": "Final de línea usado en los archivos nuevos y al guardar",
-        "treeShowAllFiles": "Mostrar todos los archivos en el árbol de carpetas (no solo Markdown)",
-        "titleBarStyle": "Barra de título de la ventana: personalizada o del sistema (requiere reinicio)",
-        "hideScrollbar": "Ocultar las barras de desplazamiento",
-        "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
-        "statusBarVisibility": "Mostrar la barra de estado (líneas, palabras, caracteres, tiempo de lectura)",
-        "editorFontFamily": "Fuente del texto",
-        "fontSize": "Tamaño del texto",
-        "lineHeight": "Interlineado",
-        "editorLineWidth": "Ancho del área de escritura",
-        "theme": "Tema",
-        "followSystemTheme": "Modo automático: seguir la apariencia del sistema",
-        "lightModeTheme": "Tema para la apariencia clara",
-        "darkModeTheme": "Tema para la apariencia oscura",
-        "autoPairBracket": "Cerrar corchetes automáticamente",
-        "autoPairMarkdownSyntax": "Cerrar los marcadores de markdown automáticamente",
-        "autoPairQuote": "Cerrar comillas automáticamente",
-        "autoCheck": "Marcar las tareas con un clic",
-        "autoCheckUpdates": "Buscar actualizaciones automáticamente",
-        "hideQuickInsertHint": "Ocultar la sugerencia de inserción en las líneas vacías",
-        "hideLinkPopup": "Ocultar la vista previa de enlaces",
-        "textDirection": "Dirección del texto",
-        "tabSize": "Espacios que inserta la tecla Tab",
-        "spellcheckerEnabled": "Comprobar la ortografía",
-        "spellcheckerNoUnderline": "Subrayar las palabras mal escritas",
-        "spellcheckerLanguage": "Idioma del corrector ortográfico",
-        "codeFontFamily": "Fuente del código",
-        "codeFontSize": "Tamaño del texto del código",
-        "codeBlockLineNumbers": "Mostrar los números de línea en los bloques de código",
-        "wrapCodeBlocks": "Ajustar las líneas largas en los bloques de código",
-        "trimUnnecessaryCodeBlockEmptyLines": "Recortar las líneas vacías alrededor del código",
-        "preferLooseListItem": "Espaciado entre los elementos de las listas",
-        "bulletListMarker": "Carácter de viñeta",
-        "orderListDelimiter": "Formato de lista numerada",
-        "listIndentation": "Sangría de las listas",
-        "footnote": "Notas al pie",
-        "mathEnabled": "Fórmulas matemáticas",
-        "superSubScript": "Superíndice y subíndice",
-        "frontmatterType": "Formato de los metadatos",
-        "frontmatterProperties": "Mostrar los metadatos como tabla de propiedades",
-        "isHtmlEnabled": "Permitir HTML dentro de los documentos",
-        "isGitlabCompatibilityEnabled": "Markdown estilo GitLab",
-        "sequenceTheme": "Estilo del diagrama de secuencia",
-        "imageInsertAction": "Cuando añado una imagen",
-        "imagePreferRelativeDirectory": "Guardar las imágenes junto al documento",
-        "imageRelativeDirectoryName": "Nombre de la carpeta de imágenes",
-        "customCss": "CSS personalizado"
-      }
-    },
-    "general": {
-      "title": "General",
-      "macosIntegration": {
-        "title": "Integración con macOS",
-        "defaultForMd": "Aplicación predeterminada para los archivos .md",
-        "statusIsDefault": "Mark es la aplicación predeterminada para los archivos .md.",
-        "statusCurrent": "Aplicación predeterminada para los archivos .md: {name}.",
-        "statusNone": "No hay ninguna aplicación predeterminada para los archivos .md.",
-        "setDefault": "Establecer como predeterminada",
-        "removeDefault": "Quitar como predeterminada"
-      },
-      "startup": {
-        "title": "Inicio",
-        "previewModeOnFinderOpen": "Abrir los documentos desde Finder en vista de lectura",
-        "previewModeOnFinderOpenHelp": "Los archivos abiertos con doble clic en Finder o desde el Dock se abren en modo de solo lectura; haz clic para editar.",
-        "restoreSessionOnLaunch": "Reabrir la última sesión al iniciar",
-        "restoreSessionOnLaunchHelp": "Al iniciar, Mark recupera la carpeta y las pestañas que tenías abiertas."
-      },
-      "language": {
-        "title": "Idioma",
-        "appLanguage": "Idioma de la aplicación",
-        "system": "Como en el sistema",
-        "english": "English",
-        "chinese": "简体中文",
-        "traditionalChinese": "繁體中文",
-        "spanish": "Español",
-        "french": "Français",
-        "german": "Deutsch",
-        "japanese": "日本語",
-        "korean": "한국어",
-        "portuguese": "Português",
-        "russian": "Русский"
-      },
-      "filesAndSaving": {
-        "title": "Archivos y guardado",
-        "autoSave": "Guardar los cambios automáticamente",
-        "autoSaveHelp": "Guarda el archivo actual poco después de dejar de escribir.",
-        "autoSaveDelay": "Guardar tras una pausa de",
-        "autoSaveDelayHelp": "Cuánto esperar tras la última pulsación antes de guardar.",
-        "defaultEncoding": "Codificación de archivo para los archivos nuevos",
-        "defaultEncodingHelp": "Los archivos que declaran su propia codificación siempre se abren correctamente, independientemente de esta opción.",
-        "endOfLine": "Final de línea",
-        "endOfLineHelp": "Se usa en los archivos nuevos y al guardar.",
-        "endOfLineSystem": "Según mi sistema operativo",
-        "endOfLineLf": "LF (Unix, macOS)",
-        "endOfLineCrlf": "CRLF (Windows)",
-        "secondsUnit": "s",
-        "showAllFiles": "Mostrar todos los archivos",
-        "showAllFilesHelp": "Muestra todos los archivos en el árbol de carpetas, no solo los de Markdown. Los que no son de Markdown quedan atenuados y no se pueden abrir."
-      },
-      "updates": {
-        "title": "Actualizaciones",
-        "help": "Comprueba en línea si hay una versión más reciente y la instala.",
-        "check": "Buscar actualizaciones",
-        "autoCheck": "Buscar actualizaciones automáticamente",
-        "autoCheckHelp": "Busca una versión nueva una vez al día al iniciar Mark y avisa discretamente.",
-        "checking": "Comprobando…",
-        "upToDate": "Tienes la última versión.",
-        "available": "Mark {version} está disponible.",
-        "install": "Instalar {version}",
-        "failed": "No se pudieron buscar actualizaciones. Inténtalo más tarde."
-      }
-    },
-    "appearance": {
-      "title": "Apariencia",
-      "theme": {
-        "title": "Tema",
-        "mode": "Apariencia",
-        "modeHelp": "Automático sigue la apariencia de tu equipo. Cada tema tiene una variante clara y otra oscura.",
-        "modeAuto": "Automático",
-        "modeLight": "Clara",
-        "modeDark": "Oscura"
-      },
-      "text": {
-        "title": "Texto",
-        "font": "Fuente del texto",
-        "fontSize": "Tamaño del texto",
-        "lineHeight": "Interlineado",
-        "lineWidth": "Ancho del área de escritura",
-        "lineWidthHelp": "Déjalo vacío para usar todo el ancho o introduce un número con px, % o ch; por ejemplo, 720px.",
-        "unlimited": "Sin límite"
-      },
-      "window": {
-        "title": "Ventana y paneles",
-        "hideScrollbar": "Ocultar las barras de desplazamiento",
-        "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
-        "statusBar": "Mostrar la barra de estado",
-        "statusBarHelp": "Líneas, palabras, caracteres y tiempo de lectura en la parte inferior de la ventana (también en Ver › Barra de estado).",
-        "titleBarStyle": "Barra de título de la ventana",
-        "titleBarStyleHelp": "Personalizada muestra la barra de título propia de Mark con pestañas. Requiere reiniciar.",
-        "titleBarStyleCustom": "Personalizada",
-        "titleBarStyleNative": "Del sistema"
-      }
-    },
     "editor": {
       "title": "Editor",
-      "typing": {
-        "title": "Escritura",
-        "autoPairBracket": "Cerrar corchetes automáticamente",
-        "autoPairQuote": "Cerrar comillas automáticamente",
-        "autoPairMarkdownSyntax": "Cerrar los marcadores de markdown",
-        "autoPairMarkdownSyntaxHelp": "Al escribir ** o __ se inserta el marcador de cierre automáticamente.",
-        "autoCheck": "Marcar las tareas con un clic",
-        "autoCheckHelp": "Permite activar y desactivar las casillas de las listas de tareas en el documento.",
-        "hideQuickInsertHint": "Ocultar la sugerencia de inserción en las líneas vacías",
-        "hideQuickInsertHintHelp": "El pequeño «+» que aparece al empezar un párrafo nuevo.",
-        "hideLinkPopup": "Ocultar la vista previa de enlaces",
-        "hideLinkPopupHelp": "La ventana emergente que aparece cuando el cursor está sobre un enlace.",
-        "textDirection": "Dirección del texto",
-        "textDirectionLtr": "De izquierda a derecha",
-        "textDirectionRtl": "De derecha a izquierda"
-      },
-      "tabs": {
-        "title": "Tabulación y sangría",
-        "tabSize": "Espacios que inserta la tecla Tab",
-        "tabSizeHelp": "La tecla Tab inserta espacios en lugar de un carácter de tabulación."
-      },
       "spelling": {
         "title": "Ortografía",
-        "enabled": "Comprobar la ortografía",
-        "underline": "Subrayar las palabras mal escritas",
         "macAutoDetectHelp": "macOS detecta automáticamente el idioma del documento.",
         "language": "Idioma del corrector ortográfico",
         "customDictionary": {
           "title": "Diccionario personalizado",
           "noWordsAvailable": "No hay palabras disponibles",
           "delete": "Eliminar"
-        }
+        },
+        "enabled": "Comprobar la ortografía",
+        "underline": "Subrayar las palabras mal escritas"
       },
       "codeBlocks": {
+        "trimBlankLinesHelp": "Elimina las líneas vacías del principio y del final de un bloque de código.",
         "title": "Bloques de código",
-        "fontFamily": "Fuente del código",
+        "trimBlankLines": "Recortar las líneas vacías alrededor del código",
         "fontSize": "Tamaño del texto del código",
         "lineNumbers": "Mostrar los números de línea",
-        "wrapLongLines": "Ajustar las líneas largas en los bloques de código",
-        "trimBlankLines": "Recortar las líneas vacías alrededor del código",
-        "trimBlankLinesHelp": "Elimina las líneas vacías del principio y del final de un bloque de código."
+        "fontFamily": "Fuente del código",
+        "wrapLongLines": "Ajustar las líneas largas en los bloques de código"
+      },
+      "typing": {
+        "title": "Escritura",
+        "autoPairBracket": "Cerrar corchetes automáticamente",
+        "hideLinkPopupHelp": "La ventana emergente que aparece cuando el cursor está sobre un enlace.",
+        "textDirectionLtr": "De izquierda a derecha",
+        "hideLinkPopup": "Ocultar la vista previa de enlaces",
+        "autoPairMarkdownSyntax": "Cerrar los marcadores de markdown",
+        "autoPairQuote": "Cerrar comillas automáticamente",
+        "hideQuickInsertHintHelp": "El pequeño «+» que aparece al empezar un párrafo nuevo.",
+        "textDirection": "Dirección del texto",
+        "textDirectionRtl": "De derecha a izquierda",
+        "autoPairMarkdownSyntaxHelp": "Al escribir ** o __ se inserta el marcador de cierre automáticamente.",
+        "hideQuickInsertHint": "Ocultar la sugerencia de inserción en las líneas vacías",
+        "autoCheck": "Marcar las tareas con un clic",
+        "autoCheckHelp": "Permite activar y desactivar las casillas de las listas de tareas en el documento."
+      },
+      "tabs": {
+        "title": "Tabulación y sangría",
+        "tabSizeHelp": "La tecla Tab inserta espacios en lugar de un carácter de tabulación.",
+        "tabSize": "Espacios que inserta la tecla Tab"
       }
     },
-    "markdown": {
-      "title": "Markdown",
-      "lists": {
-        "title": "Listas",
-        "spacing": "Espaciado entre los elementos de las listas",
-        "spacingCompact": "Compacto",
-        "spacingSpaced": "Espaciado",
-        "spacingHelp": "Espaciado deja una línea en blanco entre los elementos, algo que algunos renderizadores exigen.",
-        "bulletCharacter": "Carácter de viñeta",
-        "orderedListFormat": "Formato de lista numerada",
-        "orderedListDot": "1. elemento",
-        "orderedListParen": "1) elemento",
-        "indentation": "Sangría de las listas",
-        "indentationHelp": "Cómo se sangran las líneas de las listas anidadas al escribir el archivo.",
-        "indentAlignWithText": "Alinear con el texto",
-        "indentTab": "Usar una tabulación",
-        "indentOneSpace": "1 espacio",
-        "indentTwoSpaces": "2 espacios",
-        "indentThreeSpaces": "3 espacios",
-        "indentFourSpaces": "4 espacios"
+    "general": {
+      "macosIntegration": {
+        "title": "Integración con macOS",
+        "statusIsDefault": "Mark es la aplicación predeterminada para los archivos .md.",
+        "statusNone": "No hay ninguna aplicación predeterminada para los archivos .md.",
+        "removeDefault": "Quitar como predeterminada",
+        "statusCurrent": "Aplicación predeterminada para los archivos .md: {name}.",
+        "setDefault": "Establecer como predeterminada",
+        "defaultForMd": "Aplicación predeterminada para los archivos .md"
       },
-      "extensions": {
-        "title": "Extensiones",
-        "footnote": "Notas al pie",
-        "footnoteHelp": "Activa la sintaxis de notas al pie [^1] (extensión de Pandoc).",
-        "math": "Fórmulas matemáticas",
-        "mathHelp": "Renderiza $…$ y $$…$$ con KaTeX.",
-        "superSubScript": "Superíndice y subíndice",
-        "superSubScriptHelp": "Activa ^texto^ y ~texto~ (extensión de Pandoc).",
-        "frontmatterFormat": "Formato de los metadatos",
-        "frontmatterFormatHelp": "El delimitador del bloque de metadatos al principio de un documento.",
-        "frontmatterJsonSemicolon": "JSON con punto y coma",
-        "frontmatterJsonBrace": "JSON con llaves",
-        "frontmatterProperties": "Mostrar los metadatos como tabla de propiedades",
-        "frontmatterPropertiesHelp": "Haz clic en la tabla para editar el YAML sin formato."
+      "title": "General",
+      "language": {
+        "title": "Idioma",
+        "russian": "Русский",
+        "japanese": "日本語",
+        "korean": "한국어",
+        "appLanguage": "Idioma de la aplicación",
+        "traditionalChinese": "繁體中文",
+        "spanish": "Español",
+        "english": "English",
+        "french": "Français",
+        "system": "Como en el sistema",
+        "chinese": "简体中文",
+        "german": "Deutsch",
+        "portuguese": "Português"
       },
-      "compatibility": {
-        "title": "Compatibilidad",
-        "allowHtml": "Permitir HTML dentro de los documentos",
-        "allowHtmlHelp": "Si está desactivado, las etiquetas HTML se muestran como texto.",
-        "gitlabFlavored": "Markdown estilo GitLab",
-        "gitlabFlavoredHelp": "Activa los extras de GitLab, como su sintaxis de diagramas y de referencias.",
-        "sequenceDiagramStyle": "Estilo del diagrama de secuencia",
-        "sequenceHandDrawn": "Dibujado a mano",
-        "sequenceSimple": "Simple"
+      "filesAndSaving": {
+        "title": "Archivos y guardado",
+        "showAllFilesHelp": "Muestra todos los archivos en el árbol de carpetas, no solo los de Markdown. Los que no son de Markdown quedan atenuados y no se pueden abrir.",
+        "autoSaveDelay": "Guardar tras una pausa de",
+        "endOfLineHelp": "Se usa en los archivos nuevos y al guardar.",
+        "endOfLine": "Final de línea",
+        "endOfLineSystem": "Según mi sistema operativo",
+        "defaultEncodingHelp": "Los archivos que declaran su propia codificación siempre se abren correctamente, independientemente de esta opción.",
+        "defaultEncoding": "Codificación de archivo para los archivos nuevos",
+        "endOfLineCrlf": "CRLF (Windows)",
+        "showAllFiles": "Mostrar todos los archivos",
+        "endOfLineLf": "LF (Unix, macOS)",
+        "autoSaveHelp": "Guarda el archivo actual poco después de dejar de escribir.",
+        "secondsUnit": "s",
+        "autoSaveDelayHelp": "Cuánto esperar tras la última pulsación antes de guardar.",
+        "autoSave": "Guardar los cambios automáticamente"
+      },
+      "startup": {
+        "title": "Inicio",
+        "restoreSessionOnLaunch": "Reabrir la última sesión al iniciar",
+        "restoreSessionOnLaunchHelp": "Al iniciar, Mark recupera la carpeta y las pestañas que tenías abiertas.",
+        "previewModeOnFinderOpenHelp": "Los archivos abiertos con doble clic en Finder o desde el Dock se abren en modo de solo lectura; haz clic para editar.",
+        "previewModeOnFinderOpen": "Abrir los documentos desde Finder en vista de lectura"
+      },
+      "updates": {
+        "title": "Actualizaciones",
+        "upToDate": "Tienes la última versión.",
+        "check": "Buscar actualizaciones",
+        "failed": "No se pudieron buscar actualizaciones. Inténtalo más tarde.",
+        "help": "Comprueba en línea si hay una versión más reciente y la instala.",
+        "available": "Mark {version} está disponible.",
+        "autoCheck": "Buscar actualizaciones automáticamente",
+        "checking": "Comprobando…",
+        "install": "Instalar {version}",
+        "autoCheckHelp": "Busca una versión nueva una vez al día al iniciar Mark y avisa discretamente."
       }
     },
     "advanced": {
       "title": "Avanzado",
-      "images": {
-        "title": "Imágenes",
-        "insertAction": "Cuando añado una imagen",
-        "insertActionFolder": "Copiarla en una carpeta",
-        "insertActionPath": "Mantener su ubicación original",
-        "folder": "Carpeta de imágenes",
-        "folderHelp": "Dónde se guardan las imágenes pegadas o arrastradas cuando no se guardan junto al documento.",
-        "folderPlaceholder": "Elige una carpeta…",
-        "chooseFolder": "Elegir…",
-        "openFolder": "Abrir",
-        "saveNextToDocument": "Guardar las imágenes junto al documento",
-        "saveNextToDocumentHelp": "Usa la carpeta indicada abajo dentro de la carpeta del documento y escribe enlaces relativos.",
-        "folderName": "Nombre de la carpeta de imágenes",
-        "folderNameHelp": "${'{'}filename{'}'} inserta el nombre del documento."
-      },
-      "customise": {
-        "title": "Personalización",
-        "keyboardShortcuts": "Atajos de teclado",
-        "extensions": "Extensiones",
-        "customCss": "CSS personalizado",
-        "customCssHelp": "Se aplica sobre el tema seleccionado.",
-        "edit": "Editar…",
-        "browse": "Explorar…"
+      "sheets": {
+        "customCssSave": "Guardar",
+        "close": "Cerrar",
+        "customCssTitle": "CSS personalizado",
+        "extensionsTitle": "Extensiones",
+        "customCssPlaceholder": "/* CSS personalizado aplicado sobre el tema */",
+        "shortcutsTitle": "Atajos de teclado"
       },
       "reset": {
         "title": "Restablecer",
         "restore": "Restaurar todos los valores predeterminados",
         "restoreHelp": "Tus documentos no se modifican.",
-        "restoreButton": "Restaurar…",
-        "confirmTitle": "¿Restaurar todos los valores predeterminados?",
         "confirmMessage": "Todas las opciones vuelven a su valor predeterminado. Tus documentos y la carpeta de imágenes no se modifican.",
+        "restoreButton": "Restaurar…",
         "cancel": "Cancelar",
+        "confirmTitle": "¿Restaurar todos los valores predeterminados?",
         "confirm": "Restaurar"
       },
-      "sheets": {
-        "close": "Cerrar",
-        "shortcutsTitle": "Atajos de teclado",
-        "extensionsTitle": "Extensiones",
-        "customCssTitle": "CSS personalizado",
-        "customCssSave": "Guardar",
-        "customCssPlaceholder": "/* CSS personalizado aplicado sobre el tema */"
+      "customise": {
+        "title": "Personalización",
+        "extensions": "Extensiones",
+        "browse": "Explorar…",
+        "keyboardShortcuts": "Atajos de teclado",
+        "edit": "Editar…",
+        "customCss": "CSS personalizado",
+        "customCssHelp": "Se aplica sobre el tema seleccionado."
+      },
+      "images": {
+        "title": "Imágenes",
+        "openFolder": "Abrir",
+        "folderName": "Nombre de la carpeta de imágenes",
+        "folder": "Carpeta de imágenes",
+        "saveNextToDocumentHelp": "Usa la carpeta indicada abajo dentro de la carpeta del documento y escribe enlaces relativos.",
+        "insertActionFolder": "Copiarla en una carpeta",
+        "folderPlaceholder": "Elige una carpeta…",
+        "folderHelp": "Dónde se guardan las imágenes pegadas o arrastradas cuando no se guardan junto al documento.",
+        "insertAction": "Cuando añado una imagen",
+        "folderNameHelp": "${'{'}filename{'}'} inserta el nombre del documento.",
+        "chooseFolder": "Elegir…",
+        "saveNextToDocument": "Guardar las imágenes junto al documento",
+        "insertActionPath": "Mantener su ubicación original"
+      }
+    },
+    "appearance": {
+      "title": "Apariencia",
+      "theme": {
+        "title": "Tema",
+        "modeDark": "Oscura",
+        "modeLight": "Clara",
+        "mode": "Apariencia",
+        "modeAuto": "Automático",
+        "modeHelp": "Automático sigue la apariencia de tu equipo. Cada tema tiene una variante clara y otra oscura."
+      },
+      "window": {
+        "title": "Ventana y paneles",
+        "titleBarStyle": "Barra de título de la ventana",
+        "titleBarStyleNative": "Del sistema",
+        "statusBarHelp": "Líneas, palabras, caracteres y tiempo de lectura en la parte inferior de la ventana (también en Ver › Barra de estado).",
+        "titleBarStyleCustom": "Personalizada",
+        "statusBar": "Mostrar la barra de estado",
+        "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
+        "titleBarStyleHelp": "Personalizada muestra la barra de título propia de Mark con pestañas. Requiere reiniciar.",
+        "hideScrollbar": "Ocultar las barras de desplazamiento"
+      },
+      "text": {
+        "title": "Texto",
+        "font": "Fuente del texto",
+        "lineHeight": "Interlineado",
+        "lineWidthHelp": "Déjalo vacío para usar todo el ancho o introduce un número con px, % o ch; por ejemplo, 720px.",
+        "fontSize": "Tamaño del texto",
+        "unlimited": "Sin límite",
+        "lineWidth": "Ancho del área de escritura"
+      }
+    },
+    "tabs": {
+      "editor": "Editor",
+      "markdown": "Markdown",
+      "general": "General",
+      "advanced": "Avanzado",
+      "appearance": "Apariencia"
+    },
+    "markdown": {
+      "title": "Markdown",
+      "lists": {
+        "title": "Listas",
+        "indentationHelp": "Cómo se sangran las líneas de las listas anidadas al escribir el archivo.",
+        "indentTab": "Usar una tabulación",
+        "spacingHelp": "Espaciado deja una línea en blanco entre los elementos, algo que algunos renderizadores exigen.",
+        "indentOneSpace": "1 espacio",
+        "indentation": "Sangría de las listas",
+        "indentThreeSpaces": "3 espacios",
+        "indentTwoSpaces": "2 espacios",
+        "indentFourSpaces": "4 espacios",
+        "indentAlignWithText": "Alinear con el texto",
+        "spacing": "Espaciado entre los elementos de las listas",
+        "orderedListParen": "1) elemento",
+        "spacingSpaced": "Espaciado",
+        "bulletCharacter": "Carácter de viñeta",
+        "orderedListFormat": "Formato de lista numerada",
+        "orderedListDot": "1. elemento",
+        "spacingCompact": "Compacto"
+      },
+      "extensions": {
+        "frontmatterPropertiesHelp": "Haz clic en la tabla para editar el YAML sin formato.",
+        "title": "Extensiones",
+        "superSubScript": "Superíndice y subíndice",
+        "frontmatterProperties": "Mostrar los metadatos como tabla de propiedades",
+        "footnote": "Notas al pie",
+        "mathHelp": "Renderiza $…$ y $$…$$ con KaTeX.",
+        "math": "Fórmulas matemáticas",
+        "frontmatterFormat": "Formato de los metadatos",
+        "superSubScriptHelp": "Activa ^texto^ y ~texto~ (extensión de Pandoc).",
+        "frontmatterJsonBrace": "JSON con llaves",
+        "footnoteHelp": "Activa la sintaxis de notas al pie [^1] (extensión de Pandoc).",
+        "frontmatterFormatHelp": "El delimitador del bloque de metadatos al principio de un documento.",
+        "frontmatterJsonSemicolon": "JSON con punto y coma"
+      },
+      "compatibility": {
+        "allowHtmlHelp": "Si está desactivado, las etiquetas HTML se muestran como texto.",
+        "title": "Compatibilidad",
+        "gitlabFlavored": "Markdown estilo GitLab",
+        "sequenceDiagramStyle": "Estilo del diagrama de secuencia",
+        "sequenceHandDrawn": "Dibujado a mano",
+        "sequenceSimple": "Simple",
+        "allowHtml": "Permitir HTML dentro de los documentos",
+        "gitlabFlavoredHelp": "Activa los extras de GitLab, como su sintaxis de diagramas y de referencias."
       }
     },
     "keybindings": {
       "title": "Atajos de Teclado",
       "description": "Personalizar atajos de teclado",
-      "searchPlaceholder": "Buscar atajos de teclado",
-      "command": "Comando",
-      "keybinding": "Atajo de Teclado",
-      "reset": "Restablecer",
-      "resetAll": "Restablecer",
-      "edit": "Editar",
-      "cancel": "Cancelar",
-      "save": "Guardar",
       "restoreDefaults": "Restaurar predeterminados",
-      "debugOptions": "Opciones de Depuración",
-      "dumpKeyboardInfo": "Volcar Información del Teclado",
-      "failedToSave": "Error al guardar atajos de teclado",
+      "table": {
+        "unbind": "Desvincular",
+        "keyCombination": "Combinación de Teclas",
+        "description": "Descripción",
+        "reset": "Restablecer",
+        "edit": "Editar",
+        "options": "Opciones"
+      },
+      "cancel": "Cancelar",
       "keyInputDialog": {
-        "instructions": "Presiona la combinación de teclas que quieres asignar",
         "invalidKeybinding": "Combinación de teclas inválida",
+        "instructions": "Presiona la combinación de teclas que quieres asignar",
         "placeholder": "Presiona teclas..."
       },
-      "online": "En línea",
-      "saveError": "Error al guardar atajos de teclado",
       "shortcutInUse": "Atajo en uso",
+      "failedToSave": "Error al guardar atajos de teclado",
+      "debugOptions": "Opciones de Depuración",
+      "online": "En línea",
+      "edit": "Editar",
       "shortcutInUseMessage": "Este atajo ya está asignado a {accelerator}",
-      "table": {
-        "description": "Descripción",
-        "edit": "Editar",
-        "keyCombination": "Combinación de Teclas",
-        "options": "Opciones",
-        "reset": "Restablecer",
-        "unbind": "Desvincular"
-      }
-    },
-    "selectFont": "Seleccionar Fuente"
-  },
-  "about": {
-    "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+",
-    "copyrightContributors": "Made with <3 by the marktext community"
-  },
-  "commands": {
-    "mt": {
-      "hide": "Ocultar Mark",
-      "hideOthers": "Ocultar Otros"
-    },
-    "file": {
-      "newWindow": "Nueva Ventana",
-      "newTab": "Nueva Pestaña",
-      "openFile": "Abrir Archivo",
-      "openFolder": "Abrir Carpeta",
-      "openFromClipboard": "Abrir del portapapeles",
+      "reset": "Restablecer",
+      "keybinding": "Atajo de Teclado",
+      "resetAll": "Restablecer",
+      "command": "Comando",
       "save": "Guardar",
-      "saveAs": "Guardar Como",
-      "moveFile": "Mover Archivo",
-      "renameFile": "Renombrar Archivo",
-      "quickOpen": "Apertura Rápida",
-      "changeEncoding": "Cambiar Codificación",
-      "changeLineEnding": "Cambiar Final de Línea",
-      "trailingNewline": "Nueva Línea Final",
-      "print": "Imprimir",
-      "preferences": "Preferencias",
-      "closeTab": "Cerrar Pestaña",
-      "closeWindow": "Cerrar Ventana",
-      "quit": "Salir",
-      "toggleAutoSave": "Alternar Guardado Automático",
-      "importFile": "Importar Archivo",
-      "exportFile": "Exportar Archivo",
-      "exportFilePdf": "Exportar como PDF",
-      "zoom": "Zoom",
-      "checkUpdate": "Buscar Actualizaciones",
-      "lineEnding": "Final de línea",
-      "close": "Cerrar",
-      "reopenClosedTab": "Reabrir pestaña cerrada"
+      "searchPlaceholder": "Buscar atajos de teclado",
+      "dumpKeyboardInfo": "Volcar Información del Teclado",
+      "saveError": "Error al guardar atajos de teclado"
     },
-    "edit": {
-      "undo": "Deshacer",
-      "redo": "Rehacer",
-      "cut": "Cortar",
-      "copy": "Copiar",
-      "paste": "Pegar",
-      "copyAsRich": "Copiar como Texto Enriquecido",
-      "copyAsHtml": "Copiar como HTML",
+    "selectFont": "Seleccionar Fuente",
+    "search": {
+      "items": {
+        "spellcheckerNoUnderline": "Subrayar las palabras mal escritas",
+        "isGitlabCompatibilityEnabled": "Markdown estilo GitLab",
+        "theme": "Tema",
+        "hideLinkPopup": "Ocultar la vista previa de enlaces",
+        "orderListDelimiter": "Formato de lista numerada",
+        "spellcheckerEnabled": "Comprobar la ortografía",
+        "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
+        "lightModeTheme": "Tema para la apariencia clara",
+        "previewModeOnFinderOpen": "Abrir los documentos desde Finder en vista de lectura",
+        "listIndentation": "Sangría de las listas",
+        "defaultEncoding": "Codificación de archivo para los archivos nuevos",
+        "mathEnabled": "Fórmulas matemáticas",
+        "customCss": "CSS personalizado",
+        "codeFontFamily": "Fuente del código",
+        "treeShowAllFiles": "Mostrar todos los archivos en el árbol de carpetas (no solo Markdown)",
+        "autoCheckUpdates": "Buscar actualizaciones automáticamente",
+        "spellcheckerLanguage": "Idioma del corrector ortográfico",
+        "editorLineWidth": "Ancho del área de escritura",
+        "tabSize": "Espacios que inserta la tecla Tab",
+        "preferLooseListItem": "Espaciado entre los elementos de las listas",
+        "hideQuickInsertHint": "Ocultar la sugerencia de inserción en las líneas vacías",
+        "bulletListMarker": "Carácter de viñeta",
+        "autoPairBracket": "Cerrar corchetes automáticamente",
+        "superSubScript": "Superíndice y subíndice",
+        "autoSaveDelay": "Cuánto esperar tras la última pulsación antes de guardar",
+        "autoPairMarkdownSyntax": "Cerrar los marcadores de markdown automáticamente",
+        "footnote": "Notas al pie",
+        "fontSize": "Tamaño del texto",
+        "endOfLine": "Final de línea usado en los archivos nuevos y al guardar",
+        "sequenceTheme": "Estilo del diagrama de secuencia",
+        "hideScrollbar": "Ocultar las barras de desplazamiento",
+        "titleBarStyle": "Barra de título de la ventana: personalizada o del sistema (requiere reinicio)",
+        "lineHeight": "Interlineado",
+        "frontmatterType": "Formato de los metadatos",
+        "autoSave": "Guardar los cambios automáticamente poco después de dejar de escribir",
+        "autoCheck": "Marcar las tareas con un clic",
+        "trimUnnecessaryCodeBlockEmptyLines": "Recortar las líneas vacías alrededor del código",
+        "isHtmlEnabled": "Permitir HTML dentro de los documentos",
+        "wrapCodeBlocks": "Ajustar las líneas largas en los bloques de código",
+        "followSystemTheme": "Modo automático: seguir la apariencia del sistema",
+        "restoreSessionOnLaunch": "Reabrir la última sesión al iniciar",
+        "frontmatterProperties": "Mostrar los metadatos como tabla de propiedades",
+        "imageRelativeDirectoryName": "Nombre de la carpeta de imágenes",
+        "autoPairQuote": "Cerrar comillas automáticamente",
+        "textDirection": "Dirección del texto",
+        "imagePreferRelativeDirectory": "Guardar las imágenes junto al documento",
+        "statusBarVisibility": "Mostrar la barra de estado (líneas, palabras, caracteres, tiempo de lectura)",
+        "language": "Idioma de la aplicación",
+        "codeFontSize": "Tamaño del texto del código",
+        "imageInsertAction": "Cuando añado una imagen",
+        "darkModeTheme": "Tema para la apariencia oscura",
+        "codeBlockLineNumbers": "Mostrar los números de línea en los bloques de código",
+        "editorFontFamily": "Fuente del texto"
+      },
+      "categories": {
+        "editor": "Editor",
+        "markdown": "Markdown",
+        "watcher": "Observador",
+        "general": "General",
+        "advanced": "Avanzado",
+        "searcher": "Buscador",
+        "appearance": "Apariencia",
+        "view": "Vista"
+      },
+      "empty": "No hay configuraciones coincidentes",
+      "placeholder": "Buscar preferencias..."
+    }
+  },
+  "tweet": {
+    "title": "Envíanos comentarios vía tweet",
+    "tweet": "Tweet",
+    "feedbackQuestion": "¿Cuéntanos tus comentarios?",
+    "reportViaGithub": "Reportar error o solicitud de función vía github",
+    "feelingsQuestion": "¿Cuáles son tus sentimientos sobre la experiencia?"
+  },
+  "search": {
+    "replaceAll": "Reemplazar",
+    "searchLimited": "Búsqueda limitada a los primeros {count} resultados",
+    "invalidRegex": "Expresión regular inválida \"{pattern}\"",
+    "caseSensitiveTip": "Distinguir mayúsculas (Aa) — «Hello» ≠ «hello»",
+    "replacementPlaceholder": "Reemplazo",
+    "useRegex": "Usar consulta como RegEx",
+    "wholeWordTip": "Palabra completa (\\b) — «fox» coincide con «fox» pero no con «foxglove»",
+    "replaceSingle": "Reemplazar Uno",
+    "regexMatchEmpty": "La expresión regular coincide con la cadena vacía \"{pattern}\"",
+    "searchResultInfo": "{matches} en {files}",
+    "caseSensitive": "Distinguir Mayúsculas",
+    "filesCount": {
+      "one": "1 archivo",
+      "other": "{count} archivos"
+    },
+    "searchPlaceholder": "Buscar",
+    "wholeWord": "Seleccionar palabra completa",
+    "useRegexTip": "Expresión regular (.*) — «colou?r» coincide con «color» y «colour»",
+    "matchesCount": {
+      "one": "1 coincidencia",
+      "other": "{count} coincidencias"
+    }
+  },
+  "contextMenu": {
+    "insertParagraphAfter": "Insertar Párrafo Después",
+    "editor": {
       "copyAsPlainText": "Copiar como texto sin formato",
+      "redo": "Rehacer",
+      "saveAsPng": "Guardar como PNG…",
+      "copyAsHtml": "Copiar como HTML",
+      "undo": "Deshacer",
+      "saveAsSvg": "Guardar como SVG…",
+      "copyImage": "Copiar imagen",
+      "selectAll": "Seleccionar todo",
+      "share": "Compartir",
       "copyAsStructuredText": "Copiar como texto estructurado",
+      "copyAsImage": "Copiar como imagen"
+    },
+    "addToDictionary": "Agregar al Diccionario",
+    "cut": "Cortar",
+    "tabs": {
+      "showInFolder": "Mostrar en carpeta",
+      "close": "Cerrar",
+      "rename": "Renombrar",
+      "unlock": "Desbloquear documento",
+      "closeSavedTabs": "Cerrar pestañas guardadas",
+      "closeAllTabs": "Cerrar todas las pestañas",
+      "lock": "Bloquear documento",
+      "unpin": "Quitar de Fijados",
+      "copyPath": "Copiar ruta",
+      "pin": "Añadir a Fijados",
       "copyAsMarkdown": "Copiar como Markdown",
-      "pasteAsPlaintext": "Pegar como Texto Plano",
-      "selectAll": "Seleccionar",
-      "duplicate": "Duplicar",
-      "createParagraph": "Crear Párrafo",
-      "deleteParagraph": "Eliminar Párrafo",
-      "find": "Buscar",
-      "findNext": "Buscar Siguiente",
-      "findPrevious": "Buscar Anterior",
-      "replace": "Reemplazar",
-      "findInFolder": "Buscar en Carpeta",
-      "screenshot": "Captura de Pantalla",
-      "mathBlock": "Bloque matemático"
+      "closeOthers": "Cerrar otros",
+      "copyAsHtml": "Copiar como HTML",
+      "splitView": "Vista dividida",
+      "copyAsStructuredText": "Copiar como texto estructurado"
+    },
+    "insertParagraphBefore": "Insertar Párrafo Antes",
+    "spelling": "Ortografía...",
+    "pasteAsPlainText": "Pegar como Texto Plano",
+    "editDictionary": "Editar Diccionario...",
+    "changeLanguage": "Cambiar Idioma...",
+    "copy": "Copiar",
+    "copyAsHtml": "Copiar Como HTML",
+    "copyAsRich": "Copiar Como Texto Enriquecido",
+    "paste": "Pegar",
+    "sideBar": {
+      "showInFolder": "Mostrar en Carpeta",
+      "rename": "Renombrar",
+      "cut": "Cortar",
+      "unpin": "Quitar de Fijados",
+      "pin": "Añadir a Fijados",
+      "moveToTrash": "Mover a la Papelera",
+      "newFile": "Nuevo Archivo",
+      "newDirectory": "Nuevo Directorio",
+      "copy": "Copiar",
+      "paste": "Pegar"
+    }
+  },
+  "error": {
+    "terminatedDueToError": "Terminado debido a error",
+    "report": "Reportar",
+    "unexpectedRendererProcess": "Error inesperado del proceso de renderizado",
+    "copyError": "Error de copia",
+    "otherInstanceDetected": "Otra instancia de Mark ya está ejecutándose",
+    "configSchemaViolation": "Violación del esquema de configuración",
+    "initializationFailed": "Falló la inicialización {hint}",
+    "startupError": "Error de inicio",
+    "unexpectedMainProcess": "Error inesperado del proceso principal",
+    "unexpectedErrorWithMessage": "Error inesperado con mensaje {message}"
+  },
+  "edit": {
+    "copy": "Copiar",
+    "undo": "Deshacer",
+    "cut": "Cortar",
+    "selectAll": "Seleccionar",
+    "paste": "Pegar",
+    "redo": "Rehacer"
+  },
+  "clipboardOpen": {
+    "nothingFoundMessage": "Copia una carpeta en Finder o una ruta de archivo y vuelve a intentarlo.",
+    "nothingFoundTitle": "No hay ninguna carpeta ni archivo Markdown en el portapapeles"
+  },
+  "menu": {
+    "file": {
+      "exportPdf": "Exportar como PDF",
+      "newTab": "Nueva Pestaña",
+      "openFolder": "Abrir Carpeta...",
+      "openRecent": "Abrir Reciente",
+      "clearRecentlyUsed": "Limpiar Recientes",
+      "preferences": "Preferencias",
+      "openFile": "Abrir Archivo...",
+      "print": "Imprimir",
+      "open": "Abrir",
+      "file": "Archivo",
+      "saveAs": "Guardar Como...",
+      "closeAll": "Cerrar",
+      "rename": "Renombrar",
+      "close": "Cerrar",
+      "closeTab": "Cerrar Pestaña",
+      "moveTo": "Mover A",
+      "quit": "Salir",
+      "closeWindow": "Cerrar Ventana",
+      "new": "Nuevo",
+      "import": "Importar",
+      "export": "Exportar",
+      "save": "Guardar",
+      "openFromClipboard": "Abrir del portapapeles",
+      "recent": "Archivos Recientes",
+      "newWindow": "Nueva Ventana",
+      "exportHtml": "Exportar como HTML",
+      "autoSave": "Guardado Automático"
     },
     "paragraph": {
-      "heading1": "Encabezado 1",
-      "heading2": "Encabezado 2",
-      "heading3": "Encabezado 3",
-      "heading4": "Encabezado 4",
-      "heading5": "Encabezado 5",
-      "heading6": "Encabezado 6",
-      "upgradeHeading": "Promover Encabezado",
-      "degradeHeading": "Degradar Encabezado",
+      "title": "Párrafo",
       "table": "Tabla",
-      "codeFence": "Bloque de Código",
-      "quoteBlock": "Bloque de Cita",
-      "mathFormula": "Fórmula Matemática",
+      "heading6": "Encabezado 6",
       "htmlBlock": "Bloque HTML",
-      "orderList": "Lista Ordenada",
-      "bulletList": "Lista con Viñetas",
-      "taskList": "Lista de Tareas",
+      "heading5": "Encabezado 5",
       "looseListItem": "Elemento de Lista Suelto",
+      "bulletList": "Lista con Viñetas",
+      "promoteHeading": "Promover Encabezado",
+      "codeBlock": "Bloque de Código",
+      "quoteBlock": "Bloque de Cita",
+      "heading2": "Encabezado 2",
+      "unorderedList": "Lista Desordenada",
+      "horizontalRule": "Regla Horizontal",
+      "heading3": "Encabezado 3",
+      "demoteHeading": "Degradar Encabezado",
+      "orderedList": "Lista Ordenada",
       "paragraph": "Párrafo",
-      "horizontalLine": "Línea Horizontal",
       "frontMatter": "Metadatos",
-      "resetParagraph": "Restablecer Párrafo",
-      "mathBlock": "Bloque matemático",
-      "horizontalRule": "Línea horizontal"
-    },
-    "format": {
-      "strong": "Negrita",
-      "emphasis": "Cursiva",
-      "underline": "Subrayado",
-      "superscript": "Superíndice",
-      "subscript": "Subíndice",
-      "highlight": "Resaltar",
-      "inlineCode": "Código en Línea",
-      "inlineMath": "Matemáticas en Línea",
-      "strike": "Tachado",
-      "hyperlink": "Hipervínculo",
-      "image": "Imagen",
-      "clearFormat": "Limpiar Formato"
+      "heading1": "Encabezado 1",
+      "codeFences": "Bloques de Código",
+      "paragraphItem": "Elemento de Párrafo",
+      "quote": "Cita",
+      "taskList": "Lista de Tareas",
+      "mathBlock": "Bloque Matemático",
+      "heading4": "Encabezado 4"
     },
     "window": {
+      "title": "Ventana",
+      "zoomOut": "Alejar",
+      "close": "Cerrar",
+      "zoomIn": "Acercar",
+      "window": "Ventana",
+      "bringAllToFront": "Traer al Frente",
+      "fullScreen": "Pantalla Completa",
+      "zoom": "Zoom",
       "minimize": "Minimizar",
-      "toggleAlwaysOnTop": "Alternar Siempre Encima",
-      "zoomIn": "Acercar",
-      "zoomOut": "Alejar",
-      "toggleFullScreen": "Alternar Pantalla Completa",
-      "changeTheme": "Cambiar Tema",
-      "close": "Cerrar"
+      "alwaysOnTop": "Siempre Encima"
     },
-    "view": {
-      "commandPalette": "Paleta de Comandos",
-      "sourceCodeMode": "Modo Código Fuente",
-      "typewriterMode": "Modo Máquina de Escribir",
-      "focusMode": "Modo Enfoque",
-      "toggleSourceCodeMode": "Alternar Modo Código Fuente",
-      "toggleTypewriterMode": "Alternar Modo Máquina de Escribir",
-      "toggleFocusMode": "Alternar Modo Enfoque",
-      "toggleSidebar": "Alternar Barra Lateral",
-      "toggleToc": "Alternar Tabla de Contenidos",
-      "toggleTabbar": "Alternar Barra de Pestañas",
-      "toggleDevTools": "Alternar Herramientas de Desarrollador",
-      "devReload": "Recarga de Desarrollador",
-      "reloadImages": "Recargar Imágenes",
-      "textDirection": "Dirección del Texto",
-      "actualSize": "Tamaño real",
-      "zoomIn": "Acercar",
-      "zoomOut": "Alejar",
-      "devToggleDeveloperTools": "Alternar herramientas de desarrollador",
-      "splitView": "Vista dividida",
-      "outline": "Mostrar u ocultar el esquema «En esta página»",
-      "statusBar": "Mostrar u ocultar la barra de estado",
-      "lockDocument": "Bloquear el documento actual (solo lectura)"
+    "theme": {
+      "kanagawaLotus": "Kanagawa Lotus",
+      "macos": "macOS",
+      "alucard": "Alucard",
+      "tokyoNightLight": "Tokyo Night Claro",
+      "ulyssesDark": "Ulysses Dark",
+      "ayuLight": "Ayu Claro",
+      "docsDark": "Docs Oscuro",
+      "kanagawa": "Kanagawa",
+      "theme": "&Tema",
+      "graphiteLight": "Grafito Claro",
+      "auto": "Automático",
+      "ink": "Ink",
+      "catppuccinMocha": "Catppuccin Mocha",
+      "solarizedLight": "Solarized Claro",
+      "rosePine": "Rosé Pine",
+      "docs": "Docs",
+      "catppuccinLatte": "Catppuccin Latte",
+      "ayuDark": "Ayu Oscuro",
+      "oneDark": "One Dark",
+      "everforestDark": "Everforest Oscuro",
+      "nord": "Nord",
+      "everforestLight": "Everforest Claro",
+      "dracula": "Dracula",
+      "rosePineDawn": "Rosé Pine Dawn",
+      "macosDark": "macOS Oscuro",
+      "paper": "Paper",
+      "gruvboxLight": "Gruvbox Claro",
+      "ulyssesLight": "Ulises Claro",
+      "oneLight": "One Light",
+      "lightThemes": "— Temas Claros —",
+      "followThemDisabled": "Selección de tema desactivada al seguir el tema del sistema",
+      "graphiteDark": "Graphite Dark",
+      "tokyoNight": "Tokyo Night",
+      "nordLight": "Nord Light",
+      "solarizedDark": "Solarized Oscuro",
+      "gruvboxDark": "Gruvbox Oscuro",
+      "darkThemes": "— Temas Oscuros —"
     },
-    "tabs": {
-      "cycleForward": "Ciclar Adelante",
-      "cycleBackward": "Ciclar Atrás",
-      "switchToLeft": "Cambiar a la Izquierda",
-      "switchToRight": "Cambiar a la Derecha",
-      "switchToFirst": "Cambiar al Primero",
-      "switchToSecond": "Cambiar al Segundo",
-      "switchToThird": "Cambiar al Tercero",
-      "switchToFourth": "Cambiar al Cuarto",
-      "switchToFifth": "Cambiar al Quinto",
-      "switchToSixth": "Cambiar al Sexto",
-      "switchToSeventh": "Cambiar al Séptimo",
-      "switchToEighth": "Cambiar al Octavo",
-      "switchToNinth": "Cambiar al Noveno",
-      "switchToTenth": "Cambiar al Décimo"
+    "counter": {
+      "paragraphs": "Párrafos",
+      "words": "Palabras",
+      "characters": "Caracteres"
     },
-    "docs": {
-      "userGuide": "Guía del Usuario",
-      "markdownSyntax": "Sintaxis de Markdown"
+    "format": {
+      "code": "Código en Línea",
+      "superscript": "Superíndice",
+      "table": "Tabla",
+      "heading6": "Encabezado 6",
+      "heading5": "Encabezado 5",
+      "hyperlink": "Hipervínculo",
+      "heading2": "Encabezado 2",
+      "bold": "Negrita",
+      "inlineCode": "Código en Línea",
+      "unorderedList": "Lista Desordenada",
+      "heading3": "Encabezado 3",
+      "orderedList": "Lista Ordenada",
+      "italic": "Cursiva",
+      "heading1": "Encabezado 1",
+      "strikethrough": "Tachado",
+      "clearFormat": "Limpiar Formato",
+      "subscript": "Subíndice",
+      "format": "Formato",
+      "clearFormatting": "Limpiar Formato",
+      "inlineMath": "Matemáticas en Línea",
+      "link": "Enlace",
+      "quote": "Cita",
+      "taskList": "Lista de Tareas",
+      "image": "Imagen",
+      "highlight": "Resaltar",
+      "underline": "Subrayado",
+      "codeBlock": "Bloque de Código",
+      "heading4": "Encabezado 4"
+    },
+    "marktext": {
+      "title": "Mark",
+      "services": "Servicios",
+      "hideOthers": "Ocultar Otros",
+      "hideMark": "Ocultar Mark",
+      "showAll": "Mostrar",
+      "quit": "Salir de Mark",
+      "about": "Acerca de Mark",
+      "checkUpdates": "Buscar Actualizaciones...",
+      "preferences": "Preferencias",
+      "marktext": "Mark",
+      "hide": "Ocultar Mark"
+    },
+    "edit": {
+      "findInFolder": "Buscar en Carpeta",
+      "createParagraph": "Crear Párrafo",
+      "lineEnding": "Final de Línea",
+      "deleteParagraph": "Eliminar Párrafo",
+      "lineEndingCrlf": "CRLF(Windows)",
+      "lineEndingLf": "LF(Linux/Mac)",
+      "copyAsHtml": "Copiar Como HTML",
+      "undo": "Deshacer",
+      "copyAsRich": "Copiar Como Texto Enriquecido",
+      "replace": "Reemplazar",
+      "edit": "Editar",
+      "paste": "Pegar",
+      "screenshot": "Captura de Pantalla",
+      "cut": "Cortar",
+      "findNext": "Buscar Siguiente",
+      "redo": "Rehacer",
+      "find": "Buscar",
+      "pasteAsPlainText": "Pegar como Texto Plano",
+      "copy": "Copiar",
+      "findPrevious": "Buscar Anterior",
+      "selectAll": "Seleccionar",
+      "duplicate": "Duplicar"
     },
     "help": {
-      "guide": "Guía de Mark",
-      "whatsNew": "Novedades",
-      "rateMark": "Valorar Mark…",
-      "support": "Apoyar a Mark en Ko-fi…"
+      "reportBug": "Reportar Error",
+      "license": "Licencia",
+      "askQuestion": "Hacer Pregunta",
+      "checkForUpdates": "Buscar Actualizaciones",
+      "viewSource": "Ver Código Fuente",
+      "aboutMark": "Acerca de Mark",
+      "about": "Acerca de",
+      "checkUpdates": "Buscar Actualizaciones",
+      "changelog": "Registro de Cambios",
+      "markdownReference": "Referencia de Markdown",
+      "help": "Ayuda"
     },
-    "utils": {
-      "noUpdateResourceFile": "No hay archivo de recurso de actualización",
-      "todoUpdateCheck": "Buscar actualizaciones"
-    },
-    "spellchecker": {
-      "switchLanguage": "Cambiar Idioma"
+    "view": {
+      "focus": "Modo Enfoque",
+      "toggleSidebar": "Alternar Barra Lateral",
+      "reloadWindow": "Recargar Ventana",
+      "sourceCode": "Modo Código Fuente",
+      "focusMode": "Modo Enfoque",
+      "splitView": "Vista dividida",
+      "sourceCodeMode": "Modo Código Fuente",
+      "toc": "Tabla de Contenidos",
+      "view": "Ver",
+      "lockDocument": "Bloquear documento",
+      "outline": "Esquema",
+      "typewriterMode": "Modo Máquina de Escribir",
+      "commandPalette": "Paleta de Comandos",
+      "showDeveloperTools": "Mostrar Herramientas de Desarrollador",
+      "typewriter": "Modo Máquina de Escribir",
+      "showTabBar": "Mostrar Barra de Pestañas",
+      "toggleTableOfContents": "Alternar Tabla de Contenidos",
+      "statusBar": "Barra de estado",
+      "toggleTabbar": "Alternar Barra de Pestañas",
+      "reloadImages": "Recargar Imágenes"
     }
   },
-  "guide": {
-    "tabTitle": "Guía de Mark",
-    "agentPrompt": {
-      "mac": "Cuando produzcas un plan, una especificación o un informe de más de ~50 líneas, escríbelo en un archivo .md y ábrelo para el usuario: open -a Mark <file>.md.\nMark renderiza Markdown enriquecido. Usa la herramienta adecuada para cada parte en lugar de prosa simple:\n- Diagramas — bloques ```mermaid; elige el tipo que encaje: flowchart (procesos, decisiones), sequenceDiagram (quién llama a quién), classDiagram, stateDiagram-v2 (ciclos de vida), erDiagram (modelos de datos), gantt (calendarios), timeline (historia, hitos), gitGraph (ramas), mindmap (mapas de ideas), journey (recorridos de usuario), quadrantChart (prioridades), pie, xychart-beta (gráficos de barras/líneas), sankey-beta (flujos de cantidades), block-beta, packet-beta, kanban, architecture-beta, radar-beta, treemap-beta, requirementDiagram, C4Context. Prefiere un diagrama a un párrafo que describa una estructura.\n- Gráficos a partir de datos — ```vega-lite con una especificación JSON; diagramas de flujo rápidos — ```flowchart (flowchart.js); secuencias rápidas — ```sequence.\n- Tablas (con alineación de columnas) para comparaciones, opciones y matrices.\n- Avisos para lo que no debe pasarse por alto: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]; también info, todo, success, question, failure, danger, bug, example, quote, abstract. Pon un título tras la etiqueta; añade - o + para hacerlo plegable.\n- Listas de tareas (- [ ] / - [x]) para próximos pasos y checklists.\n- Matemáticas — $…$ en línea y bloques $$…$$ (KaTeX).\n- Código — bloques cercados con un lenguaje para resaltar la sintaxis.\n- Notas al pie ([^1]) para fuentes y apartes; YAML front matter para metadatos; emoji :shortcodes:; enlaces e imágenes.\n\nMantenlo escaneable: secciones cortas con encabezados, una idea por párrafo.\nCuando el archivo cambie después de escribirlo, vuelve a leerlo: las ediciones del usuario son tu siguiente instrucción.",
-      "generic": "Cuando produzcas un plan, una especificación o un informe de más de ~50 líneas, escríbelo en un archivo .md y ábrelo para el usuario en Mark.\nMark renderiza Markdown enriquecido. Usa la herramienta adecuada para cada parte en lugar de prosa simple:\n- Diagramas — bloques ```mermaid; elige el tipo que encaje: flowchart (procesos, decisiones), sequenceDiagram (quién llama a quién), classDiagram, stateDiagram-v2 (ciclos de vida), erDiagram (modelos de datos), gantt (calendarios), timeline (historia, hitos), gitGraph (ramas), mindmap (mapas de ideas), journey (recorridos de usuario), quadrantChart (prioridades), pie, xychart-beta (gráficos de barras/líneas), sankey-beta (flujos de cantidades), block-beta, packet-beta, kanban, architecture-beta, radar-beta, treemap-beta, requirementDiagram, C4Context. Prefiere un diagrama a un párrafo que describa una estructura.\n- Gráficos a partir de datos — ```vega-lite con una especificación JSON; diagramas de flujo rápidos — ```flowchart (flowchart.js); secuencias rápidas — ```sequence.\n- Tablas (con alineación de columnas) para comparaciones, opciones y matrices.\n- Avisos para lo que no debe pasarse por alto: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]; también info, todo, success, question, failure, danger, bug, example, quote, abstract. Pon un título tras la etiqueta; añade - o + para hacerlo plegable.\n- Listas de tareas (- [ ] / - [x]) para próximos pasos y checklists.\n- Matemáticas — $…$ en línea y bloques $$…$$ (KaTeX).\n- Código — bloques cercados con un lenguaje para resaltar la sintaxis.\n- Notas al pie ([^1]) para fuentes y apartes; YAML front matter para metadatos; emoji :shortcodes:; enlaces e imágenes.\n\nMantenlo escaneable: secciones cortas con encabezados, una idea por párrafo.\nCuando el archivo cambie después de escribirlo, vuelve a leerlo: las ediciones del usuario son tu siguiente instrucción."
-    }
+  "commandPalette": {
+    "placeholders": {
+      "searchFileToOpen": "Buscar archivo para abrir",
+      "selectOption": "Seleccionar opción",
+      "selectLanguage": "Seleccionar idioma"
+    },
+    "placeholder": "Escriba un comando para ejecutar"
   },
   "common": {
     "cancel": "Cancelar",
     "ok": "OK"
   },
-  "dialog": {
-    "cancel": "Cancelar",
-    "changesWillBeLost": "Los cambios se perderán",
-    "close": "Cerrar",
-    "dontSave": "No Guardar",
-    "file": "Archivo",
-    "fileExists": "El archivo {filename} ya existe",
-    "files": "Archivos",
-    "importWarning": "Advertencia de importación",
-    "installPandoc": "Instalar Pandoc",
-    "keepOpen": "Mantener abierto",
-    "replace": "Reemplazar",
-    "save": "Guardar",
-    "saveChanges": "Guardar cambios",
-    "saveFailure": "Error al guardar"
-  },
-  "error": {
-    "configSchemaViolation": "Violación del esquema de configuración",
-    "copyError": "Error de copia",
-    "initializationFailed": "Falló la inicialización {hint}",
-    "otherInstanceDetected": "Otra instancia de Mark ya está ejecutándose",
-    "report": "Reportar",
-    "startupError": "Error de inicio",
-    "terminatedDueToError": "Terminado debido a error",
-    "unexpectedErrorWithMessage": "Error inesperado con mensaje {message}",
-    "unexpectedMainProcess": "Error inesperado del proceso principal",
-    "unexpectedRendererProcess": "Error inesperado del proceso de renderizado"
-  },
-  "notifications": {
-    "defaultMessage": "Mensaje predeterminado",
-    "defaultTitle": "Notificación"
-  },
-  "store": {
-    "editor": {
-      "anchorLinkCopied": "Enlace de ancla copiado",
-      "tabNotFound": "Pestaña no encontrada",
-      "tocItemNotFound": "Elemento de tabla de contenidos {key} no encontrado",
-      "highlightStart": "[Inicio de resaltado]",
-      "highlightEnd": "[Fin de resaltado]",
-      "typeAtToInsert": "Escriba {'@'} para insertar",
-      "inputFootnoteDefinition": "Ingrese definición de nota al pie...",
-      "inputYamlFrontMatter": "Ingrese metadatos YAML...",
-      "inputLanguageIdentifier": "Ingrese identificador de idioma...",
-      "inputMathematicalFormula": "Ingrese fórmula matemática...",
-      "fence": "Cerca",
-      "indent": "Sangría",
-      "frontMatterDelimiter": "---",
-      "mathDelimiter": "$$",
-      "mermaidStart": "``` mermaid",
-      "flowchartStart": "``` flowchart",
-      "sequenceStart": "``` sequence",
-      "plantumlStart": "``` plantuml",
-      "vegaLiteStart": "``` vega-lite",
-      "codeFence": "```",
-      "clickToAddImage": "Haga clic para agregar imagen",
-      "loadImageFailed": "Error al cargar la imagen",
-      "errorLoadingTabTitle": "Error al cargar la pestaña",
-      "errorLoadingTabMessage": "Se produjo un error al cargar la modificación del archivo porque no se puede encontrar la pestaña.",
-      "mixedLineEndingsNormalized": "«{name}» tiene finales de línea mixtos que se normalizaron automáticamente a {lineEnding}.",
-      "imageDeletionUrlTitle": "URL de eliminación de la imagen",
-      "imageDeletionUrlMessage": "Haz clic para copiar al portapapeles la URL de eliminación de la imagen subida ({url}).",
-      "errorWhileSaving": "Se produjo un error al guardar: {msg}",
-      "exportSuccessTitle": "Exportado correctamente",
-      "exportSuccessMessage": "¡Se exportó «{name}» correctamente!",
-      "fileRemovedOnDisk": "«{name}» ha sido eliminado del disco.",
-      "fileChangedOnDisk": "«{name}» ha cambiado en el disco. ¿Deseas recargarlo?"
-    }
-  },
-  "spellchecker": {
-    "failedToRemoveWord": "Error al eliminar palabra del diccionario",
-    "unexpectedError": "Error inesperado del corrector ortográfico"
-  },
-  "quickInsert": {
-    "header": "Encabezado",
-    "paragraph": {
-      "title": "Párrafo",
-      "subtitle": "Ingrese contenido de texto"
-    },
-    "horizontalLine": {
-      "title": "Línea Horizontal",
-      "subtitle": "---"
-    },
-    "frontMatter": {
-      "title": "Metadatos",
-      "subtitle": "--- YAML ---"
-    },
-    "header1": {
-      "title": "Encabezado 1",
-      "subtitle": "# Encabezado"
-    },
-    "header2": {
-      "title": "Encabezado 2",
-      "subtitle": "## Encabezado"
-    },
-    "header3": {
-      "title": "Encabezado 3",
-      "subtitle": "### Encabezado"
-    },
-    "header4": {
-      "title": "Encabezado 4",
-      "subtitle": "#### Encabezado"
-    },
-    "header5": {
-      "title": "Encabezado 5",
-      "subtitle": "##### Encabezado"
-    },
-    "header6": {
-      "title": "Encabezado 6",
-      "subtitle": "###### Encabezado"
-    },
-    "tableBlock": {
-      "title": "Bloque de Tabla",
-      "subtitle": "｜ Encabezado ｜ Encabezado ｜"
-    },
-    "mathFormula": {
-      "title": "Fórmula Matemática",
-      "subtitle": "$$ Fórmula $$"
-    },
-    "htmlBlock": {
-      "title": "Bloque HTML",
-      "subtitle": "<div> HTML </div>"
-    },
-    "codeBlock": {
-      "title": "Bloque de Código",
-      "subtitle": "``` Código ```"
-    },
-    "quoteBlock": {
-      "title": "Bloque de Cita",
-      "subtitle": "> Contenido de cita"
-    },
-    "orderedList": {
-      "title": "Lista Ordenada",
-      "subtitle": "1. Elemento de lista"
-    },
-    "bulletList": {
-      "title": "Lista con Viñetas",
-      "subtitle": "- Elemento de lista"
-    },
-    "todoList": {
-      "title": "Lista de Tareas",
-      "subtitle": "- [x]"
-    },
-    "vegaChart": {
-      "title": "Gráfico Vega",
-      "subtitle": "Renderizar gráficos usando vega-lite.js."
-    },
-    "flowChart": {
-      "title": "Diagrama de Flujo",
-      "subtitle": "Diagrama de flujo"
-    },
-    "mermaid": {
-      "title": "Mermaid",
-      "subtitle": "Renderizar gráficos usando mermaid.",
-      "gantt": {
-        "title": "Diagrama de Gantt"
+  "whatsNew": {
+    "title": "Novedades",
+    "also": "Además: avisos honestos de carpetas ausentes, plurales correctos en diez idiomas y nombres claros para la nube",
+    "seeEverything": "Ver todas las novedades",
+    "eyebrow": "Mark {version}",
+    "v2_4_0": {
+      "theme": {
+        "title": "Diagramas que siguen el tema",
+        "text": "Cambia entre claro y oscuro: los diagramas se recolorean al instante."
       },
-      "pie": {
-        "title": "Gráfico circular"
+      "lighter": {
+        "title": "Mucho más ligero",
+        "text": "El código de diagramas: 0,26 MB comprimidos en vez de 44 partes (2,6 MB)."
       },
-      "flowchart": {
-        "title": "Diagrama de flujo"
+      "engine": {
+        "title": "Nuevo motor de diagramas",
+        "text": "Los diagramas usan Pele — más rápido y mucho más ligero. Su aspecto cambia."
       },
-      "sequence": {
-        "title": "Diagrama de secuencia"
-      },
-      "class": {
-        "title": "Diagrama de clases"
-      },
-      "state": {
-        "title": "Diagrama de estados",
-        "subtitle": "stateDiagram"
-      },
-      "journey": {
-        "title": "Viaje del usuario"
-      },
-      "git": {
-        "title": "Diagrama Git"
-      },
-      "er": {
-        "title": "Diagrama ER"
-      },
-      "requirement": {
-        "title": "Diagrama de requisitos"
+      "types": {
+        "title": "Nuevos tipos de diagramas",
+        "text": "Venn, treemap, agentflow, radar, swimlane, usecase y más en bloques mermaid."
       }
     },
-    "sequenceChart": {
-      "title": "Gráfico de Secuencia",
-      "subtitle": "Diagrama de secuencia"
-    },
-    "taskList": {
-      "title": "Lista de tareas"
-    },
-    "vegaliteChart": {
-      "title": "Gráfico Vega-Lite"
-    },
-    "plantUMLDiagram": {
-      "title": "Diagrama PlantUML"
-    },
-    "mermaidDiagram": {
-      "title": "Diagrama Mermaid"
-    },
-    "basicBlock": "Bloque Básico",
-    "advancedBlock": "Bloque Avanzado",
-    "listBlock": "Bloque de Lista",
-    "diagram": "Diagrama",
-    "plantUMLChart": {
-      "title": "Gráfico PlantUML",
-      "subtitle": "Gráfico UML"
-    }
-  },
-  "frontMenu": {
-    "duplicate": "Duplicar",
-    "turnInto": "Convertir en",
-    "newParagraph": "Nuevo párrafo",
-    "delete": "Eliminar",
-    "paragraph": "Párrafo",
-    "table": "Tabla",
-    "html": "HTML",
-    "mathblock": "Bloque matemático",
-    "pre": "Bloque de código",
-    "frontMatter": "Metadatos",
-    "ulTask": "Lista de tareas",
-    "ulBullet": "Lista con viñetas",
-    "olOrder": "Lista ordenada",
-    "blockquote": "Cita en bloque",
-    "heading1": "Encabezado 1",
-    "heading2": "Encabezado 2",
-    "heading3": "Encabezado 3",
-    "heading4": "Encabezado 4",
-    "heading5": "Encabezado 5",
-    "heading6": "Encabezado 6",
-    "hr": "Línea horizontal"
-  },
-  "editor": {
-    "image": {
-      "selector": {
-        "tab": {
-          "select": "Seleccionar",
-          "embedLink": "Insertar enlace"
-        },
-        "select": {
-          "chooseButton": "Elegir imagen",
-          "tip": "Elige una imagen de tu ordenador."
-        },
-        "inputs": {
-          "alt": "Texto alternativo",
-          "src": "Enlace de imagen o ruta local",
-          "title": "Título de la imagen"
-        },
-        "embedButton": "Insertar imagen",
-        "hint": {
-          "prefix": "Pega imagen web o ruta local. Cambiar modo",
-          "simple": "modo simple",
-          "full": "modo completo"
-        }
+    "v2_5_3": {
+      "columns": {
+        "title": "El ancho de columna se queda",
+        "text": "Arrastra un borde de columna y su ancho se recuerda por archivo. El Markdown no cambia."
       },
-      "toolbar": {
-        "edit": "Editar imagen",
-        "copyImage": "Copiar imagen",
-        "inline": "Imagen en línea",
-        "alignLeft": "Alinear a la izquierda",
-        "alignCenter": "Alinear al centro",
-        "alignRight": "Alinear a la derecha",
-        "delete": "Eliminar imagen"
+      "session": {
+        "title": "Sigue donde lo dejaste",
+        "text": "Mark reabre tu carpeta y tus pestañas al iniciar. Se desactiva en Ajustes."
       },
-      "copyTitle": "Imagen"
+      "updates": {
+        "title": "Las novedades llegan solas",
+        "text": "Mark busca una versión nueva una vez al día: actualiza ya, luego u omítela."
+      },
+      "tables": {
+        "title": "Tablas anchas a todo lo ancho",
+        "text": "Una tabla más ancha que la página se abre a todo lo ancho; «Ajustar» se recuerda."
+      }
     },
-    "placeholders": {
-      "frontMatter": "Ingrese Metadatos YAML...",
-      "languageIdentifier": "Ingrese Identificador de Idioma...",
-      "mathFormula": "Ingrese Fórmula Matemática..."
-    },
-    "export": {
-      "error": "Error de exportación",
-      "errorExporting": "Error al exportar archivo {type}",
-      "failed": "Falló la exportación de {type}",
-      "imagesEmbeddedTitle": "Algunas imágenes no se incrustaron",
-      "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales"
-    },
-    "diagramExport": {
-      "title": "Diagrama",
-      "copied": "Copiado",
-      "copyFailed": "No se pudo copiar la imagen",
-      "saveFailed": "No se pudo guardar el archivo"
-    },
-    "insertTable": {
-      "title": "Insertar Tabla",
-      "rows": "Filas",
-      "columns": "Columnas"
-    },
-    "notifications": {
-      "notificationNotFound": "Notificación no encontrada"
-    },
-    "print": {
-      "error": "Error de impresión para \"{title}\"",
-      "failed": "Impresión fallida"
-    },
-    "sourceCode": {
-      "cursorNullComment": "Comentario de cursor nulo",
-      "imageStructureDeletedComment": "Comentario de estructura de imagen eliminada"
-    },
-    "spellcheck": {
-      "enabled": "Corrector ortográfico habilitado",
-      "disabled": "Corrector ortográfico deshabilitado",
-      "enabledError": "Error al habilitar el corrector ortográfico",
-      "disabledError": "Error al deshabilitar el corrector ortográfico",
-      "errorSwitchingLanguage": "Error al cambiar el idioma del corrector ortográfico {languageCode}",
-      "languageMissing": "Idioma del corrector ortográfico faltante {languageCode}",
-      "switchError": "Error del corrector ortográfico para {languageCode}, {error}",
-      "title": "Corrector ortográfico"
-    },
-    "table": "tabla",
-    "resizeTable": "Redimensionar tabla",
-    "left": "izquierda",
-    "alignLeft": "Alinear a la izquierda",
-    "center": "centro",
-    "alignCenter": "Alinear al centro",
-    "right": "derecha",
-    "alignRight": "Alinear a la derecha",
-    "delete": "eliminar",
-    "deleteTable": "Eliminar tabla",
-    "insertRowAbove": "Insertar fila arriba",
-    "insertRowBelow": "Insertar fila abajo",
-    "removeRow": "Eliminar fila",
-    "insertColumnLeft": "Insertar columna a la izquierda",
-    "insertColumnRight": "Insertar columna a la derecha",
-    "removeColumn": "Eliminar columna",
-    "copyContent": "Copiar contenido",
-    "emptyMathFormula": "< Fórmula matemática vacía >",
-    "invalidMathFormula": "< Fórmula matemática inválida >",
-    "emptyMermaidBlock": "< Bloque Mermaid vacío >",
-    "loading": "Cargando...",
-    "emptyDiagramBlock": "< Bloque de diagrama vacío >",
-    "emptyHtmlBlock": "< Bloque HTML vacío >",
-    "onlyTopBlockCanRenderIcon": "Solo el bloque superior puede renderizar el botón de icono frontal.",
-    "unhandledFunctionType": "Tipo de función no manejado: {functionType}",
-    "highlight-start": "[inicio de resaltado]",
-    "highlight-end": "[fin de resaltado]",
-    "type-at-to-insert": "Escriba {'@'} para insertar",
-    "input-footnote-definition": "Ingrese definición de nota al pie",
-    "input-yaml-front-matter": "Ingrese front matter YAML",
-    "input-language-identifier": "Ingrese identificador de idioma",
-    "input-mathematical-formula": "Ingrese fórmula matemática",
-    "fence": "cerca",
-    "indent": "sangría",
-    "front-matter-delimiter": "delimitador de front matter",
-    "math-delimiter": "delimitador matemático",
-    "mermaid-start": "inicio de mermaid",
-    "flowchart-start": "inicio de diagrama de flujo",
-    "sequence-start": "inicio de secuencia",
-    "plantuml-start": "inicio de plantuml",
-    "vega-lite-start": "inicio de vega-lite",
-    "click-to-add-image": "Haga clic para agregar imagen",
-    "load-image-failed": "Error al cargar imagen"
-  },
-  "titleBar": {
-    "guide": "Guía de Mark",
-    "documentInfo": "Información del documento",
-    "themeMode": {
-      "auto": "Tema: Automático",
-      "light": "Tema: Claro",
-      "dark": "Tema: Oscuro"
-    },
-    "popover": {
-      "words": "palabras",
-      "characters": "caracteres",
-      "lines": "líneas",
-      "reading": "lectura",
-      "minutes": "{count} min",
-      "rename": "Renombrar…",
-      "edited": "editado {time}"
-    }
-  },
-  "edit": {
-    "undo": "Deshacer",
-    "redo": "Rehacer",
-    "cut": "Cortar",
-    "copy": "Copiar",
-    "paste": "Pegar",
-    "selectAll": "Seleccionar"
-  },
-  "diffView": {
-    "current": "Actual",
-    "baseline": "Versión base",
-    "exit": "Salir del diff",
-    "unavailable": "Comparación no disponible",
-    "noChanges": "No hay cambios desde que abriste el archivo.",
-    "nothingToCompare": "Aún no hay nada que comparar.",
-    "sourceSnapshot": "Antes del último guardado externo · {time}",
-    "sourceOpened": "Desde que abriste el archivo · {time}",
-    "sourcePrevious": "Versión anterior"
-  },
-  "updateNotice": {
-    "title": "Mark {version} está disponible",
-    "update": "Actualizar",
-    "later": "Más tarde",
-    "skip": "Omitir esta versión"
-  },
-  "whatsNew": {
-    "eyebrow": "Mark {version}",
-    "title": "Novedades",
-    "seeGuide": "Ver la guía",
-    "continue": "Continuar",
-    "also": "Además: exportes de tabla fieles, Auto Guardado off al instante, cambio de pestaña más estable",
-    "seeEverything": "Ver todas las novedades",
     "v2_3_1": {
-      "look": {
-        "title": "Un Mark más discreto y natural",
-        "text": "Temas Paper, Ink, Docs y macOS, barra de título fina y esquema junto al texto."
-      },
-      "home": {
-        "title": "Una pantalla de inicio",
-        "text": "Archivos y carpetas recientes, la Guía y tu agente conectado en un clic."
+      "notes": {
+        "title": "Solo tus notas",
+        "text": "Las carpetas muestran solo Markdown, con Recientes y Fijados arriba."
       },
       "diagrams": {
         "title": "Diagramas a juego con el tema",
         "text": "Mermaid, gráficos y fórmulas con los colores del tema; todo se abre a pantalla completa."
       },
-      "notes": {
-        "title": "Solo tus notas",
-        "text": "Las carpetas muestran solo Markdown, con Recientes y Fijados arriba."
-      }
-    },
-    "v2_4_0": {
-      "engine": {
-        "title": "Nuevo motor de diagramas",
-        "text": "Los diagramas usan Pele — más rápido y mucho más ligero. Su aspecto cambia."
+      "home": {
+        "title": "Una pantalla de inicio",
+        "text": "Archivos y carpetas recientes, la Guía y tu agente conectado en un clic."
       },
-      "theme": {
-        "title": "Diagramas que siguen el tema",
-        "text": "Cambia entre claro y oscuro: los diagramas se recolorean al instante."
-      },
-      "types": {
-        "title": "Nuevos tipos de diagramas",
-        "text": "Venn, treemap, agentflow, radar, swimlane, usecase y más en bloques mermaid."
-      },
-      "lighter": {
-        "title": "Mucho más ligero",
-        "text": "El código de diagramas: 0,26 MB comprimidos en vez de 44 partes (2,6 MB)."
+      "look": {
+        "title": "Un Mark más discreto y natural",
+        "text": "Temas Paper, Ink, Docs y macOS, barra de título fina y esquema junto al texto."
       }
     },
     "v2_5_0": {
       "export": {
         "title": "Diagramas como imágenes",
         "text": "Copia cualquier diagrama o gráfico como imagen, o guárdalo en PNG o SVG."
-      },
-      "look": {
-        "title": "Un aspecto por diagrama",
-        "text": "Automático, paleta del autor, claro u oscuro: se elige por diagrama y se guarda en él."
       },
       "print": {
         "title": "Imprimir y PDF, directos",
@@ -1520,31 +1085,13 @@
       "images": {
         "title": "Copia imágenes de nuevo",
         "text": "Copia al portapapeles una imagen que ya está en el documento, con un clic."
-      }
-    },
-    "v2_5_3": {
-      "session": {
-        "title": "Sigue donde lo dejaste",
-        "text": "Mark reabre tu carpeta y tus pestañas al iniciar. Se desactiva en Ajustes."
       },
-      "tables": {
-        "title": "Tablas anchas a todo lo ancho",
-        "text": "Una tabla más ancha que la página se abre a todo lo ancho; «Ajustar» se recuerda."
-      },
-      "columns": {
-        "title": "El ancho de columna se queda",
-        "text": "Arrastra un borde de columna y su ancho se recuerda por archivo. El Markdown no cambia."
-      },
-      "updates": {
-        "title": "Las novedades llegan solas",
-        "text": "Mark busca una versión nueva una vez al día: actualiza ya, luego u omítela."
+      "look": {
+        "title": "Un aspecto por diagrama",
+        "text": "Automático, paleta del autor, claro u oscuro: se elige por diagrama y se guarda en él."
       }
     },
     "v2_6_0": {
-      "tableImages": {
-        "title": "Tablas como imágenes",
-        "text": "Copia una tabla como imagen o guarda un PNG desde la vista a pantalla completa."
-      },
       "wideTables": {
         "title": "Tablas anchas bajo control",
         "text": "Ajustar y Ancho completo se recuerdan; las pistas muestran columnas ocultas."
@@ -1552,6 +1099,10 @@
       "compare": {
         "title": "Compara con la versión abierta",
         "text": "⌘D compara la nota con la versión que abrió Mark, incluso sin repositorio Git."
+      },
+      "tableImages": {
+        "title": "Tablas como imágenes",
+        "text": "Copia una tabla como imagen o guarda un PNG desde la vista a pantalla completa."
       },
       "shortcuts": {
         "title": "Atajos de edición restaurados",
@@ -1575,19 +1126,517 @@
         "title": "Barra de título nativa",
         "text": "Windows y Linux estrenan botones de sistema reales y el tema dentro de la barra."
       }
+    },
+    "continue": "Continuar",
+    "seeGuide": "Ver la guía",
+    "v2_8_0": {
+      "folders": {
+        "title": "⇧⌘O añade otra carpeta",
+        "text": "Varias carpetas abiertas a la vez; «Reemplazar espacio…» cambia con seguridad."
+      },
+      "cloud": {
+        "title": "Carpetas de la nube nativas",
+        "text": "Las carpetas de iCloud Drive y OneDrive funcionan como raíces; los solo online avisan."
+      },
+      "search": {
+        "title": "Búsqueda que no se pierde",
+        "text": "La búsqueda en carpetas firma cada resultado con su carpeta y no pierde nada al teclear."
+      },
+      "quit": {
+        "title": "⌘Q pregunta antes de salir",
+        "text": "Lo no guardado ofrece Guardar o Descartar — nada desaparece en silencio."
+      }
     }
   },
+  "store": {
+    "editor": {
+      "loadImageFailed": "Error al cargar la imagen",
+      "imageDeletionUrlMessage": "Haz clic para copiar al portapapeles la URL de eliminación de la imagen subida ({url}).",
+      "highlightEnd": "[Fin de resaltado]",
+      "inputFootnoteDefinition": "Ingrese definición de nota al pie...",
+      "fileRemovedOnDisk": "«{name}» ha sido eliminado del disco.",
+      "inputYamlFrontMatter": "Ingrese metadatos YAML...",
+      "errorLoadingTabTitle": "Error al cargar la pestaña",
+      "mermaidStart": "``` mermaid",
+      "errorWhileSaving": "Se produjo un error al guardar: {msg}",
+      "plantumlStart": "``` plantuml",
+      "fence": "Cerca",
+      "inputLanguageIdentifier": "Ingrese identificador de idioma...",
+      "clickToAddImage": "Haga clic para agregar imagen",
+      "codeFence": "```",
+      "mixedLineEndingsNormalized": "«{name}» tiene finales de línea mixtos que se normalizaron automáticamente a {lineEnding}.",
+      "imageDeletionUrlTitle": "URL de eliminación de la imagen",
+      "sequenceStart": "``` sequence",
+      "tabNotFound": "Pestaña no encontrada",
+      "highlightStart": "[Inicio de resaltado]",
+      "flowchartStart": "``` flowchart",
+      "inputMathematicalFormula": "Ingrese fórmula matemática...",
+      "errorLoadingTabMessage": "Se produjo un error al cargar la modificación del archivo porque no se puede encontrar la pestaña.",
+      "tocItemNotFound": "Elemento de tabla de contenidos {key} no encontrado",
+      "indent": "Sangría",
+      "fileChangedOnDisk": "«{name}» ha cambiado en el disco. ¿Deseas recargarlo?",
+      "typeAtToInsert": "Escriba {'@'} para insertar",
+      "exportSuccessTitle": "Exportado correctamente",
+      "mathDelimiter": "$$",
+      "vegaLiteStart": "``` vega-lite",
+      "exportSuccessMessage": "¡Se exportó «{name}» correctamente!",
+      "frontMatterDelimiter": "---",
+      "anchorLinkCopied": "Enlace de ancla copiado"
+    }
+  },
+  "blockToolbar": {
+    "copyImage": "Copiar como imagen",
+    "openFullScreen": "Abrir a pantalla completa",
+    "editSource": "Editar fuente"
+  },
+  "about": {
+    "copyrightContributors": "Made with <3 by the marktext community",
+    "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
+  },
+  "workspace": {
+    "chooser": {
+      "title": "¿Añadir o reemplazar carpetas?",
+      "message": "«{folder}»: ¿añadirla junto a las carpetas abiertas o reemplazarlas? Reemplazar cierra las demás carpetas y sus pestañas.",
+      "add": "Añadir al espacio de trabajo",
+      "replace": "Reemplazar espacio de trabajo",
+      "cancel": "Cancelar"
+    },
+    "replaceConfirm": {
+      "title": "Cambios sin guardar",
+      "message": "Pestañas con cambios sin guardar: {count}. ¿Guardarlas antes de reemplazar las carpetas?",
+      "saveClose": "Guardar y cerrar",
+      "dontSave": "No guardar",
+      "cancel": "Cancelar"
+    },
+    "restoreSkippedFoldersTitle": "Carpetas no disponibles",
+    "restoreSkippedFolders": "No se pudieron restaurar estas carpetas: {paths}.",
+    "fileOpenFailedTitle": "No se pudo abrir el archivo",
+    "cloudRootHintTitle": "Carpeta en la nube",
+    "cloudRootHint": "Algunos archivos pueden estar solo en la nube: aparecerán en el árbol cuando se descarguen a este Mac."
+  },
+  "notifications": {
+    "defaultMessage": "Mensaje predeterminado",
+    "defaultTitle": "Notificación"
+  },
+  "quickInsert": {
+    "vegaliteChart": {
+      "title": "Gráfico Vega-Lite"
+    },
+    "basicBlock": "Bloque Básico",
+    "header5": {
+      "title": "Encabezado 5",
+      "subtitle": "##### Encabezado"
+    },
+    "plantUMLChart": {
+      "title": "Gráfico PlantUML",
+      "subtitle": "Gráfico UML"
+    },
+    "htmlBlock": {
+      "title": "Bloque HTML",
+      "subtitle": "<div> HTML </div>"
+    },
+    "header2": {
+      "title": "Encabezado 2",
+      "subtitle": "## Encabezado"
+    },
+    "mermaid": {
+      "title": "Mermaid",
+      "journey": {
+        "title": "Viaje del usuario"
+      },
+      "subtitle": "Renderizar gráficos usando mermaid.",
+      "requirement": {
+        "title": "Diagrama de requisitos"
+      },
+      "er": {
+        "title": "Diagrama ER"
+      },
+      "flowchart": {
+        "title": "Diagrama de flujo"
+      },
+      "pie": {
+        "title": "Gráfico circular"
+      },
+      "gantt": {
+        "title": "Diagrama de Gantt"
+      },
+      "state": {
+        "title": "Diagrama de estados",
+        "subtitle": "stateDiagram"
+      },
+      "class": {
+        "title": "Diagrama de clases"
+      },
+      "sequence": {
+        "title": "Diagrama de secuencia"
+      },
+      "git": {
+        "title": "Diagrama Git"
+      }
+    },
+    "horizontalLine": {
+      "title": "Línea Horizontal",
+      "subtitle": "---"
+    },
+    "bulletList": {
+      "title": "Lista con Viñetas",
+      "subtitle": "- Elemento de lista"
+    },
+    "quoteBlock": {
+      "title": "Bloque de Cita",
+      "subtitle": "> Contenido de cita"
+    },
+    "todoList": {
+      "title": "Lista de Tareas",
+      "subtitle": "- [x]"
+    },
+    "header": "Encabezado",
+    "sequenceChart": {
+      "title": "Gráfico de Secuencia",
+      "subtitle": "Diagrama de secuencia"
+    },
+    "plantUMLDiagram": {
+      "title": "Diagrama PlantUML"
+    },
+    "orderedList": {
+      "title": "Lista Ordenada",
+      "subtitle": "1. Elemento de lista"
+    },
+    "paragraph": {
+      "title": "Párrafo",
+      "subtitle": "Ingrese contenido de texto"
+    },
+    "frontMatter": {
+      "title": "Metadatos",
+      "subtitle": "--- YAML ---"
+    },
+    "flowChart": {
+      "title": "Diagrama de Flujo",
+      "subtitle": "Diagrama de flujo"
+    },
+    "header6": {
+      "title": "Encabezado 6",
+      "subtitle": "###### Encabezado"
+    },
+    "tableBlock": {
+      "title": "Bloque de Tabla",
+      "subtitle": "｜ Encabezado ｜ Encabezado ｜"
+    },
+    "advancedBlock": "Bloque Avanzado",
+    "header4": {
+      "title": "Encabezado 4",
+      "subtitle": "#### Encabezado"
+    },
+    "mermaidDiagram": {
+      "title": "Diagrama Mermaid"
+    },
+    "header3": {
+      "title": "Encabezado 3",
+      "subtitle": "### Encabezado"
+    },
+    "vegaChart": {
+      "title": "Gráfico Vega",
+      "subtitle": "Renderizar gráficos usando vega-lite.js."
+    },
+    "listBlock": "Bloque de Lista",
+    "header1": {
+      "title": "Encabezado 1",
+      "subtitle": "# Encabezado"
+    },
+    "diagram": "Diagrama",
+    "taskList": {
+      "title": "Lista de tareas"
+    },
+    "codeBlock": {
+      "title": "Bloque de Código",
+      "subtitle": "``` Código ```"
+    },
+    "mathFormula": {
+      "title": "Fórmula Matemática",
+      "subtitle": "$$ Fórmula $$"
+    }
+  },
+  "exportSettings": {
+    "title": "Opciones de Exportación",
+    "style": {
+      "label": "Estilo",
+      "lineHeight": "Altura de línea",
+      "overwriteThemeFont": "Sobrescribir configuración de fuente del tema",
+      "fontSize": "Tamaño de fuente",
+      "fontFamily": "Familia de fuente:"
+    },
+    "info": {
+      "description": "Por favor personalice la apariencia de la página y haga clic en \"exportar\" para continuar.",
+      "label": "Información"
+    },
+    "page": {
+      "topBottom": "Superior/Inferior:",
+      "label": "Página",
+      "pageTitle": "El título de la página:",
+      "landscapeOrientation": "Orientación horizontal:",
+      "leftRight": "Izquierda/Derecha:",
+      "widthHeight": "Ancho/Alto en mm:",
+      "pageSize": "Tamaño de página:",
+      "pageMargin": "Margen de página en mm:"
+    },
+    "theme": {
+      "label": "Tema",
+      "description": "Puede cambiar la apariencia del documento eligiendo un tema o creando uno personalizado.",
+      "theme": "Tema"
+    },
+    "headerFooter": {
+      "footerType": "Tipo de pie de página",
+      "description": "El texto aparece en todas las páginas si se define encabezado y/o pie de página.",
+      "customizeStyle": "Personalizar estilo",
+      "mainHeaderText": "Texto del encabezado principal",
+      "fontSize": "Tamaño de fuente",
+      "allowStyled": "Permitir texto con estilo",
+      "rightHeaderText": "Texto del encabezado derecho",
+      "headerType": "Tipo de encabezado",
+      "label": "Encabezado y Pie de Página",
+      "leftFooterText": "Texto del pie izquierdo",
+      "rightFooterText": "Texto del pie derecho",
+      "mainFooterText": "Texto del pie principal",
+      "leftHeaderText": "Texto del encabezado izquierdo"
+    },
+    "autoNumberingHeadings": "Numeración automática de encabezados",
+    "showFrontMatter": "Mostrar metadatos",
+    "export": "Exportar...",
+    "pdfTitle": "Exportar a PDF",
+    "toc": {
+      "title": "Tabla de Contenidos",
+      "includeTopHeading": "Incluir encabezado superior",
+      "includeTopHeadingDetail": "Incluir detalle del encabezado superior",
+      "label": "Tabla de Contenidos"
+    },
+    "options": {
+      "headerFooterStyles": {
+        "simple": "Simple",
+        "styled": "Con estilo",
+        "default": "Predeterminado"
+      },
+      "headerFooterTypes": {
+        "threeCells": "Tres celdas",
+        "none": "Ninguno",
+        "singleCell": "Celda única"
+      },
+      "pageSizes": {
+        "a4": "A4",
+        "tabloid": "Tabloide (17\" x 11\")",
+        "a3": "A3",
+        "letter": "Carta EE.UU. (8.5\" x 11\")",
+        "a5": "A5",
+        "legal": "Legal EE.UU. (8.5\" x 13\")",
+        "custom": "Personalizado"
+      },
+      "themes": {
+        "academic": "Académico",
+        "liber": "Liber",
+        "default": "GitHub (Predeterminado)"
+      }
+    }
+  },
+  "import": {
+    "title": "Importar o Abrir",
+    "description": "Arrastra aquí para obtener tu contenido en Mark"
+  },
+  "blockViewer": {
+    "zoomOut": "Alejar",
+    "close": "Cerrar",
+    "zoomIn": "Acercar",
+    "actualSize": "100%",
+    "table": "Tabla",
+    "savePng": "Guardar como PNG…",
+    "expand": "Ampliar",
+    "fit": "Ajustar a la pantalla",
+    "diagram": "Diagrama",
+    "copyImage": "Copiar como imagen",
+    "saveSvg": "Guardar como SVG…"
+  },
+  "dialog": {
+    "file": "Archivo",
+    "changesWillBeLost": "Los cambios se perderán",
+    "installPandoc": "Instalar Pandoc",
+    "close": "Cerrar",
+    "keepOpen": "Mantener abierto",
+    "cancel": "Cancelar",
+    "fileExists": "El archivo {filename} ya existe",
+    "files": "Archivos",
+    "importWarning": "Advertencia de importación",
+    "dontSave": "No Guardar",
+    "saveChanges": "Guardar cambios",
+    "save": "Guardar",
+    "replace": "Reemplazar",
+    "saveFailure": "Error al guardar"
+  },
+  "spellchecker": {
+    "failedToRemoveWord": "Error al eliminar palabra del diccionario",
+    "unexpectedError": "Error inesperado del corrector ortográfico"
+  },
   "diagramAppearance": {
-    "label": "Aspecto del diagrama",
+    "viewOnly": "Solo para esta vista",
     "auto": "Automático",
+    "darkDescription": "Siempre oscuro",
     "custom": "Personalizado",
     "light": "Claro",
     "dark": "Oscuro",
-    "autoDescription": "Como el documento",
     "customDescription": "Paleta del Markdown",
+    "label": "Aspecto del diagrama",
     "lightDescription": "Siempre claro",
-    "darkDescription": "Siempre oscuro",
-    "noCustomPalette": "Sin paleta en el Markdown",
-    "viewOnly": "Solo para esta vista"
+    "autoDescription": "Como el documento",
+    "noCustomPalette": "Sin paleta en el Markdown"
+  },
+  "recent": {
+    "showInFolder": "Mostrar en la carpeta",
+    "lastSessionWithCount": "Última sesión ({count})",
+    "connectTitle": "Conecta tu agente.",
+    "whatsNewIn": "Novedades de {version}",
+    "openFolder": "Añadir carpeta…",
+    "guide": "Guía",
+    "recentlyClosed": {
+      "title": "Cerradas recientemente",
+      "clear": "Limpiar",
+      "reopenAll": "Reabrir las {count}",
+      "reopenClosedTab": "Reabrir pestaña cerrada",
+      "missingNotice": "{name} ya no está disponible",
+      "someMissingNotice": "{count} de los archivos cerrados ya no están disponibles",
+      "buttonLabel": "Reabrir pestañas cerradas ({count})"
+    },
+    "time": {
+      "daysAgo": "hace {count} días",
+      "yesterday": "ayer",
+      "todayAt": "hoy a las {time}",
+      "justNow": "ahora mismo",
+      "minutesAgo": "hace {count} min"
+    },
+    "filesCount": {
+      "one": "{count} archivo",
+      "many": "{count} archivos",
+      "other": "{count} archivos"
+    },
+    "recentFiles": "Archivos recientes",
+    "copyPrompt": "Copiar prompt",
+    "lastSessionEmpty": "No hay nada que restaurar: los archivos de la sesión anterior ya no están disponibles",
+    "openFile": "Abrir archivo…",
+    "undo": "Deshacer",
+    "howItWorks": "Cómo funciona",
+    "lastSession": "Última sesión",
+    "taglineHighlight": "das forma",
+    "open": "Abrir",
+    "showInFinder": "Mostrar en Finder",
+    "noRecentFiles": "No hay archivos recientes",
+    "recentFolders": "Carpetas recientes",
+    "showInExplorer": "Mostrar en el Explorador",
+    "taglineLead": "Los agentes escriben. Tú",
+    "removedToast": "Se quitó «{name}» de Recientes",
+    "connectText": "Un solo prompt hace que abra sus planes aquí y lea tus ediciones.",
+    "remove": "Quitar de la lista",
+    "taglineTail": "al resultado.",
+    "copyPath": "Copiar ruta",
+    "removeTooltip": "Solo lo quita de esta lista. El archivo sigue en el disco.",
+    "newButton": "Nuevo"
+  },
+  "tableToolbar": {
+    "allColumns": "todas las {total} columnas",
+    "fitToPage": "Ajustar a la página",
+    "fullWidth": "Ancho total",
+    "columnsRange": "columnas {start}–{end} de {total}"
+  },
+  "statusBar": {
+    "title": "Estadísticas del documento",
+    "selectedCharacters": {
+      "one": "{count} carácter seleccionado",
+      "other": "{count} caracteres seleccionados"
+    },
+    "characters": {
+      "one": "{count} carácter",
+      "other": "{count} caracteres"
+    },
+    "words": {
+      "one": "{count} palabra",
+      "other": "{count} palabras"
+    },
+    "selectedWords": {
+      "one": "{count} palabra seleccionada",
+      "other": "{count} palabras seleccionadas"
+    },
+    "lines": {
+      "one": "{count} línea",
+      "other": "{count} líneas"
+    },
+    "readingTime": "{count} min de lectura",
+    "documentType": "Markdown"
+  },
+  "diffView": {
+    "nothingToCompare": "Aún no hay nada que comparar.",
+    "current": "Actual",
+    "sourceOpened": "Desde que abriste el archivo · {time}",
+    "unavailable": "Comparación no disponible",
+    "sourceSnapshot": "Antes del último guardado externo · {time}",
+    "sourcePrevious": "Versión anterior",
+    "noChanges": "No hay cambios desde que abriste el archivo.",
+    "baseline": "Versión base",
+    "exit": "Salir del diff"
+  },
+  "frontMenu": {
+    "table": "Tabla",
+    "mathblock": "Bloque matemático",
+    "heading6": "Encabezado 6",
+    "heading5": "Encabezado 5",
+    "heading2": "Encabezado 2",
+    "delete": "Eliminar",
+    "heading3": "Encabezado 3",
+    "html": "HTML",
+    "newParagraph": "Nuevo párrafo",
+    "paragraph": "Párrafo",
+    "frontMatter": "Metadatos",
+    "hr": "Línea horizontal",
+    "heading1": "Encabezado 1",
+    "turnInto": "Convertir en",
+    "blockquote": "Cita en bloque",
+    "olOrder": "Lista ordenada",
+    "ulTask": "Lista de tareas",
+    "ulBullet": "Lista con viñetas",
+    "duplicate": "Duplicar",
+    "pre": "Bloque de código",
+    "heading4": "Encabezado 4"
+  },
+  "sideBar": {
+    "tree": {
+      "closeAll": "Cerrar",
+      "openFolder": "Abrir Carpeta",
+      "pinnedFiles": "Fijados",
+      "openOrSwitchFolder": "Abrir o cambiar de carpeta",
+      "clearRecent": "Borrar recientes",
+      "saveAll": "Guardar",
+      "createFile": "Crear Archivo",
+      "remove": "Eliminar",
+      "openedFiles": "Archivos abiertos",
+      "recentFiles": "Recientes",
+      "unpin": "Dejar de fijar",
+      "newFile": "Nuevo archivo",
+      "emptyProject": "Proyecto vacío",
+      "pinned": "Fijado",
+      "closeFolder": "Cerrar carpeta"
+    },
+    "search": {
+      "searchInFolder": "Buscar en carpeta...",
+      "noResultsFound": "No se encontraron resultados.",
+      "startTyping": "Escribe para buscar en los archivos Markdown de las carpetas abiertas.",
+      "openFolder": "Abrir Carpeta",
+      "showMoreMatches": "Mostrar más coincidencias",
+      "noFolderOpen": "No hay carpeta abierta",
+      "cancel": "Cancelar",
+      "searching": "Buscando…"
+    },
+    "toc": {
+      "title": "Tabla de Contenidos"
+    },
+    "icons": {
+      "files": "Archivos",
+      "settings": "Configuración",
+      "search": "Buscar",
+      "toc": "Tabla de Contenidos"
+    }
   }
 }

@@ -1,0 +1,36 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-RELEASE-CONTROLS-ACTIVATION>
+    <Summary>Repair the owner-local GitHub controls activation executor so it mutates both staged rulesets and verifies the active state explicitly.</Summary>
+    <Problem>The activate command computes two disabled-to-active ruleset updates but the reconciler executes mutations only in apply mode, then reports the unapplied plan as success. The documented post-activation check also targets the disabled staging state, so it cannot prove live enforcement.</Problem>
+    <ApprovalBasis>The owner instructed the agent to repair and complete the release pipeline, then asked for live verification after supplying all release-signing secrets on 2026-10-21.</ApprovalBasis>
+    <Goals>
+      <Goal>Execute and journal activation mutations with the same one-operation-at-a-time read-back used by staged apply.</Goal>
+      <Goal>Provide an explicit read-only active-state check that rejects disabled rulesets.</Goal>
+      <Goal>Add deterministic regression evidence for the disabled-to-active transition.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Keep the checked-in ruleset definitions disabled so initial rollout remains staged and owner-controlled.</Constraint>
+      <Constraint>Do not weaken check identities, bypass actors, Environment boundaries, owner recovery, or rollback evidence.</Constraint>
+      <Constraint>Do not create a release tag, publish a release, or change train admission.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Do not redesign release publication or alter application behavior.</NonGoal>
+      <NonGoal>Do not migrate or inspect secret values.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Activate applies exactly the planned main and release-tag ruleset updates, journals both, and converges only after live read-back reports active enforcement.</Criterion>
+      <Criterion>The active-state check fails while either managed ruleset is disabled and succeeds only when both normalized live rulesets match the active target.</Criterion>
+      <Criterion>Focused M-046 tests, release governance, GRACE lint/status, and direct GitHub API read-back pass.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run tests/renderer/release-github-controls.test.js</ExpectedCommand>
+      <ExpectedCommand>npm run release:governance</ExpectedCommand>
+      <ExpectedCommand>npm run release:github-controls -- --check-active</ExpectedCommand>
+      <ExpectedEvidence>Two journaled update-ruleset mutations followed by zero active-state drift and direct API enforcement=active for both managed rulesets.</ExpectedEvidence>
+    </VerificationIntent>
+    <AppliedEvidence>PR #22 merge aa38f35f (d7ff6d8a); both GitHub rulesets verified active via API 2026-10-22.</AppliedEvidence>
+</C-RELEASE-CONTROLS-ACTIVATION>
+</GraceChangeSpec>

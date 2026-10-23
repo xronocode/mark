@@ -18,7 +18,10 @@ const COMMAND_KEY_MAP = {
   'file.new-window': 'commands.file.newWindow',
   'file.new-tab': 'commands.file.newTab',
   'file.open-file': 'commands.file.openFile',
-  'file.open-folder': 'commands.file.openFolder',
+  // C-MULTI-SOURCE-WORKSPACE: explicit Add Folder… / Replace Workspace…
+  // palette descriptions (the overloaded open-folder entry is retired).
+  'file.add-folder': 'commands.file.addFolder',
+  'file.replace-workspace': 'commands.file.replaceWorkspace',
   // C-52: File › Open from Clipboard (⌥⌘V) palette description.
   'file.open-from-clipboard': 'commands.file.openFromClipboard',
   'file.quick-open': 'commands.file.quickOpen',

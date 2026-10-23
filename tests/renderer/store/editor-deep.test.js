@@ -822,6 +822,83 @@ describe('store/editor — deep coverage', () => {
     })
   })
 
+  // ─── QUIT_APP — guarded app quit (C-MULTI-SOURCE-WORKSPACE fix wave) ──
+
+  describe('QUIT_APP — guarded quit', () => {
+    it('quits immediately when no unsaved files', async () => {
+      const savedTab = makeTab({ id: 's1', isSaved: true })
+      editor.tabs = [savedTab]
+      editor.currentFile = savedTab
+      editor.updateTabIdToIndex()
+
+      const { invoke } = await import('@tauri-apps/api/core')
+      await editor.QUIT_APP()
+      expect(invoke).toHaveBeenCalledWith('mt_app_quit')
+    })
+
+    it('dirty tab + "Don\'t Save" quits without saving', async () => {
+      const dirtyTab = makeTab({ id: 'd1', isSaved: false, pathname: '/tmp/dirty.md' })
+      editor.tabs = [dirtyTab]
+      editor.currentFile = dirtyTab
+      editor.updateTabIdToIndex()
+
+      elMessageBoxConfirmMock.mockRejectedValue('cancel')
+      const { invoke } = await import('@tauri-apps/api/core')
+      await editor.QUIT_APP()
+      expect(invoke).toHaveBeenCalledWith('mt_app_quit')
+      // Never tried to save the dirty tab on the discard path.
+      expect(window.electron.ipcRenderer.invoke).not.toHaveBeenCalledWith(
+        'mt::save-and-close-tabs',
+        expect.anything()
+      )
+    })
+
+    it('dirty tab + Escape keeps the app running (no quit invoke)', async () => {
+      const dirtyTab = makeTab({ id: 'd2', isSaved: false, pathname: '/tmp/dirty.md' })
+      editor.tabs = [dirtyTab]
+      editor.currentFile = dirtyTab
+      editor.updateTabIdToIndex()
+
+      elMessageBoxConfirmMock.mockRejectedValue('close')
+      const { invoke } = await import('@tauri-apps/api/core')
+      await editor.QUIT_APP()
+      expect(invoke).not.toHaveBeenCalledWith('mt_app_quit')
+    })
+
+    it('dirty tab + "Save & Quit" saves then quits', async () => {
+      const dirtyTab = makeTab({ id: 'd3', isSaved: false, pathname: '/tmp/dirty.md' })
+      editor.tabs = [dirtyTab]
+      editor.currentFile = dirtyTab
+      editor.updateTabIdToIndex()
+
+      elMessageBoxConfirmMock.mockResolvedValue('confirm')
+      const { invoke } = await import('@tauri-apps/api/core')
+      await editor.QUIT_APP()
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'mt::save-and-close-tabs',
+        expect.anything()
+      )
+      expect(invoke).toHaveBeenCalledWith('mt_app_quit')
+    })
+
+    it('failed save notifies and does NOT quit', async () => {
+      const notice = (await import('@/services/notification')).default
+      const dirtyTab = makeTab({ id: 'd4', isSaved: false, pathname: '/tmp/dirty.md' })
+      editor.tabs = [dirtyTab]
+      editor.currentFile = dirtyTab
+      editor.updateTabIdToIndex()
+
+      elMessageBoxConfirmMock.mockResolvedValue('confirm')
+      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(new Error('save failed'))
+      const { invoke } = await import('@tauri-apps/api/core')
+      await editor.QUIT_APP()
+      expect(notice.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' })
+      )
+      expect(invoke).not.toHaveBeenCalledWith('mt_app_quit')
+    })
+  })
+
   // ─── RESPONSE_FOR_RENAME — untitled path ─────────────────────────
 
   describe('RESPONSE_FOR_RENAME — untitled', () => {

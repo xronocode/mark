@@ -2,7 +2,8 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-52 routing pins for util/clipboardOpen.openFromClipboard —
-//            folder → projectStore.OPEN_FOLDER_AS_WORKSPACE (replace),
+//            folder → projectStore.OPEN_FOLDER ask dispatcher (the
+//            shared Add-or-Replace chooser decides, C-MULTI-SOURCE-WORKSPACE),
 //            .md → mt::open-new-tab, nothing → the localized
 //            notification, the App Store gate → mt_pick_folder with
 //            defaultPath, and the webview-clipboard text fallback when
@@ -22,7 +23,7 @@
 //   ipcFsMock - ipc.fs double (stat/read) behind the resolver's default stat.
 //   invokeMock - @tauri-apps/api/core invoke double (m059 read + mt_pick_folder).
 //   emitMock - @tauri-apps/api/event emit double (mt::open-new-tab pin).
-//   projectMock - project store double (OPEN_FOLDER_AS_WORKSPACE spy).
+//   projectMock - project store double (OPEN_FOLDER ask-dispatcher spy).
 //   prefsState - mutable buildCapabilities driving the m048 gate.
 //   notifyMock - notification service double.
 //   DIR_STAT - directory stat shape.
@@ -43,7 +44,7 @@ vi.mock('@/ipc/runtime', () => ({
   ipc: { fs: { stat: (p) => ipcFsMock.stat(p), read: (p) => ipcFsMock.read(p) } }
 }))
 
-const projectMock = { OPEN_FOLDER_AS_WORKSPACE: vi.fn() }
+const projectMock = { OPEN_FOLDER: vi.fn() }
 vi.mock('@/store/project', () => ({
   useProjectStore: vi.fn(() => projectMock)
 }))
@@ -72,7 +73,7 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
     emitMock.mockResolvedValue(undefined)
     ipcFsMock.stat.mockReset()
     ipcFsMock.read.mockReset()
-    projectMock.OPEN_FOLDER_AS_WORKSPACE.mockReset()
+    projectMock.OPEN_FOLDER.mockReset()
     notifyMock.notify.mockReset()
     prefsState.buildCapabilities.mode = 'desktop'
     window.electron.clipboard.readText = vi.fn(async () => '')
@@ -83,7 +84,7 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
     })
   })
 
-  it('R-1 folder: opens the workspace through the store (replace path)', async () => {
+  it('R-1 folder: routes through the OPEN_FOLDER ask dispatcher (chooser decides)', async () => {
     invokeMock.mockImplementation(async (cmd) => {
       if (cmd === 'mt_read_clipboard_paths') {
         return { paths: ['/tmp/prj'], text: '' }
@@ -94,8 +95,11 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
 
     await openFromClipboard()
 
-    expect(projectMock.OPEN_FOLDER_AS_WORKSPACE).toHaveBeenCalledTimes(1)
-    expect(projectMock.OPEN_FOLDER_AS_WORKSPACE).toHaveBeenCalledWith('/tmp/prj')
+    expect(projectMock.OPEN_FOLDER).toHaveBeenCalledTimes(1)
+    expect(projectMock.OPEN_FOLDER).toHaveBeenCalledWith('/tmp/prj', {
+      mode: 'ask',
+      origin: 'clipboard'
+    })
     expect(notifyMock.notify).not.toHaveBeenCalled()
     expect(invokeMock).not.toHaveBeenCalledWith(
       'mt_pick_folder',
@@ -115,7 +119,7 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
 
     await openFromClipboard()
 
-    expect(projectMock.OPEN_FOLDER_AS_WORKSPACE).not.toHaveBeenCalled()
+    expect(projectMock.OPEN_FOLDER).not.toHaveBeenCalled()
     expect(ipcFsMock.read).toHaveBeenCalledWith('/tmp/docs/notes.md')
     expect(emitMock).toHaveBeenCalledWith(
       'mt::open-new-tab',
@@ -131,7 +135,7 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
 
     await openFromClipboard()
 
-    expect(projectMock.OPEN_FOLDER_AS_WORKSPACE).not.toHaveBeenCalled()
+    expect(projectMock.OPEN_FOLDER).not.toHaveBeenCalled()
     expect(emitMock).not.toHaveBeenCalled()
     expect(notifyMock.notify).toHaveBeenCalledTimes(1)
     expect(notifyMock.notify).toHaveBeenCalledWith(
@@ -158,7 +162,10 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
     const pickCall = invokeMock.mock.calls.find(([cmd]) => cmd === 'mt_pick_folder')
     expect(pickCall).toBeTruthy()
     expect(pickCall[1]).toEqual({ defaultPath: '/tmp/sandboxed' })
-    expect(projectMock.OPEN_FOLDER_AS_WORKSPACE).toHaveBeenCalledWith('/tmp/sandboxed')
+    expect(projectMock.OPEN_FOLDER).toHaveBeenCalledWith('/tmp/sandboxed', {
+      mode: 'ask',
+      origin: 'clipboard'
+    })
   })
 
   it('R-5 App Store build: a cancelled panel changes nothing', async () => {
@@ -174,7 +181,7 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
 
     await openFromClipboard()
 
-    expect(projectMock.OPEN_FOLDER_AS_WORKSPACE).not.toHaveBeenCalled()
+    expect(projectMock.OPEN_FOLDER).not.toHaveBeenCalled()
     expect(notifyMock.notify).not.toHaveBeenCalled()
   })
 
@@ -188,6 +195,9 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
     await openFromClipboard()
 
     expect(window.electron.clipboard.readText).toHaveBeenCalled()
-    expect(projectMock.OPEN_FOLDER_AS_WORKSPACE).toHaveBeenCalledWith('/tmp/fallback-folder')
+    expect(projectMock.OPEN_FOLDER).toHaveBeenCalledWith('/tmp/fallback-folder', {
+      mode: 'ask',
+      origin: 'clipboard'
+    })
   })
 })

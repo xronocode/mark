@@ -18,7 +18,7 @@ const i18n = createI18n({ legacy: false, locale: 'en', messages: { en: {
       noResultsFound: 'No results', cancel: 'Cancel'
     }
   },
-  search: { searchResultInfo: '{matchCount} results in {fileCount} files' }
+  search: { searchResultInfo: '{matches} in {files}', matchesCount: { one: '1 match', other: '{count} matches' }, filesCount: { one: '1 file', other: '{count} files' } }
 } } })
 
 describe('sideBar/search.vue — fn coverage', () => {

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "1.0.0",
+  "trainId": "2.7.x-next",
+  "state": "Collecting",
+  "previousRelease": {
+    "tag": "v2.7.0",
+    "commit": "132f259903e0aca8a3fe661e6f72be052ab16897",
+    "bootstrapSha": "132f259903e0aca8a3fe661e6f72be052ab16897",
+    "tree": "40591bcba06ae955cbc1411052969b1de6f74e58"
+  },
+  "computedVersion": "2.8.0",
+  "payloadSha": null,
+  "sealSha": null,
+  "releaseAuthorization": null,
+  "items": {
+    "userFacing": [
+      {
+        "id": "C-MULTI-SOURCE-WORKSPACE",
+        "summary": "Multi-root workspaces (Add Folder…/Replace Workspace… with chooser and dirty-tab guard) plus the acceptance fix waves: guarded quit, search generation guard, sync cloud picker, tree-event coalescer, pretty cloud root names, online-files hint, duplicate tab suffixes, search owner labels, honest restore degradation.",
+        "state": "queued",
+        "commits": [
+          "aebc581f4626328eef9022bdbe0a023c990d367f",
+          "016297af776330fa45186d3da584847e3b2bf438",
+          "79704d2652ec4b4c9ca561cf4f75ee1e4f155d67"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-22",
+          "testedArtifact": "mark-test-msw-ab3367c2 (binary SHA-256 211375dc4b6df285ed5131544920dfda7b1729aebeaa4ce9aa7a9af8363eab90); source base ab3367c2 plus the uncommitted bundle, reconciled onto post-v2.7.0 main before the safety-gated commit; commits recorded when that commit lands.",
+          "scenarios": [
+            "Menu pair Add Folder… (Cmd+Shift+O) / Replace Workspace…; chooser → two roots; duplicate plan.md tabs with root suffixes",
+            "Search across roots with owner labels (post-fix: char-typed query returns both roots, pluralized summary)",
+            "Replace with unsaved tab — Cancel / Save & Close / Don't Save branches; restart restores both roots; missing-folder degradation notice",
+            "Cloud roots: iCloud owner-verified; OneDrive post-fix (freeze cured; agent in-vivo whole-drive flood probe); pretty names (iCloud Drive / OneDrive); online-files hint",
+            "Guarded Cmd+Q dialog — no silent data loss"
+          ]
+        }
+      }
+    ],
+    "operational": [
+      {
+        "id": "RELEASE-CONTROLS-ACTIVATION",
+        "summary": "PR #22: rulesets activation fix — merge to main and v* tags enforced via PR + status checks.",
+        "state": "queued",
+        "commits": [
+          "aa38f35fa7c74f0f859c6e611c8d9004aa1ecf79"
+        ]
+      }
+    ],
+    "notPresent": []
+  },
+  "commitAccounting": {
+    "fromExclusive": "132f259903e0aca8a3fe661e6f72be052ab16897",
+    "entries": [
+      {
+        "sha": "aa38f35fa7c74f0f859c6e611c8d9004aa1ecf79",
+        "classification": "operational",
+        "itemIds": [
+          "RELEASE-CONTROLS-ACTIVATION"
+        ]
+      },
+      {
+        "sha": "aebc581f4626328eef9022bdbe0a023c990d367f",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-MULTI-SOURCE-WORKSPACE"
+        ]
+      },
+      {
+        "sha": "016297af776330fa45186d3da584847e3b2bf438",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-MULTI-SOURCE-WORKSPACE"
+        ]
+      },
+      {
+        "sha": "79704d2652ec4b4c9ca561cf4f75ee1e4f155d67",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-MULTI-SOURCE-WORKSPACE"
+        ]
+      }
+    ]
+  },
+  "requiredChecks": [
+    {
+      "name": "status check",
+      "app": "GitHub Actions",
+      "status": "success",
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+    },
+    {
+      "name": "release/governance",
+      "app": "GitHub Actions",
+      "status": "success",
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+    },
+    {
+      "name": "release/readiness",
+      "app": "GitHub Actions",
+      "status": "success",
+      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+    }
+  ],
+  "materials": {
+    "status": "ready",
+    "screenshotManifest": "docs/assets/readme/2.8.0.manifest.json",
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "releaseNotes": "docs/release-notes-en-drafts.md",
+    "whatsNew": "src/renderer/src/whatsNew/data.js",
+    "localeCount": 10,
+    "itemIds": [
+      "C-MULTI-SOURCE-WORKSPACE"
+    ]
+  },
+  "transitions": [
+    {
+      "state": "Collecting",
+      "date": "2026-10-22",
+      "actor": "agent-zcode",
+      "evidence": "Opened per the owner instruction 'приемку закрываем, комит и пэк кладем в релиз поезд, н пока не начинаем сборки и мерджи': the accepted C-MULTI-SOURCE-WORKSPACE pack is admitted; no release activity authorized."
+    }
+  ]
+}

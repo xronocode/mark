@@ -24,6 +24,13 @@
             :title="t('tabs.lockedTitle')"
           ></chrome-icon>
           <span>{{ file.filename }}</span>
+          <!-- C-MULTI-SOURCE-WORKSPACE: duplicate-filename disambiguation —
+               a dimmed owning-root (or parent-directory) suffix appears
+               only while another open tab shares this filename; the full
+               pathname stays in the li title tooltip. -->
+          <span v-if="duplicateSuffix(file)" class="tab-owner-suffix">{{
+            duplicateSuffix(file)
+          }}</span>
           <!-- C-38 T-006: close glyph + unsaved marker drawn from the
                chromeIcons set; the CSS below keeps the old swap logic
                (unsaved non-active tabs show the dot, hover/active show
@@ -107,6 +114,11 @@
 // FILE: src/renderer/src/components/editorWithTabs/tabs.vue
 // VERSION: 1.7.0
 // START_CHANGE_SUMMARY
+//   - 2026-10-22 v1.8.0: C-MULTI-SOURCE-WORKSPACE — duplicate-filename
+//     disambiguation: while two or more open tabs share a filename, each
+//     label gains a dimmed suffix naming the owning workspace root (or
+//     the parent directory for rootless files); the full pathname stays
+//     in the tooltip. No suffix when the filename is unique.
 //   - 2026-10-21 v1.7.0: C-FIX-009-RECENTLY-CLOSED — a count-badged
 //     recovery button renders left of the + while the closed-tab
 //     history is non-empty; its popover (teleported past the strip's
@@ -136,6 +148,7 @@
 // END_CHANGE_SUMMARY
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useEditorStore } from '@/store/editor'
+import { findOwningRoot, useProjectStore } from '@/store/project'
 import { useLayoutStore } from '@/store/layout'
 import { usePinnedStore } from '@/store/pinned'
 import { useRecentlyClosedStore } from '@/store/recentlyClosed'
@@ -164,6 +177,34 @@ let autoScroller = null
 let drake = null
 
 // Computed properties
+
+// START_BLOCK_DUPLICATE_SUFFIX
+// C-MULTI-SOURCE-WORKSPACE: when two or more open tabs share a filename,
+// each shows a dimmed suffix naming the disambiguating owner — the owning
+// workspace root for rooted files, the parent directory for rootless ones.
+// Precomputed once per tabs change (no O(n²) scan per tab render); the
+// suffix never participates in truncation (the filename span owns
+// ellipsis; the suffix sits after it).
+const duplicateFilenames = computed(() => {
+  const counts = new Map()
+  for (const tab of tabs.value) {
+    counts.set(tab.filename, (counts.get(tab.filename) || 0) + 1)
+  }
+  return counts
+})
+
+const projectStore = useProjectStore()
+
+const duplicateSuffix = (file) => {
+  if (!file.pathname) return ''
+  if ((duplicateFilenames.value.get(file.filename) || 0) < 2) return ''
+  const owner = findOwningRoot(projectStore.projectTrees || [], file.pathname)
+  if (owner) {
+    return window.path.basename(owner.pathname) || owner.pathname
+  }
+  return window.path.basename(window.path.dirname(file.pathname))
+}
+// END_BLOCK_DUPLICATE_SUFFIX
 
 // Methods incorporated from tabsMixins
 const selectFile = (file) => {
@@ -551,6 +592,15 @@ onBeforeUnmount(() => {
 svg.close-icon {
   transition: all 0.15s ease-in-out;
   cursor: pointer;
+  color: var(--editorColor50);
+}
+
+/* C-MULTI-SOURCE-WORKSPACE: dimmed owning-root suffix on duplicate
+   filenames — never truncates the label (the filename span owns
+   ellipsis; this sits after it). */
+.tab-owner-suffix {
+  margin-left: 4px;
+  font-size: 11px;
   color: var(--editorColor50);
 }
 

@@ -38,6 +38,15 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
+## What's new in 2.8.0
+
+- **Several folders, one window.** ⇧⌘O adds a folder beside the ones already open; **File › Replace Workspace…** swaps them, asking about unsaved tabs first. Tabs with the same name carry their folder as a dimmed suffix.
+- **Cloud folders as roots.** iCloud Drive and OneDrive folders open in the sidebar by their real names; a once-per-folder note explains that online-only files appear after download, and drive-sized folders stream in without freezing the window.
+- **Search you can trust.** Folder search marks each hit with its folder, keeps every result while you type, and counts read correctly in all ten languages.
+- **⌘Q asks before quitting.** Unsaved edits get Save & Quit or Don't Save — nothing disappears silently anymore.
+
+The 2.7.0 highlights — honest sessions, self-contained HTML export, the native Windows title bar — are in [CHANGELOG.md](CHANGELOG.md).
+
 ## What's new in 2.7.0
 
 - **Sessions come back honestly.** Launching Mark restores your tabs, folders and the active tab. Turn that off, and the welcome screen's "Last session (2)" row reopens exactly what was there at launch — never a stale no-op.
