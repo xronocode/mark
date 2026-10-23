@@ -402,6 +402,17 @@ const commands = [
           await delay(50)
           bus.emit('showExportDialog', 'pdf')
         }
+      },
+      {
+        // C-NATIVE-DOCX-RTF-EXPORT R-1: modal-less — the settings dialog
+        // never opens; the store action merges the remembered print
+        // options and rides the same bus 'export' pipeline.
+        id: 'file.export-file-docx',
+        description: 'Export as Word',
+        execute: async () => {
+          const { useEditorStore } = await import('../store/editor')
+          useEditorStore().EXPORT_DOCX_DOCUMENT()
+        }
       }
     ]
   },

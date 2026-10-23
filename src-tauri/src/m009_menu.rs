@@ -577,6 +577,13 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                MenuItem {
+                    id: "file.export-file-docx".to_string(),
+                    label: "Export to Word…".to_string(),
+                    command: Some("exportDocx".to_string()),
+                    accelerator: None,
+                    items: None,
+                },
             ]),
         },
         MenuItem {
@@ -980,6 +987,10 @@ pub fn build_native_menu<R: tauri::Runtime>(
         )
         .item(
             &MenuItemBuilder::with_id("file.export-file-html", "Export to HTML…")
+                .build(handle)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("file.export-file-docx", "Export to Word…")
                 .build(handle)?,
         )
         .separator()

@@ -82,7 +82,8 @@
       "failed": "匯出失敗",
       "error": "匯出錯誤",
       "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 張圖片——過大或不存在的圖片保留原始連結",
-      "errorExporting": "匯出檔案時發生錯誤"
+      "errorExporting": "匯出檔案時發生錯誤",
+      "settingsAction": "匯出設定"
     },
     "resizeTable": "調整表格大小",
     "vega-lite-start": "vega-lite 開始",
@@ -186,7 +187,8 @@
       "exportFilePdf": "匯出為 PDF",
       "openFromClipboard": "從剪貼板開啟",
       "reopenClosedTab": "重新開啟已關閉分頁",
-      "newWindow": "新建視窗"
+      "newWindow": "新建視窗",
+      "exportFileDocx": "匯出為 Word"
     },
     "paragraph": {
       "table": "表格",
@@ -738,7 +740,10 @@
       "closeOthers": "關閉其他",
       "copyAsHtml": "複製為 HTML",
       "splitView": "分割檢視",
-      "copyAsStructuredText": "複製為結構化文字"
+      "copyAsStructuredText": "複製為結構化文字",
+      "exportPdf": "匯出為 PDF…",
+      "exportHtml": "匯出為 HTML…",
+      "exportDocx": "匯出為 Word…"
     },
     "insertParagraphBefore": "在前面插入段落",
     "spelling": "拼字檢查…",
@@ -1477,7 +1482,8 @@
         "liber": "Liber",
         "default": "GitHub（預設）"
       }
-    }
+    },
+    "docxTitle": "匯出為 Word"
   },
   "import": {
     "title": "匯入或開啟",

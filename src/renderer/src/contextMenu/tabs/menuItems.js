@@ -48,6 +48,24 @@ export const getSHOW_IN_FOLDER = () => ({
   id: 'showInFolder'
 })
 
+// C-NATIVE-DOCX-RTF-EXPORT R-2: the export group — labels identical to
+// the File menu items (one action, one name, two doors); the caller
+// gates all three on !!pathname exactly like the file block.
+export const getEXPORT_PDF = () => ({
+  label: t('contextMenu.tabs.exportPdf'),
+  id: 'tabExportPdf'
+})
+
+export const getEXPORT_HTML = () => ({
+  label: t('contextMenu.tabs.exportHtml'),
+  id: 'tabExportHtml'
+})
+
+export const getEXPORT_DOCX = () => ({
+  label: t('contextMenu.tabs.exportDocx'),
+  id: 'tabExportDocx'
+})
+
 // C-40 T-004: Lock Document / Unlock Document (per-tab read-only lock).
 // The label reflects the tab's lock state at popup time; one id — the
 // handler toggles.
@@ -103,7 +121,10 @@ export const HANDLERS = {
   pinFile: (tabId) => contextMenu.pinFile(tabId),
   copyAsMarkdown: (tabId) => contextMenu.copyAsMarkdown(tabId),
   copyAsHtml: (tabId) => contextMenu.copyDocumentAs('html', tabId),
-  copyAsStructuredText: (tabId) => contextMenu.copyDocumentAs('structuredText', tabId)
+  copyAsStructuredText: (tabId) => contextMenu.copyDocumentAs('structuredText', tabId),
+  tabExportPdf: (tabId) => contextMenu.activateThenExport(tabId, 'pdf'),
+  tabExportHtml: (tabId) => contextMenu.activateThenExport(tabId, 'styledHtml'),
+  tabExportDocx: (tabId) => contextMenu.activateThenExport(tabId, 'docx')
 }
 
 // Backwards-compat shape kept for any external import sites; click is

@@ -223,7 +223,12 @@
         PDF/print: the printService container renders the HTML and
         re-resolves img src itself (GH#678); the native m052 surface
         writes the PDF (mt_export_pdf) or opens the panel
-        (mt_print_webview).
+        (mt_print_webview). For DOCX (M-066, modal-less): the same embedded
+        HTML passes the data-only pre-pass (front-matter strip, footnote
+        shape adaptation, figure PNG raster), the lazy docx/docx-html
+        import converts it with native equations, footnotes and
+        checkboxes, and the binary facade writes the .docx — the save
+        dialog is the only UI, never the settings dialog.
       </Summary>
       <Steps>
         <Step>

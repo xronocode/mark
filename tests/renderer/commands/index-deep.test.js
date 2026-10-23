@@ -224,9 +224,9 @@ describe('commands/index — deep coverage', () => {
   // ---- File export subcommands ----
 
   describe('file.export-file subcommands', () => {
-    it('file.export-file has two subcommands', () => {
+    it('file.export-file has three subcommands (pdf/html/docx)', () => {
       const cmd = findCmd('file.export-file')
-      expect(cmd.subcommands).toHaveLength(2)
+      expect(cmd.subcommands).toHaveLength(3)
     })
 
     it('file.export-file-html emits showExportDialog styledHtml', async () => {

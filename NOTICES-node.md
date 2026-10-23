@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **317 packages**.
+Generated from `license-checker --production` over **336 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,12 +13,14 @@ npx --package license-checker -- license-checker --production --json | \
 
 | License | Package count |
 |---|---:|
-| MIT | 222 |
+| MIT | 237 |
 | BSD-3-Clause | 40 |
-| ISC | 34 |
+| ISC | 36 |
 | Apache-2.0 | 6 |
 | MIT OR Apache-2.0 | 5 |
 | BSD-2-Clause | 2 |
+| (MIT AND Zlib) | 1 |
+| (MIT OR GPL-3.0-or-later) | 1 |
 | (MPL-2.0 OR Apache-2.0) | 1 |
 | 0BSD | 1 |
 | Apache-2.0 OR MIT | 1 |
@@ -27,7 +29,7 @@ npx --package license-checker -- license-checker --production --json | \
 | UNLICENSED | 1 |
 | WTFPL | 1 |
 
-## MIT (222)
+## MIT (237)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -64,6 +66,7 @@ npx --package license-checker -- license-checker --production --json | \
 | @types/geojson | 7946.0.16 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/lodash | 4.17.24 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/lodash-es | 4.17.12 | https://github.com/DefinitelyTyped/DefinitelyTyped |
+| @types/node | 26.6.5 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/trusted-types | 2.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/web-bluetooth | 0.0.20 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @vue/compiler-core | 3.5.44 | https://github.com/vuejs/core |
@@ -110,6 +113,7 @@ npx --package license-checker -- license-checker --production --json | \
 | commander | 7.2.0 | https://github.com/tj/commander.js |
 | contra | 1.9.4 | https://github.com/bevacqua/contra |
 | copy-anything | 4.0.5 | https://github.com/mesqueeb/copy-anything |
+| core-util-is | 1.0.3 | https://github.com/isaacs/core-util-is |
 | create-point-cb | 1.2.0 |  |
 | crossvent | 1.5.5 | https://github.com/bevacqua/crossvent |
 | csstype | 3.2.3 | https://github.com/frenic/csstype |
@@ -120,6 +124,7 @@ npx --package license-checker -- license-checker --production --json | \
 | define-data-property | 1.1.4 | https://github.com/ljharb/define-data-property |
 | define-properties | 1.2.1 | https://github.com/ljharb/define-properties |
 | delayed-stream | 1.0.0 | https://github.com/felixge/node-delayed-stream |
+| docx | 9.14.0 | https://github.com/dolanmiu/docx |
 | dom-autoscroller | 2.3.4 | https://github.com/hollowdoor/dom_autoscroller |
 | dom-mousemove-dispatcher | 1.0.1 | https://github.com/hollowdoor/dom_mousemove_dispatcher |
 | dom-plane | 1.0.2 |  |
@@ -155,11 +160,13 @@ npx --package license-checker -- license-checker --production --json | \
 | has-property-descriptors | 1.0.2 | https://github.com/inspect-js/has-property-descriptors |
 | has-symbols | 1.1.0 | https://github.com/inspect-js/has-symbols |
 | has-tostringtag | 1.0.2 | https://github.com/inspect-js/has-tostringtag |
+| hash.js | 1.1.7 | https://github.com/indutny/hash.js |
 | hasown | 2.0.4 | https://github.com/inspect-js/hasOwn |
 | hookable | 5.5.3 | https://github.com/unjs/hookable |
 | html-tags | 5.1.0 | https://github.com/sindresorhus/html-tags |
 | https-proxy-agent | 5.0.1 | https://github.com/TooTallNate/node-https-proxy-agent |
 | iconv-lite | 0.6.3 | https://github.com/ashtuchkin/iconv-lite |
+| immediate | 3.0.6 | https://github.com/calvinmetcalf/immediate |
 | internal-slot | 1.1.0 | https://github.com/ljharb/internal-slot |
 | is-arguments | 1.2.0 | https://github.com/inspect-js/is-arguments |
 | is-array | 1.0.1 | https://github.com/retrofox/is-array |
@@ -180,6 +187,7 @@ npx --package license-checker -- license-checker --production --json | \
 | is-weakmap | 2.0.2 | https://github.com/inspect-js/is-weakmap |
 | is-weakset | 2.0.4 | https://github.com/inspect-js/is-weakset |
 | is-what | 5.5.0 | https://github.com/mesqueeb/is-what |
+| isarray | 1.0.0 | https://github.com/juliangruber/isarray |
 | isarray | 2.0.5 | https://github.com/juliangruber/isarray |
 | iselement | 1.1.4 | https://github.com/fczbkk/iselement |
 | iso-639-1 | 3.1.5 | https://github.com/meikidd/iso-639-1 |
@@ -187,6 +195,7 @@ npx --package license-checker -- license-checker --production --json | \
 | json-stringify-pretty-compact | 4.0.0 | https://github.com/lydell/json-stringify-pretty-compact |
 | json-with-bigint | 3.5.8 | https://github.com/Ivan-Korolenko/json-with-bigint |
 | katex | 0.18.10 | https://github.com/KaTeX/KaTeX |
+| lie | 3.3.0 | https://github.com/calvinmetcalf/lie |
 | lodash | 4.18.1 | https://github.com/lodash/lodash |
 | lodash-es | 4.18.1 | https://github.com/lodash/lodash |
 | lodash-unified | 1.0.3 |  |
@@ -204,6 +213,7 @@ npx --package license-checker -- license-checker --production --json | \
 | mitt | 3.0.1 | https://github.com/developit/mitt |
 | ms | 2.1.3 | https://github.com/vercel/ms |
 | nanoid | 3.3.20 | https://github.com/ai/nanoid |
+| nanoid | 6.0.2 | https://github.com/ai/nanoid |
 | object-assign | 4.1.1 | https://github.com/sindresorhus/object-assign |
 | object-inspect | 1.13.4 | https://github.com/inspect-js/object-inspect |
 | object-is | 1.1.6 | https://github.com/es-shims/object-is |
@@ -219,14 +229,18 @@ npx --package license-checker -- license-checker --production --json | \
 | possible-typed-array-names | 1.1.0 | https://github.com/ljharb/possible-typed-array-names |
 | postcss | 8.5.31 | https://github.com/postcss/postcss |
 | prismjs | 1.30.0 | https://github.com/PrismJS/prism |
+| process-nextick-args | 2.0.1 | https://github.com/calvinmetcalf/process-nextick-args |
 | proxy-from-env | 2.1.0 | https://github.com/Rob--W/proxy-from-env |
 | raphael | 2.3.0 | https://github.com/DmitryBaranovskiy/raphael |
+| readable-stream | 2.3.8 | https://github.com/nodejs/readable-stream |
 | regexp.prototype.flags | 1.5.4 | https://github.com/es-shims/RegExp.prototype.flags |
 | rfdc | 1.4.1 | https://github.com/davidmarkclements/rfdc |
+| safe-buffer | 5.1.2 | https://github.com/feross/safe-buffer |
 | safe-regex-test | 1.1.0 | https://github.com/ljharb/safe-regex-test |
 | safer-buffer | 2.1.2 | https://github.com/ChALkeR/safer-buffer |
 | set-function-length | 1.2.2 | https://github.com/ljharb/set-function-length |
 | set-function-name | 2.0.2 | https://github.com/ljharb/set-function-name |
+| setimmediate | 1.0.5 | https://github.com/YuzuJS/setImmediate |
 | side-channel | 1.1.0 | https://github.com/ljharb/side-channel |
 | side-channel-list | 1.0.1 | https://github.com/ljharb/side-channel-list |
 | side-channel-map | 1.0.1 | https://github.com/ljharb/side-channel-map |
@@ -235,6 +249,7 @@ npx --package license-checker -- license-checker --production --json | \
 | snabbdom-to-html | 7.1.0 | https://github.com/acstll/snabbdom-to-html |
 | snapsvg-cjs | 0.0.6 | https://github.com/geelen/Snap.svg-cjs |
 | stop-iteration-iterator | 1.1.0 | https://github.com/ljharb/stop-iteration-iterator |
+| string_decoder | 1.1.1 | https://github.com/nodejs/string_decoder |
 | string-width | 7.2.0 | https://github.com/sindresorhus/string-width |
 | strip-ansi | 7.2.0 | https://github.com/chalk/strip-ansi |
 | superjson | 2.2.6 | https://github.com/blitz-js/superjson |
@@ -243,6 +258,8 @@ npx --package license-checker -- license-checker --production --json | \
 | turndown | 7.2.4 | https://github.com/mixmark-io/turndown |
 | type-func | 1.0.3 |  |
 | underscore | 1.13.8 | https://github.com/jashkenas/underscore |
+| undici-types | 8.9.0 | https://github.com/nodejs/undici |
+| util-deprecate | 1.0.2 | https://github.com/TooTallNate/util-deprecate |
 | vue | 3.5.44 | https://github.com/vuejs/core |
 | vue-component-type-helpers | 3.2.7 | https://github.com/vuejs/language-tools |
 | vue-i18n | 11.4.0 | https://github.com/intlify/vue-i18n |
@@ -299,7 +316,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-voronoi | 5.1.0 | https://github.com/vega/vega |
 | vega-wordcloud | 5.1.0 | https://github.com/vega/vega |
 
-## ISC (34)
+## ISC (36)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -326,9 +343,11 @@ npx --package license-checker -- license-checker --production --json | \
 | d3-timer | 3.0.1 | https://github.com/d3/d3-timer |
 | delaunator | 5.1.0 | https://github.com/mapbox/delaunator |
 | get-caller-file | 2.0.5 | https://github.com/stefanpenner/get-caller-file |
+| inherits | 2.0.4 | https://github.com/isaacs/inherits |
 | internmap | 2.0.3 | https://github.com/mbostock/internmap |
 | lru-cache | 5.1.1 | https://github.com/isaacs/node-lru-cache |
 | mapped-disposable | 1.0.3 | https://github.com/file-icons/mapped-disposable |
+| minimalistic-assert | 1.0.1 | https://github.com/calvinmetcalf/minimalistic-assert |
 | path-win32 | 1.0.1 | https://github.com/stefanpenner/node-path-posix |
 | picocolors | 1.1.1 | https://github.com/alexeyraspopov/picocolors |
 | semver | 7.7.4 | https://github.com/npm/node-semver |
@@ -365,6 +384,18 @@ npx --package license-checker -- license-checker --production --json | \
 |---|---|---|
 | @mixmark-io/domino | 2.2.0 | https://github.com/mixmark-io/domino |
 | entities | 7.0.1 | https://github.com/fb55/entities |
+
+## (MIT AND Zlib) (1)
+
+| Package | Version | Repository |
+|---|---|---|
+| pako | 1.0.11 | https://github.com/nodeca/pako |
+
+## (MIT OR GPL-3.0-or-later) (1)
+
+| Package | Version | Repository |
+|---|---|---|
+| jszip | 3.10.2 | https://github.com/Stuk/jszip |
 
 ## (MPL-2.0 OR Apache-2.0) (1)
 

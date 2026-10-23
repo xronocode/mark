@@ -235,6 +235,7 @@ Mark began as a port of [MarkText](https://github.com/marktext/marktext) and wou
 - **[@Tkaixiang](https://github.com/Tkaixiang)** maintained the [community fork](https://github.com/Tkaixiang/marktext) that kept MarkText alive with security fixes (CVE-2023-2318), crash fixes and the Mermaid v11 upgrade. Mark's early Electron phase was based on that fork.
 - **The MarkText community**: years of issues and pull requests about what a good Markdown editor should do.
 - **The Tauri team**, for a framework that runs on the system WebView.
+- **[docx](https://github.com/dolanmiu/docx)** by **@dolanmiu**, the DOCX writer behind Export to Word — it turns the editor's HTML into real Word documents with native equations and footnotes.
 
 ## Contributing
 

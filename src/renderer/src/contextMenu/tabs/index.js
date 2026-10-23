@@ -11,6 +11,9 @@ import {
   getRENAME,
   getCOPY_PATH,
   getSHOW_IN_FOLDER,
+  getEXPORT_PDF,
+  getEXPORT_HTML,
+  getEXPORT_DOCX,
   getLOCK,
   getSPLIT_VIEW,
   getPIN,
@@ -47,7 +50,13 @@ export const showContextMenu = async (event, tab) => {
     { ...getCOPY_PATH(), enabled: !!pathname },
     // C-51 T-002: Pin/Unpin the saved tab's file into the Pinned section.
     { ...getPIN(!!pathname && pinnedStore.isPinned(pathname)), enabled: !!pathname },
-    { ...getSHOW_IN_FOLDER(), enabled: !!pathname }
+    { ...getSHOW_IN_FOLDER(), enabled: !!pathname },
+    SEPARATOR,
+    // C-NATIVE-DOCX-RTF-EXPORT R-2: the export group — gated exactly like
+    // the file block above it; one behavior, two doors with the File menu.
+    { ...getEXPORT_PDF(), enabled: !!pathname },
+    { ...getEXPORT_HTML(), enabled: !!pathname },
+    { ...getEXPORT_DOCX(), enabled: !!pathname }
   ]
 
   const clickedId = await window.electron.ipcRenderer.invoke(
