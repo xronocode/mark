@@ -27,6 +27,23 @@ Work in several folders at once, open cloud folders as roots, and trust folder s
 
 <!-- release-draft:end -->
 
+## [2.8.0](https://github.com/xronocode/mark/compare/v2.7.0...v2.8.0) (2026-10-23)
+
+
+### Features
+
+* **locales:** multi-root + fix-wave copy in ten locales (C-MULTI-SOURCE-WORKSPACE) ([79704d2](https://github.com/xronocode/mark/commit/79704d2652ec4b4c9ca561cf4f75ee1e4f155d67))
+* **locales:** multi-root + fix-wave copy in ten locales (C-MULTI-SOURCE-WORKSPACE) ([016297a](https://github.com/xronocode/mark/commit/016297af776330fa45186d3da584847e3b2bf438))
+* **workspace:** multi-root Add/Replace routing plus acceptance fix waves (C-MULTI-SOURCE-WORKSPACE) ([aebc581](https://github.com/xronocode/mark/commit/aebc581f4626328eef9022bdbe0a023c990d367f))
+* **workspace:** multi-root workspaces — v2.8.0 release set (C-MULTI-SOURCE-WORKSPACE) ([73cbf27](https://github.com/xronocode/mark/commit/73cbf27cc005485d4a216f0039a0a0f1282b4be5))
+
+
+### Bug Fixes
+
+* **print:** de-fang the PDF-export abort — detached print job, off-main completion, panic containment (FIX-017) ([426198d](https://github.com/xronocode/mark/commit/426198d5e3f4f61bba80ccb3dcba596f17888337))
+* **print:** de-fang the PDF-export abort (FIX-017) ([df84e93](https://github.com/xronocode/mark/commit/df84e93da50e9c16542f04d1351c76b927367c3e))
+* **release:** execute controls activation ([aa38f35](https://github.com/xronocode/mark/commit/aa38f35fa7c74f0f859c6e611c8d9004aa1ecf79))
+
 ## [2.7.0] - 2026-10-22
 
 Sessions come back the way you left them, HTML exports travel on their own, and Windows gets its real title bar back.
