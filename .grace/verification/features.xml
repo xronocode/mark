@@ -2445,6 +2445,25 @@
           (darwin-aarch64 required, windows-x86_64 optional) under one
           pub_date; fragments themselves are never published as assets.
         </Scenario>
+        <Scenario>
+          scenario-31 (C-RELEASE-TIMING): publication is default after a
+          bounded no-veto window instead of the synchronous release
+          Environment approval — the release-authorize approval remains the
+          explicit owner release instruction; the push-gated veto-window job
+          (release-notify environment, contents:read only) resolves
+          RELEASE_VETO_MINUTES with default 20 and clamp 120, optionally
+          pings Telegram and fails open to a logged skip without secrets,
+          and holds one minute per tick until closed; publish needs build,
+          prepare-publication and veto-window and declares no environment;
+          cancelling the run is the veto. The release build lane re-runs
+          neither the vitest/cargo/playwright suites (strict admission still
+          proves the status-check aggregate green on the exact payload) nor
+          a standalone renderer build (tauri beforeBuildCommand), keeps
+          typecheck:ipc, caches the cargo attribution/SBOM tool binaries,
+          and keys the cargo build cache on Cargo.lock only. Pinned by
+          tests/renderer/release-github-controls.test.js and
+          tests/renderer/release-preflight.test.js.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
@@ -2457,6 +2476,10 @@
         <Marker>[ReleaseControls][reconcile][BLOCK_RELEASE_CONTROLS_DRY_RUN]</Marker>
         <Marker>[ReleasePromote][tag][BLOCK_RELEASE_TAG_AUTHORIZED]</Marker>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_TAG_MISMATCH]</Marker>
+        <Marker>BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SKIPPED</Marker>
+        <Marker>BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SENT</Marker>
+        <Marker>BLOCK_RELEASE_VETO_WINDOW_HOLD</Marker>
+        <Marker>BLOCK_RELEASE_VETO_WINDOW_CLOSED</Marker>
       </Markers>
       <TraceAssertions/>
       <LegacyBase>

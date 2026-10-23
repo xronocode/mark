@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 1.9.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.0.0: C-RELEASE-TIMING — publication loses the synchronous release Environment gate and needs the parallel veto-window job; governance swaps release for release-notify with TG notify secret boundaries; the build-lane de-duplication is pinned against the status-check aggregate.
 //   - 2026-10-21 v1.9.0: prove activate executes both disabled-to-active ruleset mutations and converges against the active target.
 //   - 2026-10-21 v1.8.0: require exact cask-bot PR identity, merged-state idempotence, and required-check-gated tap auto-merge.
 //   - 2026-10-21 v1.7.0: pin bounded draft-ID discovery and ID-based read-back across GitHub tag-index eventual consistency.
@@ -197,7 +198,8 @@ describe('release GitHub trust boundaries', () => {
     expect(commands(release.jobs['prepare-publication'])).toContain(
       'PUB_DATE=$(git show -s --format=%cI "$TAG^{commit}")'
     )
-    expect(release.jobs.publish.environment).toBe('release')
+    expect(release.jobs.publish.environment).toBeUndefined()
+    expect(release.jobs.publish.needs).toEqual(['build', 'prepare-publication', 'veto-window'])
     expect(release.jobs.publish.permissions).toEqual({ contents: 'write' })
     expect(release.jobs.publish.steps.some(({ uses }) => uses?.startsWith('actions/checkout@'))).toBe(false)
     expect(commands(release.jobs.publish)).not.toMatch(/npm\s|node tools\/|release:readiness/)
@@ -239,6 +241,47 @@ describe('release GitHub trust boundaries', () => {
     expect(releaseSource).toContain('gh run rerun --failed')
   })
 
+  it('arms a bounded no-veto window instead of a second synchronous owner approval', () => {
+    const windowJob = release.jobs['veto-window']
+    expect(windowJob).toBeDefined()
+    expect(windowJob.needs).toBe('authorize-tag')
+    expect(windowJob.if).toContain("github.event_name == 'push'")
+    expect(windowJob.environment).toBe('release-notify')
+    expect(windowJob.permissions).toEqual({ contents: 'read' })
+    expect(windowJob['timeout-minutes']).toBeGreaterThanOrEqual(90)
+
+    const window = commands(windowJob)
+    expect(window).toContain('RELEASE_VETO_MINUTES')
+    expect(window).toContain('MIN="${WINDOW_MINUTES:-20}"')
+    expect(window).toContain('MIN=120')
+    // Fail open: absent TG secrets degrade the ping to a logged skip.
+    expect(window.indexOf('-z "$TG_NOTIFY_TOKEN"')).toBeGreaterThan(-1)
+    expect(window).toContain('BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SKIPPED')
+    expect(window).toContain('api.telegram.org')
+    expect(window).toContain('BLOCK_RELEASE_VETO_WINDOW_HOLD')
+    expect(window).toContain('sleep 60')
+    expect(window).toContain('BLOCK_RELEASE_VETO_WINDOW_CLOSED')
+  })
+
+  it('de-duplicates the release build lane behind strict payload admission', () => {
+    const build = commands(release.jobs.build)
+    expect(build).toContain('npm run typecheck:ipc')
+    for (const duplicated of ['npm test', 'npm run build', 'npm run test:e2e', 'cargo test --bin mark', 'playwright install']) {
+      expect(build).not.toContain(duplicated)
+    }
+    // The dropped suites stay contractually pinned on the payload.
+    expect(governance.strictRequiredChecks).toContainEqual({ name: 'status check', app: 'GitHub Actions' })
+    // The renderer build moves into tauri's beforeBuildCommand.
+    const tauriConfig = JSON.parse(read('src-tauri/tauri.conf.json'))
+    expect(tauriConfig.build.beforeBuildCommand).toBe('npm run build')
+    // Warmer caches: tool binaries restored instead of recompiled, and the
+    // cargo build cache survives any Rust source change.
+    expect(build).toContain('command -v cargo-bundle-licenses')
+    expect(build).toContain('command -v cargo-cyclonedx')
+    expect(releaseSource).toContain('cargo-tools-macos-bundle-licenses-4.2.0-cyclonedx-0.5.9')
+    expect(releaseSource).not.toContain("hashFiles('src-tauri/src/**/*.rs')")
+  })
+
   it('pins every third-party action to an immutable commit SHA', () => {
     const refs = [...actionRefs(release), ...actionRefs(promote)]
     expect(refs.length).toBeGreaterThan(10)
@@ -251,10 +294,13 @@ describe('release GitHub trust boundaries', () => {
     expect(governance.actions.defaultWorkflowPermissions).toBe('read')
     expect(governance.environments['release-authorize'].requiredReviewers).toEqual(['xronocode'])
     expect(governance.environments['release-signing'].requiredReviewers).toEqual([])
-    expect(governance.environments.release).toMatchObject({
-      requiredReviewers: ['xronocode'],
+    expect(governance.environments.release).toBeUndefined()
+    expect(governance.environments['release-notify']).toMatchObject({
+      requiredReviewers: [],
       preventSelfReview: false
     })
+    expect(governance.secretBoundaries['release-notify']).toEqual(['TG_NOTIFY_TOKEN', 'TG_NOTIFY_CHAT'])
+    expect(governance.secretBoundaries.forbiddenAtRepository).toContain('TG_NOTIFY_CHAT')
     expect(governance.environments['release-cask']).toMatchObject({
       requiredReviewers: [],
       preventSelfReview: false
@@ -356,7 +402,7 @@ describe('release GitHub control-plane reconciliation', () => {
         ])
       )
     }
-    actual.environments.release.policies.push({ name: 'private-recovery/*', type: 'branch' })
+    actual.environments['release-notify'].policies.push({ name: 'private-recovery/*', type: 'branch' })
     expect(() => planGithubControls(desiredControls, actual)).toThrow(
       expect.objectContaining({ code: 'MT_RELEASE_CONTROLS_UNKNOWN_POLICY' })
     )

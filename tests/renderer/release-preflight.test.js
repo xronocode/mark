@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.20.0
+// VERSION: 2.22.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, unprivileged candidate packaging, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static dry-run/production workflow assertions.
@@ -15,7 +15,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-23 v2.21.0 - advance the fixture to the v2.8.1 patch (FIX-018 PDF export root cause).
+//   LAST_CHANGE: 2026-10-24 v2.22.0 - C-RELEASE-TIMING: the release build lane stops re-running the payload-covered suites (renderer unit, e2e, standalone renderer build, Rust unit) behind strict admission's status-check aggregate; tauri beforeBuildCommand owns the renderer build; typecheck:ipc stays lane-local.
+//   PREVIOUS_LATEST: 2026-10-23 v2.21.0 - advance the fixture to the v2.8.1 patch (FIX-018 PDF export root cause).
 //   PREVIOUS_LATEST: 2026-10-23 v2.20.0 - advance the Release Please-derived positive fixture to v2.8.0.
 //   PREV: 2026-10-22 v2.20.0 - advance the release fixture to v2.7.0.
 //   PREV: 2026-10-20 v2.19.0 - advance the Release Please-derived positive fixture to v2.6.0.
@@ -175,21 +176,42 @@ describe('production release workflow', () => {
       'npm run release:readiness --',
       'npm run release:materials',
       'npm run release:preflight',
-      'npm run typecheck:ipc',
-      'npm test',
-      'npm run build',
-      'npm run test:e2e',
-      'cargo test --bin mark'
+      'npm run typecheck:ipc'
     ]) {
       expect(commandIndex(command)).toBeLessThan(buildIndex)
     }
   })
 
-  it('builds the renderer before Playwright starts vite preview', () => {
-    expect(commandIndex('npm run build')).toBeLessThan(
-      commandIndex('npm run test:e2e')
+  it('keeps the release build lane de-duplicated behind strict payload admission', () => {
+    // C-RELEASE-TIMING: the build lane re-runs neither the payload suites
+    // (proven green on the exact payload by the strict status-check
+    // aggregate) nor a standalone renderer build (tauri's
+    // beforeBuildCommand owns it). The dropped coverage stays pinned on
+    // the payload side.
+    const buildLane = workflow.slice(
+      workflow.indexOf('  build:'),
+      workflow.indexOf('  prepare-publication:')
     )
-    expect(workflow).toContain('timeout-minutes: 15')
+    for (const duplicated of [
+      'npm test',
+      'npm run build',
+      'npm run test:e2e',
+      'cargo test --bin mark',
+      'playwright install'
+    ]) {
+      expect(
+        buildLane.includes(duplicated),
+        `${duplicated} must not run in the release build lane`
+      ).toBe(false)
+    }
+    expect(tauriConfig.build.beforeBuildCommand).toBe('npm run build')
+    const governance = JSON.parse(
+      readFileSync(resolve(workspaceRoot, '.github/release-governance.json'), 'utf8')
+    )
+    expect(governance.strictRequiredChecks).toContainEqual({
+      name: 'status check',
+      app: 'GitHub Actions'
+    })
   })
 
   it('verifies signature and Gatekeeper before smoke launch', () => {
