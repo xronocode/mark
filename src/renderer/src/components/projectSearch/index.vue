@@ -40,7 +40,7 @@
         <div v-if="hasQuery" class="result-info">
           <span v-if="running && results.length === 0">{{ t('sideBar.search.searching') }}</span>
           <span v-else-if="results.length === 0">{{ t('sideBar.search.noResultsFound') }}</span>
-          <span v-else>{{ t('search.searchResultInfo', { matchCount, fileCount: results.length }) }}</span>
+          <span v-else>{{ resultSummary }}</span>
           <el-button v-if="running" type="primary" size="small" @click="cancel">
             {{ t('sideBar.search.cancel') }}
           </el-button>
@@ -67,6 +67,7 @@ import { useI18n } from 'vue-i18n'
 import { useSearchStore } from '@/store/search'
 import { useProjectStore } from '@/store/project'
 import SearchResultItem from '../sideBar/searchResultItem.vue'
+import { pluralCount } from '@/util/pluralCount'
 import bus from '@/bus'
 
 const { t } = useI18n()
@@ -82,6 +83,14 @@ const showProjectSearch = ref(false)
 
 const hasQuery = computed(() => searchStore.hasQuery)
 const matchCount = computed(() => searchStore.matchCount)
+
+// C-MULTI-SOURCE-WORKSPACE fix wave: the summary pluralizes both nouns
+// ("1 совпадение в 1 файле", "2 совпадения в 2 файлах") — CLDR-category
+// forms via util/pluralCount, joined by the per-locale template key.
+const resultSummary = computed(() => t('search.searchResultInfo', {
+  matches: pluralCount('search.matchesCount', matchCount.value),
+  files: pluralCount('search.filesCount', results.value.length)
+}))
 
 const showNoFolderOpenedMessage = computed(() => {
   return !projectTree.value || !projectTree.value.pathname

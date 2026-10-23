@@ -193,3 +193,58 @@ describe('boot gate (C-69 R-1/R-2)', () => {
     await vi.waitFor(() => expect(openFileInvoke).toHaveBeenCalledWith('mt::open-file', '/a.md', {}))
   })
 })
+
+// ── C-MULTI-SOURCE-WORKSPACE: visible degradation ──────────────────
+
+describe('restore degradation (C-MULTI-SOURCE-WORKSPACE)', () => {
+  it('a missing root produces a visible notice but never blocks the rest', async () => {
+    const notice = (await import('@/services/notification')).default
+    notice.notify.mockClear()
+    DIRS.add('/proj')
+    FILES.add('/proj/a.md')
+    PREFS.set('lastSessionFolders', [
+      '/vol/e2e/Library/Mobile Documents/com~apple~CloudDocs/Notes',
+      '/proj'
+    ])
+    PREFS.set('lastSessionTabs', ['/proj/a.md'])
+    PREFS.set('lastSessionActive', '/proj/a.md')
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+    await editorStore.RESTORE_SESSION()
+
+    // The available root, tab and active tab restored; the missing iCloud
+    // root degraded visibly.
+    expect(projectStore.OPEN_RECENT_FOLDER).toHaveBeenCalledWith('/proj')
+    expect(editorStore.tabs.map((t) => t.pathname)).toEqual(['/proj/a.md'])
+    expect(editorStore.currentFile.pathname).toBe('/proj/a.md')
+    // i18n resolves against the real en table here, so assert on the
+    // notice's type and payload rather than the locale key.
+    const warnings = notice.notify.mock.calls
+      .map((c) => c[0])
+      .filter((c) => c.type === 'warning')
+    expect(warnings).toHaveLength(1)
+    expect(String(warnings[0].message)).toContain('Mobile Documents')
+  })
+
+  it('a failed file open (evicted iCloud path) surfaces an error notice, not silence', async () => {
+    const notice = (await import('@/services/notification')).default
+    notice.notify.mockClear()
+    const evicted = '/vol/e2e/Library/Mobile Documents/com~apple~CloudDocs/Notes/evicted.md'
+    // stat says the file exists (the tree/restore list saw it) but the
+    // read fails mid-download.
+    FILES.add(evicted)
+    PREFS.set('lastSessionFolders', [])
+    PREFS.set('lastSessionTabs', [evicted])
+    window.electron.ipcRenderer.invoke = vi.fn(async () => {
+      throw new Error('MT_FS_READ_FAILED: content not downloaded')
+    })
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+    await editorStore.RESTORE_SESSION()
+
+    expect(editorStore.tabs).toHaveLength(0)
+    const calls = notice.notify.mock.calls.map((c) => c[0])
+    expect(calls.some((c) => c.type === 'error' && String(c.message).includes('not downloaded')))
+      .toBe(true)
+  })
+})

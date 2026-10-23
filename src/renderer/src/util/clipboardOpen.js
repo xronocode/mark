@@ -123,11 +123,13 @@ export const openFromClipboard = async () => {
         return
       }
       if (picked) {
-        await useProjectStore().OPEN_FOLDER_AS_WORKSPACE(picked)
+        await useProjectStore().OPEN_FOLDER(picked, { mode: 'ask', origin: 'clipboard' })
       }
       return
     }
-    await useProjectStore().OPEN_FOLDER_AS_WORKSPACE(target.path)
+    // C-MULTI-SOURCE-WORKSPACE: ambiguous input — the shared Add-or-
+    // Replace chooser decides (Add preselected).
+    await useProjectStore().OPEN_FOLDER(target.path, { mode: 'ask', origin: 'clipboard' })
     return
   }
 

@@ -8,6 +8,17 @@ import RipgrepDirectorySearcher from '../node/ripgrepSearcher'
 // always-visible SearchToolbar (top of sidebar) and SearchResults panel
 // (below, shown only when there's a query) consume the same source of
 // truth and the searcher instance is owned in one place.
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.2.0 - 2026-10-22 C-MULTI-SOURCE-WORKSPACE fix wave:
+//     generation guard in runSearch — a keystroke-canceled generation's
+//     completion no longer writes partial results over the newest
+//     generation nor stomps running/activeCancel. Before the fix, typing
+//     a query char-by-char could end with only the first root's matches
+//     visible (roots are searched sequentially; an interleaved stale
+//     write kept the late root out). Found live during owner acceptance
+//     (С4): paste-as-one-event found both roots, char typing lost one.
+// END_CHANGE_SUMMARY
 
 // Lazy: RipgrepDirectorySearcher's constructor reads
 // `window.marktext.paths.ripgrepBinaryPath`, which is only populated after
@@ -30,7 +41,16 @@ export const useSearchStore = defineStore('search', {
     results: [],
     running: false,
     error: '',
-    showCancel: false
+    showCancel: false,
+    // C-MULTI-SOURCE-WORKSPACE fix wave: monotonic search generation.
+    // Every runSearch bumps it; a completion handler that belongs to an
+    // older generation must not write results nor touch running/
+    // activeCancel. Without the guard, a keystroke-canceled generation
+    // resolved immediately and its .then() wrote a PARTIAL collected set
+    // (roots are searched sequentially, so later roots were missing)
+    // over the newest generation's write — and stomped running=false /
+    // activeCancel=null, leaving later generations uncancellable.
+    _searchGeneration: 0
   }),
   getters: {
     hasQuery: (s) => s.keyword.length > 0,
@@ -75,6 +95,10 @@ export const useSearchStore = defineStore('search', {
         return
       }
       let canceled = false
+      // Claim this generation BEFORE spawning: any completion that
+      // arrives for an older generation (already superseded by a newer
+      // keystroke) is dropped without writing state.
+      const generation = ++this._searchGeneration
       this.running = true
       const collected = []
       // eslint-disable-next-line no-console
@@ -102,6 +126,15 @@ export const useSearchStore = defineStore('search', {
         inclusions: window.fileUtils.MARKDOWN_INCLUSIONS
       })
         .then(() => {
+          // Generation guard (C-MULTI-SOURCE-WORKSPACE fix wave): a newer
+          // keystroke already claimed the store — this generation's
+          // partial results must NOT overwrite the newest write, and it
+          // must not reset running/activeCancel owned by the new one.
+          if (generation !== this._searchGeneration) {
+            // eslint-disable-next-line no-console
+            console.debug(`[SearchStore][runSearch][BLOCK_STALE_GENERATION_DROPPED] gen=${generation} current=${this._searchGeneration}`)
+            return
+          }
           // Defense in depth: a root may have been CLOSE_PROJECTed mid-search.
           // Filter collected results to those still under an active root.
           const liveRoots = (projectStore.projectTrees || [])
@@ -117,6 +150,7 @@ export const useSearchStore = defineStore('search', {
           console.debug(`[SearchStore][runSearch][BLOCK_RESULT] count=${this.results.length} canceled=${canceled}`)
         })
         .catch((err) => {
+          if (generation !== this._searchGeneration) return
           canceled = true
           if (promises.cancel) promises.cancel()
           log.error('Error while searching in directory:', err)
