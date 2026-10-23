@@ -1017,7 +1017,7 @@
   },
   "whatsNew": {
     "title": "Novidades",
-    "also": "Também: avisos honestos de pastas ausentes, plurais corretos em dez idiomas e nomes claros para a nuvem",
+    "also": "Além disso: cada chamada de impressão do macOS agora é verificada com a API real do sistema",
     "seeEverything": "Ver todas as novidades",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1146,6 +1146,12 @@
       "quit": {
         "title": "⌘Q pergunta antes de sair",
         "text": "O não salvo oferece Salvar ou Descartar — nada desaparece em silêncio."
+      }
+    },
+    "v2_8_1": {
+      "pdfFix": {
+        "title": "Exportação para PDF corrigida",
+        "text": "A exportação para PDF já não encerra a app e grava o documento no disco."
       }
     }
   },

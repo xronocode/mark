@@ -111,9 +111,9 @@ jobs:
           SEAL=$(git rev-parse "$TAG_REF^{commit}")
           HEAD_SHA=$(git rev-parse HEAD)
           [ "$HEAD_SHA" = "$SEAL" ]
-          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.7.x-next.json')).state")
-          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.7.x-next.json')).payloadSha")
-          EXPECTED_TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.7.x-next.json')).computedVersion")
+          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).state")
+          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).payloadSha")
+          EXPECTED_TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).computedVersion")
           [ "$STATE" = Ready ]
           [ "$REF_NAME" = "$EXPECTED_TAG" ]
           echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"

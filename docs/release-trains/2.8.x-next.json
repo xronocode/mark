@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0.0",
+  "trainId": "2.8.x-next",
+  "state": "Collecting",
+  "previousRelease": {
+    "tag": "v2.8.0",
+    "commit": "c8336a60782fb78b30f352c088c469c444f12c1c",
+    "bootstrapSha": "c8336a60782fb78b30f352c088c469c444f12c1c",
+    "tree": "23fb8c7e0c621abafb47e94c29b8e8b7ed62471c"
+  },
+  "computedVersion": "2.8.1",
+  "payloadSha": null,
+  "sealSha": null,
+  "releaseAuthorization": null,
+  "items": {
+    "userFacing": [
+      {
+        "id": "FIX-018",
+        "summary": "Root cause of the Export-to-PDF abort: the nonexistent setJobSavingURL: selector (a print-settings dictionary key) raised NSInvalidArgumentException on every macOS export since C-61; the save target now goes through the dictionary, the job runs modally like the print panel, and a selector-audit test pins every AppKit call this module makes.",
+        "state": "queued",
+        "commits": [
+          "1d14e6fbf4fcc007032cfad2d3e9257446ebf044"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-23",
+          "testedArtifact": "mark-test-fix018-1d14e6f (binary SHA-256 bec8a998e30dbde3e539cb531b8b11ce2f249928694cb8493db767dfa9a132cd, docs/acceptance/registry.json); field-verified agent-run: File > Export to PDF on sample-cjk-finance.md wrote an 8-page PDF, app alive, no crash reports; owner field acceptance pending on the shipped patch.",
+          "scenarios": [
+            "macOS Export to PDF on the CJK crash document completes: PDF written, no abort, no hang (was 6/6 crashes before the fix)",
+            "Print panel path unchanged (V-M-052 scenario-1/2 e2e pins)",
+            "cargo selector audit: every selector m052 sends exists on the live AppKit classes"
+          ]
+        }
+      }
+    ],
+    "operational": [],
+    "notPresent": []
+  },
+  "commitAccounting": {
+    "fromExclusive": "c8336a60782fb78b30f352c088c469c444f12c1c",
+    "entries": [
+      {
+        "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044",
+        "classification": "user-facing",
+        "itemIds": [
+          "FIX-018"
+        ]
+      }
+    ],
+    "throughInclusive": null
+  },
+  "requiredChecks": [
+    {
+      "name": "status check",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044"
+    },
+    {
+      "name": "release/governance",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044"
+    },
+    {
+      "name": "release/readiness",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044"
+    }
+  ],
+  "materials": {
+    "status": "ready",
+    "screenshotManifest": "docs/assets/readme/2.8.1.manifest.json",
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "releaseNotes": "docs/release-notes-en-drafts.md",
+    "whatsNew": "src/renderer/src/whatsNew/data.js",
+    "localeCount": 10,
+    "itemIds": [
+      "FIX-018"
+    ]
+  },
+  "transitions": [
+    {
+      "state": "Collecting",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "Opened after v2.8.0 shipped; the owner's standing 2.8.1 patch instruction renewed by the evening alarm (three further export aborts on 2.8.0, 15:01-15:06 +0500). FIX-018 admitted with field-verified automated evidence; owner field acceptance pending on the shipped patch."
+    }
+  ]
+}

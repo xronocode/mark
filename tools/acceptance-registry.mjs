@@ -4,7 +4,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the acceptance registry (docs/acceptance/registry.json) against its schema and the collecting train, and print the per-item survey — the ordered "accepted or not, and why" record behind the release trains.
 //   SCOPE: --check (schema, git sha resolvability, two-way train consistency, lifecycle sanity) and --survey (state table). Read-only; --check exits non-zero with stable MT_ACCEPT_* codes on any violation.
-//   DEPENDS: node:fs, node:child_process (git cat-file), docs/release-trains/2.7.x-next.json.
+//   DEPENDS: node:fs, node:child_process (git cat-file), docs/release-trains/2.8.x-next.json.
 //   LINKS: docs/acceptance/README.md; docs/release-trains/README.md acceptance stage; .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; tests/renderer/acceptance-registry.test.js.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -37,7 +37,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REGISTRY_PATH = 'docs/acceptance/registry.json'
-const TRAIN_PATH = 'docs/release-trains/2.7.x-next.json'
+const TRAIN_PATH = 'docs/release-trains/2.8.x-next.json'
 const listTrainFiles = (root) => {
   try {
     return readdirSync(resolve(root, 'docs/release-trains'))
