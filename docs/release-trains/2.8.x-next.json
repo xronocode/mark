@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.x-next",
-  "state": "Frozen",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.8.0",
     "commit": "c8336a60782fb78b30f352c088c469c444f12c1c",
@@ -85,20 +85,20 @@
     {
       "name": "status check",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044"
+      "status": "success",
+      "sha": "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044"
+      "status": "success",
+      "sha": "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044"
+      "status": "success",
+      "sha": "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f"
     }
   ],
   "materials": {
@@ -131,6 +131,12 @@
       "date": "2026-10-23",
       "actor": "agent-zcode",
       "evidence": "Payload frozen at the merged FIX-018 + v2.8.1 packaging (PR #38, efb3f72) after the trusted normalization prepared 2.8.1; every commit since v2.8.0 classified (4 entries: FIX-018, TRAIN-BOOKKEEPING). All 18 PR checks green; the ubuntu lane needed one cold-cache rerun."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "Single seal commit on the merged freeze (77e10888): all three required checks green on the freeze head f8eb694 (PR #41, 18 checks pass incl. one infra rerun of a cancelled macos runner); train authority Frozen->Ready, accounting through the payload, ledger and screenshot-manifest payload binding. Release authorization NOT given — promotion waits for the owner-approved release-authorize deployment."
     }
   ]
 }
