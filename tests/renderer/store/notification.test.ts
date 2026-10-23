@@ -3,15 +3,18 @@
  *
  * Covers:
  *   - SHOW_NOTIFICATION: merges defaults with caller opts and calls
- *     notice.notify
- *   - SHOW_PANDOC_MISSING: async; calls notice.notify with showConfirm,
- *     then opens http://pandoc.org via window.electron.shell.openExternal
+ *     notice.notify, forwarding the C-NOTIFICATION-SYSTEM event fields
+ *   - Dead-code pins (C-NOTIFICATION-SYSTEM T-004): SHOW_PANDOC_MISSING,
+ *     showConfirm and the installPandoc locale key are gone for good.
  */
 
+import fs from 'node:fs'
+import path from 'node:path'
 import { setupTestPinia } from '../pinia'
 
-// Mock notification SERVICE — its real index pulls in CSS + DOMPurify.
-const notifyMock = vi.fn(async (_opts: unknown) => undefined)
+// Mock notification SERVICE — its real index pulls in the store; here we
+// pin the facade call shape only.
+const notifyMock = vi.fn(() => undefined)
 vi.mock('@/services/notification', () => ({
   default: { notify: notifyMock }
 }))
@@ -35,18 +38,18 @@ describe('store/notification', () => {
       expect(notifyMock).toHaveBeenCalledTimes(1)
       const opts = notifyMock.mock.calls[0][0] as Record<string, unknown>
       expect(opts.title).toBe('notifications.defaultTitle')
-      expect(opts.type).toBe('primary')
+      expect(opts.severity).toBe('info')
       expect(opts.time).toBe(10000)
       expect(opts.message).toBe('hi') // overridden
     })
 
-    it('caller opts override defaults (title/type/time)', async () => {
+    it('caller opts override defaults (title/severity/time)', async () => {
       const { useNotificationStore } = await import('@/store/notification')
       const s = useNotificationStore()
-      s.SHOW_NOTIFICATION({ title: 'X', type: 'error', time: 200, message: 'M' })
+      s.SHOW_NOTIFICATION({ title: 'X', severity: 'error', time: 200, message: 'M' })
       const opts = notifyMock.mock.calls[0][0] as Record<string, unknown>
       expect(opts.title).toBe('X')
-      expect(opts.type).toBe('error')
+      expect(opts.severity).toBe('error')
       expect(opts.time).toBe(200)
       expect(opts.message).toBe('M')
     })
@@ -59,30 +62,65 @@ describe('store/notification', () => {
       expect(opts.title).toBe('notifications.defaultTitle')
       expect(opts.message).toBe('notifications.defaultMessage')
     })
+
+    it('forwards the C-NOTIFICATION-SYSTEM event fields', async () => {
+      const { useNotificationStore } = await import('@/store/notification')
+      const s = useNotificationStore()
+      const actions = [{ kind: 'copy', payload: 'p' }]
+      s.SHOW_NOTIFICATION({
+        message: 'm',
+        source: 'export',
+        actions,
+        dedupKey: 'k',
+        sticky: true
+      })
+      const opts = notifyMock.mock.calls[0][0] as Record<string, unknown>
+      expect(opts.source).toBe('export')
+      expect(opts.actions).toBe(actions)
+      expect(opts.dedupKey).toBe('k')
+      expect(opts.sticky).toBe(true)
+    })
   })
 
-  describe('SHOW_PANDOC_MISSING', () => {
-    it('sets showConfirm:true, awaits notify, then opens pandoc.org', async () => {
-      const { useNotificationStore } = await import('@/store/notification')
-      const s = useNotificationStore()
-      await s.SHOW_PANDOC_MISSING({ message: 'pandoc not found' })
+  describe('dead-code pins (C-NOTIFICATION-SYSTEM T-004)', () => {
+    const read = (rel: string) => fs.readFileSync(path.resolve(__dirname, '../..', rel), 'utf8')
 
-      expect(notifyMock).toHaveBeenCalledTimes(1)
-      const opts = notifyMock.mock.calls[0][0] as Record<string, unknown>
-      expect(opts.showConfirm).toBe(true)
-      expect(opts.message).toBe('pandoc not found')
-
-      expect(window.electron.shell.openExternal).toHaveBeenCalledWith('http://pandoc.org')
+    it('the pandoc-missing action identifier is gone from the renderer source', () => {
+      const walk = (dir: string): string[] =>
+        fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+          const p = path.join(dir, e.name)
+          return e.isDirectory() ? walk(p) : [p]
+        })
+      const hits = walk(path.resolve(__dirname, '../../../src/renderer/src'))
+        .filter((f) => /\.(js|ts|vue)$/.test(f))
+        .filter((f) => fs.readFileSync(f, 'utf8').includes('SHOW_PANDOC_MISSING'))
+      expect(hits).toEqual([])
     })
 
-    it('uses defaults when no opts passed', async () => {
-      const { useNotificationStore } = await import('@/store/notification')
-      const s = useNotificationStore()
-      await s.SHOW_PANDOC_MISSING(undefined as any)
-      const opts = notifyMock.mock.calls[0][0] as Record<string, unknown>
-      expect(opts.title).toBe('notifications.defaultTitle')
-      expect(opts.showConfirm).toBe(true)
-      expect(window.electron.shell.openExternal).toHaveBeenCalledWith('http://pandoc.org')
+    it('the toast layer carries no showConfirm semantics (banner keeps its own)', () => {
+      // The banner queue (editorWithTabs + pushTabNotification) keeps its
+      // confirm flag by design (spec R-8); the toast service and its store
+      // facade must never grow it back (corner C-7).
+      const service = fs.readFileSync(
+        path.resolve(__dirname, '../../../src/renderer/src/services/notification/index.js'),
+        'utf8'
+      )
+      expect(service.includes('showConfirm')).toBe(false)
+      const facadeStore = fs.readFileSync(
+        path.resolve(__dirname, '../../../src/renderer/src/store/notification.js'),
+        'utf8'
+      )
+      expect(facadeStore.includes('showConfirm')).toBe(false)
+    })
+
+    it('the installPandoc locale key is gone from every locale', () => {
+      const locales = fs.readdirSync(path.resolve(__dirname, '../../../static/locales'))
+        .filter((f) => f.endsWith('.json') && !f.endsWith('.min.json'))
+      expect(locales.length).toBe(10)
+      const hits = locales.filter((f) =>
+        fs.readFileSync(path.resolve(__dirname, '../../../static/locales', f), 'utf8').includes('installPandoc')
+      )
+      expect(hits).toEqual([])
     })
   })
 })

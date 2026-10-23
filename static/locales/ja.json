@@ -315,7 +315,8 @@
       "textDirection": "テキスト方向",
       "statusBar": "ステータスバーの表示/非表示",
       "toggleTabbar": "タブバーを切り替え",
-      "reloadImages": "画像を再読み込み"
+      "reloadImages": "画像を再読み込み",
+      "notificationsHistory": "通知：最近のものを表示"
     },
     "utils": {
       "noUpdateResourceFile": "アップデートリソースファイルなし",
@@ -1221,7 +1222,28 @@
   },
   "notifications": {
     "defaultMessage": "デフォルトメッセージ",
-    "defaultTitle": "通知"
+    "defaultTitle": "通知",
+    "close": "閉じる",
+    "more": "他{n}件の通知",
+    "source": {
+      "file": "ファイル",
+      "export": "エクスポート",
+      "project": "プロジェクト",
+      "update": "アップデート",
+      "agent": "エージェント",
+      "system": "システム"
+    },
+    "actions": {
+      "copy": "コピー",
+      "retry": "再試行",
+      "open": "開く",
+      "reveal": "表示"
+    },
+    "history": {
+      "title": "通知",
+      "empty": "このセッションの通知はありません",
+      "copy": "コピー"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1461,7 +1483,6 @@
   "dialog": {
     "file": "ファイル",
     "changesWillBeLost": "変更が失われます",
-    "installPandoc": "Pandocをインストール",
     "close": "閉じる",
     "keepOpen": "開いたままにする",
     "cancel": "キャンセル",

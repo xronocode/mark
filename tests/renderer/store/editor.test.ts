@@ -637,13 +637,16 @@ describe('store/editor', () => {
   // ─── Misc ─────────────────────────────────────────────────────────
 
   describe('APPLY_EXPORT_SUCCESS', () => {
-    it('pushes a success notification with file path basename', () => {
+    it('pushes a success notification with a reveal action (C-NOTIFICATION-SYSTEM)', () => {
       editor.APPLY_EXPORT_SUCCESS('/tmp/out.pdf')
-      expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          showConfirm: true
-        })
-      )
+      expect(notice.notify).toHaveBeenCalledTimes(1)
+      const opts = notice.notify.mock.calls[0][0]
+      expect(opts.severity).toBe('success')
+      expect(opts.source).toBe('export')
+      expect(opts.title).toBeTruthy()
+      expect(opts.actions).toHaveLength(1)
+      expect(opts.actions[0].kind).toBe('reveal')
+      expect(typeof opts.actions[0].payload).toBe('function')
     })
 
     it('returns early on empty path', () => {
