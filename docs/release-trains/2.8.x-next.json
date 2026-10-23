@@ -9,7 +9,7 @@
     "tree": "23fb8c7e0c621abafb47e94c29b8e8b7ed62471c"
   },
   "computedVersion": "2.8.1",
-  "payloadSha": "5c581782370bdea29fcf759697193c3ec99937b7",
+  "payloadSha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -42,9 +42,18 @@
           "4154b6ff3654087727380a6dfe26df3aaeb525d8",
           "deb7d2de154f9ccaf112a8bbc5013d0db0f309d3",
           "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13",
+          "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f",
           "77e108886ab0a5d423fb01936d1c01ffdc16d39e",
+          "1f0b8837e483e8ef36babd60c00a7ea18b2152ad",
           "6fa90f454e5cd9393898902b0e5d7928a5af5f13",
-          "5c581782370bdea29fcf759697193c3ec99937b7"
+          "dea77c23d313fc8a765207aa0ea6cf744b4b175a",
+          "62946459855265b81668abdea30d19bbb6f3215e",
+          "5c581782370bdea29fcf759697193c3ec99937b7",
+          "b86b537038d1e8b8571bc9502630813491487922",
+          "f3b9c24d63065495e1c17c02f8eb1e0de5f625fe",
+          "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6",
+          "318714a9b5430f9e9bf3c1ef7f39f92818b56c60",
+          "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
         ]
       }
     ],
@@ -82,7 +91,21 @@
         ]
       },
       {
+        "sha": "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "77e108886ab0a5d423fb01936d1c01ffdc16d39e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1f0b8837e483e8ef36babd60c00a7ea18b2152ad",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -96,33 +119,82 @@
         ]
       },
       {
+        "sha": "dea77c23d313fc8a765207aa0ea6cf744b4b175a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "62946459855265b81668abdea30d19bbb6f3215e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "5c581782370bdea29fcf759697193c3ec99937b7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b86b537038d1e8b8571bc9502630813491487922",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f3b9c24d63065495e1c17c02f8eb1e0de5f625fe",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "318714a9b5430f9e9bf3c1ef7f39f92818b56c60",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       }
     ],
-    "throughInclusive": "5c581782370bdea29fcf759697193c3ec99937b7"
+    "throughInclusive": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
   },
   "requiredChecks": [
     {
       "name": "status check",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6"
+      "sha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6"
+      "sha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6"
+      "sha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
     }
   ],
   "materials": {
@@ -185,6 +257,12 @@
       "date": "2026-10-24",
       "actor": "agent-zcode",
       "evidence": "Clean single-commit seal on the re-frozen payload (ec4c39e, PR #44, all checks green): train authority Frozen->Ready, ledger and screenshot-manifest already bound to the payload. Release authorization NOT given — promotion waits for the owner-approved release-authorize deployment."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-24",
+      "actor": "agent-zcode",
+      "evidence": "Final seal correction: payloadSha rebased to deb016c (the prior seal merge, the direct parent of this commit) so the payload..seal span is exactly one commit — the invariant the re-freeze payload assignment broke. Accounting rebuilt exactly from rev-list (16 entries). Release authorization NOT given."
     }
   ]
 }
