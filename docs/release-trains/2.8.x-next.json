@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.x-next",
-  "state": "Collecting",
+  "state": "Frozen",
   "previousRelease": {
     "tag": "v2.8.0",
     "commit": "f57848b88e333fc0fb119310006c73b975314102",
@@ -9,7 +9,7 @@
     "tree": "23fb8c7e0c621abafb47e94c29b8e8b7ed62471c"
   },
   "computedVersion": "2.8.1",
-  "payloadSha": "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13",
+  "payloadSha": "5c581782370bdea29fcf759697193c3ec99937b7",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -41,7 +41,10 @@
         "commits": [
           "4154b6ff3654087727380a6dfe26df3aaeb525d8",
           "deb7d2de154f9ccaf112a8bbc5013d0db0f309d3",
-          "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13"
+          "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13",
+          "77e108886ab0a5d423fb01936d1c01ffdc16d39e",
+          "6fa90f454e5cd9393898902b0e5d7928a5af5f13",
+          "5c581782370bdea29fcf759697193c3ec99937b7"
         ]
       }
     ],
@@ -77,9 +80,30 @@
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
+      },
+      {
+        "sha": "77e108886ab0a5d423fb01936d1c01ffdc16d39e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "6fa90f454e5cd9393898902b0e5d7928a5af5f13",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5c581782370bdea29fcf759697193c3ec99937b7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
       }
     ],
-    "throughInclusive": "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13"
+    "throughInclusive": "5c581782370bdea29fcf759697193c3ec99937b7"
   },
   "requiredChecks": [
     {
@@ -143,6 +167,18 @@
       "date": "2026-10-23",
       "actor": "agent-zcode",
       "evidence": "Roll after the first promote preflight rejected the seal: the train had recorded the v2.8.0 ANNOTATED-TAG OBJECT sha (c8336a60) as the previous-release commit instead of the tag's commit (f57848b8), and the freeze/seal span broke the one-commit payload..seal invariant (2.8.0 shipped with freeze+seal adjacent). Re-seal follows the 2.7.0 pattern: boundary + allowlist repairs land while Collecting, then a fresh freeze and a clean Ready seal as the final commit."
+    },
+    {
+      "state": "Preparing",
+      "date": "2026-10-23",
+      "actor": "mark-release-prep[bot]",
+      "evidence": "Release Please prepared 2.8.1; no tag or publication was created."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-24",
+      "actor": "agent-zcode",
+      "evidence": "Re-freeze after the 2.7.0-style re-seal roll (PR #43, 5c58178): trusted normalization prepared 2.8.1 again, then the payload froze at the roll merge — one commit before the coming clean seal. Every commit since v2.8.0 classified (7 entries)."
     }
   ]
 }
