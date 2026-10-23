@@ -1,0 +1,105 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><C-RELEASE-TIMING>
+  <Name>Release timing optimization — implementation plan</Name><Created>2026-10-24</Created><Spec>C-RELEASE-TIMING</Spec>
+  <IntentSummary>
+    Replace the synchronous second owner approval of the release Environment with a bounded no-veto timer window (default 20 minutes, RELEASE_VETO_MINUTES, clamped 120) that runs parallel to the build lanes, with cancel-as-veto and an optional Telegram ping that skips gracefully without secrets; de-duplicate the release build lane behind strict payload admission (drop npm test, test:e2e, standalone vite build, cargo test; keep typecheck:ipc); cache the cargo attribution/SBOM tool binaries; and key the cargo build cache on Cargo.lock only. Self-hosted runners were evaluated and rejected (public repository, hosted runners free, build is not the wall-time pole).
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>.github/workflows/release.yml</Value></MustExist>
+    <MustExist><Value>.github/release-governance.json</Value></MustExist>
+    <MustContain><File>.github/workflows/release.yml</File><Text>environment: release-signing</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>cargo install cargo-bundle-licenses --version 4.2.0 --locked</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>uses: tauri-apps/tauri-action@</Text></MustContain>
+    <MustContain><File>.github/release-governance.json</File><Text>strictRequiredChecks</Text></MustContain>
+    <MustContain><File>.github/release-governance.json</File><Text>release-authorize</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>.github/workflows/release.yml</File><Text>VERSION: 3.0.0</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>veto-window:</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>RELEASE_VETO_MINUTES</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>BLOCK_RELEASE_VETO_WINDOW_CLOSED</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>needs: [build, prepare-publication, veto-window]</Text></MustContain>
+    <MustContain><File>.github/release-governance.json</File><Text>"release-notify"</Text></MustContain>
+    <MustContain><File>tests/renderer/release-github-controls.test.js</File><Text>arms a bounded no-veto window instead of a second synchronous owner approval</Text></MustContain>
+    <MustContain><File>tests/renderer/release-preflight.test.js</File><Text>keeps the release build lane de-duplicated behind strict payload admission</Text></MustContain>
+    <MustContain><File>docs/release-trains/README.md</File><Text>no-veto window</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>.github/workflows/release.yml</File>
+    <File>.github/release-governance.json</File>
+    <File>docs/release-trains/README.md</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>tests/renderer/release-github-controls.test.js</File>
+    <File>tests/renderer/release-preflight.test.js</File>
+    <File>tools/release-governance.mjs</File>
+    <File>.grace/changes/active/C-RELEASE-TIMING/spec.xml</File>
+    <File>.grace/changes/active/C-RELEASE-TIMING/plan.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Spec + plan bundle</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>spec.xml records the owner's 2026-10-24 instruction with the 20-minute default-publish decision and the rejected self-hosted-runner alternative; NonGoals keep the 2.8.1 train and strict admission untouched; plan.xml passes the grace change-plan schema.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>release.yml v3.0.0 — timer-default publication</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>A push-gated veto-window job (needs authorize-tag, environment release-notify, contents:read, timeout 90) resolves vars.RELEASE_VETO_MINUTES with default 20 and clamp 120, optionally pings Telegram with a graceful skip guard, and holds one minute per tick; publish needs [build, prepare-publication, veto-window], declares no environment, and its draft digest/read-back verification is byte-identical to v2.4.0.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-github-controls.test.js</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>release.yml — de-duplicated build lane + warmer caches</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>The build job no longer runs npm test, npm run test:e2e, playwright install, a standalone npm run build, or cargo test --bin mark; release:readiness/materials/preflight/typecheck:ipc still precede tauri-action; tauri.conf.json beforeBuildCommand still builds the renderer; ~/.cargo/bin is cached with command -v install guards for cargo-bundle-licenses 4.2.0 and cargo-cyclonedx 0.5.9; the cargo cache key drops hashFiles('src-tauri/src/**/*.rs'); the manual-build QA lane is untouched.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/release-github-controls.test.js</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Governance delta</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>.github/release-governance.json declares release-notify (no reviewers, v* tag policy) instead of release; secretBoundaries gains release-notify [TG_NOTIFY_TOKEN, TG_NOTIFY_CHAT] and both names join forbiddenAtRepository; strictRequiredChecks, rulesets, and the actions policy are unchanged; the environment count stays 4 and the dry-run still reports 8 operations.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm run release:github-controls -- --dry-run</Command></Verification>
+    </T-004>
+    <T-005>
+      <Title>Delivery protocol README</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>The Released definition, publication paragraph, recovery rows, and the owner setup checklist describe the timer-default publication, cancel-as-veto, RELEASE_VETO_MINUTES, the TG secrets setup, and the one-time legacy release Environment deletion in the GitHub UI; no stale claim remains that publication waits for a second synchronous owner approval.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grep -c "no-veto window" docs/release-trains/README.md</Command></Verification>
+    </T-005>
+    <T-006>
+      <Title>Workflow-contract tests</Title>
+      <DependsOn>T-002, T-003, T-004</DependsOn>
+      <AcceptanceCriteria><Criterion>release-github-controls.test.js v2.0.0 pins the window job shape, publish needs/environment, governance swap, and lane de-duplication against the status-check aggregate; the unknown-policy simulation moves to release-notify; release-preflight.test.js v2.22.0 shrinks the pre-tauri ordering list and replaces the renderer-build-before-e2e test with the de-duplication contract; 32 tests pass across both files.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js</Command></Verification>
+    </T-006>
+    <T-007>
+      <Title>Graph + verification deltas</Title>
+      <DependsOn>T-002, T-003, T-004, T-005, T-006</DependsOn>
+      <AcceptanceCriteria><Criterion>M-046 Summary gains the C-RELEASE-TIMING paragraph; V-M-046 gains scenario-31 and the BLOCK_RELEASE_VETO_WINDOW_* markers; the LegacyBase provenance block is byte-identical; grace lint reports zero findings for every file in the ObservedWriteScope.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-007>
+    <T-008>
+      <Title>Owner one-time steps (post-merge)</Title>
+      <DependsOn>T-007</DependsOn>
+      <AcceptanceCriteria><Criterion>The owner applies the governance delta to create release-notify, adds TG_NOTIFY_TOKEN/TG_NOTIFY_CHAT secrets after creating the Telegram bot, deletes the legacy release Environment in the GitHub UI (REST cannot delete environments), and optionally sets RELEASE_VETO_MINUTES; the first live release on a post-merge seal shows the window markers and publishes without a second click.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm run release:github-controls -- --check-active</Command></Verification>
+    </T-008>
+  </ImplementationPlan>
+  <Gates>
+    <Gate kind="unit">npx vitest run tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js — 32 passed.</Gate>
+    <Gate kind="governance">npm run release:github-controls -- --dry-run — operations=8 with release-notify in the environment plan.</Gate>
+    <Gate kind="lint">grace lint --path . --assertions current — zero findings in this change's scope (pre-existing module-map debt in release-normalize.test.js and acceptance-registry.mjs is out of scope and untouched).</Gate>
+    <Gate kind="grace">grace status --path . --with modules --json — healthy before handoff.</Gate>
+  </Gates>
+  <ReviewLog>
+    <CornerMatrix>
+      <Corner corner="correctness">The de-duplicated lane keeps its guarantee chain: authorize-tag and the build lane both re-run strict admission which proves every strictRequiredCheck (incl. the aggregated status check over vitest/cargo/playwright suites) is success on the exact payload SHA, and the payload-to-seal delta is metadata-only; therefore removing the in-job re-runs cannot admit a payload whose suites are not green. The window runs parallel to build, so publish still cannot start before prepare-publication completes; needs edges are [build, prepare-publication, veto-window]. The timer uses SECONDS arithmetic with a 60-second tick and a 90-minute job timeout above the 120-minute clamp.</Corner>
+      <Corner corner="security">No new credential reaches CI: the veto is the native run Cancel (no API, no token); TG secrets are environment-scoped to release-notify (v* tag policy), listed in forbiddenAtRepository, and the notify step fails open to a logged skip when absent — a missing bot cannot block or delay a release. publish keeps contents:write only and still performs digest, byte-compare, and read-back verification before draft=false. Removing the second synchronous gate does not widen who can publish: the tag is still creatable only by the release bot App behind the owner-approved release-authorize deployment, and tag rulesets stay active.</Corner>
+      <Corner corner="ux">Owner flow: one approval (release-authorize) as before; the optional TG ping gives ~45 minutes of heads-up (build + window) with an explicit cancel instruction; the run page shows a per-minute countdown in the veto-window job log. RELEASE_VETO_MINUTES lets the owner retune the window without a workflow edit; invalid values fall back to 20 with a warning instead of failing the release.</Corner>
+      <Corner corner="performance">Unattended wall time drops from ~2 h 47 min (observed on v2.8.0 run 39915736797) to ~30 min (25-minute build parallel with the 20-minute window + ~1 min publication tail); the macOS lane sheds the duplicated suites and tool recompiles (est. −8..15 min and −3..5 min); warm cargo caches survive any Rust source change, keeping incremental rebuilds across releases.</Corner>
+      <Corner corner="delivery-bookkeeping">The already-sealed 2.8.1 train is untouched: its tag workflow is the one at its seal commit, so 2.8.1 still requires the second approval click; the new pipeline applies from the first train sealed after this merges. strictRequiredChecks and the train manifest requiredChecks are unchanged, so no re-roll is forced by policy.</Corner>
+      <Corner corner="rollback">Reverting the workflow commit restores the synchronous release Environment gate; the legacy Environment deletion in the GitHub UI is the only manual rollback step and is re-creatable via the governance apply. The notify path is independently removable (delete secrets or the step) without touching publication.</Corner>
+    </CornerMatrix>
+  </ReviewLog>
+</C-RELEASE-TIMING></GraceChangePlan>
