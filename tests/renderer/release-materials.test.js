@@ -92,7 +92,7 @@ describe('release materials', () => {
       version: '2.8.0',
       locales: { localeCount: 10, itemCount: 4 },
       screenshots: { imageCount: 9 },
-      scopeItems: 1
+      scopeItems: 2
     })
   })
 
