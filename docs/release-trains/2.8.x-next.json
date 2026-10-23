@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.x-next",
-  "state": "Collecting",
+  "state": "Frozen",
   "previousRelease": {
     "tag": "v2.8.0",
     "commit": "c8336a60782fb78b30f352c088c469c444f12c1c",
@@ -9,7 +9,7 @@
     "tree": "23fb8c7e0c621abafb47e94c29b8e8b7ed62471c"
   },
   "computedVersion": "2.8.1",
-  "payloadSha": null,
+  "payloadSha": "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -33,21 +33,53 @@
         }
       }
     ],
-    "operational": [],
+    "operational": [
+      {
+        "id": "TRAIN-BOOKKEEPING",
+        "summary": "Release-conveyor bookkeeping since v2.8.0: the v2.8.0 Released seal on 2.7.x-next, PR #37 CI token hardening, and the FIX-018 fix+packaging PR #38 (version surfaces, materials, train opening, workflow/tool retarget).",
+        "state": "queued",
+        "commits": [
+          "4154b6ff3654087727380a6dfe26df3aaeb525d8",
+          "deb7d2de154f9ccaf112a8bbc5013d0db0f309d3",
+          "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13"
+        ]
+      }
+    ],
     "notPresent": []
   },
   "commitAccounting": {
     "fromExclusive": "c8336a60782fb78b30f352c088c469c444f12c1c",
     "entries": [
       {
+        "sha": "4154b6ff3654087727380a6dfe26df3aaeb525d8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044",
         "classification": "user-facing",
         "itemIds": [
           "FIX-018"
         ]
+      },
+      {
+        "sha": "deb7d2de154f9ccaf112a8bbc5013d0db0f309d3",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
       }
     ],
-    "throughInclusive": null
+    "throughInclusive": "efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13"
   },
   "requiredChecks": [
     {
@@ -87,6 +119,18 @@
       "date": "2026-10-23",
       "actor": "agent-zcode",
       "evidence": "Opened after v2.8.0 shipped; the owner's standing 2.8.1 patch instruction renewed by the evening alarm (three further export aborts on 2.8.0, 15:01-15:06 +0500). FIX-018 admitted with field-verified automated evidence; owner field acceptance pending on the shipped patch."
+    },
+    {
+      "state": "Preparing",
+      "date": "2026-10-23",
+      "actor": "mark-release-prep[bot]",
+      "evidence": "Release Please prepared 2.8.1; no tag or publication was created."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "Payload frozen at the merged FIX-018 + v2.8.1 packaging (PR #38, efb3f72) after the trusted normalization prepared 2.8.1; every commit since v2.8.0 classified (4 entries: FIX-018, TRAIN-BOOKKEEPING). All 18 PR checks green; the ubuntu lane needed one cold-cache rerun."
     }
   ]
 }
