@@ -50,9 +50,10 @@ import {
 } from '../../tools/release-normalize.mjs'
 
 const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
-const BOOTSTRAP_SHA = '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
+const BOOTSTRAP_SHA = 'f57848b88e333fc0fb119310006c73b975314102'
 // The v2.7.0 release commit: version-bound baselines (Cargo, Tauri, the
-// M-046 fixture) propagate FROM the previous release, not the bootstrap.
+// M-046 fixture) propagate FROM the last-but-one release tree, not the
+// bootstrap (the RP boundary advanced to v2.8.0 in the 2.8.1 re-seal).
 const PREV_RELEASE_SHA = '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
 const VERSION_BASELINE_PATHS = [
   'Cargo.toml',

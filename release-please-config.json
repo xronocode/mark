@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/release-please/schemas/config.json",
-  "bootstrap-sha": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f",
+  "bootstrap-sha": "f57848b88e333fc0fb119310006c73b975314102",
   "include-component-in-tag": false,
   "include-v-in-tag": true,
   "always-update": true,
