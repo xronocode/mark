@@ -82,7 +82,8 @@
       "failed": "Falló la exportación de {type}",
       "error": "Error de exportación",
       "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales",
-      "errorExporting": "Error al exportar archivo {type}"
+      "errorExporting": "Error al exportar archivo {type}",
+      "settingsAction": "Ajustes de exportación"
     },
     "resizeTable": "Redimensionar tabla",
     "vega-lite-start": "inicio de vega-lite",
@@ -186,7 +187,8 @@
       "exportFilePdf": "Exportar como PDF",
       "openFromClipboard": "Abrir del portapapeles",
       "reopenClosedTab": "Reabrir pestaña cerrada",
-      "newWindow": "Nueva Ventana"
+      "newWindow": "Nueva Ventana",
+      "exportFileDocx": "Exportar a Word"
     },
     "paragraph": {
       "table": "Tabla",
@@ -738,7 +740,10 @@
       "closeOthers": "Cerrar otros",
       "copyAsHtml": "Copiar como HTML",
       "splitView": "Vista dividida",
-      "copyAsStructuredText": "Copiar como texto estructurado"
+      "copyAsStructuredText": "Copiar como texto estructurado",
+      "exportPdf": "Exportar a PDF…",
+      "exportHtml": "Exportar a HTML…",
+      "exportDocx": "Exportar a Word…"
     },
     "insertParagraphBefore": "Insertar Párrafo Antes",
     "spelling": "Ortografía...",
@@ -1440,7 +1445,8 @@
         "liber": "Liber",
         "default": "GitHub (Predeterminado)"
       }
-    }
+    },
+    "docxTitle": "Exportar a Word"
   },
   "import": {
     "title": "Importar o Abrir",

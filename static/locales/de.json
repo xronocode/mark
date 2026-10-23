@@ -82,7 +82,8 @@
       "failed": "{type}-Export fehlgeschlagen",
       "error": "Export-Fehler",
       "imagesEmbeddedMessage": "{embedded} von {total} Bildern eingebettet — große oder fehlende Bilder behalten ihre ursprünglichen Verweise",
-      "errorExporting": "Fehler beim Exportieren der {type}-Datei"
+      "errorExporting": "Fehler beim Exportieren der {type}-Datei",
+      "settingsAction": "Exporteinstellungen"
     },
     "resizeTable": "Tabellengröße ändern",
     "vega-lite-start": "Vega-Lite Start",
@@ -186,7 +187,8 @@
       "exportFilePdf": "Als PDF exportieren",
       "openFromClipboard": "Aus der Zwischenablage öffnen",
       "reopenClosedTab": "Geschlossenen Tab wieder öffnen",
-      "newWindow": "Neues Fenster"
+      "newWindow": "Neues Fenster",
+      "exportFileDocx": "Als Word exportieren"
     },
     "paragraph": {
       "table": "Tabelle",
@@ -738,7 +740,10 @@
       "closeOthers": "Andere schließen",
       "copyAsHtml": "Als HTML kopieren",
       "splitView": "Geteilte Ansicht",
-      "copyAsStructuredText": "Als strukturierten Text kopieren"
+      "copyAsStructuredText": "Als strukturierten Text kopieren",
+      "exportPdf": "Als PDF exportieren…",
+      "exportHtml": "Als HTML exportieren…",
+      "exportDocx": "Als Word exportieren…"
     },
     "insertParagraphBefore": "Absatz davor einfügen",
     "spelling": "Rechtschreibung...",
@@ -1440,7 +1445,8 @@
         "liber": "Liber",
         "default": "GitHub (Standard)"
       }
-    }
+    },
+    "docxTitle": "Nach Word exportieren"
   },
   "import": {
     "title": "Importieren oder öffnen",

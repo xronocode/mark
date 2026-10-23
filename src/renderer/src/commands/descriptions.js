@@ -33,6 +33,7 @@ const COMMAND_KEY_MAP = {
   'file.save-all': 'commands.file.saveAll',
   'file.export-file': 'commands.file.exportFile',
   'file.export-file.pdf': 'commands.file.exportFilePdf',
+  'file.export-file.docx': 'commands.file.exportFileDocx',
 
   // 文件管理
   'file.move-file': 'commands.file.moveFile',

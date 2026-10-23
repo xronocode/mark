@@ -392,7 +392,11 @@ export const EXPORT_DOMPURIFY_CONFIG = Object.freeze({
     html: true,
     svg: true,
     svgFilters: true,
-    mathMl: false
+    // C-NATIVE-DOCX-RTF-EXPORT: keep KaTeX's MathML twin in exported HTML —
+    // it feeds the docx/html equation conversion and restores the
+    // screen-reader parity the live editor already has (the twin is inert;
+    // DOMPurify still strips handlers/urls across profiles).
+    mathMl: true
   },
   RETURN_TRUSTED_TYPE: false,
   // Allow "file" protocol to export images on Windows (#1997).

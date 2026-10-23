@@ -2752,5 +2752,16 @@
       <Markers><Marker>[export][embed-images][BLOCK_EMBED_IMAGES]</Marker></Markers>
       <TraceAssertions><TraceAssertion>The marker logs counts only — embedded/total/skipped — never image paths (console-privacy convention).</TraceAssertion></TraceAssertions>
     </V-M-065>
+    <V-M-066>
+      <Priority>high</Priority><Commands><Command>npx vitest run tests/renderer/util/export-docx-shapes.test.js tests/renderer/util/export-docx.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/contextMenu/tabs-export.test.js</Command><Command>npx playwright test tests/e2e/export-office.spec.ts tests/e2e/print-export.spec.ts tests/e2e/export-html-images.spec.ts --project=chromium</Command><Command>npm run build &amp;&amp; node scripts/check-export-chunk.mjs</Command><Command>node tools/build-notices-node.mjs &amp;&amp; git diff --exit-code -- NOTICES-node.md</Command></Commands>
+      <Scenarios>
+        <Scenario>Shape pinning (T-002): muya's real export HTML carries the exact pre-pass contract — section.footnotes[role=doc-endnotes] with a.footnote-ref[role=doc-noteref], the pre.front-matter block, checkbox inputs with state, align attributes, katex-mathml WITH MathML content (the mathMl sanitizer flip asserted indirectly through the mfrac pin).</Scenario>
+        <Scenario>Conversion matrix (T-003): unzipped output assertions on the EN+RU fixture — Heading1..2 pStyles, w:tbl with per-column jc, hyperlink resolving in rels, w14:checkbox with exactly one checked, m:oMath containing m:f, footnotes.xml with the RU text and bold, zero front-matter text, CJK intact, sectPr pgSz/pgMar from mm-derived twips, landscape via the library swap, hostile text round-trips as text with the fake anchor neutralized.</Scenario>
+        <Scenario>Dispatch and tab-menu (T-004/T-005): EXPORT_DOCX_DOCUMENT rides bus 'export' with the remembered options; the EXPORT 'docx' branch saves with the Word filter and .md→.docx default name, converts once, writes binary, and notifies with severity success + source export + actions [reveal, quiet Export settings]; cancel writes nothing; the tab-menu group is gated on pathname, activates a background tab first and reuses the identical flow.</Scenario>
+        <Scenario>e2e + guard (T-006): the docx menu flow never mounts an export-settings dialog, invokes exactly [plugin:dialog|save, mt_fs_write_binary] with PK-magic bytes, never the print surface; cancel writes nothing; the tab-menu right-click path proves activation-first via the background tab's default save name; the C-61 print and M-065 html specs stay green untouched; the built entry chunk contains no docx code and the docx dynamic surface stays ≤ 300 KB gzip.</Scenario>
+      </Scenarios>
+      <Markers><Marker>[check-export-chunk] BLOCK_EXPORT_CHUNK_GUARD_OK</Marker><Marker>[export][embed-images][BLOCK_EMBED_IMAGES]</Marker></Markers>
+      <TraceAssertions><TraceAssertion>The chunk guard prints file counts and gzip sizes only; the export notify carries counts and localized strings, never absolute paths beyond the basename the user just chose.</TraceAssertion></TraceAssertions>
+    </V-M-066>
   </VD-FEATURES>
 </GraceVerificationDocument>
