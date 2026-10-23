@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m052_print.rs
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe). On macOS the export print job runs detached from the main run loop with an off-main completion watcher, and print-path panics degrade to logged errors (FIX-017).
-//   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer. On macOS the export job spawns off-main (wry parity) with an off-main completion watcher, and both command subtrees run under panic containment.
+//   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe). On macOS both the panel and the silent export run their print operation through runOperationModalForWindow (the wry pattern) with an off-main completion watcher, and print-path panics degrade to logged errors (FIX-017/FIX-018).
+//   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer. On macOS the export save target is set through the printSettings dictionary (NSPrintJobSavingURL key — NSPrintInfo has no setJobSavingURL: method; sending it was the C-61-day-one abort, FIX-018), both command subtrees run under panic containment, and a runtime selector audit test pins every selector this module sends against the live AppKit classes.
 //   DEPENDS: tauri 2 WebviewWindow::with_webview on the main thread (PlatformWebview: WKWebView pointer on macOS; ICoreWebView2Controller + ICoreWebView2Environment on Windows); cocoa/objc 0.2 on macOS; webview2-com 0.38 + windows-core 0.61 on Windows; tokio oneshot for main-thread→async-command results; serde for the pageOptions payload.
-//   LINKS: .grace/changes/archive/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow).
+//   LINKS: .grace/changes/archive/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow); ~/prj/mark-private/audit/2026-10-23-export-pdf-crash (FIX-018 evidence: .ips set + ObjC probe).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -16,12 +16,32 @@
 //   validate_pdf_path - rejects empty and non-.pdf destinations (C-61 R-6).
 //   mm_to_points / mm_to_inches - unit conversions for AppKit (points) and WebView2 (inches).
 //   mt_print_webview - macOS: WKWebView print operation attached to the window, modal; resolves when the panel closes so the renderer can clear the print container. Windows: WebView2 browser print UI (ICoreWebView2_16::ShowPrintUI). Linux: explicit error.
-//   mt_export_pdf - macOS: NSPrintInfo with jobDisposition NSPrintSaveJob + NSPrintJobSavingURL, paper size/orientation from pageOptions, panels suppressed, resolves after the file exists. Windows: ICoreWebView2_7::PrintToPdf with ICoreWebView2Environment6 print settings; resolves from the completion handler. Linux: explicit error.
-//   contain_panics - macOS-only FIX-017: catch_unwind around both command subtrees so print-path Rust panics become logged errors (BLOCK_PRINT_GUARD_CAUGHT) instead of tearing down the app; foreign NSExceptions cannot be caught app-side on the current toolchain (verified 2026-10-23), so the fix also removes their trigger configuration — detached export job + off-main watcher.
+//   mt_export_pdf - macOS: NSPrintInfo with jobDisposition NSPrintSaveJob, the save URL in the printSettings dictionary under NSPrintJobSavingURL, paper size/orientation from pageOptions, panels suppressed, run through runOperationModalForWindow; resolves after the file exists. Windows: ICoreWebView2_7::PrintToPdf with ICoreWebView2Environment6 print settings; resolves from the completion handler. Linux: explicit error.
+//   contain_panics - macOS-only FIX-017: catch_unwind around both command subtrees so print-path Rust panics become logged errors (BLOCK_PRINT_GUARD_CAUGHT) instead of tearing down the app; foreign NSExceptions cannot be caught app-side on the current toolchain (verified 2026-10-23), so FIX-018 removed their actual trigger (the nonexistent setJobSavingURL: selector) and runs the job modally like the panel path.
 //   nsstring_to_string - macOS-only NSString → String reader (lossy) used to describe a caught exception; nil-safe.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-23 v2.2.0 FIX-018: root-cause repair of the export-to-PDF
+//     abort that FIX-017 did not hold (three further 15:0x .ips on v2.8.0
+//     with contain_panics in the faulting frames). The actual bug: C-61
+//     sent msg_send![print_info, setJobSavingURL: url] — NSPrintInfo has
+//     no such method (NSPrintJobSavingURL is a printSettings DICTIONARY
+//     key; proven via SDK headers and a live respondsToSelector probe),
+//     so every real macOS export since C-61 raised
+//     NSInvalidArgumentException (unrecognized selector), which aborts
+//     the process through Rust's foreign-exception rule at any landing
+//     pad, including FIX-017's catch_unwind. Fix: the save URL (and the
+//     audit trail for every other selector) go through the settings
+//     dictionary; the save job now runs via
+//     runOperationModalForWindow — the same pattern as the working
+//     panel path — because plain runOperation from a run-loop callback
+//     deadlocks the main thread (reproduced with the 2026-10-23 ObjC
+//     probe: main blocked 20 s+ with canSpawnSeparateThread both ways).
+//     New selector-audit test pins every selector this module sends
+//     against the live AppKit classes so an imagined API fails in CI,
+//     not in the owner's export click. FIX-017's containment/watcher
+//     stay (own panics still degrade to errors).
 //   - 2026-10-23 v2.1.0 FIX-017: de-fang the PDF-export abort observed as
 //     mark-2026-10-23-025710.ips (SIGABRT ~370 ms after the export save
 //     panel closed, with the export command completing at that instant).
@@ -281,14 +301,13 @@ pub async fn mt_export_pdf(
                 #[cfg(target_os = "macos")]
                 {
                     // START_BLOCK_OBJC_GUARD_EXPORT_PDF
-                    // FIX-017: the export starts detached (spawn-thread
-                    // parity inside export_pdf_wkwebview), so the main
-                    // thread returns to its run loop instead of parking
-                    // inside runOperation's nested loop — the
-                    // configuration the 2026-10-23 abort was observed
-                    // in. Completion is watched OFF-main: the print
-                    // system needs a serviced main run loop to finish,
-                    // and sleeping here would block it.
+                    // FIX-018: the export job runs through
+                    // runOperationModalForWindow inside
+                    // export_pdf_wkwebview — the same modal pattern the
+                    // panel path uses from this callback — so the job's
+                    // run loop services itself and returns only when the
+                    // save is done. Completion on disk is still confirmed
+                    // OFF-main by the watcher below (C-61 R-3).
                     let started = contain_panics("mt_export_pdf", || unsafe {
                         export_pdf_wkwebview(pv.inner(), &path, geometry)
                     });
@@ -494,6 +513,12 @@ unsafe fn export_pdf_wkwebview(
     let _: () = unsafe { msg_send![print_info, setRightMargin: 0.0f64] };
     // Silent save-to-file: NSPrintSaveJob ("NSPrintSaveJob" constant) plus
     // the save-dialog URL. MAS sandbox: this is the only write target.
+    // FIX-018 (2026-10-23): the save target goes into the print SETTINGS
+    // dictionary under the NSPrintJobSavingURL key — NSPrintInfo has no
+    // setJobSavingURL: method (verified against the SDK headers and live
+    // respondsToSelector), and sending that selector raised
+    // NSInvalidArgumentException, which unwound into Rust and aborted the
+    // app on every macOS export since C-61.
     let disposition = unsafe { objc_nsstring("NSPrintSaveJob") };
     let _: () = unsafe { msg_send![print_info, setJobDisposition: disposition] };
     let path_string = unsafe { objc_nsstring(path) };
@@ -504,7 +529,9 @@ unsafe fn export_pdf_wkwebview(
         let _: () = unsafe { msg_send![print_info, release] };
         return Err(format!("could not build a file URL for {path}"));
     }
-    let _: () = unsafe { msg_send![print_info, setJobSavingURL: url] };
+    let settings: id = unsafe { msg_send![print_info, printSettings] };
+    let saving_key = unsafe { objc_nsstring("NSPrintJobSavingURL") };
+    let _: () = unsafe { msg_send![settings, setObject: url forKey: saving_key] };
     // END_BLOCK_PDF_SAVE_PRINT_INFO
 
     let op: id = unsafe { msg_send![wv, printOperationWithPrintInfo: print_info] };
@@ -514,28 +541,38 @@ unsafe fn export_pdf_wkwebview(
     }
     let _: () = unsafe { msg_send![op, setShowsPrintPanel: NO] };
     let _: () = unsafe { msg_send![op, setShowsProgressPanel: NO] };
-    // FIX-017: wry parity with the panel path — let the job detach instead
-    // of parking the main thread inside runOperation's nested loop for the
-    // whole render (the configuration the 2026-10-23 abort was observed
-    // in). runOperation may now return before the file is flushed, so the
-    // settle poll below is the completion gate.
     let _: () = unsafe { msg_send![op, setCanSpawnSeparateThread: YES] };
+    // FIX-018 (2026-10-23): run the save job through the MODAL runner —
+    // the same runOperationModalForWindow pattern the panel path and wry
+    // use from this exact main-thread callback. Plain runOperation from a
+    // run-loop callback deadlocks: the job needs the main run loop
+    // serviced while it paginates (reproduced with the 2026-10-23 ObjC
+    // probe — main thread blocked 20 s+ with canSpawnSeparateThread both
+    // YES and NO). The modal loop services everything itself and returns
+    // only when the job finishes; the off-main watcher in the command
+    // closure remains the completion gate for the file on disk.
+    let window: id = unsafe { msg_send![wv, window] };
+    if window == cocoa::base::nil {
+        let _: () = unsafe { msg_send![print_info, release] };
+        return Err("the webview has no window to run the export job in".to_string());
+    }
 
     safe_eprintln!(
         "[m052][mt_export_pdf][BLOCK_PDF_WRITE_STARTED path={} landscape={}]",
         path,
         geometry.landscape
     );
-    let ok: BOOL = unsafe { msg_send![op, runOperation] };
+    let _: () = unsafe {
+        msg_send![op,
+            runOperationModalForWindow: window
+            delegate: cocoa::base::nil
+            didRunSelector: std::ptr::null_mut::<objc::runtime::Sel>()
+            contextInfo: std::ptr::null_mut::<std::ffi::c_void>()]
+    };
     let _: () = unsafe { msg_send![print_info, release] };
-    if !ok {
-        return Err(format!("the system print operation failed while writing {path}"));
-    }
-    // With the job detached (FIX-017) runOperation returns at start-up;
-    // the off-main watcher in the command closure owns completion — it
-    // resolves the command only once the PDF is actually on disk
-    // (C-61 R-3) while the main run loop keeps servicing the print
-    // system.
+    // The modal loop returns only when the save job has finished. The
+    // command closure's off-main watcher now confirms the PDF is actually
+    // on disk (C-61 R-3) before resolving the export.
     Ok(())
 }
 
@@ -907,5 +944,87 @@ mod tests {
             error.contains("synthetic setup failure"),
             "the error should carry the panic detail: {error}"
         );
+    }
+
+    // ── Print-path selector audit (FIX-018, macOS runtime only) ──────
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn print_path_selectors_exist_on_live_appkit_classes() {
+        // The 2026-10-23 abort class: msg_send! to a selector NSPrintInfo
+        // does not define raises NSInvalidArgumentException (unrecognized
+        // selector), and the foreign exception aborts the process through
+        // Rust's rule at ANY landing pad — C-61's setJobSavingURL: was
+        // exactly that (live respondsToSelector == 0; the save URL is a
+        // printSettings dictionary key). This audit pins EVERY selector
+        // this module sends to the classes that must receive it, so an
+        // imagined or renamed API fails here in CI instead of in the
+        // owner's export click. Evidence chain:
+        // ~/prj/mark-private/audit/2026-10-23-export-pdf-crash/.
+        use cocoa::base::{id, BOOL, NO};
+        use objc::{msg_send, sel, sel_impl};
+
+        unsafe {
+            let print_info: id = new_print_info().expect("NSPrintInfo must init");
+
+            // Selectors export_pdf_wkwebview and print_panel_wkwebview
+            // send to the NSPrintInfo instance.
+            for name in [
+                "setOrientation:",
+                "setPaperSize:",
+                "setTopMargin:",
+                "setBottomMargin:",
+                "setLeftMargin:",
+                "setRightMargin:",
+                "setJobDisposition:",
+                "printSettings",
+            ] {
+                let selector = objc::runtime::Sel::register(name);
+                let responds: BOOL = msg_send![print_info, respondsToSelector: selector];
+                assert!(
+                    responds != NO,
+                    "NSPrintInfo no longer responds to {name} — the print path would abort"
+                );
+            }
+
+            // The save target travels through the settings dictionary.
+            let settings: id = msg_send![print_info, printSettings];
+            assert!(settings != cocoa::base::nil, "printSettings must exist");
+            let responds: BOOL = msg_send![settings, respondsToSelector: sel!(setObject:forKey:)];
+            assert!(
+                responds != NO,
+                "printSettings must accept setObject:forKey: (NSPrintJobSavingURL entry)"
+            );
+            let _: () = msg_send![print_info, release];
+
+            // Selectors sent to the NSPrintOperation produced by
+            // WKWebView's printOperationWithPrintInfo:.
+            let op_cls = objc::runtime::Class::get("NSPrintOperation")
+                .expect("NSPrintOperation class must exist");
+            for name in [
+                "setShowsPrintPanel:",
+                "setShowsProgressPanel:",
+                "setCanSpawnSeparateThread:",
+                "runOperationModalForWindow:delegate:didRunSelector:contextInfo:",
+            ] {
+                let selector = objc::runtime::Sel::register(name);
+                let responds: BOOL = msg_send![op_cls, instancesRespondToSelector: selector];
+                assert!(
+                    responds != NO,
+                    "NSPrintOperation no longer responds to {name} — the print path would abort"
+                );
+            }
+
+            // WKWebView side: the entry point both paths guard on.
+            let wv_cls = objc::runtime::Class::get("WKWebView")
+                .expect("WKWebView class must exist on macOS");
+            let selector =
+                objc::runtime::Sel::register("printOperationWithPrintInfo:");
+            let responds: BOOL = msg_send![wv_cls, instancesRespondToSelector: selector];
+            assert!(
+                responds != NO,
+                "WKWebView lost printOperationWithPrintInfo: (macOS 11+ guard)"
+            );
+        }
     }
 }

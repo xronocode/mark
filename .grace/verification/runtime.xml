@@ -12788,23 +12788,40 @@
           (ShowPrintUI + PrintToPdf paths).
         </Scenario>
         <Scenario>
-          scenario-5 (FIX-017 export-crash de-fanging, macOS cargo lane):
-          the export print operation runs detached
-          (setCanSpawnSeparateThread:YES, wry parity) so runOperation no
-          longer parks the main thread inside its nested run loop — the
-          configuration the mark-2026-10-23-025710.ips abort was observed
-          in — and completion is watched off-main (15 s,
-          BLOCK_PDF_WRITTEN from the watcher thread) because the print
-          system needs a serviced main run loop. Both macOS command
-          subtrees run under panic containment:
-          print_path_panics_degrade_to_errors_not_app_death pins that a
-          print-path panic comes back as a logged Err
-          (BLOCK_PRINT_GUARD_CAUGHT). App-side catching of a real
-          NSException is impossible on the current toolchain (verified
-          2026-10-23: the objc_exception shim and objc's "exception"
-          feature both abort before any Rust catch boundary); a foreign
-          exception raised under tao's own run-loop observer is still
-          fatal — that boundary belongs to tao.
+          scenario-5 (FIX-017/FIX-018 export-crash root cause, macOS cargo
+          lane): FIX-017's containment/watcher stay (a print-path Rust
+          panic comes back as a logged Err, BLOCK_PRINT_GUARD_CAUGHT,
+          pinned by print_path_panics_degrade_to_errors_not_app_death),
+          but the 2026-10-23 evening field crashes on v2.8.0 (three .ips
+          with contain_panics in the faulting frames) proved a foreign
+          NSException aborts through ANY Rust landing pad — so FIX-018
+          removed the actual trigger: C-61's
+          msg_send![print_info, setJobSavingURL:] targeted a selector
+          NSPrintInfo does not define (live respondsToSelector == 0; the
+          save URL is a printSettings DICTIONARY key, set via
+          setObject:forKey: now). The save job runs through
+          runOperationModalForWindow — the same modal pattern as the
+          working panel path — because plain runOperation from a
+          run-loop callback deadlocks the main thread (2026-10-23 ObjC
+          probe: main blocked 20 s+ with canSpawnSeparateThread both
+          YES and NO); the off-main watcher (15 s, BLOCK_PDF_WRITTEN)
+          remains the on-disk completion gate. Evidence chain:
+          ~/prj/mark-private/audit/2026-10-23-export-pdf-crash/ (six
+          .ips, probe.m, README).
+        </Scenario>
+        <Scenario>
+          scenario-6 (FIX-018 selector audit, macOS cargo lane):
+          print_path_selectors_exist_on_live_appkit_classes pins EVERY
+          selector this module sends — NSPrintInfo instance selectors
+          (orientation/paper/margins/jobDisposition/printSettings), the
+          settings dictionary setObject:forKey:, NSPrintOperation
+          instance selectors (panels, canSpawnSeparateThread,
+          runOperationModalForWindow:delegate:didRunSelector:contextInfo:)
+          and WKWebView's printOperationWithPrintInfo: — against the
+          live AppKit classes, so an imagined or renamed API fails in CI
+          instead of aborting in the owner's export click (the exact
+          gap that let setJobSavingURL: ship since C-61: e2e mocks the
+          backend, cargo lanes never touched AppKit selectors).
         </Scenario>
       </Scenarios>
       <Markers>
@@ -12812,7 +12829,7 @@
         <Marker>[m052][mt_print_webview][BLOCK_PRINT_PANEL_CLOSED]</Marker>
         <Marker>[m052][mt_print_webview][BLOCK_PRINT_UI_OPENED kind=browser]</Marker>
         <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITE_STARTED path=… landscape=…]</Marker>
-        <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path=…] — FIX-017: emitted by the off-main completion watcher</Marker>
+        <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path=…] — FIX-017/FIX-018: emitted by the off-main completion watcher</Marker>
         <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITE_FAILED reason=…]</Marker>
         <Marker>[m052][mt_export_pdf][BLOCK_PDF_DISPATCH_FAILED reason=…]</Marker>
         <Marker>[m052][mt_print_webview|mt_export_pdf][BLOCK_PRINT_GUARD_CAUGHT …] — FIX-017 panic containment: a print-path panic degraded to a logged error instead of tearing down the app</Marker>

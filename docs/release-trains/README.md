@@ -2,7 +2,7 @@
 
 Owner instruction recorded on 2026-10-19: a confirmed fix joins a release train; accepting it does not start a release. This protocol governs delivery bookkeeping and release admission. Existing GRACE specs/plans still govern implementation and structural refactors.
 
-Current train: [2.7.x-next](2.7.x-next.md). It opens after v2.7.0 (released 2026-10-22 from [2.6.x-next](2.6.x-next.md)) and collects the owner-accepted C-MULTI-SOURCE-WORKSPACE pack; no release activity authorized yet. The predecessor [2.5.x-next](2.5.x-next.md) is Released as v2.6.0.
+Current train: [2.8.x-next](2.8.x-next.md). It opens after v2.8.0 (released 2026-10-23 from [2.7.x-next](2.7.x-next.md)) and carries the FIX-018 PDF-export root-cause patch (the owner's «2.8.1»); no release activity authorized yet. The predecessor [2.5.x-next](2.5.x-next.md) is Released as v2.6.0.
 
 ## A fix moves through these stages
 

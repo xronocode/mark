@@ -215,12 +215,12 @@ describe('release train authority', () => {
     const manifest = readTrainManifest(process.cwd())
     const result = validateTrainManifest(manifest, {
       workspaceRoot: process.cwd(),
-      tag: 'v2.8.0'
+      tag: 'v2.8.1'
     })
     expect(result).toMatchObject({
-      trainId: '2.7.x-next',
+      trainId: '2.8.x-next',
       state: manifest.state,
-      version: 'v2.8.0'.slice(1)
+      version: 'v2.8.1'.slice(1)
     })
     // Admission items arrive with owner acceptance, not with the train:
     // the count must mirror the checked-in manifest exactly (empty right
@@ -228,7 +228,7 @@ describe('release train authority', () => {
     expect(result.itemCounts.userFacing).toBe(manifest.items.userFacing.length)
     expect(
       validateTrainLedger(
-        readFileSync(resolve('docs/release-trains/2.7.x-next.md'), 'utf8'),
+        readFileSync(resolve('docs/release-trains/2.8.x-next.md'), 'utf8'),
         manifest
       )
     ).toBe(true)

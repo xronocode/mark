@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "protocol": "docs/acceptance/README.md",
   "scope": "Delivery items of the 2.6.x-next train onward. Pre-2.6.0 acceptance history is frozen prose in the Released 2.5.x-next record.",
-  "lastSynced": "2026-10-22",
+  "lastSynced": "2026-10-23",
   "artifacts": [
     {
       "id": "mark-test-fix009-7057d645",
@@ -41,6 +41,24 @@
         "C-MULTI-SOURCE-WORKSPACE"
       ],
       "location": "/Applications/Mark Test MSW.app"
+    },
+    {
+      "id": "mark-test-fix018-1d14e6f",
+      "source": {
+        "sha": "1d14e6fbf4fcc007032cfad2d3e9257446ebf044",
+        "branch": "fix/pdf-export-objc-crash"
+      },
+      "platform": "macos-arm64-debug",
+      "bundleIdentity": "com.xronocode.mark.test.fix018.1d14e6f",
+      "productName": "Mark Test FIX-018",
+      "binarySha256": "bec8a998e30dbde3e539cb531b8b11ce2f249928694cb8493db767dfa9a132cd",
+      "productVersion": "2.8.0",
+      "builtAt": "2026-10-23",
+      "builtBy": "tools/build-test-artifact.mjs",
+      "covers": [
+        "FIX-018"
+      ],
+      "location": "target/debug/bundle/macos (repo build dir; rebuild via the builder)"
     }
   ],
   "items": [

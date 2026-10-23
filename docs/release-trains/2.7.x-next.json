@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.7.x-next",
-  "state": "Ready",
+  "state": "Released",
   "previousRelease": {
     "tag": "v2.7.0",
     "commit": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f",
@@ -397,6 +397,12 @@
       "date": "2026-10-23",
       "actor": "agent-zcode",
       "evidence": "Single seal commit directly on the payload 3e8c3139 (the merged freeze, all three required checks green on it): train authority Frozen→Ready, live check evidence, accounting through the freeze, ledger and screenshot-manifest payload binding. Release authorization NOT given — promotion waits for the owner-approved release-authorize deployment."
+    },
+    {
+      "state": "Released",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "v2.8.0 published 2026-10-23T09:53:47Z from this train (tag v2.8.0 -> c8336a60782fb78b30f352c088c469c444f12c1c on main) after the owner-approved release-authorize deployment; the in-app updater feed (releases/latest/download/latest.json) serves 2.8.0. FIX-017 did not hold in the field (three 15:0x +0500 aborts on 2.8.0); root cause repaired as FIX-018 in train 2.8.x-next."
     }
   ]
 }
