@@ -81,7 +81,11 @@ const SEAL_ALLOWLIST = [
   'docs/release-trains/2.6.x-next.md',
   'docs/assets/readme/2.6.0.manifest.json',
   'docs/assets/readme/2.7.0.manifest.json',
-  'docs/assets/readme/2.8.1.manifest.json'
+  'docs/assets/readme/2.8.1.manifest.json',
+  // boundary-repair records: the Release Please boundary and its test pin
+  // may be corrected in the same seal span (2.8.1 re-seal, 2026-10-23)
+  'release-please-config.json',
+  'tests/renderer/release-normalize.test.js'
 ]
 const GOVERNANCE_CONFIG_PATH = '.github/release-governance.json'
 const RELEASE_PLEASE_CONFIG_PATH = 'release-please-config.json'
