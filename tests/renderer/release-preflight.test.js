@@ -10,12 +10,13 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.8.0 version fixture.
+//   consistentEvidence - Complete v2.8.1 version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-23 v2.20.0 - advance the Release Please-derived positive fixture to v2.8.0.
+//   LAST_CHANGE: 2026-10-23 v2.21.0 - advance the fixture to the v2.8.1 patch (FIX-018 PDF export root cause).
+//   PREVIOUS_LATEST: 2026-10-23 v2.20.0 - advance the Release Please-derived positive fixture to v2.8.0.
 //   PREV: 2026-10-22 v2.20.0 - advance the release fixture to v2.7.0.
 //   PREV: 2026-10-20 v2.19.0 - advance the Release Please-derived positive fixture to v2.6.0.
 //   PREV: 2026-10-21 v2.18.0 - require the unprivileged Tauri dry-run to disable updater artifacts while production packaging retains updater signing.
@@ -39,7 +40,7 @@
 //   v2.4.0-beta (C-55 pele diagram engine, C-54 light node cards).
 //   PREV: 2026-10-17 v2.10.0 - advance the release fixture to v2.3.1 (C-51 docs look, C-52 open folder from clipboard).
 //   PREVIOUS: 2026-10-15 v2.9.0 - C-23: advance the release fixture to the first non-beta release v2.3.0.
-//   PREVIOUS_LATEST: 2026-09-28 v2.8.0 - C-15 T-W3: strict-SemVer feed assertion follows the fragment-merge compose step (jq --arg ver) instead of the removed inline heredoc; pin the WINDOWS_RELEASE staging gate and the windows-x64 matrix lane.
+//   PREVIOUS_LATEST: 2026-09-28 v2.8.1 - C-15 T-W3: strict-SemVer feed assertion follows the fragment-merge compose step (jq --arg ver) instead of the removed inline heredoc; pin the WINDOWS_RELEASE staging gate and the windows-x64 matrix lane.
 //   PREVIOUS_LATEST: 2026-09-24 v2.7.0 - advance the release fixture to the link-autocomplete + dead-link-validation release v2.2.0-beta (C-20, C-21).
 //   PREVIOUS_LATEST: 2026-09-24 v2.6.0 - advance the release fixture to the native-print + heading-navigation release v2.2.0-beta (C-18, C-19).
 //   PREVIOUS_LATEST: 2026-09-22 v2.5.0 - advance the release fixture to the smart-paste + markdown-hygiene release v2.2.0-beta (C-16, C-17).
@@ -67,22 +68,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.8.0',
-  packageLock: '2.8.0',
-  packageLockRoot: '2.8.0',
-  cargoWorkspace: '2.8.0',
-  cargoLockMark: '2.8.0',
-  tauriConfig: '2.8.0'
+  packageJson: '2.8.1',
+  packageLock: '2.8.1',
+  packageLockRoot: '2.8.1',
+  cargoWorkspace: '2.8.1',
+  cargoLockMark: '2.8.1',
+  tauriConfig: '2.8.1'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.8.0')
+      validateVersionEvidence(consistentEvidence, 'v2.8.1')
     ).toEqual({
-      version: '2.8.0',
-      tag: 'v2.8.0',
+      version: '2.8.1',
+      tag: 'v2.8.1',
       sourceCount: 6
     })
   })
@@ -91,7 +92,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.8.0'
+        'v2.8.1'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -118,7 +119,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.8.0'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.8.1'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 

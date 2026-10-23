@@ -4,6 +4,14 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 
 
+## [2.8.1] - 2026-10-23
+
+Export to PDF on macOS works for the first time since the feature shipped — and can no longer take the app down.
+
+### Safety
+- Export to PDF no longer aborts the app: the silent save job addressed a print-settings method that does not exist on macOS (`setJobSavingURL:`), which raised an Objective-C exception on every export since 2.5.0; the save target now travels through the print-settings dictionary, and the job runs through the same modal runner as the print panel.
+- A new selector-audit test verifies every macOS print call this app makes against the live system APIs, so an imagined or renamed API fails in CI instead of in your export click.
+
 ## [2.8.0] - 2026-10-23
 
 Work in several folders at once, open cloud folders as roots, and trust folder search again.

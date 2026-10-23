@@ -215,10 +215,9 @@ describe('whatsNew 2.5.3 sheet', () => {
 // END_BLOCK_CONTENT_2_5_3
 
 // START_BLOCK_CONTENT_2_5_4
-// Release 2.8.0 draft (C-MULTI-SOURCE-WORKSPACE, owner-accepted
-// 2026-10-22): multi-root folders, cloud roots, trustworthy folder
-// search and the guarded ⌘Q quit.
-const RELEASE_DRAFT_ITEM_KEYS = ['folders', 'cloud', 'search', 'quit']
+// Release 2.8.1 draft (FIX-018, field-verified 2026-10-23): the
+// macOS PDF-export root-cause repair — one safety item.
+const RELEASE_DRAFT_ITEM_KEYS = ['pdfFix']
 
 describe('current release-draft sheet', () => {
   it('ships the four accepted-train items in order with distinct one-char icons', () => {
@@ -244,7 +243,7 @@ describe('current release-draft sheet', () => {
         expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
       }
       expect(table.whatsNew.also.length, `${code}: also`).toBeLessThanOrEqual(120)
-      expect(section.folders.title, `${code}: folders names ⇧⌘O`).toContain('⇧⌘O')
+      expect(section.pdfFix.text, `${code}: pdfFix names PDF`).toContain('PDF')
     }
   })
 

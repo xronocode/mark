@@ -64,7 +64,7 @@ const fail = (code, message) => {
 
 const slug = (id) => id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 const evidenceUrl = (itemId) =>
-  `https://github.com/xronocode/mark/blob/main/docs/release-trains/2.7.x-next.md#${slug(itemId)}`
+  `https://github.com/xronocode/mark/blob/main/docs/release-trains/2.8.x-next.md#${slug(itemId)}`
 
 const assertPublicValue = (field, value) => {
   const text = String(value ?? '')
@@ -81,7 +81,7 @@ const assertPublicValue = (field, value) => {
 //   INPUTS: { manifest: object - validated train, projectConfig: object - managed Project contract }
 //   OUTPUTS: { object - desired Project metadata, fields, and rows }
 //   SIDE_EFFECTS: none.
-//   LINKS: docs/release-trains/2.7.x-next.json
+//   LINKS: docs/release-trains/2.8.x-next.json
 // END_CONTRACT: buildProjectProjection
 // START_BLOCK_BUILD_PROJECT_PROJECTION
 export const buildProjectProjection = (manifest, projectConfig) => {
@@ -100,7 +100,7 @@ export const buildProjectProjection = (manifest, projectConfig) => {
         Admission: 'operational',
         'Owner acceptance': 'not-required',
         'Item ID': `train:${manifest.trainId}`,
-        'Evidence URL': 'https://github.com/xronocode/mark/blob/main/docs/release-trains/2.7.x-next.json'
+        'Evidence URL': 'https://github.com/xronocode/mark/blob/main/docs/release-trains/2.8.x-next.json'
       }
     }
   ]
