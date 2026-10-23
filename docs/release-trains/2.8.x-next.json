@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.x-next",
-  "state": "Frozen",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.8.0",
     "commit": "f57848b88e333fc0fb119310006c73b975314102",
@@ -110,19 +110,19 @@
       "name": "status check",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f"
+      "sha": "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f"
+      "sha": "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "f8eb6944da82adc1c2c35349e2fe86cc43a5f12f"
+      "sha": "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6"
     }
   ],
   "materials": {
@@ -179,6 +179,12 @@
       "date": "2026-10-24",
       "actor": "agent-zcode",
       "evidence": "Re-freeze after the 2.7.0-style re-seal roll (PR #43, 5c58178): trusted normalization prepared 2.8.1 again, then the payload froze at the roll merge — one commit before the coming clean seal. Every commit since v2.8.0 classified (7 entries)."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-24",
+      "actor": "agent-zcode",
+      "evidence": "Clean single-commit seal on the re-frozen payload (ec4c39e, PR #44, all checks green): train authority Frozen->Ready, ledger and screenshot-manifest already bound to the payload. Release authorization NOT given — promotion waits for the owner-approved release-authorize deployment."
     }
   ]
 }
