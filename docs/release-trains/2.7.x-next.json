@@ -35,6 +35,23 @@
             "Guarded Cmd+Q dialog — no silent data loss"
           ]
         }
+      },
+      {
+        "id": "FIX-017",
+        "summary": "De-fang the PDF-export abort (mark-2026-10-23-025710.ips): the export print operation runs detached (setCanSpawnSeparateThread, wry parity) with an off-main completion watcher, so runOperation no longer parks the main thread inside its nested run loop; both macOS print command subtrees run under panic containment (BLOCK_PRINT_GUARD_CAUGHT).",
+        "state": "queued",
+        "commits": [
+          "426198d5e3f4f61bba80ccb3dcba596f17888337"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-23",
+          "testedArtifact": "Fix commit 426198d5 (PR #26 branch fix/pdf-export-crash-28, off merged main); automated evidence: cargo test m052 16/16 incl. the new containment test, cargo check, V-M-052 vitest set 505 passed, print-export e2e chromium 3/3; queued by the explicit owner instruction (2026-10-23, translated): triage, plan, fix, tests and package into a x.x.1 release - with the multi-root set merged first, the fix rides the next train.",
+          "scenarios": [
+            "PDF export on macOS completes without the SIGABRT crash class of mark-2026-10-23-025710.ips (foreign NSException unwinding through tao run-loop frames)",
+            "Print path unchanged: the print panel opens and resolves as before (print-export e2e pins)"
+          ]
+        }
       }
     ],
     "operational": [
@@ -79,6 +96,13 @@
         "itemIds": [
           "C-MULTI-SOURCE-WORKSPACE"
         ]
+      },
+      {
+        "sha": "426198d5e3f4f61bba80ccb3dcba596f17888337",
+        "classification": "user-facing",
+        "itemIds": [
+          "FIX-017"
+        ]
       }
     ]
   },
@@ -111,7 +135,8 @@
     "whatsNew": "src/renderer/src/whatsNew/data.js",
     "localeCount": 10,
     "itemIds": [
-      "C-MULTI-SOURCE-WORKSPACE"
+      "C-MULTI-SOURCE-WORKSPACE",
+      "FIX-017"
     ]
   },
   "transitions": [
