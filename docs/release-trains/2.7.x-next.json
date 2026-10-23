@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.7.x-next",
-  "state": "Frozen",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.7.0",
     "commit": "132f259903e0aca8a3fe661e6f72be052ab16897",
@@ -373,6 +373,12 @@
       "date": "2026-10-23",
       "actor": "agent-zcode",
       "evidence": "Payload frozen at the merged v2.8.0 preparation (PR #32); every commit since v2.7.0 classified (33 entries: MSW pack, FIX-017, controls activation, train bookkeeping). Staged pending the owner packaging word (PR #32 issuecomment-6356712350)."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "Owner packaging word received 2026-10-05Z in chat: \"2.8.1\" - the fix rides 2.8.0 and a 2.8.1 patch follows its release. Payload frozen at 35882c92; seal metadata-only; release authorization remains the owner release-authorize click."
     }
   ]
 }
