@@ -1,5 +1,5 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.6.0
+# VERSION: 1.7.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
 #   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
@@ -11,10 +11,11 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, exact-index, local-only review, outgoing-history and merged-branch deletion scenarios.
+#   SafetyGateTests - exposure, exact-index, local-only review, outgoing-history, merged-branch deletion and AI-name ban scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.6.0 - 2026-10-24: prove merged-branch deletion admission — ancestor or exact merged-PR tips pass; mixed, main, tag, unproven and GitHub-failure cases stay blocked.
+#   LAST_CHANGE: 1.7.0 - 2026-10-24: prove the AI-name ban — attribution trailers fail commit and push review, AI-named branches fail push, and the installed reference-transaction hook aborts local creation of AI-named branches only.
+#   PREV: 1.6.0 - 2026-10-24: prove merged-branch deletion admission — ancestor or exact merged-PR tips pass; mixed, main, tag, unproven and GitHub-failure cases stay blocked.
 #   PREV: 1.5.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: pin that workflow/governance paths do not turn public references into secrets during outgoing review.
 #   PREV: 1.5.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: pin the public GitHub reference forms and literal-secret failure boundary used by both local review passes.
 #   PREV: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
@@ -402,6 +403,48 @@ class SafetyGateTests(unittest.TestCase):
                 with self.assertRaises(gate.GateError):
                     gate.ref_deletions(Path("."), "fork", updates)
     # END_BLOCK_MERGED_REF_DELETION_TESTS
+
+
+    # START_BLOCK_AI_NAME_BAN_TESTS
+    def test_ai_attribution_lines_are_rejected(self):
+        for message in [
+            "fix: x\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+            "fix: x\n\nco-authored-by: Codex <codex@openai.com>",
+            "fix: x\n\nAssisted-by: GitHub Copilot",
+            "fix: x\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+        ]:
+            with self.assertRaises(gate.GateError):
+                gate.validate_attribution(message)
+
+    def test_human_attribution_and_product_mentions_pass(self):
+        gate.validate_attribution("fix: x\n\nCo-Authored-By: Jane Doe <jane@example.com>")
+        gate.validate_attribution("docs(guide): explain the Claude Code and Codex agent setup")
+
+    def test_ai_named_branches_are_rejected_on_push(self):
+        for ref in ["refs/heads/claude/audit-1", "refs/heads/Codex/fix", "refs/heads/copilot-x", "refs/heads/zcode"]:
+            with self.assertRaises(gate.GateError):
+                gate.validate_branch_name(ref)
+        for ref in ["refs/heads/feat/claude-hooks", "refs/heads/fix/codexample", "refs/heads/main", "refs/tags/v2.8.0"]:
+            gate.validate_branch_name(ref)
+        with self.assertRaises(gate.GateError):
+            gate.push_candidate(Path("."), "fork", "refs/heads/x " + "1" * 40 + " refs/heads/claude/x " + "0" * 40)
+
+    def test_reference_transaction_hook_blocks_only_new_ai_branches(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            run = lambda *args, **kw: subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, **kw)
+            run("init", "-q")
+            run("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "base")
+            hook = repo / ".git/hooks/reference-transaction"
+            hook.write_text(gate.REFERENCE_TRANSACTION_HOOK)
+            hook.chmod(0o700)
+            blocked = run("branch", "claude/new")
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("BLOCK_AI_BRANCH_NAME", blocked.stderr)
+            self.assertNotEqual(run("worktree", "add", "-q", "-b", "codex/wt", str(repo / "wt")).returncode, 0)
+            self.assertEqual(run("branch", "feat/claude-hooks").returncode, 0)
+            self.assertEqual(run("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "next").returncode, 0)
+    # END_BLOCK_AI_NAME_BAN_TESTS
 
 
 if __name__ == "__main__":
