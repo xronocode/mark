@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.7.x-next",
-  "state": "Preparing",
+  "state": "Frozen",
   "previousRelease": {
     "tag": "v2.7.0",
     "commit": "132f259903e0aca8a3fe661e6f72be052ab16897",
@@ -9,7 +9,7 @@
     "tree": "40591bcba06ae955cbc1411052969b1de6f74e58"
   },
   "computedVersion": "2.8.0",
-  "payloadSha": null,
+  "payloadSha": "35882c92d40d6e0c80ad0bb24c394784854fa379",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -57,10 +57,43 @@
     "operational": [
       {
         "id": "RELEASE-CONTROLS-ACTIVATION",
-        "summary": "PR #22: rulesets activation fix — merge to main and v* tags enforced via PR + status checks.",
+        "summary": "PR #22: rulesets activation fix - merge to main and v* tags enforced via PR + status checks.",
         "state": "queued",
         "commits": [
+          "d7ff6d8a2410a4fce0d57e5ccd15bed5e5a427e6",
           "aa38f35fa7c74f0f859c6e611c8d9004aa1ecf79"
+        ]
+      },
+      {
+        "id": "TRAIN-BOOKKEEPING",
+        "summary": "Release-conveyor bookkeeping since v2.7.0: train transitions, Release Please boundary/bootstrap and normalization repairs, materials regressions, FIX-017 queueing and integration records, GRACE archive work and the v2.8.0 preparation merge.",
+        "state": "queued",
+        "commits": [
+          "89a5c289a0fae5cd03c16ca91103f6997b8034d5",
+          "65fe0e4b1d448042506e05d28bb50df6ed96cfa4",
+          "48490bb03cf6061ac30a08cb9a80b89c2c67d8be",
+          "c6704ae9a744067c5d4bab893189e3d646e24011",
+          "d9636793d7b0ed9ef71394d169252ded4daa84a4",
+          "c87b4dc02df70a36e64fe35cd1724e1b88715966",
+          "84ee23794c28748d4baf5ea48359ccad6deaa77d",
+          "0d538a70436eb66f6528434f1806803d4d32acb7",
+          "d92982c0d9b61995c8247c6f04deb8ccd178f036",
+          "b010e91ae5873a58ec543bd30f4d32429ab77c5f",
+          "73cbf27cc005485d4a216f0039a0a0f1282b4be5",
+          "e06fd7c6c566675df4f203eac3741c40e4c3fe16",
+          "b0ba494a255e5a652a407ad89ce6a771367cb302",
+          "6476f9ff1f301eb47a5b5447caf1daa45a0f2423",
+          "df84e93da50e9c16542f04d1351c76b927367c3e",
+          "2e2267ec43e729b2c368368e57940b3271f55326",
+          "5ec6f48a54e7e5602e85b4bad73659e2753ab870",
+          "09b5613615fd1ca02362a944f401dc554b742af6",
+          "9fc596c92347410ba35c6daf62f5171723329364",
+          "120d15f0356a320bbea26b6bf339fadf352043f7",
+          "fc6fc3f7771d4f456810f7782307545b6b5aae1b",
+          "b340cf962c8d5326ae0402fb86900e94b187ab7f",
+          "237b26f595b25b48789e9974005b3acf722abaee",
+          "5fef64b089832c6b2a11b643c2d7cbd8e1657c1c",
+          "35882c92d40d6e0c80ad0bb24c394784854fa379"
         ]
       }
     ],
@@ -69,6 +102,13 @@
   "commitAccounting": {
     "fromExclusive": "132f259903e0aca8a3fe661e6f72be052ab16897",
     "entries": [
+      {
+        "sha": "d7ff6d8a2410a4fce0d57e5ccd15bed5e5a427e6",
+        "classification": "operational",
+        "itemIds": [
+          "RELEASE-CONTROLS-ACTIVATION"
+        ]
+      },
       {
         "sha": "aa38f35fa7c74f0f859c6e611c8d9004aa1ecf79",
         "classification": "operational",
@@ -98,13 +138,189 @@
         ]
       },
       {
+        "sha": "89a5c289a0fae5cd03c16ca91103f6997b8034d5",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "65fe0e4b1d448042506e05d28bb50df6ed96cfa4",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "48490bb03cf6061ac30a08cb9a80b89c2c67d8be",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c6704ae9a744067c5d4bab893189e3d646e24011",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d9636793d7b0ed9ef71394d169252ded4daa84a4",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c87b4dc02df70a36e64fe35cd1724e1b88715966",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "84ee23794c28748d4baf5ea48359ccad6deaa77d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "0d538a70436eb66f6528434f1806803d4d32acb7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d92982c0d9b61995c8247c6f04deb8ccd178f036",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b010e91ae5873a58ec543bd30f4d32429ab77c5f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "73cbf27cc005485d4a216f0039a0a0f1282b4be5",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "426198d5e3f4f61bba80ccb3dcba596f17888337",
         "classification": "user-facing",
         "itemIds": [
           "FIX-017"
         ]
+      },
+      {
+        "sha": "e06fd7c6c566675df4f203eac3741c40e4c3fe16",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b0ba494a255e5a652a407ad89ce6a771367cb302",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "6476f9ff1f301eb47a5b5447caf1daa45a0f2423",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "df84e93da50e9c16542f04d1351c76b927367c3e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2e2267ec43e729b2c368368e57940b3271f55326",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5ec6f48a54e7e5602e85b4bad73659e2753ab870",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "09b5613615fd1ca02362a944f401dc554b742af6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "9fc596c92347410ba35c6daf62f5171723329364",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "120d15f0356a320bbea26b6bf339fadf352043f7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "fc6fc3f7771d4f456810f7782307545b6b5aae1b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b340cf962c8d5326ae0402fb86900e94b187ab7f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "237b26f595b25b48789e9974005b3acf722abaee",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5fef64b089832c6b2a11b643c2d7cbd8e1657c1c",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "35882c92d40d6e0c80ad0bb24c394784854fa379",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
       }
-    ]
+    ],
+    "throughInclusive": "35882c92d40d6e0c80ad0bb24c394784854fa379"
   },
   "requiredChecks": [
     {
@@ -151,6 +367,12 @@
       "date": "2026-10-23",
       "actor": "mark-release-prep[bot]",
       "evidence": "Release Please prepared 2.8.0; no tag or publication was created."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "Payload frozen at the merged v2.8.0 preparation (PR #32); every commit since v2.7.0 classified (33 entries: MSW pack, FIX-017, controls activation, train bookkeeping). Staged pending the owner packaging word (PR #32 issuecomment-6356712350)."
     }
   ]
 }
