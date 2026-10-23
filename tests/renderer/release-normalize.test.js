@@ -275,9 +275,7 @@ describe('release normalization', () => {
       plan.changes.find(({ path }) => path === 'release-please-config.json').after
     )
     expect(normalizedConfig).not.toHaveProperty('last-release-sha')
-    expect(normalizedConfig['bootstrap-sha']).toBe(
-      '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
-    )
+    expect(normalizedConfig['bootstrap-sha']).toBe(BOOTSTRAP_SHA)
     const normalizedTrain = JSON.parse(
       plan.changes.find(({ path }) => path === 'docs/release-trains/2.8.x-next.json').after
     )
