@@ -1017,7 +1017,7 @@
   },
   "whatsNew": {
     "title": "Nouveautés",
-    "also": "Aussi : avis honnêtes pour les dossiers manquants, pluriels corrects en dix langues et noms clairs pour le cloud",
+    "also": "Aussi : chaque appel d'impression macOS est désormais vérifié auprès de la vraie API système",
     "seeEverything": "Voir toutes les nouveautés",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1146,6 +1146,12 @@
       "quit": {
         "title": "⌘Q demande avant de quitter",
         "text": "Le non-enregistré propose Enregistrer ou Ignorer — plus rien ne disparaît en silence."
+      }
+    },
+    "v2_8_1": {
+      "pdfFix": {
+        "title": "Export PDF corrigé",
+        "text": "L'export PDF ne quitte plus l'app et enregistre votre document sur le disque."
       }
     }
   },

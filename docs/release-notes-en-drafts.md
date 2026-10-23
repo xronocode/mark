@@ -7,6 +7,16 @@ attestation, cosign, and updater block below it unchanged.
 The drafts are listed from newest to oldest. They are saved for review;
 this change does not publish them to GitHub.
 
+## v2.8.1
+
+```markdown
+## What's new
+
+**Fixed**
+- **PDF export on macOS, fixed for real.** Exporting to PDF crashed the app on every attempt since the feature first shipped — the save step called a print-settings method that does not exist on macOS. The save target now travels through the print-settings dictionary, the save job runs through the same runner as the print panel, and the fix is verified end-to-end on the crash document.
+- A new automated audit checks every macOS print call the app makes against the live system APIs, so a missing or renamed method fails in CI instead of in your export click.
+```
+
 ## v2.8.0
 
 ```markdown

@@ -104,7 +104,7 @@ describe('components/whatsNew — sheet', () => {
     expect(icons).toEqual(['⧉', '◐', '⎙', '▣'])
     // The Also key is intentionally release-wide rather than versioned.
     expect(wrapper.find('.also').text()).toBe(
-      'Also: honest restore notices for missing folders, correct plurals in ten languages, and pretty names for cloud roots'
+      'Also: every macOS print call is now checked against the live system API'
     )
     const footLinks = wrapper.findAll('.foot-links .guide-link')
     expect(footLinks[0].text()).toBe('See everything new ↗')

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "releaseVersion": "2.8.1",
+  "payloadSha": null,
+  "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
+  "captureState": "reused-unchanged",
+  "review": {
+    "reviewer": "agent-zcode (owner-delegated visual pass)",
+    "reviewedAt": "2026-10-23",
+    "scenarios": [
+      "07-home: welcome screen shows the three header actions with the NEW Add Folder… ⇧⌘O label (was Open Folder…), Recent files list and the agent row render correctly (agent crop-checked 2026-10-23; unchanged in 2.8.1 — FIX-018 touches no UI)",
+      "01-agents: plan document + folder tree + Recent/Pinned sections + outline rail all populated, macOS light theme",
+      "03-diagrams / 05-viewer: Mermaid flowchart, donut pie, Vega bar in theme colours; fullscreen viewer zoomed on the pipeline diagram",
+      "08-dark: the same plan document in macOS dark theme with readable contrast"
+    ]
+  },
+  "freezeRequirement": "Satisfied from the final payload before the Ready seal.",
+  "images": [
+    {
+      "path": "docs/assets/readme/cover.png",
+      "sha256": "ce5bcc1ef2db7910c38416b62a58d2178a3d7b6e695d5e753c95339569f69448"
+    },
+    {
+      "path": "docs/assets/readme/cover-dark.png",
+      "sha256": "70a1ec52eca75b8a22fcb7a74b57ecdc01079515e883147c31f06b1d8244b270"
+    },
+    {
+      "path": "docs/assets/readme/01-agents.png",
+      "sha256": "62057588f6ddfdeffc9135e5d44e570f8a0603a4aa8bb4519ca6e46540e9d722"
+    },
+    {
+      "path": "docs/assets/readme/03-diagrams.png",
+      "sha256": "d599c76b87dc223f1947fc7687d53af4ef056a917e455db936b87b69a7a0b7c2"
+    },
+    {
+      "path": "docs/assets/readme/04-copy.png",
+      "sha256": "2b31145af792f7f9a5dc34aa9abf03a540d0bb5228177384c5214ca0a2d182ad"
+    },
+    {
+      "path": "docs/assets/readme/05-viewer.png",
+      "sha256": "648c53ffd4c98ee20d79a64221b1ede41823df5257cf51358c68a99ba9907dbd"
+    },
+    {
+      "path": "docs/assets/readme/06-split.png",
+      "sha256": "6f790e5cadb137ec3aebfdfb225c6e827f4e37232fc84b89a279ddf01680b9b2"
+    },
+    {
+      "path": "docs/assets/readme/07-home.png",
+      "sha256": "aa4317b55efa8bda9baf4593f16a46e48ac36def519e5606066e0fda4a0711bb"
+    },
+    {
+      "path": "docs/assets/readme/08-dark.png",
+      "sha256": "b4118bf8b91ca6fdec1cb9fedda68115099354d186fc4dcf119114298a3d534f"
+    }
+  ],
+  "version": null
+}

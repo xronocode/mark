@@ -1027,7 +1027,7 @@
   },
   "whatsNew": {
     "title": "What's new",
-    "also": "Also: honest restore notices for missing folders, correct plurals in ten languages, and pretty names for cloud roots",
+    "also": "Also: every macOS print call is now checked against the live system API",
     "seeEverything": "See everything new",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1156,6 +1156,12 @@
       "quit": {
         "title": "⌘Q asks before quitting",
         "text": "Unsaved edits get Save & Quit or Don’t Save — nothing disappears silently anymore."
+      }
+    },
+    "v2_8_1": {
+      "pdfFix": {
+        "title": "PDF export fixed",
+        "text": "Export to PDF no longer crashes the app and writes your document to disk."
       }
     }
   },
