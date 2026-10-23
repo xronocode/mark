@@ -22,6 +22,7 @@ Work in several folders at once, open cloud folders as roots, and trust folder s
 
 ### Safety
 - Quitting with unsaved tabs asks first (⌘Q and File › Quit): Save & Quit commits them, Don't Save discards on purpose, Escape stays — the silent data-loss path is gone.
+- PDF export can no longer take Mark down right after you choose where to save (a rare macOS crash, first observed 2026-10-23): the print job runs beside the app instead of parking it mid-loop, and print-path failures surface as a notice (`FIX-017`).
 
 ## [2.7.0] - 2026-10-22
 

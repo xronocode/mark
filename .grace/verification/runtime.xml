@@ -12787,15 +12787,35 @@
           panel; Windows check via the CI-built installer before release
           (ShowPrintUI + PrintToPdf paths).
         </Scenario>
+        <Scenario>
+          scenario-5 (FIX-017 export-crash de-fanging, macOS cargo lane):
+          the export print operation runs detached
+          (setCanSpawnSeparateThread:YES, wry parity) so runOperation no
+          longer parks the main thread inside its nested run loop — the
+          configuration the mark-2026-10-23-025710.ips abort was observed
+          in — and completion is watched off-main (15 s,
+          BLOCK_PDF_WRITTEN from the watcher thread) because the print
+          system needs a serviced main run loop. Both macOS command
+          subtrees run under panic containment:
+          print_path_panics_degrade_to_errors_not_app_death pins that a
+          print-path panic comes back as a logged Err
+          (BLOCK_PRINT_GUARD_CAUGHT). App-side catching of a real
+          NSException is impossible on the current toolchain (verified
+          2026-10-23: the objc_exception shim and objc's "exception"
+          feature both abort before any Rust catch boundary); a foreign
+          exception raised under tao's own run-loop observer is still
+          fatal — that boundary belongs to tao.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[m052][mt_print_webview][BLOCK_PRINT_PANEL_OPENED]</Marker>
         <Marker>[m052][mt_print_webview][BLOCK_PRINT_PANEL_CLOSED]</Marker>
         <Marker>[m052][mt_print_webview][BLOCK_PRINT_UI_OPENED kind=browser]</Marker>
         <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITE_STARTED path=… landscape=…]</Marker>
-        <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path=…]</Marker>
+        <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path=…] — FIX-017: emitted by the off-main completion watcher</Marker>
         <Marker>[m052][mt_export_pdf][BLOCK_PDF_WRITE_FAILED reason=…]</Marker>
         <Marker>[m052][mt_export_pdf][BLOCK_PDF_DISPATCH_FAILED reason=…]</Marker>
+        <Marker>[m052][mt_print_webview|mt_export_pdf][BLOCK_PRINT_GUARD_CAUGHT …] — FIX-017 panic containment: a print-path panic degraded to a logged error instead of tearing down the app</Marker>
         <Marker>[editor][print][BLOCK_PRINT_REQUESTED]</Marker>
       </Markers>
     </V-M-052>
