@@ -128,7 +128,7 @@ test.describe("What's New (C-48)", () => {
     await expect(titles.nth(2)).toHaveText('Print and PDF, each direct')
     await expect(titles.nth(3)).toHaveText('Copy images back out')
     // The Also key is release-wide, even when historical items are opened.
-    await expect(sheet.locator('.also')).toContainText('honest restore notices')
+    await expect(sheet.locator('.also')).toContainText('checked against the live system API')
     await expect(sheet.locator('.foot-links .guide-link').first())
       .toHaveText('See everything new ↗')
     await expect(sheet.locator('.foot-links .guide-link').nth(1)).toHaveText('See the guide')
