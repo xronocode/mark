@@ -1,15 +1,15 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.7.x-next",
-  "state": "Frozen",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.7.0",
-    "commit": "132f259903e0aca8a3fe661e6f72be052ab16897",
-    "bootstrapSha": "132f259903e0aca8a3fe661e6f72be052ab16897",
+    "commit": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f",
+    "bootstrapSha": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f",
     "tree": "40591bcba06ae955cbc1411052969b1de6f74e58"
   },
   "computedVersion": "2.8.0",
-  "payloadSha": "35882c92d40d6e0c80ad0bb24c394784854fa379",
+  "payloadSha": "3e8c31394dcb85ba633154b60d26c57297e98800",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -95,12 +95,20 @@
           "5fef64b089832c6b2a11b643c2d7cbd8e1657c1c",
           "35882c92d40d6e0c80ad0bb24c394784854fa379"
         ]
+      },
+      {
+        "id": "RELEASE-TRAIN-FREEZE",
+        "summary": "PR #34: freeze the 2.8.0 payload at the merged preparation (35882c92); every required check green on the freeze commit itself.",
+        "state": "queued",
+        "commits": [
+          "3e8c31394dcb85ba633154b60d26c57297e98800"
+        ]
       }
     ],
     "notPresent": []
   },
   "commitAccounting": {
-    "fromExclusive": "132f259903e0aca8a3fe661e6f72be052ab16897",
+    "fromExclusive": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f",
     "entries": [
       {
         "sha": "d7ff6d8a2410a4fce0d57e5ccd15bed5e5a427e6",
@@ -318,28 +326,38 @@
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
+      },
+      {
+        "sha": "3e8c31394dcb85ba633154b60d26c57297e98800",
+        "classification": "operational",
+        "itemIds": [
+          "RELEASE-TRAIN-FREEZE"
+        ]
       }
     ],
-    "throughInclusive": "35882c92d40d6e0c80ad0bb24c394784854fa379"
+    "throughInclusive": "3e8c31394dcb85ba633154b60d26c57297e98800"
   },
   "requiredChecks": [
     {
       "name": "status check",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+      "sha": "3e8c31394dcb85ba633154b60d26c57297e98800",
+      "conclusion": "success"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+      "sha": "3e8c31394dcb85ba633154b60d26c57297e98800",
+      "conclusion": "success"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "de16653229170226060a6f2f8f6e36df02e2c452"
+      "sha": "3e8c31394dcb85ba633154b60d26c57297e98800",
+      "conclusion": "success"
     }
   ],
   "materials": {
@@ -373,6 +391,12 @@
       "date": "2026-10-23",
       "actor": "agent-zcode",
       "evidence": "Payload frozen at the merged v2.8.0 preparation (PR #32); every commit since v2.7.0 classified (33 entries: MSW pack, FIX-017, controls activation, train bookkeeping). Staged pending the owner packaging word (PR #32 issuecomment-6356712350)."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "Single seal commit directly on the payload 3e8c3139 (the merged freeze, all three required checks green on it): train authority Frozen→Ready, live check evidence, accounting through the freeze, ledger and screenshot-manifest payload binding. Release authorization NOT given — promotion waits for the owner-approved release-authorize deployment."
     }
   ]
 }
