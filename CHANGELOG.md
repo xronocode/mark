@@ -2,7 +2,7 @@
 
 All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
 
-## [2.8.0] - 2026-10-23
+<!-- release-draft:start -->
 
 Work in several folders at once, open cloud folders as roots, and trust folder search again.
 
@@ -23,6 +23,9 @@ Work in several folders at once, open cloud folders as roots, and trust folder s
 ### Safety
 - Quitting with unsaved tabs asks first (⌘Q and File › Quit): Save & Quit commits them, Don't Save discards on purpose, Escape stays — the silent data-loss path is gone.
 - PDF export can no longer take Mark down right after you choose where to save (a rare macOS crash, first observed 2026-10-23): the print job runs beside the app instead of parking it mid-loop, and print-path failures surface as a notice (`FIX-017`).
+
+
+<!-- release-draft:end -->
 
 ## [2.7.0] - 2026-10-22
 
