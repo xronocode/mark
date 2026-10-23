@@ -33,7 +33,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/common/fontTextBox/index.vue
-// VERSION: 2.0.0
+// VERSION: 2.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings font-chooser row (C-38 T-003 anatomy) — label + optional help left, the el-autocomplete font picker (system font enumeration from preload) right.
 //   SCOPE: Row rendering + font suggestion/selection contract from v1; props plus help.
@@ -52,6 +52,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-23 v2.0.1: ReDoS hardening (code-scanning #4) — replaced the nested-quantifier font-name pattern with a linear equivalent; accepted language unchanged (exhaustively verified), catastrophic backtracking removed.
 //   - 2026-10-15 v2.0.0: C-38 T-003 — new row anatomy (no trailing colon, optional help); field right-aligned in the row instead of full-width under the label; picker behavior unchanged.
 //   - (v1.x: full-width autocomplete under 'Label:' — retired.)
 // END_CHANGE_SUMMARY
@@ -105,7 +106,10 @@ const querySearch = (queryString, callback) => {
 }
 
 const handleSelect = (value) => {
-  if (/^[^\s]+((-|\s)*[^\s])*$/.test(value)) {
+  // Linear rewrite of the v1 nested-quantifier pattern: same accepted
+  // language (non-empty, no leading/trailing whitespace — exhaustively
+  // equivalence-checked) without exponential backtracking on near-misses.
+  if (/^\S+(?:\s+\S+)*$/.test(value)) {
     selectValue.value = value
     props.onChange(value)
   }
