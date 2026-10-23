@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.7.x-next",
-  "state": "Collecting",
+  "state": "Preparing",
   "previousRelease": {
     "tag": "v2.7.0",
     "commit": "132f259903e0aca8a3fe661e6f72be052ab16897",
@@ -145,6 +145,12 @@
       "date": "2026-10-22",
       "actor": "agent-zcode",
       "evidence": "Opened per the owner instruction 'приемку закрываем, комит и пэк кладем в релиз поезд, н пока не начинаем сборки и мерджи': the accepted C-MULTI-SOURCE-WORKSPACE pack is admitted; no release activity authorized."
+    },
+    {
+      "state": "Preparing",
+      "date": "2026-10-23",
+      "actor": "mark-release-prep[bot]",
+      "evidence": "Release Please prepared 2.8.0; no tag or publication was created."
     }
   ]
 }
