@@ -50,7 +50,7 @@ import {
 } from '../../tools/release-normalize.mjs'
 
 const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
-const BOOTSTRAP_SHA = '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
+const BOOTSTRAP_SHA = '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
 // The v2.7.0 release commit: version-bound baselines (Cargo, Tauri, the
 // M-046 fixture) propagate FROM the previous release, not the bootstrap.
 const PREV_RELEASE_SHA = '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
@@ -275,7 +275,7 @@ describe('release normalization', () => {
     )
     expect(normalizedConfig).not.toHaveProperty('last-release-sha')
     expect(normalizedConfig['bootstrap-sha']).toBe(
-      '3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa'
+      '26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f'
     )
     const normalizedTrain = JSON.parse(
       plan.changes.find(({ path }) => path === 'docs/release-trains/2.7.x-next.json').after
