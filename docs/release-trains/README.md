@@ -36,7 +36,7 @@ Acceptance covers the scenarios actually reviewed. Testing Shift+Up/Down does no
 - **Preparing:** Release Please owns the proposed SemVer, primary package version and CHANGELOG in a preparation PR; trusted normalization updates the remaining version surfaces. Preparation never creates a tag or release.
 - **Frozen:** the product payload is immutable and every commit since the previous boundary is classified. A following metadata-only seal records `payloadSha`, fresh screenshot review and final evidence; the seal may change only allowlisted release records.
 - **Ready:** strict readiness has proved the payload-to-seal delta, owner acceptance, live checks, materials and digests. The train may now present the input-free `release-authorize` deployment. Ready is not itself authorization.
-- **Released:** the owner-approved bot tag has passed tag-only signing and the separately approved draft-first publication. Actual GitHub/updater/Homebrew outcomes are appended.
+- **Released:** the owner-approved bot tag has passed tag-only signing and the timer-default draft-first publication (the no-veto window closed without a cancel). Actual GitHub/updater/Homebrew outcomes are appended.
 - **Aborted:** the train is permanently retired without publication. Released and Aborted are terminal; continue work under a new immutable train ID.
 
 Any membership, runtime or release-material change after Frozen or Ready returns the train to Collecting and clears payload/check/digest readiness. Preserve historical owner acceptance unless the accepted behavior itself changed; changed behavior becomes `needs-recheck`. Rejection or timeout of an Environment approval fails that attempt but does not automatically move the train to Aborted.
@@ -61,7 +61,7 @@ Boundary note 2026-10-22 (v2.7.0 cycle): the v2.6.0 tag was re-pointed to `3ad25
 
 After a Ready seal is merged, `release/promote` derives the tag and seal from the checked-out repository. The `release-authorize` Environment is the explicit owner release instruction. A purpose-specific GitHub App creates one annotated tag at that seal; reruns are no-op only for the same peeled target. The tag workflow rejects another actor, a lightweight/wrong-target tag, stale checks or a non-Ready train before signing. Manual dispatch is always unsigned build-only.
 
-Production signing uses only the tag-restricted `release-signing` Environment. GitHub publication uses the separate `release` Environment as the owner's second confirmation. It creates or resumes a draft, compares every existing asset byte-for-byte, verifies the asset digest inventory, `latest.json` and reviewed notes, and changes `draft=false` only as its final mutation. Automation never clobbers a published asset or retargets/deletes a published tag. With immutable releases enabled, a post-publication text correction uses GitHub's allowed notes-only edit path; binaries and tags require a new release.
+Production signing uses only the tag-restricted `release-signing` Environment. GitHub publication is default-on after a bounded no-veto window (C-RELEASE-TIMING, 2026-10-24): the owner's explicit release instruction remains the `release-authorize` approval that created the tag; the `veto-window` job runs in parallel with the build lanes (default 20 minutes, repository variable `RELEASE_VETO_MINUTES`, clamped to 120) and the veto is cancelling the workflow run — artifacts stay retained (30 days) and a later re-run resumes the idempotent publication path. Publication creates or resumes a draft, compares every existing asset byte-for-byte, verifies the asset digest inventory, `latest.json` and reviewed notes, and changes `draft=false` only as its final mutation. Automation never clobbers a published asset or retargets/deletes a published tag. With immutable releases enabled, a post-publication text correction uses GitHub's allowed notes-only edit path; binaries and tags require a new release.
 
 ## Recovery matrix
 
@@ -70,7 +70,8 @@ Production signing uses only the tag-restricted `release-signing` Environment. G
 | Release-preparation PR fails or is closed | Fix or regenerate the PR. No tag exists; return to Preparing or Collecting. |
 | Preparation merges but no seal/tag exists | Reconcile the exact diff, acceptance and materials; create a new metadata-only seal only after the payload is stable. |
 | Payload/check/screenshot evidence is stale | Return to Collecting, clear readiness evidence, rebuild the payload and obtain fresh affected acceptance. |
-| `release-authorize`, signing or publication approval is rejected/times out | Record the failed attempt and retry the same unchanged seal later; do not mark Aborted automatically. |
+| `release-authorize` or signing approval is rejected/times out | Record the failed attempt and retry the same unchanged seal later; do not mark Aborted automatically. |
+| Owner vetoes during the no-veto publication window | Cancelling the run stops publication with artifacts retained; record the stopped attempt and re-run the release later from the same tag, or retire the train explicitly. |
 | Project sync lacks scope or GitHub Projects is unavailable | Keep the repository manifest authoritative, report non-required mirror drift and retry the one-way sync. |
 | GitHub control apply stops part-way | Stop on the first mismatch, retain the external snapshot and append-only journal, then use the owner-local reverse-order rollback or resume after read-back. Never copy Environment secret values. |
 | Draft upload/read-back fails | Leave the release as a draft. A rerun may add missing assets or accept identical bytes; differing existing bytes require investigation, never `--clobber`. |
@@ -118,8 +119,8 @@ Repository files describe the desired controls, but they cannot safely install A
    - `release-authorize`: `RELEASE_BOT_APP_ID`, `RELEASE_BOT_PRIVATE_KEY`;
    - `release-signing`: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`;
    - `release-cask`: `CASK_BOT_APP_ID`, `CASK_BOT_PRIVATE_KEY`;
-   - `release` intentionally has no secret; it is the second owner approval boundary.
-5. Verify Environment policies match `.github/release-governance.json`: `release-authorize` accepts only `main`; `release-signing`, `release`, and `release-cask` accept only `v*` tags; `xronocode` is the required reviewer for `release-authorize` and `release`.
+   - `release-notify` (C-RELEASE-TIMING): optional `TG_NOTIFY_TOKEN` and `TG_NOTIFY_CHAT` from a Telegram bot the owner creates via BotFather; absent secrets degrade the release ping to a logged skip. One-time cleanup: delete the legacy `release` Environment in the GitHub UI (the REST API cannot delete environments) — its synchronous reviewer gate was replaced by the no-veto publication window. Optionally set the repository variable `RELEASE_VETO_MINUTES` (default 20).
+5. Verify Environment policies match `.github/release-governance.json`: `release-authorize` accepts only `main`; `release-signing`, `release-notify`, and `release-cask` accept only `v*` tags; `xronocode` is the required reviewer for `release-authorize` only — publication has no synchronous reviewer gate (the C-RELEASE-TIMING no-veto window).
 6. Bootstrap the public Project mirror with a local token that can manage the owner's Projects v2, then commit the recorded Project number/node ID through the normal safety gate:
 
    ```bash
@@ -179,5 +180,5 @@ Template for an item:
 - Owner acceptance date and precise scope:
 - Train / state / remaining gates:
 - Release note draft:
-- History: dated status changes; release authorization and publication stay separate.
+- History: dated status changes; the `release-authorize` approval is the release authorization, and publication follows it by default after the no-veto window.
 ```

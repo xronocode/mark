@@ -2420,6 +2420,21 @@
         WINDOWS_RELEASE repo variable until manual QA passes; test.yml runs
         renderer+backend units on windows-latest as the Windows-cfg compile
         gate.
+
+        C-RELEASE-TIMING (2026-10-24): publication is default after a
+        bounded no-veto window instead of the synchronous second release
+        Environment approval — the release-authorize approval that creates
+        the tag remains the single explicit owner release instruction, the
+        veto-window job (RELEASE_VETO_MINUTES variable, default 20, clamp
+        120) runs parallel to the build lanes, and the veto is cancelling
+        the run; an optional release-notify Telegram ping skips gracefully
+        without secrets. The release build lane no longer re-runs the
+        payload suites (vitest, cargo test, playwright) already proven
+        green on the exact payload by strict admission's status-check
+        aggregate; tauri's beforeBuildCommand builds the renderer, and
+        typecheck:ipc stays lane-local. cargo-bundle-licenses and
+        cargo-cyclonedx binaries are cached, and the cargo build cache is
+        keyed on Cargo.lock only so incremental rebuilds stay warm.
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
