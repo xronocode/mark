@@ -693,14 +693,27 @@
       <Status>done</Status>
       <PhaseRef>B9-step-1</PhaseRef>
       <Summary>
-        Folder workspace sidebar. `mark folder/` opens project tree. Lazy-loaded
-        file tree, click-to-open, context menu (new/rename/delete/reveal).
-        Persisted per-project. C-4: sidebar rename of an open file
-        calls editor RENAME_IF_NEEDED; rename failures show a notice.
+        Multi-root workspace sidebar. `mark folder/` and every folder surface
+        open through the project store: projectTrees[] holds an ordered set of
+        roots with independent watchers and per-root close; ADD_PROJECT keeps
+        canonical dedup and nested/parent rejection. C-MULTI-SOURCE-WORKSPACE:
+        one OPEN_FOLDER(pathname, {mode: add|replace|ask, origin}) dispatcher
+        routes the picker, drag-drop, clipboard, Recent folders and the
+        folder-switcher; ask-mode parks a shared Add-or-Replace chooser
+        (sideBar/workspaceModeDialog.vue, Add preselected); replace closes
+        foreign roots only after a one-shot Save &amp; Close / Don't Save /
+        Cancel confirm for dirty tabs under them and never touches rootless or
+        kept-root tabs; watcher-driven tree additions skip dot entries
+        (iCloud `.icloud` placeholder parity with the Rust walk); search
+        results show the owning root label (searchResultItem.vue ownerPath).
+        C-4: sidebar rename of an open file calls editor RENAME_IF_NEEDED;
+        rename failures show a notice.
       </Summary>
       <PlannedPath>
-        src/renderer/src/components/sidebar/ProjectTree.vue,
-        src/renderer/src/store/project.js, src-tauri/src/m036_project.rs
+        src/renderer/src/store/project.js,
+        src/renderer/src/components/sideBar/tree.vue,
+        src/renderer/src/components/sideBar/workspaceModeDialog.vue,
+        src/renderer/src/components/sideBar/searchResultItem.vue
       </PlannedPath>
       <Dependencies>
         <M-002/>
@@ -720,8 +733,10 @@
       <Interface/>
       <Sources>
         <KnowledgeGraphPath>
-          src/renderer/src/components/sidebar/ProjectTree.vue,
-          src/renderer/src/store/project.js, src-tauri/src/m036_project.rs
+          src/renderer/src/store/project.js,
+          src/renderer/src/components/sideBar/tree.vue,
+          src/renderer/src/components/sideBar/workspaceModeDialog.vue,
+          src/renderer/src/components/sideBar/searchResultItem.vue
         </KnowledgeGraphPath>
       </Sources>
       <Observability/>

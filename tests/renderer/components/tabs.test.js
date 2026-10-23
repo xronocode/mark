@@ -76,3 +76,81 @@ describe('tabs.vue', () => {
     expect(wrapper.find('.new-file').exists()).toBe(true)
   })
 })
+
+// ── C-MULTI-SOURCE-WORKSPACE: duplicate-filename disambiguation ─────
+
+describe('tabs.vue — duplicate-filename suffix (C-MULTI-SOURCE-WORKSPACE)', () => {
+  let pinia
+
+  const mountTabs = async () => {
+    const Tabs = (await import('@/components/editorWithTabs/tabs.vue')).default
+    return shallowMount(Tabs, { global: { plugins: [pinia, i18n] } })
+  }
+
+  beforeEach(async () => {
+    pinia = setupTestPinia()
+    const { useProjectStore } = await import('@/store/project')
+    const projectStore = useProjectStore()
+    projectStore.projectTrees = [
+      { pathname: '/tmp/Notes', name: 'Notes' },
+      { pathname: '/tmp/repo', name: 'repo' }
+    ]
+  })
+
+  it('shows the owning-root suffix on both tabs when filenames collide', async () => {
+    const { useEditorStore } = await import('@/store/editor')
+    const editorStore = useEditorStore()
+    editorStore.tabs = [
+      { id: 't1', filename: 'plan.md', pathname: '/tmp/Notes/plan.md', isSaved: true },
+      { id: 't2', filename: 'plan.md', pathname: '/tmp/repo/plan.md', isSaved: true }
+    ]
+    editorStore.currentFile = editorStore.tabs[0]
+
+    const wrapper = await mountTabs()
+    const suffixes = wrapper.findAll('.tab-owner-suffix')
+    expect(suffixes).toHaveLength(2)
+    expect(suffixes[0].text()).toBe('Notes')
+    expect(suffixes[1].text()).toBe('repo')
+  })
+
+  it('shows the parent directory for a duplicate filename outside every root', async () => {
+    const { useEditorStore } = await import('@/store/editor')
+    const editorStore = useEditorStore()
+    editorStore.tabs = [
+      { id: 't1', filename: 'plan.md', pathname: '/tmp/Notes/plan.md', isSaved: true },
+      { id: 't2', filename: 'plan.md', pathname: '/tmp/loose/plan.md', isSaved: true }
+    ]
+    editorStore.currentFile = editorStore.tabs[0]
+
+    const wrapper = await mountTabs()
+    const suffixes = wrapper.findAll('.tab-owner-suffix')
+    expect(suffixes).toHaveLength(2)
+    expect(suffixes[1].text()).toBe('loose')
+  })
+
+  it('shows no suffix when the filename is unique', async () => {
+    const { useEditorStore } = await import('@/store/editor')
+    const editorStore = useEditorStore()
+    editorStore.tabs = [
+      { id: 't1', filename: 'plan.md', pathname: '/tmp/Notes/plan.md', isSaved: true },
+      { id: 't2', filename: 'other.md', pathname: '/tmp/repo/other.md', isSaved: true }
+    ]
+    editorStore.currentFile = editorStore.tabs[0]
+
+    const wrapper = await mountTabs()
+    expect(wrapper.findAll('.tab-owner-suffix')).toHaveLength(0)
+  })
+
+  it('shows no suffix for untitled tabs without a pathname', async () => {
+    const { useEditorStore } = await import('@/store/editor')
+    const editorStore = useEditorStore()
+    editorStore.tabs = [
+      { id: 't1', filename: 'Untitled-1', pathname: '', isSaved: true },
+      { id: 't2', filename: 'Untitled-2', pathname: '', isSaved: true }
+    ]
+    editorStore.currentFile = editorStore.tabs[0]
+
+    const wrapper = await mountTabs()
+    expect(wrapper.findAll('.tab-owner-suffix')).toHaveLength(0)
+  })
+})

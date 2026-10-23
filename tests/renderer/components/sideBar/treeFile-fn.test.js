@@ -53,11 +53,13 @@ describe('sideBar/treeFile.vue — fn coverage', () => {
     expect(window.electron.ipcRenderer.send).not.toHaveBeenCalled()
   })
 
-  it('handleFileClick opens file via IPC when tab not found', () => {
+  it('handleFileClick opens file via IPC when tab not found', async () => {
     editorStore.tabs = []
     const w = mount()
     w.vm.handleFileClick()
-    expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::open-file', '/root/test.md', {})
+    // C-MULTI-SOURCE-WORKSPACE: invoke (not send) so a failed read — an
+    // evicted iCloud file, an offline drive — surfaces a notice.
+    expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith('mt::open-file', '/root/test.md', {})
   })
 
   it('handleFileClick switches to existing tab', () => {

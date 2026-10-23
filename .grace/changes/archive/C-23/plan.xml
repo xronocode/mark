@@ -1,0 +1,36 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-23>
+    <ChangeRef>C-23</ChangeRef>
+    <Created>2026-10-23</Created>
+    <IntentSummary>Closure plan of record for the retired draft: no implementation was ever planned or executed. This plan exists to satisfy the archival requirement (an archived applied bundle carries an applied plan) and was applied by C-RETIRE-23-35 under the owner decision of 2026-10-23.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-23/spec.xml</File>
+        <Text>RETIRED DRAFT (C-72 disposition, 2026-10-20)</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/changes/archive/C-23/spec.xml')"</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <Glob>.grace/changes/archive/C-23/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Archive closure</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The retired draft resides in archive/ with its disposition text preserved byte-identically; no code was ever written for it.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/changes/archive/C-23/spec.xml')"</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-23>
+</GraceChangePlan>

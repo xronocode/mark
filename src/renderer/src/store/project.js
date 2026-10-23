@@ -1,9 +1,57 @@
+// FILE: src/renderer/src/store/project.js
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: The multi-root workspace store — the ordered projectTrees[] set
+//            of folder roots with per-root watchers, and the single
+//            OPEN_FOLDER(pathname, {mode, origin}) open-mode dispatcher every
+//            folder surface routes through (picker, drag-drop, clipboard,
+//            Recent, folder-switcher).
+//   SCOPE: Root add/close (canonical dedup + nested/parent rejection), the
+//          ask-mode chooser and replace dirty-guard pending states resolved
+//          by workspaceModeDialog, watch-event translation into the tree
+//          model (dot-entry parity with the Rust walk), recent-folders
+//          persistence, sidebar context-menu bus handlers, create/rename.
+//   DEPENDS: stores/editor (tabs, FORCE_CLOSE_TAB, APPLY_SAVE_OUTCOME),
+//          stores/layout, stores/pinned, ipc/runtime (watch/fs/prefs),
+//          services/notification, i18n, util/fileSystem, store/treeCtrl.
+//   LINKS: .grace/graph/features.xml M-036; .grace/verification/features.xml
+//          V-M-036; .grace/changes/active/C-MULTI-SOURCE-WORKSPACE;
+//          components/sideBar/workspaceModeDialog.vue;
+//          tests/renderer/store/project-workspace.test.ts,
+//          project.test.ts, project-coverage.test.js;
+//          tests/e2e/multi-root-workspace.spec.ts.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   findOwningRoot - longest contained-prefix root lookup, shared by the result owner label and the tab duplicate suffix
+//   displayRootName - pretty sidebar label for a root path (cloud containers map to iCloud Drive / OneDrive)
+//   isCloudStoragePath - true under ~/Library/CloudStorage or Mobile Documents (gates the online-files hint)
+//   useProjectStore - the Pinia store: OPEN_FOLDER/RESOLVE_* dispatcher, ADD/CLOSE_PROJECT primitives, tree-event coalescer (ENQUEUE/FLUSH_TREE_EVENTS), watcher translation, recents, sidebar bus handlers
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - 2026-10-22 v2.2.0 C-MULTI-SOURCE-WORKSPACE fix wave (cloud
+//     follow-up): walk events coalesce (ENQUEUE_TREE_EVENT / FLUSH_TREE_EVENTS
+//     — a whole cloud drive froze the webview when ~30k events folded
+//     one-by-one); cloud roots get pretty labels (displayRootName) and a
+//     once-per-root online-files hint notice.
+//   - 2026-10-22 v2.0.0 C-MULTI-SOURCE-WORKSPACE: OPEN_FOLDER dispatcher
+//     (add/replace/ask) with the shared chooser + replace dirty-guard
+//     replaces the C-52 always-replace OPEN_FOLDER_AS_WORKSPACE; watcher
+//     gains dot-entry parity (iCloud placeholder hygiene); findOwningRoot
+//     exported for owner labels. v1.1.0 Phase-A6 multi-root substrate and
+//     the C-1 per-root watcher disposers are unchanged underneath.
+// END_CHANGE_SUMMARY
+
 import { defineStore } from 'pinia'
 import { addFile, unlinkFile, addDirectory, unlinkDirectory } from './treeCtrl'
 import bus from '../bus'
 import { create, paste, rename } from '../util/fileSystem'
 import { PATH_SEPARATOR } from '../config'
 import notice from '../services/notification'
+import { i18n } from '../i18n'
 import { getFileStateFromData } from './help'
 import { useLayoutStore } from './layout'
 import { useEditorStore } from './editor'
@@ -23,6 +71,10 @@ import { ipcWatch, ipcFs, ipcPrefs } from '../ipc/runtime'
 //   - 2026-10-16 C-52 T-001: OPEN_FOLDER_AS_WORKSPACE opens a folder as
 //     the workspace REPLACING existing roots (user decision D-1) — the
 //     clipboard-open resolver and the dropped-folder fix share it.
+//   - 2026-10-22 C-MULTI-SOURCE-WORKSPACE: the always-replace C-52 routing
+//     is superseded by the OPEN_FOLDER dispatcher (add/replace/ask) —
+//     ambiguous surfaces (drop, clipboard, Recent, switcher) now ask, and
+//     replace protects dirty tabs under removed roots before closing them.
 
 // C-1 fix: per-root file-watcher disposers. Module-scoped (not in
 // reactive state) so Pinia doesn't try to proxy the dispose closures.
@@ -50,6 +102,18 @@ async function _pushRecentFolder(pathname) {
 // dispatches by longest-prefix path-segment match (NOT raw startsWith).
 
 const PENDING_BUCKET_LIMIT = 10000
+
+// Tree-event coalescer tuning (START_BLOCK_TREE_EVENT_COALESCER): flush
+// at most every 120 ms while events stream, or immediately once 400
+// events pile up. A whole cloud drive (~30k entries) then folds in ~100
+// batches instead of 30 000 individual reactive mutations.
+const TREE_EVENT_COALESCE_MS = 120
+const TREE_EVENT_COALESCE_LIMIT = 400
+let treeEventQueue = []
+let treeEventFlushTimer = null
+// Cloud roots already hinted this session — the online-files notice
+// shows once per root, not once per re-add.
+const cloudHintShown = new Set()
 
 const SKIP_DIR_SEGMENTS = new Set([
   'node_modules', 'target', 'dist', 'build', '.output', '__pycache__',
@@ -82,8 +146,10 @@ function isPathContained(inner, outer) {
 }
 
 // Find the root whose pathname is the longest contained prefix of the given
-// path. Returns the root object or null.
-function findOwningRoot(roots, pathname) {
+// path. Returns the root object or null. Exported since
+// C-MULTI-SOURCE-WORKSPACE: search results and tab labels resolve their
+// owning root through it.
+export function findOwningRoot(roots, pathname) {
   let winner = null
   let winnerLen = -1
   for (const root of roots) {
@@ -106,6 +172,37 @@ function canonicalizePath(pathname) {
   return p
 }
 
+// START_BLOCK_CLOUD_ROOT_DISPLAY_NAME
+// C-MULTI-SOURCE-WORKSPACE fix wave: cloud-storage roots carry machine
+// names as their basename («iCloudDrive-iCloudDrive (26-2-26 21:13)»,
+// «com~apple~CloudDocs», «OneDrive-Personal») — shown verbatim as the
+// sidebar root label they read as garbage (owner acceptance 2026-10-22:
+// «название уродское типа ком-эпл-КлаудДаунлоадс»). Map the known
+// container patterns to their product names; everything else keeps the
+// plain basename.
+const CLOUD_ROOT_NAME_PATTERNS = [
+  { re: /[\\/]iCloudDrive-[^\\/]+$/, name: 'iCloud Drive' },
+  { re: /[\\/]com~apple~CloudDocs$/, name: 'iCloud Drive' },
+  { re: /[\\/]OneDrive-[^\\/]+$/, name: 'OneDrive' }
+]
+
+export function displayRootName(canonicalPath) {
+  for (const p of CLOUD_ROOT_NAME_PATTERNS) {
+    if (p.re.test(canonicalPath)) return p.name
+  }
+  return window.path.basename(canonicalPath)
+}
+
+// True when the path sits under a macOS cloud-storage container — used
+// to show the online-files hint notice once per added cloud root.
+export function isCloudStoragePath(canonicalPath) {
+  return (
+    /[\\/]Library[\\/]CloudStorage[\\/]/.test(canonicalPath) ||
+    /[\\/]Mobile Documents[\\/]/.test(canonicalPath)
+  )
+}
+// END_BLOCK_CLOUD_ROOT_DISPLAY_NAME
+
 export const useProjectStore = defineStore('project', {
   state: () => ({
     activeItem: {},
@@ -118,10 +215,56 @@ export const useProjectStore = defineStore('project', {
     projectTrees: [],
     // Per-root buckets of tree events that arrived before the root was loaded.
     // Keyed by future canonical pathname; each bucket is a queue of {type, change}.
-    pendingTreeEvents: {}
+    pendingTreeEvents: {},
+    // C-MULTI-SOURCE-WORKSPACE: ask-mode dispatcher state.
+    // pendingFolderChoice — { pathname, origin } shown by workspaceModeDialog
+    // (Add preselected / Replace / Cancel); pendingReplaceConfirm —
+    // { pathname, origin, tabIds, dirtyIds } shown when a replace would
+    // close roots owning dirty tabs (Save & Close / Don't Save / Cancel).
+    pendingFolderChoice: null,
+    pendingReplaceConfirm: null
   }),
 
   actions: {
+    // START_BLOCK_TREE_EVENT_COALESCER
+    // C-MULTI-SOURCE-WORKSPACE fix wave: walk events arrive one per file.
+    // A whole cloud drive = tens of thousands of mt::update-object-tree
+    // events; folding each into the tree synchronously meant tens of
+    // thousands of reactive mutations + re-renders and the webview froze
+    // for minutes (owner acceptance 2026-10-22: adding the OneDrive root
+    // «зависает»). Buffer and fold in batches: flush at most every
+    // COALESCE_MS, or immediately when COALESCE_LIMIT events pile up, so
+    // a giant root lands in ~a hundred folds instead of thirty thousand.
+    ENQUEUE_TREE_EVENT(event) {
+      if (!event || typeof event !== 'object' || !event.type) return
+      treeEventQueue.push(event)
+      if (treeEventQueue.length >= TREE_EVENT_COALESCE_LIMIT) {
+        this.FLUSH_TREE_EVENTS()
+        return
+      }
+      if (treeEventFlushTimer === null) {
+        treeEventFlushTimer = setTimeout(() => {
+          treeEventFlushTimer = null
+          this.FLUSH_TREE_EVENTS()
+        }, TREE_EVENT_COALESCE_MS)
+      }
+    },
+
+    FLUSH_TREE_EVENTS() {
+      if (treeEventFlushTimer !== null) {
+        clearTimeout(treeEventFlushTimer)
+        treeEventFlushTimer = null
+      }
+      if (!treeEventQueue.length) return
+      const batch = treeEventQueue.splice(0, treeEventQueue.length)
+      // eslint-disable-next-line no-console
+      console.debug(`[ProjectStore][TreeEvent][BLOCK_TREE_EVENT_BATCH] count=${batch.length}`)
+      for (const event of batch) {
+        this._processTreeEvent(event.type, event.change)
+      }
+    },
+    // END_BLOCK_TREE_EVENT_COALESCER
+
     // Append a root tree for the given pathname unless it's already present
     // (canonical equality) or nested inside an existing root. Main process
     // also dedups (V-A6-6 BLOCK_DUPLICATE) — this is defense in depth and the
@@ -129,7 +272,7 @@ export const useProjectStore = defineStore('project', {
     ADD_PROJECT(pathname) {
       const layoutStore = useLayoutStore()
       const canonical = canonicalizePath(pathname)
-      let name = window.path.basename(canonical)
+      let name = displayRootName(canonical)
       if (!name) name = canonical
 
       // Dedup: exact canonical match.
@@ -184,6 +327,23 @@ export const useProjectStore = defineStore('project', {
       _pushRecentFolder(canonical)
       // eslint-disable-next-line no-console
       console.debug(`[ProjectStore][ADD_PROJECT][APPEND] path=${canonical} total=${this.projectTrees.length}`)
+
+      // C-MULTI-SOURCE-WORKSPACE fix wave (owner request 2026-10-22):
+      // a cloud-storage root may carry online-only files that the walk
+      // cannot show yet (iCloud evicted placeholders are dot-entries and
+      // stay hidden; OneDrive online-only files materialize on demand).
+      // One hint bubble per cloud root per session — visible honesty
+      // instead of a silently shorter tree.
+      if (isCloudStoragePath(canonical) && !cloudHintShown.has(canonical)) {
+        cloudHintShown.add(canonical)
+        notice.notify({
+          title: i18n.global.t('workspace.cloudRootHintTitle'),
+          type: 'info',
+          message: i18n.global.t('workspace.cloudRootHint'),
+          time: 8000,
+          showConfirm: false
+        })
+      }
 
       // Layout: ensure sidebar shows Files when first root is opened.
       const layout = {
@@ -245,8 +405,21 @@ export const useProjectStore = defineStore('project', {
         // Defensive scope check (backend already filters by sandbox).
         if (!isPathContained(path, rootPath)) continue
         if (isInsideSkippedDir(path)) continue
+        // C-MULTI-SOURCE-WORKSPACE: dot-prefixed entries never join the
+        // tree model — parity with the Rust walk (m_v1_compat.rs skips
+        // names starting with "."), which also keeps iCloud eviction
+        // placeholders (`.Name.md.icloud`) out of the sidebar. Open-tab
+        // notifications still fire so a tab on a hidden file learns about
+        // its changes/removal.
+        const baseName = window.path.basename(path)
+        const hiddenEntry = typeof baseName === 'string' && baseName.startsWith('.')
+        if (hiddenEntry) {
+          // eslint-disable-next-line no-console
+          console.debug(`[ProjectStore][Watcher][BLOCK_HIDDEN_ENTRY] path=${path}`)
+        }
         switch (kind) {
           case 'create': {
+            if (hiddenEntry) break
             try {
               const stat = await ipcFs.stat(path)
               if (stat.isDirectory) {
@@ -287,14 +460,23 @@ export const useProjectStore = defineStore('project', {
               // IpcError keeps the backend's structured error as `cause`.
               if (e?.cause?.code === 'MT_FS_NOT_FOUND') {
                 console.debug(`[ProjectStore][Watcher][BLOCK_RENAME_SOURCE_GONE] path=${path}`)
-                this._processTreeEvent('unlink', { pathname: path })
-                this._processTreeEvent('unlinkDir', { pathname: path })
+                if (!hiddenEntry) {
+                  this._processTreeEvent('unlink', { pathname: path })
+                  this._processTreeEvent('unlinkDir', { pathname: path })
+                }
                 if (this._tabExists(editorStore, path)) {
                   editorStore.APPLY_FILE_CHANGE('unlink', { pathname: path })
                 }
                 break
               }
               console.debug(`[ProjectStore][Watcher][STAT_FAILED] path=${path}`, e)
+            }
+            if (hiddenEntry) {
+              // Tree never held it; the open tab (if any) still learns.
+              if (this._tabExists(editorStore, path)) {
+                editorStore.APPLY_FILE_CHANGE('change', { pathname: path })
+              }
+              break
             }
             if (stat?.isDirectory) {
               this._processTreeEvent('addDir', { pathname: path })
@@ -318,8 +500,10 @@ export const useProjectStore = defineStore('project', {
             break
           }
           case 'remove': {
-            this._processTreeEvent('unlink', { pathname: path })
-            this._processTreeEvent('unlinkDir', { pathname: path })
+            if (!hiddenEntry) {
+              this._processTreeEvent('unlink', { pathname: path })
+              this._processTreeEvent('unlinkDir', { pathname: path })
+            }
             if (this._tabExists(editorStore, path)) {
               editorStore.APPLY_FILE_CHANGE('unlink', { pathname: path })
             }
@@ -400,21 +584,18 @@ export const useProjectStore = defineStore('project', {
 
     /**
      * Pick folder via direct invoke. Backend opens native picker and
-     * returns Option<String>; on Some we add the project. On None
-     * (user cancelled) silent no-op.
+     * returns Option<String>; on Some we route through OPEN_FOLDER.
+     * `mode` follows the dispatcher vocabulary: 'add' (explicit Add
+     * Folder…), 'replace' (explicit Replace Workspace…), 'ask' (default —
+     * sidebar switcher / welcome: direct add with no roots open, chooser
+     * otherwise). On None (user cancelled) silent no-op.
      */
-    async ASK_FOR_OPEN_PROJECT() {
+    async ASK_FOR_OPEN_PROJECT(mode = 'ask') {
       try {
         const { invoke } = await import('@tauri-apps/api/core')
         const path = await invoke('mt_pick_folder')
         if (path) {
-          const before = this.projectTrees.length
-          this.ADD_PROJECT(path)
-          if (this.projectTrees.length > before) {
-            invoke('mt_walk_project', { path }).catch((e) => {
-              console.error('[ipc][walk_project][BLOCK_INVOKE_FAILED]', e)
-            })
-          }
+          await this.OPEN_FOLDER(path, { mode, origin: 'picker' })
         }
         console.log(`[ipc][pick_folder][BLOCK_INVOKE_OK chosen=${!!path}]`)
       } catch (e) {
@@ -452,36 +633,165 @@ export const useProjectStore = defineStore('project', {
       }
     },
 
+    // Add-semantics open used by session restore (the saved root set is
+    // restored as-is — never a replace). User-facing Recent-folder rows
+    // route through OPEN_FOLDER ask-mode instead (C-MULTI-SOURCE-WORKSPACE).
     async OPEN_RECENT_FOLDER(pathname) {
-      const before = this.projectTrees.length
-      this.ADD_PROJECT(pathname)
-      if (this.projectTrees.length > before) {
-        try {
-          const { invoke } = await import('@tauri-apps/api/core')
-          invoke('mt_walk_project', { path: pathname }).catch((e) => {
-            console.error('[ipc][walk_project][BLOCK_INVOKE_FAILED]', e)
-          })
-        } catch (e) {
-          console.error('[ipc][walk_project][BLOCK_IMPORT_FAILED]', e)
-        }
-      }
+      await this._openFolderAdd(pathname, 'session-restore')
     },
 
-    // START_BLOCK_OPEN_FOLDER_AS_WORKSPACE
-    // C-52 (user decision D-1): open `pathname` as THE workspace,
-    // REPLACING every root already open — never a second root. Reuses
-    // the exact Open Folder machinery per root (CLOSE_PROJECT unwatch +
-    // ADD_PROJECT + mt_walk_project stream) so watchers, recents and
-    // layout behave identically. Opening the folder that is already the
-    // workspace keeps it (ADD_PROJECT's dedup surfaces "already open")
-    // while still replacing any other roots.
-    async OPEN_FOLDER_AS_WORKSPACE(pathname) {
+    // START_BLOCK_OPEN_FOLDER_DISPATCHER
+    // C-MULTI-SOURCE-WORKSPACE: the single open-mode API every folder
+    // surface routes through (picker, drop, clipboard, Recent, switcher).
+    //   mode 'add'     — append (ADD_PROJECT keeps dedup/nested rejection).
+    //   mode 'replace' — close foreign roots (dirty-guarded) and open.
+    //   mode 'ask'     — add when no roots are open; otherwise park the
+    //                    choice in pendingFolderChoice for workspaceModeDialog
+    //                    (Add preselected as the safe default).
+    async OPEN_FOLDER(pathname, opts = {}) {
       if (typeof pathname !== 'string' || !pathname) return
+      const mode = opts.mode || 'ask'
+      const origin = opts.origin || 'unknown'
+      if (mode === 'ask' && this.projectTrees.length > 0) {
+        this.pendingFolderChoice = { pathname, origin }
+        // eslint-disable-next-line no-console
+        console.debug(`[ProjectStore][OPEN_FOLDER][BLOCK_CHOOSER_PENDING] origin=${origin} path=${canonicalizePath(pathname)}`)
+        return
+      }
+      const resolved = mode === 'ask' ? 'add' : mode
+      if (resolved === 'replace') {
+        await this._replaceWorkspace(pathname, origin)
+      } else {
+        await this._openFolderAdd(pathname, origin)
+      }
+      console.info(
+        `[ProjectStore][OPEN_FOLDER][BLOCK_OPEN_FOLDER_RESOLVED mode=${resolved} origin=${origin} path=${canonicalizePath(pathname)}]`
+      )
+    },
+    // END_BLOCK_OPEN_FOLDER_DISPATCHER
+
+    // START_BLOCK_FOLDER_CHOICE_RESOLUTION
+    // workspaceModeDialog calls these. Cancel discards the pending input
+    // with zero mutations (corner: roots, tabs and dirty flags untouched).
+    async RESOLVE_FOLDER_CHOICE(action) {
+      const pending = this.pendingFolderChoice
+      this.pendingFolderChoice = null
+      if (!pending) return
+      if (action === 'cancel') {
+        console.info(`[ProjectStore][OPEN_FOLDER][BLOCK_OPEN_FOLDER_CANCELLED] origin=${pending.origin} path=${canonicalizePath(pending.pathname)}`)
+        return
+      }
+      if (action === 'replace') {
+        await this._replaceWorkspace(pending.pathname, pending.origin)
+        return
+      }
+      await this._openFolderAdd(pending.pathname, pending.origin)
+      console.info(
+        `[ProjectStore][OPEN_FOLDER][BLOCK_OPEN_FOLDER_RESOLVED mode=add origin=${pending.origin} path=${canonicalizePath(pending.pathname)}]`
+      )
+    },
+
+    async RESOLVE_REPLACE_CONFIRM(action) {
+      const pending = this.pendingReplaceConfirm
+      this.pendingReplaceConfirm = null
+      if (!pending) return
+      const { pathname, origin } = pending
+      if (action === 'cancel') {
+        console.info(`[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACE_ABORTED path=${canonicalizePath(pathname)} reason=cancel]`)
+        return
+      }
+      if (action === 'save-close') {
+        // Save each dirty tab before anything closes. A failed save aborts
+        // the whole replace — dirty work is never discarded by a failure.
+        const editorStore = useEditorStore()
+        for (const id of pending.dirtyIds) {
+          const tab = editorStore.tabs.find((t) => t.id === id)
+          if (!tab) continue
+          try {
+            const { invoke } = await import('@tauri-apps/api/core')
+            const outcome = await invoke('mt_response_file_save', {
+              id: tab.id,
+              filename: tab.filename,
+              pathname: tab.pathname,
+              markdown: tab.markdown,
+              defaultPath: null
+            })
+            if (outcome) editorStore.APPLY_SAVE_OUTCOME(outcome, tab.contentRevision || 0)
+          } catch (e) {
+            notice.notify({
+              title: i18n.global.t('dialog.saveFailure'),
+              message: String(e),
+              type: 'error',
+              time: 20000,
+              showConfirm: false
+            })
+            console.info(`[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACE_ABORTED path=${canonicalizePath(pathname)} reason=save-failed]`)
+            return
+          }
+        }
+      }
+      await this._finishReplace(pathname, origin, action === 'save-close' ? pending.dirtyIds.length : 0)
+    },
+    // END_BLOCK_FOLDER_CHOICE_RESOLUTION
+
+    // START_BLOCK_REPLACE_WORKSPACE
+    // Replace machinery. Tab rules (spec): dirty tabs under removed roots
+    // get ONE three-action confirm before any mutation (Save & Close /
+    // Don't Save / Cancel — Cancel leaves everything untouched); non-dirty
+    // tabs under removed roots close silently; tabs not under any root and
+    // tabs under the kept root always survive. Target already open as the
+    // only root → plain add (ADD_PROJECT's dedup notice covers it).
+    async _replaceWorkspace(pathname, origin) {
       const canonical = canonicalizePath(pathname)
       const foreignRoots = this.projectTrees.filter((r) => r.pathname !== canonical)
+      if (foreignRoots.length === 0) {
+        await this._openFolderAdd(pathname, origin)
+        console.info(`[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACED path=${canonical} closed=0 tabsClosed=0 dirtyHandled=0 origin=${origin}]`)
+        return
+      }
+      const editorStore = useEditorStore()
+      const foreignTabs = editorStore.tabs.filter(
+        (t) => t.pathname && foreignRoots.some((r) => isPathContained(t.pathname, r.pathname))
+      )
+      const dirtyTabs = foreignTabs.filter((t) => !t.isSaved)
+      if (dirtyTabs.length > 0) {
+        this.pendingReplaceConfirm = {
+          pathname: canonical,
+          origin,
+          tabIds: foreignTabs.map((t) => t.id),
+          dirtyIds: dirtyTabs.map((t) => t.id)
+        }
+        // eslint-disable-next-line no-console
+        console.debug(`[ProjectStore][_replaceWorkspace][BLOCK_REPLACE_CONFIRM_PENDING] path=${canonical} dirty=${dirtyTabs.length} tabs=${foreignTabs.length}`)
+        return
+      }
+      await this._finishReplace(pathname, origin, 0)
+    },
+
+    async _finishReplace(pathname, origin, dirtyHandled) {
+      const canonical = canonicalizePath(pathname)
+      const foreignRoots = this.projectTrees.filter((r) => r.pathname !== canonical)
+      const editorStore = useEditorStore()
+      const foreignTabs = editorStore.tabs.filter(
+        (t) => t.pathname && foreignRoots.some((r) => isPathContained(t.pathname, r.pathname))
+      )
+      let tabsClosed = 0
+      for (const tab of foreignTabs) {
+        editorStore.FORCE_CLOSE_TAB(tab)
+        tabsClosed++
+      }
       for (const root of foreignRoots) {
         await this.CLOSE_PROJECT(root.pathname)
       }
+      await this._openFolderAdd(pathname, origin)
+      console.info(
+        `[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACED path=${canonical} closed=${foreignRoots.length} tabsClosed=${tabsClosed} dirtyHandled=${dirtyHandled} origin=${origin}]`
+      )
+    },
+    // END_BLOCK_REPLACE_WORKSPACE
+
+    // The shared add+walk flow behind ADD_PROJECT-triggering surfaces.
+    async _openFolderAdd(pathname, origin) {
       const before = this.projectTrees.length
       this.ADD_PROJECT(pathname)
       if (this.projectTrees.length > before) {
@@ -494,11 +804,7 @@ export const useProjectStore = defineStore('project', {
           console.error('[ipc][walk_project][BLOCK_IMPORT_FAILED]', e)
         }
       }
-      console.info(
-        `[ProjectStore][OPEN_FOLDER_AS_WORKSPACE][BLOCK_WORKSPACE_OPENED path=${canonical} closed=${foreignRoots.length}]`
-      )
     },
-    // END_BLOCK_OPEN_FOLDER_AS_WORKSPACE
 
     /**
      * Synchronously remove a root + tell main to unwatch (real unwatch

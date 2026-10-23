@@ -215,12 +215,10 @@ describe('whatsNew 2.5.3 sheet', () => {
 // END_BLOCK_CONTENT_2_5_3
 
 // START_BLOCK_CONTENT_2_5_4
-// Release 2.6.1 draft: honest session restore + recently closed tabs
-// (FIX-009, owner-accepted 7/7), self-contained HTML export
-// (C-SELF-CONTAINED-HTML-EXPORT), the restored ⇧⌘P palette shortcut
-// with honest table exports (FIX-010/FIX-015), and the native
-// Windows/Linux title bar (FIX-014, amendment 5).
-const RELEASE_DRAFT_ITEM_KEYS = ['session', 'htmlExport', 'shortcuts', 'windowsBar']
+// Release 2.8.0 draft (C-MULTI-SOURCE-WORKSPACE, owner-accepted
+// 2026-10-22): multi-root folders, cloud roots, trustworthy folder
+// search and the guarded ⌘Q quit.
+const RELEASE_DRAFT_ITEM_KEYS = ['folders', 'cloud', 'search', 'quit']
 
 describe('current release-draft sheet', () => {
   it('ships the four accepted-train items in order with distinct one-char icons', () => {
@@ -246,7 +244,7 @@ describe('current release-draft sheet', () => {
         expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
       }
       expect(table.whatsNew.also.length, `${code}: also`).toBeLessThanOrEqual(120)
-      expect(section.shortcuts.title, `${code}: shortcuts keeps ⇧⌘P`).toContain('⇧⌘P')
+      expect(section.folders.title, `${code}: folders names ⇧⌘O`).toContain('⇧⌘O')
     }
   })
 

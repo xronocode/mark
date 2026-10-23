@@ -1982,7 +1982,7 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. FIX-010 (2026-10-20): on macOS, View › Command Palette… owns id view.command-palette and accelerator Cmd+Shift+P, matching the renderer registry and app-level physical-key route; Windows/Linux remain excluded from this addition. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059. C-57: Help › Support Mark… (help.support, no accelerator, desktop builds only — cfg(not(app-store)) plus the m048 `support` capability) opens ko-fi.com/xronocode through the id-dispatched renderer command; store builds ship no donation surface.</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. FIX-010 (2026-10-20): on macOS, View › Command Palette… owns id view.command-palette and accelerator Cmd+Shift+P, matching the renderer registry and app-level physical-key route; Windows/Linux remain excluded from this addition. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059. C-57: Help › Support Mark… (help.support, no accelerator, desktop builds only — cfg(not(app-store)) plus the m048 `support` capability) opens ko-fi.com/xronocode through the id-dispatched renderer command; store builds ship no donation surface. C-MULTI-SOURCE-WORKSPACE: the overloaded File › «Open Folder…» row is retired and replaced by the explicit pair File › «Add Folder…» (file.add-folder, CmdOrCtrl+Shift+O, appends a workspace root) and File › «Replace Workspace…» (file.replace-workspace, no accelerator, replaces the root set) — both id-dispatched-only to the renderer commands of the same ids, directly before «Open from Clipboard».</Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -2610,7 +2610,17 @@
       <Status>partial</Status>
       <Layer>2</Layer>
       <Summary>
-        FIX-009 (2026-10-21, C-FIX-009-SESSION-COLD-START +
+        C-MULTI-SOURCE-WORKSPACE (2026-10-22): the workspace open-mode routing
+        is centralized in the project store (M-036 owns it); this renderer
+        mounts the shared Add-or-Replace chooser at the app level
+        (pages/app.vue → sideBar/workspaceModeDialog.vue), tabs gain a dimmed
+        owning-root suffix on duplicate filenames (tabs.vue
+        START_BLOCK_DUPLICATE_SUFFIX), session restore degrades visibly for
+        unavailable roots (editor.js notice keyed
+        workspace.restoreSkippedFolders), and file opens go through invoke
+        with a localized failure notice (tree click, search-result click,
+        restore) so an evicted iCloud read never fails silently.
+                FIX-009 (2026-10-21, C-FIX-009-SESSION-COLD-START +
         C-FIX-009-RECENTLY-CLOSED): the welcome "Last session" row
         reflects the editor store's boot-time cold-start snapshot
         (offered only when restoreSessionOnLaunch skipped the

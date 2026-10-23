@@ -4,7 +4,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the acceptance registry (docs/acceptance/registry.json) against its schema and the collecting train, and print the per-item survey — the ordered "accepted or not, and why" record behind the release trains.
 //   SCOPE: --check (schema, git sha resolvability, two-way train consistency, lifecycle sanity) and --survey (state table). Read-only; --check exits non-zero with stable MT_ACCEPT_* codes on any violation.
-//   DEPENDS: node:fs, node:child_process (git cat-file), docs/release-trains/2.6.x-next.json.
+//   DEPENDS: node:fs, node:child_process (git cat-file), docs/release-trains/2.7.x-next.json.
 //   LINKS: docs/acceptance/README.md; docs/release-trains/README.md acceptance stage; .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; tests/renderer/acceptance-registry.test.js.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -30,14 +30,23 @@
 //   LAST_CHANGE: v1.0.0 - 2026-10-21 C-ACCEPTANCE-REGISTRY: new.
 // END_CHANGE_SUMMARY
 
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REGISTRY_PATH = 'docs/acceptance/registry.json'
-const TRAIN_PATH = 'docs/release-trains/2.6.x-next.json'
+const TRAIN_PATH = 'docs/release-trains/2.7.x-next.json'
+const listTrainFiles = (root) => {
+  try {
+    return readdirSync(resolve(root, 'docs/release-trains'))
+      .filter((f) => f.endsWith('.json') && /^[0-9][0-9.]*x-next\.json$/.test(f))
+      .map((f) => `docs/release-trains/${f}`)
+  } catch {
+    return []
+  }
+}
 
 const STATES = new Set(['reported', 'repaired', 'reviewed', 'artifact-offered', 'owner-verdict', 'queued'])
 const VERDICTS = new Set(['accepted', 'rejected', 'approve', 'changes-requested', 'two-actionable'])
@@ -123,6 +132,25 @@ export const validateRegistry = (registry, { train, shaExists: shaOk = () => tru
       ...(train.items?.userFacing || []).map((i) => i.id),
       ...(train.items?.operational || []).map((i) => i.id)
     ])
+    // Shipped items stay admitted through their own train: every
+    // Frozen/Ready/Released ledger in docs/release-trains keeps its
+    // items valid for the queued-in-train contract, so opening the next
+    // train does not strand the previous release's accepted items.
+    for (const ledger of listTrainFiles(ROOT).filter((f) => f !== TRAIN_PATH)) {
+      try {
+        const other = JSON.parse(readFileSync(resolve(ROOT, ledger), 'utf8'))
+        if (['Frozen', 'Ready', 'Released'].includes(other?.state)) {
+          for (const id of [
+            ...((other.items?.userFacing || []).map((i) => i.id)),
+            ...((other.items?.operational || []).map((i) => i.id))
+          ]) {
+            admitted.add(id)
+          }
+        }
+      } catch {
+        // unreadable sibling ledger — the primary train already gated
+      }
+    }
     // Registry-accepted => train-admitted.
     for (const item of registry.items) {
       const acceptedEvent = [...item.events].reverse().find((e) => e.state === 'owner-verdict' && e.verdict === 'accepted')

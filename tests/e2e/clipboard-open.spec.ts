@@ -230,10 +230,14 @@ test.describe('open from clipboard (C-52)', () => {
       .poll(() => projectRoots(page), { timeout: 10_000 })
       .toEqual(['/tmp/mark-e2e/first-root'])
 
-    // A Finder-style copy (file-URL list on the pasteboard) now replaces
-    // the open workspace with the OTHER folder.
+    // A Finder-style copy (file-URL list on the pasteboard) asks Add or
+    // Replace (C-MULTI-SOURCE-WORKSPACE chooser); choosing Replace swaps
+    // the workspace to the OTHER folder.
     await setClipboard(page, { paths: ['/tmp/mark-e2e/second-root'], text: 'ignored' })
     expect(await menuOpen(page)).toBeGreaterThan(0)
+    const replaceBtn = page.locator('.workspace-mode-dialog .workspace-mode-destructive')
+    await replaceBtn.waitFor({ state: 'visible', timeout: 10_000 })
+    await replaceBtn.click()
     await expect
       .poll(() => projectRoots(page), { timeout: 10_000 })
       .toEqual(['/tmp/mark-e2e/second-root'])

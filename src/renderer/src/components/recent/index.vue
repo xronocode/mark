@@ -541,7 +541,10 @@ const openRecentFile = (entry) => {
 }
 
 const openRecentFolder = (entry) => {
-  projectStore.OPEN_RECENT_FOLDER(entry.path)
+  // C-MULTI-SOURCE-WORKSPACE: ambiguous input — with roots open the
+  // shared Add-or-Replace chooser decides (Add preselected); the session
+  // restore path keeps the add-only OPEN_RECENT_FOLDER action.
+  void projectStore.OPEN_FOLDER(entry.path, { mode: 'ask', origin: 'recent' })
 }
 
 // START_BLOCK_RESTORE_SESSION

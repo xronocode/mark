@@ -1,0 +1,454 @@
+<div id="workspace-sources-viz">
+  <style>
+    #workspace-sources-viz {
+      --mark-window: light-dark(#f7f7f6, #1c1c1c);
+      --mark-chrome: light-dark(#ececeb, #252525);
+      --mark-sidebar: light-dark(#f1f1f0, #202020);
+      --mark-panel: light-dark(#ffffff, #292929);
+      --mark-text: light-dark(#202020, #f0f0ef);
+      --mark-muted: light-dark(#6f706f, #a8a8a5);
+      --mark-line: light-dark(#d8d8d5, #3a3a38);
+      --mark-active: light-dark(#e2ebe7, #294039);
+      --mark-accent: light-dark(#276b55, #70c7a7);
+      --mark-shadow: light-dark(rgba(30, 30, 28, .18), rgba(0, 0, 0, .46));
+      color-scheme: light dark;
+      color: var(--mark-text);
+      width: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #workspace-sources-viz * { box-sizing: border-box; }
+    #workspace-sources-viz button { font: inherit; }
+
+    #workspace-sources-viz .scenario-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 0 0 12px;
+    }
+
+    #workspace-sources-viz .scenario-label {
+      color: var(--mark-muted);
+      margin-right: 4px;
+    }
+
+    #workspace-sources-viz .scenario-button {
+      border: 1px solid var(--mark-line);
+      background: transparent;
+      color: var(--mark-text);
+      border-radius: 7px;
+      padding: 7px 11px;
+    }
+
+    #workspace-sources-viz .scenario-button[aria-pressed="true"] {
+      background: var(--mark-text);
+      border-color: var(--mark-text);
+      color: var(--mark-window);
+    }
+
+    #workspace-sources-viz .app-window {
+      min-height: 570px;
+      overflow: hidden;
+      border: 1px solid var(--mark-line);
+      border-radius: 12px;
+      background: var(--mark-window);
+      box-shadow: 0 18px 50px var(--mark-shadow);
+    }
+
+    #workspace-sources-viz .titlebar {
+      height: 44px;
+      display: grid;
+      grid-template-columns: 128px minmax(0, 1fr) 128px;
+      align-items: center;
+      border-bottom: 1px solid var(--mark-line);
+      background: var(--mark-chrome);
+      padding: 0 13px;
+    }
+
+    #workspace-sources-viz .traffic { display: flex; gap: 8px; }
+    #workspace-sources-viz .traffic span { width: 12px; height: 12px; border-radius: 50%; background: var(--mark-line); }
+    #workspace-sources-viz .app-name { text-align: center; font-weight: 500; }
+    #workspace-sources-viz .title-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
+    #workspace-sources-viz .icon-button,
+    #workspace-sources-viz .root-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      background: transparent;
+      color: var(--mark-muted);
+      border-radius: 6px;
+      width: 30px;
+      height: 30px;
+    }
+
+    #workspace-sources-viz .icon-button:hover,
+    #workspace-sources-viz .root-action:hover { background: var(--mark-active); color: var(--mark-text); }
+
+    #workspace-sources-viz .app-body {
+      display: grid;
+      grid-template-columns: minmax(248px, 28%) minmax(0, 1fr);
+      min-height: 526px;
+    }
+
+    #workspace-sources-viz .sidebar {
+      position: relative;
+      background: var(--mark-sidebar);
+      border-right: 1px solid var(--mark-line);
+      padding: 14px 12px;
+      min-width: 0;
+    }
+
+    #workspace-sources-viz .sidebar-header,
+    #workspace-sources-viz .source-row,
+    #workspace-sources-viz .search-scope,
+    #workspace-sources-viz .session-banner {
+      display: flex;
+      align-items: center;
+    }
+
+    #workspace-sources-viz .sidebar-header { justify-content: space-between; margin-bottom: 10px; }
+    #workspace-sources-viz .sidebar-title { font-weight: 500; }
+    #workspace-sources-viz .sidebar-actions { display: flex; gap: 2px; }
+
+    #workspace-sources-viz .search-scope {
+      gap: 7px;
+      min-height: 34px;
+      padding: 0 9px;
+      border: 1px solid var(--mark-line);
+      border-radius: 7px;
+      background: var(--mark-panel);
+      color: var(--mark-muted);
+      margin-bottom: 12px;
+    }
+
+    #workspace-sources-viz .search-scope span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #workspace-sources-viz .source { margin-bottom: 10px; }
+    #workspace-sources-viz .source-row { gap: 6px; min-height: 32px; font-weight: 500; }
+    #workspace-sources-viz .source-row .source-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #workspace-sources-viz .source-row .root-action { opacity: .72; width: 26px; height: 26px; }
+
+    #workspace-sources-viz .file-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      margin-left: 23px;
+      padding: 0 8px;
+      color: var(--mark-muted);
+      border-radius: 6px;
+    }
+
+    #workspace-sources-viz .file-row.active { background: var(--mark-active); color: var(--mark-text); }
+    #workspace-sources-viz .file-row.nested { margin-left: 39px; }
+
+    #workspace-sources-viz .workspace {
+      position: relative;
+      min-width: 0;
+      background: var(--mark-panel);
+    }
+
+    #workspace-sources-viz .tabs {
+      height: 40px;
+      display: flex;
+      align-items: end;
+      gap: 2px;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--mark-line);
+      background: var(--mark-chrome);
+    }
+
+    #workspace-sources-viz .doc-tab {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      max-width: 190px;
+      min-height: 34px;
+      padding: 0 11px;
+      color: var(--mark-muted);
+      border-radius: 7px 7px 0 0;
+    }
+
+    #workspace-sources-viz .doc-tab.active { background: var(--mark-panel); color: var(--mark-text); }
+    #workspace-sources-viz .doc-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #workspace-sources-viz .editor {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 54px 48px 80px;
+    }
+
+    #workspace-sources-viz .editor-kicker { color: var(--mark-accent); font-weight: 500; margin-bottom: 10px; }
+    #workspace-sources-viz .editor h2 { margin: 0 0 18px; font-size: 28px; font-weight: 500; }
+    #workspace-sources-viz .editor p { margin: 0 0 13px; color: var(--mark-muted); line-height: 1.6; }
+
+    #workspace-sources-viz .menu {
+      position: absolute;
+      z-index: 4;
+      top: 48px;
+      left: 92px;
+      width: 230px;
+      padding: 6px;
+      border: 1px solid var(--mark-line);
+      border-radius: 9px;
+      background: var(--mark-panel);
+      box-shadow: 0 12px 34px var(--mark-shadow);
+    }
+
+    #workspace-sources-viz .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      min-height: 36px;
+      padding: 0 9px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--mark-text);
+      text-align: left;
+    }
+
+    #workspace-sources-viz .menu-item:hover { background: var(--mark-active); }
+    #workspace-sources-viz .menu-separator { height: 1px; background: var(--mark-line); margin: 5px 8px; }
+
+    #workspace-sources-viz .scrim {
+      position: absolute;
+      z-index: 5;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: light-dark(rgba(245,245,243,.64), rgba(10,10,10,.66));
+    }
+
+    #workspace-sources-viz .dialog {
+      width: min(430px, 100%);
+      border: 1px solid var(--mark-line);
+      border-radius: 12px;
+      background: var(--mark-panel);
+      box-shadow: 0 18px 54px var(--mark-shadow);
+      padding: 22px;
+    }
+
+    #workspace-sources-viz .dialog h3 { margin: 0 0 7px; font-size: 19px; font-weight: 500; }
+    #workspace-sources-viz .dialog-copy { margin: 0 0 16px; color: var(--mark-muted); }
+    #workspace-sources-viz .choice {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 3px 9px;
+      padding: 11px 9px;
+      border-radius: 8px;
+    }
+    #workspace-sources-viz .choice.selected { background: var(--mark-active); }
+    #workspace-sources-viz .choice input { grid-row: 1 / span 2; align-self: start; margin-top: 3px; accent-color: var(--mark-accent); }
+    #workspace-sources-viz .choice strong { font-weight: 500; }
+    #workspace-sources-viz .choice small { color: var(--mark-muted); }
+    #workspace-sources-viz .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    #workspace-sources-viz .dialog-button { border: 1px solid var(--mark-line); border-radius: 7px; padding: 8px 13px; background: transparent; color: var(--mark-text); }
+    #workspace-sources-viz .dialog-button.primary { background: var(--mark-text); color: var(--mark-panel); border-color: var(--mark-text); }
+
+    #workspace-sources-viz .session-banner {
+      gap: 8px;
+      margin: 12px;
+      padding: 9px 11px;
+      border-radius: 8px;
+      background: var(--mark-active);
+      color: var(--mark-text);
+    }
+
+    #workspace-sources-viz .results {
+      max-width: 700px;
+      margin: 34px auto;
+      padding: 0 36px;
+    }
+    #workspace-sources-viz .results h3 { margin: 0 0 15px; font-size: 18px; font-weight: 500; }
+    #workspace-sources-viz .result-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--mark-line);
+    }
+    #workspace-sources-viz .result-title { font-weight: 500; }
+    #workspace-sources-viz .result-path { margin-top: 3px; color: var(--mark-muted); }
+    #workspace-sources-viz .result-source { align-self: center; color: var(--mark-muted); white-space: nowrap; }
+
+    #workspace-sources-viz .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    #workspace-sources-viz .flow-step {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 40px;
+      border: 1px solid var(--mark-line);
+      border-radius: 8px;
+      background: var(--mark-window);
+      color: var(--mark-muted);
+      text-align: center;
+    }
+    #workspace-sources-viz .flow-step strong { color: var(--mark-text); font-weight: 500; }
+
+    #workspace-sources-viz [hidden] { display: none !important; }
+    #workspace-sources-viz svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+    @media (max-width: 720px) {
+      #workspace-sources-viz .app-body { grid-template-columns: 1fr; }
+      #workspace-sources-viz .sidebar { border-right: 0; border-bottom: 1px solid var(--mark-line); }
+      #workspace-sources-viz .workspace { min-height: 390px; }
+      #workspace-sources-viz .editor { padding: 38px 25px 60px; }
+      #workspace-sources-viz .flow { grid-template-columns: 1fr 1fr; }
+      #workspace-sources-viz .menu { left: auto; right: 10px; }
+    }
+
+    @media (max-width: 430px) {
+      #workspace-sources-viz .titlebar { grid-template-columns: 70px minmax(0, 1fr) 70px; }
+      #workspace-sources-viz .flow { grid-template-columns: 1fr; }
+      #workspace-sources-viz .editor { padding-inline: 18px; }
+      #workspace-sources-viz .result-row { grid-template-columns: 1fr; gap: 5px; }
+    }
+  </style>
+
+  <div class="scenario-bar" role="group" aria-label="Сценарий проверки">
+    <span class="scenario-label">Показать:</span>
+    <button class="scenario-button cursor-interaction" type="button" data-scene="sources" aria-pressed="true">Два источника</button>
+    <button class="scenario-button cursor-interaction" type="button" data-scene="choice" aria-pressed="false">Единый выбор</button>
+    <button class="scenario-button cursor-interaction" type="button" data-scene="restore" aria-pressed="false">Поиск и восстановление</button>
+  </div>
+
+  <section class="app-window" aria-label="Макет Mark с несколькими источниками workspace">
+    <div class="titlebar">
+      <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="app-name">Mark</div>
+      <div class="title-actions"><button class="icon-button cursor-interaction" type="button" aria-label="Поиск"><i data-lucide="search" aria-hidden="true"></i></button></div>
+    </div>
+
+    <div class="app-body">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Файлы</span>
+          <div class="sidebar-actions">
+            <button class="icon-button cursor-interaction" type="button" aria-label="Добавить папку"><i data-lucide="folder-plus" aria-hidden="true"></i></button>
+            <button class="icon-button cursor-interaction" id="source-menu-trigger" type="button" aria-label="Меню workspace" aria-expanded="true"><i data-lucide="more-horizontal" aria-hidden="true"></i></button>
+          </div>
+        </div>
+
+        <div class="search-scope"><i data-lucide="search" aria-hidden="true"></i><span>Поиск во всех источниках (2)</span></div>
+
+        <div class="source">
+          <div class="source-row">
+            <i data-lucide="chevron-down" aria-hidden="true"></i>
+            <i data-lucide="cloud" aria-hidden="true"></i>
+            <span class="source-name">iCloud / Notes</span>
+            <button class="root-action cursor-interaction" type="button" aria-label="Закрыть источник iCloud Notes"><i data-lucide="x" aria-hidden="true"></i></button>
+          </div>
+          <div class="file-row active"><i data-lucide="file-text" aria-hidden="true"></i><span>Product ideas.md</span></div>
+          <div class="file-row"><i data-lucide="file-text" aria-hidden="true"></i><span>Journal.md</span></div>
+        </div>
+
+        <div class="source">
+          <div class="source-row">
+            <i data-lucide="chevron-down" aria-hidden="true"></i>
+            <i data-lucide="folder" aria-hidden="true"></i>
+            <span class="source-name">~/Projects</span>
+            <button class="root-action cursor-interaction" type="button" aria-label="Закрыть источник Projects"><i data-lucide="x" aria-hidden="true"></i></button>
+          </div>
+          <div class="file-row nested"><i data-lucide="folder" aria-hidden="true"></i><span>mark</span></div>
+          <div class="file-row nested"><i data-lucide="folder" aria-hidden="true"></i><span>website</span></div>
+        </div>
+
+        <div class="menu" data-layer="source-menu">
+          <button class="menu-item cursor-interaction" type="button"><i data-lucide="folder-plus" aria-hidden="true"></i><span>Добавить папку…</span></button>
+          <button class="menu-item cursor-interaction" type="button"><i data-lucide="folder-sync" aria-hidden="true"></i><span>Заменить workspace…</span></button>
+          <div class="menu-separator"></div>
+          <button class="menu-item cursor-interaction" type="button"><i data-lucide="x" aria-hidden="true"></i><span>Закрыть все источники</span></button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <div class="tabs">
+          <div class="doc-tab active"><i data-lucide="file-text" aria-hidden="true"></i><span>Product ideas.md</span></div>
+          <div class="doc-tab"><i data-lucide="file-text" aria-hidden="true"></i><span>README.md</span></div>
+        </div>
+
+        <div data-panel="sources">
+          <article class="editor">
+            <div class="editor-kicker">Workspace = набор источников</div>
+            <h2>Заметки и проекты рядом</h2>
+            <p>Папка в iCloud остается синхронизируемой базой заметок. Локальная папка Projects открыта вторым корнем — без переноса тяжелых репозиториев в облако.</p>
+            <p>Каждый корень виден отдельно, сворачивается и закрывается независимо.</p>
+          </article>
+        </div>
+
+        <div class="scrim" data-panel="choice" hidden>
+          <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="choice-title">
+            <h3 id="choice-title">Как открыть папку «Projects»?</h3>
+            <p class="dialog-copy">Этот же выбор используется для drag-and-drop, вставки пути и Recent.</p>
+            <label class="choice selected"><input type="radio" name="open-mode" checked><strong>Добавить как источник</strong><small>Текущие папки и вкладки останутся открыты</small></label>
+            <label class="choice"><input type="radio" name="open-mode"><strong>Заменить workspace</strong><small>Текущие источники будут закрыты</small></label>
+            <div class="dialog-actions">
+              <button class="dialog-button cursor-interaction" type="button">Отмена</button>
+              <button class="dialog-button primary cursor-interaction" type="button">Продолжить</button>
+            </div>
+          </div>
+        </div>
+
+        <div data-panel="restore" hidden>
+          <div class="session-banner"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>Сессия восстановлена: 2 источника · 2 вкладки</span></div>
+          <div class="results">
+            <h3>Результаты поиска «release»</h3>
+            <div class="result-row"><div><div class="result-title">Release checklist</div><div class="result-path">Product ideas.md</div></div><div class="result-source">iCloud / Notes</div></div>
+            <div class="result-row"><div><div class="result-title">Release workflow</div><div class="result-path">mark/docs/release.md</div></div><div class="result-source">~/Projects</div></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <div class="flow" aria-label="Критерии проверки">
+    <div class="flow-step"><i data-lucide="folder-plus" aria-hidden="true"></i><span><strong>Добавить</strong> не закрывает текущее</span></div>
+    <div class="flow-step"><i data-lucide="folder-sync" aria-hidden="true"></i><span><strong>Заменить</strong> оставляет один набор</span></div>
+    <div class="flow-step"><i data-lucide="search" aria-hidden="true"></i><span><strong>Поиск</strong> охватывает все корни</span></div>
+    <div class="flow-step"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span><strong>Перезапуск</strong> возвращает workspace</span></div>
+  </div>
+
+  <div class="sr-only" aria-live="polite" id="scene-status">Показан сценарий: два источника</div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('workspace-sources-viz');
+      const buttons = [...root.querySelectorAll('[data-scene]')];
+      const panels = [...root.querySelectorAll('[data-panel]')];
+      const menu = root.querySelector('[data-layer="source-menu"]');
+      const status = root.querySelector('#scene-status');
+      const labels = {
+        sources: 'два источника',
+        choice: 'единый выбор действия',
+        restore: 'поиск и восстановление'
+      };
+
+      const showScene = (scene) => {
+        buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.scene === scene)));
+        panels.forEach((panel) => { panel.hidden = panel.dataset.panel !== scene; });
+        menu.hidden = scene !== 'sources';
+        status.textContent = `Показан сценарий: ${labels[scene]}`;
+        window.openai?.setWidgetState?.({ modelContent: { scene }, privateContent: null }).catch(() => {});
+      };
+
+      const savedScene = window.openai?.widgetState?.modelContent?.scene;
+      if (labels[savedScene]) showScene(savedScene);
+      buttons.forEach((button) => button.addEventListener('click', () => showScene(button.dataset.scene)));
+      window.addEventListener('openai:set_globals', (event) => {
+        const scene = event.detail?.globals?.widgetState?.modelContent?.scene;
+        if (labels[scene]) showScene(scene);
+      });
+    })();
+  </script>
+</div>

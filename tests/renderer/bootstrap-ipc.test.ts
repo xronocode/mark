@@ -53,7 +53,8 @@ const __prefsStub: Record<string, any> = {
   SET_USER_PREFERENCE: vi.fn()
 }
 const __projectStub: Record<string, any> = {
-  _processTreeEvent: vi.fn()
+  _processTreeEvent: vi.fn(),
+  ENQUEUE_TREE_EVENT: vi.fn()
 }
 const __editorStub: Record<string, any> = {
   APPLY_TAB_SAVED: vi.fn(),
@@ -212,13 +213,19 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
   })
 
   describe('mt::update-object-tree', () => {
-    it('forwards typed payload to projectStore._processTreeEvent', async () => {
+    it('forwards typed payload to projectStore.ENQUEUE_TREE_EVENT (coalescer, fix wave)', async () => {
       const { setupIpcListeners, handlers } = await freshBootstrap()
       await setupIpcListeners()
       handlers.get('mt::update-object-tree')!({
         payload: { type: 'add', change: { foo: 1 } }
       })
-      expect(__projectStub._processTreeEvent).toHaveBeenCalledWith('add', { foo: 1 })
+      // C-MULTI-SOURCE-WORKSPACE fix wave: events buffer in the store's
+      // coalescer (FLUSH_TREE_EVENTS folds batches) — the bridge no longer
+      // folds each event synchronously (a whole cloud drive froze the UI).
+      expect(__projectStub.ENQUEUE_TREE_EVENT).toHaveBeenCalledWith({
+        type: 'add',
+        change: { foo: 1 }
+      })
     })
 
     it('ignores payload without type', async () => {

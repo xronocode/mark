@@ -20,8 +20,8 @@
 </Scenarios>
 <CornerMatrix>
   <C-1><Name>Relative local PNG</Name><Expected>Saved .html img src = data:image/png;base64,...; decoded bytes equal the fixture file; the file renders standalone from a directory without the images.</Expected></C-1>
-  <C-2><Name>Absolute POSIX path (<home>/shot.png)</Name><Expected>Normalized via correctImageSrc semantics, read from disk, embedded; original absolute path appears nowhere in the output.</Expected></C-2>
-  <C-3><Name>Windows path forms (<winhome>\shot.png, \\?\<winhome>\shot.png, generic \\server\share\shot.png)</Name><Expected>Drive-letter and \\?\ extended-prefix forms normalize (isWin-gated, matching muya's correctImageSrc) and embed; generic UNC \\server\share matches no normalization branch anywhere in muya and passes through unchanged, uncounted.</Expected></C-3>
+  <C-2><Name>Absolute POSIX path (&lt;home&gt;/shot.png)</Name><Expected>Normalized via correctImageSrc semantics, read from disk, embedded; original absolute path appears nowhere in the output.</Expected></C-2>
+  <C-3><Name>Windows path forms (&lt;winhome&gt;\shot.png, \\?\&lt;winhome&gt;\shot.png, generic \\server\share\shot.png)</Name><Expected>Drive-letter and \\?\ extended-prefix forms normalize (isWin-gated, matching muya's correctImageSrc) and embed; generic UNC \\server\share matches no normalization branch anywhere in muya and passes through unchanged, uncounted.</Expected></C-3>
   <C-4><Name>Percent-encoded and spaced src (my%20file.png, unicode имя.png)</Name><Expected>Decoded before the filesystem read; embedded; no double-encoding in the data-URL.</Expected></C-4>
   <C-5><Name>Remote http(s) image</Name><Expected>src untouched in the output; zero network requests during export (pinned by the unit test's fetch/socket stub).</Expected></C-5>
   <C-6><Name>Existing data: URL and pele inline SVG</Name><Expected>Untouched by the pass; diagrams still render standalone (C-55 behavior preserved).</Expected></C-6>
