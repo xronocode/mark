@@ -253,7 +253,7 @@ export const planReleaseNormalization = (
       `package=${packageVersion ?? 'missing'};manifest=${manifestVersion ?? 'missing'}`
     )
   }
-  const trainPath = resolve(root, 'docs/release-trains/2.7.x-next.json')
+  const trainPath = resolve(root, 'docs/release-trains/2.8.x-next.json')
   const train = readJson(trainPath)
   const previousVersion = train.previousRelease?.tag?.replace(/^v/, '')
   if (packageVersion === previousVersion) {
@@ -329,8 +329,8 @@ export const planReleaseNormalization = (
     fail('MT_RELEASE_NORMALIZE_LIFECYCLE_INVALID', `state=${train.state}`)
   }
   train.materials.screenshotManifest = `docs/assets/readme/${packageVersion}.manifest.json`
-  addChange(changes, root, 'docs/release-trains/2.7.x-next.json', withNewline(train))
-  const trainLedgerPath = 'docs/release-trains/2.7.x-next.md'
+  addChange(changes, root, 'docs/release-trains/2.8.x-next.json', withNewline(train))
+  const trainLedgerPath = 'docs/release-trains/2.8.x-next.md'
   addChange(
     changes,
     root,

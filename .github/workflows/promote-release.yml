@@ -26,8 +26,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs/release-trains/2.7.x-next.json'
-      - 'docs/release-trains/2.7.x-next.md'
+      - 'docs/release-trains/2.8.x-next.json'
+      - 'docs/release-trains/2.8.x-next.md'
       - 'docs/assets/readme/**'
 
 concurrency:
@@ -69,7 +69,7 @@ jobs:
           HEAD_SHA=$(git rev-parse HEAD)
           MAIN_SHA=$(git rev-parse origin/main)
           [ "$HEAD_SHA" = "$MAIN_SHA" ]
-          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.7.x-next.json')).state")
+          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).state")
           # A push that touches the train files while no seal is Ready
           # (Collecting after a roll, terminal Released/Aborted) is a
           # bookkeeping change: admit it without promoting anything.
@@ -77,10 +77,10 @@ jobs:
             echo "state=$STATE — nothing to promote"
             exit 0
           fi
-          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.7.x-next.json')).payloadSha")
-          RECORDED_SEAL=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.7.x-next.json')).sealSha")
+          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).payloadSha")
+          RECORDED_SEAL=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).sealSha")
           SEAL=$HEAD_SHA
-          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.7.x-next.json')).computedVersion")
+          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).computedVersion")
           [ "$RECORDED_SEAL" = null ]
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
@@ -161,7 +161,7 @@ jobs:
           git fetch origin main
           [ "$(git rev-parse HEAD)" = "$SEAL" ]
           [ "$(git rev-parse origin/main)" = "$SEAL" ]
-          node -e "const f=require('fs'),m=JSON.parse(f.readFileSync('docs/release-trains/2.7.x-next.json'));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
+          node -e "const f=require('fs'),m=JSON.parse(f.readFileSync('docs/release-trains/2.8.x-next.json'));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
 
       - name: setup Node 22 after approval
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
