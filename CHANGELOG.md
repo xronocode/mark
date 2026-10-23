@@ -4,6 +4,15 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 
 
+## [2.8.2](https://github.com/xronocode/mark/compare/v2.8.1...v2.8.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* **pdf:** root-cause the export abort — printSettings dictionary + modal job (FIX-018) ([1d14e6f](https://github.com/xronocode/mark/commit/1d14e6fbf4fcc007032cfad2d3e9257446ebf044))
+* **pdf:** root-cause the macOS export abort — printSettings dictionary + modal job (FIX-018) ([efb3f72](https://github.com/xronocode/mark/commit/efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13))
+* **pdf:** root-cause the macOS export abort — printSettings dictionary + modal job (FIX-018) + v2.8.1 packaging ([#38](https://github.com/xronocode/mark/issues/38)) ([efb3f72](https://github.com/xronocode/mark/commit/efb3f72ae81a26f2ab76bfe0a7acf1c54b144f13))
+
 ## [2.8.1] - 2026-10-23
 
 Export to PDF on macOS works for the first time since the feature shipped — and can no longer take the app down.
