@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.6.1
+# VERSION: 1.7.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes static exposure checks and two serial local-model reviews, with an explicit human override lane for model-review false positives.
-#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, explicit public GitHub reference classification, manifest-bound human-reviewed README screenshots, complete locale field review, two-pass local review, optional identity-bound manual override of the model-review phase only, identity recheck and common hooks.
+#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, explicit public GitHub reference classification, manifest-bound human-reviewed README screenshots, complete locale field review, two-pass local review, optional identity-bound manual override of the model-review phase only, merged-branch deletion admission, identity recheck and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks, loopback Ollama, canonical local-ai-safety preflight.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFE-DELIVERY; C-SAFE-PUBLIC-GITHUB-REFERENCES-V2.
 #   ROLE: SCRIPT
@@ -20,6 +20,8 @@
 #   validate_lane - keep mobile runtime and desktop release/version writes in their own lanes.
 #   staged_candidate - bind staged blobs, diff and commit message to an index tree.
 #   push_candidate - inspect every outgoing commit and proposed ref update.
+#   merged_by_pull_request - prove via GitHub that a tip is the exact head of a PR merged into main.
+#   ref_deletions - admit a deletion-only push when every deleted branch tip is already in main or merged by PR.
 #   validate_reviewed_screenshot_binaries - admit only exact reviewed README PNG bytes named by a same-candidate release manifest.
 #   validate_content - reject private material, personal paths and unsupported payloads.
 #   scan - run trusted Gitleaks rules against exact candidate blobs.
@@ -34,7 +36,8 @@
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.6.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: keep the public-reference rule explicit inside source-controlled workflow and governance files during outgoing-history review.
+#   LAST_CHANGE: 1.7.0 - 2026-10-24: owner-approved housekeeping lane — a deletion-only push of non-main branches passes without model review when each deleted tip is an ancestor of <remote>/main or the exact head of a PR merged into main; mixed, tag, main or unproven deletions stay blocked.
+#   PREV: 1.6.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: keep the public-reference rule explicit inside source-controlled workflow and governance files during outgoing-history review.
 #   PREV: 1.6.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: distinguish public GitHub resource/runtime-lookup references from literal credential material without masking candidate bytes or weakening scans.
 #   PREV: 1.5.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: admit only exact README PNG bytes bound to complete same-candidate human-review manifest evidence; all other binaries still fail closed.
 #   PREV: 1.4.0 - 2026-10-20: add MARK_SAFETY_OVERRIDE — a human-set reason that skips only the local-model review phase after static scans pass, writing an identity-bound private receipt; deterministic exposure and Gitleaks checks stay mandatory.
@@ -270,6 +273,45 @@ def push_candidate(root, remote, updates):
         raise GateError("Push desktop and mobile tasks separately")
     validate_lane(root, blobs, "mobile/" if True in lanes else "desktop")
     return {"identity": hashlib.sha256(payload.encode()).hexdigest(), "payload": payload, "scanText": scan_text, "blobs": blobs, "blobGroups": blob_groups, "commits": commits}
+
+
+def merged_by_pull_request(root, remote, oid):
+    url = git(root, "remote", "get-url", remote).decode().strip()
+    match = re.fullmatch(r"(?:https://github\.com/|git@github\.com:)([\w.-]+/[\w.-]+?)(?:\.git)?/?", url)
+    if not match:
+        return False
+    try:
+        result = subprocess.run(["gh", "api", "repos/" + match[1] + "/commits/" + oid + "/pulls"], capture_output=True, text=True, timeout=30)
+        pulls = json.loads(result.stdout) if result.returncode == 0 else []
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return False
+    if not isinstance(pulls, list):
+        return False
+    return any(
+        isinstance(pull, dict) and pull.get("merged_at") and (pull.get("head") or {}).get("sha") == oid and (pull.get("base") or {}).get("ref") == "main"
+        for pull in pulls
+    )
+
+
+def ref_deletions(root, remote, updates):
+    # START_BLOCK_MERGED_REF_DELETION
+    lines = [line.split() for line in updates.splitlines() if line.strip()]
+    deletions = [fields for fields in lines if len(fields) == 4 and set(fields[1]) == {"0"}]
+    if not deletions:
+        return False
+    if len(deletions) != len(lines):
+        raise GateError("Push ref deletions separately from content updates")
+    for _local_ref, _local_oid, remote_ref, remote_oid in deletions:
+        if not remote_ref.startswith("refs/heads/") or remote_ref == "refs/heads/main":
+            raise GateError("Only merged non-main branches may be deleted: " + remote_ref)
+        if not re.fullmatch(r"[0-9a-f]{40,64}", remote_oid) or set(remote_oid) == {"0"}:
+            raise GateError("Malformed push object identity")
+        in_main = subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", remote_oid, "refs/remotes/" + remote + "/main"], capture_output=True).returncode == 0
+        if not in_main and not merged_by_pull_request(root, remote, remote_oid):
+            raise GateError("Branch tip is not in main and has no merged PR; fetch and retry or keep it: " + remote_ref)
+    print("[RepositorySafety][push][BLOCK_MERGED_REF_DELETION] admitted", len(deletions), "merged branch deletion(s)", file=sys.stderr)
+    return True
+    # END_BLOCK_MERGED_REF_DELETION
 
 
 def validate_reviewed_screenshot_binaries(blobs):
@@ -578,6 +620,8 @@ def main():
         if not args.arguments:
             raise GateError("Push remote is required")
         updates = sys.stdin.read()
+        if ref_deletions(root, args.arguments[0], updates):
+            return
         review(lambda: push_candidate(root, args.arguments[0], updates), private, "push")
     else:
         message_file = Path(args.arguments[0]) if args.operation == "commit" and args.arguments else None

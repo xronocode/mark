@@ -1,5 +1,5 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.5.1
+# VERSION: 1.6.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
 #   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
@@ -11,10 +11,11 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, exact-index, local-only review and outgoing-history failure scenarios.
+#   SafetyGateTests - exposure, exact-index, local-only review, outgoing-history and merged-branch deletion scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.5.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: pin that workflow/governance paths do not turn public references into secrets during outgoing review.
+#   LAST_CHANGE: 1.6.0 - 2026-10-24: prove merged-branch deletion admission — ancestor or exact merged-PR tips pass; mixed, main, tag, unproven and GitHub-failure cases stay blocked.
+#   PREV: 1.5.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: pin that workflow/governance paths do not turn public references into secrets during outgoing review.
 #   PREV: 1.5.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: pin the public GitHub reference forms and literal-secret failure boundary used by both local review passes.
 #   PREV: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
 #   PREV: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before model loading, including one-other-engine and multiple-model failures.
@@ -347,6 +348,60 @@ class SafetyGateTests(unittest.TestCase):
             result = gate.push_candidate(Path("."), "fork", "refs/heads/main " + tip + " refs/heads/main " + base + "\n")
         self.assertEqual([value for _, value in result["blobs"]], [b"intermediate", b"final"])
         self.assertIn(("rev-list", "--reverse", tip, "--not", base), calls)
+
+
+    # START_BLOCK_MERGED_REF_DELETION_TESTS
+    ZERO = "0" * 40
+    TIP = "a" * 40
+
+    def deletion(self, ref="refs/heads/fix/done", oid=None):
+        return "(delete) " + self.ZERO + " " + ref + " " + (oid or self.TIP) + "\n"
+
+    def test_push_without_deletions_goes_to_full_review(self):
+        self.assertFalse(gate.ref_deletions(Path("."), "fork", "refs/heads/x " + "1" * 40 + " refs/heads/x " + "2" * 40))
+
+    def test_branch_already_in_main_may_be_deleted(self):
+        with patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+            self.assertTrue(gate.ref_deletions(Path("."), "fork", self.deletion()))
+        self.assertIn("refs/remotes/fork/main", run.call_args.args[0])
+
+    def test_branch_merged_by_exact_pull_request_may_be_deleted(self):
+        pulls = json.dumps([{"merged_at": "2026-10-23T00:00:00Z", "head": {"sha": self.TIP}, "base": {"ref": "main"}}])
+        runs = [SimpleNamespace(returncode=1), SimpleNamespace(returncode=0, stdout=pulls)]
+        with patch.object(gate.subprocess, "run", side_effect=runs), patch.object(gate, "git", return_value=b"https://github.com/owner/repo.git\n"):
+            self.assertTrue(gate.ref_deletions(Path("."), "fork", self.deletion()))
+
+    def test_unmerged_moved_or_unverifiable_branches_stay_blocked(self):
+        cases = [
+            json.dumps([]),
+            json.dumps([{"merged_at": None, "head": {"sha": self.TIP}, "base": {"ref": "main"}}]),
+            json.dumps([{"merged_at": "2026-10-23T00:00:00Z", "head": {"sha": "b" * 40}, "base": {"ref": "main"}}]),
+            json.dumps([{"merged_at": "2026-10-23T00:00:00Z", "head": {"sha": self.TIP}, "base": {"ref": "release/2.5"}}]),
+            json.dumps({"message": "Not Found"}),
+            "not json",
+        ]
+        for stdout in cases:
+            runs = [SimpleNamespace(returncode=1), SimpleNamespace(returncode=0, stdout=stdout)]
+            with patch.object(gate.subprocess, "run", side_effect=runs), patch.object(gate, "git", return_value=b"https://github.com/owner/repo.git\n"):
+                with self.assertRaises(gate.GateError):
+                    gate.ref_deletions(Path("."), "fork", self.deletion())
+        for failure in [SimpleNamespace(returncode=1, stdout=""), OSError("gh missing"), subprocess.TimeoutExpired("gh", 30)]:
+            runs = [SimpleNamespace(returncode=1), failure]
+            with patch.object(gate.subprocess, "run", side_effect=runs), patch.object(gate, "git", return_value=b"https://github.com/owner/repo.git\n"):
+                with self.assertRaises(gate.GateError):
+                    gate.ref_deletions(Path("."), "fork", self.deletion())
+
+    def test_main_tags_mixed_and_malformed_deletions_stay_blocked(self):
+        with patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0)):
+            for updates in [
+                self.deletion("refs/heads/main"),
+                self.deletion("refs/tags/v2.8.0"),
+                self.deletion(oid="z" * 40),
+                self.deletion() + "refs/heads/x " + "1" * 40 + " refs/heads/x " + "2" * 40,
+            ]:
+                with self.assertRaises(gate.GateError):
+                    gate.ref_deletions(Path("."), "fork", updates)
+    # END_BLOCK_MERGED_REF_DELETION_TESTS
 
 
 if __name__ == "__main__":

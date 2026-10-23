@@ -14,6 +14,8 @@ The commit-message hook runs the complete gate before the commit is written. The
 
 Use `python3 tools/security_gate.py install` to install or update the shared hooks. Installation itself reviews the staged gate and intended first commit before installing it. Hook upgrades must be reviewed; preserve any existing hooks rather than overwriting them. `python3 tools/security_gate.py review-staged --message '...'` performs an explicit preflight without committing.
 
+Branch housekeeping: a push that only deletes non-main branches publishes no content, so it skips model review when every deleted tip is already in `<remote>/main` or is the exact head of a PR merged into main (checked with `gh`). Mixed pushes, `main`, tags and unproven tips stay blocked. Fetch first so `<remote>/main` is current.
+
 Apply merges and cherry-picks with `--no-commit`, then create the commit through the installed hooks. Do not let a sequencer create an unreviewed commit. Do not publish recovery refs, private backup archives, raw model prompts/responses, `.env` files, signing keys, machine-specific test configs or generated simulator/build folders.
 
 ## Findings and evidence
