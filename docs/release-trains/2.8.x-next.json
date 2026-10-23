@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.x-next",
-  "state": "Ready",
+  "state": "Collecting",
   "previousRelease": {
     "tag": "v2.8.0",
-    "commit": "c8336a60782fb78b30f352c088c469c444f12c1c",
-    "bootstrapSha": "c8336a60782fb78b30f352c088c469c444f12c1c",
+    "commit": "f57848b88e333fc0fb119310006c73b975314102",
+    "bootstrapSha": "f57848b88e333fc0fb119310006c73b975314102",
     "tree": "23fb8c7e0c621abafb47e94c29b8e8b7ed62471c"
   },
   "computedVersion": "2.8.1",
@@ -48,7 +48,7 @@
     "notPresent": []
   },
   "commitAccounting": {
-    "fromExclusive": "c8336a60782fb78b30f352c088c469c444f12c1c",
+    "fromExclusive": "f57848b88e333fc0fb119310006c73b975314102",
     "entries": [
       {
         "sha": "4154b6ff3654087727380a6dfe26df3aaeb525d8",
@@ -137,6 +137,12 @@
       "date": "2026-10-23",
       "actor": "agent-zcode",
       "evidence": "Single seal commit on the merged freeze (77e10888): all three required checks green on the freeze head f8eb694 (PR #41, 18 checks pass incl. one infra rerun of a cancelled macos runner); train authority Frozen->Ready, accounting through the payload, ledger and screenshot-manifest payload binding. Release authorization NOT given — promotion waits for the owner-approved release-authorize deployment."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-10-23",
+      "actor": "agent-zcode",
+      "evidence": "Roll after the first promote preflight rejected the seal: the train had recorded the v2.8.0 ANNOTATED-TAG OBJECT sha (c8336a60) as the previous-release commit instead of the tag's commit (f57848b8), and the freeze/seal span broke the one-commit payload..seal invariant (2.8.0 shipped with freeze+seal adjacent). Re-seal follows the 2.7.0 pattern: boundary + allowlist repairs land while Collecting, then a fresh freeze and a clean Ready seal as the final commit."
     }
   ]
 }
