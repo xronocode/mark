@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.10.0
+# VERSION: 1.10.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks.
 #   SCOPE: Exact staged/message/outgoing snapshots, approved public/private path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites with explicit GPG-signature removal accounting, AI attribution and branch-name bans, identity recheck, private receipts and common hooks.
@@ -38,7 +38,8 @@
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.10.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one exact-manifest main rewrite only after raw-object ordered-parent DAG proof, deterministic message scans and explicit accounting for unavoidable gpgsig removal.
+#   LAST_CHANGE: 1.10.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: preserve exact raw commit-message termination by admitting manifest replacements with or without a final LF.
+#   PREV: 1.10.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one exact-manifest main rewrite only after raw-object ordered-parent DAG proof, deterministic message scans and explicit accounting for unavoidable gpgsig removal.
 #   PREV: 1.9.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: make the public gate deterministic by retaining exact candidate, static exposure, Gitleaks, lane, ref, binary-evidence and identity checks while moving optional workstation review outside the repository.
 #   PREV: 1.8.0 - 2026-10-24: owner-approved AI-name ban — commit and push reject AI attribution trailers (Co-Authored-By and similar, "Generated with" lines) and AI-named branches; a reference-transaction hook stops local creation of such branches, including worktree branches.
 #   PREV: 1.7.0 - 2026-10-24: owner-approved housekeeping lane — a deletion-only push of non-main branches passes when each deleted tip is an ancestor of <remote>/main or the exact head of a PR merged into main; mixed, tag, main or unproven deletions stay blocked.
@@ -376,7 +377,6 @@ def _history_manifest(path):
             or not re.fullmatch(r"[0-9a-f]{64}", digest)
             or not isinstance(message, str)
             or not message
-            or not message.endswith("\n")
             or "\0" in message
             or not message_bytes
         ):
