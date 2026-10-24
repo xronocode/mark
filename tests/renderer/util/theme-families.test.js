@@ -74,13 +74,15 @@ const SPEC_FAMILY_ORDER = [
   'paper', 'rose-pine', 'catppuccin', 'solarized', 'gruvbox', 'everforest',
   'tokyo-night', 'ayu', 'one', 'dracula', 'nord', 'kanagawa', 'graphite', 'ulysses',
   // C-51 T-007: the Docs and macOS families join at the end.
-  'docs', 'macos'
+  'docs', 'macos',
+  // C-GITHUB-THEME: the GitHub family joins last.
+  'github'
 ]
 
 describe('THEME_FAMILIES (C-41 T-002)', () => {
-  it('exports 16 frozen families in spec R-3 order plus the C-51 T-007 families', async () => {
+  it('exports 17 frozen families in spec R-3 order plus the C-51 T-007 and C-GITHUB-THEME families', async () => {
     const { THEME_FAMILIES } = await import('@/config')
-    expect(THEME_FAMILIES).toHaveLength(16)
+    expect(THEME_FAMILIES).toHaveLength(17)
     expect(THEME_FAMILIES.map((f) => f.id)).toEqual(SPEC_FAMILY_ORDER)
     for (const family of THEME_FAMILIES) {
       expect(Object.isFrozen(family)).toBe(true)
@@ -95,10 +97,10 @@ describe('THEME_FAMILIES (C-41 T-002)', () => {
     }
   })
 
-  it('the 32 members are unique and include no retired id', async () => {
+  it('the 34 members are unique and include no retired id', async () => {
     const { THEME_FAMILIES } = await import('@/config')
     const members = THEME_FAMILIES.flatMap((f) => [f.light, f.dark])
-    expect(new Set(members).size).toBe(32)
+    expect(new Set(members).size).toBe(34)
     for (const retired of RETIRED_IDS) {
       expect(members).not.toContain(retired)
     }
@@ -122,7 +124,7 @@ describe('themePairs stays symmetric and derived (C-41 T-002)', () => {
       expect(themePairs[family.light]).toBe(family.dark)
       expect(themePairs[family.dark]).toBe(family.light)
     }
-    expect(Object.keys(themePairs)).toHaveLength(32)
+    expect(Object.keys(themePairs)).toHaveLength(34)
     for (const retired of RETIRED_IDS) {
       expect(themePairs[retired]).toBeUndefined()
     }

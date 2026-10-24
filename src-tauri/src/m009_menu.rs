@@ -1095,6 +1095,7 @@ pub fn build_native_menu<R: tauri::Runtime>(
             &MenuItemBuilder::with_id("window.change-theme-ink", "Ink").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-docs", "Docs").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-macos", "macOS").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-github", "GitHub").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-graphite", "Graphite").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-graphite-dark", "Graphite Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ulysses", "Ulysses").build(handle)?,
@@ -1115,6 +1116,7 @@ pub fn build_native_menu<R: tauri::Runtime>(
         .items(&[
             &MenuItemBuilder::with_id("window.change-theme-docs-dark", "Docs Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-macos-dark", "macOS Dark").build(handle)?,
+            &MenuItemBuilder::with_id("window.change-theme-github-dark", "GitHub Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-one-dark", "One Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-ayu-dark", "Ayu Dark").build(handle)?,
             &MenuItemBuilder::with_id("window.change-theme-catppuccin-mocha", "Catppuccin Mocha").build(handle)?,

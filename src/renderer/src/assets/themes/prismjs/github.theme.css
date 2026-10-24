@@ -1,0 +1,151 @@
+/*
+ * Prism.js GitHub Theme (Light)
+ * C-GITHUB-THEME companion to github.theme.css — GitHub's own light syntax
+ * colours on #F6F8FA: red keywords, indigo strings, violet entities, blue
+ * constants, green tags.
+ */
+
+code[class*="language-"],
+pre.ag-paragraph {
+  color: #1F2328;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+  overflow: visible;
+}
+
+pre.ag-paragraph {
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0.3em;
+}
+
+:not(pre) > code[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor, #F6F8FA);
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: .1em;
+  border-radius: .3em;
+  white-space: normal;
+}
+
+/* Comments — GitHub plain grey */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #59636E;
+}
+
+/* Punctuation — ink */
+.token.punctuation {
+  color: #1F2328;
+}
+
+/* Namespace — red like keywords */
+.namespace {
+  color: #CF222E;
+  opacity: .85;
+}
+
+/* Keywords — GitHub red */
+.token.keyword,
+.token.keyword.control-flow,
+.token.macro,
+.token.arrow {
+  color: #CF222E;
+}
+
+/* Types / class names — GitHub brown-orange */
+.token.class-name {
+  color: #953800;
+}
+
+/* Functions / entities — GitHub violet */
+.token.function,
+.token.function-definition,
+.token.entity,
+.token.builtin {
+  color: #8250DF;
+}
+
+/* Strings / selectors / attribute values — GitHub indigo */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.template-string,
+.token.atrule,
+.token.attr-value {
+  color: #0A3069;
+}
+
+/* Numbers, booleans, constants — GitHub blue */
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.property {
+  color: #0550AE;
+}
+
+/* Tags — GitHub green */
+.token.tag {
+  color: #116329;
+}
+
+/* Parameters, variables — ink */
+.token.parameter,
+.token.variable {
+  color: #1F2328;
+}
+
+/* Operators, URLs — muted ink */
+.token.operator,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #59636E;
+}
+
+/* Regex — green */
+.token.regex {
+  color: #116329;
+}
+
+/* Important */
+.token.important {
+  color: #0550AE;
+  font-weight: bold;
+}
+
+/* Inserted / deleted — diff green / red */
+.token.inserted {
+  color: #1A7F37;
+}
+.token.deleted {
+  color: #CF222E;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}

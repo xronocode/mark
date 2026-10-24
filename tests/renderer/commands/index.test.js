@@ -249,8 +249,8 @@ describe('command execute actions', () => {
 describe('window.change-theme subcommands', () => {
   const themeCmd = commands.find((c) => c.id === 'window.change-theme')
 
-  it('has 32 theme subcommands (16 families × light/dark, C-41 T-002 + T-003 + C-51 T-007)', () => {
-    expect(themeCmd.subcommands).toHaveLength(32)
+  it('has 34 theme subcommands (17 families × light/dark, C-41 T-002 + T-003 + C-51 T-007 + C-GITHUB-THEME)', () => {
+    expect(themeCmd.subcommands).toHaveLength(34)
   })
 
   it('all subcommands have id, description, and value', () => {

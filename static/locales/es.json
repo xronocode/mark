@@ -892,7 +892,9 @@
       "nordLight": "Nord Light",
       "solarizedDark": "Solarized Oscuro",
       "gruvboxDark": "Gruvbox Oscuro",
-      "darkThemes": "— Temas Oscuros —"
+      "darkThemes": "— Temas Oscuros —",
+      "github": "GitHub",
+      "githubDark": "GitHub Oscuro"
     },
     "counter": {
       "paragraphs": "Párrafos",
