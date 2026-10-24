@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.8.0
+# VERSION: 1.9.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that deterministic publication safety fails closed on leaks, private paths, unsupported payloads and candidate changes.
-#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, exact identity receipts and outgoing history; no fixture commits.
+#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, exact identity receipts, outgoing history and exact-manifest message-only main rewrites; no fixture commits in the project repository.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -11,10 +11,11 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, exact-index, deterministic receipt, outgoing-history, merged-branch deletion and AI-name ban scenarios.
+#   SafetyGateTests - exposure, exact-index, deterministic receipt, outgoing-history, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.8.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace workstation-model scenarios with deterministic scan, exact identity and private receipt assertions.
+#   LAST_CHANGE: 1.9.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove exact manifest binding, ordered-parent merge-DAG parity, raw header preservation, explicit signature loss, stale/shallow rejection and candidate recheck.
+#   PREV: 1.8.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace workstation-model scenarios with deterministic scan, exact identity and private receipt assertions.
 #   PREV: 1.7.0 - 2026-10-24: prove the AI-name ban — attribution trailers fail commit and push review, AI-named branches fail push, and the installed reference-transaction hook aborts local creation of AI-named branches only.
 #   PREV: 1.6.0 - 2026-10-24: prove merged-branch deletion admission — ancestor or exact merged-PR tips pass; mixed, main, tag, unproven and GitHub-failure cases stay blocked.
 #   PREV: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
@@ -316,6 +317,236 @@ class SafetyGateTests(unittest.TestCase):
             self.assertEqual(run("branch", "feat/claude-hooks").returncode, 0)
             self.assertEqual(run("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "next").returncode, 0)
     # END_BLOCK_AI_NAME_BAN_TESTS
+
+
+    # START_BLOCK_MESSAGE_ONLY_HISTORY_REWRITE_TESTS
+    @staticmethod
+    def history_fixture(directory, replacement="feature\n", mutation=None):
+        root = Path(directory) / "repo"
+        root.mkdir()
+        subprocess.run(["git", "-C", str(root), "init", "-q", "-b", "main"], check=True)
+
+        def git_bytes(*args, data=None):
+            return subprocess.run(
+                ["git", "-C", str(root), *args],
+                input=data,
+                capture_output=True,
+                check=True,
+            ).stdout
+
+        empty_tree = git_bytes("hash-object", "-t", "tree", "-w", "--stdin", data=b"").decode().strip()
+        blob = git_bytes("hash-object", "-t", "blob", "-w", "--stdin", data=b"changed\n").decode().strip()
+        changed_tree = git_bytes(
+            "mktree",
+            data=("100644 blob " + blob + "\tfile.txt\n").encode(),
+        ).decode().strip()
+        author = b"author Test Owner <owner@example.com> 1700000000 +0000"
+        committer = b"committer Test Owner <owner@example.com> 1700000000 +0000"
+
+        def write_commit(tree, parents, message, signature=False, extra=(b"x-test stable", b"x-other stable")):
+            headers = [("tree " + tree).encode()]
+            headers.extend(("parent " + parent).encode() for parent in parents)
+            headers.extend([author, committer])
+            if signature:
+                headers.append(b"gpgsig -----BEGIN PGP SIGNATURE-----\n fake-signature\n -----END PGP SIGNATURE-----")
+            if extra:
+                headers.extend(extra if isinstance(extra, tuple) else (extra,))
+            raw = b"\n".join(headers) + b"\n\n" + message.encode()
+            return git_bytes("hash-object", "-t", "commit", "-w", "--stdin", data=raw).decode().strip()
+
+        base = write_commit(empty_tree, [], "base\n")
+        old_message = "feature\n\nCo-Authored-By: Claude Opus <noreply@anthropic.com>\n"
+        feature = write_commit(changed_tree, [base], old_message)
+        follow_up = write_commit(changed_tree, [feature], "follow-up\n")
+        merge = write_commit(changed_tree, [feature, follow_up], "merge\n")
+        old_tip = write_commit(changed_tree, [merge], "tip\n", signature=True)
+        git_bytes("update-ref", "refs/heads/main", old_tip)
+        git_bytes("update-ref", "refs/remotes/fork/main", old_tip)
+
+        rewritten = {}
+
+        def rebuild(oid):
+            if oid == base:
+                return oid
+            if oid in rewritten:
+                return rewritten[oid]
+            commit = gate.raw_commit(root, oid)
+            parents = [rebuild(parent) for parent in commit["parents"]]
+            message = replacement.encode() if oid == feature else commit["message"]
+            stable = list(commit["stableHeaders"])
+            headers = [stable[0], *[(b"parent " + parent.encode()) for parent in parents], *stable[1:]]
+            if mutation:
+                headers, message = mutation(oid, {"feature": feature, "merge": merge, "tip": old_tip, "altTree": empty_tree}, headers, message)
+            raw = b"\n".join(headers) + b"\n\n" + message
+            rewritten[oid] = git_bytes("hash-object", "-t", "commit", "-w", "--stdin", data=raw).decode().strip()
+            return rewritten[oid]
+
+        new_tip = rebuild(old_tip)
+        git_bytes("update-ref", "refs/heads/rewritten", new_tip)
+        manifest = {
+            "schemaVersion": "1.0.0",
+            "operation": "message-only-main-rewrite",
+            "oldTip": old_tip,
+            "expectedReachableCommitCount": 5,
+            "expectedCommitCount": 4,
+            "expectedMergeCount": 1,
+            "expectedSignatureRemovals": 1,
+            "changes": [{
+                "oldSha": feature,
+                "oldMessageSha256": gate.hashlib.sha256(old_message.encode()).hexdigest(),
+                "newMessage": replacement,
+            }],
+        }
+        manifest_path = Path(directory) / "history-rewrite.json"
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+        updates = "refs/heads/rewritten " + new_tip + " refs/heads/main " + old_tip + "\n"
+        return SimpleNamespace(
+            root=root,
+            manifest=manifest,
+            manifest_path=manifest_path,
+            updates=updates,
+            old_tip=old_tip,
+            new_tip=new_tip,
+            feature=feature,
+            base=base,
+        )
+
+    def test_exact_manifest_merge_dag_and_signature_loss_are_admitted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.history_fixture(directory)
+            self.assertTrue(gate.history_rewrite_requested(fixture.root, fixture.updates))
+            candidate = gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+            self.assertEqual(candidate["receipt"]["commitCount"], 4)
+            self.assertEqual(candidate["receipt"]["reachableCommitCount"], 5)
+            self.assertEqual(candidate["receipt"]["mergeCount"], 1)
+            self.assertEqual(candidate["receipt"]["changedMessageCount"], 1)
+            self.assertEqual(candidate["receipt"]["removedSignatureCount"], 1)
+            self.assertIn("BLOCK_MESSAGE_ONLY_HISTORY_REWRITE", candidate["passMarker"])
+            self.assertIn("--- previous message", candidate["payload"])
+            self.assertNotIn("Co-Authored-By", candidate["scanText"])
+
+    def test_rewrite_rejects_manifest_drift_and_forbidden_replacement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.history_fixture(directory)
+            fixture.manifest["changes"][0]["newMessage"] = "different\n"
+            fixture.manifest_path.write_text(json.dumps(fixture.manifest))
+            with self.assertRaises(gate.GateError):
+                gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+        with tempfile.TemporaryDirectory() as directory:
+            replacement = "feature\n\nCo-Authored-By: Codex <codex@openai.com>\n"
+            fixture = self.history_fixture(directory, replacement=replacement)
+            with self.assertRaises(gate.GateError):
+                gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+
+    def test_rewrite_rejects_tree_identity_extra_header_parent_and_signature_changes(self):
+        def mutate_tree(oid, ids, headers, message):
+            if oid == ids["feature"]:
+                headers[0] = ("tree " + ids["altTree"]).encode()
+            return headers, message
+
+        def mutate_author(oid, ids, headers, message):
+            if oid == ids["feature"]:
+                headers = [b"author Other <other@example.com> 1700000000 +0000" if line.startswith(b"author ") else line for line in headers]
+            return headers, message
+
+        def mutate_extra(oid, ids, headers, message):
+            if oid == ids["feature"]:
+                headers = [b"x-test changed" if line == b"x-test stable" else line for line in headers]
+            return headers, message
+
+        def mutate_header_order(oid, ids, headers, message):
+            if oid == ids["feature"]:
+                first = headers.index(b"x-test stable")
+                second = headers.index(b"x-other stable")
+                headers[first], headers[second] = headers[second], headers[first]
+            return headers, message
+
+        def mutate_parents(oid, ids, headers, message):
+            if oid == ids["merge"]:
+                parent_indexes = [index for index, line in enumerate(headers) if line.startswith(b"parent ")]
+                headers[parent_indexes[0]], headers[parent_indexes[1]] = headers[parent_indexes[1]], headers[parent_indexes[0]]
+            return headers, message
+
+        def copy_signature(oid, ids, headers, message):
+            if oid == ids["tip"]:
+                headers.append(b"gpgsig -----BEGIN PGP SIGNATURE-----\n copied\n -----END PGP SIGNATURE-----")
+            return headers, message
+
+        def split_shared_node(oid, ids, headers, message):
+            if oid == ids["merge"]:
+                first_parent = next(index for index, line in enumerate(headers) if line.startswith(b"parent "))
+                headers[first_parent] = b"parent " + ids["feature"].encode()
+            return headers, message
+
+        for mutation in [mutate_tree, mutate_author, mutate_extra, mutate_header_order, mutate_parents, copy_signature, split_shared_node]:
+            with self.subTest(mutation=mutation.__name__), tempfile.TemporaryDirectory() as directory:
+                fixture = self.history_fixture(directory, mutation=mutation)
+                with self.assertRaises(gate.GateError):
+                    gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+
+    def test_rewrite_rejects_other_refs_multiple_refs_stale_tips_and_shallow_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.history_fixture(directory)
+            other = fixture.updates.replace("refs/heads/main", "refs/heads/other")
+            with self.assertRaises(gate.GateError):
+                gate.history_rewrite(fixture.root, "fork", other, fixture.manifest_path)
+            tag_update = "refs/tags/release " + fixture.new_tip + " refs/tags/release " + fixture.old_tip + "\n"
+            with self.assertRaises(gate.GateError):
+                gate.history_rewrite_requested(fixture.root, tag_update)
+            with self.assertRaises(gate.GateError):
+                gate.history_rewrite(fixture.root, "fork", fixture.updates * 2, fixture.manifest_path)
+            subprocess.run(["git", "-C", str(fixture.root), "update-ref", "refs/remotes/fork/main", fixture.base], check=True)
+            with self.assertRaises(gate.GateError):
+                gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+
+            original_git = gate.git
+            def shallow_git(root, *args, **kwargs):
+                if args == ("rev-parse", "--is-shallow-repository"):
+                    return b"true\n"
+                return original_git(root, *args, **kwargs)
+            with patch.object(gate, "git", side_effect=shallow_git), self.assertRaises(gate.GateError):
+                gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+            with self.assertRaises(gate.GateError):
+                gate._history_manifest("~mark-user-that-does-not-exist/history-rewrite.json")
+
+        with tempfile.TemporaryDirectory() as directory:
+            old_message = "feature\n\nCo-Authored-By: Claude Opus <noreply@anthropic.com>\n"
+            fixture = self.history_fixture(directory, replacement=old_message)
+            with self.assertRaises(gate.GateError):
+                gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+
+    def test_rewrite_rejects_shared_node_mapping_conflict_independently_of_counts(self):
+        def split_shared_node(oid, ids, headers, message):
+            if oid == ids["merge"]:
+                first_parent = next(index for index, line in enumerate(headers) if line.startswith(b"parent "))
+                headers[first_parent] = b"parent " + ids["feature"].encode()
+            return headers, message
+
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.history_fixture(directory, mutation=split_shared_node)
+            original_git = gate.git
+            def equal_count_git(root, *args, **kwargs):
+                if args[:2] == ("rev-list", "--count"):
+                    return b"5\n"
+                return original_git(root, *args, **kwargs)
+            with patch.object(gate, "git", side_effect=equal_count_git), self.assertRaises(gate.GateError) as found:
+                gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+            self.assertIn("maps one old commit to multiple new commits", str(found.exception))
+
+    def test_rewrite_manifest_change_during_scan_prevents_receipt(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as private:
+            fixture = self.history_fixture(directory)
+            def change_manifest(_candidate):
+                fixture.manifest["expectedCommitCount"] += 1
+                fixture.manifest_path.write_text(json.dumps(fixture.manifest))
+            with patch.object(gate, "scan", side_effect=change_manifest), self.assertRaises(gate.GateError):
+                gate.review(
+                    lambda: gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path),
+                    Path(private),
+                    "history-rewrite",
+                )
+            self.assertFalse(list(Path(private).glob("history-rewrite-*.json")))
+    # END_BLOCK_MESSAGE_ONLY_HISTORY_REWRITE_TESTS
 
 
 if __name__ == "__main__":

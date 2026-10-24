@@ -1,0 +1,45 @@
+<GraceChangeSpec graceVersion="4.0" status="superseded">
+  <C-MESSAGE-ONLY-HISTORY-REWRITE>
+    <ApprovalBasis>Owner approved the message-only rewrite in chat on 2026-10-24, explicitly requested removal of Claude attribution, accepted preservation of file trees, tags and existing releases, and instructed execution.</ApprovalBasis>
+    <Replacement>C-MESSAGE-ONLY-HISTORY-REWRITE-V2</Replacement>
+    <Summary>Add a deterministic, fail-closed safety lane for one owner-approved message-only rewrite of main, then use it to remove Claude co-author trailers and the agreed non-product commit wording without changing repository trees or existing release refs.</Summary>
+    <Problem>Eleven commits reachable from main contain Claude Co-Authored-By trailers, and selected commit subjects contain service-oriented wording that the owner does not want in the canonical public history. The normal push gate correctly rejects non-fast-forward main updates and needs a narrower proof path before the approved rewrite can occur.</Problem>
+    <Goals>
+      <Goal>Admit exactly one non-fast-forward update of refs/heads/main only when old and new histories are isomorphic by commit count, parent topology, tree, author identity/date and committer identity/date, with commit messages as the only allowed difference.</Goal>
+      <Goal>Scan every changed message through the deterministic static, AI-attribution and Gitleaks boundary, bind the exact ref update and mapping into candidate identity, and write only private hash-bound receipt evidence.</Goal>
+      <Goal>Rewrite the eleven Claude-attributed main commits plus the explicitly approved agent/unreviewed, re-seal and Russian-subject wording in one deterministic pass while preserving every tree byte-for-byte.</Goal>
+      <Goal>Rebase the open feature/documentation pull-request branches onto the rewritten main before they can merge old ancestry back into the canonical line.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No file tree, author identity/date, committer identity/date, commit count or parent topology may change in the rewrite.</Constraint>
+      <Constraint>The push may update only refs/heads/main; tags, releases, other remote branches and pull-request refs remain unchanged during this change.</Constraint>
+      <Constraint>Force-push protection may be bypassed or suspended only for the verified push window and must be restored and read back immediately afterwards.</Constraint>
+      <Constraint>The exact old/new message map and recovery ref remain owner-local and must never be pushed or committed.</Constraint>
+      <Constraint>All source, tests, documentation, graph and verification changes land through PR #54 before the operational rewrite.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Removing files, secrets, QA artifacts, GRACE provenance or any other path from historical trees.</NonGoal>
+      <NonGoal>Moving, deleting or recreating existing tags or releases, or claiming to erase objects from forks, clones, caches or pull-request refs.</NonGoal>
+      <NonGoal>Changing product behavior, release automation, version surfaces or release-train membership in the rewrite-gate change.</NonGoal>
+      <NonGoal>Rewriting commit authors, commit dates or messages beyond the owner-approved exact map.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>The deterministic gate admits a tested message-only main rewrite and rejects changed trees, identities, dates, topology, count, multiple refs, tags, other branches, stale remote tips and forbidden attribution in any new message.</Criterion>
+      <Criterion>The rewrite candidate proves every old/new pair before push; all trees and metadata except messages match exactly and the eleven Claude trailers are absent from rewritten main.</Criterion>
+      <Criterion>The pre-push hook scans and identity-binds the actual non-fast-forward main update; the remote post-push tip equals the reviewed candidate.</Criterion>
+      <Criterion>Existing tags and releases retain their original object identities, protections are restored, and open PR branches are rebased rather than merged from old ancestry.</Criterion>
+      <Criterion>M-064, V-M-064, public safety documentation and focused security tests describe and prove the final fail-closed boundary.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-064 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>python3 -m unittest discover -s tests/security -p 'test_*.py'; git diff --check; private old/new history isomorphism audit; post-push remote identity and attribution audit</ExpectedCommand>
+      <ExpectedEvidence>Green deterministic unit tests, exact candidate receipt, a private complete old/new mapping, unchanged tag identities, zero Claude attribution trailers on rewritten main, restored ruleset state and rebased open pull-request heads.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>PR #56 is merged and supplies the deterministic v1.9.0 gate baseline.</Assumption>
+      <Assumption>The later v2.8.2 anchor is separately governed by the existing release-train and release-process contracts after this change is applied.</Assumption>
+    </Assumptions>
+  </C-MESSAGE-ONLY-HISTORY-REWRITE>
+</GraceChangeSpec>
