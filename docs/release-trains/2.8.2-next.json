@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "trainId": "2.8.2-next",
+  "state": "Collecting",
+  "previousRelease": {
+    "tag": "v2.8.1",
+    "commit": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
+    "bootstrapSha": "e47009327f5871859eb9469817eb14335a65dcc9",
+    "tree": "3744c5c907bf1bf568fa26f535c8170529fbe5a9"
+  },
+  "computedVersion": "2.8.2",
+  "payloadSha": null,
+  "sealSha": null,
+  "releaseAuthorization": null,
+  "items": {
+    "userFacing": [],
+    "operational": [],
+    "notPresent": []
+  },
+  "commitAccounting": {
+    "fromExclusive": "e47009327f5871859eb9469817eb14335a65dcc9",
+    "entries": [],
+    "throughInclusive": null
+  },
+  "requiredChecks": [
+    {
+      "name": "status check",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": null
+    },
+    {
+      "name": "release/governance",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": null
+    },
+    {
+      "name": "release/readiness",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": null
+    }
+  ],
+  "materials": {
+    "status": "pending",
+    "screenshotManifest": "docs/assets/readme/2.8.2.manifest.json",
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "releaseNotes": "docs/release-notes-en-drafts.md",
+    "whatsNew": "src/renderer/src/whatsNew/data.js",
+    "localeCount": 10,
+    "itemIds": []
+  },
+  "transitions": [
+    {
+      "state": "Collecting",
+      "date": "2026-10-25",
+      "actor": "release-agent",
+      "evidence": "Opened for the 2.8.2 patch ahead of 2.9.x-next: the What's New link opens the website changelog, and the changelog page lists every release again. Boundary anchored on the main commit carrying the v2.8.1 tree. No release activity authorized."
+    }
+  ]
+}

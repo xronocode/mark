@@ -1,8 +1,22 @@
 # Changelog
 
-All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. Downloads and signatures for every version are on [GitHub Releases](https://github.com/xronocode/mark/releases).
+All notable changes to Mark. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions before 2.3.0 were published as alpha and beta releases. The current version's download and signatures are on [GitHub Releases](https://github.com/xronocode/mark/releases/latest).
 
 
+
+<!-- #region releases -->
+
+<!-- release-draft:start -->
+
+The "See everything new" link in What's New now opens this changelog.
+
+### Changed
+- "See everything new" in What's New opens the release's section of the changelog on the Mark website instead of a GitHub release page.
+
+### Fixed
+- The changelog page on the Mark website lists every release again; versions 2.6.0 to 2.8.1 were missing from it.
+
+<!-- release-draft:end -->
 
 ## [2.8.1] - 2026-10-23
 
@@ -90,9 +104,6 @@ Carried over from the old status table in the README:
 - Intel Macs are not supported by the Homebrew cask; Linux builds are not published.
 - Image upload services (PicGo and similar) are not supported.
 
-
-
-<!-- #region releases -->
 
 ## [2.5.3] - 2026-10-19
 

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/whatsNew/content.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the What's New release content — exactly four ordered
 //            current release-draft items, every locale table (all 10)
@@ -7,7 +7,7 @@
 //            everything new» link key, the sheet-layout length limits
 //            (titles ≤ 32, texts ≤ 90, also ≤ 120), vue-i18n brace
 //            safety, the kept-untranslated product names and shortcuts,
-//            and the GitHub release URL lookup used by the footer link.
+//            and the changelog-section URL lookup used by the footer link.
 //   SCOPE: src/renderer/src/whatsNew/data.js tables + all
 //          static/locales/*.json whatsNew sections (source tables — the
 //          .min.json files are regenerated from them).
@@ -25,10 +25,13 @@
 //   RELEASE_DRAFT_ITEM_KEYS - the four current draft item keys in sheet order.
 //   ITEM_KEY_ORDER_2_5_3 - the four 2.5.3 item keys in sheet order (session, tables, columns, updates).
 //   ITEM_KEY_ORDER - the four D-1 item keys in the approved order.
+//   CHANGELOG_SOURCE - repository CHANGELOG.md, the source of every release heading.
+//   SITE_CHANGELOG - the website changelog page that includes its releases region.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-20 derive the current release identity from the newest sheet so normalization never rewrites historical test text.
+//   LAST_CHANGE: v1.5.0 - 2026-10-25 the footer link opens the release's website changelog section; every release date matches its CHANGELOG heading.
+//   PREV: v1.4.0 - 2026-10-20 derive the current release identity from the newest sheet so normalization never rewrites historical test text.
 //   PREV: v1.3.0 - 2026-10-20 release 2.6.0 draft: pin the four
 //   accepted-train items, their ten-locale matrix, layout limits, stable
 //   product names/shortcuts and the future release URL.
@@ -39,13 +42,17 @@
 //   v1.0.0 - 2026-10-17 C-53 T-001/R-1: initial pins.
 // END_CHANGE_SUMMARY
 
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import {
   WHATS_NEW_CONTENT,
   WHATS_NEW_MAX_ITEMS,
   WHATS_NEW_ALSO_KEY,
   WHATS_NEW_SEE_EVERYTHING_KEY,
-  WHATS_NEW_RELEASE_URLS,
+  WHATS_NEW_CHANGELOG_URL,
+  WHATS_NEW_RELEASE_DATES,
+  changelogAnchor,
   getWhatsNewItems,
   getWhatsNewReleaseUrl
 } from '@/whatsNew/data'
@@ -208,8 +215,8 @@ describe('whatsNew 2.5.3 sheet', () => {
     }
   })
 
-  it('points the 2.5.3 sheet at its GitHub release page', () => {
-    expect(getWhatsNewReleaseUrl('2.5.3')).toBe('https://github.com/xronocode/mark/releases/tag/v2.5.3')
+  it('points the 2.5.3 sheet at its changelog section', () => {
+    expect(getWhatsNewReleaseUrl('2.5.3')).toBe('https://mark.xronocode.com/changelog#_2-5-3-2026-10-19')
   })
 })
 // END_BLOCK_CONTENT_2_5_3
@@ -247,28 +254,43 @@ describe('current release-draft sheet', () => {
     }
   })
 
-  it('points the draft sheet at its future GitHub release page', () => {
-    expect(getWhatsNewReleaseUrl(RELEASE_DRAFT_VERSION)).toBe(
-      `https://github.com/xronocode/mark/releases/tag/v${RELEASE_DRAFT_VERSION}`
+  it('points the draft sheet at its changelog section', () => {
+    expect(getWhatsNewReleaseUrl(RELEASE_DRAFT_VERSION)).toMatch(
+      new RegExp(`^https://mark\\.xronocode\\.com/changelog#_${RELEASE_DRAFT_VERSION.replace(/\./g, '-')}-\\d{4}-\\d{2}-\\d{2}$`)
     )
   })
 })
 // END_BLOCK_CONTENT_2_5_4
 
 // START_BLOCK_RELEASE_URL
+const CHANGELOG_SOURCE = readFileSync(resolve(__dirname, '../../../CHANGELOG.md'), 'utf8')
+const SITE_CHANGELOG = readFileSync(resolve(__dirname, '../../../site/changelog.md'), 'utf8')
+
 describe('getWhatsNewReleaseUrl (C-53 «See everything new» link)', () => {
-  it('points the 2.5.0 sheet at the GitHub release page', () => {
-    expect(WHATS_NEW_RELEASE_URLS['2.5.0']).toBe(
-      'https://github.com/xronocode/mark/releases/tag/v2.5.0'
-    )
+  it('opens the website changelog at the release heading', () => {
+    expect(getWhatsNewReleaseUrl('2.5.0')).toBe(`${WHATS_NEW_CHANGELOG_URL}#_2-5-0-2026-10-18`)
+    expect(changelogAnchor('2.2.0-beta', '2026-10-07')).toBe('_2-2-0-beta-2026-10-07')
+  })
+
+  it('dates every linked release exactly like its CHANGELOG heading, inside the region the site renders', () => {
+    const region = CHANGELOG_SOURCE.split('<!-- #region releases -->')[1]?.split('<!-- #endregion releases -->')[0] ?? ''
+    expect(SITE_CHANGELOG).toContain('<!--@include: ../CHANGELOG.md#releases-->')
+    for (const [version, date] of Object.entries(WHATS_NEW_RELEASE_DATES)) {
+      expect(region, `CHANGELOG heading for ${version}`).toContain(`## [${version}] - ${date}`)
+    }
+  })
+
+  it('links every sheet with content except an undated draft', () => {
+    for (const version of Object.keys(WHATS_NEW_CONTENT)) {
+      if (WHATS_NEW_RELEASE_DATES[version]) expect(getWhatsNewReleaseUrl(version)).not.toBe('')
+    }
   })
 
   it('normalizes prerelease decorations like the item lookup', () => {
-    expect(getWhatsNewReleaseUrl('2.5.0-beta')).toBe(WHATS_NEW_RELEASE_URLS['2.5.0'])
-    expect(getWhatsNewReleaseUrl('2.5.0')).toBe(WHATS_NEW_RELEASE_URLS['2.5.0'])
+    expect(getWhatsNewReleaseUrl('2.5.0-beta')).toBe(getWhatsNewReleaseUrl('2.5.0'))
   })
 
-  it('returns an empty string for a version without a release page (link hides)', () => {
+  it('returns an empty string for a version without a changelog section (link hides)', () => {
     expect(getWhatsNewReleaseUrl('9.9.9')).toBe('')
   })
 })

@@ -2,7 +2,7 @@
 
 Owner instruction recorded on 2026-10-19: a confirmed fix joins a release train; accepting it does not start a release. This protocol governs delivery bookkeeping and release admission. Existing GRACE specs/plans still govern implementation and structural refactors.
 
-Current train: [2.9.x-next](2.9.x-next.md). It opens after v2.8.1 (released 2026-10-24 from [2.8.x-next](2.8.x-next.md)) and collects the planned 2.9.0 minor; no item admitted and no release activity authorized yet. Tools and workflows find it through [`current.json`](current.json) — switching trains means editing that one pointer and this line, nothing in CI.
+Current train: [2.8.2-next](2.8.2-next.md). It opens after v2.8.1 for the 2.8.2 patch; [2.9.x-next](2.9.x-next.md) keeps collecting the 2.9.0 minor and becomes current again once 2.8.2 ships. Tools and workflows find the current train through [`current.json`](current.json) — switching trains means editing that one pointer and this line, nothing in CI.
 
 ## A fix moves through these stages
 

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-materials.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin exact release-material identity for the checked-in package version across train scope, public prose, ten locales, README image references, tracked files, and screenshot digests.
 //   SCOPE: Repository-positive integration plus isolated locale, image-set, review, and digest negative fixtures; no screenshot capture or publication.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.1.0: the in-app link is checked through the release date that must equal the CHANGELOG heading date.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — derive the version, its train, locale keys and screenshot manifest from the repository instead of pinning 2.8.1, so a version bump no longer breaks this suite.
 //   - 2026-10-21 v1.4.0: keep negative material fixtures stable across collecting and prepared release-PR states.
 //   - 2026-10-20 v1.3.0: prove Windows CRLF checkouts retain the same README, CHANGELOG, and release-notes identity.
@@ -68,6 +69,11 @@ const rejectedWith = (callback, code) => {
   expect(callback).toThrow(expect.objectContaining({ code }))
 }
 const restoreChangelogDraft = (source, version) => {
+  const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (new RegExp(`^## \\[${escapedVersion}\\]`, 'm').test(source)) {
+    // A draft next to a dated VERSION section belongs to the next release.
+    source = source.replace(/<!-- release-draft:start -->[\s\S]*?<!-- release-draft:end -->\n*/, '')
+  }
   if (source.includes('<!-- release-draft:start -->')) return source
   const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const section = new RegExp(
@@ -161,6 +167,14 @@ describe('release materials', () => {
     expect(validateMaterialHeaders(materials)).toBeUndefined()
   })
 
+  it('accepts the next release draft beside a Released version only', () => {
+    const materials = materialHeaders()
+    materials.changelog = materials.changelog
+      .replace('<!-- release-draft:start -->', `## [${VERSION}] - 2026-10-23\n\n<!-- release-draft:start -->`)
+    expect(validateMaterialHeaders({ ...materials, state: 'Released' })).toBeUndefined()
+    rejectedWith(() => validateMaterialHeaders({ ...materials, state: 'Ready' }), 'MT_RELEASE_CHANGELOG_VERSION_MISMATCH')
+  })
+
   it('rejects duplicate numbered CHANGELOG sections independently', () => {
     const materials = materialHeaders()
     materials.changelog = materials.changelog
@@ -194,16 +208,17 @@ describe('release materials', () => {
     const source = readFileSync(resolve('src/renderer/src/whatsNew/data.js'), 'utf8')
       .replace(`'${VERSION}': [`, "'9.9.9': [")
     rejectedWith(
-      () => validateWhatsNewSource(source, VERSION),
+      () => validateWhatsNewSource(source, VERSION, '2026-01-01'),
       'MT_RELEASE_WHATS_NEW_MISMATCH'
     )
   })
 
-  it('rejects a wrong in-app release URL independently', () => {
+  it('rejects an in-app release date that differs from the CHANGELOG heading independently', () => {
     const source = readFileSync(resolve('src/renderer/src/whatsNew/data.js'), 'utf8')
-      .replace(`/releases/tag/v${VERSION}`, '/releases/tag/v9.9.9')
+    const date = new RegExp(`^## \\[${VERSION.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\] - (\\d{4}-\\d{2}-\\d{2})`, 'm').exec(readFileSync(resolve('CHANGELOG.md'), 'utf8'))?.[1]
+    expect(validateWhatsNewSource(source, VERSION, date)).toBe(true)
     rejectedWith(
-      () => validateWhatsNewSource(source, VERSION),
+      () => validateWhatsNewSource(source, VERSION, '1999-01-01'),
       'MT_RELEASE_WHATS_NEW_MISMATCH'
     )
   })

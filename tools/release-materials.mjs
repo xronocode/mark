@@ -1,5 +1,5 @@
 // FILE: tools/release-materials.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify that every public 2.6.0 release-material surface and screenshot digest describes one admitted release-train identity.
 //   SCOPE: Repository-only README, CHANGELOG, English notes, What's New, ten source/minified locales, train scope, and tracked PNG validation; no image capture or publication.
@@ -15,7 +15,7 @@
 //   validateLocaleMaterials - Enforces ten-locale copy, layout, product-token, and minified parity rules.
 //   validateScreenshotManifest - Enforces exact tracked README PNG membership and SHA-256 identity.
 //   validateMaterialHeaders - Cross-checks release headings across human materials.
-//   validateWhatsNewSource - Cross-checks in-app release content and its exact public URL.
+//   validateWhatsNewSource - Cross-checks in-app release content and the release date its changelog link uses.
 //   validateReleaseMaterials - Cross-checks all release-material surfaces for one tag and train.
 //   runReleaseMaterials - Runs the repository-only gate and emits its stable success marker.
 //   LOCALES - Exact supported release-copy locale set.
@@ -33,6 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v1.3.0: the What's New link opens the website changelog; the in-app release date must equal the version's CHANGELOG heading date; a Released version tolerates the next release's CHANGELOG draft.
 //   - 2026-10-22 v1.3.0: advance the per-locale product-token pin set to the 2.6.1 sheet (Mark, ⇧⌘T, ⇧⌘P, .html); layout limits and manifest identity checks unchanged.
 //   - 2026-10-20 v1.2.0: normalize Markdown newlines so Windows CRLF checkouts validate the same release identity as LF checkouts.
 //   - 2026-10-20 v1.1.0: distinguish the unversioned release draft from Release Please-owned numbered CHANGELOG sections and reject duplicate headings.
@@ -242,6 +243,12 @@ export const validateMaterialHeaders = ({ readme, changelog, notes, version, sta
   }
   const hasDraft = draftStarts.length === 1 && draftEnds.length === 1
   const requiresNumbered = ['Frozen', 'Ready', 'Released'].includes(state)
+  // Once a version is Released, a draft in CHANGELOG belongs to the next
+  // release; the released version only needs its one dated section.
+  if (state === 'Released' && numberedHeadings.length === 1 && draftStarts.length === draftEnds.length) {
+    extractReleaseNotes(notesText, `v${version}`)
+    return
+  }
   if (
     numberedHeadings.length > 1 ||
     (hasDraft && numberedHeadings.length !== 0) ||
@@ -257,7 +264,7 @@ export const validateMaterialHeaders = ({ readme, changelog, notes, version, sta
   extractReleaseNotes(notesText, `v${version}`)
 }
 
-export const validateWhatsNewSource = (source, version) => {
+export const validateWhatsNewSource = (source, version, releaseDate) => {
   const versionKey = `v${version.replace(/[.-]/g, '_')}`
   if (
     !source.includes(`'${version}': [`) ||
@@ -265,8 +272,9 @@ export const validateWhatsNewSource = (source, version) => {
   ) {
     fail('MT_RELEASE_WHATS_NEW_MISMATCH', `version=${version};content=missing`)
   }
-  if (!source.includes(`https://github.com/xronocode/mark/releases/tag/v${version}`)) {
-    fail('MT_RELEASE_WHATS_NEW_MISMATCH', `version=${version};url=mismatch`)
+  const dates = /export const WHATS_NEW_RELEASE_DATES = \{([\s\S]*?)\n\}/.exec(source)?.[1] ?? ''
+  if (!releaseDate || !dates.includes(`'${version}': '${releaseDate}'`)) {
+    fail('MT_RELEASE_WHATS_NEW_MISMATCH', `version=${version};date=mismatch`)
   }
   return true
 }
@@ -303,7 +311,9 @@ export const validateReleaseMaterials = (workspaceRoot, tag, { trainPath } = {})
   }
 
   const whatsNewSource = readFileSync(resolve(root, 'src/renderer/src/whatsNew/data.js'), 'utf8')
-  validateWhatsNewSource(whatsNewSource, version)
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const releaseDate = new RegExp(`^## \\[${escaped}\\] - (\\d{4}-\\d{2}-\\d{2})`, 'm').exec(changelog)?.[1]
+  validateWhatsNewSource(whatsNewSource, version, releaseDate)
 
   const sourceTables = {}
   const minifiedTables = {}
