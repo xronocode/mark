@@ -10,6 +10,8 @@ this repository. The durable rules live in the linked documents:
   checks for the exact staged or outgoing candidate.
 - [Release procedure](docs/release-process.md) — preparation, freeze, seal,
   promotion and post-publication steps.
+- [Public artifact format](docs/public-artifacts-format.md) — structure and
+  voice of PR descriptions, release notes and other public text.
 - [Release-train protocol](docs/release-trains/README.md) — acceptance,
   admission, freeze, seal and release boundaries.
 
