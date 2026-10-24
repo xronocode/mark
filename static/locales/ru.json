@@ -84,7 +84,8 @@
       "failed": "Сбой экспорта в {type}",
       "error": "Ошибка экспорта",
       "imagesEmbeddedMessage": "Встроено {embedded} из {total} изображений — слишком большие или отсутствующие остались исходными ссылками",
-      "errorExporting": "Ошибка экспорта файла {type}"
+      "errorExporting": "Ошибка экспорта файла {type}",
+      "settingsAction": "Настройки экспорта"
     },
     "resizeTable": "Изменить размер таблицы",
     "vega-lite-start": "начало vega-lite",
@@ -189,7 +190,8 @@
       "exportFilePdf": "Экспорт в PDF",
       "openFromClipboard": "Открыть из буфера обмена",
       "reopenClosedTab": "Вернуть закрытую вкладку",
-      "newWindow": "Новое окно"
+      "newWindow": "Новое окно",
+      "exportFileDocx": "Экспорт в Word"
     },
     "paragraph": {
       "table": "Таблица",
@@ -745,7 +747,10 @@
       "closeOthers": "Закрыть другие",
       "copyAsHtml": "Копировать как HTML",
       "splitView": "Разделённый вид",
-      "copyAsStructuredText": "Копировать как структурированный текст"
+      "copyAsStructuredText": "Копировать как структурированный текст",
+      "exportPdf": "Экспортировать в PDF…",
+      "exportHtml": "Экспортировать в HTML…",
+      "exportDocx": "Экспортировать в Word…"
     },
     "insertParagraphBefore": "Вставить абзац выше",
     "spelling": "Орфография...",
@@ -1447,7 +1452,8 @@
         "liber": "Liber",
         "default": "GitHub (По умолчанию)"
       }
-    }
+    },
+    "docxTitle": "Экспорт в Word"
   },
   "import": {
     "title": "Импорт или открытие",

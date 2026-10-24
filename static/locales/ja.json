@@ -82,7 +82,8 @@
       "failed": "エクスポートに失敗しました",
       "error": "エクスポートエラー",
       "imagesEmbeddedMessage": "{total}枚中{embedded}枚の画像を埋め込みました。サイズ超過や見つからない画像は元のリンクのままです",
-      "errorExporting": "ファイルのエクスポート中にエラーが発生しました"
+      "errorExporting": "ファイルのエクスポート中にエラーが発生しました",
+      "settingsAction": "書き出し設定"
     },
     "resizeTable": "表のサイズ変更",
     "vega-lite-start": "vega-lite開始",
@@ -186,7 +187,8 @@
       "exportFilePdf": "PDFとしてエクスポート",
       "openFromClipboard": "クリップボードから開く",
       "reopenClosedTab": "閉じたタブを再び開く",
-      "newWindow": "新しいウィンドウ"
+      "newWindow": "新しいウィンドウ",
+      "exportFileDocx": "Word として書き出す"
     },
     "paragraph": {
       "table": "表",
@@ -737,7 +739,10 @@
       "closeOthers": "他を閉じる",
       "copyAsHtml": "HTML としてコピー",
       "splitView": "分割表示",
-      "copyAsStructuredText": "構造化テキストとしてコピー"
+      "copyAsStructuredText": "構造化テキストとしてコピー",
+      "exportPdf": "PDF に書き出す…",
+      "exportHtml": "HTML に書き出す…",
+      "exportDocx": "Word に書き出す…"
     },
     "insertParagraphBefore": "前に段落を挿入",
     "spelling": "スペルチェック...",
@@ -1439,7 +1444,8 @@
         "liber": "リベル",
         "default": "GitHub (デフォルト)"
       }
-    }
+    },
+    "docxTitle": "Word に書き出す"
   },
   "import": {
     "title": "インポートまたは開く",

@@ -1991,6 +1991,14 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
+      // C-NATIVE-DOCX-RTF-EXPORT R-1: modal-less Word export — the save
+      // dialog is the first and only UI; geometry comes from the
+      // remembered print options inside _EXPORT_DOCX.
+      if (type === 'docx') {
+        await this._EXPORT_DOCX(content)
+        return
+      }
+
       let title = ''
       const { listToc } = this
       if (listToc && listToc.length > 0) {
@@ -2026,6 +2034,72 @@ export const useEditorStore = defineStore('editor', {
         notice.notify({
           title: i18n.global.t('editor.export.failed', { type: 'HTML' }),
           type: 'error',
+          message: String(e)
+        })
+      }
+    },
+
+    // C-NATIVE-DOCX-RTF-EXPORT R-1/R-3: Export to Word = native save dialog
+    // → lazy renderer-side conversion (M-066 exportDocx) → binary write
+    // through the same facade the C-56 picture export uses. No settings
+    // dialog ever mounts (modal-less owner decision 2026-10-23); geometry
+    // follows the remembered print options (the ⌘P storage), and the
+    // success card carries a quiet "Export settings" action beside the
+    // reveal shortcut (C-NOTIFICATION-SYSTEM actions API).
+    async _EXPORT_DOCX(content) {
+      const { filename } = this.currentFile
+      const firstHeading = (this.listToc || []).find((h) => h && h.content)
+      const fallbackName = String(firstHeading ? firstHeading.content : 'export')
+        .replace(/[\\/:*?"<>|#]+/g, '')
+        .trim()
+      const defaultName = filename
+        ? filename.replace(/\.md$/i, '.docx')
+        : (fallbackName || 'export') + '.docx'
+
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      const filePath = await save({
+        title: i18n.global.t('exportSettings.docxTitle'),
+        defaultPath: defaultName,
+        filters: [{ name: 'Word', extensions: ['docx'] }]
+      })
+      if (!filePath) return
+
+      try {
+        const { exportToDocx } = await import('../util/exportDocx')
+        const printOptions = { ...DEFAULT_PRINT_OPTIONS(), ...(_lastPrintOptions || {}) }
+        const bytes = await exportToDocx({ html: content, printOptions })
+        await window.fileUtils.writeFile(filePath, bytes, 'binary')
+        notice.notify({
+          title: i18n.global.t('store.editor.exportSuccessTitle'),
+          message: i18n.global.t('store.editor.exportSuccessMessage', {
+            name: window.path.basename(filePath)
+          }),
+          severity: 'success',
+          source: 'export',
+          actions: [
+            {
+              kind: 'reveal',
+              payload: () => {
+                window.electron.shell.showItemInFolder(filePath)
+              }
+            },
+            {
+              // Quiet shortcut to the export-settings surface of the day
+              // (the shared dialog owns the remembered geometry until the
+              // dedicated Export section lands).
+              label: i18n.global.t('editor.export.settingsAction'),
+              style: 'quiet',
+              handler: () => {
+                bus.emit('showExportDialog', 'pdf')
+              }
+            }
+          ]
+        })
+      } catch (e) {
+        notice.notify({
+          title: i18n.global.t('editor.export.failed', { type: 'Word' }),
+          type: 'error',
+          source: 'export',
           message: String(e)
         })
       }
@@ -2107,6 +2181,18 @@ export const useEditorStore = defineStore('editor', {
       // eslint-disable-next-line no-console
       console.log('[editor][print][BLOCK_PRINT_REQUESTED]')
       bus.emit('export', { ...options, type: 'print' })
+    },
+
+    // C-NATIVE-DOCX-RTF-EXPORT R-1: modal-less Word export entry — the
+    // remembered print options ride the same bus 'export' pipeline; the
+    // settings dialog is never involved.
+    EXPORT_DOCX_DOCUMENT() {
+      if (!hasKeys(this.currentFile)) return
+      const options = {
+        ...DEFAULT_PRINT_OPTIONS(),
+        ...(_lastPrintOptions || {})
+      }
+      bus.emit('export', { ...options, type: 'docx' })
     },
 
     APPLY_EXPORT_SUCCESS(filePath) {

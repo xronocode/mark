@@ -202,9 +202,11 @@ describe('contextMenu/tabs — C-40 T-004 entries', () => {
     expect(ids).toEqual([
       'closeThisTab', 'closeOtherTabs', 'closeSavedTabs', 'closeAllTabs',
       'lockDocument', 'splitView', 'copyAsMarkdown', 'copyAsHtml',
-      'copyAsStructuredText', 'renameFile', 'copyPath', 'pinFile', 'showInFolder'
+      'copyAsStructuredText', 'renameFile', 'copyPath', 'pinFile', 'showInFolder',
+      // C-NATIVE-DOCX-RTF-EXPORT: the per-tab export entries (pdf/html/docx).
+      'tabExportPdf', 'tabExportHtml', 'tabExportDocx'
     ])
     // Separators between the groups.
-    expect(payload.items.filter((i) => i.type === 'separator').length).toBe(2)
+    expect(payload.items.filter((i) => i.type === 'separator').length).toBe(3)
   })
 })

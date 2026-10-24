@@ -102,6 +102,9 @@
         <M-056/>
         <M-064/>
         <M-065/>
+        <!-- C-NATIVE-DOCX-RTF-EXPORT: M-066 owns the renderer-side Word
+             converter (pre-pass + lazy docx/html + geometry mapping). -->
+        <M-066/>
       </Owns>
     </GD-FEATURES>
     <GD-FLOWS>
