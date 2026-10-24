@@ -1,4 +1,6 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m016_updater.rs
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
 //   PURPOSE: M-016 mt-updater. Wraps tauri-plugin-updater so the
 //            renderer's existing mt::updater::check IPC contract
 //            keeps working while update polling routes through the
@@ -12,12 +14,20 @@
 //            unreachable.
 //   LINKS:   .grace/graph/runtime.xml M-016 (PhaseRef Phase-B4) step-5/6;
 //            tauri.conf.json plugins.updater config;
-//            docs/F-UPDATER-WIRE-PLUGIN-handoff.md (user setup).
+//            docs/release-trains/README.md#owner-only-github-rollout (user setup).
 //   STATUS:  Phase-B4 step-5 wired 2026-05-08 — plugin loaded in
 //            main.rs Builder; mt_updater_check proxies to
 //            UpdaterExt::updater().check().
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   UpdateStatus - Stable renderer-facing status for update checks.
+//   no_update - Build an unavailable status for non-App-Store failures.
+//   mt_updater_check - Check the signed feed or return a safe quiet status.
+// END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-24 v1.1.0: point signing setup to the canonical owner-only rollout instructions.
 //   - 2026-04-29 B3-step-10: initial stub with stable shape.
 //   - 2026-08-07 v2.1.2-beta: make the signed in-app updater the only
 //                Help-menu path; Homebrew remains an external fallback.

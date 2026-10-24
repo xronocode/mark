@@ -57,10 +57,6 @@
       New work starts with an approved GRACE 4 spec and plan. Legacy operational
       packets remain provenance and are not retroactive changes.
     </GovernedChangeLifecycle>
-    <GpuSlotOne>
-      Local inference uses one GPU engine at a time and follows the canonical
-      local-AI preflight protocol before inference.
-    </GpuSlotOne>
   </Principles>
   <ArchitectureNotes>
     <objective>

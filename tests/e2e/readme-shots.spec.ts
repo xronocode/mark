@@ -1,5 +1,5 @@
 // FILE: tests/e2e/readme-shots.spec.ts
-// VERSION: 1.1.1
+// VERSION: 1.1.3
 // START_MODULE_CONTRACT
 //   PURPOSE: C-53 T-001/R-2 — reproducible README screenshots. Renders
 //            the real editor (vite preview + tauri-shim) at 1440×900 @2x
@@ -14,7 +14,7 @@
 //          is set (normal e2e runs never touch the repo assets).
 //          Chromium only by design: the capture must come from one engine
 //          (the webkit-* playwright projects match their own spec files),
-//          and the AGENTS.md release procedure invokes it with
+//          and the docs/release-process.md procedure invokes it with
 //          `--project=chromium`.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim,
 //          tests/e2e/fixtures/helpers (bootEditor, openFileTab).
@@ -41,7 +41,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.1 - 2026-10-18 C-56 T-005: the 05-viewer capture
+//   LAST_CHANGE: v1.1.3 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: use the portable synthetic home identity in screenshot fixture paths.
+//   PREVIOUS_CHANGE: v1.1.2 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: route the capture command to the canonical public release procedure after AGENTS.md became a short index.
+//   PREVIOUS_CHANGE: v1.1.1 - 2026-10-18 C-56 T-005: the 05-viewer capture
 //   opens the viewer through the corner pill's expand action (mermaid
 //   figures no longer carry the standalone glyph).
 //   PREV: v1.1.0 - 2026-10-17 C-53 review: every shot in the macOS
@@ -67,7 +69,7 @@ test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 })
 
 const OUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../docs/assets/readme')
 
-const ROOT = '/Users/ada/projects/atlas'
+const ROOT = '/Users/<fixture>/projects/atlas'
 
 // START_BLOCK_PLAN_DOC
 // The 01-agents / 08-dark document: what a coding agent actually produces —
@@ -212,8 +214,8 @@ async function bootAtlas(page: Page, theme: 'macos' | 'macos-dark') {
       mt_pick_folder: () => null,
       mt_recent_list: () => [
         `${root}/checkout-plan.md`,
-        '/Users/ada/notes/reading-list.md',
-        '/Users/ada/papers/attention-notes.md'
+        '/Users/<fixture>/notes/reading-list.md',
+        '/Users/<fixture>/papers/attention-notes.md'
       ],
       mt_recent_remove: () => 0,
       mt_recent_insert: () => null,
@@ -346,9 +348,9 @@ async function bootWelcome(page: Page) {
     w.__mockInvoke = {
       ...w.__mockInvoke,
       mt_recent_list: () => [
-        '/Users/ada/projects/atlas/checkout-plan.md',
-        '/Users/ada/notes/reading-list.md',
-        '/Users/ada/papers/attention-notes.md'
+        '/Users/<fixture>/projects/atlas/checkout-plan.md',
+        '/Users/<fixture>/notes/reading-list.md',
+        '/Users/<fixture>/papers/attention-notes.md'
       ],
       mt_recent_remove: () => 1,
       mt_recent_insert: () => null,
@@ -367,9 +369,9 @@ async function bootWelcome(page: Page) {
       }),
       mt_prefs_get: (args: any) => {
         if (args?.key === 'lastSessionTabs') {
-          return ['/Users/ada/projects/atlas/checkout-plan.md', '/Users/ada/notes/reading-list.md']
+          return ['/Users/<fixture>/projects/atlas/checkout-plan.md', '/Users/<fixture>/notes/reading-list.md']
         }
-        if (args?.key === 'recentFolders') return ['/Users/ada/projects/atlas']
+        if (args?.key === 'recentFolders') return ['/Users/<fixture>/projects/atlas']
         if (args?.key === 'lastUpdateAt') return new Date().toISOString()
         return null
       },

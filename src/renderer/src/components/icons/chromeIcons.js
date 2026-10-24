@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/components/icons/chromeIcons.js
-// VERSION: 2.4.0
+// VERSION: 2.5.1
 // START_MODULE_CONTRACT
 //   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d), the document-surface expand glyph (C-51 T-006) and the pinned-file row mark (C-51 T-011; redrawn as a filled pushpin silhouette in C-51 T-013 — the set's one fill-only glyph).
 //   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC. The expand descriptor is the canonical drawing — muya duplicates it inline (EXPAND_ICON_PATH) and a unit test pins the two identical.
@@ -18,11 +18,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.5.0 - 2026-10-20 C-WINDOWS-TITLEBAR-ALIGNMENT: the four
+//   LAST_CHANGE: v2.5.1 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace the
+//   workstation-specific review label with a neutral reference-host label;
+//   icon geometry and runtime behavior are unchanged.
+//   PREVIOUS_CHANGE: v2.5.0 - 2026-10-20 C-WINDOWS-TITLEBAR-ALIGNMENT: the four
 //   caption glyphs (window-minimize/maximize/restore/close) are redrawn
 //   Windows-style — butt caps (the round-cap flag is gone) and full-width
 //   geometry — because at the old 10 px render the round-cap hairlines read
-//   as alien on a 100% Windows display (polygon review 2026-10-20). The
+//   as alien on a 100% Windows display (Windows reference-host review
+//   2026-10-20). The
 //   titlebar now renders them at 13 px. Names, the frozen set, the shared
 //   1.4 stroke and the 16-grid viewBox are unchanged (chrome-icons pins).
 //   v2.4.0 - 2026-10-19 C-67: «broom» glyph for Clear Recent.

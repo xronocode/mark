@@ -1266,10 +1266,13 @@
       </Summary>
       <PlannedPath>src-tauri/src/prefs/mod.rs</PlannedPath>
       <PublicationBoundary>
-        C-PRIVATE-OPERATIONS: fixtures/ contains six sanitized legacy JSON examples
-        with /Users/&lt;fixture&gt; paths and an exact fixture-pin.lock manifest. Original
-        profile archives and browser runtime records belong in the private companion.
-        The retired importer and current preferences runtime do not consume them.
+        C-PUBLIC-REPOSITORY-HYGIENE: fixtures/ contains six sanitized legacy JSON
+        examples with /Users/&lt;fixture&gt; paths and an exact fixture-pin.lock
+        manifest. Original profile archives and browser runtime records belong in
+        the private companion. Exact obsolete QA, handoff and generated showcase
+        paths remain absent while authored work and release screenshot evidence
+        stay public. The retired importer and current preferences runtime do not
+        consume the examples.
       </PublicationBoundary>
       <Dependencies/>
       <VerificationRef>V-M-005</VerificationRef>
@@ -6013,7 +6016,8 @@
         non-modal components/updateNotice toast whose Update button runs
         the shared signed install flow (commands/index.js
         installSignedUpdate, exported for file.check-update and the
-        notice alike).
+        notice alike). Owner-only signing setup is documented in
+        docs/release-trains/README.md#owner-only-github-rollout.
       </Summary>
       <Path>src-tauri/src/m016_updater.rs</Path>
       <Dependencies>
@@ -6076,6 +6080,7 @@
       </Interface>
       <Sources>
         <Source>src-tauri/src/updater/mod.rs</Source>
+        <Source>docs/release-trains/README.md#owner-only-github-rollout</Source>
         <KnowledgeGraphPath>src-tauri/src/m016_updater.rs</KnowledgeGraphPath>
         <Tests>src-tauri/src/updater/mod.rs (#[cfg(test)])</Tests>
       </Sources>

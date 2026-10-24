@@ -78,12 +78,10 @@
     </VD-PERFORMANCE>
     <VD-FEATURES>
       <Path>verification/features.xml</Path>
-      <!-- M-064/V-M-064 prove GPU ownership for the selected reviewer before loading it. -->
+      <!-- C-PUBLIC-REPOSITORY-HYGIENE: V-M-064 proves deterministic publication checks and identity-bound receipts. -->
       <!-- V-M-046 scenario-17 owns privacy publication verification; it is distinct from scenario-15 diff CI coverage. -->
       <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- V-M-046 scenario-16 retains the webkit-session CI gate. -->
-      <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
-      <!-- C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: V-M-064 pins safe public reference forms and the unchanged literal-secret failure boundary. -->
       <!-- V-M-046 scenario-14 retains the WebKit keyboard-selection CI gate. -->
       <!-- C-PRIVATE-OPERATIONS: V-M-046 scenario-15 verifies private operational records stay outside public source. -->
       <Owns>
@@ -111,16 +109,5 @@
         <V-M-065/>
       </Owns>
     </VD-FEATURES>
-    <VD-GOVERNANCE>
-      <Path>verification/governance.xml</Path>
-      <Owns>
-        <V-M-901/>
-        <V-M-902/>
-        <V-M-903/>
-        <V-M-904/>
-        <V-M-905/>
-        <V-M-906/>
-      </Owns>
-    </VD-GOVERNANCE>
   </VerificationDocuments>
 </GraceVerificationIndex>

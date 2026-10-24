@@ -494,7 +494,7 @@ export const usePreferencesStore = defineStore('preferences', {
      * bootstrap-ipc.js — it stays warm for the app's lifetime and
      * catches all SET_* from other windows, avoiding a listener race.
      *
-     * Boot-stomp guard (Nurik's Windows pass): a preference the user
+     * Boot-stomp guard (Windows cold-start regression): a preference the user
      * already changed since mount (e.g. the theme toggle clicked while
      * the first prefs read was still in flight — slow on a cold Windows
      * profile) is NEVER overwritten by the hydration payload, and the

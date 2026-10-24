@@ -1,0 +1,133 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-PUBLIC-REPOSITORY-HYGIENE>
+    <Name>Forward-only public repository hygiene — implementation plan</Name>
+    <Created>2026-10-24</Created>
+    <Spec>C-PUBLIC-REPOSITORY-HYGIENE</Spec>
+    <IntentSummary>Apply the owner-approved forward-only cleanup in a clean worktree: canonicalize public policy, split the deterministic gate from private workstation review, retire obsolete current-state process projections, remove only the exact obsolete artifacts, and neutralize live QA attribution without touching history or release evidence.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>AGENTS.md</Value></MustExist>
+      <MustExist><Value>docs/grace-ai-standards-hygiene-methodology.md</Value></MustExist>
+      <MustExist><Value>Mark-qa-C2-C6.md</Value></MustExist>
+      <MustExist><Value>Mark-v2.1.2-beta-QA.md</Value></MustExist>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>local model</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>def gpu_preflight</Text></MustContain>
+      <MustContain><File>.grace/graph/index.xml</File><Text>&lt;M-901/&gt;</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>docs/engineering-protocol.md</Value></MustExist>
+      <MustExist><Value>docs/release-process.md</Value></MustExist>
+      <MustContain><File>AGENTS.md</File><Text>docs/engineering-protocol.md</Text></MustContain>
+      <MustContain><File>CONTRIBUTING.md</File><Text>Engineering protocol</Text></MustContain>
+      <MustContain><File>docs/release-trains/README.md</File><Text>../release-process.md</Text></MustContain>
+      <MustContain><File>.gitignore</File><Text>/screenshots/</Text></MustContain>
+      <MustContain><File>.gitignore</File><Text>/CLAUDE.md</Text></MustContain>
+      <MustContain><File>.gitignore</File><Text>/.env.local</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>BLOCK_SAFETY_SCAN_PASS</Text></MustContain>
+      <MustContain><File>.github/workflows/release.yml</File><Text>docs/release-trains/README.md#owner-only-github-rollout</Text></MustContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>docs/release-trains/README.md#owner-only-github-rollout</Text></MustContain>
+      <MustContain><File>tests/e2e/readme-shots.spec.ts</File><Text>/Users/&lt;fixture&gt;/projects/atlas</Text></MustContain>
+      <MustNotContain><File>tests/e2e/readme-shots.spec.ts</File><Text>/Users/ada</Text></MustNotContain>
+      <MustNotExist><Value>docs/grace-ai-standards-hygiene-methodology.md</Value></MustNotExist>
+      <MustNotContain><File>tools/security_gate.py</File><Text>def gpu_preflight</Text></MustNotContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>MARK_SAFETY_OVERRIDE</Text></MustNotContain>
+      <MustNotContain><File>.grace/graph/index.xml</File><Text>&lt;M-901/&gt;</Text></MustNotContain>
+      <MustNotContain><File>.grace/verification/index.xml</File><Text>&lt;V-M-901/&gt;</Text></MustNotContain>
+      <MustPassCommand><Command budgetSeconds="180">python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="120">npx vitest run tests/renderer/publication-privacy.test.js</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="180">npx vitest run tests/renderer/i18n/index.test.js tests/renderer/muya/htmlTagBr.test.js tests/renderer/platform-truth.test.js tests/renderer/store/preferences.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">sh -c 'git diff --check fork/main &amp;&amp; git ls-files --others --exclude-standard | while IFS= read -r candidate_path; do output=$(git diff --no-index --check /dev/null "$candidate_path" 2&gt;&amp;1); result=$?; test "$result" -le 1 || exit "$result"; test -z "$output" || { printf "%s\n" "$output"; exit 1; }; done'</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-005/><M-016/><M-046/><M-054/><M-057/><M-064/><M-901/><M-902/><M-903/><M-904/><M-905/><M-906/><DF-901/><DF-902/><DF-903/></GraphAnchors>
+      <VerificationAnchors><V-M-005/><V-M-011/><V-M-016/><V-M-046/><V-M-054/><V-M-057/><V-M-064/><V-M-901/><V-M-902/><V-M-903/><V-M-904/><V-M-905/><V-M-906/></VerificationAnchors>
+      <ContextArtifact>principles.xml</ContextArtifact>
+      <ContextArtifact>deployment.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.gitignore</File>
+      <File>AGENTS.md</File>
+      <File>CONTRIBUTING.md</File>
+      <File>docs/engineering-protocol.md</File>
+      <File>docs/release-process.md</File>
+      <File>docs/commit-push-safety.md</File>
+      <File>docs/release-trains/README.md</File>
+      <File>docs/acceptance/README.md</File>
+      <File>docs/archive/phase-8-final-audit.md</File>
+      <File>docs/publication-policy.md</File>
+      <File>docs/grace-ai-standards-hygiene-methodology.md</File>
+      <File>Mark-qa-C2-C6.md</File>
+      <File>Mark-v2.1.2-beta-QA.md</File>
+      <File>docs/archive/F-CASK-PUBLISH-HANDOFF.md</File>
+      <File>docs/archive/F-UPDATER-WIRE-PLUGIN-handoff.md</File>
+      <Glob>assets/screenshots/**</Glob>
+      <Glob>screenshots/**</Glob>
+      <File>tools/security_gate.py</File>
+      <File>tests/security/test_security_gate.py</File>
+      <File>tests/renderer/publication-privacy.test.js</File>
+      <File>tests/e2e/readme-shots.spec.ts</File>
+      <File>.github/workflows/release.yml</File>
+      <File>src-tauri/src/m016_updater.rs</File>
+      <File>src/renderer/src/_shims/install-window-globals.js</File>
+      <File>src/renderer/src/components/icons/chromeIcons.js</File>
+      <File>src/renderer/src/i18n/index.js</File>
+      <File>src/renderer/src/pages/app.vue</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src/renderer/src/store/preferences.js</File>
+      <File>tests/renderer/i18n/index.test.js</File>
+      <File>tests/renderer/muya/htmlTagBr.test.js</File>
+      <File>tests/renderer/platform-truth.test.js</File>
+      <File>tests/renderer/store/preferences.test.ts</File>
+      <File>.grace/context/principles.xml</File>
+      <File>.grace/context/deployment.xml</File>
+      <File>.grace/graph/index.xml</File>
+      <File>.grace/graph/governance.xml</File>
+      <File>.grace/graph/flows.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/index.xml</File>
+      <File>.grace/verification/governance.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <Glob>.grace/changes/active/C-PUBLIC-REPOSITORY-HYGIENE/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Canonical public engineering policy</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>AGENTS.md is a short neutral router; CONTRIBUTING.md and docs/engineering-protocol.md contain the portable language, GRACE, markup, verification, release-boundary and modification rules; docs/release-process.md preserves the exact release runbook without workstation-specific inference instructions.</Criterion></AcceptanceCriteria>
+        <Verification><Command>rg -n 'engineering-protocol|commit-push-safety|release-trains/README' AGENTS.md CONTRIBUTING.md docs/engineering-protocol.md</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Exact current-tree artifact retirement</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>The approved QA, handoff, methodology and generated screenshot paths are absent; exact ignores prevent reintroduction; CLAUDE.md and .env.local stay local-only; authored work and release screenshots remain; publication-privacy tests pin all boundaries.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/renderer/publication-privacy.test.js</Command></Verification>
+      </T-002>
+      <T-003>
+        <Title>Deterministic public safety gate</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>The public gate retains exact candidates, Gitleaks, static exposure/binary/lane/ref checks, candidate identity recheck and private deterministic receipts while removing prompts, GPU/model endpoints and override logic.</Criterion></AcceptanceCriteria>
+        <Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Verification>
+      </T-003>
+      <T-004>
+        <Title>Retire the process-only GRACE projection</Title>
+        <DependsOn>T-001, T-003</DependsOn>
+        <AcceptanceCriteria><Criterion>The portable policy survives in docs/engineering-protocol.md; Phase-H, M-901..M-906, V-M-901..V-M-906, DF-901..DF-903 and their current crosslinks are removed; frozen provenance and archived bundles are unchanged.</Criterion></AcceptanceCriteria>
+        <Verification><Command>sh -c "! git grep -n -E 'M-90[1-6]|V-M-90[1-6]|DF-90[1-3]|grace-ai-standards-hygiene-methodology' -- .grace ':!.grace/changes/archive/**'"</Command></Verification>
+      </T-004>
+      <T-005>
+        <Title>Neutral live Windows QA wording</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>Live source, tests and current verification describe regression evidence without personal or workstation-specific attribution; archived C-15 evidence remains byte-identical.</Criterion></AcceptanceCriteria>
+        <Verification><Command>sh -c "! git grep -n -E 'Nurik|local-model review|polygon review|polygon evidence|/Users/myevdokimov' -- src tests .grace/verification/features.xml .grace/verification/runtime.xml docs/archive/phase-8-final-audit.md"</Command><Command>npx vitest run tests/renderer/i18n/index.test.js tests/renderer/muya/htmlTagBr.test.js tests/renderer/platform-truth.test.js tests/renderer/store/preferences.test.ts</Command></Verification>
+      </T-005>
+      <T-006>
+        <Title>Central graph, verification and final reconciliation</Title>
+        <DependsOn>T-002, T-003, T-004, T-005</DependsOn>
+        <AcceptanceCriteria><Criterion>M-005/V-M-005, M-011/V-M-011, M-016/V-M-016, M-046/V-M-046, M-054/V-M-054, M-057/V-M-057 and M-064/V-M-064 describe the final boundary; all focused tests and final GRACE checks pass; release behavior/state and historical provenance remain untouched apart from exact documentation-link and operator-message migrations.</Criterion></AcceptanceCriteria>
+        <Verification><Command>sh -c 'git diff --check fork/main &amp;&amp; git ls-files --others --exclude-standard | while IFS= read -r candidate_path; do output=$(git diff --no-index --check /dev/null "$candidate_path" 2&gt;&amp;1); result=$?; test "$result" -le 1 || exit "$result"; test -z "$output" || { printf "%s\n" "$output"; exit 1; }; done'</Command><Command>git diff --quiet fork/main -- tools/release-readiness.mjs '.github/workflows/release*.yml' ':(exclude).github/workflows/release.yml' 'docs/release-trains/**' ':(exclude)docs/release-trains/README.md' 'docs/acceptance/**' ':(exclude)docs/acceptance/README.md' package.json package-lock.json src-tauri/tauri.conf.json Cargo.toml Cargo.lock</Command><Command>sh -c 'git diff --numstat fork/main -- docs/release-trains/README.md | rg -q "^1[[:space:]]+1[[:space:]]+docs/release-trains/README\.md$" &amp;&amp; git diff --numstat fork/main -- docs/acceptance/README.md | rg -q "^1[[:space:]]+1[[:space:]]+docs/acceptance/README\.md$" &amp;&amp; git diff --numstat fork/main -- docs/archive/phase-8-final-audit.md | rg -q "^1[[:space:]]+1[[:space:]]+docs/archive/phase-8-final-audit\.md$" &amp;&amp; git diff --numstat fork/main -- .github/workflows/release.yml | rg -q "^3[[:space:]]+2[[:space:]]+\.github/workflows/release\.yml$"'</Command><Command>sh -c '! git diff --unified=0 fork/main -- src-tauri/src/m016_updater.rs | rg "^[+-][^+-]" | rg -v "^[+-]//"'</Command></Verification>
+      </T-006>
+    </ImplementationPlan>
+    <Approval><ApprovedBy>Owner, 2026-10-24, explicit approval after reviewing the forward-only recommendation and requesting parallel work where safe.</ApprovedBy><ExecutionMode>Sequential writes after parallel read-only audits because the repository's pre-existing active plans fail parallel-preflight.</ExecutionMode></Approval>
+  </C-PUBLIC-REPOSITORY-HYGIENE>
+</GraceChangePlan>

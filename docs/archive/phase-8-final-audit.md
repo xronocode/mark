@@ -2,7 +2,7 @@
 
 **Verdict:** **YELLOW** — ready for user smoke + alpha tag with 2 caveats (M-001 validator drift + 4 unrecorded followups). No correctness regressions, no critical drift.
 
-**Scope:** Final read-only full-integrity audit of `/Users/myevdokimov/prj/mark/reborn-mark` after polish phases 1–7 closed. Mode: spirit of `grace-reviewer full-integrity`.
+**Scope:** Final read-only full-integrity audit of `<workspace>/reborn-mark` after polish phases 1–7 closed. Mode: spirit of `grace-reviewer full-integrity`.
 
 **Commits reviewed (26 since prior audit window `ba9fca32`):**
 

@@ -6,6 +6,7 @@ src-tauri/gen/schemas/
 
 # Node + Vite
 node_modules/
+/node_modules
 .pnpm-store/
 dist/
 src/renderer/dist/
@@ -21,6 +22,8 @@ playwright/.cache/
 
 # Debug artifacts & screenshots
 .artifacts/
+/assets/screenshots/
+/screenshots/
 
 # Vision sidecar
 .vision-sidecar-telemetry/
@@ -37,7 +40,10 @@ site/.vitepress/cache/
 
 # Transient agent state
 .claude/
+/CLAUDE.md
+/.env.local
 sbom/
+/.mark-local/
 
 # Nested repos / session artifacts
 .playwright-mcp/
@@ -62,3 +68,10 @@ site/node_modules/
 /fixtures/**/userdata.tar.gz
 /fixtures/**/Local Storage/
 /fixtures/**/*.plist
+
+# Retired personal QA and one-off handoff artifacts.
+/Mark-qa-C2-C6.md
+/Mark-v2.1.2-beta-QA.md
+/docs/archive/F-CASK-PUBLISH-HANDOFF.md
+/docs/archive/F-UPDATER-WIRE-PLUGIN-handoff.md
+/docs/grace-ai-standards-hygiene-methodology.md

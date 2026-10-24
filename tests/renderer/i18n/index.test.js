@@ -74,7 +74,7 @@ describe('i18n/index', () => {
       expect(getCurrentLanguage()).toBe('ru')
     })
 
-    it('awaits the async locale payload instead of installing the promise (Nurik regression)', async () => {
+    it('awaits the async locale payload instead of installing the promise (Windows regression)', async () => {
       // The bug: the old guard never called includes(), so the PROMISE
       // from loadTranslations was passed to setLocaleMessage as the
       // translation table and every locale fell back to EN.

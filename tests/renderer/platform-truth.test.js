@@ -73,7 +73,7 @@ describe('renderer platform truth (C-15 T-W0)', () => {
       'utf8'
     )
     // path-browserify is POSIX-only and rejected drive-letter paths
-    // (Nurik's "folder files not picked up" report); the win32 sibling
+    // (Windows folder-import regression); the win32 sibling
     // port is selected at build time via the folded process.platform
     // ternary, so sep/dirname/relative/isAbsolute all speak win32.
     expect(src).toContain("import win32Path from 'path-win32'")
