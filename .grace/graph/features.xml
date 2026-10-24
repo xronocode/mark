@@ -2935,11 +2935,16 @@
         release screenshot manifest in the same commit. Outgoing commits are
         evaluated independently; every other binary stays blocked. Deletion-only
         branch housekeeping is admitted only for non-main tips proven merged into
-        remote main. Optional owner-local review is outside this public module.
+        remote main. C-MESSAGE-ONLY-HISTORY-REWRITE-V3 adds a message-only main
+        rewrite lane bound to an exact owner-local manifest. It proves paired
+        ordered-parent DAGs and raw headers, preserves every tree and identity,
+        and permits only approved message replacements plus the explicitly
+        counted removal of GPG signatures invalidated by new commit identities.
+        Optional owner-local review is outside this public module.
       </Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>
-      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic exposure, lane, Gitleaks and identity checks, including manifest-bound human visual-review evidence for changed release README PNGs.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message or independently grouped outgoing commits</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete screenshot evidence, unsupported payload, changed candidate, a branch deletion whose tip is not proven merged into main, an AI attribution line, or an AI-named branch.</Description></Error></Errors></Contract>
+      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic exposure, lane, Gitleaks and identity checks, including manifest-bound screenshot evidence and exact-manifest proof for an approved message-only main rewrite.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message, independently grouped outgoing commits, or paired raw commit DAGs plus an owner-local rewrite manifest</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete evidence, unsupported payload, changed candidate, stale or shallow history, rewrite manifest/DAG/header/signature mismatch, an unproven branch deletion, AI attribution, or an AI-named branch.</Description></Error></Errors></Contract>
       <Sources><Source>tools/security_gate.py</Source><Tests>tests/security/test_security_gate.py</Tests></Sources>
     </M-064>
     <M-065>
