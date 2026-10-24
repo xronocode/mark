@@ -1,0 +1,42 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-MESSAGE-ONLY-HISTORY-REWRITE-V3>
+    <IntentSummary>Merge a deterministic raw-object and exact-manifest rewrite gate through PR #54, build the private rewritten DAG, force-update only main during a bounded protection window, and rebuild live desktop PRs.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>tools/security_gate.py</Value></MustExist>
+      <MustExist><Value>tests/security/test_security_gate.py</Value></MustExist>
+      <MustContain><File>tools/security_gate.py</File><Text>VERSION: 1.9.0</Text></MustContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>def history_rewrite</Text></MustNotContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>hook repeats the full scan for every outgoing commit.</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>tools/security_gate.py</File><Text>def history_rewrite</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>BLOCK_MESSAGE_ONLY_HISTORY_REWRITE</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>gpgsig</Text></MustContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>exact owner-local manifest</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>message-only main rewrite</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>message-only main rewrite</Text></MustContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>gpu_preflight</Text></MustNotContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>ollama</Text></MustNotContain>
+      <MustPassCommand><Command budgetSeconds="180">python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">sh -c 'test -z "$(git log fork/main --regexp-ignore-case --grep="Co-Authored-By:.*Claude\|noreply@anthropic" --format=%H)"'</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">sh -c 'test "$(git for-each-ref refs/tags --format="%(refname)%00%(objectname)%00%(*objectname)" | LC_ALL=C sort | shasum -a 256 | cut -d" " -f1)" = "0e9eaeb4cc60aa7e3aa6f097cb5fa369611393aea88e107b885fdcf0d6d642b8"'</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">git diff --check</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-064 /></GraphAnchors><VerificationAnchors><V-M-064 /></VerificationAnchors></DurableScope>
+    <ObservedWriteScope>
+      <File>tools/security_gate.py</File><File>tests/security/test_security_gate.py</File><File>docs/commit-push-safety.md</File>
+      <File>.grace/graph/features.xml</File><File>.grace/verification/features.xml</File>
+      <Glob>.grace/changes/active/C-MESSAGE-ONLY-HISTORY-REWRITE-V3/**</Glob>
+      <Glob>.grace/changes/archive/C-MESSAGE-ONLY-HISTORY-REWRITE*/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001><Title>Exact-manifest raw-object candidate</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Only one non-fast-forward main update is admitted after complete ordered-parent DAG, raw-header, tree, signature-removal and exact-message-manifest proof.</Criterion></AcceptanceCriteria><Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Verification></T-001>
+      <T-002><Title>Contract and PR #54 integration</Title><DependsOn>T-001</DependsOn><AcceptanceCriteria><Criterion>M-064, V-M-064 and safety docs describe the deterministic lane, manifest and signature policy; #54 is green and squash-merged.</Criterion></AcceptanceCriteria><Verification><Command>git diff --check</Command><Command>gh pr view 54 -R xronocode/mark --json state,mergeCommit,statusCheckRollup</Command></Verification></T-002>
+      <T-003><Title>Private rewrite preparation</Title><DependsOn>T-002</DependsOn><AcceptanceCriteria><Criterion>A clean disposable clone holds an unpushed recovery ref and exact manifest; the candidate proves the full DAG and reports the expected signature removal count.</Criterion></AcceptanceCriteria><Verification><Command>python3 tools/security_gate.py review-history-rewrite --remote fork --old &lt;old-main&gt; --new &lt;rewritten-main&gt; --manifest &lt;private-manifest&gt;</Command></Verification></T-003>
+      <T-004><Title>Bounded protected-main update</Title><DependsOn>T-003</DependsOn><AcceptanceCriteria><Criterion>The installed hook approves the exact main-only force-with-lease push; protection is immediately restored and remote main equals the reviewed tip.</Criterion></AcceptanceCriteria><Verification><Command>git ls-remote fork refs/heads/main</Command><Command>gh api repos/xronocode/mark/rulesets</Command></Verification></T-004>
+      <T-005><Title>Rebuild live PRs and audit public state</Title><DependsOn>T-004</DependsOn><AcceptanceCriteria><Criterion>PR #48, #52 and any still-open #55 head are replayed onto rewritten main; main has no Claude trailer and tag refs retain the frozen digest.</Criterion></AcceptanceCriteria><Verification><Command>sh -c 'test -z "$(git log fork/main --regexp-ignore-case --grep="Co-Authored-By:.*Claude\|noreply@anthropic" --format=%H)"'</Command></Verification></T-005>
+      <T-006><Title>Final reconciliation</Title><DependsOn>T-005</DependsOn><AcceptanceCriteria><Criterion>Target and final evidence pass and the bundle is ready for explicit apply confirmation and archival before the separate v2.8.2 release.</Criterion></AcceptanceCriteria><Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command><Command>git diff --check</Command></Verification></T-006>
+    </ImplementationPlan>
+    <Approval><ApprovedBy>Owner, 2026-10-24, explicit execution approval including acknowledged loss of invalidated GPG signatures on rewritten main.</ApprovedBy><ExecutionMode>Sequential writes; independent read-only audits completed in parallel.</ExecutionMode></Approval>
+  </C-MESSAGE-ONLY-HISTORY-REWRITE-V3>
+</GraceChangePlan>
