@@ -155,7 +155,8 @@ const replaceWhatsNewVersion = (source, fromVersion, targetVersion, date) => {
       if (block.split(opener).length !== 2) {
         fail('MT_RELEASE_NORMALIZE_MATERIAL_INVALID', 'whatsNew.dates=ambiguous')
       }
-      const line = (version) => new RegExp(`^  '${version.replace(/[.]/g, '\\.')}': '[^']*',?\\n`, 'm')
+      const line = (version) =>
+        new RegExp(`^  '${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}': '[^']*',?\\n`, 'm')
       let next = block
       if (fromVersion !== targetVersion) next = next.replace(line(fromVersion), '')
       next = next.replace(line(targetVersion), '')

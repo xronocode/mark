@@ -215,7 +215,7 @@ describe('release materials', () => {
 
   it('rejects an in-app release date that differs from the CHANGELOG heading independently', () => {
     const source = readFileSync(resolve('src/renderer/src/whatsNew/data.js'), 'utf8')
-    const date = new RegExp(`^## \\[${VERSION.replace(/\./g, '\\.')}\\] - (\\d{4}-\\d{2}-\\d{2})`, 'm').exec(readFileSync(resolve('CHANGELOG.md'), 'utf8'))?.[1]
+    const date = new RegExp(`^## \\[${VERSION.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\] - (\\d{4}-\\d{2}-\\d{2})`, 'm').exec(readFileSync(resolve('CHANGELOG.md'), 'utf8'))?.[1]
     expect(validateWhatsNewSource(source, VERSION, date)).toBe(true)
     rejectedWith(
       () => validateWhatsNewSource(source, VERSION, '1999-01-01'),
