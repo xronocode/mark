@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.6.1
+# VERSION: 1.8.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes static exposure checks and two serial local-model reviews, with an explicit human override lane for model-review false positives.
-#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, explicit public GitHub reference classification, manifest-bound human-reviewed README screenshots, complete locale field review, two-pass local review, optional identity-bound manual override of the model-review phase only, identity recheck and common hooks.
+#   SCOPE: Exact staged/message/outgoing snapshots, full scans with the approved public/private boundary, explicit public GitHub reference classification, manifest-bound human-reviewed README screenshots, complete locale field review, two-pass local review, optional identity-bound manual override of the model-review phase only, merged-branch deletion admission, AI attribution and AI branch-name bans, identity recheck and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks, loopback Ollama, canonical local-ai-safety preflight.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFE-DELIVERY; C-SAFE-PUBLIC-GITHUB-REFERENCES-V2.
 #   ROLE: SCRIPT
@@ -19,7 +19,13 @@
 #   review_view - retain complete changes, compact supported locale replacements and mask only removed baseline home prefixes.
 #   validate_lane - keep mobile runtime and desktop release/version writes in their own lanes.
 #   staged_candidate - bind staged blobs, diff and commit message to an index tree.
+#   AI_NAMES - assistant/vendor names that must not appear in attribution trailers or branch names.
+#   validate_attribution - reject commit messages that credit an AI assistant.
+#   validate_branch_name - reject refs whose branch name starts with an AI assistant name.
+#   REFERENCE_TRANSACTION_HOOK - shell hook that aborts local creation of AI-named branches and worktree branches.
 #   push_candidate - inspect every outgoing commit and proposed ref update.
+#   merged_by_pull_request - prove via GitHub that a tip is the exact head of a PR merged into main.
+#   ref_deletions - admit a deletion-only push when every deleted branch tip is already in main or merged by PR.
 #   validate_reviewed_screenshot_binaries - admit only exact reviewed README PNG bytes named by a same-candidate release manifest.
 #   validate_content - reject private material, personal paths and unsupported payloads.
 #   scan - run trusted Gitleaks rules against exact candidate blobs.
@@ -34,7 +40,9 @@
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.6.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: keep the public-reference rule explicit inside source-controlled workflow and governance files during outgoing-history review.
+#   LAST_CHANGE: 1.8.0 - 2026-10-24: owner-approved AI-name ban — commit and push reject AI attribution trailers (Co-Authored-By and similar, "Generated with" lines) and AI-named branches; a reference-transaction hook stops local creation of such branches, including worktree branches.
+#   PREV: 1.7.0 - 2026-10-24: owner-approved housekeeping lane — a deletion-only push of non-main branches passes without model review when each deleted tip is an ancestor of <remote>/main or the exact head of a PR merged into main; mixed, tag, main or unproven deletions stay blocked.
+#   PREV: 1.6.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: keep the public-reference rule explicit inside source-controlled workflow and governance files during outgoing-history review.
 #   PREV: 1.6.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: distinguish public GitHub resource/runtime-lookup references from literal credential material without masking candidate bytes or weakening scans.
 #   PREV: 1.5.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: admit only exact README PNG bytes bound to complete same-candidate human-review manifest evidence; all other binaries still fail closed.
 #   PREV: 1.4.0 - 2026-10-20: add MARK_SAFETY_OVERRIDE — a human-set reason that skips only the local-model review phase after static scans pass, writing an identity-bound private receipt; deterministic exposure and Gitleaks checks stay mandatory.
@@ -198,7 +206,37 @@ def validate_lane(root, blobs, branch):
                 raise GateError("Mobile cannot bump the desktop Cargo workspace version")
 
 
+AI_NAMES = r"(?:claude|codex|anthropic|openai|copilot|chatgpt|gemini|zcode)"
+AI_ATTRIBUTION = re.compile(
+    r"(?im)^\s*(?:co-authored-by|signed-off-by|assisted-by|generated-by|helped-by)\s*:.*" + AI_NAMES
+    + r"|generated with \[?" + AI_NAMES
+)
+AI_BRANCH = re.compile(r"(?i)^refs/heads/" + AI_NAMES + r"(?:[/_.-]|$)")
+REFERENCE_TRANSACTION_HOOK = """#!/bin/sh
+# MARK_SAFETY_SHARED_HOOK
+[ "${1:-}" = prepared ] || { cat >/dev/null; exit 0; }
+blocked=$(awk '$1 ~ /^0+$/ { print $3 }' | grep -i -E '^refs/heads/(claude|codex|anthropic|openai|copilot|chatgpt|gemini|zcode)([/_.-]|$)' || true)
+if [ -n "$blocked" ]; then
+  echo "[RepositorySafety][refs][BLOCK_AI_BRANCH_NAME] branch names must not start with an AI assistant name: $blocked" >&2
+  exit 1
+fi
+"""
+
+
+def validate_attribution(message):
+    # START_BLOCK_AI_ATTRIBUTION
+    if AI_ATTRIBUTION.search(message):
+        raise GateError("AI attribution is not allowed in commit messages; remove the Co-Authored-By/Generated-with line")
+    # END_BLOCK_AI_ATTRIBUTION
+
+
+def validate_branch_name(ref):
+    if AI_BRANCH.match(ref):
+        raise GateError("Branch names must not start with an AI assistant name: " + ref)
+
+
 def staged_candidate(root, message):
+    validate_attribution(message)
     tree = git(root, "write-tree").decode().strip()
     paths = git(root, "diff", "--cached", "--name-only", "--diff-filter=ACMRT", "-z").split(b"\0")
     for entry in git(root, "ls-files", "--stage", "-z").split(b"\0"):
@@ -228,6 +266,7 @@ def push_candidate(root, remote, updates):
         if source_mobile != target_mobile:
             raise GateError("Cross-lane push rejected; use an explicit reviewed source synchronization task")
         lanes.add(target_mobile)
+        validate_branch_name(remote_ref)
         if set(local_oid) == {"0"}:
             raise GateError("Ref deletion needs a separately reviewed housekeeping task")
         if not re.fullmatch(r"[0-9a-f]{40,64}", local_oid + "") or not re.fullmatch(r"[0-9a-f]{40,64}", remote_oid):
@@ -261,6 +300,7 @@ def push_candidate(root, remote, updates):
         blobs.extend(commit_blobs)
         blob_groups.append(commit_blobs)
         message = git(root, "show", "-s", "--format=%B", oid).decode("utf-8", "strict")
+        validate_attribution(message)
         patch = git(root, "diff", "--no-ext-diff", "--no-textconv", "--unified=3", parent, oid).decode("utf-8", "strict")
         payload += "\nCOMMIT " + oid + "\n" + message + patch
         scan_text += "\n" + message + publication_lines(patch)
@@ -270,6 +310,45 @@ def push_candidate(root, remote, updates):
         raise GateError("Push desktop and mobile tasks separately")
     validate_lane(root, blobs, "mobile/" if True in lanes else "desktop")
     return {"identity": hashlib.sha256(payload.encode()).hexdigest(), "payload": payload, "scanText": scan_text, "blobs": blobs, "blobGroups": blob_groups, "commits": commits}
+
+
+def merged_by_pull_request(root, remote, oid):
+    url = git(root, "remote", "get-url", remote).decode().strip()
+    match = re.fullmatch(r"(?:https://github\.com/|git@github\.com:)([\w.-]+/[\w.-]+?)(?:\.git)?/?", url)
+    if not match:
+        return False
+    try:
+        result = subprocess.run(["gh", "api", "repos/" + match[1] + "/commits/" + oid + "/pulls"], capture_output=True, text=True, timeout=30)
+        pulls = json.loads(result.stdout) if result.returncode == 0 else []
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return False
+    if not isinstance(pulls, list):
+        return False
+    return any(
+        isinstance(pull, dict) and pull.get("merged_at") and (pull.get("head") or {}).get("sha") == oid and (pull.get("base") or {}).get("ref") == "main"
+        for pull in pulls
+    )
+
+
+def ref_deletions(root, remote, updates):
+    # START_BLOCK_MERGED_REF_DELETION
+    lines = [line.split() for line in updates.splitlines() if line.strip()]
+    deletions = [fields for fields in lines if len(fields) == 4 and set(fields[1]) == {"0"}]
+    if not deletions:
+        return False
+    if len(deletions) != len(lines):
+        raise GateError("Push ref deletions separately from content updates")
+    for _local_ref, _local_oid, remote_ref, remote_oid in deletions:
+        if not remote_ref.startswith("refs/heads/") or remote_ref == "refs/heads/main":
+            raise GateError("Only merged non-main branches may be deleted: " + remote_ref)
+        if not re.fullmatch(r"[0-9a-f]{40,64}", remote_oid) or set(remote_oid) == {"0"}:
+            raise GateError("Malformed push object identity")
+        in_main = subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", remote_oid, "refs/remotes/" + remote + "/main"], capture_output=True).returncode == 0
+        if not in_main and not merged_by_pull_request(root, remote, remote_oid):
+            raise GateError("Branch tip is not in main and has no merged PR; fetch and retry or keep it: " + remote_ref)
+    print("[RepositorySafety][push][BLOCK_MERGED_REF_DELETION] admitted", len(deletions), "merged branch deletion(s)", file=sys.stderr)
+    return True
+    # END_BLOCK_MERGED_REF_DELETION
 
 
 def validate_reviewed_screenshot_binaries(blobs):
@@ -546,7 +625,7 @@ def install(root, common, private):
         raise GateError("Installer source must exactly match the staged reviewed gate")
     hooks = common / "hooks"
     hooks.mkdir(exist_ok=True)
-    for hook in ["pre-commit", "commit-msg", "pre-push"]:
+    for hook in ["pre-commit", "commit-msg", "pre-push", "reference-transaction"]:
         path = hooks / hook
         if path.exists() and "MARK_SAFETY_SHARED_HOOK" not in path.read_text():
             raise GateError("Existing Git hook must be preserved and explicitly composed: " + hook)
@@ -559,6 +638,8 @@ def install(root, common, private):
         text = '#!/bin/sh\n# MARK_SAFETY_SHARED_HOOK\nset -eu\ncommon=$(git rev-parse --git-common-dir)\nexec python3 "$common/mark-safety/gate.py" ' + command + ' "$@"\n'
         (hooks / hook).write_text(text)
         os.chmod(hooks / hook, 0o700)
+    (hooks / "reference-transaction").write_text(REFERENCE_TRANSACTION_HOOK)
+    os.chmod(hooks / "reference-transaction", 0o700)
     git(root, "config", "core.hooksPath", str(hooks))
     print("Shared commit/push safety hooks installed")
 
@@ -578,6 +659,8 @@ def main():
         if not args.arguments:
             raise GateError("Push remote is required")
         updates = sys.stdin.read()
+        if ref_deletions(root, args.arguments[0], updates):
+            return
         review(lambda: push_candidate(root, args.arguments[0], updates), private, "push")
     else:
         message_file = Path(args.arguments[0]) if args.operation == "commit" and args.arguments else None
