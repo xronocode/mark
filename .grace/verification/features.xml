@@ -2402,12 +2402,12 @@
       <Priority>critical</Priority>
       <Commands>
         <Command>npm run release:governance</Command>
-        <Command>npm run release:readiness -- --tag v2.6.0 --payload PAYLOAD_SHA</Command>
-        <Command>npm run release:materials -- --tag v2.6.0</Command>
+        <Command>npm run release:readiness -- --tag "v$(npm run -s release:train -- --field computedVersion)"</Command>
+        <Command>npm run release:normalize -- --require-clean</Command>
         <Command>npm run release:project-sync -- --dry-run</Command>
         <Command>npm run release:github-controls -- --dry-run</Command>
         <Command>npm run release:github-controls -- --check-active</Command>
-        <Command>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/release-governance.test.js tests/renderer/release-readiness.test.js tests/renderer/release-materials.test.js tests/renderer/release-project-sync.test.js tests/renderer/release-github-controls.test.js tests/renderer/release-notes.test.js tests/renderer/release-normalize.test.js</Command>
+        <Command>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/release-governance.test.js tests/renderer/release-readiness.test.js tests/renderer/release-materials.test.js tests/renderer/release-project-sync.test.js tests/renderer/release-github-controls.test.js tests/renderer/release-notes.test.js tests/renderer/release-normalize.test.js tests/renderer/release-train.test.js</Command>
         <Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session</Command>
         <Command>npx vitest run tests/renderer/publication-privacy.test.js</Command>
         <Command>npx vitest run tests/renderer/localstorage-webstorage-compat.test.js</Command>
@@ -2415,11 +2415,11 @@
       <Scenarios>
         <Scenario>scenario-16: renderer-e2e runs webkit-session after browser installation, including remaining editor content and edit ownership after active-tab close.</Scenario>
         <Scenario>scenario-19 (C-RELEASE-PIPELINE-AUTOMATION): the checked-in train JSON is the gate authority; exact membership, owner acceptance, commit accounting, payload-to-seal allowlist, fresh screenshot digests and live payload check name/App/SHA/conclusion are independently fail-closed.</Scenario>
-        <Scenario>scenario-20 (C-RELEASE-PIPELINE-AUTOMATION): Release Please computes Conventional SemVer and prepares only a PR; trusted normalization updates the other version surfaces idempotently and neither path can tag or publish.</Scenario>
+        <Scenario>scenario-20 (C-RELEASE-PIPELINE-AUTOMATION): Release Please computes Conventional SemVer and prepares only a PR; trusted normalization updates the other version surfaces idempotently and neither path can tag or publish. Superseded 2026-10-24 by scenario-32 (C-RELEASE-CONVEYOR): Release Please and its lifecycle job are retired.</Scenario>
         <Scenario>scenario-21 (C-RELEASE-PIPELINE-AUTOMATION): the one-way public Project mirror preserves unowned fields and cannot weaken readiness; owner-local GitHub-control apply is journaled/read-back, forbidden in CI and leaves unknown resources untouched.</Scenario>
         <Scenario>scenario-22 (C-RELEASE-PIPELINE-AUTOMATION): input-free owner approval creates one annotated App-authored tag at the Ready seal; both promotion admission passes retain complete main ancestry for payload-to-seal merge-base proof; tag admission restores the remote annotated object after checkout peels the local tag ref and binds it to the checked-out seal; manual dispatch is unsigned, signing is tag-only, a read-only job creates the deterministic publication bundle, and the contents-only publication job binds a newly created draft by database ID with bounded retry across GitHub tag-index eventual consistency before it exposes a byte/digest/note-verified draft only as its final mutation without executing candidate code or clobbering assets.</Scenario>
-        <Scenario>scenario-23 (C-RELEASE-PIPELINE-AUTOMATION): Release Please lifecycle labels use a separate narrow metadata job; an exact already-public release and exact existing cask PR are idempotent success, and a cask-only failure can be retried from the retained workflow artifacts with `gh run rerun --failed` without recreating the tag or republishing assets.</Scenario>
-        <Scenario>scenario-24 (C-RELEASE-PIPELINE-AUTOMATION): the stable governance job and cross-platform renderer-unit matrix check out complete Git history before the normalization regression proves the pinned 2.5.3 bootstrap boundary and computes the next Conventional SemVer release.</Scenario>
+        <Scenario>scenario-23 (C-RELEASE-PIPELINE-AUTOMATION): Release Please lifecycle labels use a separate narrow metadata job; an exact already-public release and exact existing cask PR are idempotent success, and a cask-only failure can be retried from the retained workflow artifacts with `gh run rerun --failed` without recreating the tag or republishing assets. Superseded 2026-10-24 by scenario-32 (C-RELEASE-CONVEYOR): Release Please and its lifecycle job are retired.</Scenario>
+        <Scenario>scenario-24 (C-RELEASE-PIPELINE-AUTOMATION): the stable governance job and cross-platform renderer-unit matrix check out complete Git history before the normalization regression proves the pinned 2.5.3 bootstrap boundary and computes the next Conventional SemVer release. Superseded 2026-10-24 by scenario-32 (C-RELEASE-CONVEYOR): Release Please and its lifecycle job are retired.</Scenario>
         <Scenario>scenario-25 (C-RELEASE-PIPELINE-AUTOMATION): release material and reviewed-note parsing normalize CRLF/CR checkout text before exact Markdown identity checks, producing the same result on Windows, macOS, and Linux.</Scenario>
         <Scenario>scenario-26 (C-RELEASE-PIPELINE-AUTOMATION): release normalization, material, and train fixtures remain deterministic when derived from any checked-in train lifecycle state; live Frozen, Ready, Released, and Aborted trains reject a new normalization pass, while candidate cleanliness is enforced independently.</Scenario>
         <Scenario>scenario-27 (C-RELEASE-PIPELINE-AUTOMATION): preparation changes the machine train authority and human evidence ledger from Collecting to Preparing in one allowlisted, idempotent normalization patch, preventing candidate state drift.</Scenario>
@@ -2464,6 +2464,23 @@
           tests/renderer/release-github-controls.test.js and
           tests/renderer/release-preflight.test.js.
         </Scenario>
+        <Scenario>
+          scenario-32 (C-RELEASE-CONVEYOR): docs/release-trains/current.json
+          is the only place a train ID is named (tools/release-train.mjs
+          resolves it and rejects malformed or traversing IDs; no release
+          workflow or tool hardcodes a train path); package.json is the single
+          version authority (Release Please, its config, manifest and workflow
+          are absent) and normalization is proven on synthetic workspaces for
+          both the planned and a re-targeted version; the payload-to-seal span
+          accepts several bookkeeping-only commits and a merge-commit seal but
+          rejects a product commit anywhere in it, even one reverted later, and
+          a seal equal to the payload; promotion binds to a seal that is an
+          ancestor of main; release-bearing merges are held only while
+          Preparing or Frozen; material suites derive the version from the
+          repository; publication proves releases/latest advanced. Pinned by
+          tests/renderer/release-{train,readiness,normalize,governance,
+          materials,github-controls}.test.js.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
@@ -2480,6 +2497,9 @@
         <Marker>BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SENT</Marker>
         <Marker>BLOCK_RELEASE_VETO_WINDOW_HOLD</Marker>
         <Marker>BLOCK_RELEASE_VETO_WINDOW_CLOSED</Marker>
+        <Marker>[ReleasePublish][publish][BLOCK_RELEASE_LATEST_ADVANCED]</Marker>
+        <Marker>[ReleaseTrain][resolve][BLOCK_RELEASE_TRAIN_POINTER_REJECTED]</Marker>
+        <Marker>[ReleaseNormalize][plan][BLOCK_RELEASE_NORMALIZE_CHECKED]</Marker>
       </Markers>
       <TraceAssertions/>
       <LegacyBase>

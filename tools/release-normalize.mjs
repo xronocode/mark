@@ -1,9 +1,9 @@
 // FILE: tools/release-normalize.mjs
-// VERSION: 1.3.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Propagate the Release Please-owned package/manifest version into Mark's secondary Cargo, Tauri, fixture, and version-bound material surfaces without calculating a version.
+//   PURPOSE: Propagate the package.json version (set in the preparation PR with `npm version`) into Mark's secondary Cargo, Tauri, fixture, and version-bound material surfaces without calculating a version.
 //   SCOPE: Deterministic plan/check/write over an allowlisted file set, including one explicit CHANGELOG draft handoff and atomic machine/human train preparation; never edits package authority, tags, GitHub Releases, or external state.
-//   DEPENDS: Node.js fs, path, and url standard-library modules; package.json; .release-please-manifest.json; release-preflight surfaces.
+//   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; package.json; release-preflight surfaces.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -11,10 +11,10 @@
 //
 // START_MODULE_MAP
 //   ReleaseNormalizeError - Stable coded normalization error.
-//   planReleaseNormalization - Compute an ordered allowlisted patch from the Release Please identity.
+//   planReleaseNormalization - Compute an ordered allowlisted patch from the package.json version.
 //   applyReleaseNormalization - Write the planned patch and prove a second plan is empty.
 //   runReleaseNormalize - Execute check or write mode with stable diagnostics.
-//   SEMVER - Exact supported Release Please version grammar.
+//   SEMVER - Exact supported release version grammar.
 //   SOURCE_LOCALES - Exact source locale set normalized with release materials.
 //   fail - Raise one stable normalization error.
 //   readJson - Read one JSON version authority.
@@ -25,7 +25,7 @@
 //   replaceInBlock - Transform only one named semantic block.
 //   replaceWhatsNewVersion - Advance only the current in-app draft entry and URL.
 //   renameLocaleDraft - Rename only one current locale draft key.
-//   promoteChangelogDraft - Move the unversioned curated draft into one Release Please-owned section.
+//   promoteChangelogDraft - Move the unversioned curated draft into one dated version section.
 //   prepareTrainLedger - Keep the human train ledger synchronized with the machine authority.
 //   addChange - Add one changed allowlisted file to the normalization plan.
 //   main - Run the command-line interface.
@@ -33,6 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — package.json is the single version authority (Release Please and its manifest removed); the train resolves through the current-train pointer; a CHANGELOG without a numbered section receives one; the ledger status line is matched generically.
 //   - 2026-10-21 v1.3.0: preserve LF or CRLF while synchronizing the human train ledger on every runner OS.
 //   - 2026-10-21 v1.2.0: synchronize the human train ledger with the machine-readable Collecting-to-Preparing transition.
 //   - 2026-10-20 v1.1.0: normalize only explicit draft surfaces, promote curated CHANGELOG copy into one generated section, and retire the one-use last-release boundary.
@@ -42,6 +43,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { resolveCurrentTrain } from './release-train.mjs'
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/
 const SOURCE_LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
@@ -94,7 +96,7 @@ const bumpFixtureDocumentVersion = (source, targetVersion, date) => {
   updated = before + block + updated.slice(blockEnd)
   updated = updated.replace(
     '// START_CHANGE_SUMMARY\n//   LAST_CHANGE:',
-    `// START_CHANGE_SUMMARY\n//   LAST_CHANGE: ${date} v${nextModuleVersion} - advance the Release Please-derived positive fixture to v${targetVersion}.\n//   PREV:`
+    `// START_CHANGE_SUMMARY\n//   LAST_CHANGE: ${date} v${nextModuleVersion} - advance the normalized positive fixture to v${targetVersion}.\n//   PREV:`
   )
   return updated
 }
@@ -183,8 +185,13 @@ const promoteChangelogDraft = (source, targetVersion, date) => {
   if (!draft) fail('MT_RELEASE_NORMALIZE_CHANGELOG_INVALID', 'draft=empty')
   const headingPattern = new RegExp(`^## \\[${targetVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\][^\\n]*$`, 'gm')
   const headings = [...source.matchAll(headingPattern)]
-  if (headings.length !== 1) {
+  if (headings.length > 1) {
     fail('MT_RELEASE_NORMALIZE_CHANGELOG_INVALID', `numbered=${headings.length}`)
+  }
+  const datedHeading = `## [${targetVersion}] - ${date}`
+  if (headings.length === 0) {
+    // No generated section: the curated draft becomes the dated section in place.
+    return `${source.slice(0, start)}${datedHeading}\n\n${draft}\n${source.slice(end + endMarker.length)}`
   }
   let withoutDraft = `${source.slice(0, start)}${source.slice(end + endMarker.length)}`
   const heading = headings[0][0]
@@ -193,7 +200,6 @@ const promoteChangelogDraft = (source, targetVersion, date) => {
   const bodyStart = headingStart + heading.length
   const nextHeadingOffset = withoutDraft.slice(bodyStart).search(/^## \[/m)
   const bodyEnd = nextHeadingOffset === -1 ? withoutDraft.length : bodyStart + nextHeadingOffset
-  const datedHeading = `## [${targetVersion}] - ${date}`
   withoutDraft =
     withoutDraft.slice(0, headingStart) +
     `${datedHeading}\n\n${draft}\n\n` +
@@ -212,11 +218,11 @@ const prepareTrainLedger = (source, targetVersion) => {
     (_match, prefix, _state, suffix, carriageReturn) =>
       `${prefix}Preparing${suffix}${carriageReturn}`
   )
-  const preparedStatus = `- The checked-in train is **Preparing**. Release Please prepared ${targetVersion} and synchronized package, Cargo, Tauri, and train-ledger metadata in the preparation PR; no tag or publication was created.`
+  const preparedStatus = `- The checked-in train is **Preparing**. The preparation PR set ${targetVersion} with npm version and synchronized package, Cargo, Tauri, and train-ledger metadata; no tag or publication was created.`
   if (updated.includes(preparedStatus)) return updated
   updated = replaceExact(
     updated,
-    /^- The checked-in train remains \*\*Collecting\*\*\. Release Please deterministically proposes [^,\r\n]+, while package\/Cargo\/Tauri metadata remains at [^ \r\n]+ until the preparation PR\.(\r?)$/m,
+    /^- The checked-in train remains \*\*Collecting\*\*\.[^\r\n]*?(\r?)$/m,
     (_match, carriageReturn) => `${preparedStatus}${carriageReturn}`,
     'MT_RELEASE_NORMALIZE_LEDGER_INVALID',
     'preparation status'
@@ -233,7 +239,7 @@ const addChange = (changes, root, relativePath, nextContents) => {
 }
 
 // START_CONTRACT: planReleaseNormalization
-//   PURPOSE: Compute the allowlisted version-propagation patch from package.json and the Release Please manifest, never from an explicit target.
+//   PURPOSE: Compute the allowlisted version-propagation patch from package.json, never from an explicit target.
 //   INPUTS: { workspaceRoot: string - repository root, options: object - deterministic fixture date }
 //   OUTPUTS: { object - authoritative version, state, and ordered file changes }
 //   SIDE_EFFECTS: Reads allowlisted repository files only.
@@ -246,18 +252,14 @@ export const planReleaseNormalization = (
 ) => {
   const root = resolve(workspaceRoot)
   const packageVersion = readJson(resolve(root, 'package.json')).version
-  const manifestVersion = readJson(resolve(root, '.release-please-manifest.json'))['.']
-  if (!SEMVER.test(packageVersion ?? '') || packageVersion !== manifestVersion) {
-    fail(
-      'MT_RELEASE_NORMALIZE_AUTHORITY_MISMATCH',
-      `package=${packageVersion ?? 'missing'};manifest=${manifestVersion ?? 'missing'}`
-    )
+  if (!SEMVER.test(packageVersion ?? '')) {
+    fail('MT_RELEASE_NORMALIZE_AUTHORITY_MISMATCH', `package=${packageVersion ?? 'missing'}`)
   }
-  const trainPath = resolve(root, 'docs/release-trains/2.8.x-next.json')
-  const train = readJson(trainPath)
+  const current = resolveCurrentTrain(root)
+  const train = readJson(resolve(root, current.json))
   const previousVersion = train.previousRelease?.tag?.replace(/^v/, '')
   if (packageVersion === previousVersion) {
-    return { version: packageVersion, state: 'awaiting-release-please', changes: [] }
+    return { version: packageVersion, state: 'awaiting-version', changes: [] }
   }
   const changes = []
 
@@ -322,15 +324,15 @@ export const planReleaseNormalization = (
     train.transitions.push({
       state: 'Preparing',
       date,
-      actor: 'mark-release-prep[bot]',
-      evidence: `Release Please prepared ${packageVersion}; no tag or publication was created.`
+      actor: 'release-normalize',
+      evidence: `Preparation set ${packageVersion}; no tag or publication was created.`
     })
   } else if (train.state !== 'Preparing') {
     fail('MT_RELEASE_NORMALIZE_LIFECYCLE_INVALID', `state=${train.state}`)
   }
   train.materials.screenshotManifest = `docs/assets/readme/${packageVersion}.manifest.json`
-  addChange(changes, root, 'docs/release-trains/2.8.x-next.json', withNewline(train))
-  const trainLedgerPath = 'docs/release-trains/2.8.x-next.md'
+  addChange(changes, root, current.json, withNewline(train))
+  const trainLedgerPath = current.markdown
   addChange(
     changes,
     root,
@@ -378,11 +380,6 @@ export const planReleaseNormalization = (
     'CHANGELOG.md',
     promoteChangelogDraft(readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8'), packageVersion, date)
   )
-
-  const releasePleasePath = 'release-please-config.json'
-  const releasePlease = readJson(resolve(root, releasePleasePath))
-  if ('last-release-sha' in releasePlease) delete releasePlease['last-release-sha']
-  addChange(changes, root, releasePleasePath, withNewline(releasePlease))
 
   for (const locale of SOURCE_LOCALES) {
     const sourcePath = `static/locales/${locale}.json`

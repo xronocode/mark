@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.0.0
+# VERSION: 3.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage and publish one digest-verified draft release after a bounded no-veto timer window armed by the owner-approved tag.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, timer-default draft-first publication with cancel-as-veto, optional Telegram notify, and downstream Homebrew handoff.
@@ -16,11 +16,11 @@
 #   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing.
 #   prepare-publication - Render and digest the exact release body and asset set without write credentials.
 #   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final step once the build lanes and the parallel veto window have both closed.
-#   close-release-please - Verify the public latest release and close the exact merged Release Please PR lifecycle with narrow metadata permissions.
 #   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-24 v3.1.0: C-RELEASE-CONVEYOR — read the train through docs/release-trains/current.json and drop the close-release-please job (Release Please removed; it failed on v2.8.1 for want of a Release Please PR).
 #   - 2026-10-24 v3.0.0: C-RELEASE-TIMING — replace the synchronous second
 #     owner approval with a bounded no-veto timer window (RELEASE_VETO_MINUTES,
 #     default 20, clamped 120) running parallel to the builds, an optional
@@ -120,9 +120,12 @@ jobs:
           SEAL=$(git rev-parse "$TAG_REF^{commit}")
           HEAD_SHA=$(git rev-parse HEAD)
           [ "$HEAD_SHA" = "$SEAL" ]
-          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).state")
-          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).payloadSha")
-          EXPECTED_TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).computedVersion")
+          TRAIN_ID=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/current.json')).trainId")
+          [[ "$TRAIN_ID" =~ ^[0-9]+\.[0-9]+\.(x|[0-9]+)-next$ ]]
+          TRAIN="docs/release-trains/$TRAIN_ID.json"
+          STATE=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).state")
+          PAYLOAD=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).payloadSha")
+          EXPECTED_TAG=v$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).computedVersion")
           [ "$STATE" = Ready ]
           [ "$REF_NAME" = "$EXPECTED_TAG" ]
           echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
@@ -1074,49 +1077,15 @@ jobs:
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,tagName \
             | jq -e --arg tag "$TAG" 'select(.isDraft == false and .isPrerelease == false and .tagName == $tag)' >/dev/null
-
-  close-release-please:
-    name: close release please lifecycle
-    needs: [build, publish]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    steps:
-      - name: verify latest and close exact Release Please lifecycle
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.build.outputs.tag }}
-        run: |
-          set -euo pipefail
+          # The in-app updater reads releases/latest: a release is live only
+          # once that feed advances to this tag.
           for ATTEMPT in 1 2 3 4 5; do
             LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
             [ "$LATEST" = "$TAG" ] && break
             [ "$ATTEMPT" = 5 ] && { echo "::error::latest release feed did not advance to $TAG"; exit 1; }
             sleep $((ATTEMPT * 3))
           done
-          VER="${TAG#v}"
-          gh pr list --repo "$GITHUB_REPOSITORY" --state merged --base main --limit 100 \
-            --json number,title,headRefName,headRefOid,headRepositoryOwner,mergeCommit,labels > /tmp/release-prs.json
-          jq -e --arg title "chore(release): v$VER" \
-            '[.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark" and .headRepositoryOwner.login == "xronocode")] | length == 1' \
-            /tmp/release-prs.json >/dev/null
-          PR_NUMBER=$(jq -r --arg title "chore(release): v$VER" '.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark") | .number' /tmp/release-prs.json)
-          MERGE_SHA=$(jq -r --arg title "chore(release): v$VER" '.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark") | .mergeCommit.oid' /tmp/release-prs.json)
-          HEAD_SHA=$(jq -r --arg title "chore(release): v$VER" '.[] | select(.title == $title and .headRefName == "release-please--branches--main--components--reborn-mark") | .headRefOid' /tmp/release-prs.json)
-          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ && "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
-          gh api "repos/$GITHUB_REPOSITORY/compare/$MERGE_SHA...$TAG" \
-            | jq -e 'select(.status == "ahead" or .status == "identical")' >/dev/null
-          VERSION_AT_MERGE=$(gh api "repos/$GITHUB_REPOSITORY/contents/.release-please-manifest.json?ref=$MERGE_SHA" --jq .content | tr -d '\n' | base64 -d | jq -r '.["."]')
-          [ "$VERSION_AT_MERGE" = "$VER" ]
-          LABELS=$(jq -r --argjson number "$PR_NUMBER" '.[] | select(.number == $number) | [.labels[].name] | join("\n")' /tmp/release-prs.json)
-          if grep -Fxq 'autorelease: tagged' <<<"$LABELS"; then
-            exit 0
-          fi
-          grep -Fxq 'autorelease: pending' <<<"$LABELS"
-          gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label 'autorelease: pending' --add-label 'autorelease: tagged'
+          echo "[ReleasePublish][publish][BLOCK_RELEASE_LATEST_ADVANCED] tag=$TAG"
 
   publish-cask:
     name: cross-repo cask PR

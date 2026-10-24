@@ -1,5 +1,5 @@
 // FILE: tools/release-project-sync.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Mirror the checked-in release train into one user-owned GitHub Project without making Project availability part of release admission.
 //   SCOPE: Public-field projection, paginated read, deterministic dry-run/check/apply planning, idempotent owned-field writes, and duplicate protection; never reverse-syncs or deletes.
@@ -29,6 +29,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v1.4.0: C-RELEASE-CONVEYOR — derive evidence URLs from the manifest's own train ID instead of a hardcoded train.
 //   - 2026-10-21 v1.3.0: use the current draft-item payload field, skip absent values on new items, and clear existing empty values through the dedicated GraphQL mutation.
 //   - 2026-10-20 v1.2.0: name the dedicated external credential PROJECT_MIRROR_AUTH consistently across local and Actions callers.
 //   - 2026-10-20 v1.1.0: reject ambiguous Project identity and support explicit owner-local number/node-ID recording after bootstrap.
@@ -63,8 +64,8 @@ const fail = (code, message) => {
 }
 
 const slug = (id) => id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-const evidenceUrl = (itemId) =>
-  `https://github.com/xronocode/mark/blob/main/docs/release-trains/2.8.x-next.md#${slug(itemId)}`
+const evidenceUrl = (trainId, itemId) =>
+  `https://github.com/xronocode/mark/blob/main/docs/release-trains/${trainId}.md#${slug(itemId)}`
 
 const assertPublicValue = (field, value) => {
   const text = String(value ?? '')
@@ -81,7 +82,7 @@ const assertPublicValue = (field, value) => {
 //   INPUTS: { manifest: object - validated train, projectConfig: object - managed Project contract }
 //   OUTPUTS: { object - desired Project metadata, fields, and rows }
 //   SIDE_EFFECTS: none.
-//   LINKS: docs/release-trains/2.8.x-next.json
+//   LINKS: docs/release-trains/current.json
 // END_CONTRACT: buildProjectProjection
 // START_BLOCK_BUILD_PROJECT_PROJECTION
 export const buildProjectProjection = (manifest, projectConfig) => {
@@ -100,7 +101,7 @@ export const buildProjectProjection = (manifest, projectConfig) => {
         Admission: 'operational',
         'Owner acceptance': 'not-required',
         'Item ID': `train:${manifest.trainId}`,
-        'Evidence URL': 'https://github.com/xronocode/mark/blob/main/docs/release-trains/2.8.x-next.json'
+        'Evidence URL': `https://github.com/xronocode/mark/blob/main/docs/release-trains/${manifest.trainId}.json`
       }
     }
   ]
@@ -115,7 +116,7 @@ export const buildProjectProjection = (manifest, projectConfig) => {
           Admission: admission,
           'Owner acceptance': acceptance,
           'Item ID': item.id,
-          'Evidence URL': evidenceUrl(item.id)
+          'Evidence URL': evidenceUrl(manifest.trainId, item.id)
         }
       })
     }

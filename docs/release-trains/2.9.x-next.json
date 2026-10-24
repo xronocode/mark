@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "trainId": "2.9.x-next",
+  "state": "Collecting",
+  "previousRelease": {
+    "tag": "v2.8.1",
+    "commit": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
+    "bootstrapSha": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
+    "tree": "3744c5c907bf1bf568fa26f535c8170529fbe5a9"
+  },
+  "computedVersion": "2.9.0",
+  "payloadSha": null,
+  "sealSha": null,
+  "releaseAuthorization": null,
+  "items": {
+    "userFacing": [],
+    "operational": [],
+    "notPresent": []
+  },
+  "commitAccounting": {
+    "fromExclusive": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
+    "entries": [],
+    "throughInclusive": null
+  },
+  "requiredChecks": [
+    {
+      "name": "status check",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": null
+    },
+    {
+      "name": "release/governance",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": null
+    },
+    {
+      "name": "release/readiness",
+      "app": "GitHub Actions",
+      "status": "pending",
+      "sha": null
+    }
+  ],
+  "materials": {
+    "status": "pending",
+    "screenshotManifest": "docs/assets/readme/2.9.0.manifest.json",
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "releaseNotes": "docs/release-notes-en-drafts.md",
+    "whatsNew": "src/renderer/src/whatsNew/data.js",
+    "localeCount": 10,
+    "itemIds": []
+  },
+  "transitions": [
+    {
+      "state": "Collecting",
+      "date": "2026-10-24",
+      "actor": "claude-code",
+      "evidence": "Opened after v2.8.1 shipped from 2.8.x-next. Planned minor per the owner-approved 2026-10-24 staging plan (stage D): notification system, native DOCX/RTF export and file-position memory, each admitted only after owner acceptance on its own branch build. No item admitted yet; no release activity authorized."
+    }
+  ]
+}
