@@ -1,9 +1,9 @@
 // FILE: tests/renderer/release-materials.test.js
-// VERSION: 1.4.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin exact 2.6.0 release-material identity across train scope, public prose, ten locales, README image references, tracked files, and screenshot digests.
+//   PURPOSE: Pin exact release-material identity for the checked-in package version across train scope, public prose, ten locales, README image references, tracked files, and screenshot digests.
 //   SCOPE: Repository-positive integration plus isolated locale, image-set, review, and digest negative fixtures; no screenshot capture or publication.
-//   DEPENDS: Vitest; tools/release-materials.mjs; public 2.6.0 release materials.
+//   DEPENDS: Vitest; tools/release-materials.mjs; the release materials of the package.json version and the train that carries it.
 //   LINKS: .grace/verification/features.xml V-M-046; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -11,6 +11,11 @@
 //
 // START_MODULE_MAP
 //   LOCALES - Ten canonical release locale identifiers.
+//   VERSION - The checked-in package.json version whose materials the repository carries.
+//   VERSION_KEY - Locale whatsNew key of VERSION.
+//   VERSION_TRAIN - Train ledger whose computedVersion is VERSION, if any.
+//   STRICT_STATES - Train states whose materials must be complete.
+//   SCREENSHOTS - Screenshot manifest path of VERSION.
 //   readJson - Read one repository JSON fixture.
 //   localeTables - Load source and minified locale tables for pure validation.
 //   rejectedWith - Assert one stable materials failure code.
@@ -20,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — derive the version, its train, locale keys and screenshot manifest from the repository instead of pinning 2.8.1, so a version bump no longer breaks this suite.
 //   - 2026-10-21 v1.4.0: keep negative material fixtures stable across collecting and prepared release-PR states.
 //   - 2026-10-20 v1.3.0: prove Windows CRLF checkouts retain the same README, CHANGELOG, and release-notes identity.
 //   - 2026-10-20 v1.2.0: pin the single unversioned CHANGELOG draft and exact-one numbered handoff contract.
@@ -27,7 +33,7 @@
 //   - 2026-10-20 v1.0.0: add the mandatory release-material and screenshot-manifest regression matrix.
 // END_CHANGE_SUMMARY
 
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -42,6 +48,14 @@ import {
 
 const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
 const readJson = (path) => JSON.parse(readFileSync(resolve(path), 'utf8'))
+const VERSION = readJson('package.json').version
+const VERSION_KEY = `v${VERSION.replace(/[.-]/g, '_')}`
+const STRICT_STATES = new Set(['Frozen', 'Ready', 'Released'])
+const VERSION_TRAIN = readdirSync(resolve('docs/release-trains'))
+  .filter((name) => /^\d+\.\d+\.(x|\d+)-next\.json$/.test(name))
+  .map((name) => ({ path: `docs/release-trains/${name}`, train: readJson(`docs/release-trains/${name}`) }))
+  .find(({ train }) => train.computedVersion === VERSION && STRICT_STATES.has(train.state))
+const SCREENSHOTS = `docs/assets/readme/${VERSION}.manifest.json`
 const localeTables = () => ({
   source: Object.fromEntries(
     LOCALES.map((locale) => [locale, readJson(`static/locales/${locale}.json`)])
@@ -73,26 +87,26 @@ const materialHeaders = () => ({
   readme: readFileSync(resolve('README.md'), 'utf8'),
   changelog: restoreChangelogDraft(
     readFileSync(resolve('CHANGELOG.md'), 'utf8'),
-    '2.8.1'
+    VERSION
   ),
   notes: readFileSync(resolve('docs/release-notes-en-drafts.md'), 'utf8'),
-  version: '2.8.1'
+  version: VERSION
 })
 
 // START_BLOCK_RELEASE_MATERIALS_TESTS
 describe('release materials', () => {
-  it('validates every checked-in 2.8.1 material surface together', () => {
-    // v2.8.1 assembles from the collecting train (multi-root workspaces);
-    // the shipped 2.7.0 set stays valid against the Released ledger.
+  // While a new version is only being prepared its materials are still
+  // drafts; the release/readiness job enforces them from Frozen on, so
+  // the full positive check runs whenever the version has a sealed train.
+  it.runIf(VERSION_TRAIN)('validates every checked-in material surface of the package version together', () => {
+    const items = VERSION_TRAIN.train.materials.itemIds.length
     expect(
-      validateReleaseMaterials(process.cwd(), 'v2.8.1', {
-        trainPath: 'docs/release-trains/2.8.x-next.json'
-      })
+      validateReleaseMaterials(process.cwd(), `v${VERSION}`, { trainPath: VERSION_TRAIN.path })
     ).toMatchObject({
-      version: '2.8.1',
-      locales: { localeCount: 10, itemCount: 1 },
-      screenshots: { imageCount: 9 },
-      scopeItems: 1
+      version: VERSION,
+      locales: { localeCount: 10, itemCount: items },
+      screenshots: { imageCount: readJson(SCREENSHOTS).images.length },
+      scopeItems: items
     })
   })
 
@@ -121,9 +135,10 @@ describe('release materials', () => {
 
   it('rejects source/minified locale drift independently', () => {
     const { source, minified } = localeTables()
-    minified.fr.whatsNew.v2_8_0.folders.title = 'drift'
+    const [entry] = Object.keys(minified.fr.whatsNew[VERSION_KEY])
+    minified.fr.whatsNew[VERSION_KEY][entry].title = 'drift'
     rejectedWith(
-      () => validateLocaleMaterials(source, minified, '2.8.1'),
+      () => validateLocaleMaterials(source, minified, VERSION),
       'MT_RELEASE_LOCALE_MIN_DRIFT'
     )
   })
@@ -137,11 +152,11 @@ describe('release materials', () => {
     )
   })
 
-  it('accepts exactly one Release Please-owned numbered CHANGELOG section after draft promotion', () => {
+  it('accepts exactly one numbered CHANGELOG section after draft promotion', () => {
     const materials = materialHeaders()
     materials.state = 'Frozen'
     materials.changelog = materials.changelog
-      .replace('<!-- release-draft:start -->', '## [2.8.1] - 2026-10-23')
+      .replace('<!-- release-draft:start -->', `## [${VERSION}] - 2026-10-23`)
       .replace('<!-- release-draft:end -->', '')
     expect(validateMaterialHeaders(materials)).toBeUndefined()
   })
@@ -149,8 +164,8 @@ describe('release materials', () => {
   it('rejects duplicate numbered CHANGELOG sections independently', () => {
     const materials = materialHeaders()
     materials.changelog = materials.changelog
-      .replace('<!-- release-draft:start -->', '## [2.8.1] - 2026-10-23')
-      .replace('<!-- release-draft:end -->', '## [2.8.1] - 2026-10-23')
+      .replace('<!-- release-draft:start -->', `## [${VERSION}] - 2026-10-23`)
+      .replace('<!-- release-draft:end -->', `## [${VERSION}] - 2026-10-23`)
     rejectedWith(
       () => validateMaterialHeaders(materials),
       'MT_RELEASE_CHANGELOG_VERSION_MISMATCH'
@@ -159,7 +174,7 @@ describe('release materials', () => {
 
   it('rejects a stale README heading independently', () => {
     const materials = materialHeaders()
-    materials.readme = materials.readme.replace("## What's new in 2.8.1", "## What's new in 2.5.3")
+    materials.readme = materials.readme.replace(`## What's new in ${VERSION}`, "## What's new in 0.0.1")
     rejectedWith(
       () => validateMaterialHeaders(materials),
       'MT_RELEASE_README_VERSION_MISMATCH'
@@ -168,7 +183,7 @@ describe('release materials', () => {
 
   it('rejects an absent reviewed release-notes draft independently', () => {
     const materials = materialHeaders()
-    materials.notes = materials.notes.replace('## v2.8.1', '## v9.9.9')
+    materials.notes = materials.notes.replace(`## v${VERSION}`, '## v9.9.9')
     rejectedWith(
       () => validateMaterialHeaders(materials),
       'MT_RELEASE_NOTES_MISSING'
@@ -177,18 +192,18 @@ describe('release materials', () => {
 
   it('rejects missing in-app content for the requested version independently', () => {
     const source = readFileSync(resolve('src/renderer/src/whatsNew/data.js'), 'utf8')
-      .replace("'2.8.1': [", "'9.9.9': [")
+      .replace(`'${VERSION}': [`, "'9.9.9': [")
     rejectedWith(
-      () => validateWhatsNewSource(source, '2.8.1'),
+      () => validateWhatsNewSource(source, VERSION),
       'MT_RELEASE_WHATS_NEW_MISMATCH'
     )
   })
 
   it('rejects a wrong in-app release URL independently', () => {
     const source = readFileSync(resolve('src/renderer/src/whatsNew/data.js'), 'utf8')
-      .replace('/releases/tag/v2.8.1', '/releases/tag/v9.9.9')
+      .replace(`/releases/tag/v${VERSION}`, '/releases/tag/v9.9.9')
     rejectedWith(
-      () => validateWhatsNewSource(source, '2.8.1'),
+      () => validateWhatsNewSource(source, VERSION),
       'MT_RELEASE_WHATS_NEW_MISMATCH'
     )
   })
@@ -197,23 +212,24 @@ describe('release materials', () => {
     const { source, minified } = localeTables()
     delete source.ja
     rejectedWith(
-      () => validateLocaleMaterials(source, minified, '2.8.1'),
+      () => validateLocaleMaterials(source, minified, VERSION),
       'MT_RELEASE_LOCALE_MISSING'
     )
   })
 
   it('rejects copy that exceeds the board layout independently', () => {
     const { source, minified } = localeTables()
-    source.en.whatsNew.v2_8_1.pdfFix.title = 'x'.repeat(33)
+    const [entry] = Object.keys(source.en.whatsNew[VERSION_KEY])
+    source.en.whatsNew[VERSION_KEY][entry].title = 'x'.repeat(33)
     minified.en = structuredClone(source.en)
     rejectedWith(
-      () => validateLocaleMaterials(source, minified, '2.8.1'),
+      () => validateLocaleMaterials(source, minified, VERSION),
       'MT_RELEASE_LOCALE_LAYOUT_INVALID'
     )
   })
 
   it('rejects a screenshot digest mismatch independently', () => {
-    const manifest = readJson('docs/assets/readme/2.8.1.manifest.json')
+    const manifest = readJson(SCREENSHOTS)
     manifest.images[0].sha256 = '0'.repeat(64)
     const readme = readFileSync(resolve('README.md'), 'utf8')
     rejectedWith(
@@ -222,7 +238,7 @@ describe('release materials', () => {
           workspaceRoot: process.cwd(),
           readme,
           manifest,
-          version: '2.8.1',
+          version: VERSION,
           trackedPaths: new Set(manifest.images.map(({ path }) => path))
         }),
       'MT_RELEASE_SCREENSHOT_DIGEST_MISMATCH'
@@ -238,13 +254,13 @@ describe('release materials', () => {
         readme: `![missing](${path})`,
         manifest: {
           schemaVersion: '1.0.0',
-          releaseVersion: '2.8.1',
+          releaseVersion: VERSION,
           captureCommand: 'README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium',
           captureState: 'fresh-reviewed',
           review: { reviewer: 'owner', reviewedAt: '2026-10-20', scenarios: ['Reviewed.'] },
           images: [{ path, sha256: '0'.repeat(64) }]
         },
-        version: '2.8.1',
+        version: VERSION,
         trackedPaths: new Set([path])
       }),
       'MT_RELEASE_SCREENSHOT_MISSING'
@@ -252,7 +268,7 @@ describe('release materials', () => {
   })
 
   it('rejects a missing README image manifest entry independently', () => {
-    const manifest = readJson('docs/assets/readme/2.8.1.manifest.json')
+    const manifest = readJson(SCREENSHOTS)
     manifest.images.pop()
     const readme = readFileSync(resolve('README.md'), 'utf8')
     rejectedWith(
@@ -261,7 +277,7 @@ describe('release materials', () => {
           workspaceRoot: process.cwd(),
           readme,
           manifest,
-          version: '2.8.1',
+          version: VERSION,
           trackedPaths: new Set(manifest.images.map(({ path }) => path))
         }),
       'MT_RELEASE_SCREENSHOT_SET_MISMATCH'
@@ -269,7 +285,7 @@ describe('release materials', () => {
   })
 
   it('rejects missing visual-review evidence independently', () => {
-    const manifest = readJson('docs/assets/readme/2.8.1.manifest.json')
+    const manifest = readJson(SCREENSHOTS)
     manifest.review.scenarios = []
     const readme = readFileSync(resolve('README.md'), 'utf8')
     rejectedWith(
@@ -278,7 +294,7 @@ describe('release materials', () => {
           workspaceRoot: process.cwd(),
           readme,
           manifest,
-          version: '2.8.1',
+          version: VERSION,
           trackedPaths: new Set(manifest.images.map(({ path }) => path))
         }),
       'MT_RELEASE_SCREENSHOT_REVIEW_MISSING'

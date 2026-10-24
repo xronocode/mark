@@ -1,23 +1,23 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 1.5.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, PR-only preparation boundary, immutable action references, and staged control configuration.
+//   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, the payload-open merge window, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
-//   DEPENDS: Vitest; tools/release-governance.mjs; release-please and governance configuration/workflows.
+//   DEPENDS: Vitest; tools/release-governance.mjs; governance configuration and release workflows.
 //   LINKS: .grace/verification/features.xml V-M-046.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   config - Checked-in Release Please configuration.
-//   prepWorkflow - Checked-in preparation workflow source.
+//   releaseWorkflow - Checked-in tag-only release workflow source.
 //   governanceWorkflow - Stable governance workflow whose history-sensitive regression requires a complete checkout.
 //   testWorkflow - Cross-platform unit workflow whose renderer matrix runs the same history-sensitive regression.
 //   governanceConfig - Checked-in GitHub control contract.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — Release Please removed; release-bearing merges stay closed only while Preparing/Frozen and open again once the seal is Ready.
 //   - 2026-10-21 v1.5.0: keep the partial-Project-identity negative fixture valid after the real Project identity is recorded.
 //   - 2026-10-20 v1.4.0: require complete history in both governance and cross-platform renderer-unit jobs.
 //   - 2026-10-20 v1.3.0: pin a full governance-job checkout before the normalization test inspects the bootstrap boundary.
@@ -34,15 +34,10 @@ import {
   validateConventionalTitle,
   validateGovernanceConfig,
   validatePreparationOverlap,
-  validatePinnedActions,
-  validateReleasePreparationBoundary
+  validatePinnedActions
 } from '../../tools/release-governance.mjs'
 
-const config = JSON.parse(readFileSync(resolve('release-please-config.json'), 'utf8'))
-const prepWorkflow = readFileSync(
-  resolve('.github/workflows/release-please.yml'),
-  'utf8'
-)
+const releaseWorkflow = readFileSync(resolve('.github/workflows/release.yml'), 'utf8')
 const governanceWorkflow = readFileSync(
   resolve('.github/workflows/release-governance.yml'),
   'utf8'
@@ -54,7 +49,7 @@ const governanceConfig = JSON.parse(
 
 // START_BLOCK_RELEASE_GOVERNANCE_TESTS
 describe('release governance', () => {
-  it('runs on the collecting train without requiring freeze evidence', () => {
+  it('runs on the current train without requiring freeze evidence', () => {
     expect(runReleaseGovernance(process.cwd())).toMatchObject({
       title: null,
       environments: 4,
@@ -111,31 +106,24 @@ describe('release governance', () => {
     )).toThrow(expect.objectContaining({ code: 'MT_RELEASE_BREAKING_MARKER_INVALID' }))
   })
 
-  it('blocks overlapping release-bearing merges after preparation starts', () => {
+  it('blocks release-bearing merges only while the payload is being pinned', () => {
     const feature = validateConventionalTitle('feat: later feature', ['release:user-facing'])
-    expect(() => validatePreparationOverlap(feature, 'Preparing')).toThrow(
-      expect.objectContaining({ code: 'MT_RELEASE_PREPARATION_OVERLAP' })
-    )
-    expect(validatePreparationOverlap(feature, 'Collecting')).toBe(true)
-    expect(validatePreparationOverlap(validateConventionalTitle('docs: clarify release'), 'Ready')).toBe(true)
+    for (const state of ['Preparing', 'Frozen']) {
+      expect(() => validatePreparationOverlap(feature, state)).toThrow(
+        expect.objectContaining({ code: 'MT_RELEASE_PREPARATION_OVERLAP' })
+      )
+    }
+    // A Ready seal is on main and the tag binds to it: later merges
+    // cannot enter the candidate, so work keeps flowing while the owner
+    // decides.
+    for (const state of ['Collecting', 'Ready', 'Released']) {
+      expect(validatePreparationOverlap(feature, state)).toBe(true)
+    }
+    expect(validatePreparationOverlap(validateConventionalTitle('docs: clarify release'), 'Frozen')).toBe(true)
   })
 
-  it('proves Release Please can prepare but cannot tag or publish', () => {
-    expect(validateReleasePreparationBoundary(config, prepWorkflow)).toBe(true)
-    expect(prepWorkflow).toContain('release-please release-pr')
-    expect(prepWorkflow).not.toContain('release-please github-release')
-  })
-
-  it('rejects an accidental publication command in preparation', () => {
-    expect(() =>
-      validateReleasePreparationBoundary(config, `${prepWorkflow}\ngh release create v9.9.9`)
-    ).toThrow(
-      expect.objectContaining({ code: 'MT_RELEASE_PREPARATION_BOUNDARY_INVALID' })
-    )
-  })
-
-  it('requires every action reference in the privileged preparation workflow to be a full SHA', () => {
-    expect(validatePinnedActions({ prepWorkflow })).toBeGreaterThan(5)
+  it('requires every action reference in the privileged release workflow to be a full SHA', () => {
+    expect(validatePinnedActions({ releaseWorkflow })).toBeGreaterThan(5)
     expect(() =>
       validatePinnedActions({ unsafe: 'steps:\n  - uses: actions/checkout@v4\n' })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_ACTION_UNPINNED' }))

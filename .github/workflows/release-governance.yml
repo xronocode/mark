@@ -70,6 +70,7 @@ jobs:
           tests/renderer/release-github-controls.test.js
           tests/renderer/release-project-sync.test.js
           tests/renderer/release-normalize.test.js
+          tests/renderer/release-train.test.js
           tests/renderer/release-readiness.test.js
           tests/renderer/release-materials.test.js
           tests/renderer/release-notes.test.js
@@ -96,13 +97,13 @@ jobs:
 
       - name: validate repository release evidence
         run: |
-          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).computedVersion")
+          TAG=v$(node tools/release-train.mjs --field computedVersion)
           npm run release:readiness -- --tag "$TAG"
           # Materials admission is release-candidate evidence: a
           # Collecting train has no candidate, and the README honestly
           # still names the previous released version. Frozen and Ready
           # seals must carry exact materials for the computed version.
-          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).state")
+          STATE=$(node tools/release-train.mjs --field state)
           case "$STATE" in
             Frozen|Ready|Released) npm run release:materials -- --tag "$TAG" ;;
             *) echo "state=$STATE — materials admission deferred" ;;

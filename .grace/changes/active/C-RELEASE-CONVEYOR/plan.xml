@@ -1,0 +1,86 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><C-RELEASE-CONVEYOR>
+  <Name>Release conveyor without loops — implementation plan</Name><Created>2026-10-24</Created><Spec>C-RELEASE-CONVEYOR</Spec>
+  <IntentSummary>
+    Remove the five release-conveyor loops found in the 2026-10-24 audit at their causes — count-based seal span, two version authorities, hardcoded train IDs, live-version test fixtures, and the exact-tip approval binding — and close out the 2.8.x-next train, without weakening any trust boundary.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>tools/release-readiness.mjs</Value></MustExist>
+    <MustExist><Value>.github/workflows/promote-release.yml</Value></MustExist>
+    <MustContain><File>.github/workflows/promote-release.yml</File><Text>environment: release-authorize</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustExist><Value>tools/release-train.mjs</Value></MustExist>
+    <MustExist><Value>docs/release-trains/current.json</Value></MustExist>
+    <MustContain><File>tools/release-readiness.mjs</File><Text>BLOCK_VALIDATE_SEAL_SPAN</Text></MustContain>
+    <MustContain><File>.github/workflows/promote-release.yml</File><Text>git merge-base --is-ancestor "$SEAL" origin/main</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>BLOCK_RELEASE_LATEST_ADVANCED</Text></MustContain>
+    <MustContain><File>tests/renderer/release-readiness.test.js</File><Text>rejects a product commit inside the span even when a later commit reverts it</Text></MustContain>
+    <MustContain><File>tests/renderer/release-train.test.js</File><Text>leaves no hardcoded train ID in release workflows and tools</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>tools/release-train.mjs</File>
+    <File>tools/release-readiness.mjs</File>
+    <File>tools/release-normalize.mjs</File>
+    <File>tools/release-governance.mjs</File>
+    <File>tools/release-project-sync.mjs</File>
+    <File>tools/acceptance-registry.mjs</File>
+    <File>.github/workflows/release.yml</File>
+    <File>.github/workflows/promote-release.yml</File>
+    <File>.github/workflows/release-governance.yml</File>
+    <File>.github/workflows/release-please.yml</File>
+    <File>release-please-config.json</File>
+    <File>.release-please-manifest.json</File>
+    <File>package.json</File>
+    <File>package-lock.json</File>
+    <File>docs/release-trains/current.json</File>
+    <File>docs/release-trains/2.8.x-next.json</File>
+    <File>docs/release-trains/2.8.x-next.md</File>
+    <File>docs/release-trains/2.9.x-next.json</File>
+    <File>docs/release-trains/2.9.x-next.md</File>
+    <File>docs/release-trains/README.md</File>
+    <File>AGENTS.md</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>tests/renderer/release-train.test.js</File>
+    <File>tests/renderer/release-readiness.test.js</File>
+    <File>tests/renderer/release-normalize.test.js</File>
+    <File>tests/renderer/release-governance.test.js</File>
+    <File>tests/renderer/release-materials.test.js</File>
+    <File>tests/renderer/release-github-controls.test.js</File>
+    <File>.grace/changes/active/C-RELEASE-CONVEYOR/spec.xml</File>
+    <File>.grace/changes/active/C-RELEASE-CONVEYOR/plan.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Current-train pointer (L3)</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>tools/release-train.mjs resolves docs/release-trains/current.json, rejects malformed/traversing IDs, prints a path or field; all release workflows and tools use it.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-train.test.js</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Commit-wise seal span and seal-on-main binding (L1, L5)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>validateSealSpan proves each span commit bookkeeping-only; promote preflight/authorize use merge-base ancestry; governance holds release-bearing merges only while Preparing/Frozen.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-readiness.test.js tests/renderer/release-governance.test.js tests/renderer/release-github-controls.test.js</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Single version authority (L2)</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>Release Please files, dependency and close job removed; normalize reads package.json only; publish proves releases/latest advanced.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-normalize.test.js</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Version-independent tests (L4)</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>normalize suite synthetic; materials/readiness suites derive version and train from the repository.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run</Command></Verification>
+    </T-004>
+    <T-005>
+      <Title>Train close-out and protocol docs</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>2.8.x-next Released with evidence; 2.9.x-next Collecting; README protocol, AGENTS release steps, M-046 graph and V-M-046 verification updated.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm run release:readiness -- --tag v2.9.0</Command><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-005>
+  </ImplementationPlan>
+</C-RELEASE-CONVEYOR></GraceChangePlan>

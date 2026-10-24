@@ -2,7 +2,7 @@
 
 Owner instruction recorded on 2026-10-19: a confirmed fix joins a release train; accepting it does not start a release. This protocol governs delivery bookkeeping and release admission. Existing GRACE specs/plans still govern implementation and structural refactors.
 
-Current train: [2.8.x-next](2.8.x-next.md). It opens after v2.8.0 (released 2026-10-23 from [2.7.x-next](2.7.x-next.md)) and carries the FIX-018 PDF-export root-cause patch (the owner's «2.8.1»); no release activity authorized yet. The predecessor [2.5.x-next](2.5.x-next.md) is Released as v2.6.0.
+Current train: [2.9.x-next](2.9.x-next.md). It opens after v2.8.1 (released 2026-10-24 from [2.8.x-next](2.8.x-next.md)) and collects the planned 2.9.0 minor; no item admitted and no release activity authorized yet. Tools and workflows find it through [`current.json`](current.json) — switching trains means editing that one pointer and this line, nothing in CI.
 
 ## A fix moves through these stages
 
@@ -33,9 +33,9 @@ Acceptance covers the scenarios actually reviewed. Testing Shift+Up/Down does no
 ## The train has its own lifecycle
 
 - **Collecting:** accepted items accumulate. Membership, materials and code may still change. `payloadSha`, live check evidence and candidate digests are unset.
-- **Preparing:** Release Please owns the proposed SemVer, primary package version and CHANGELOG in a preparation PR; trusted normalization updates the remaining version surfaces. Preparation never creates a tag or release.
-- **Frozen:** the product payload is immutable and every commit since the previous boundary is classified. A following metadata-only seal records `payloadSha`, fresh screenshot review and final evidence; the seal may change only allowlisted release records.
-- **Ready:** strict readiness has proved the payload-to-seal delta, owner acceptance, live checks, materials and digests. The train may now present the input-free `release-authorize` deployment. Ready is not itself authorization.
+- **Preparing:** a reviewed preparation PR sets the version with `npm version <x.y.z> --no-git-tag-version` (package.json is the only version authority) and runs `npm run release:normalize -- --write`, which propagates it to Cargo, Tauri, the preflight fixture, the train ledgers, CHANGELOG and the draft materials. Preparation never creates a tag or release.
+- **Frozen:** the product payload is immutable and every commit since the previous boundary is classified. A following metadata-only seal records `payloadSha`, fresh screenshot review and final evidence. The seal span may hold any number of commits (squash or merge) as long as every one touches only release bookkeeping — train ledgers and README screenshot manifests; a bookkeeping correction is one more commit, never a re-freeze.
+- **Ready:** strict readiness has proved the payload-to-seal delta, owner acceptance, live checks, materials and digests. The train may now present the input-free `release-authorize` deployment. Ready is not itself authorization. The tag binds to the seal, which only has to stay on main: ordinary work may merge again while the approval waits.
 - **Released:** the owner-approved bot tag has passed tag-only signing and the timer-default draft-first publication (the no-veto window closed without a cancel). Actual GitHub/updater/Homebrew outcomes are appended.
 - **Aborted:** the train is permanently retired without publication. Released and Aborted are terminal; continue work under a new immutable train ID.
 
@@ -55,9 +55,11 @@ Required release admission evidence:
 
 ## Automated preparation and publication boundary
 
-`docs/release-trains/<train>.json` is the reproducible authority. GitHub Projects is a public, one-way operational mirror: an outage or missing Project scope is visible drift, not permission to bypass readiness. Conventional PR titles determine SemVer (`fix` patch, `feat` minor, `!`/`BREAKING CHANGE` major); Release Please prepares a PR and never tags or publishes.
+`docs/release-trains/<train>.json` is the reproducible authority. GitHub Projects is a public, one-way operational mirror: an outage or missing Project scope is visible drift, not permission to bypass readiness. Conventional PR titles signal SemVer intent (`fix` patch, `feat` minor, `!`/`BREAKING CHANGE` major) and the preparation PR applies it; release-bearing merges are held only while the train is Preparing or Frozen.
 
-Boundary note 2026-10-22 (v2.7.0 cycle): the v2.6.0 tag was re-pointed to `3ad251f7` during its manual draft completion, so successor trains anchor `previousRelease` (commit/bootstrap/tree) and release-please `bootstrap-sha` at that actual tag target. Sealing stays a single metadata-only commit after a fully green payload.
+Boundary note 2026-10-22 (v2.7.0 cycle): the v2.6.0 tag was re-pointed to `3ad251f7` during its manual draft completion, so successor trains anchor `previousRelease` (commit/bootstrap/tree) at that actual tag target.
+
+Conveyor note 2026-10-24 (C-RELEASE-CONVEYOR): the 2.8.1 cycle needed 15 bookkeeping commits for one fix because the seal had to be exactly one commit over the payload while PRs merged as merge commits, Release Please computed a competing version (2.8.2), and the train ID was hardcoded in 11 CI/tool/test files. The repository now allows squash merges only, the seal span is checked commit by commit instead of counted, package.json is the single version authority, and `current.json` names the train.
 
 After a Ready seal is merged, `release/promote` derives the tag and seal from the checked-out repository. The `release-authorize` Environment is the explicit owner release instruction. A purpose-specific GitHub App creates one annotated tag at that seal; reruns are no-op only for the same peeled target. The tag workflow rejects another actor, a lightweight/wrong-target tag, stale checks or a non-Ready train before signing. Manual dispatch is always unsigned build-only.
 
@@ -100,12 +102,9 @@ If the workflow artifacts have expired, stop. Downloading a public sidecar and c
 Repository files describe the desired controls, but they cannot safely install Apps, copy secret values, or approve their own protections. GitHub Project node IDs recorded in the governance manifest are public GraphQL resource identifiers, not credentials. The owner completes the following once, outside CI, before activating the rulesets.
 
 1. Create or verify the purpose-specific GitHub App installations:
-   - release preparation on `xronocode/mark`: Contents write and Pull requests write;
    - release authorization on `xronocode/mark`: Contents write only;
    - cask handoff on `xronocode/homebrew-mark`: Contents write and Pull requests write.
-2. Configure release preparation on `xronocode/mark`:
-   - repository variable `RELEASE_PREP_APP_ID`;
-   - repository secret `RELEASE_PREP_APP_PRIVATE_KEY`.
+2. Retired 2026-10-24 (C-RELEASE-CONVEYOR): the Release Please preparation App is no longer used. Uninstall it and delete the repository variable `RELEASE_PREP_APP_ID` and secret `RELEASE_PREP_APP_PRIVATE_KEY`; nothing reads them.
 3. Run the staged controls apply with a fresh absolute journal path outside the repository. This creates the four Environments, enables immutable releases, sets default workflow permissions to read, and creates both rulesets with enforcement still disabled:
 
    ```bash
