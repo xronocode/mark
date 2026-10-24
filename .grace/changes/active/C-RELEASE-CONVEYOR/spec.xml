@@ -1,0 +1,59 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-RELEASE-CONVEYOR>
+  <Name>Release conveyor without loops: commit-wise seal span, one version authority, one current-train pointer, version-independent release tests, and the v2.8.1 train close-out</Name>
+  <ApprovalBasis>Owner instruction in chat on 2026-10-24 («Утверждаю план целиком: пункты 1–6»), approving the infrastructure plan: squash-only merges, the 2.8.1 release first, then this conveyor change (loops L1–L5, Release Please removed in favour of a single version authority), WIP triage, and the 2.9.0 / 2.10 staging.</ApprovalBasis>
+  <Created>2026-10-24</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>M (≈1 day)</Complexity>
+
+  <Summary>
+    The 2.8.1 patch (one PDF-export fix accepted 2026-10-23 19:01) needed 15 bookkeeping commits and six seal attempts before it could ship. Root causes found in the audit: (L1) strict readiness required the payload-to-seal span to be exactly one commit while PRs merged as merge commits (two commits), so every seal was invalid on arrival; (L2) Release Please and the manual packaging both set the version, so Release Please kept proposing a competing 2.8.2 PR that failed CI on every push and its close-lifecycle job failed the v2.8.1 run; (L3) the train ID was hardcoded in 11 workflow/tool/test files, so every new train began with a CI edit inside the payload; (L4) release suites copied live release files and pinned the live version, so each bump broke them; (L5) the authorize job required main's tip to equal the seal, so any merge while the approval waited invalidated it. This change removes each loop at its cause while keeping every trust boundary: squash-only merges (owner-applied 2026-10-24), a commit-by-commit metadata-only seal span, package.json as the single version authority propagated by release:normalize, docs/release-trains/current.json as the single train pointer, tests built on synthetic fixtures or derived from the repository, and promotion bound to a seal that is on main. It also records 2.8.x-next as Released and opens 2.9.x-next.
+  </Summary>
+
+  <Problem>
+    <Description>A one-fix patch took about 13 hours from acceptance to tag, almost all of it re-sealing; the release pipeline produced red runs that had nothing to do with the product.</Description>
+    <RootCauseTimestamp>2026-10-24 infrastructure audit (promote run 40036502801 seal=not-single-commit; release-please run 40036502856 expectedTag=v2.8.2; release run 40074378466 close-release-please failure).</RootCauseTimestamp>
+  </Problem>
+
+  <Goals>
+    <R-1>Seal span (L1): strict readiness accepts any payload-to-seal span in which every commit — merges judged against their first parent — touches only release bookkeeping (docs/release-trains/*.json|md, docs/assets/readme/*.manifest.json); a product commit anywhere in the span, even one reverted later, and a seal equal to the payload fail closed.</R-1>
+    <R-2>One version authority (L2): Release Please, its config, manifest, workflow, dev dependency and close-lifecycle job are removed; the preparation PR sets the version with npm version and release:normalize propagates it; publication itself proves the releases/latest feed advanced (the useful half of the removed job).</R-2>
+    <R-3>One train pointer (L3): docs/release-trains/current.json names the current train; tools/release-train.mjs resolves it (rejecting malformed or traversing IDs) and every release workflow and tool reads it; promotion triggers on any train ledger.</R-3>
+    <R-4>Version-independent tests (L4): normalization is proven on synthetic workspaces; material and readiness suites derive the version and train from the repository; a sweep test keeps train IDs out of workflows and tools.</R-4>
+    <R-5>Non-blocking approval wait (L5): preflight and authorize-tag require the seal to be an ancestor of main instead of main's exact tip; governance holds release-bearing merges only while the train is Preparing or Frozen.</R-5>
+    <R-6>Train close-out: 2.8.x-next is recorded Released with the tag, run, updater and Homebrew evidence; 2.9.x-next opens Collecting for the planned 2.9.0; the delivery protocol and AGENTS release steps describe the new flow.</R-6>
+  </Goals>
+
+  <Constraints>
+    <Constraint>The release-authorize approval stays the single explicit owner release instruction; tags are created only by the release bot; signing stays tag-only in release-signing; immutable releases, digest read-back and the no-veto window are unchanged.</Constraint>
+    <Constraint>strictRequiredChecks and the exact-payload check-run proof are unchanged; the seal span is still proven metadata-only, now per commit rather than by count.</Constraint>
+    <Constraint>Preserved GRACE 3 legacy bodies are not edited; superseded current-state scenarios are annotated, not deleted.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Changing the shipped v2.8.1 tag, release, or cask.</NonGoal>
+    <NonGoal>Automatic commit classification or SemVer computation (the preparation PR states the version explicitly).</NonGoal>
+    <NonGoal>Admitting any 2.9.0 feature (each needs its own owner acceptance).</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>tools/release-readiness.mjs v2.0.0 has no span count and no Release Please reference; tests prove multi-commit and merge-commit spans pass and product-in-span, reverted product, and seal-equals-payload fail.</Criterion>
+    <Criterion>release-please-config.json, .release-please-manifest.json and .github/workflows/release-please.yml are absent; package.json has no release-please dependency; release.yml has no close-release-please job and emits BLOCK_RELEASE_LATEST_ADVANCED.</Criterion>
+    <Criterion>No release workflow or tool contains a docs/release-trains/&lt;id&gt;.json|md path; current.json names 2.9.x-next.</Criterion>
+    <Criterion>Full vitest suite, release:readiness, release:governance, release:normalize, release:preflight and acceptance-registry pass locally; grace lint introduces no new findings.</Criterion>
+  </AcceptanceCriteria>
+
+  <AffectedAreas>
+    <External>tools/release-{train,readiness,normalize,governance,project-sync}.mjs; tools/acceptance-registry.mjs; .github/workflows/{release,promote-release,release-governance}.yml; deleted .github/workflows/release-please.yml, release-please-config.json, .release-please-manifest.json; package.json; package-lock.json; docs/release-trains/{current.json,2.8.x-next.*,2.9.x-next.*,README.md}; AGENTS.md; .grace/graph/features.xml (M-046); .grace/verification/features.xml (V-M-046); tests/renderer/release-{train,readiness,normalize,governance,materials,github-controls}.test.js</External>
+  </AffectedAreas>
+
+  <VerificationIntent>npx vitest run; npm run release:readiness -- --tag v2.9.0; npm run release:governance; npm run release:normalize -- --require-clean; npm run release:preflight -- --tag v2.8.1; node tools/acceptance-registry.mjs --check; grace lint --path . --assertions current. The first live release through this conveyor observes one promote preflight success per seal and BLOCK_RELEASE_LATEST_ADVANCED in the publish log.</VerificationIntent>
+
+  <Approval>
+    <ApprovedBy>owner (chat, 2026-10-24): infrastructure plan items 1–6 approved in full</ApprovedBy>
+    <ApprovalScope>Implementation, local gates, PR. Merging stays with the owner; this change authorizes no release.</ApprovalScope>
+  </Approval>
+</C-RELEASE-CONVEYOR>
+</GraceChangeSpec>

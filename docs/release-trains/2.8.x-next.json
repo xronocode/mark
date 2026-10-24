@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.x-next",
-  "state": "Ready",
+  "state": "Released",
   "previousRelease": {
     "tag": "v2.8.0",
     "commit": "f57848b88e333fc0fb119310006c73b975314102",
@@ -306,6 +306,12 @@
       "date": "2026-10-24",
       "actor": "claude-code",
       "evidence": "Re-seal on da13980 after PR #47 (C-RELEASE-TIMING) landed on main and made the #49 seal stale; #47 is accounted as an operational item; this PR is squash-merged so payload..seal is exactly one commit. Release authorization NOT given."
+    },
+    {
+      "state": "Released",
+      "date": "2026-10-24",
+      "actor": "claude-code",
+      "evidence": "v2.8.1 published 2026-10-24T07:51:18Z (release run 40074378466) from the annotated bot tag v2.8.1 -> seal 3a87ffab78442d109240b9404a1b5ce1f24062d1 after the owner-approved release-authorize deployment (promote run 40046378745, approved by xronocode); first release through the C-RELEASE-TIMING no-veto window (no cancel). The updater feed releases/latest/download/latest.json serves 2.8.1; Homebrew cask 2.8.1 (sha256 45bba4a9…a62, matching the published sidecar) merged in xronocode/homebrew-mark#48 (e927b336) after the bot PR #47 failed cask/validate on the anonymous runner API quota. The close-release-please step failed by design drift: 2.8.1 had no Release Please PR (removed in C-RELEASE-CONVEYOR)."
     }
   ]
 }

@@ -1,9 +1,9 @@
 // FILE: tests/renderer/release-readiness.test.js
-// VERSION: 1.3.1
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
-//   DEPENDS: Vitest; tools/release-readiness.mjs; docs/release-trains/2.6.x-next.json.
+//   DEPENDS: Vitest; tools/release-readiness.mjs; tools/release-train.mjs; docs/release-trains/current.json.
 //   LINKS: .grace/verification/features.xml V-M-046.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -15,11 +15,13 @@
 //   SHA_C - Deterministic payload commit fixture.
 //   fixture - Minimal valid train authority for mutation-focused cases.
 //   STRICT_CHECKS - Immutable strict check policy fixture.
-//   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag.
+//   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag; the seal span can be several bookkeeping commits, a merge commit, or carry a reverted product change.
+//   strictOptions - Default strict identity options for one strict repository.
 //   rejectedWith - Assert one stable release-readiness failure code.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — validate the live train through the current-train pointer (no hardcoded train or version); prove multi-commit and merge-commit metadata-only seal spans pass while a product commit anywhere in the span (even one reverted later) and a seal equal to the payload fail; drop the Release Please boundary case.
 //   - 2026-10-21 v1.3.1: derive the collecting-train item count from the checked-in manifest so routine admissions do not require a duplicate fixture edit.
 //   - 2026-10-21 v1.3.0: validate the checked-in train in either collecting main or prepared release-PR lifecycle state.
 //   - 2026-10-20 v1.2.0: cover trusted previous-release boundaries, many-to-many item accounting, and exact non-seal check policy.
@@ -32,6 +34,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { resolveCurrentTrain } from '../../tools/release-train.mjs'
 import {
   readTrainManifest,
   validateStrictRepositoryState,
@@ -119,7 +122,13 @@ const rejectedWith = (manifest, code, options = {}) => {
   ).toThrow(expect.objectContaining({ code }))
 }
 
-const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
+const strictRepository = ({
+  extraSealPath,
+  tagPayload = false,
+  bookkeepingCommits = 0,
+  mergeSeal = false,
+  revertedProduct = false
+} = {}) => {
   const root = mkdtempSync(resolve(tmpdir(), 'mark-readiness-'))
   const git = (...args) =>
     execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
@@ -147,12 +156,8 @@ const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
     '.github/release-governance.json',
     `${JSON.stringify({ strictRequiredChecks: STRICT_CHECKS }, null, 2)}\n`
   )
-  write(
-    'release-please-config.json',
-    `${JSON.stringify({ 'bootstrap-sha': bootstrap, 'last-release-sha': bootstrap }, null, 2)}\n`
-  )
   write('operations.txt', 'release controls\n')
-  git('add', '.github/release-governance.json', 'release-please-config.json', 'operations.txt')
+  git('add', '.github/release-governance.json', 'operations.txt')
   git('commit', '-m', 'chore(release): add deterministic controls')
   const payload = git('rev-parse', 'HEAD')
 
@@ -195,9 +200,26 @@ const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
       captureState: 'fresh-reviewed'
     })}\n`
   )
+  if (mergeSeal) git('checkout', '-q', '-b', 'seal-pr')
+  if (revertedProduct) {
+    write('src/sneaked.js', 'product bytes outside the payload\n')
+    git('add', 'src/sneaked.js')
+    git('commit', '-m', 'feat: sneak product code into the seal span')
+    git('rm', '-q', 'src/sneaked.js')
+    git('commit', '-m', 'revert: hide it again')
+  }
+  for (let index = 0; index < bookkeepingCommits; index += 1) {
+    write('docs/release-trains/2.6.x-next.md', `| State | Ready |\n\n- bookkeeping ${index}\n`)
+    git('add', 'docs/release-trains/2.6.x-next.md')
+    git('commit', '-m', `chore(train): bookkeeping ${index}`)
+  }
   if (extraSealPath) write(extraSealPath, 'unexpected product delta\n')
   git('add', '.')
   git('commit', '-m', 'chore(release): seal v1.1.0')
+  if (mergeSeal) {
+    git('checkout', '-q', 'main')
+    git('merge', '-q', '--no-ff', 'seal-pr', '-m', 'Merge pull request: seal v1.1.0')
+  }
   const seal = git('rev-parse', 'HEAD')
   git('tag', '-a', 'v1.1.0', tagPayload ? payload : seal, '-m', 'v1.1.0')
   const checks = manifest.requiredChecks.map(({ name, app }) => ({
@@ -209,18 +231,27 @@ const strictRepository = ({ extraSealPath, tagPayload = false } = {}) => {
   return { root, manifest, baseline, bootstrap, product, payload, seal, checks }
 }
 
+const strictOptions = (state) => ({
+  tag: 'v1.1.0',
+  payload: state.payload,
+  seal: state.seal,
+  head: state.seal,
+  checks: state.checks
+})
+
 // START_BLOCK_RELEASE_READINESS_TESTS
 describe('release train authority', () => {
-  it('parses the checked-in train and records its expected post-2.7.0 lifecycle identity', () => {
+  it('parses the current train named by the pointer and validates its own identity', () => {
+    const current = resolveCurrentTrain(process.cwd())
     const manifest = readTrainManifest(process.cwd())
     const result = validateTrainManifest(manifest, {
       workspaceRoot: process.cwd(),
-      tag: 'v2.8.1'
+      tag: `v${manifest.computedVersion}`
     })
     expect(result).toMatchObject({
-      trainId: '2.8.x-next',
+      trainId: current.trainId,
       state: manifest.state,
-      version: 'v2.8.1'.slice(1)
+      version: manifest.computedVersion
     })
     // Admission items arrive with owner acceptance, not with the train:
     // the count must mirror the checked-in manifest exactly (empty right
@@ -228,7 +259,7 @@ describe('release train authority', () => {
     expect(result.itemCounts.userFacing).toBe(manifest.items.userFacing.length)
     expect(
       validateTrainLedger(
-        readFileSync(resolve('docs/release-trains/2.8.x-next.md'), 'utf8'),
+        readFileSync(resolve(current.markdown), 'utf8'),
         manifest
       )
     ).toBe(true)
@@ -464,21 +495,38 @@ describe('strict release identity', () => {
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID' }))
   }, 30000)
 
-  it('rejects Release Please bootstrap drift independently', () => {
+  it('accepts a seal span of several bookkeeping-only commits', () => {
+    const state = strictRepository({ bookkeepingCommits: 3 })
+    expect(validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))).toMatchObject({
+      payloadSha: state.payload,
+      sealSha: state.seal
+    })
+  }, 30000)
+
+  it('accepts a seal that landed as a merge commit', () => {
+    const state = strictRepository({ mergeSeal: true })
+    expect(validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))).toMatchObject({
+      payloadSha: state.payload,
+      sealSha: state.seal
+    })
+  }, 30000)
+
+  it('rejects a product commit inside the span even when a later commit reverts it', () => {
+    const state = strictRepository({ revertedProduct: true })
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_SEAL_PRODUCT_DELTA' }))
+  }, 30000)
+
+  it('rejects a seal equal to the payload', () => {
     const state = strictRepository()
-    writeFileSync(
-      resolve(state.root, 'release-please-config.json'),
-      `${JSON.stringify({ 'bootstrap-sha': state.baseline }, null, 2)}\n`
-    )
     expect(() =>
       validateStrictRepositoryState(state.root, state.manifest, {
-        tag: 'v1.1.0',
-        payload: state.payload,
-        seal: state.seal,
-        head: state.seal,
-        checks: state.checks
+        ...strictOptions(state),
+        seal: state.payload,
+        head: state.payload
       })
-    ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID' }))
+    ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_SEAL_INVALID' }))
   }, 30000)
 
   it('rejects a mismatched checkout independently', () => {

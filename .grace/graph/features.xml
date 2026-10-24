@@ -2358,7 +2358,7 @@
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
       <Summary>
         C-RELEASE-PIPELINE-AUTOMATION (2026-10-20): M-046 now owns the
-        repository release train authority, Release Please preparation and
+        repository release train authority, release preparation and
         atomic JSON/Markdown train-ledger plus version normalization, exact
         README/CHANGELOG/release-note/What&apos;s New
         material checks, payload-to-seal readiness, the public one-way Project
@@ -2375,8 +2375,15 @@
         object targets the checked-out seal before packaging.
         Promotion preserves complete main ancestry before both strict admission
         passes so payload-to-seal merge-base evidence is available on hosted runners.
-        Release Please lifecycle metadata permissions are isolated from release
-        publication. Manual dispatch is unsigned build-only; Projects never
+        C-RELEASE-CONVEYOR (2026-10-24): Release Please is retired —
+        package.json, set by npm version in the reviewed preparation PR, is the
+        single version authority and normalization propagates it; the current
+        train is named once in docs/release-trains/current.json and resolved by
+        tools/release-train.mjs; the payload-to-seal span may hold any number of
+        bookkeeping-only commits (each proven, merges judged against their first
+        parent); promotion binds to a seal that is on main rather than main's
+        exact tip; publication itself proves the releases/latest feed advanced.
+        Manual dispatch is unsigned build-only; Projects never
         becomes gate authority; secrets and admin apply are isolated by purpose.
         The pull-request Tauri dry-run also remains unprivileged: it disables
         updater artifacts through a narrow CLI config override while retaining
@@ -2438,12 +2445,12 @@
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
-        github-controls,normalize,notes}.mjs, package.json, package-lock.json,
+        github-controls,normalize,notes,train}.mjs, package.json, package-lock.json,
         Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
-        docs/release-trains/*.json, docs/assets/readme/*.manifest.json,
-        .github/release-governance.json,
-        .github/workflows/{release,release-tauri,release-please,
-        release-governance,promote-release,test}.yml
+        docs/release-trains/current.json, docs/release-trains/*.json,
+        docs/assets/readme/*.manifest.json, .github/release-governance.json,
+        .github/workflows/{release,release-tauri,release-governance,
+        promote-release,test}.yml
       </PlannedPath>
       <PublicationBoundary>
         C-PRIVATE-OPERATIONS: reusable tools/release/ scripts remain public.
@@ -2569,16 +2576,15 @@
           tools/release-readiness.mjs, tools/release-materials.mjs,
           tools/release-project-sync.mjs, tools/release-github-controls.mjs,
           tools/release-normalize.mjs, tools/release-notes.mjs,
-          docs/release-trains/2.5.x-next.json,
-          docs/release-trains/2.5.x-next.md,
+          tools/release-train.mjs,
+          docs/release-trains/current.json,
           .github/workflows/release.yml,
           .github/workflows/release-tauri.yml,
-          .github/workflows/release-please.yml,
           .github/workflows/release-governance.yml,
           .github/workflows/promote-release.yml
         </Source>
         <KnowledgeGraphPath>tools/release-readiness.mjs, tools/release-github-controls.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
-        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/publication-privacy.test.js</Tests>
+        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/publication-privacy.test.js</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>
