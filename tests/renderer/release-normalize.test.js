@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-normalize.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove package.json is the only version authority and Mark's secondary release surfaces normalize through one deterministic, idempotent allowlisted patch.
 //   SCOPE: Fully synthetic temporary workspaces (no copy of live release files, so a release never breaks this suite), check/write/idempotence, CRLF ledgers, lifecycle and authority rejections, forbidden override, and the retired Release Please surfaces.
@@ -22,6 +22,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.1.0: What's New records the release date (the CHANGELOG heading date) instead of a GitHub release URL; cover insertion, re-targeting and a heading dated by an earlier pass.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — rebuild on synthetic workspaces instead of rewriting copies of the live release files (which broke on every version bump); package.json replaces the Release Please manifest as authority; cover planned and re-targeted versions.
 //   - 2026-10-21 v1.5.0: derive the collecting fixture from every terminal candidate state and assert fail-closed normalization on a live Ready train.
 //   - 2026-10-20 v1.0.0: add golden 2.6.0-to-2.7.0 propagation, no-write, and idempotence coverage.
@@ -91,8 +92,8 @@ const synthetic = ({ packageVersion = PLANNED, state = 'Collecting' } = {}) => {
       '}',
       '// END_BLOCK_WHATS_NEW_CONTENT',
       '// START_BLOCK_WHATS_NEW_EXTRAS',
-      'export const urls = {',
-      `  '${PLANNED}': 'https://github.com/xronocode/mark/releases/tag/v${PLANNED}'`,
+      'export const WHATS_NEW_RELEASE_DATES = {',
+      `  '${PREVIOUS}': '2026-01-01'`,
       '}',
       '// END_BLOCK_WHATS_NEW_EXTRAS',
       ''
@@ -151,6 +152,7 @@ describe('release normalization', () => {
       'tests/renderer/release-preflight.test.js',
       'docs/release-trains/1.5.x-next.json',
       'docs/release-trains/1.5.x-next.md',
+      'src/renderer/src/whatsNew/data.js',
       'CHANGELOG.md'
     ])
     const after = (path) => plan.changes.find((change) => change.path === path).after
@@ -173,6 +175,17 @@ describe('release normalization', () => {
     expect(changelog).not.toContain('release-draft:start')
     expect(changelog).toContain(`## [${PLANNED}] - ${DATE}\n\n### Editor\n\n- Alpha.`)
     expect(changelog).toContain(`## [${PREVIOUS}] - 2026-01-01`)
+    const whatsNew = after('src/renderer/src/whatsNew/data.js')
+    expect(whatsNew).toContain(`export const WHATS_NEW_RELEASE_DATES = {\n  '${PLANNED}': '${DATE}',\n  '${PREVIOUS}': '2026-01-01'\n}`)
+  })
+
+  it('keeps the date of a CHANGELOG heading written by an earlier pass', () => {
+    const root = synthetic()
+    const path = resolve(root, 'CHANGELOG.md')
+    writeFileSync(path, readFileSync(path, 'utf8').replace('<!-- release-draft:start -->', `## [${PLANNED}] - 2026-10-20\n\n<!-- release-draft:start -->`))
+    const plan = planReleaseNormalization(root, { date: DATE })
+    const whatsNew = plan.changes.find((change) => change.path === 'src/renderer/src/whatsNew/data.js').after
+    expect(whatsNew).toContain(`'${PLANNED}': '2026-10-20'`)
   })
 
   it('re-targets every draft surface when the released version differs from the plan', () => {
@@ -194,7 +207,8 @@ describe('release normalization', () => {
     const whatsNew = after('src/renderer/src/whatsNew/data.js')
     expect(whatsNew).toContain(`'${target}': [`)
     expect(whatsNew).toContain(`whatsNew.${draftKey(target)}.alpha.title`)
-    expect(whatsNew).toContain(`/releases/tag/v${target}'`)
+    expect(whatsNew).toContain(`'${target}': '${DATE}'`)
+    expect(whatsNew).not.toContain(`'${PLANNED}': '`)
     const locale = JSON.parse(after('static/locales/fr.json'))
     expect(Object.keys(locale.whatsNew)).toEqual([draftKey(target)])
     expect(after('static/locales/fr.min.json')).toBe(JSON.stringify(locale))

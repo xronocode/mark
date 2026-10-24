@@ -1,5 +1,5 @@
 // FILE: tools/release-normalize.mjs
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Propagate the package.json version (set in the preparation PR with `npm version`) into Mark's secondary Cargo, Tauri, fixture, and version-bound material surfaces without calculating a version.
 //   SCOPE: Deterministic plan/check/write over an allowlisted file set, including one explicit CHANGELOG draft handoff and atomic machine/human train preparation; never edits package authority, tags, GitHub Releases, or external state.
@@ -23,7 +23,7 @@
 //   bumpFixtureDocumentVersion - Advance the release-preflight fixture and its semantic metadata.
 //   replaceHeadingVersion - Advance one exact current-draft heading without touching history.
 //   replaceInBlock - Transform only one named semantic block.
-//   replaceWhatsNewVersion - Advance only the current in-app draft entry and URL.
+//   replaceWhatsNewVersion - Advance only the current in-app draft entry and record its release date.
 //   renameLocaleDraft - Rename only one current locale draft key.
 //   promoteChangelogDraft - Move the unversioned curated draft into one dated version section.
 //   prepareTrainLedger - Keep the human train ledger synchronized with the machine authority.
@@ -33,6 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.1.0: the What's New link opens the website changelog, so normalization records the release date (the CHANGELOG heading date) for the target version instead of a GitHub release URL.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — package.json is the single version authority (Release Please and its manifest removed); the train resolves through the current-train pointer; a CHANGELOG without a numbered section receives one; the ledger status line is matched generically.
 //   - 2026-10-21 v1.3.0: preserve LF or CRLF while synchronizing the human train ledger on every runner OS.
 //   - 2026-10-21 v1.2.0: synchronize the human train ledger with the machine-readable Collecting-to-Preparing transition.
@@ -121,42 +122,49 @@ const replaceInBlock = (source, startMarker, endMarker, transform, label) => {
   return before + transform(block) + source.slice(end)
 }
 
-const replaceWhatsNewVersion = (source, fromVersion, targetVersion) => {
-  if (fromVersion === targetVersion) return source
+const replaceWhatsNewVersion = (source, fromVersion, targetVersion, date) => {
   const fromKey = `v${fromVersion.replace(/[.-]/g, '_')}`
   const targetKey = `v${targetVersion.replace(/[.-]/g, '_')}`
-  let updated = replaceInBlock(
-    source,
-    '// START_BLOCK_WHATS_NEW_CONTENT',
-    '// END_BLOCK_WHATS_NEW_CONTENT',
-    (block) => {
-      const entry = `  '${fromVersion}': [`
-      if (block.split(entry).length !== 2) {
-        fail('MT_RELEASE_NORMALIZE_MATERIAL_INVALID', 'whatsNew.content=ambiguous')
-      }
-      return block
-        .replace(entry, `  '${targetVersion}': [`)
-        .replaceAll(`whatsNew.${fromKey}.`, `whatsNew.${targetKey}.`)
-    },
-    'whatsNew.content'
-  )
-  updated = replaceInBlock(
+  let updated = source
+  if (fromVersion !== targetVersion) {
+    updated = replaceInBlock(
+      updated,
+      '// START_BLOCK_WHATS_NEW_CONTENT',
+      '// END_BLOCK_WHATS_NEW_CONTENT',
+      (block) => {
+        const entry = `  '${fromVersion}': [`
+        if (block.split(entry).length !== 2) {
+          fail('MT_RELEASE_NORMALIZE_MATERIAL_INVALID', 'whatsNew.content=ambiguous')
+        }
+        return block
+          .replace(entry, `  '${targetVersion}': [`)
+          .replaceAll(`whatsNew.${fromKey}.`, `whatsNew.${targetKey}.`)
+      },
+      'whatsNew.content'
+    )
+  }
+  // The «See everything new» link opens the website changelog at the
+  // release heading, so the target needs the same date as its CHANGELOG
+  // heading. A draft carries no date; a re-targeted draft drops its own.
+  return replaceInBlock(
     updated,
     '// START_BLOCK_WHATS_NEW_EXTRAS',
     '// END_BLOCK_WHATS_NEW_EXTRAS',
     (block) => {
-      const current = `  '${fromVersion}': 'https://github.com/xronocode/mark/releases/tag/v${fromVersion}'`
-      if (block.split(current).length !== 2) {
-        fail('MT_RELEASE_NORMALIZE_MATERIAL_INVALID', 'whatsNew.url=ambiguous')
+      const opener = 'export const WHATS_NEW_RELEASE_DATES = {\n'
+      if (block.split(opener).length !== 2) {
+        fail('MT_RELEASE_NORMALIZE_MATERIAL_INVALID', 'whatsNew.dates=ambiguous')
       }
-      return block.replace(
-        current,
-        `  '${targetVersion}': 'https://github.com/xronocode/mark/releases/tag/v${targetVersion}'`
-      )
+      const line = (version) => new RegExp(`^  '${version.replace(/[.]/g, '\\.')}': '[^']*',?\\n`, 'm')
+      let next = block
+      if (fromVersion !== targetVersion) next = next.replace(line(fromVersion), '')
+      next = next.replace(line(targetVersion), '')
+      const body = next.slice(next.indexOf(opener) + opener.length)
+      const entry = `  '${targetVersion}': '${date}'${body.startsWith('}') ? '' : ','}\n`
+      return next.replace(opener, opener + entry)
     },
     'whatsNew.extras'
   )
-  return updated
 }
 
 const renameLocaleDraft = (table, fromVersion, targetVersion, locale) => {
@@ -364,6 +372,12 @@ export const planReleaseNormalization = (
       'releaseNotes'
     )
   )
+  // A CHANGELOG heading dated by an earlier pass keeps its date; the
+  // in-app link must use exactly that date.
+  const changelogSource = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8')
+  const escapedVersion = packageVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const releaseDate =
+    new RegExp(`^## \\[${escapedVersion}\\] - (\\d{4}-\\d{2}-\\d{2})`, 'm').exec(changelogSource)?.[1] ?? date
   addChange(
     changes,
     root,
@@ -371,7 +385,8 @@ export const planReleaseNormalization = (
     replaceWhatsNewVersion(
       readFileSync(resolve(root, 'src/renderer/src/whatsNew/data.js'), 'utf8'),
       oldMaterialVersion,
-      packageVersion
+      packageVersion,
+      releaseDate
     )
   )
   addChange(
