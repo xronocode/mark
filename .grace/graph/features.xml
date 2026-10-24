@@ -2940,11 +2940,17 @@
         ordered-parent DAGs and raw headers, preserves every tree and identity,
         and permits only approved message replacements plus the explicitly
         counted removal of GPG signatures invalidated by new commit identities.
+        Its recovery phase admits a single desktop PR rebase only when the live
+        old branch tip and live main read from the actual push endpoint match
+        the negotiated and remote-tracking identities, the new head descends
+        from that main, and every replayed commit unique to the rebuilt branch
+        passes the normal push scan. The endpoint is never retained in review
+        payloads, receipts or diagnostics.
         Optional owner-local review is outside this public module.
       </Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>
-      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic exposure, lane, Gitleaks and identity checks, including manifest-bound screenshot evidence and exact-manifest proof for an approved message-only main rewrite.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message, independently grouped outgoing commits, or paired raw commit DAGs plus an owner-local rewrite manifest</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete evidence, unsupported payload, changed candidate, stale or shallow history, rewrite manifest/DAG/header/signature mismatch, an unproven branch deletion, AI attribution, or an AI-named branch.</Description></Error></Errors></Contract>
+      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic exposure, lane, Gitleaks and identity checks, including manifest-bound screenshot evidence, exact-manifest proof for an approved message-only main rewrite, and push-endpoint live-tip/current-main proof for a rebuilt desktop PR branch.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message, independently grouped outgoing commits, a push-endpoint/current-main-bound desktop PR rebase, or paired raw commit DAGs plus an owner-local rewrite manifest</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete evidence, unsupported payload, changed candidate, stale or shallow history, missing push endpoint, stale branch/main identity, unbased desktop PR rebase, rewrite manifest/DAG/header/signature mismatch, an unproven branch deletion, AI attribution, or an AI-named branch.</Description></Error></Errors></Contract>
       <Sources><Source>tools/security_gate.py</Source><Tests>tests/security/test_security_gate.py</Tests></Sources>
     </M-064>
     <M-065>

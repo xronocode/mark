@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.9.1
+# VERSION: 1.9.2
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that deterministic publication safety fails closed on leaks, private paths, unsupported payloads and candidate changes.
-#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, exact identity receipts, outgoing history and exact-manifest message-only main rewrites; no fixture commits in the project repository.
+#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, exact identity receipts, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites; no fixture commits in the project repository.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -11,10 +11,11 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, exact-index, deterministic receipt, outgoing-history, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
+#   SafetyGateTests - exposure, exact-index, deterministic receipt, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.9.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove an exact replacement may preserve a historical commit message with no trailing LF.
+#   LAST_CHANGE: 1.9.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove a non-main PR rebase is bound to branch/main identities read from the actual push endpoint and scans only replayed commits.
+#   PREV: 1.9.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove an exact replacement may preserve a historical commit message with no trailing LF.
 #   PREV: 1.9.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove exact manifest binding, ordered-parent merge-DAG parity, raw header preservation, explicit signature loss, stale/shallow rejection and candidate recheck.
 #   PREV: 1.8.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace workstation-model scenarios with deterministic scan, exact identity and private receipt assertions.
 #   PREV: 1.7.0 - 2026-10-24: prove the AI-name ban — attribution trailers fail commit and push review, AI-named branches fail push, and the installed reference-transaction hook aborts local creation of AI-named branches only.
@@ -222,6 +223,173 @@ class SafetyGateTests(unittest.TestCase):
             result = gate.push_candidate(Path("."), "fork", "refs/heads/main " + tip + " refs/heads/main " + base + "\n")
         self.assertEqual([value for _, value in result["blobs"]], [b"intermediate", b"final"])
         self.assertIn(("rev-list", "--reverse", tip, "--not", base), calls)
+
+
+    # START_BLOCK_NON_MAIN_REBASE_TESTS
+    @staticmethod
+    def non_main_rebase_fixture(directory):
+        root = Path(directory) / "repo"
+        remote = Path(directory) / "remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+        subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
+
+        def run(*args):
+            return subprocess.run(
+                ["git", "-C", str(root), "-c", "user.name=Test Owner", "-c", "user.email=owner@example.com", *args],
+                capture_output=True,
+                check=True,
+            ).stdout.decode().strip()
+
+        (root / "base.txt").write_text("base\n")
+        run("add", "base.txt")
+        run("commit", "-q", "-m", "base")
+        base = run("rev-parse", "HEAD")
+        run("remote", "add", "fork", str(remote))
+        run("push", "-q", "-u", "fork", "main")
+
+        run("switch", "-q", "-c", "feature/pr")
+        (root / "feature.txt").write_text("feature\n")
+        run("add", "feature.txt")
+        run("commit", "-q", "-m", "feat: product change")
+        old_tip = run("rev-parse", "HEAD")
+        run("push", "-q", "-u", "fork", "feature/pr")
+
+        run("switch", "-q", "main")
+        (root / "main.txt").write_text("new main\n")
+        run("add", "main.txt")
+        run("commit", "-q", "-m", "chore: rewritten main anchor")
+        main_tip = run("rev-parse", "HEAD")
+        run("push", "-q", "fork", "main")
+        run("fetch", "-q", "fork", "main", "feature/pr")
+
+        run("switch", "-q", "-c", "rebuilt", "fork/main")
+        run("cherry-pick", old_tip)
+        new_tip = run("rev-parse", "HEAD")
+        alternate_old = run("commit-tree", run("rev-parse", old_tip + "^{tree}"), "-p", base, "-m", "alternate old")
+        divergent = run("commit-tree", run("rev-parse", old_tip + "^{tree}"), "-p", base, "-m", "divergent replay")
+        run("update-ref", "refs/heads/divergent", divergent)
+        updates = "refs/heads/rebuilt " + new_tip + " refs/heads/feature/pr " + old_tip + "\n"
+        return SimpleNamespace(
+            root=root,
+            remote=remote,
+            updates=updates,
+            base=base,
+            old_tip=old_tip,
+            main_tip=main_tip,
+            new_tip=new_tip,
+            alternate_old=alternate_old,
+            divergent=divergent,
+        )
+
+    def test_non_main_rebase_binds_live_tips_and_scans_only_replayed_commits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.non_main_rebase_fixture(directory)
+            self.assertFalse(gate.history_rewrite_requested(fixture.root, fixture.updates))
+            self.assertTrue(gate.non_main_rebase_requested(fixture.root, fixture.updates))
+            candidate = gate.non_main_rebase_candidate(fixture.root, "fork", str(fixture.remote), fixture.updates)
+            self.assertEqual(candidate["commits"], [fixture.new_tip])
+            self.assertEqual(candidate["receipt"]["oldTip"], fixture.old_tip)
+            self.assertEqual(candidate["receipt"]["mainTip"], fixture.main_tip)
+            self.assertIn("BLOCK_NON_MAIN_REBASE", candidate["passMarker"])
+            self.assertIn("REBASE MAIN: " + fixture.main_tip, candidate["payload"])
+
+    def test_non_main_rebase_rejects_multiple_main_tag_stale_and_unbased_updates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.non_main_rebase_fixture(directory)
+            cases = [
+                fixture.updates + fixture.updates,
+                fixture.updates.replace("refs/heads/feature/pr", "refs/heads/main"),
+                fixture.updates.replace("refs/heads/feature/pr", "refs/tags/rebuilt"),
+                fixture.updates.replace("refs/heads/feature/pr", "refs/heads/mobile/rebuilt"),
+                fixture.updates.replace(fixture.old_tip, fixture.alternate_old),
+                "refs/heads/divergent " + fixture.divergent + " refs/heads/feature/pr " + fixture.old_tip + "\n",
+                "refs/heads/main " + fixture.main_tip + " refs/heads/feature/pr " + fixture.old_tip + "\n",
+            ]
+            for updates in cases:
+                with self.subTest(updates=updates.split()[2]), self.assertRaises(gate.GateError):
+                    gate.non_main_rebase_candidate(fixture.root, "fork", str(fixture.remote), updates)
+
+            subprocess.run(
+                ["git", "-C", str(fixture.root), "update-ref", "refs/remotes/fork/main", fixture.base],
+                check=True,
+            )
+            with self.assertRaises(gate.GateError):
+                gate.non_main_rebase_candidate(fixture.root, "fork", str(fixture.remote), fixture.updates)
+
+    def test_non_main_rebase_reads_actual_push_endpoint_not_fetch_url(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.non_main_rebase_fixture(directory)
+            push_remote = Path(directory) / "push.git"
+            subprocess.run(["git", "init", "-q", "--bare", str(push_remote)], check=True)
+            subprocess.run(
+                [
+                    "git", "-C", str(fixture.root), "push", "-q", str(push_remote),
+                    fixture.base + ":refs/heads/main",
+                    fixture.old_tip + ":refs/heads/feature/pr",
+                ],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(fixture.root), "remote", "set-url", "--push", "fork", str(push_remote)],
+                check=True,
+            )
+            push_location = subprocess.run(
+                ["git", "-C", str(fixture.root), "remote", "get-url", "--push", "fork"],
+                capture_output=True,
+                check=True,
+                text=True,
+            ).stdout.strip()
+
+            with self.assertRaises(gate.GateError) as stopped:
+                gate.non_main_rebase_candidate(fixture.root, "fork", push_location, fixture.updates)
+            self.assertNotIn(push_location, str(stopped.exception))
+
+            subprocess.run(
+                [
+                    "git", "-C", str(fixture.root), "push", "-q", str(push_remote),
+                    fixture.main_tip + ":refs/heads/main",
+                ],
+                check=True,
+            )
+            candidate = gate.non_main_rebase_candidate(
+                fixture.root,
+                "fork",
+                push_location,
+                fixture.updates,
+            )
+            self.assertNotIn(push_location, candidate["payload"])
+            self.assertNotIn(push_location, json.dumps(candidate["receipt"], sort_keys=True))
+
+    def test_non_main_rebase_dispatch_uses_pre_push_endpoint_argument(self):
+        root = Path("/worktree")
+        private = Path("/private")
+        updates = "refs/heads/rebuilt " + "a" * 40 + " refs/heads/feature/pr " + "b" * 40 + "\n"
+        push_location = "ssh://push-only.example/repository.git"
+        with (
+            patch.object(gate.sys, "argv", ["security_gate.py", "push", "fork", push_location]),
+            patch.object(gate.sys, "stdin", SimpleNamespace(read=lambda: updates)),
+            patch.object(gate, "repository", return_value=(root, Path("/common"), private)),
+            patch.object(gate, "ref_deletions", return_value=False),
+            patch.object(gate, "history_rewrite_requested", return_value=False),
+            patch.object(gate, "non_main_rebase_requested", return_value=True),
+            patch.object(gate, "non_main_rebase_candidate", return_value={}) as candidate,
+            patch.object(gate, "review", side_effect=lambda build, _private, _operation: build()),
+        ):
+            gate.main()
+        candidate.assert_called_once_with(root, "fork", push_location, updates)
+
+        with (
+            patch.object(gate.sys, "argv", ["security_gate.py", "push", "fork"]),
+            patch.object(gate.sys, "stdin", SimpleNamespace(read=lambda: updates)),
+            patch.object(gate, "repository", return_value=(root, Path("/common"), private)),
+            patch.object(gate, "ref_deletions", return_value=False),
+            patch.object(gate, "history_rewrite_requested", return_value=False),
+            patch.object(gate, "non_main_rebase_requested", return_value=True),
+        ):
+            with self.assertRaises(gate.GateError) as stopped:
+                gate.main()
+        self.assertNotIn(push_location, str(stopped.exception))
+    # END_BLOCK_NON_MAIN_REBASE_TESTS
 
 
     # START_BLOCK_MERGED_REF_DELETION_TESTS
