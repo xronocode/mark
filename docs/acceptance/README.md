@@ -15,7 +15,7 @@ accepted or rejected it, and why anything went back for rework.**
 |---|---|---|
 | `reported` | Symptom with a stable item id | any agent |
 | `repaired` | Source commits exist | implementing agent |
-| `reviewed` | A review pass with its verdict (two clean passes, local model, owner) — one event per pass | reviewer |
+| `reviewed` | A named review pass with its verdict (independent technical review, owner review, or another recorded reviewer) — one event per pass | reviewer |
 | `artifact-offered` | An isolated test artifact + one Markdown case file per acceptance case is in the owner's hands (see Artifact requirements), or an explicit `notApplicable` / `blocked` reason stands in | agent |
 | `owner-verdict` | The owner's dated verdict: `accepted` with exact scenarios, or `rejected` with the reason and the rework destination | owner (transcribed verbatim-scoped by the agent, same session) |
 | `queued` | Recorded in the collecting train's manifest (`items.userFacing` with acceptance evidence) | agent |

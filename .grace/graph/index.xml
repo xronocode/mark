@@ -73,12 +73,10 @@
     </GD-PERFORMANCE>
     <GD-FEATURES>
       <Path>graph/features.xml</Path>
-      <!-- M-064/V-M-064 prove GPU ownership for the selected reviewer before loading it. -->
+      <!-- C-PUBLIC-REPOSITORY-HYGIENE: M-064 is the portable deterministic publication gate. -->
       <!-- M-046 owns byte-stable fixture checkout attributes and portable verification paths. -->
       <!-- M-064/V-M-064 enforce the approved private-operations and retained-fixture publication boundary. -->
       <!-- M-046 gates WebKit session restore and close/edit isolation. -->
-      <!-- M-064/V-M-064: complete generated-locale field review with raw fallback; full scans and raw identity retained. -->
-      <!-- C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: M-064 distinguishes public GitHub identifiers/lookups from literal credential bytes without masking input. -->
       <!-- M-046 gates the WebKit keyboard-selection project in test.yml. -->
       <!-- C-PRIVATE-OPERATIONS: M-046 owns the public/private release-operations boundary. -->
       <Owns>
@@ -106,17 +104,6 @@
         <M-065/>
       </Owns>
     </GD-FEATURES>
-    <GD-GOVERNANCE>
-      <Path>graph/governance.xml</Path>
-      <Owns>
-        <M-901/>
-        <M-902/>
-        <M-903/>
-        <M-904/>
-        <M-905/>
-        <M-906/>
-      </Owns>
-    </GD-GOVERNANCE>
     <GD-FLOWS>
       <Path>graph/flows.xml</Path>
       <Owns>
@@ -145,9 +132,6 @@
         <DF-024/>
         <DF-025/>
         <DF-012/>
-        <DF-901/>
-        <DF-902/>
-        <DF-903/>
       </Owns>
     </GD-FLOWS>
   </GraphDocuments>

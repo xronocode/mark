@@ -176,7 +176,7 @@ describe('store/preferences', () => {
     })
 
     it('never stomps a preference the user changed during the load (boot-race regression)', async () => {
-      // Nurik's Windows pass: a theme toggle clicked while the first
+      // Windows cold-start regression: a theme toggle clicked while the first
       // prefs read was in flight got reverted by the hydration payload.
       let resolvePrefs: (v: any) => void = () => {}
       ;(invoke as any).mockImplementationOnce(

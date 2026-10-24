@@ -530,8 +530,8 @@ const electron = {
 // ─── window.path ────────────────────────────────────────────────────
 // path-browserify is the POSIX port and CANNOT parse drive-letter paths
 // ("C:\a\b".isAbsolute() === false) — on Windows the project tree Ctrl
-// rejected every file as out-of-tree (Nurik's "files not picked up"
-// report). path-win32 is the win32 sibling port. The vite
+// rejected every file as out-of-tree (Windows folder-import regression).
+// path-win32 is the win32 sibling port. The vite
 // process.platform define folds this ternary at build time, so only the
 // matching implementation ships.
 const path = process.platform === 'win32' ? win32Path : posixPath
