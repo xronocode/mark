@@ -29,7 +29,7 @@
 //   v1.2.0 - 2026-10-17 C-53 T-001/R-1: pins the four D-1
 //   items (native look, home screen, themed diagrams, Markdown-only
 //   folders) with the new icon set, the «Also» line, the «See everything
-//   new» link (opens WHATS_NEW_RELEASE_URLS['2.5.0'] through
+//   new» link (opens getWhatsNewReleaseUrl('2.5.0') through
 //   window.electron.shell.openExternal and keeps the sheet open), and
 //   the Tab trap across the three footer controls.
 //   PREV: v1.1.0 - 2026-10-15 C-48 review fix: guide link payload is
@@ -66,7 +66,7 @@ vi.mock('@/bus', () => {
 import bus from '@/bus'
 import { i18n } from '@/i18n'
 import ruTranslations from '../../../static/locales/ru.json'
-import { WHATS_NEW_RELEASE_URLS } from '@/whatsNew/data'
+import { getWhatsNewReleaseUrl } from '@/whatsNew/data'
 import WhatsNewSheet from '@/components/whatsNew/index.vue'
 
 // TOP-LEVEL helper (TEST/LOCALS).
@@ -196,7 +196,7 @@ describe('components/whatsNew — sheet', () => {
     const openExternal = window.electron.shell.openExternal
     await wrapper.findAll('.foot-links .guide-link')[0].trigger('click')
     expect(openExternal).toHaveBeenCalledTimes(1)
-    expect(openExternal).toHaveBeenCalledWith(WHATS_NEW_RELEASE_URLS['2.5.0'])
+    expect(openExternal).toHaveBeenCalledWith(getWhatsNewReleaseUrl('2.5.0'))
     expect(wrapper.find('.ag-whats-new-sheet').exists()).toBe(true)
 
     wrapper.unmount()

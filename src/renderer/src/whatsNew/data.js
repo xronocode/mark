@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.6.0
+// VERSION: 1.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
 //            (max 4 items, icon + i18n title/text keys) keyed by the
@@ -24,14 +24,19 @@
 //   WHATS_NEW_CONTENT - version → items table (icon + titleKey + textKey).
 //   WHATS_NEW_ALSO_KEY - locale key of the one-line «Also» summary under the items.
 //   WHATS_NEW_SEE_EVERYTHING_KEY - locale key of the «See everything new» footer link.
-//   WHATS_NEW_RELEASE_URLS - version → GitHub release page the link opens.
+//   WHATS_NEW_CHANGELOG_URL - the changelog page on the Mark website.
+//   WHATS_NEW_RELEASE_DATES - version → release date, the date of its CHANGELOG heading.
+//   changelogAnchor - the site's anchor for the heading «## [version] - date».
 //   getWhatsNewItems - normalized-version lookup, sliced to the 4-item cap.
-//   getWhatsNewReleaseUrl - the release page URL for a version ('' → hide the link).
+//   getWhatsNewReleaseUrl - the changelog section URL for a version ('' → hide the link).
 //   resolveWhatsNewVersion - the version itself when it has content, else the newest version that does (Help › What's New fallback).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-10-20 release 2.6.0 draft: the sheet shows
+//   LAST_CHANGE: v1.7.0 - 2026-10-25 «See everything new» opens the
+//   release's section of the website changelog (version → release date →
+//   heading anchor) instead of a GitHub release page.
+//   PREV: v1.6.0 - 2026-10-20 release 2.6.0 draft: the sheet shows
 //   tables as pictures, wide-table controls, comparison with the opened
 //   version and restored editing shortcuts, and points at the future
 //   v2.6.0 release URL. Publication remains separately authorized.
@@ -197,24 +202,35 @@ export const WHATS_NEW_CONTENT = {
 
 // START_BLOCK_WHATS_NEW_EXTRAS
 // C-53 R-1: the sheet-wide additions under the four items — a one-line
-// «Also» summary (⌘D agent diff, ⌥⌘V clipboard folder, one zoom) and a
-// «See everything new» link to the GitHub release page, opened through
-// the app's external-link path (window.electron.shell.openExternal).
+// «Also» summary and a «See everything new» link opened through the app's
+// external-link path (window.electron.shell.openExternal). The link opens
+// the release's section of the changelog on the Mark website: the date
+// below is the date of the release's CHANGELOG heading «## [version] -
+// date», and the anchor is the site's slug of that heading.
 export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
-export const WHATS_NEW_RELEASE_URLS = {
-  '2.8.1': 'https://github.com/xronocode/mark/releases/tag/v2.8.1',
-  '2.8.0': 'https://github.com/xronocode/mark/releases/tag/v2.8.0',
-  '2.7.0': 'https://github.com/xronocode/mark/releases/tag/v2.7.0',
-  '2.6.0': 'https://github.com/xronocode/mark/releases/tag/v2.6.0',
-  '2.5.3': 'https://github.com/xronocode/mark/releases/tag/v2.5.3',
-  '2.5.0': 'https://github.com/xronocode/mark/releases/tag/v2.5.0'
+export const WHATS_NEW_CHANGELOG_URL = 'https://mark.xronocode.com/changelog'
+export const WHATS_NEW_RELEASE_DATES = {
+  '2.8.1': '2026-10-23',
+  '2.8.0': '2026-10-23',
+  '2.7.0': '2026-10-22',
+  '2.6.0': '2026-10-20',
+  '2.5.3': '2026-10-19',
+  '2.5.0': '2026-10-18',
+  '2.4.0': '2026-10-18',
+  '2.3.1': '2026-10-17'
 }
 
-// '' when the version (after normalization) has no release page — the
+export const changelogAnchor = (version, date) =>
+  `_${version}-${date}`.toLowerCase().replace(/[^0-9a-z_]+/g, '-')
+
+// '' when the version (after normalization) has no changelog section — the
 // component hides the link rather than opening a dead URL.
-export const getWhatsNewReleaseUrl = (version) =>
-  WHATS_NEW_RELEASE_URLS[normalizeVersion(version)] || ''
+export const getWhatsNewReleaseUrl = (version) => {
+  const normalized = normalizeVersion(version)
+  const date = WHATS_NEW_RELEASE_DATES[normalized]
+  return date ? `${WHATS_NEW_CHANGELOG_URL}#${changelogAnchor(normalized, date)}` : ''
+}
 // END_BLOCK_WHATS_NEW_EXTRAS
 
 // START_BLOCK_GET_WHATS_NEW_ITEMS

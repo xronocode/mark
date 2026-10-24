@@ -2483,6 +2483,17 @@
           tests/renderer/release-{train,readiness,normalize,governance,
           materials,github-controls}.test.js.
         </Scenario>
+        <Scenario>
+          scenario-33: the What's New «See everything new» link opens the
+          release's section of the website changelog; normalization records
+          the target release date equal to its CHANGELOG heading date (an
+          earlier pass's heading keeps its date), materials admission rejects
+          a date that differs from the heading, a Released version tolerates
+          the next release's CHANGELOG draft, and every dated release heading
+          sits inside the region the site renders. Pinned by
+          tests/renderer/{release-normalize,release-materials}.test.js and
+          tests/renderer/whatsNew/content.test.js.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
