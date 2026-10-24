@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-MESSAGE-ONLY-HISTORY-REWRITE-V3>
     <ApprovalBasis>Owner approved removal of Claude attribution and execution on 2026-10-24. After audit disclosed that rewritten descendant commits cannot retain their original GPG signatures, the owner explicitly instructed execution despite that loss. Existing signed objects remain reachable through unchanged release tags or pull-request refs. This bundle replaces C-MESSAGE-ONLY-HISTORY-REWRITE-V2.</ApprovalBasis>
     <Summary>Add a deterministic exact-manifest lane for one main-history message rewrite, permit only the unavoidable removal of invalidated GPG signature headers, then remove the approved attribution and service wording without changing any tree or release ref.</Summary>
