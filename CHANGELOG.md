@@ -6,7 +6,7 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 <!-- #region releases -->
 
-<!-- release-draft:start -->
+## [2.8.2] - 2026-10-24
 
 The "See everything new" link in What's New now opens this changelog.
 
@@ -16,7 +16,6 @@ The "See everything new" link in What's New now opens this changelog.
 ### Fixed
 - The changelog page on the Mark website lists every release again; versions 2.6.0 to 2.8.1 were missing from it.
 
-<!-- release-draft:end -->
 
 ## [2.8.1] - 2026-10-23
 

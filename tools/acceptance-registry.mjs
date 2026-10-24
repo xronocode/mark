@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // FILE: tools/acceptance-registry.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the acceptance registry (docs/acceptance/registry.json) against its schema and the collecting train, and print the per-item survey — the ordered "accepted or not, and why" record behind the release trains.
 //   SCOPE: --check (schema, git sha resolvability, two-way train consistency, lifecycle sanity) and --survey (state table). Read-only; --check exits non-zero with stable MT_ACCEPT_* codes on any violation.
@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-24 C-RELEASE-CONVEYOR: resolve the collecting train through the current-train pointer.
+//   LAST_CHANGE: v1.2.0 - 2026-10-25: an artifact built from a squash-merged PR head resolves through its recorded merge commit (source.pullRequest + source.mergedAs), since the head is not on main.
+//   PREV: v1.1.0 - 2026-10-24 C-RELEASE-CONVEYOR: resolve the collecting train through the current-train pointer.
 //   PREV: v1.0.0 - 2026-10-21 C-ACCEPTANCE-REGISTRY: new.
 // END_CHANGE_SUMMARY
 
@@ -91,7 +92,10 @@ export const validateRegistry = (registry, { train, shaExists: shaOk = () => tru
     if (!a?.id || artifactIds.has(a.id)) fail('MT_ACCEPT_SCHEMA_AMBIGUOUS', `artifact=${a?.id}`)
     artifactIds.add(a.id)
     if (!isSha(a?.source?.sha)) fail('MT_ACCEPT_SHA_INVALID', `artifact=${a.id}`)
-    if (!shaOk(a.source.sha)) fail('MT_ACCEPT_SHA_INVALID', `artifact=${a.id};sha=${a.source.sha}`)
+    // Squash merges leave a PR head off main: such an artifact records its
+    // PR and the merge commit, and that merge commit must resolve instead.
+    const viaMerge = Number.isInteger(a.source.pullRequest) && isSha(a.source.mergedAs) && shaOk(a.source.mergedAs)
+    if (!shaOk(a.source.sha) && !viaMerge) fail('MT_ACCEPT_SHA_INVALID', `artifact=${a.id};sha=${a.source.sha}`)
     if (!Array.isArray(a.covers) || a.covers.length === 0) fail('MT_ACCEPT_SCHEMA_INVALID', `artifact=${a.id};covers=missing`)
   }
 

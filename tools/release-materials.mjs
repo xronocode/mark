@@ -13,6 +13,7 @@
 //   ReleaseMaterialsError - Stable coded materials validation error.
 //   extractReadmeImages - Finds local Markdown and HTML image references.
 //   validateLocaleMaterials - Enforces ten-locale copy, layout, product-token, and minified parity rules.
+//   UNTRANSLATED_TOKENS - Product names, formats and shortcuts that every locale keeps verbatim.
 //   validateScreenshotManifest - Enforces exact tracked README PNG membership and SHA-256 identity.
 //   validateMaterialHeaders - Cross-checks release headings across human materials.
 //   validateWhatsNewSource - Cross-checks in-app release content and the release date its changelog link uses.
@@ -33,7 +34,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-24 v1.3.0: the What's New link opens the website changelog; the in-app release date must equal the version's CHANGELOG heading date; a Released version tolerates the next release's CHANGELOG draft.
+//   - 2026-10-24 v1.3.0: untranslated product names, formats and shortcuts are derived from the English copy instead of a per-release token list; the What's New link opens the website changelog; the in-app release date must equal the version's CHANGELOG heading date; a Released version tolerates the next release's CHANGELOG draft.
 //   - 2026-10-22 v1.3.0: advance the per-locale product-token pin set to the 2.6.1 sheet (Mark, ⇧⌘T, ⇧⌘P, .html); layout limits and manifest identity checks unchanged.
 //   - 2026-10-20 v1.2.0: normalize Markdown newlines so Windows CRLF checkouts validate the same release identity as LF checkouts.
 //   - 2026-10-20 v1.1.0: distinguish the unversioned release draft from Release Please-owned numbered CHANGELOG sections and reject duplicate headings.
@@ -112,6 +113,8 @@ const stableJson = (value) => JSON.stringify(value)
 //   LINKS: src/renderer/src/whatsNew/data.js; tests/renderer/whatsNew/content.test.js
 // END_CONTRACT: validateLocaleMaterials
 // START_BLOCK_VALIDATE_LOCALE_MATERIALS
+const UNTRANSLATED_TOKENS = ['Mark', 'Paper', 'Ink', 'Docs', 'macOS', 'Windows', 'Mermaid', 'Guide', 'Markdown', 'PDF', 'HTML', 'PNG', 'SVG', '⌘D', '⌥⌘V']
+
 export const validateLocaleMaterials = (sourceTables, minifiedTables, version) => {
   const key = `v${version.replace(/[.-]/g, '_')}`
   let itemKeys = null
@@ -155,10 +158,11 @@ export const validateLocaleMaterials = (sourceTables, minifiedTables, version) =
     if (!source.whatsNew.seeEverything) {
       fail('MT_RELEASE_LOCALE_COPY_INVALID', `locale=${locale};footer=missing`)
     }
+    // Product names, formats and shortcuts stay untranslated: every one
+    // the English copy uses must appear verbatim in each locale.
     const flattened = stableJson(section)
-    // 2.8.1 sheet tokens (FIX-018): the PDF-export the shortcuts and
-    // cloud product names must survive verbatim in every locale.
-    for (const token of ['PDF']) {
+    const english = stableJson(sourceTables.en?.whatsNew?.[key] ?? {})
+    for (const token of UNTRANSLATED_TOKENS.filter((name) => english.includes(name))) {
       if (!flattened.includes(token)) {
         fail('MT_RELEASE_LOCALE_COPY_INVALID', `locale=${locale};token=${token}`)
       }

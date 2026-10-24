@@ -38,6 +38,10 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
+## What's new in 2.8.2
+
+**See everything new, in one changelog.** The "See everything new" link in What's New opens the release's section of the [changelog](https://mark.xronocode.com/changelog) on the Mark website, which now lists every release again.
+
 ## What's new in 2.8.1
 
 - **Fixed PDF export on macOS** — exporting to PDF no longer crashes the app (a day-one bug in the print call) and writes your document to disk; a new automated audit now checks every macOS print call against the live system APIs.

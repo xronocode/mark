@@ -1152,6 +1152,12 @@
         "title": "PDF-Export repariert",
         "text": "Der PDF-Export beendet die App nicht mehr und schreibt dein Dokument auf die Festplatte."
       }
+    },
+    "v2_8_2": {
+      "changelog": {
+        "title": "Alle Versionen im Changelog",
+        "text": "„Alle Neuigkeiten ansehen“ öffnet diese Version im Changelog auf der Mark-Website."
+      }
     }
   },
   "store": {

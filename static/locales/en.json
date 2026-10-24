@@ -1163,6 +1163,12 @@
         "title": "PDF export fixed",
         "text": "Export to PDF no longer crashes the app and writes your document to disk."
       }
+    },
+    "v2_8_2": {
+      "changelog": {
+        "title": "Every release in one changelog",
+        "text": "See everything new now opens this version in the changelog on the Mark website."
+      }
     }
   },
   "store": {
