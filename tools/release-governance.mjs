@@ -1,9 +1,9 @@
 // FILE: tools/release-governance.mjs
-// VERSION: 1.3.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Enforce stable ordinary-PR release governance without requiring a frozen train or any privileged GitHub API mutation.
-//   SCOPE: Conventional PR title classification, Release Please PR-only boundary, immutable action pins, source-controlled control and public Project schema, and collecting-train validation.
-//   DEPENDS: Node.js fs/path/url; release-readiness; release-please config; GitHub workflow/config files.
+//   SCOPE: Conventional PR title classification, immutable action pins, source-controlled control and public Project schema, and current-train validation.
+//   DEPENDS: Node.js fs/path/url; release-readiness; GitHub workflow/config files.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -12,14 +12,14 @@
 // START_MODULE_MAP
 //   ReleaseGovernanceError - Stable coded ordinary-governance error.
 //   validateConventionalTitle - Classify a PR title/body and enforce explicit admission for every release-bearing change.
-//   validatePreparationOverlap - Reject a second release-bearing merge while a train is already prepared or sealed.
-//   validateReleasePreparationBoundary - Prove preparation cannot tag, release, or publish.
+//   validatePreparationOverlap - Reject a release-bearing merge while a train is Preparing or Frozen.
 //   validatePinnedActions - Require immutable full-SHA action references in privileged workflows.
 //   validateGovernanceConfig - Validate the source-controlled Environment/ruleset/default-permission contract.
 //   runReleaseGovernance - Run the stable ordinary gate and emit its success marker.
 //   CONVENTIONAL - Accepted squash-title grammar for release classification.
 //   RELEASE_VISIBLE_LABELS - Labels that explicitly admit user-facing or operational change.
 //   RELEASE_BEARING_TYPES - Conventional types that create a SemVer release.
+//   PAYLOAD_OPEN_STATES - Train states whose payload is still being pinned.
 //   fail - Raise one stable governance error.
 //   readJson - Read one JSON authority.
 //   main - Run the command-line interface.
@@ -27,6 +27,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — remove the Release Please preparation boundary (preparation is a normal reviewed PR); admit release-bearing merges while the train is Ready, because the tag binds to the merged seal, not to main's tip.
 //   - 2026-10-24 v1.3.0: C-RELEASE-TIMING — expect the release-notify Environment (timer-window Telegram ping boundary) instead of the retired synchronous release approval Environment, and require its secret boundary.
 //   - 2026-10-20 v1.2.0: classify perf/revert as patch releases and reject unmarked BREAKING CHANGE trailers or unadmitted release-bearing work.
 //   - 2026-10-20 v1.1.0: validate the public one-way GitHub Project mirror contract as part of ordinary governance.
@@ -61,7 +62,7 @@ const readJson = (pathname) => JSON.parse(readFileSync(pathname, 'utf8'))
 //   INPUTS: { title: string - pull-request title, labels: string[] - public label names, body: string - pull-request body }
 //   OUTPUTS: { object - type, scope, breaking, and bump classification }
 //   SIDE_EFFECTS: none.
-//   LINKS: release-please-config.json
+//   LINKS: docs/release-trains/README.md
 // END_CONTRACT: validateConventionalTitle
 // START_BLOCK_VALIDATE_CONVENTIONAL_TITLE
 export const validateConventionalTitle = (title, labels = [], body = '') => {
@@ -88,54 +89,28 @@ export const validateConventionalTitle = (title, labels = [], body = '') => {
 }
 // END_BLOCK_VALIDATE_CONVENTIONAL_TITLE
 
+// A Ready seal is already on main and the tag binds to it, so later
+// merges cannot enter the candidate; only the Preparing/Frozen windows,
+// whose payload is still being pinned, must stay closed.
+const PAYLOAD_OPEN_STATES = new Set(['Preparing', 'Frozen'])
+
 export const validatePreparationOverlap = (title, state) => {
   if (
     title &&
     (RELEASE_BEARING_TYPES.has(title.type) || title.breaking) &&
-    state !== 'Collecting'
+    PAYLOAD_OPEN_STATES.has(state)
   ) {
     fail('MT_RELEASE_PREPARATION_OVERLAP', `state=${state};type=${title.type}`)
   }
   return true
 }
 
-// START_CONTRACT: validateReleasePreparationBoundary
-//   PURPOSE: Prove Release Please only prepares a PR and its workflow contains no tag, release, signing, publication, or administration path.
-//   INPUTS: { config: object - Release Please config, workflow: string - preparation workflow YAML }
-//   OUTPUTS: { true - boundary is fail-closed }
-//   SIDE_EFFECTS: none.
-//   LINKS: .github/workflows/release-please.yml
-// END_CONTRACT: validateReleasePreparationBoundary
-// START_BLOCK_VALIDATE_RELEASE_PREPARATION_BOUNDARY
-export const validateReleasePreparationBoundary = (config, workflow) => {
-  if (config['skip-github-release'] !== true || config.packages?.['.']?.['skip-github-release'] !== true) {
-    fail('MT_RELEASE_PREPARATION_BOUNDARY_INVALID', 'skipGithubRelease=false')
-  }
-  if (JSON.stringify(config).includes('release-as')) {
-    fail('MT_RELEASE_PREPARATION_BOUNDARY_INVALID', 'releaseAs=present')
-  }
-  for (const forbidden of [
-    'github-release',
-    'gh release create',
-    'git tag ',
-    'release-signing',
-    'release-authorize',
-    'release:github-controls -- --apply'
-  ]) {
-    if (workflow.includes(forbidden)) {
-      fail('MT_RELEASE_PREPARATION_BOUNDARY_INVALID', `forbidden=${forbidden}`)
-    }
-  }
-  return true
-}
-// END_BLOCK_VALIDATE_RELEASE_PREPARATION_BOUNDARY
-
 // START_CONTRACT: validatePinnedActions
 //   PURPOSE: Reject tag-like or branch-like action references from workflows that touch release preparation or control boundaries.
 //   INPUTS: { workflows: Record<string,string> - filename to YAML source }
 //   OUTPUTS: { number - verified action reference count }
 //   SIDE_EFFECTS: none.
-//   LINKS: .github/workflows/release-please.yml; .github/workflows/promote-release.yml; .github/workflows/release.yml
+//   LINKS: .github/workflows/promote-release.yml; .github/workflows/release.yml; .github/workflows/release-governance.yml
 // END_CONTRACT: validatePinnedActions
 // START_BLOCK_VALIDATE_PINNED_ACTIONS
 export const validatePinnedActions = (workflows) => {
@@ -245,17 +220,13 @@ export const validateGovernanceConfig = (config) => {
 // START_BLOCK_RUN_RELEASE_GOVERNANCE
 export const runReleaseGovernance = (workspaceRoot, options = {}) => {
   const root = resolve(workspaceRoot)
-  const releasePlease = readJson(resolve(root, 'release-please-config.json'))
-  const prepWorkflow = readFileSync(resolve(root, '.github/workflows/release-please.yml'), 'utf8')
   const releaseWorkflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8')
   const promoteWorkflow = readFileSync(resolve(root, '.github/workflows/promote-release.yml'), 'utf8')
   const governanceWorkflow = readFileSync(resolve(root, '.github/workflows/release-governance.yml'), 'utf8')
   const governance = validateGovernanceConfig(
     readJson(resolve(root, '.github/release-governance.json'))
   )
-  validateReleasePreparationBoundary(releasePlease, prepWorkflow)
   const actions = validatePinnedActions({
-    'release-please.yml': prepWorkflow,
     'release.yml': releaseWorkflow,
     'promote-release.yml': promoteWorkflow,
     'release-governance.yml': governanceWorkflow

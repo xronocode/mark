@@ -1,9 +1,9 @@
 // FILE: tools/release-readiness.mjs
-// VERSION: 1.2.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, or requested release identity is inconsistent.
 //   SCOPE: Read one public train JSON document, validate its deterministic repository-only invariants, and emit stable path-free diagnostics; online check-run proof and publication remain workflow concerns.
-//   DEPENDS: Node.js fs, path, and url standard-library modules; docs/release-trains/*.json.
+//   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -22,9 +22,9 @@
 //   STRICT_STATES - Lifecycle states that require repository identity proof.
 //   SHA_PATTERN - Exact full Git commit SHA grammar.
 //   SEMVER_PATTERN - Exact supported release-version grammar.
-//   SEAL_ALLOWLIST - Files allowed to differ between payload and seal commits.
+//   SEAL_PATH_PATTERNS - Release-bookkeeping paths a payload-to-seal commit may touch.
+//   isSealPath - Test one path against the bookkeeping allowlist.
 //   GOVERNANCE_CONFIG_PATH - Non-seal strict check policy authority.
-//   RELEASE_PLEASE_CONFIG_PATH - Conventional release boundary authority.
 //   fail - Raise one stable readiness error.
 //   readJson - Read one JSON train authority.
 //   requireString - Require one non-empty string field.
@@ -37,12 +37,14 @@
 //   validateRequiredCheckPolicy - Pin the train check set to non-seal governance configuration.
 //   git - Run one read-only Git query in the target repository.
 //   validateRequiredChecks - Match exact successful required checks to the payload SHA.
+//   validateSealSpan - Prove every commit between payload and seal touches only bookkeeping paths.
 //   optionValue - Read one named command-line option.
 //   main - Run the command-line interface.
 //   invokedPath - Detect direct command-line execution.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — resolve the train through the current-train pointer; accept any metadata-only payload-to-seal span (every commit proven bookkeeping-only) instead of exactly one commit, which merge-commit PRs could never satisfy; replace the hand-grown seal file list with bookkeeping path patterns; drop the Release Please boundary check.
 //   - 2026-10-20 v1.2.0: bind the previous-release boundary, many-to-many item accounting, and strict check set to repository evidence outside the mutable seal.
 //   - 2026-10-20 v1.1.0: add strict payload-to-seal, tag/HEAD, exact commit-accounting, fresh screenshot, and check-run identity gates.
 //   - 2026-10-20 v1.0.0: add the C-RELEASE-PIPELINE-AUTOMATION machine-readable train authority and fail-closed offline gate.
@@ -52,6 +54,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { resolveCurrentTrain } from './release-train.mjs'
 
 const TRAIN_SCHEMA_VERSION = '1.0.0'
 const RELEASE_STATES = new Set([
@@ -73,22 +76,15 @@ const TRANSITIONS = new Map([
 const STRICT_STATES = new Set(['Frozen', 'Ready', 'Released'])
 const SHA_PATTERN = /^[0-9a-f]{40}$/
 const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/
-const SEAL_ALLOWLIST = [
-  'docs/release-trains/2.8.x-next.json',
-  'docs/release-trains/2.8.x-next.md',
-  // prior-generation ledgers stay sealable (Released-state corrections)
-  'docs/release-trains/2.6.x-next.json',
-  'docs/release-trains/2.6.x-next.md',
-  'docs/assets/readme/2.6.0.manifest.json',
-  'docs/assets/readme/2.7.0.manifest.json',
-  'docs/assets/readme/2.8.1.manifest.json',
-  // boundary-repair records: the Release Please boundary and its test pin
-  // may be corrected in the same seal span (2.8.1 re-seal, 2026-10-23)
-  'release-please-config.json',
-  'tests/renderer/release-normalize.test.js'
+// Train ledgers (any generation, so Released-state corrections stay
+// sealable) and README screenshot manifests. Nothing here is built into
+// the app or read by the packaging lanes as product input.
+const SEAL_PATH_PATTERNS = [
+  /^docs\/release-trains\/[0-9A-Za-z.-]+\.(json|md)$/,
+  /^docs\/assets\/readme\/[0-9A-Za-z.-]+\.manifest\.json$/
 ]
+const isSealPath = (pathname) => SEAL_PATH_PATTERNS.some((pattern) => pattern.test(pathname))
 const GOVERNANCE_CONFIG_PATH = '.github/release-governance.json'
-const RELEASE_PLEASE_CONFIG_PATH = 'release-please-config.json'
 
 export class ReleaseReadinessError extends Error {
   constructor(code, message) {
@@ -131,11 +127,8 @@ const normalizeItems = (manifest) => {
 //   LINKS: .grace/verification/features.xml V-M-046 release-train scenarios
 // END_CONTRACT: readTrainManifest
 // START_BLOCK_READ_TRAIN_MANIFEST
-export const readTrainManifest = (
-  workspaceRoot,
-  trainPath = 'docs/release-trains/2.8.x-next.json'
-) => {
-  const pathname = resolve(workspaceRoot, trainPath)
+export const readTrainManifest = (workspaceRoot, trainPath) => {
+  const pathname = resolve(workspaceRoot, trainPath ?? resolveCurrentTrain(workspaceRoot).json)
   try {
     return JSON.parse(readFileSync(pathname, 'utf8'))
   } catch (error) {
@@ -429,8 +422,33 @@ const validateRequiredChecks = (manifest, checks, payloadSha) => {
   }
 }
 
+// START_CONTRACT: validateSealSpan
+//   PURPOSE: Prove the payload-to-seal span is metadata-only, commit by commit, for any number of squash or merge commits.
+//   INPUTS: { root: string - repository root, payload: string - payload SHA, seal: string - seal SHA }
+//   OUTPUTS: { string[] - paths that differ between payload and seal }
+//   SIDE_EFFECTS: Runs read-only git queries.
+//   LINKS: .grace/verification/features.xml V-M-046 strict readiness scenarios
+// END_CONTRACT: validateSealSpan
+// START_BLOCK_VALIDATE_SEAL_SPAN
+const validateSealSpan = (root, payload, seal) => {
+  const span = git(root, 'rev-list', `${payload}..${seal}`).split('\n').filter(Boolean)
+  if (span.length === 0) fail('MT_RELEASE_SEAL_INVALID', 'seal=equals-payload')
+  for (const commit of span) {
+    // A merge commit is judged by what it brings onto its first parent,
+    // i.e. exactly what landed on main.
+    const touched = git(root, 'diff', '--name-only', `${commit}^1`, commit).split('\n').filter(Boolean)
+    const product = touched.find((pathname) => !isSealPath(pathname))
+    if (product) fail('MT_RELEASE_SEAL_PRODUCT_DELTA', `commit=${commit};path=${product}`)
+  }
+  const sealPaths = git(root, 'diff', '--name-only', payload, seal).split('\n').filter(Boolean)
+  const product = sealPaths.find((pathname) => !isSealPath(pathname))
+  if (product) fail('MT_RELEASE_SEAL_PRODUCT_DELTA', `path=${product}`)
+  return sealPaths
+}
+// END_BLOCK_VALIDATE_SEAL_SPAN
+
 // START_CONTRACT: validateStrictRepositoryState
-//   PURPOSE: Prove the exact classified payload, one metadata-only seal, fresh screenshot review, required checks, and tag/checkout identity before packaging.
+//   PURPOSE: Prove the exact classified payload, a metadata-only seal span, fresh screenshot review, required checks, and tag/checkout identity before packaging.
 //   INPUTS: { workspaceRoot: string - repository root, manifest: object - validated train, options: object - tag, payload, seal, head, checks }
 //   OUTPUTS: { object - strict release identity and accounted commit count }
 //   SIDE_EFFECTS: Runs read-only git identity/diff queries and reads the screenshot manifest.
@@ -475,31 +493,10 @@ export const validateStrictRepositoryState = (
   if (git(root, 'merge-base', '--is-ancestor', manifest.previousRelease.bootstrapSha, payload) !== '') {
     fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'bootstrap=not-ancestor')
   }
-  const releasePlease = readJson(resolve(root, RELEASE_PLEASE_CONFIG_PATH))
-  if (
-    releasePlease['bootstrap-sha'] !== manifest.previousRelease.bootstrapSha ||
-    ('last-release-sha' in releasePlease &&
-      releasePlease['last-release-sha'] !== manifest.previousRelease.bootstrapSha)
-  ) {
-    fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'releasePlease=drift')
-  }
   if (git(root, 'merge-base', '--is-ancestor', payload, seal) !== '') {
     fail('MT_RELEASE_SEAL_INVALID', 'payload=not-ancestor')
   }
-  if (git(root, 'rev-list', '--count', `${payload}..${seal}`) !== '1') {
-    fail('MT_RELEASE_SEAL_INVALID', 'seal=not-single-commit')
-  }
-  const sealPaths = git(root, 'diff', '--name-only', payload, seal)
-    .split('\n')
-    .filter(Boolean)
-  const allowed = new Set([
-    ...SEAL_ALLOWLIST,
-    manifest.materials?.screenshotManifest
-  ])
-  const unexpected = sealPaths.filter((path) => !allowed.has(path))
-  if (unexpected.length) {
-    fail('MT_RELEASE_SEAL_PRODUCT_DELTA', `path=${unexpected[0]}`)
-  }
+  const sealPaths = validateSealSpan(root, payload, seal)
 
   const expectedCommits = git(
     root,
@@ -568,7 +565,7 @@ export const runReleaseReadiness = (workspaceRoot, options = {}) => {
     manifest,
     { workspaceRoot, tag: options.tag, payload: options.payload }
   )
-  const ledgerPath = (options.trainPath ?? 'docs/release-trains/2.8.x-next.json').replace(
+  const ledgerPath = (options.trainPath ?? resolveCurrentTrain(workspaceRoot).json).replace(
     /\.json$/,
     '.md'
   )

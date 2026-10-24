@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-24 v2.1.0: C-RELEASE-CONVEYOR — promotion triggers on any train ledger and binds to a seal that is on main (not main's exact tip); the close-release-please job is gone and publication itself proves the latest-release feed advanced.
 //   - 2026-10-24 v2.0.0: C-RELEASE-TIMING — publication loses the synchronous release Environment gate and needs the parallel veto-window job; governance swaps release for release-notify with TG notify secret boundaries; the build-lane de-duplication is pinned against the status-check aggregate.
 //   - 2026-10-21 v1.9.0: prove activate executes both disabled-to-active ruleset mutations and converges against the active target.
 //   - 2026-10-21 v1.8.0: require exact cask-bot PR identity, merged-state idempotence, and required-check-gated tap auto-merge.
@@ -150,6 +151,21 @@ describe('release GitHub trust boundaries', () => {
     expect(authorized).not.toMatch(/git fetch origin main[^\n]*--depth/)
   })
 
+  it('binds promotion to a seal on main and finds the train through the pointer', () => {
+    expect(promote.on.push.paths).toContain('docs/release-trains/**')
+    const preflight = commands(promote.jobs.preflight)
+    const authorized = commands(promote.jobs['authorize-tag'])
+    // Merges after the seal must not invalidate a waiting approval: the
+    // seal only has to be reachable from main, and the tag binds to it.
+    expect(preflight).toContain('git merge-base --is-ancestor "$HEAD_SHA" origin/main')
+    expect(authorized).toContain('git merge-base --is-ancestor "$SEAL" origin/main')
+    expect(authorized).not.toContain('[ "$(git rev-parse origin/main)" = "$SEAL" ]')
+    for (const source of [promoteSource, releaseSource]) {
+      expect(source).toContain('docs/release-trains/current.json')
+      expect(source).not.toMatch(/docs\/release-trains\/\d+\.\d+\.x-next\.json/)
+    }
+  })
+
   it('keeps manual dispatch unsigned and unable to reach signing or publication', () => {
     expect(release.on.workflow_dispatch).toBeNull()
     expect(release.permissions).toEqual({})
@@ -203,12 +219,8 @@ describe('release GitHub trust boundaries', () => {
     expect(release.jobs.publish.permissions).toEqual({ contents: 'write' })
     expect(release.jobs.publish.steps.some(({ uses }) => uses?.startsWith('actions/checkout@'))).toBe(false)
     expect(commands(release.jobs.publish)).not.toMatch(/npm\s|node tools\/|release:readiness/)
-    expect(release.jobs['close-release-please'].permissions).toEqual({
-      contents: 'read',
-      issues: 'write',
-      'pull-requests': 'write'
-    })
-    expect(release.jobs['close-release-please'].needs).toEqual(['build', 'publish'])
+    expect(release.jobs['close-release-please']).toBeUndefined()
+    expect(commands(release.jobs.publish)).toContain('BLOCK_RELEASE_LATEST_ADVANCED')
     expect(release.jobs['publish-cask'].environment).toBe('release-cask')
     expect(release.jobs['publish-cask'].needs).toEqual(['build', 'publish'])
     expect(releaseSource).toContain('--verify-tag')

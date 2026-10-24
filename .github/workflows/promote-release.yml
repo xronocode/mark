@@ -1,5 +1,5 @@
 # FILE: .github/workflows/promote-release.yml
-# VERSION: 1.1.1
+# VERSION: 2.0.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Turn one merged Ready release seal into its computed annotated tag only after an explicit owner-approved release-authorize deployment.
 #   SCOPE: Read-only Ready/seal/check admission followed by idempotent tag creation through a purpose-specific GitHub App; never builds, signs, or publishes.
@@ -15,6 +15,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — trigger on any train ledger, read the train through docs/release-trains/current.json, and require only that the seal is on main (an ancestor of main's tip) so merges after the seal no longer invalidate a waiting approval.
 #   - 2026-10-21 v1.1.1: preserve complete main ancestry so strict payload-to-seal merge-base proofs work on GitHub runners.
 #   - 2026-10-20 v1.1.0: remove manual promotion, revalidate main/check evidence after approval, and verify existing annotated tag metadata exactly.
 #   - 2026-10-20 v1.0.0: add input-free owner-approved, App-authenticated annotated release-tag promotion.
@@ -26,8 +27,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs/release-trains/2.8.x-next.json'
-      - 'docs/release-trains/2.8.x-next.md'
+      - 'docs/release-trains/**'
       - 'docs/assets/readme/**'
 
 concurrency:
@@ -67,9 +67,11 @@ jobs:
           set -euo pipefail
           git fetch origin main
           HEAD_SHA=$(git rev-parse HEAD)
-          MAIN_SHA=$(git rev-parse origin/main)
-          [ "$HEAD_SHA" = "$MAIN_SHA" ]
-          STATE=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).state")
+          git merge-base --is-ancestor "$HEAD_SHA" origin/main
+          TRAIN_ID=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/current.json')).trainId")
+          [[ "$TRAIN_ID" =~ ^[0-9]+\.[0-9]+\.(x|[0-9]+)-next$ ]]
+          TRAIN="docs/release-trains/$TRAIN_ID.json"
+          STATE=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).state")
           # A push that touches the train files while no seal is Ready
           # (Collecting after a roll, terminal Released/Aborted) is a
           # bookkeeping change: admit it without promoting anything.
@@ -77,10 +79,10 @@ jobs:
             echo "state=$STATE — nothing to promote"
             exit 0
           fi
-          PAYLOAD=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).payloadSha")
-          RECORDED_SEAL=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).sealSha")
+          PAYLOAD=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).payloadSha")
+          RECORDED_SEAL=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).sealSha")
           SEAL=$HEAD_SHA
-          TAG=v$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/2.8.x-next.json')).computedVersion")
+          TAG=v$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).computedVersion")
           [ "$RECORDED_SEAL" = null ]
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
@@ -160,8 +162,11 @@ jobs:
           set -euo pipefail
           git fetch origin main
           [ "$(git rev-parse HEAD)" = "$SEAL" ]
-          [ "$(git rev-parse origin/main)" = "$SEAL" ]
-          node -e "const f=require('fs'),m=JSON.parse(f.readFileSync('docs/release-trains/2.8.x-next.json'));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
+          git merge-base --is-ancestor "$SEAL" origin/main
+          TRAIN_ID=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/current.json')).trainId")
+          [[ "$TRAIN_ID" =~ ^[0-9]+\.[0-9]+\.(x|[0-9]+)-next$ ]]
+          TRAIN="docs/release-trains/$TRAIN_ID.json"
+          TRAIN="$TRAIN" node -e "const f=require('fs'),m=JSON.parse(f.readFileSync(process.env.TRAIN));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
 
       - name: setup Node 22 after approval
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // FILE: tools/acceptance-registry.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the acceptance registry (docs/acceptance/registry.json) against its schema and the collecting train, and print the per-item survey — the ordered "accepted or not, and why" record behind the release trains.
 //   SCOPE: --check (schema, git sha resolvability, two-way train consistency, lifecycle sanity) and --survey (state table). Read-only; --check exits non-zero with stable MT_ACCEPT_* codes on any violation.
-//   DEPENDS: node:fs, node:child_process (git cat-file), docs/release-trains/2.8.x-next.json.
+//   DEPENDS: node:fs, node:child_process (git cat-file), tools/release-train.mjs (current train).
 //   LINKS: docs/acceptance/README.md; docs/release-trains/README.md acceptance stage; .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; tests/renderer/acceptance-registry.test.js.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -14,6 +14,7 @@
 //   ROOT - repo root path.
 //   REGISTRY_PATH - registry JSON relative path.
 //   TRAIN_PATH - collecting train relative path.
+//   listTrainFiles - list every train ledger JSON in docs/release-trains.
 //   STATES - STATES - top-level STATES used by the script flow.
 //   VERDICTS - VERDICTS - top-level VERDICTS used by the script flow.
 //   AcceptanceRegistryError - coded MT_ACCEPT_* error class.
@@ -27,17 +28,19 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-21 C-ACCEPTANCE-REGISTRY: new.
+//   LAST_CHANGE: v1.1.0 - 2026-10-24 C-RELEASE-CONVEYOR: resolve the collecting train through the current-train pointer.
+//   PREV: v1.0.0 - 2026-10-21 C-ACCEPTANCE-REGISTRY: new.
 // END_CHANGE_SUMMARY
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveCurrentTrain } from './release-train.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REGISTRY_PATH = 'docs/acceptance/registry.json'
-const TRAIN_PATH = 'docs/release-trains/2.8.x-next.json'
+const TRAIN_PATH = resolveCurrentTrain(ROOT).json
 const listTrainFiles = (root) => {
   try {
     return readdirSync(resolve(root, 'docs/release-trains'))
