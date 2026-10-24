@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-MESSAGE-ONLY-HISTORY-REWRITE-V3>
     <IntentSummary>Merge a deterministic raw-object and exact-manifest rewrite gate through PR #54, build the private rewritten DAG, force-update only main during a bounded protection window, and rebuild live desktop PRs.</IntentSummary>
     <BaselineAssertions>
