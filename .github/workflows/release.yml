@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.1.0
+# VERSION: 3.1.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage and publish one digest-verified draft release after a bounded no-veto timer window armed by the owner-approved tag.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, timer-default draft-first publication with cancel-as-veto, optional Telegram notify, and downstream Homebrew handoff.
@@ -20,6 +20,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-24 v3.1.1: Point the missing updater-signing warning to the canonical owner-only GitHub rollout instructions.
 #   - 2026-10-24 v3.1.0: C-RELEASE-CONVEYOR — read the train through docs/release-trains/current.json and drop the close-release-please job (Release Please removed; it failed on v2.8.1 for want of a Release Please PR).
 #   - 2026-10-24 v3.0.0: C-RELEASE-TIMING — replace the synchronous second
 #     owner approval with a bounded no-veto timer window (RELEASE_VETO_MINUTES,
@@ -566,7 +567,7 @@ jobs:
           SIG_FILE=$(find target -name '*.app.tar.gz.sig' | head -1)
           TGZ_FILE=$(find target -name '*.app.tar.gz' ! -name '*.sig' | head -1)
           if [ -z "$SIG_FILE" ] || [ -z "$TGZ_FILE" ]; then
-            echo "::warning::updater signing artifacts missing; latest.json not generated. Configure TAURI_SIGNING_PRIVATE_KEY+_PASSWORD secrets per docs/F-UPDATER-WIRE-PLUGIN-handoff.md."
+            echo "::warning::updater signing artifacts missing; latest.json not generated. Configure TAURI_SIGNING_PRIVATE_KEY+_PASSWORD secrets per docs/release-trains/README.md#owner-only-github-rollout."
             echo "skipped=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi

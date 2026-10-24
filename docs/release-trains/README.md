@@ -159,7 +159,7 @@ These actions configure the pipeline only. They do not freeze a train, approve a
 
 Statements such as “works”, “accepted”, “mark for release”, “include in the next patch”, and a request to freeze/review the candidate authorize the corresponding preparation or queue update. They do not authorize version bumps, tags, publishing workflow dispatches, store uploads or tap publication. An explicit release instruction authorizes its stated release scope; do not ask again for steps already authorized by it.
 
-After that instruction, follow the [repository release procedure](../../AGENTS.md#release-cutting-a-new-version). Do not infer a release from a test result. Ordinary integration/CI and local test builds remain separate from publication.
+After that instruction, follow the [repository release procedure](../release-process.md). Do not infer a release from a test result. Ordinary integration/CI and local test builds remain separate from publication.
 
 After publication, record GitHub assets, updater `latest.json`, Homebrew version/hash and any other channels included in that release's scope. App Store approval has its own version and external status; do not infer it from a direct-download release. A successful workflow alone is not proof that an update is available to users.
 

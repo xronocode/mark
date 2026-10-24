@@ -76,7 +76,7 @@ export const t = (key, ...args) => {
 }
 
 // 导出语言设置函数
-// C-15 QA fix (Nurik's Windows pass): the old guard indexed the FUNCTION
+// C-15 Windows QA fix: the old guard indexed the FUNCTION
 // (`availableLocales.includes[locale]`) instead of calling it, so the
 // guard was ALWAYS truthy — the async loadTranslations PROMISE was passed
 // to setLocaleMessage as if it were the translation table and every

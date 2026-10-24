@@ -756,7 +756,7 @@ export const useEditorStore = defineStore('editor', {
     // skipped. Also the welcome screen «Last session» action.
     async RESTORE_SESSION({ from: rawFrom } = {}) {
       const projectStore = useProjectStore()
-      // Hardened shape check (local-model review): a malformed frozen
+      // Hardened shape check: a malformed frozen
       // payload falls back to the live-preference path instead of
       // throwing mid-restore.
       const from = rawFrom && Array.isArray(rawFrom.tabs) ? rawFrom : null
@@ -2547,6 +2547,9 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: remove workstation-specific
+//     review attribution from the cold-start shape-guard comment; behavior is
+//     unchanged.
 //   - 2026-10-21 FIX-009 (C-FIX-009-SESSION-COLD-START +
 //     C-FIX-009-RECENTLY-CLOSED): BOOT_SESSION records the boot-time
 //     cold-start offer (coldStartSession) when the restore preference
