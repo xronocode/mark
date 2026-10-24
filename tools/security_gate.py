@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 1.10.1
+# VERSION: 1.10.2
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks.
-#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites with explicit GPG-signature removal accounting, AI attribution and branch-name bans, identity recheck, private receipts and common hooks.
+#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, identity recheck, private receipts and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-PUBLIC-REPOSITORY-HYGIENE; C-MESSAGE-ONLY-HISTORY-REWRITE-V3.
 #   ROLE: SCRIPT
@@ -27,7 +27,10 @@
 #   ref_deletions - admit a deletion-only push when every deleted branch tip is already in main or merged by PR.
 #   OID_PATTERN - accepted SHA-1 or SHA-256 object identity form.
 #   SIGNATURE_HEADERS - commit signature headers intentionally removed when their signed object changes.
-#   history_rewrite_requested - identify a non-fast-forward branch update that must use the rewrite lane.
+#   history_rewrite_requested - identify a non-fast-forward main update that must use the rewrite lane.
+#   non_main_rebase_requested - identify a non-fast-forward non-main branch update that must use the rebase lane.
+#   remote_ref_oids - read exact live branch identities from the negotiated push endpoint without accepting ambiguous output.
+#   non_main_rebase_candidate - bind one rebased desktop PR branch to push-endpoint old-branch/current-main identities and scan only replayed commits.
 #   raw_commit - parse a commit object without hiding headers or normalizing identity bytes.
 #   history_rewrite - prove an exact-manifest main rewrite across paired ordered-parent DAGs.
 #   validate_reviewed_screenshot_binaries - admit only exact reviewed README PNG bytes named by a same-candidate release manifest.
@@ -38,7 +41,8 @@
 #   main - dispatch early static checks, full commit/push review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.10.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: preserve exact raw commit-message termination by admitting manifest replacements with or without a final LF.
+#   LAST_CHANGE: 1.10.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one non-main PR rebase only against branch/main identities read from the actual push endpoint and scan only commits replayed above current remote main.
+#   PREV: 1.10.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: preserve exact raw commit-message termination by admitting manifest replacements with or without a final LF.
 #   PREV: 1.10.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one exact-manifest main rewrite only after raw-object ordered-parent DAG proof, deterministic message scans and explicit accounting for unavoidable gpgsig removal.
 #   PREV: 1.9.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: make the public gate deterministic by retaining exact candidate, static exposure, Gitleaks, lane, ref, binary-evidence and identity checks while moving optional workstation review outside the repository.
 #   PREV: 1.8.0 - 2026-10-24: owner-approved AI-name ban — commit and push reject AI attribution trailers (Co-Authored-By and similar, "Generated with" lines) and AI-named branches; a reference-transaction hook stops local creation of such branches, including worktree branches.
@@ -159,7 +163,8 @@ def staged_candidate(root, message):
     return {"identity": identity, "payload": payload, "scanText": message + "\n" + publication_lines(patch), "blobs": blobs, "blobGroups": [blobs], "tree": tree}
 
 
-def push_candidate(root, remote, updates):
+def _push_candidate(root, remote, updates, trusted_bases=None, context=""):
+    trusted_bases = trusted_bases or {}
     commits = []
     lanes = set()
     for line in updates.splitlines():
@@ -183,14 +188,16 @@ def push_candidate(root, remote, updates):
         exclusions = [remote_oid] if set(remote_oid) != {"0"} else [
             x for x in git(root, "for-each-ref", "--format=%(objectname)", "refs/remotes/" + remote + "/").decode().splitlines()
         ]
+        exclusions.extend(trusted_bases.get(remote_ref, ()))
+        exclusions = list(dict.fromkeys(exclusions))
         args = ["rev-list", "--reverse", local_oid]
         if exclusions:
             args += ["--not", *exclusions]
         commits += git(root, *args).decode().splitlines()
     blobs = []
     blob_groups = []
-    payload = "OPERATION: push\nREF UPDATES:\n" + updates
-    scan_text = updates
+    payload = "OPERATION: push\n" + context + "REF UPDATES:\n" + updates
+    scan_text = context + updates
     for oid in dict.fromkeys(commits):
         parents = git(root, "rev-list", "--parents", "-n", "1", oid).decode().split()[1:]
         parent = parents[0] if parents else git(root, "hash-object", "-t", "tree", "--stdin", data=b"").decode().strip()
@@ -216,6 +223,10 @@ def push_candidate(root, remote, updates):
         raise GateError("Push desktop and mobile tasks separately")
     validate_lane(root, blobs, "mobile/" if True in lanes else "desktop")
     return {"identity": hashlib.sha256(payload.encode()).hexdigest(), "payload": payload, "scanText": scan_text, "blobs": blobs, "blobGroups": blob_groups, "commits": commits}
+
+
+def push_candidate(root, remote, updates):
+    return _push_candidate(root, remote, updates)
 
 
 def merged_by_pull_request(root, remote, oid):
@@ -290,7 +301,7 @@ def history_rewrite_requested(root, updates):
         ):
             raise GateError("Existing tag identities are immutable; create a new tag instead")
         if (
-            remote_ref.startswith("refs/heads/")
+            remote_ref == "refs/heads/main"
             and OID_PATTERN.fullmatch(local_oid)
             and OID_PATTERN.fullmatch(remote_oid)
             and set(local_oid) != {"0"}
@@ -299,6 +310,106 @@ def history_rewrite_requested(root, updates):
         ):
             return True
     return False
+
+
+def non_main_rebase_requested(root, updates):
+    for _local_ref, local_oid, remote_ref, remote_oid in _update_lines(updates):
+        if (
+            remote_ref.startswith("refs/heads/")
+            and remote_ref != "refs/heads/main"
+            and OID_PATTERN.fullmatch(local_oid)
+            and OID_PATTERN.fullmatch(remote_oid)
+            and set(local_oid) != {"0"}
+            and set(remote_oid) != {"0"}
+            and not _is_ancestor(root, remote_oid, local_oid)
+        ):
+            return True
+    return False
+
+
+def remote_ref_oids(root, push_location, refs):
+    env = dict(os.environ)
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-remote", "--refs", "--end-of-options", push_location, *refs],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise GateError("Remote ref lookup failed; fetch and retry") from None
+    if result.returncode:
+        raise GateError("Remote ref lookup failed; fetch and retry")
+    found = {}
+    expected = set(refs)
+    for line in result.stdout.splitlines():
+        fields = line.split()
+        if (
+            len(fields) != 2
+            or fields[1] not in expected
+            or fields[1] in found
+            or not OID_PATTERN.fullmatch(fields[0])
+        ):
+            raise GateError("Remote ref lookup returned an ambiguous identity")
+        found[fields[1]] = fields[0]
+    if set(found) != expected:
+        raise GateError("Remote ref lookup is incomplete; fetch and retry")
+    return found
+
+
+def non_main_rebase_candidate(root, remote, push_location, updates):
+    lines = _update_lines(updates)
+    if len(lines) != 1:
+        raise GateError("Rebase one non-main branch at a time")
+    local_ref, local_oid, remote_ref, remote_oid = lines[0]
+    if (
+        not remote_ref.startswith("refs/heads/")
+        or remote_ref == "refs/heads/main"
+        or remote_ref.startswith("refs/heads/mobile/")
+        or not OID_PATTERN.fullmatch(local_oid)
+        or not OID_PATTERN.fullmatch(remote_oid)
+        or set(local_oid) == {"0"}
+        or set(remote_oid) == {"0"}
+    ):
+        raise GateError("Non-main rebase requires one existing desktop branch update")
+    if _is_ancestor(root, remote_oid, local_oid):
+        raise GateError("Non-main rebase lane requires a non-fast-forward update")
+
+    main_ref = "refs/heads/main"
+    tracking_ref = "refs/remotes/" + remote + "/main"
+    tracking_main = git(root, "rev-parse", "--verify", tracking_ref).decode().strip()
+    live = remote_ref_oids(root, push_location, [main_ref, remote_ref])
+    if live[remote_ref] != remote_oid:
+        raise GateError("Remote branch changed after push negotiation; retry with an exact lease")
+    if live[main_ref] != tracking_main:
+        raise GateError("Remote main is stale; fetch and rebuild the branch")
+    if not _is_ancestor(root, tracking_main, local_oid):
+        raise GateError("Rebased branch must descend from current remote main")
+
+    context = "REBASE MAIN: " + tracking_main + "\n"
+    candidate = _push_candidate(
+        root,
+        remote,
+        updates,
+        trusted_bases={remote_ref: (tracking_main,)},
+        context=context,
+    )
+    if not candidate["commits"]:
+        raise GateError("Rebased branch contains no commits above current remote main")
+    candidate["receipt"] = {
+        "remoteRef": remote_ref,
+        "oldTip": remote_oid,
+        "newTip": local_oid,
+        "mainTip": tracking_main,
+        "commitCount": len(candidate["commits"]),
+    }
+    candidate["passMarker"] = (
+        "[RepositorySafety][push][BLOCK_NON_MAIN_REBASE] commits="
+        + str(len(candidate["commits"]))
+    )
+    return candidate
 
 
 def _unique_json_object(pairs):
@@ -816,8 +927,17 @@ def main():
         if history_rewrite_requested(root, updates):
             manifest_path = args.manifest or os.environ.get("MARK_HISTORY_REWRITE_MANIFEST")
             if not manifest_path:
-                raise GateError("Non-fast-forward branch update requires an exact owner-local history rewrite manifest")
+                raise GateError("Non-fast-forward main update requires an exact owner-local history rewrite manifest")
             review(lambda: history_rewrite(root, args.arguments[0], updates, manifest_path), private, "push")
+            return
+        if non_main_rebase_requested(root, updates):
+            if len(args.arguments) < 2 or not args.arguments[1]:
+                raise GateError("Push endpoint is required for a non-main rebase review")
+            review(
+                lambda: non_main_rebase_candidate(root, args.arguments[0], args.arguments[1], updates),
+                private,
+                "push",
+            )
             return
         review(lambda: push_candidate(root, args.arguments[0], updates), private, "push")
     elif args.operation == "review-history-rewrite":

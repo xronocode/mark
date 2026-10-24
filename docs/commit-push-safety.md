@@ -69,6 +69,23 @@ For the single force-with-lease push, provide the same file through
 restore and read it back immediately after the push, and never publish the
 manifest or recovery ref.
 
+## Desktop PR rebases after a main rewrite
+
+A rewritten desktop pull-request branch is pushed separately from `main` and from every
+other ref. The gate reads the live identities for both the target branch and
+`main` from the actual push endpoint supplied by Git's pre-push hook, requires
+the negotiated old branch tip to match the live target,
+requires the local remote-tracking `main` to match live `main`, and proves that
+the rebuilt head descends from that current `main`. It then scans every commit
+unique to the rebuilt branch while binding both remote identities into the
+candidate and private receipt. The endpoint itself is used only for the live
+lookup and is not copied into candidate data, receipts or diagnostics.
+
+Fetch immediately before rebuilding and use an exact `--force-with-lease` for
+the old branch tip. A stale branch, stale `main`, multiple-ref push, mobile branch, tag, main
+update, fast-forward or head not based on current remote `main` fails this lane.
+The message-only manifest is never accepted for a non-main branch.
+
 ## Hooks and commands
 
 The pre-commit hook performs the early deterministic scan. The commit-message
