@@ -1,5 +1,5 @@
 // FILE: tests/e2e/whats-new.spec.ts
-// VERSION: 1.4.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 What's New boot flow end to end — a recorded
 //            previous version shows the sheet once, Esc closes it, and
@@ -26,7 +26,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-22 release 2.7.0 draft: historical item rendering follows the current release-wide Also copy.
+//   LAST_CHANGE: v1.6.0 - 2026-10-25 «See everything new» opens the release's website changelog section.
+//   PREV: v1.5.0 - 2026-10-22 release 2.7.0 draft: historical item rendering follows the current release-wide Also copy.
 //   PREV: v1.3.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
 //   v1.2.0 - 2026-10-17 C-53 T-001/R-1: the D-1 item titles,
 //   the «Also» line and the «See everything new» footer link are pinned;
@@ -211,11 +212,11 @@ test.describe("What's New (C-48)", () => {
   })
 
   // START_BLOCK_C53_RELEASE_LINK
-  // C-53 R-1: the «See everything new» link opens the GitHub release page
+  // C-53 R-1: the «See everything new» link opens the release's changelog section
   // through the app's external-link path (window.electron.shell.openExternal
   // → @tauri-apps/plugin-opener openUrl → plugin:opener|open_url) and keeps
   // the sheet open — the browser takes focus, the user closes the sheet.
-  test('"See everything new" opens the v2.5.0 release page externally and keeps the sheet open', async ({ page }) => {
+  test('"See everything new" opens the v2.5.0 changelog section externally and keeps the sheet open', async ({ page }) => {
     await page.goto(BOOT_URL)
     await waitForGateRecord(page)
     await page.evaluate(() => {
@@ -241,7 +242,7 @@ test.describe("What's New (C-48)", () => {
     await sheet.locator('.foot-links .guide-link').first().click()
     await expect
       .poll(() => openedUrls.map((a: any) => a?.url), { timeout: 5_000 })
-      .toEqual(['https://github.com/xronocode/mark/releases/tag/v2.5.0'])
+      .toEqual(['https://mark.xronocode.com/changelog#_2-5-0-2026-10-18'])
     await expect(sheet).toBeVisible()
   })
   // END_BLOCK_C53_RELEASE_LINK
