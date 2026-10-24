@@ -1,5 +1,5 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.9.0
+# VERSION: 1.9.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that deterministic publication safety fails closed on leaks, private paths, unsupported payloads and candidate changes.
 #   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, exact identity receipts, outgoing history and exact-manifest message-only main rewrites; no fixture commits in the project repository.
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, exact-index, deterministic receipt, outgoing-history, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.9.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove exact manifest binding, ordered-parent merge-DAG parity, raw header preservation, explicit signature loss, stale/shallow rejection and candidate recheck.
+#   LAST_CHANGE: 1.9.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove an exact replacement may preserve a historical commit message with no trailing LF.
+#   PREV: 1.9.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove exact manifest binding, ordered-parent merge-DAG parity, raw header preservation, explicit signature loss, stale/shallow rejection and candidate recheck.
 #   PREV: 1.8.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace workstation-model scenarios with deterministic scan, exact identity and private receipt assertions.
 #   PREV: 1.7.0 - 2026-10-24: prove the AI-name ban — attribution trailers fail commit and push review, AI-named branches fail push, and the installed reference-transaction hook aborts local creation of AI-named branches only.
 #   PREV: 1.6.0 - 2026-10-24: prove merged-branch deletion admission — ancestor or exact merged-PR tips pass; mixed, main, tag, unproven and GitHub-failure cases stay blocked.
@@ -424,6 +425,13 @@ class SafetyGateTests(unittest.TestCase):
             self.assertIn("BLOCK_MESSAGE_ONLY_HISTORY_REWRITE", candidate["passMarker"])
             self.assertIn("--- previous message", candidate["payload"])
             self.assertNotIn("Co-Authored-By", candidate["scanText"])
+
+    def test_exact_manifest_preserves_a_message_without_trailing_lf(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.history_fixture(directory, replacement="feature without final LF")
+            candidate = gate.history_rewrite(fixture.root, "fork", fixture.updates, fixture.manifest_path)
+            rewritten = gate.raw_commit(fixture.root, candidate["commits"][0])["message"]
+            self.assertEqual(rewritten, b"feature without final LF")
 
     def test_rewrite_rejects_manifest_drift_and_forbidden_replacement(self):
         with tempfile.TemporaryDirectory() as directory:
