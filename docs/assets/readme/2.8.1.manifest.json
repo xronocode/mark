@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "releaseVersion": "2.8.1",
-  "payloadSha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6",
+  "payloadSha": "da13980e3719b10605c95be56a11812d299beb2c",
   "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
   "captureState": "fresh-reviewed",
   "review": {

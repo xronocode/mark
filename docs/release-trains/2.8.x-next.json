@@ -9,7 +9,7 @@
     "tree": "23fb8c7e0c621abafb47e94c29b8e8b7ed62471c"
   },
   "computedVersion": "2.8.1",
-  "payloadSha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6",
+  "payloadSha": "da13980e3719b10605c95be56a11812d299beb2c",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -53,7 +53,17 @@
           "f3b9c24d63065495e1c17c02f8eb1e0de5f625fe",
           "ec4c39eceafc2d104434dbbc1e9699fae3af7fa6",
           "318714a9b5430f9e9bf3c1ef7f39f92818b56c60",
-          "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
+          "deb016ce08d83a2cba6669141a0d389e84b3a8b6",
+          "1beb0ab837101e82b8fb642c68ea5d3310974659",
+          "482e05104b96f613e9c0b282f8868cef5a99794b"
+        ]
+      },
+      {
+        "id": "C-RELEASE-TIMING",
+        "summary": "Release pipeline timing (PR #47): timer-default publication after a no-veto window replaces the second synchronous release approval; duplicated build-lane tests removed (strict admission already proves them on the payload); tool caches warmed. Pipeline-only, owner-approved 2026-10-24.",
+        "state": "queued",
+        "commits": [
+          "da13980e3719b10605c95be56a11812d299beb2c"
         ]
       }
     ],
@@ -173,28 +183,49 @@
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
+      },
+      {
+        "sha": "1beb0ab837101e82b8fb642c68ea5d3310974659",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "482e05104b96f613e9c0b282f8868cef5a99794b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "da13980e3719b10605c95be56a11812d299beb2c",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-TIMING"
+        ]
       }
     ],
-    "throughInclusive": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
+    "throughInclusive": "da13980e3719b10605c95be56a11812d299beb2c"
   },
   "requiredChecks": [
     {
       "name": "status check",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
+      "sha": "da13980e3719b10605c95be56a11812d299beb2c"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
+      "sha": "da13980e3719b10605c95be56a11812d299beb2c"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
       "status": "success",
-      "sha": "deb016ce08d83a2cba6669141a0d389e84b3a8b6"
+      "sha": "da13980e3719b10605c95be56a11812d299beb2c"
     }
   ],
   "materials": {
@@ -263,6 +294,18 @@
       "date": "2026-10-24",
       "actor": "agent-zcode",
       "evidence": "Final seal correction: payloadSha rebased to deb016c (the prior seal merge, the direct parent of this commit) so the payload..seal span is exactly one commit — the invariant the re-freeze payload assignment broke. Accounting rebuilt exactly from rev-list (16 entries). Release authorization NOT given."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-24",
+      "actor": "agent-zcode",
+      "evidence": "Seal-squash correction: the invariant needs exactly ONE commit between payload and seal, so this PR is SQUASH-merged; payloadSha records 482e051 (current main, whose checks are green). Root cause of the whole re-seal spiral identified: the 2.8.0 conveyor PRs were squash-merged (one commit each) while this cycle's PRs used merge commits (two each), breaking the span every time."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-24",
+      "actor": "claude-code",
+      "evidence": "Re-seal on da13980 after PR #47 (C-RELEASE-TIMING) landed on main and made the #49 seal stale; #47 is accounted as an operational item; this PR is squash-merged so payload..seal is exactly one commit. Release authorization NOT given."
     }
   ]
 }
