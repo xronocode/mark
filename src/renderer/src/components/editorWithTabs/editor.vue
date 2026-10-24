@@ -305,6 +305,8 @@ import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const { t } = useI18n()
 const STANDAR_Y = 320
+// C-FILE-POSITION-MEMORY (spec D-2): the position flush debounce window.
+const POSITION_FLUSH_DEBOUNCE_MS = 1500
 
 const props = defineProps({
   markdown: String,
@@ -2052,6 +2054,31 @@ const handleTableLayoutsChange = async ({ entries } = {}) => {
 }
 // END_BLOCK_TABLE_LAYOUTS_HOST
 
+// START_BLOCK_POSITION_FLUSH_DEBOUNCE
+// C-FILE-POSITION-MEMORY (spec D-2): one debounced disk write per 1.5 s of
+// activity. The muyaIndexCursor is computed ONCE here at flush time —
+// getMuyaIndexCursor runs a full ExportMarkdown pass and must never sit on
+// the per-event path (corner C-9). The selectionChange and scroll handlers
+// arm this; tab close and quit flush through the store without the debounce.
+let positionFlushTimer = null
+const schedulePositionFlush = () => {
+  if (props.mirror) return
+  if (positionFlushTimer) clearTimeout(positionFlushTimer)
+  positionFlushTimer = setTimeout(() => {
+    positionFlushTimer = null
+    const id = renderedTabId
+    if (!id || id !== currentFile.value?.id) return
+    let muyaIndexCursor = null
+    try {
+      muyaIndexCursor = editor.value?.contentState?.getMuyaIndexCursor?.() || null
+    } catch (_) {
+      muyaIndexCursor = null
+    }
+    void editorStore.SAVE_ACTIVE_FILE_POSITION({ id, muyaIndexCursor })
+  }, POSITION_FLUSH_DEBOUNCE_MS)
+}
+// END_BLOCK_POSITION_FLUSH_DEBOUNCE
+
 // listen for `open-single-file` event, it will call this method only when open a new file.
 const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) => {
   if (id && id !== currentFile.value?.id) {
@@ -2681,6 +2708,8 @@ onMounted(() => {
     // C-29: the source pane owns the tab's scroll offset while muya mirrors it.
     if (props.mirror || !renderedTabId || renderedTabId !== currentFile.value?.id) return
     editorStore.updateScrollPosition(renderedTabId, scrollEvent.scrollTop)
+    // C-FILE-POSITION-MEMORY: scrolling arms the debounced position flush.
+    schedulePositionFlush()
     // C-19: track the heading the viewport is in (debounced — scroll
     // events fire at frame rate) and tell the TOC to highlight it.
     if (tocActiveTimer) clearTimeout(tocActiveTimer)
@@ -2746,6 +2775,17 @@ onMounted(() => {
 
     selectionChange.value = changes
     editorStore.SELECTION_CHANGE(changes)
+    // START_BLOCK_POSITION_SELECTION_WRITE
+    // C-FILE-POSITION-MEMORY (spec A, D-1): pure keyboard navigation must
+    // write the caret into the owning tab exactly like clicks and edits do
+    // (muya's change event only fires for the latter two). Bypasses
+    // LISTEN_FOR_CONTENT_CHANGE on purpose — the revision guard must not
+    // move on navigation (corner C-2). Arms the debounced disk flush.
+    if (renderedTabId && renderedTabId === currentFile.value?.id) {
+      editorStore.updateCursorPosition(renderedTabId, editor.value.getCursor())
+      schedulePositionFlush()
+    }
+    // END_BLOCK_POSITION_SELECTION_WRITE
   })
 
   editor.value.on('selectionFormats', (formats) => {
@@ -2818,6 +2858,9 @@ onBeforeUnmount(() => {
   bus.off('formatDocument', diffGuarded.handleFormatDocument)
   if (docLintTimer) clearTimeout(docLintTimer)
   if (tocActiveTimer) clearTimeout(tocActiveTimer)
+  // C-FILE-POSITION-MEMORY: the pending debounced flush dies with the
+  // component — close/quit flushes own the final write.
+  if (positionFlushTimer) clearTimeout(positionFlushTimer)
 
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')

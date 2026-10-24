@@ -4800,6 +4800,39 @@
           tabs-appearance.test.js (17 tiles, 34 swatch halves).
         </Scenario>
         <Scenario>
+          scenario-77-file-position-memory (C-FILE-POSITION-MEMORY): the
+          reading position (scrollTop + caret as mode-neutral line/ch
+          muyaIndexCursor) survives tab close/reopen, file reopen, relaunch
+          and rename. util/filePositionStore.js owns the prefs key
+          filePositions — sanitizeEntry keeps numbers only (C-8), cap 200
+          newest, prune-on-load with an injectable stat, rename moves the
+          entry beside the tab bookkeeping. editor.vue's selectionChange
+          handler (after the mirror guard, renderedTabId === currentFile.id)
+          calls store updateCursorPosition — tab.cursor only, the
+          contentRevision stale-save guard never moves (C-2) — and arms one
+          POSITION_FLUSH_DEBOUNCE_MS=1500 debounce computing muyaIndexCursor
+          once per flush (C-9: a 30-keyup burst is zero writes, ≤1 after
+          the window); the scroll handler arms the same flush;
+          FORCE_CLOSE_TAB and _saveSessionState flush before the tab dies
+          (C-7 — live close-flush evidence {scrollTop 3778, line 240});
+          NEW_TAB_WITH_CONTENT is async and, for pathname tabs, restores the
+          clampEntryToMarkdown-clamped entry into docState before
+          selection/push — a stale entry from a longer revision clamps into
+          the document (C-5), and the parallel file-loaded render cannot
+          stomp the restore (identical-markdown early return, C-4).
+          Untitled/guide tabs never persist (C-10). Unit-pinned in
+          tests/renderer/util/file-position-store.test.js and
+          tests/renderer/store/editor-position-memory.test.js (no-revision-
+          drift, flush boundaries, rename moves, restore leg); e2e gates in
+          tests/e2e/position-memory.spec.ts (C-1 arrows/switch, C-3
+          close+reopen, C-4 reload relaunch, C-5 clamp, C-9 burst
+          coalescing) and the visual acceptance
+          tests/e2e/position-memory-acceptance.spec.ts (byte-identical
+          before/after transcripts; the before/after evidence PNGs stay in
+          the local acceptance record until a multimodal binary review
+          admits them).
+        </Scenario>
+        <Scenario>
           scenario-61: Sidebar polish — chevron inset, pinned-file marks,
           empty state without the CTA (C-51 T-011, user smoke 2026-10-16):
           the sidebar shell (components/sideBar/index.vue) owns the one

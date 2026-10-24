@@ -33,6 +33,12 @@ import {
 } from '../util/guideDoc'
 import { syncViewMenuChecks } from '../util/menuChecks'
 import { moveTableLayoutsEntry } from '../util/tableLayoutStore'
+import {
+  loadFilePosition,
+  saveFilePosition,
+  moveFilePositionsEntry,
+  clampEntryToMarkdown
+} from '../util/filePositionStore'
 import { askUnsavedClose, UNSAVED_CLOSE_ACTIONS } from '../components/editorWithTabs/unsavedCloseDialog'
 
 const autoSaveTimers = new Map()
@@ -141,6 +147,51 @@ export const useEditorStore = defineStore('editor', {
 
       this.tabs[this.tabIdToIndex[id]].scrollTop = scrollTop
     },
+
+    // START_BLOCK_POSITION_CURSOR_WRITE
+    // C-FILE-POSITION-MEMORY (spec A, D-1): write ONLY the block-key cursor
+    // of a tab. This is the arrow-key fix — pure keyboard navigation must
+    // reach the tab state exactly like clicks and edits do. It deliberately
+    // bypasses LISTEN_FOR_CONTENT_CHANGE: that path increments
+    // tab.contentRevision (the stale save-outcome guard) and would corrupt
+    // it on navigation without any content change (corner C-2).
+    updateCursorPosition(id, cursor) {
+      if (!cursor || !(id in this.tabIdToIndex)) return
+      const tab = this.tabs[this.tabIdToIndex[id]]
+      if (tab && cursor.anchor && cursor.focus) {
+        tab.cursor = cursor
+      }
+    },
+    // END_BLOCK_POSITION_CURSOR_WRITE
+
+    // START_BLOCK_POSITION_FLUSH
+    // C-FILE-POSITION-MEMORY (spec D-2/D-3): the disk write boundary for
+    // one file's reading position. The active tab's editor.vue debounce
+    // calls SAVE_ACTIVE_FILE_POSITION with a freshly computed
+    // muyaIndexCursor (one ExportMarkdown run per flush — never per event);
+    // close and quit flushes call it with the stored value via
+    // _flushFilePositionForTab.
+    async SAVE_ACTIVE_FILE_POSITION({ id, muyaIndexCursor }) {
+      const tab = this.tabs.find(t => t.id === id)
+      if (!tab || !tab.pathname) return
+      await this._flushFilePositionForTab(tab, muyaIndexCursor || tab.muyaIndexCursor || null)
+    },
+
+    async _flushFilePositionForTab(tab, muyaIndexCursor = tab.muyaIndexCursor || null) {
+      if (!tab || !tab.pathname) return
+      const entry = {
+        scrollTop: typeof tab.scrollTop === 'number' && tab.scrollTop > 0 ? tab.scrollTop : 0,
+        muyaIndexCursor: muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus
+          ? muyaIndexCursor
+          : null
+      }
+      try {
+        await saveFilePosition(tab.pathname, entry)
+      } catch (e) {
+        console.warn(`[editor][position][BLOCK_POSITION_FLUSH_FAILED] ${e}`)
+      }
+    },
+    // END_BLOCK_POSITION_FLUSH
 
     /**
      * Push a tab specific notification on stack that never disappears.
@@ -694,6 +745,13 @@ export const useEditorStore = defineStore('editor', {
       await ipcPrefs.set('lastSessionTabs', tabs).catch(() => {})
       await ipcPrefs.set('lastSessionActive', active).catch(() => {})
       await ipcPrefs.set('lastSessionFolders', folders).catch(() => {})
+      // C-FILE-POSITION-MEMORY (corner C-7): the quit/save-session flush —
+      // every open file's position lands on disk with the session paths, so
+      // a relaunch restores both the tabs and the reading positions.
+      await Promise.allSettled(tabs.map((p) => {
+        const tab = this.tabs.find((t) => t.pathname === p)
+        return tab ? this._flushFilePositionForTab(tab) : null
+      }))
     },
 
     START_SESSION_AUTOSAVE() {
@@ -1043,6 +1101,10 @@ export const useEditorStore = defineStore('editor', {
         moveTableLayoutsEntry(pathname, newPathname).catch(e =>
           console.warn(`[editor][rename][BLOCK_TABLE_LAYOUTS_MOVE_FAILED] ${e}`)
         )
+        // C-FILE-POSITION-MEMORY: the remembered position follows the rename.
+        moveFilePositionsEntry(pathname, newPathname).catch(e =>
+          console.warn(`[editor][rename][BLOCK_POSITION_MOVE_FAILED] ${e}`)
+        )
         this.APPLY_SAVE_OUTCOME({
           id,
           pathname: newPathname,
@@ -1277,6 +1339,10 @@ export const useEditorStore = defineStore('editor', {
       const { tabs, currentFile } = this
       const index = tabs.findIndex((t) => t.id === file.id)
       if (index > -1) {
+        // C-FILE-POSITION-MEMORY (corner C-7): flush the reading position
+        // BEFORE the splice — an instant close right after a scroll must
+        // persist the final offset, not wait for the 1.5 s debounce.
+        void this._flushFilePositionForTab(file)
         // C-FIX-009-RECENTLY-CLOSED: record BEFORE the splice so
         // stripIndex is the tab's original position. Only saved-file
         // tabs (pathname) are recoverable — untitled drafts stay outside
@@ -1544,6 +1610,10 @@ export const useEditorStore = defineStore('editor', {
       moveTableLayoutsEntry(src, dest).catch(e =>
         console.warn(`[editor][rename][BLOCK_TABLE_LAYOUTS_MOVE_FAILED] ${e}`)
       )
+      // C-FILE-POSITION-MEMORY: the remembered position follows the rename.
+      moveFilePositionsEntry(src, dest).catch(e =>
+        console.warn(`[editor][rename][BLOCK_POSITION_MOVE_FAILED] ${e}`)
+      )
       console.debug(`[editor][rename][BLOCK_TABS_FOLLOWED tabs=${moved.length}]`)
     },
 
@@ -1727,7 +1797,7 @@ export const useEditorStore = defineStore('editor', {
      * @param {{markdownDocument: IMarkdownDocumentRaw, selected?: boolean}} obj The markdown document
      * and optional whether the tab should become the selected tab (true if not set).
      */
-    NEW_TAB_WITH_CONTENT({ markdownDocument, options = {}, selected }) {
+    async NEW_TAB_WITH_CONTENT({ markdownDocument, options = {}, selected }) {
       if (!markdownDocument) {
         console.warn('Cannot create a file tab without a markdown document!')
         this.NEW_UNTITLED_TAB({})
@@ -1764,6 +1834,31 @@ export const useEditorStore = defineStore('editor', {
       const { markdown, isMixedLineEndings } = markdownDocument
       const docState = createDocumentState(Object.assign(markdownDocument, options))
       const { id, cursor } = docState
+
+      // START_BLOCK_POSITION_RESTORE
+      // C-FILE-POSITION-MEMORY (spec D-4): every disk-open funnel — manual
+      // open, recently-closed reopen, session restore at relaunch — passes
+      // here, so the remembered position is applied to the tab state before
+      // it is selected/pushed and flows through the existing activation
+      // machinery (setMarkdown's muyaIndexCursor branch + scrollToCords).
+      // The clamp keeps a stale entry inside the freshly loaded markdown
+      // (corner C-5); the parallel file-loaded render cannot stomp it —
+      // setMarkdownToEditor's identical-markdown early return skips the
+      // cursor (corner C-4). Block-key cursors are session-scoped and never
+      // persisted; muyaIndexCursor (line/ch) is the durable representation.
+      if (pathname) {
+        try {
+          const entry = await loadFilePosition(pathname)
+          const clamped = entry ? clampEntryToMarkdown(entry, markdown) : null
+          if (clamped) {
+            if (clamped.scrollTop > 0) docState.scrollTop = clamped.scrollTop
+            if (clamped.muyaIndexCursor) docState.muyaIndexCursor = clamped.muyaIndexCursor
+          }
+        } catch (e) {
+          console.warn(`[editor][position][BLOCK_POSITION_RESTORE_FAILED] ${e}`)
+        }
+      }
+      // END_BLOCK_POSITION_RESTORE
 
       // START_BLOCK_RECORD_OPENED_SNAPSHOT_LOAD
       // C-68 R-1: every disk load (open, reopen, session restore — they all

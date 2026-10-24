@@ -101,7 +101,7 @@ const pictureExportMock = vi.hoisted(() => ({
 
 const mockEditorInstance = vi.hoisted(() => ({
   container: null,
-  contentState: { getBlocks: vi.fn(() => []), selectedTableCells: false },
+  contentState: { getBlocks: vi.fn(() => []), selectedTableCells: false, getMuyaIndexCursor: vi.fn(() => null) },
   on: vi.fn(),
   off: vi.fn(),
   destroy: vi.fn(),
@@ -113,6 +113,7 @@ const mockEditorInstance = vi.hoisted(() => ({
   setListIndentation: vi.fn(),
   hideAllFloatTools: vi.fn(),
   getSelection: vi.fn(() => ({ cursorCoords: { y: 100 } })),
+  getCursor: vi.fn(() => ({ line: 1, ch: 0 })),
   focus: vi.fn(),
   blur: vi.fn(),
   undo: vi.fn(),
@@ -309,6 +310,10 @@ describe('editor.vue — coverage', () => {
     editorStore.SELECTION_FORMATS = vi.fn()
     editorStore.EXIT_PREVIEW_MODE = vi.fn()
     editorStore.updateScrollPosition = vi.fn()
+    // C-FILE-POSITION-MEMORY: the selectionChange subscription writes the
+    // caret through this action (the arrow-key fix) and arms the flush.
+    editorStore.updateCursorPosition = vi.fn()
+    editorStore.SAVE_ACTIVE_FILE_POSITION = vi.fn(async () => {})
     editorStore.copyGithubSlug = vi.fn()
     layoutStore.TOGGLE_LAYOUT_ENTRY = vi.fn()
   }
