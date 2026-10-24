@@ -18,6 +18,12 @@ locations and are ignored to prevent accidental reintroduction. The owner backlo
 also belong in the private companion, including versions previously recovered
 into public source.
 
+Obsolete personal QA notes, one-off handoff notes and generated showcase
+screenshots are removed from the current tree and named explicitly in
+`.gitignore`. Authored workspace studies under `work/` and release evidence under
+`docs/assets/readme/` remain public; do not replace those exact boundaries with
+broad directory rules.
+
 `fixtures/` retains six sanitized legacy preference examples, with
 `/Users/<fixture>` as their synthetic home identity. It excludes original profile
 archives, browser databases and runtime logs. Its manifest pins the retained

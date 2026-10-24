@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.7.0
+# VERSION: 1.8.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unsupported payloads, incomplete local review and candidate changes.
-#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, network isolation, complete locale deltas, local verdicts and outgoing history; no fixture commits.
+#   PURPOSE: Verify that deterministic publication safety fails closed on leaks, private paths, unsupported payloads and candidate changes.
+#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, exact identity receipts and outgoing history; no fixture commits.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -11,30 +11,25 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, exact-index, local-only review, outgoing-history, merged-branch deletion and AI-name ban scenarios.
+#   SafetyGateTests - exposure, exact-index, deterministic receipt, outgoing-history, merged-branch deletion and AI-name ban scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.7.0 - 2026-10-24: prove the AI-name ban — attribution trailers fail commit and push review, AI-named branches fail push, and the installed reference-transaction hook aborts local creation of AI-named branches only.
+#   LAST_CHANGE: 1.8.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace workstation-model scenarios with deterministic scan, exact identity and private receipt assertions.
+#   PREV: 1.7.0 - 2026-10-24: prove the AI-name ban — attribution trailers fail commit and push review, AI-named branches fail push, and the installed reference-transaction hook aborts local creation of AI-named branches only.
 #   PREV: 1.6.0 - 2026-10-24: prove merged-branch deletion admission — ancestor or exact merged-PR tips pass; mixed, main, tag, unproven and GitHub-failure cases stay blocked.
-#   PREV: 1.5.1 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES-V2: pin that workflow/governance paths do not turn public references into secrets during outgoing review.
-#   PREV: 1.5.0 - 2026-10-21 C-SAFE-PUBLIC-GITHUB-REFERENCES: pin the public GitHub reference forms and literal-secret failure boundary used by both local review passes.
 #   PREV: 1.4.0 - 2026-10-21 C-SAFE-SCREENSHOT-REVIEW: prove exact same-candidate manifest binding for reviewed README PNGs and retain fail-closed binary rejection.
-#   PREV: 1.3.0 - 2026-10-19: prove target-aware GPU ownership before model loading, including one-other-engine and multiple-model failures.
 #   PREV: 1.2.0 - 2026-10-19: reject reserved private operations and captured profiles while retaining synthetic examples and reusable tooling.
-#   PREV: 1.1.0 - 2026-10-19: prove locale deltas retain nested changes and raw fallback without reducing static scans.
 #   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: executable fail-closed safety contracts.
 # END_CHANGE_SUMMARY
 
 import importlib.util
-import io
 import json
 from pathlib import Path
 import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock, patch
-import urllib.error
+from unittest.mock import patch
 
 
 spec = importlib.util.spec_from_file_location("security_gate", Path(__file__).resolve().parents[2] / "tools/security_gate.py")
@@ -58,44 +53,6 @@ class SafetyGateTests(unittest.TestCase):
         }
         return [(path, data), ("docs/assets/readme/2.6.0.manifest.json", json.dumps(manifest).encode())]
 
-    def test_review_prompt_distinguishes_public_github_references_from_literal_secrets(self):
-        prompt = gate.PUBLICATION_REVIEW_PROMPT
-        for reference in ["GitHub GraphQL node IDs", "PVT_", "app/example-bot", "${{ secrets.NAME }}", "${{ steps.example.outputs.token }}"]:
-            self.assertIn(reference, prompt)
-        self.assertIn("cannot alone justify a private-key or credential finding", prompt)
-        self.assertIn("A literal credential, private key, token value, or private data", prompt)
-        self.assertIn(".github/workflows/release.yml", prompt)
-        self.assertIn(".github/release-governance.json", prompt)
-        self.assertIn("neither the file path nor a symbolic lookup name is evidence of a secret", prompt)
-        self.assertIn("Do not report a file solely because it contains these reference forms", prompt)
-
-    def test_gpu_preflight_timeout_is_bounded_and_does_not_echo_command(self):
-        with patch.object(gate.subprocess, "run", side_effect=subprocess.TimeoutExpired(["private-host-command"], 60)):
-            with self.assertRaises(gate.GateError) as found:
-                gate.gpu_preflight(Path("canonical-check"))
-            self.assertNotIn("private-host-command", str(found.exception))
-
-    def test_gpu_slot_requires_positive_empty_or_expected_engine_evidence(self):
-        opener = Mock()
-        for models, report in [([], b"no inference engine active"), ([{"name": "qwen3:4b"}], b"ollama: model loaded")]:
-            opener.open.side_effect = lambda *a, **k: io.BytesIO(json.dumps({"models": models}).encode())
-            gate.gpu_ownership(SimpleNamespace(returncode=0, stdout=report), opener)
-
-    def test_one_other_engine_or_multiple_models_block_before_chat(self):
-        for models, report in [([], b"LM Studio: model loaded"), ([{"name": "other-model"}], b"ollama: model loaded"), ([{"name": "qwen3:4b"}, {"name": "other-model"}], b"ollama: model loaded"), ([], b"unrecognized preflight output"), ({}, b"no inference engine active")]:
-            opener = Mock()
-            opener.open.side_effect = lambda *a, **k: io.BytesIO(json.dumps({"models": models}).encode())
-            with self.assertRaises(gate.GateError):
-                gate.gpu_ownership(SimpleNamespace(returncode=2, stdout=report), opener)
-            self.assertEqual(opener.open.call_args.args[0], "http://127.0.0.1:11434/api/ps")
-
-    def test_malformed_model_inventory_stops_without_a_chat_request(self):
-        opener = Mock()
-        opener.open.side_effect = lambda *a, **k: io.BytesIO(b"[]")
-        with self.assertRaises(gate.GateError):
-            gate.gpu_ownership(SimpleNamespace(returncode=0, stdout=b"no inference engine active"), opener)
-        self.assertEqual(opener.open.call_count, 1)
-
     def test_approved_private_paths_cannot_be_force_added_or_pushed(self):
         for name in ["docs/backlog.md", "docs/promotion/strategy.md", "prototypes/table-copy/preview.md", ".grace/changes/active/C-59/state.json", ".grace/changes/archive/C-59/state.json", "fixtures/v0-marktext-userdata/userdata.tar.gz", "fixtures/v1-userdata-mark-1.0.2/migration-relevant/Local Storage/profile.json"]:
             with self.subTest(path=name), self.assertRaises(gate.GateError):
@@ -105,57 +62,6 @@ class SafetyGateTests(unittest.TestCase):
                 gate.validate_content([("fixtures/" + version + "/migration-relevant/" + item, b'{"path":"/Users/<fixture>/notes"}')])
         for name in ["fixtures/README.md", "fixtures/fixture-pin.lock", "tools/release/asc-api.py", "docs/publication-policy.md"]:
             gate.validate_content([(name, b"public reusable content")])
-
-    @staticmethod
-    def locale_patch(before, after):
-        name = "static/locales/en.min.json"
-        return "diff --git a/" + name + " b/" + name + "\nindex abc123..def456 100644\n--- a/" + name + "\n+++ b/" + name + "\n@@ -1 +1 @@\n-" + before + "\n+" + after + "\n"
-
-    def test_locale_review_retains_all_nested_changes_and_omits_only_unchanged_fields(self):
-        before = {"stable": "unchanged corpus", "nested": {"removed": "old", "changed": "before"}, "list": [1]}
-        after = {"stable": "unchanged corpus", "nested": {"changed": "after", "added": "new"}, "list": [1, 2]}
-        raw = self.locale_patch(json.dumps(before), json.dumps(after))
-        viewed = gate.review_view(raw)
-        self.assertIn('-JSON ["nested", "removed"] "old"', viewed)
-        self.assertIn('-JSON ["nested", "changed"] "before"', viewed)
-        self.assertIn('+JSON ["nested", "changed"] "after"', viewed)
-        self.assertIn('+JSON ["nested", "added"] "new"', viewed)
-        self.assertIn('-JSON ["list"] [1]', viewed)
-        self.assertIn('+JSON ["list"] [1, 2]', viewed)
-        self.assertNotIn("unchanged corpus", viewed)
-
-    def test_locale_review_preserves_value_type_changes_at_every_depth(self):
-        viewed = gate.review_view(self.locale_patch('{"nested":{"value":1}}', '{"nested":{"value":true}}'))
-        self.assertIn('-JSON ["nested", "value"] 1', viewed)
-        self.assertIn('+JSON ["nested", "value"] true', viewed)
-        viewed = gate.review_view(self.locale_patch('{"list":[{"value":1}]}', '{"list":[{"value":true}]}'))
-        self.assertIn('-JSON ["list"] [{"value": 1}]', viewed)
-        self.assertIn('+JSON ["list"] [{"value": true}]', viewed)
-
-    def test_ambiguous_or_unsupported_locale_json_retains_raw_diff(self):
-        for before, after in [('{"a":1}', '{"a":2,"a":3}'), ('{"a":1}', '{"a":NaN}'), ('{"a":1}', '{"a":1.5}'), ('{"a":1}', 'invalid'), ('[]', '{}')]:
-            raw = self.locale_patch(before, after)
-            self.assertEqual(gate.review_view(raw), raw)
-        raw = self.locale_patch('{"a":1}', '{"a":2}')
-        for edited in [raw.replace('@@ -1 +1 @@', '@@ -2 +2 @@'), raw + ' context\n', raw.replace('100644', '100755')]:
-            self.assertEqual(gate.review_view(edited), edited)
-
-    def test_added_locale_exposure_stays_visible_and_full_blob_scan_still_blocks_it(self):
-        value = "/Users/" + "private-person" + "/notes"
-        added = json.dumps({"path": value})
-        viewed = gate.review_view(self.locale_patch('{}', added))
-        self.assertIn(value, viewed)
-        with self.assertRaises(gate.GateError):
-            gate.scan({"blobs": [("static/locales/en.min.json", added.encode())], "payload": "raw identity-bound payload"})
-
-    def test_multiple_locale_sections_preserve_other_diff_and_commit_context(self):
-        first = self.locale_patch('{"a":"old"}', '{"a":"new"}')
-        second = first.replace('en.min.json', 'fr.min.json')
-        other = 'diff --git a/file.md b/file.md\n+independent changed text\n'
-        viewed = gate.review_view('COMMIT identity\n' + first + second + other)
-        self.assertIn('COMMIT identity', viewed)
-        self.assertEqual(viewed.count('+JSON ["a"] "new"'), 2)
-        self.assertIn(other, viewed)
 
     def test_desktop_rejects_mobile_owned_source_and_mobile_rejects_release_state(self):
         with self.assertRaises(gate.GateError):
@@ -199,9 +105,6 @@ class SafetyGateTests(unittest.TestCase):
         self.assertNotIn(personal, text)
         self.assertIn("+~/project", text)
         gate.validate_content([("patch.txt", text.encode())])
-        viewed = gate.review_view(patch + "+" + personal + "\n")
-        self.assertIn("-<removed-baseline-home>/project", viewed)
-        self.assertIn("+" + personal, viewed)
 
     def test_binary_and_non_utf8_data_cannot_get_text_only_approval(self):
         for data in [b"image\0pixels", bytes([255, 254, 253])]:
@@ -245,18 +148,6 @@ class SafetyGateTests(unittest.TestCase):
         with patch.object(gate.shutil, "which", return_value="gitleaks"), self.assertRaises(gate.GateError):
             gate.scan(candidate)
 
-    def test_chunks_preserve_every_character_with_a_utf8_byte_bound(self):
-        text = ("plain \u4e2d\U0001f642" * 4000)
-        result = gate.chunks(text)
-        self.assertEqual("".join(result), text)
-        self.assertTrue(all(len(x.encode()) <= 6000 for x in result))
-
-    def test_only_exact_passing_json_is_accepted(self):
-        gate.validate_verdict('{"verdict":"pass","findings":[]}')
-        for value in ["pass", '```json\n{}\n```', '{"verdict":"pass"}', '{"verdict":"fail","findings":[]}', '{"verdict":"pass","findings":[{"category":"secret"}]}', '{"verdict":"pass","findings":[],"extra":true}']:
-            with self.assertRaises(gate.GateError):
-                gate.validate_verdict(value)
-
     def test_real_staged_index_is_reviewed_instead_of_unstaged_worktree(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
@@ -288,43 +179,23 @@ class SafetyGateTests(unittest.TestCase):
         self.assertNotIn(token, str(found.exception))
         self.assertIn("Gitleaks rejected", str(found.exception))
 
-    def test_gpu_conflict_stops_before_any_inference_request(self):
-        with tempfile.TemporaryDirectory() as name, patch.object(Path, "is_file", return_value=True), patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=3)), patch.object(gate.urllib.request, "build_opener") as network:
-            with self.assertRaises(gate.GateError):
-                gate.local_review({"payload": "public", "identity": "hash"}, Path(name))
-            network.assert_not_called()
-
-    def test_local_review_requires_two_complete_serial_responses(self):
-        answer = {"done": True, "done_reason": "stop", "model": "qwen3:4b", "message": {"content": '{"verdict":"pass","findings":[]}'}}
-        opener = Mock()
-        opener.open.side_effect = lambda request, **k: io.BytesIO(json.dumps({"models": []} if isinstance(request, str) else answer).encode())
-        with tempfile.TemporaryDirectory() as name, patch.object(Path, "is_file", return_value=True), patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=b"no inference engine active")), patch.object(gate.urllib.request, "build_opener", return_value=opener):
-            records = gate.local_review({"payload": "public", "identity": "hash"}, Path(name))
-            self.assertEqual([x["phase"] for x in records], ["review", "skeptical independent recheck"])
-            self.assertEqual(opener.open.call_count, 4)
-            for call in opener.open.call_args_list:
-                request = call.args[0]
-                self.assertIn(request if isinstance(request, str) else request.full_url, ["http://127.0.0.1:11434/api/ps", "http://127.0.0.1:11434/api/chat"])
-            answer["done_reason"] = "length"
-            with self.assertRaises(gate.GateError):
-                gate.local_review({"payload": "public", "identity": "hash"}, Path(name))
-
-    def test_local_network_failure_and_redirect_never_fall_back(self):
-        with self.assertRaises(gate.GateError):
-            gate.NoRedirect().redirect_request(None, None, 302, "redirect", {}, "https://example.invalid")
-        opener = Mock()
-        opener.open.side_effect = urllib.error.URLError("offline")
-        with tempfile.TemporaryDirectory() as name, patch.object(Path, "is_file", return_value=True), patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=b"no inference engine active")), patch.object(gate.urllib.request, "build_opener", return_value=opener):
-            with self.assertRaises(gate.GateError):
-                gate.local_review({"payload": "public", "identity": "hash"}, Path(name))
-            self.assertEqual(opener.open.call_count, 1)
-
-    def test_candidate_changes_fail_after_review_and_before_receipt(self):
-        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "local_review", return_value=[{}, {}]):
+    def test_candidate_changes_fail_after_scan_and_before_receipt(self):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"):
             snapshots = iter([{"identity": "first", "payload": "public"}, {"identity": "changed"}])
             with self.assertRaises(gate.GateError):
                 gate.review(lambda: next(snapshots), Path(name), "commit")
             self.assertFalse(list(Path(name).glob("commit-*.json")))
+
+    def test_exact_candidate_scan_writes_a_private_deterministic_receipt(self):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"):
+            candidate = {"identity": "a" * 64, "payload": "public"}
+            gate.review(lambda: dict(candidate), Path(name), "commit")
+            receipt_path = Path(name) / ("commit-" + candidate["identity"] + ".json")
+            receipt = json.loads(receipt_path.read_text())
+            self.assertEqual(receipt["identity"], candidate["identity"])
+            self.assertEqual(receipt["checks"], ["static-exposure", "gitleaks", "candidate-identity"])
+            self.assertNotIn("model", receipt)
+            self.assertNotIn("reason", receipt)
 
     def test_outgoing_history_includes_intermediate_commits_not_just_tip(self):
         base, middle, tip = "1" * 40, "2" * 40, "3" * 40

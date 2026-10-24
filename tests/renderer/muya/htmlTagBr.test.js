@@ -4,7 +4,7 @@
 //   PURPOSE: Verify the inline <br> renderer hides raw tag text on inactive lines while keeping the real line break.
 //   SCOPE: Unit tests for muya's htmlTag renderInlines 'br' branch (C-15 Phase W QA — literal <br> visible in the editor).
 //   DEPENDS: muya/lib/parser/render/renderInlines/htmlTag, muya/lib/config CLASS_OR_ID, Vitest.
-//   LINKS: .grace/changes/archive/C-15 Phase W QA (Nurik: "why show <br> in an mmd file"); M-011 editor surface.
+//   LINKS: .grace/changes/archive/C-15 Phase W QA (raw <br> text visible in Markdown); M-011 editor surface.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

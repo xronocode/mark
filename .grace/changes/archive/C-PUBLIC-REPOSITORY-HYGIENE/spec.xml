@@ -1,0 +1,60 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-PUBLIC-REPOSITORY-HYGIENE>
+    <Name>Forward-only public repository hygiene</Name>
+    <ApprovalBasis>Owner approval in chat on 2026-10-24 to proceed with the reviewed forward-only plan and parallelize where safe, without history rewriting, release deletion, or release authorization.</ApprovalBasis>
+    <Summary>Move durable engineering rules into contributor-facing documentation, keep a small neutral repository router, retire public machine-specific review implementation, preserve deterministic publication checks, remove an exact set of obsolete current-tree artifacts, repair their live documentation references, and neutralize personal QA attribution in live source and verification text.</Summary>
+    <Problem>The current public tree mixes portable engineering policy with workstation-specific review mechanics, obsolete QA and generated image artifacts, a process-only GRACE projection, and personal QA attribution. Rewriting Git history would damage release and acceptance evidence without improving the current product tree.</Problem>
+    <Goals>
+      <Goal>Make CONTRIBUTING.md, docs/engineering-protocol.md and docs/release-process.md the canonical public engineering and release policy while keeping AGENTS.md as a short neutral router.</Goal>
+      <Goal>Keep Gitleaks, deterministic content/path/ref checks, exact candidate identity and hook installation public; move any additional private review implementation outside the repository.</Goal>
+      <Goal>Remove only the approved obsolete QA, handoff and generated screenshot paths from the current tree and prevent their accidental reintroduction.</Goal>
+      <Goal>Retire the M-901..M-906 process-only projection and its V-M/DF counterparts after preserving portable rules in the new engineering protocol.</Goal>
+      <Goal>Replace personal QA attribution in live source, tests and current verification with behavior-specific Windows QA wording.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Execute forward only: do not rewrite Git history, update or delete tags/releases, change product versions, authorize a release, or edit release-train and acceptance evidence; narrow protocol-link and operator-message corrections are allowed.</Constraint>
+      <Constraint>Preserve docs/*.xml, docs/migrations/** and .grace/changes/archive/** byte-for-byte as historical provenance.</Constraint>
+      <Constraint>Preserve authored work/** designs, docs/assets/readme/** release screenshots, runtime behavior and product-localization exceptions.</Constraint>
+      <Constraint>Use exact path removals and ignores; no broad pattern may hide authored design or release evidence.</Constraint>
+      <Constraint>Because existing approved active plans already overlap, implementation writes and durable reconciliation are sequential even though read-only audits ran in parallel.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>History sanitization, cached-object removal, fork coordination, commit-message rewriting, or GitHub Support operations.</NonGoal>
+      <NonGoal>Changing release behavior, readiness, version surfaces, release notes, train membership or publication state.</NonGoal>
+      <NonGoal>Rewriting archived change bundles or append-only acceptance and release ledgers.</NonGoal>
+      <NonGoal>Removing generic product references to the AGENTS.md file format or changing localized fixtures and copy.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>AGENTS.md is a concise tracked router; CONTRIBUTING.md and docs/engineering-protocol.md contain the portable language, GRACE, semantic markup and verification rules; docs/release-process.md preserves the exact release runbook.</Criterion>
+      <Criterion>The public safety gate performs exact deterministic candidate, Gitleaks, path/content, binary, lane, attribution, ref and identity checks with no GPU, model endpoint, model prompt or override implementation.</Criterion>
+      <Criterion>The exact approved obsolete artifacts are absent and pinned by publication-privacy tests; work/** and docs/assets/readme/** remain present and governed.</Criterion>
+      <Criterion>CLAUDE.md and .env.local remain local-only, live operator references route to canonical public instructions, and current public text contains no owner absolute workspace path.</Criterion>
+      <Criterion>M-901..M-906, V-M-901..V-M-906, DF-901..DF-903 and the Phase-H process overlay are absent from current .grace projections while frozen provenance remains unchanged.</Criterion>
+      <Criterion>Live source, tests and current feature verification use behavior-specific Windows QA wording instead of personal attribution; archived C-15 evidence is unchanged.</Criterion>
+      <Criterion>Focused safety, privacy and affected renderer suites pass; GRACE final lint and status show no new errors.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-005 />
+      <M-011 />
+      <M-016 />
+      <M-046 />
+      <M-054 />
+      <M-057 />
+      <M-064 />
+      <M-901 />
+      <M-902 />
+      <M-903 />
+      <M-904 />
+      <M-905 />
+      <M-906 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>python3 -m unittest discover -s tests/security -p 'test_*.py'; npx vitest run tests/renderer/publication-privacy.test.js; npx vitest run tests/renderer/i18n/index.test.js tests/renderer/muya/htmlTagBr.test.js tests/renderer/platform-truth.test.js tests/renderer/store/preferences.test.ts; git diff --check fork/main plus untracked-file whitespace checks</ExpectedCommand>
+      <ExpectedEvidence>Deterministic safety receipts and markers, exact path-presence assertions, focused green suites, zero target/final GRACE errors, and a final diff proving release and historical-provenance paths were untouched.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The already-merged release-conveyor and release-timing implementations are not being edited by this change; their still-active bundles are pre-existing GRACE lifecycle debt.</Assumption>
+      <Assumption>Additional owner-local review may be composed outside the repository but is not claimed or enforced by public source.</Assumption>
+    </Assumptions>
+  </C-PUBLIC-REPOSITORY-HYGIENE>
+</GraceChangeSpec>
