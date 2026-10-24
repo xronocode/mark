@@ -1,0 +1,77 @@
+<GraceChangePlan graceVersion="4.0" status="superseded">
+  <C-MESSAGE-ONLY-HISTORY-REWRITE>
+    <Replacement>C-MESSAGE-ONLY-HISTORY-REWRITE-V2</Replacement>
+    <IntentSummary>Extend the deterministic repository safety gate with an isomorphic message-only main-rewrite lane, merge it through PR #54, perform the owner-approved exact commit-message rewrite under a bounded protection window, verify the remote result, and rebase every live PR branch before normal development resumes.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>tools/security_gate.py</Value></MustExist>
+      <MustExist><Value>tests/security/test_security_gate.py</Value></MustExist>
+      <MustContain><File>tools/security_gate.py</File><Text>VERSION: 1.9.0</Text></MustContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>def history_rewrite</Text></MustNotContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>The pre-push hook repeats the full scan for every outgoing commit.</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>tools/security_gate.py</File><Text>def history_rewrite</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>BLOCK_MESSAGE_ONLY_HISTORY_REWRITE</Text></MustContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>message-only rewrite</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>message-only main rewrite</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>message-only main rewrite</Text></MustContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>gpu_preflight</Text></MustNotContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>ollama</Text></MustNotContain>
+      <MustPassCommand><Command budgetSeconds="180">python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">sh -c 'test -z "$(git log fork/main --regexp-ignore-case --grep="Co-Authored-By:.*Claude\|noreply@anthropic" --format=%H)"'</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">sh -c 'test "$(git for-each-ref refs/tags --format="%(refname)%00%(objectname)%00%(*objectname)" | LC_ALL=C sort | shasum -a 256 | cut -d" " -f1)" = "0e9eaeb4cc60aa7e3aa6f097cb5fa369611393aea88e107b885fdcf0d6d642b8"'</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">git diff --check</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-064 /></GraphAnchors>
+      <VerificationAnchors><V-M-064 /></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/security_gate.py</File>
+      <File>tests/security/test_security_gate.py</File>
+      <File>docs/commit-push-safety.md</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <Glob>.grace/changes/active/C-MESSAGE-ONLY-HISTORY-REWRITE/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Deterministic message-only rewrite candidate</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>The gate recognizes only one non-fast-forward refs/heads/main update and constructs a candidate only after old/new histories match in count, topology, trees, author identity/date and committer identity/date; changed messages and the exact ref update are the complete scan payload.</Criterion></AcceptanceCriteria>
+        <Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Public contract and PR #54 integration</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>M-064, V-M-064 and docs/commit-push-safety.md describe the deterministic lane without reintroducing workstation model, GPU, prompt or override logic; PR #54 is green and squash-merged before the rewrite.</Criterion></AcceptanceCriteria>
+        <Verification><Command>git diff --check</Command><Command>gh pr view 54 -R xronocode/mark --json state,mergeCommit,statusCheckRollup</Command></Verification>
+      </T-002>
+      <T-003>
+        <Title>Private exact rewrite preparation</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria><Criterion>A clean disposable clone holds a private recovery ref and exact old/new message map; the candidate contains the same number and topology of commits with byte-identical trees and identical author/committer identities and dates, and only the approved messages differ.</Criterion></AcceptanceCriteria>
+        <Verification><Command>python3 tools/security_gate.py review-history-rewrite --remote fork --old &lt;old-main&gt; --new &lt;rewritten-main&gt;</Command></Verification>
+      </T-003>
+      <T-004>
+        <Title>Bounded protected-main rewrite</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria><Criterion>The reviewed candidate is force-pushed to refs/heads/main through the installed pre-push hook while no other ref changes; the protection exception is removed immediately and remote main equals the reviewed new tip.</Criterion></AcceptanceCriteria>
+        <Verification><Command>git ls-remote fork refs/heads/main</Command><Command>gh api repos/xronocode/mark/rulesets</Command></Verification>
+      </T-004>
+      <T-005>
+        <Title>Rebase live pull-request branches and verify public state</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria><Criterion>PR #48, #52 and #55 heads are rebased onto rewritten main, no Claude co-author trailer remains reachable from main, existing tag object identities match the frozen digest, and no old-history merge can reintroduce the rewritten ancestry.</Criterion></AcceptanceCriteria>
+        <Verification><Command>sh -c 'test -z "$(git log fork/main --regexp-ignore-case --grep="Co-Authored-By:.*Claude\|noreply@anthropic" --format=%H)"'</Command><Command>sh -c 'test "$(git for-each-ref refs/tags --format="%(refname)%00%(objectname)%00%(*objectname)" | LC_ALL=C sort | shasum -a 256 | cut -d" " -f1)" = "0e9eaeb4cc60aa7e3aa6f097cb5fa369611393aea88e107b885fdcf0d6d642b8"'</Command></Verification>
+      </T-005>
+      <T-006>
+        <Title>Final GRACE reconciliation</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria><Criterion>All target commands and final assertions pass, M-064/V-M-064 match the deployed gate, and the complete bundle is ready for explicit apply confirmation and archival before the separately governed v2.8.2 release anchor.</Criterion></AcceptanceCriteria>
+        <Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command><Command>git diff --check</Command></Verification>
+      </T-006>
+    </ImplementationPlan>
+    <Approval><ApprovedBy>Owner, 2026-10-24, explicit approval of the message-only rewrite followed by the instruction to execute.</ApprovedBy><ExecutionMode>Sequential writes after parallel-safe preflight failed on pre-existing release-plan overlaps; independent audits remain parallel and read-only.</ExecutionMode></Approval>
+  </C-MESSAGE-ONLY-HISTORY-REWRITE>
+</GraceChangePlan>

@@ -34,6 +34,41 @@ manifest binding.
 Additional owner-local review may be performed outside the repository. It is
 discretionary and is neither implemented nor claimed by this public gate.
 
+## Message-only main rewrites
+
+A non-fast-forward update of `main` is admitted only through a separately
+approved history-rewrite change and an exact owner-local manifest. The manifest
+binds the expected old tip, total reachable count, rewritten commit and merge
+counts, GPG-signature removal count, and every approved old-message digest and
+replacement text. It stays outside the repository.
+
+The gate walks the old and new commit DAGs from their tips through corresponding
+ordered parents. Trees, raw author and committer headers, topology and all
+non-signature headers must match exactly. Every replacement message must match
+the manifest and pass the normal attribution, exposure and Gitleaks checks.
+Original `gpgsig` headers cannot remain valid after a commit or ancestor SHA
+changes; when the approved plan accepts that consequence, rewritten commits
+must contain no copied or replacement signature and the exact removal count is
+recorded in the private receipt. Unchanged commit objects retain their original
+signatures.
+
+The lane rejects shallow history, stale remote-tracking state, fast-forwards,
+multiple refs, other branches, no-op manifests and any unlisted message change.
+Existing tag identities are immutable and cannot be updated through either
+push lane; create a new tag through the release process instead. Review the
+prepared graph explicitly before the push:
+
+```sh
+python3 tools/security_gate.py review-history-rewrite \
+  --remote fork --old "$OLD_MAIN" --new "$NEW_MAIN" \
+  --manifest /private/path/history-rewrite.json
+```
+
+For the single force-with-lease push, provide the same file through
+`MARK_HISTORY_REWRITE_MANIFEST`. Temporarily suspend only the main ruleset,
+restore and read it back immediately after the push, and never publish the
+manifest or recovery ref.
+
 ## Hooks and commands
 
 The pre-commit hook performs the early deterministic scan. The commit-message

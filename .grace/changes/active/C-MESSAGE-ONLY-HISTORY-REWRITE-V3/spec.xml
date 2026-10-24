@@ -1,0 +1,38 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-MESSAGE-ONLY-HISTORY-REWRITE-V3>
+    <ApprovalBasis>Owner approved removal of Claude attribution and execution on 2026-10-24. After audit disclosed that rewritten descendant commits cannot retain their original GPG signatures, the owner explicitly instructed execution despite that loss. Existing signed objects remain reachable through unchanged release tags or pull-request refs. This bundle replaces C-MESSAGE-ONLY-HISTORY-REWRITE-V2.</ApprovalBasis>
+    <Summary>Add a deterministic exact-manifest lane for one main-history message rewrite, permit only the unavoidable removal of invalidated GPG signature headers, then remove the approved attribution and service wording without changing any tree or release ref.</Summary>
+    <Problem>Eleven main commits contain Claude Co-Authored-By trailers. Rewriting their descendant graph changes commit identities; original signatures cannot remain valid, and the earlier candidate design did not verify raw headers or the exact approved message map.</Problem>
+    <Goals>
+      <Goal>Admit one non-fast-forward refs/heads/main update only when an owner-local manifest names the exact old tip and every approved old-message digest and replacement text.</Goal>
+      <Goal>Traverse old and new histories as paired ordered-parent DAGs and preserve trees, raw author and committer headers, commit count, topology and all other headers except parent identities, approved messages and removed gpgsig headers.</Goal>
+      <Goal>Scan every replacement message through deterministic attribution, exposure and Gitleaks checks and bind the exact update, manifest digest, mapping and signature-loss count into the candidate identity.</Goal>
+      <Goal>Rebase all live desktop PRs onto rewritten main before they may merge.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No tree, raw author header, raw committer header, non-signature extra header, commit count or ordered-parent topology may change.</Constraint>
+      <Constraint>Every gpgsig header on a rewritten commit must be removed rather than copied or replaced; the candidate reports the exact loss count. Unchanged commits retain byte-identical objects and signatures.</Constraint>
+      <Constraint>The push changes only refs/heads/main; tags, releases, other branches and pull-request refs remain unchanged during the rewrite.</Constraint>
+      <Constraint>The exact manifest, old/new map and recovery ref stay owner-local and are never committed or pushed.</Constraint>
+      <Constraint>Gate, tests, docs and M-064/V-M-064 changes land through PR #54 before the operational rewrite.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Removing historical files, GRACE provenance or secrets from repository trees.</NonGoal>
+      <NonGoal>Moving, deleting or recreating tags or releases, or erasing old objects from forks, caches or pull-request refs.</NonGoal>
+      <NonGoal>Re-signing rewritten commits or preserving their old Verified badges on the new main line.</NonGoal>
+      <NonGoal>Changing messages beyond the exact approved manifest.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>The gate rejects shallow history, stale tips, multiple refs, other refs, fast-forwards, no-op rewrites, changed DAG/tree/identity/headers, unexpected signature state, or any manifest mismatch.</Criterion>
+      <Criterion>The approved mapping is exact: all and only its messages change, all replacement texts pass deterministic scans, and zero Claude attribution trailers remain on rewritten main.</Criterion>
+      <Criterion>The candidate and receipt report the full commit and merge counts, exact changed-message count, exact removed-signature count and manifest digest.</Criterion>
+      <Criterion>Tags/releases retain their identities, main protection is restored with read-back, and live PR branches are rebuilt from rewritten main.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas><M-064 /></AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>python3 -m unittest discover -s tests/security -p 'test_*.py'; git diff --check; private exact-manifest rewrite audit; remote identity, attribution, signature-loss and tag-ref audit</ExpectedCommand>
+      <ExpectedEvidence>Green focused tests, hash-bound private receipt and manifest, unchanged tag digest, zero Claude trailers, exact reported signature loss, restored ruleset and rebased live PRs.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions><Assumption>v2.8.2 is separately governed by the existing release contracts after this bundle is applied.</Assumption></Assumptions>
+  </C-MESSAGE-ONLY-HISTORY-REWRITE-V3>
+</GraceChangeSpec>
