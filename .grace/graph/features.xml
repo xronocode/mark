@@ -2975,5 +2975,30 @@
       <Contract><Purpose>Turn the generated styled-HTML export into a single self-contained file by embedding local images as data-URLs, without ever fetching remote content or failing the export on an image.</Purpose><Inputs><Input><Name>html</Name><Type>string — muya exportStyledHTML output</Type></Input><Input><Name>baseDir</Name><Type>string|null — exporting document's directory (null for untitled)</Type></Input></Inputs><Outputs><Output><Name>result</Name><Type>{ html, embedded, total, skipped } — html differs from the input only in img src values</Type></Output></Outputs><Errors><Error><Code>skipped reference</Code><Description>missing, over-cap, unreadable or unknown-extension local images keep their original src; the caller warns with embedded/total counts</Description></Error></Errors></Contract>
       <Sources><Source>src/renderer/src/util/exportImages.js</Source><Tests>tests/renderer/util/exportImages.test.js</Tests><Tests>tests/renderer/components/editor-export-images.test.js</Tests><Tests>tests/e2e/export-html-images.spec.ts</Tests></Sources>
     </M-065>
+    <M-067>
+      <Name>NotificationCardSystem</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
+      <Summary>
+        The unified notification system (C-NOTIFICATION-SYSTEM): one card renderer
+        (icon-chip variant — chromeIcons glyph in a 14% severity-tint circle, C-66 card
+        metrics, float/editor/button theme tokens, severity tokens --notifyInfo/Success/
+        Warning/Error in all 34 themes) over a pinia store owning the live stack (max 3
+        rendered cards + overflow chip with per-locale plurals, hover-pause timers,
+        sticky errors, Esc-topmost) and the session history (FIFO cap 50, palette
+        command view.notifications-history, full untruncated text, per-entry copy).
+        The legacy Fluent DOM toast service became a compatibility facade forwarding the
+        same notify()/clear() call shape (~70 call sites untouched) plus the new event
+        fields: severity x source (file/export/project/update/agent/system), actions[]
+        (copy/retry/open/reveal built-ins + custom label+handler, primary/normal/quiet
+        styles, no-answer-owed contract replacing showConfirm promises), dedupKey
+        collapsing with xN counters, sticky. Copy-on-select on cards and the reskinned
+        per-file banner: selection release writes exactly the selection; the only
+        confirmation is the selection double-pulsing green (no label). The C-66 update
+        notice injects its three actions as a sticky info entry — semantics untouched.
+      </Summary>
+      <Path>src/renderer/src/store/notifications.js</Path><PlannedPath>src/renderer/src/store/notifications.js, src/renderer/src/components/notificationCard/index.vue, src/renderer/src/components/notificationStack/index.vue, src/renderer/src/components/notificationsHistory/index.vue, src/renderer/src/services/notification/index.js, tests/renderer/store/notifications.test.js, tests/renderer/components/notificationCard.test.js, tests/e2e/notifications-system.spec.ts</PlannedPath>
+      <Dependencies>M-057 chromeIcons (severity glyphs); pinia; i18n (ten locales); bus; element-plus dialog (history); consumed by store/notification.js facade, store/editor.js call sites, components/updateNotice, components/editorWithTabs/notifications.vue</Dependencies><VerificationRef>V-M-067</VerificationRef>
+      <Contract><Purpose>Every transient app message renders as one severity-styled card in one stack, is recoverable from the session history, offers only shortcut actions that owe no answer, and lets developers copy any notification text by selecting it.</Purpose><Inputs><Input><Name>NOTIFY payload</Name><Type>{ severity, source, title, message, actions, dedupKey, sticky, time } — legacy {type} maps primary→info, unknown→info</Type></Input></Inputs><Outputs><Output><Name>stack/history state</Name><Type>live entries (max 3 rendered + overflow counter) and FIFO history entries {time, severity, source, title, fullText}</Type></Output></Outputs><Errors><Error><Code>clipboard unavailable</Code><Description>copy-on-select and copy actions silently no-op — a quiet developer feature never surfaces an error</Description></Error></Errors></Contract>
+      <Sources><Source>src/renderer/src/store/notifications.js</Source><Source>src/renderer/src/components/notificationCard/index.vue</Source><Source>src/renderer/src/components/notificationStack/index.vue</Source><Source>src/renderer/src/components/notificationsHistory/index.vue</Source><Source>src/renderer/src/services/notification/index.js</Source><Tests>tests/renderer/store/notifications.test.js</Tests><Tests>tests/renderer/components/notificationCard.test.js</Tests><Tests>tests/e2e/notifications-system.spec.ts</Tests></Sources>
+    </M-067>
   </GD-FEATURES>
 </GraceGraphDocument>

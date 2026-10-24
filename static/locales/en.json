@@ -323,7 +323,8 @@
       "toggleMarkdownLint": "Toggle markdown validation",
       "statusBar": "Show or hide the status bar",
       "toggleTabbar": "Toggle Tab Bar",
-      "reloadImages": "Reload Images"
+      "reloadImages": "Reload Images",
+      "notificationsHistory": "Notifications: show recent"
     },
     "utils": {
       "noUpdateResourceFile": "No update resource file",
@@ -1233,7 +1234,28 @@
   },
   "notifications": {
     "defaultMessage": "Default message",
-    "defaultTitle": "Notification"
+    "defaultTitle": "Notification",
+    "close": "Close",
+    "more": "More {n} notification | More {n} notifications",
+    "source": {
+      "file": "Files",
+      "export": "Export",
+      "project": "Project",
+      "update": "Update",
+      "agent": "Agent",
+      "system": "System"
+    },
+    "actions": {
+      "copy": "Copy",
+      "retry": "Retry",
+      "open": "Open",
+      "reveal": "Reveal"
+    },
+    "history": {
+      "title": "Notifications",
+      "empty": "No notifications this session",
+      "copy": "Copy"
+    }
   },
   "problems": {
     "title": "Problems",
@@ -1478,7 +1500,6 @@
   "dialog": {
     "file": "File",
     "changesWillBeLost": "Changes will be lost",
-    "installPandoc": "Install Pandoc",
     "close": "Close",
     "keepOpen": "Keep open",
     "cancel": "Cancel",

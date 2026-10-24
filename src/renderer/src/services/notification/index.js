@@ -1,177 +1,127 @@
-// C-38 T-006 N4 d: toast icons come from the drawn chromeIcons set (chromeIconMarkup).
-import template from './index.html?raw'
-import { getUniqueId } from '../../util'
-import { sanitize, EXPORT_DOMPURIFY_CONFIG } from '../../util/dompurify'
-import { chromeIconMarkup } from '../../components/icons/chromeIcons.js'
-import './index.css'
+// FILE: src/renderer/src/services/notification/index.js
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: C-NOTIFICATION-SYSTEM compatibility facade — keeps the legacy
+//            `import notice from '../services/notification'` call shape used
+//            by ~70 call sites while forwarding everything to the pinia
+//            notifications store, plus the shared copy-on-select helper used
+//            by cards and the editor banner.
+//   SCOPE: notify(opts)/clear() passthrough with legacy field mapping
+//          (type→severity, primary→info; the legacy confirm flag is dead
+//          and ignored); copySelectionText + applyCopyPulse (double green
+//          pulse on the selection, animation class removed on animationend,
+//          skipped under prefers-reduced-motion). No DOM building, no
+//          template strings.
+//   DEPENDS: store/notifications (pinia), i18n (default title/message).
+//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-3/R-4;
+//          components/notificationCard + editorWithTabs/notifications
+//          (consume the copy helpers); store/editor.js call sites
+//          (actions[] migration in T-004).
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - the legacy facade object: { name: 'notify', notify(opts), clear() }.
+//   copySelectionText - writes exactly the given selection string to the clipboard; failures are silent no-ops.
+//   applyCopyPulse - double green pulse on a Range or Element target; self-cleans on animationend.
+//   prefersReducedMotion - shared prefers-reduced-motion probe.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v2.0.0 - 2026-10-23 C-NOTIFICATION-SYSTEM T-002: the DOM
+//   template builder, the Fluent blur-circle mousemove effect, the
+//   rePositionNotices JS geometry and the confirm-circle Promise semantics
+//   are gone (corner C-7); rendering moved to components/notificationCard +
+//   notificationStack over store/notifications. index.html/index.css deleted.
+//   v1.x - legacy MarkText service (archive reference only).
+// END_CHANGE_SUMMARY
 
-const INON_HASH = {
-  primary: 'message',
-  error: 'error',
-  warning: 'warning',
-  info: 'info'
-}
-const TYPE_HASH = {
-  primary: 'mt-primary',
-  error: 'mt-error',
-  warning: 'mt-warn',
-  info: 'mt-info'
+import { useNotificationsStore } from '../../store/notifications'
+import { t } from '../../i18n'
+
+export const prefersReducedMotion = () => {
+  try {
+    return typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  } catch {
+    return false
+  }
 }
 
-const fillTemplate = (type, title, message) => {
-  return template
-    .replace(/\{\{iconSvg\}\}/, chromeIconMarkup(INON_HASH[type], 14))
-    .replace(/\{\{closeSvg\}\}/, chromeIconMarkup('close', 14))
-    .replace(/\{\{confirmSvg\}\}/, chromeIconMarkup('check', 14))
-    .replace(/\{\{title\}\}/, sanitize(title, EXPORT_DOMPURIFY_CONFIG))
-    .replace(/\{\{message\}\}/, sanitize(message, EXPORT_DOMPURIFY_CONFIG))
+// START_BLOCK_COPY_SELECTION_TEXT
+// Corner C-4: clipboard rejections or a missing API never surface — the copy
+// is a quiet developer feature (spec R-3); failing silently beats an error
+// toast about a toast.
+export const copySelectionText = (selection) => {
+  const text = selection ? String(selection) : ''
+  if (!text) return false
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      const result = navigator.clipboard.writeText(text)
+      if (result && typeof result.catch === 'function') result.catch(() => {})
+    }
+  } catch {
+    /* silent no-op by contract */
+  }
+  return true
 }
+// END_BLOCK_COPY_SELECTION_TEXT
+
+// START_BLOCK_APPLY_COPY_PULSE
+// The only copy confirmation: the selection itself double-pulses green and
+// settles (spec R-3; the two label designs were owner-rejected 2026-10-23).
+// Accepts a DOM Range (live selection — wrapped in a span) or an Element
+// (pre-existing selection markup — animation restarted via reflow).
+// Multi-node ranges that cannot be wrapped degrade to no pulse (the copy
+// itself already happened). Reduced motion: no animation at all.
+export const applyCopyPulse = (target) => {
+  if (!target || prefersReducedMotion()) return
+  let el
+  try {
+    if (typeof target.surroundContents === 'function') {
+      el = document.createElement('span')
+      el.className = 'notify-copied-pulse'
+      target.surroundContents(el)
+    } else {
+      el = target
+      el.classList.remove('notify-copied-pulse')
+      void el.offsetWidth /* restart the animation */
+      el.classList.add('notify-copied-pulse')
+    }
+    el.addEventListener('animationend', () => {
+      el.classList.remove('notify-copied-pulse')
+    }, { once: true })
+  } catch {
+    /* multi-node ranges skip the pulse */
+  }
+}
+// END_BLOCK_APPLY_COPY_PULSE
 
 const notification = {
   name: 'notify',
-  noticeCache: {},
+
+  // Legacy contract: empty the visible surface. The stack store owns the
+  // entries; clearing it clears the cards.
   clear() {
-    Object.keys(this.noticeCache).forEach((key) => {
-      this.noticeCache[key].remove()
-    })
+    useNotificationsStore().CLEAR()
   },
-  notify({
-    time = 10000,
-    title = '',
-    message = '',
-    type = 'primary', // primary, error, warning or info
-    showConfirm = false
-  }) {
-    let rs
-    let rj
-    let timer = null
-    const id = getUniqueId()
 
-    const fragment = document.createElement('div')
-    fragment.innerHTML = fillTemplate(type, title, message)
-
-    const noticeContainer = fragment.querySelector('.mt-notification')
-    const bgNotice = noticeContainer.querySelector('.notice-bg')
-    const contentContainer = noticeContainer.querySelector('.content')
-    const fluent = noticeContainer.querySelector('.fluent')
-    const close = noticeContainer.querySelector('.close')
-    const { offsetHeight } = noticeContainer
-    let target = noticeContainer
-
-    if (showConfirm) {
-      noticeContainer.classList.add('mt-confirm')
-      target = noticeContainer.querySelector('.confirm')
-    }
-
-    noticeContainer.classList.add(TYPE_HASH[type])
-    contentContainer.classList.add(TYPE_HASH[type])
-    bgNotice.classList.add(TYPE_HASH[type])
-
-    fluent.style.height = offsetHeight * 2 + 'px'
-    fluent.style.width = offsetHeight * 2 + 'px'
-
-    const setCloseTimer = () => {
-      if (typeof time === 'number' && time > 0) {
-        timer = setTimeout(() => {
-          remove()
-        }, time)
-      }
-    }
-
-    const mousemoveHandler = (event) => {
-      const { left, top } = noticeContainer.getBoundingClientRect()
-      const x = event.pageX
-      const y = event.pageY
-      fluent.style.left = x - left + 'px'
-      fluent.style.top = y - top + 'px'
-      fluent.style.opacity = '1'
-      fluent.style.height = noticeContainer.offsetHeight * 2 + 'px'
-      fluent.style.width = noticeContainer.offsetHeight * 2 + 'px'
-
-      if (timer) clearTimeout(timer)
-    }
-
-    const mouseleaveHandler = (event) => {
-      fluent.style.opacity = '0'
-      fluent.style.height = noticeContainer.offsetHeight * 4 + 'px'
-      fluent.style.width = noticeContainer.offsetHeight * 4 + 'px'
-
-      if (timer) clearTimeout(timer)
-      setCloseTimer()
-    }
-
-    const clickHandler = (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      remove()
-      rs && rs()
-    }
-
-    const closeHandler = (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      remove()
-      rj && rj()
-    }
-
-    const rePositionNotices = () => {
-      // A notification timer can outlive its jsdom environment in tests
-      // (teardown clears `document` before the settle timeout fires) —
-      // treat a missing document as "nothing to reposition".
-      if (typeof document === 'undefined') return
-      const notices = document.querySelectorAll('.mt-notification')
-      let i
-      let hx = 0
-      const len = notices.length
-      for (i = 0; i < len; i++) {
-        notices[i].style.transform = `translate(0, -${hx}px)`
-        notices[i].style.zIndex = 10000 - i
-        hx += notices[i].offsetHeight + 10
-      }
-    }
-
-    const remove = () => {
-      fluent.style.filter = 'blur(10px)'
-      fluent.style.opacity = '0'
-      fluent.style.height = noticeContainer.offsetHeight * 5 + 'px'
-      fluent.style.width = noticeContainer.offsetHeight * 5 + 'px'
-
-      noticeContainer.style.opacity = '0'
-      noticeContainer.style.right = '-400px'
-
-      setTimeout(() => {
-        noticeContainer.removeEventListener('mousemove', mousemoveHandler)
-        noticeContainer.removeEventListener('mouseleave', mouseleaveHandler)
-        target.removeEventListener('click', clickHandler)
-        close.removeEventListener('click', closeHandler)
-        noticeContainer.remove()
-        rePositionNotices()
-        if (this.noticeCache[id]) {
-          delete this.noticeCache[id]
-        }
-      }, 100)
-    }
-
-    this.noticeCache[id] = { remove }
-
-    noticeContainer.addEventListener('mousemove', mousemoveHandler)
-    noticeContainer.addEventListener('mouseleave', mouseleaveHandler)
-    target.addEventListener('click', clickHandler)
-    close.addEventListener('click', closeHandler)
-
-    setTimeout(() => {
-      bgNotice.style.width = noticeContainer.offsetWidth * 3.5 + 'px'
-      bgNotice.style.height = noticeContainer.offsetWidth * 3.5 + 'px'
-      rePositionNotices()
-    }, 50)
-
-    setCloseTimer()
-
-    document.body.prepend(noticeContainer, document.body.firstChild)
-
-    return new Promise((resolve, reject) => {
-      rs = resolve
-      rj = reject
+  // Legacy call shape: ({ title, message, type, time }). New optional
+  // fields pass straight through: severity, source, actions, dedupKey,
+  // sticky. Returns undefined — never a Promise (corner C-7).
+  notify(opts) {
+    const o = opts || {}
+    useNotificationsStore().NOTIFY({
+      severity: o.severity || o.type,
+      source: o.source,
+      title: o.title === undefined ? t('notifications.defaultTitle') : o.title,
+      message: o.message === undefined ? t('notifications.defaultMessage') : o.message,
+      actions: o.actions,
+      dedupKey: o.dedupKey,
+      sticky: o.sticky,
+      time: o.time
     })
   }
 }

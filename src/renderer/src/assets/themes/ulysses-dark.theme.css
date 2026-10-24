@@ -90,6 +90,10 @@
   --floatHoverColor: rgba(214, 214, 214, .06);
   --floatBorderColor: rgba(0, 0, 0, .08);
   --floatShadow: rgba(0, 0, 0, 0.35);
+  --notifyInfo: #82A9F7;
+  --notifySuccess: #6BCB90;
+  --notifyWarning: #F5A83C;
+  --notifyError: #F87A72;
   --maskColor: rgba(0, 0, 0, .5);
   --editorAreaWidth: 750px;
 }

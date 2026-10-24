@@ -89,7 +89,7 @@ test.describe('M-031 diff-view', () => {
     // Via the command (Cmd+D path): not entered at all — C-68 says it
     // calmly («Nothing to compare yet», an info notice).
     await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.diff-mode'))
-    const notice = page.locator('.mt-notification')
+    const notice = page.locator('.notification-card')
     await expect(notice).toBeVisible({ timeout: 5_000 })
     await expect(notice).toContainText('Nothing to compare yet')
     await expect(page.locator('.diff-view')).toHaveCount(0)
@@ -154,7 +154,7 @@ test.describe('M-031 diff-view', () => {
     await expect(diff.locator('.diff-body')).toContainText('This is the modified content.')
 
     // …and the raw backend error never becomes a notification.
-    await expect(page.locator('.mt-notification')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
   })
 
   test('mt_diff_baseline failure without edits: the calm notice, not the error (C-68)', async ({ page }) => {
@@ -170,7 +170,7 @@ test.describe('M-031 diff-view', () => {
     await setDiffMode(page, true)
 
     // No dead end and no raw error: a calm notice, and the editor returns.
-    const notice = page.locator('.mt-notification')
+    const notice = page.locator('.notification-card')
     await expect(notice).toBeVisible({ timeout: 5_000 })
     await expect(notice).toContainText('No changes since you opened the file')
     await expect(notice).not.toContainText('not_a_git_repo')

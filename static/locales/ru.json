@@ -318,7 +318,8 @@
       "textDirection": "Направление текста",
       "statusBar": "Показать или скрыть панель состояния",
       "toggleTabbar": "Переключить панель вкладок",
-      "reloadImages": "Обновить изображения"
+      "reloadImages": "Обновить изображения",
+      "notificationsHistory": "Уведомления: показать недавние"
     },
     "utils": {
       "noUpdateResourceFile": "Файл обновления отсутствует",
@@ -1229,7 +1230,28 @@
   },
   "notifications": {
     "defaultMessage": "Сообщение по умолчанию",
-    "defaultTitle": "Уведомление"
+    "defaultTitle": "Уведомление",
+    "close": "Закрыть",
+    "more": "Ещё {n} уведомление | Ещё {n} уведомления | Ещё {n} уведомлений",
+    "source": {
+      "file": "Файлы",
+      "export": "Экспорт",
+      "project": "Проект",
+      "update": "Обновление",
+      "agent": "Агент",
+      "system": "Система"
+    },
+    "actions": {
+      "copy": "Копировать",
+      "retry": "Повторить",
+      "open": "Открыть",
+      "reveal": "Показать"
+    },
+    "history": {
+      "title": "Уведомления",
+      "empty": "За эту сессию уведомлений нет",
+      "copy": "Копировать"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1469,7 +1491,6 @@
   "dialog": {
     "file": "Файл",
     "changesWillBeLost": "Изменения будут потеряны",
-    "installPandoc": "Установить Pandoc",
     "close": "Закрыть",
     "keepOpen": "Оставить открытым",
     "cancel": "Отмена",
