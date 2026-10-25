@@ -179,6 +179,18 @@ describe('release normalization', () => {
     expect(whatsNew).toContain(`export const WHATS_NEW_RELEASE_DATES = {\n  '${PLANNED}': '${DATE}',\n  '${PREVIOUS}': '2026-01-01'\n}`)
   })
 
+  it('records the release date in a Windows CRLF checkout of What\'s New and stays idempotent', () => {
+    const root = synthetic()
+    const path = resolve(root, 'src/renderer/src/whatsNew/data.js')
+    writeFileSync(path, windowsNewlines(readFileSync(path, 'utf8')))
+    const plan = planReleaseNormalization(root, { date: DATE })
+    const whatsNew = plan.changes.find((change) => change.path === 'src/renderer/src/whatsNew/data.js').after
+    expect(whatsNew).toContain(`export const WHATS_NEW_RELEASE_DATES = {\r\n  '${PLANNED}': '${DATE}',\r\n`)
+    expect(whatsNew.replaceAll('\r\n', '')).not.toContain('\n')
+    applyReleaseNormalization(root, plan, { date: DATE })
+    expect(planReleaseNormalization(root, { date: DATE }).changes).toEqual([])
+  })
+
   it('keeps the date of a CHANGELOG heading written by an earlier pass', () => {
     const root = synthetic()
     const path = resolve(root, 'CHANGELOG.md')
