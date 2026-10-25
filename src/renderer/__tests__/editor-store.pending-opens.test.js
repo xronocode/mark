@@ -122,11 +122,14 @@ describe('editor store / M-025 pending-opens drain receiver', () => {
     editor = editorMod.useEditorStore()
   })
 
-  it('NEW_TAB_WITH_CONTENT works pre-mount (Pinia ready, Vue not yet mounted)', () => {
+  it('NEW_TAB_WITH_CONTENT works pre-mount (Pinia ready, Vue not yet mounted)', async () => {
     // Pre-mount surface: NEW_TAB_WITH_CONTENT is invoked from the
     // mt::open-new-tab handler that fires DURING setupIpcListeners()'s
     // top-level drain — before app.mount() resolves. The action must
     // tolerate empty `tabs` + empty `currentFile` (initial store state).
+    // C-FILE-POSITION-MEMORY: the action is async (position restore leg);
+    // the drain caller stays fire-and-forget, so the tab lands one
+    // microtask after the call — assertions await it.
     expect(editor.tabs).toEqual([])
     expect(editor.currentFile).toEqual({})
     const md = makeMarkdownDocument({
@@ -134,14 +137,14 @@ describe('editor store / M-025 pending-opens drain receiver', () => {
       filename: 'a.md',
       markdown: '# A'
     })
-    expect(() =>
+    await expect(
       editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
-    ).not.toThrow()
+    ).resolves.toBeUndefined()
     // The new tab landed.
     expect(editor.currentFile?.pathname).toBe('/tmp/a.md')
   })
 
-  it('multi-tab drain preserves queue order (3 paths → 3 tabs in order)', () => {
+  it('multi-tab drain preserves queue order (3 paths → 3 tabs in order)', async () => {
     // Simulate the drain emitting 3 mt::open-new-tab events back-to-back
     // (the Rust loop in mt_drain_pending_opens iterates `drained` in
     // FIFO insertion order — Apple Event push order = drain emit order).
@@ -152,17 +155,19 @@ describe('editor store / M-025 pending-opens drain receiver', () => {
     ]
     // First with selected=true (matches drain default), rest with
     // selected=false to mirror multi-file Finder drag-drop behaviour.
-    editor.NEW_TAB_WITH_CONTENT({
+    // Awaited sequentially so FIFO order stays deterministic through the
+    // async restore leg (C-FILE-POSITION-MEMORY).
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: docs[0],
       options: {},
       selected: true
     })
-    editor.NEW_TAB_WITH_CONTENT({
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: docs[1],
       options: {},
       selected: false
     })
-    editor.NEW_TAB_WITH_CONTENT({
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: docs[2],
       options: {},
       selected: false
@@ -175,13 +180,13 @@ describe('editor store / M-025 pending-opens drain receiver', () => {
     ])
   })
 
-  it('previewMode flag in payload propagates via APPLY_PREVIEW_MODE (V-M-022 contract)', () => {
+  it('previewMode flag in payload propagates via APPLY_PREVIEW_MODE (V-M-022 contract)', async () => {
     const md = makeMarkdownDocument({
       pathname: '/tmp/p.md',
       filename: 'p.md',
       markdown: '# preview'
     })
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
     const tabId = editor.currentFile.id
     expect(tabId).toBeTruthy()
     // bootstrap-ipc.js mt::open-new-tab handler calls APPLY_PREVIEW_MODE
@@ -191,14 +196,14 @@ describe('editor store / M-025 pending-opens drain receiver', () => {
     expect(tab.previewMode).toBe(true)
   })
 
-  it('previewMode pref disabled → APPLY_PREVIEW_MODE no-ops (V-M-022 S-04)', () => {
+  it('previewMode pref disabled → APPLY_PREVIEW_MODE no-ops (V-M-022 S-04)', async () => {
     __preferencesStub.previewModeOnFinderOpen = false
     const md = makeMarkdownDocument({
       pathname: '/tmp/q.md',
       filename: 'q.md',
       markdown: '# nope'
     })
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
     const tabId = editor.currentFile.id
     editor.APPLY_PREVIEW_MODE(tabId, true)
     const tab = editor.tabs.find((t) => t.id === tabId)
@@ -210,7 +215,7 @@ describe('editor store / M-025 pending-opens drain receiver', () => {
     expect(tab.previewMode).not.toBe(true)
   })
 
-  it('drain delivering same path twice is deduplicated by pathname (V-M-025 R-3 set-equality)', () => {
+  it('drain delivering same path twice is deduplicated by pathname (V-M-025 R-3 set-equality)', async () => {
     // V-M-025 invariant (6) "set equality": every queued path appears in
     // exactly one NEW_TAB_RECEIVED. NEW_TAB_WITH_CONTENT enforces
     // dedup-by-pathname — second call switches to the existing tab
@@ -220,8 +225,8 @@ describe('editor store / M-025 pending-opens drain receiver', () => {
       filename: 'dup.md',
       markdown: '# x'
     })
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, options: {}, selected: true })
     expect(editor.tabs.length).toBe(1)
     expect(editor.tabs[0].pathname).toBe('/tmp/dup.md')
   })
