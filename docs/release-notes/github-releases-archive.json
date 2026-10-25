@@ -1,0 +1,2250 @@
+{
+  "schemaVersion": "1.0.0",
+  "repository": "xronocode/mark",
+  "archivedOn": "2026-10-25",
+  "note": "Notes and asset digests of the GitHub releases before v2.8.2, and the v* tags that had no release, exported before those release pages and tags were retired. The binaries themselves are not kept.",
+  "tagsWithoutRelease": [
+    {
+      "tag": "v2.4.0-beta",
+      "commit": "3c3ff0f307dfca6b52e76048d6f182487516e277"
+    }
+  ],
+  "releases": [
+    {
+      "tag": "v2.8.1",
+      "name": "Mark v2.8.1",
+      "commit": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
+      "publishedAt": "2026-10-24T07:51:18Z",
+      "prerelease": false,
+      "immutable": true,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 1301,
+          "digest": "sha256:57ee4e6c9b7f9be847300a871e61da4604aed5318ea8c32796e331156d1c5a2e"
+        },
+        {
+          "name": "Mark_2.8.1_aarch64.app.tar.gz",
+          "size": 15050964,
+          "digest": "sha256:8266c20ee9915268e78a41d7bc149110a2cdbae8d73571441751da7b5066ba45"
+        },
+        {
+          "name": "Mark_2.8.1_aarch64.dmg",
+          "size": 14888665,
+          "digest": "sha256:45bba4a96347912b75e87fbfd4f63824ee42147c3e59dd9b09c73e3265649a62"
+        },
+        {
+          "name": "Mark_2.8.1_aarch64.dmg.bundle",
+          "size": 8425,
+          "digest": "sha256:ba1d3b64cd16492e28f3d1e8b038247c68000dd0b676865eea6311e70148d70c"
+        },
+        {
+          "name": "Mark_2.8.1_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:4f7418c63309a63a578d448d0b31d7b7cd1b4c0e5b3f6f426db508b966b2b6ec"
+        },
+        {
+          "name": "Mark_2.8.1_sbom-node.cdx.json",
+          "size": 533717,
+          "digest": "sha256:cd83188f2223e4c61d7d3368550625d7e47877c34efb20336e1992382af4ad7b"
+        },
+        {
+          "name": "Mark_2.8.1_sbom-rust.cdx.json",
+          "size": 483545,
+          "digest": "sha256:8dfa5ae088029eedf738b9d5c2d93883200ae5e6581f02d82cc57d95a62c50ac"
+        },
+        {
+          "name": "Mark_2.8.1_x64-setup.exe",
+          "size": 9941762,
+          "digest": "sha256:2746a5f0a43e6e65cb6db3dfdcf0fe25d76469a31274bfc26c1c7eb8ec938b3e"
+        },
+        {
+          "name": "Mark_2.8.1_x64-setup.exe.bundle",
+          "size": 8425,
+          "digest": "sha256:d81a89843ee53049f41d1329511f2b578fd42ff39dac5e89b37f207a5749ae1b"
+        },
+        {
+          "name": "Mark_2.8.1_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:6b20a576c41f4a29eb6cfa4b6ee2b2a923bc0b8a27ba2e923c17c7f3c7997ea6"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 22638,
+          "digest": "sha256:435c629ff994568d17665a40d6028666d57d85130e52261b11a18af3767a56cf"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:6a449117a6d41bbf67682e5073f0ace8c2c6c63f0bbb0241721512e275d18cdd"
+        },
+        {
+          "name": "release-assets.sha256",
+          "size": 1098,
+          "digest": "sha256:0fdab49e8287723ace2682efe98142a67631041e7b04e93ae17a07783c31faf5"
+        }
+      ],
+      "body": "## What's new\n\n**Fixed**\n- **PDF export on macOS, fixed for real.** Exporting to PDF crashed the app on every attempt since the feature first shipped — the save step called a print-settings method that does not exist on macOS. The save target now travels through the print-settings dictionary, the save job runs through the same runner as the print panel, and the fix is verified end-to-end on the crash document.\n- A new automated audit checks every macOS print call the app makes against the live system APIs, so a missing or renamed method fails in CI instead of in your export click.\n\n---\n\nAutomated release from `3a87ffab78442d109240b9404a1b5ce1f24062d1`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.8.1_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob --bundle Mark_2.8.1_aarch64.dmg.bundle Mark_2.8.1_aarch64.dmg\n```\n\nDMG SHA-256, CycloneDX SBOMs, attribution notices, and the ed25519-signed updater feed are published as release assets.\n\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.8.1_x64-setup.exe` is included in the updater feed.\n"
+    },
+    {
+      "tag": "v2.8.0",
+      "name": "Mark v2.8.0",
+      "commit": "f57848b88e333fc0fb119310006c73b975314102",
+      "publishedAt": "2026-10-23T09:53:47Z",
+      "prerelease": false,
+      "immutable": true,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 1301,
+          "digest": "sha256:fe25ab589777b0a1d12bb3364a98aeb58259d8f7370981c94d7b88442907d1c0"
+        },
+        {
+          "name": "Mark_2.8.0_aarch64.app.tar.gz",
+          "size": 15049519,
+          "digest": "sha256:1bd5a5e2b48e70eb33d4781cb8130c0ac00aab943ef5141f5721594ae6cb270c"
+        },
+        {
+          "name": "Mark_2.8.0_aarch64.dmg",
+          "size": 14884050,
+          "digest": "sha256:4d3d8f4c5a61632c72c87c7a3085e5b03df2b9587f7d6d72d10f481cf16b2148"
+        },
+        {
+          "name": "Mark_2.8.0_aarch64.dmg.bundle",
+          "size": 8445,
+          "digest": "sha256:9e2a556823e39ed81f96bcd7191cd5342dde900dbd38f3467503679ef6018a3c"
+        },
+        {
+          "name": "Mark_2.8.0_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:ed04430952f36cbc01c3c68ba7870d66ef4ce0d7610b94009e5496cb2400e13c"
+        },
+        {
+          "name": "Mark_2.8.0_sbom-node.cdx.json",
+          "size": 533717,
+          "digest": "sha256:50b021e0b4e66cedf83e25689e9490c8d6c50e2bb500bff9f24a672b233d3dbe"
+        },
+        {
+          "name": "Mark_2.8.0_sbom-rust.cdx.json",
+          "size": 483545,
+          "digest": "sha256:4162e80687a035b8c68a12029a64156609f49aaff2bc299381fda3909ab604bb"
+        },
+        {
+          "name": "Mark_2.8.0_x64-setup.exe",
+          "size": 9943949,
+          "digest": "sha256:66c12cfcfe312b0148deeb9f16013dff185af19e1831d58fd05d962e56b8783c"
+        },
+        {
+          "name": "Mark_2.8.0_x64-setup.exe.bundle",
+          "size": 8425,
+          "digest": "sha256:e1f95e57ec153bd0b9de429b34c18b3d0e22550bd486748cd8d5ad84ffc7b018"
+        },
+        {
+          "name": "Mark_2.8.0_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:bc0e85983f813d5fca0e88c7f7a1c33b653bf915b54739fe155e3158cf1ecb1b"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 22638,
+          "digest": "sha256:435c629ff994568d17665a40d6028666d57d85130e52261b11a18af3767a56cf"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:6a449117a6d41bbf67682e5073f0ace8c2c6c63f0bbb0241721512e275d18cdd"
+        },
+        {
+          "name": "release-assets.sha256",
+          "size": 1098,
+          "digest": "sha256:5dd2152769ffc4f8ae3b7877783be7ee95bb7d3ddb349aa00cabdb3346977f7b"
+        }
+      ],
+      "body": "## What's new\n\n**Workspaces**\n- **Several folders, one window.** ⇧⌘O (File › Add Folder…) opens a folder beside the ones already open. Every folder surface — the picker, drops, the clipboard and the welcome screen — goes through one Add-or-Replace chooser, with Add preselected as the safe default.\n- **File › Replace Workspace…** swaps the whole workspace. Tabs with unsaved edits under removed roots raise one dialog first (Save & Close / Don't Save / Cancel); a failed save aborts the replace, and Cancel changes nothing.\n- Tabs that share a filename carry a dimmed owning-folder suffix, and restoring a session brings back every root. Folders that disappeared while you were away degrade visibly — a notice lists them instead of failing silently.\n\n**Cloud folders**\n- iCloud Drive and OneDrive folders open as workspace roots under their real names. Evicted iCloud placeholders never pollute the tree, and a once-per-folder note explains that online-only files appear after they download.\n- Folder picks and drive-sized trees no longer hang the app: the system picker runs to completion and a whole cloud drive streams its tree in batches.\n\n**Search**\n- Folder search labels every hit with its owning folder and keeps results complete while you type. Counts read correctly in all ten languages.\n\n**Safety**\n- Quitting with unsaved tabs asks first: Save & Quit commits them, Don't Save discards on purpose, Escape stays. The silent data-loss path is gone.\n\n---\n\nAutomated release from `f57848b88e333fc0fb119310006c73b975314102`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.8.0_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob --bundle Mark_2.8.0_aarch64.dmg.bundle Mark_2.8.0_aarch64.dmg\n```\n\nDMG SHA-256, CycloneDX SBOMs, attribution notices, and the ed25519-signed updater feed are published as release assets.\n\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.8.0_x64-setup.exe` is included in the updater feed.\n"
+    },
+    {
+      "tag": "v2.7.0",
+      "name": "Mark v2.7.0",
+      "commit": "26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f",
+      "publishedAt": "2026-10-22T11:29:11Z",
+      "prerelease": false,
+      "immutable": true,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 1301,
+          "digest": "sha256:105e935d1ba0412ba5868f3196623a4ba37661ee5655dbda944478beac20cb5f"
+        },
+        {
+          "name": "Mark_2.7.0_aarch64.app.tar.gz",
+          "size": 15024138,
+          "digest": "sha256:dbdcb7834f516a4d166ed4a132866208c86a13296649a49c1313b74f4e401b04"
+        },
+        {
+          "name": "Mark_2.7.0_aarch64.dmg",
+          "size": 14866507,
+          "digest": "sha256:0b0c44ed8595bb5a73a8a70fc46f93a9a4ecbaf4f32fa3db46429c25d1aea8d2"
+        },
+        {
+          "name": "Mark_2.7.0_aarch64.dmg.bundle",
+          "size": 8425,
+          "digest": "sha256:a60c5f53dc57420a02cab0e0ecfe2c135315495906f593023a981e41612ea49e"
+        },
+        {
+          "name": "Mark_2.7.0_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:2284ff4894106f012a1988a0a1c5d2e7a534702b0b6e880d8f46fb55cf37149f"
+        },
+        {
+          "name": "Mark_2.7.0_sbom-node.cdx.json",
+          "size": 533717,
+          "digest": "sha256:d20215c3fa8965fa03a47420e9a43ae5b8a72bdcd4ad8958db3237f5433023cb"
+        },
+        {
+          "name": "Mark_2.7.0_sbom-rust.cdx.json",
+          "size": 483545,
+          "digest": "sha256:f8d6bff3c649335b84aa395dc37029727fd5afcdc8e48481f05b9449377b08bf"
+        },
+        {
+          "name": "Mark_2.7.0_x64-setup.exe",
+          "size": 9943604,
+          "digest": "sha256:0f1b1b27615f57865011ce6907ede913a290594b423d28bbcd26726dc5ed584f"
+        },
+        {
+          "name": "Mark_2.7.0_x64-setup.exe.bundle",
+          "size": 8425,
+          "digest": "sha256:874ed5f9a068381da7fddcb7b3b9ac8771af60dae29985c22e81e81f3b845ba3"
+        },
+        {
+          "name": "Mark_2.7.0_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:3b268d03084b0012a3941eca3abe470b39ec6bffad57e9ef695646af5318b602"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 22638,
+          "digest": "sha256:435c629ff994568d17665a40d6028666d57d85130e52261b11a18af3767a56cf"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:6a449117a6d41bbf67682e5073f0ace8c2c6c63f0bbb0241721512e275d18cdd"
+        },
+        {
+          "name": "release-assets.sha256",
+          "size": 1098,
+          "digest": "sha256:b214acf1d1385ccec73c131f801db533e90fe12b25eeee88292509cab260128e"
+        }
+      ],
+      "body": "## What's new\n\n### Sessions\n- **Sessions come back honestly.** Launching Mark restores the previous session's tabs, folders and active tab. With auto-restore off, the welcome screen's \"Last session (N)\" row reopens exactly the boot-time snapshot — never a stale no-op.\n- **Recently closed tabs.** A count-badged button beside the tab strip lists them: ⇧⌘T reopens the newest, repeated presses walk back, \"Reopen all\" restores a batch in order. Closing the last tab surfaces the same recovery right on the welcome screen.\n- Missing files are handled honestly: a fully missing session raises a warning, and reopening a deleted file says so.\n\n### Export\n- **Self-contained HTML.** Export as HTML embeds locally readable images as base64 data-URLs (8 MiB per-image cap), so a single .html file opens anywhere without its picture folder. Remote images are never fetched; PDF and print are unchanged.\n\n### Editor\n- ⇧⌘P opens the command palette again on macOS.\n- Table Markdown export keeps every real cell and escapes pipes correctly.\n- Turning Auto Save off cancels pending saves immediately.\n- Tab switching no longer cascades render warnings through transient cursor state.\n\n### Windows and Linux\n- **Native title bar.** Real system caption buttons (Segoe MDL2/Fluent code points, no separators), the app-menu and settings buttons kept, the theme toggle as a fourth cell, and the guide button retired on every platform.\n\n### Security\n- follow-redirects 1.16.1 (Dependabot highs #144/#145).\n\n---\n\nAutomated release from `26fe02996c2a1b9ed3de2f2dc39a7f2a19ec498f`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.7.0_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob --bundle Mark_2.7.0_aarch64.dmg.bundle Mark_2.7.0_aarch64.dmg\n```\n\nDMG SHA-256, CycloneDX SBOMs, attribution notices, and the ed25519-signed updater feed are published as release assets.\n\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.7.0_x64-setup.exe` is included in the updater feed.\n"
+    },
+    {
+      "tag": "v2.6.0",
+      "name": "Mark v2.6.0",
+      "commit": "3ad251f7cb613ec0e53be5a85a0983fba1d5fcaa",
+      "publishedAt": "2026-10-21T01:49:15Z",
+      "prerelease": false,
+      "immutable": true,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 1301,
+          "digest": "sha256:2593450b980dbb427e5b31ffd43aeb38dab38218d4a0a6d8357dc91df9dbaddb"
+        },
+        {
+          "name": "Mark_2.6.0_aarch64.app.tar.gz",
+          "size": 15016304,
+          "digest": "sha256:651961ef76f9eaf9e6232ee3dcb7f6101c9d150f2bd1780eeb83beb1e0a04f00"
+        },
+        {
+          "name": "Mark_2.6.0_aarch64.dmg",
+          "size": 14855050,
+          "digest": "sha256:0148ca19df5091511e2d8a59de285407c3dae70b52e73c41c57a72f289b2f35d"
+        },
+        {
+          "name": "Mark_2.6.0_aarch64.dmg.bundle",
+          "size": 8425,
+          "digest": "sha256:75e760946406dde7485e0f06c35b14f33f7b4f1492a247bca977acad9237855a"
+        },
+        {
+          "name": "Mark_2.6.0_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:0c2de8ed2e964a37386a30ca67ad8b10a081d3d57994d963420298ee56e5e1fc"
+        },
+        {
+          "name": "Mark_2.6.0_sbom-node.cdx.json",
+          "size": 533717,
+          "digest": "sha256:858e83114a634b77c0ecc36d4b9f95f348604696b7aacd66b4e08968040434cc"
+        },
+        {
+          "name": "Mark_2.6.0_sbom-rust.cdx.json",
+          "size": 483545,
+          "digest": "sha256:48f3df5a0a2e68a988cdc100afcd75197df4aeb45971fdd48a15a239162864e4"
+        },
+        {
+          "name": "Mark_2.6.0_x64-setup.exe",
+          "size": 9935744,
+          "digest": "sha256:d80f7281ad4e95e8c89f2ea472aea33078955f867f99b533729b5634c1f791a8"
+        },
+        {
+          "name": "Mark_2.6.0_x64-setup.exe.bundle",
+          "size": 8425,
+          "digest": "sha256:e6309b649515e403923100265c98c67533f3554a98b43820a77159fe5b0b1385"
+        },
+        {
+          "name": "Mark_2.6.0_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:7c7aa5d1432b871e398c42ec70ae7494d5b85086eae6ca59ce28951bb6cec60a"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 22638,
+          "digest": "sha256:faa290ab9b1b395c10289bcfecc6575952ab4815045e371bbe40fa216ca17ce6"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:6a449117a6d41bbf67682e5073f0ace8c2c6c63f0bbb0241721512e275d18cdd"
+        },
+        {
+          "name": "release-assets.sha256",
+          "size": 1098,
+          "digest": "sha256:2d57c7349a242e39100b1ba0ee4f0fb8bc84a07cabb8e9fd03aa1c59a0a65b14"
+        }
+      ],
+      "body": "## What's new\n\n### Tables\n- **Tables as pictures.** Copy a table as an image from the editor, or save a PNG from the fullscreen viewer.\n- **Wide tables stay under control.** Full width and Fit to page keep their state through editor updates. In fullscreen, drag to pan; edge shadows show where more columns remain, without a misleading scrollbar.\n- Wide tables stay centred when they fit and keep clear of the outline when they do not. Compact toolbar labels and the column footer remain stable.\n\n### Editor\n- **Compare with what Mark opened.** ⌘D compares a note with its opened version even outside a Git repository, and reports clearly when nothing changed.\n- **Editing shortcuts restored.** ⇧⌘D duplicates a paragraph; ⌘1–6 turns it into H1–H6 and keeps Markdown and the outline in sync.\n- Shift+Up/Down selection no longer stalls under a formatting toolbar. The Russian transform menu keeps long labels and shortcuts on one readable row.\n\n### Tabs and dialogs\n- Closing a tab no longer leaves another tab selected over the closed document or sends later edits to the wrong file.\n- A new document no longer inherits the outline of the file that was just closed.\n- Unsaved dialogs follow the active theme. A dirty untitled tab now offers three distinct choices: Save & Close, Discard, and Cancel.\n\n---\n\nAutomated release from `085e0c3853d34d219700d85621204f97227bcb40`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.6.0_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob --bundle Mark_2.6.0_aarch64.dmg.bundle Mark_2.6.0_aarch64.dmg\n```\n\nDMG SHA-256, CycloneDX SBOMs, attribution notices, and the ed25519-signed updater feed are published as release assets.\n\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.6.0_x64-setup.exe` is included in the updater feed.\n"
+    },
+    {
+      "tag": "v2.5.3",
+      "name": "Mark v2.5.3",
+      "commit": "acad9988220c9a1a6d28ea4e94b69d69d774f805",
+      "publishedAt": "2026-10-19T09:04:29Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "app-screenshot.png",
+          "size": 46783,
+          "digest": "sha256:957261050b2835457909672b3fbc71ad1b8131ab0cb003dc250f29ef0810ad99"
+        },
+        {
+          "name": "latest.json",
+          "size": 1296,
+          "digest": "sha256:a9de120206c77b9dc3cdf49f87051c96e671ff9b627da48710cd268d3be44a20"
+        },
+        {
+          "name": "Mark_2.5.3_aarch64.app.tar.gz",
+          "size": 14998044,
+          "digest": "sha256:1ade40178f59953d121ab9a4b0395c1ed2afa949fba3b4f4a5135777cf3de610"
+        },
+        {
+          "name": "Mark_2.5.3_aarch64.dmg",
+          "size": 14836015,
+          "digest": "sha256:ea4aa8d6d4827ed2b125a8615637351548e3f1681be89f2c07f1898c68b12076"
+        },
+        {
+          "name": "Mark_2.5.3_aarch64.dmg.bundle",
+          "size": 8265,
+          "digest": "sha256:8d6697d8b73c2c5f037d2993ee3dbe298c69c4210d938cae6c865de88861ddbf"
+        },
+        {
+          "name": "Mark_2.5.3_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:1611da63f62b94a236854fe37237677352312e0b0221735175ba8aa02e9a0f86"
+        },
+        {
+          "name": "Mark_2.5.3_sbom-node.cdx.json",
+          "size": 1082903,
+          "digest": "sha256:ba7316f605aa447919b286cf61e4c09fb1e4e87f2ba3add56ce938fcf2565252"
+        },
+        {
+          "name": "Mark_2.5.3_sbom-rust.cdx.json",
+          "size": 483545,
+          "digest": "sha256:8e682f00b3a9c6a87da615412c999a100619b2fa3973f074768981235e0463a2"
+        },
+        {
+          "name": "Mark_2.5.3_x64-setup.exe",
+          "size": 9919921,
+          "digest": "sha256:a47ef73f8afe341ff3f3bd32e29a5ee6a1be921a19244088c9d733d4ba639ade"
+        },
+        {
+          "name": "Mark_2.5.3_x64-setup.exe.bundle",
+          "size": 8265,
+          "digest": "sha256:9d69181021dfefba8476425df75c66de433185fe1906552564c5c793090bac27"
+        },
+        {
+          "name": "Mark_2.5.3_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:288f46356eff13105a55c18ce48b08c860e587a77820409663687fc08a0b8f15"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 45356,
+          "digest": "sha256:5fa868df2f1404e1f9dcf22cd96e2cbaa9fb4457196e8076ef6ef84067f64069"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:9b098737151d044c616efc4234c191980202c0235d40b2c445d115a8f4d61096"
+        }
+      ],
+      "body": "## Что нового в 2.5.3\n\n### Сессия\n- **Mark продолжает с того же места.** При запуске без файла возвращаются папка проекта и вкладки прошлой сессии — в том же порядке и с той же активной вкладкой. Удалённые файлы пропускаются. Сессия сохраняется по ходу работы, так что переживёт и ⌘Q, и сбой. Открытие файла из Finder начинается с этого файла. Отключается в Настройки › Основные › Запуск.\n\n### Таблицы\n- **Широкие таблицы — на всю ширину.** Таблица шире колонки текста сразу открывается во всю ширину: по центру, если помещается в окно, иначе с небольшим отступом от края и горизонтальной прокруткой редактора. Под оглавление не заезжает.\n- **«Вписать в страницу»** в панели таблицы возвращает её в колонку, и Mark запоминает это для каждой таблицы.\n- **Ширина столбцов запоминается** для файла между запусками — в профиле Mark, Markdown не меняется. Двойной клик по границе сбрасывает ширину; правка шапки таблицы — тоже.\n- Панель таблицы стоит над таблицей по краю колонки, а подпись под ней показывает, какие столбцы видны («столбцы 3–7 из 15»).\n\n### Обновления\n- Версия с сайта и из Homebrew раз в день проверяет обновления и предлагает «Обновить», «Позже» или «Пропустить эту версию».\n- Проверка обновлений в Настройках показывает результат прямо в строке, а не уведомлением поверх кнопки.\n\n### Мелочи\n- Метла в заголовке «Недавние» боковой панели очищает список.\n- ⌘W закрывает окно Настроек.\n- Кнопки панели таблицы больше не перестают реагировать после правки в другом месте документа.\n\n---\n\nAutomated release from `acad9988220c9a1a6d28ea4e94b69d69d774f805`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.5.3_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.5.3_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.5.3_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.5.3_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.5.3_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.5.3_x64-setup.exe` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the `latest.json` updater feed as `windows-x86_64`.\n"
+    },
+    {
+      "tag": "v2.5.2",
+      "name": "Mark v2.5.2",
+      "commit": "e5995e7193964c2539b3cc76f052701f999e72c0",
+      "publishedAt": "2026-10-18T18:03:14Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "app-screenshot.png",
+          "size": 46600,
+          "digest": "sha256:07c2f9cc44576e17bf5980365b3dfd53e9287fc6d3eec1d794f3af5836f7718b"
+        },
+        {
+          "name": "latest.json",
+          "size": 1296,
+          "digest": "sha256:3fe68da9705dfa43f70ab46e5171c0ce7c271624752dd7f88c97f8f5844b0ea8"
+        },
+        {
+          "name": "Mark_2.5.2_aarch64.app.tar.gz",
+          "size": 14985863,
+          "digest": "sha256:ab2ab02aa3dd4d0566e614566d885ff621993973d772d7a692f72b42372b8638"
+        },
+        {
+          "name": "Mark_2.5.2_aarch64.dmg",
+          "size": 14824087,
+          "digest": "sha256:392aa0d6cb36e2b257c9ac722f94098b1e3ef7dda0a6d08acec4488fcdbe1f3c"
+        },
+        {
+          "name": "Mark_2.5.2_aarch64.dmg.bundle",
+          "size": 8265,
+          "digest": "sha256:bdc7c4f07c638a2bac55880b31c772f4c774dff797acbe7bf1ecf5195cbda6e7"
+        },
+        {
+          "name": "Mark_2.5.2_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:b4bf57156fee54dd82a766377fbbee8fd43eb20f14a7514634f2a4e1a76f9b62"
+        },
+        {
+          "name": "Mark_2.5.2_sbom-node.cdx.json",
+          "size": 1082903,
+          "digest": "sha256:cc6a15ed26a7821770ed8f8ee8df6adcecdcb4f58b1664f85afd6234c35dea19"
+        },
+        {
+          "name": "Mark_2.5.2_sbom-rust.cdx.json",
+          "size": 483545,
+          "digest": "sha256:6cf72248abf08a2f0f7ca32f029c56f46323bfdd64cf1376f2966a29b542a7cc"
+        },
+        {
+          "name": "Mark_2.5.2_x64-setup.exe",
+          "size": 9901569,
+          "digest": "sha256:0b9595330ef70fb70d82e7b003ae71a6fe67a4eddc86a92a8bb1dd4f5dc74ab5"
+        },
+        {
+          "name": "Mark_2.5.2_x64-setup.exe.bundle",
+          "size": 8249,
+          "digest": "sha256:b2ebeabfe57275caacad4522c7b71843c9fe9854d04ef7a02eed56a92ccded23"
+        },
+        {
+          "name": "Mark_2.5.2_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:bf1523fbf4f355d19bf90bddec2c5e95e17edd6af856589ed82086d582c2b72a"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 45356,
+          "digest": "sha256:5fa868df2f1404e1f9dcf22cd96e2cbaa9fb4457196e8076ef6ef84067f64069"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:9b098737151d044c616efc4234c191980202c0235d40b2c445d115a8f4d61096"
+        }
+      ],
+      "body": "## Что нового\n\nИсправления окна и стартового экрана:\n\n- Двойной клик по шапке разворачивает окно один раз, а не разворачивает и тут же сворачивает обратно.\n- Клик по пустой шапке закрывает карточку файла.\n- В карточке файла кнопки «Переименовать», «Показать в Finder» и «Скопировать путь» — в один ряд.\n- Строки на стартовом экране больше не выходят за колонку, а «Убрать из списка» стоит по центру строки, а не поверх пути.\n\n---\n\nAutomated release from `e5995e7193964c2539b3cc76f052701f999e72c0`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.5.2_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.5.2_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.5.2_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.5.2_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.5.2_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.5.2_x64-setup.exe` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the `latest.json` updater feed as `windows-x86_64`.\n"
+    },
+    {
+      "tag": "v2.5.0",
+      "name": "Mark v2.5.0",
+      "commit": "7d12a671ac9b81c688714dc55f861760731e4c05",
+      "publishedAt": "2026-10-18T15:54:02Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "app-screenshot.png",
+          "size": 46618,
+          "digest": "sha256:1259a71c70e64016c2ec67d550e352405272650e1c04e91eabb7a5f0b08a1ac5"
+        },
+        {
+          "name": "latest.json",
+          "size": 1296,
+          "digest": "sha256:76fc4c0ce0fe465d3f95450177c853cd637de90bd3cde33d601c29855e7e0298"
+        },
+        {
+          "name": "Mark_2.5.0_aarch64.app.tar.gz",
+          "size": 14983548,
+          "digest": "sha256:624c9d1950b637ebcedc05a28255ab9364cefc3eda3950385e0d7df553783d59"
+        },
+        {
+          "name": "Mark_2.5.0_aarch64.dmg",
+          "size": 14823951,
+          "digest": "sha256:60dc05b6d83d91ae7ba987934b047f58e0a24b4b11f7425e1a400503cbc15a53"
+        },
+        {
+          "name": "Mark_2.5.0_aarch64.dmg.bundle",
+          "size": 8265,
+          "digest": "sha256:f03a23c24b2d9fbb60c385cf185eb5e5fba51acdeeb1ad702583aeb9e6bba19f"
+        },
+        {
+          "name": "Mark_2.5.0_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:5ae9cb591f252ce17eea39774f73f764d475ddc6be1ab76d25cf8c02b6fd4093"
+        },
+        {
+          "name": "Mark_2.5.0_sbom-node.cdx.json",
+          "size": 1082903,
+          "digest": "sha256:15a86a51970c05ee7072e2fb87ab0b32724d51357531e7437eceb980b945f3dc"
+        },
+        {
+          "name": "Mark_2.5.0_sbom-rust.cdx.json",
+          "size": 483545,
+          "digest": "sha256:edde31836dabbf41cd4dead487bcb0ffe3b991cedc796b1de23d0883e1de026d"
+        },
+        {
+          "name": "Mark_2.5.0_x64-setup.exe",
+          "size": 9894268,
+          "digest": "sha256:8687cfaa8d1f2470d4b287abbed4171f0a38fc008e47a6c1e2370b66e5360102"
+        },
+        {
+          "name": "Mark_2.5.0_x64-setup.exe.bundle",
+          "size": 8265,
+          "digest": "sha256:0b5296ec5756513ad823175868dbfe82b002eacc119ba916ebe4e0395680a9bf"
+        },
+        {
+          "name": "Mark_2.5.0_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:8bad6249b4b40e76da72b72ee1b1d64accf912169b137f2f150fbf04692db63e"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 45356,
+          "digest": "sha256:5fa868df2f1404e1f9dcf22cd96e2cbaa9fb4457196e8076ef6ef84067f64069"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:9b098737151d044c616efc4234c191980202c0235d40b2c445d115a8f4d61096"
+        }
+      ],
+      "body": "## Что нового\n\n### Диаграммы\n- **Диаграммы — картинками.** Любую диаграмму или график Vega-Lite можно скопировать как изображение или сохранить в PNG или SVG — из панели в углу, из контекстного меню или из полноэкранного просмотра. SVG несёт цвета темы и выглядит одинаково где угодно.\n- **Панель в углу диаграммы.** При наведении в правом верхнем углу появляется маленькая панель: вид, исходный код, копировать как изображение, во весь экран. Пока не нужна — её не видно.\n- **Свой вид у каждой диаграммы.** «Авто» следует теме документа, «Свой» сохраняет палитру автора из Markdown, «Светлая» и «Тёмная» фиксируют вид. Выбор хранится в самой диаграмме и отменяется, как любая правка.\n- **Канбан спокойнее.** Карточки на цвете поверхности с лёгкой рамкой.\n\n### Печать и экспорт\n- **Печать и PDF — напрямую.** ⌘P сразу открывает системную панель печати. Экспорт в PDF спрашивает параметры страницы и имя файла и сохраняет PDF без панели печати — на macOS и Windows.\n- **Картинки снова в буфер.** Изображение, уже вставленное в документ, можно скопировать в буфер — из панели изображения или контекстного меню.\n\n### Редактор\n- Настройка сносок применяется к открытым документам сразу, без потери истории отмены.\n- На macOS окно полноэкранной диаграммы закрывается с первого клика по ×.\n- Стартовый экран в низком окне больше не обрезает логотип.\n\n### Сайт\n- [Галерея всех 32 типов диаграмм](https://mark.xronocode.com/diagrams/) — с перекраской в любую из 32 тем, слайд-шоу и полноэкранным показом.\n- Снова есть «Справка › Поддержать Mark…» в версии для загрузки и Homebrew и ссылка на Ko-fi на сайте.\n\n---\nAutomated release from `7d12a671ac9b81c688714dc55f861760731e4c05`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.5.0_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.5.0_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.5.0_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.5.0_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.5.0_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.5.0_x64-setup.exe` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the `latest.json` updater feed as `windows-x86_64`.\n"
+    },
+    {
+      "tag": "v2.4.0",
+      "name": "Mark v2.4.0",
+      "commit": "0f985e7cf4aa6bd6b1b4a6fa152b89a43e23d308",
+      "publishedAt": "2026-10-17T21:38:04Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "app-screenshot.png",
+          "size": 47256,
+          "digest": "sha256:ee9c95e0253fa8e4867fd921769db4081bd6ac4581b1522f6c00fdc93fe3e467"
+        },
+        {
+          "name": "latest.json",
+          "size": 1296,
+          "digest": "sha256:9f938f3dc820f46c12c9c485621a9019e3b41e35f76e9337bb29ae3a21bb2be8"
+        },
+        {
+          "name": "Mark_2.4.0_aarch64.app.tar.gz",
+          "size": 14746993,
+          "digest": "sha256:6fd9606fbafa42ddce6aea2b3ca8ed2f2f5462771f8e5246d71fc1ef4c46ded5"
+        },
+        {
+          "name": "Mark_2.4.0_aarch64.dmg",
+          "size": 14599874,
+          "digest": "sha256:4e308c7761cb040fb28871ca404e3167f251eadf2f26a59b97ad60d9c79e5ee4"
+        },
+        {
+          "name": "Mark_2.4.0_aarch64.dmg.bundle",
+          "size": 8265,
+          "digest": "sha256:13859ede27a983d839dd377c93b9af3d36e598cd51499b44ab52cc470b208e31"
+        },
+        {
+          "name": "Mark_2.4.0_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:9f6eb6b0a46d01a1bbde64fbbd2cc8e4f22e37362b9b908c9d6d7dbea2b22b03"
+        },
+        {
+          "name": "Mark_2.4.0_sbom-node.cdx.json",
+          "size": 1082863,
+          "digest": "sha256:297d36a6140f5dae32392438da886f4acf2395d993409a179f8a836ded505f26"
+        },
+        {
+          "name": "Mark_2.4.0_sbom-rust.cdx.json",
+          "size": 483466,
+          "digest": "sha256:2fcc6befcbc63ec45d4b539581c1607d11a225a6223f0ee53ff8d3e456e86682"
+        },
+        {
+          "name": "Mark_2.4.0_x64-setup.exe",
+          "size": 9787162,
+          "digest": "sha256:2c5065a2c9c5099b36b0376f220cb810440d86bd1d39f304f44a04092c09c615"
+        },
+        {
+          "name": "Mark_2.4.0_x64-setup.exe.bundle",
+          "size": 8265,
+          "digest": "sha256:773727ac3180af56c43f4f7e1fe378c0fd763eb7e6d95280af8b97764d209d52"
+        },
+        {
+          "name": "Mark_2.4.0_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:c839dd4b45b5da83c9c65162ef856caa980419fed26b17bcc1735e9f0e3c59d6"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 45356,
+          "digest": "sha256:5fa868df2f1404e1f9dcf22cd96e2cbaa9fb4457196e8076ef6ef84067f64069"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:9b098737151d044c616efc4234c191980202c0235d40b2c445d115a8f4d61096"
+        }
+      ],
+      "body": "## Что нового\n\n**Новый движок диаграмм — Pele.** Блоки ```mermaid теперь рендерит [Pele](https://github.com/obsidianmd/pele): тот же синтаксис, но быстрее и намного легче. Диаграммы следуют за темой приложения — переключение светлой и тёмной перекрашивает их мгновенно, без перерисовки. Появились новые типы диаграмм: venn, treemap, agentflow, radar, swimlane, usecase, event modeling и другие (33 типа всего). Код диаграмм «похудел» с 2,6 МБ (44 файла) до одного файла в 253 КБ в сжатом виде; из зависимостей ушло 75 МБ. Вид диаграмм изменился вместе с движком — честно об этом говорим. Пьеса-диаграмма осталась «пончиковой», gantt/journey/timeline/packet сохраняют читаемые размеры, зум и полноэкранный просмотр работают как раньше. Экспортируемый HTML несёт цвета темы диаграмм.\n\nПолный список изменений — в [CHANGELOG.md](https://github.com/xronocode/mark/blob/main/CHANGELOG.md).\n\n---\n\nAutomated release from `0f985e7cf4aa6bd6b1b4a6fa152b89a43e23d308`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.4.0_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.4.0_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.4.0_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.4.0_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.4.0_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.4.0_x64-setup.exe` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the `latest.json` updater feed as `windows-x86_64`.\n"
+    },
+    {
+      "tag": "v2.3.1",
+      "name": "Mark v2.3.1",
+      "commit": "37599606e91034f784242d936f38924c6e7c2288",
+      "publishedAt": "2026-10-17T17:24:23Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "app-screenshot.png",
+          "size": 47221,
+          "digest": "sha256:c5e7febc87d86c120d8139752d41e27e875461c0cfdb6f21503d1879fb5c7008"
+        },
+        {
+          "name": "latest.json",
+          "size": 1296,
+          "digest": "sha256:7f68c3ac842c510ec74153715eef9c283ecac4b0591890da1ddc6e63000575a1"
+        },
+        {
+          "name": "Mark_2.3.1_aarch64.app.tar.gz",
+          "size": 15350881,
+          "digest": "sha256:c4f6dd2c72110239cf3ac289e16d405b86aab957d0ac46f017501f5db447f661"
+        },
+        {
+          "name": "Mark_2.3.1_aarch64.dmg",
+          "size": 15192126,
+          "digest": "sha256:4780cc887758e447c58d11a4bd14c9b4615b7550822d34ae2506988d88382964"
+        },
+        {
+          "name": "Mark_2.3.1_aarch64.dmg.bundle",
+          "size": 8265,
+          "digest": "sha256:b3d143bc50a36fabde6786ccc787c8563304cea7f1e72c9007f54f5c9b850747"
+        },
+        {
+          "name": "Mark_2.3.1_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:2e02941adc0bdc08b2fa30d8e953e48918f190543455e5d54fdf45ed664b6d74"
+        },
+        {
+          "name": "Mark_2.3.1_sbom-node.cdx.json",
+          "size": 1238610,
+          "digest": "sha256:26006dc2b385a009736fbe798fcbf96e6dfae1eb01f602ddec6ffabd52ef8f6c"
+        },
+        {
+          "name": "Mark_2.3.1_sbom-rust.cdx.json",
+          "size": 483466,
+          "digest": "sha256:c3625120ed0cd32abfa66b76094ce999b9c59066a683a2a4aa9358d1cf51a437"
+        },
+        {
+          "name": "Mark_2.3.1_x64-setup.exe",
+          "size": 10394851,
+          "digest": "sha256:d45fe1b9f5d0fb2c97f9b31df67e56873eb0d7fa8a4bb7f613247674fd5cfeea"
+        },
+        {
+          "name": "Mark_2.3.1_x64-setup.exe.bundle",
+          "size": 8265,
+          "digest": "sha256:0a52f28769262757a3bf079580cc9758bebe8fc6faee851ff42ca01311310e40"
+        },
+        {
+          "name": "Mark_2.3.1_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:3ea6d1cac2df211c735c9f33ad7e681ed019408fc8659cc812167d68343b1188"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52179,
+          "digest": "sha256:6f3d8b990d0a42ed32143fe0b6fba9bdfd50cbe69da2997e548d368c6ffc2580"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:9b098737151d044c616efc4234c191980202c0235d40b2c445d115a8f4d61096"
+        }
+      ],
+      "body": "## Что нового\n\n### Спокойнее и ближе к системе\n- **Семейства тем Paper, Ink, Docs и macOS**, у каждой темы есть светлая и тёмная пара. Paper и Ink стоят по умолчанию, кнопка в заголовке переключает «Авто / Светлая / Тёмная» и умеет следовать системе.\n- **Тонкий заголовок окна** с карточкой документа, оглавление «На этой странице» сбоку от текста, строка статуса (строки, слова, время чтения).\n- Системный шрифт, акцентный цвет и единый набор иконок; на Windows 11 — материал Mica.\n- Настройки в пяти вкладках и в цвете темы, включая заголовок окна.\n\n### Стартовый экран\n- Недавние файлы и папки, встроенный Guide и подключение агента в один клик.\n- Окно «Что нового» после обновления, со ссылкой на полный список изменений.\n- Язык интерфейса «Как в системе».\n\n### Диаграммы, графики и формулы в цвет темы\n- Все 22 типа Mermaid, графики Vega-Lite и формулы KaTeX рисуются в цветах темы; круговые диаграммы — «бублик», как в Keynote.\n- Узлы диаграмм хорошо читаются и в тёмных, и в светлых темах; подписи на стрелках больше не превращаются в тёмные плашки.\n- **Любую диаграмму или таблицу можно открыть на весь экран**: кнопка в углу большого блока или ⌘-клик, дальше масштаб, перетаскивание и «вписать».\n- Широкие таблицы прокручиваются внутри колонки текста, ширину столбцов можно менять.\n- Исправлено: графики Vega-Lite не отображались в установленном приложении.\n\n### Только ваши заметки\n- В дереве папок только Markdown-файлы и никаких пустых папок; одна настройка возвращает все файлы.\n- Разделы **Недавние** и **Закреплённые** вверху боковой панели; закрепить можно из контекстного меню.\n- **Открыть папку из буфера**: File › Open from Clipboard (⌥⌘V) — папка, скопированная в Finder, открывается как рабочая. Папку можно и просто перетащить в окно.\n\n### Ближе к агенту\n- **⌘D показывает, что изменил агент**: Mark сам делает снимок файла перед каждой перезагрузкой с диска и сравнивает с ним. Файл `.before` или последний git-коммит по-прежнему работают как база.\n- Промпт для агента перечисляет всё, что Mark умеет показывать, — диаграммы, графики, callouts, списки задач.\n\n### И ещё\n- Единый зум для всего приложения: ⌘+ / ⌘− / ⌘0 и щипок масштабируют текст, таблицы, код, формулы и диаграммы.\n- Нумерация строк в блоках кода снова работает.\n- В версии из App Store есть кнопка «Поделиться».\n\n---\nAutomated release from `37599606e91034f784242d936f38924c6e7c2288`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.3.1_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.3.1_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.3.1_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.3.1_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.3.1_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.3.1_x64-setup.exe` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the `latest.json` updater feed as `windows-x86_64`.\n"
+    },
+    {
+      "tag": "v2.3.0",
+      "name": "Mark v2.3.0",
+      "commit": "fbef171c89d5dc558a0e43b659070cd334090cd8",
+      "publishedAt": "2026-10-14T22:18:19Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "app-screenshot.png",
+          "size": 35411,
+          "digest": "sha256:e580f0bdb7188e28e5148daf5679002f74bc802818c99b02d925bd004ecf50fa"
+        },
+        {
+          "name": "latest.json",
+          "size": 1296,
+          "digest": "sha256:cd788da6247c043104fa8342d356605f72b340deb8c312e87c5d1d3548ada482"
+        },
+        {
+          "name": "Mark_2.3.0_aarch64.app.tar.gz",
+          "size": 15267311,
+          "digest": "sha256:f05f104c396cf42eb327dd006423cef487de79e41629041e9775dcd33acc32c1"
+        },
+        {
+          "name": "Mark_2.3.0_aarch64.dmg",
+          "size": 15114391,
+          "digest": "sha256:c78ee24e42b6a354e08f9500375b105dde47b60f58bf53c2cfa684033822eddf"
+        },
+        {
+          "name": "Mark_2.3.0_aarch64.dmg.bundle",
+          "size": 8265,
+          "digest": "sha256:db0dd63edfd677dfab3fdafd8da8c88d54ee5cf10a36a104722484cf986eb28a"
+        },
+        {
+          "name": "Mark_2.3.0_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:3f64e88323c49a72987ed797ff726d9a17a1a7cbddd0a31902274b9f03935e9e"
+        },
+        {
+          "name": "Mark_2.3.0_sbom-node.cdx.json",
+          "size": 1238493,
+          "digest": "sha256:0d5cda5d330179f1d5c54af1876057a8fbbf1821b0347a2eae5a490ff0fddf92"
+        },
+        {
+          "name": "Mark_2.3.0_sbom-rust.cdx.json",
+          "size": 483466,
+          "digest": "sha256:f55f212acb53f91f76637451dce90279297e32de2b1e38319f69d914a5fab4ca"
+        },
+        {
+          "name": "Mark_2.3.0_x64-setup.exe",
+          "size": 10342541,
+          "digest": "sha256:856b65f0bb591b3fe8926ddf78d172885b1e580bba3ab4ee90a9fcbc85f1d7e8"
+        },
+        {
+          "name": "Mark_2.3.0_x64-setup.exe.bundle",
+          "size": 8265,
+          "digest": "sha256:e7112d247726236d700aa965680d588492f9b9ea9b2d0e5c5d34ec2f3217fc60"
+        },
+        {
+          "name": "Mark_2.3.0_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:ab18aeef9702898715ef70acdf71751cae78c7ae45627a96ca82168c45ef9a05"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52179,
+          "digest": "sha256:adb2ac205c43d3b937ab275b30d4581070b46671d66b4d20c99e32fedcc320e6"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:9b098737151d044c616efc4234c191980202c0235d40b2c445d115a8f4d61096"
+        }
+      ],
+      "body": "## Что нового\n\n**Первая версия без «beta».**\n\n### Интерфейс\n- **Язык интерфейса снова работает**: во всех 10 языках (в релизных сборках до 2.3 он оставался английским).\n- **Новая иконка**: выделенный маркером ¶, с тёмным и тонированным вариантами для macOS 26.\n- **macOS**: настройки — в меню Mark › Settings… (⌘,); шестерёнка из заголовка окна убрана.\n\n### Редактор\n- **Split View**: исходный Markdown рядом с готовой страницей для текущей вкладки, одним сочетанием клавиш.\n- **Callouts**: GitHub alerts (`> [!TIP]`) и Obsidian-callouts отображаются как блоки, в том числе при экспорте.\n- **Front matter** открывается таблицей свойств; **сноски** включены по умолчанию.\n- **Картинки**: вставленные и перетащенные изображения сохраняются в `assets/` рядом с документом.\n- **Большие документы** открываются примерно в 10 раз быстрее: файл на 4 100 строк — около 3 с вместо 37.\n\n### Диаграммы\n- **Mermaid не теряется при опечатке**: остаётся последняя удачная диаграмма, а под ней — текст ошибки.\n- Широкие диаграммы сохраняют свой размер и прокручиваются, неизменённые не перерисовываются при наборе.\n\n### Копирование\n- **Копировать как структурированный текст**: для писем и чатов — без звёздочек и скобок, но с абзацами, списками, ссылками и таблицами.\n\n### Исправления\n- Diff-режим снова показывает изменения и закрывается по ⌘D.\n- Пункты контекстного меню срабатывают с первого клика.\n- Переименование открытого файла в боковой панели переносит вкладку на новый путь.\n- Выделение больше не заливает поле за пределами колонки текста.\n\n---\nAutomated release from `fbef171c89d5dc558a0e43b659070cd334090cd8`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.3.0_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.3.0_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.3.0_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.3.0_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.3.0_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.3.0_x64-setup.exe` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the `latest.json` updater feed as `windows-x86_64`.\n"
+    },
+    {
+      "tag": "v2.2.0-beta",
+      "name": "Mark v2.2.0-beta",
+      "commit": "c6bfb5ce910e513e31d0cf847f21af5a4f68afbd",
+      "publishedAt": "2026-10-07T06:13:03Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "app-screenshot.png",
+          "size": 35430,
+          "digest": "sha256:a5348189066db819aaa04165b8e1492a25a8c2dc2003bd62ba490391e369745c"
+        },
+        {
+          "name": "latest.json",
+          "size": 1334,
+          "digest": "sha256:40c3dc97fee82f8e0f805aa9688c1f341d1ab3008bdd42abd32648e80069377f"
+        },
+        {
+          "name": "Mark_2.2.0-beta_aarch64.app.tar.gz",
+          "size": 13675462,
+          "digest": "sha256:71d509e76e04c6722d9148fffac29296d3f8f6bb5cf1bff92fc9a94f6de479ed"
+        },
+        {
+          "name": "Mark_2.2.0-beta_aarch64.dmg",
+          "size": 13863710,
+          "digest": "sha256:02aa5dcafd45eabd057d24a5c37d78ada0febf117877406bbcc9b2841047687a"
+        },
+        {
+          "name": "Mark_2.2.0-beta_aarch64.dmg.bundle",
+          "size": 8389,
+          "digest": "sha256:73c13c6c269ef00944fddfe6609fee576b30fa1fb94e7aaa532e43c08a584fe8"
+        },
+        {
+          "name": "Mark_2.2.0-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:50fca9e13fd654756b96d6b5c2af36f2639eeaa9e0ba67e02a7a0f7163b60552"
+        },
+        {
+          "name": "Mark_2.2.0-beta_sbom-node.cdx.json",
+          "size": 1250822,
+          "digest": "sha256:ca877ef68e70f51c2cfce101809b12c671b02c3a09c9bdef5d015f8e43f0acc1"
+        },
+        {
+          "name": "Mark_2.2.0-beta_sbom-rust.cdx.json",
+          "size": 483501,
+          "digest": "sha256:32f341c86ed310487ece41ad84d9f094d4845566bed8843cac8ca0dbb9f59a17"
+        },
+        {
+          "name": "Mark_2.2.0-beta_x64-setup.exe",
+          "size": 10213979,
+          "digest": "sha256:67ff85a07e503ed3d0b54f8001a53880ca7f736a8ab455ee71f650310a456708"
+        },
+        {
+          "name": "Mark_2.2.0-beta_x64-setup.exe.bundle",
+          "size": 8389,
+          "digest": "sha256:96aa110ec9995f8a54b6be01a777b880bd08aecb88e613d9ef41ca133d8615d8"
+        },
+        {
+          "name": "Mark_2.2.0-beta_x64-setup.exe.sha256",
+          "size": 65,
+          "digest": "sha256:f37018da9f0725a9dde3c1d7819443755ee3b961c0c74e8e80be7418604636dc"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52112,
+          "digest": "sha256:67467b5770728bd2675fd05d154118f72ccb46f5bf83983af010ed45e9cb84f6"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45234,
+          "digest": "sha256:9b098737151d044c616efc4234c191980202c0235d40b2c445d115a8f4d61096"
+        }
+      ],
+      "body": "## Что нового\n\n### Windows\n- **Первая версия для Windows!** Установка через winget (`winget install xronocode.Mark`) или установщик со страницы релизов. Внутренний авто-апдейтер работает на обеих платформах.\n\n### Ссылки и навигация\n- **Автодополнение путей**: при наборе ссылки `](…` Mark предлагает реальные файлы из папки документа.\n- **Проверка битых ссылок**: панель проблем показывает ссылки на несуществующие файлы и якоря, которых нет.\n\n### Печать и экспорт\n- **Печать работает**: системное окно печати с пагинацией и «Сохранить как PDF», экспорт PDF без pandoc.\n\n### Прочее\n- Переход к заголовку (`Cmd/Ctrl+T`), подсветка текущей секции в оглавлении, Format Document (`Shift+Alt+F`), панель проблем markdownlint.\n\n---\nAutomated release from `c6bfb5ce910e513e31d0cf847f21af5a4f68afbd`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.2.0-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.2.0-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.2.0-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.2.0-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.2.0-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n\n**Windows (x64):** NSIS installer `Mark_2.2.0-beta_x64-setup.exe` — unsigned; SmartScreen shows \"Windows protected your PC\" → *More info* → *Run anyway*. Included in the `latest.json` updater feed as `windows-x86_64`.\n"
+    },
+    {
+      "tag": "v2.1.15-beta",
+      "name": "Mark v2.1.15-beta",
+      "commit": "745e5d0fe5e005338bd126de297e1944f2f47c21",
+      "publishedAt": "2026-09-26T05:47:09Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 755,
+          "digest": "sha256:23444f5363bc3d4064f952876d5e33a3c8cc73be8cbef6fb421ff3de03658467"
+        },
+        {
+          "name": "Mark_2.1.15-beta_aarch64.app.tar.gz",
+          "size": 13595672,
+          "digest": "sha256:2777d238c2d0e83bfbf9f5862beb7e07e3adfaf7e166dc9e4b006b91fcec36ee"
+        },
+        {
+          "name": "Mark_2.1.15-beta_aarch64.dmg",
+          "size": 13784892,
+          "digest": "sha256:e3c43a84f50071f1ab5bb1fe7d28ccd47b235fc99c024bbde419596ac02039a2"
+        },
+        {
+          "name": "Mark_2.1.15-beta_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:cf463b873c41095fac86f9c3ee6ce27d484af6e8d8f34f7a1b2ed2a6aedfa1df"
+        },
+        {
+          "name": "Mark_2.1.15-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:3768df7affa5be724c50ca23b59360416f43e358ee2ce375374b9b5f3b8edfb6"
+        },
+        {
+          "name": "Mark_2.1.15-beta_sbom-node.cdx.json",
+          "size": 1252060,
+          "digest": "sha256:1da68a19d7ccedc6dcfcf76ddc2c62784561e879e6677f23e044b1edaaa3c65d"
+        },
+        {
+          "name": "Mark_2.1.15-beta_sbom-rust.cdx.json",
+          "size": 481922,
+          "digest": "sha256:62bbd2b9673ccc40812b809733d253d9bb5c522da2604b4ccb74b5c46da98b11"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45143,
+          "digest": "sha256:da3140e5eee4116ff732a56e369cd6efab587bbc7b5b901df149da3b12cb2b3e"
+        }
+      ],
+      "body": "## Что нового\n\n### Ссылки\n- **Автодополнение путей**: при наборе ссылки `](…` Mark предлагает реальные файлы из папки документа — `.md`-файлы и подпапки, фильтрация по мере ввода, Enter вставляет путь.\n- **Проверка битых ссылок**: панель проблем подсвечивает ссылки на несуществующие файлы и якоря `#заголовки`, которых нет в документе. Живые ссылки не показываются.\n\n### Исправления\n- Исправлен автокомплит картинок (выдавал пустые элементы с прошлого релиза).\n- Восстановлена подсветка текущей секции в оглавлении при редактировании без прокрутки.\n\n---\nAutomated release from `745e5d0fe5e005338bd126de297e1944f2f47c21`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.15-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.15-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.15-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.15-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.15-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n"
+    },
+    {
+      "tag": "v2.1.14-beta",
+      "name": "Mark v2.1.14-beta",
+      "commit": "4ca754d6690da51384a93c60990c41f40f24190b",
+      "publishedAt": "2026-09-24T06:05:01Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 755,
+          "digest": "sha256:93d2869f7a0ffb4548e14e2fc573ece45a93e2e1d95793a01c5f24fbc896ba93"
+        },
+        {
+          "name": "Mark_2.1.14-beta_aarch64.app.tar.gz",
+          "size": 13592586,
+          "digest": "sha256:cefd2843d060809d9ffe3c1cdb0acc27e08606c2b3021bcc0fb2b79dd2631642"
+        },
+        {
+          "name": "Mark_2.1.14-beta_aarch64.dmg",
+          "size": 13783481,
+          "digest": "sha256:222814bebec7922cfc061874c7c99295fa4c756e12776135ea74986ffdfec373"
+        },
+        {
+          "name": "Mark_2.1.14-beta_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:e54a7a89489c6673d46020a5ff067b6d136992fc604fb8837fba5c8458ae2d5f"
+        },
+        {
+          "name": "Mark_2.1.14-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:44508a1c74e76f9528b173fa42c83f941c64eb7033ca97a7d9e40a58c0892713"
+        },
+        {
+          "name": "Mark_2.1.14-beta_sbom-node.cdx.json",
+          "size": 1252060,
+          "digest": "sha256:08dfb1c701f7bee8b0253aea2274372012c8301cdf90a287a792bd06f082b85e"
+        },
+        {
+          "name": "Mark_2.1.14-beta_sbom-rust.cdx.json",
+          "size": 481922,
+          "digest": "sha256:213a0dffcf2f94aac2b2299331e7f1cbbf15d03abcf26199b196f977b1e74ee5"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45143,
+          "digest": "sha256:da3140e5eee4116ff732a56e369cd6efab587bbc7b5b901df149da3b12cb2b3e"
+        }
+      ],
+      "body": "## Что нового\n\n### Печать и экспорт\n- **Печать снова работает**: File → Print открывает системное окно печати macOS с пагинацией и «Сохранить как PDF» (пункт был неработающим со времён порта — WKWebView игнорирует window.print).\n- **Экспорт PDF без pandoc**: тот же родной диалог печати, документ уходит в PDF в своём оформлении (раньше pandoc терял стили). Работает и в будущей версии из App Store.\n\n### Навигация\n- **Переход к заголовку** (Edit → Go to Heading…, `Cmd+T`): поиск по заголовкам документа с переходом — как поиск символов в VS Code.\n- **Оглавление показывает, где вы**: при чтении подсвечивается секция, в которой находится экран.\n\n---\nAutomated release from `4ca754d6690da51384a93c60990c41f40f24190b`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.14-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.14-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.14-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.14-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.14-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n"
+    },
+    {
+      "tag": "v2.1.13-beta",
+      "name": "Mark v2.1.13-beta",
+      "commit": "f30b30ea5f3424cb21a9faae026b916369bd36fa",
+      "publishedAt": "2026-09-23T06:10:33Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 755,
+          "digest": "sha256:ce1b4de7c258c5cb4f2e2e4eaa277ab88bf2e30f81c9c68e9c1321d460c6cb5a"
+        },
+        {
+          "name": "Mark_2.1.13-beta_aarch64.app.tar.gz",
+          "size": 13595632,
+          "digest": "sha256:8dd93be413511f345855501aabb355fb0776bbffb83dcdc96a7fbff39af033a1"
+        },
+        {
+          "name": "Mark_2.1.13-beta_aarch64.dmg",
+          "size": 13785892,
+          "digest": "sha256:7aeeb5f9bf60cb5effe82943e9a78c2822dbc5763231efa347fe1bc1416984db"
+        },
+        {
+          "name": "Mark_2.1.13-beta_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:f1ad6b137504efe9a9eed6bcff8a1f8b0b41b6a9d7dea71f31ece1ef825bfcf6"
+        },
+        {
+          "name": "Mark_2.1.13-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:0f6074def6201da5684ef958581c12d9a678bd37b50f52eb91e2136eb0046b81"
+        },
+        {
+          "name": "Mark_2.1.13-beta_sbom-node.cdx.json",
+          "size": 1252060,
+          "digest": "sha256:435a1b13e953fdbe740def2bbccfca65e3ddc209831cf83125713b190b6635b2"
+        },
+        {
+          "name": "Mark_2.1.13-beta_sbom-rust.cdx.json",
+          "size": 481922,
+          "digest": "sha256:c8d19881ccbc7658817fb690dfe9fe9e430c347157d0b0d490dd76f0782bb319"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45143,
+          "digest": "sha256:da3140e5eee4116ff732a56e369cd6efab587bbc7b5b901df149da3b12cb2b3e"
+        }
+      ],
+      "body": "## Что нового\n\n### Редактор\n- **Умная вставка ссылки**: вставка URL поверх выделенного текста превращает его в markdown-ссылку `[текст](ссылка)` — выделение больше не теряется.\n- **Проверка качества markdown**: новая панель проблем (меню/палитра «Problems») подсвечивает типовые дефекты — скачки уровней заголовков, несколько H1, хвостовые пробелы, пропущенные пустые строки, блоки кода без языка. Клик по проблеме прыгает к нужному месту.\n- **Format Document** (Edit-меню, `Shift+Alt+F`): одним действием приводит документ в порядок — пробелы, пустые строки, стили заголовков, каскад уровней. Один Cmd+Z возвращает всё назад.\n- Панель проблем и проверка отключаются командой палитры «Toggle markdown validation».\n\n### Вкладки и надёжность\n- Исправлен редкий сбой тестов на CI (таймер уведомлений переживал окно теста).\n\n---\nAutomated release from `f30b30ea5f3424cb21a9faae026b916369bd36fa`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.13-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.13-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.13-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.13-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.13-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n"
+    },
+    {
+      "tag": "v2.1.12-beta",
+      "name": "Mark v2.1.12-beta",
+      "commit": "70cab903a54150df3dc745b0e41fe63ea19f6f77",
+      "publishedAt": "2026-09-21T18:13:15Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 755,
+          "digest": "sha256:80ed4b357a993bea28a749c42bd5d0c24e6a788b1da93b6cca842a12c1a020bd"
+        },
+        {
+          "name": "Mark_2.1.12-beta_aarch64.app.tar.gz",
+          "size": 13594652,
+          "digest": "sha256:777a8ceb32edf87364458ea10101cb0dc58985a87a652be48a9692a7b4bb27ee"
+        },
+        {
+          "name": "Mark_2.1.12-beta_aarch64.dmg",
+          "size": 13786760,
+          "digest": "sha256:0f9865453e322a7e8a7a008b49ad09a20050f2ada368e370a9517169af6fb45c"
+        },
+        {
+          "name": "Mark_2.1.12-beta_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:20e3dab6196a6e6c59029fe0bb4adaffc68d0ca75525e22abc0624dc2dfad183"
+        },
+        {
+          "name": "Mark_2.1.12-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:f0fca77f0ba5bcf43b24cf65045365e080e96e28661a76136047443a632a34c4"
+        },
+        {
+          "name": "Mark_2.1.12-beta_sbom-node.cdx.json",
+          "size": 1252060,
+          "digest": "sha256:b6eaee1b254ad259a62a53526a0a1ba78565ff8b683eb90631a8dff665ded97c"
+        },
+        {
+          "name": "Mark_2.1.12-beta_sbom-rust.cdx.json",
+          "size": 481922,
+          "digest": "sha256:171a557c34071db4398807a729151c94c3d0788a8897e7b5ef2b70988cef9eda"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45143,
+          "digest": "sha256:da3140e5eee4116ff732a56e369cd6efab587bbc7b5b901df149da3b12cb2b3e"
+        }
+      ],
+      "body": "## Что нового\n\n### Редактор\n- Исправлен давний баг «пустой текст до первой прокрутки»: когда внешний агент (или другая программа) перезаписывает открытый файл, позиция чтения теперь корректно вписывается в новый размер документа — вкладка больше не «зависает» за пределами укоротившегося текста.\n- Исправлен откат содержимого: возврат на вкладку, изменённую агентом в фоне, теперь показывает актуальную версию файла, а не старую.\n- Богатая подсветка кода R: встроенные функции и базовые идентификаторы окрашиваются отдельно.\n\n### Вкладки\n- Позиция прокрутки сохраняется при переключении между вкладками туда-обратно.\n\n### Платформа\n- Подготовка к Mac App Store: работа в песочнице с сохранением доступа к выбранным папкам (security-scoped bookmarks), поиск по проекту без внешних процессов в MAS-сборке, адаптация меню и настроек под правила App Store.\n- Полный набор иконок приложения (включая 1024px для App Store).\n\n---\nAutomated release from `70cab903a54150df3dc745b0e41fe63ea19f6f77`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.12-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.12-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.12-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.12-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.12-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n"
+    },
+    {
+      "tag": "v2.1.11-beta",
+      "name": "Mark v2.1.11-beta",
+      "commit": "d9c9704c0aca3e3fb5a60254be86f15af2987f51",
+      "publishedAt": "2026-09-18T05:37:42Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 755,
+          "digest": "sha256:96d32bbee0873c01b762f257e0e928fa122c5d0f8abb3482c255d31cd20d7a3c"
+        },
+        {
+          "name": "Mark_2.1.11-beta_aarch64.app.tar.gz",
+          "size": 12449710,
+          "digest": "sha256:d68535d88815240ea6083d35a6c42b2a0f7b03cc54437509ca13aef01020f533"
+        },
+        {
+          "name": "Mark_2.1.11-beta_aarch64.dmg",
+          "size": 12268615,
+          "digest": "sha256:616da8c4a15c19a04f6db196213d16a63dd10ae93e7016d2e2234f99b83dee26"
+        },
+        {
+          "name": "Mark_2.1.11-beta_aarch64.dmg.bundle",
+          "size": 8557,
+          "digest": "sha256:5992940d2737502d63648fa59d31e0ea75d15624c25a08e8dccdf6aa700c109a"
+        },
+        {
+          "name": "Mark_2.1.11-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:9b78ec646d6e58f89a1bae88b240849fbca7998ce2c5d9c12dd46183e5f124a1"
+        },
+        {
+          "name": "Mark_2.1.11-beta_sbom-node.cdx.json",
+          "size": 1252060,
+          "digest": "sha256:8e03eef34356c273748f213451b76fdcd4c0b961ec68d9d431c668a0a04bc0cb"
+        },
+        {
+          "name": "Mark_2.1.11-beta_sbom-rust.cdx.json",
+          "size": 481743,
+          "digest": "sha256:8efa380f21032c024b8173d5f216d55571b0a117e1a9f5ec609c66f67f4d2515"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45143,
+          "digest": "sha256:da3140e5eee4116ff732a56e369cd6efab587bbc7b5b901df149da3b12cb2b3e"
+        }
+      ],
+      "body": "## Что нового в v2.1.11-beta\n\n**Контекстное меню редактора (ПКМ)**\n- Новое: полноценное нативное меню правой кнопки — Отменить / Повторить, Вырезать / Копировать / Вставить, Выделить всё и Поделиться файлом ( системный share-лист). Вставка и копирование работают как нативные пункты macOS, включая автоматическую доступность.\n\n**Копирование**\n- Новое: **Копировать как HTML** (Cmd+Shift+C) — форматирование сохраняется при вставке в письма (Mail, Gmail). Без выделения копируется весь документ.\n- Новое: **Копировать как простой текст** (Cmd+Alt+Shift+C) — чистый текст без HTML-тегов и Markdown-разметки: заголовки без `#`, жирный без звёздочек, с сохранением структуры абзацев.\n- Все три варианта (обычный Markdown / HTML / простой текст) доступны в контекстном меню, в Edit-меню и в палитре команд.\n\n**Внутреннее**\n- Удалён код миграции настроек из старого Mark Text (~6000 строк) — приложение легче. Настройки, темы и сессии существующих установок не затронуты.\n\n---\n\nAutomated release from `d9c9704c0aca3e3fb5a60254be86f15af2987f51`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.11-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.11-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.11-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.11-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.11-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n"
+    },
+    {
+      "tag": "v2.1.10-beta",
+      "name": "Mark v2.1.10-beta",
+      "commit": "4d2837ed08389829fc66615eea9d1017f64bb957",
+      "publishedAt": "2026-09-16T19:55:57Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 755,
+          "digest": "sha256:b1d17bf6de2e70a313836ffdb1dd353884c72690657ea8c5d13695a95d18b5e5"
+        },
+        {
+          "name": "Mark_2.1.10-beta_aarch64.app.tar.gz",
+          "size": 12504079,
+          "digest": "sha256:b69308c706f8f113361f3b7181017cacc782919b469703db39d15062314de963"
+        },
+        {
+          "name": "Mark_2.1.10-beta_aarch64.dmg",
+          "size": 12307854,
+          "digest": "sha256:94dad9500f26027c0ab1d55f80a97b3cd5903b931c5b93d91ba8694e8512aa4c"
+        },
+        {
+          "name": "Mark_2.1.10-beta_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:63e88b935268289113cadc747159aba2b573a5cd940816bc65e28580e5d0ca37"
+        },
+        {
+          "name": "Mark_2.1.10-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:eda1f7e100b574702fc8312cdce637c47587eeb15fae2563663e88e8ec3f34a9"
+        },
+        {
+          "name": "Mark_2.1.10-beta_sbom-node.cdx.json",
+          "size": 1252060,
+          "digest": "sha256:374cf49209402a515a5d6d6aa3609c304527574890f1b86cbcbfcd698f4db88c"
+        },
+        {
+          "name": "Mark_2.1.10-beta_sbom-rust.cdx.json",
+          "size": 482694,
+          "digest": "sha256:c43bfa21f679ce001d3e33f0732f49a2e0e4a236c553a47c46d9f21e3181904a"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "## Что нового в v2.1.10-beta\n\n**Вкладки**\n- Активная вкладка теперь всегда видна: полоса сама прокручивается к ней при переключении любым способом — Ctrl+Tab / Ctrl+Shift+Tab, клике по файлу в сайдбаре, закрытии соседней вкладки, восстановлении сессии, перетаскивании и изменении размера окна.\n- Новое: переключение вкладок с клавиатуры — **Ctrl+Tab / Ctrl+Shift+Tab** (меню Window → Select Next/Previous Tab).\n\n**Титлбар**\n- Исправлено: при узком окне путь и имя файла больше не наезжают на кнопки слева и счётчик слов справа — путь аккуратно обрезается с начала, имя файла и точка несохранённости всегда видны.\n\n**Редактор**\n- Новое: **Edit → Copy as HTML (Cmd+Shift+C)** — копирование с сохранением форматирования для вставки в письма (Mail, Gmail). Без выделения копируется весь документ; в текстовые редакторы вставляется обычный Markdown.\n- Исправлено: внешние изменения файлов теперь отражаются во **всех** открытых вкладках, а не только в первой (живая перезагрузка после правки файла снаружи Mark).\n\n---\n\nAutomated release from `4d2837ed08389829fc66615eea9d1017f64bb957`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.10-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.10-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.10-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.10-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.10-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```\n"
+    },
+    {
+      "tag": "v2.1.9-beta",
+      "name": "Mark v2.1.9-beta",
+      "commit": "10d3df4e3cea0c7d2fcf20525d3b727411e66d8e",
+      "publishedAt": "2026-08-18T05:48:12Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:a228edf66af0f5d7e6ab6c58f985fba686434cf2212f5074aa4f68dc73d71f5e"
+        },
+        {
+          "name": "Mark_2.1.9-beta_aarch64.app.tar.gz",
+          "size": 12495840,
+          "digest": "sha256:e31ad4d9376a3a5a672760069443c6d960d21ade2c084302e5e513a39aabdb1e"
+        },
+        {
+          "name": "Mark_2.1.9-beta_aarch64.dmg",
+          "size": 12311071,
+          "digest": "sha256:da9e98ca1d17aa5661ba46cd23f647a811f1b24a847642fe30c200f8c4e4341d"
+        },
+        {
+          "name": "Mark_2.1.9-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:9377020199fb0236886abf705a39c5f0d9f31e3b8dc047ca902dec1d82249bb1"
+        },
+        {
+          "name": "Mark_2.1.9-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:97c161e73a6af707ceb39de49098abba6615b19e1a241508badc27de1f8f2573"
+        },
+        {
+          "name": "Mark_2.1.9-beta_sbom-node.cdx.json",
+          "size": 1249282,
+          "digest": "sha256:489c750eb1ed0fc9f5ca42447f17a45ae76a9acc4674ad99c6010fb1d590386e"
+        },
+        {
+          "name": "Mark_2.1.9-beta_sbom-rust.cdx.json",
+          "size": 482687,
+          "digest": "sha256:c5afac4ddac61bc57a3a50f330c36dc87f458670b80c6522dca5c409e6bc69e4"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "Automated release from `10d3df4e3cea0c7d2fcf20525d3b727411e66d8e`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.9-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.9-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.9-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.9-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.9-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.8-beta",
+      "name": "Mark v2.1.8-beta",
+      "commit": "5c0aba38cd8f92c22726c4f2d3c23fc8f089009c",
+      "publishedAt": "2026-08-10T11:16:06Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:e7fe895fc02ea9404c09ea0e426f25c22c58bc3110dd681703c287550f396e7f"
+        },
+        {
+          "name": "Mark_2.1.8-beta_aarch64.app.tar.gz",
+          "size": 12494146,
+          "digest": "sha256:ed1e6e048b61aab4f9a352b195ee6c23a8df27ecf3e7804d6796e5c144890afe"
+        },
+        {
+          "name": "Mark_2.1.8-beta_aarch64.dmg",
+          "size": 12305083,
+          "digest": "sha256:29181cb92b4d11cd59b7101b2906aba0058a4ecc0af079accf135f53c2502764"
+        },
+        {
+          "name": "Mark_2.1.8-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:6ca7a9e8ea81cd5fdb26c03cf02a598f47c8797a182b9a9d30b84c75f0ecb6d1"
+        },
+        {
+          "name": "Mark_2.1.8-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:76e7fb025700fe792ec1c41fb09a3f2a0be685889cbcc9eef8be904ee21c3bcc"
+        },
+        {
+          "name": "Mark_2.1.8-beta_sbom-node.cdx.json",
+          "size": 1206357,
+          "digest": "sha256:b004e3f2b9313c1aeb744e1237062a310c80c57c57b38535441a9c996d0ce85d"
+        },
+        {
+          "name": "Mark_2.1.8-beta_sbom-rust.cdx.json",
+          "size": 482687,
+          "digest": "sha256:aab1fd581c0ebb27ee514254544f4dbabf7fa4414e43d2270399f033d0cbbc17"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "Automated release from `5c0aba38cd8f92c22726c4f2d3c23fc8f089009c`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.8-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.8-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.8-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.8-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.8-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.7-beta",
+      "name": "Mark v2.1.7-beta",
+      "commit": "99da52b779329be9340edde89f1d5fb88aa9442d",
+      "publishedAt": "2026-08-10T10:44:10Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:d1730660ab08cfb5e034d6e04bc8909f803ddc0540b05aae7c1cf970ac83391d"
+        },
+        {
+          "name": "Mark_2.1.7-beta_aarch64.app.tar.gz",
+          "size": 12493953,
+          "digest": "sha256:53be79a2d14d2b0170c1de31ea540fd1b9e2eff7f13e273c8d778eeec4b1a950"
+        },
+        {
+          "name": "Mark_2.1.7-beta_aarch64.dmg",
+          "size": 12305658,
+          "digest": "sha256:32dabddcf1185cd169aea23367ff83ece62047328dc1e5985842ee906301379c"
+        },
+        {
+          "name": "Mark_2.1.7-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:7066109e87167ad94528d97ca12926f25a9f6a0b77ae98d18c0882c9ce7ccfbe"
+        },
+        {
+          "name": "Mark_2.1.7-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:afe478abcaa05fb0dcaf76fb12d8cd4f9f3f4b96e1c382e11298ceff5624e7e8"
+        },
+        {
+          "name": "Mark_2.1.7-beta_sbom-node.cdx.json",
+          "size": 1206357,
+          "digest": "sha256:4e0c593fc31fc3733a4012cbd6cfb4c758f1f559ec7a42c1412252e7551a3678"
+        },
+        {
+          "name": "Mark_2.1.7-beta_sbom-rust.cdx.json",
+          "size": 482687,
+          "digest": "sha256:b5c0aa018ed5ea5c64fc312c495561576e38d1b523bb2e698b290bcd58f04dc7"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "Automated release from `99da52b779329be9340edde89f1d5fb88aa9442d`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.7-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.7-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.7-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.7-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.7-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.6-beta",
+      "name": "Mark v2.1.6-beta",
+      "commit": "896b0a954bcf387c44b2cb1c6a34b2889a909c0d",
+      "publishedAt": "2026-08-10T10:08:55Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:77aa91e9343e4e770d2eced29d2f07007bdea159ac87e84918dd274726255a50"
+        },
+        {
+          "name": "Mark_2.1.6-beta_aarch64.app.tar.gz",
+          "size": 12493447,
+          "digest": "sha256:8bf7d29d4ae11cbab6b2410b5e8e88a700478c7b9063b98fde27136eb8325e19"
+        },
+        {
+          "name": "Mark_2.1.6-beta_aarch64.dmg",
+          "size": 12304318,
+          "digest": "sha256:787712b5a2a43b4c04facd188b5df4c391b74cb5a1b2a596c082e97149bfded0"
+        },
+        {
+          "name": "Mark_2.1.6-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:c85fce4331f4a037822e9ec7d3d9a2dc1ba9ca7761b9656117e5c398509b7889"
+        },
+        {
+          "name": "Mark_2.1.6-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:912fccc8e111392a3eb803092e595b0eec3e56eb5fed3dd4d50e37dcdef65def"
+        },
+        {
+          "name": "Mark_2.1.6-beta_sbom-node.cdx.json",
+          "size": 1206357,
+          "digest": "sha256:12764689f6f370db6a81539de45efa00ee0c64f1e9976105dc0d998a8d2e2ba6"
+        },
+        {
+          "name": "Mark_2.1.6-beta_sbom-rust.cdx.json",
+          "size": 482687,
+          "digest": "sha256:733306c2456dffa458967fb469a711c4f14d4345b5d27561bb6e5ab3dd225085"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "Automated release from `896b0a954bcf387c44b2cb1c6a34b2889a909c0d`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.6-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.6-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.6-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.6-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.6-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.5-beta",
+      "name": "Mark v2.1.5-beta",
+      "commit": "b9e5e01c0c9e2dc319f8b6bb0aabed9961f9f174",
+      "publishedAt": "2026-08-10T08:55:14Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:6fa5cb59e7dc1bd40b18e70f5048b28845b7d0707702d2e852be76b5d06dbf75"
+        },
+        {
+          "name": "Mark_2.1.5-beta_aarch64.app.tar.gz",
+          "size": 12493275,
+          "digest": "sha256:5d52544cac5cd77a98c78f47b7465ecf5fc668bb3d9b62a09f1f5b6128cebe35"
+        },
+        {
+          "name": "Mark_2.1.5-beta_aarch64.dmg",
+          "size": 12304931,
+          "digest": "sha256:a8275c150783dd1321e1a99ea8c4063d46b6262a8a3b01015f129379f3cbef6d"
+        },
+        {
+          "name": "Mark_2.1.5-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:59b845f01336179c7071e86f391ab8394d4ac4de04742a64ba10a28852b57fe6"
+        },
+        {
+          "name": "Mark_2.1.5-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:35c53610a8c04e9af3dd092576cb5dc929302367a7c0c342cf055e535285ca2b"
+        },
+        {
+          "name": "Mark_2.1.5-beta_sbom-node.cdx.json",
+          "size": 1206357,
+          "digest": "sha256:828260001f16a9964bc71e7d9c480cc3895be0ef6ebaa8a7ddc672af39e68c07"
+        },
+        {
+          "name": "Mark_2.1.5-beta_sbom-rust.cdx.json",
+          "size": 482687,
+          "digest": "sha256:a9ef6886c6c6e722bb337cfc1da0d614b4362ba1a341d88ce0bb2a4a75e97e15"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "Automated release from `b9e5e01c0c9e2dc319f8b6bb0aabed9961f9f174`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.5-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.5-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.5-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.5-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.5-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.4-beta",
+      "name": "Mark v2.1.4-beta",
+      "commit": "b6392411ce086cfc57285d5335a62ef07092ff82",
+      "publishedAt": "2026-08-10T08:25:18Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:c7dd59f180c0966827bcc280f151c34a1e1301a955f9e7dd3607e9079319d497"
+        },
+        {
+          "name": "Mark_2.1.4-beta_aarch64.app.tar.gz",
+          "size": 12493320,
+          "digest": "sha256:5df57285fe7d7bc6ff9fac24da17ade98730f462415c5ed85e5ad25168175bd3"
+        },
+        {
+          "name": "Mark_2.1.4-beta_aarch64.dmg",
+          "size": 12303848,
+          "digest": "sha256:33b561ba8338a6ac509777a877943562d522558d5933f38f2ae053c17d53796e"
+        },
+        {
+          "name": "Mark_2.1.4-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:90acf9b3896b5a77f0691de61b6a82c52a42d4eb55d57e4c9a92684b194eb902"
+        },
+        {
+          "name": "Mark_2.1.4-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:369dc7f85be5059e42c8263f610aa80d94192cf88d8e36d72b4e040fa5b0e82e"
+        },
+        {
+          "name": "Mark_2.1.4-beta_sbom-node.cdx.json",
+          "size": 1206357,
+          "digest": "sha256:ce0315d4b01d63c6f12fab42b0c248c6496d47ce67a29d5502acd19d832a4571"
+        },
+        {
+          "name": "Mark_2.1.4-beta_sbom-rust.cdx.json",
+          "size": 482687,
+          "digest": "sha256:07a2187ee47db87bef6d82aa937d154a0fdaf0667b5496920bd74b2039f298b1"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "Automated release from `b6392411ce086cfc57285d5335a62ef07092ff82`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.4-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.4-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.4-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.4-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.4-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.3-beta",
+      "name": "Mark v2.1.3-beta",
+      "commit": "87c7c38124dd2cbe3dbe9f2aaa2312a4a351d7dd",
+      "publishedAt": "2026-08-07T16:29:19Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:15311387b26e53d8c202a6d48a625c8b1b894e83731212303a7313dffd258623"
+        },
+        {
+          "name": "Mark_2.1.3-beta_aarch64.app.tar.gz",
+          "size": 12493439,
+          "digest": "sha256:0f4a6eabc1ab1fde2c7ed2e936649a4a4db8575330c840a315ebc9be0215eaea"
+        },
+        {
+          "name": "Mark_2.1.3-beta_aarch64.dmg",
+          "size": 12304622,
+          "digest": "sha256:34f32d6ab20d8ed5c543e3a03d8a01f13cb008ef8a9162efd0a9b053b974a821"
+        },
+        {
+          "name": "Mark_2.1.3-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:c6c15f3717aa6a639c4ca16d6cc5decb2d4c5cd1f17285c239b1529cb51b01f3"
+        },
+        {
+          "name": "Mark_2.1.3-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:f36fa0e165830538cefd3425747860205859381827ec8e557678a99d47c33e70"
+        },
+        {
+          "name": "Mark_2.1.3-beta_sbom-node.cdx.json",
+          "size": 1206357,
+          "digest": "sha256:38fce633c8295b97ffe672c2e55b8d04a13787d16dfd06c039be38402ba95bfc"
+        },
+        {
+          "name": "Mark_2.1.3-beta_sbom-rust.cdx.json",
+          "size": 482687,
+          "digest": "sha256:5cc9b25db4a0a8b33c1cc25377743fd1ecf1ca954d618db39b132b5c22980e47"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 52039,
+          "digest": "sha256:de1b5948f3d84dcf061fd4dac38b783ef198ed060b5fa7960a264300bb6ce866"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 45208,
+          "digest": "sha256:33186daf8f0526db734e079932f7146fb41c3fcf6ef8f5039ba14bbc19c7f5e6"
+        }
+      ],
+      "body": "Automated release from `87c7c38124dd2cbe3dbe9f2aaa2312a4a351d7dd`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.3-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.3-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.3-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.3-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.3-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.2-beta",
+      "name": "Mark v2.1.2-beta",
+      "commit": "8175667ddd12f7098328314f3fae9334900fe33c",
+      "publishedAt": "2026-08-07T12:34:59Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:b5abaa75140bfe233bee2a7638be2728254835f5387e607b7a3b0820f9b8ed43"
+        },
+        {
+          "name": "Mark_2.1.2-beta_aarch64.app.tar.gz",
+          "size": 12217659,
+          "digest": "sha256:003acd1e9d4be21711b03a41f562ccf7f8c7601474a7c830af8ff9f2eca0ba84"
+        },
+        {
+          "name": "Mark_2.1.2-beta_aarch64.dmg",
+          "size": 12032204,
+          "digest": "sha256:1ba25b7cf8558690e08dc77f7dba38e0dba4c6d10a7645a11a605ddb28e58a53"
+        },
+        {
+          "name": "Mark_2.1.2-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:cca9ef7e87552d7f9f8b725e80d97756b3967c97922ecac29576f9a8831feb4f"
+        },
+        {
+          "name": "Mark_2.1.2-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:ef589685c7690044113a9f88ac211d6f42234ff6a0b7492c1c161ea071729dd2"
+        },
+        {
+          "name": "Mark_2.1.2-beta_sbom-node.cdx.json",
+          "size": 1204622,
+          "digest": "sha256:ea53e13225d6cb09b1affe2fac3bf3fe2d5dfb81af084e91c874b2999637e777"
+        },
+        {
+          "name": "Mark_2.1.2-beta_sbom-rust.cdx.json",
+          "size": 465189,
+          "digest": "sha256:49139e566da6cb82ccdab963f39c809c238fd67ca4c33c6f3497d8b76d281a2b"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51940,
+          "digest": "sha256:7b40d3bb5808d333a58da8e3b9dc84ba90bafd5694ffee880045df93ea344129"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 43521,
+          "digest": "sha256:dd4df550f6b2689c79383028527526c1c6c81ed77a05eed57e4faa07b56acf2b"
+        }
+      ],
+      "body": "Automated release from `8175667ddd12f7098328314f3fae9334900fe33c`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.2-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.2-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.2-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.2-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.2-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.1-beta",
+      "name": "Mark v2.1.1-beta",
+      "commit": "9f8273b9fdfde744c69734a048ca053dadda7f6c",
+      "publishedAt": "2026-08-07T09:45:07Z",
+      "prerelease": true,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 751,
+          "digest": "sha256:50cfdbc65b17335c0b67a0f4bc79fb0b901cb68071061f9282df371624348436"
+        },
+        {
+          "name": "Mark_2.1.1-beta_aarch64.app.tar.gz",
+          "size": 12219555,
+          "digest": "sha256:c7985d148d9b26fd66494bf9a478c4e6eeaef1106620bbfbc507b3391820298b"
+        },
+        {
+          "name": "Mark_2.1.1-beta_aarch64.dmg",
+          "size": 12034751,
+          "digest": "sha256:fd2afb43b83725e68c973559b5035dd561da10e7ede0b31171d98ec34495887f"
+        },
+        {
+          "name": "Mark_2.1.1-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:83f6363ef7397ceb23a41bb61e519e6c9a3672441b34d4dd5bee45c51e195420"
+        },
+        {
+          "name": "Mark_2.1.1-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:e92784867eeb0f56dc146b889aefd1eca054a864c0bb4244cec43762dc311bf6"
+        },
+        {
+          "name": "Mark_2.1.1-beta_sbom-node.cdx.json",
+          "size": 1204622,
+          "digest": "sha256:63fd5a7ebd438b9aa99dc97a0670dafb9363f484d5e4f5ae9b9963ba6d0d0918"
+        },
+        {
+          "name": "Mark_2.1.1-beta_sbom-rust.cdx.json",
+          "size": 465189,
+          "digest": "sha256:1e46dba616739137aeee515cc02c93862c0a9e64798fae3e609fef5e415e1d48"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51940,
+          "digest": "sha256:7b40d3bb5808d333a58da8e3b9dc84ba90bafd5694ffee880045df93ea344129"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 43521,
+          "digest": "sha256:dd4df550f6b2689c79383028527526c1c6c81ed77a05eed57e4faa07b56acf2b"
+        }
+      ],
+      "body": "Automated release from `9f8273b9fdfde744c69734a048ca053dadda7f6c`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.1.1-beta_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.1.1-beta_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.1.1-beta_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.1.1-beta_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.1.1-beta_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.1.0-beta",
+      "name": "Mark v2.1.0-beta",
+      "commit": "348ddb90bf0cc92bc822d75c559f95bc3dc4ea66",
+      "publishedAt": "2026-06-14T08:20:07Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 752,
+          "digest": "sha256:e55f8269a74d0aa082bcb58867ed333f82077cc8f4b1d91aafac659a951ce8b7"
+        },
+        {
+          "name": "Mark_2.1.0-beta_aarch64.app.tar.gz",
+          "size": 12534792,
+          "digest": "sha256:6b8bf430e46db80b50163430a23498ac60b912be7b744772ac28ab2e4bc193a7"
+        },
+        {
+          "name": "Mark_2.1.0-beta_aarch64.dmg",
+          "size": 12354053,
+          "digest": "sha256:f518255da356213c382c4f250cd1c05f5e130235c84779f803930e0b08e1fba8"
+        },
+        {
+          "name": "Mark_2.1.0-beta_aarch64.dmg.bundle",
+          "size": 8517,
+          "digest": "sha256:b25d444d24ad4b1cd90bfac3c162edfc09ddc0bf92694a8f5ecc3f3c8efd7575"
+        },
+        {
+          "name": "Mark_2.1.0-beta_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:6f2d60910223051cc9a2839666b9a60ddd16f2e60a29fd0aa71cf3cc487a1911"
+        },
+        {
+          "name": "Mark_2.1.0-beta_sbom-node.cdx.json",
+          "size": 1204622,
+          "digest": "sha256:d5c790c2752780a4abb9d0d164327b62ccff332ef86a0b9f4452a7ae953307c3"
+        },
+        {
+          "name": "Mark_2.1.0-beta_sbom-rust.cdx.json",
+          "size": 465189,
+          "digest": "sha256:8cfc9cddcde8a446b49bc309afd288f6fccdc9aa76eb6bf73273578232e8eeda"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51940,
+          "digest": "sha256:7b40d3bb5808d333a58da8e3b9dc84ba90bafd5694ffee880045df93ea344129"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 43521,
+          "digest": "sha256:dd4df550f6b2689c79383028527526c1c6c81ed77a05eed57e4faa07b56acf2b"
+        }
+      ],
+      "body": "Manual test release"
+    },
+    {
+      "tag": "v2.0.7-alpha",
+      "name": "Mark v2.0.7-alpha",
+      "commit": "ab7f5ba0d77c7f1af61197a7a6acb973f3060749",
+      "publishedAt": "2026-06-07T15:02:48Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 756,
+          "digest": "sha256:8ec6d13c5f9583e7bb0d748402d0f365f7c3c6275a59c77bd16b8ed279be8f57"
+        },
+        {
+          "name": "Mark_2.0.7-alpha_aarch64.app.tar.gz",
+          "size": 11129296,
+          "digest": "sha256:400f6117c90e414fea4498eddc410a68bdf4e7b9c186b9e90d223919578b1d4d"
+        },
+        {
+          "name": "Mark_2.0.7-alpha_aarch64.dmg",
+          "size": 10994991,
+          "digest": "sha256:f47ebf3f3c98b06412da392b0406c89a36b0226eb506938ae6307aca758ba739"
+        },
+        {
+          "name": "Mark_2.0.7-alpha_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:e36d7e38a1abb7afa97ae492b2807073bced975d2f47e039c635131874221c3d"
+        },
+        {
+          "name": "Mark_2.0.7-alpha_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:7cb3260193a7a276e5d001337611c9026e89f677bf99378ebdc21b4d49efc3f2"
+        },
+        {
+          "name": "Mark_2.0.7-alpha_sbom-node.cdx.json",
+          "size": 1207396,
+          "digest": "sha256:acf2d3c5ddcf983ab5a0bc74c8e5d44ef540362d5a372917f281e4955efe42e5"
+        },
+        {
+          "name": "Mark_2.0.7-alpha_sbom-rust.cdx.json",
+          "size": 436888,
+          "digest": "sha256:5a8e23594299e3169ec77a6cf4c9776aff8973fba5d5c1a9b48c7fd7fa3008d1"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51940,
+          "digest": "sha256:7b40d3bb5808d333a58da8e3b9dc84ba90bafd5694ffee880045df93ea344129"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 41487,
+          "digest": "sha256:6d07085cd93b8ba1ddbfd15c0303055b213d33ee0464088a16c701a8818525de"
+        }
+      ],
+      "body": "Automated release from `ab7f5ba0d77c7f1af61197a7a6acb973f3060749`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.0.7-alpha_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.0.7-alpha_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.0.7-alpha_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.0.7-alpha_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.0.7-alpha_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.0.6-alpha",
+      "name": "Mark v2.0.6-alpha",
+      "commit": "358988c82a733d8245c328c6c92b4af008916785",
+      "publishedAt": "2026-06-06T20:09:05Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 756,
+          "digest": "sha256:ce9ba6fffc87e0ac10a498aca6a672a9c62306f4a0c3425570ffd57d97908539"
+        },
+        {
+          "name": "Mark_2.0.6-alpha_aarch64.app.tar.gz",
+          "size": 11120452,
+          "digest": "sha256:1a09919951f13f01c9f6ac92e93b4ea922e595edd58e30f1ca6c423027717e7a"
+        },
+        {
+          "name": "Mark_2.0.6-alpha_aarch64.dmg",
+          "size": 11001851,
+          "digest": "sha256:cdd0a42d5fda7cf12503dc9bb91d79ebb0ae3f43eeb113c73e4ca21ade2809d7"
+        },
+        {
+          "name": "Mark_2.0.6-alpha_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:e7ca0d25e9ef393dc65f643fa3a2529818539aa90eb60b3fdfc61e59070d08b3"
+        },
+        {
+          "name": "Mark_2.0.6-alpha_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:ce7f93d831a2b89ed6c1ef8814447b000db328eb087979767c49c43f5b4d4760"
+        },
+        {
+          "name": "Mark_2.0.6-alpha_sbom-node.cdx.json",
+          "size": 1204072,
+          "digest": "sha256:f60626af1aecc803575f16406ece849650cb8b04198cde73da897af8f67e5fd9"
+        },
+        {
+          "name": "Mark_2.0.6-alpha_sbom-rust.cdx.json",
+          "size": 435574,
+          "digest": "sha256:979458bdc5416ae0d0afa0d2bd8fe91c3b7c3f61e44fe5fdfc12e520bd0f0882"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51761,
+          "digest": "sha256:774653127324dafc88795e254796df9c9eb91ef13b29f73f212f3d560174fbdb"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 41404,
+          "digest": "sha256:f6d371bee31e976529604b07757e61ac8c852d8a8a50054aea3eef6c0ac83d53"
+        }
+      ],
+      "body": "Automated release from `358988c82a733d8245c328c6c92b4af008916785`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.0.6-alpha_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.0.6-alpha_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.0.6-alpha_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.0.6-alpha_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.0.6-alpha_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.0.5-alpha",
+      "name": "Mark v2.0.5-alpha",
+      "commit": "d73e93ddb1ee5c20cb080e00af8f4aa9d905ffd2",
+      "publishedAt": "2026-06-03T03:09:03Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 756,
+          "digest": "sha256:c420b3e8845ca220685328c121fdace8330bfded5987f7528f267c5610f2cfa7"
+        },
+        {
+          "name": "Mark_2.0.5-alpha_aarch64.app.tar.gz",
+          "size": 11104775,
+          "digest": "sha256:17209ba078572e2ccc4a9627a79ab983d19c1756c576dd063dc9bfd1534c77c6"
+        },
+        {
+          "name": "Mark_2.0.5-alpha_aarch64.dmg",
+          "size": 10976678,
+          "digest": "sha256:e5af248f6b2ffeab2ce45b62ecbd3d9ed964bc057b798b3314401df0b2a48519"
+        },
+        {
+          "name": "Mark_2.0.5-alpha_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:9dc319e29b23005e9a60ce046daf4093133cff02a65be6a982f12a6c8fffbe09"
+        },
+        {
+          "name": "Mark_2.0.5-alpha_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:f7d981069f99afd518cc79979b0128922ced1e07bb6babb9f73272885b0511ca"
+        },
+        {
+          "name": "Mark_2.0.5-alpha_sbom-node.cdx.json",
+          "size": 1204072,
+          "digest": "sha256:b6f955230d75212ad9c4e9dc32a1cdaef0400ecce9bc4fd0a74c9af05e4cf615"
+        },
+        {
+          "name": "Mark_2.0.5-alpha_sbom-rust.cdx.json",
+          "size": 435574,
+          "digest": "sha256:7f1a1db4f0857df82e8ed306ef050aff4627d8c9a4be7af62f0157b1eb52b249"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51761,
+          "digest": "sha256:774653127324dafc88795e254796df9c9eb91ef13b29f73f212f3d560174fbdb"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 41404,
+          "digest": "sha256:f6d371bee31e976529604b07757e61ac8c852d8a8a50054aea3eef6c0ac83d53"
+        }
+      ],
+      "body": "Automated release from `d73e93ddb1ee5c20cb080e00af8f4aa9d905ffd2`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.0.5-alpha_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.0.5-alpha_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.0.5-alpha_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.0.5-alpha_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.0.5-alpha_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.0.4-alpha",
+      "name": "Mark v2.0.4-alpha",
+      "commit": "216daf76d73b0c8eaeb6a64dbd4741f1d56136b9",
+      "publishedAt": "2026-06-01T07:58:33Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 756,
+          "digest": "sha256:68c7c8c3f862fe77dd2c40141af7cb5f4760a8d208b558cf12a1f2b29bd3d283"
+        },
+        {
+          "name": "Mark_2.0.4-alpha_aarch64.app.tar.gz",
+          "size": 11083864,
+          "digest": "sha256:2267eb87b4bcf6e7aa578affb5921a0aef8a34b3978489dd0a50bf9b545e7e92"
+        },
+        {
+          "name": "Mark_2.0.4-alpha_aarch64.dmg",
+          "size": 10957277,
+          "digest": "sha256:70f0faad89bb65b8d1599b4506213ad041f236d279efe9bf17e4014ef42bed0b"
+        },
+        {
+          "name": "Mark_2.0.4-alpha_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:7dec28b22e2362adc169403b9a6a0291b509030cb9cb1ddf5544bfbcfc877183"
+        },
+        {
+          "name": "Mark_2.0.4-alpha_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:cd11a2e0ecad40c90eaf5c4c4d85f7a101648b0018d13167d9ddc386d8485fd8"
+        },
+        {
+          "name": "Mark_2.0.4-alpha_sbom-node.cdx.json",
+          "size": 1207630,
+          "digest": "sha256:8ffd278ce517130fe40d13143606806f3cf1bf1de57e61a7b548a3ab69619242"
+        },
+        {
+          "name": "Mark_2.0.4-alpha_sbom-rust.cdx.json",
+          "size": 455274,
+          "digest": "sha256:6791f47d9d41558fb6c64fbdd7063c96ab965990587595c84c652e67a49f5dcd"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51828,
+          "digest": "sha256:850e25fe16a4108323505c067b34d652418583a5b3111b32484f2686577a81c3"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 42859,
+          "digest": "sha256:f922a73d4bbcaaafe2f7dff6a0dc907d4c688b4998f87070e657f2a27ef5c3a6"
+        }
+      ],
+      "body": "Automated release from `216daf76d73b0c8eaeb6a64dbd4741f1d56136b9`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.0.4-alpha_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.0.4-alpha_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.0.4-alpha_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.0.4-alpha_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.0.4-alpha_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.0.3-alpha",
+      "name": "Mark v2.0.3-alpha",
+      "commit": "f280eebeb08dafad689461861c00f3140e8f0d81",
+      "publishedAt": "2026-06-01T07:16:35Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 756,
+          "digest": "sha256:dc6c1b1f34d082117cc1a256e7f2591c8711c91a76aeabbc66fabc27852d719e"
+        },
+        {
+          "name": "Mark_2.0.3-alpha_aarch64.app.tar.gz",
+          "size": 11079101,
+          "digest": "sha256:b5c45f4ee04b2283327e9fa27cadc902e82da3547a42ddad1d108194af6c924f"
+        },
+        {
+          "name": "Mark_2.0.3-alpha_aarch64.dmg",
+          "size": 10947350,
+          "digest": "sha256:ebb0f3b2dc4a108245e264a4cadfe3558902a14f49ad2a6b4e72a7a4f0c51829"
+        },
+        {
+          "name": "Mark_2.0.3-alpha_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:adfb73171e84f3e5072b1ab68166e45c7da3c24107cd2570b737d37929e2fcdf"
+        },
+        {
+          "name": "Mark_2.0.3-alpha_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:c360fdf4cfc85915d01e9d2506e43ade135e10a414032aab15d2c3fa4b4cb827"
+        },
+        {
+          "name": "Mark_2.0.3-alpha_sbom-node.cdx.json",
+          "size": 1207630,
+          "digest": "sha256:2572788a397fc66ab9b904e409e31d7626d577f5c56d6090bc5f4404fc4f53ff"
+        },
+        {
+          "name": "Mark_2.0.3-alpha_sbom-rust.cdx.json",
+          "size": 455274,
+          "digest": "sha256:f3fad71db2cf5670dcb5152dd1b59ab1cc0fdcefe30e32ac50375bdb9d5a3ad7"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51828,
+          "digest": "sha256:850e25fe16a4108323505c067b34d652418583a5b3111b32484f2686577a81c3"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 42859,
+          "digest": "sha256:f922a73d4bbcaaafe2f7dff6a0dc907d4c688b4998f87070e657f2a27ef5c3a6"
+        }
+      ],
+      "body": "Automated release from `f280eebeb08dafad689461861c00f3140e8f0d81`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.0.3-alpha_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.0.3-alpha_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.0.3-alpha_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.0.3-alpha_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.0.3-alpha_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.0.2-alpha",
+      "name": "Mark v2.0.2-alpha",
+      "commit": "53aa2a24cabb41661acd565ab5e661439bbccf7b",
+      "publishedAt": "2026-06-01T03:06:41Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 756,
+          "digest": "sha256:cecf455a41504b822d09ad6bcf03ee6e267d73274da962af8ea73c44cfa71c05"
+        },
+        {
+          "name": "Mark_2.0.2-alpha_aarch64.app.tar.gz",
+          "size": 11072109,
+          "digest": "sha256:cf2752522a1664cf3c78192a002002f3edb7003e5fd63d4b98df67dcbf760cfa"
+        },
+        {
+          "name": "Mark_2.0.2-alpha_aarch64.dmg",
+          "size": 10927540,
+          "digest": "sha256:ac4257c21f7e3d1e6fa2eb38dae65a6e2895ca8057fc3b7f9b2d068b8486141e"
+        },
+        {
+          "name": "Mark_2.0.2-alpha_aarch64.dmg.bundle",
+          "size": 8545,
+          "digest": "sha256:b6842ad922588a22daaa6f0a74cac1cad6b0b1a817eab768f2002a370392e3e8"
+        },
+        {
+          "name": "Mark_2.0.2-alpha_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:e8009437e828329dba3379d2a79243f46a545b18d50097cc316346775c196d60"
+        },
+        {
+          "name": "Mark_2.0.2-alpha_sbom-node.cdx.json",
+          "size": 1207630,
+          "digest": "sha256:cd4e3478ec57eeaaf90f7ccc7574d7f9c9dad395fc216eb176bf55b289a77c41"
+        },
+        {
+          "name": "Mark_2.0.2-alpha_sbom-rust.cdx.json",
+          "size": 455274,
+          "digest": "sha256:fb7f78fe457700db218d8bc96ab78b23f6d996b7d576534ce4c96408c25c3779"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51828,
+          "digest": "sha256:850e25fe16a4108323505c067b34d652418583a5b3111b32484f2686577a81c3"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 42859,
+          "digest": "sha256:f922a73d4bbcaaafe2f7dff6a0dc907d4c688b4998f87070e657f2a27ef5c3a6"
+        }
+      ],
+      "body": "Automated release from `53aa2a24cabb41661acd565ab5e661439bbccf7b`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.0.2-alpha_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.0.2-alpha_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.0.2-alpha_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.0.2-alpha_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.0.2-alpha_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.0.1-alpha.1",
+      "name": "Mark v2.0.1-alpha.1",
+      "commit": "ab51bd150c62ec992364df54a3733b775ea7471c",
+      "publishedAt": "2026-05-31T08:35:17Z",
+      "prerelease": false,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 764,
+          "digest": "sha256:8aacefe1b7b889b94c4f8c757abd991d06e9788bc0650f63f6bee34349652461"
+        },
+        {
+          "name": "Mark_2.0.1-alpha.1_aarch64.app.tar.gz",
+          "size": 11061969,
+          "digest": "sha256:795af9ca508d7137107c15f97dc08bd08d59b6ce6458960e916310db6f0305ed"
+        },
+        {
+          "name": "Mark_2.0.1-alpha.1_aarch64.dmg",
+          "size": 10920588,
+          "digest": "sha256:001f2abe4c05e39064391d0dbeaf82fb0f80d7fc03fb95e1adc25287874ceb19"
+        },
+        {
+          "name": "Mark_2.0.1-alpha.1_aarch64.dmg.bundle",
+          "size": 8593,
+          "digest": "sha256:c0123bea4648f37fc3325d0c46eaceee1fda9b85d3268cee9c325deb323896af"
+        },
+        {
+          "name": "Mark_2.0.1-alpha.1_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:00966644fd0d490cfad7f3065dfe2010a6c62b7e77158821ed14c9296f6243d2"
+        },
+        {
+          "name": "Mark_2.0.1-alpha.1_sbom-node.cdx.json",
+          "size": 1213170,
+          "digest": "sha256:846c1f39c2069ebd774a0eff3bcacbb375fd287c6a2f631acf4d0d268f032216"
+        },
+        {
+          "name": "Mark_2.0.1-alpha.1_sbom-rust.cdx.json",
+          "size": 455288,
+          "digest": "sha256:2689dacb02a4cf60380384368f3f8a8cd8c96302309edea55a5a16a4134de4f9"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51828,
+          "digest": "sha256:850e25fe16a4108323505c067b34d652418583a5b3111b32484f2686577a81c3"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 42859,
+          "digest": "sha256:f922a73d4bbcaaafe2f7dff6a0dc907d4c688b4998f87070e657f2a27ef5c3a6"
+        }
+      ],
+      "body": "Automated release from `ab51bd150c62ec992364df54a3733b775ea7471c`.\n\n**Verification:**\n\nBuild provenance (SLSA-3):\n```\ngh attestation verify Mark_2.0.1-alpha.1_aarch64.dmg --owner xronocode\n```\n\nCosign keyless signature:\n```\ncosign verify-blob \\\n  --bundle Mark_2.0.1-alpha.1_aarch64.dmg.bundle \\\n  --certificate-identity-regexp 'https://github.com/xronocode/mark/.*' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  Mark_2.0.1-alpha.1_aarch64.dmg\n```\n\nDMG SHA-256 sidecar published as `Mark_2.0.1-alpha.1_aarch64.dmg.sha256`.\n\nCycloneDX SBOMs published for both Node renderer and Rust backend\ndependency closures. NOTICES-{node,rust}.md attribution lists\nshipped alongside.\n\n**Updater:** ed25519-signed feed (`latest.json` + `Mark_2.0.1-alpha.1_aarch64.app.tar.gz`) shipped.\ntauri-plugin-updater verifies against the embedded pubkey before applying. To upgrade\noutside the in-app updater:\n```\nbrew upgrade --cask mark\n```"
+    },
+    {
+      "tag": "v2.0.0-alpha.9",
+      "name": "Mark v2.0.0-alpha.9",
+      "commit": "de1fe8bcdb7d1fcb603e3c1f071363ce389d8b69",
+      "publishedAt": "2026-05-28T07:48:12Z",
+      "prerelease": true,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 764,
+          "digest": "sha256:06a982b23446356642b7fa33fd2785bb29c8416f2977de3b71d4f32ba16f7f23"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.9_aarch64.app.tar.gz",
+          "size": 11083849,
+          "digest": "sha256:36f51fd41e325ddb03c8f473ac90b2d8a3931ffadb2214a8f474878d6e566b7a"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.9_aarch64.dmg",
+          "size": 10935266,
+          "digest": "sha256:1c5490fc84bab13080bed199a2eb7df85c2274de4ebde0599485cbb0ce332fe2"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.9_aarch64.dmg.bundle",
+          "size": 8601,
+          "digest": "sha256:4c1f3894b40fc1a24449233b7677d94c0b027715b9729d93ea1dd3b4fab7bd66"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.9_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:38c7c22696bf1ce2021aae9b82923c9e5f33c791f1a1550b03891adaa0daacc6"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.9_sbom-node.cdx.json",
+          "size": 1213170,
+          "digest": "sha256:b2eaff50313edd12097f8780ea8695a303947f5c2e92817ff8c48a18c512af51"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.9_sbom-rust.cdx.json",
+          "size": 455288,
+          "digest": "sha256:25ca100c66efe435c062676dfe7e9a4282c4ddea77dcba4a1e4cae63ebac59b6"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51828,
+          "digest": "sha256:850e25fe16a4108323505c067b34d652418583a5b3111b32484f2686577a81c3"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 42859,
+          "digest": "sha256:f922a73d4bbcaaafe2f7dff6a0dc907d4c688b4998f87070e657f2a27ef5c3a6"
+        }
+      ],
+      "body": "## Mark v2.0.0-alpha.9\n\n### Changes since alpha.8\n\n**New features**\n- **Print** — Cmd+P opens the system print dialog via `window.print()`\n- **Export as HTML** — styled HTML export with save dialog\n- **File rename** — inline rename in titlebar, backed by `ipc.fs.move`\n- **File move** — move to folder via folder picker\n- **Trackpad pinch-to-zoom** — macOS trackpad pinch gestures step through 13 zoom levels (50%–200%)\n- **Window geometry persistence** — window size/position saved and restored via `tauri-plugin-window-state`\n- **Inline diff view** — CodeMirror MergeView for side-by-side diffs\n- **VS Code-style floating search** — search panels float above the editor\n- **View → Theme submenu** — all 33 themes accessible from native menu bar\n\n**Fixes**\n- Image pipeline + clipboard paste fully wired to Tauri IPC\n- Zoom, shell menu, sidebar sync, spellchecker reconnected\n- mkdir via proper Rust command (replaced fragile `.mt_keep` workaround)\n- Image path autocomplete via frontend `readdir` + `stat`\n- Transparent titlebar overlay — icons aligned with macOS traffic lights\n- SIGTERM window state save via `signal-hook`\n- Panic-hook double-panic guard (`catch_unwind`)\n- `safe_eprintln!` prevents EPIPE double-panics\n\n**Testing**\n- **2700+ renderer tests** (was 2620)\n- **91%+ coverage** with CI ratchet gate\n- 14 new tests for pinch-zoom, drag-drop, error paths in `app.vue`\n\n### Known issues\n- Cold launch still ~1.5s (perf pass planned)\n- PDF export not yet available (planned for pandoc M-015)\n- Some i18n keys only in en.json (cosmetic, fallback works)"
+    },
+    {
+      "tag": "v2.0.0-alpha.8",
+      "name": "Mark v2.0.0-alpha.8",
+      "commit": "b97f348ddd98a296a9e66e7669c19052fa20b436",
+      "publishedAt": "2026-05-22T10:33:49Z",
+      "prerelease": true,
+      "immutable": false,
+      "assets": [
+        {
+          "name": "latest.json",
+          "size": 764,
+          "digest": "sha256:d7945fd15dc94ea2cd7863dfe6ea372be6a2ddc15566144815d2c302ffef8669"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.8_aarch64.app.tar.gz",
+          "size": 10864432,
+          "digest": "sha256:937ff24efae5f15e69e081b25130d423c28b9a609fb64321160b9437b580caca"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.8_aarch64.dmg",
+          "size": 10724782,
+          "digest": "sha256:9cd18da1c6ae8d752c5bc33a12000a7d9984198c4f66fa779705039feeaa3ab7"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.8_aarch64.dmg.bundle",
+          "size": 8313,
+          "digest": "sha256:789b2a9e932da654535458f312a293c5587662411a67f8556f48672655ae5042"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.8_aarch64.dmg.sha256",
+          "size": 65,
+          "digest": "sha256:a31467a722633e12e3bc2d1d31ed9c67ba7936520f6d0abbd2519a0f579ad10c"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.8_sbom-node.cdx.json",
+          "size": 1204627,
+          "digest": "sha256:55d593b4c4db2293602570b02dd5204c6a9fce4a52f23148469dd7a4781be979"
+        },
+        {
+          "name": "Mark_2.0.0-alpha.8_sbom-rust.cdx.json",
+          "size": 445513,
+          "digest": "sha256:1dc552999d1b204b01f248b5328a97d24d82feb9799e0afe7ba29435744481df"
+        },
+        {
+          "name": "NOTICES-node.md",
+          "size": 51409,
+          "digest": "sha256:ad7e883a559ebe84d8d220efa3812e5c39df1f4c0d14775cb501732569526172"
+        },
+        {
+          "name": "NOTICES-rust.md",
+          "size": 40282,
+          "digest": "sha256:58d941975613446ab0ce234b0dfa2e6146049419a19a09690534ee0d522d15d6"
+        }
+      ],
+      "body": "## Mark v2.0.0-alpha.8\n\n### Changes since alpha.7\n\n- **Splash screen removed** — no more white flash on launch; minimal index.html\n- **CSP hardened** — removed inline script hashes (no inline scripts remain)\n- **Settings window dev-diag** — console.log/warn/error piped to stderr in debug builds\n- **Per-file watcher** — standalone files detect external modifications\n- **RendererPaths guard** — settings window no longer crashes on missing userDataPath\n- **2620 renderer tests** — coverage 63% → 92%\n- **Coverage gate** — CI fails if coverage drops below thresholds\n- **KaTeX lazy-load + Element Plus tree-shake** — bundle reduction\n- **34 themes** — full theme showcase with animated demo\n\n### Known issues\n- Cold launch still ~1.5s (perf pass planned for alpha.9+)\n- Some i18n keys only in en.json (cosmetic, fallback works)"
+    }
+  ]
+}

@@ -372,29 +372,4 @@ Stabilisation releases.
 ### Changed
 - No splash screen on launch; a stricter content security policy.
 - Files opened on their own reload when they change on disk.
-
-[Unreleased]: https://github.com/xronocode/mark/compare/v2.5.0...HEAD
-[2.5.0]: https://github.com/xronocode/mark/releases/tag/v2.5.0
-[2.4.0]: https://github.com/xronocode/mark/releases/tag/v2.4.0
-[2.3.1]: https://github.com/xronocode/mark/releases/tag/v2.3.1
-[2.3.0]: https://github.com/xronocode/mark/releases/tag/v2.3.0
-[2.2.0-beta]: https://github.com/xronocode/mark/releases/tag/v2.2.0-beta
-[2.1.15-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.15-beta
-[2.1.14-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.14-beta
-[2.1.13-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.13-beta
-[2.1.12-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.12-beta
-[2.1.11-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.11-beta
-[2.1.10-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.10-beta
-[2.1.9-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.9-beta
-[2.1.1-beta to 2.1.8-beta]: https://github.com/xronocode/mark/compare/v2.1.0-beta...v2.1.8-beta
-[2.1.0-beta]: https://github.com/xronocode/mark/releases/tag/v2.1.0-beta
-[2.0.7-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.7-alpha
-[2.0.6-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.6-alpha
-[2.0.5-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.5-alpha
-[2.0.4-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.4-alpha
-[2.0.3-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.3-alpha
-[2.0.2-alpha]: https://github.com/xronocode/mark/releases/tag/v2.0.2-alpha
-[2.0.1-alpha.1]: https://github.com/xronocode/mark/releases/tag/v2.0.1-alpha.1
-[2.0.0-alpha.9]: https://github.com/xronocode/mark/releases/tag/v2.0.0-alpha.9
-[2.0.0-alpha.8]: https://github.com/xronocode/mark/releases/tag/v2.0.0-alpha.8
 <!-- #endregion releases -->
