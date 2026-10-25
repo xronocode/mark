@@ -13,7 +13,27 @@
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
-    "userFacing": [],
+    "userFacing": [
+      {
+        "id": "C-GITHUB-THEME",
+        "summary": "The GitHub theme family joins as the 17th built-in pair: github (Primer light — white ground, #1F2328 ink, #0969DA accent, green primary buttons, README-style h1/h2 bottom rules) and github-dark (Primer dark — #0D1117 ground, #F0F6FC ink, #4493F8 accent) with Prism code-highlight companions, registered across the theme list, the native View › Theme menu, the command palette, Settings › Appearance and all ten locales; the site diagram gallery theme table carries both (34 themes, 17 dark / 17 light).",
+        "state": "queued",
+        "commits": [
+          "a685701a4241b564f5601e937a607568d0e21e3e"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-25",
+          "testedArtifact": "None — owner accepted without a separate visual check; evidence: automated contrast tests, rendered-pixel check of both variants, and code review of an additive-only diff (owner-reviewed implementation 8015e4ef; the CI-caught site-gallery and e2e count repairs eaf8890c/9485bae5 landed before the fully green PR #66 run).",
+          "scenarios": [
+            "theme-contrast gate: full paper variable parity and WCAG AA floors (editorColor/linkColor ≥ 4.5:1, blockquote text ≥ 3:1) for github and github-dark",
+            "registration pins: themeMap/themeCssFactories, THEME_FAMILIES 17 families / 34 members, the command palette, the native View › Theme menu, the Settings Appearance grid (17 tiles) and menu.theme names in all 10 locales",
+            "rendered-pixel check of both variants against the GitHub Primer palette on a real render (implementing-session evidence, owner-reviewed diff)",
+            "site diagram gallery: the regenerated theme table classifies github-dark dark (34 themes, 17/17) and the strip shows GitHub / GitHub Dark with brand casing"
+          ]
+        }
+      }
+    ],
     "operational": [],
     "notPresent": []
   },
