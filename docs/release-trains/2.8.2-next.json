@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.2-next",
-  "state": "Ready",
+  "state": "Released",
   "previousRelease": {
     "tag": "v2.8.1",
     "commit": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
@@ -218,6 +218,12 @@
       "date": "2026-10-25",
       "actor": "release-agent",
       "evidence": "Sealed as metadata-only over the payload. Release authorization NOT given — release/promote waits for the owner's release-authorize approval."
+    },
+    {
+      "state": "Released",
+      "date": "2026-10-25",
+      "actor": "release-agent",
+      "evidence": "v2.8.2 published 2026-10-25T10:13:41Z as an immutable release (release run 40182446716) from the annotated bot tag v2.8.2 -> seal 3b6d49e4e4a15452aced6cb25793446edf8d1c7e after the owner-approved release-authorize deployment (promote run 40178803335, approved by xronocode); no-veto window passed without cancel; publish log carries BLOCK_RELEASE_LATEST_ADVANCED tag=v2.8.2. The updater feed releases/latest/download/latest.json serves 2.8.2 (darwin-aarch64, windows-x86_64); Homebrew cask 2.8.2 (sha256 b8cd4086…f1f5e, matching the published DMG digest) merged in xronocode/homebrew-mark#49 (89a8d63a)."
     }
   ]
 }

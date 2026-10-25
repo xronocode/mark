@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><C-RELEASE-TIMING>
+<GraceChangePlan graceVersion="4.0" status="applied"><C-RELEASE-TIMING>
   <Name>Release timing optimization — implementation plan</Name><Created>2026-10-24</Created><Spec>C-RELEASE-TIMING</Spec>
   <IntentSummary>
     Replace the synchronous second owner approval of the release Environment with a bounded no-veto timer window (default 20 minutes, RELEASE_VETO_MINUTES, clamped 120) that runs parallel to the build lanes, with cancel-as-veto and an optional Telegram ping that skips gracefully without secrets; de-duplicate the release build lane behind strict payload admission (drop npm test, test:e2e, standalone vite build, cargo test; keep typecheck:ipc); cache the cargo attribution/SBOM tool binaries; and key the cargo build cache on Cargo.lock only. Self-hosted runners were evaluated and rejected (public repository, hosted runners free, build is not the wall-time pole).
@@ -13,7 +13,7 @@
     <MustContain><File>.github/release-governance.json</File><Text>release-authorize</Text></MustContain>
   </BaselineAssertions>
   <TargetAssertions>
-    <MustContain><File>.github/workflows/release.yml</File><Text>VERSION: 3.0.0</Text></MustContain>
+    <!-- Exact workflow version; C-RELEASE-CONVEYOR moved it from 3.0.0 to 3.1.1. --><MustContain><File>.github/workflows/release.yml</File><Text># VERSION: 3.1.1</Text></MustContain>
     <MustContain><File>.github/workflows/release.yml</File><Text>veto-window:</Text></MustContain>
     <MustContain><File>.github/workflows/release.yml</File><Text>RELEASE_VETO_MINUTES</Text></MustContain>
     <MustContain><File>.github/workflows/release.yml</File><Text>BLOCK_RELEASE_VETO_WINDOW_CLOSED</Text></MustContain>
