@@ -9,3 +9,6 @@ assets/icon/** text eol=lf
 # privacy guard. Windows checkout conversion must not change those bytes.
 fixtures/**/migration-relevant/*.json text eol=lf
 fixtures/fixture-pin.lock text eol=lf
+# Node scripts with a shebang are imported by vitest; a CRLF checkout
+# breaks the shebang line, so keep tools scripts LF on every checkout.
+tools/*.mjs text eol=lf

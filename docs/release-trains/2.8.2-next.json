@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.2-next",
-  "state": "Collecting",
+  "state": "Preparing",
   "previousRelease": {
     "tag": "v2.8.1",
     "commit": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
@@ -13,13 +13,38 @@
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
-    "userFacing": [],
+    "userFacing": [
+      {
+        "id": "FIX-019",
+        "summary": "\"See everything new\" in What's New opens the release's section of the changelog on the Mark website instead of a GitHub release page; the website changelog lists every release again.",
+        "state": "queued",
+        "commits": [
+          "13739d00c02c9ccde7d5a0a6c6cef249b1830e32"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-25",
+          "testedArtifact": "mark-test-fix019-52443b1 (binary SHA-256 47892d64c8dfe68f190eba7099e96a2f87da99b6bb1547f34870026fbd8e4c85, docs/acceptance/registry.json), built from PR #61 head 52443b15; app sources identical to the merge 13739d00",
+          "scenarios": [
+            "Help > What's New > \"See everything new\" opens the Mark website changelog at the version's section"
+          ]
+        }
+      }
+    ],
     "operational": [],
     "notPresent": []
   },
   "commitAccounting": {
     "fromExclusive": "e47009327f5871859eb9469817eb14335a65dcc9",
-    "entries": [],
+    "entries": [
+      {
+        "sha": "13739d00c02c9ccde7d5a0a6c6cef249b1830e32",
+        "classification": "user-facing",
+        "itemIds": [
+          "FIX-019"
+        ]
+      }
+    ],
     "throughInclusive": null
   },
   "requiredChecks": [
@@ -50,7 +75,9 @@
     "releaseNotes": "docs/release-notes-en-drafts.md",
     "whatsNew": "src/renderer/src/whatsNew/data.js",
     "localeCount": 10,
-    "itemIds": []
+    "itemIds": [
+      "FIX-019"
+    ]
   },
   "transitions": [
     {
@@ -58,6 +85,12 @@
       "date": "2026-10-25",
       "actor": "release-agent",
       "evidence": "Opened for the 2.8.2 patch ahead of 2.9.x-next: the What's New link opens the website changelog, and the changelog page lists every release again. Boundary anchored on the main commit carrying the v2.8.1 tree. No release activity authorized."
+    },
+    {
+      "state": "Preparing",
+      "date": "2026-10-24",
+      "actor": "release-normalize",
+      "evidence": "Preparation set 2.8.2; no tag or publication was created."
     }
   ]
 }

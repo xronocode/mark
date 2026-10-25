@@ -222,9 +222,9 @@ describe('whatsNew 2.5.3 sheet', () => {
 // END_BLOCK_CONTENT_2_5_3
 
 // START_BLOCK_CONTENT_2_5_4
-// Release 2.8.1 draft (FIX-018, field-verified 2026-10-23): the
-// macOS PDF-export root-cause repair — one safety item.
-const RELEASE_DRAFT_ITEM_KEYS = ['pdfFix']
+// Release 2.8.2 draft: the «See everything new» link opens the website
+// changelog — one item.
+const RELEASE_DRAFT_ITEM_KEYS = ['changelog']
 
 describe('current release-draft sheet', () => {
   it('ships the four accepted-train items in order with distinct one-char icons', () => {
@@ -250,7 +250,7 @@ describe('current release-draft sheet', () => {
         expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
       }
       expect(table.whatsNew.also.length, `${code}: also`).toBeLessThanOrEqual(120)
-      expect(section.pdfFix.text, `${code}: pdfFix names PDF`).toContain('PDF')
+      expect(section.changelog.text, `${code}: changelog names Mark`).toContain('Mark')
     }
   })
 

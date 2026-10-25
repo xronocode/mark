@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.22.0
+// VERSION: 2.23.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, unprivileged candidate packaging, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static dry-run/production workflow assertions.
@@ -10,12 +10,13 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.8.1 version fixture.
+//   consistentEvidence - Complete v2.8.2 version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-10-24 v2.22.0 - C-RELEASE-TIMING: the release build lane stops re-running the payload-covered suites (renderer unit, e2e, standalone renderer build, Rust unit) behind strict admission's status-check aggregate; tauri beforeBuildCommand owns the renderer build; typecheck:ipc stays lane-local.
+//   LAST_CHANGE: 2026-10-24 v2.23.0 - advance the normalized positive fixture to v2.8.2.
+//   PREV: 2026-10-24 v2.22.0 - C-RELEASE-TIMING: the release build lane stops re-running the payload-covered suites (renderer unit, e2e, standalone renderer build, Rust unit) behind strict admission's status-check aggregate; tauri beforeBuildCommand owns the renderer build; typecheck:ipc stays lane-local.
 //   PREVIOUS_LATEST: 2026-10-23 v2.21.0 - advance the fixture to the v2.8.1 patch (FIX-018 PDF export root cause).
 //   PREVIOUS_LATEST: 2026-10-23 v2.20.0 - advance the Release Please-derived positive fixture to v2.8.0.
 //   PREV: 2026-10-22 v2.20.0 - advance the release fixture to v2.7.0.
@@ -69,22 +70,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.8.1',
-  packageLock: '2.8.1',
-  packageLockRoot: '2.8.1',
-  cargoWorkspace: '2.8.1',
-  cargoLockMark: '2.8.1',
-  tauriConfig: '2.8.1'
+  packageJson: '2.8.2',
+  packageLock: '2.8.2',
+  packageLockRoot: '2.8.2',
+  cargoWorkspace: '2.8.2',
+  cargoLockMark: '2.8.2',
+  tauriConfig: '2.8.2'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.8.1')
+      validateVersionEvidence(consistentEvidence, 'v2.8.2')
     ).toEqual({
-      version: '2.8.1',
-      tag: 'v2.8.1',
+      version: '2.8.2',
+      tag: 'v2.8.2',
       sourceCount: 6
     })
   })
@@ -93,7 +94,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.8.1'
+        'v2.8.2'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -120,7 +121,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.8.1'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.8.2'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 

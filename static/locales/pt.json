@@ -1153,6 +1153,12 @@
         "title": "Exportação para PDF corrigida",
         "text": "A exportação para PDF já não encerra a app e grava o documento no disco."
       }
+    },
+    "v2_8_2": {
+      "changelog": {
+        "title": "Todas as versões num só lugar",
+        "text": "«Ver todas as novidades» abre esta versão no registo de alterações do site do Mark."
+      }
     }
   },
   "store": {

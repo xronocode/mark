@@ -80,6 +80,13 @@ export const WHATS_NEW_MAX_ITEMS = 4
 // ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
 // under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
+  '2.8.2': [
+    {
+      icon: '☰',
+      titleKey: 'whatsNew.v2_8_2.changelog.title',
+      textKey: 'whatsNew.v2_8_2.changelog.text'
+    }
+  ],
   '2.8.1': [
     {
       icon: '⎙',
@@ -211,6 +218,7 @@ export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_CHANGELOG_URL = 'https://mark.xronocode.com/changelog'
 export const WHATS_NEW_RELEASE_DATES = {
+  '2.8.2': '2026-10-24',
   '2.8.1': '2026-10-23',
   '2.8.0': '2026-10-23',
   '2.7.0': '2026-10-22',

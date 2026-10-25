@@ -7,6 +7,18 @@ attestation, cosign, and updater block below it unchanged.
 The drafts are listed from newest to oldest. They are saved for review;
 this change does not publish them to GitHub.
 
+## v2.8.2
+
+```markdown
+## What's new
+
+**Changed**
+- **"See everything new" opens the changelog.** The link in What's New now opens this release's section of the changelog on the Mark website instead of a GitHub release page.
+
+**Fixed**
+- The changelog page on the Mark website lists every release again; versions 2.6.0 to 2.8.1 were missing from it.
+```
+
 ## v2.8.1
 
 ```markdown

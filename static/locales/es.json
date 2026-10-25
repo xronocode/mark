@@ -1152,6 +1152,12 @@
         "title": "Exportación a PDF arreglada",
         "text": "Exportar a PDF ya no cierra la app y guarda tu documento en el disco."
       }
+    },
+    "v2_8_2": {
+      "changelog": {
+        "title": "Todas las versiones en un lugar",
+        "text": "«Ver todas las novedades» abre esta versión en el registro de cambios del sitio de Mark."
+      }
     }
   },
   "store": {
