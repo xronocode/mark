@@ -13,7 +13,7 @@
     <MustContain><File>.github/release-governance.json</File><Text>release-authorize</Text></MustContain>
   </BaselineAssertions>
   <TargetAssertions>
-    <MustContain><File>.github/workflows/release.yml</File><Text># VERSION: 3.</Text></MustContain>
+    <!-- Exact workflow version; C-RELEASE-CONVEYOR moved it from 3.0.0 to 3.1.1. --><MustContain><File>.github/workflows/release.yml</File><Text># VERSION: 3.1.1</Text></MustContain>
     <MustContain><File>.github/workflows/release.yml</File><Text>veto-window:</Text></MustContain>
     <MustContain><File>.github/workflows/release.yml</File><Text>RELEASE_VETO_MINUTES</Text></MustContain>
     <MustContain><File>.github/workflows/release.yml</File><Text>BLOCK_RELEASE_VETO_WINDOW_CLOSED</Text></MustContain>
