@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-RELEASE-CONVEYOR>
   <Name>Release conveyor without loops: commit-wise seal span, one version authority, one current-train pointer, version-independent release tests, and the v2.8.1 train close-out</Name>
   <ApprovalBasis>Owner instruction in chat on 2026-10-24 («Утверждаю план целиком: пункты 1–6»), approving the infrastructure plan: squash-only merges, the 2.8.1 release first, then this conveyor change (loops L1–L5, Release Please removed in favour of a single version authority), WIP triage, and the 2.9.0 / 2.10 staging.</ApprovalBasis>

@@ -53,6 +53,14 @@ describe('acceptance registry (C-ACCEPTANCE-REGISTRY)', () => {
     }
   })
 
+  it('lists patch and minor train ledgers alike', async () => {
+    const { listTrainFiles } = await import('../../tools/acceptance-registry.mjs')
+    const files = listTrainFiles(process.cwd())
+    expect(files).toContain('docs/release-trains/2.8.2-next.json')
+    expect(files).toContain('docs/release-trains/2.9.x-next.json')
+    expect(files).not.toContain('docs/release-trains/current.json')
+  })
+
   it('a squash-merged artifact resolves through its recorded merge commit only', async () => {
     const { validateRegistry } = await import('../../tools/acceptance-registry.mjs')
     const head = 'a'.repeat(40)
