@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-RELEASE-TIMING>
   <Name>Release timing optimization: timer-default publication after a no-veto window, optional Telegram notify, de-duplicated release build lane, and warmer cargo caches</Name>
   <ApprovalBasis>Owner instruction in chat on 2026-10-24 approving the timing-optimization list verbatim («делаем в том числе дефолтный релиз по таймеру после 20 минут (если 20 минут нет реакции и вето)»): default publication by timer after a 20-minute no-reaction/no-veto window, a release-time reminder ping, cargo attribution/SBOM tool caching, removal of the duplicated npm test/e2e re-runs from the release build lane, and the cargo cache-key repair.</ApprovalBasis>

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // FILE: tools/acceptance-registry.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the acceptance registry (docs/acceptance/registry.json) against its schema and the collecting train, and print the per-item survey — the ordered "accepted or not, and why" record behind the release trains.
 //   SCOPE: --check (schema, git sha resolvability, two-way train consistency, lifecycle sanity) and --survey (state table). Read-only; --check exits non-zero with stable MT_ACCEPT_* codes on any violation.
@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-25: an artifact built from a squash-merged PR head resolves through its recorded merge commit (source.pullRequest + source.mergedAs), since the head is not on main.
+//   LAST_CHANGE: v1.3.0 - 2026-10-25: sibling train ledgers are matched with the shared train-ID pattern, so patch trains (2.8.2-next) keep their shipped items admitted.
+//   PREV: v1.2.0 - 2026-10-25: an artifact built from a squash-merged PR head resolves through its recorded merge commit (source.pullRequest + source.mergedAs), since the head is not on main.
 //   PREV: v1.1.0 - 2026-10-24 C-RELEASE-CONVEYOR: resolve the collecting train through the current-train pointer.
 //   PREV: v1.0.0 - 2026-10-21 C-ACCEPTANCE-REGISTRY: new.
 // END_CHANGE_SUMMARY
@@ -37,15 +38,15 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { resolveCurrentTrain } from './release-train.mjs'
+import { resolveCurrentTrain, TRAIN_ID_PATTERN } from './release-train.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REGISTRY_PATH = 'docs/acceptance/registry.json'
 const TRAIN_PATH = resolveCurrentTrain(ROOT).json
-const listTrainFiles = (root) => {
+export const listTrainFiles = (root) => {
   try {
     return readdirSync(resolve(root, 'docs/release-trains'))
-      .filter((f) => f.endsWith('.json') && /^[0-9][0-9.]*x-next\.json$/.test(f))
+      .filter((f) => f.endsWith('.json') && TRAIN_ID_PATTERN.test(f.slice(0, -'.json'.length)))
       .map((f) => `docs/release-trains/${f}`)
   } catch {
     return []

@@ -3,10 +3,10 @@
   "trainId": "2.9.x-next",
   "state": "Collecting",
   "previousRelease": {
-    "tag": "v2.8.1",
-    "commit": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
-    "bootstrapSha": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
-    "tree": "3744c5c907bf1bf568fa26f535c8170529fbe5a9"
+    "tag": "v2.8.2",
+    "commit": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
+    "bootstrapSha": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
+    "tree": "fcc46b7ba481d886d3e3d497af634337246c12f7"
   },
   "computedVersion": "2.9.0",
   "payloadSha": null,
@@ -18,7 +18,7 @@
     "notPresent": []
   },
   "commitAccounting": {
-    "fromExclusive": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
+    "fromExclusive": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
     "entries": [],
     "throughInclusive": null
   },
@@ -58,6 +58,12 @@
       "date": "2026-10-24",
       "actor": "claude-code",
       "evidence": "Opened after v2.8.1 shipped from 2.8.x-next. Planned minor per the owner-approved 2026-10-24 staging plan (stage D): notification system, native DOCX/RTF export and file-position memory, each admitted only after owner acceptance on its own branch build. No item admitted yet; no release activity authorized."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-10-25",
+      "actor": "release-agent",
+      "evidence": "Boundary moved to v2.8.2 (seal 3b6d49e4, tree fcc46b7b) after the 2.8.2 patch shipped from 2.8.2-next; this train is now the current train. No item admitted yet; no release activity authorized."
     }
   ]
 }
