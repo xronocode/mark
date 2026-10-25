@@ -1,8 +1,14 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "xronocode/mark",
-  "retiredOn": "2026-10-25",
-  "note": "GitHub release pages and v* tags before v2.8.2 were retired on 2026-10-25. This file keeps each release's notes and asset digests; the binaries themselves are not kept.",
+  "archivedOn": "2026-10-25",
+  "note": "Notes and asset digests of the GitHub releases before v2.8.2, and the v* tags that had no release, exported before those release pages and tags were retired. The binaries themselves are not kept.",
+  "tagsWithoutRelease": [
+    {
+      "tag": "v2.4.0-beta",
+      "commit": "3c3ff0f307dfca6b52e76048d6f182487516e277"
+    }
+  ],
   "releases": [
     {
       "tag": "v2.8.1",

@@ -184,4 +184,4 @@ Template for an item:
 
 ## Release pages before v2.8.2
 
-GitHub release pages and `v*` tags before v2.8.2 were retired on 2026-10-25. In the train ledgers and change bundles, a `vX` reference names the released version and its recorded commit, not a live page. The notes and asset digests of every retired release are kept in [github-releases-archive.json](../release-notes/github-releases-archive.json); the release history is on the [website changelog](https://mark.xronocode.com/changelog).
+GitHub release pages and `v*` tags before v2.8.2 are retired. In the train ledgers and change bundles, a `vX` reference names the released version and its recorded commit, not a live page. The notes and asset digests of every retired release, and the tags that had no release, were exported on 2026-10-25 to [github-releases-archive.json](../release-notes/github-releases-archive.json); the release history is on the [website changelog](https://mark.xronocode.com/changelog).
