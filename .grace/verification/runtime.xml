@@ -6354,7 +6354,7 @@
           addThemeStyle sets the block on the document root right after
           mirroring the theme variables and toggling body.dark, and pele
           SVG roots resolve the variables at DISPLAY time — so every one
-          of the 32 themes themes its diagrams, a theme switch (Paper →
+          of the 34 themes themes its diagrams, a theme switch (Paper →
           Ink, Auto light/dark flip, light→light accent change) recolors
           every diagram through the cascade with ZERO re-renders and
           ZERO cache misses, and static Paper fallbacks live in muya&apos;s
@@ -6377,7 +6377,7 @@
           code-only cache key (a font-token change stays a cache hit)
           and the per-type option policy;
           tests/renderer/muya/pele-node-contrast.test.js gate-checks
-          all 32 themes&apos; variable derivation + the CSS fallback parity.
+          all 34 themes&apos; variable derivation + the CSS fallback parity.
           End-to-end in
           tests/e2e/pele-theme.spec.ts (chromium + the
           webkit-pele-theme project): all types render in paper and
@@ -6512,7 +6512,7 @@
           labelBackgroundColor equal the panel, and the .edgeLabel ink
           (nodeContrastColors().labelText — the muted token when it keeps
           4.5:1 on the panel, else the theme text pushed away from the
-          panel) reaches ≥ 4.5:1 on it. Unit-pinned for all 32 themes in
+          panel) reaches ≥ 4.5:1 on it. Unit-pinned for all 34 themes in
           tests/renderer/muya/pele-node-contrast.test.js (light-card
           rule, label box === panel, label ink ≥ 4.5:1) plus the Paper pin
           in diagram-theme.test.js.
