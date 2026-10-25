@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.8.2-next",
-  "state": "Preparing",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.8.1",
     "commit": "3a87ffab78442d109240b9404a1b5ce1f24062d1",
@@ -9,7 +9,7 @@
     "tree": "3744c5c907bf1bf568fa26f535c8170529fbe5a9"
   },
   "computedVersion": "2.8.2",
-  "payloadSha": null,
+  "payloadSha": "1a888970bb22c55458f1233f8202bc33cc8cf392",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
@@ -31,44 +31,159 @@
         }
       }
     ],
-    "operational": [],
+    "operational": [
+      {
+        "id": "C-RELEASE-CONVEYOR",
+        "summary": "Release conveyor: commit-wise seal span, package.json as the single version authority, current-train pointer, version-independent release tests.",
+        "state": "queued",
+        "commits": [
+          "206ec15e2a41bc2582beb46a5cc2bb22313be888"
+        ]
+      },
+      {
+        "id": "REPO-SAFETY-GATE",
+        "summary": "Push gate: merged-branch deletion lane, AI-name ban, message-only history-rewrite lane, raw message termination and endpoint-bound PR rebases.",
+        "state": "queued",
+        "commits": [
+          "a7da7321dad357b952683825f77a346d3be70a46",
+          "6805e3c7d348da769fa5ee8ab9e7ca0a1f81bd0d",
+          "2b331c5757f176a08ba1e6a38ccedbaf81f8cf8d",
+          "9c9f25354e90bd055929e7aa4e88cd1c8552ad73"
+        ]
+      },
+      {
+        "id": "C-PUBLIC-REPOSITORY-HYGIENE",
+        "summary": "Forward-only public repository hygiene: contributor docs and AGENTS.md entry point, deterministic commit/push gate, retired process-only files.",
+        "state": "queued",
+        "commits": [
+          "e6ee22260394719cb0a57fb924d181b9d4327634"
+        ]
+      },
+      {
+        "id": "DOCS-PUBLIC-ARTIFACT-FORMAT",
+        "summary": "Public artifact format for PR descriptions, release notes and README What's new.",
+        "state": "queued",
+        "commits": [
+          "c12e26568f432ab21c326ba41308fce22f6edf27"
+        ]
+      },
+      {
+        "id": "C-MESSAGE-ONLY-HISTORY-REWRITE-V3",
+        "summary": "Archive of the applied message-only history rewrite.",
+        "state": "queued",
+        "commits": [
+          "da109025392a8663b461805689d14b06e2a21d70"
+        ]
+      },
+      {
+        "id": "RELEASE-PREP-2.8.2",
+        "summary": "Release preparation for 2.8.2: version, materials, FIX-019 acceptance record.",
+        "state": "queued",
+        "commits": [
+          "1a888970bb22c55458f1233f8202bc33cc8cf392"
+        ]
+      }
+    ],
     "notPresent": []
   },
   "commitAccounting": {
     "fromExclusive": "e47009327f5871859eb9469817eb14335a65dcc9",
     "entries": [
       {
+        "sha": "206ec15e2a41bc2582beb46a5cc2bb22313be888",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-CONVEYOR"
+        ]
+      },
+      {
+        "sha": "a7da7321dad357b952683825f77a346d3be70a46",
+        "classification": "operational",
+        "itemIds": [
+          "REPO-SAFETY-GATE"
+        ]
+      },
+      {
+        "sha": "e6ee22260394719cb0a57fb924d181b9d4327634",
+        "classification": "operational",
+        "itemIds": [
+          "C-PUBLIC-REPOSITORY-HYGIENE"
+        ]
+      },
+      {
+        "sha": "c12e26568f432ab21c326ba41308fce22f6edf27",
+        "classification": "operational",
+        "itemIds": [
+          "DOCS-PUBLIC-ARTIFACT-FORMAT"
+        ]
+      },
+      {
+        "sha": "6805e3c7d348da769fa5ee8ab9e7ca0a1f81bd0d",
+        "classification": "operational",
+        "itemIds": [
+          "REPO-SAFETY-GATE"
+        ]
+      },
+      {
+        "sha": "2b331c5757f176a08ba1e6a38ccedbaf81f8cf8d",
+        "classification": "operational",
+        "itemIds": [
+          "REPO-SAFETY-GATE"
+        ]
+      },
+      {
+        "sha": "9c9f25354e90bd055929e7aa4e88cd1c8552ad73",
+        "classification": "operational",
+        "itemIds": [
+          "REPO-SAFETY-GATE"
+        ]
+      },
+      {
+        "sha": "da109025392a8663b461805689d14b06e2a21d70",
+        "classification": "operational",
+        "itemIds": [
+          "C-MESSAGE-ONLY-HISTORY-REWRITE-V3"
+        ]
+      },
+      {
         "sha": "13739d00c02c9ccde7d5a0a6c6cef249b1830e32",
         "classification": "user-facing",
         "itemIds": [
           "FIX-019"
         ]
+      },
+      {
+        "sha": "1a888970bb22c55458f1233f8202bc33cc8cf392",
+        "classification": "operational",
+        "itemIds": [
+          "RELEASE-PREP-2.8.2"
+        ]
       }
     ],
-    "throughInclusive": null
+    "throughInclusive": "1a888970bb22c55458f1233f8202bc33cc8cf392"
   },
   "requiredChecks": [
     {
       "name": "status check",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": null
+      "status": "success",
+      "sha": "1a888970bb22c55458f1233f8202bc33cc8cf392"
     },
     {
       "name": "release/governance",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": null
+      "status": "success",
+      "sha": "1a888970bb22c55458f1233f8202bc33cc8cf392"
     },
     {
       "name": "release/readiness",
       "app": "GitHub Actions",
-      "status": "pending",
-      "sha": null
+      "status": "success",
+      "sha": "1a888970bb22c55458f1233f8202bc33cc8cf392"
     }
   ],
   "materials": {
-    "status": "pending",
+    "status": "ready",
     "screenshotManifest": "docs/assets/readme/2.8.2.manifest.json",
     "readme": "README.md",
     "changelog": "CHANGELOG.md",
@@ -91,6 +206,18 @@
       "date": "2026-10-24",
       "actor": "release-normalize",
       "evidence": "Preparation set 2.8.2; no tag or publication was created."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-25",
+      "actor": "release-agent",
+      "evidence": "Payload 1a888970 (PR #62 merge) with green status check, release/governance and release/readiness; 10 commits since v2.8.1 classified."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-10-25",
+      "actor": "release-agent",
+      "evidence": "Sealed as metadata-only over the payload. Release authorization NOT given — release/promote waits for the owner's release-authorize approval."
     }
   ]
 }
