@@ -66,8 +66,12 @@ const installBackend = (docs: Record<string, string>) => {
     },
     mt_fs_stat: (arg: unknown) => {
       const a = arg as any
+      // Membership in the docs registry decides isFile: the auto-diff
+      // sidecar probe stats {path}.before neighbours and must see them
+      // missing, like the real fs for fixture-only paths.
       const p = typeof arg === 'string' ? arg : a?.path ?? a?.args?.[0]
-      return { isFile: !!p, isDirectory: false }
+      const known = !!p && typeof p === 'string' && Object.prototype.hasOwnProperty.call(docs, p)
+      return { isFile: known, isDirectory: false }
     },
     mt_open_file: (arg: unknown) => {
       const a = arg as any
