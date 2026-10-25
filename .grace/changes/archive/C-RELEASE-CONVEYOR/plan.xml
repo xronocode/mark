@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><C-RELEASE-CONVEYOR>
+<GraceChangePlan graceVersion="4.0" status="applied"><C-RELEASE-CONVEYOR>
   <Name>Release conveyor without loops — implementation plan</Name><Created>2026-10-24</Created><Spec>C-RELEASE-CONVEYOR</Spec>
   <IntentSummary>
     Remove the five release-conveyor loops found in the 2026-10-24 audit at their causes — count-based seal span, two version authorities, hardcoded train IDs, live-version test fixtures, and the exact-tip approval binding — and close out the 2.8.x-next train, without weakening any trust boundary.
