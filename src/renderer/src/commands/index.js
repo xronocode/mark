@@ -814,12 +814,15 @@ const commands = [
       // C-41 T-003: six new family members (one-light, alucard, nord-light,
       // kanagawa-lotus, graphite-dark, ulysses-dark).
       // C-51 T-007: the Docs and macOS family members.
+      // C-GITHUB-THEME: the Primer family members.
       { id: 'window.change-theme-paper', description: 'Paper', value: 'paper' },
       { id: 'window.change-theme-ink', description: 'Ink', value: 'ink' },
       { id: 'window.change-theme-docs', description: 'Docs', value: 'docs' },
       { id: 'window.change-theme-docs-dark', description: 'Docs Dark', value: 'docs-dark' },
       { id: 'window.change-theme-macos', description: 'macOS', value: 'macos' },
       { id: 'window.change-theme-macos-dark', description: 'macOS Dark', value: 'macos-dark' },
+      { id: 'window.change-theme-github', description: 'GitHub', value: 'github' },
+      { id: 'window.change-theme-github-dark', description: 'GitHub Dark', value: 'github-dark' },
       { id: 'window.change-theme-graphite', description: 'Graphite', value: 'graphite' },
       { id: 'window.change-theme-graphite-dark', description: 'Graphite Dark', value: 'graphite-dark' },
       { id: 'window.change-theme-ulysses', description: 'Ulysses', value: 'ulysses' },

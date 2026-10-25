@@ -4775,6 +4775,31 @@
           darkModeTheme) and macos-dark on Auto over a dark system.
         </Scenario>
         <Scenario>
+          scenario-76-github-theme-family (C-GITHUB-THEME): the GitHub
+          family joins the theme model as the 17th — github (Primer
+          light: #FFFFFF ground, #1F2328 ink, #0969DA accent/links,
+          #D1D9E0 hairlines, green #1F883D primary buttons, system UI
+          font, h1/h2 README bottom rules) and github-dark (Primer dark
+          default: #0D1117 ground, #F0F6FC ink, #4493F8 accent, #3D444D
+          hairlines, #238636 primary). THEME_FAMILIES grows to 17
+          (themePairs 34), themeMap/themeCssFactories register both with
+          Prism companions carrying GitHub's own syntax colours,
+          github-dark rides the railscasts dark classification, the
+          command palette carries 34 window.change-theme subcommands,
+          the native View › Theme menu lists GitHub/GitHub Dark, the
+          Settings Appearance grid shows 17 tiles (8-per-row, third row)
+          and all ten locales carry menu.theme github/githubDark
+          (untranslated product names). Both themes define the full
+          paper variable set and pass the C-41 contrast gate (4.5:1
+          editorColor/linkColor, 3:1 blockquote text) plus a Primer
+          role-colour --chartPalette. Unit-pinned in
+          tests/renderer/util/theme-contrast.test.js (EXPECTED_THEME_IDS
+          34, the GitHub registration describe: factories + Prism
+          companions, themeMap/family/config/commands/menu pins, Primer
+          colour pins), theme-families.test.js (17/34 counts) and
+          tabs-appearance.test.js (17 tiles, 34 swatch halves).
+        </Scenario>
+        <Scenario>
           scenario-61: Sidebar polish — chevron inset, pinned-file marks,
           empty state without the CTA (C-51 T-011, user smoke 2026-10-16):
           the sidebar shell (components/sideBar/index.vue) owns the one
@@ -6329,7 +6354,7 @@
           addThemeStyle sets the block on the document root right after
           mirroring the theme variables and toggling body.dark, and pele
           SVG roots resolve the variables at DISPLAY time — so every one
-          of the 32 themes themes its diagrams, a theme switch (Paper →
+          of the 34 themes themes its diagrams, a theme switch (Paper →
           Ink, Auto light/dark flip, light→light accent change) recolors
           every diagram through the cascade with ZERO re-renders and
           ZERO cache misses, and static Paper fallbacks live in muya&apos;s
@@ -6352,7 +6377,7 @@
           code-only cache key (a font-token change stays a cache hit)
           and the per-type option policy;
           tests/renderer/muya/pele-node-contrast.test.js gate-checks
-          all 32 themes&apos; variable derivation + the CSS fallback parity.
+          all 34 themes&apos; variable derivation + the CSS fallback parity.
           End-to-end in
           tests/e2e/pele-theme.spec.ts (chromium + the
           webkit-pele-theme project): all types render in paper and
@@ -6487,7 +6512,7 @@
           labelBackgroundColor equal the panel, and the .edgeLabel ink
           (nodeContrastColors().labelText — the muted token when it keeps
           4.5:1 on the panel, else the theme text pushed away from the
-          panel) reaches ≥ 4.5:1 on it. Unit-pinned for all 32 themes in
+          panel) reaches ≥ 4.5:1 on it. Unit-pinned for all 34 themes in
           tests/renderer/muya/pele-node-contrast.test.js (light-card
           rule, label box === panel, label ink ≥ 4.5:1) plus the Paper pin
           in diagram-theme.test.js.

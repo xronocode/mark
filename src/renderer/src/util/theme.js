@@ -85,6 +85,8 @@ import {
   docsDark,
   macos,
   macosDark,
+  github,
+  githubDark,
   graphite,
   oneDark,
   ulysses,
@@ -133,6 +135,10 @@ export const themeMap = {
   'docs-dark': docsDark,
   'macos': macos,
   'macos-dark': macosDark,
+  // C-GITHUB-THEME: GitHub family members — github is light; github-dark
+  // is dark (railscasts classification).
+  'github': github,
+  'github-dark': githubDark,
   'graphite': graphite,
   'one-dark': oneDark,
   'ulysses': ulysses,
