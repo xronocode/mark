@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/gallery.test.mjs
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the gallery corpus and the built /diagrams/ page
 //            (C-58 R-1/R-3, T-001/T-002) — every example renders with pele
@@ -24,7 +24,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-21 C-64 T-009: pins the P3 wiring — the
+//   LAST_CHANGE: v1.5.0 - 2026-10-25 C-GITHUB-THEME: the theme strip
+//   follows the regenerated theme-vars.json — the GitHub pair joins and
+//   the chip count grows from 32 to 34.
+//   PREV: v1.4.0 - 2026-10-21 C-64 T-009: pins the P3 wiring — the
 //   folio nav reports nav_click with placement gallery_nav (repo link
 //   outbound_click), diagram_filter carries placement gallery on both the
 //   theme strip and the group filters, and opening a card's Source details
@@ -106,7 +109,7 @@ describe('renderGallery (the built page)', () => {
       expect(HTML).toContain(`data-g="${g}"`)
     }
     const chips = HTML.match(/class="chip"/g) || []
-    expect(chips.length).toBe(32)
+    expect(chips.length).toBe(34)
     expect(HTML).toContain('>Paper</button>')
     expect(HTML).toContain('>Ink</button>')
   })

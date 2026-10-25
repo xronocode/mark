@@ -891,7 +891,9 @@
       "nordLight": "Nord Light",
       "solarizedDark": "Solarized 深色",
       "gruvboxDark": "Gruvbox 深色",
-      "darkThemes": "— 深色主題 —"
+      "darkThemes": "— 深色主題 —",
+      "github": "GitHub",
+      "githubDark": "GitHub 深色"
     },
     "counter": {
       "paragraphs": "段落數",

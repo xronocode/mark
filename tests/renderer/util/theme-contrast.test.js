@@ -56,7 +56,8 @@ const THEMES_DIR = resolve(ROOT, 'src/renderer/src/assets/themes')
 
 
 // The 14 C-41 families × 2 members of spec R-3 plus the four C-51 T-007
-// members — the exact set this gate covers.
+// members and the two C-GITHUB-THEME members — the exact set this gate
+// covers.
 const EXPECTED_THEME_IDS = [
   'paper', 'ink',
   'one-light', 'one-dark',
@@ -74,7 +75,9 @@ const EXPECTED_THEME_IDS = [
   'ayu-light', 'ayu-dark',
   // C-51 T-007: Docs and macOS family members.
   'docs', 'docs-dark',
-  'macos', 'macos-dark'
+  'macos', 'macos-dark',
+  // C-GITHUB-THEME: Primer family members.
+  'github', 'github-dark'
 ]
 
 const parseVars = (css) => {
@@ -170,7 +173,7 @@ const readThemeFiles = () => {
 describe('theme contrast (C-41 T-003)', () => {
   const themes = readThemeFiles()
 
-  it('covers exactly the 32 family members — no other theme file ships', () => {
+  it('covers exactly the 34 family members — no other theme file ships', () => {
     expect(Object.keys(themes).sort()).toEqual([...EXPECTED_THEME_IDS].sort())
   })
 
@@ -277,5 +280,56 @@ describe('six new family member registration (C-41 T-003)', () => {
         expect(table.menu.theme[key], `${file} menu.theme.${key}`).toBe(name)
       }
     }
+  })
+})
+
+describe('GitHub family registration (C-GITHUB-THEME)', () => {
+  const MEMBERS = ['github', 'github-dark']
+  const FACTORIES = ['github', 'githubDark']
+  const readSource = (relPath) => readFileSync(resolve(ROOT, relPath), 'utf-8')
+
+  it('themeColor.js imports a css + prismjs companion and exports a factory per member', async () => {
+    const themeColor = await import('@/util/themeColor')
+    const src = readSource('src/renderer/src/util/themeColor.js')
+    for (let i = 0; i < MEMBERS.length; i++) {
+      expect(src).toContain(`../assets/themes/${MEMBERS[i]}.theme.css?inline`)
+      expect(src).toContain(`../assets/themes/prismjs/${MEMBERS[i]}.theme.css?inline`)
+      expect(typeof themeColor[FACTORIES[i]], `${FACTORIES[i]} factory`).toBe('function')
+      const prismCss = readFileSync(
+        resolve(ROOT, `src/renderer/src/assets/themes/prismjs/${MEMBERS[i]}.theme.css`),
+        'utf-8'
+      )
+      expect(prismCss).toContain('.token.keyword')
+    }
+  })
+
+  it('themeMap, family, dark classification, palette and native menu all know the members', async () => {
+    const themeSrc = readSource('src/renderer/src/util/theme.js')
+    const familiesSrc = readSource('src/renderer/src/util/themeFamilies.js')
+    const config = await import('@/config')
+    const commandsSrc = readSource('src/renderer/src/commands/index.js')
+    const menuSrc = readSource('src-tauri/src/m009_menu.rs')
+    for (const id of MEMBERS) {
+      expect(themeSrc).toContain(`'${id}':`)
+      expect(familiesSrc).toContain(`'github'`)
+      expect(commandsSrc).toContain(`id: 'window.change-theme-${id}'`)
+      expect(menuSrc).toContain(`"window.change-theme-${id}"`)
+    }
+    expect(config.railscastsThemes).toContain('github-dark')
+    expect(config.isDarkTheme('github-dark')).toBe(true)
+    expect(config.isDarkTheme('github')).toBe(false)
+  })
+
+  it('the Primer palettes carry GitHub\'s own ground, ink, accent and link colours', () => {
+    const lightVars = parseVars(
+      readFileSync(resolve(ROOT, 'src/renderer/src/assets/themes/github.theme.css'), 'utf-8')
+    )
+    const darkVars = parseVars(
+      readFileSync(resolve(ROOT, 'src/renderer/src/assets/themes/github-dark.theme.css'), 'utf-8')
+    )
+    expect(lightVars.editorColor).toBe('#1F2328')
+    expect(lightVars.linkColor).toBe('#0969DA')
+    expect(darkVars.editorColor).toBe('#F0F6FC')
+    expect(darkVars.linkColor).toBe('#4493F8')
   })
 })

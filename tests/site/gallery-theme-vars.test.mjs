@@ -1,6 +1,6 @@
 // @vitest-environment node
 // FILE: tests/site/gallery-theme-vars.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the gallery theme-variable derivation (C-58 R-2/T-001) —
 //            every app theme CSS file becomes a 16-key --pele-* table through
@@ -28,7 +28,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-58 T-001: first version.
+//   LAST_CHANGE: v1.1.0 - 2026-10-25 C-GITHUB-THEME: the committed
+//   theme-vars.json carries the github/github-dark pair, so the
+//   classification grows to 34 themes as 17 dark / 17 light.
+//   PREV: v1.0.0 - 2026-10-18 C-58 T-001: first version.
 // END_CHANGE_SUMMARY
 
 import { readdirSync, readFileSync } from 'node:fs'
@@ -78,11 +81,11 @@ describe('deriveThemeVars (C-58 R-2)', () => {
     }
   })
 
-  it('classifies the current 32 themes as 16 dark / 16 light', () => {
+  it('classifies the current 34 themes as 17 dark / 17 light', () => {
     const vars = deriveThemeVars()
     const dark = Object.values(vars).filter((v) => v.dark)
-    expect(THEME_FILES).toHaveLength(32)
-    expect(dark).toHaveLength(16)
+    expect(THEME_FILES).toHaveLength(34)
+    expect(dark).toHaveLength(17)
   })
 })
 

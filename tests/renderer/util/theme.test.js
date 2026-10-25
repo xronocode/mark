@@ -53,7 +53,10 @@ vi.mock('@/util/themeColor', () => {
     kanagawaLotus: factory('kanagawaLotus'),
     graphiteDark: factory('graphiteDark'),
     ulyssesDark: factory('ulyssesDark'),
-    rosePineDawn: factory('rosePineDawn')
+    rosePineDawn: factory('rosePineDawn'),
+    // C-GITHUB-THEME family members
+    github: factory('github'),
+    githubDark: factory('githubDark')
   }
 })
 

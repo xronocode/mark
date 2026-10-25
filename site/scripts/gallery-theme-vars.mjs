@@ -1,5 +1,5 @@
 // FILE: site/scripts/gallery-theme-vars.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Derive the diagram gallery's theme variable table from the
 //            app's own theme CSS files through the app's own
@@ -32,7 +32,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-18 C-58 T-001: first version. Token
+//   LAST_CHANGE: v1.1.0 - 2026-10-25 C-GITHUB-THEME: the GitHub pair
+//   joins THEME_NAMES (brand casing) and github-dark joins DARK_THEMES
+//   (mirroring config.js railscastsThemes), so the derived table grows
+//   to 34 themes with 17 dark / 17 light.
+//   PREV: v1.0.0 - 2026-10-18 C-58 T-001: first version. Token
 //   reading mirrors readActiveThemeTokens exactly (literal values only —
 //   the runtime inline mirror does not resolve var() chains either;
 //   translucent rgba() composited over the theme background; the Paper/Ink
@@ -75,6 +79,8 @@ export const THEME_NAMES = {
   dracula: 'Dracula',
   'everforest-dark': 'Everforest Dark',
   'everforest-light': 'Everforest Light',
+  github: 'GitHub',
+  'github-dark': 'GitHub Dark',
   graphite: 'Graphite',
   'graphite-dark': 'Graphite Dark',
   'gruvbox-dark': 'Gruvbox Dark',
@@ -108,6 +114,7 @@ const DARK_THEMES = new Set([
   'ulysses-dark',
   'docs-dark',
   'macos-dark',
+  'github-dark',
   'dracula',
   'nord',
   'catppuccin-mocha',

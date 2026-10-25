@@ -84,6 +84,8 @@ export const railscastsThemes = Object.freeze([
   // C-51 T-007: dark members of the Docs and macOS families.
   'docs-dark',
   'macos-dark',
+  // C-GITHUB-THEME: dark member of the Primer family.
+  'github-dark',
   'dracula',
   'nord',
   'catppuccin-mocha',

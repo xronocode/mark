@@ -205,7 +205,8 @@ const EXPECTED_THEME_IDS = [
   'tokyo-night-light', 'tokyo-night',
   'ayu-light', 'ayu-dark',
   'docs', 'docs-dark',
-  'macos', 'macos-dark'
+  'macos', 'macos-dark',
+  'github', 'github-dark'
 ]
 
 // Exactly what buildPeleVariables emits (count from the function): 8

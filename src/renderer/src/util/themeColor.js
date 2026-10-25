@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/util/themeColor.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: One factory per registered theme returning the theme CSS plus
 //            its Prism.js companion (C-41 T-002: 22 factories — the 12
@@ -48,6 +48,8 @@
 //   docsDark - docs-dark theme CSS + Prism companion (C-51 T-007).
 //   macos - macos theme CSS + Prism companion (C-51 T-007).
 //   macosDark - macos-dark theme CSS + Prism companion (C-51 T-007).
+//   github - github theme CSS + Prism companion (C-GITHUB-THEME).
+//   githubDark - github-dark theme CSS + Prism companion (C-GITHUB-THEME).
 //   themeCssFactories - frozen theme-id → factory registry (C-38 T-004 swatch source; same membership as util/theme.js themeMap).
 // END_MODULE_MAP
 //
@@ -87,6 +89,10 @@ import docsTheme from '../assets/themes/docs.theme.css?inline'
 import docsDarkTheme from '../assets/themes/docs-dark.theme.css?inline'
 import macosTheme from '../assets/themes/macos.theme.css?inline'
 import macosDarkTheme from '../assets/themes/macos-dark.theme.css?inline'
+
+// C-GITHUB-THEME: GitHub family members (Primer light/dark palettes).
+import githubTheme from '../assets/themes/github.theme.css?inline'
+import githubDarkTheme from '../assets/themes/github-dark.theme.css?inline'
 
 import oneLightTheme from '../assets/themes/one-light.theme.css?inline'
 import alucardTheme from '../assets/themes/alucard.theme.css?inline'
@@ -130,6 +136,9 @@ import docsPrismTheme from '../assets/themes/prismjs/docs.theme.css?inline'
 import docsDarkPrismTheme from '../assets/themes/prismjs/docs-dark.theme.css?inline'
 import macosPrismTheme from '../assets/themes/prismjs/macos.theme.css?inline'
 import macosDarkPrismTheme from '../assets/themes/prismjs/macos-dark.theme.css?inline'
+// C-GITHUB-THEME: Prism companions with GitHub's own syntax colours.
+import githubPrismTheme from '../assets/themes/prismjs/github.theme.css?inline'
+import githubDarkPrismTheme from '../assets/themes/prismjs/github-dark.theme.css?inline'
 import oneLightPrismTheme from '../assets/themes/prismjs/one-light.theme.css?inline'
 import alucardPrismTheme from '../assets/themes/prismjs/alucard.theme.css?inline'
 import nordLightPrismTheme from '../assets/themes/prismjs/nord-light.theme.css?inline'
@@ -206,6 +215,15 @@ export const macos = () => {
 
 export const macosDark = () => {
   return macosDarkTheme + '\n' + macosDarkPrismTheme
+}
+
+// C-GITHUB-THEME: GitHub family members - with matching Prism themes
+export const github = () => {
+  return githubTheme + '\n' + githubPrismTheme
+}
+
+export const githubDark = () => {
+  return githubDarkTheme + '\n' + githubDarkPrismTheme
 }
 
 // Original themes
@@ -310,6 +328,8 @@ export const themeCssFactories = Object.freeze({
   'docs-dark': docsDark,
   macos,
   'macos-dark': macosDark,
+  github,
+  'github-dark': githubDark,
   graphite,
   'one-dark': oneDark,
   ulysses,

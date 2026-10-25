@@ -1,0 +1,187 @@
+:root {
+  /*editor - GitHub theme (C-GITHUB-THEME, Primer light: the clean laconic
+    github.com reading look — white ground, ink text, hairline borders, blue
+    accent, green primary actions; h1/h2 carry GitHub's bottom rule below)*/
+  --themeColor: #0969DA;
+  --themeColor90: rgba(9, 105, 218, 0.9);
+  --themeColor80: rgba(9, 105, 218, 0.8);
+  --themeColor70: rgba(9, 105, 218, 0.7);
+  --themeColor60: rgba(9, 105, 218, 0.6);
+  --themeColor50: rgba(9, 105, 218, 0.5);
+  --themeColor40: rgba(9, 105, 218, 0.4);
+  --themeColor30: rgba(9, 105, 218, 0.3);
+  --themeColor20: rgba(9, 105, 218, 0.2);
+  --themeColor10: rgba(9, 105, 218, 0.1);
+
+  --highlightColor: rgba(210, 153, 34, 0.22);
+  --selectionColor: rgba(9, 105, 218, 0.16);
+  --editorColor: #1F2328;
+  --editorColor80: rgba(31, 35, 40, 0.8);
+  --editorColor60: rgba(31, 35, 40, 0.6);
+  --editorColor50: rgba(31, 35, 40, 0.5);
+  --editorColor40: rgba(31, 35, 40, 0.4);
+  --editorColor30: rgba(31, 35, 40, 0.3);
+  --editorColor10: rgba(31, 35, 40, 0.1);
+  --editorColor04: rgba(31, 35, 40, 0.04);
+  --editorBgColor: #FFFFFF;
+  --deleteColor: #CF222E;
+  --iconColor: rgba(31, 35, 40, 0.6);
+  --codeBgColor: rgba(129, 139, 152, 0.12);
+  --codeBlockBgColor: #F6F8FA;
+  --footnoteBgColor: rgba(246, 248, 250, 0.6);
+  --inputBgColor: #F6F8FA;
+
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: rgba(31, 35, 40, 0.75);
+  --buttonBgColor: #F6F8FA;
+  --buttonBorder: 1px solid #D1D9E0;
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: #EAEEF2;
+  --buttonBorderHover: 1px solid #AFB8C1;
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #DCE0E5;
+  --buttonBorderActive: var(--buttonBorder);
+
+  --buttonPrimaryFontColor: #FFFFFF;
+  --buttonPrimaryBgColor: #1F883D;
+  --buttonPrimaryBorder: 1px solid rgba(31, 35, 40, 0.15);
+  --buttonPrimaryShadow: none;
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: #1A7F37;
+  --buttonPrimaryBorderHover: rgba(31, 35, 40, 0.15);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: #116329;
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #D1D9E0;
+
+  /* Markdown element colors */
+  --headingColor: #1F2328;
+  --h1Color: #1F2328;
+  --h2Color: #1F2328;
+  --h3Color: #1F2328;
+  --h4Color: #1F2328;
+  --h5Color: #1F2328;
+  --h6Color: rgba(31, 35, 40, 0.7);
+  --blockquoteTextColor: #59636E;
+  --blockquoteBorderColor: #D1D9E0;
+  --hrColor: #D1D9E0;
+  --linkColor: #0969DA;
+  --strongColor: #1F2328;
+  --emColor: #1F2328;
+  --listMarkerColor: #1F2328;
+
+  /*marktext*/
+  --sideBarColor: rgba(31, 35, 40, 0.75);
+  --sideBarIconColor: var(--iconColor);
+  --sideBarTitleColor: rgba(31, 35, 40, 0.9);
+  --sideBarTextColor: rgba(31, 35, 40, 0.55);
+  --sideBarBgColor: #F6F8FA;
+  --sideBarItemHoverBgColor: rgba(31, 35, 40, 0.05);
+  --itemBgColor: #EAEEF2;
+
+  --floatFontColor: rgba(31, 35, 40, 0.85);
+  --floatBgColor: #FFFFFF;
+  --floatHoverColor: rgba(31, 35, 40, 0.06);
+  --floatBorderColor: rgba(31, 35, 40, 0.12);
+  --floatShadow: rgba(31, 35, 40, 0.12);
+  --notifyInfo: #3D6AD6;
+  --notifySuccess: #2F9E63;
+  --notifyWarning: #C46510;
+  --notifyError: #D5453C;
+  --maskColor: rgba(1, 4, 9, 0.5);
+  --editorAreaWidth: 750px;
+
+  /* C-GITHUB-THEME: theme-defined chart palette (mermaidTheme.readActiveThemeTokens
+     series token) — GitHub Primer's categorical role colours. */
+  --chartPalette: #0969DA, #1F883D, #9A6700, #CF222E, #8250DF, #BF3989, #BC4C00, #59636E;
+}
+
+::-webkit-scrollbar {
+  background: var(--editorBgColor);
+}
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: rgba(31, 35, 40, 0.08);
+}
+
+.side-bar {
+  border-right: 1px solid #D1D9E0 !important;
+}
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.editor-tabs {
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #D1D9E0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid #D1D9E0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.tabs-container > li,
+.tabs-container > li.active {
+  background: var(--editorBgColor) !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* ------------------------------------ */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}
+
+/* GitHub: the document uses the system UI font, like github.com. */
+.editor-wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif !important;
+}
+
+/* GitHub: h1/h2 carry the README bottom rule; search-yellow markers;
+   links stay blue, no underline (GitHub underlines on hover only). */
+#ag-editor-id h1,
+#ag-editor-id h2 {
+  border-bottom: 1px solid #D1D9E0;
+  padding-bottom: 0.3em;
+}
+mark, .ag-highlight { background: rgba(210, 153, 34, 0.28) !important; color: inherit !important; border-radius: 2px; }

@@ -258,7 +258,7 @@ test.describe('the Settings family picker carries the new families (C-51 T-007)'
 
   test('manual Light: picking Docs applies docs light and persists both members', async ({ page }) => {
     await openAppearance(page)
-    await expect(page.locator('.theme-family-tile')).toHaveCount(16)
+    await expect(page.locator('.theme-family-tile')).toHaveCount(17)
 
     const docsTile = page.locator('.theme-family-tile[data-family="docs"]')
     await docsTile.click()
