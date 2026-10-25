@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/c48-help-commands.test.js
-// VERSION: 1.2.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-48 Help commands — help.rate opens the https App
 //            Store write-review URL (inside the MAS opener:default scope)
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-22 release 2.7.0 draft: the latest-with-content fallback follows the reviewed 2.7.0 sheet while publication remains separately authorized.
+//   LAST_CHANGE: v1.4.0 - 2026-10-25 the fallback expectation is the newest sheet in the table, so a new release no longer edits this test.
+//   PREV: v1.3.0 - 2026-10-22 release 2.7.0 draft: the latest-with-content fallback follows the reviewed 2.7.0 sheet while publication remains separately authorized.
 //   PREV: v1.1.0 - 2026-10-18 release 2.5.0: What's New pins move to the 2.5.0 sheet (the previous release 2.4.0 becomes the upgrade source).
 //   v1.0.0 - 2026-10-15 C-48 review fix: initial pins (https
 //   rate URL + rejection catch; What's New latest-with-content fallback).
@@ -43,7 +44,8 @@ vi.mock('@/store/editor', () => ({ useEditorStore: () => ({ currentFile: null })
 
 import commands, { RATE_MARK_URL } from '@/commands/index'
 import bus from '@/bus'
-import { getWhatsNewItems } from '@/whatsNew/data'
+import { WHATS_NEW_CONTENT, getWhatsNewItems } from '@/whatsNew/data'
+import { compareVersions } from '@/util/version'
 
 const findCmd = (id) => commands.find((c) => c.id === id)
 
@@ -93,7 +95,8 @@ describe('C-48 help.whats-new', () => {
     await findCmd('help.whats-new').execute()
     const [event, payload] = bus.emit.mock.calls[0]
     expect(event).toBe('whatsNewDialog')
-    expect(payload.version).toBe('2.8.1')
+    const newest = Object.keys(WHATS_NEW_CONTENT).filter((v) => getWhatsNewItems(v).length).sort(compareVersions).at(-1)
+    expect(payload.version).toBe(newest)
     expect(getWhatsNewItems(payload.version).length).toBeGreaterThan(0)
   })
 })

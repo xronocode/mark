@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "protocol": "docs/acceptance/README.md",
   "scope": "Delivery items of the 2.6.x-next train onward. Pre-2.6.0 acceptance history is frozen prose in the Released 2.5.x-next record.",
-  "lastSynced": "2026-10-23",
+  "lastSynced": "2026-10-24",
   "artifacts": [
     {
       "id": "mark-test-fix009-7057d645",
@@ -57,6 +57,26 @@
       "builtBy": "tools/build-test-artifact.mjs",
       "covers": [
         "FIX-018"
+      ],
+      "location": "target/debug/bundle/macos (repo build dir; rebuild via the builder)"
+    },
+    {
+      "id": "mark-test-fix019-52443b1",
+      "source": {
+        "sha": "52443b15e834955eb7619f264b1bda0044a7b1c7",
+        "branch": "feat/whats-new-changelog-link",
+        "pullRequest": 61,
+        "mergedAs": "13739d00c02c9ccde7d5a0a6c6cef249b1830e32"
+      },
+      "platform": "macos-arm64-debug",
+      "bundleIdentity": "com.xronocode.mark.test.fix019.52443b1",
+      "productName": "Mark Test FIX-019",
+      "binarySha256": "47892d64c8dfe68f190eba7099e96a2f87da99b6bb1547f34870026fbd8e4c85",
+      "productVersion": "2.8.1",
+      "builtAt": "2026-10-24",
+      "builtBy": "tools/build-test-artifact.mjs",
+      "covers": [
+        "FIX-019"
       ],
       "location": "target/debug/bundle/macos (repo build dir; rebuild via the builder)"
     }
@@ -535,6 +555,47 @@
             "guarded Cmd+Q dialog (no silent data loss)",
             "pretty cloud root names + online-files hint"
           ]
+        }
+      ]
+    },
+    {
+      "id": "FIX-019",
+      "summary": "\"See everything new\" in What's New opens the release's section of the changelog on the Mark website instead of a GitHub release page; the website changelog lists every release again.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-24",
+          "actor": "owner",
+          "detail": "Owner decision: retire older GitHub release pages; the in-app link must keep working without them."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-25",
+          "actor": "agent",
+          "detail": "PR #61 (13739d00): changelog-section link with release dates, the CHANGELOG releases region starts above the newest section, normalization and materials keep the date equal to the CHANGELOG heading."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-10-25",
+          "actor": "agent",
+          "artifact": "mark-test-fix019-52443b1",
+          "detail": "Mark Test FIX-019 built from the PR head 52443b15; the app sources are identical to the merge 13739d00."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-10-25",
+          "actor": "owner",
+          "verdict": "accepted",
+          "scenarios": [
+            "In Mark Test FIX-019, Help > What's New > \"See everything new\" opens the changelog on the Mark website at the version's section."
+          ],
+          "detail": "Owner, 2026-10-25 (translated from Russian): \"I accept FIX-019: in Mark Test FIX-019, 'See everything new' opens the changelog on the website at the version's section.\""
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-25",
+          "actor": "agent",
+          "detail": "Queued in train 2.8.2-next."
         }
       ]
     }

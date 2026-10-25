@@ -1153,6 +1153,12 @@
         "title": "Export PDF corrigé",
         "text": "L'export PDF ne quitte plus l'app et enregistre votre document sur le disque."
       }
+    },
+    "v2_8_2": {
+      "changelog": {
+        "title": "Toutes les versions réunies",
+        "text": "« Voir toutes les nouveautés » ouvre cette version dans le journal du site Mark."
+      }
     }
   },
   "store": {

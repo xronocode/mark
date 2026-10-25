@@ -223,6 +223,17 @@ describe('release materials', () => {
     )
   })
 
+  it('rejects a locale that translates a product name the English copy uses', () => {
+    const { source, minified } = localeTables()
+    const [entry] = Object.keys(source.en.whatsNew[VERSION_KEY])
+    const english = JSON.stringify(source.en.whatsNew[VERSION_KEY])
+    const token = ['Mark', 'macOS', 'PDF', 'Markdown'].find((name) => english.includes(name))
+    if (!token) return
+    source.de.whatsNew[VERSION_KEY][entry].text = source.de.whatsNew[VERSION_KEY][entry].text.replaceAll(token, 'X')
+    minified.de = structuredClone(source.de)
+    rejectedWith(() => validateLocaleMaterials(source, minified, VERSION), 'MT_RELEASE_LOCALE_COPY_INVALID')
+  })
+
   it('rejects one missing locale independently', () => {
     const { source, minified } = localeTables()
     delete source.ja

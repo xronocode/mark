@@ -33,7 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-24 v2.1.0: the What's New link opens the website changelog, so normalization records the release date (the CHANGELOG heading date) for the target version instead of a GitHub release URL.
+//   - 2026-10-24 v2.1.0: (CRLF-safe) the What's New link opens the website changelog, so normalization records the release date (the CHANGELOG heading date) for the target version instead of a GitHub release URL.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — package.json is the single version authority (Release Please and its manifest removed); the train resolves through the current-train pointer; a CHANGELOG without a numbered section receives one; the ledger status line is matched generically.
 //   - 2026-10-21 v1.3.0: preserve LF or CRLF while synchronizing the human train ledger on every runner OS.
 //   - 2026-10-21 v1.2.0: synchronize the human train ledger with the machine-readable Collecting-to-Preparing transition.
@@ -151,17 +151,19 @@ const replaceWhatsNewVersion = (source, fromVersion, targetVersion, date) => {
     '// START_BLOCK_WHATS_NEW_EXTRAS',
     '// END_BLOCK_WHATS_NEW_EXTRAS',
     (block) => {
-      const opener = 'export const WHATS_NEW_RELEASE_DATES = {\n'
+      // Windows checkouts carry CRLF; keep the file's own line ending.
+      const eol = block.includes('\r\n') ? '\r\n' : '\n'
+      const opener = `export const WHATS_NEW_RELEASE_DATES = {${eol}`
       if (block.split(opener).length !== 2) {
         fail('MT_RELEASE_NORMALIZE_MATERIAL_INVALID', 'whatsNew.dates=ambiguous')
       }
       const line = (version) =>
-        new RegExp(`^  '${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}': '[^']*',?\\n`, 'm')
+        new RegExp(`^  '${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}': '[^']*',?\\r?\\n`, 'm')
       let next = block
       if (fromVersion !== targetVersion) next = next.replace(line(fromVersion), '')
       next = next.replace(line(targetVersion), '')
       const body = next.slice(next.indexOf(opener) + opener.length)
-      const entry = `  '${targetVersion}': '${date}'${body.startsWith('}') ? '' : ','}\n`
+      const entry = `  '${targetVersion}': '${date}'${body.startsWith('}') ? '' : ','}${eol}`
       return next.replace(opener, opener + entry)
     },
     'whatsNew.extras'
