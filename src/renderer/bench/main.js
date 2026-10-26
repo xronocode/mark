@@ -29,8 +29,17 @@
 //     truthfulness assertions) and real PHASE_SCROLL (frame-interval jank
 //     distribution); driver-provided fixture/phases via
 //     window.__BENCH_OPTIONS__; SKIPPED markers are gone for required runs.
+//   - 2026-10-27 C-LARGE-DOC-STAGE-0 T-004: responsiveness meters on both
+//     phases (Long Tasks API where available, otherwise the separately
+//     named event-loop-lag proxy — never merged cross-engine); PHASE_MEMORY
+//     heap observation (Chromium-only API, labelled not-supported
+//     elsewhere); PHASE_INIT_RENDER component breakdown (parse_proxy via
+//     muya marked Lexer, mount, first_paint); C-68 and C-DOC-CHANGE-JOURNAL
+//     retention recorded as not-applicable for the bench harness (no tab
+//     lifecycle) / the change not being in this tree (R-4 lifecycle rule).
 
 import Muya from 'muya/lib'
+import { Lexer } from 'muya/lib/parser/marked'
 import { FIXTURE_MARKDOWN } from './fixture.js'
 
 // ────────────────────────────────────────────────────────────────
@@ -90,12 +99,70 @@ const TYPING_SAMPLES = Number.isFinite(OPTS.typingSamples) ? OPTS.typingSamples 
 const SCROLL_MS = Number.isFinite(OPTS.scrollMs) ? OPTS.scrollMs : 3000
 
 // ────────────────────────────────────────────────────────────────
-// Phase 1 — initial render.
-// Time from "before construction" to "first paint after construction".
-// The 1500ms Phase-B1 step-2.5 criterion applies to the built-in ~6 KB
-// fixture; corpus fixtures report numbers only (driver decides gating).
+// Responsiveness observers (C-LARGE-DOC-STAGE-0 T-004, R-3):
+// PerformanceObserver('longtask') where the Long Tasks API exists,
+// otherwise a separately named 20 ms event-loop-lag proxy (ticker
+// drift). The two series are NEVER merged cross-engine — each phase
+// marker states which one it carries.
+// ────────────────────────────────────────────────────────────────
+const LONGTASK_SUPPORTED =
+  typeof PerformanceObserver !== 'undefined' &&
+  PerformanceObserver.supportedEntryTypes &&
+  PerformanceObserver.supportedEntryTypes.includes('longtask')
+
+function makeResponsiveness() {
+  const tasks = [] // longtask durations (ms) — Long Tasks API only
+  const lag = [] // ticker drift (ms) — event-loop-lag proxy
+  let observer = null
+  let tickerId = null
+  let tickerExpected = 0
+  function start() {
+    if (LONGTASK_SUPPORTED) {
+      observer = new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) tasks.push(e.duration)
+      })
+      observer.observe({ type: 'longtask', buffered: false })
+    } else {
+      tickerExpected = performance.now()
+      tickerId = setInterval(() => {
+        const now = performance.now()
+        lag.push(now - tickerExpected)
+        tickerExpected = now + 20
+      }, 20)
+    }
+  }
+  function stop() {
+    if (observer) observer.disconnect()
+    if (tickerId) clearInterval(tickerId)
+    const suffix = LONGTASK_SUPPORTED
+      ? `longtasks=${tasks.length} longtask_max_ms=${tasks.length ? Math.max(...tasks).toFixed(1) : 0} longtasks_gt_50ms=${tasks.filter((d) => d > 50).length} meter=longtask-api`
+      : `loop_lag_p50_ms=${percentile(lag, 50).toFixed(1)} loop_lag_p95_ms=${percentile(lag, 95).toFixed(1)} loop_lag_max_ms=${lag.length ? Math.max(...lag).toFixed(1) : 0} meter=event-loop-lag-proxy`
+    return suffix
+  }
+  return { start, stop }
+}
+
+// Heap observation (R-4): performance.memory exists only in Chromium;
+// elsewhere the marker states not-supported instead of guessing.
+function heapMarker(label) {
+  if (performance.memory && Number.isFinite(performance.memory.usedJSHeapSize)) {
+    return `${label}_heap_used_mb=${(performance.memory.usedJSHeapSize / 1048576).toFixed(1)}`
+  }
+  return `${label}_heap=not-supported`
+}
+
+// ────────────────────────────────────────────────────────────────
+// Phase 1 — initial render, with component breakdown (R-4):
+// parse_proxy = muya marked Lexer over the fixture (tokenizer stage of
+// the real pipeline); mount = Muya constructor; first_paint = end of
+// constructor → committed paint. All labelled proxies.
 // ────────────────────────────────────────────────────────────────
 async function phaseInitRender() {
+  const tParse0 = performance.now()
+  const tokens = new Lexer().lex(FIXTURE_TEXT)
+  const parseProxyMs = performance.now() - tParse0
+  void tokens
+
   performance.mark('init-start')
   const t0 = performance.now()
   const editor = new Muya(document.getElementById('editor'), {
@@ -104,11 +171,14 @@ async function phaseInitRender() {
     // the harness — we don't render any l10n-dependent UI.
     t: (key) => key
   })
+  const mountMs = performance.now() - t0
   await nextPaint()
   const t1 = performance.now()
   performance.mark('init-end')
   performance.measure('PHASE_INIT_RENDER', 'init-start', 'init-end')
-  log(`[PHASE_INIT_RENDER ms=${(t1 - t0).toFixed(1)}]`)
+  log(
+    `[PHASE_INIT_RENDER ms=${(t1 - t0).toFixed(1)} parse_proxy_ms=${parseProxyMs.toFixed(1)} mount_ms=${mountMs.toFixed(1)} first_paint_ms=${(t1 - t0 - mountMs).toFixed(1)} tokens=${tokens.length} ${heapMarker('after_open')}]`
+  )
   return editor
 }
 
@@ -143,6 +213,8 @@ async function phaseTyping(editor) {
   const mdBefore = editor.getMarkdown()
   const marker = 'zynq' // letters unlikely to collide with fixture pools
   const focusable = await placeCaretInFirstParagraph(editor)
+  const resp = makeResponsiveness()
+  resp.start()
 
   const samples = []
   let insertions = 0
@@ -158,6 +230,7 @@ async function phaseTyping(editor) {
     const sel = window.getSelection()
     if (!sel.rangeCount) await placeCaretInFirstParagraph(editor)
   }
+  const respSuffix = resp.stop()
   void focusable
 
   const mdAfter = editor.getMarkdown()
@@ -180,8 +253,9 @@ async function phaseTyping(editor) {
     throw new Error('typing truthfulness: undo did not restore pre-edit markdown')
   }
   log(
-    `[PHASE_TYPING n=${samples.length} p50_ms=${percentile(samples, 50).toFixed(1)} p95_ms=${percentile(samples, 95).toFixed(1)} max_ms=${Math.max(...samples).toFixed(1)} mean_ms=${(samples.reduce((a, b) => a + b, 0) / samples.length).toFixed(1)} truth=ok]`
+    `[PHASE_TYPING n=${samples.length} p50_ms=${percentile(samples, 50).toFixed(1)} p95_ms=${percentile(samples, 95).toFixed(1)} max_ms=${Math.max(...samples).toFixed(1)} mean_ms=${(samples.reduce((a, b) => a + b, 0) / samples.length).toFixed(1)} ${respSuffix} truth=ok]`
   )
+  log(`[PHASE_MEMORY note=retained-after-edits ${heapMarker('after_edit')} c68_opened_baseline=not-applicable-bench-harness doc_change_journal=not-applicable-change-not-in-tree]`)
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -194,6 +268,8 @@ async function phaseTyping(editor) {
 async function phaseScroll() {
   const intervals = []
   let frames = 0
+  const resp = makeResponsiveness()
+  resp.start()
   const t0 = performance.now()
   let last = t0
   await new Promise((resolve) => {
@@ -209,10 +285,11 @@ async function phaseScroll() {
     }
     requestAnimationFrame(step)
   })
+  const respSuffix = resp.stop()
   const elapsed = performance.now() - t0
   const gt50 = intervals.filter((d) => d > 50).length
   log(
-    `[PHASE_SCROLL frames=${frames} elapsed_ms=${elapsed.toFixed(0)} fps=${((frames / elapsed) * 1000).toFixed(1)} frame_p50_ms=${percentile(intervals, 50).toFixed(1)} frame_p95_ms=${percentile(intervals, 95).toFixed(1)} frame_max_ms=${Math.max(...intervals).toFixed(1)} frames_gt_50ms=${gt50}]`
+    `[PHASE_SCROLL frames=${frames} elapsed_ms=${elapsed.toFixed(0)} fps=${((frames / elapsed) * 1000).toFixed(1)} frame_p50_ms=${percentile(intervals, 50).toFixed(1)} frame_p95_ms=${percentile(intervals, 95).toFixed(1)} frame_max_ms=${Math.max(...intervals).toFixed(1)} frames_gt_50ms=${gt50} ${respSuffix}]`
   )
 }
 
