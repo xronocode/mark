@@ -1,0 +1,247 @@
+{
+  "generatedBy": "generators/build-corpus.mjs",
+  "deterministic": true,
+  "seedNote": "xorshift32 fixed seeds inside lib.mjs/build-corpus.mjs",
+  "references": [
+    {
+      "name": "src/renderer/bench/fixture.js",
+      "class": "ordinary",
+      "note": "existing ~6 KB bench fixture owned by the bench harness; referenced by the corpus, not duplicated"
+    }
+  ],
+  "runConditions": {
+    "expensiveLeaves": "network disabled; image assets resolve to the committed assets/ directory"
+  },
+  "fixtures": [
+    {
+      "name": "mixed-100k.md",
+      "bytes": 107602,
+      "sha256": "4180ed7769c4a87c82819bc7ca8e28026966695b9442e82039df5e26a4ed353f",
+      "storage": "committed",
+      "class": "ordinary",
+      "encoding": "utf8",
+      "sections": 91
+    },
+    {
+      "name": "size-1mb.md",
+      "bytes": 1058416,
+      "sha256": "5f66dea2d1386f7e43f163fcb5d47dc725178bad200074b596b8a68d5b043904",
+      "storage": "committed",
+      "class": "size-scale",
+      "encoding": "utf8",
+      "sections": 926
+    },
+    {
+      "name": "size-1_7mb-9000sections.md",
+      "bytes": 1801827,
+      "sha256": "6416a3ddeee16a4fde20e16f2ad5c5b5583060de00dd174febfe5d944cf72c8b",
+      "storage": "committed",
+      "class": "size-scale",
+      "encoding": "utf8",
+      "sections": 9536
+    },
+    {
+      "name": "giant-list.md",
+      "bytes": 215762,
+      "sha256": "e1162f1b4c19929db53642aaa45cc5e890e80062a05f3c427480b38cce782b7f",
+      "storage": "committed",
+      "class": "pathological",
+      "encoding": "utf8",
+      "sections": 0
+    },
+    {
+      "name": "table-1000rows.md",
+      "bytes": 40980,
+      "sha256": "b00303d3d475c3dabf2a1d4fe7c86a8268992e1dafbc09b265c58e3bb5659c21",
+      "storage": "committed",
+      "class": "pathological",
+      "encoding": "utf8",
+      "sections": 0
+    },
+    {
+      "name": "giant-paragraph.md",
+      "bytes": 123389,
+      "sha256": "21b95e05ba4421f626ab6bf3d5ceee05b82f2e3b0d33971520ff07cb5e6c6b2b",
+      "storage": "committed",
+      "class": "pathological",
+      "encoding": "utf8",
+      "sections": 0
+    },
+    {
+      "name": "giant-code-block.md",
+      "bytes": 264224,
+      "sha256": "929697afaf7aee1220d18f0d4a9eaf5fdb6498a9603fe554680730e71af9c5c5",
+      "storage": "committed",
+      "class": "pathological",
+      "encoding": "utf8",
+      "sections": 0
+    },
+    {
+      "name": "nested-deep.md",
+      "bytes": 8215,
+      "sha256": "672abff9aa5fb44dd9b00282faa078bd51ad8bdfdce67bdacfba1ee732b7b819",
+      "storage": "committed",
+      "class": "pathological",
+      "encoding": "utf8",
+      "sections": 0
+    },
+    {
+      "name": "expensive-leaves.md",
+      "bytes": 32560,
+      "sha256": "834c1fef44d353cd5a13fb2e6c90a70c3505dafd8eb45b7dd257833b1115e403",
+      "storage": "committed",
+      "class": "expensive-leaves",
+      "encoding": "utf8",
+      "sections": 120
+    },
+    {
+      "name": "semantic-edge.md",
+      "bytes": 1252,
+      "sha256": "ade8e55420d992759d1ab169e5e1fbb82a21d86ba0575fa33d43763bfe5acd23",
+      "storage": "committed",
+      "class": "semantic-edge",
+      "encoding": "utf8",
+      "sections": 0
+    },
+    {
+      "name": "byte-policy/utf8.md",
+      "bytes": 318,
+      "sha256": "1717f535d05e22d9992f4b7a4b9a1407bbadfdba797405336cc4e36e7479cabd",
+      "storage": "committed",
+      "class": "byte-policy",
+      "encoding": "utf8",
+      "note": "baseline"
+    },
+    {
+      "name": "byte-policy/utf8-bom.md",
+      "bytes": 321,
+      "sha256": "1c7c81a61bd33eef74b30cb69ce736ff2cefb0764487189dc0c171dd8bfbca68",
+      "storage": "committed",
+      "class": "byte-policy",
+      "encoding": "utf8-bom",
+      "note": "BOM"
+    },
+    {
+      "name": "byte-policy/utf8-crlf.md",
+      "bytes": 325,
+      "sha256": "3ae5e2580ed1427d839d03e3bba632ce8677fc09e34855e54517f6fb8858757b",
+      "storage": "committed",
+      "class": "byte-policy",
+      "encoding": "utf8-crlf",
+      "note": "CRLF"
+    },
+    {
+      "name": "byte-policy/utf8-mixed-eol.md",
+      "bytes": 322,
+      "sha256": "d7b732dfadd4ad938e860f10270267d12bacd415b7a129ed2d25b64e3b4bf995",
+      "storage": "committed",
+      "class": "byte-policy",
+      "encoding": "utf8-mixed-eol",
+      "note": "mixed LF/CRLF"
+    },
+    {
+      "name": "byte-policy/utf8-no-final-newline.md",
+      "bytes": 317,
+      "sha256": "e0c58c0f92415a626ba45cb184b6c0aa3fc2913a5e9e743de472ffef88500848",
+      "storage": "committed",
+      "class": "byte-policy",
+      "encoding": "utf8-no-final-newline",
+      "note": "no final newline"
+    },
+    {
+      "name": "byte-policy/utf16le-bom.md",
+      "bytes": 472,
+      "sha256": "a720a22917fc382bb46ef357895f12dab694def4e367dbad43d2df3bb20be79d",
+      "storage": "materialized",
+      "class": "byte-policy",
+      "encoding": "utf16le-bom",
+      "note": "UTF-16 LE + BOM"
+    },
+    {
+      "name": "byte-policy/utf16be-bom.md",
+      "bytes": 472,
+      "sha256": "213909f27b658422f92a155c92e0ce64ddef22618a50ecc06da02c613af26037",
+      "storage": "materialized",
+      "class": "byte-policy",
+      "encoding": "utf16be-bom",
+      "note": "UTF-16 BE + BOM"
+    },
+    {
+      "name": "byte-policy/latin1.md",
+      "bytes": 127,
+      "sha256": "858acc62b8d3751cddcc8807ea3d94cba3fb10e961a29a1b184705d6db20a77d",
+      "storage": "materialized",
+      "class": "byte-policy",
+      "encoding": "latin1",
+      "note": "single-byte"
+    },
+    {
+      "name": "byte-policy/koi8-r.md",
+      "bytes": 112,
+      "sha256": "4f4f9b9af44e77546fd667a8c10e795998d9d79e7a438fc5e964bf8e8f112b0f",
+      "storage": "materialized",
+      "class": "byte-policy",
+      "encoding": "koi8-r",
+      "note": "single-byte Cyrillic"
+    },
+    {
+      "name": "byte-policy/cp1251.md",
+      "bytes": 112,
+      "sha256": "60e9b2ecbf150bcab2f4482bbbec61981efde921dcc2a6f4a77b2d3dbec1ff3d",
+      "storage": "materialized",
+      "class": "byte-policy",
+      "encoding": "cp1251",
+      "note": "single-byte Cyrillic"
+    },
+    {
+      "name": "byte-policy/shift-jis.md",
+      "bytes": 31,
+      "sha256": "c85a955b48c28c8564f88c63439446079f78029d4c8811551f574a885964f843",
+      "storage": "materialized",
+      "class": "byte-policy",
+      "encoding": "shift-jis",
+      "note": "precomputed pinned sample (no iconv dependency)"
+    },
+    {
+      "name": "byte-policy/gb2312.md",
+      "bytes": 19,
+      "sha256": "36f60a5e0c13e953840020dfc440a6f3658d12a39288efe51ef7c2bc3e2df08f",
+      "storage": "materialized",
+      "class": "byte-policy",
+      "encoding": "gb2312",
+      "note": "precomputed pinned sample (no iconv dependency)"
+    },
+    {
+      "name": "assets/local-0.svg",
+      "bytes": 198,
+      "sha256": "3910f6b2597ff137ad82099efaa10ebe9385e555c326a74d2dffafdc8bcb5d64",
+      "storage": "committed",
+      "class": "asset",
+      "encoding": "utf8"
+    },
+    {
+      "name": "assets/local-1.svg",
+      "bytes": 199,
+      "sha256": "747b46b88f27fb429a5cd1be2378b1035a7012ad89291125efe4cc547615710c",
+      "storage": "committed",
+      "class": "asset",
+      "encoding": "utf8"
+    },
+    {
+      "name": "assets/local-2.svg",
+      "bytes": 200,
+      "sha256": "9d1ce2e3dd3877d91bf8db21bf174ebc6a421f2cd2735468e947ba9cf3ef7ac1",
+      "storage": "committed",
+      "class": "asset",
+      "encoding": "utf8"
+    },
+    {
+      "name": "assets/local-3.svg",
+      "bytes": 200,
+      "sha256": "538868215910bea36037f5e2b7dce747f628187d7fe61fa713843eaff2f30a98",
+      "storage": "committed",
+      "class": "asset",
+      "encoding": "utf8"
+    }
+  ]
+}
