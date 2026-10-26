@@ -1,0 +1,127 @@
+<GraceChangeDesignContext graceVersion='4.0'>
+  <Change>C-LARGE-DOC-STAGE-0</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    The large-document problem decomposes into sequential GRACE changes because
+    its two O(document) cost trajectories (full-document mount on open; full
+    synchronous derived work plus history deep-copy per edit) need different
+    fixes, and every later fix risks silent data regression unless current
+    behavior is frozen first. Stage 0 is deliberately limited to measurements
+    and behavioral oracles: it produces the evidence that forces the owner's
+    product decisions (target size, absolute and relative budgets, Wave A/B
+    order, crash-durability contract and later-wave experimental access model)
+    and the frozen oracle that all later waves diff against. One
+    mega-spec for every wave was rejected because each wave needs its own
+    approval and its own evidence gate; starting Wave A (progressive mount)
+    without a baseline was rejected because success budgets would be guesses;
+    treating upstream marktext PR #4946 or ColaMD's lazyMarkdownPipeline as
+    ready patches was rejected — they are design references only.
+  </Rationale>
+  <Provenance>
+    <Packet>
+      <Path>owner-local research packet (outside the repository; referenced by description only)</Path>
+      <Note>Local pre-spec research packet; not repo content. Canonical inputs and their SHA-256 (verified 2026-10-24, matching both clean-review pins):</Note>
+      <File>
+        <Name>00-README.md</Name>
+        <Sha256>b6951e7027705d31405ff53d0ca886989cadb3ea67f671379419c52d0ae6225b</Sha256>
+      </File>
+      <File>
+        <Name>05-implementation-plan.md</Name>
+        <Sha256>43b869cd94f450fd5a4cbec0af94f462acf27451109c0c43d0c5520e8d2f0ce6</Sha256>
+      </File>
+      <File>
+        <Name>06-safety-verification-matrix.md</Name>
+        <Sha256>b578de5000d4cd0d428c9691a91d0d24652740e5a7580bfcf7886d5ad298d3b4</Sha256>
+      </File>
+      <File>
+        <Name>07-spec-author-handoff.md</Name>
+        <Sha256>05e92c58b658743b7775244066a6062e5103586d0f75cd3c20199be72cc24ace</Sha256>
+      </File>
+      <File>
+        <Name>10-source-and-evidence-index.md</Name>
+        <Sha256>47c91f7663616dbcfee6d90c49f735ba6b6de53b51d2ac081de16df5785b80e4</Sha256>
+      </File>
+      <CleanReviews>
+        08-clean-review-pass-1.md (code/architecture) and
+        09-clean-review-pass-2.md (safety/GRACE/rollout) both returned CLEAN
+        against these hashes on 2026-10-24 after earlier finding-bearing passes
+        were corrected. Errata: the preserved 04-safety-review claim that hard
+        crash loss is bounded by the debounce window is rejected; see the
+        packet's explicit errata section.
+      </CleanReviews>
+    </Packet>
+    <BaselineIdentity>
+      Pre-spec capture immediately before this bundle was created: commit
+      ea4ddcd7540b2fa0968cad1c55cadd5685b7d5f9, branch
+      train/2.8.1-seal-squash, 2026-10-24. Working tree: 81 uncommitted entries
+      from parallel sessions (theme work, locales, editor/store, runtime graph
+      and verification XML, five untracked active C-* bundles). grace status:
+      10 active changes, 7 integrity errors, 19 warnings. Adding this draft
+      bundle makes the live counts 82 entries and 11 active changes without
+      changing those lint totals. grace lint
+      --assertions current: 7 errors / 19 warnings, all pre-existing MODULE_MAP
+      drift (release-normalize.test.js, export-docx.test.js,
+      acceptance-registry.mjs, worktree copies). grace lint
+      --parallel-preflight: 24 errors / 19 warnings, observed-write and
+      durable-scope overlaps among active changes. This identity is evidence of
+      the pre-existing state, not a target; it is re-verified at plan time.
+    </BaselineIdentity>
+  </Provenance>
+  <Alternatives>
+    <Alternative>Single mega-spec covering Waves A–D: rejected — unapprovable scope, no evidence gates between waves, and the owner's Wave A/B order decision would be presupposed.</Alternative>
+    <Alternative>Start with Wave A (progressive mount) and measure later: rejected — no baseline means no honest budget, and behavioral oracles would be written after the behavior changed.</Alternative>
+    <Alternative>Adopt upstream marktext PR #4946 or ColaMD lazyMarkdownPipeline as patches: rejected — OPEN/unmerged external work with different architecture assumptions; kept as design references only.</Alternative>
+    <Alternative>Rely on Source Code mode as the large-file fallback: rejected — CodeMirror viewportMargin: Infinity likely renders the whole document; it stays unmeasured until Stage 0 numbers exist.</Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>Fixture generator governance: test modules vs scripts, exact location, MODULE_CONTRACT role (TEST/SCRIPT) and MODULE_MAP mode (LOCALS) — fixed by the plan.</Decision>
+    <Decision>Which metrics become CI gates vs recorded diagnostics; sample count, warmup policy, percentile calculation and outlier policy; relative vs absolute budget policy and platform labels — proposed with numbers by the plan, approved by the owner after Stage 0 evidence.</Decision>
+    <Decision>Later-wave experimental access model — visible Experimental setting, support-only preference, or private test artifact; whichever model is selected remains local, default-off and session-latched until a separate approved default flip.</Decision>
+    <Decision>Artifact naming, location and retention for baseline JSON and acceptance captures (private captures stay uncommitted).</Decision>
+    <Decision>Whether Stage 0 itself updates the owning routed .grace/context document after owner decisions, or a separate governance bundle records target size, absolute/relative budgets, wave order, crash contract and experimental access model before any Wave A/B spec — flagged fork, default: separate governance bundle.</Decision>
+    <Decision>The file-level boundary inside the required M-060 harness module, which owns Stage 0 benchmark drivers, deterministic fixture tooling and characterization-session harness, and the exact M-011/M-012 summaries or dependency links that record its renderer/Muya dependencies — fixed by the plan against actual write scope.</Decision>
+    <Decision>Admission of any new stable CI gate into .github/workflows/test.yml — intentionally exceptional, never automatic.</Decision>
+    <Decision>10 MB target size (and therefore any 10 MB fixture promotion from optional diagnostic to required) — owner decision at the Stage 0 gate.</Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Program shape after Stage 0 (design context for later changes, each with
+      its own spec/plan/approval): Wave A progressive mount (opening-first
+      contract); Wave B1 change-source contract; Wave B2 lazy derived-state
+      pipeline with one freshness primitive; Wave B3 incremental history
+      materialization; Wave C size guards and graceful degradation; Wave D
+      (conditional) virtualization or engine migration only if A+B+C miss the
+      approved contract. Rollout: each behavior-changing strategy behind its own
+      default-off session-latched flag; legacy path retained until removal
+      gates; a later explicit release instruction is always separate.
+    </Scenario>
+    <Scenario>
+      Terminology frozen by the packet (P-04) for all later waves: model
+      mutation; derived snapshot; fresh (derivedRevision === contentRevision);
+      saved (current semantic content identity and desired byte-policy identity
+      both equal the identities of the exact bytes last written successfully);
+      mount prefix/tail; flush; history materialization.
+    </Scenario>
+    <Scenario>
+      The packet's safety and verification matrix (06) rows R-01..R-40
+      (fresh-Markdown readers and save/durability boundaries), D-01..D-31
+      (data-integrity oracle), M-01..M-20 (progressive-mount oracle), F-01..F-09
+      (feature flags/rollout), S-01..S-09 (security/privacy) and X-01..X-05
+      (execution/merge safety) are the standing inventory future wave specs must
+      carry into their corner matrices without losing rows or explicitly
+      justifying non-applicability. Stage 0 implements only the
+      characterization/foundation subset; the rest is context, not scope.
+    </Scenario>
+    <Scenario>
+      Sequencing with active changes: Stage 0's likely writes (src/renderer/bench,
+      fixtures, tests, graph/verification performance routing) overlap the broad
+      .grace/graph/*.xml and .grace/verification/*.xml scopes already claimed by C-50,
+      C-FILE-POSITION-MEMORY, C-NOTIFICATION-SYSTEM and others per the live
+      parallel preflight. The plan must not be approved or executed until every
+      overlap is sequenced, narrowed or completed; C-FILE-POSITION-MEMORY
+      (position flush) and C-DOC-CHANGE-JOURNAL (change journal) states are
+      re-read immediately before planning because the derived-state waves
+      depend on their interfaces.
+    </Scenario>
+  </Scenarios>
+</GraceChangeDesignContext>
