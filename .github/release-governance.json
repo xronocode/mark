@@ -33,7 +33,7 @@
     "number": 1,
     "nodeId": "PVT_kwHODITnSM4BoA5l",
     "fields": [
-      { "name": "Train", "dataType": "SINGLE_SELECT", "options": ["2.5.x-next", "2.6.x-next"] },
+      { "name": "Train", "dataType": "SINGLE_SELECT", "options": ["2.5.x-next", "2.6.x-next", "2.7.x-next", "2.8.x-next", "2.8.2-next", "2.9.x-next"] },
       { "name": "Admission", "dataType": "SINGLE_SELECT", "options": ["included", "operational", "not-present"] },
       { "name": "Owner acceptance", "dataType": "SINGLE_SELECT", "options": ["accepted", "not-required"] },
       { "name": "Payload SHA", "dataType": "TEXT" },

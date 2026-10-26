@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, the payload-open merge window, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
@@ -17,6 +17,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v2.1.0: delivery IDs are permanent — a PR title naming an ID the base revision already records is rejected.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — Release Please removed; release-bearing merges stay closed only while Preparing/Frozen and open again once the seal is Ready.
 //   - 2026-10-21 v1.5.0: keep the partial-Project-identity negative fixture valid after the real Project identity is recorded.
 //   - 2026-10-20 v1.4.0: require complete history in both governance and cross-platform renderer-unit jobs.
@@ -32,6 +33,7 @@ import { describe, expect, it } from 'vitest'
 import {
   runReleaseGovernance,
   validateConventionalTitle,
+  validateDeliveryIdReuse,
   validateGovernanceConfig,
   validatePreparationOverlap,
   validatePinnedActions
@@ -127,6 +129,21 @@ describe('release governance', () => {
     expect(() =>
       validatePinnedActions({ unsafe: 'steps:\n  - uses: actions/checkout@v4\n' })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_ACTION_UNPINNED' }))
+  })
+
+  it('rejects a pull request that reuses a delivery ID the base revision already records', () => {
+    expect(() =>
+      validateDeliveryIdReuse(process.cwd(), 'fix(editor): cut/copy after a stale selection (FIX-019)')
+    ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_DELIVERY_ID_REUSED' }))
+  })
+
+  it('accepts a new delivery ID and a title that names none', () => {
+    expect(
+      validateDeliveryIdReuse(process.cwd(), 'fix(editor): cut/copy after a stale selection (FIX-099)')
+    ).toBe(true)
+    expect(validateDeliveryIdReuse(process.cwd(), 'docs(repo): tighten the release protocol')).toBe(
+      true
+    )
   })
 
   it('fetches full history everywhere the history-sensitive normalization regression runs', () => {
