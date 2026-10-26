@@ -315,7 +315,8 @@
       "textDirection": "Textrichtung",
       "statusBar": "Statusleiste ein- oder ausblenden",
       "toggleTabbar": "Tab-Leiste umschalten",
-      "reloadImages": "Bilder neu laden"
+      "reloadImages": "Bilder neu laden",
+      "notificationsHistory": "Benachrichtigungen: letzte anzeigen"
     },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",
@@ -1230,7 +1231,28 @@
   },
   "notifications": {
     "defaultMessage": "Standardnachricht",
-    "defaultTitle": "Benachrichtigung"
+    "defaultTitle": "Benachrichtigung",
+    "close": "Schließen",
+    "more": "Weitere {n} Benachrichtigung | Weitere {n} Benachrichtigungen",
+    "source": {
+      "file": "Dateien",
+      "export": "Export",
+      "project": "Projekt",
+      "update": "Update",
+      "agent": "Agent",
+      "system": "System"
+    },
+    "actions": {
+      "copy": "Kopieren",
+      "retry": "Erneut versuchen",
+      "open": "Öffnen",
+      "reveal": "Anzeigen"
+    },
+    "history": {
+      "title": "Benachrichtigungen",
+      "empty": "Keine Benachrichtigungen in dieser Sitzung",
+      "copy": "Kopieren"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1470,7 +1492,6 @@
   "dialog": {
     "file": "Datei",
     "changesWillBeLost": "Änderungen gehen verloren",
-    "installPandoc": "Pandoc installieren",
     "close": "Schließen",
     "keepOpen": "Offen halten",
     "cancel": "Abbrechen",

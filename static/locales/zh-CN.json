@@ -315,7 +315,8 @@
       "textDirection": "文本方向",
       "statusBar": "显示或隐藏状态栏",
       "toggleTabbar": "切换标签栏",
-      "reloadImages": "重新加载图片"
+      "reloadImages": "重新加载图片",
+      "notificationsHistory": "通知：显示最近记录"
     },
     "utils": {
       "noUpdateResourceFile": "没有更新资源文件",
@@ -1229,7 +1230,28 @@
   },
   "notifications": {
     "defaultMessage": "默认消息",
-    "defaultTitle": "通知"
+    "defaultTitle": "通知",
+    "close": "关闭",
+    "more": "还有 {n} 条通知",
+    "source": {
+      "file": "文件",
+      "export": "导出",
+      "project": "项目",
+      "update": "更新",
+      "agent": "智能体",
+      "system": "系统"
+    },
+    "actions": {
+      "copy": "复制",
+      "retry": "重试",
+      "open": "打开",
+      "reveal": "显示"
+    },
+    "history": {
+      "title": "通知",
+      "empty": "本次会话暂无通知",
+      "copy": "复制"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1469,7 +1491,6 @@
   "dialog": {
     "file": "文件",
     "changesWillBeLost": "更改将丢失",
-    "installPandoc": "安装 Pandoc",
     "close": "关闭",
     "keepOpen": "保持打开",
     "cancel": "取消",

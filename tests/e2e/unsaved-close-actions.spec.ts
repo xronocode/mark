@@ -120,7 +120,7 @@ test.describe('unsaved untitled-tab close actions (FIX-011)', () => {
     await expect(page.locator('.ag-unsaved-close-dialog')).toBeVisible({ timeout: 5_000 })
     await page.locator('.ag-unsaved-close-save').click()
     await expect(page.locator('.ag-unsaved-close-dialog')).toBeHidden({ timeout: 5_000 })
-    await expect(page.locator('.mt-notification').first()).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.notification-card').first()).toBeVisible({ timeout: 5_000 })
     const state = await storeState(page)
     expect(state.tabCount).toBe(1)
     expect(state.dirty[0]).toBe(true)

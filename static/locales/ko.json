@@ -315,7 +315,8 @@
       "textDirection": "텍스트 방향",
       "statusBar": "상태 표시줄 표시/숨기기",
       "toggleTabbar": "탭바 토글",
-      "reloadImages": "이미지 새로고침"
+      "reloadImages": "이미지 새로고침",
+      "notificationsHistory": "알림: 최근 항목 표시"
     },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",
@@ -1229,7 +1230,28 @@
   },
   "notifications": {
     "defaultMessage": "기본 메시지",
-    "defaultTitle": "알림"
+    "defaultTitle": "알림",
+    "close": "닫기",
+    "more": "알림 {n}개 더",
+    "source": {
+      "file": "파일",
+      "export": "내보내기",
+      "project": "프로젝트",
+      "update": "업데이트",
+      "agent": "에이전트",
+      "system": "시스템"
+    },
+    "actions": {
+      "copy": "복사",
+      "retry": "다시 시도",
+      "open": "열기",
+      "reveal": "표시"
+    },
+    "history": {
+      "title": "알림",
+      "empty": "이 세션에는 알림이 없습니다",
+      "copy": "복사"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1469,7 +1491,6 @@
   "dialog": {
     "file": "파일",
     "changesWillBeLost": "변경 사항이 손실됩니다",
-    "installPandoc": "Pandoc 설치",
     "close": "닫기",
     "keepOpen": "열어두기",
     "cancel": "취소",
