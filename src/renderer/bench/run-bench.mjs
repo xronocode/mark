@@ -12,7 +12,11 @@
 //   2) `npm run preview` in another terminal
 //   3) node src/renderer/bench/run-bench.mjs [--fixture <path>]
 //        [--phases open,typing,scroll] [--runs N] [--engines chromium,webkit]
-//        [--typing-samples N] [--scroll-ms N]
+//        [--typing-samples N] [--scroll-ms N] [--json <out.json>]
+//
+// --json writes the machine-readable run report the Stage 0 baseline capture
+// (baseline/capture-baseline.mjs, task T-009) consumes: commit, fixture
+// identity, runtime, per-run parsed markers and the verdict.
 //
 // Phases: `open`, `typing` and `scroll` are REQUIRED and must emit numeric
 // results; `overhead` is an optional diagnostic (observer overhead against a
@@ -22,13 +26,24 @@
 // Semantics (spec R-5, constraint 3): a REQUIRED phase that fails to emit a
 // numeric result (SKIPPED, FAILED, or missing) in any engine run fails the
 // whole run — exit 1. The legacy Phase-B1 gate (WebKit/Chromium ≤ 1.5×,
-// p95 ≤ 1500ms) applies ONLY to the built-in ~6 KB fixture with the default
+// p95 ≤ 1500ms) applies ONLY to the built-in ~4 KB fixture with the default
 // open-only phases; corpus fixtures are report-only for those thresholds.
 
 import { chromium, webkit } from 'playwright'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import path from 'node:path'
+
+const PLAYWRIGHT_VERSION = createRequire(import.meta.url)('playwright/package.json').version
+const CURRENT_COMMIT = (() => {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  } catch (err) {
+    return null
+  }
+})()
 
 const URL = process.env.BENCH_URL ?? 'http://localhost:4173/bench/'
 const TIMEOUT_MS = 120_000
@@ -44,6 +59,7 @@ function parseArgs() {
     else if (args[i] === '--engines') out.engines = args[++i].split(',').map((s) => s.trim()).filter(Boolean)
     else if (args[i] === '--typing-samples') out.typingSamples = Number(args[++i])
     else if (args[i] === '--scroll-ms') out.scrollMs = Number(args[++i])
+    else if (args[i] === '--json') out.json = args[++i]
     else throw new Error(`unknown flag: ${args[i]}`)
   }
   return out
@@ -57,12 +73,14 @@ const ENGINES = ARGS.engines ?? ['chromium', 'webkit']
 const LEGACY_GATE = DEFAULT_FIXTURE && PHASES.join(',') === 'open'
 
 let fixtureText = null
-let fixtureIdentity = 'built-in bench fixture.js (~6 KB)'
+let fixtureIdentity = 'built-in bench fixture.js (~4 KB)'
+let fixtureReport = { kind: 'built-in', name: 'fixture.js', note: 'built-in ~4 KB bench fixture' }
 if (!DEFAULT_FIXTURE) {
   fixtureText = await readFile(path.resolve(ARGS.fixture), 'utf8')
   const bytes = Buffer.byteLength(fixtureText)
   const sha = createHash('sha256').update(fixtureText).digest('hex')
   fixtureIdentity = `${path.basename(ARGS.fixture)} bytes=${bytes} sha256=${sha}`
+  fixtureReport = { kind: 'corpus', path: ARGS.fixture, name: path.basename(ARGS.fixture), bytes, sha256: sha }
 }
 
 // ── run ────────────────────────────────────────────────────────
@@ -106,11 +124,31 @@ async function singleRun(browserType, engineLabel) {
     initRenderMs: (benchLines.map((l) => l.match(/PHASE_INIT_RENDER ms=([\d.]+)/)).find(Boolean) || [])[1]
       ? parseFloat(benchLines.map((l) => l.match(/PHASE_INIT_RENDER ms=([\d.]+)/)).find(Boolean)[1])
       : null,
+    initLine: line('INIT_RENDER')[0] ?? null,
     typingLines: line('TYPING'),
     scrollLines: line('SCROLL'),
+    overheadLines: line('OVERHEAD'),
+    memoryLines: line('MEMORY'),
     rawLines: benchLines,
     failed: benchLines.some((l) => l.includes('status=fail') || l.includes('FAILED') || l.includes('SKIPPED'))
   }
+}
+
+// Parse one "[PHASE_X k=v ...]" marker into {marker, k: number|string}.
+function parseMarker(ln) {
+  if (!ln) return null
+  const m = ln.match(/\[(PHASE_[A-Z_]+)[^\]]*\]/)
+  if (!m) return null
+  const body = ln.slice(m.index + m[1].length + 1, ln.indexOf(']', m.index + m[1].length))
+  const out = { marker: m[1] }
+  for (const token of body.trim().split(/\s+/)) {
+    const eq = token.indexOf('=')
+    if (eq < 1) continue
+    const key = token.slice(0, eq)
+    const value = token.slice(eq + 1)
+    out[key] = /^-?\d+(\.\d+)?$/.test(value) ? Number(value) : value
+  }
+  return out
 }
 
 // numeric presence per required phase (SKIPPED/FAILED/missing = fail)
@@ -230,10 +268,19 @@ const ENGINE_MAP = { chromium, webkit }
     if (perEngine[name].some((r) => r.failed)) failures.push(`${name}: run reported SKIPPED/FAILED lines`)
   }
 
+  let legacyGate = null
   if (LEGACY_GATE && perEngine.chromium && perEngine.webkit) {
     const c = stats(perEngine.chromium.map((r) => r.initRenderMs).filter((v) => v !== null))
     const w = stats(perEngine.webkit.map((r) => r.initRenderMs).filter((v) => v !== null))
     const ratio = w.mean / c.mean
+    legacyGate = {
+      ratio_mean: Number(ratio.toFixed(3)),
+      ratio_limit: 1.5,
+      chromium_p95_ms: Number(c.p95.toFixed(1)),
+      webkit_p95_ms: Number(w.p95.toFixed(1)),
+      cold_start_limit_ms: 1500,
+      status: ratio <= 1.5 && w.p95 <= 1500 && c.p95 <= 1500 ? 'PASS' : 'FAIL'
+    }
     console.log(``)
     console.log(`## Legacy Phase-B1 gate (built-in fixture, open-only)`)
     console.log(`- WebKit/Chromium ratio (mean): ${ratio.toFixed(2)}× — gate ≤ 1.5× → ${ratio <= 1.5 ? 'PASS' : 'FAIL'}`)
@@ -245,6 +292,35 @@ const ENGINE_MAP = { chromium, webkit }
   console.log(``)
   console.log(`## Verdict: ${failures.length ? 'FAIL' : 'PASS'}`)
   for (const f of failures) console.log(`- ${f}`)
+
+  if (ARGS.json) {
+    const runsOf = (name) => perEngine[name].map((r) => ({
+      init_render: parseMarker(r.initLine),
+      typing: parseMarker(r.typingLines[0]),
+      scroll: parseMarker(r.scrollLines[0]),
+      overhead: parseMarker(r.overheadLines[0]),
+      memory: r.memoryLines.map(parseMarker),
+      failed: r.failed
+    }))
+    const report = {
+      kind: 'muya-bench-driver',
+      generatedAt: new Date().toISOString(),
+      url: URL,
+      node: process.version,
+      platform: `${process.platform}-${process.arch}`,
+      playwright: PLAYWRIGHT_VERSION,
+      commit: CURRENT_COMMIT,
+      fixture: fixtureReport,
+      phases: PHASES,
+      runsPerEngine: RUNS,
+      engines: Object.fromEntries(ENGINES.map((name) => [name, runsOf(name)])),
+      legacyGate,
+      verdict: { status: failures.length ? 'FAIL' : 'PASS', failures }
+    }
+    await writeFile(path.resolve(ARGS.json), JSON.stringify(report, null, 2) + '\n')
+    console.log(`\nJSON report written: ${ARGS.json}`)
+  }
+
   process.exit(failures.length ? 1 : 0)
 })().catch((err) => {
   console.error('driver fatal:', err)
