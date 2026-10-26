@@ -12,25 +12,25 @@
 //
 // START_MODULE_MAP
 //   ROOT - repo root path.
-//   args - args - top-level args used by the script flow.
-//   get - CLI argument reader.
-//   item - item - top-level item used by the script flow.
-//   platform - platform - top-level platform used by the script flow.
-//   dryRun - dryRun - top-level dryRun used by the script flow.
-//   smoke - smoke - top-level smoke used by the script flow.
-//   sha - sha - top-level sha used by the script flow.
-//   short - short - top-level short used by the script flow.
-//   slug - slug - top-level slug used by the script flow.
-//   productName - productName - top-level productName used by the script flow.
-//   identifier - identifier - top-level identifier used by the script flow.
-//   merge - merge - top-level merge used by the script flow.
-//   tmp - tmp - top-level tmp used by the script flow.
-//   confPath - confPath - top-level confPath used by the script flow.
-//   bundleDir - bundleDir - top-level bundleDir used by the script flow.
-//   binary - binary - top-level binary used by the script flow.
-//   digest - digest - top-level digest used by the script flow.
-//   registryPath - registryPath - top-level registryPath used by the script flow.
-//   registry - registry - top-level registry used by the script flow.
+//   args - Raw CLI arguments.
+//   get - Read the value following one named CLI flag.
+//   item - Acceptance item id from --item.
+//   platform - Target platform from --platform (default macos).
+//   dryRun - Whether --dry-run skips building and recording.
+//   smoke - Whether --smoke launches and quits the built app.
+//   sha - Current worktree HEAD commit.
+//   short - Seven-character HEAD abbreviation used in the bundle identity.
+//   slug - Lowercase alphanumeric item id used in the bundle identifier.
+//   productName - Isolated "Mark Test <item>" product name.
+//   identifier - Isolated bundle identifier.
+//   merge - Temporary Tauri merge-config overrides.
+//   tmp - Temporary build-config directory.
+//   confPath - Path of the temporary merge-config file.
+//   bundleDir - Built .app or NSIS artifact directory.
+//   binary - macOS app binary path used for the digest.
+//   digest - SHA-256 of the built binary.
+//   registryPath - Acceptance registry JSON path.
+//   registry - Parsed acceptance registry document.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

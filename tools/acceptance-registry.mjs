@@ -15,8 +15,8 @@
 //   REGISTRY_PATH - registry JSON relative path.
 //   TRAIN_PATH - collecting train relative path.
 //   listTrainFiles - list every train ledger JSON in docs/release-trains.
-//   STATES - STATES - top-level STATES used by the script flow.
-//   VERDICTS - VERDICTS - top-level VERDICTS used by the script flow.
+//   STATES - Allowed acceptance lifecycle states.
+//   VERDICTS - Allowed owner verdicts.
 //   AcceptanceRegistryError - coded MT_ACCEPT_* error class.
 //   fail - raise a coded error.
 //   readRegistry - load the registry JSON from a root.
