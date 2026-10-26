@@ -1,21 +1,34 @@
 // MODULE_CONTRACT
-//   PURPOSE: muya perf harness entry. Mounts muya on the fixture, runs
-//            three measurement phases, reports numbers via #report div +
-//            stable [BENCH] console markers.
+//   PURPOSE: muya perf harness entry. Mounts muya on the fixture (built-in
+//            or driver-provided via window.__BENCH_OPTIONS__), runs the
+//            requested measurement phases (initial render, real-input typing,
+//            scroll jank), reports numbers via #report div + stable [BENCH]
+//            console markers.
 //   SCOPE:   pure renderer benchmark — NO ipc, NO Pinia, NO Element Plus,
-//            NO router. Only muya + the fixture markdown.
+//            NO router. Only muya + fixture markdown.
 //   DEPENDS: muya/lib (the v1.2.3 frontend tree), bench/fixture.js
-//            (FIXTURE_MARKDOWN constant).
+//            (FIXTURE_MARKDOWN default), run-bench.mjs (driver).
 //   LINKS:   .grace/graph/runtime.xml M-012 (PhaseRef Phase-B1) step-2.5;
-//            verification-plan V-M-012-VB-08.
-//   STATUS:  Phase-B1 step-2.5a — initial-render phase wired; typing +
-//            scroll phases stubbed with TODO markers (will be filled in
-//            step-2.5b once the harness is verified booting in both
-//            runtimes).
+//            .grace/graph/performance.xml M-060 (C-LARGE-DOC-STAGE-0 T-003);
+//            verification V-M-012-VB-08, V-M-060.
+//   STATUS:  C-LARGE-DOC-STAGE-0 T-003 — typing and scroll phases are REAL:
+//            typing injects through document.execCommand('insertText') which
+//            fires the genuine beforeinput/input chain into muya's handler
+//            (inputCtrl inputType=insertText path), measures input→next-paint
+//            per keystroke, and asserts per phase that the Markdown changed
+//            and undo restored the pre-edit value. Direct contentState
+//            mutation is never used here (microbenchmarks live in
+//            tests/renderer/perf).
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-28 B1-step-2.5a: scaffold; PHASE_INIT_RENDER live;
 //     PHASE_TYPING + PHASE_SCROLL stubbed with deferred markers.
+//   - 2026-04-28 B1-step-2.5b: driver + cross-engine comparison (init only).
+//   - 2026-10-27 C-LARGE-DOC-STAGE-0 T-003: real PHASE_TYPING (execCommand
+//     insertText through the actual input pipeline + markdown-changed/undo
+//     truthfulness assertions) and real PHASE_SCROLL (frame-interval jank
+//     distribution); driver-provided fixture/phases via
+//     window.__BENCH_OPTIONS__; SKIPPED markers are gone for required runs.
 
 import Muya from 'muya/lib'
 import { FIXTURE_MARKDOWN } from './fixture.js'
@@ -63,16 +76,30 @@ function percentile(arr, p) {
   return s[Math.max(0, idx)]
 }
 
+// Driver-provided options (run-bench.mjs injects them before page scripts).
+const OPTS = window.__BENCH_OPTIONS__ || {}
+const FIXTURE_TEXT =
+  typeof OPTS.fixtureText === 'string' && OPTS.fixtureText.length
+    ? OPTS.fixtureText
+    : FIXTURE_MARKDOWN
+const PHASES =
+  Array.isArray(OPTS.phases) && OPTS.phases.length
+    ? OPTS.phases
+    : ['open', 'typing', 'scroll']
+const TYPING_SAMPLES = Number.isFinite(OPTS.typingSamples) ? OPTS.typingSamples : 60
+const SCROLL_MS = Number.isFinite(OPTS.scrollMs) ? OPTS.scrollMs : 3000
+
 // ────────────────────────────────────────────────────────────────
 // Phase 1 — initial render.
 // Time from "before construction" to "first paint after construction".
-// Target: ≤ 1500ms cold (Phase-B1 step-2.5 PASS criterion).
+// The 1500ms Phase-B1 step-2.5 criterion applies to the built-in ~6 KB
+// fixture; corpus fixtures report numbers only (driver decides gating).
 // ────────────────────────────────────────────────────────────────
 async function phaseInitRender() {
   performance.mark('init-start')
   const t0 = performance.now()
   const editor = new Muya(document.getElementById('editor'), {
-    markdown: FIXTURE_MARKDOWN,
+    markdown: FIXTURE_TEXT,
     // muya's I18nCSS expects a translation function; identity works for
     // the harness — we don't render any l10n-dependent UI.
     t: (key) => key
@@ -86,36 +113,111 @@ async function phaseInitRender() {
 }
 
 // ────────────────────────────────────────────────────────────────
-// Phase 2 — typing latency.
-// STUB: real keystroke simulation goes through muya's keyboard handler
-// which requires synthetic KeyboardEvents OR direct contentState mutation.
-// Filling in step-2.5b after harness boots cleanly in both runtimes —
-// reduces risk of debugging a broken harness simultaneously with the
-// cross-runtime comparison.
+// Phase 2 — typing latency through the REAL input pipeline.
+// document.execCommand('insertText') is deprecated but it is the only
+// scriptable insertion that fires the genuine beforeinput → input chain
+// with inputType=insertText — the exact path muya's keyboard.js
+// inputHandler / inputCtrl consumes (same path as compositionend for
+// IME). Per keystroke we measure dispatch → next committed paint.
+// Truthfulness (R-2): after the loop the document Markdown must contain
+// the inserted text, and undo must restore the pre-edit Markdown.
 // ────────────────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
+async function placeCaretInFirstParagraph(editor) {
+  const container = editor.container || document.querySelector('#editor .ag-editor-container, #editor [contenteditable]')
+  if (!container) throw new Error('typing: muya container not found')
+  const focusable = container.querySelector('[contenteditable="true"]') || container
+  focusable.focus()
+  // Put the caret at the end of the first paragraph's text node.
+  const para = focusable.querySelector('p')
+  if (!para) throw new Error('typing: no paragraph found in fixture')
+  const range = document.createRange()
+  range.selectNodeContents(para)
+  range.collapse(false)
+  const sel = window.getSelection()
+  sel.removeAllRanges()
+  sel.addRange(range)
+  return focusable
+}
+
 async function phaseTyping(editor) {
-  // TODO(step-2.5b): simulate 60 keystrokes via document.execCommand
-  // OR new KeyboardEvent('keypress', ...) dispatched on muya's container,
-  // measuring per-keystroke layout cost via requestAnimationFrame timing.
-  // Report p50, p95, max, samples via [BENCH][PHASE_TYPING ...] marker.
-  log('[PHASE_TYPING SKIPPED reason=stub-deferred-to-step-2.5b]')
+  const mdBefore = editor.getMarkdown()
+  const marker = 'zynq' // letters unlikely to collide with fixture pools
+  const focusable = await placeCaretInFirstParagraph(editor)
+
+  const samples = []
+  let insertions = 0
+  for (let i = 0; i < TYPING_SAMPLES; i++) {
+    const ch = marker[i % marker.length]
+    const t0 = performance.now()
+    const ok = document.execCommand('insertText', false, ch)
+    if (!ok) throw new Error('typing: execCommand insertText returned false (engine refused)')
+    await nextPaint()
+    samples.push(performance.now() - t0)
+    insertions++
+    // Keep the caret at the end of the growing paragraph.
+    const sel = window.getSelection()
+    if (!sel.rangeCount) await placeCaretInFirstParagraph(editor)
+  }
+  void focusable
+
+  const mdAfter = editor.getMarkdown()
+  const changed = mdAfter !== mdBefore && mdAfter.includes(marker[0])
+  let restored = false
+  let undos = 0
+  while (editor.getMarkdown() !== mdBefore && undos < insertions + 4) {
+    editor.undo()
+    await nextPaint()
+    undos++
+  }
+  restored = editor.getMarkdown() === mdBefore
+
+  if (!changed) {
+    log(`[PHASE_TYPING FAILED reason=markdown-not-changed insertions=${insertions}]`, 'err')
+    throw new Error('typing truthfulness: markdown did not change')
+  }
+  if (!restored) {
+    log(`[PHASE_TYPING FAILED reason=undo-not-restored undos=${undos}]`, 'err')
+    throw new Error('typing truthfulness: undo did not restore pre-edit markdown')
+  }
+  log(
+    `[PHASE_TYPING n=${samples.length} p50_ms=${percentile(samples, 50).toFixed(1)} p95_ms=${percentile(samples, 95).toFixed(1)} max_ms=${Math.max(...samples).toFixed(1)} mean_ms=${(samples.reduce((a, b) => a + b, 0) / samples.length).toFixed(1)} truth=ok]`
+  )
 }
 
 // ────────────────────────────────────────────────────────────────
-// Phase 3 — scroll FPS.
-// STUB: programmatic scroll loop. Filling in step-2.5b.
+// Phase 3 — scroll jank.
+// Programmatic scroll of the document (the harness body is the scroll
+// container): one scrollBy per animation frame for SCROLL_MS, recording
+// the frame-interval distribution — jank (p95/max, >50ms frames), not
+// just average FPS.
 // ────────────────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
-async function phaseScroll(editor) {
-  // TODO(step-2.5b): scrollBy(0, 50) per RAF for 5 seconds, count frames,
-  // emit [BENCH][PHASE_SCROLL fps=X frames=Y elapsed_ms=Z].
-  log('[PHASE_SCROLL SKIPPED reason=stub-deferred-to-step-2.5b]')
+async function phaseScroll() {
+  const intervals = []
+  let frames = 0
+  const t0 = performance.now()
+  let last = t0
+  await new Promise((resolve) => {
+    const step = (now) => {
+      const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4
+      if (atBottom) window.scrollTo(0, 0)
+      else window.scrollBy(0, 90)
+      frames++
+      intervals.push(now - last)
+      last = now
+      if (now - t0 >= SCROLL_MS) resolve()
+      else requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  })
+  const elapsed = performance.now() - t0
+  const gt50 = intervals.filter((d) => d > 50).length
+  log(
+    `[PHASE_SCROLL frames=${frames} elapsed_ms=${elapsed.toFixed(0)} fps=${((frames / elapsed) * 1000).toFixed(1)} frame_p50_ms=${percentile(intervals, 50).toFixed(1)} frame_p95_ms=${percentile(intervals, 95).toFixed(1)} frame_max_ms=${Math.max(...intervals).toFixed(1)} frames_gt_50ms=${gt50}]`
+  )
 }
 
 // ────────────────────────────────────────────────────────────────
-// Internal self-tests — kept in for sanity. Stripped in step-2.5b
-// when real numbers replace the stubs.
+// Internal self-tests — kept in for sanity.
 // ────────────────────────────────────────────────────────────────
 function selfTest() {
   // median + percentile sanity
@@ -127,6 +229,7 @@ function selfTest() {
 
 async function main() {
   log(`[HARNESS_BOOT ua=${navigator.userAgent.slice(0, 80)}]`)
+  log(`[HARNESS_OPTS fixture_bytes=${new Blob([FIXTURE_TEXT]).size} phases=${PHASES.join('+')}]`)
   selfTest()
   let editor
   try {
@@ -137,10 +240,12 @@ async function main() {
     return
   }
   try {
-    await phaseTyping(editor)
-    await phaseScroll(editor)
+    if (PHASES.includes('typing')) await phaseTyping(editor)
+    if (PHASES.includes('scroll')) await phaseScroll(editor)
   } catch (err) {
     log(`later phase threw: ${err && err.message}`, 'err')
+    log('[REPORT_DONE status=fail]', 'err')
+    return
   }
   log('[REPORT_DONE status=ok]')
 }
