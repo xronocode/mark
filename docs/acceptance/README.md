@@ -20,6 +20,8 @@ accepted or rejected it, and why anything went back for rework.**
 | `owner-verdict` | The owner's dated verdict: `accepted` with exact scenarios, or `rejected` with the reason and the rework destination | owner (transcribed verbatim-scoped by the agent, same session) |
 | `queued` | Recorded in the collecting train's manifest (`items.userFacing` with acceptance evidence) | agent |
 
+Review records use `approve` or `changes-requested`; one historical pass carries `two-actionable`, meaning the review produced two actionable findings. Owner verdicts use `accepted` or `rejected`.
+
 Rules:
 
 - **Never inferred.** A missing verdict is `pending`, never an implied acceptance. Acceptance covers the
