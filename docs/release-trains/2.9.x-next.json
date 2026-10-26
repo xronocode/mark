@@ -71,6 +71,26 @@
             "INTENTIONALLY UNVERIFIED: opening the produced .docx in Microsoft Word / Pages on a real build (deferred to the train acceptance protocol per rule 5); display math $$ blocks render as literal text — a known muya export-grammar input gap recorded in the bundle backlog, inline math converts."
           ]
         }
+      },
+      {
+        "id": "C-FILE-POSITION-MEMORY",
+        "summary": "Reading position memory: every file remembers its last reading spot — scrollTop plus a mode-neutral line/ch caret — across tab close/reopen, file reopen, app relaunch and rename; the caret moved only by arrow keys survives tab switching (the arrow-key gap of the f-cursor report), positions persist through a numbers-only 200-entry prefs store with rename moves and stale-entry clamping, and the flush writes coalesce so navigation never touches the save-outcome guard; two latent muya defects surfaced by the change are fixed alongside (idempotent plugin registration, registry-driven teardown with per-plugin isolation).",
+        "state": "queued",
+        "commits": [
+          "ac60bc02ee71c0331d2258454ec263784495da42"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-26",
+          "testedArtifact": "None — owner merged PR #68 on instruction after a six-round CI (fully green final round: 20 pass incl. full e2e and x3-OS units); the position memory also carries automated visual e2e acceptance with byte-identical before/after transcripts; manual verification of positions on a real build is deferred to the train acceptance protocol (train rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate CI, green): renderer unit x3 OS incl. 28 position-specific tests (store transforms/clamp/cap/prune/move, serialized concurrent saves, tri-state stat verdicts, flush boundaries, restore leg, duplicate-open guard, in-flight counter, false computation sentinel); muya plugin-registry lifecycle 7; e2e gates C-1 arrows/switch, C-3 close+reopen, C-4 relaunch, C-5 stale-entry clamp, C-9 burst coalescing, C-13 multi-tab relaunch (three tabs, middle active — every position restored and the right active tab).",
+            "AUTOMATED (visual acceptance e2e): close+reopen and arrow-moved-caret round-trip return byte-identical transcripts ({scrollTop 3778, caret Paragraph 120, rows P111-113} and {2601, P90, P76-78}); evidence PNGs reviewed by the implementing session; kept in the local acceptance record pending multimodal binary admission.",
+            "AUTOMATED (guards): global branch coverage held above the 85% threshold with margin (85.34%) after two dedicated coverage commits; grace lint 0 findings for the bundle; three review passes logged (spec Pass-1/2, review-wave Pass-3 with all findings dispositioned in code).",
+            "MANUAL BEFORE ADMISSION: owner-ordered smart-review (excellence + failure-hunt) with an independent code verification session; all blockers closed with pinning tests.",
+            "INTENTIONALLY UNVERIFIED: owner's hands-on check of positions on a real build (restart with several tabs, file rename, relaunch) deferred to the train acceptance protocol per rule 5."
+          ]
+        }
       }
     ],
     "operational": [],
