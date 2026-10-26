@@ -1,0 +1,79 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-RELEASE-MANUAL-PUBLISH>
+  <Name>Release timing repeal: manual-only publication — restore the synchronous owner approval on the publish job, remove the no-veto window and its Telegram notify</Name>
+  <ApprovalBasis>Owner instruction in chat on 2026-10-26 setting the delivery-protocol rule (owner, translated from Russian): «the train always stands and waits until I say depart» — the train always waits; nothing departs or publishes without an explicit owner instruction. Recorded as rule 1 of the five-rule train protocol in docs/release-trains/README.md (PR #75). The same instruction approved the three scoping decisions: restore the synchronous publish approval, keep the de-duplicated build lane and warmer cargo caches, and drop the window's Telegram ping.</ApprovalBasis>
+  <Created>2026-10-26</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S (≈0.5 day)</Complexity>
+
+  <Summary>
+    C-RELEASE-TIMING (da13980e) replaced the publish job's synchronous owner approval with a bounded no-veto window: after the release-authorize approval creates the tag, publication follows automatically once the builds finish and 20 minutes (RELEASE_VETO_MINUTES, unset today) pass without a run cancellation. Two releases have already shipped through that window without a second owner click: v2.8.1 (run 40074378466, 2026-10-24 — the publish and cask jobs succeeded; the run's overall failure came only from the unrelated close-release-please job later removed by C-RELEASE-CONVEYOR, and the v2.8.1 release object was later retired by PR #65) and v2.8.2 (run 40182446716, 2026-10-25, green). No run has ever been cancelled as a veto. The owner's 2026-10-26 train protocol makes timer-default publication unlawful: publication may only follow an explicit owner instruction. This change repeals the mechanic — the veto-window job and its Telegram notify are removed, and the publish job regains the synchronous release Environment approval (the pre-v3.0.0 shape at da13980e^). The legacy release Environment still exists on GitHub with its reviewer intact (the C-RELEASE-TIMING T-008 one-time deletion was never executed; verified 2026-10-26: required_reviewers [xronocode], v* tag policy), so the restored gate works immediately on merge — the P2 steps are cleanup, not a correctness precondition. The wall-time cost C-RELEASE-TIMING was built for (~2h21m waiting on the second click in v2.8.0) is accepted back by design: the owner prefers explicit control over unattended speed. The de-duplicated build lane and warmer cargo caches from the same bundle (its R-4/R-5) are kept — they shorten the build without touching the publication decision.
+  </Summary>
+
+  <Problem>
+    <Description>Once the tag exists, publication happens by default after a silence window: the publish job declares no Environment and only waits on build, prepare-publication and veto-window. Silence is treated as consent, which contradicts the owner's rule that the train always waits for an explicit instruction.</Description>
+    <RootCauseTimestamp>2026-10-26 owner delivery-protocol instruction; mechanics measured on runs 40074378466 (v2.8.1) and 40182446716 (v2.8.2).</RootCauseTimestamp>
+  </Problem>
+
+  <Goals>
+    <R-1>Remove the veto-window job from .github/workflows/release.yml (lines 173-238 at v3.1.1): no sleep-loop holds, no RELEASE_VETO_MINUTES resolution, no cancel-as-veto semantics. Publication never follows from silence.</R-1>
+    <R-2>Restore the synchronous owner gate on publication: the publish job needs [build, prepare-publication] and declares environment: release with the owner as required reviewer and the v* tag policy (the pre-timer shape). The first explicit owner instruction remains the release-authorize approval that creates the tag; the publish approval is the second, final one, justified by rule 1 of the train protocol and the recorded scoping decision — it fires after the build is green (rule 5 fixes only the timing of the acceptance protocol opened before that approval).</R-2>
+    <R-3>Governance moves in lockstep: .github/release-governance.json re-declares the release Environment (required reviewer xronocode, v* tag policy, no TG secrets) and drops release-notify with its TG_NOTIFY_TOKEN/TG_NOTIFY_CHAT secret boundary and forbiddenAtRepository entries; tools/release-governance.mjs validates the release Environment again instead of requiring release-notify. The Telegram ping at window-arm time disappears together with the window (its message described timer-default publication, which no longer exists).</R-3>
+    <R-4>Keep the C-RELEASE-TIMING build-lane de-duplication (no npm test / test:e2e / standalone vite build / cargo test in the release build job) and the warmer cargo caches untouched — this repeal changes only the publication decision point, not the build lane.</R-4>
+    <R-5>Re-pin the workflow-contract tests and file contracts in tests/renderer/release-github-controls.test.js: drop the veto-window shape test (256-276), pin publish.needs = [build, prepare-publication] and publish.environment = release (217-218), restore the release-Environment governance pins (309-315), and move the unknown-policy simulation back from release-notify to release (416-417). The dry-run invariants stay at the pre-timer numbers — 4 environments, 4 upsert-environment operations, journal length 8 (336-345, 359) — the environment set changes by name (release-notify → release), not by count. release-preflight.test.js stays untouched (the R-4 lane pins remain valid). Every file this change edits also gets its contract header maintained: release.yml MODULE_CONTRACT PURPOSE/SCOPE/DEPENDS rewritten (they currently name the timer window, release-notify and RELEASE_VETO_MINUTES), the MODULE_MAP veto-window entry removed, VERSION bumped and a CHANGE_SUMMARY entry added without rewriting the v3.0.0 entry; tools/release-governance.mjs and the test file each get their VERSION advanced and a CHANGE_SUMMARY entry.</R-5>
+    <R-6>Current-state artifacts follow: docs/release-process.md lines 75-77 return to "publish waits for the explicit release-Environment approval"; .grace/graph/features.xml M-046 Summary (2431-2444) and .grace/verification/features.xml scenario-31 (2451-2468) drop only the window/notify sentences and the four BLOCK_RELEASE_VETO_WINDOW_* markers (2509-2512) — the de-dup/cargo-cache sentences in those same ranges survive, annotated as C-RELEASE-TIMING legacy kept by this repeal. PR #75 already carries the protocol-level README rewrite including the Environment-checklist alignment; this change's own README pass is a residue audit only (grep for RELEASE_VETO and release-notify — expected none after PR #75 merges). Archived C-RELEASE-TIMING and C-RELEASE-CONVEYOR bundles stay frozen.</R-6>
+  </Goals>
+
+  <Phases>
+    <P1><Title>Workflow + governance JSON/tool + contract tests + file headers + docs + grace current-state</Title><Complexity>S</Complexity></P1>
+    <P2><Title>Owner one-time cleanup in the GitHub UI (not a correctness precondition): confirm the legacy release Environment reviewer, delete release-notify and its TG secrets, leave RELEASE_VETO_MINUTES unset</Title><Complexity>S</Complexity></P2>
+  </Phases>
+
+  <Dependencies>PR #75 (five-rule protocol README, including the Environment-checklist alignment) merges before this change's docs pass; the workflow and governance edits themselves are independent of it.</Dependencies>
+
+  <Constraints>
+    <Constraint>All digest/read-back verification before draft=false stays byte-identical; only the hold point changes back from the timer window to the synchronous Environment gate.</Constraint>
+    <Constraint>strictRequiredChecks and the train manifest requiredChecks are unchanged.</Constraint>
+    <Constraint>The release-authorize approval remains the first explicit owner instruction; nothing tags or publishes on its own.</Constraint>
+    <Constraint>No secrets at repository scope; removal of the TG secrets is a UI action recorded in P2, not a repo change.</Constraint>
+    <Constraint>The publish job keeps its timeout-minutes while waiting on the Environment approval — an environment-approval wait does not consume the job timeout (v2.8.0, run 39915736797, waited ~2h21m on this exact shape without timing out). Do not raise the timeout as part of this repeal.</Constraint>
+    <Constraint>Preserved GRACE 3 legacy bodies (LegacyBase in V-M-046) are not edited; current-state scenarios and markers are replaced alongside.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Reverting the de-duplicated release build lane or the cargo caches (C-RELEASE-TIMING R-4/R-5 stay).</NonGoal>
+    <NonGoal>Introducing a new release-ready Telegram/notify channel (may be proposed separately if the owner wants a "build green, awaiting your approval" ping).</NonGoal>
+    <NonGoal>Changing the conveyor, train manifests, admission or the five-rule protocol itself.</NonGoal>
+    <NonGoal>Auto-publishing App Store / TestFlight / winget channels.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>release.yml: no veto-window job, no RELEASE_VETO_MINUTES references; publish needs [build, prepare-publication] and declares environment: release; the draft-first idempotent publish path (create --draft, digest verify, edit --draft=false, BLOCK_RELEASE_LATEST_ADVANCED) is unchanged; the file header contract is rewritten (PURPOSE/SCOPE/DEPENDS, MODULE_MAP veto-window entry removed, VERSION bumped, CHANGE_SUMMARY entry added).</Criterion>
+    <Criterion>.github/release-governance.json declares the release Environment (reviewer xronocode, v* tags) and no release-notify; tools/release-governance.mjs release:governance passes locally against it with its VERSION and CHANGE_SUMMARY advanced.</Criterion>
+    <Criterion>tests/renderer/release-github-controls.test.js pins the restored boundaries and contains no veto-window/no-veto assertions; the dry-run still reports 4 upsert-environment operations and a journal of 8; the file VERSION and CHANGE_SUMMARY are advanced; the full renderer release suite passes; grace lint --assertions current is clean.</Criterion>
+    <Criterion>docs/release-process.md and the grace current-state documents describe synchronous publish approval with no window; the four BLOCK_RELEASE_VETO_WINDOW_* markers no longer appear in verification current-state while the de-dup/cache scenarios survive; the README residue audit (RELEASE_VETO / release-notify grep over docs/release-trains/README.md) finds no operative timer guidance.</Criterion>
+    <Criterion>Owner P2 cleanup recorded: legacy release Environment reviewer confirmed, release-notify + TG secrets deleted, RELEASE_VETO_MINUTES unset. The first release after this change observes the restored release-Environment approval between the green build and publication.</Criterion>
+  </AcceptanceCriteria>
+
+  <VerificationIntent>
+    <Verification>npx vitest run tests/renderer/release-github-controls.test.js — the restored publish gate, governance environment set and dry-run invariants are pinned green before merge.</Verification>
+    <Verification>npm run release:github-controls -- --dry-run (checkout-only) — reports 4 upsert-environment operations including release and no release-notify; journal length 8.</Verification>
+    <Verification>npm run release:governance — passes against the re-declared release Environment in the lockstep-edited JSON and validator.</Verification>
+    <Verification>grace lint --path . --assertions current and grace status --path . --with modules --json — clean before handoff (this spec itself must pass lint).</Verification>
+    <Verification>First live release after the repeal — the run log shows the publish job paused on the release Environment approval and no veto-window job; publication completes only after the owner approves.</Verification>
+  </VerificationIntent>
+
+  <AffectedAreas>
+    <Area>.github/workflows/release.yml</Area>
+    <Area>.github/release-governance.json</Area>
+    <Area>tools/release-governance.mjs</Area>
+    <Area>tests/renderer/release-github-controls.test.js</Area>
+    <Area>docs/release-process.md</Area>
+    <Area>docs/release-trains/README.md (residue audit; PR #75 carries the rewrite)</Area>
+    <Area>.grace/graph/features.xml (M-046)</Area>
+    <Area>.grace/verification/features.xml (V-M-046)</Area>
+  </AffectedAreas>
+</C-RELEASE-MANUAL-PUBLISH>
+</GraceChangeSpec>
