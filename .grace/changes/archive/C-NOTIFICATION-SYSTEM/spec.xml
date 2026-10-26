@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-NOTIFICATION-SYSTEM>
   <Name>One notification system: a single token-based card (icon-chip, four severities) replaces the legacy Fluent toast service and the bespoke C-66 update notice, adds copy-on-select with a quiet double-pulse confirmation, typed action buttons, a severity x source event model with dedup, and a session notification history opened from the command palette</Name>
   <ApprovalBasis>Owner approved the full design interactively on 2026-10-23 (icon-chip variant, double-pulse copy confirmation, palette-first history, severity x source model, toast/banner/modal boundary) and issued the execution instruction "делай" over the draft spec, authorizing plan and implementation under the standing four-corner review protocol (Correctness/Security/UX/Perf, CornerMatrix, repeated to two consecutive clean passes before handoff).</ApprovalBasis>
