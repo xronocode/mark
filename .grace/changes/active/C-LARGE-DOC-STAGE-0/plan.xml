@@ -147,7 +147,7 @@
     </Round>
     <Round><Number>3</Number><Date>2026-10-27</Date>
       <Correctness><Verdict>findings</Verdict><Note>Reviewer A re-scan (5/5 resolved) plus fresh independent reviewer B: union of five minor findings introduced by the mechanical fixes — a duplicated webkit-perf MustPassCommand (the chromium slot had been replaced instead of given meaning; now a distinct webkit-session gate matching the spec's ExpectedCommand), T-003 Title still spelling the no-space marker form contrary to the MustContain literals, Corner 6 Situation still referencing fork/main, run-bench.mjs's --phases flag used but never declared gained, and T-003/T-004 command fixture names (mixed-100k.md, size-1mb.md) not pinned by T-002. All five fixed on bytes 151038bb.</Note></Correctness>
-      <Security><Verdict>clean</Verdict><Note>Zero /Users/ or personal paths anywhere in the plan (grep-verified by both reviewers).</Note></Security>
+      <Security><Verdict>clean</Verdict><Note>No personal paths anywhere in the plan (grep-verified by both reviewers; the literal form is not reproduced here).</Note></Security>
       <UX><Verdict>clean</Verdict><Note>All three stale documentation spots covered; CI non-flake controls intact.</Note></UX>
       <Performance><Verdict>clean</Verdict><Note>Bench-driver Chromium vehicle accurately stated; corpus and ceiling controls unchanged.</Note></Performance>
     </Round>
