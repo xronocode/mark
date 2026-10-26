@@ -191,7 +191,7 @@ describe('util/clipboardPath (C-52)', () => {
     it('expands ~ text against homeDir', async () => {
       const stat = vi.fn(async () => ({ isDirectory: true }))
       const target = await resolveClipboardTarget(
-        { filePaths: [], text: '~/prj' },
+        { filePaths: [], text: '~/work' },
         { stat, homeDir: '/Users/<fixture>' }
       )
       expect(target).toEqual({ kind: 'folder', path: '/Users/<fixture>/prj' })

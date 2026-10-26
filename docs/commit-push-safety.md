@@ -18,8 +18,9 @@ checked.
    allow-comments and no caller-provided ignore or configuration overrides.
 4. Rebuild the exact candidate after scanning. Any staged-tree, message, ref or
    outgoing-commit identity change invalidates the result.
-5. Store only a hash-bound receipt in the common Git directory and inspect the
-   final diff independently before commit or push.
+5. Run the two model reviewers described below, then store only a hash-bound
+   receipt in the common Git directory and inspect the final diff independently
+   before commit or push.
 
 Removed baseline lines are excluded from new-exposure matching so a cleanup can
 remove a private value safely. Added lines and complete new blobs are always
@@ -29,10 +30,45 @@ later removing a secret does not hide it.
 The gate also enforces desktop/mobile lane separation, exact staged-index and
 outgoing-history snapshots, the public/private path boundary, safe branch
 deletion proof, the AI-attribution and branch-name ban, and reviewed screenshot
-manifest binding.
+manifest binding. The path boundary rejects owner-workspace and private
+companion references (owner-workspace paths, private repository and worktree names),
+non-local CGNAT and `*.ts.net` addresses, and absolute homes whose user segment
+is not a documented synthetic example; `/Users/<fixture>/`, `/Users/<user>/`,
+`/Users/me/`, `~/project` and `~/Library/...` remain valid.
 
-Additional owner-local review may be performed outside the repository. It is
-discretionary and is neither implemented nor claimed by this public gate.
+## Two model reviewers
+
+After the deterministic checks pass, the exact candidate runs through two
+independent reviewers: two serial local passes and one independent non-local pass.
+The local passes are a review and a skeptical independent recheck on the
+owner-local model; the non-local pass runs on the owner-configured host. Every
+chunk must pass every pass; a malformed verdict, a different loaded model, a redirect, an unreachable
+endpoint or a missing non-local configuration stops the commit or push.
+
+The endpoints and model names are owner-local configuration, never repository
+content. The gate reads `MARK_SAFETY_LOCAL_ENDPOINT`, `MARK_SAFETY_LOCAL_MODEL`,
+`MARK_SAFETY_REMOTE_ENDPOINT`, `MARK_SAFETY_REMOTE_MODEL` and the optional
+`MARK_SAFETY_*_GPU_CHECK`, or the owner-only `reviewers.json` in the common Git
+safety directory:
+
+```json
+{
+  "local": {"endpoint": "http://127.0.0.1:11434", "model": "qwen3:4b"},
+  "nonLocal": {"endpoint": "http://<overlay-address>:11434", "model": "qwen3:4b"}
+}
+```
+
+The file stays outside the repository and must be mode `0600`. The local
+reviewer must be loopback; the non-local reviewer must resolve to loopback,
+RFC 1918, the CGNAT shared range, `.local` or `*.ts.net`, so candidate bytes are
+never sent to a public address.
+
+`MARK_SAFETY_OVERRIDE="<reason>"` skips only the two model reviewers, after the
+deterministic checks and Gitleaks have passed for the exact candidate identity.
+It writes an identity-bound private receipt and prints an explicit override
+marker; the same content must repeat the override at push time. Deterministic
+exposure, lane, Gitleaks and identity checks remain mandatory and
+unbypassable.
 
 ## Message-only main rewrites
 

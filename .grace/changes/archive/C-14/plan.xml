@@ -48,7 +48,7 @@
         <Criterion>brief.md captures structure/copy/assets/channels; gpu_check.sh run immediately before inference (abort on exit 3, caution on 2); single engine — only Ollama loads a model; OpenDesign output (HTML/CSS) lands in .opendesign-work/ scratch, not the repo tree.</Criterion>
       </AcceptanceCriteria>
       <Verification>
-        <Command>bash ~/prj/_skills/local-ai-safety/gpu_check.sh; ls .opendesign-work/</Command>
+        <Command>bash [owner-tools]/local-ai-safety/gpu_check.sh; ls .opendesign-work/</Command>
       </Verification>
     </T-001>
     <T-002>

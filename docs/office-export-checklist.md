@@ -2,7 +2,7 @@
 
 Change: `C-NATIVE-DOCX-RTF-EXPORT` (M-066). This checklist is the manual
 acceptance instrument required by the spec (R-8). Fixtures live in
-`mark-private/research/2026-10-23-docx-bakeoff/visual-acceptance/`
+the owner-local DOCX bake-off visual-acceptance directory (outside this repository)
 (exported through the real pipeline: muya renderHtml → M-065 embed →
 M-066 pre-pass → lazy docx/html conversion).
 
@@ -64,4 +64,4 @@ behind Finder/TextEdit previews), **XML** = unzipped OOXML assertions
 Open both fixtures in Word and Pages; confirm the three Word-first rows
 (checkboxes, equations, footnotes) and sign the acceptance per the delivery
 protocol. Files:
-`mark-private/research/2026-10-23-docx-bakeoff/visual-acceptance/*.docx`.
+the owner-local DOCX bake-off visual-acceptance `*.docx` files.

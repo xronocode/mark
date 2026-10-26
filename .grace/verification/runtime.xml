@@ -12902,7 +12902,7 @@
           probe: main blocked 20 s+ with canSpawnSeparateThread both
           YES and NO); the off-main watcher (15 s, BLOCK_PDF_WRITTEN)
           remains the on-disk completion gate. Evidence chain:
-          ~/prj/mark-private/audit/2026-10-23-export-pdf-crash/ (six
+          the owner-local export-crash audit directory (outside this repository) (six
           .ips, probe.m, README).
         </Scenario>
         <Scenario>

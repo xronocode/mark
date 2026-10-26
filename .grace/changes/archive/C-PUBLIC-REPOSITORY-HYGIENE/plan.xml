@@ -119,7 +119,7 @@
         <Title>Neutral live Windows QA wording</Title>
         <DependsOn>T-001</DependsOn>
         <AcceptanceCriteria><Criterion>Live source, tests and current verification describe regression evidence without personal or workstation-specific attribution; archived C-15 evidence remains byte-identical.</Criterion></AcceptanceCriteria>
-        <Verification><Command>sh -c "! git grep -n -E 'Nurik|local-model review|polygon review|polygon evidence|/Users/myevdokimov' -- src tests .grace/verification/features.xml .grace/verification/runtime.xml docs/archive/phase-8-final-audit.md"</Command><Command>npx vitest run tests/renderer/i18n/index.test.js tests/renderer/muya/htmlTagBr.test.js tests/renderer/platform-truth.test.js tests/renderer/store/preferences.test.ts</Command></Verification>
+        <Verification><Command>sh -c "! git grep -n -E 'Nurik|local-model review|polygon review|polygon evidence|\\/Users\\/[A-Za-z0-9_.-]+' -- src tests .grace/verification/features.xml .grace/verification/runtime.xml docs/archive/phase-8-final-audit.md"</Command><Command>npx vitest run tests/renderer/i18n/index.test.js tests/renderer/muya/htmlTagBr.test.js tests/renderer/platform-truth.test.js tests/renderer/store/preferences.test.ts</Command></Verification>
       </T-005>
       <T-006>
         <Title>Central graph, verification and final reconciliation</Title>

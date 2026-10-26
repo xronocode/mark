@@ -116,7 +116,7 @@
     "mainWorktreeWarnings": 6,
     "warningTotal": 26,
     "warningReduction": "157 -> 26 total; durable-overlap 131 -> 2 (both involve C-72 itself against the two remaining scoped active plans and resolve when C-72 archives)",
-    "policy": "nested .claude and mark-wt worktrees are registered and preserved; their warnings are outside the main-worktree mutation boundary; no worktree was deleted or rewritten"
+    "policy": "nested .claude and worktree directories are registered and preserved; their warnings are outside the main-worktree mutation boundary; no worktree was deleted or rewritten"
   },
   "lintState": {
     "scope": "C-72-attributable findings only. The working tree is shared with the actively growing concurrent FIX-wave (see concurrentActivity.identificationRule); whole-tree lint counts fluctuate with every wave write and are NOT a C-72 claim. Attribution method: hunk adjudication per the identificationRule — errors on files C-72 never touched, or on wave-written hunks, are foreign.",

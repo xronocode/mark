@@ -127,7 +127,7 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-22",
-          "testedArtifact": "Windows polygon laptop-kari rebuilds 1-8, owner pixel-verified crops through amendment 5; titlebar family 83/83",
+          "testedArtifact": "Windows test-laptop polygon rebuilds 1-8, owner pixel-verified crops through amendment 5; titlebar family 83/83",
           "scenarios": [
             "Segoe MDL2/Fluent caption code points, no separators",
             "app-menu and settings buttons kept; guide button removed on every platform",

@@ -4,7 +4,7 @@
 //   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe). On macOS both the panel and the silent export run their print operation through runOperationModalForWindow (the wry pattern) with an off-main completion watcher, and print-path panics degrade to logged errors (FIX-017/FIX-018).
 //   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer. On macOS the export save target is set through the printSettings dictionary (NSPrintJobSavingURL key — NSPrintInfo has no setJobSavingURL: method; sending it was the C-61-day-one abort, FIX-018), both command subtrees run under panic containment, and a runtime selector audit test pins every selector this module sends against the live AppKit classes.
 //   DEPENDS: tauri 2 WebviewWindow::with_webview on the main thread (PlatformWebview: WKWebView pointer on macOS; ICoreWebView2Controller + ICoreWebView2Environment on Windows); cocoa/objc 0.2 on macOS; webview2-com 0.38 + windows-core 0.61 on Windows; tokio oneshot for main-thread→async-command results; serde for the pageOptions payload.
-//   LINKS: .grace/changes/archive/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow); ~/prj/mark-private/audit/2026-10-23-export-pdf-crash (FIX-018 evidence: .ips set + ObjC probe).
+//   LINKS: .grace/changes/archive/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow); the owner-local export-crash audit directory outside this repository (FIX-018 evidence: .ips set + ObjC probe).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -960,7 +960,7 @@ mod tests {
         // this module sends to the classes that must receive it, so an
         // imagined or renamed API fails here in CI instead of in the
         // owner's export click. Evidence chain:
-        // ~/prj/mark-private/audit/2026-10-23-export-pdf-crash/.
+        // The owner-local export-crash audit directory lives outside this repository.
         use cocoa::base::{id, BOOL, NO};
         use objc::{msg_send, sel, sel_impl};
 

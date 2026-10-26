@@ -2,7 +2,7 @@
 <GraceMigrationReport graceVersion="4.0" status="validated">
   <Project>
     <Name>Mark</Name>
-    <Root>/Users/myevdokimov/prj/mark</Root>
+    <Root>[repo]</Root>
     <Branch>main</Branch>
     <SourceHead>90eaa1c4f7cabff514f58a9fe79cee45cbff7cf4</SourceHead>
     <Remote>fork https://github.com/xronocode/mark.git</Remote>
@@ -28,7 +28,7 @@
   </SourceProfile>
 
   <Backup restorable="true">
-    <Path>/Users/myevdokimov/.codex/backups/grace-migrations/mark-20260830T110931Z</Path>
+    <Path>[owner-home]/.codex/backups/grace-migrations/mark-20260830T110931Z</Path>
     <CreatedAt>2026-08-30T11:09:31Z</CreatedAt>
     <Verification>Seven exact diff checks passed; backup SHA-256 values match the source inventory.</Verification>
     <Hashes algorithm="SHA-256">
@@ -77,8 +77,8 @@
   </UnsupportedStructures>
 
   <Validation successful="true">
-    <Check command="grace lint --path /Users/myevdokimov/prj/mark --assertions current" exitCode="0" filesChecked="572" governedFiles="24" xmlArtifacts="16" errors="0" warnings="0">No issues found.</Check>
-    <Check command="grace status --path /Users/myevdokimov/prj/mark --json" exitCode="0" projectKind="grace4" integrityErrors="0" integrityWarnings="0">Five context artifacts, 53 graph modules, 53 verification entries, and no active or archived changes.</Check>
+    <Check command="grace lint --path [repo] --assertions current" exitCode="0" filesChecked="572" governedFiles="24" xmlArtifacts="16" errors="0" warnings="0">No issues found.</Check>
+    <Check command="grace status --path [repo] --json" exitCode="0" projectKind="grace4" integrityErrors="0" integrityWarnings="0">Five context artifacts, 53 graph modules, 53 verification entries, and no active or archived changes.</Check>
     <Check command="ruby /private/tmp/mark_review_coverage.rb" exitCode="0">All eleven exact-coverage and preservation assertions passed.</Check>
     <Check command="npm run typecheck:ipc" exitCode="0">TypeScript IPC typecheck passed.</Check>
     <Check command="npm test" exitCode="0">219 test files passed; 2965 tests passed, 2 skipped, 3 todo.</Check>
@@ -115,7 +115,7 @@
   </HealthBaseline>
 
   <GitPreflight available="true" inWorktree="true" dirty="true">
-    <WorktreeRoot>/Users/myevdokimov/prj/mark</WorktreeRoot>
+    <WorktreeRoot>[repo]</WorktreeRoot>
     <Branch>main</Branch>
     <Head>90eaa1c4f7cabff514f58a9fe79cee45cbff7cf4</Head>
     <PorcelainCommand>git status --porcelain --untracked-files=all</PorcelainCommand>
