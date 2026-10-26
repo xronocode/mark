@@ -107,6 +107,9 @@
         <V-M-056/>
         <V-M-064/>
         <V-M-065/>
+        <!-- C-NOTIFICATION-SYSTEM: V-M-067 owns the unified card/stack/
+             history system (unit matrix, component pins, e2e visual probe). -->
+        <V-M-067/>
       </Owns>
     </VD-FEATURES>
   </VerificationDocuments>
