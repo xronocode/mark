@@ -1823,7 +1823,7 @@ const handleFindAction = (action) => {
 const handleExport = async (options) => {
   const { type, header, footer, headerFooterStyled, htmlTitle } = options
 
-  if (!/^pdf|print|styledHtml$/.test(type)) {
+  if (!/^pdf|print|styledHtml|docx$/.test(type)) {
     throw new Error(`Invalid type to export: "${type}".`)
   }
 
@@ -1862,6 +1862,41 @@ const handleExport = async (options) => {
         log.error('Failed to export document:', err)
         notice.notify({
           title: t('editor.export.failed', { type: htmlTitle || 'html' }),
+          type: 'error',
+          message: err.message || t('editor.export.error')
+        })
+      }
+      break
+    }
+    case 'docx': {
+      // C-NATIVE-DOCX-RTF-EXPORT R-3: the same styled-HTML source as the
+      // HTML export (muya render + M-065 embed pass) feeds the store's
+      // modal-less Word branch (save dialog → lazy docx conversion →
+      // binary write). No settings dialog, no print container (both
+      // pinned in export-office.spec.ts).
+      try {
+        const rawHtml = await editor.value.exportStyledHTML({
+          title: htmlTitle || '',
+          printOptimization: false,
+          extraCss
+        })
+        const { pathname } = editorStore.currentFile || {}
+        const documentDir = pathname ? window.path.dirname(pathname) : null
+        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir)
+        // eslint-disable-next-line no-console
+        console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
+        if (skipped > 0) {
+          notice.notify({
+            title: t('editor.export.imagesEmbeddedTitle'),
+            message: t('editor.export.imagesEmbeddedMessage', { embedded, total }),
+            type: 'warning'
+          })
+        }
+        editorStore.EXPORT({ type, content: html })
+      } catch (err) {
+        log.error('Failed to export document:', err)
+        notice.notify({
+          title: t('editor.export.failed', { type: 'Word' }),
           type: 'error',
           message: err.message || t('editor.export.error')
         })
