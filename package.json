@@ -37,7 +37,8 @@
     "dev:quick": "bash tools/dev-smoke.sh --quick",
     "docs:dev": "npm --prefix site run dev",
     "docs:build": "npm --prefix site run build && npm --prefix site run check",
-    "docs:preview": "npm --prefix site run preview"
+    "docs:preview": "npm --prefix site run preview",
+    "check:export-chunk": "node scripts/check-export-chunk.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -55,6 +56,7 @@
     "codemirror": "^5.65.19",
     "deep-equal": "^2.2.3",
     "diff-match-patch": "^1.0.5",
+    "docx": "^9.14.0",
     "dom-autoscroller": "^2.3.4",
     "dompurify": "^3.4.17",
     "dragula": "^3.7.3",

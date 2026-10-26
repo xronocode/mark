@@ -82,7 +82,8 @@
       "failed": "导出失败",
       "error": "导出错误",
       "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 张图片——过大或不存在的图片保留原链接",
-      "errorExporting": "导出文件时出错"
+      "errorExporting": "导出文件时出错",
+      "settingsAction": "导出设置"
     },
     "resizeTable": "调整表格大小",
     "vega-lite-start": "vega-lite 开始",
@@ -186,7 +187,8 @@
       "exportFilePdf": "导出为 PDF",
       "openFromClipboard": "从剪贴板打开",
       "reopenClosedTab": "重新打开已关闭标签页",
-      "newWindow": "新建窗口"
+      "newWindow": "新建窗口",
+      "exportFileDocx": "导出为 Word"
     },
     "paragraph": {
       "table": "表格",
@@ -738,7 +740,10 @@
       "closeOthers": "关闭其他",
       "copyAsHtml": "复制为 HTML",
       "splitView": "分屏视图",
-      "copyAsStructuredText": "复制为结构化文本"
+      "copyAsStructuredText": "复制为结构化文本",
+      "exportPdf": "导出为 PDF…",
+      "exportHtml": "导出为 HTML…",
+      "exportDocx": "导出为 Word…"
     },
     "insertParagraphBefore": "在前面插入段落",
     "spelling": "拼写…",
@@ -1469,7 +1474,8 @@
         "liber": "Liber",
         "default": "GitHub (默认)"
       }
-    }
+    },
+    "docxTitle": "导出为 Word"
   },
   "import": {
     "title": "导入或打开",

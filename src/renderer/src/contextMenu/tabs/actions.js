@@ -1,4 +1,5 @@
 import bus from '../../bus'
+import { useEditorStore } from '../../store/editor'
 
 export const closeThis = (tabId) => {
   bus.emit('TABS::close-this', tabId)
@@ -56,4 +57,22 @@ export const copyAsMarkdown = (tabId) => {
 // activated first when the menu targeted a background tab.
 export const copyDocumentAs = (kind, tabId) => {
   bus.emit('TABS::copy-document-as', { kind, tabId })
+}
+
+// C-NATIVE-DOCX-RTF-EXPORT R-2: export from the tab context menu — one
+// behavior, two doors. The clicked tab activates first (the export acts
+// on the current buffer, unsaved edits included, exactly like the File
+// menu); 'docx' rides the modal-less store action, pdf/html open the
+// same settings dialog the File menu uses.
+export const activateThenExport = (tabId, kind) => {
+  const editorStore = useEditorStore()
+  const tab = (editorStore.tabs || []).find((tb) => tb.id === tabId)
+  if (tab && editorStore.currentFile !== tab) {
+    editorStore.UPDATE_CURRENT_FILE(tab)
+  }
+  if (kind === 'docx') {
+    editorStore.EXPORT_DOCX_DOCUMENT()
+    return
+  }
+  bus.emit('showExportDialog', kind)
 }

@@ -2976,6 +2976,31 @@
       <Contract><Purpose>Turn the generated styled-HTML export into a single self-contained file by embedding local images as data-URLs, without ever fetching remote content or failing the export on an image.</Purpose><Inputs><Input><Name>html</Name><Type>string — muya exportStyledHTML output</Type></Input><Input><Name>baseDir</Name><Type>string|null — exporting document's directory (null for untitled)</Type></Input></Inputs><Outputs><Output><Name>result</Name><Type>{ html, embedded, total, skipped } — html differs from the input only in img src values</Type></Output></Outputs><Errors><Error><Code>skipped reference</Code><Description>missing, over-cap, unreadable or unknown-extension local images keep their original src; the caller warns with embedded/total counts</Description></Error></Errors></Contract>
       <Sources><Source>src/renderer/src/util/exportImages.js</Source><Tests>tests/renderer/util/exportImages.test.js</Tests><Tests>tests/renderer/components/editor-export-images.test.js</Tests><Tests>tests/e2e/export-html-images.spec.ts</Tests></Sources>
     </M-065>
+    <M-066>
+      <Name>ExportDocxConverter</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
+      <Summary>
+        The renderer-side Word converter (C-NATIVE-DOCX-RTF-EXPORT): muya's styled export HTML
+        (the same exportStyledHTML output the HTML export uses) passes the M-065 embed pass in
+        the caller, then a data-only pre-pass strips the pre.front-matter block, adapts muya's
+        class/role footnote markup to the data-footnote-* shape docx/html recognizes, and
+        replaces exportable figures (C-56 roles) with rasterized 2x PNG images in document
+        order. The lazy docx + docx/html dynamic import (check-export-chunk guard: entry chunk
+        clean, docx surface 107.6 KB gzip measured, 300 KB budget) converts with htmlToContent
+        in the document's own named styles; sectPr geometry comes from the remembered print
+        options (m052-mirrored mm mapping, landscape handled by the library). Writing rides
+        the existing binary facade (mt_fs_write_binary) — no new commands, no print surface.
+        The success notification carries reveal + quiet "Export settings" actions
+        (C-NOTIFICATION-SYSTEM API). Enabling muya fact: EXPORT_DOMPURIFY_CONFIG mathMl now
+        true, so KaTeX's MathML twin survives export and feeds native OMML equations
+        (T-002 discovery; screen-reader parity bonus). Known input gap (backlog):
+        muya's export grammar renders $$ display blocks as literal text — inline math
+        converts today, display math joins when that muya fix lands.
+      </Summary>
+      <Path>src/renderer/src/util/exportDocx.js</Path><PlannedPath>src/renderer/src/util/exportDocx.js, tests/renderer/util/export-docx-shapes.test.js, tests/renderer/util/export-docx.test.js, tests/renderer/store/export-docx-dispatch.test.js, tests/renderer/contextMenu/tabs-export.test.js, tests/e2e/export-office.spec.ts</PlannedPath>
+      <Dependencies>M-065 embedLocalImages (runs before, in editor.vue); muya ExportHtml (renderHtml) and muya/lib/utils/diagramExport (figure raster); docx + docx/html via dynamic import; store/editor.js _EXPORT_DOCX (save dialog + write + notify); m009_menu.rs file.export-file-docx; commands file.export-file-docx; contextMenu/tabs export group</Dependencies><VerificationRef>V-M-066</VerificationRef>
+      <Contract><Purpose>Turn the styled export HTML into a real .docx buffer — native OMML equations from KaTeX MathML, real footnotes, native checkboxes, named Word styles — without any modal, print surface or new backend command.</Purpose><Inputs><Input><Name>html</Name><Type>string — muya exportStyledHTML output after the M-065 pass</Type></Input><Input><Name>printOptions</Name><Type>object — remembered print/export options (m052 shape)</Type></Input></Inputs><Outputs><Output><Name>bytes</Name><Type>Uint8Array — the .docx file</Type></Output></Outputs><Errors><Error><Code>figure raster failure</Code><Description>keeps the SVG markup (graceful degradation)</Description></Error><Error><Code>conversion failure</Code><Description>caller notifies editor.export.failed; nothing is written</Description></Error></Errors></Contract>
+      <Sources><Source>src/renderer/src/util/exportDocx.js</Source><Tests>tests/renderer/util/export-docx-shapes.test.js</Tests><Tests>tests/renderer/util/export-docx.test.js</Tests><Tests>tests/renderer/store/export-docx-dispatch.test.js</Tests><Tests>tests/renderer/contextMenu/tabs-export.test.js</Tests><Tests>tests/e2e/export-office.spec.ts</Tests><Tests>scripts/check-export-chunk.mjs</Tests></Sources>
+    </M-066>
     <M-067>
       <Name>NotificationCardSystem</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
       <Summary>
