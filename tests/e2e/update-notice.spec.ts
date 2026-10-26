@@ -155,10 +155,10 @@ test.describe('Automatic update check (C-66)', () => {
     await installUpdateNoticeShim(page)
     await page.goto(BOOT_URL)
 
-    const notice = page.locator('.ag-update-notice')
+    const notice = page.locator('.notification-card')
     await expect(notice).toBeVisible({ timeout: 15_000 })
-    await expect(notice.locator('.notice-title')).toHaveText('Mark 2.6.0 is available')
-    await expect(notice.locator('.notice-button')).toHaveText(['Update', 'Later', 'Skip this version'])
+    await expect(notice.locator('.card-title')).toHaveText('Mark 2.6.0 is available')
+    await expect(notice.locator('.action-btn')).toHaveText(['Update', 'Later', 'Skip this version'])
 
     expect(await noticeCheckCount(page)).toBe(1)
     // The completed check advanced the 24 h clock.
@@ -173,10 +173,10 @@ test.describe('Automatic update check (C-66)', () => {
   }) => {
     await installUpdateNoticeShim(page)
     await page.goto(BOOT_URL)
-    const notice = page.locator('.ag-update-notice')
+    const notice = page.locator('.notification-card')
     await expect(notice).toBeVisible({ timeout: 15_000 })
 
-    await notice.locator('.notice-button', { hasText: 'Later' }).click()
+    await notice.locator('.action-btn', { hasText: 'Later' }).click()
     await expect(notice).toBeHidden()
     // Nothing was skipped by dismissing.
     const skippedAfterLater = await page.evaluate(() =>
@@ -187,7 +187,7 @@ test.describe('Automatic update check (C-66)', () => {
     await page.reload()
     await waitForBoot(page)
     await page.waitForTimeout(1_000)
-    await expect(page.locator('.ag-update-notice')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
     expect(await noticeCheckCount(page)).toBe(0)
   })
 
@@ -196,10 +196,10 @@ test.describe('Automatic update check (C-66)', () => {
   }) => {
     await installUpdateNoticeShim(page)
     await page.goto(BOOT_URL)
-    const notice = page.locator('.ag-update-notice')
+    const notice = page.locator('.notification-card')
     await expect(notice).toBeVisible({ timeout: 15_000 })
 
-    await notice.locator('.notice-button', { hasText: 'Skip this version' }).click()
+    await notice.locator('.action-btn', { hasText: 'Skip this version' }).click()
     await expect(notice).toBeHidden()
     // The prefs write is async (IPC) — poll the persisted key.
     await expect.poll(() => page.evaluate(() =>
@@ -212,7 +212,7 @@ test.describe('Automatic update check (C-66)', () => {
     await waitForBoot(page)
     await page.waitForTimeout(1_000)
     expect(await noticeCheckCount(page)).toBe(1)
-    await expect(page.locator('.ag-update-notice')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
 
     // …but 2.6.1 shows again.
     await page.evaluate(() =>
@@ -223,7 +223,7 @@ test.describe('Automatic update check (C-66)', () => {
     )
     await backDateLastCheck(page)
     await page.reload()
-    await expect(page.locator('.ag-update-notice .notice-title')).toHaveText(
+    await expect(page.locator('.notification-card .card-title')).toHaveText(
       'Mark 2.6.1 is available',
       { timeout: 15_000 }
     )
@@ -237,7 +237,7 @@ test.describe('Automatic update check (C-66)', () => {
     await waitForBoot(page)
     await page.waitForTimeout(1_500)
 
-    await expect(page.locator('.ag-update-notice')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
     expect(await noticeCheckCount(page)).toBe(1)
     const stampedOffline = await page.evaluate(() =>
       localStorage.getItem('mark-e2e-prefs:lastUpdateCheckAt')
@@ -253,7 +253,7 @@ test.describe('Automatic update check (C-66)', () => {
       )
     )
     await page.reload()
-    await expect(page.locator('.ag-update-notice .notice-title')).toHaveText(
+    await expect(page.locator('.notification-card .card-title')).toHaveText(
       'Mark 2.6.0 is available',
       { timeout: 15_000 }
     )
@@ -267,7 +267,7 @@ test.describe('Automatic update check (C-66)', () => {
     await waitForBoot(page)
     await page.waitForTimeout(1_500)
 
-    await expect(page.locator('.ag-update-notice')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
     const stampedNote = await page.evaluate(() =>
       localStorage.getItem('mark-e2e-prefs:lastUpdateCheckAt')
     )
@@ -283,7 +283,7 @@ test.describe('Automatic update check (C-66)', () => {
     await page.waitForTimeout(1_500)
 
     expect(await noticeCheckCount(page)).toBe(0)
-    await expect(page.locator('.ag-update-notice')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
     const stampedMas = await page.evaluate(() =>
       localStorage.getItem('mark-e2e-prefs:lastUpdateCheckAt')
     )
@@ -298,7 +298,7 @@ test.describe('Automatic update check (C-66)', () => {
 
     const sheet = page.locator('.ag-whats-new-sheet')
     await expect(sheet).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.ag-update-notice')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
     expect(await noticeCheckCount(page)).toBe(0)
     // Deferral does not advance the clock either.
     const stampedDeferred = await page.evaluate(() =>
@@ -312,7 +312,7 @@ test.describe('Automatic update check (C-66)', () => {
     // Next launch: no sheet anymore, the deferred check runs and the
     // notice appears.
     await page.reload()
-    await expect(page.locator('.ag-update-notice .notice-title')).toHaveText(
+    await expect(page.locator('.notification-card .card-title')).toHaveText(
       'Mark 2.6.0 is available',
       { timeout: 15_000 }
     )
@@ -325,7 +325,7 @@ test.describe('Automatic update check (C-66)', () => {
     await page.waitForTimeout(1_500)
 
     expect(await noticeCheckCount(page)).toBe(0)
-    await expect(page.locator('.ag-update-notice')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
   })
 
   test('renders under the Ink theme (dark tokens via the shared CSS variables)', async ({ page }) => {
@@ -333,8 +333,8 @@ test.describe('Automatic update check (C-66)', () => {
       seed: { theme: 'ink', followSystemTheme: false, lightModeTheme: 'ink', darkModeTheme: 'ink' }
     })
     await page.goto(BOOT_URL)
-    await expect(page.locator('.ag-update-notice')).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.ag-update-notice .notice-title')).toHaveText(
+    await expect(page.locator('.notification-card')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.notification-card .card-title')).toHaveText(
       'Mark 2.6.0 is available'
     )
   })

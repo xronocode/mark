@@ -1,164 +1,91 @@
 /**
- * Tests for src/renderer/src/services/notification/index.js
+ * Tests for src/renderer/src/services/notification/index.js — the
+ * C-NOTIFICATION-SYSTEM compatibility facade.
  *
- * Covers: notification.notify (DOM creation, type classes, close behavior),
- * notification.clear, fillTemplate.
+ * Covers: the legacy notify({title,message,type,time}) call shape keeps
+ * working against the pinia store (primary→info mapping, localized
+ * defaults), the new event fields pass through, notify returns undefined
+ * (corner C-7: no promise semantics), and clear() empties the stack.
  */
 
+vi.mock('@/i18n', () => ({
+  t: (key) => key
+}))
+
+// util reads window.electron at module scope; mock it the way the legacy
+// notification tests did.
 vi.mock('@/util', () => ({
-  getUniqueId: vi.fn(() => 'test-id-123'),
-  isOsx: false,
-  isWindows: false,
-  isLinux: true
+  getUniqueId: vi.fn(() => 'test-id')
 }))
 
-vi.mock('@/util/dompurify', () => ({
-  sanitize: vi.fn((text) => text),
-  EXPORT_DOMPURIFY_CONFIG: {}
-}))
+import notification from '@/services/notification'
+import { useNotificationsStore, normalizeSeverity } from '@/store/notifications'
+import { setupTestPinia } from '../pinia'
 
-import notification from '@/services/notification/index'
-
-describe('notification', () => {
+describe('notification facade (C-NOTIFICATION-SYSTEM)', () => {
   beforeEach(() => {
-    document.body.innerHTML = ''
-    notification.noticeCache = {}
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
-    notification.noticeCache = {}
+    setupTestPinia()
   })
 
   it('has name "notify"', () => {
     expect(notification.name).toBe('notify')
   })
 
-  describe('notify', () => {
-    it('creates notification DOM element in body', () => {
-      notification.notify({
-        title: 'Test',
-        message: 'Hello World',
-        type: 'primary',
-        time: 0 // disable auto-close
-      })
-
-      const el = document.querySelector('.mt-notification')
-      expect(el).not.toBeNull()
-    })
-
-    it('applies type class to notification', () => {
-      notification.notify({
-        title: 'Error',
-        message: 'Something went wrong',
-        type: 'error',
-        time: 0
-      })
-
-      const el = document.querySelector('.mt-notification')
-      expect(el.classList.contains('mt-error')).toBe(true)
-    })
-
-    it('applies warning type class', () => {
-      notification.notify({
-        title: 'Warning',
-        message: 'Watch out',
-        type: 'warning',
-        time: 0
-      })
-
-      const content = document.querySelector('.content')
-      expect(content.classList.contains('mt-warn')).toBe(true)
-    })
-
-    it('applies info type class', () => {
-      notification.notify({
-        title: 'Info',
-        message: 'FYI',
-        type: 'info',
-        time: 0
-      })
-
-      const el = document.querySelector('.mt-notification')
-      expect(el.classList.contains('mt-info')).toBe(true)
-    })
-
-    it('returns a promise', () => {
-      const result = notification.notify({
-        title: 'Test',
-        message: 'msg',
-        time: 0
-      })
-
-      expect(result).toBeInstanceOf(Promise)
-    })
-
-    it('adds confirm class when showConfirm is true', () => {
-      notification.notify({
-        title: 'Confirm',
-        message: 'Are you sure?',
-        showConfirm: true,
-        time: 0
-      })
-
-      const el = document.querySelector('.mt-notification')
-      expect(el.classList.contains('mt-confirm')).toBe(true)
-    })
-
-    it('caches notice in noticeCache', () => {
-      notification.notify({
-        title: 'Cached',
-        message: 'msg',
-        time: 0
-      })
-
-      expect(Object.keys(notification.noticeCache).length).toBe(1)
-    })
-
-    it('uses default values for optional params', () => {
-      notification.notify({})
-
-      const el = document.querySelector('.mt-notification')
-      expect(el).not.toBeNull()
-      // Default type is 'primary'
-      expect(el.classList.contains('mt-primary')).toBe(true)
-    })
-
-    it('auto-closes after time', () => {
-      vi.useFakeTimers()
-
-      notification.notify({
-        title: 'Auto',
-        message: 'close',
-        time: 100
-      })
-
-      expect(document.querySelector('.mt-notification')).not.toBeNull()
-
-      vi.advanceTimersByTime(200)
-
-      // After remove timeout (100ms auto-close + 100ms remove animation)
-      vi.advanceTimersByTime(200)
-
-      vi.useRealTimers()
-    })
+  it('notify returns undefined — never a promise (corner C-7)', () => {
+    const result = notification.notify({ title: 'T', message: 'M' })
+    expect(result).toBeUndefined()
   })
 
-  describe('clear', () => {
-    it('removes all cached notices', () => {
-      const removeMock = vi.fn()
-      notification.noticeCache = {
-        a: { remove: removeMock },
-        b: { remove: removeMock }
-      }
+  it('legacy shape lands in the store with primary mapped to info (corner C-6)', () => {
+    notification.notify({ title: 'T', message: 'M', type: 'primary', time: 12345 })
+    const store = useNotificationsStore()
+    expect(store.stack).toHaveLength(1)
+    expect(store.stack[0].severity).toBe('info')
+    expect(store.stack[0].title).toBe('T')
+    expect(store.stack[0].message).toBe('M')
+    expect(store.stack[0].time).toBe(12345)
+    expect(store.stack[0].source).toBe('system')
+  })
 
-      notification.clear()
+  it('applies localized defaults for missing title/message', () => {
+    notification.notify({})
+    const store = useNotificationsStore()
+    expect(store.stack[0].title).toBe('notifications.defaultTitle')
+    expect(store.stack[0].message).toBe('notifications.defaultMessage')
+  })
 
-      expect(removeMock).toHaveBeenCalledTimes(2)
-    })
+  it('severity field passes through and error is sticky (corner C-2)', () => {
+    notification.notify({ severity: 'error', message: 'boom' })
+    const store = useNotificationsStore()
+    expect(store.stack[0].severity).toBe('error')
+    expect(store.stack[0].sticky).toBe(true)
+  })
 
-    it('does nothing when cache is empty', () => {
-      expect(() => notification.clear()).not.toThrow()
-    })
+  it('forwards source, actions, dedupKey and sticky', () => {
+    const actions = [{ kind: 'copy', payload: 'x' }]
+    notification.notify({ source: 'export', actions, dedupKey: 'k', sticky: true })
+    const store = useNotificationsStore()
+    expect(store.stack[0].source).toBe('export')
+    expect(store.stack[0].actions).toStrictEqual(actions)
+    expect(store.stack[0].dedupKey).toBe('k')
+    expect(store.stack[0].sticky).toBe(true)
+  })
+
+  it('clear() empties the stack', () => {
+    notification.notify({ title: 'a' })
+    notification.notify({ title: 'b' })
+    notification.clear()
+    const store = useNotificationsStore()
+    expect(store.stack).toHaveLength(0)
+  })
+
+  it('normalizeSeverity maps every legacy value safely', () => {
+    expect(normalizeSeverity('primary')).toBe('info')
+    expect(normalizeSeverity('info')).toBe('info')
+    expect(normalizeSeverity('success')).toBe('success')
+    expect(normalizeSeverity('warning')).toBe('warning')
+    expect(normalizeSeverity('error')).toBe('error')
+    expect(normalizeSeverity('nonsense')).toBe('info')
+    expect(normalizeSeverity(undefined)).toBe('info')
   })
 })

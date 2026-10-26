@@ -346,7 +346,7 @@ test.describe('diagram export (C-56)', () => {
     expect(Math.abs(ihdr!.height - 2 * natural.height)).toBeLessThanOrEqual(2)
 
     // The short confirmation toast says "Copied".
-    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+    await expect(page.locator('.notification-card', { hasText: 'Copied' })).toBeVisible()
   })
 
   test('context menu: a Vega-Lite chart block gets the items too; paragraphs, tables and flowchart blocks do not (corner-3)', async ({ page }) => {
@@ -436,7 +436,7 @@ test.describe('diagram export (C-56)', () => {
     expect(Math.abs(written!.width - 2 * natural.width)).toBeLessThanOrEqual(2)
     expect(Math.abs(written!.height - 2 * natural.height)).toBeLessThanOrEqual(2)
     // The success toast names the file.
-    await expect(page.locator('.mt-notification', { hasText: 'how-a-release-moves.png' })).toBeVisible()
+    await expect(page.locator('.notification-card', { hasText: 'how-a-release-moves.png' })).toBeVisible()
   })
 
   test('Save as SVG…: the written file is standalone — zero var(--pele-* and the theme panel background rect', async ({ page }) => {
@@ -496,7 +496,7 @@ test.describe('diagram export (C-56)', () => {
     await page.waitForFunction(() => (window as any).__saveCalls.length > 0, undefined, { timeout: 10_000 })
     await page.waitForTimeout(400)
     expect(await page.evaluate(() => (window as any).__binaryWrites)).toHaveLength(0)
-    await expect(page.locator('.mt-notification')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
   })
   // END_BLOCK_EXPORT_E2E_SAVE
 
@@ -610,7 +610,7 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     expect(ihdr).not.toBeNull()
     expect(Math.abs(ihdr!.width - 2 * Math.ceil(tableSize.width + 32))).toBeLessThanOrEqual(4)
     expect(Math.abs(ihdr!.height - 2 * Math.ceil(tableSize.height + 32))).toBeLessThanOrEqual(4)
-    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+    await expect(page.locator('.notification-card', { hasText: 'Copied' })).toBeVisible()
   })
   // END_BLOCK_EXPORT_E2E_VIEWER
 
@@ -712,7 +712,7 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     expect(Math.abs(ihdr!.width - 2 * natural.width)).toBeLessThanOrEqual(2)
     expect(Math.abs(ihdr!.height - 2 * natural.height)).toBeLessThanOrEqual(2)
     // The same «Copied» toast as the context-menu item.
-    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+    await expect(page.locator('.notification-card', { hasText: 'Copied' })).toBeVisible()
   })
 
   test('corner pill: Open full screen opens the shared viewer from the pill', async ({ page }) => {
@@ -858,7 +858,7 @@ A paragraph after the image.
       return true
     })
     expect(identical, 'clipboard bytes are exactly the file bytes').toBe(true)
-    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+    await expect(page.locator('.notification-card', { hasText: 'Copied' })).toBeVisible()
   })
 
   test('embedded image: the context menu gains Copy Image on an img target only', async ({ page }) => {
@@ -887,7 +887,7 @@ A paragraph after the image.
       return true
     })
     expect(identical).toBe(true)
-    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+    await expect(page.locator('.notification-card', { hasText: 'Copied' })).toBeVisible()
 
     // A paragraph right-click gets no Copy Image item.
     const plainItems = await openContextMenuOn(page, '#ag-editor-id p')
@@ -914,7 +914,7 @@ A paragraph after the image.
     expect(ihdr).not.toEqual({ signature: 'not-png' })
     expect(ihdr!.width).toBe(24)
     expect(ihdr!.height).toBe(16)
-    await expect(page.locator('.mt-notification', { hasText: 'Copied' })).toBeVisible()
+    await expect(page.locator('.notification-card', { hasText: 'Copied' })).toBeVisible()
   })
 
   test('embedded image: a read that breaks after the display load shows the failure notice and writes nothing', async ({ page }) => {
@@ -934,7 +934,7 @@ A paragraph after the image.
     await copyViaToolbar(page)
 
     await expect(
-      page.locator('.mt-notification', { hasText: 'Could not copy the image' })
+      page.locator('.notification-card', { hasText: 'Could not copy the image' })
     ).toBeVisible({ timeout: 10_000 })
     await page.waitForTimeout(300)
     expect(await page.evaluate(() => (window as any).__clipImages)).toHaveLength(0)

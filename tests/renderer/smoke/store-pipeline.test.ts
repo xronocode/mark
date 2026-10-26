@@ -41,7 +41,9 @@ describe('smoke: store pipeline', () => {
     expect(store).toBeDefined()
     expect(store.$id).toBe('notification')
     expect(typeof store.SHOW_NOTIFICATION).toBe('function')
-    expect(typeof store.SHOW_PANDOC_MISSING).toBe('function')
+    // C-NOTIFICATION-SYSTEM T-004: the dead pandoc-missing toast action is
+    // gone for good.
+    expect('SHOW_PANDOC_MISSING' in store).toBe(false)
   })
 
   it('window.* shim globals are installed by setup.ts', () => {

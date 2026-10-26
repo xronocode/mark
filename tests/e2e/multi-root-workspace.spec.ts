@@ -156,7 +156,7 @@ test.describe('multi-root workspace (C-MULTI-SOURCE-WORKSPACE)', () => {
     expect(state.tabCount).toBe(1)
 
     // The missing root degraded visibly.
-    await expect(page.locator('.mt-notification')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.notification-card')).toBeVisible({ timeout: 5_000 })
   })
 
   test('the shared chooser appears for an ambiguous open and Add appends a second root', async ({ page }) => {

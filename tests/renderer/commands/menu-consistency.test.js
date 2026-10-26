@@ -96,6 +96,8 @@ const RENDERER_ONLY_ALLOWLIST = new Set([
   // C-17: palette-only surfaces (problems overlay + lint toggle)
   'view.problems',
   'view.toggle-markdown-lint',
+  // C-NOTIFICATION-SYSTEM: palette-only session history surface
+  'view.notifications-history',
   // Multi-window not yet implemented
   'file.new-window',
   'file.close-window',

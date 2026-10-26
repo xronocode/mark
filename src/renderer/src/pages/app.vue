@@ -41,6 +41,8 @@
       <import-modal></import-modal>
       <zoom-indicator></zoom-indicator>
       <update-notice></update-notice>
+      <notification-stack></notification-stack>
+      <notifications-history></notifications-history>
       <workspace-mode-dialog></workspace-mode-dialog>
     </div>
   </div>
@@ -153,6 +155,8 @@ import ImportModal from '@/components/import'
 import LiveViewer from '@/components/liveViewer'
 import ZoomIndicator from '@/components/zoomIndicator'
 import UpdateNotice from '@/components/updateNotice'
+import NotificationStack from '@/components/notificationStack'
+import NotificationsHistory from '@/components/notificationsHistory'
 import WhatsNewDialog from '@/components/whatsNew'
 import WorkspaceModeDialog from '@/components/sideBar/workspaceModeDialog.vue'
 import bus from '@/bus'

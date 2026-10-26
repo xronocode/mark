@@ -128,8 +128,7 @@ export const useEditorStore = defineStore('editor', {
         notice.notify({
           title: i18n.global.t('store.editor.anchorLinkCopied'),
           type: 'primary',
-          time: 2000,
-          showConfirm: false
+          time: 2000
         })
       } else {
         console.warn(i18n.global.t('store.editor.tocItemNotFound', { key }))
@@ -474,16 +473,22 @@ export const useEditorStore = defineStore('editor', {
     },
 
     SHOW_IMAGE_DELETION_URL(deletionUrl) {
-      notice
-        .notify({
-          title: i18n.global.t('store.editor.imageDeletionUrlTitle'),
-          message: i18n.global.t('store.editor.imageDeletionUrlMessage', { url: deletionUrl }),
-          showConfirm: true,
-          time: 20000
-        })
-        .then(() => {
-          window.electron.clipboard.writeText(deletionUrl)
-        })
+      // C-NOTIFICATION-SYSTEM T-004: the legacy showConfirm promise chain
+      // (resolve = copy URL) becomes a plain copy shortcut action — a
+      // one-click button, no answer owed (corner C-7).
+      notice.notify({
+        title: i18n.global.t('store.editor.imageDeletionUrlTitle'),
+        message: i18n.global.t('store.editor.imageDeletionUrlMessage', { url: deletionUrl }),
+        severity: 'info',
+        source: 'file',
+        time: 20000,
+        actions: [
+          {
+            kind: 'copy',
+            payload: deletionUrl
+          }
+        ]
+      })
     },
 
     // We need to update line endings menu when changing tabs.
@@ -2264,17 +2269,24 @@ export const useEditorStore = defineStore('editor', {
 
     APPLY_EXPORT_SUCCESS(filePath) {
       if (!filePath) return
-      notice
-        .notify({
-          title: i18n.global.t('store.editor.exportSuccessTitle'),
-          message: i18n.global.t('store.editor.exportSuccessMessage', {
-            name: window.path.basename(filePath)
-          }),
-          showConfirm: true
-        })
-        .then(() => {
-          window.electron.shell.showItemInFolder(filePath)
-        })
+      // C-NOTIFICATION-SYSTEM T-004: the legacy showConfirm promise chain
+      // (resolve = reveal in Finder) becomes a plain reveal shortcut.
+      notice.notify({
+        title: i18n.global.t('store.editor.exportSuccessTitle'),
+        message: i18n.global.t('store.editor.exportSuccessMessage', {
+          name: window.path.basename(filePath)
+        }),
+        severity: 'success',
+        source: 'export',
+        actions: [
+          {
+            kind: 'reveal',
+            payload: () => {
+              window.electron.shell.showItemInFolder(filePath)
+            }
+          }
+        ]
+      })
     },
 
     SET_LINE_ENDING(lineEnding) {
