@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -25,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-26 v2.2.0: C-RELEASE-MANUAL-PUBLISH — publication regains the synchronous release-Environment gate (owner reviewer) and loses the veto-window job; governance swaps release-notify back to release with no TG secret boundary; the unknown-policy simulation targets release again.
 //   - 2026-10-24 v2.1.0: C-RELEASE-CONVEYOR — promotion triggers on any train ledger and binds to a seal that is on main (not main's exact tip); the close-release-please job is gone and publication itself proves the latest-release feed advanced.
 //   - 2026-10-24 v2.0.0: C-RELEASE-TIMING — publication loses the synchronous release Environment gate and needs the parallel veto-window job; governance swaps release for release-notify with TG notify secret boundaries; the build-lane de-duplication is pinned against the status-check aggregate.
 //   - 2026-10-21 v1.9.0: prove activate executes both disabled-to-active ruleset mutations and converges against the active target.
@@ -214,8 +215,8 @@ describe('release GitHub trust boundaries', () => {
     expect(commands(release.jobs['prepare-publication'])).toContain(
       'PUB_DATE=$(git show -s --format=%cI "$TAG^{commit}")'
     )
-    expect(release.jobs.publish.environment).toBeUndefined()
-    expect(release.jobs.publish.needs).toEqual(['build', 'prepare-publication', 'veto-window'])
+    expect(release.jobs.publish.environment).toEqual({ name: 'release' })
+    expect(release.jobs.publish.needs).toEqual(['build', 'prepare-publication'])
     expect(release.jobs.publish.permissions).toEqual({ contents: 'write' })
     expect(release.jobs.publish.steps.some(({ uses }) => uses?.startsWith('actions/checkout@'))).toBe(false)
     expect(commands(release.jobs.publish)).not.toMatch(/npm\s|node tools\/|release:readiness/)
@@ -253,26 +254,19 @@ describe('release GitHub trust boundaries', () => {
     expect(releaseSource).toContain('gh run rerun --failed')
   })
 
-  it('arms a bounded no-veto window instead of a second synchronous owner approval', () => {
-    const windowJob = release.jobs['veto-window']
-    expect(windowJob).toBeDefined()
-    expect(windowJob.needs).toBe('authorize-tag')
-    expect(windowJob.if).toContain("github.event_name == 'push'")
-    expect(windowJob.environment).toBe('release-notify')
-    expect(windowJob.permissions).toEqual({ contents: 'read' })
-    expect(windowJob['timeout-minutes']).toBeGreaterThanOrEqual(90)
-
-    const window = commands(windowJob)
-    expect(window).toContain('RELEASE_VETO_MINUTES')
-    expect(window).toContain('MIN="${WINDOW_MINUTES:-20}"')
-    expect(window).toContain('MIN=120')
-    // Fail open: absent TG secrets degrade the ping to a logged skip.
-    expect(window.indexOf('-z "$TG_NOTIFY_TOKEN"')).toBeGreaterThan(-1)
-    expect(window).toContain('BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SKIPPED')
-    expect(window).toContain('api.telegram.org')
-    expect(window).toContain('BLOCK_RELEASE_VETO_WINDOW_HOLD')
-    expect(window).toContain('sleep 60')
-    expect(window).toContain('BLOCK_RELEASE_VETO_WINDOW_CLOSED')
+  it('publishes only a verified draft after the owner approves the release environment', () => {
+    // C-RELEASE-MANUAL-PUBLISH: the veto-window job is gone — publication
+    // never follows from silence; the synchronous release-Environment
+    // approval is the second, final owner instruction.
+    expect(release.jobs['veto-window']).toBeUndefined()
+    expect(release.jobs.publish.environment).toEqual({ name: 'release' })
+    expect(release.jobs.publish.needs).toEqual(['build', 'prepare-publication'])
+    // No operative timer or notify mechanics survive (only the CHANGE_SUMMARY
+    // history entries mention the repealed names).
+    expect(releaseSource).not.toContain('vars.RELEASE_VETO_MINUTES')
+    expect(releaseSource).not.toContain('BLOCK_RELEASE_VETO_WINDOW')
+    expect(releaseSource).not.toContain('api.telegram.org')
+    expect(releaseSource).not.toContain('TG_NOTIFY_TOKEN')
   })
 
   it('de-duplicates the release build lane behind strict payload admission', () => {
@@ -306,13 +300,14 @@ describe('release GitHub trust boundaries', () => {
     expect(governance.actions.defaultWorkflowPermissions).toBe('read')
     expect(governance.environments['release-authorize'].requiredReviewers).toEqual(['xronocode'])
     expect(governance.environments['release-signing'].requiredReviewers).toEqual([])
-    expect(governance.environments.release).toBeUndefined()
-    expect(governance.environments['release-notify']).toMatchObject({
-      requiredReviewers: [],
+    expect(governance.environments.release).toMatchObject({
+      requiredReviewers: ['xronocode'],
       preventSelfReview: false
     })
-    expect(governance.secretBoundaries['release-notify']).toEqual(['TG_NOTIFY_TOKEN', 'TG_NOTIFY_CHAT'])
-    expect(governance.secretBoundaries.forbiddenAtRepository).toContain('TG_NOTIFY_CHAT')
+    expect(governance.environments['release-notify']).toBeUndefined()
+    expect(governance.secretBoundaries.release).toBeUndefined()
+    expect(governance.secretBoundaries['release-notify']).toBeUndefined()
+    expect(governance.secretBoundaries.forbiddenAtRepository).not.toContain('TG_NOTIFY_CHAT')
     expect(governance.environments['release-cask']).toMatchObject({
       requiredReviewers: [],
       preventSelfReview: false
@@ -414,7 +409,7 @@ describe('release GitHub control-plane reconciliation', () => {
         ])
       )
     }
-    actual.environments['release-notify'].policies.push({ name: 'private-recovery/*', type: 'branch' })
+    actual.environments.release.policies.push({ name: 'private-recovery/*', type: 'branch' })
     expect(() => planGithubControls(desiredControls, actual)).toThrow(
       expect.objectContaining({ code: 'MT_RELEASE_CONTROLS_UNKNOWN_POLICY' })
     )

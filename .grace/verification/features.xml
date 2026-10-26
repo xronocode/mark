@@ -2448,16 +2448,14 @@
           pub_date; fragments themselves are never published as assets.
         </Scenario>
         <Scenario>
-          scenario-31 (C-RELEASE-TIMING): publication is default after a
-          bounded no-veto window instead of the synchronous release
-          Environment approval — the release-authorize approval remains the
-          explicit owner release instruction; the push-gated veto-window job
-          (release-notify environment, contents:read only) resolves
-          RELEASE_VETO_MINUTES with default 20 and clamp 120, optionally
-          pings Telegram and fails open to a logged skip without secrets,
-          and holds one minute per tick until closed; publish needs build,
-          prepare-publication and veto-window and declares no environment;
-          cancelling the run is the veto. The release build lane re-runs
+          scenario-31 (C-RELEASE-MANUAL-PUBLISH): publication is manual-only —
+          the release-authorize approval creates the tag (the first explicit
+          owner instruction) and the publish job declares the synchronous
+          release Environment (owner reviewer, v* tags) so the release goes
+          live only on the owner's final approval; no veto-window job,
+          RELEASE_VETO_MINUTES reference, Telegram ping or cancel-as-veto
+          semantics survive, and silence never publishes (owner train rule 1).
+          Kept C-RELEASE-TIMING legacy: the release build lane re-runs
           neither the vitest/cargo/playwright suites (strict admission still
           proves the status-check aggregate green on the exact payload) nor
           a standalone renderer build (tauri beforeBuildCommand), keeps
@@ -2506,10 +2504,6 @@
         <Marker>[ReleaseControls][reconcile][BLOCK_RELEASE_CONTROLS_DRY_RUN]</Marker>
         <Marker>[ReleasePromote][tag][BLOCK_RELEASE_TAG_AUTHORIZED]</Marker>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_TAG_MISMATCH]</Marker>
-        <Marker>BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SKIPPED</Marker>
-        <Marker>BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SENT</Marker>
-        <Marker>BLOCK_RELEASE_VETO_WINDOW_HOLD</Marker>
-        <Marker>BLOCK_RELEASE_VETO_WINDOW_CLOSED</Marker>
         <Marker>[ReleasePublish][publish][BLOCK_RELEASE_LATEST_ADVANCED]</Marker>
         <Marker>[ReleaseTrain][resolve][BLOCK_RELEASE_TRAIN_POINTER_REJECTED]</Marker>
         <Marker>[ReleaseNormalize][plan][BLOCK_RELEASE_NORMALIZE_CHECKED]</Marker>
