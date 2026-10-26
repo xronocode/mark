@@ -62,6 +62,7 @@
     </GD-RUNTIME>
     <GD-PERFORMANCE>
       <Path>graph/performance.xml</Path>
+      <!-- C-LARGE-DOC-STAGE-0: M-060 owns the Stage 0 bench drivers, deterministic fixture tooling and characterization-session harness; it depends on M-011/M-012 and absorbs no product responsibility. -->
       <Owns>
         <M-024/>
         <M-025/>
@@ -70,6 +71,7 @@
         <M-028/>
         <M-029/>
         <M-030/>
+        <M-060/>
       </Owns>
     </GD-PERFORMANCE>
     <GD-FEATURES>

@@ -3078,6 +3078,10 @@
         (chromium + the webkit-diff playwright project; the swallowed-error
         invoke trace is part of the gate).
         Async baseline requests are scoped to their owning tab and view lifetime; stale completions cannot replace another comparison or close another tab.
+        C-LARGE-DOC-STAGE-0 (2026-10-27): the Stage 0 measurement harness
+        M-060 depends on this module's renderer ownership boundary and owns
+        instrumentation only — no product behavior, no content writes and no
+        production timing markers land here (V-M-060).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -4240,6 +4244,10 @@
         table-cue.test.js + tests/renderer/store/table-layout-store.test.js
         + editor-table-layouts.test.js; e2e tests/e2e/table-toolbar.spec.ts,
         table-width-persistence.spec.ts, table-layout.spec.ts (cue pins).
+        C-LARGE-DOC-STAGE-0 (2026-10-27): the Stage 0 measurement harness
+        M-060 drives this engine through its real input pipeline and marked
+        Lexer for evidence; Muya production code is not modified and M-060
+        absorbs none of its product responsibility (V-M-060).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>

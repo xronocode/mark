@@ -1481,5 +1481,68 @@
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-030</LegacySource>
     </V-M-030>
+    <V-M-060>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>node tests/e2e/fixtures/large-doc/generators/regen.mjs --check</Command>
+        <Command>npx vitest run tests/renderer/perf</Command>
+        <Command>npx playwright test tests/e2e/perf --project=webkit-perf</Command>
+        <Command>node src/renderer/bench/run-bench-preview.mjs --fixture tests/e2e/fixtures/large-doc/semantic-edge.md --phases open,typing,overhead,scroll --runs 1</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          Tier 1 (unit microbenchmarks): serializer, word count, TOC and history
+          snapshot deep-copy are measured in isolation over the byte-pinned
+          semantic-edge fixture; the fixture sha256/bytes must match
+          shape-metadata.json and each derived value is asserted functionally,
+          not only timed.
+        </Scenario>
+        <Scenario>
+          Tier 2a (Chromium via the bench driver): a required phase that is
+          missing, SKIPPED, non-numeric or untruthful fails the driver with
+          exit 1; truth=ok means the measured edit changed the Markdown and
+          undo restored the pre-edit value.
+        </Scenario>
+        <Scenario>
+          Tier 2b (WebKit in renderer CI): bench-phases-webkit.spec.ts loads
+          /bench/, injects the byte-pinned fixture and fails on SKIPPED/FAILED
+          or non-numeric typing/scroll markers; ceilings are loose CI
+          non-flakiness bounds, never product budgets.
+        </Scenario>
+        <Scenario>
+          Determinism: regen.mjs --check proves every committed fixture is
+          byte-identical to its generator output and every on-demand
+          materialized fixture matches its sha256 pin.
+        </Scenario>
+        <Scenario>
+          Observer overhead: the optional overhead phase measures the same
+          typing burst with responsiveness observers on and off in one run and
+          reports the ratio separately from all baseline numbers.
+        </Scenario>
+        <Scenario>
+          Tier 3 (real-app, owner-run, never CI): the capture manifest names
+          the Tauri artifact commit, an exact fixture bytes/sha256 pair and
+          content-free BLOCK_* markers; the verifier rejects browser/Playwright
+          labels posing as native evidence.
+        </Scenario>
+        <Scenario>
+          Baselines: baseline/large-doc/baseline.json records commit, fixture
+          hash, engine/runtime and run conditions per fixture, with heap
+          observations labelled not-supported where the runtime has no API.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[BENCH] [PHASE_INIT_RENDER]</Marker>
+        <Marker>[BENCH] [PHASE_TYPING]</Marker>
+        <Marker>[BENCH] [PHASE_SCROLL]</Marker>
+        <Marker>[BENCH] [PHASE_OVERHEAD]</Marker>
+        <Marker>[BENCH] [PHASE_MEMORY]</Marker>
+        <Marker>[MICROBENCH] name=</Marker>
+        <Marker>[bench-phases-webkit] tier=renderer-webkit</Marker>
+        <Marker>[BLOCK_FIXTURE]</Marker>
+        <Marker>[BLOCK_TYPING]</Marker>
+      </Markers>
+      <TraceAssertions/>
+    </V-M-060>
   </VD-PERFORMANCE>
 </GraceVerificationDocument>

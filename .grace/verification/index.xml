@@ -67,6 +67,7 @@
     </VD-RUNTIME>
     <VD-PERFORMANCE>
       <Path>verification/performance.xml</Path>
+      <!-- C-LARGE-DOC-STAGE-0: V-M-060 owns the three labelled Stage 0 evidence tiers, the deterministic fixture gate and the baseline artifacts. -->
       <Owns>
         <V-M-024/>
         <V-M-025/>
@@ -75,6 +76,7 @@
         <V-M-028/>
         <V-M-029/>
         <V-M-030/>
+        <V-M-060/>
       </Owns>
     </VD-PERFORMANCE>
     <VD-FEATURES>

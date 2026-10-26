@@ -745,5 +745,67 @@
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-030; docs/development-plan.xml: M-030</LegacySource>
     </M-030>
+    <M-060>
+      <Name>perf-stage0-harness</Name>
+      <DisplayName>perf-stage0-harness</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>implemented</Status>
+      <PhaseRef>C-LARGE-DOC-STAGE-0</PhaseRef>
+      <Summary>
+        Stage 0 large-document measurement harness: the bench driver with real
+        open/typing/scroll phases plus the optional same-run observer-overhead
+        control, the deterministic fixture corpus with ASCII generators and
+        sha256 shape metadata, the renderer-CI WebKit perf suite, the unit
+        microbenches for serializers/word-count/TOC/history-copy, and the
+        owner-run real-app acceptance tooling. Instrumentation and tests only:
+        it never absorbs M-011/M-012 product responsibility and never changes
+        production behavior.
+      </Summary>
+      <PlannedPath>
+        src/renderer/bench, tests/e2e/fixtures/large-doc,
+        tests/e2e/perf/bench-phases-webkit.spec.ts, tests/renderer/perf
+      </PlannedPath>
+      <Dependencies>
+        <M-011/>
+        <M-012/>
+      </Dependencies>
+      <VerificationRef>V-M-060</VerificationRef>
+      <Contract>
+        <Purpose>
+          Own the repeatable Stage 0 evidence surface: deterministic fixtures
+          and their byte pins, real-input typing and scroll measurement, the
+          three labelled evidence tiers, and the baseline artifacts that found
+          the owner decision gate. Measurements are observations, never product
+          budgets.
+        </Purpose>
+        <Inputs>
+          Committed corpus fixtures and generators; window.__BENCH_OPTIONS__
+          from the driver; the built renderer on the preview server; the
+          owner-run capture manifest for the native tier.
+        </Inputs>
+        <Outputs>
+          [BENCH] PHASE_* console markers, the driver's JSON report and
+          verdict, baseline/large-doc/baseline.json plus baseline.md, and
+          verified acceptance captures that stay outside the repository.
+        </Outputs>
+        <Errors>
+          A required phase that is missing, SKIPPED, non-numeric or untruthful
+          fails the driver and the WebKit CI suite; a browser/Playwright label
+          claiming native evidence, a fixture hash mismatch or a phantom commit
+          fails the capture verifier.
+        </Errors>
+      </Contract>
+      <Interface/>
+      <Sources>
+        <KnowledgeGraphPath>
+          src/renderer/bench, tests/e2e/fixtures/large-doc,
+          tests/e2e/perf/bench-phases-webkit.spec.ts, tests/renderer/perf
+        </KnowledgeGraphPath>
+      </Sources>
+      <Observability>
+        Markers: [BENCH] PHASE_INIT_RENDER/TYPING/SCROLL/OVERHEAD/MEMORY,
+        [MICROBENCH] name=..., [bench-phases-webkit] tier=renderer-webkit.
+      </Observability>
+    </M-060>
   </GD-PERFORMANCE>
 </GraceGraphDocument>
