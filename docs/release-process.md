@@ -102,7 +102,8 @@ Derive the content from the frozen train, shipped change specs and exact release
 diff (`git log vPREV..vNEW --oneline` plus the relevant spec names, summaries and
 decisions).
 
-Beta tags are published as normal releases (`PRERELEASE=false`, asserted by
-tests), so `/releases/latest` advances for the in-app updater. A release is live
+Beta tags are published as normal releases (`--prerelease=false` on the
+draft-to-published edit, asserted by tests), so `/releases/latest` advances for
+the in-app updater. A release is live
 only when `https://github.com/xronocode/mark/releases/latest/download/latest.json`
 serves the new version.
