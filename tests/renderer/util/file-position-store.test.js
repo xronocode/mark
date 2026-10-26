@@ -300,4 +300,95 @@ describe('util/filePositionStore (C-FILE-POSITION-MEMORY)', () => {
       warnSpy.mockRestore()
     }
   })
+
+  it('write failures surface as false + warning and never throw (save/move/load, review wave)', async () => {
+    const { saveFilePosition, moveFilePositionsEntry, loadFilePosition, FILE_POSITIONS_PREFS_KEY } = await load()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      // save: the write rejects.
+      const io1 = fakeIo()
+      io1.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: {} })
+      const brokenSet = Object.assign(io1, {
+        set: async () => { throw new Error('prefs write denied') }
+      })
+      expect(await saveFilePosition('/w.md', anEntry(), brokenSet)).toBe(false)
+
+      // move: the write rejects.
+      const io2 = fakeIo()
+      io2.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: { '/from.md': anEntry() } })
+      const brokenSet2 = Object.assign(io2, {
+        set: async () => { throw new Error('prefs write denied') }
+      })
+      expect(await moveFilePositionsEntry('/from.md', '/to.md', brokenSet2)).toBe(false)
+
+      // load: the prune write-back rejects — the entry still returns.
+      const io3 = fakeIo()
+      io3.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: { '/keep.md': anEntry(), '/gone.md': anEntry() } })
+      const brokenSet3 = Object.assign(io3, {
+        set: async () => { throw new Error('prefs write denied') }
+      })
+      const entry = await loadFilePosition('/keep.md', brokenSet3, async (p) => p !== '/gone.md')
+      expect(entry).toBeTruthy()
+      expect(warnSpy).toHaveBeenCalled()
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('the default stat checker maps every answer shape (capability/message-only/flagless, review wave)', async () => {
+    const { loadFilePosition, FILE_POSITIONS_PREFS_KEY } = await load()
+    const original = window.fileUtils
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      // message-only rejection carrying the NOT_FOUND hint -> confirmed missing
+      window.fileUtils = { stat: async () => { throw new Error('mt_fs_stat failed: MT_FS_NOT_FOUND (No such file)') } }
+      let io = fakeIo()
+      io.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: { '/m.md': anEntry() } })
+      await loadFilePosition('/m.md', io)
+      expect(io.dump().get(FILE_POSITIONS_PREFS_KEY).files['/m.md']).toBeUndefined()
+
+      // rejection without the hint -> cannot tell, entry kept
+      window.fileUtils = { stat: async () => { throw new Error('i/o timeout') } }
+      io = fakeIo()
+      io.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: { '/t.md': anEntry() } })
+      await loadFilePosition('/t.md', io)
+      expect(io.dump().get(FILE_POSITIONS_PREFS_KEY).files['/t.md']).toBeTruthy()
+
+      // resolved flagless shape -> cannot tell, entry kept
+      window.fileUtils = { stat: async () => ({}) }
+      io = fakeIo()
+      io.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: { '/f.md': anEntry() } })
+      await loadFilePosition('/f.md', io)
+      expect(io.dump().get(FILE_POSITIONS_PREFS_KEY).files['/f.md']).toBeTruthy()
+
+      // no stat capability at all -> cannot tell, entry kept, no write-back
+      window.fileUtils = undefined
+      io = fakeIo()
+      io.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: { '/c.md': anEntry() } })
+      const entry = await loadFilePosition('/c.md', io)
+      expect(entry).toBeTruthy()
+      expect(io.calls.filter(([op]) => op === 'set')).toHaveLength(0)
+
+      // is_file (snake_case) counts as the file flag
+      window.fileUtils = { stat: async (p) => p === '/s.md' ? { is_file: true } : { isFile: false } }
+      io = fakeIo()
+      io.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: { '/s.md': anEntry(), '/other.md': anEntry() } })
+      expect(await loadFilePosition('/s.md', io)).toBeTruthy()
+      expect(io.dump().get(FILE_POSITIONS_PREFS_KEY).files['/other.md']).toBeUndefined()
+    } finally {
+      window.fileUtils = original
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('a failed read aborts the rename move too (review wave)', async () => {
+    const { moveFilePositionsEntry } = await load()
+    const io = { get: async () => { throw new Error('busy') }, set: async () => {} }
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(await moveFilePositionsEntry('/a.md', '/b.md', io)).toBe(false)
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
 })
