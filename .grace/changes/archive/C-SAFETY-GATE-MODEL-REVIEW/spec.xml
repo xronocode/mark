@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-SAFETY-GATE-MODEL-REVIEW>
   <Name>Restore the two-model safety review and close the private-path blind spot</Name>
   <ApprovalBasis>Owner instruction in chat on 2026-10-27 (Russian): the security gate with the local model and the non-local double pass broke, find out why and return it to the pipeline; private paths have leaked into public again, audit the whole train and every latest release. The owner then chose, in the same session: (1) the non-local half is the kari host over Tailscale as an independent reviewer, both reviewers must pass; (2) the gate stays fail-closed with the explicit MARK_SAFETY_OVERRIDE escape hatch; (3) sanitize every public surface, including released train ledgers, frozen documents and archived change bundles.</ApprovalBasis>
