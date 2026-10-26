@@ -194,7 +194,7 @@ describe('util/clipboardPath (C-52)', () => {
         { filePaths: [], text: '~/work' },
         { stat, homeDir: '/Users/<fixture>' }
       )
-      expect(target).toEqual({ kind: 'folder', path: '/Users/<fixture>/prj' })
+      expect(target).toEqual({ kind: 'folder', path: '/Users/<fixture>/work' })
     })
 
     it('returns null when nothing stats as folder or Markdown', async () => {
