@@ -4303,6 +4303,20 @@
             </Attribute>
           </LegacyAttributes>
         </fn-getCopyData>
+        <fn-clearStaleSelections>
+          <LegacyAttributes>
+            <Attribute>
+              <Name>PURPOSE</Name>
+              <Value>
+                Drop table-cell/image selection flags whose anchor block no
+                longer exists so a stale selection cannot silently swallow
+                cut/copy of normal text (FIX-019); called at the top of
+                copyHandler, cutHandler, docCopyHandler and docCutHandler,
+                paired with the setMarkdown flag reset
+              </Value>
+            </Attribute>
+          </LegacyAttributes>
+        </fn-clearStaleSelections>
         <fn-pasteHandler>
           <LegacyAttributes>
             <Attribute>
