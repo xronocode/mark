@@ -72,8 +72,9 @@ approval there is the release instruction, and the bot creates the annotated
 tag on the seal. The seal must be on main but does not need to be its current
 tip, so unrelated merges may continue.
 
-The tag run builds the release, holds the no-veto window defined by
-`RELEASE_VETO_MINUTES` (default 20; cancelling the run is the veto), publishes,
+The tag run builds the release, waits for the owner to approve the synchronous
+`release` Environment gate (C-RELEASE-MANUAL-PUBLISH: publication is manual-only —
+the first approval created the tag, this one publishes), then publishes,
 proves that `releases/latest` advanced and opens the Homebrew cask pull request.
 Monitor it with:
 

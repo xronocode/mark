@@ -1,9 +1,9 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.1.1
+# VERSION: 3.2.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage and publish one digest-verified draft release after a bounded no-veto timer window armed by the owner-approved tag.
-#   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, timer-default draft-first publication with cancel-as-veto, optional Telegram notify, and downstream Homebrew handoff.
-#   DEPENDS: M-046 release readiness/materials/preflight, Node 22, Rust stable, tauri-action, tag-restricted release-signing secrets, GitHub OIDC, release-notify environment, RELEASE_VETO_MINUTES variable.
+#   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
+#   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
+#   DEPENDS: M-046 release readiness/materials/preflight, Node 22, Rust stable, tauri-action, tag-restricted release-signing secrets, GitHub OIDC, release environment (owner reviewer).
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
@@ -11,15 +11,20 @@
 #
 # START_MODULE_MAP
 #   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute.
-#   veto-window - Arm the bounded no-veto publication window in parallel with the builds, notify the owner when configured, and hold until the window closes or the run is cancelled.
 #   manual-build - Run unsigned build-only QA from an input-free manual dispatch.
 #   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing.
 #   prepare-publication - Render and digest the exact release body and asset set without write credentials.
-#   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final step once the build lanes and the parallel veto window have both closed.
+#   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final owner-gated step once the build lanes are green and the owner approves the release environment.
 #   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-26 v3.2.0: C-RELEASE-MANUAL-PUBLISH — repeal the C-RELEASE-TIMING
+#     timer-default publication: delete the veto-window job (window, TG notify,
+#     RELEASE_VETO_MINUTES, cancel-as-veto) and restore the synchronous release
+#     environment approval on publish (pre-v3.0.0 shape; the owner's five-rule
+#     train protocol makes publication manual-only). The de-duplicated build
+#     lane and cargo caches stay untouched.
 #   - 2026-10-24 v3.1.1: Point the missing updater-signing warning to the canonical owner-only GitHub rollout instructions.
 #   - 2026-10-24 v3.1.0: C-RELEASE-CONVEYOR — read the train through docs/release-trains/current.json and drop the close-release-please job (Release Please removed; it failed on v2.8.1 for want of a Release Please PR).
 #   - 2026-10-24 v3.0.0: C-RELEASE-TIMING — replace the synchronous second
@@ -169,73 +174,6 @@ jobs:
           path: /tmp/release-checks.json
           if-no-files-found: error
           retention-days: 1
-
-  # C-RELEASE-TIMING: the owner's explicit release instruction is the
-  # release-authorize approval that created this tag. This window is the
-  # stop mechanism, not a second authorization: publication is default
-  # once the build lanes finish AND this window closes. The veto is
-  # cancelling this workflow run — workflow artifacts are retained
-  # (30 days) and the idempotent publish path makes a later re-run safe.
-  # The window runs in parallel with the builds (macOS lane ~25 min >
-  # default 20 min), so the common case stays ~30 minutes end to end.
-  veto-window:
-    name: release/veto-window
-    needs: authorize-tag
-    if: github.event_name == 'push' && needs.authorize-tag.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    environment: release-notify
-    permissions:
-      contents: read
-    steps:
-      - name: resolve veto window
-        id: window
-        env:
-          WINDOW_MINUTES: ${{ vars.RELEASE_VETO_MINUTES }}
-        run: |
-          set -euo pipefail
-          MIN="${WINDOW_MINUTES:-20}"
-          if ! [[ "$MIN" =~ ^[1-9][0-9]*$ ]]; then
-            echo "::warning::invalid RELEASE_VETO_MINUTES '$MIN'; using 20"
-            MIN=20
-          fi
-          if [ "$MIN" -gt 120 ]; then
-            echo "::warning::RELEASE_VETO_MINUTES clamped to 120"
-            MIN=120
-          fi
-          echo "minutes=$MIN" >> "$GITHUB_OUTPUT"
-
-      - name: notify owner auto-publish is armed
-        env:
-          TG_NOTIFY_TOKEN: ${{ secrets.TG_NOTIFY_TOKEN }}
-          TG_NOTIFY_CHAT: ${{ secrets.TG_NOTIFY_CHAT }}
-          TAG: ${{ needs.authorize-tag.outputs.tag }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          MINUTES: ${{ steps.window.outputs.minutes }}
-        run: |
-          set -euo pipefail
-          if [ -z "$TG_NOTIFY_TOKEN" ] || [ -z "$TG_NOTIFY_CHAT" ]; then
-            echo "BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SKIPPED reason=secrets-absent"
-            exit 0
-          fi
-          MESSAGE="Mark ${TAG}: release build started; publication is default after the build plus a ${MINUTES}-minute no-veto window. Veto: cancel the run. ${RUN_URL}"
-          curl -fsS --retry 2 -X POST \
-            "https://api.telegram.org/bot${TG_NOTIFY_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TG_NOTIFY_CHAT}" \
-            --data-urlencode "text=${MESSAGE}" >/dev/null
-          echo "BLOCK_RELEASE_VETO_WINDOW_NOTIFY_SENT tag=${TAG} minutes=${MINUTES}"
-
-      - name: hold the no-veto window
-        env:
-          MINUTES: ${{ steps.window.outputs.minutes }}
-        run: |
-          set -euo pipefail
-          END=$(( SECONDS + MINUTES * 60 ))
-          while [ "$SECONDS" -lt "$END" ]; do
-            echo "BLOCK_RELEASE_VETO_WINDOW_HOLD left=$(( ( END - SECONDS ) / 60 ))m veto=cancel-run"
-            sleep 60
-          done
-          echo "BLOCK_RELEASE_VETO_WINDOW_CLOSED minutes=${MINUTES}"
 
   manual-build:
     name: unsigned QA build (${{ matrix.platform.name }})
@@ -985,14 +923,17 @@ jobs:
 
   publish:
     name: publish github release
-    needs: [build, prepare-publication, veto-window]
+    needs: [build, prepare-publication]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # C-RELEASE-TIMING: no synchronous owner approval here any more. The
-    # owner's explicit release instruction was the release-authorize
-    # approval that created the tag; publication is default once the
-    # build lanes and the parallel veto window (veto = cancel this run)
-    # have both closed.
+    # C-RELEASE-MANUAL-PUBLISH: publication is manual-only (owner train
+    # rule 1, 2026-10-26). The release-authorize approval created the tag
+    # (the first explicit owner instruction); this synchronous release
+    # environment approval is the second, final one — it fires after the
+    # build lanes are green, and the release goes live only after the
+    # owner approves. The wait does not consume the job timeout.
+    environment:
+      name: release
     permissions:
       contents: write
     steps:

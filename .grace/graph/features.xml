@@ -2428,14 +2428,15 @@
         renderer+backend units on windows-latest as the Windows-cfg compile
         gate.
 
-        C-RELEASE-TIMING (2026-10-24): publication is default after a
-        bounded no-veto window instead of the synchronous second release
-        Environment approval — the release-authorize approval that creates
-        the tag remains the single explicit owner release instruction, the
-        veto-window job (RELEASE_VETO_MINUTES variable, default 20, clamp
-        120) runs parallel to the build lanes, and the veto is cancelling
-        the run; an optional release-notify Telegram ping skips gracefully
-        without secrets. The release build lane no longer re-runs the
+        C-RELEASE-MANUAL-PUBLISH (2026-10-26) repealed the C-RELEASE-TIMING
+        publication mechanic: the veto-window job (RELEASE_VETO_MINUTES,
+        cancel-as-veto, the optional release-notify Telegram ping) is gone,
+        and publication waits for the owner to approve the synchronous
+        release Environment — the release-authorize approval creates the
+        tag (the first explicit owner instruction), the release-Environment
+        approval publishes (the final one), so nothing goes live by silence
+        (owner train rule 1). Kept C-RELEASE-TIMING legacy: the release
+        build lane no longer re-runs the
         payload suites (vitest, cargo test, playwright) already proven
         green on the exact payload by strict admission's status-check
         aggregate; tauri's beforeBuildCommand builds the renderer, and

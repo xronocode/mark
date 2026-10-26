@@ -1,5 +1,5 @@
 // FILE: tools/release-governance.mjs
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Enforce stable ordinary-PR release governance without requiring a frozen train or any privileged GitHub API mutation.
 //   SCOPE: Conventional PR title classification, immutable action pins, source-controlled control and public Project schema, and current-train validation.
@@ -27,6 +27,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-26 v2.1.0: C-RELEASE-MANUAL-PUBLISH — expect the synchronous release approval Environment back (owner reviewer) instead of the C-RELEASE-TIMING release-notify boundary; the release Environment carries no secrets.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — remove the Release Please preparation boundary (preparation is a normal reviewed PR); admit release-bearing merges while the train is Ready, because the tag binds to the merged seal, not to main's tip.
 //   - 2026-10-24 v1.3.0: C-RELEASE-TIMING — expect the release-notify Environment (timer-window Telegram ping boundary) instead of the retired synchronous release approval Environment, and require its secret boundary.
 //   - 2026-10-20 v1.2.0: classify perf/revert as patch releases and reject unmarked BREAKING CHANGE trailers or unadmitted release-bearing work.
@@ -144,13 +145,13 @@ export const validateGovernanceConfig = (config) => {
   if (config.actions?.defaultWorkflowPermissions !== 'read') {
     fail('MT_RELEASE_GOVERNANCE_CONFIG_INVALID', 'actions.defaultWorkflowPermissions!=read')
   }
-  for (const name of ['release-authorize', 'release-signing', 'release-notify', 'release-cask']) {
+  for (const name of ['release-authorize', 'release-signing', 'release', 'release-cask']) {
     if (!config.environments?.[name]) {
       fail('MT_RELEASE_GOVERNANCE_CONFIG_INVALID', `environment=${name};missing`)
     }
   }
-  if (config.environments['release-notify'].preventSelfReview !== false) {
-    fail('MT_RELEASE_GOVERNANCE_CONFIG_INVALID', 'release-notify.preventSelfReview!=false')
+  if (config.environments.release.preventSelfReview !== false) {
+    fail('MT_RELEASE_GOVERNANCE_CONFIG_INVALID', 'release.preventSelfReview!=false')
   }
   for (const name of ['main', 'releaseTags']) {
     const ruleset = config.rulesets?.[name]
@@ -174,7 +175,7 @@ export const validateGovernanceConfig = (config) => {
     fail('MT_RELEASE_GOVERNANCE_CONFIG_INVALID', 'ruleset.main.checks=invalid')
   }
   const secretBoundaries = config.secretBoundaries
-  for (const name of ['release-authorize', 'release-signing', 'release-notify', 'release-cask', 'forbiddenAtRepository']) {
+  for (const name of ['release-authorize', 'release-signing', 'release-cask', 'forbiddenAtRepository']) {
     if (!Array.isArray(secretBoundaries?.[name]) || secretBoundaries[name].length === 0) {
       fail('MT_RELEASE_GOVERNANCE_CONFIG_INVALID', `secretBoundary=${name};missing`)
     }
