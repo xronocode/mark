@@ -242,7 +242,7 @@ describe('chrome icon swap (C-38 T-006 N4 d)', () => {
   })
 
   describe('editorWithTabs/notifications.vue', () => {
-    it('renders the dismiss control from chromeIcons with aria preserved', async () => {
+    it('renders the severity glyph and dismiss control from chromeIcons with aria preserved', async () => {
       const { useEditorStore } = await import('@/store/editor')
       const editorStore = useEditorStore()
       editorStore.currentFile = {
@@ -256,22 +256,25 @@ describe('chrome icon swap (C-38 T-006 N4 d)', () => {
       const svg = wrapper.find('.inline-button svg.chrome-icon')
       expect(svg.exists()).toBe(true)
       expect(svg.attributes('aria-hidden')).toBe('true')
-      expect(iconNames(wrapper)).toEqual(['close'])
+      // C-NOTIFICATION-SYSTEM T-006: the banner gained the severity glyph
+      // (legacy 'primary' maps to info) ahead of the dismiss control.
+      expect(iconNames(wrapper)).toEqual(['info', 'close'])
     })
   })
 
-  describe('services/notification toast template', () => {
-    it('builds chrome-icon markup for every notification type', async () => {
+  describe('notificationCard (C-NOTIFICATION-SYSTEM)', () => {
+    it('draws the severity glyph and close from chromeIcons, never the sprite', async () => {
       const { readFileSync } = await import('node:fs')
       const { resolve } = await import('node:path')
-      const service = readFileSync(
-        resolve(__dirname, '../../../src/renderer/src/services/notification/index.js'),
+      const card = readFileSync(
+        resolve(__dirname, '../../../src/renderer/src/components/notificationCard/index.vue'),
         'utf8'
       )
-      expect(service).toMatch(/chromeIconMarkup\(INON_HASH\[type\]/)
-      expect(service).toMatch(/chromeIconMarkup\('close'/)
-      expect(service).toMatch(/chromeIconMarkup\('check'/)
-      expect(service).not.toMatch(/#icon-/)
+      // Every severity maps to a drawn glyph through the ChromeIcon
+      // component; no sprite use refs anywhere.
+      expect(card).toMatch(/SEVERITY_ICONS/)
+      expect(card).toMatch(/name="close"/)
+      expect(card).not.toMatch(/#icon-/)
     })
   })
 })

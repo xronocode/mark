@@ -59,7 +59,7 @@ let originalElectron
 
 const openFileInvoke = vi.fn(async (channel, pathname) => {
   if (channel !== 'mt::open-file') return
-  editorStore.NEW_TAB_WITH_CONTENT({
+  await editorStore.NEW_TAB_WITH_CONTENT({
     markdownDocument: {
       markdown: `# ${pathname}`,
       pathname,

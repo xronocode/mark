@@ -18,8 +18,7 @@
     "release-authorize": ["RELEASE_BOT_APP_ID", "RELEASE_BOT_PRIVATE_KEY"],
     "release-signing": ["TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD", "APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD", "APPLE_SIGNING_IDENTITY", "APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID"],
     "release-cask": ["CASK_BOT_APP_ID", "CASK_BOT_PRIVATE_KEY"],
-    "release-notify": ["TG_NOTIFY_TOKEN", "TG_NOTIFY_CHAT"],
-    "forbiddenAtRepository": ["RELEASE_BOT_APP_ID", "RELEASE_BOT_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD", "APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD", "APPLE_SIGNING_IDENTITY", "APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID", "CASK_BOT_APP_ID", "CASK_BOT_PRIVATE_KEY", "TG_NOTIFY_TOKEN", "TG_NOTIFY_CHAT"]
+    "forbiddenAtRepository": ["RELEASE_BOT_APP_ID", "RELEASE_BOT_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD", "APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD", "APPLE_SIGNING_IDENTITY", "APPLE_ID", "APPLE_PASSWORD", "APPLE_TEAM_ID", "CASK_BOT_APP_ID", "CASK_BOT_PRIVATE_KEY"]
   },
   "strictRequiredChecks": [
     { "name": "status check", "app": "GitHub Actions" },
@@ -54,8 +53,8 @@
       "preventSelfReview": false,
       "deploymentBranches": { "protectedBranches": false, "custom": [{ "name": "v*", "type": "tag" }] }
     },
-    "release-notify": {
-      "requiredReviewers": [],
+    "release": {
+      "requiredReviewers": ["xronocode"],
       "preventSelfReview": false,
       "deploymentBranches": { "protectedBranches": false, "custom": [{ "name": "v*", "type": "tag" }] }
     },

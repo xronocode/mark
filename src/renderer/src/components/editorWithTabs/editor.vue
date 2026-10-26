@@ -119,6 +119,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-26 C-FILE-POSITION-MEMORY review wave: the flush debounce
+//     passes the false sentinel when getMuyaIndexCursor THROWS (logged with
+//     BLOCK_POSITION_CURSOR_COMPUTE_FAILED — the stale stored cursor never
+//     impersonates a fresh one) and undefined when it merely returns null;
+//     the mt::collect-position bus round-trip (handleCollectPosition)
+//     refreshes tab.muyaIndexCursor on demand for the close/quit flush —
+//     pure arrow-key navigation persists its caret too; unregistered on
+//     unmount with the other bus handlers.
 //   LAST_CHANGE: v1.31.0 - 2026-10-22 C-SELF-CONTAINED-HTML-EXPORT: the
 //   styledHtml export runs embedLocalImages (M-065) over the generated
 //   HTML before saving — local images become base64 data-URLs so the
@@ -305,6 +313,8 @@ import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const { t } = useI18n()
 const STANDAR_Y = 320
+// C-FILE-POSITION-MEMORY (spec D-2): the position flush debounce window.
+const POSITION_FLUSH_DEBOUNCE_MS = 1500
 
 const props = defineProps({
   markdown: String,
@@ -1813,7 +1823,7 @@ const handleFindAction = (action) => {
 const handleExport = async (options) => {
   const { type, header, footer, headerFooterStyled, htmlTitle } = options
 
-  if (!/^pdf|print|styledHtml$/.test(type)) {
+  if (!/^pdf|print|styledHtml|docx$/.test(type)) {
     throw new Error(`Invalid type to export: "${type}".`)
   }
 
@@ -1852,6 +1862,41 @@ const handleExport = async (options) => {
         log.error('Failed to export document:', err)
         notice.notify({
           title: t('editor.export.failed', { type: htmlTitle || 'html' }),
+          type: 'error',
+          message: err.message || t('editor.export.error')
+        })
+      }
+      break
+    }
+    case 'docx': {
+      // C-NATIVE-DOCX-RTF-EXPORT R-3: the same styled-HTML source as the
+      // HTML export (muya render + M-065 embed pass) feeds the store's
+      // modal-less Word branch (save dialog → lazy docx conversion →
+      // binary write). No settings dialog, no print container (both
+      // pinned in export-office.spec.ts).
+      try {
+        const rawHtml = await editor.value.exportStyledHTML({
+          title: htmlTitle || '',
+          printOptimization: false,
+          extraCss
+        })
+        const { pathname } = editorStore.currentFile || {}
+        const documentDir = pathname ? window.path.dirname(pathname) : null
+        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir)
+        // eslint-disable-next-line no-console
+        console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
+        if (skipped > 0) {
+          notice.notify({
+            title: t('editor.export.imagesEmbeddedTitle'),
+            message: t('editor.export.imagesEmbeddedMessage', { embedded, total }),
+            type: 'warning'
+          })
+        }
+        editorStore.EXPORT({ type, content: html })
+      } catch (err) {
+        log.error('Failed to export document:', err)
+        notice.notify({
+          title: t('editor.export.failed', { type: 'Word' }),
           type: 'error',
           message: err.message || t('editor.export.error')
         })
@@ -2051,6 +2096,56 @@ const handleTableLayoutsChange = async ({ entries } = {}) => {
   }
 }
 // END_BLOCK_TABLE_LAYOUTS_HOST
+
+// START_BLOCK_POSITION_FLUSH_DEBOUNCE
+// C-FILE-POSITION-MEMORY (spec D-2): one debounced disk write per 1.5 s of
+// activity. The muyaIndexCursor is computed ONCE here at flush time —
+// getMuyaIndexCursor runs a full ExportMarkdown pass and must never sit on
+// the per-event path (corner C-9). The selectionChange and scroll handlers
+// arm this; tab close and quit flush through the store without the debounce.
+// Review wave №6: a THROWN computation is a hard failure — it logs the
+// anchored marker and passes the false sentinel so the store never writes
+// the stale stored cursor impersonating a fresh one (scroll-only entry
+// instead). A null RETURN merely means «no valid block right now» — pass
+// undefined so the store falls back to the stored value.
+let positionFlushTimer = null
+const schedulePositionFlush = () => {
+  if (props.mirror) return
+  if (positionFlushTimer) clearTimeout(positionFlushTimer)
+  positionFlushTimer = setTimeout(() => {
+    positionFlushTimer = null
+    const id = renderedTabId
+    if (!id || id !== currentFile.value?.id) return
+    let muyaIndexCursor
+    try {
+      muyaIndexCursor = editor.value?.contentState?.getMuyaIndexCursor?.() || undefined
+    } catch (e) {
+      console.warn(`[Editor][position][BLOCK_POSITION_CURSOR_COMPUTE_FAILED] ${e}`)
+      muyaIndexCursor = false
+    }
+    void editorStore.SAVE_ACTIVE_FILE_POSITION({ id, muyaIndexCursor })
+  }, POSITION_FLUSH_DEBOUNCE_MS)
+}
+
+// Review wave №5: the close/quit flush asks the live editor for a fresh
+// cursor through this synchronous bus round-trip — muya refreshes
+// tab.muyaIndexCursor only on click/edit 'change' events, so pure arrow-key
+// navigation ended by a close inside the debounce window must not persist
+// the last click's cursor. getMuyaIndexCursor runs once here (same cost
+// class as the debounced flush).
+const handleCollectPosition = ({ id } = {}) => {
+  if (!id || id !== renderedTabId) return
+  try {
+    const fresh = editor.value?.contentState?.getMuyaIndexCursor?.()
+    if (fresh && fresh.anchor && fresh.focus) {
+      editorStore.updateMuyaIndexCursor(id, fresh)
+    }
+  } catch (e) {
+    console.warn(`[Editor][position][BLOCK_POSITION_CURSOR_COMPUTE_FAILED] ${e}`)
+  }
+}
+bus.on('mt::collect-position', handleCollectPosition)
+// END_BLOCK_POSITION_FLUSH_DEBOUNCE
 
 // listen for `open-single-file` event, it will call this method only when open a new file.
 const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) => {
@@ -2681,6 +2776,8 @@ onMounted(() => {
     // C-29: the source pane owns the tab's scroll offset while muya mirrors it.
     if (props.mirror || !renderedTabId || renderedTabId !== currentFile.value?.id) return
     editorStore.updateScrollPosition(renderedTabId, scrollEvent.scrollTop)
+    // C-FILE-POSITION-MEMORY: scrolling arms the debounced position flush.
+    schedulePositionFlush()
     // C-19: track the heading the viewport is in (debounced — scroll
     // events fire at frame rate) and tell the TOC to highlight it.
     if (tocActiveTimer) clearTimeout(tocActiveTimer)
@@ -2746,6 +2843,17 @@ onMounted(() => {
 
     selectionChange.value = changes
     editorStore.SELECTION_CHANGE(changes)
+    // START_BLOCK_POSITION_SELECTION_WRITE
+    // C-FILE-POSITION-MEMORY (spec A, D-1): pure keyboard navigation must
+    // write the caret into the owning tab exactly like clicks and edits do
+    // (muya's change event only fires for the latter two). Bypasses
+    // LISTEN_FOR_CONTENT_CHANGE on purpose — the revision guard must not
+    // move on navigation (corner C-2). Arms the debounced disk flush.
+    if (renderedTabId && renderedTabId === currentFile.value?.id) {
+      editorStore.updateCursorPosition(renderedTabId, editor.value.getCursor())
+      schedulePositionFlush()
+    }
+    // END_BLOCK_POSITION_SELECTION_WRITE
   })
 
   editor.value.on('selectionFormats', (formats) => {
@@ -2777,6 +2885,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
   mirrorSyncTimer = null
+  bus.off('mt::collect-position', handleCollectPosition)
   bus.off('file-loaded', setMarkdownToEditor)
   bus.off('invalidate-image-cache', handleInvalidateImageCache)
   bus.off('undo', diffGuarded.handleUndo)
@@ -2818,6 +2927,9 @@ onBeforeUnmount(() => {
   bus.off('formatDocument', diffGuarded.handleFormatDocument)
   if (docLintTimer) clearTimeout(docLintTimer)
   if (tocActiveTimer) clearTimeout(tocActiveTimer)
+  // C-FILE-POSITION-MEMORY: the pending debounced flush dies with the
+  // component — close/quit flushes own the final write.
+  if (positionFlushTimer) clearTimeout(positionFlushTimer)
 
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')

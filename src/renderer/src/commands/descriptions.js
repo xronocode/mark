@@ -33,6 +33,7 @@ const COMMAND_KEY_MAP = {
   'file.save-all': 'commands.file.saveAll',
   'file.export-file': 'commands.file.exportFile',
   'file.export-file.pdf': 'commands.file.exportFilePdf',
+  'file.export-file.docx': 'commands.file.exportFileDocx',
 
   // 文件管理
   'file.move-file': 'commands.file.moveFile',
@@ -196,6 +197,7 @@ const COMMAND_KEY_MAP = {
 
   // 视图功能
   'view.command-palette': 'commands.view.commandPalette',
+  'view.notifications-history': 'commands.view.notificationsHistory',
   'view.actual-size': 'commands.view.actualSize',
   'view.text-direction': 'commands.view.textDirection',
 

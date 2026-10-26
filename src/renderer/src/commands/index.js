@@ -402,6 +402,17 @@ const commands = [
           await delay(50)
           bus.emit('showExportDialog', 'pdf')
         }
+      },
+      {
+        // C-NATIVE-DOCX-RTF-EXPORT R-1: modal-less — the settings dialog
+        // never opens; the store action merges the remembered print
+        // options and rides the same bus 'export' pipeline.
+        id: 'file.export-file-docx',
+        description: 'Export as Word',
+        execute: async () => {
+          const { useEditorStore } = await import('../store/editor')
+          useEditorStore().EXPORT_DOCX_DOCUMENT()
+        }
       }
     ]
   },
@@ -873,6 +884,16 @@ const commands = [
       bus.emit('show-command-palette')
     }
   }] : []),
+
+  {
+    // C-NOTIFICATION-SYSTEM R-6: the session history surface — palette-only
+    // entry point (owner decision 2026-10-23; a title-bar bell stays a
+    // future candidate).
+    id: 'view.notifications-history',
+    execute: async () => {
+      bus.emit('show-notifications-history')
+    }
+  },
 
   {
     id: 'view.source-code-mode',

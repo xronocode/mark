@@ -637,13 +637,16 @@ describe('store/editor', () => {
   // ─── Misc ─────────────────────────────────────────────────────────
 
   describe('APPLY_EXPORT_SUCCESS', () => {
-    it('pushes a success notification with file path basename', () => {
+    it('pushes a success notification with a reveal action (C-NOTIFICATION-SYSTEM)', () => {
       editor.APPLY_EXPORT_SUCCESS('/tmp/out.pdf')
-      expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          showConfirm: true
-        })
-      )
+      expect(notice.notify).toHaveBeenCalledTimes(1)
+      const opts = notice.notify.mock.calls[0][0]
+      expect(opts.severity).toBe('success')
+      expect(opts.source).toBe('export')
+      expect(opts.title).toBeTruthy()
+      expect(opts.actions).toHaveLength(1)
+      expect(opts.actions[0].kind).toBe('reveal')
+      expect(typeof opts.actions[0].payload).toBe('function')
     })
 
     it('returns early on empty path', () => {
@@ -863,40 +866,40 @@ describe('store/editor', () => {
       }
     }
 
-    it('creates a new tab and selects it', () => {
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
+    it('creates a new tab and selects it', async () => {
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
       expect(editor.tabs).toHaveLength(1)
       expect(editor.currentFile.pathname).toBe('/tmp/a.md')
     })
 
-    it('reuses an existing tab when path matches', () => {
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
+    it('reuses an existing tab when path matches', async () => {
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
       expect(editor.tabs).toHaveLength(1)
     })
 
-    it('warns + falls back to NEW_UNTITLED_TAB when document is missing', () => {
+    it('warns + falls back to NEW_UNTITLED_TAB when document is missing', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-      editor.NEW_TAB_WITH_CONTENT({})
+      await editor.NEW_TAB_WITH_CONTENT({})
       expect(spy).toHaveBeenCalled()
       expect(editor.tabs).toHaveLength(1)
       spy.mockRestore()
     })
 
-    it('pushes mixedLineEndings notification when flagged', () => {
-      editor.NEW_TAB_WITH_CONTENT({
+    it('pushes mixedLineEndings notification when flagged', async () => {
+      await editor.NEW_TAB_WITH_CONTENT({
         markdownDocument: md({ isMixedLineEndings: true, lineEnding: 'crlf' }),
         selected: true
       })
       expect(editor.tabs[0].notifications.length).toBeGreaterThan(0)
     })
 
-    it('appends without selection when selected=false', () => {
+    it('appends without selection when selected=false', async () => {
       const t0 = makeTab({ id: 'pre', pathname: '/tmp/pre.md', isSaved: true })
       editor.tabs = [t0]
       editor.currentFile = t0
       editor.updateTabIdToIndex()
-      editor.NEW_TAB_WITH_CONTENT({
+      await editor.NEW_TAB_WITH_CONTENT({
         markdownDocument: md({ pathname: '/tmp/new.md', filename: 'new.md' }),
         selected: false
       })

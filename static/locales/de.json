@@ -82,7 +82,8 @@
       "failed": "{type}-Export fehlgeschlagen",
       "error": "Export-Fehler",
       "imagesEmbeddedMessage": "{embedded} von {total} Bildern eingebettet — große oder fehlende Bilder behalten ihre ursprünglichen Verweise",
-      "errorExporting": "Fehler beim Exportieren der {type}-Datei"
+      "errorExporting": "Fehler beim Exportieren der {type}-Datei",
+      "settingsAction": "Exporteinstellungen"
     },
     "resizeTable": "Tabellengröße ändern",
     "vega-lite-start": "Vega-Lite Start",
@@ -186,7 +187,8 @@
       "exportFilePdf": "Als PDF exportieren",
       "openFromClipboard": "Aus der Zwischenablage öffnen",
       "reopenClosedTab": "Geschlossenen Tab wieder öffnen",
-      "newWindow": "Neues Fenster"
+      "newWindow": "Neues Fenster",
+      "exportFileDocx": "Als Word exportieren"
     },
     "paragraph": {
       "table": "Tabelle",
@@ -315,7 +317,8 @@
       "textDirection": "Textrichtung",
       "statusBar": "Statusleiste ein- oder ausblenden",
       "toggleTabbar": "Tab-Leiste umschalten",
-      "reloadImages": "Bilder neu laden"
+      "reloadImages": "Bilder neu laden",
+      "notificationsHistory": "Benachrichtigungen: letzte anzeigen"
     },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",
@@ -738,7 +741,10 @@
       "closeOthers": "Andere schließen",
       "copyAsHtml": "Als HTML kopieren",
       "splitView": "Geteilte Ansicht",
-      "copyAsStructuredText": "Als strukturierten Text kopieren"
+      "copyAsStructuredText": "Als strukturierten Text kopieren",
+      "exportPdf": "Als PDF exportieren…",
+      "exportHtml": "Als HTML exportieren…",
+      "exportDocx": "Als Word exportieren…"
     },
     "insertParagraphBefore": "Absatz davor einfügen",
     "spelling": "Rechtschreibung...",
@@ -1230,7 +1236,28 @@
   },
   "notifications": {
     "defaultMessage": "Standardnachricht",
-    "defaultTitle": "Benachrichtigung"
+    "defaultTitle": "Benachrichtigung",
+    "close": "Schließen",
+    "more": "Weitere {n} Benachrichtigung | Weitere {n} Benachrichtigungen",
+    "source": {
+      "file": "Dateien",
+      "export": "Export",
+      "project": "Projekt",
+      "update": "Update",
+      "agent": "Agent",
+      "system": "System"
+    },
+    "actions": {
+      "copy": "Kopieren",
+      "retry": "Erneut versuchen",
+      "open": "Öffnen",
+      "reveal": "Anzeigen"
+    },
+    "history": {
+      "title": "Benachrichtigungen",
+      "empty": "Keine Benachrichtigungen in dieser Sitzung",
+      "copy": "Kopieren"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1448,7 +1475,8 @@
         "liber": "Liber",
         "default": "GitHub (Standard)"
       }
-    }
+    },
+    "docxTitle": "Nach Word exportieren"
   },
   "import": {
     "title": "Importieren oder öffnen",
@@ -1470,7 +1498,6 @@
   "dialog": {
     "file": "Datei",
     "changesWillBeLost": "Änderungen gehen verloren",
-    "installPandoc": "Pandoc installieren",
     "close": "Schließen",
     "keepOpen": "Offen halten",
     "cancel": "Abbrechen",

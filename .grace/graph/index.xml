@@ -102,6 +102,12 @@
         <M-056/>
         <M-064/>
         <M-065/>
+        <!-- C-NOTIFICATION-SYSTEM: M-067 owns the unified card/stack/history
+             notification system; the legacy toast service is its facade. -->
+        <M-067/>
+        <!-- C-NATIVE-DOCX-RTF-EXPORT: M-066 owns the renderer-side Word
+             converter (pre-pass + lazy docx/html + geometry mapping). -->
+        <M-066/>
       </Owns>
     </GD-FEATURES>
     <GD-FLOWS>

@@ -86,17 +86,17 @@ describe('chrome draws from one icon set (C-38 T-006 N4 d)', () => {
     expect(offenders.map((f) => relative(ROOT, f))).toEqual([])
   })
 
-  it('the notification service template renders chromeIconMarkup, not sprite use refs', () => {
-    const template = readFileSync(
-      join(RENDERER_SRC, 'services', 'notification', 'index.html'),
+  it('the notification card renders the chromeIcons component, not sprite use refs', () => {
+    // C-NOTIFICATION-SYSTEM: the string-template toast (services/notification
+    // /index.html + chromeIconMarkup) is gone; the card component draws its
+    // severity glyphs through the ChromeIcon component like the rest of the
+    // chrome, and the stack/banner render from the same set.
+    const card = readFileSync(
+      join(RENDERER_SRC, 'components', 'notificationCard', 'index.vue'),
       'utf8'
     )
-    expect(template).not.toMatch(/#icon-/)
-    expect(template).toMatch(/\{\{iconSvg\}\}/)
-    const service = readFileSync(
-      join(RENDERER_SRC, 'services', 'notification', 'index.js'),
-      'utf8'
-    )
-    expect(service).toMatch(/chromeIconMarkup/)
+    expect(card).not.toMatch(/#icon-/)
+    expect(card).toMatch(/ChromeIcon/)
+    expect(card).toMatch(/name="close"/)
   })
 })

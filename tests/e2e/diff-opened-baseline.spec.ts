@@ -76,7 +76,7 @@ test.describe('C-68 ⌘D always has a baseline outside git', () => {
       async () => page.evaluate(() => (window as any).__diffBaselineCalls.length),
       { timeout: 5_000 }
     ).toBeGreaterThanOrEqual(1)
-    await expect(page.locator('.mt-notification')).toHaveCount(0)
+    await expect(page.locator('.notification-card')).toHaveCount(0)
 
     // The header names the opened source with a local 24h timestamp…
     const baselineSide = diff.locator('.diff-side').nth(1)
@@ -102,7 +102,7 @@ test.describe('C-68 ⌘D always has a baseline outside git', () => {
     await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.diff-mode'))
 
     // The calm info notice — not the raw backend error.
-    const notice = page.locator('.mt-notification')
+    const notice = page.locator('.notification-card')
     await expect(notice).toBeVisible({ timeout: 5_000 })
     await expect(notice).toContainText('No changes since you opened the file')
     await expect(notice).not.toContainText('not_a_git_repo')

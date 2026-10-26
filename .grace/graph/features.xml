@@ -2428,14 +2428,15 @@
         renderer+backend units on windows-latest as the Windows-cfg compile
         gate.
 
-        C-RELEASE-TIMING (2026-10-24): publication is default after a
-        bounded no-veto window instead of the synchronous second release
-        Environment approval — the release-authorize approval that creates
-        the tag remains the single explicit owner release instruction, the
-        veto-window job (RELEASE_VETO_MINUTES variable, default 20, clamp
-        120) runs parallel to the build lanes, and the veto is cancelling
-        the run; an optional release-notify Telegram ping skips gracefully
-        without secrets. The release build lane no longer re-runs the
+        C-RELEASE-MANUAL-PUBLISH (2026-10-26) repealed the C-RELEASE-TIMING
+        publication mechanic: the veto-window job (RELEASE_VETO_MINUTES,
+        cancel-as-veto, the optional release-notify Telegram ping) is gone,
+        and publication waits for the owner to approve the synchronous
+        release Environment — the release-authorize approval creates the
+        tag (the first explicit owner instruction), the release-Environment
+        approval publishes (the final one), so nothing goes live by silence
+        (owner train rule 1). Kept C-RELEASE-TIMING legacy: the release
+        build lane no longer re-runs the
         payload suites (vitest, cargo test, playwright) already proven
         green on the exact payload by strict admission's status-check
         aggregate; tauri's beforeBuildCommand builds the renderer, and
@@ -2975,5 +2976,55 @@
       <Contract><Purpose>Turn the generated styled-HTML export into a single self-contained file by embedding local images as data-URLs, without ever fetching remote content or failing the export on an image.</Purpose><Inputs><Input><Name>html</Name><Type>string — muya exportStyledHTML output</Type></Input><Input><Name>baseDir</Name><Type>string|null — exporting document's directory (null for untitled)</Type></Input></Inputs><Outputs><Output><Name>result</Name><Type>{ html, embedded, total, skipped } — html differs from the input only in img src values</Type></Output></Outputs><Errors><Error><Code>skipped reference</Code><Description>missing, over-cap, unreadable or unknown-extension local images keep their original src; the caller warns with embedded/total counts</Description></Error></Errors></Contract>
       <Sources><Source>src/renderer/src/util/exportImages.js</Source><Tests>tests/renderer/util/exportImages.test.js</Tests><Tests>tests/renderer/components/editor-export-images.test.js</Tests><Tests>tests/e2e/export-html-images.spec.ts</Tests></Sources>
     </M-065>
+    <M-066>
+      <Name>ExportDocxConverter</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
+      <Summary>
+        The renderer-side Word converter (C-NATIVE-DOCX-RTF-EXPORT): muya's styled export HTML
+        (the same exportStyledHTML output the HTML export uses) passes the M-065 embed pass in
+        the caller, then a data-only pre-pass strips the pre.front-matter block, adapts muya's
+        class/role footnote markup to the data-footnote-* shape docx/html recognizes, and
+        replaces exportable figures (C-56 roles) with rasterized 2x PNG images in document
+        order. The lazy docx + docx/html dynamic import (check-export-chunk guard: entry chunk
+        clean, docx surface 107.6 KB gzip measured, 300 KB budget) converts with htmlToContent
+        in the document's own named styles; sectPr geometry comes from the remembered print
+        options (m052-mirrored mm mapping, landscape handled by the library). Writing rides
+        the existing binary facade (mt_fs_write_binary) — no new commands, no print surface.
+        The success notification carries reveal + quiet "Export settings" actions
+        (C-NOTIFICATION-SYSTEM API). Enabling muya fact: EXPORT_DOMPURIFY_CONFIG mathMl now
+        true, so KaTeX's MathML twin survives export and feeds native OMML equations
+        (T-002 discovery; screen-reader parity bonus). Known input gap (backlog):
+        muya's export grammar renders $$ display blocks as literal text — inline math
+        converts today, display math joins when that muya fix lands.
+      </Summary>
+      <Path>src/renderer/src/util/exportDocx.js</Path><PlannedPath>src/renderer/src/util/exportDocx.js, tests/renderer/util/export-docx-shapes.test.js, tests/renderer/util/export-docx.test.js, tests/renderer/store/export-docx-dispatch.test.js, tests/renderer/contextMenu/tabs-export.test.js, tests/e2e/export-office.spec.ts</PlannedPath>
+      <Dependencies>M-065 embedLocalImages (runs before, in editor.vue); muya ExportHtml (renderHtml) and muya/lib/utils/diagramExport (figure raster); docx + docx/html via dynamic import; store/editor.js _EXPORT_DOCX (save dialog + write + notify); m009_menu.rs file.export-file-docx; commands file.export-file-docx; contextMenu/tabs export group</Dependencies><VerificationRef>V-M-066</VerificationRef>
+      <Contract><Purpose>Turn the styled export HTML into a real .docx buffer — native OMML equations from KaTeX MathML, real footnotes, native checkboxes, named Word styles — without any modal, print surface or new backend command.</Purpose><Inputs><Input><Name>html</Name><Type>string — muya exportStyledHTML output after the M-065 pass</Type></Input><Input><Name>printOptions</Name><Type>object — remembered print/export options (m052 shape)</Type></Input></Inputs><Outputs><Output><Name>bytes</Name><Type>Uint8Array — the .docx file</Type></Output></Outputs><Errors><Error><Code>figure raster failure</Code><Description>keeps the SVG markup (graceful degradation)</Description></Error><Error><Code>conversion failure</Code><Description>caller notifies editor.export.failed; nothing is written</Description></Error></Errors></Contract>
+      <Sources><Source>src/renderer/src/util/exportDocx.js</Source><Tests>tests/renderer/util/export-docx-shapes.test.js</Tests><Tests>tests/renderer/util/export-docx.test.js</Tests><Tests>tests/renderer/store/export-docx-dispatch.test.js</Tests><Tests>tests/renderer/contextMenu/tabs-export.test.js</Tests><Tests>tests/e2e/export-office.spec.ts</Tests><Tests>scripts/check-export-chunk.mjs</Tests></Sources>
+    </M-066>
+    <M-067>
+      <Name>NotificationCardSystem</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
+      <Summary>
+        The unified notification system (C-NOTIFICATION-SYSTEM): one card renderer
+        (icon-chip variant — chromeIcons glyph in a 14% severity-tint circle, C-66 card
+        metrics, float/editor/button theme tokens, severity tokens --notifyInfo/Success/
+        Warning/Error in all 34 themes) over a pinia store owning the live stack (max 3
+        rendered cards + overflow chip with per-locale plurals, hover-pause timers,
+        sticky errors, Esc-topmost) and the session history (FIFO cap 50, palette
+        command view.notifications-history, full untruncated text, per-entry copy).
+        The legacy Fluent DOM toast service became a compatibility facade forwarding the
+        same notify()/clear() call shape (~70 call sites untouched) plus the new event
+        fields: severity x source (file/export/project/update/agent/system), actions[]
+        (copy/retry/open/reveal built-ins + custom label+handler, primary/normal/quiet
+        styles, no-answer-owed contract replacing showConfirm promises), dedupKey
+        collapsing with xN counters, sticky. Copy-on-select on cards and the reskinned
+        per-file banner: selection release writes exactly the selection; the only
+        confirmation is the selection double-pulsing green (no label). The C-66 update
+        notice injects its three actions as a sticky info entry — semantics untouched.
+      </Summary>
+      <Path>src/renderer/src/store/notifications.js</Path><PlannedPath>src/renderer/src/store/notifications.js, src/renderer/src/components/notificationCard/index.vue, src/renderer/src/components/notificationStack/index.vue, src/renderer/src/components/notificationsHistory/index.vue, src/renderer/src/services/notification/index.js, tests/renderer/store/notifications.test.js, tests/renderer/components/notificationCard.test.js, tests/e2e/notifications-system.spec.ts</PlannedPath>
+      <Dependencies>M-057 chromeIcons (severity glyphs); pinia; i18n (ten locales); bus; element-plus dialog (history); consumed by store/notification.js facade, store/editor.js call sites, components/updateNotice, components/editorWithTabs/notifications.vue</Dependencies><VerificationRef>V-M-067</VerificationRef>
+      <Contract><Purpose>Every transient app message renders as one severity-styled card in one stack, is recoverable from the session history, offers only shortcut actions that owe no answer, and lets developers copy any notification text by selecting it.</Purpose><Inputs><Input><Name>NOTIFY payload</Name><Type>{ severity, source, title, message, actions, dedupKey, sticky, time } — legacy {type} maps primary→info, unknown→info</Type></Input></Inputs><Outputs><Output><Name>stack/history state</Name><Type>live entries (max 3 rendered + overflow counter) and FIFO history entries {time, severity, source, title, fullText}</Type></Output></Outputs><Errors><Error><Code>clipboard unavailable</Code><Description>copy-on-select and copy actions silently no-op — a quiet developer feature never surfaces an error</Description></Error></Errors></Contract>
+      <Sources><Source>src/renderer/src/store/notifications.js</Source><Source>src/renderer/src/components/notificationCard/index.vue</Source><Source>src/renderer/src/components/notificationStack/index.vue</Source><Source>src/renderer/src/components/notificationsHistory/index.vue</Source><Source>src/renderer/src/services/notification/index.js</Source><Tests>tests/renderer/store/notifications.test.js</Tests><Tests>tests/renderer/components/notificationCard.test.js</Tests><Tests>tests/e2e/notifications-system.spec.ts</Tests></Sources>
+    </M-067>
   </GD-FEATURES>
 </GraceGraphDocument>

@@ -18,7 +18,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.9.0 - 2026-10-18 C-62: own the diagram appearance controller before plugins/rendering and tear it down with the editor.
+//   LAST_CHANGE: v1.9.1 - 2026-10-25 C-FILE-POSITION-MEMORY e2e hardening:
+//                Muya.use is idempotent (editor.vue re-runs it per mount; a
+//                duplicate registration instantiated extra float plugins and
+//                leaked body-level containers), and destroy() tears down
+//                every registered plugin via the registry instead of a
+//                hand list that missed frontMenu/formatPicker/transformer/
+//                imageToolbar/linkTools/footnoteTool/tableBarTools.
+//   v1.9.0 - 2026-10-18 C-62: own the diagram appearance controller before plugins/rendering and tear it down with the editor.
 //   PREV: v1.8.0 - 2026-10-18 C-60: a rendered footnote option change
 //   reparses the in-memory document with source-coordinate selection and
 //   scroll preservation; no content event, disk read or undo entry.
@@ -74,6 +81,18 @@ class Muya {
   static plugins = []
 
   static use(plugin, options = {}) {
+    // C-FILE-POSITION-MEMORY e2e hardening: editor components re-run
+    // Muya.use on every mount (editor.vue onMounted), so a re-mounted
+    // editor used to push the whole plugin list again and the NEXT Muya
+    // constructed one extra float instance per duplicate — leaking
+    // body-level float containers (3× .ag-front-menu broke strict-mode
+    // locators). Registration is idempotent and the LAST options win:
+    // a remounted editor re-registers with its fresh closures.
+    const existing = this.plugins.find((entry) => entry.plugin === plugin)
+    if (existing) {
+      existing.options = options
+      return
+    }
     this.plugins.push({
       plugin,
       options
@@ -686,20 +705,31 @@ class Muya {
   destroy() {
     this.diagramAppearance.destroy()
     this.contentState.clear()
-    this.quickInsert.destroy()
-    this.codePicker.destroy()
-    this.tablePicker.destroy()
-    this.emojiPicker.destroy()
-    this.imagePathPicker.destroy()
-    if (this.linkPathPicker) {
-      this.linkPathPicker.destroy()
-    }
-    if (this.blockViewer) {
-      this.blockViewer.destroy()
+    // C-FILE-POSITION-MEMORY e2e hardening: destroy every registered UI
+    // plugin. The former hand list covered only some of them, so a
+    // destroyed editor leaked the rest's body-level float containers
+    // (frontMenu, formatPicker, transformer, imageToolbar, linkTools,
+    // footnoteTool, tableBarTools) — the registry is the source of truth
+    // and new plugins can no longer be forgotten here. Each plugin's
+    // destroy is isolated: one throwing plugin cannot skip the remaining
+    // plugins or the trailing cleanup below.
+    for (const { plugin } of Muya.plugins) {
+      const instance = this[plugin.pluginName]
+      if (instance && typeof instance.destroy === 'function') {
+        try {
+          instance.destroy()
+        } catch (e) {
+          console.warn(`[muya][destroy][BLOCK_PLUGIN_DESTROY_FAILED plugin=${plugin.pluginName}] ${e}`)
+        }
+      }
     }
     // C-38 T-005: the resize handler owns window/container listeners that
     // outlive the editor DOM (split-view instances come and go).
-    this.resize.destroy()
+    try {
+      this.resize.destroy()
+    } catch (e) {
+      console.warn(`[muya][destroy][BLOCK_RESIZE_DESTROY_FAILED] ${e}`)
+    }
     // C-51 T-010: drop this editor's figures from the shared expand-need
     // ResizeObserver (other muya instances keep their observations).
     releaseExpandNeedObservations(this.container)

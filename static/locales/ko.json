@@ -82,7 +82,8 @@
       "failed": "내보내기 실패",
       "error": "내보내기 오류",
       "imagesEmbeddedMessage": "전체 {total}개 중 {embedded}개의 이미지를 포함했습니다. 크기가 크거나 찾을 수 없는 이미지는 원래 링크로 유지됩니다",
-      "errorExporting": "파일 내보내기 오류"
+      "errorExporting": "파일 내보내기 오류",
+      "settingsAction": "내보내기 설정"
     },
     "resizeTable": "표 크기 조정",
     "vega-lite-start": "vega-lite 시작",
@@ -186,7 +187,8 @@
       "exportFilePdf": "PDF로 내보내기",
       "openFromClipboard": "클립보드에서 열기",
       "reopenClosedTab": "닫은 탭 다시 열기",
-      "newWindow": "새 창"
+      "newWindow": "새 창",
+      "exportFileDocx": "Word로 내보내기"
     },
     "paragraph": {
       "table": "표",
@@ -315,7 +317,8 @@
       "textDirection": "텍스트 방향",
       "statusBar": "상태 표시줄 표시/숨기기",
       "toggleTabbar": "탭바 토글",
-      "reloadImages": "이미지 새로고침"
+      "reloadImages": "이미지 새로고침",
+      "notificationsHistory": "알림: 최근 항목 표시"
     },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",
@@ -737,7 +740,10 @@
       "closeOthers": "다른 탭 닫기",
       "copyAsHtml": "HTML로 복사",
       "splitView": "분할 보기",
-      "copyAsStructuredText": "구조화된 텍스트로 복사"
+      "copyAsStructuredText": "구조화된 텍스트로 복사",
+      "exportPdf": "PDF로 내보내기…",
+      "exportHtml": "HTML로 내보내기…",
+      "exportDocx": "Word로 내보내기…"
     },
     "insertParagraphBefore": "앞에 단락 삽입",
     "spelling": "맞춤법...",
@@ -1229,7 +1235,28 @@
   },
   "notifications": {
     "defaultMessage": "기본 메시지",
-    "defaultTitle": "알림"
+    "defaultTitle": "알림",
+    "close": "닫기",
+    "more": "알림 {n}개 더",
+    "source": {
+      "file": "파일",
+      "export": "내보내기",
+      "project": "프로젝트",
+      "update": "업데이트",
+      "agent": "에이전트",
+      "system": "시스템"
+    },
+    "actions": {
+      "copy": "복사",
+      "retry": "다시 시도",
+      "open": "열기",
+      "reveal": "표시"
+    },
+    "history": {
+      "title": "알림",
+      "empty": "이 세션에는 알림이 없습니다",
+      "copy": "복사"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1447,7 +1474,8 @@
         "liber": "Liber",
         "default": "GitHub (기본값)"
       }
-    }
+    },
+    "docxTitle": "Word로 내보내기"
   },
   "import": {
     "title": "가져오기 또는 열기",
@@ -1469,7 +1497,6 @@
   "dialog": {
     "file": "파일",
     "changesWillBeLost": "변경 사항이 손실됩니다",
-    "installPandoc": "Pandoc 설치",
     "close": "닫기",
     "keepOpen": "열어두기",
     "cancel": "취소",

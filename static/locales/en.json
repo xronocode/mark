@@ -83,7 +83,8 @@
       "failed": "{type} export failed",
       "error": "Export error",
       "imagesEmbeddedMessage": "{embedded} of {total} images embedded — large or missing images keep their original links",
-      "errorExporting": "Error exporting {type} file"
+      "errorExporting": "Error exporting {type} file",
+      "settingsAction": "Export settings"
     },
     "resizeTable": "Resize Table",
     "vega-lite-start": "vega-lite start",
@@ -189,7 +190,8 @@
       "exportFilePdf": "Export as PDF",
       "openFromClipboard": "Open from Clipboard",
       "reopenClosedTab": "Reopen Closed Tab",
-      "newWindow": "New Window"
+      "newWindow": "New Window",
+      "exportFileDocx": "Export as Word"
     },
     "paragraph": {
       "table": "Table",
@@ -323,7 +325,8 @@
       "toggleMarkdownLint": "Toggle markdown validation",
       "statusBar": "Show or hide the status bar",
       "toggleTabbar": "Toggle Tab Bar",
-      "reloadImages": "Reload Images"
+      "reloadImages": "Reload Images",
+      "notificationsHistory": "Notifications: show recent"
     },
     "utils": {
       "noUpdateResourceFile": "No update resource file",
@@ -746,7 +749,10 @@
       "closeOthers": "Close others",
       "copyAsHtml": "Copy as HTML",
       "splitView": "Split View",
-      "copyAsStructuredText": "Copy as Structured Text"
+      "copyAsStructuredText": "Copy as Structured Text",
+      "exportPdf": "Export to PDF…",
+      "exportHtml": "Export to HTML…",
+      "exportDocx": "Export to Word…"
     },
     "insertParagraphBefore": "Insert Paragraph Before",
     "spelling": "Spelling...",
@@ -1241,7 +1247,28 @@
   },
   "notifications": {
     "defaultMessage": "Default message",
-    "defaultTitle": "Notification"
+    "defaultTitle": "Notification",
+    "close": "Close",
+    "more": "More {n} notification | More {n} notifications",
+    "source": {
+      "file": "Files",
+      "export": "Export",
+      "project": "Project",
+      "update": "Update",
+      "agent": "Agent",
+      "system": "System"
+    },
+    "actions": {
+      "copy": "Copy",
+      "retry": "Retry",
+      "open": "Open",
+      "reveal": "Reveal"
+    },
+    "history": {
+      "title": "Notifications",
+      "empty": "No notifications this session",
+      "copy": "Copy"
+    }
   },
   "problems": {
     "title": "Problems",
@@ -1464,7 +1491,8 @@
         "liber": "Liber",
         "default": "GitHub (Default)"
       }
-    }
+    },
+    "docxTitle": "Export to Word"
   },
   "import": {
     "title": "Import or Open",
@@ -1486,7 +1514,6 @@
   "dialog": {
     "file": "File",
     "changesWillBeLost": "Changes will be lost",
-    "installPandoc": "Install Pandoc",
     "close": "Close",
     "keepOpen": "Keep open",
     "cancel": "Cancel",

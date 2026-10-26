@@ -285,8 +285,8 @@ test.describe('open from clipboard (C-52)', () => {
 
     expect(await menuOpen(page)).toBeGreaterThan(0)
 
-    await expect(page.locator('.mt-notification')).toBeVisible({ timeout: 10_000 })
-    await expect(page.locator('.mt-notification .title')).toContainText(
+    await expect(page.locator('.notification-card')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.notification-card .card-title')).toContainText(
       'No folder or Markdown file on the clipboard'
     )
     expect(await projectRoots(page)).toEqual([])

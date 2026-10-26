@@ -82,7 +82,8 @@
       "failed": "导出失败",
       "error": "导出错误",
       "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 张图片——过大或不存在的图片保留原链接",
-      "errorExporting": "导出文件时出错"
+      "errorExporting": "导出文件时出错",
+      "settingsAction": "导出设置"
     },
     "resizeTable": "调整表格大小",
     "vega-lite-start": "vega-lite 开始",
@@ -186,7 +187,8 @@
       "exportFilePdf": "导出为 PDF",
       "openFromClipboard": "从剪贴板打开",
       "reopenClosedTab": "重新打开已关闭标签页",
-      "newWindow": "新建窗口"
+      "newWindow": "新建窗口",
+      "exportFileDocx": "导出为 Word"
     },
     "paragraph": {
       "table": "表格",
@@ -315,7 +317,8 @@
       "textDirection": "文本方向",
       "statusBar": "显示或隐藏状态栏",
       "toggleTabbar": "切换标签栏",
-      "reloadImages": "重新加载图片"
+      "reloadImages": "重新加载图片",
+      "notificationsHistory": "通知：显示最近记录"
     },
     "utils": {
       "noUpdateResourceFile": "没有更新资源文件",
@@ -737,7 +740,10 @@
       "closeOthers": "关闭其他",
       "copyAsHtml": "复制为 HTML",
       "splitView": "分屏视图",
-      "copyAsStructuredText": "复制为结构化文本"
+      "copyAsStructuredText": "复制为结构化文本",
+      "exportPdf": "导出为 PDF…",
+      "exportHtml": "导出为 HTML…",
+      "exportDocx": "导出为 Word…"
     },
     "insertParagraphBefore": "在前面插入段落",
     "spelling": "拼写…",
@@ -1229,7 +1235,28 @@
   },
   "notifications": {
     "defaultMessage": "默认消息",
-    "defaultTitle": "通知"
+    "defaultTitle": "通知",
+    "close": "关闭",
+    "more": "还有 {n} 条通知",
+    "source": {
+      "file": "文件",
+      "export": "导出",
+      "project": "项目",
+      "update": "更新",
+      "agent": "智能体",
+      "system": "系统"
+    },
+    "actions": {
+      "copy": "复制",
+      "retry": "重试",
+      "open": "打开",
+      "reveal": "显示"
+    },
+    "history": {
+      "title": "通知",
+      "empty": "本次会话暂无通知",
+      "copy": "复制"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1447,7 +1474,8 @@
         "liber": "Liber",
         "default": "GitHub (默认)"
       }
-    }
+    },
+    "docxTitle": "导出为 Word"
   },
   "import": {
     "title": "导入或打开",
@@ -1469,7 +1497,6 @@
   "dialog": {
     "file": "文件",
     "changesWillBeLost": "更改将丢失",
-    "installPandoc": "安装 Pandoc",
     "close": "关闭",
     "keepOpen": "保持打开",
     "cancel": "取消",

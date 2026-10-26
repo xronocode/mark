@@ -114,7 +114,10 @@ test.describe('session restore (C-69)', () => {
     const tabs = await tabNames(page)
     expect(tabs.names[0]).toContain('alpha.md')
     expect(tabs.names[1]).toContain('beta.md')
-    expect(tabs.active).toContain('alpha.md')
+    // The restore's active-tab selection settles asynchronously (the opens
+    // are awaited and the selection lands after the last one) — poll the
+    // live DOM instead of the cached snapshot.
+    await expect.poll(async () => (await tabNames(page)).active, { timeout: 5_000 }).toContain('alpha.md')
     // The folder is back in the sidebar project tree.
     const roots = await page.evaluate(() => {
       const el = document.querySelector('#app') as any

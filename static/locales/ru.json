@@ -84,7 +84,8 @@
       "failed": "Сбой экспорта в {type}",
       "error": "Ошибка экспорта",
       "imagesEmbeddedMessage": "Встроено {embedded} из {total} изображений — слишком большие или отсутствующие остались исходными ссылками",
-      "errorExporting": "Ошибка экспорта файла {type}"
+      "errorExporting": "Ошибка экспорта файла {type}",
+      "settingsAction": "Настройки экспорта"
     },
     "resizeTable": "Изменить размер таблицы",
     "vega-lite-start": "начало vega-lite",
@@ -189,7 +190,8 @@
       "exportFilePdf": "Экспорт в PDF",
       "openFromClipboard": "Открыть из буфера обмена",
       "reopenClosedTab": "Вернуть закрытую вкладку",
-      "newWindow": "Новое окно"
+      "newWindow": "Новое окно",
+      "exportFileDocx": "Экспорт в Word"
     },
     "paragraph": {
       "table": "Таблица",
@@ -318,7 +320,8 @@
       "textDirection": "Направление текста",
       "statusBar": "Показать или скрыть панель состояния",
       "toggleTabbar": "Переключить панель вкладок",
-      "reloadImages": "Обновить изображения"
+      "reloadImages": "Обновить изображения",
+      "notificationsHistory": "Уведомления: показать недавние"
     },
     "utils": {
       "noUpdateResourceFile": "Файл обновления отсутствует",
@@ -745,7 +748,10 @@
       "closeOthers": "Закрыть другие",
       "copyAsHtml": "Копировать как HTML",
       "splitView": "Разделённый вид",
-      "copyAsStructuredText": "Копировать как структурированный текст"
+      "copyAsStructuredText": "Копировать как структурированный текст",
+      "exportPdf": "Экспортировать в PDF…",
+      "exportHtml": "Экспортировать в HTML…",
+      "exportDocx": "Экспортировать в Word…"
     },
     "insertParagraphBefore": "Вставить абзац выше",
     "spelling": "Орфография...",
@@ -1237,7 +1243,28 @@
   },
   "notifications": {
     "defaultMessage": "Сообщение по умолчанию",
-    "defaultTitle": "Уведомление"
+    "defaultTitle": "Уведомление",
+    "close": "Закрыть",
+    "more": "Ещё {n} уведомление | Ещё {n} уведомления | Ещё {n} уведомлений",
+    "source": {
+      "file": "Файлы",
+      "export": "Экспорт",
+      "project": "Проект",
+      "update": "Обновление",
+      "agent": "Агент",
+      "system": "Система"
+    },
+    "actions": {
+      "copy": "Копировать",
+      "retry": "Повторить",
+      "open": "Открыть",
+      "reveal": "Показать"
+    },
+    "history": {
+      "title": "Уведомления",
+      "empty": "За эту сессию уведомлений нет",
+      "copy": "Копировать"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1455,7 +1482,8 @@
         "liber": "Liber",
         "default": "GitHub (По умолчанию)"
       }
-    }
+    },
+    "docxTitle": "Экспорт в Word"
   },
   "import": {
     "title": "Импорт или открытие",
@@ -1477,7 +1505,6 @@
   "dialog": {
     "file": "Файл",
     "changesWillBeLost": "Изменения будут потеряны",
-    "installPandoc": "Установить Pandoc",
     "close": "Закрыть",
     "keepOpen": "Оставить открытым",
     "cancel": "Отмена",

@@ -82,7 +82,8 @@
       "failed": "Falló la exportación de {type}",
       "error": "Error de exportación",
       "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales",
-      "errorExporting": "Error al exportar archivo {type}"
+      "errorExporting": "Error al exportar archivo {type}",
+      "settingsAction": "Ajustes de exportación"
     },
     "resizeTable": "Redimensionar tabla",
     "vega-lite-start": "inicio de vega-lite",
@@ -186,7 +187,8 @@
       "exportFilePdf": "Exportar como PDF",
       "openFromClipboard": "Abrir del portapapeles",
       "reopenClosedTab": "Reabrir pestaña cerrada",
-      "newWindow": "Nueva Ventana"
+      "newWindow": "Nueva Ventana",
+      "exportFileDocx": "Exportar a Word"
     },
     "paragraph": {
       "table": "Tabla",
@@ -315,7 +317,8 @@
       "textDirection": "Dirección del Texto",
       "statusBar": "Mostrar u ocultar la barra de estado",
       "toggleTabbar": "Alternar Barra de Pestañas",
-      "reloadImages": "Recargar Imágenes"
+      "reloadImages": "Recargar Imágenes",
+      "notificationsHistory": "Notificaciones: mostrar recientes"
     },
     "utils": {
       "noUpdateResourceFile": "No hay archivo de recurso de actualización",
@@ -738,7 +741,10 @@
       "closeOthers": "Cerrar otros",
       "copyAsHtml": "Copiar como HTML",
       "splitView": "Vista dividida",
-      "copyAsStructuredText": "Copiar como texto estructurado"
+      "copyAsStructuredText": "Copiar como texto estructurado",
+      "exportPdf": "Exportar a PDF…",
+      "exportHtml": "Exportar a HTML…",
+      "exportDocx": "Exportar a Word…"
     },
     "insertParagraphBefore": "Insertar Párrafo Antes",
     "spelling": "Ortografía...",
@@ -1230,7 +1236,28 @@
   },
   "notifications": {
     "defaultMessage": "Mensaje predeterminado",
-    "defaultTitle": "Notificación"
+    "defaultTitle": "Notificación",
+    "close": "Cerrar",
+    "more": "{n} notificación más | {n} notificaciones más",
+    "source": {
+      "file": "Archivos",
+      "export": "Exportar",
+      "project": "Proyecto",
+      "update": "Actualización",
+      "agent": "Agente",
+      "system": "Sistema"
+    },
+    "actions": {
+      "copy": "Copiar",
+      "retry": "Reintentar",
+      "open": "Abrir",
+      "reveal": "Mostrar"
+    },
+    "history": {
+      "title": "Notificaciones",
+      "empty": "Sin notificaciones en esta sesión",
+      "copy": "Copiar"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1448,7 +1475,8 @@
         "liber": "Liber",
         "default": "GitHub (Predeterminado)"
       }
-    }
+    },
+    "docxTitle": "Exportar a Word"
   },
   "import": {
     "title": "Importar o Abrir",
@@ -1470,7 +1498,6 @@
   "dialog": {
     "file": "Archivo",
     "changesWillBeLost": "Los cambios se perderán",
-    "installPandoc": "Instalar Pandoc",
     "close": "Cerrar",
     "keepOpen": "Mantener abierto",
     "cancel": "Cancelar",

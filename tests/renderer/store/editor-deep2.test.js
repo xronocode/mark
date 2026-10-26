@@ -265,17 +265,15 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SHOW_IMAGE_DELETION_URL ────────────────────────────────────
 
   describe('SHOW_IMAGE_DELETION_URL', () => {
-    it('shows notice and copies to clipboard on confirm', async () => {
-      notice.notify.mockResolvedValueOnce()
+    it('shows a notice whose copy action carries the URL (C-NOTIFICATION-SYSTEM)', () => {
       editor.SHOW_IMAGE_DELETION_URL('https://delete.me/123')
-      expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          showConfirm: true,
-          time: 20000
-        })
-      )
-      await new Promise(r => setTimeout(r, 10))
-      expect(window.electron.clipboard.writeText).toHaveBeenCalledWith('https://delete.me/123')
+      expect(notice.notify).toHaveBeenCalledTimes(1)
+      const opts = notice.notify.mock.calls[0][0]
+      expect(opts.time).toBe(20000)
+      expect(opts.severity).toBe('info')
+      expect(opts.source).toBe('file')
+      expect(opts.actions).toHaveLength(1)
+      expect(opts.actions[0]).toEqual({ kind: 'copy', payload: 'https://delete.me/123' })
     })
   })
 
@@ -801,21 +799,21 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── NEW_TAB_WITH_CONTENT ──────────────────────────────────────
 
   describe('NEW_TAB_WITH_CONTENT', () => {
-    it('logs warning for null markdownDocument', () => {
+    it('logs warning for null markdownDocument', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: null })
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: null })
       expect(spy).toHaveBeenCalledWith('Cannot create a file tab without a markdown document!')
       spy.mockRestore()
     })
 
-    it('switches to existing tab when pathname matches', () => {
+    it('switches to existing tab when pathname matches', async () => {
       const existing = makeTab({ id: 'existing', pathname: '/tmp/a.md' })
       editor.tabs = [existing]
       editor.currentFile = existing
       editor.updateTabIdToIndex()
 
       window.fileUtils.isSamePathSync.mockReturnValue(true)
-      editor.NEW_TAB_WITH_CONTENT({
+      await editor.NEW_TAB_WITH_CONTENT({
         markdownDocument: { pathname: '/tmp/a.md', markdown: 'new', filename: 'a.md' },
         selected: true
       })

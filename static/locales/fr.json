@@ -82,7 +82,8 @@
       "failed": "Échec de l'exportation",
       "error": "Erreur d'exportation",
       "imagesEmbeddedMessage": "{embedded} sur {total} images intégrées — les images trop volumineuses ou introuvables conservent leur lien d'origine",
-      "errorExporting": "Erreur lors de l'exportation du fichier"
+      "errorExporting": "Erreur lors de l'exportation du fichier",
+      "settingsAction": "Paramètres d'export"
     },
     "resizeTable": "Redimensionner le tableau",
     "vega-lite-start": "début vega-lite",
@@ -186,7 +187,8 @@
       "exportFilePdf": "Exporter en PDF",
       "openFromClipboard": "Ouvrir depuis le presse-papiers",
       "reopenClosedTab": "Rouvrir l'onglet fermé",
-      "newWindow": "Nouvelle fenêtre"
+      "newWindow": "Nouvelle fenêtre",
+      "exportFileDocx": "Exporter en Word"
     },
     "paragraph": {
       "table": "Tableau",
@@ -315,7 +317,8 @@
       "textDirection": "Direction du texte",
       "statusBar": "Afficher ou masquer la barre d'état",
       "toggleTabbar": "Basculer la barre d'onglets",
-      "reloadImages": "Recharger les images"
+      "reloadImages": "Recharger les images",
+      "notificationsHistory": "Notifications : afficher les récentes"
     },
     "utils": {
       "noUpdateResourceFile": "Aucun fichier de ressource de mise à jour",
@@ -739,7 +742,10 @@
       "closeOthers": "Fermer les autres",
       "copyAsHtml": "Copier en HTML",
       "splitView": "Vue scindée",
-      "copyAsStructuredText": "Copier en texte structuré"
+      "copyAsStructuredText": "Copier en texte structuré",
+      "exportPdf": "Exporter en PDF…",
+      "exportHtml": "Exporter en HTML…",
+      "exportDocx": "Exporter en Word…"
     },
     "insertParagraphBefore": "Insérer un paragraphe avant",
     "spelling": "Orthographe...",
@@ -1231,7 +1237,28 @@
   },
   "notifications": {
     "defaultMessage": "Message par défaut",
-    "defaultTitle": "Notification"
+    "defaultTitle": "Notification",
+    "close": "Fermer",
+    "more": "{n} notification de plus | {n} notifications de plus",
+    "source": {
+      "file": "Fichiers",
+      "export": "Exportation",
+      "project": "Projet",
+      "update": "Mise à jour",
+      "agent": "Agent",
+      "system": "Système"
+    },
+    "actions": {
+      "copy": "Copier",
+      "retry": "Réessayer",
+      "open": "Ouvrir",
+      "reveal": "Afficher"
+    },
+    "history": {
+      "title": "Notifications",
+      "empty": "Aucune notification pendant cette session",
+      "copy": "Copier"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1449,7 +1476,8 @@
         "liber": "Liber",
         "default": "GitHub (par défaut)"
       }
-    }
+    },
+    "docxTitle": "Exporter vers Word"
   },
   "import": {
     "title": "Importer ou ouvrir",
@@ -1471,7 +1499,6 @@
   "dialog": {
     "file": "Fichier",
     "changesWillBeLost": "Les modifications seront perdues",
-    "installPandoc": "Installer Pandoc",
     "close": "Fermer",
     "keepOpen": "Garder ouvert",
     "cancel": "Annuler",

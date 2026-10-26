@@ -226,8 +226,8 @@ describe('store/editor — C-68 opened baselines', () => {
 
   // ─── open / reopen / session restore (NEW_TAB_WITH_CONTENT) ───────
 
-  it('opening a file records the opened snapshot of the loaded content', () => {
-    editor.NEW_TAB_WITH_CONTENT({
+  it('opening a file records the opened snapshot of the loaded content', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: mdDocument('# From disk', '/tmp/opened.md'),
       options: {},
       selected: true
@@ -242,8 +242,8 @@ describe('store/editor — C-68 opened baselines', () => {
     })
   })
 
-  it('a background (unselected) disk load records the opened snapshot too', () => {
-    editor.NEW_TAB_WITH_CONTENT({
+  it('a background (unselected) disk load records the opened snapshot too', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: mdDocument('# Background load', '/tmp/bg.md'),
       options: {},
       selected: false
@@ -259,8 +259,8 @@ describe('store/editor — C-68 opened baselines', () => {
     expect(openedSnapshot(editor.currentFile.id)).toBeNull()
   })
 
-  it('focusing an already-open file keeps the original opened snapshot', () => {
-    editor.NEW_TAB_WITH_CONTENT({
+  it('focusing an already-open file keeps the original opened snapshot', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: mdDocument('# v1', '/tmp/same.md'),
       options: {},
       selected: true
@@ -270,7 +270,7 @@ describe('store/editor — C-68 opened baselines', () => {
 
     // Re-open of the same pathname focuses the existing tab and returns
     // early — the slot (and its takenAt) must survive.
-    editor.NEW_TAB_WITH_CONTENT({
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: mdDocument('# v2 on disk', '/tmp/same.md'),
       options: {},
       selected: true
@@ -288,7 +288,7 @@ describe('store/editor — C-68 opened baselines', () => {
     // routing has separate session-restore coverage; pin this load funnel.
     const invoke = vi.spyOn(window.electron.ipcRenderer, 'invoke').mockImplementation(async (command, pathname) => {
       expect(command).toBe('mt::open-file')
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: mdDocument(`# Loaded ${pathname}`, pathname), options: {}, selected: true })
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: mdDocument(`# Loaded ${pathname}`, pathname), options: {}, selected: true })
     })
     try {
       await editor.RESTORE_SESSION()
@@ -318,8 +318,8 @@ describe('store/editor — C-68 opened baselines', () => {
 
   // ─── tab lifecycle ─────────────────────────────────────────────────
 
-  it('closing the tab clears the opened slot with the ring', () => {
-    editor.NEW_TAB_WITH_CONTENT({
+  it('closing the tab clears the opened slot with the ring', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: mdDocument('# From disk', '/tmp/closeme.md'),
       options: {},
       selected: true

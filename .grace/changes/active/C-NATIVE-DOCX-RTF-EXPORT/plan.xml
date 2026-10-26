@@ -1,0 +1,158 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-NATIVE-DOCX-RTF-EXPORT>
+    <IntentSummary>Ship "Export to Word…" in the File menu and a fourth export group in the tab context menu, backed by a renderer-only pipeline: the existing styled-HTML export (muya's own marked-fork render) through the M-065 image-embed pass, a data-only pre-pass (strip pre.front-matter, adapt footnote markup, rasterize figures to PNG), a lazy docx/docx-html dynamic import (htmlToContent + styleMap, geometry from the remembered print options), Packer.toBlob, and the existing binary write facade. Modal-less by owner decision; the success toast carries a quiet "Export settings" actions descriptor the legacy notify drops silently and the notification rework renders automatically. RTF is out of v1. Implementation queues behind the P1 print-crash fix (2.8.1) merging to main.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-065</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-065</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command budgetSeconds="120">npx vitest run tests/renderer/util/exportImages.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-html-images.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-066</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>V-M-066</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx vitest run tests/renderer/util/export-docx-shapes.test.js tests/renderer/util/export-docx.test.js tests/renderer/contextMenu/tabs-export.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo check --manifest-path src-tauri/Cargo.toml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npm run build &amp;&amp; node scripts/check-export-chunk.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npx playwright test tests/e2e/export-office.spec.ts tests/e2e/print-export.spec.ts tests/e2e/export-html-images.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node tools/build-notices-node.mjs &amp;&amp; git diff --exit-code -- NOTICES-node.md</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-066 />
+        <DF-007 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-066 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/util/exportDocx.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/contextMenu/tabs/index.js</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <File>package.json</File>
+      <File>package-lock.json</File>
+      <File>NOTICES-node.md</File>
+      <File>README.md</File>
+      <File>scripts/check-export-chunk.mjs</File>
+      <File>docs/office-export-checklist.md</File>
+      <Glob>static/locales/*.json</Glob>
+      <Glob>tests/renderer/util/export-docx*.test.js</Glob>
+      <File>tests/renderer/store/export-docx-dispatch.test.js</File>
+      <File>tests/renderer/contextMenu/tabs-export.test.js</File>
+      <File>tests/e2e/export-office.spec.ts</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/flows.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Dependency and attribution ground: docx ^9.14.0 npm dependency (lockfile-pinned), NOTICES-node.md regeneration, README Acknowledgements line, and the check-export-chunk.mjs lazy-chunk guard script</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>package.json and package-lock.json carry docx at the pinned exact version (npm ci reproduces it); docx is imported nowhere outside the lazy dynamic-import path in code that exists after this task; NOTICES-node.md contains the docx MIT notice and regenerating it is a no-op (git diff clean); README Acknowledgements gains the docx line; scripts/check-export-chunk.mjs exists, exits 0 on the current build (no docx in the entry chunk yet) and is wired as a package.json script.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node -p "require('docx/package.json').version"</Command>
+          <Command>node tools/build-notices-node.mjs &amp;&amp; git diff --exit-code -- NOTICES-node.md</Command>
+          <Command>npm run build &amp;&amp; node scripts/check-export-chunk.mjs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Pin muya's real export-HTML shapes as fixtures: footnote class/role markup, pre.front-matter block, task checkboxes, KaTeX MathML presence, on the shared EN+RU fixture document</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/util/export-docx-shapes.test.js drives the real editor.value.exportStyledHTML (same composition as the styledHtml branch) on the EN+RU fixture (headings, math inline+display, footnotes RU with bold, task list, table alignments, code, hard break, front matter, data-URL image) and asserts the exact shapes the pre-pass depends on: section.footnotes[role=doc-endnotes] with li#fn items and a.footnote-ref[role=doc-noteref] references; pre.front-matter block present (to be stripped); input[type=checkbox] items; katex-mathml MathML inside math spans; no dependency on docx anywhere in this test file.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/export-docx-shapes.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>exportDocx.js pipeline (M-066) and its unit matrix: embedLocalImages reuse, pre-pass (front-matter strip, footnote markup adaptation, figure PNG raster in document order), lazy docx import, htmlToContent + styleMap, Document geometry from the remembered print options, Packer.toBlob, hostile-text round-trip and OOXML-level output assertions</Title>
+        <DependsOn>T-001, T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/util/export-docx.test.js unzips the produced buffers (a zip reader from the existing dependency set or one added dev dependency) and asserts on the EN+RU fixtures: Heading1..Heading6 pStyles; w:tbl with per-column w:jc; w:hyperlink resolving in document.xml.rels; monospace code runs; w14:checkbox elements whose w14:checked values equal the fixture states; m:oMath equations containing m:f and m:nary structures with readable math text; word/footnotes.xml carrying the RU footnote text with its bold run; zero front-matter text; sectPr matching the injected print options (landscape-A4 variant included); the numbered-list display formula carrying no numPr (numbering walk renders 1, 2); the hostile fixture (braces, control bytes, fake footnote markup, fake style attributes) round-trips with text nodes equal to source; figure fixtures land as media in document order; the 8 MiB cap and skip accounting reuse the M-065 semantics.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/export-docx.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Menu, store and localization wiring: file.export-file-docx menu item (m009), editor.vue handleExport 'docx' case (no modal ever mounts), store EXPORT 'docx' branch (save dialog .docx default name, binary write via the C-56 fileUtils facade, success toast + quiet "Export settings" actions descriptor, editor.export.failed on error), all ten locales including the action label</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>m009_menu.rs registers file.export-file-docx beside the pdf/html items (command exportDocx, label localized through the existing menu i18n path); the handleExport regex admits 'docx' and the case delegates to exportDocx with zero exportSettings involvement; the store branch mirrors the html defaultName logic (.md → .docx, untitled → title-or-export), writes through the same facade the C-56 picture export uses, passes the actions descriptor (quiet Export settings, source 'export') on success — a unit test pins the exact notify call shape (legacy wrapper ignores extras) — and cancels silently; ten locale files carry the menu label, tab labels, notice and the action label as native copy with verified placeholders.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo check --manifest-path src-tauri/Cargo.toml</Command>
+          <Command>npx vitest run tests/renderer/store/export-docx-dispatch.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Tab context menu fourth group: Export to PDF… / Export to HTML… / Export to Word… items with the !!pathname gate, label parity with the File menu, and activate-then-export handler semantics</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>contextMenu/tabs/index.js appends the fourth group after the file block with enabled: !!pathname exactly like Copy path; labels reuse the identical locale keys as the File menu items; the handler activates the clicked tab first (by the tab.id it already receives) and then dispatches the same export command the menu item uses; untitled tabs show all three disabled; a unit test (tests/renderer/contextMenu/tabs-export.test.js) pins the group structure, gating and handler dispatch for a background tab.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/contextMenu/tabs-export.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>E2E coverage and the chunk guard in the gate: export-office.spec.ts (docx flow with the no-modal pin, cancel, tab-menu group on background/untitled tabs, regression pins that pdf/print/styledHtml branches and mt_export_pdf/mt_print_webview stay untouched) plus check-export-chunk.mjs enforcing entry-chunk cleanliness and the ≤ 300 KB gzip docx chunk</Title>
+        <DependsOn>T-004, T-005, T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/export-office.spec.ts (tauri-shim) passes on chromium: Export to Word… opens the save dialog with a .docx default name, writes via mt_fs_write_binary, and no export-settings component ever mounts (pinned); cancel writes nothing and shows no notice; the tab-menu group shows three items, gated on untitled, and a background-tab export activates then exports that tab's buffer; print-export.spec.ts and export-html-images.spec.ts pass unmodified; the built output shows zero docx bytes in the entry chunk and the docx dynamic chunk ≤ 300 KB gzip (guard exits non-zero otherwise).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx playwright test tests/e2e/export-office.spec.ts tests/e2e/print-export.spec.ts tests/e2e/export-html-images.spec.ts --project=chromium</Command>
+          <Command>npm run build &amp;&amp; node scripts/check-export-chunk.mjs</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Graph, verification and manual-checklist artifacts: M-066 + DF-007 docx branch in features/flows graphs, V-M-066 verification entries, docs/office-export-checklist.md with per-construct verdicts (EN+RU, Word/Pages/LibreOffice, math-in-list and front-matter expectations, stress and CJK timing fields)</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/features.xml carries M-066 with its contract and links; .grace/graph/flows.xml DF-007 gains the docx branch in its summary; .grace/verification/features.xml carries V-M-066 with the commands and markers; docs/office-export-checklist.md exists with the per-construct table and the timing fields; all XML follows the attribute-free anchor convention.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grep -c "M-066" .grace/graph/features.xml .grace/verification/features.xml</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Full gates and manual acceptance: whole-suite npm test, the regression trio under the shim, and the human Word/Pages/LibreOffice checklist on the EN+RU fixtures plus the stress and CJK samples (3-second budget), recorded into the checklist doc</Title>
+        <DependsOn>T-006, T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>npm test green; the regression trio green; the manual checklist executed on a real build: both fixtures open without warnings in Word, Pages and LibreOffice; page geometry matches the remembered options on the landscape-A4 fixture; the display formula in the numbered list renders 1, 2; front matter absent; code blocks monospace; the 100 KB stress fixture and the 27 KB CJK/330-math sample each export in under 3 seconds on the dev machine; per-construct verdicts and timings recorded in docs/office-export-checklist.md.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm test</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+  </C-NATIVE-DOCX-RTF-EXPORT>
+</GraceChangePlan>
