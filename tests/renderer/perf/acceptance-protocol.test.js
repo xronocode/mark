@@ -10,10 +10,21 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   FIXTURE - repository-relative semantic-edge.md and its committed pin.
-//   identityCli/verifyCli - spawn the two scripts with node, returning {status, stdout, stderr}.
-//   capture - a structurally valid tier-3 capture built from the real fixture + HEAD.
-//   withCapture - writes a mutated capture to a temp file and runs the verifier.
+//   FIXTURE - repository-relative semantic-edge.md.
+//   FIXTURE_BYTES - raw fixture bytes the capture must match.
+//   METADATA - shape-metadata.json corpus pins.
+//   PIN - the committed pin for semantic-edge.md.
+//   IDENTITY_CLI - path to the fixture-identity CLI.
+//   VERIFY_CLI - path to the capture verifier CLI.
+//   TMP - per-run temp directory for synthetic captures.
+//   runCli - spawns a node CLI and returns status/stdout/stderr.
+//   identityCli - runs the identity CLI.
+//   verifyCli - runs the capture verifier CLI.
+//   HEAD - current commit id the synthetic captures point at.
+//   SHA256 - sha256 of the fixture bytes.
+//   capture - a structurally valid tier-3 capture.
+//   caseId - monotonic temp-file suffix.
+//   withCapture - writes a mutated capture and runs the verifier.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -67,7 +78,7 @@ function capture () {
     markers: [
       { name: 'BLOCK_FIXTURE', values: { id: 'F-SEMANTIC-EDGE', bytes: FIXTURE_BYTES.length, sha256: SHA256 } },
       { name: 'BLOCK_OPEN', values: { first_content_ms: 120, time_to_input_ms: 240 } },
-      { name: 'BLOCK_TYPING', values: { n: 40, p50_ms: 33, p95_ms: 71, truth: 'ok' } },
+      { name: 'BLOCK_TYPING', values: { n: 40, p50_ms: 33, p95_ms: 71, truth: 'ok', typed_landed: true } },
       { name: 'BLOCK_SCROLL', values: { frames: 240, frame_p95_ms: 21, jank_frames: 1 } },
       { name: 'BLOCK_CLOSE', values: { ms: 40 } },
       { name: 'BLOCK_DONE', values: { status: 'ok' } }
@@ -160,6 +171,14 @@ describe('verify-capture CLI (tier 3)', () => {
     })
     expect(res.status).toBe(1)
     expect(res.stdout).toContain('is a finite number')
+  })
+
+  it('rejects a typing marker whose typed character did not land', () => {
+    const res = withCapture((c) => {
+      c.markers.find((m) => m.name === 'BLOCK_TYPING').values.typed_landed = false
+    })
+    expect(res.status).toBe(1)
+    expect(res.stdout).toContain('typed_landed is true')
   })
 
   it('rejects a typing marker without the truthfulness proof', () => {

@@ -21,7 +21,7 @@
     },
     {
       "name": "BLOCK_TYPING",
-      "values": { "n": 0, "p50_ms": 0, "p95_ms": 0, "truth": "ok" }
+      "values": { "n": 0, "p50_ms": 0, "p95_ms": 0, "truth": "ok", "typed_landed": false }
     },
     {
       "name": "BLOCK_SCROLL",

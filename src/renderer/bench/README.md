@@ -10,7 +10,7 @@ old SKIPPED stubs are gone; a required phase without a numeric result
 fails the driver.
 
 Per `docs/development-plan.xml` Phase-B1 step-2.5 PASS criterion (applies
-to the built-in ~6 KB fixture with default open-only phases):
+to the built-in ~4 KB fixture with default open-only phases):
 - WKWebView ≤ 1.5× Electron 41 v1.2.3 baseline
 - p95 keystroke latency ≤ 50ms
 - cold-start (initial render) ≤ 1500ms
@@ -24,7 +24,7 @@ FAIL → escalate to user; do NOT proceed to Phase-B2.
   driver-provided via `window.__BENCH_OPTIONS__.fixtureText`), runs the
   requested benchmark phases, writes results to the `#report` div +
   `console.log` with the stable `[BENCH]` prefix.
-- `fixture.js` — exports `FIXTURE_MARKDOWN` (~6 KB markdown spanning
+- `fixture.js` — exports `FIXTURE_MARKDOWN` (~4 KB markdown spanning
   headings, paragraphs, lists, code blocks, tables, links). Stable content
   is required for cross-runtime comparison.
 - `run-bench.mjs` — cross-engine driver (Chromium + WebKit). This driver

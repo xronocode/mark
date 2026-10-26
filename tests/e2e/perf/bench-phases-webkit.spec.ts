@@ -10,16 +10,17 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   FIXTURE - committed semantic-edge.md path and entry name.
-//   METADATA - shape-metadata.json (pins the fixture's exact sha256/bytes).
+//   FIXTURE - committed semantic-edge.md entry name.
+//   FIXTURE_PATH - repository path of that fixture.
+//   METADATA - shape-metadata.json (pins the fixture exact sha256/bytes).
 //   TYPING_SAMPLES - keystrokes requested from the harness; asserted on the marker.
 //   SCROLL_MS - scroll phase duration requested from the harness.
-//   CEILING_TYPING_P95_MS - loose CI ceiling for typing input→next-paint p95.
+//   CEILING_TYPING_P95_MS - loose CI ceiling for typing input-to-next-paint p95.
 //   CEILING_SCROLL_P95_MS - loose CI ceiling for the scroll frame-interval p95.
-//   MIN_FPS - loose floor so a stalled rAF loop cannot pass as "no jank".
-//   fixtureIdentity - reads the fixture and proves it matches its committed pin (byte length + sha256).
-//   benchLinesFor - collects [BENCH] console lines, failing on page errors.
-//   markerValue - extracts a numeric key from a marker line with the truth proof.
+//   MIN_FPS - loose floor so a stalled rAF loop cannot pass as no jank.
+//   FixtureIdentity - fixture text plus its pinned bytes/sha256.
+//   fixtureIdentity - reads the fixture and proves it matches its committed pin.
+//   markerValue - extracts a numeric key from a marker line, optionally requiring truth=ok.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

@@ -12,12 +12,18 @@
 //
 // START_MODULE_MAP
 //   REPO_ROOT - this checkout's root.
-//   ALLOWED_ENGINE_LABELS - native-only labels; anything naming playwright/browser/webkit-project is a lie for this tier.
-//   MARKERS - required marker → allowed keys (content-free proof: unknown keys are rejected).
+//   ALLOWED_ENGINE_LABELS - native-only labels; a browser/Playwright label is a lie for this tier.
+//   MARKERS - required marker to allowed keys (content-free proof: unknown keys are rejected).
 //   NUMERIC_KEYS - marker keys that must be finite numbers.
 //   PLACEHOLDER - unfilled template marker.
-//   fail/check - accumulate PASS/FAIL lines and an exit status.
-//   main - parse, validate capture shape, fixture bytes/hash, commit existence, marker grammar.
+//   PRIVATE_ROOTS - absolute-path roots rejected wherever they appear in a capture.
+//   failures - accumulated violation count driving the exit status.
+//   check - records one PASS/FAIL line.
+//   fail - records one unconditional FAIL line.
+//   parseArgs - --capture, --fixture, --help.
+//   usage - prints the CLI usage text.
+//   finish - prints the verdict and returns the process exit code.
+//   main - parses, validates capture shape, fixture bytes/hash, commit existence and marker grammar.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -35,7 +41,7 @@ const ALLOWED_ENGINE_LABELS = ['native-wkwebview', 'tauri-artifact']
 const MARKERS = {
   BLOCK_FIXTURE: ['id', 'bytes', 'sha256'],
   BLOCK_OPEN: ['first_content_ms', 'time_to_input_ms'],
-  BLOCK_TYPING: ['n', 'p50_ms', 'p95_ms', 'truth'],
+  BLOCK_TYPING: ['n', 'p50_ms', 'p95_ms', 'truth', 'typed_landed'],
   BLOCK_SCROLL: ['frames', 'frame_p95_ms', 'jank_frames'],
   BLOCK_CLOSE: ['ms'],
   BLOCK_DONE: ['status']
@@ -205,6 +211,7 @@ function main () {
   check(Boolean(done) && done.status === 'ok', 'BLOCK_DONE.status is ok', JSON.stringify(done && done.status))
   const typing = byName.get('BLOCK_TYPING')
   check(Boolean(typing) && typing.truth === 'ok', 'BLOCK_TYPING.truth is ok', JSON.stringify(typing && typing.truth))
+  check(Boolean(typing) && typing.typed_landed === true, 'BLOCK_TYPING.typed_landed is true (the typed character is in the measured block)', JSON.stringify(typing && typing.typed_landed))
 
   return finish()
 }

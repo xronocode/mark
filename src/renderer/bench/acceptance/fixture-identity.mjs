@@ -13,6 +13,7 @@
 // START_MODULE_MAP
 //   REPO_ROOT - this checkout's root (resolved from this file).
 //   parseArgs - --fixture, --fixture-id, --json.
+//   usage - prints the CLI usage text.
 //   main - resolves the fixture inside the repo, hashes bytes, cross-checks the committed corpus pin, prints identity + BLOCK_FIXTURE line.
 // END_MODULE_MAP
 //

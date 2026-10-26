@@ -8,7 +8,7 @@
 //   - GFM table
 //   - thematic break
 //   - inline math + block math (KaTeX)
-// Total weight ~6 KB — large enough for measurable render cost, small
+// Total weight ~4 KB — large enough for measurable render cost, small
 // enough that initial-render targets are achievable on consumer hardware.
 // Stable content is REQUIRED for cross-runtime apples-to-apples compare.
 

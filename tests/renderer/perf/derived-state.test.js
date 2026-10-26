@@ -10,13 +10,16 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   FIXTURE - committed semantic-edge.md (deterministic corpus member, UTF-8).
+//   FIXTURE_PATH - committed semantic-edge.md path.
 //   METADATA - shape-metadata.json; its sha256/bytes pin is asserted, not trusted.
-//   marker - emits one stable [MICROBENCH] line (name, n, p50/p95/max in ms).
-//   timeIt - runs a function n times with perf.now and returns the sample array.
+//   MARKDOWN - fixture text used by every measurement.
+//   CEILING_MS - loose per-suite sanity ceilings (not product budgets).
 //   percentile - nearest-rank percentile, same convention as the bench harness.
+//   timeIt - runs a function n times with performance.now and returns the samples.
+//   marker - emits one stable [MICROBENCH] line (name, n, p50/p95/max in ms).
+//   fixtureIdentity - asserts the fixture matches its committed byte/sha256 pin.
 //   editor - the mounted Muya instance (single mount; each suite measures one cost).
-//   historyDouble - ContentState-shaped object accepted by History.push (blocks + cursor + muya).
+//   historyDouble - ContentState-shaped object accepted by History.push.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

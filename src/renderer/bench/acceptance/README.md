@@ -28,10 +28,12 @@ Playwright WebKit is *never* called native evidence. A capture that labels it
    This prints `bytes` and `sha256` of the exact file the app must open, plus
    the `BLOCK_FIXTURE` marker line. Copy them into the capture (below).
 
-2. **Record the artifact identity.** `artifactCommit` is the commit the Tauri
-   artifact was built from (`git rev-parse HEAD` at build time), and
-   `artifactLabel` is a free-form build identifier (for example the bundle
-   name) with no private path.
+2. **Build and record the artifact identity.** From the checkout at
+   `artifactCommit` (`git rev-parse HEAD`), build the app once with
+   `npm run tauri:build` (the Vite bundle alone is not the native artifact),
+   run the produced `Mark.app`, and record `artifactLabel` as a free-form
+   build identifier with no private path. The build and the capture never run
+   in CI.
 
 3. **Run the app and measure.** Open exactly that fixture in the built app on
    the macOS system WKWebView. Record the observations as `BLOCK_*` markers.
@@ -43,7 +45,7 @@ Playwright WebKit is *never* called native evidence. A capture that labels it
    |---|---|---|
    | `BLOCK_FIXTURE` | `id`, `bytes`, `sha256` | exact input identity |
    | `BLOCK_OPEN` | `first_content_ms`, `time_to_input_ms` | open path |
-   | `BLOCK_TYPING` | `n`, `p50_ms`, `p95_ms`, `truth` | typing latency; `truth` must be `ok` (the edit changed the document and undo restored it) |
+   | `BLOCK_TYPING` | `n`, `p50_ms`, `p95_ms`, `truth`, `typed_landed` | typing latency; `truth` must be `ok` (the edit changed the document and undo restored it) and `typed_landed` must be `true` (the typed character is visibly in the measured block — the tier-3 pass criterion) |
    | `BLOCK_SCROLL` | `frames`, `frame_p95_ms`, `jank_frames` | scroll frame distribution, not average FPS alone |
    | `BLOCK_CLOSE` | `ms` | close/teardown |
    | `BLOCK_DONE` | `status` | `ok` only when every required phase above was measured |
