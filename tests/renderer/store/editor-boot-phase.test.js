@@ -53,30 +53,30 @@ describe('M-028 boot phase deferral', () => {
     }
   }
 
-  it('suppresses bus.emit(file-changed) during boot phase', () => {
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('boot-test'), selected: true })
+  it('suppresses bus.emit(file-changed) during boot phase', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('boot-test'), selected: true })
 
     const fileChangedCalls = busEmitMock.mock.calls.filter(c => c[0] === 'file-changed')
     expect(fileChangedCalls).toHaveLength(0)
     expect(editor.currentFile.markdown).toBe('# boot-test')
   })
 
-  it('suppresses bus.emit(file-loaded) during boot phase', () => {
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('boot-test'), selected: true })
+  it('suppresses bus.emit(file-loaded) during boot phase', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('boot-test'), selected: true })
 
     const fileLoadedCalls = busEmitMock.mock.calls.filter(c => c[0] === 'file-loaded')
     expect(fileLoadedCalls).toHaveLength(0)
   })
 
-  it('defers updateTabIdToIndex during boot phase', () => {
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('boot-idx'), selected: true })
+  it('defers updateTabIdToIndex during boot phase', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('boot-idx'), selected: true })
 
     expect(editor.tabIdToIndex).toEqual({})
   })
 
-  it('END_BOOT_PHASE rebuilds tabIdToIndex', () => {
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('a'), selected: true })
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('b'), selected: false })
+  it('END_BOOT_PHASE rebuilds tabIdToIndex', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('a'), selected: true })
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('b'), selected: false })
 
     expect(Object.keys(editor.tabIdToIndex)).toHaveLength(0)
 
@@ -85,9 +85,9 @@ describe('M-028 boot phase deferral', () => {
     expect(Object.keys(editor.tabIdToIndex)).toHaveLength(2)
   })
 
-  it('emits file-changed after END_BOOT_PHASE on tab switch', () => {
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('first'), selected: true })
-    editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('second'), selected: false })
+  it('emits file-changed after END_BOOT_PHASE on tab switch', async () => {
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('first'), selected: true })
+    await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: makeDoc('second'), selected: false })
 
     editor.END_BOOT_PHASE()
     busEmitMock.mockReset()
@@ -109,9 +109,9 @@ describe('M-028 boot phase deferral', () => {
     spy.mockRestore()
   })
 
-  it('handles multiple tabs created during boot correctly', () => {
+  it('handles multiple tabs created during boot correctly', async () => {
     for (let i = 0; i < 5; i++) {
-      editor.NEW_TAB_WITH_CONTENT({
+      await editor.NEW_TAB_WITH_CONTENT({
         markdownDocument: makeDoc(`file-${i}`),
         selected: i === 4
       })

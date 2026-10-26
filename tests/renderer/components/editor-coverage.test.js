@@ -101,7 +101,7 @@ const pictureExportMock = vi.hoisted(() => ({
 
 const mockEditorInstance = vi.hoisted(() => ({
   container: null,
-  contentState: { getBlocks: vi.fn(() => []), selectedTableCells: false },
+  contentState: { getBlocks: vi.fn(() => []), selectedTableCells: false, getMuyaIndexCursor: vi.fn(() => null) },
   on: vi.fn(),
   off: vi.fn(),
   destroy: vi.fn(),
@@ -113,6 +113,7 @@ const mockEditorInstance = vi.hoisted(() => ({
   setListIndentation: vi.fn(),
   hideAllFloatTools: vi.fn(),
   getSelection: vi.fn(() => ({ cursorCoords: { y: 100 } })),
+  getCursor: vi.fn(() => ({ line: 1, ch: 0 })),
   focus: vi.fn(),
   blur: vi.fn(),
   undo: vi.fn(),
@@ -309,6 +310,11 @@ describe('editor.vue — coverage', () => {
     editorStore.SELECTION_FORMATS = vi.fn()
     editorStore.EXIT_PREVIEW_MODE = vi.fn()
     editorStore.updateScrollPosition = vi.fn()
+    // C-FILE-POSITION-MEMORY: the selectionChange subscription writes the
+    // caret through this action (the arrow-key fix) and arms the flush.
+    editorStore.updateCursorPosition = vi.fn()
+    editorStore.updateMuyaIndexCursor = vi.fn()
+    editorStore.SAVE_ACTIVE_FILE_POSITION = vi.fn(async () => {})
     editorStore.copyGithubSlug = vi.fn()
     layoutStore.TOGGLE_LAYOUT_ENTRY = vi.fn()
   }
@@ -416,6 +422,51 @@ describe('editor.vue — coverage', () => {
     const call = busMock.on.mock.calls.find((c) => c[0] === eventName)
     return call ? call[1] : null
   }
+
+  /* ── C-FILE-POSITION-MEMORY review wave: flush sentinel + collect ── */
+
+  it('a throwing cursor computation passes the false sentinel (scroll-only entry)', async () => {
+    vi.useFakeTimers()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockEditorInstance.contentState.getMuyaIndexCursor = () => { throw new Error('export exploded') }
+    try {
+      const wrapper = await mountEditor({ markdown: '# A' })
+      const call = mockEditorInstance.on.mock.calls.find((c) => c[0] === 'selectionChange')
+      expect(call).toBeTruthy()
+      call[1]({ cursorCoords: { y: 10 }, selectionStart: 0, selectionEnd: 1 })
+      await vi.advanceTimersByTimeAsync(1500)
+      expect(editorStore.SAVE_ACTIVE_FILE_POSITION).toHaveBeenCalledWith({ id: 'tab-1', muyaIndexCursor: false })
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_POSITION_CURSOR_COMPUTE_FAILED'))
+      wrapper.unmount()
+    } finally {
+      warnSpy.mockRestore()
+      mockEditorInstance.contentState.getMuyaIndexCursor = vi.fn(() => null)
+      vi.useRealTimers()
+    }
+  })
+
+  it('the mt::collect-position bus handler refreshes the durable cursor for the rendered tab only', async () => {
+    await mountEditor({ markdown: '# A' })
+    const fresh = { anchor: { line: 12, ch: 3 }, focus: { line: 12, ch: 3 } }
+    mockEditorInstance.contentState.getMuyaIndexCursor = vi.fn(() => fresh)
+    const handler = getBusHandler('mt::collect-position')
+    expect(handler).toBeTruthy()
+    handler({ id: 'tab-1' })
+    expect(editorStore.updateMuyaIndexCursor).toHaveBeenCalledWith('tab-1', fresh)
+    // Another tab's id is ignored; a throwing computation warns and stays quiet.
+    editorStore.updateMuyaIndexCursor.mockClear()
+    handler({ id: 'other-tab' })
+    expect(editorStore.updateMuyaIndexCursor).not.toHaveBeenCalled()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      mockEditorInstance.contentState.getMuyaIndexCursor = () => { throw new Error('boom') }
+      handler({ id: 'tab-1' })
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_POSITION_CURSOR_COMPUTE_FAILED'))
+    } finally {
+      warnSpy.mockRestore()
+      mockEditorInstance.contentState.getMuyaIndexCursor = vi.fn(() => fresh)
+    }
+  })
 
   /* ══════════════════════════════════════════════════════════════
    *  COMPUTED / TEMPLATE BINDINGS
