@@ -110,3 +110,30 @@ An independent third-round pass converged on the same three blockers and added:
 Both passes agree the round-2 muya-key blocker is genuinely closed and that the design
 context, the call-site inventory and the e2e command are materially better. Neither
 approves the revision.
+
+## Design pass applied 2026-10-27
+
+The three design decisions the round-3 passes asked for are now in the spec:
+
+1. **Record model.** ChangeRecord carries `snapshotClass` (`ring` | `opened` | `event`) and a
+   monotonic `sequence` as the ordering key, with two new triggers — `pre-reload checkpoint`
+   (class ring, appended synchronously at the `recordSnapshot` call site) and `disk-load`
+   (class opened, written when a file lands in a tab). In-app pauses are `event`, never
+   ring. `recordSnapshot` dedupes only inside the ring class, so an open followed by an
+   external write keeps the pre-write buffer as `latestSnapshot`.
+2. **Anchor alignment.** Two-phase: headings by parent scope and sibling index with the
+   heading's own text excluded from its identity; blocks inside a matched scope content-first
+   (LCS/Myers over normalised text) with the ordinal only as a tie-break among identical
+   texts. The invariants are restated as consequences of that algorithm.
+3. **Block source.** The headless block lexer `src/muya/lib/parser/marked/lexer.js` with its
+   shipped options pinned, a fixed blockType vocabulary, top-level granularity, and front
+   matter as its own scope.
+
+Plus: the cap now counts evictable records only with an explicit total ceiling; `clearSnapshots`
+is required from `CLOSE_TABS` as well; the verification command runs `npm test` and the whole
+`tests/e2e/diff-*.spec.ts` set; `Diff_Timeout` is pinned to 0; stats carry UTF-8 bytes; the
+preserved export surface and projection shapes are named; the spec's Problem and Assumption
+lost the rotted line range; the repair fork is recorded as decided rather than open, and the
+re-approval gate sits before grace-plan.
+
+A fourth review round is required on this revision.
