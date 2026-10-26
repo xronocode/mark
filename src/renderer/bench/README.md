@@ -49,7 +49,29 @@ FAIL → escalate to user; do NOT proceed to Phase-B2.
 - `[BENCH] [PHASE_SCROLL frames=N elapsed_ms=M fps=F frame_p50_ms=A
   frame_p95_ms=B frame_max_ms=C frames_gt_50ms=G]` — frame-interval jank
   distribution of a programmatic document scroll, not just average FPS.
+- `[BENCH] [PHASE_OVERHEAD n=N instrumented_p50_ms=A control_p50_ms=B
+  delta_p50_ms=D ratio_p50=R … truth=ok]` — optional diagnostic: the same
+  typing burst measured with the responsiveness observers on and off in the
+  same run. Reported on its own line and never folded into baseline
+  numbers.
 - `[BENCH] [REPORT_DONE status=ok|fail]`
+
+## Evidence tiers (C-LARGE-DOC-STAGE-0)
+
+The harness is tier 2 of three; the tiers are labelled and never conflated:
+
+1. **Unit microbenches** — `npx vitest run tests/renderer/perf` isolates
+   Markdown serialization, word count, TOC construction and history
+   snapshot deep-copy on a byte-pinned corpus fixture.
+2. **Renderer CI** — the bench driver (Chromium tier, `run-bench.mjs`) and
+   `tests/e2e/perf/bench-phases-webkit.spec.ts` under `--project=webkit-perf`
+   (WebKit tier). Both drive the real input pipeline; both fail on a
+   SKIPPED/FAILED label in a required phase. This is **browser/renderer
+   evidence**, never native WKWebView evidence.
+3. **Real-app acceptance** — the built Tauri artifact on system WKWebView,
+   run by the owner, never in CI. Protocol, `BLOCK_*` marker grammar and the
+   capture verifier live in `acceptance/README.md`; captures stay
+   uncommitted under `.mark-local/`.
 
 ## How to run
 
@@ -60,15 +82,25 @@ node src/renderer/bench/run-bench.mjs           # built-in fixture, open-only, l
 node src/renderer/bench/run-bench.mjs \
   --fixture tests/e2e/fixtures/large-doc/mixed-100k.md \
   --phases open,typing,scroll --runs 3          # Stage 0 corpus measurement
+node src/renderer/bench/run-bench.mjs \
+  --fixture tests/e2e/fixtures/large-doc/size-1mb.md \
+  --phases open,typing,overhead,scroll --runs 1 # + observer-overhead control
 ```
 
 The driver prints the fixture identity (bytes + sha256), per-engine stats
 tables for every required phase, the raw per-run phase lines for evidence
 trails, and exits non-zero when any required phase fails to produce a
 numeric result in any engine run (SKIPPED/FAILED/missing all fail).
+`overhead` is the one optional diagnostic: it prints a separate table and
+never changes the required-phase verdict.
 Corpus fixtures are report-only for the Phase-B1 thresholds — the legacy
 gate applies exclusively to the built-in fixture with default open-only
 phases.
+
+The same required phases run in the renderer CI WebKit tier through
+`tests/e2e/perf/bench-phases-webkit.spec.ts`: it loads `/bench/`, injects a
+byte-pinned corpus fixture, and fails when either required phase is missing,
+SKIPPED, non-numeric or untruthful.
 
 Cross-runtime comparison protocol:
 1. Bundle the harness once via `vite build`. Use the SAME bundle in both
