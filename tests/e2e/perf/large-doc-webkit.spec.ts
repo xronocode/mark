@@ -2,7 +2,7 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Regression gate for C-30 — opening a large document in the WebKit engine (the engine WKWebView ships) must not spend more than the main-thread busy budget.
-//   SCOPE: Renderer-only (vite preview + tauri shim); generated 500-section document; in-page event-loop lag meter; heading-count sanity check. Needs a fresh src/renderer/dist (vite preview serves it; `npm run test:e2e:perf` builds first) and Playwright WebKit (`npx playwright install webkit`); CI installs chromium only, so this gate is opt-in.
+//   SCOPE: Renderer-only (vite preview + tauri shim); generated 500-section document; in-page event-loop lag meter; heading-count sanity check. Needs a fresh src/renderer/dist (vite preview serves it; `npm run test:e2e:perf` builds first) and Playwright WebKit (`npx playwright install webkit`); the webkit-perf project runs mandatorily in the renderer-e2e CI job (C-LARGE-DOC-STAGE-0 T-003 corrected the earlier opt-in claim).
 //   DEPENDS: tests/e2e/fixtures/tauri-shim.ts, tests/e2e/fixtures/helpers.ts, Playwright webkit-perf project.
 //   LINKS: .grace/changes/archive/C-30; .grace/verification/runtime.xml V-M-011; src/muya/lib/parser/marked/blockRules.js START_BLOCK_STICKY_ANCHORED_RULES.
 //   ROLE: TEST
