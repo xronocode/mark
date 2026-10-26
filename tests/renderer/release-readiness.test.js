@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-readiness.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
@@ -10,6 +10,8 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   completeLedger - Ledger fixture that satisfies the current-train completeness rules.
+//   pointerWorkspace - Minimal workspace with a current-train pointer, README line, train files, and Project schema.
 //   SHA_A - Deterministic previous-release commit fixture.
 //   SHA_B - Deterministic bootstrap/seal commit fixture.
 //   SHA_C - Deterministic payload commit fixture.
@@ -21,6 +23,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v2.1.0: current-train bookkeeping drift — prove a missing admitted-item heading, commit, or history bullet fails, terminal ledgers stay header-only, and the pointer/README/Project-schema trio must agree.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — validate the live train through the current-train pointer (no hardcoded train or version); prove multi-commit and merge-commit metadata-only seal spans pass while a product commit anywhere in the span (even one reverted later) and a seal equal to the payload fail; drop the Release Please boundary case.
 //   - 2026-10-21 v1.3.1: derive the collecting-train item count from the checked-in manifest so routine admissions do not require a duplicate fixture edit.
 //   - 2026-10-21 v1.3.0: validate the checked-in train in either collecting main or prepared release-PR lifecycle state.
@@ -30,13 +33,15 @@
 // END_CHANGE_SUMMARY
 
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { resolveCurrentTrain } from '../../tools/release-train.mjs'
 import {
   readTrainManifest,
+  validateCurrentTrainPointer,
+  validateProjectFieldCoverage,
   validateStrictRepositoryState,
   validateTrainLedger,
   validateTrainManifest
@@ -564,3 +569,125 @@ describe('strict release identity', () => {
   }, 30000)
 })
 // END_BLOCK_STRICT_RELEASE_IDENTITY_TESTS
+
+// START_BLOCK_RELEASE_TRAIN_DRIFT_TESTS
+const completeLedger = (manifest) =>
+  [
+    '| State | Frozen |',
+    '| Target version / date | 1.1.0 / unscheduled |',
+    '| Machine-readable authority | [test-next.json](test-next.json) |',
+    '',
+    '### C-1',
+    `- Source commit: \`${SHA_C.slice(0, 8)}\``,
+    ...manifest.transitions.map(({ date }) => `- ${date}: lifecycle event`),
+    ''
+  ].join('\n')
+
+const pointerWorkspace = ({ readmeLine, trainIds, options }) => {
+  const root = mkdtempSync(resolve(tmpdir(), 'mark-train-pointer-'))
+  mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
+  mkdirSync(resolve(root, '.github'), { recursive: true })
+  writeFileSync(
+    resolve(root, 'docs/release-trains/current.json'),
+    JSON.stringify({ schemaVersion: '1.0.0', trainId: trainIds[0] })
+  )
+  writeFileSync(resolve(root, 'docs/release-trains/README.md'), `# Trains\n\n${readmeLine}\n`)
+  for (const trainId of trainIds) {
+    writeFileSync(resolve(root, `docs/release-trains/${trainId}.json`), JSON.stringify({ trainId }))
+    writeFileSync(resolve(root, `docs/release-trains/${trainId}.md`), `# ${trainId}\n`)
+  }
+  writeFileSync(
+    resolve(root, '.github/release-governance.json'),
+    JSON.stringify({
+      project: { fields: [{ name: 'Train', dataType: 'SINGLE_SELECT', options }] }
+    })
+  )
+  return root
+}
+
+describe('release-train bookkeeping drift', () => {
+  it('accepts a current ledger that carries every admitted item and history bullet', () => {
+    expect(
+      validateTrainLedger(completeLedger(fixture()), fixture(), { complete: true })
+    ).toBe(true)
+  })
+
+  it('rejects a current ledger that omits an admitted item heading', () => {
+    const markdown = completeLedger(fixture()).replace('### C-1', '### C-OTHER')
+    expect(() => validateTrainLedger(markdown, fixture(), { complete: true })).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' })
+    )
+  })
+
+  it('rejects a current ledger that omits the admitted commit', () => {
+    const markdown = completeLedger(fixture()).replace(SHA_C.slice(0, 8), '')
+    expect(() => validateTrainLedger(markdown, fixture(), { complete: true })).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' })
+    )
+  })
+
+  it('rejects a current ledger whose history is shorter than the lifecycle', () => {
+    const markdown = completeLedger(fixture()).replace(/^- \d{4}-\d{2}-\d{2}.*$/gm, '')
+    expect(() => validateTrainLedger(markdown, fixture(), { complete: true })).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' })
+    )
+  })
+
+  it('keeps a terminal ledger header-only without demanding item prose', () => {
+    const header = completeLedger(fixture()).split('### C-1')[0]
+    expect(validateTrainLedger(header, fixture())).toBe(true)
+  })
+
+  it('accepts a pointer whose README names the same train', () => {
+    const root = pointerWorkspace({
+      readmeLine: 'Current train: [9.9.9-next](9.9.9-next.md).',
+      trainIds: ['9.9.9-next'],
+      options: ['9.9.9-next']
+    })
+    expect(validateCurrentTrainPointer(root)).toMatchObject({ trainId: '9.9.9-next' })
+  })
+
+  it('rejects a README current-train line that disagrees with the pointer', () => {
+    const root = pointerWorkspace({
+      readmeLine: 'Current train: [9.9.8-next](9.9.8-next.md).',
+      trainIds: ['9.9.9-next', '9.9.8-next'],
+      options: ['9.9.9-next', '9.9.8-next']
+    })
+    expect(() => validateCurrentTrainPointer(root)).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_CURRENT_TRAIN_DRIFT' })
+    )
+  })
+
+  it('rejects a pointer that names a train without documents', () => {
+    const root = pointerWorkspace({
+      readmeLine: 'Current train: [9.9.9-next](9.9.9-next.md).',
+      trainIds: ['9.9.9-next'],
+      options: ['9.9.9-next']
+    })
+    unlinkSync(resolve(root, 'docs/release-trains/9.9.9-next.md'))
+    expect(() => validateCurrentTrainPointer(root)).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_CURRENT_TRAIN_INVALID' })
+    )
+  })
+
+  it('rejects a Project Train field that omits a checked-in train option', () => {
+    const root = pointerWorkspace({
+      readmeLine: 'Current train: [9.9.9-next](9.9.9-next.md).',
+      trainIds: ['9.9.9-next', '9.9.8-next'],
+      options: ['9.9.9-next']
+    })
+    expect(() => validateProjectFieldCoverage(root)).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_PROJECT_OPTION_MISSING' })
+    )
+  })
+
+  it('counts every checked-in train when the Project schema covers them', () => {
+    const root = pointerWorkspace({
+      readmeLine: 'Current train: [9.9.9-next](9.9.9-next.md).',
+      trainIds: ['9.9.9-next', '9.9.8-next'],
+      options: ['9.9.9-next', '9.9.8-next']
+    })
+    expect(validateProjectFieldCoverage(root)).toBe(2)
+  })
+})
+// END_BLOCK_RELEASE_TRAIN_DRIFT_TESTS
