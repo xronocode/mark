@@ -14,7 +14,9 @@
 //
 // START_MODULE_MAP
 //   makeFakePlugin - a minimal plugin class (pluginName, constructor appending a probe node, destroy spy removing it).
-//   registrySnapshot/restore - save/restore the global static registry around each test.
+//   mountEl - a div appended to body for one muya construction.
+//   RESTORE_LEN - the registry length snapshot a test restores in afterEach.
+//   await_import_cache - module cache carrying the Muya class to afterEach for the registry trim.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: v1.0.0 - 2026-10-25 C-FILE-POSITION-MEMORY: pin Muya.use
@@ -132,5 +134,41 @@ describe('muya plugin registry lifecycle (C-FILE-POSITION-MEMORY)', () => {
     const muya = new Muya(el, { markdown: '# x\n' })
     expect(() => muya.destroy()).not.toThrow()
     el.remove()
+  })
+
+  it('a throwing plugin destroy does not skip later plugins or the trailing cleanup', async () => {
+    const { default: Muya } = await import('muya/lib')
+    await_import_cache.Muya = Muya
+    RESTORE_LEN = Muya.plugins.length
+    const A = makeFakePlugin('throwsFirst')
+    const B = makeFakePlugin('survivesSecond')
+    A.prototype.destroy = function () {
+      throw new Error('plugin teardown exploded')
+    }
+    Muya.use(A)
+    Muya.use(B)
+    const el = mountEl()
+    const muya = new Muya(el, { markdown: '# x\n' })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(() => muya.destroy()).not.toThrow()
+      expect(B.destroyed).toHaveLength(1)
+      expect(document.querySelectorAll('.fake-float-survivesSecond').length).toBe(0)
+    } finally {
+      warnSpy.mockRestore()
+      el.remove()
+    }
+  })
+
+  it('re-registering a plugin refreshes its options (a remount supplies fresh closures)', async () => {
+    const { default: Muya } = await import('muya/lib')
+    await_import_cache.Muya = Muya
+    RESTORE_LEN = Muya.plugins.length
+    const P = makeFakePlugin('optsRefresh')
+    Muya.use(P, { tag: 'first' })
+    Muya.use(P, { tag: 'second' })
+    const entries = Muya.plugins.filter((e) => e.plugin === P)
+    expect(entries).toHaveLength(1)
+    expect(entries[0].options.tag).toBe('second')
   })
 })

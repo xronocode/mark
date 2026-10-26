@@ -119,6 +119,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-26 C-FILE-POSITION-MEMORY review wave: the flush debounce
+//     passes the false sentinel when getMuyaIndexCursor THROWS (logged with
+//     BLOCK_POSITION_CURSOR_COMPUTE_FAILED — the stale stored cursor never
+//     impersonates a fresh one) and undefined when it merely returns null;
+//     the mt::collect-position bus round-trip (handleCollectPosition)
+//     refreshes tab.muyaIndexCursor on demand for the close/quit flush —
+//     pure arrow-key navigation persists its caret too; unregistered on
+//     unmount with the other bus handlers.
 //   LAST_CHANGE: v1.31.0 - 2026-10-22 C-SELF-CONTAINED-HTML-EXPORT: the
 //   styledHtml export runs embedLocalImages (M-065) over the generated
 //   HTML before saving — local images become base64 data-URLs so the
@@ -2060,6 +2068,11 @@ const handleTableLayoutsChange = async ({ entries } = {}) => {
 // getMuyaIndexCursor runs a full ExportMarkdown pass and must never sit on
 // the per-event path (corner C-9). The selectionChange and scroll handlers
 // arm this; tab close and quit flush through the store without the debounce.
+// Review wave №6: a THROWN computation is a hard failure — it logs the
+// anchored marker and passes the false sentinel so the store never writes
+// the stale stored cursor impersonating a fresh one (scroll-only entry
+// instead). A null RETURN merely means «no valid block right now» — pass
+// undefined so the store falls back to the stored value.
 let positionFlushTimer = null
 const schedulePositionFlush = () => {
   if (props.mirror) return
@@ -2068,15 +2081,35 @@ const schedulePositionFlush = () => {
     positionFlushTimer = null
     const id = renderedTabId
     if (!id || id !== currentFile.value?.id) return
-    let muyaIndexCursor = null
+    let muyaIndexCursor
     try {
-      muyaIndexCursor = editor.value?.contentState?.getMuyaIndexCursor?.() || null
-    } catch (_) {
-      muyaIndexCursor = null
+      muyaIndexCursor = editor.value?.contentState?.getMuyaIndexCursor?.() || undefined
+    } catch (e) {
+      console.warn(`[Editor][position][BLOCK_POSITION_CURSOR_COMPUTE_FAILED] ${e}`)
+      muyaIndexCursor = false
     }
     void editorStore.SAVE_ACTIVE_FILE_POSITION({ id, muyaIndexCursor })
   }, POSITION_FLUSH_DEBOUNCE_MS)
 }
+
+// Review wave №5: the close/quit flush asks the live editor for a fresh
+// cursor through this synchronous bus round-trip — muya refreshes
+// tab.muyaIndexCursor only on click/edit 'change' events, so pure arrow-key
+// navigation ended by a close inside the debounce window must not persist
+// the last click's cursor. getMuyaIndexCursor runs once here (same cost
+// class as the debounced flush).
+const handleCollectPosition = ({ id } = {}) => {
+  if (!id || id !== renderedTabId) return
+  try {
+    const fresh = editor.value?.contentState?.getMuyaIndexCursor?.()
+    if (fresh && fresh.anchor && fresh.focus) {
+      editorStore.updateMuyaIndexCursor(id, fresh)
+    }
+  } catch (e) {
+    console.warn(`[Editor][position][BLOCK_POSITION_CURSOR_COMPUTE_FAILED] ${e}`)
+  }
+}
+bus.on('mt::collect-position', handleCollectPosition)
 // END_BLOCK_POSITION_FLUSH_DEBOUNCE
 
 // listen for `open-single-file` event, it will call this method only when open a new file.
@@ -2817,6 +2850,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
   mirrorSyncTimer = null
+  bus.off('mt::collect-position', handleCollectPosition)
   bus.off('file-loaded', setMarkdownToEditor)
   bus.off('invalidate-image-cache', handleInvalidateImageCache)
   bus.off('undo', diffGuarded.handleUndo)

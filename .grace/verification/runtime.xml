@@ -4820,17 +4820,38 @@
           selection/push — a stale entry from a longer revision clamps into
           the document (C-5), and the parallel file-loaded render cannot
           stomp the restore (identical-markdown early return, C-4).
-          Untitled/guide tabs never persist (C-10). Unit-pinned in
-          tests/renderer/util/file-position-store.test.js and
-          tests/renderer/store/editor-position-memory.test.js (no-revision-
-          drift, flush boundaries, rename moves, restore leg); e2e gates in
-          tests/e2e/position-memory.spec.ts (C-1 arrows/switch, C-3
-          close+reopen, C-4 reload relaunch, C-5 clamp, C-9 burst
-          coalescing) and the visual acceptance
-          tests/e2e/position-memory-acceptance.spec.ts (byte-identical
-          before/after transcripts; the before/after evidence PNGs stay in
-          the local acceptance record until a multimodal binary review
-          admits them).
+          Untitled/guide tabs never persist (C-10). Review wave
+          (2026-10-26): the restore await runs before any tab surgery
+          (no editor unmount/remount between the blank-tab close and the
+          new tab's activation — the open-file-timing paint budget e2e
+          passes again), a post-await existing-tab recheck stops duplicate
+          tabs on rapid re-opens, RESTORE_SESSION drains the _opensInFlight
+          counter before selecting the restored active tab (multi-tab
+          relaunch lands the right active tab — e2e C-13), all store
+          mutations serialize through one queue in
+          util/filePositionStore.js (concurrent quit-flush saves compose —
+          interleaved-saves unit), stat verdicts are tri-state (only
+          confirmed missing via isFile:false or MT_FS_NOT_FOUND prunes; an
+          evicted volume/EACCES/flagless answer keeps the entry), a failed
+          prefs read aborts the mutation without writing, the
+          mt::collect-position bus round-trip refreshes the caret at
+          close/quit flush boundaries (pure arrow-key navigation persists
+          its caret — muya refreshes tab.muyaIndexCursor only on
+          click/edit), muyaIndexCursor===false is the computation-failed
+          sentinel (scroll-only entry, never a stale cursor), CLOSE_TABS
+          flushes like every close boundary, and muya hardening tests
+          live in tests/renderer/muya/plugin-registry-lifecycle.test.js
+          (idempotent Muya.use with option refresh, registry-driven
+          destroy with per-plugin isolation). Unit-pinned in
+          tests/renderer/util/file-position-store.test.js (12) and
+          tests/renderer/store/editor-position-memory.test.js (9) plus the
+          e2e gates in tests/e2e/position-memory.spec.ts (C-1 arrows/
+          switch, C-3 close+reopen, C-4 reload relaunch, C-5 clamp, C-9
+          burst coalescing, C-13 multi-tab relaunch) and the visual
+          acceptance tests/e2e/position-memory-acceptance.spec.ts
+          (byte-identical before/after transcripts; the before/after
+          evidence PNGs stay in the local acceptance record until a
+          multimodal binary review admits them).
         </Scenario>
         <Scenario>
           scenario-61: Sidebar polish — chevron inset, pinned-file marks,

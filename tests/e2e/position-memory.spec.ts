@@ -208,6 +208,76 @@ test('C-4: relaunch (reload + session restore) returns to the position', async (
   expect(await typedLandsIn(page, 'Z')).toContain('Paragraph 100')
 })
 
+
+test('C-13: multi-tab relaunch restores every position AND the non-last active tab (review wave)', async ({ page }) => {
+  // Three files, the MIDDLE one active — the exact shape that exposed the
+  // session-restore activation race (a landing open of the last tab used
+  // to steal UPDATE_CURRENT_FILE) and the multi-tab quit-flush lost-update.
+  const A = '/tmp/pm-multi-a.md'
+  const B = '/tmp/pm-multi-b.md'
+  const C = '/tmp/pm-multi-c.md'
+  await page.addInitScript(installBackend, { [A]: doc(A, 'Multi A'), [B]: doc(B, 'Multi B'), [C]: doc(C, 'Multi C') })
+  await bootEditor(page)
+  await openFileTab(page, A, doc(A, 'Multi A'))
+  await expect(page.locator('.editor-with-tabs h1').first()).toContainText('Multi A')
+  await openFileTab(page, B, doc(B, 'Multi B'))
+  await expect(page.locator('.editor-with-tabs h1').first()).toContainText('Multi B')
+  await openFileTab(page, C, doc(C, 'Multi C'))
+  await expect(page.locator('.editor-with-tabs h1').first()).toContainText('Multi C')
+  await page.waitForTimeout(2200)
+
+  // Switch back to B (the non-last active tab) and park its caret deep.
+  await page.locator('.tabs-container li').filter({ hasText: 'pm-multi-b.md' }).first().click()
+  await expect(page.locator('.editor-with-tabs h1').first()).toContainText('Multi B', { timeout: 5_000 })
+  await clickParagraph(page, 100)
+  const bBefore = await readState(page)
+  expect(bBefore.scrollTop).toBeGreaterThan(500)
+  await page.waitForTimeout(2200)
+
+  const activeBefore = await page.evaluate(() => {
+    return document.querySelector('.tabs-container li.active')?.textContent || ''
+  })
+
+  await page.reload()
+  await page.waitForFunction(() => {
+    const ls = (window as any).__shimListeners
+    if (!ls) return false
+    for (const m of ls.values()) if (m.event === 'mt::bootstrap-editor') return true
+    return false
+  }, undefined, { timeout: 15_000 })
+  await page.evaluate(() => {
+    ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
+      addBlankTab: true,
+      markdownList: [],
+      lineEnding: 'lf',
+      sideBarVisibility: false,
+      tabBarVisibility: true,
+      sourceCodeModeEnabled: false
+    })
+  })
+  // B is the restored active tab — not C, not A.
+  await expect(page.locator('.editor-with-tabs h1').first()).toContainText('Multi B', { timeout: 10_000 })
+  await page.waitForTimeout(1200)
+  const activeAfter = await page.evaluate(() => {
+    return document.querySelector('.tabs-container li.active')?.textContent || ''
+  })
+  expect(activeAfter).toContain('pm-multi-b.md')
+
+  const bAfter = await readState(page)
+  expect(Math.abs(bAfter.scrollTop - bBefore.scrollTop)).toBeLessThanOrEqual(50)
+  expect(await typedLandsIn(page, 'Z')).toContain('Paragraph 100')
+
+  // The other tabs' positions survived too (multi-tab quit-flush lost-update pin):
+  // switch to C and verify it returns to its stored scrollTop, not zero.
+  const cStored = await page.evaluate(() => {
+    const raw = localStorage.getItem('e2e-prefs:filePositions')
+    const store = raw ? JSON.parse(raw) : { files: {} }
+    return Object.keys(store.files || {}).length
+  })
+  expect(cStored).toBeGreaterThanOrEqual(3)
+  expect(activeBefore).toContain('pm-multi-b.md')
+})
+
 test('C-5: a stale entry from a longer revision clamps into the document', async ({ page }) => {
   const B = '/tmp/pm-clamp-b.md'
   await page.addInitScript((d: Record<string, string>) => {

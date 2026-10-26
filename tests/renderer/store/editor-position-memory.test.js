@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/editor-position-memory.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-FILE-POSITION-MEMORY hooks in store/editor.js — updateCursorPosition (the arrow-key write that never touches the revision guard, corner C-2), the flush boundaries (SAVE_ACTIVE_FILE_POSITION, the FORCE_CLOSE_TAB close flush and the _saveSessionState quit flush, corner C-7), the rename moves (corner C-6) and the NEW_TAB_WITH_CONTENT restore leg with clamping (corners C-3/C-4/C-5).
 //   SCOPE: store/editor.js call sites only — util/filePositionStore itself is pinned in file-position-store.test.js.
@@ -17,8 +17,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-23 C-FILE-POSITION-MEMORY: new — cursor
-//   write, flush boundaries, rename moves, restore leg.
+//   LAST_CHANGE: v1.1.0 - 2026-10-26 review wave: the false sentinel
+//   (computation failed → scroll-only entry), the duplicate-open guard and
+//   the in-flight opens counter; v1.0.0 - 2026-10-23: cursor write, flush
+//   boundaries, rename moves, restore leg.
 // END_CHANGE_SUMMARY
 
 import { setupTestPinia } from '../pinia'
@@ -158,14 +160,22 @@ describe('store/editor.js — C-FILE-POSITION-MEMORY', () => {
       muyaIndexCursor: fresh
     })
     // Without a fresh cursor the stored value is used (background/close path).
-    await editorStore.SAVE_ACTIVE_FILE_POSITION({ id: 'tab-1', muyaIndexCursor: null })
+    await editorStore.SAVE_ACTIVE_FILE_POSITION({ id: 'tab-1', muyaIndexCursor: undefined })
     expect(saveFilePosition).toHaveBeenLastCalledWith('/docs/report.md', {
       scrollTop: 3778,
       muyaIndexCursor: aIndexCursor()
     })
+    // Review wave №6: the false sentinel means the computation FAILED —
+    // the stale stored cursor must not impersonate a fresh one; the entry
+    // degrades to scroll-only.
+    await editorStore.SAVE_ACTIVE_FILE_POSITION({ id: 'tab-1', muyaIndexCursor: false })
+    expect(saveFilePosition).toHaveBeenLastCalledWith('/docs/report.md', {
+      scrollTop: 3778,
+      muyaIndexCursor: null
+    })
     // Pathless tabs never persist.
     await editorStore.SAVE_ACTIVE_FILE_POSITION({ id: 'tab-x', muyaIndexCursor: fresh })
-    expect(saveFilePosition).toHaveBeenCalledTimes(2)
+    expect(saveFilePosition).toHaveBeenCalledTimes(3)
   })
 
   it('FORCE_CLOSE_TAB flushes the position before the tab dies (C-7)', async () => {
@@ -240,5 +250,45 @@ describe('store/editor.js — C-FILE-POSITION-MEMORY', () => {
     editorStore._unsubscribeFileWatch = vi.fn()
     editorStore.RENAME_IF_NEEDED({ src: '/docs/renamed.md', dest: '/docs/renamed-again.md' })
     expect(moveFilePositionsEntry).toHaveBeenCalledWith('/docs/renamed.md', '/docs/renamed-again.md')
+  })
+
+  // ── v1.1.0 review wave: restore-activation race + duplicate-open guard ──
+
+  it('concurrent opens of one path land a single tab (duplicate guard, review wave)', async () => {
+    const useEditorStore = await loadEditorStore()
+    const editorStore = useEditorStore()
+    const { loadFilePosition } = await import('@/util/filePositionStore')
+    // Hold the restore leg open until both arrivals have passed the entry.
+    let release
+    const gate = new Promise((resolve) => { release = resolve })
+    loadFilePosition.mockImplementation(() => gate.then(() => null))
+    const md = () => ({
+      markdown: '# x', pathname: '/dup/race.md', filename: 'race.md',
+      encoding: { encoding: 'utf8', isBom: false }, lineEnding: 'lf',
+      adjustLineEndingOnSave: false, trimTrailingNewline: 3, isMixedLineEndings: false
+    })
+    const p1 = editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
+    const p2 = editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument: md(), selected: true })
+    await Promise.resolve()
+    release()
+    await Promise.all([p1, p2])
+    expect(editorStore.tabs).toHaveLength(1)
+    expect(editorStore.tabs[0].pathname).toBe('/dup/race.md')
+  })
+
+  it('the in-flight counter drains to zero after opens settle (RESTORE_SESSION drain pin)', async () => {
+    const useEditorStore = await loadEditorStore()
+    const editorStore = useEditorStore()
+    editorStore.tabs = []
+    const md = (p) => ({
+      markdown: '# ' + p, pathname: p, filename: p.split('/').pop(),
+      encoding: { encoding: 'utf8', isBom: false }, lineEnding: 'lf',
+      adjustLineEndingOnSave: false, trimTrailingNewline: 3, isMixedLineEndings: false
+    })
+    expect(editorStore._opensInFlight || 0).toBe(0)
+    await editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument: md('/a.md'), selected: true })
+    await editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument: md('/b.md'), selected: false })
+    expect(editorStore._opensInFlight).toBe(0)
+    expect(editorStore.tabs).toHaveLength(2)
   })
 })

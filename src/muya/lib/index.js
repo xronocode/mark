@@ -86,8 +86,11 @@ class Muya {
     // editor used to push the whole plugin list again and the NEXT Muya
     // constructed one extra float instance per duplicate — leaking
     // body-level float containers (3× .ag-front-menu broke strict-mode
-    // locators). Registration is idempotent: the first registration wins.
-    if (this.plugins.some((entry) => entry.plugin === plugin)) {
+    // locators). Registration is idempotent and the LAST options win:
+    // a remounted editor re-registers with its fresh closures.
+    const existing = this.plugins.find((entry) => entry.plugin === plugin)
+    if (existing) {
+      existing.options = options
       return
     }
     this.plugins.push({
@@ -707,16 +710,26 @@ class Muya {
     // destroyed editor leaked the rest's body-level float containers
     // (frontMenu, formatPicker, transformer, imageToolbar, linkTools,
     // footnoteTool, tableBarTools) — the registry is the source of truth
-    // and new plugins can no longer be forgotten here.
+    // and new plugins can no longer be forgotten here. Each plugin's
+    // destroy is isolated: one throwing plugin cannot skip the remaining
+    // plugins or the trailing cleanup below.
     for (const { plugin } of Muya.plugins) {
       const instance = this[plugin.pluginName]
       if (instance && typeof instance.destroy === 'function') {
-        instance.destroy()
+        try {
+          instance.destroy()
+        } catch (e) {
+          console.warn(`[muya][destroy][BLOCK_PLUGIN_DESTROY_FAILED plugin=${plugin.pluginName}] ${e}`)
+        }
       }
     }
     // C-38 T-005: the resize handler owns window/container listeners that
     // outlive the editor DOM (split-view instances come and go).
-    this.resize.destroy()
+    try {
+      this.resize.destroy()
+    } catch (e) {
+      console.warn(`[muya][destroy][BLOCK_RESIZE_DESTROY_FAILED] ${e}`)
+    }
     // C-51 T-010: drop this editor's figures from the shared expand-need
     // ResizeObserver (other muya instances keep their observations).
     releaseExpandNeedObservations(this.container)

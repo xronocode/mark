@@ -162,6 +162,20 @@ export const useEditorStore = defineStore('editor', {
         tab.cursor = cursor
       }
     },
+
+    // Review wave №5: the durable line/ch cursor refresh for the tab the
+    // editor is currently rendering — written by the synchronous
+    // mt::collect-position bus round-trip right before a close/quit flush
+    // so pure arrow-key navigation (which never fires muya 'change') still
+    // persists its caret. Same contentRevision guarantees as
+    // updateCursorPosition above.
+    updateMuyaIndexCursor(id, muyaIndexCursor) {
+      if (!muyaIndexCursor || !(id in this.tabIdToIndex)) return
+      const tab = this.tabs[this.tabIdToIndex[id]]
+      if (tab && muyaIndexCursor.anchor && muyaIndexCursor.focus) {
+        tab.muyaIndexCursor = muyaIndexCursor
+      }
+    },
     // END_BLOCK_POSITION_CURSOR_WRITE
 
     // START_BLOCK_POSITION_FLUSH
@@ -170,20 +184,35 @@ export const useEditorStore = defineStore('editor', {
     // calls SAVE_ACTIVE_FILE_POSITION with a freshly computed
     // muyaIndexCursor (one ExportMarkdown run per flush — never per event);
     // close and quit flushes call it with the stored value via
-    // _flushFilePositionForTab.
+    // _flushFilePositionForTab. muyaIndexCursor === false is a SENTINEL:
+    // the caller computed the cursor and it FAILED — the stale stored value
+    // must not silently impersonate a fresh one.
     async SAVE_ACTIVE_FILE_POSITION({ id, muyaIndexCursor }) {
       const tab = this.tabs.find(t => t.id === id)
       if (!tab || !tab.pathname) return
-      await this._flushFilePositionForTab(tab, muyaIndexCursor || tab.muyaIndexCursor || null)
+      // Straight pass-through: a fresh cursor object from the debounce, the
+      // false sentinel (computation failed — scroll-only entry), or
+      // undefined (collect from the live editor via the bus).
+      await this._flushFilePositionForTab(tab, muyaIndexCursor)
     },
 
-    async _flushFilePositionForTab(tab, muyaIndexCursor = tab.muyaIndexCursor || null) {
+    async _flushFilePositionForTab(tab, muyaIndexCursor = undefined) {
       if (!tab || !tab.pathname) return
+      // №5 review wave: for the tab the editor is CURRENTLY rendering, ask
+      // the editor for a fresh cursor first — muya refreshes
+      // tab.muyaIndexCursor only on click/edit 'change' events, so pure
+      // arrow-key navigation closed inside the debounce window would
+      // otherwise persist the last click's cursor. The bus round-trip is
+      // synchronous (mitt emit); with no mounted listener (tests, background
+      // tabs) the stored value stands.
+      if (muyaIndexCursor === undefined) {
+        bus.emit('mt::collect-position', { id: tab.id })
+      }
+      let cursor = muyaIndexCursor === undefined ? (tab.muyaIndexCursor || null) : muyaIndexCursor
+      if (cursor === false) cursor = null
       const entry = {
         scrollTop: typeof tab.scrollTop === 'number' && tab.scrollTop > 0 ? tab.scrollTop : 0,
-        muyaIndexCursor: muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus
-          ? muyaIndexCursor
-          : null
+        muyaIndexCursor: cursor && cursor.anchor && cursor.focus ? cursor : null
       }
       try {
         await saveFilePosition(tab.pathname, entry)
@@ -879,10 +908,15 @@ export const useEditorStore = defineStore('editor', {
       }
       if (typeof active === 'string' && active) {
         // mt::open-file answers with an mt::open-new-tab event; wait for
-        // the tab to land before selecting it.
-        for (let i = 0; i < 40; i++) {
+        // the tab to land before selecting it. C-FILE-POSITION-MEMORY:
+        // opens are async, so ALSO drain the in-flight counter first —
+        // the invoke above resolves before the arrival handler finishes,
+        // and a landing UPDATE_CURRENT_FILE from the last opened tab
+        // would otherwise steal the selection right after it (the review
+        // wave's session-restore active-tab race).
+        for (let i = 0; i < 80; i++) {
           const tab = this.tabs.find((t) => t.pathname === active)
-          if (tab) {
+          if (tab && (this._opensInFlight || 0) === 0) {
             if (this.currentFile !== tab) this.UPDATE_CURRENT_FILE(tab)
             break
           }
@@ -1512,6 +1546,11 @@ export const useEditorStore = defineStore('editor', {
           window.electron.ipcRenderer.send('mt::window-tab-closed', pathname)
         }
 
+        // C-FILE-POSITION-MEMORY: flush the remembered position before the
+        // tab dies — this id-list path (mt::close-tabs, save-and-close
+        // flows) is a close boundary exactly like FORCE_CLOSE_TAB.
+        void this._flushFilePositionForTab(this.tabs[index])
+
         this.tabs.splice(index, 1)
         if (this.currentFile.id === id) {
           this.currentFile = {}
@@ -1808,99 +1847,118 @@ export const useEditorStore = defineStore('editor', {
         selected = true
       }
 
-      const { currentFile, tabs } = this
-      const { pathname } = markdownDocument
-      const existingTab = tabs.find((t) => window.fileUtils.isSamePathSync(t.pathname, pathname))
-      if (existingTab) {
-        this.UPDATE_CURRENT_FILE(existingTab)
-        return
-      }
+      // C-FILE-POSITION-MEMORY: opens are async; RESTORE_SESSION drains
+      // this counter before selecting the restored active tab so a late
+      // landing UPDATE_CURRENT_FILE cannot steal the selection.
+      this._opensInFlight = (this._opensInFlight || 0) + 1
+      try {
+        const { pathname, markdown } = markdownDocument
 
-      let keepTabBarState = false
-      if (currentFile) {
-        const { isSaved, pathname, isGuide } = currentFile
-        // Never auto-close the guide: an agent opening a file while the
-        // user reads "Connect your agent" must not make it vanish.
-        if (isSaved && !pathname && !isGuide) {
-          keepTabBarState = true
-          this.FORCE_CLOSE_TAB(currentFile)
-        }
-      }
-
-      if (!keepTabBarState) {
-        this.SHOW_TAB_VIEW(false)
-      }
-
-      const { markdown, isMixedLineEndings } = markdownDocument
-      const docState = createDocumentState(Object.assign(markdownDocument, options))
-      const { id, cursor } = docState
-
-      // START_BLOCK_POSITION_RESTORE
-      // C-FILE-POSITION-MEMORY (spec D-4): every disk-open funnel — manual
-      // open, recently-closed reopen, session restore at relaunch — passes
-      // here, so the remembered position is applied to the tab state before
-      // it is selected/pushed and flows through the existing activation
-      // machinery (setMarkdown's muyaIndexCursor branch + scrollToCords).
-      // The clamp keeps a stale entry inside the freshly loaded markdown
-      // (corner C-5); the parallel file-loaded render cannot stomp it —
-      // setMarkdownToEditor's identical-markdown early return skips the
-      // cursor (corner C-4). Block-key cursors are session-scoped and never
-      // persisted; muyaIndexCursor (line/ch) is the durable representation.
-      if (pathname) {
-        try {
-          const entry = await loadFilePosition(pathname)
-          const clamped = entry ? clampEntryToMarkdown(entry, markdown) : null
-          if (clamped) {
-            if (clamped.scrollTop > 0) docState.scrollTop = clamped.scrollTop
-            if (clamped.muyaIndexCursor) docState.muyaIndexCursor = clamped.muyaIndexCursor
+        // START_BLOCK_POSITION_RESTORE
+        // C-FILE-POSITION-MEMORY (spec D-4): every disk-open funnel — manual
+        // open, recently-closed reopen, session restore at relaunch — passes
+        // here, so the remembered position is applied to the tab state before
+        // it is selected/pushed and flows through the existing activation
+        // machinery (setMarkdown's muyaIndexCursor branch + scrollToCords).
+        // The clamp keeps a stale entry inside the freshly loaded markdown
+        // (corner C-5); the parallel file-loaded render cannot stomp it —
+        // setMarkdownToEditor's identical-markdown early return skips the
+        // cursor (corner C-4). Block-key cursors are session-scoped and never
+        // persisted; muyaIndexCursor (line/ch) is the durable representation.
+        // The await runs BEFORE any tab surgery: closing a saved blank tab
+        // and activating the new one must stay in one synchronous run, or
+        // Vue flushes a tab-less editor state between them and unmounts the
+        // whole editor column (the review wave's boot-remount regression).
+        let restored = null
+        if (pathname) {
+          try {
+            const entry = await loadFilePosition(pathname)
+            restored = entry ? clampEntryToMarkdown(entry, markdown) : null
+          } catch (e) {
+            console.warn(`[editor][position][BLOCK_POSITION_RESTORE_FAILED] ${e}`)
+            restored = null
           }
-        } catch (e) {
-          console.warn(`[editor][position][BLOCK_POSITION_RESTORE_FAILED] ${e}`)
         }
-      }
-      // END_BLOCK_POSITION_RESTORE
+        // END_BLOCK_POSITION_RESTORE
 
-      // START_BLOCK_RECORD_OPENED_SNAPSHOT_LOAD
-      // C-68 R-1: every disk load (open, reopen, session restore — they all
-      // funnel through here) keeps one «opened» baseline so ⌘D can always
-      // show what changed since the load. Untitled tabs have no pathname;
-      // focusing an already-open file returned early above, so the original
-      // opened time survives re-focuses.
-      if (pathname) {
-        recordOpenedSnapshot(id, markdown)
-      }
-      // END_BLOCK_RECORD_OPENED_SNAPSHOT_LOAD
-
-      if (selected) {
-        this.UPDATE_CURRENT_FILE(docState)
-        if (!_bootPhase) bus.emit('file-loaded', { id, markdown, cursor })
-        // FIX-002: phase-2 mark — the tab state exists and the load event
-        // is out; the remaining leg to first paint lives in editor.vue.
-        if (typeof window !== 'undefined' && typeof window.__openFileArrivalAt === 'number') {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[editor][open-file][BLOCK_OPEN_TAB_CREATED since_arrival_ms=${Math.round(performance.now() - window.__openFileArrivalAt)} id=${id}]`
-          )
+        const { currentFile, tabs } = this
+        // Checked AFTER the await on purpose: two rapid arrivals for one
+        // pathname (double-click, Finder burst) must not both push a tab —
+        // the second open sees the first one's tab and just focuses it.
+        const existingTab = tabs.find((t) => window.fileUtils.isSamePathSync(t.pathname, pathname))
+        if (existingTab) {
+          this.UPDATE_CURRENT_FILE(existingTab)
+          return
         }
-      } else {
-        if (!_bootPhase) this.updateTabIdToIndex()
-        this.tabs.push(docState)
-      }
 
-      if (isMixedLineEndings) {
-        const { filename, lineEnding } = markdownDocument
-        this.pushTabNotification({
-          tabId: id,
-          msg: i18n.global.t('store.editor.mixedLineEndingsNormalized', {
-            name: filename,
-            lineEnding: lineEnding.toUpperCase()
+        let keepTabBarState = false
+        if (currentFile) {
+          const { isSaved, pathname, isGuide } = currentFile
+          // Never auto-close the guide: an agent opening a file while the
+          // user reads "Connect your agent" must not make it vanish.
+          if (isSaved && !pathname && !isGuide) {
+            keepTabBarState = true
+            this.FORCE_CLOSE_TAB(currentFile)
+          }
+        }
+
+        if (!keepTabBarState) {
+          this.SHOW_TAB_VIEW(false)
+        }
+
+        const { isMixedLineEndings } = markdownDocument
+        const docState = createDocumentState(Object.assign(markdownDocument, options))
+        const { id, cursor } = docState
+
+        if (restored) {
+          if (restored.scrollTop > 0) docState.scrollTop = restored.scrollTop
+          if (restored.muyaIndexCursor) docState.muyaIndexCursor = restored.muyaIndexCursor
+        }
+
+        // START_BLOCK_RECORD_OPENED_SNAPSHOT_LOAD
+        // C-68 R-1: every disk load (open, reopen, session restore — they all
+        // funnel through here) keeps one «opened» baseline so ⌘D can always
+        // show what changed since the load. Untitled tabs have no pathname;
+        // focusing an already-open file returned early above, so the original
+        // opened time survives re-focuses.
+        if (pathname) {
+          recordOpenedSnapshot(id, markdown)
+        }
+        // END_BLOCK_RECORD_OPENED_SNAPSHOT_LOAD
+
+        if (selected) {
+          this.UPDATE_CURRENT_FILE(docState)
+          if (!_bootPhase) bus.emit('file-loaded', { id, markdown, cursor })
+          // FIX-002: phase-2 mark — the tab state exists and the load event
+          // is out; the remaining leg to first paint lives in editor.vue.
+          if (typeof window !== 'undefined' && typeof window.__openFileArrivalAt === 'number') {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[editor][open-file][BLOCK_OPEN_TAB_CREATED since_arrival_ms=${Math.round(performance.now() - window.__openFileArrivalAt)} id=${id}]`
+            )
+          }
+        } else {
+          if (!_bootPhase) this.updateTabIdToIndex()
+          this.tabs.push(docState)
+        }
+
+        if (isMixedLineEndings) {
+          const { filename, lineEnding } = markdownDocument
+          this.pushTabNotification({
+            tabId: id,
+            msg: i18n.global.t('store.editor.mixedLineEndingsNormalized', {
+              name: filename,
+              lineEnding: lineEnding.toUpperCase()
+            })
           })
-        })
-      }
+        }
 
-      if (pathname) {
-        this._subscribeFileWatch(pathname)
-        ipcRecent.add(pathname).catch(() => {})
+        if (pathname) {
+          this._subscribeFileWatch(pathname)
+          ipcRecent.add(pathname).catch(() => {})
+        }
+      } finally {
+        this._opensInFlight = Math.max(0, (this._opensInFlight || 0) - 1)
       }
     },
 
@@ -2642,6 +2700,23 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-26 C-FILE-POSITION-MEMORY review wave: NEW_TAB_WITH_CONTENT
+//     awaits the position restore BEFORE any tab surgery (closing a saved
+//     blank tab and activating the new one stay in one synchronous run —
+//     the old order let Vue flush a tab-less editor state and remount the
+//     whole editor column), re-checks the existing tab after the await
+//     (rapid double-open of one path can no longer push a duplicate tab),
+//     and counts in-flight opens so RESTORE_SESSION drains them before
+//     selecting the restored active tab (a landing UPDATE_CURRENT_FILE
+//     from the last opened tab can no longer steal the selection).
+//     _flushFilePositionForTab collects a fresh cursor from the live
+//     editor via the synchronous mt::collect-position bus round-trip
+//     (updateMuyaIndexCursor) — pure arrow-key navigation closed inside
+//     the debounce window persists its caret, not the last click's;
+//     SAVE_ACTIVE_FILE_POSITION treats muyaIndexCursor===false as the
+//     computation-failed sentinel (scroll-only entry, never a stale
+//     cursor impersonating a fresh one); CLOSE_TABS flushes positions
+//     like every other close boundary.
 //   - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: remove workstation-specific
 //     review attribution from the cold-start shape-guard comment; behavior is
 //     unchanged.

@@ -1,9 +1,9 @@
 // FILE: src/renderer/src/util/filePositionStore.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-FILE-POSITION-MEMORY the per-file reading position store — one prefs key (filePositions) holding per-file entries of the last scrollTop and muyaIndexCursor (line/ch), so reopening a file or relaunching the app returns the reader to where they were.
-//   SCOPE: Pure store transforms (sanitizeEntry, normalizeStore, storeWithEntry, capStoreFiles, moveFileEntry, clampEntryToMarkdown) plus the IO-bound high-level flows (loadFilePosition = read + prune missing files + cap + write-back when changed; saveFilePosition = write one file's entry; moveFilePositionsEntry = the Mark-rename move). The muyaIndexCursor semantics belong to muya — this module stays schema-only and pure apart from the three IO flows, mirroring tableLayoutStore.js.
-//   DEPENDS: @/ipc/runtime ipcPrefs (mt::prefs::get / mt::prefs::set — the existing loose-typed prefs IPC; the renderer holds the schema, so no backend change); window.fileUtils.stat for the prune (absent stat → pruning is skipped, entries kept).
+//   SCOPE: Pure store transforms (sanitizeEntry, normalizeStore, storeWithEntry, capStoreFiles, moveFileEntry, clampEntryToMarkdown) plus the IO-bound high-level flows (loadFilePosition = read + prune missing files + cap + write-back when changed; saveFilePosition = write one file's entry; moveFilePositionsEntry = the Mark-rename move). All three flows serialize through one module-level mutation queue (a concurrent quit-flush of N tabs must not interleave read→transform→write and drop all but the last tab's entry) and never persist a store derived from a failed read. The muyaIndexCursor semantics belong to muya — this module stays schema-only and pure apart from the IO flows, mirroring tableLayoutStore.js.
+//   DEPENDS: @/ipc/runtime ipcPrefs (mt::prefs::get / mt::prefs::set — the existing loose-typed prefs IPC; the renderer holds the schema, so no backend change); window.fileUtils.stat for the prune — the tri-state verdict (confirmed-missing only via MT_FS_NOT_FOUND / isFile:false) keeps entries whenever the answer is «cannot tell» (absent capability, thrown stat, flagless shape).
 //   LINKS: .grace/changes/active/C-FILE-POSITION-MEMORY (spec D-2/D-3, corners C-5/C-6/C-8); .grace/graph/runtime.xml M-011 (store/editor.js recorder + restore wiring); store/editor.js NEW_TAB_WITH_CONTENT (restore), FORCE_CLOSE_TAB/_saveSessionState (flushes), RENAME/RENAME_IF_NEEDED (moves); tableLayoutStore.js (the pattern this module mirrors).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -20,16 +20,28 @@
 //   moveFileEntry - pure: move one file's entry from one path to another (absent source → unchanged store; destination clobbered).
 //   clampEntryToMarkdown - pure: clamp the entry's muyaIndexCursor into the given markdown's real line/ch range (a file shortened while closed must not feed muya an out-of-range position — muya's setMarkdown branch ignores addCursorToMarkdown's isValid:false). scrollTop is left as-is: the browser clamps it into the real scrollable range at restore.
 //   defaultIo - the ipcPrefs-backed IO the high-level flows use when none is injected.
-//   readStore - async: prefs get of the single key (normalize on read; a failed read degrades to the empty store).
-//   writeStore - async: prefs set of the whole store.
-//   pruneMissingFiles - async: drop entries whose file no longer exists; a missing stat capability keeps everything.
+//   readStore - async: prefs get of the single key (normalize on read; a failed read degrades to the empty store — for PURE reads only; the mutation flows use an internal strict reader that rethrows so a failed read can never become the base of a wipe).
+//   writeStore - async: prefs set of the whole store (the mutation flows run on an internal promise-chain queue so concurrent flushes compose instead of racing).
+//   pruneMissingFiles - async: drop entries whose file is CONFIRMED missing; «cannot tell» keeps the entry. The default checker is the internal tri-state stat: true (exists) / false (isFile:false answer or MT_FS_NOT_FOUND rejection) / undefined (no capability, other rejection, flagless answer) — only false prunes.
 //   loadFilePosition - async: the restore path — read, prune, cap, write back when the store changed, return the file's entry (null when none). The stat checker is injectable like pruneMissingFiles's.
 //   saveFilePosition - async: write one file's entry, never pruning (the load path owns that).
 //   moveFilePositionsEntry - async: the rename move — the position follows the new path; a Finder move does NOT go through here.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-23 C-FILE-POSITION-MEMORY: new module.
+//   LAST_CHANGE: v1.1.0 - 2026-10-26 C-FILE-POSITION-MEMORY review wave:
+//                (1) all store mutations serialize through one promise
+//                queue — the multi-tab quit-flush (_saveSessionState fires
+//                N saves via Promise.allSettled) used to interleave
+//                read→transform→write and keep only the last tab's entry;
+//                (2) stat verdicts are tri-state — only a confirmed
+//                missing file (isFile:false answer or MT_FS_NOT_FOUND
+//                rejection) prunes; an evicted iCloud volume, EACCES, a
+//                thrown or flagless stat keeps the entry instead of
+//                erasing it forever; (3) a failed prefs read aborts the
+//                mutation without writing (a degraded read can never
+//                become the base of a store-wiping write).
+//   v1.0.0 - 2026-10-23 C-FILE-POSITION-MEMORY: new module.
 //   Persisted values are numbers only (scrollTop, line, ch, savedAt) keyed
 //   by pathname — never document content (corner C-8). Loads prune entries
 //   whose file no longer exists and cap the store at 200 files; saves touch
@@ -160,38 +172,81 @@ export const readStore = async (io = defaultIo) => {
   }
 }
 
+// The mutation flows must never build a write on top of a failed read —
+// a degraded read that silently becomes the base of the next save wipes
+// every other file's remembered position. This reader rethrows; callers
+// abort the mutation (no write) on failure.
+const readStoreStrict = async (io = defaultIo) => {
+  try {
+    return normalizeStore(await io.get(FILE_POSITIONS_PREFS_KEY))
+  } catch (e) {
+    console.warn(`[FilePositionStore][readStore][BLOCK_POSITION_READ_FAILED] ${e}`)
+    throw e
+  }
+}
+
 export const writeStore = async (store, io = defaultIo) => {
   await io.set(FILE_POSITIONS_PREFS_KEY, store)
 }
 
-// stat resolves "this file exists" — the shared fileUtils bridge shape
-// ({ isFile } or { is_file }); anything else means "cannot tell" and the
-// prune keeps the entry (a missing capability must not eat positions).
+// START_BLOCK_POSITION_MUTEX
+// One queue for every read→transform→write of the prefs key. The quit
+// flush fires one save per open tab concurrently (Promise.allSettled);
+// without serialization each save read the same base store and the last
+// write won, silently dropping every other tab's position. Chained
+// promises preserve per-caller results while composing the writes.
+let storeMutationQueue = Promise.resolve()
+const serializedStoreMutation = (run) => {
+  const next = storeMutationQueue.then(run, run)
+  storeMutationQueue = next.then(
+    () => {},
+    () => {}
+  )
+  return next
+}
+// END_BLOCK_POSITION_MUTEX
+
+// Tri-state «does this file exist»: true = exists; false = CONFIRMED
+// not-a-file (the stat answered isFile:false, or the backend rejected
+// with MT_FS_NOT_FOUND — m013b maps io::ErrorKind::NotFound to that
+// code); undefined = cannot tell (no stat capability, any other
+// rejection such as EACCES/evicted volume, or a flagless answer). Only
+// a false verdict may prune — «cannot tell» keeps the entry so a
+// transient failure can never erase positions forever.
+const STAT_NOT_FOUND_HINT = 'MT_FS_NOT_FOUND'
+
 const statFileExists = async (pathname) => {
   const stat = typeof window !== 'undefined' &&
     window.fileUtils &&
     typeof window.fileUtils.stat === 'function'
     ? window.fileUtils.stat
     : null
-  if (!stat) return true
+  if (!stat) return undefined
+  let info
   try {
-    const info = await stat(pathname)
-    return !!(info && (info.isFile || info.is_file))
-  } catch (_) {
-    return false
+    info = await stat(pathname)
+  } catch (e) {
+    const code = String((e && (e.code || e.id || e.message)) || e || '')
+    return code.includes(STAT_NOT_FOUND_HINT) ? false : undefined
   }
+  if (!info) return undefined
+  if (typeof info.isFile === 'boolean' || typeof info.is_file === 'boolean') {
+    return !!(info.isFile || info.is_file)
+  }
+  return undefined
 }
 
 export const pruneMissingFiles = async (store, statExists = statFileExists) => {
   const base = normalizeStore(store)
   const paths = Object.keys(base.files)
-  // A throwing stat counts as «gone», for injected checkers too.
+  // «Cannot tell» (undefined / throw) keeps the entry; only an explicit
+  // false verdict from the checker prunes.
   const verdicts = await Promise.all(paths.map(path =>
-    Promise.resolve().then(() => statExists(path)).catch(() => false)))
+    Promise.resolve().then(() => statExists(path)).catch(() => undefined)))
   const files = {}
   const pruned = []
   paths.forEach((pathname, index) => {
-    if (verdicts[index]) {
+    if (verdicts[index] !== false) {
       files[pathname] = base.files[pathname]
     } else {
       pruned.push(pathname)
@@ -203,56 +258,75 @@ export const pruneMissingFiles = async (store, statExists = statFileExists) => {
 // The C-FILE-POSITION-MEMORY restore path: prune entries whose file no
 // longer exists, cap the store size, write the corrected store back when
 // anything changed, and hand the caller the file's entry (null when none).
-export const loadFilePosition = async (pathname, io = defaultIo, statExists = statFileExists) => {
-  if (!pathname) return null
-  const rawStore = await readStore(io)
-  const { store: prunedStore, pruned } = await pruneMissingFiles(rawStore, statExists)
-  const { store: cappedStore, capped } = capStoreFiles(prunedStore)
-  if (pruned.length > 0 || capped) {
+// A failed read aborts the restore (null) without any write-back.
+export const loadFilePosition = (pathname, io = defaultIo, statExists = statFileExists) =>
+  serializedStoreMutation(async () => {
+    if (!pathname) return null
+    let rawStore
     try {
-      await writeStore(cappedStore, io)
-      console.debug(
-        `[FilePositionStore][loadFilePosition][BLOCK_POSITION_PRUNED files=${pruned.length} capped=${capped}]`
-      )
+      rawStore = await readStoreStrict(io)
     } catch (e) {
-      console.warn(`[FilePositionStore][loadFilePosition][BLOCK_POSITION_WRITE_FAILED] ${e}`)
+      return null
     }
-  }
-  return cappedStore.files[pathname] || null
-}
+    const { store: prunedStore, pruned } = await pruneMissingFiles(rawStore, statExists)
+    const { store: cappedStore, capped } = capStoreFiles(prunedStore)
+    if (pruned.length > 0 || capped) {
+      try {
+        await writeStore(cappedStore, io)
+        console.debug(
+          `[FilePositionStore][loadFilePosition][BLOCK_POSITION_PRUNED files=${pruned.length} capped=${capped}]`
+        )
+      } catch (e) {
+        console.warn(`[FilePositionStore][loadFilePosition][BLOCK_POSITION_WRITE_FAILED] ${e}`)
+      }
+    }
+    return cappedStore.files[pathname] || null
+  })
 
 // The save path: replace ONE file's entry (the recorder flush owns
-// coalescing; this write is the debounced/close/quit boundary).
-export const saveFilePosition = async (pathname, entry, io = defaultIo) => {
-  if (!pathname) return false
-  const rawStore = await readStore(io)
-  const nextStore = storeWithEntry(rawStore, pathname, entry)
-  if (nextStore === rawStore) return true
-  try {
-    await writeStore(nextStore, io)
-    return true
-  } catch (e) {
-    console.warn(`[FilePositionStore][saveFilePosition][BLOCK_POSITION_WRITE_FAILED] ${e}`)
-    return false
-  }
-}
+// coalescing; this write is the debounced/close/quit boundary). Runs on
+// the serialization queue; a failed read aborts without writing.
+export const saveFilePosition = (pathname, entry, io = defaultIo) =>
+  serializedStoreMutation(async () => {
+    if (!pathname) return false
+    let rawStore
+    try {
+      rawStore = await readStoreStrict(io)
+    } catch (e) {
+      return false
+    }
+    const nextStore = storeWithEntry(rawStore, pathname, entry)
+    try {
+      await writeStore(nextStore, io)
+      return true
+    } catch (e) {
+      console.warn(`[FilePositionStore][saveFilePosition][BLOCK_POSITION_WRITE_FAILED] ${e}`)
+      return false
+    }
+  })
 
 // The rename move: the position follows the new path; a Finder move does
 // not (it never runs through here — the next load prunes the orphan).
-export const moveFilePositionsEntry = async (from, to, io = defaultIo) => {
-  if (!from || !to || from === to) return false
-  const rawStore = await readStore(io)
-  if (!rawStore.files[from]) return false
-  const nextStore = moveFileEntry(rawStore, from, to)
-  try {
-    await writeStore(nextStore, io)
-    console.debug(
-      `[FilePositionStore][moveFilePositionsEntry][BLOCK_POSITION_MOVED] ${from} -> ${to}`
-    )
-    return true
-  } catch (e) {
-    console.warn(`[FilePositionStore][moveFilePositionsEntry][BLOCK_POSITION_WRITE_FAILED] ${e}`)
-    return false
-  }
-}
+export const moveFilePositionsEntry = (from, to, io = defaultIo) =>
+  serializedStoreMutation(async () => {
+    if (!from || !to || from === to) return false
+    let rawStore
+    try {
+      rawStore = await readStoreStrict(io)
+    } catch (e) {
+      return false
+    }
+    if (!rawStore.files[from]) return false
+    const nextStore = moveFileEntry(rawStore, from, to)
+    try {
+      await writeStore(nextStore, io)
+      console.debug(
+        `[FilePositionStore][moveFilePositionsEntry][BLOCK_POSITION_MOVED] ${from} -> ${to}`
+      )
+      return true
+    } catch (e) {
+      console.warn(`[FilePositionStore][moveFilePositionsEntry][BLOCK_POSITION_WRITE_FAILED] ${e}`)
+      return false
+    }
+  })
 // END_BLOCK_POSITION_IO
