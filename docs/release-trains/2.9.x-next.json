@@ -32,6 +32,26 @@
             "site diagram gallery: the regenerated theme table classifies github-dark dark (34 themes, 17/17) and the strip shows GitHub / GitHub Dark with brand casing"
           ]
         }
+      },
+      {
+        "id": "C-NOTIFICATION-SYSTEM",
+        "summary": "One notification system: every transient message renders as a single severity-styled card (colored status chip, four severities, all theme tokens) in one bottom-right stack — max three visible with a localized overflow counter, sticky errors, hover-paused auto-dismiss, Esc closes the topmost; selecting text in any notification copies it (quiet double-pulse confirmation); a palette command recovers everything shown during the session with full texts and per-entry copy; the update banner and the per-file message strip join the same family; the legacy toast implementation and dead pandoc-missing code are removed.",
+        "state": "queued",
+        "commits": [
+          "660e5ff96c0c8abd2f92c2a1f3a8c9646de5f29d"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-26",
+          "testedArtifact": "None — owner merged PR #72 on instruction without a separate visual check; evidence: the visual acceptance record in the change bundle (pixel-exact chip tint in Paper and Ink, no-stripe edges, timer hairline), a 6-test e2e probe, full CI green after the label admission (17 checks), and vitest 370 files / 5029 passed on the merge candidate.",
+          "scenarios": [
+            "visual probe: chip tint equals the exact 14% severity token blend in Paper and Ink; card edges stripe-free; timer hairline color-exact",
+            "stack behavior: five notifications render three cards plus the 'More 2 notifications' overflow chip; errors never auto-dismiss; Esc closes only the topmost without stealing the editor's Escape",
+            "copy-on-select: scripted selection release writes exactly the selected words and leaves the card open; double green pulse only, no labels",
+            "session history: the palette command lists notifications newest-first with full untruncated text and a per-entry copy action",
+            "regression pins: the C-66 update notice keeps Update/Later/Skip semantics on the shared card; the file-changed banner keeps its queue flow; all ten locales carry the new keys as native copy"
+          ]
+        }
       }
     ],
     "operational": [],
