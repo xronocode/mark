@@ -1,0 +1,105 @@
+<GraceChangePlan graceVersion='4.0' status='draft'><C-RELEASE-MANUAL-PUBLISH>
+  <Name>Release timing repeal — implementation plan</Name><Created>2026-10-26</Created><Spec>C-RELEASE-MANUAL-PUBLISH</Spec>
+  <IntentSummary>
+    Repeal the C-RELEASE-TIMING timer-default publication: remove the veto-window job and its Telegram notify from release.yml, restore the synchronous release Environment approval on the publish job (the pre-v3.0.0 shape), swap governance back from release-notify to release in lockstep (.github/release-governance.json + tools/release-governance.mjs), re-pin the workflow-contract tests, update docs/release-process.md and the M-046/V-M-046 current-state artifacts, and record the owner's one-time GitHub cleanup. The de-duplicated build lane and warmer cargo caches stay untouched.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>.github/workflows/release.yml</Value></MustExist>
+    <MustExist><Value>.github/release-governance.json</Value></MustExist>
+    <MustContain><File>.github/workflows/release.yml</File><Text>veto-window:</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>RELEASE_VETO_MINUTES</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>needs: [build, prepare-publication, veto-window]</Text></MustContain>
+    <MustContain><File>.github/release-governance.json</File><Text>"release-notify"</Text></MustContain>
+    <MustContain><File>tests/renderer/release-github-controls.test.js</File><Text>arms a bounded no-veto window instead of a second synchronous owner approval</Text></MustContain>
+    <MustContain><File>docs/release-process.md</File><Text>no-veto window</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>.github/workflows/release.yml</File><Text>needs: [build, prepare-publication]</Text></MustContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>environment: release</Text></MustContain>
+    <MustNotContain><File>.github/workflows/release.yml</File><Text>veto-window</Text></MustNotContain>
+    <MustNotContain><File>.github/workflows/release.yml</File><Text>RELEASE_VETO_MINUTES</Text></MustNotContain>
+    <MustContain><File>.github/release-governance.json</File><Text>"release"</Text></MustContain>
+    <MustNotContain><File>.github/release-governance.json</File><Text>release-notify</Text></MustNotContain>
+    <MustContain><File>tests/renderer/release-github-controls.test.js</File><Text>publishes only a verified draft after the owner approves the release environment</Text></MustContain>
+    <MustContain><File>docs/release-process.md</File><Text>release environment</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>.github/workflows/release.yml</File>
+    <File>.github/release-governance.json</File>
+    <File>tools/release-governance.mjs</File>
+    <File>tests/renderer/release-github-controls.test.js</File>
+    <File>docs/release-process.md</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>.grace/changes/active/C-RELEASE-MANUAL-PUBLISH/spec.xml</File>
+    <File>.grace/changes/active/C-RELEASE-MANUAL-PUBLISH/plan.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Spec + plan bundle</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>spec.xml records the owner's 2026-10-26 instruction (translated quote with speaker and date), the three scoping decisions, the VerificationIntent gates, and the PR #75 dependency; plan.xml passes the grace change-plan schema and both pass grace lint.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>release.yml — remove the window, restore the synchronous publish gate</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>The veto-window job (173-238) is deleted; publish needs [build, prepare-publication] and declares environment: release; the draft digest/read-back path is byte-identical; the file header contract is rewritten (PURPOSE/SCOPE/DEPENDS drop the window/notify/RELEASE_VETO_MINUTES wording, MODULE_MAP loses the veto-window entry, VERSION bumps, CHANGE_SUMMARY entry added without rewriting the v3.0.0 entry).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-github-controls.test.js</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Governance lockstep — release-notify back to release</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>.github/release-governance.json declares the release Environment (reviewer xronocode, v* tags) and no release-notify or TG secret boundary/forbiddenAtRepository entries; tools/release-governance.mjs validates release again with its VERSION advanced and a CHANGE_SUMMARY entry; the dry-run still reports 4 upsert-environment operations and a journal of 8 (the set changes by name, not by count).</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm run release:governance</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Docs — release-process.md + README residue audit</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>docs/release-process.md lines 75-77 describe publish waiting on the explicit release-Environment approval; a grep over docs/release-trains/README.md for RELEASE_VETO and release-notify finds no operative timer guidance after PR #75 (setup-facts alignment commit fd1b697c) — any residue is fixed in this task.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grep -rn "RELEASE_VETO\|release-notify" docs/release-trains/README.md docs/release-process.md</Command></Verification>
+    </T-004>
+    <T-005>
+      <Title>Workflow-contract tests re-pinned</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>release-github-controls.test.js: the veto-window shape test (256-276) is removed; publish needs/environment pins restored (217-218); release-Environment governance pins restored (309-315); the unknown-policy simulation moves back from release-notify to release (416-417); dry-run and journal invariants stay 4 and 8; file VERSION and CHANGE_SUMMARY advanced; release-preflight.test.js untouched.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js</Command></Verification>
+    </T-005>
+    <T-006>
+      <Title>Graph + verification deltas</Title>
+      <DependsOn>T-002, T-003, T-004, T-005</DependsOn>
+      <AcceptanceCriteria><Criterion>M-046 Summary (2431-2444) and V-M-046 scenario-31 (2451-2468) drop only the window/notify sentences; the four BLOCK_RELEASE_VETO_WINDOW_* markers (2509-2512) are removed; the de-dup/cache sentences survive annotated as C-RELEASE-TIMING legacy kept; the LegacyBase provenance block is byte-identical; grace lint reports zero findings for every file in the ObservedWriteScope.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-006>
+    <T-007>
+      <Title>Owner one-time cleanup + first live observation (post-merge)</Title>
+      <DependsOn>T-006</DependsOn>
+      <AcceptanceCriteria><Criterion>The owner confirms the legacy release Environment reviewer (already verified present 2026-10-26), deletes release-notify and its TG secrets in the GitHub UI, and leaves RELEASE_VETO_MINUTES unset; the first release after the repeal shows the publish job paused on the release-Environment approval and no veto-window job.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npm run release:github-controls -- --check-active</Command></Verification>
+    </T-007>
+  </ImplementationPlan>
+  <Gates>
+    <Gate kind="unit">npx vitest run tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js — all passed.</Gate>
+    <Gate kind="governance">npm run release:github-controls -- --dry-run (checkout-only) — operations=8 with release (not release-notify) in the environment plan.</Gate>
+    <Gate kind="lint">grace lint --path . --assertions current — zero findings in this change's scope.</Gate>
+    <Gate kind="grace">grace status --path . --with modules --json — healthy before handoff.</Gate>
+  </Gates>
+  <ReviewLog>
+    <CornerMatrix>
+      <C-1><Name>Silence never publishes</Name><Expected>After the repeal, no workflow path publishes without an explicit owner approval: publish declares environment: release; no schedule, timer or silence window exists anywhere in the repo; workflow_dispatch feeds only the unsigned manual-build QA job which has no publish path.</Expected></C-1>
+      <C-2><Name>Legacy Environment is alive</Name><Expected>The release Environment kept required_reviewers [xronocode] and the v* tag policy through the C-RELEASE-TIMING era (T-008 deletion never executed; verified live 2026-10-26), so the restored gate is active immediately on merge — the P2 UI steps are cleanup, not a correctness precondition.</Expected></C-2>
+      <C-3><Name>Draft-first path byte-identical</Name><Expected>The publish job still creates a draft, verifies digests byte-for-byte, edits draft=false and proves BLOCK_RELEASE_LATEST_ADVANCED; only the hold point changes (timer window → synchronous environment approval).</Expected></C-3>
+      <C-4><Name>De-dup lane and caches survive</Name><Expected>The release build job keeps the C-RELEASE-TIMING de-duplicated lane and cargo caches; release-preflight.test.js is not edited; strictRequiredChecks and train manifest requiredChecks are unchanged, so no open train is forced to re-roll.</Expected></C-4>
+      <C-5><Name>Governance lockstep</Name><Expected>The JSON and the validator change in the same commit: release re-declared with reviewer xronocode and v* tags, release-notify and its TG secret boundary gone; release:governance passes locally; the dry-run invariants stay 4 environments / 8 operations (name swap, not a count change).</Expected></C-5>
+      <C-6><Name>Conveyor untouched</Name><Expected>promote-release.yml authorize-tag (the first owner instruction creating the tag) and the publish-cask job (environment release-cask) are not edited; already-sealed tags run the workflow at their seal commit, so in-flight trains are unaffected.</Expected></C-6>
+      <C-7><Name>Rollback stays possible</Name><Expected>The release Environment is never deleted, so reverting the workflow commit restores the timer shape (v3.1.1) and re-applying this change restores manual-only — no GitHub-state rollback is ever required; release-notify deletion is safe because nothing references it after this change.</Expected></C-7>
+      <C-8><Name>Owner flow and wall time</Name><Expected>Two explicit approvals per release (release-authorize for the tag, release for publication); the ~2h21m worst-case wait returns by design and is accepted in the spec; no Telegram ping fires (a post-build notify channel is an explicit NonGoal, proposed separately if wanted).</Expected></C-8>
+      <C-9><Name>Test matrix truthfulness</Name><Expected>No veto-window or no-veto assertion remains in any test; the unknown-policy simulation targets release; the governance dry-run test pins 4 upsert-environment operations and journal length 8.</Expected></C-9>
+      <C-10><Name>Parallel-session coexistence</Name><Expected>Edits are additive or in-place in files owned by this change's scope; the shared main worktree's uncommitted parallel-session files are untouched; grace lint gains zero findings referencing this change's files.</Expected></C-10>
+    </CornerMatrix>
+    <Pass-1><Date>2026-10-26</Date><Correctness><Verdict>findings</Verdict><Note>Four findings fixed before any code: (1) the draft spec lacked the required VerificationIntent section and failed its own lint gate — added with the five gates now recorded; (2) the evidence citation for run 40074378466 overstated "green" — the publish/cask jobs succeeded while the run's overall failure came from the unrelated close-release-please job; corrected in the Summary; (3) the R-6 grace ranges invited over-deletion (the de-dup/cache sentences live inside the same ranges) — narrowed to window/notify sentences plus the four markers, with the kept legacy annotated; (4) the dry-run/journal numbers were hedged ("if the environment set changes") though they are invariants — pinned at 4 and 8 (name swap, not count).</Note></Correctness><Security><Verdict>findings</Verdict><Note>One operational finding with teeth: PR #75's owner Environment checklist still instructed creating release-notify TG secrets and deleting the legacy release Environment — the exact gate this change restores. PR #75 amended (commit fd1b697c): keep release (confirm reviewer, never delete), retire release-notify after this change lands, leave RELEASE_VETO_MINUTES unset; the spec's README scope rewritten to a residue audit with an explicit ordering dependency on PR #75. Language Policy also enforced: the owner's Russian chat quote translated with speaker and date kept.</Note></Security><UX><Verdict>clean</Verdict><Note>The two-approval flow and the accepted wall-time cost are encoded in the spec Summary and corner C-8; no further owner-facing surface changes.</Note></UX><Perf><Verdict>clean</Verdict><Note>The build lane and caches are explicitly preserved (R-4, corner C-4); the only cost is the accepted approval wait, already stated in the spec.</Note></Perf></Pass-1>
+    <Pass-2><Date>2026-10-26</Date><Correctness><Verdict>clean</Verdict><Note>Task DAG re-walked: every TargetAssertion file is produced or edited by exactly one task; T-007 depends on all producers; T-002/T-003 parallelize after T-001; no cycles; Baseline and Target assertions cross-checked against fork/main @ 7abbab8e (line anchors verified by the independent spec review).</Note></Correctness><Security><Verdict>clean</Verdict><Note>No secrets at repository scope, no new credentials, no new permissions: publish keeps contents:write; the only permission-relevant change is restoring an approval Environment — a strict strengthening.</Note></Security><UX><Verdict>clean</Verdict><Note>Re-audit after Pass-1 fixes: unchanged clean.</Note></UX><Perf><Verdict>clean</Verdict><Note>Re-audit after Pass-1 fixes: unchanged clean.</Note></Perf></Pass-2>
+    <Pass-3><Date>2026-10-26</Date><Correctness><Verdict>clean</Verdict><Note>Final pre-execution pass: live GitHub state re-verified during review (release Environment with required_reviewers [xronocode] and v* policy present; release-notify present and to be deleted; RELEASE_VETO_MINUTES unset); PR #75 amendment fd1b697c confirmed pushed; spec and plan pass grace lint together.</Note></Correctness><Security><Verdict>clean</Verdict><Note>Re-audit: unchanged clean.</Note></Security><UX><Verdict>clean</Verdict><Note>Re-audit: unchanged clean.</Note></UX><Perf><Verdict>clean</Verdict><Note>Re-audit: unchanged clean.</Note></Perf></Pass-3>
+  </ReviewLog>
+</C-RELEASE-MANUAL-PUBLISH></GraceChangePlan>
