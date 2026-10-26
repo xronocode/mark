@@ -1,9 +1,9 @@
 // FILE: tools/release-governance.mjs
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Enforce stable ordinary-PR release governance without requiring a frozen train or any privileged GitHub API mutation.
-//   SCOPE: Conventional PR title classification, immutable action pins, source-controlled control and public Project schema, and current-train validation.
-//   DEPENDS: Node.js fs/path/url; release-readiness; GitHub workflow/config files.
+//   SCOPE: Conventional PR title classification, permanent delivery-ID ownership, immutable action pins, source-controlled control and public Project schema, and current-train validation.
+//   DEPENDS: Node.js fs/path/url and child_process; release-readiness; GitHub workflow/config files; acceptance and train ledgers.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -13,10 +13,16 @@
 //   ReleaseGovernanceError - Stable coded ordinary-governance error.
 //   validateConventionalTitle - Classify a PR title/body and enforce explicit admission for every release-bearing change.
 //   validatePreparationOverlap - Reject a release-bearing merge while a train is Preparing or Frozen.
+//   validateDeliveryIdReuse - Reject a PR title that names a delivery ID already owned by a ledger.
 //   validatePinnedActions - Require immutable full-SHA action references in privileged workflows.
 //   validateGovernanceConfig - Validate the source-controlled Environment/ruleset/default-permission contract.
 //   runReleaseGovernance - Run the stable ordinary gate and emit its success marker.
 //   CONVENTIONAL - Accepted squash-title grammar for release classification.
+//   DELIVERY_ID - Delivery-ID grammar owned permanently by the acceptance and train ledgers.
+//   gitOptional - Run one best-effort read-only Git query.
+//   baseFile - Read one path from the base revision, or the working tree outside Git.
+//   trainDocumentPaths - List the checked-in train documents at the base revision, or on disk outside Git.
+//   knownDeliveryIds - Collect every delivery ID the base revision already records.
 //   RELEASE_VISIBLE_LABELS - Labels that explicitly admit user-facing or operational change.
 //   RELEASE_BEARING_TYPES - Conventional types that create a SemVer release.
 //   PAYLOAD_OPEN_STATES - Train states whose payload is still being pinned.
@@ -27,6 +33,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v2.2.0: delivery IDs are permanent — a pull request whose title names an ID already recorded in the base revision's acceptance registry or train ledgers is rejected instead of silently reusing it.
 //   - 2026-10-26 v2.1.0: C-RELEASE-MANUAL-PUBLISH — expect the synchronous release approval Environment back (owner reviewer) instead of the C-RELEASE-TIMING release-notify boundary; the release Environment carries no secrets.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — remove the Release Please preparation boundary (preparation is a normal reviewed PR); admit release-bearing merges while the train is Ready, because the tag binds to the merged seal, not to main's tip.
 //   - 2026-10-24 v1.3.0: C-RELEASE-TIMING — expect the release-notify Environment (timer-window Telegram ping boundary) instead of the retired synchronous release approval Environment, and require its secret boundary.
@@ -35,12 +42,14 @@
 //   - 2026-10-20 v1.0.0: add Conventional Commit, PR-only preparation, immutable-action, and source-control governance checks.
 // END_CHANGE_SUMMARY
 
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { readTrainManifest, validateTrainManifest } from './release-readiness.mjs'
 
 const CONVENTIONAL = /^(feat|fix|perf|revert|docs|test|ci|chore|build|style|refactor)(?:\(([^)]+)\))?(!)?: (.+)$/
+const DELIVERY_ID = /\b(FIX-\d+|DEPS-[A-Z]+(?:-[A-Z]+)*)\b/g
 const RELEASE_VISIBLE_LABELS = new Set(['release:user-facing', 'release:operational'])
 const RELEASE_BEARING_TYPES = new Set(['feat', 'fix', 'perf', 'revert'])
 
@@ -94,6 +103,88 @@ export const validateConventionalTitle = (title, labels = [], body = '') => {
 // merges cannot enter the candidate; only the Preparing/Frozen windows,
 // whose payload is still being pinned, must stay closed.
 const PAYLOAD_OPEN_STATES = new Set(['Preparing', 'Frozen'])
+
+const gitOptional = (root, args) => {
+  try {
+    return execFileSync('git', args, {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim()
+  } catch {
+    return null
+  }
+}
+
+const baseFile = (root, revision, pathname) => {
+  if (!revision) {
+    try {
+      return readFileSync(resolve(root, pathname), 'utf8')
+    } catch {
+      return null
+    }
+  }
+  return gitOptional(root, ['show', `${revision}:${pathname}`])
+}
+
+const trainDocumentPaths = (root, revision) => {
+  if (revision) {
+    return (gitOptional(root, ['ls-tree', '--name-only', revision, 'docs/release-trains/']) ?? '')
+      .split('\n')
+      .filter((name) => name.endsWith('.json'))
+  }
+  return readdirSync(resolve(root, 'docs/release-trains'))
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => `docs/release-trains/${name}`)
+}
+
+const knownDeliveryIds = (root, revision) => {
+  const ids = new Set()
+  const registry = baseFile(root, revision, 'docs/acceptance/registry.json')
+  if (registry) {
+    for (const item of JSON.parse(registry).items ?? []) {
+      if (item?.id) ids.add(item.id)
+    }
+  }
+  for (const pathname of trainDocumentPaths(root, revision)) {
+    const text = baseFile(root, revision, pathname)
+    if (!text) continue
+    let manifest
+    try {
+      manifest = JSON.parse(text)
+    } catch {
+      continue
+    }
+    for (const group of Object.values(manifest.items ?? {})) {
+      for (const item of Array.isArray(group) ? group : []) {
+        if (item?.id) ids.add(item.id)
+      }
+    }
+  }
+  return ids
+}
+
+// START_CONTRACT: validateDeliveryIdReuse
+//   PURPOSE: Reject a pull request that names an existing delivery ID, because train and acceptance ledgers own IDs permanently and a reused ID destroys the audit trail.
+//   INPUTS: { workspaceRoot: string - repository root, title: string - pull-request title }
+//   OUTPUTS: { true - the title names no delivery ID the base revision already records }
+//   SIDE_EFFECTS: Reads the base revision of the acceptance registry and train documents; falls back to the working tree outside Git.
+//   LINKS: docs/acceptance/registry.json; docs/release-trains/README.md; .grace/verification/features.xml V-M-046
+// END_CONTRACT: validateDeliveryIdReuse
+// START_BLOCK_VALIDATE_DELIVERY_ID_REUSE
+export const validateDeliveryIdReuse = (workspaceRoot, title) => {
+  const root = resolve(workspaceRoot)
+  const named = String(title ?? '').match(DELIVERY_ID)
+  if (!named) return true
+  const revision = gitOptional(root, ['rev-parse', '--verify', 'HEAD^1'])
+  const known = knownDeliveryIds(root, revision)
+  const reused = named.filter((id) => known.has(id))
+  if (reused.length > 0) {
+    fail('MT_RELEASE_DELIVERY_ID_REUSED', `id=${reused[0]}`)
+  }
+  return true
+}
+// END_BLOCK_VALIDATE_DELIVERY_ID_REUSE
 
 export const validatePreparationOverlap = (title, state) => {
   if (
@@ -236,6 +327,7 @@ export const runReleaseGovernance = (workspaceRoot, options = {}) => {
   const title = options.title
     ? validateConventionalTitle(options.title, options.labels ?? [], options.body ?? '')
     : null
+  validateDeliveryIdReuse(root, options.title)
   const train = readTrainManifest(root)
   validatePreparationOverlap(title, train.state)
   console.info(

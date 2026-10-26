@@ -1,9 +1,9 @@
 // FILE: tools/release-readiness.mjs
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, or requested release identity is inconsistent.
-//   SCOPE: Read one public train JSON document, validate its deterministic repository-only invariants, and emit stable path-free diagnostics; online check-run proof and publication remain workflow concerns.
-//   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json.
+//   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, ledger/pointer projection, Project schema coverage, or requested release identity is inconsistent.
+//   SCOPE: Read one public train JSON document, validate its deterministic repository-only invariants, prove the current train's human ledger and README pointer carry the admitted items, and prove the checked-in Project schema covers every train file; online check-run proof and publication remain workflow concerns.
+//   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json; .github/release-governance.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -13,7 +13,9 @@
 //   ReleaseReadinessError - Stable coded release-train validation error.
 //   readTrainManifest - Reads the checked-in JSON authority.
 //   validateTrainManifest - Validates schema, lifecycle, membership, acceptance, and requested identity.
-//   validateTrainLedger - Rejects drift between the JSON authority and its human Markdown ledger header.
+//   validateTrainLedger - Rejects drift between the JSON authority and its human Markdown ledger header, and proves the current ledger carries every admitted item.
+//   validateCurrentTrainPointer - Proves current.json names an existing train and the README "Current train" line names the same train.
+//   validateProjectFieldCoverage - Proves the checked-in Project Train field offers an option for every train document.
 //   validateStrictRepositoryState - Proves payload/seal/tag/check-run identity from repository and supplied API evidence.
 //   runReleaseReadiness - Runs the offline gate and emits its stable success marker.
 //   TRAIN_SCHEMA_VERSION - Exact supported train-document schema.
@@ -25,6 +27,9 @@
 //   SEAL_PATH_PATTERNS - Release-bookkeeping paths a payload-to-seal commit may touch.
 //   isSealPath - Test one path against the bookkeeping allowlist.
 //   GOVERNANCE_CONFIG_PATH - Non-seal strict check policy authority.
+//   TRAIN_FILE_PATTERN - Grammar of one train document file name.
+//   LEDGER_HISTORY_LINE - Grammar of one dated history bullet in a train ledger.
+//   escapeRegex - Escape one literal token for a RegExp.
 //   fail - Raise one stable readiness error.
 //   readJson - Read one JSON train authority.
 //   requireString - Require one non-empty string field.
@@ -44,6 +49,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v2.1.0: fail closed on bookkeeping drift — the current train's ledger must carry a heading and a commit for every admitted item and at least one dated history bullet per lifecycle transition; current.json and the README "Current train" line must name the same train; the checked-in Project Train field must offer an option for every train document.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — resolve the train through the current-train pointer; accept any metadata-only payload-to-seal span (every commit proven bookkeeping-only) instead of exactly one commit, which merge-commit PRs could never satisfy; replace the hand-grown seal file list with bookkeeping path patterns; drop the Release Please boundary check.
 //   - 2026-10-20 v1.2.0: bind the previous-release boundary, many-to-many item accounting, and strict check set to repository evidence outside the mutable seal.
 //   - 2026-10-20 v1.1.0: add strict payload-to-seal, tag/HEAD, exact commit-accounting, fresh screenshot, and check-run identity gates.
@@ -51,7 +57,7 @@
 // END_CHANGE_SUMMARY
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolveCurrentTrain } from './release-train.mjs'
@@ -85,6 +91,9 @@ const SEAL_PATH_PATTERNS = [
 ]
 const isSealPath = (pathname) => SEAL_PATH_PATTERNS.some((pattern) => pattern.test(pathname))
 const GOVERNANCE_CONFIG_PATH = '.github/release-governance.json'
+const TRAIN_FILE_PATTERN = /^(\d+\.\d+\.(?:x|\d+))-next\.json$/
+const LEDGER_HISTORY_LINE = /^- \d{4}-\d{2}-\d{2}\b/
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 export class ReleaseReadinessError extends Error {
   constructor(code, message) {
@@ -365,14 +374,14 @@ export const validateTrainManifest = (
 // END_BLOCK_VALIDATE_TRAIN_MANIFEST
 
 // START_CONTRACT: validateTrainLedger
-//   PURPOSE: Keep the Markdown train header synchronized with the machine-readable authority without treating prose as an alternate authority.
-//   INPUTS: { markdown: string - human ledger, manifest: object - validated JSON authority }
-//   OUTPUTS: { true - header identities agree }
+//   PURPOSE: Keep the Markdown train header synchronized with the machine-readable authority, and prove the current train's ledger carries every admitted item without treating prose as an alternate authority.
+//   INPUTS: { markdown: string - human ledger, manifest: object - validated JSON authority, options: object - complete flag for the current train }
+//   OUTPUTS: { true - header identities agree and, when complete, every admitted item is present }
 //   SIDE_EFFECTS: none; throws ReleaseReadinessError on drift.
 //   LINKS: docs/release-trains/README.md; .grace/verification/features.xml V-M-046
 // END_CONTRACT: validateTrainLedger
 // START_BLOCK_VALIDATE_TRAIN_LEDGER
-export const validateTrainLedger = (markdown, manifest) => {
+export const validateTrainLedger = (markdown, manifest, { complete = false } = {}) => {
   const expectations = [
     `| State | ${manifest.state} |`,
     `| Target version / date | ${manifest.computedVersion} / unscheduled |`,
@@ -382,9 +391,75 @@ export const validateTrainLedger = (markdown, manifest) => {
   if (missing.length) {
     fail('MT_RELEASE_LEDGER_DRIFT', `missing=${missing.length}`)
   }
+  if (!complete) return true
+  for (const item of manifest.items?.userFacing ?? []) {
+    const heading = new RegExp(`^###\\s+${escapeRegex(item?.id)}\\b`, 'm')
+    if (!heading.test(markdown)) {
+      fail('MT_RELEASE_LEDGER_DRIFT', `item=${item?.id ?? 'missing'};heading=missing`)
+    }
+    const commits = (item?.commits ?? []).map((sha) => String(sha).slice(0, 8))
+    if (commits.length > 0 && !commits.some((sha) => markdown.includes(sha))) {
+      fail('MT_RELEASE_LEDGER_DRIFT', `item=${item.id};commit=missing`)
+    }
+  }
+  const history = markdown.split('\n').filter((line) => LEDGER_HISTORY_LINE.test(line)).length
+  const transitions = manifest.transitions?.length ?? 0
+  if (history < transitions) {
+    fail('MT_RELEASE_LEDGER_DRIFT', `history=${history};transitions=${transitions}`)
+  }
   return true
 }
 // END_BLOCK_VALIDATE_TRAIN_LEDGER
+
+// START_CONTRACT: validateCurrentTrainPointer
+//   PURPOSE: Prove the single current-train pointer names an existing train and that the protocol README names the same train, so the pointer cannot drift from its human entry point.
+//   INPUTS: { workspaceRoot: string - repository root }
+//   OUTPUTS: { object - resolved current train (trainId, json, markdown) }
+//   SIDE_EFFECTS: Reads the pointer, the README, and the train file existence.
+//   LINKS: docs/release-trains/current.json; docs/release-trains/README.md; .grace/verification/features.xml V-M-046
+// END_CONTRACT: validateCurrentTrainPointer
+// START_BLOCK_VALIDATE_CURRENT_TRAIN_POINTER
+export const validateCurrentTrainPointer = (workspaceRoot) => {
+  const root = resolve(workspaceRoot)
+  const current = resolveCurrentTrain(root)
+  if (!existsSync(resolve(root, current.json)) || !existsSync(resolve(root, current.markdown))) {
+    fail('MT_RELEASE_CURRENT_TRAIN_INVALID', `train=${current.trainId};files=missing`)
+  }
+  const readme = readFileSync(resolve(root, 'docs/release-trains/README.md'), 'utf8')
+  const line = readme.split('\n').find((candidate) => candidate.startsWith('Current train:'))
+  if (!line) fail('MT_RELEASE_CURRENT_TRAIN_DRIFT', 'readme=missing')
+  if (!line.includes(`[${current.trainId}](${current.trainId}.md)`)) {
+    fail('MT_RELEASE_CURRENT_TRAIN_DRIFT', `pointer=${current.trainId};readme=stale`)
+  }
+  return current
+}
+// END_BLOCK_VALIDATE_CURRENT_TRAIN_POINTER
+
+// START_CONTRACT: validateProjectFieldCoverage
+//   PURPOSE: Prove the source-controlled Project Train single-select offers an option for every checked-in train, so the one-way mirror cannot fail on a missing option.
+//   INPUTS: { workspaceRoot: string - repository root }
+//   OUTPUTS: { number - checked train document count }
+//   SIDE_EFFECTS: Reads the governance config and lists the train directory.
+//   LINKS: .github/release-governance.json; .grace/verification/features.xml V-M-046
+// END_CONTRACT: validateProjectFieldCoverage
+// START_BLOCK_VALIDATE_PROJECT_FIELD_COVERAGE
+export const validateProjectFieldCoverage = (workspaceRoot) => {
+  const root = resolve(workspaceRoot)
+  const config = readJson(resolve(root, GOVERNANCE_CONFIG_PATH))
+  const field = (config.project?.fields ?? []).find(({ name }) => name === 'Train')
+  if (!field) fail('MT_RELEASE_PROJECT_OPTION_MISSING', 'field=Train;missing')
+  const options = new Set((field.options ?? []).map(String))
+  const trainIds = readdirSync(resolve(root, 'docs/release-trains'))
+    .map((name) => name.match(TRAIN_FILE_PATTERN))
+    .filter(Boolean)
+    .map((match) => match[0].replace(/\.json$/, ''))
+  const missing = trainIds.filter((trainId) => !options.has(trainId)).sort()
+  if (missing.length > 0) {
+    fail('MT_RELEASE_PROJECT_OPTION_MISSING', `train=${missing[0]}`)
+  }
+  return trainIds.length
+}
+// END_BLOCK_VALIDATE_PROJECT_FIELD_COVERAGE
 
 const git = (workspaceRoot, ...args) => {
   try {
@@ -555,11 +630,12 @@ export const validateStrictRepositoryState = (
 //   PURPOSE: Execute the repository-only release-train gate and emit stable success evidence.
 //   INPUTS: { workspaceRoot: string - repository root, options: object - trainPath, tag, and payload }
 //   OUTPUTS: { object - validated train identity }
-//   SIDE_EFFECTS: Reads the train manifest and writes one path-free success marker to stdout.
+//   SIDE_EFFECTS: Reads the train manifest, its ledger, the current-train pointer, the protocol README, and the governance config; writes one path-free success marker to stdout.
 //   LINKS: .grace/verification/features.xml V-M-046 required-log-markers
 // END_CONTRACT: runReleaseReadiness
 // START_BLOCK_RUN_RELEASE_READINESS
 export const runReleaseReadiness = (workspaceRoot, options = {}) => {
+  const current = validateCurrentTrainPointer(workspaceRoot)
   const manifest = readTrainManifest(workspaceRoot, options.trainPath)
   const result = validateTrainManifest(
     manifest,
@@ -569,7 +645,10 @@ export const runReleaseReadiness = (workspaceRoot, options = {}) => {
     /\.json$/,
     '.md'
   )
-  validateTrainLedger(readFileSync(resolve(workspaceRoot, ledgerPath), 'utf8'), manifest)
+  validateTrainLedger(readFileSync(resolve(workspaceRoot, ledgerPath), 'utf8'), manifest, {
+    complete: manifest.trainId === current.trainId
+  })
+  validateProjectFieldCoverage(workspaceRoot)
   const strict = options.mode === 'strict'
     ? validateStrictRepositoryState(workspaceRoot, manifest, options)
     : null

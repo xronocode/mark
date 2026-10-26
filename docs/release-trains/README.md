@@ -4,7 +4,7 @@ Owner instruction recorded on 2026-10-19: a confirmed fix joins a release train;
 
 Owner instruction recorded on 2026-10-26: the five train rules below now govern how trains run — collection, admission, dispatch, acceptance and release. Timer-default publication is repealed; publication is manual-only.
 
-Current train: [2.8.2-next](2.8.2-next.md). It opens after v2.8.1 for the 2.8.2 patch; [2.9.x-next](2.9.x-next.md) keeps collecting the 2.9.0 minor and becomes current again once 2.8.2 ships. Tools and workflows find the current train through [`current.json`](current.json) — switching trains means editing that one pointer and this line, nothing in CI.
+Current train: [2.9.x-next](2.9.x-next.md), collecting the next minor after v2.8.2 shipped from [2.8.2-next](2.8.2-next.md). Tools and workflows find the current train through [`current.json`](current.json) — switching trains means editing that one pointer and this line, nothing in CI; `npm run release:readiness` fails closed when the two disagree.
 
 ## The five train rules (owner instruction, 2026-10-26)
 
