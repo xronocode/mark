@@ -12,6 +12,12 @@
 //   2) `npm run preview` in another terminal
 //   3) node src/renderer/bench/run-bench.mjs [--fixture <path>]
 //        [--phases open,typing,scroll] [--runs N] [--engines chromium,webkit]
+//        [--typing-samples N] [--scroll-ms N]
+//
+// Phases: `open`, `typing` and `scroll` are REQUIRED and must emit numeric
+// results; `overhead` is an optional diagnostic (observer overhead against a
+// same-run uninstrumented control) and is reported separately from every
+// baseline number.
 //
 // Semantics (spec R-5, constraint 3): a REQUIRED phase that fails to emit a
 // numeric result (SKIPPED, FAILED, or missing) in any engine run fails the
@@ -125,6 +131,17 @@ function stats(samples) {
   return { n: s.length, p50: p(50), p95: p(95), mean: sum / s.length, min: s[0], max: s[s.length - 1] }
 }
 
+// PHASE_OVERHEAD carries a same-run control only when truth=ok — an
+// overhead line without that proof is not evidence.
+function overheadValue(lineList, key) {
+  for (const l of lineList) {
+    if (!l.includes('truth=ok')) continue
+    const m = l.match(new RegExp(`${key}=(-?[\\d.]+)`))
+    if (m) return parseFloat(m[1])
+  }
+  return null
+}
+
 async function multiRun(browserType, label) {
   const runs = []
   for (let i = 0; i < RUNS; i++) {
@@ -141,7 +158,7 @@ const ENGINE_MAP = { chromium, webkit }
   console.log(`# muya bench driver — C-LARGE-DOC-STAGE-0 T-003 (Phases-B1 step-2.5b successor)`)
   console.log(`URL: ${URL}`)
   console.log(`Fixture: ${fixtureIdentity}`)
-  console.log(`Phases (required): ${PHASES.join(', ')} · runs/engine: ${RUNS} · engines: ${ENGINES.join(', ')}`)
+  console.log(`Phases: ${PHASES.join(', ')} (required: open/typing/scroll · overhead is a diagnostic) · runs/engine: ${RUNS} · engines: ${ENGINES.join(', ')}`)
   console.log(`Node: ${process.version} on ${process.platform}-${process.arch}`)
   console.log(``)
 
@@ -174,6 +191,32 @@ const ENGINE_MAP = { chromium, webkit }
   if (PHASES.includes('open')) phaseTable('Initial render (ms)', (r) => r.initRenderMs)
   if (PHASES.includes('typing')) phaseTable('Typing input→next-paint (ms)', (r) => numeric(r.typingLines, 'p50_ms'))
   if (PHASES.includes('scroll')) phaseTable('Scroll frame interval (ms, p50 of frame deltas)', (r) => numeric(r.scrollLines, 'frame_p50_ms'))
+
+  // Observer overhead is a DIAGNOSTIC, never a required phase: it is
+  // reported in its own table and never folded into the tables above.
+  if (PHASES.includes('overhead')) {
+    console.log(``)
+    console.log(`## Instrumentation overhead (diagnostic — same-run uninstrumented control)`)
+    console.log(``)
+    console.log(`| engine   | instrumented p50 | control p50 | ratio p50 | instrumented p95 | control p95 | ratio p95 |`)
+    console.log(`|----------|------------------|-------------|-----------|------------------|-------------|-----------|`)
+    for (const name of ENGINES) {
+      const lines = perEngine[name].flatMap((r) => r.rawLines.filter((l) => l.includes('[PHASE_OVERHEAD ')))
+      if (!lines.length) {
+        console.log(`| ${name} | — | — | — | — | — | — | MISSING`)
+        continue
+      }
+      const f = (key) => {
+        const v = overheadValue(lines, key)
+        return v === null ? '—' : v.toFixed(1)
+      }
+      const r50 = overheadValue(lines, 'ratio_p50')
+      const r95 = overheadValue(lines, 'ratio_p95')
+      console.log(
+        `| ${name} | ${f('instrumented_p50_ms')} | ${f('control_p50_ms')} | ${r50 === null ? '—' : r50.toFixed(2)}× | ${f('instrumented_p95_ms')} | ${f('control_p95_ms')} | ${r95 === null ? '—' : r95.toFixed(2)}× |`
+      )
+    }
+  }
 
   // Raw per-run lines for evidence trails.
   console.log(``)

@@ -11,14 +11,17 @@
 //   LINKS:   .grace/graph/runtime.xml M-012 (PhaseRef Phase-B1) step-2.5;
 //            .grace/graph/performance.xml M-060 (C-LARGE-DOC-STAGE-0 T-003);
 //            verification V-M-012-VB-08, V-M-060.
-//   STATUS:  C-LARGE-DOC-STAGE-0 T-003 — typing and scroll phases are REAL:
-//            typing injects through document.execCommand('insertText') which
-//            fires the genuine beforeinput/input chain into muya's handler
-//            (inputCtrl inputType=insertText path), measures input→next-paint
-//            per keystroke, and asserts per phase that the Markdown changed
-//            and undo restored the pre-edit value. Direct contentState
-//            mutation is never used here (microbenchmarks live in
-//            tests/renderer/perf).
+//   STATUS:  C-LARGE-DOC-STAGE-0 T-003/T-005 — typing and scroll phases are
+//            REAL: typing injects through document.execCommand('insertText')
+//            which fires the genuine beforeinput/input chain into muya's
+//            handler (inputCtrl inputType=insertText path), measures
+//            input→next-paint per keystroke, and asserts per phase that the
+//            Markdown changed and undo restored the pre-edit value. Direct
+//            contentState mutation is never used here (microbenchmarks live in
+//            tests/renderer/perf). T-005 shares that burst with PHASE_OVERHEAD,
+//            which measures observer overhead against a same-run
+//            uninstrumented control; required phases stay numeric-only — a
+//            SKIPPED/FAILED label in a required run fails the gate.
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-28 B1-step-2.5a: scaffold; PHASE_INIT_RENDER live;
@@ -37,6 +40,9 @@
 //     muya marked Lexer, mount, first_paint); C-68 and C-DOC-CHANGE-JOURNAL
 //     retention recorded as not-applicable for the bench harness (no tab
 //     lifecycle) / the change not being in this tree (R-4 lifecycle rule).
+//   - 2026-10-27 C-LARGE-DOC-STAGE-0 T-005: typingBurst extracted and shared
+//     with the optional PHASE_OVERHEAD diagnostic (instrumented vs
+//     uninstrumented same-run control, truthfulness enforced in both).
 
 import Muya from 'muya/lib'
 import { Lexer } from 'muya/lib/parser/marked'
@@ -209,40 +215,55 @@ async function placeCaretInFirstParagraph(editor) {
   return focusable
 }
 
-async function phaseTyping(editor) {
+// One deterministic typing burst: `count` real insertions through the
+// engine's input pipeline, then undo back to the pre-edit markdown.
+// `instrumented=false` is the same-run uninstrumented control used by
+// PHASE_OVERHEAD (no PerformanceObserver, no lag ticker) — R-5 requires
+// observer overhead to be measured against it, never assumed.
+async function typingBurst(editor, count, instrumented) {
   const mdBefore = editor.getMarkdown()
   const marker = 'zynq' // letters unlikely to collide with fixture pools
-  const focusable = await placeCaretInFirstParagraph(editor)
-  const resp = makeResponsiveness()
+  await placeCaretInFirstParagraph(editor)
+  const resp = instrumented
+    ? makeResponsiveness()
+    : { start () {}, stop () { return 'meter=disabled-control' } }
   resp.start()
 
   const samples = []
-  let insertions = 0
-  for (let i = 0; i < TYPING_SAMPLES; i++) {
+  for (let i = 0; i < count; i++) {
     const ch = marker[i % marker.length]
     const t0 = performance.now()
     const ok = document.execCommand('insertText', false, ch)
     if (!ok) throw new Error('typing: execCommand insertText returned false (engine refused)')
     await nextPaint()
     samples.push(performance.now() - t0)
-    insertions++
     // Keep the caret at the end of the growing paragraph.
     const sel = window.getSelection()
     if (!sel.rangeCount) await placeCaretInFirstParagraph(editor)
   }
   const respSuffix = resp.stop()
-  void focusable
 
   const mdAfter = editor.getMarkdown()
   const changed = mdAfter !== mdBefore && mdAfter.includes(marker[0])
   let restored = false
   let undos = 0
-  while (editor.getMarkdown() !== mdBefore && undos < insertions + 4) {
+  while (editor.getMarkdown() !== mdBefore && undos < count + 4) {
     editor.undo()
     await nextPaint()
     undos++
   }
   restored = editor.getMarkdown() === mdBefore
+
+  return { samples, changed, restored, undos, respSuffix }
+}
+
+async function phaseTyping(editor) {
+  const { samples, changed, restored, undos, respSuffix } = await typingBurst(
+    editor,
+    TYPING_SAMPLES,
+    true
+  )
+  const insertions = samples.length
 
   if (!changed) {
     log(`[PHASE_TYPING FAILED reason=markdown-not-changed insertions=${insertions}]`, 'err')
@@ -256,6 +277,34 @@ async function phaseTyping(editor) {
     `[PHASE_TYPING n=${samples.length} p50_ms=${percentile(samples, 50).toFixed(1)} p95_ms=${percentile(samples, 95).toFixed(1)} max_ms=${Math.max(...samples).toFixed(1)} mean_ms=${(samples.reduce((a, b) => a + b, 0) / samples.length).toFixed(1)} ${respSuffix} truth=ok]`
   )
   log(`[PHASE_MEMORY note=retained-after-edits ${heapMarker('after_edit')} c68_opened_baseline=not-applicable-bench-harness doc_change_journal=not-applicable-change-not-in-tree]`)
+}
+
+// ────────────────────────────────────────────────────────────────
+// Phase 2b — instrumentation overhead (R-5).
+// The SAME page run measures the same typing burst twice: once with the
+// responsiveness observers active and once with them fully off. The delta
+// is observer overhead — reported on its own line and NEVER folded into
+// the baseline numbers. This phase is an optional diagnostic, not one of
+// the required phases.
+// ────────────────────────────────────────────────────────────────
+async function phaseOverhead(editor) {
+  const count = Math.max(12, Math.min(40, TYPING_SAMPLES))
+  const on = await typingBurst(editor, count, true)
+  const off = await typingBurst(editor, count, false)
+  if (!on.changed || !on.restored || !off.changed || !off.restored) {
+    log(
+      `[PHASE_OVERHEAD FAILED reason=truthfulness instrumented_changed=${on.changed} instrumented_restored=${on.restored} control_changed=${off.changed} control_restored=${off.restored}]`,
+      'err'
+    )
+    throw new Error('overhead control truthfulness failed')
+  }
+  const p50on = percentile(on.samples, 50)
+  const p50off = percentile(off.samples, 50)
+  const p95on = percentile(on.samples, 95)
+  const p95off = percentile(off.samples, 95)
+  log(
+    `[PHASE_OVERHEAD n=${count} instrumented_p50_ms=${p50on.toFixed(1)} control_p50_ms=${p50off.toFixed(1)} delta_p50_ms=${(p50on - p50off).toFixed(1)} ratio_p50=${(p50on / p50off).toFixed(2)} instrumented_p95_ms=${p95on.toFixed(1)} control_p95_ms=${p95off.toFixed(1)} ratio_p95=${(p95on / p95off).toFixed(2)} truth=ok note=same-run-uninstrumented-control]`
+  )
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -318,6 +367,7 @@ async function main() {
   }
   try {
     if (PHASES.includes('typing')) await phaseTyping(editor)
+    if (PHASES.includes('overhead')) await phaseOverhead(editor)
     if (PHASES.includes('scroll')) await phaseScroll(editor)
   } catch (err) {
     log(`later phase threw: ${err && err.message}`, 'err')
