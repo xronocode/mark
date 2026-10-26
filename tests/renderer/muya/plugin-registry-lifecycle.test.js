@@ -171,4 +171,21 @@ describe('muya plugin registry lifecycle (C-FILE-POSITION-MEMORY)', () => {
     expect(entries).toHaveLength(1)
     expect(entries[0].options.tag).toBe('second')
   })
+
+  it('a throwing resize teardown is isolated — cleanup still finishes', async () => {
+    const { default: Muya } = await import('muya/lib')
+    await_import_cache.Muya = Muya
+    RESTORE_LEN = Muya.plugins.length
+    const el = mountEl()
+    const muya = new Muya(el, { markdown: '# x\n' })
+    muya.resize.destroy = () => { throw new Error('resize teardown exploded') }
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(() => muya.destroy()).not.toThrow()
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_RESIZE_DESTROY_FAILED'))
+    } finally {
+      warnSpy.mockRestore()
+      el.remove()
+    }
+  })
 })
