@@ -75,3 +75,12 @@ site/node_modules/
 /docs/archive/F-CASK-PUBLISH-HANDOFF.md
 /docs/archive/F-UPDATER-WIRE-PLUGIN-handoff.md
 /docs/grace-ai-standards-hygiene-methodology.md
+
+# C-LARGE-DOC-STAGE-0: non-UTF-8 byte-policy fixtures materialize deterministically from generators
+/tests/e2e/fixtures/large-doc/byte-policy/utf16le-bom.md
+/tests/e2e/fixtures/large-doc/byte-policy/utf16be-bom.md
+/tests/e2e/fixtures/large-doc/byte-policy/latin1.md
+/tests/e2e/fixtures/large-doc/byte-policy/koi8-r.md
+/tests/e2e/fixtures/large-doc/byte-policy/cp1251.md
+/tests/e2e/fixtures/large-doc/byte-policy/shift-jis.md
+/tests/e2e/fixtures/large-doc/byte-policy/gb2312.md
