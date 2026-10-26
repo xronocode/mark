@@ -66,7 +66,7 @@ reload picks the verdict up):
 | FIX-016 | reviewed | — | accepted 2026-10-21 |
 | DEPS-FOLLOW-REDIRECTS | reviewed | — | accepted 2026-10-21 |
 | FIX-013 | owner-verdict | Tooling-only change with no product behavior; acceptance evidence is the suite result (Node 25 polygon green without env overrides; Node 22 byte-identical args). Owner may accept by review. | accepted 2026-10-22 |
-| FIX-014 | owner-verdict | Windows artifact required; polygon (the Windows test laptop) offline 2026-10-21 (ping 100% loss). Owner options: (a) polygon online -> NSIS from the branch via the standard procedure; (b) accept on the pixel-measured amendment-5 crops of polygon rebuild 8 already reviewed. | accepted 2026-10-22 |
+| FIX-014 | owner-verdict | Windows artifact required; polygon (kari) offline 2026-10-21 (ping 100% loss). Owner options: (a) polygon online -> NSIS from the branch via the standard procedure; (b) accept on the pixel-measured amendment-5 crops of polygon rebuild 8 already reviewed. | accepted 2026-10-22 |
 | FIX-009 | owner-verdict | mark-test-fix009-7057d645 | 7 scenarios offered to the owner (3 cold-start incl. the P1 frozen-restore case, 4 current-run recovery); per-item verdicts pending. |
 | C-SELF-CONTAINED-HTML-EXPORT | reviewed | No isolated test artifact was built: the owner accepted on the in-session automated evidence (unit/component/e2e matrix above); a live manual export on macOS was not performed by the owner. | accepted 2026-10-22 |
 | C-MULTI-SOURCE-WORKSPACE | owner-verdict | mark-test-msw-ab3367c2 | pending |
