@@ -64,7 +64,9 @@ safety directory:
 The file stays outside the repository and must be mode `0600`. The local
 reviewer must be loopback; the non-local reviewer must resolve to loopback,
 RFC 1918, the CGNAT shared range, `.local` or `*.ts.net`, so candidate bytes are
-never sent to a public address.
+never sent to a public address. Wake the non-local host's Ollama service before
+a commit or push (on kari: `Start-ScheduledTask -TaskName OllamaServe`); the
+gate fails closed while it is asleep.
 
 `MARK_SAFETY_OVERRIDE="<reason>"` skips only the two model reviewers, after the
 deterministic checks and Gitleaks have passed for the exact candidate identity.
