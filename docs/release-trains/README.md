@@ -10,7 +10,7 @@ Current train: [2.9.x-next](2.9.x-next.md), collecting the next minor after v2.8
 
 These rules govern how trains run — collection, admission, dispatch, acceptance and release. Where older automation text in this file disagrees, the rules win.
 
-1. **The train always waits.** No timer and no automatic publication dispatches a train. The only way a train departs is an explicit owner instruction (“send it”). The timer-default publication after a no-veto window (C-RELEASE-TIMING, commit `da13980e`) is repealed by this protocol; the CI change that removes it lands separately. Publication is manual-only.
+1. **The train always waits.** No timer and no automatic publication dispatches a train. The only way a train departs is an explicit owner instruction (“send it”). The timer-default publication after a no-veto window (C-RELEASE-TIMING, commit `da13980e`) was repealed by C-RELEASE-MANUAL-PUBLISH. Publication is manual-only.
 2. **Version is negotiated, never defaulted.** A collecting train carries no version — like today's 2.9.x-next, target unassigned. The version is decided in an owner discussion immediately before dispatch; SemVer is one option in that discussion, not an automatic choice, and nothing derives a version from PR titles or commit conventions. The tag follows only after the owner confirms the version.
 3. **Admission is explicit and open to any mergeable PR.** Any PR that is mergeable with green CI can be laid into the current collecting train, by anyone — owner, PR author or agent. Admission is a separate `chore(train)` commit recording the PR in the train manifest, exactly like today. A non-mergeable PR is not admitted; it waits.
 4. **Every admission carries a testing protocol.** The train-manifest entry for each admitted PR contains a testing protocol: what was run automatically (test suites, e2e, with results), what was verified manually before admission (scenarios, date, build), and what was intentionally not verified and why. An admission without a protocol is invalid.
@@ -79,7 +79,7 @@ Conveyor note 2026-10-24 (C-RELEASE-CONVEYOR): the 2.8.1 cycle needed 15 bookkee
 
 After a Ready seal is merged, `release/promote` derives the tag and seal from the checked-out repository. The `release-authorize` Environment is the explicit owner release instruction. A purpose-specific GitHub App creates one annotated tag at that seal; reruns are no-op only for the same peeled target. The tag workflow rejects another actor, a lightweight/wrong-target tag, stale checks or a non-Ready train before signing. Manual dispatch is always unsigned build-only.
 
-Production signing uses only the tag-restricted `release-signing` Environment. Publication is manual-only (rule 1): it begins solely from the owner's explicit instruction — the `release-authorize` approval that created the tag — and no timer or default ever publishes on its own. The timer-default publication after a bounded no-veto window (C-RELEASE-TIMING, commit `da13980e`, 2026-10-24) is repealed by this protocol; the CI change that removes the window lands separately. Once instructed, publication creates or resumes a draft, compares every existing asset byte-for-byte, verifies the asset digest inventory, `latest.json` and reviewed notes, and changes `draft=false` only as its final mutation. Automation never clobbers a published asset or retargets/deletes a published tag. With immutable releases enabled, a post-publication text correction uses GitHub's allowed notes-only edit path; binaries and tags require a new release.
+Production signing uses only the tag-restricted `release-signing` Environment. Publication is manual-only (rule 1): the `release-authorize` approval that created the tag is the release instruction, and the tag run then waits for the owner's synchronous `release` Environment approval before it publishes. No timer or default ever publishes on its own; the timer-default window after a bounded no-veto silence (C-RELEASE-TIMING, commit `da13980e`, 2026-10-24) was repealed by C-RELEASE-MANUAL-PUBLISH. Once approved, publication creates or resumes a draft, compares every existing asset byte-for-byte, verifies the asset digest inventory, `latest.json` and reviewed notes, and changes `draft=false` only as its final mutation. Automation never clobbers a published asset or retargets/deletes a published tag. With immutable releases enabled, a post-publication text correction uses GitHub's allowed notes-only edit path; binaries and tags require a new release.
 
 ## Recovery matrix
 
@@ -88,7 +88,7 @@ Production signing uses only the tag-restricted `release-signing` Environment. P
 | Release-preparation PR fails or is closed | Fix or regenerate the PR. No tag exists; return to Preparing or Collecting. |
 | Preparation merges but no seal/tag exists | Reconcile the exact diff, acceptance and materials; create a new metadata-only seal only after the payload is stable. |
 | Payload/check/screenshot evidence is stale | Return to Collecting, clear readiness evidence, rebuild the payload and obtain fresh affected acceptance. |
-| `release-authorize` or signing approval is rejected/times out | Record the failed attempt and retry the same unchanged seal later; do not mark Aborted automatically. |
+| `release-authorize`, `release` or signing approval is rejected/times out | Record the failed attempt and retry the same unchanged seal later; do not mark Aborted automatically. |
 | A publication run is cancelled or fails part-way | Publication never restarts on its own. Artifacts stay retained (30 days); record the stopped attempt and re-run the release later from the same tag on a new owner instruction, or retire the train explicitly. |
 | Project sync lacks scope or GitHub Projects is unavailable | Keep the repository manifest authoritative, report non-required mirror drift and retry the one-way sync. |
 | GitHub control apply stops part-way | Stop on the first mismatch, retain the external snapshot and append-only journal, then use the owner-local reverse-order rollback or resume after read-back. Never copy Environment secret values. |
@@ -141,7 +141,7 @@ Template for an item:
 - Owner acceptance: verdicts in the train's acceptance protocol — date and precise scope.
 - Train / state / remaining gates:
 - Release note draft:
-- History: dated status changes; the `release-authorize` approval is the release authorization, and publication follows only the owner's explicit instruction — never a timer.
+- History: dated status changes; the `release-authorize` approval is the release authorization and the `release` approval publishes — never a timer.
 ```
 
 ## Release pages before v2.8.2
