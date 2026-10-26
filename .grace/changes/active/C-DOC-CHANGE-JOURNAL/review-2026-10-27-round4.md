@@ -75,3 +75,44 @@ The bundle stays `draft`. Four decisions remain before another wording pass is w
 the landing representation, the heading alignment, the per-type block serialization, and the
 boundary protocol. Until those are settled, each review round will keep finding the same
 class of defect one level deeper.
+
+## Second round-4 pass (independent)
+
+A second reviewer reached the same conclusion by a different route and added:
+
+- **The alignment cannot produce a changed block at all.** With phase 2 defined as an
+  LCS over normalised text, a block edited in place (`alpha beta` -> `alpha gamma`, or one
+  table cell) matches nothing: the rule yields delete + insert, while the contract demands
+  one changed block with fine detail inside it. The pairing step for unmatched runs is
+  missing, "normalised" is never defined, and nothing in the algorithm can emit the
+  cross-scope "move" the contract promises.
+- **Heading identity is two different indexes.** The scope is "text plus occurrence index
+  among same-text siblings", while matching is "parent scope and index among siblings with
+  the text excluded". Renaming one of two identical headings renumbers the survivor;
+  inserting a heading renumbers every later sibling. Neither reading satisfies the stated
+  invariants.
+- **`actor.kind` is undefined for the checkpoint.** A pre-reload checkpoint copies the
+  buffer, whose author may be the user or a prior external landing, while its cause is an
+  external write. The acceptance demands "the right actor.kind" without saying which.
+- **The lexer cannot supply one token per anchor.** It also emits `space`, `multiplemath`,
+  `footnote_start/end`, `heading` with `depth`, `list_start/list_end`,
+  `list_item_start`/`loose_item_start`, `text` and `toc`, moves footnote tokens to the end
+  of the stream, and a table token carries no `text` field. Containers, drops, list-item
+  assembly and footnote order all need rules the spec does not contain.
+- **The lexer options have no values**, while the app passes the user's `footnote`,
+  `superSubScript`, `isGitlabCompatibilityEnabled` and `disableInline: true`, and `math`
+  and `emoji` change the stream too.
+- **The migration drops the caller-supplied clock.** `recordSnapshot` and
+  `recordOpenedSnapshot` take a third `now` argument that the suites use to pin `takenAt`
+  (the diff header prints it); a journal stamping `Date.now()` internally fails them, so
+  R-5 must say the argument survives and that ring dedupe keeps the earlier timestamp.
+- **One new design-context error:** the generation guard is described as preceding the
+  disk read, while in code it follows it — and that ordering is exactly what the batch
+  recorder must sit behind.
+- The command still omits `tests/e2e/open-file-timing.spec.ts`, the only command behind
+  V-M-025, and the bundle's own privacy gate.
+- The repair-fork contradiction survives: the spec records it both as decided and as open.
+
+Both passes agree on what holds: the class split, ring-only dedupe, synchronous append,
+the projection shapes and exports, tab-id identity, clearing from both close paths, the
+call-site inventory, the live-defect reading and `Diff_Timeout` 0.
