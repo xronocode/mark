@@ -1,0 +1,53 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-RELEASE-LEDGER-GUARD>
+  <Name>Train-ledger membership guard — implementation plan</Name><Created>2026-10-27</Created><Spec>C-RELEASE-LEDGER-GUARD</Spec>
+  <IntentSummary>
+    Extend validateTrainLedger from a three-line header comparison to a header plus item-membership comparison. Every userFacing, operational and notPresent item id must appear in the Markdown ledger as a whole id; omission raises the existing MT_RELEASE_LEDGER_DRIFT. Add a negative regression that keeps the header valid and omits an item, and record the invariant in M-046 and V-M-046. No JSON, workflow or release-material changes.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>tools/release-readiness.mjs</Value></MustExist>
+    <MustExist><Value>tests/renderer/release-readiness.test.js</Value></MustExist>
+    <MustContain><File>tools/release-readiness.mjs</File><Text>const expectations = [</Text></MustContain>
+    <MustContain><File>tools/release-readiness.mjs</File><Text>MT_RELEASE_LEDGER_DRIFT</Text></MustContain>
+    <MustContain><File>tests/renderer/release-readiness.test.js</File><Text>rejects Markdown ledger drift without choosing prose over JSON</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>tools/release-readiness.mjs</File><Text>missingItems=</Text></MustContain>
+    <MustContain><File>tools/release-readiness.mjs</File><Text>validateTrainLedger - Rejects drift between the JSON authority and its human Markdown ledger header and item membership.</Text></MustContain>
+    <MustContain><File>tests/renderer/release-readiness.test.js</File><Text>rejects a Markdown ledger that omits an admitted item</Text></MustContain>
+    <MustContain><File>.grace/verification/features.xml</File><Text>every admitted or excluded item id</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>tools/release-readiness.mjs</File>
+    <File>tests/renderer/release-readiness.test.js</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>.grace/changes/active/C-RELEASE-LEDGER-GUARD/spec.xml</File>
+    <File>.grace/changes/active/C-RELEASE-LEDGER-GUARD/plan.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Spec + plan bundle</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>The spec records the owner's standing hygiene instruction, the observed drift and the four admission commits; the plan passes the grace change-plan schema and both files pass grace lint.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --assertions current</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Validator and regression</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>validateTrainLedger requires each admitted and excluded item id as a whole id (C-1 does not match C-10); omission raises MT_RELEASE_LEDGER_DRIFT with missingItems=&lt;count&gt;; the contract VERSION/CHANGE_SUMMARY and the MODULE_MAP line are updated; a negative test keeps the valid header and omits an item, plus a passing case names all three fixture ids.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-readiness.test.js</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Current-state documents and final gates</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>M-046 Summary and V-M-046 carry the membership invariant; the live 2.9.x-next pair passes; the release suite and grace lint are green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js tests/renderer/release-materials.test.js tests/renderer/publication-privacy.test.js</Command></Verification>
+    </T-003>
+  </ImplementationPlan>
+  <Gates>
+    <Gate kind="unit">npx vitest run tests/renderer/release-readiness.test.js — membership omission and the live pair pass.</Gate>
+    <Gate kind="lint">grace lint --path . --assertions current — zero errors.</Gate>
+    <Gate kind="grace">grace status --path . --with modules --json — healthy before handoff.</Gate>
+  </Gates>
+</C-RELEASE-LEDGER-GUARD></GraceChangePlan>

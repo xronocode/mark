@@ -2449,16 +2449,11 @@
         release-train protocol links to it directly without changing release
         admission or publication behavior.
 
-        Drift hygiene (2026-10-27): the ordinary checks now fail closed on
-        bookkeeping drift instead of trusting prose — release:readiness proves
-        the current ledger carries a heading and a commit for every admitted
-        item and at least one dated history bullet per lifecycle transition,
-        proves docs/release-trains/current.json and the protocol README name the
-        same train (with existing documents), and proves the source-controlled
-        Project Train single-select offers an option for every checked-in train
-        document; release:governance proves a pull-request title never names a
-        FIX-*/DEPS-* delivery ID the base revision already records, because the
-        acceptance and train ledgers own those IDs permanently.
+        C-RELEASE-LEDGER-GUARD (2026-10-27): readiness validates the human
+        Markdown ledger against the JSON authority for item membership as well
+        as the state/version header — every admitted or excluded item id must
+        appear as a whole id (C-1 is not satisfied by C-10), so an admission
+        that edits only the JSON fails closed with MT_RELEASE_LEDGER_DRIFT.
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,

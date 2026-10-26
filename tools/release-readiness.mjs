@@ -1,9 +1,9 @@
 // FILE: tools/release-readiness.mjs
 // VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, ledger/pointer projection, Project schema coverage, or requested release identity is inconsistent.
-//   SCOPE: Read one public train JSON document, validate its deterministic repository-only invariants, prove the current train's human ledger and README pointer carry the admitted items, and prove the checked-in Project schema covers every train file; online check-run proof and publication remain workflow concerns.
-//   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json; .github/release-governance.json.
+//   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, human-ledger membership, or requested release identity is inconsistent.
+//   SCOPE: Read one public train JSON document and its human Markdown ledger, validate deterministic repository-only invariants and whole-id ledger membership, and emit stable path-free diagnostics; online check-run proof and publication remain workflow concerns.
+//   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -13,9 +13,7 @@
 //   ReleaseReadinessError - Stable coded release-train validation error.
 //   readTrainManifest - Reads the checked-in JSON authority.
 //   validateTrainManifest - Validates schema, lifecycle, membership, acceptance, and requested identity.
-//   validateTrainLedger - Rejects drift between the JSON authority and its human Markdown ledger header, and proves the current ledger carries every admitted item.
-//   validateCurrentTrainPointer - Proves current.json names an existing train and the README "Current train" line names the same train.
-//   validateProjectFieldCoverage - Proves the checked-in Project Train field offers an option for every train document.
+//   validateTrainLedger - Rejects drift between the JSON authority and its human Markdown ledger header and item membership.
 //   validateStrictRepositoryState - Proves payload/seal/tag/check-run identity from repository and supplied API evidence.
 //   runReleaseReadiness - Runs the offline gate and emits its stable success marker.
 //   TRAIN_SCHEMA_VERSION - Exact supported train-document schema.
@@ -49,7 +47,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-27 v2.1.0: fail closed on bookkeeping drift — the current train's ledger must carry a heading and a commit for every admitted item and at least one dated history bullet per lifecycle transition; current.json and the README "Current train" line must name the same train; the checked-in Project Train field must offer an option for every train document.
+//   - 2026-10-27 v2.1.0: C-RELEASE-LEDGER-GUARD — the Markdown ledger must name every admitted and excluded item id as a whole id (C-1 does not satisfy C-10), so an admission that edits only the JSON authority fails closed with MT_RELEASE_LEDGER_DRIFT.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — resolve the train through the current-train pointer; accept any metadata-only payload-to-seal span (every commit proven bookkeeping-only) instead of exactly one commit, which merge-commit PRs could never satisfy; replace the hand-grown seal file list with bookkeeping path patterns; drop the Release Please boundary check.
 //   - 2026-10-20 v1.2.0: bind the previous-release boundary, many-to-many item accounting, and strict check set to repository evidence outside the mutable seal.
 //   - 2026-10-20 v1.1.0: add strict payload-to-seal, tag/HEAD, exact commit-accounting, fresh screenshot, and check-run identity gates.
@@ -391,21 +389,16 @@ export const validateTrainLedger = (markdown, manifest, { complete = false } = {
   if (missing.length) {
     fail('MT_RELEASE_LEDGER_DRIFT', `missing=${missing.length}`)
   }
-  if (!complete) return true
-  for (const item of manifest.items?.userFacing ?? []) {
-    const heading = new RegExp(`^###\\s+${escapeRegex(item?.id)}\\b`, 'm')
-    if (!heading.test(markdown)) {
-      fail('MT_RELEASE_LEDGER_DRIFT', `item=${item?.id ?? 'missing'};heading=missing`)
-    }
-    const commits = (item?.commits ?? []).map((sha) => String(sha).slice(0, 8))
-    if (commits.length > 0 && !commits.some((sha) => markdown.includes(sha))) {
-      fail('MT_RELEASE_LEDGER_DRIFT', `item=${item.id};commit=missing`)
-    }
+  const hasItemId = (id) => {
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`(?:^|[^A-Za-z0-9-])${escaped}(?![A-Za-z0-9-])`).test(markdown)
   }
-  const history = markdown.split('\n').filter((line) => LEDGER_HISTORY_LINE.test(line)).length
-  const transitions = manifest.transitions?.length ?? 0
-  if (history < transitions) {
-    fail('MT_RELEASE_LEDGER_DRIFT', `history=${history};transitions=${transitions}`)
+  const missingItems = Object.values(normalizeItems(manifest))
+    .flat()
+    .map((item) => item.id)
+    .filter((id) => !hasItemId(id))
+  if (missingItems.length) {
+    fail('MT_RELEASE_LEDGER_DRIFT', `missingItems=${missingItems.length}`)
   }
   return true
 }

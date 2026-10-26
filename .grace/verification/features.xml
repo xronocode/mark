@@ -2478,7 +2478,10 @@
           a seal equal to the payload; promotion binds to a seal that is an
           ancestor of main; release-bearing merges are held only while
           Preparing or Frozen; material suites derive the version from the
-          repository; publication proves releases/latest advanced. Pinned by
+          repository; publication proves releases/latest advanced. The human
+          Markdown ledger must also name every admitted or excluded item id as
+          a whole id; an admission that edits only the JSON fails closed with
+          MT_RELEASE_LEDGER_DRIFT. Pinned by
           tests/renderer/release-{train,readiness,normalize,governance,
           materials,github-controls}.test.js.
         </Scenario>

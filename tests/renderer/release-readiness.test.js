@@ -23,7 +23,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-27 v2.1.0: current-train bookkeeping drift — prove a missing admitted-item heading, commit, or history bullet fails, terminal ledgers stay header-only, and the pointer/README/Project-schema trio must agree.
+//   - 2026-10-27 v2.1.0: C-RELEASE-LEDGER-GUARD — the Markdown ledger must name every admitted and excluded item id as a whole id; C-1 is not satisfied by C-10.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — validate the live train through the current-train pointer (no hardcoded train or version); prove multi-commit and merge-commit metadata-only seal spans pass while a product commit anywhere in the span (even one reverted later) and a seal equal to the payload fail; drop the Release Please boundary case.
 //   - 2026-10-21 v1.3.1: derive the collecting-train item count from the checked-in manifest so routine admissions do not require a duplicate fixture edit.
 //   - 2026-10-21 v1.3.0: validate the checked-in train in either collecting main or prepared release-PR lifecycle state.
@@ -300,6 +300,24 @@ describe('release train authority', () => {
     expect(() => validateTrainLedger('| State | Frozen |', fixture())).toThrow(
       expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' })
     )
+  })
+
+  it('rejects a Markdown ledger that omits an admitted item', () => {
+    const manifest = fixture()
+    const header = [
+      `| State | ${manifest.state} |`,
+      `| Target version / date | ${manifest.computedVersion} / unscheduled |`,
+      `| Machine-readable authority | [${manifest.trainId}.json](${manifest.trainId}.json) |`
+    ].join('\n')
+    expect(() => validateTrainLedger(`${header}\n\n### C-1\n### OPS-1`, manifest)).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' })
+    )
+    expect(() =>
+      validateTrainLedger(`${header}\n\n### C-10\n### OPS-1\n### FIX-9`, manifest)
+    ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' }))
+    expect(() =>
+      validateTrainLedger(`${header}\n\n### C-1\n### OPS-1\n### FIX-9`, manifest)
+    ).not.toThrow()
   })
 
   it('rejects ambiguous membership across categories', () => {

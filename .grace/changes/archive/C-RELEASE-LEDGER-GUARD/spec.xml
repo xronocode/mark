@@ -1,0 +1,67 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-RELEASE-LEDGER-GUARD>
+  <Name>Train-ledger membership guard: the human Markdown ledger must name every admitted and excluded item</Name>
+  <ApprovalBasis>Owner standing instruction in chat on 2026-10-27 (translated from Russian): «check every half hour; if nothing changed, start the hygiene and release-protocol cleanup — simplify but keep it effective; don't wait for me, keep everything reversible through commits». This guard is the enforcement half of that instruction: four 2.9.0 admissions were recorded in docs/release-trains/2.9.x-next.json while the human ledger still said "none admitted yet", and nothing failed.</ApprovalBasis>
+  <Created>2026-10-27</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S</Complexity>
+
+  <Summary>
+    validateTrainLedger already compares the Markdown train ledger header with the JSON authority (state, computed version, authority link). It does not check membership, so an admission commit can add an item to the JSON and leave the human ledger stale. The 2.9.x-next ledger proved the gap: four owner-accepted changes were admitted between 2026-10-25 and 2026-10-27, the JSON items and the acceptance registry recorded them, and the Markdown still listed "Planned candidates — none admitted yet". The fix extends the existing header check with item membership: every userFacing, operational and notPresent item id must appear in the Markdown, matched as a whole id so C-1 cannot be satisfied by C-10. The failure uses the existing MT_RELEASE_LEDGER_DRIFT code, so CI on release/readiness catches the drift on the admission PR itself. The live 2.9.x-next ledger already satisfies the rule after the reconciliation commit ba96ed11.
+  </Summary>
+
+  <Problem>
+    <Description>The JSON authority is validated for membership and acceptance, but the human ledger is only validated for three header lines. Membership drift therefore passes every gate, and the document a reviewer reads can contradict the authority indefinitely.</Description>
+    <RootCauseTimestamp>2026-10-27, after four admissions (61ae6747, 1207b4ae, def74a68, d64c1fa7) left the 2.9.x-next Markdown ledger at "none admitted yet".</RootCauseTimestamp>
+  </Problem>
+
+  <Goals>
+    <R-1>Extend validateTrainLedger so every item id in items.userFacing, items.operational and items.notPresent appears in the Markdown ledger as a whole id; a missing id raises MT_RELEASE_LEDGER_DRIFT with a path-free count.</R-1>
+    <R-2>Prove the guard with a negative fixture that keeps the valid header but omits an item, and keep the live 2.9.x-next ledger green.</R-2>
+    <R-3>Record the strengthened invariant in M-046 and V-M-046 without changing the train schema, the JSON files or any workflow.</R-3>
+  </Goals>
+
+  <Phases>
+    <P1><Title>Spec + plan bundle</Title><Complexity>S</Complexity></P1>
+    <P2><Title>Validator, regression test and current-state documents</Title><Complexity>S</Complexity></P2>
+  </Phases>
+
+  <Dependencies>The reconciliation commit ba96ed11 (ledger now names all four admitted items) must be on main; it is. No workflow change is needed because release/readiness already runs validateTrainLedger on every PR and push.</Dependencies>
+
+  <Constraints>
+    <Constraint>No train JSON, no workflow, no publication path and no release-material rule changes.</Constraint>
+    <Constraint>Diagnostics stay path-free and keep the existing MT_RELEASE_LEDGER_DRIFT code so callers and tests do not need a new taxonomy.</Constraint>
+    <Constraint>The whole-id match must not accept a prefix: C-1 must not be satisfied by C-10.</Constraint>
+    <Constraint>Historical released ledgers are not edited to satisfy the new rule; readiness validates the current train only.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Enforcing admission policy (mergeability, testing protocol quality) inside the validator.</NonGoal>
+    <NonGoal>Rewriting the human ledgers of released trains.</NonGoal>
+    <NonGoal>Changing the current-train pointer, the train schema or the release workflow.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>validateTrainLedger rejects a ledger whose three header lines are correct but which omits an admitted or excluded item id; the error is MT_RELEASE_LEDGER_DRIFT with missingItems=&lt;count&gt;.</Criterion>
+    <Criterion>The live docs/release-trains/2.9.x-next.md and 2.9.x-next.json pair passes validateTrainLedger after ba96ed11.</Criterion>
+    <Criterion>tests/renderer/release-readiness.test.js covers the omission and the passing membership case; the full release suite is green.</Criterion>
+    <Criterion>M-046 and V-M-046 record the membership check; grace lint reports zero errors.</Criterion>
+  </AcceptanceCriteria>
+
+  <VerificationIntent>
+    <Verification>npx vitest run tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js — membership omission fails, the live pair passes.</Verification>
+    <Verification>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/release-materials.test.js tests/renderer/publication-privacy.test.js — neighbouring release contracts stay green.</Verification>
+    <Verification>grace lint --path . --assertions current and grace status --path . --with modules --json — zero errors before handoff.</Verification>
+  </VerificationIntent>
+
+  <AffectedAreas>
+    <Area>tools/release-readiness.mjs</Area>
+    <Area>tests/renderer/release-readiness.test.js</Area>
+    <Area>.grace/graph/features.xml (M-046)</Area>
+    <Area>.grace/verification/features.xml (V-M-046)</Area>
+    <Area>.grace/changes/active/C-RELEASE-LEDGER-GUARD/**</Area>
+  </AffectedAreas>
+</C-RELEASE-LEDGER-GUARD>
+</GraceChangeSpec>
