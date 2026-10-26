@@ -87,6 +87,10 @@
   --floatHoverColor: #3a3f4b;
   --floatBorderColor: #181a1f;
   --floatShadow: rgba(0, 0, 0, 0.3);
+  --notifyInfo: #82A9F7;
+  --notifySuccess: #6BCB90;
+  --notifyWarning: #F5A83C;
+  --notifyError: #F87A72;
   --maskColor: rgba(0, 0, 0, .7);
   --editorAreaWidth: 750px;
 }

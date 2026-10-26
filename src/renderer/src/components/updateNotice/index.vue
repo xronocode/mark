@@ -1,56 +1,46 @@
 <!--
 // FILE: src/renderer/src/components/updateNotice/index.vue
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-66 non-modal corner notice — «Mark X.Y.Z is available»
-//            with Update / Later / Skip this version, shown at most once
-//            per launch by the automatic update check.
-//   SCOPE: Rendering the useAutoUpdatesStore notice state and dispatching
-//          its three actions. No checking, timing or persistence lives
-//          here; visibility is store-owned so boot races can never flash
-//          an empty notice.
-//   DEPENDS: store/autoUpdates (notice + actions), i18n t.
-//   LINKS: .grace/changes/archive/C-66/spec.xml R-2;
-//          pages/app.vue mounts it next to the zoom indicator;
-//          commands/index.js installSignedUpdate (via INSTALL_UPDATE).
+//   PURPOSE: C-66 non-modal «Mark X.Y.Z is available» notice — Update /
+//            Later / Skip this version, shown at most once per launch by
+//            the automatic update check; since C-NOTIFICATION-SYSTEM it
+//            renders through the shared notification card inside the common
+//            stack instead of its own fixed-position element.
+//   SCOPE: Watching the useAutoUpdatesStore notice visibility and injecting
+//            or removing a sticky info entry (dedupKey 'update-notice') in
+//            the notifications store; dispatching its three actions. No
+//            checking, timing or persistence lives here; visibility is
+//            store-owned so boot races can never flash an empty notice
+//            (C-66 semantics frozen, corner C-8).
+//   DEPENDS: store/autoUpdates (notice + actions), store/notifications
+//            (NOTIFY/DISMISS), i18n t.
+//   LINKS: .grace/changes/archive/C-66/spec.xml R-2 (semantic owner);
+//          .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-7, T-005;
+//          components/notificationCard (renders the entry);
+//          pages/app.vue mounts it beside the stack.
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-19 C-66 T-002: initial component —
-//   bottom-right toast over the theme's CSS variables (float/editor/
-//   button tokens, same family as the What's New sheet), role=status so
-//   it is announced without stealing focus, and three buttons wired to
-//   INSTALL_UPDATE / DISMISS_NOTICE / SKIP_VERSION.
+//   LAST_CHANGE: v2.0.0 - 2026-10-23 C-NOTIFICATION-SYSTEM T-005: the
+//   notice renders as a sticky info card (Update primary / Later normal /
+//   Skip quiet) injected into the shared stack — no separate fixed
+//   positioning remains; INSTALL_UPDATE / DISMISS_NOTICE / SKIP_VERSION
+//   dispatch identically and once-per-launch gating is untouched.
+//   v1.0.0 - 2026-10-19 C-66 T-002: initial component (own fixed card).
 // END_CHANGE_SUMMARY
 -->
 <template>
-  <div
-    v-if="notice.visible"
-    class="ag-update-notice"
-    role="status"
-    aria-live="polite"
-    :aria-label="t('updateNotice.title', { version: notice.version })"
-  >
-    <span class="notice-title">{{ t('updateNotice.title', { version: notice.version }) }}</span>
-    <div class="notice-actions">
-      <button class="notice-button notice-button-primary" type="button" @click="onUpdate">
-        {{ t('updateNotice.update') }}
-      </button>
-      <button class="notice-button" type="button" @click="onLater">
-        {{ t('updateNotice.later') }}
-      </button>
-      <button class="notice-button notice-button-quiet" type="button" @click="onSkip">
-        {{ t('updateNotice.skip') }}
-      </button>
-    </div>
-  </div>
+  <span aria-hidden="true" style="display: none"></span>
 </template>
 
 <script setup>
+import { watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAutoUpdatesStore } from '@/store/autoUpdates'
+import { useNotificationsStore } from '@/store/notifications'
 import { t } from '@/i18n'
 
 const store = useAutoUpdatesStore()
@@ -58,11 +48,15 @@ const store = useAutoUpdatesStore()
 // whole notice object when queueing, and a destructured plain object
 // would keep pointing at the previous one.
 const { notice } = storeToRefs(store)
+const notifications = useNotificationsStore()
+
+let entryId = null
 
 // START_BLOCK_NOTICE_ACTIONS
 // Thin dispatchers: every decision (hiding, persisting the skip, running
 // the signed install) is a store action so the unit pins live beside the
-// gate table, not in DOM glue.
+// gate table, not in DOM glue. onDismiss maps body-click/Esc dismissal to
+// the Later semantics (DISMISS_NOTICE) — the entry never dies silently.
 const onUpdate = () => {
   store.INSTALL_UPDATE()
 }
@@ -73,79 +67,34 @@ const onSkip = () => {
   store.SKIP_VERSION()
 }
 // END_BLOCK_NOTICE_ACTIONS
+
+// START_BLOCK_NOTICE_STACK_SYNC
+// Inject/remove the shared-card entry with the store-owned visibility —
+// the C-66 boot-race guarantee carries over unchanged (corner C-8).
+watch(
+  () => notice.value.visible,
+  (visible) => {
+    if (visible && entryId === null) {
+      entryId = notifications.NOTIFY({
+        severity: 'info',
+        source: 'update',
+        sticky: true,
+        dedupKey: 'update-notice',
+        title: t('updateNotice.title', { version: notice.value.version }),
+        message: '',
+        actions: [
+          { label: t('updateNotice.update'), style: 'primary', handler: onUpdate },
+          { label: t('updateNotice.later'), handler: onLater },
+          { label: t('updateNotice.skip'), style: 'quiet', handler: onSkip }
+        ],
+        onDismiss: onLater
+      })
+    } else if (!visible && entryId !== null) {
+      notifications.DISMISS(entryId)
+      entryId = null
+    }
+  },
+  { immediate: true }
+)
+// END_BLOCK_NOTICE_STACK_SYNC
 </script>
-
-<style scoped>
-/* Theme tokens only (AGENTS design rule) — Paper, Ink and every other
-   theme supply these variables, so the toast follows light and dark. */
-.ag-update-notice {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 900; /* under modal scrims (1000): a sheet opening stays on top */
-  max-width: 320px;
-  display: grid;
-  gap: 12px;
-  padding: 16px 18px;
-  border-radius: 12px;
-  background: var(--floatBgColor, #fff);
-  color: var(--floatFontColor, inherit);
-  box-shadow: 0 18px 40px -14px var(--floatShadow, rgba(0, 0, 0, 0.4)),
-    0 0 0 1px var(--floatBorderColor, rgba(0, 0, 0, 0.1));
-}
-
-.ag-update-notice .notice-title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--editorColor, inherit);
-}
-
-.ag-update-notice .notice-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.ag-update-notice .notice-button {
-  height: 28px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 7px;
-  background: var(--inputBgColor, rgba(128, 128, 128, 0.12));
-  color: var(--editorColor, inherit);
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.ag-update-notice .notice-button:hover {
-  background: var(--inputBgColor, rgba(128, 128, 128, 0.18));
-  filter: brightness(0.97);
-}
-
-.ag-update-notice .notice-button-primary {
-  background: var(--buttonPrimaryBgColor, #333);
-  color: var(--buttonPrimaryFontColor, #fff);
-}
-
-.ag-update-notice .notice-button-primary:hover {
-  background: var(--buttonPrimaryBgColorHover, #222);
-  filter: none;
-}
-
-.ag-update-notice .notice-button-quiet {
-  background: none;
-  color: var(--editorColor50, rgba(0, 0, 0, 0.5));
-  text-decoration: underline;
-  text-decoration-color: var(--highlightColor, currentColor);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 3px;
-}
-
-.ag-update-notice .notice-button:focus-visible {
-  outline: 2px solid var(--focusColor, currentColor);
-  outline-offset: 2px;
-}
-</style>

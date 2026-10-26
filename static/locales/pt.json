@@ -315,7 +315,8 @@
       "textDirection": "Direção do Texto",
       "statusBar": "Mostrar ou ocultar a barra de status",
       "toggleTabbar": "Alternar Barra de Abas",
-      "reloadImages": "Recarregar Imagens"
+      "reloadImages": "Recarregar Imagens",
+      "notificationsHistory": "Notificações: mostrar recentes"
     },
     "utils": {
       "noUpdateResourceFile": "Nenhum arquivo de recurso de atualização",
@@ -1231,7 +1232,28 @@
   },
   "notifications": {
     "defaultMessage": "Mensagem padrão",
-    "defaultTitle": "Notificação"
+    "defaultTitle": "Notificação",
+    "close": "Fechar",
+    "more": "Mais {n} notificação | Mais {n} notificações",
+    "source": {
+      "file": "Arquivos",
+      "export": "Exportação",
+      "project": "Projeto",
+      "update": "Atualização",
+      "agent": "Agente",
+      "system": "Sistema"
+    },
+    "actions": {
+      "copy": "Copiar",
+      "retry": "Tentar novamente",
+      "open": "Abrir",
+      "reveal": "Mostrar"
+    },
+    "history": {
+      "title": "Notificações",
+      "empty": "Nenhuma notificação nesta sessão",
+      "copy": "Copiar"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1471,7 +1493,6 @@
   "dialog": {
     "file": "Arquivo",
     "changesWillBeLost": "As alterações serão perdidas",
-    "installPandoc": "Instalar Pandoc",
     "close": "Fechar",
     "keepOpen": "Manter aberto",
     "cancel": "Cancelar",

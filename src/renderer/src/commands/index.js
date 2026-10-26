@@ -875,6 +875,16 @@ const commands = [
   }] : []),
 
   {
+    // C-NOTIFICATION-SYSTEM R-6: the session history surface — palette-only
+    // entry point (owner decision 2026-10-23; a title-bar bell stays a
+    // future candidate).
+    id: 'view.notifications-history',
+    execute: async () => {
+      bus.emit('show-notifications-history')
+    }
+  },
+
+  {
     id: 'view.source-code-mode',
     execute: async () => {
       bus.emit('view:toggle-view-entry', 'sourceCode')

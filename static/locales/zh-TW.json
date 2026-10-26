@@ -315,7 +315,8 @@
       "textDirection": "文字方向",
       "statusBar": "顯示或隱藏狀態列",
       "toggleTabbar": "切換標籤欄",
-      "reloadImages": "重新載入圖片"
+      "reloadImages": "重新載入圖片",
+      "notificationsHistory": "通知：顯示最近記錄"
     },
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",
@@ -1229,7 +1230,28 @@
   },
   "notifications": {
     "defaultMessage": "預設訊息",
-    "defaultTitle": "通知"
+    "defaultTitle": "通知",
+    "close": "關閉",
+    "more": "還有 {n} 則通知",
+    "source": {
+      "file": "檔案",
+      "export": "匯出",
+      "project": "專案",
+      "update": "更新",
+      "agent": "智慧代理",
+      "system": "系統"
+    },
+    "actions": {
+      "copy": "複製",
+      "retry": "重試",
+      "open": "開啟",
+      "reveal": "顯示"
+    },
+    "history": {
+      "title": "通知",
+      "empty": "本次作業階段沒有通知",
+      "copy": "複製"
+    }
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1477,7 +1499,6 @@
   "dialog": {
     "file": "檔案",
     "changesWillBeLost": "變更將遺失",
-    "installPandoc": "安裝 Pandoc",
     "close": "關閉",
     "keepOpen": "保持開啟",
     "cancel": "取消",

@@ -3663,7 +3663,9 @@
           <note-12>
             2026-10-19 C-66: the app shell mounts the non-modal update
             notice (components/updateNotice — Update / Later / Skip this
-            version over theme CSS variables) and the detached startup
+            version over theme CSS variables; since 2026-10-23
+            C-NOTIFICATION-SYSTEM it renders as a sticky info entry in the
+            M-067 shared stack, semantics unchanged) and the detached startup
             chain grows autoUpdatesStore.RUN_LAUNCH_CHECK as its last
             step, after initWhatsNew (R-3 deferral input) and
             FETCH_BUILD_MODE (R-5 App Store gate input); Settings ›
@@ -6026,7 +6028,8 @@
         at most one mt_updater_check per 24 h (persisted
         lastUpdateCheckAt), deferred when the What's New sheet shows in
         the same launch, never in the App Store build, feeding the
-        non-modal components/updateNotice toast whose Update button runs
+        non-modal components/updateNotice toast (an M-067 stack entry since
+        C-NOTIFICATION-SYSTEM) whose Update button runs
         the shared signed install flow (commands/index.js
         installSignedUpdate, exported for file.check-update and the
         notice alike). Owner-only signing setup is documented in

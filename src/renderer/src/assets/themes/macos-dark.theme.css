@@ -88,6 +88,10 @@
   --floatHoverColor: rgba(245, 245, 247, 0.06);
   --floatBorderColor: rgba(245, 245, 247, 0.1);
   --floatShadow: rgba(0, 0, 0, 0.45);
+  --notifyInfo: #82A9F7;
+  --notifySuccess: #6BCB90;
+  --notifyWarning: #F5A83C;
+  --notifyError: #F87A72;
   --maskColor: rgba(0, 0, 0, .3);
   --editorAreaWidth: 750px;
 
