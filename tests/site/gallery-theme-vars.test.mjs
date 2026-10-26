@@ -111,8 +111,8 @@ describe('runtime snapshot parity (2026-10-18 oracle)', () => {
 describe('pele version pin (C-58 constraint)', () => {
   it('site devDependencies pin pele to the exact version the app ships', () => {
     const sitePkg = JSON.parse(readFileSync(join(ROOT, 'site/package.json'), 'utf8'))
-    expect(sitePkg.devDependencies.pele).toBe('1.6.0')
+    expect(sitePkg.devDependencies.pele).toBe('1.10.0')
     const installed = JSON.parse(readFileSync(join(ROOT, 'node_modules/pele/package.json'), 'utf8'))
-    expect(installed.version).toMatch(/^1\.6\./)
+    expect(installed.version).toMatch(/^1\.10\./)
   })
 })

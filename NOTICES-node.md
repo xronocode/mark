@@ -221,7 +221,7 @@ npx --package license-checker -- license-checker --production --json | \
 | object.assign | 4.1.7 | https://github.com/ljharb/object.assign |
 | parse-sel | 1.0.0 | https://github.com/acstll/parse-sel |
 | path-browserify | 1.0.1 | https://github.com/browserify/path-browserify |
-| pele | 1.6.0 | https://github.com/obsidianmd/pele |
+| pele | 1.10.0 | https://github.com/obsidianmd/pele |
 | perfect-debounce | 1.0.0 | https://github.com/unjs/perfect-debounce |
 | picomatch | 2.3.2 | https://github.com/micromatch/picomatch |
 | pinia | 3.0.4 | https://github.com/vuejs/pinia |

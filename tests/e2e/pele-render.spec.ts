@@ -78,7 +78,7 @@ Some text after.
 `
 
 // The 22-type render matrix (corpus shared with pele-theme.spec.ts — every
-// sample validated against pele 1.6.0; the expected value is the pele
+// sample validated against pele 1.10.0; the expected value is the pele
 // DiagramType that rides the svg root class `pele pele-<type>`).
 const MATRIX_SAMPLES: Array<[string, string]> = [
   ['flowchart', `flowchart LR

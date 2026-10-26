@@ -6,7 +6,7 @@
  *
  * C-55: the ```mermaid fences render through the pele engine; the mixed
  * showcase frame carries the pele-only bonus types (venn-beta, treemap-beta,
- * agentflow-beta — sources validated against pele 1.6.0) next to the pie.
+ * agentflow-beta — sources validated against pele 1.10.0) next to the pie.
  *
  * Usage:
  *   npx playwright test tests/e2e/showcase-screenshots.spec.ts
