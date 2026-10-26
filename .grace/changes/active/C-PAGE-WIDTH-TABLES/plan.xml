@@ -365,7 +365,7 @@
     </ReviewLog>
     <PlanNotes>
       <Note>R-4 is included (owner gate resolved 2026-10-26); the View tab switch, the pin semantics and the source naming are T-005.</Note>
-      <Note>Sequencing: C-50 is a frozen active spec owning the theme family scope; this plan writes the shared theme resolution path, so execution starts only after C-50 is archived or explicitly sequenced, and parallel preflight is re-run before the first write. C-FILE-POSITION-MEMORY is merged and queued in 2.9.x-next; its per-file store precedent is read, not modified.</Note>
+      <Note>Sequencing resolved by owner instruction 2026-10-27: this change executes first and C-50 is deferred behind it, because C-50's plan predates the 17-family model, carries no CornerMatrix or ReviewLog under the four-corner gate, and declares an unbounded whole-renderer write scope. The record and the refresh requirements are in .grace/changes/active/C-50/sequencing.md. A fresh parallel preflight is still re-run before the first write. C-FILE-POSITION-MEMORY is merged and queued in 2.9.x-next; its per-file store precedent is read, not modified.</Note>
       <Note>The spec's line citations have drifted in minor ways (en.json help string is at line 525, not 522; theme.js:263 and muya/themes/default.css:167 still match). Anchor assertions pin text, not line numbers, so drift does not invalidate the plan.</Note>
       <Note>Four-corner gate: Pass-1 and Pass-2 were finding-bearing (dispositions written into tasks and corners, shape fixes applied), Pass-3 and Pass-4 are consecutive clean passes over this exact revision. Plan status stays draft; approval is the owner's separate instruction.</Note>
     </PlanNotes>
