@@ -52,7 +52,7 @@
 //   expectations resolve --pele-surface/--pele-bg/--pele-fg, and the
 //   %%{init}%% override case became the pele equivalent: a classDef with
 //   inline colours beats the theme variables while the unstyled nodes stay
-//   themed. The 22-type corpus is unchanged (validated against pele 1.6.0).
+//   themed. The 22-type corpus is unchanged (validated against pele 1.10.0).
 //   PREV: v2.2.0 - 2026-10-17 C-54 R-1: Paper's flowchart fill is
 //   the surface (a white card lighter than the panel); dark themes keep
 //   the T-012 distinct-fill pins.
@@ -67,7 +67,7 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
 
 // C-51 T-003/T-004 + C-55: pele follows the app theme — the 22-type ×
 // light/dark matrix from the accepted lab (corpus unchanged, every sample
-// validated against pele 1.6.0; the gantt task «Title bar» is renamed
+// validated against pele 1.10.0; the gantt task «Title bar» is renamed
 // «App title bar» because the gantt lexer eats ANY line starting with the
 // case-insensitive `title` keyword as the diagram title; radar and xychart
 // carry one extra series so the "≥ 3 distinct palette colours" assertion
