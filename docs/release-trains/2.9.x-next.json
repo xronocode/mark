@@ -52,6 +52,25 @@
             "regression pins: the C-66 update notice keeps Update/Later/Skip semantics on the shared card; the file-changed banner keeps its queue flow; all ten locales carry the new keys as native copy"
           ]
         }
+      },
+      {
+        "id": "C-NATIVE-DOCX-RTF-EXPORT",
+        "summary": "Export to Word: File menu, tab context menu and the export command write real .docx files renderer-side (docx/html over the shared styled-HTML pipeline) — native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, real footnotes and native OMML equations from KaTeX MathML; figures rasterize to 2x PNG, page geometry follows the remembered print options, writing rides the existing binary facade with no new backend commands; the docx library loads lazily in its own 1.4 KB chunk (300 KB budget guard), ten locales carry the new strings.",
+        "state": "queued",
+        "commits": [
+          "15ceef40b85a71a3aaea73b5429ff1666e9b1bac"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-26",
+          "testedArtifact": "None — owner merged PR #52 on instruction after a three-rebase refresh (green 17-check CI twice); manual field verification of the produced .docx in Microsoft Word / Pages is deferred to the train acceptance protocol (train rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate CI, green): renderer unit x3 OS incl. 117 PR-specific OOXML assertions (Heading styles, table alignment, hyperlinks, one checked checkbox, OMML m:oMath with m:f, RU footnote text, zero front-matter, CJK intact, mm-derived sectPr geometry, hostile-text round-trip); backend unit x3 OS; e2e 370+ incl. export-office 5/5 (menu flow mounts no settings dialog, invokes exactly [plugin:dialog|save, mt_fs_write_binary] with PK-magic bytes; cancel writes nothing; tab-menu path activates a background tab first) and open-file-timing green after an A/B local proof that the earlier budget miss was CI-runner noise, not a branch regression.",
+            "AUTOMATED (guards): check-export-chunk — entry chunk carries no docx code, the lazy docx+docx/html surface is 1.4 KB + 106 KB gzip against a 300 KB budget; NOTICES-node regenerated and diff-clean; grace lint 0.",
+            "MANUAL BEFORE ADMISSION: none beyond code review of the diff.",
+            "INTENTIONALLY UNVERIFIED: opening the produced .docx in Microsoft Word / Pages on a real build (deferred to the train acceptance protocol per rule 5); display math $$ blocks render as literal text — a known muya export-grammar input gap recorded in the bundle backlog, inline math converts."
+          ]
+        }
       }
     ],
     "operational": [],
