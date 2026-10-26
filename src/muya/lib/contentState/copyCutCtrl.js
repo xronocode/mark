@@ -1,3 +1,27 @@
+// FILE: src/muya/lib/contentState/copyCutCtrl.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: ContentState copy/cut behavior — clipboard payloads for text, table-cell and image selections, plus the state updates a cut performs.
+//   SCOPE: Prototype methods installed on ContentState (clearStaleSelections, docCutHandler, cutHandler, getClipBoardData, docCopyHandler, copyHandler); no DOM rendering of its own beyond what cutHandler's downstream partialRender performs.
+//   DEPENDS: muya selection module, muya config, muya utils (escapeHTML, exportHtml, exportMarkdown), parser/marked.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-clearStaleSelections; .grace/verification/runtime.xml V-M-012; FIX-019.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - copyCutCtrl(ContentState): installs the copy/cut prototype methods — clearStaleSelections (FIX-019 stale-anchor guard), docCutHandler, cutHandler, getClipBoardData, docCopyHandler, copyHandler.
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - FIX-019: clearStaleSelections guards every cut/copy
+//   entry point; a tab switch (setMarkdown) also resets both selection flags,
+//   so a selection made on a previous document can no longer turn the next
+//   cut/copy into a silent no-op.
+//   v1.0.0 - Contract added retroactively with FIX-019 (file previously ran
+//   without a GRACE header).
+// END_CHANGE_SUMMARY
+
 import selection from '../selection'
 import { CLASS_OR_ID } from '../config'
 import { escapeHTML } from '../utils'
@@ -6,7 +30,24 @@ import ExportMarkdown from '../utils/exportMarkdown'
 import marked from '../parser/marked'
 
 const copyCutCtrl = (ContentState) => {
+  // FIX-019: a table-cell or image selection belongs to the blocks it was
+  // made on. Switching documents or removing the anchor block leaves the
+  // flags set while their blocks are gone, and every cut/copy then silently
+  // no-ops: copyHandler/cutHandler return early, docCutHandler/docCopyHandler
+  // preventDefault against a dead table. Only a click inside the editor
+  // cleared them before, so the wedge lived until an app restart.
+  ContentState.prototype.clearStaleSelections = function () {
+    const { selectedTableCells, selectedImage } = this
+    if (selectedTableCells && !this.getBlock(selectedTableCells.tableId)) {
+      this.selectedTableCells = null
+    }
+    if (selectedImage && !this.getBlock(selectedImage.key)) {
+      this.selectedImage = null
+    }
+  }
+
   ContentState.prototype.docCutHandler = function (event) {
+    this.clearStaleSelections()
     const { selectedTableCells } = this
     if (selectedTableCells) {
       event.preventDefault()
@@ -15,6 +56,7 @@ const copyCutCtrl = (ContentState) => {
   }
 
   ContentState.prototype.cutHandler = function () {
+    this.clearStaleSelections()
     if (this.selectedTableCells) {
       return
     }
@@ -249,6 +291,7 @@ const copyCutCtrl = (ContentState) => {
   }
 
   ContentState.prototype.docCopyHandler = function (event) {
+    this.clearStaleSelections()
     const { selectedTableCells } = this
     if (selectedTableCells) {
       event.preventDefault()
@@ -297,6 +340,7 @@ const copyCutCtrl = (ContentState) => {
   }
 
   ContentState.prototype.copyHandler = function (event, type, copyInfo = null) {
+    this.clearStaleSelections()
     if (this.selectedTableCells) {
       // Hand over to docCopyHandler
       return

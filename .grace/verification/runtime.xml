@@ -5973,7 +5973,8 @@
         <Command>npx vitest run tests/renderer/muya/content-state-active-blocks.test.js tests/renderer/muya/export-markdown-table.test.js tests/renderer/muya/copy-data.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/state-render-selector.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/content-state-cursor-restore.test.js</Command>
-      </Commands>
+              <Command>npx vitest run tests/renderer/muya/copy-cut-stale-selection.test.js</Command>
+</Commands>
       <Scenarios>
         <scenario-muya-fence-import-teardown>
           The real Muya fence-export/Guide round-trip suite waits for
@@ -7108,7 +7109,17 @@
           sidebar-deep.test.js). Runtime two-root regression:
           tests/e2e/multi-root-workspace.spec.ts (chromium).
         </Scenario>
-      </Scenarios>
+              <Scenario>scenario-75 (FIX-019): a table-cell or image selection whose
+          anchor block no longer exists (tab switch via setMarkdown, table
+          removed by another edit) is dropped by clearStaleSelections at
+          every cut/copy entry point, so Cmd+X / Edit menu Cut / Copy of
+          normal text no longer silently no-op until an app restart;
+          setMarkdown also resets both selection flags whenever other
+          content loads; live table selections still hand off to
+          docCopyHandler and cut through deleteSelectedTableCells
+          (tests/renderer/muya/copy-cut-stale-selection.test.js).
+        </Scenario>
+</Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
         <Marker>
