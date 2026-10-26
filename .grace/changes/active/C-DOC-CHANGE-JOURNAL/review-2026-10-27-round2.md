@@ -58,3 +58,38 @@ Verdict: **findings — the correction is real but incomplete.**
    after the cap is exceeded.
 4. Revise the design context, the trigger seam and the command chain.
 5. Two clean passes over the resulting revision before approval.
+
+## Corrections to the first-round record
+
+- First-round finding 2 (a wrong design hash in the record) does not hold: the header already
+  cites `be22602f` and correctly labels `7ff72017` as the pre-sanitization design. Withdrawn;
+  the real defect was the path, not the hash.
+- First-round finding 1's "the spec calls itself a draft bundle" is a misreading of the
+  pre-approval baseline snapshot. The approval-coverage gap stands on the superseded report
+  alone.
+- First-round finding 8's "appears nowhere in the tree" is overbroad: the string lived in the
+  spec and the plan, only not in source. That wording is why the Summary and the plan were
+  missed on the first pass.
+- First-round finding 3's "is the head" attribution is wrong (the head had moved), though the
+  path was present at the then-head too.
+- The first-round disposition overclaimed completion: only R-6/R-7, R-1 and R-9 had changed,
+  and the plan had not been touched.
+
+## Applied in the corrective pass of 2026-10-27
+
+- The muya-key model is gone from the summary, the diff criterion, the assumption and the
+  design context; content-derived anchors are the only normative model, with the tuple, its
+  scope, duplicate handling, pairing, move and rename semantics and a stability criterion.
+- The memory cap exempts the opened-baseline record and the last five snapshot-class records;
+  `clearSnapshots` (`editor.js:1416`) is named as the close path and the acceptance now pins
+  the ring, the opened slot and the empty-after-close state.
+- The record shape carries `pathnameAtWrite`; the journal is stated per open tab.
+- The verification command runs the renderer suites, a build and the two e2e specs the
+  acceptance names.
+- The design context is revised: anchors instead of old line ranges, `package.json:58`, four
+  plus two call sites, the corrected conflict-branch path, and content-derived anchors as the
+  input.
+- The staged-delivery rationale no longer claims the journal has no consumer.
+- The scheduling contract and the UI-wording split are stated as such.
+
+Round 3 must review this revision; the finding list above is the checklist for it.
