@@ -6,7 +6,7 @@
     {
       "name": "src/renderer/bench/fixture.js",
       "class": "ordinary",
-      "note": "existing ~6 KB bench fixture owned by the bench harness; referenced by the corpus, not duplicated"
+      "note": "existing ~4 KB bench fixture owned by the bench harness; referenced by the corpus, not duplicated"
     }
   ],
   "runConditions": {
@@ -87,8 +87,8 @@
     },
     {
       "name": "expensive-leaves.md",
-      "bytes": 32560,
-      "sha256": "834c1fef44d353cd5a13fb2e6c90a70c3505dafd8eb45b7dd257833b1115e403",
+      "bytes": 27880,
+      "sha256": "b22bedfadc2279d2ebbb399eff6ae482c2e7c460208f3345b38dc8db8e6ede6a",
       "storage": "committed",
       "class": "expensive-leaves",
       "encoding": "utf8",

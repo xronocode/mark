@@ -10,8 +10,11 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   main(outDir, opts) - builds all shapes; returns the metadata array; identical inputs produce identical bytes.
-//   buildShapes(rng) - pure shape-content builders keyed by fixture name (no IO).
+//   sha256 - hex digest helper for fixture identity.
+//   growTo - repeats a unit builder until the target byte size is reached deterministically.
+//   buildShapes - pure shape-content builders keyed by fixture name (no IO).
+//   bytePolicyEntries - byte-policy fixture table across the supported encodings.
+//   main - builds all shapes; returns the metadata array; identical inputs produce identical bytes.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -99,7 +102,8 @@ export function buildShapes () {
   {
     const parts = ['# Expensive leaves', '']
     for (let i = 0; i < 120; i++) {
-      parts.push(`## Math block ${i}`, '', '$$\n\\int_{0}^{\\infty} e^{-x^${(i % 5) + 2}} dx = \\frac{1}{${(i % 5) + 2}}\\Gamma\\left(\\frac{1}{${(i % 5) + 2}}\\right)\n$$', '')
+      const p = (i % 5) + 2
+      parts.push(`## Math block ${i}`, '', `$$\n\\int_{0}^{\\infty} e^{-x^${p}} dx = \\frac{1}{${p}}\\Gamma\\left(\\frac{1}{${p}}\\right)\n$$`, '')
       parts.push(`![local asset ${i}](assets/local-${i % 4}.svg)`, '')
       parts.push('```mermaid\ngraph TD\n  A[open] --> B{measured}\n  B -->|yes| C[paint]\n  B -->|no| D[defer]\n```', '')
     }
@@ -205,7 +209,7 @@ export async function main (outDir, opts = {}) {
     deterministic: true,
     seedNote: 'xorshift32 fixed seeds inside lib.mjs/build-corpus.mjs',
     references: [
-      { name: 'src/renderer/bench/fixture.js', class: 'ordinary', note: 'existing ~6 KB bench fixture owned by the bench harness; referenced by the corpus, not duplicated' }
+      { name: 'src/renderer/bench/fixture.js', class: 'ordinary', note: 'existing ~4 KB bench fixture owned by the bench harness; referenced by the corpus, not duplicated' }
     ],
     runConditions: { expensiveLeaves: 'network disabled; image assets resolve to the committed assets/ directory' },
     fixtures: metadata

@@ -10,7 +10,21 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   main() - --check: build into .regen-tmp, verify committed bytes + materialized sha256 pins, clean up, print [corpus][regen]; no flag: rebuild in place.
+//   sha256 - hex digest helper.
+//   here - directory of this script.
+//   corpusDir - fixture corpus directory.
+//   tmp - scratch directory used by --check.
+//   check - true when --check was requested.
+//   meta - committed shape metadata.
+//   materialized - corpus files produced on demand rather than committed.
+//   walk - recursively lists corpus files.
+//   offenders - byte-level regeneration mismatches.
+//   committed - committed corpus file set.
+//   pinned - count of verified sha256 pins.
+//   committedCount - number of committed (byte-compared) fixtures.
+//   missing - committed files that the generators did not produce.
+//   metaDisk - metadata read from disk.
+//   metaGen - metadata regenerated from the generators.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -85,5 +99,6 @@ if (offenders.length || missing.length) {
   for (const m of missing) console.log(`  extra committed: ${m}`)
   process.exit(1)
 }
-console.log(`[corpus][regen] ${meta.fixtures.length - 1 - pinned} committed fixtures byte-identical + ${pinned} materialized sha256-pins verified — deterministic`)
+const committedCount = meta.fixtures.filter((f) => f.storage === 'committed').length
+console.log(`[corpus][regen] ${committedCount} committed fixtures byte-identical + ${pinned} materialized sha256-pins verified — deterministic`)
 process.exit(0)

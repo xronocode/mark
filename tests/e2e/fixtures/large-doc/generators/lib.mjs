@@ -10,12 +10,33 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   makeRng(seed) - seeded xorshift32 PRNG returning () => float in [0,1); identical seeds produce identical sequences.
-//   pick(rng, arr) / pickWeighted - deterministic selection helpers.
-//   enSentence(rng) / ruSentence(rng) / mixedParagraph(rng) - stable multilingual text builders (fixed word pools, no clock, no locale casing).
-//   heading / list / table / codeBlock / quote builders - section templates parameterized by index for cross-run stability.
-//   ENCODERS - byte-policy encoders: latin1 (native), koi8r, cp1251, utf16le, utf16be, shiftJisSample, gb2312Sample (precomputed pinned samples).
-//   SHAPES - shape descriptors consumed by build-corpus.mjs; every fixture records bytes/sections/class/encoding into shape-metadata.json.
+//   makeRng - seeded xorshift32 PRNG returning a float in [0,1); identical seeds produce identical sequences.
+//   pick - deterministic selection helper.
+//   EN_WORDS - stable English word pool.
+//   RU_WORDS - stable Russian word pool.
+//   EN_TAIL - stable English sentence tails.
+//   RU_TAIL - stable Russian sentence tails.
+//   enSentence - stable English sentence builder.
+//   ruSentence - stable Russian sentence builder.
+//   mixedParagraph - stable bilingual paragraph builder.
+//   heading - heading section template.
+//   bodyBlock - body paragraph section template.
+//   tableRows - deterministic table section template.
+//   codeBlock - deterministic fenced code section template.
+//   nestedList - deterministic nested list template.
+//   nestedQuote - deterministic nested blockquote template.
+//   KOI8_R_LOWER - exact KOI8-R alphabet byte table, verified against the Python codec.
+//   CP1251_EXTRA - CP1251 extended punctuation/Cyrillic byte table, verified against the Python codec.
+//   koi8Byte - KOI8-R byte encoder for one code point.
+//   cp1251Byte - CP1251 byte encoder for one code point.
+//   SAMPLE_RU - pinned Russian sample text.
+//   SAMPLE_EN - pinned English sample text.
+//   SAMPLE_SHIFT_JIS_TEXT - pinned Shift-JIS sample text.
+//   SAMPLE_SHIFT_JIS_BYTES - pinned Shift-JIS bytes.
+//   SAMPLE_GB2312_TEXT - pinned GB2312 sample text.
+//   SAMPLE_GB2312_BYTES - pinned GB2312 bytes.
+//   ENCODERS - byte-policy encoders keyed by encoding name.
+//   NL - newline variants used by the EOL fixtures.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

@@ -10,7 +10,9 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   ensureCorpus() - await before using corpus fixtures in a suite; materializes byte-policy files the commit gate excludes, verifying every sha256 pin.
+//   sha256 - hex digest helper.
+//   corpusDir - fixture corpus directory.
+//   ensureCorpus - materializes byte-policy files the commit gate excludes, verifying every sha256 pin.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
