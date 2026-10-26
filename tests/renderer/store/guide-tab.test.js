@@ -268,7 +268,7 @@ describe('store/editor — C-40 guide tab', () => {
     await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD })
     const savedId = editor.currentFile.id
     // Save As gave the tab a real path: it is the user's document now.
-    editor.currentFile.pathname = '/Users/me/notes.md'
+    editor.currentFile.pathname = '/tmp/notes.md'
 
     await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD })
     expect(editor.tabs).toHaveLength(2)
@@ -279,7 +279,7 @@ describe('store/editor — C-40 guide tab', () => {
   it('opening a file while the unedited guide is current keeps the guide open', async () => {
     await editor.OPEN_GUIDE_TAB({ markdown: GUIDE_MD })
     const guideId = editor.currentFile.id
-    editor.NEW_TAB_WITH_CONTENT({
+    await editor.NEW_TAB_WITH_CONTENT({
       markdownDocument: {
         markdown: '# plan',
         filename: 'plan.md',

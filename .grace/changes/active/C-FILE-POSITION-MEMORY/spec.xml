@@ -1,0 +1,54 @@
+<GraceChangeSpec graceVersion="4.0" status="approved"><C-FILE-POSITION-MEMORY>
+  <Name>Reading position memory: caret survives arrows; cursor and scroll survive close and relaunch</Name><Created>2026-10-23</Created>
+  <Summary>Close both gaps from the owner's 2026-10-23 "f-cursor" report: (A) the caret moved only by arrow keys no longer snaps back to the last click/edit position on tab switch; (B) every file remembers its last cursor position (line/ch) and scroll offset on disk, so closing a tab, reopening a file and relaunching the app return the reader to where they were — the same per-file persistence pattern the table layouts already use.</Summary>
+  <ApprovalBasis>Owner instruction 2026-10-23, after the session's verified diagnosis (probe evidence: arrows P10→P90 snap back to P10 on switch; close/reopen loses scrollTop 3778→0; session snapshot stores paths only): «Фикс стрелок — маленький… Память „по файлу" — функция… 2 — давай поштормим корнеры, подумай, сделай спеку и 2 чистых ревью проходки с 4 углов».</ApprovalBasis>
+  <Diagnosis>Position lives only in the per-tab store state (tab.cursor block-key based, tab.muyaIndexCursor line/ch based, tab.scrollTop). tab.cursor is written by muya's 'change' event, which keyboard.js dispatchEditorState fires for clicks but NOT for keyup — pure arrow navigation never reaches the store (verified). Nothing is persisted per file; the session snapshot (_sessionSnapshot) stores tab paths only, so close/reopen and relaunch start at the top (verified on this branch and in v2.6.0).</Diagnosis>
+  <Goals>
+    <Goal>A — arrow caret write: the caret position after pure keyboard navigation (arrows, Home/End, PageUp/Down and their Shift-modified selections) survives switching tabs and back, exactly like click-moved carets do today.</Goal>
+    <Goal>B — per-file position memory: for every tab with a pathname, the last {scrollTop, cursor line/ch} is persisted to the Mark profile (single prefs key, tableLayoutStore pattern) and restored on every disk-open funnel — manual open, recently-closed reopen, session restore at relaunch.</Goal>
+  </Goals>
+  <Decisions>
+    <D-1>A is implemented as a guarded store write in editor.vue's existing selectionChange subscription (new store action), NOT as muya keyup→dispatchChange: dispatchChange runs a full ExportMarkdown regeneration and routes through LISTEN_FOR_CONTENT_CHANGE, which increments tab.contentRevision — the monotonic revision that rejects stale async save outcomes; inflating it on pure cursor moves would corrupt that guard.</D-1>
+    <D-2>The per-event write stores only the cheap block-key cursor (contentState.cursor object, no export). muyaIndexCursor (line/ch) is computed at flush time — once per debounce window, per close, per quit — never per caret event: getMuyaIndexCursor mutates+restores block text and runs ExportMarkdown (it already runs once per change event today; the new path must not multiply that).</D-2>
+    <D-3>Persistence schema mirrors tableLayoutStore.js: one loose-typed prefs key (filePositions), per-pathname entries {scrollTop ≥ 0, muyaIndexCursor {anchor{line,ch}, focus{line,ch}} | null, savedAt epoch}, sanitize/normalize on read, bounded cap (200 entries, newest kept), missing-file prune on load (skipped when stat is unavailable), rename move on both Mark rename paths. No backend change (existing mt::prefs::get/set IPC; the renderer holds the schema).</D-3>
+    <D-4>Restore happens inside NEW_TAB_WITH_CONTENT — the single funnel for open, reopen and session restore — before the tab is selected/pushed: the entry's scrollTop and muyaIndexCursor land in the tab state and flow through the existing activation machinery (setMarkdown's muyaIndexCursor branch + scrollToCords). Block-key cursors are never persisted (session-scoped by definition). The renderer pre-clamps a stale entry against the freshly loaded markdown (line count / line length) before handing it to muya — muya's addCursorToMarkdown returns isValid:false for out-of-range positions but the setMarkdown branch does not check it.</D-4>
+    <D-5>No preference switch: position memory is always on, like table layouts. Untitled and Guide tabs have no pathname and never persist.</D-5>
+  </Decisions>
+  <Constraints>
+    <Constraint>tab.contentRevision must not grow and isSaved must not flip on pure cursor/scroll activity (stale save-outcome guard semantics preserved).</Constraint>
+    <Constraint>GetMarkdown/ExportMarkdown never runs on the per-event path; at most one export per debounce flush (1.5 s), per tab close and per quit.</Constraint>
+    <Constraint>Persisted values are numbers only (offset, line, ch, timestamp) — no document content; no new IPC commands; entry count capped.</Constraint>
+    <Constraint>Existing behaviors unchanged: live-reload position preservation (loadChange), tab-switch restore, scroll clamp after reload, session snapshot shape (paths), table layout persistence.</Constraint>
+    <Constraint>Split-view mirror panes never write the owning tab's position; source-code mode positions persist through the same muyaIndexCursor representation.</Constraint>
+  </Constraints>
+  <NonGoals>
+    <NonGoal>Multi-caret or per-selection memory beyond the anchor/focus pair muya already models.</NonGoal>
+    <NonGoal>Cloud sync of positions, per-project position scoping, or a "reopen where I was" UI affordance (no toasts, no indicators).</NonGoal>
+    <NonGoal>Any change to search/scroll-to-hit, TOC scrollspy or typewriter scrolling behavior.</NonGoal>
+  </NonGoals>
+  <CornerMatrix>
+    <C-1><Axis>correctness</Axis><Title>Arrows survive tab switch</Title>Caret moved only by arrow keys (click P10, 80×ArrowDown to P90), switch to another tab and back → caret at P90 and scrollTop at the arrow-moved offset; a typed character lands in P90. Expected: «[probe] TRUTH typed Z landed in: "Paragraph 90…"» and scrollTop delta 0.</C-1>
+    <C-2><Axis>correctness</Axis><Title>No revision drift</Title>100 pure cursor moves (arrows/clicks without edits) produce zero tab.contentRevision growth, zero isSaved flips and zero muya 'change' dispatches. Expected: revisionBefore === revisionAfter, isSaved stays true.</C-2>
+    <C-3><Axis>correctness</Axis><Title>Close and reopen returns</Title>Scroll to a deep offset with the caret deep in the document, close the tab, reopen the same file → scrollTop restored within ±50 px (line-height slack) and the typed character lands in the remembered paragraph. Expected: probe-3 shape now restoring instead of 3778→0.</C-3>
+    <C-4><Axis>correctness</Axis><Title>Relaunch returns; no double-render stomp</Title>BOOT_SESSION→RESTORE_SESSION reopens the file with the saved position applied; the parallel file-loaded render (setMarkdownToEditor) does not stomp the restored cursor/scroll — identical-markdown skip or explicit guard holds. Expected: after boot, scrollTop and caret equal the pre-quit values.</C-4>
+    <C-5><Axis>correctness</Axis><Title>Stale entry clamps</Title>An entry saved on a longer revision (cursor line beyond EOF, scrollTop beyond maxScroll) opened on a shortened file → caret clamps inside the document, scrollTop clamps to maxScroll, no exception, no blank viewport. Expected: 0 ≤ caret.line &lt; lineCount, scrollTop ≤ maxScroll, no console error.</C-5>
+    <C-6><Axis>correctness</Axis><Title>File identity</Title>Mark-rename (both RENAME paths) moves the entry to the new pathname; a deleted file's entry is pruned on the next load-with-stat; two windows on one file: last writer wins, one entry. Expected: entry keys track renames; store never grows past cap.</C-6>
+    <C-7><Axis>correctness</Axis><Title>Flush beats debounce</Title>A tab closed immediately after a scroll (debounce pending) still persists the final position (close flush reads live tab state); a crash loses at most 1.5 s of position. Expected: reopen after instant close restores the last seen offset.</C-7>
+    <C-8><Axis>security</Axis><Title>Nothing but numbers</Title>The prefs value contains only {scrollTop, muyaIndexCursor line/ch pairs, savedAt} keyed by pathname — no document text, no selection text; transport is the existing mt::prefs::get/set with no new commands and no new renderer-reachable surface. Expected: JSON.stringify of the store shows no markdown content; ipc surface diff is empty.</C-8>
+    <C-9><Axis>performance</Axis><Title>Per-event cost ~zero</Title>Pure navigation triggers no ExportMarkdown run and no prefs write; disk writes coalesce to ≤1 per 1.5 s per activity burst plus close/quit flushes; prefs payload ≤ a few KB at cap (200 × ~120 B). Expected: profiler-free assertion — no mt::prefs::set during a 60-event navigation burst beyond the single flush.</C-9>
+    <C-10><Axis>ux</Axis><Title>Silent and unchanged elsewhere</Title>No toast/notification on restore; a never-opened file keeps today's behavior (top, caret at start); the arrow fix is invisible — position simply survives. Expected: zero new notice.notify call sites in the diff.</C-10>
+    <C-11><Axis>ux/compat</Axis><Title>Modes and panes</Title>Split-view mirror panes never write the source tab's position (mirror guard); a document last read in source-code mode restores in WYSIWYG and vice versa (muyaIndexCursor is mode-neutral by construction). Expected: mirror-on navigation writes nothing; cross-mode round-trip lands on the same line/ch.</C-11>
+    <C-12><Axis>verification</Axis><Title>Probes become gates</Title>This session's probe scenarios become regression specs (arrows/switch, close/reopen, boot restore, clamp, rename move); unit tests cover store transforms and the no-revision-drift invariant; grace lint current; renderer suite green. Expected: all listed specs pass in CI configuration.</C-12>
+  </CornerMatrix>
+  <AcceptanceCriteria>
+    <Criterion>Corners C-1..C-12 hold with the verbatim Expected lines reproduced in test output or assertion messages.</Criterion>
+    <Criterion>No regression in cursor/scroll behaviors named under Constraints (live-reload, tab switch, clamp, session snapshot, table layouts) — existing suites untouched and green.</Criterion>
+  </AcceptanceCriteria>
+  <AffectedAreas>
+    <Area>editor.vue selectionChange subscription (guarded position write); store/editor.js new updateCursorPosition action + close/quit flush hooks (FORCE_CLOSE_TAB, _saveSessionState); NEW_TAB_WITH_CONTENT restore leg; new util/filePositionStore.js; rename paths (store RENAME + RENAME_IF_NEEDED) for the entry move; graph M-011 narrative + verification scenarios.</Area>
+  </AffectedAreas>
+  <VerificationIntent>
+    <Command>npx vitest run tests/renderer/util/file-position-store.test.js tests/renderer/store/editor-position-memory.test.js</Command>
+    <Command>npx playwright test tests/e2e/position-memory.spec.ts tests/e2e/live-reload-scroll.spec.ts --project=chromium</Command>
+  </VerificationIntent>
+</C-FILE-POSITION-MEMORY></GraceChangeSpec>
