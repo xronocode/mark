@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.9.0
+// VERSION: 1.10.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
 //   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release. C-62: Per-diagram appearance controller lifecycle, writable metadata and read-only view overrides.
@@ -18,7 +18,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.9.1 - 2026-10-25 C-FILE-POSITION-MEMORY e2e hardening:
+//   LAST_CHANGE: v1.10.0 - FIX-019: setMarkdown resets the table-cell and
+//                image selection flags whenever other content loads (tab
+//                switch, format, mirror sync) — selections made on a
+//                previous document used to survive and turn the next
+//                cut/copy into a silent no-op until an app restart.
+//   PREV: v1.9.1 - 2026-10-25 C-FILE-POSITION-MEMORY e2e hardening:
 //                Muya.use is idempotent (editor.vue re-runs it per mount; a
 //                duplicate registration instantiated extra float plugins and
 //                leaked body-level containers), and destroy() tears down
@@ -300,6 +305,13 @@ class Muya {
       // No cursor defined, we can just parse the markdown
       this.contentState.importMarkdown(markdown)
     }
+
+    // FIX-019: loading different content (tab switch, format, mirror sync)
+    // invalidates any table-cell/image selection made on the previous
+    // document — a stale flag would silently swallow the next cut/copy of
+    // normal text (see copyCutCtrl clearStaleSelections).
+    this.contentState.selectedTableCells = null
+    this.contentState.selectedImage = null
 
     this.contentState.importCursor(finalCursor)
     this.contentState.render(isRenderCursor)
