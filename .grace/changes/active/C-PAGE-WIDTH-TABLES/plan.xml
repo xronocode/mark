@@ -1,0 +1,373 @@
+<GraceChangePlan graceVersion="4.0" status="draft">
+  <C-PAGE-WIDTH-TABLES>
+    <ChangeRef>C-PAGE-WIDTH-TABLES</ChangeRef>
+    <Created>2026-10-27</Created>
+    <IntentSummary>Make page width a first-class, per-document property and make table modes honest. The plan delivers four coupled surfaces behind one governed module (M-061): a document-scoped width store and resolution pipeline (document &gt; theme &gt; global, never mutating on clamp, % following the canvas live); a titlebar quick-settings panel built from the C-38 component set in the neutral settings palette with three live tabs (Page / View / Tables); a rewritten table mode model where Fit page actually fits the text column and Full width spans the window canvas, with ratios-preserving sizes, a shared distribution algorithm, honest scroll degradation and drag affordances; and the supporting repairs (dark active-segment contrast, the "Leave empty for full width" lie, "column sizes" terminology, the View &gt; Page Width menu). R-4 (per-document theme override) is included per the owner gate. Nothing here revives F-WINDOW-AUTO-RESIZE, changes the print pipeline, or ships a second palette.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File>
+        <Text>result = `:root { --editorAreaWidth: calc(100px + ${value}); }`</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/themes/default.css</File>
+        <Text>max-width: var(--editorAreaWidth);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/tableLayoutStore.js</File>
+        <Text>export const TABLE_LAYOUTS_PREFS_KEY = 'tableLayouts'</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/tableLayoutStore.js</File>
+        <Text>MAX_TABLE_LAYOUT_FILES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/index.vue</File>
+        <Text>themeTooltip</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>lineWidthHelp</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>tableFullWidthDefault</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/renderer/src/util/pageWidthStore.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/pageWidth.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/components/titleBar/quickSettings/index.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/muya/lib/tableResize/tableFit.js</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/util/pageWidthStore.js</File>
+        <Text>pageWidths</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/tableLayoutStore.js</File>
+        <Text>ratios</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/performance.xml</File>
+        <Text>M-061</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/performance.xml</File>
+        <Text>V-M-061</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx vitest run tests/renderer/util/page-width.test.js tests/renderer/util/page-width-store.test.js tests/renderer/muya/table-fit.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/components/quick-settings.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx playwright test tests/e2e/page-width-panel.spec.ts tests/e2e/table-modes.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-061 />
+        <M-011 />
+        <M-012 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-061 />
+        <V-M-011 />
+        <V-M-012 />
+      </VerificationAnchors>
+      <ContextArtifact>ux-guidelines.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/util/pageWidthStore.js</File>
+      <File>src/renderer/src/util/pageWidth.js</File>
+      <File>src/renderer/src/util/theme.js</File>
+      <File>src/renderer/src/util/tableLayoutStore.js</File>
+      <File>src/renderer/src/util/tableLayoutRatios.js</File>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File>
+      <File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File>
+      <File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File>
+      <File>src/renderer/src/components/titleBar/quickSettings/tablesTab.vue</File>
+      <File>src/renderer/src/prefComponents/common/segmented.vue</File>
+      <File>src/renderer/src/prefComponents/common/range.vue</File>
+      <File>src/renderer/src/store/preferences.js</File>
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>src/muya/lib/tableResize/tableFit.js</File>
+      <File>src/muya/lib/tableResize/tableCue.js</File>
+      <File>src/muya/lib/parser/render/renderBlock/renderTableToolbar.js</File>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <File>tests/renderer/util/page-width.test.js</File>
+      <File>tests/renderer/util/page-width-store.test.js</File>
+      <File>tests/renderer/util/table-layout-ratios.test.js</File>
+      <File>tests/renderer/muya/table-fit.test.js</File>
+      <File>tests/renderer/components/quick-settings.test.js</File>
+      <File>tests/e2e/page-width-panel.spec.ts</File>
+      <File>tests/e2e/table-modes.spec.ts</File>
+      <Glob>static/locales/*.json</Glob>
+      <Glob>.grace/graph/*.xml</Glob>
+      <Glob>.grace/verification/*.xml</Glob>
+      <Glob>.grace/changes/active/C-PAGE-WIDTH-TABLES/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-061 document width store</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>pageWidthStore.js owns one prefs key (pageWidths) keyed by pathname, entries carry {value, unit, themeOverride?}, sanitize drops anything but finite numbers and the three units, the store caps at 200 newest entries, rename/move follows the file through the same flows tableLayoutStore uses, untitled and guide tabs never get an entry, and a failed read never becomes a write base.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/page-width-store.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Width resolution pipeline and canvas model</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>pageWidth.js resolves document &gt; theme &gt; global, names the active source, converts ch/px/% with the 10% preset snap and the nearest-preset anchor, computes canvas = window − sidebar and rendered = min(setting, canvas − indent) with the 400px floor and centring, and never mutates the stored value when clamping. Precedence, conversion and clamp are pure functions with unit tests; a percent value recomputes on sidebar show/hide/drag without a content re-render.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/page-width.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Titlebar button and panel shell</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>A chevrons-left-right button sits next to the theme button on macOS and opens a popover panel composed only of C-38 components in the neutral settings palette (--pref*), following the light/dark member via data-darkmode, never tinted by the editor theme; inside interactions never close it, outside click does; a footer row opens the real Settings window; the dark active-segment tile is raised with a hairline border in the shared component (not forked).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/components/quick-settings.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Page tab</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Presets follow the unit (ch 60/80/110, px 600/750/900, % 60/80/100, plus Full window), the stepper respects per-unit bounds and conversion snaps within 10% with the nearest-preset anchor mark, font size uses the single 12-36 range shared with zoom, line height is 1.2-2.0 step 0.1, the "For all documents" switch writes global vs per-document, and the footer names the live global default (never a hardcoded 750).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx playwright test tests/e2e/page-width-panel.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>View tab and per-document theme override</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The tab carries the Auto/Light/Dark segmented control with the titlebar cycle semantics, all 17 families render as swatch tiles whose colours are parsed from the shipped theme CSS with a parse cache, and the R-4 switch pins this document against the global cycle with the active source named; changing the global cycle on a pinned document is a no-op.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx playwright test tests/e2e/page-width-panel.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Tables tab preferences</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The tab sets the default table mode (Auto default, Fit, Full) through the existing muya option tableFullWidthDefault and toggles the "Remember column sizes" preference; both write the same preference objects the rest of the app reads, with no second source of truth.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/components/quick-settings.test.js</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Honest three-mode table model and distribution algorithm</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tableFit.js implements the shared algorithm (minContent/maxContent over header plus the first 50 rows, slack-proportional distribution capped at maxContent, even split of the leftover, overflow-wrap re-measure, minimal-size scroll degradation with the "does not fit by N px" badge). Auto stays content-sized; Fit page pins the frame to the text column; Full width spans the window canvas; the legacy fake-fit flag is gone from code and stored fit:true entries open in Fit page after an idempotent schema-v2 migration. No truncation or ellipsis anywhere in the editor path.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/muya/table-fit.test.js</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Ratios persistence and re-application</Title>
+        <DependsOn>T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tableLayouts schema v2 stores ratios plus widthsPx and an optional explicit tableWidth; drags write both; window/zoom/page-width changes and Fit↔Full switches re-apply ratios to the new width; an inserted column gets a content-proportional share and the rest renormalise; Auto keeps ratios stored but unapplied; header-signature identity and the 30-file cap/sanitize rules are unchanged; sizes and mode stay outside the markdown undo stack.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/table-layout-ratios.test.js</Command>
+        </Verification>
+      </T-008>
+      <T-009>
+        <Title>Drag affordances</Title>
+        <DependsOn>T-007, T-008</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Column borders show a col-resize cursor, a drag shows % and px chips above every column that fade shortly after release, side-wall handles outside Fit set an explicit table width (double-click resets, a wall drag in Full switches the table to Auto with that width), and walls clamp inside the visible scroll area so they stay hittable while the table overflows.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx playwright test tests/e2e/table-modes.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-009>
+      <T-010>
+        <Title>View menu and locales</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>View &gt; Page Width carries Compact 60 ch / Standard 80 ch / Wide 110 ch / Full window / Custom… with checkmarks following the effective value, Custom opens the panel, and all ten locales receive native copy for the new strings (panel tabs, presets, footer, badges, menu items) with regenerated .min derivatives.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/release-materials.test.js tests/renderer/commands/menu-consistency.test.js</Command>
+        </Verification>
+      </T-010>
+      <T-011>
+        <Title>Supporting repairs and terminology</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The dark active-segment contrast fix lands in the shared segmented component with a pinned contrast assertion for both modes; the "Leave empty for full width" help text states the real behaviour (empty resolves to the theme default); user-facing strings say "column sizes"; no sidebar width variants are introduced.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/components/quick-settings.test.js tests/renderer/util/theme-contrast.test.js</Command>
+        </Verification>
+      </T-011>
+      <T-012>
+        <Title>Governance routing and final evidence</Title>
+        <DependsOn>T-001, T-002, T-003, T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>M-061 and V-M-061 are routed through .grace/graph/index.xml and .grace/verification/index.xml with the owning routed documents, content-free markers and the change's commands/scenarios; M-011/M-012 narratives record the dependency; MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY are updated in every touched file; grace lint --assertions current shows no new errors against the recorded baseline; grace status reports this bundle ready to execute.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/util/page-width.test.js tests/renderer/util/page-width-store.test.js tests/renderer/muya/table-fit.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/components/quick-settings.test.js tests/renderer/commands/menu-consistency.test.js tests/renderer/release-materials.test.js</Command>
+        </Verification>
+      </T-012>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <C-1>
+        <Name>Precedence is document &gt; theme &gt; global</Name>
+        <Expected>A document with a stored 900px entry renders 900px on a 750px-default install and on a theme that re-declares 750px; removing the entry falls back to the theme value; the panel and inspector name the active source; untitled documents follow the global default and gain no entry.</Expected>
+      </C-1>
+      <C-2>
+        <Name>Clamping never mutates the setting</Name>
+        <Expected>Store 900px, shrink the window to 500px of canvas: the rendered column is canvas − indent with the 400px floor, the stored value stays 900px, and widening the window restores 900px without any write.</Expected>
+      </C-2>
+      <C-3>
+        <Name>Percent follows the canvas live</Name>
+        <Expected>With the % unit at 80%, hiding the sidebar, showing it and dragging it re-lays the column within one animation frame each time, the value stays 80%, and no editor content re-render or markdown change occurs during the drag.</Expected>
+      </C-3>
+      <C-4>
+        <Name>Panel is the real design system</Name>
+        <Expected>The panel mounts only shipped C-38 components, uses the neutral --pref palette in both members, shows the raised active segment with a visible hairline on dark (contrast assertion pinned for both modes), never closes on an inner click, closes on an outside click, and its footer opens the real Settings window.</Expected>
+      </C-4>
+      <C-5>
+        <Name>Page tab arithmetic</Name>
+        <Expected>80 ch converts to a px value within 10% of 750 and to 80%; a non-preset value carries the nearest-preset anchor underline; per-unit bounds reject out-of-range input; the footer always shows the live global default; the single 12-36 font range is shared with zoom and introducing a third range fails the gate.</Expected>
+      </C-5>
+      <C-6>
+        <Name>Per-document theme override pins the document</Name>
+        <Expected>With the override on, cycling the titlebar Auto → Light → Dark leaves the document's theme unchanged and the source line names the pinned family and mode; turning the override off returns the document to the global cycle immediately.</Expected>
+      </C-6>
+      <C-7>
+        <Name>Fit page actually fits</Name>
+        <Expected>A 6-column table in Fit page stays inside the text column with no horizontal scrollbar whenever the measured minimums fit; when only wrapping makes it fit, cells wrap anywhere instead of scrolling; the badge appears only when even the minima exceed the frame, and then columns sit at their minimal sizes with scroll and no truncation.</Expected>
+      </C-7>
+      <C-8>
+        <Name>Full width escapes the column, degradation is honest</Name>
+        <Expected>Full width spans the whole window canvas (the text column no longer clips the frame) with the same distribution; on a narrow window the badge reads the exact overflow in px; the legacy fake-fit flag no longer exists and a stored fit:true table opens in Fit page after migration; a second migration run changes nothing.</Expected>
+      </C-8>
+      <C-9>
+        <Name>Ratios survive every surface</Name>
+        <Expected>After dragging columns, a Fit ↔ Full round-trip, a window resize, a zoom change and a page-width change all restore the same proportions; inserting a column renormalises the share; Auto keeps ratios stored and unapplied; the 30-file cap and header-signature reset behaviour are unchanged.</Expected>
+      </C-9>
+      <C-10>
+        <Name>Drag affordances are reachable</Name>
+        <Expected>Hovering a column border shows col-resize; dragging shows % and px chips above every column that fade after release; side walls set an explicit table width outside Fit, double-click resets it, a wall drag in Full switches to Auto with that width, and walls stay hittable while the table overflows horizontally.</Expected>
+      </C-10>
+      <C-11>
+        <Name>Locale and menu truth</Name>
+        <Expected>All ten locales carry native copy for every new string with regenerated .min derivatives (drift gate green); the help text no longer claims empty means full width; user-facing strings say "column sizes"; the View &gt; Page Width checkmarks follow the effective value and Custom… opens the panel.</Expected>
+      </C-11>
+      <C-12>
+        <Name>Nothing else changed</Name>
+        <Expected>Print/PDF output is byte-identical for the documented fixtures, the C-70 fullscreen viewer ignores page width and keeps Fit page as its default, F-WINDOW-AUTO-RESIZE stays dormant, and the renderer suite passes with no new lint findings against the recorded baseline.</Expected>
+      </C-12>
+    </CornerMatrix>
+    <ReviewLog>
+      <Pass-1>
+        <Date>2026-10-27</Date>
+        <Correctness>
+          <Verdict>findings</Verdict>
+          <Note>F1: the spec's precedence "document &gt; theme &gt; global" is unenforceable as written because every shipped theme re-declares --editorAreaWidth inside its own stylesheet, so a plain inline variable loses to theme CSS on specificity/order. Disposition: T-002 owns one resolution writer that applies the effective value as an inline custom property on the editor root after theme application, with an ordering test (theme change then width change, and the reverse). F2: the spec assumes the stored value survives clamping, but the shipped setEditorWidth path rewrites the variable from the raw preference; Disposition: T-002 separates "stored" from "rendered" and forbids writes from the clamp path (C-2). F3: legacy fit:true migration is described as one-directional but not as idempotent; Disposition: T-007 pins a schema version bump and a migration test that runs twice with no second change (C-8).</Note>
+        </Correctness>
+        <Security>
+          <Verdict>clean</Verdict>
+          <Note>No new IPC commands: the store rides the existing mt::prefs channel like tableLayouts and filePositions. Persisted payload is numbers, a unit enum and an optional theme id — no document text, no paths beyond the same pathname keys the two existing stores already use. The swatch grid parses shipped CSS in-process only. No remote fetch, no new permissions.</Note>
+        </Security>
+        <UX>
+          <Verdict>findings</Verdict>
+          <Note>F4: the spec forbids decorative chrome but does not define what the panel does when the document is untitled and "For all documents" is off — the mock never covered it. Disposition: T-004 accepts the switch but writes the global default for untitled documents and the panel names that scope explicitly (no silent per-document entry). F5: the 17-tile swatch grid parses 34 theme stylesheets on every open; Disposition: T-005 adds a parse cache keyed by theme id and a pinned first-open budget so the panel opens without a layout stall (C-4).</Note>
+        </UX>
+        <Perf>
+          <Verdict>findings</Verdict>
+          <Note>F6: a live % width recomputed on every sidebar drag frame would re-run layout for the whole document; Disposition: T-002 recomputes only the custom property and the frame box on a rAF-throttled resize observer, never the content (C-3). F7: the fit algorithm measuring header plus 50 rows on every resize needs a cache invalidation rule; Disposition: T-007 caches per table by header signature and structure revision, re-measuring only below the measured range on structural change, and debounces re-fit at ~200 ms plus rAF (C-7/C-9).</Note>
+        </Perf>
+      </Pass-1>
+      <Pass-2>
+        <Date>2026-10-27</Date>
+        <Correctness>
+          <Verdict>findings</Verdict>
+          <Note>Mechanical shape review against the plan schema. F8: both TargetAssertions commands carried budget as a child element; the schema takes it as a Command attribute (budgetSeconds="300"/"600") and rejected the draft with assertion.invalid-shape. F9: DurableScope named ux.xml, which is not a context artifact on disk (the shipped file is ux-guidelines.xml) and was rejected with scope.invalid-context-artifact. Both fixed in place; no semantic change.</Note>
+        </Correctness>
+        <Security>
+          <Verdict>clean</Verdict>
+          <Note>Re-checked the write scope against the spec: printService and exportHtml are absent from ObservedWriteScope, no Rust behaviour beyond the m009_menu item list, no CI workflow file, no new IPC command. The store payload remains numbers plus a unit enum plus an optional theme id.</Note>
+        </Security>
+        <UX>
+          <Verdict>clean</Verdict>
+          <Note>Panel composition, scope naming for untitled documents and the swatch parse cache are stated in T-003/T-004/T-005 and corner C-4/C-5/C-6; no decorative-only control is introduced.</Note>
+        </UX>
+        <Perf>
+          <Verdict>findings</Verdict>
+          <Note>F10: T-012 verification ran the whole renderer suite while five other tasks already run their file-level subsets, so the same work would be gated twice; the command is narrowed to the change's own files plus the two registration suites, and the whole-suite run stays an acceptance-tier step recorded as evidence.</Note>
+        </Perf>
+      </Pass-2>
+      <Pass-3>
+        <Date>2026-10-27</Date>
+        <Correctness>
+          <Verdict>clean</Verdict>
+          <Note>Coverage check on the corrected revision: R-1→T-001, R-2/R-3→T-002, R-4→T-005, R-5→T-003, R-6→T-004, R-7→T-005/T-006, R-8/R-9→T-007, R-10→T-008, R-11→T-009, R-12→T-011, R-13→T-010, R-14→T-012, R-15 recorded as resolved in the spec. Task dependencies are backward-only and acyclic (T-002→T-001; T-004/T-005→T-002,T-003; T-006/T-011→T-003; T-008→T-007; T-009→T-007,T-008; T-010→T-002; T-012→T-001,T-002,T-003,T-007). Every task carries one title, non-empty criteria and a non-empty command; every corner carries a verbatim Expected.</Note>
+        </Correctness>
+        <Security>
+          <Verdict>clean</Verdict>
+          <Note>No command contains a GRACE lifecycle call; no secret, path or document content enters the new store; the panel parses shipped CSS in-process.</Note>
+        </Security>
+        <UX>
+          <Verdict>clean</Verdict>
+          <Note>Corners C-4..C-6 pin the panel's design-system fidelity, the arithmetic of the Page tab and the pin semantics of the theme override; the untitled-document scope is explicit rather than implied.</Note>
+        </UX>
+        <Perf>
+          <Verdict>clean</Verdict>
+          <Note>Corners C-3, C-7 and C-9 pin the rAF-throttled percent relayout, the fit cache/debounce and the ratios re-application; no corner allows a per-frame content re-render.</Note>
+        </Perf>
+      </Pass-3>
+      <Pass-4>
+        <Date>2026-10-27</Date>
+        <Correctness>
+          <Verdict>clean</Verdict>
+          <Note>Independent-order recheck of the same bytes: read corners first, then tasks, then assertions. Every corner maps to a task criterion and every target assertion maps to a task command; the two MustPassCommand entries are the only commands with budgets (300 s and 600 s), both measured classes (focused vitest, focused chromium playwright). M-061/V-M-061 are still free in the routed graph and verification documents, and the plan claims them only through T-012.</Note>
+        </Correctness>
+        <Security>
+          <Verdict>clean</Verdict>
+          <Note>Second pass over the scope lists: no private path, no owner-side mock path, no credential-shaped string; the spec's external mock material is referenced by description only.</Note>
+        </Security>
+        <UX>
+          <Verdict>clean</Verdict>
+          <Note>Second pass over the non-goals: the two forbidden outcomes (hidden table data, a second palette) appear as explicit corners (C-7, C-8, C-4) rather than as prose promises.</Note>
+        </UX>
+        <Perf>
+          <Verdict>clean</Verdict>
+          <Note>Second pass over budgets: the fit algorithm measures at most header plus 50 rows with a structural-revision cache, and the panel's first open parses each theme once per session.</Note>
+        </Perf>
+      </Pass-4>
+    </ReviewLog>
+    <PlanNotes>
+      <Note>R-4 is included (owner gate resolved 2026-10-26); the View tab switch, the pin semantics and the source naming are T-005.</Note>
+      <Note>Sequencing: C-50 is a frozen active spec owning the theme family scope; this plan writes the shared theme resolution path, so execution starts only after C-50 is archived or explicitly sequenced, and parallel preflight is re-run before the first write. C-FILE-POSITION-MEMORY is merged and queued in 2.9.x-next; its per-file store precedent is read, not modified.</Note>
+      <Note>The spec's line citations have drifted in minor ways (en.json help string is at line 525, not 522; theme.js:263 and muya/themes/default.css:167 still match). Anchor assertions pin text, not line numbers, so drift does not invalidate the plan.</Note>
+      <Note>Four-corner gate: Pass-1 and Pass-2 were finding-bearing (dispositions written into tasks and corners, shape fixes applied), Pass-3 and Pass-4 are consecutive clean passes over this exact revision. Plan status stays draft; approval is the owner's separate instruction.</Note>
+    </PlanNotes>
+  </C-PAGE-WIDTH-TABLES>
+</GraceChangePlan>
