@@ -142,8 +142,13 @@ const knownDeliveryIds = (root, revision) => {
   const ids = new Set()
   const registry = baseFile(root, revision, 'docs/acceptance/registry.json')
   if (registry) {
-    for (const item of JSON.parse(registry).items ?? []) {
-      if (item?.id) ids.add(item.id)
+    try {
+      for (const item of JSON.parse(registry).items ?? []) {
+        if (item?.id) ids.add(item.id)
+      }
+    } catch {
+      // A malformed base registry is not this check's evidence to fail on;
+      // the train documents below still contribute every admitted ID.
     }
   }
   for (const pathname of trainDocumentPaths(root, revision)) {
