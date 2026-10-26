@@ -574,7 +574,7 @@ describe('store/editor — deep coverage', () => {
   // ─── NEW_TAB_WITH_CONTENT — replace untitled blank tab ───────────
 
   describe('NEW_TAB_WITH_CONTENT — replace untitled blank tab', () => {
-    it('closes current untitled saved tab before opening new one', () => {
+    it('closes current untitled saved tab before opening new one', async () => {
       // Create a blank untitled tab
       const blank = makeTab({ id: 'blank', isSaved: true, pathname: '', markdown: '' })
       editor.tabs = [blank]
@@ -592,7 +592,7 @@ describe('store/editor — deep coverage', () => {
         isMixedLineEndings: false
       }
 
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, selected: true })
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md, selected: true })
 
       // blank tab should be closed, new doc should be the only tab
       expect(editor.tabs.find((t) => t.id === 'blank')).toBeUndefined()
@@ -979,7 +979,7 @@ describe('store/editor — deep coverage', () => {
   // ─── NEW_TAB_WITH_CONTENT — selected=undefined defaults to true ──
 
   describe('NEW_TAB_WITH_CONTENT — selected default', () => {
-    it('defaults selected to true when not provided', () => {
+    it('defaults selected to true when not provided', async () => {
       const md = {
         markdown: 'content',
         filename: 'f.md',
@@ -991,7 +991,7 @@ describe('store/editor — deep coverage', () => {
         isMixedLineEndings: false
       }
 
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md })
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: md })
       expect(editor.currentFile.pathname).toBe('/tmp/f.md')
     })
   })

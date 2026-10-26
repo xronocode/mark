@@ -2613,6 +2613,29 @@
       <Status>partial</Status>
       <Layer>2</Layer>
       <Summary>
+        C-FILE-POSITION-MEMORY (2026-10-24): reading position survives tab
+        close/reopen, file reopen, relaunch and rename. util/filePositionStore.js
+        owns the prefs key filePositions (numbers-only entries {scrollTop,
+        muyaIndexCursor line/ch, savedAt}, cap 200 newest, prune-on-load with
+        injectable stat, rename moves); editor.vue's selectionChange/scroll
+        handlers call store updateCursorPosition (tab.cursor only — the
+        contentRevision stale-save guard never moves) and arm one 1.5s
+        debounce that computes muyaIndexCursor once per flush (one
+        ExportMarkdown); FORCE_CLOSE_TAB and _saveSessionState flush before
+        the tab dies; NEW_TAB_WITH_CONTENT is async and restores the clamped
+        entry into docState before selection/push (identical-markdown early
+        return prevents the file-loaded stomp). Untitled/guide tabs never
+        persist (V-M-011 scenario-77-file-position-memory). Review wave
+        (2026-10-26): the restore await precedes all tab surgery (no
+        editor remount on open-over-blank), _opensInFlight drains before
+        the restored active-tab selection, store writes serialize through
+        util/filePositionStore's queue with tri-state stat verdicts
+        (confirmed-missing-only pruning) and read-failure write aborts,
+        the mt::collect-position bus refresh keeps arrow-key carets fresh
+        at flush boundaries, and muya (M-012) hardening — idempotent
+        plugin registration with option refresh plus registry-driven
+        destroy with per-plugin isolation — lives behind the same
+        scenario-77 evidence.
         C-MULTI-SOURCE-WORKSPACE (2026-10-22): the workspace open-mode routing
         is centralized in the project store (M-036 owns it); this renderer
         mounts the shared Add-or-Replace chooser at the app level

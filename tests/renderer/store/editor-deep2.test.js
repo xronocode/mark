@@ -801,21 +801,21 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── NEW_TAB_WITH_CONTENT ──────────────────────────────────────
 
   describe('NEW_TAB_WITH_CONTENT', () => {
-    it('logs warning for null markdownDocument', () => {
+    it('logs warning for null markdownDocument', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-      editor.NEW_TAB_WITH_CONTENT({ markdownDocument: null })
+      await editor.NEW_TAB_WITH_CONTENT({ markdownDocument: null })
       expect(spy).toHaveBeenCalledWith('Cannot create a file tab without a markdown document!')
       spy.mockRestore()
     })
 
-    it('switches to existing tab when pathname matches', () => {
+    it('switches to existing tab when pathname matches', async () => {
       const existing = makeTab({ id: 'existing', pathname: '/tmp/a.md' })
       editor.tabs = [existing]
       editor.currentFile = existing
       editor.updateTabIdToIndex()
 
       window.fileUtils.isSamePathSync.mockReturnValue(true)
-      editor.NEW_TAB_WITH_CONTENT({
+      await editor.NEW_TAB_WITH_CONTENT({
         markdownDocument: { pathname: '/tmp/a.md', markdown: 'new', filename: 'a.md' },
         selected: true
       })

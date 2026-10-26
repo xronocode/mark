@@ -20,6 +20,11 @@
 //            retained as migration provenance.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-25 C-FILE-POSITION-MEMORY: the mt::open-new-tab arrival
+//                awaits the now-async NEW_TAB_WITH_CONTENT (position
+//                restore leg) so the recently-closed consume and the
+//                watchMode/diffMode/previewMode flags resolve against the
+//                created tab id instead of racing an empty store.
 //   - 2026-10-21 C-FIX-009-RECENTLY-CLOSED: the mt::open-new-tab arrival
 //                consumes a matching closed-tab history entry — every
 //                open surface (popover, ⇧⌘T, Reopen all, Recent files,
@@ -284,7 +289,11 @@ const setupIpcListenersImpl = async () => {
       const options = p.options || {}
       const selected = typeof p.selected === 'boolean' ? p.selected : true
       if (markdownDocument) {
-        editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument, options, selected })
+        // C-FILE-POSITION-MEMORY: the action is async (position-restore
+        // leg); the arrival must await it so the recently-closed consume
+        // and the watchMode/diffMode/previewMode flags below resolve
+        // against the created tab id instead of racing an empty store.
+        await editorStore.NEW_TAB_WITH_CONTENT({ markdownDocument, options, selected })
       } else {
         editorStore.NEW_UNTITLED_TAB({})
       }
