@@ -1,8 +1,8 @@
 // FILE: tools/release-readiness.mjs
-// VERSION: 2.1.0
+// VERSION: 2.1.1
 // START_MODULE_CONTRACT
-//   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, human-ledger membership, or requested release identity is inconsistent.
-//   SCOPE: Read one public train JSON document and its human Markdown ledger, validate deterministic repository-only invariants and whole-id ledger membership, and emit stable path-free diagnostics; online check-run proof and publication remain workflow concerns.
+//   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, human-ledger membership, current-train pointer projection, Project field coverage, or requested release identity is inconsistent.
+//   SCOPE: Read one public train JSON document, its human Markdown ledger, the current-train pointer/README projection and the source-controlled Project field, validate deterministic repository-only invariants, whole-id ledger membership and coverage, and emit stable path-free diagnostics; online check-run proof and publication remain workflow concerns.
 //   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
@@ -14,6 +14,8 @@
 //   readTrainManifest - Reads the checked-in JSON authority.
 //   validateTrainManifest - Validates schema, lifecycle, membership, acceptance, and requested identity.
 //   validateTrainLedger - Rejects drift between the JSON authority and its human Markdown ledger header and item membership.
+//   validateCurrentTrainPointer - Proves current.json names an existing train and the README "Current train" line names the same train.
+//   validateProjectFieldCoverage - Proves the checked-in Project Train field offers an option for every train document.
 //   validateStrictRepositoryState - Proves payload/seal/tag/check-run identity from repository and supplied API evidence.
 //   runReleaseReadiness - Runs the offline gate and emits its stable success marker.
 //   TRAIN_SCHEMA_VERSION - Exact supported train-document schema.
@@ -47,6 +49,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v2.1.1: list the current-train pointer/README projection and Project Train-field coverage in the module contract and map; behavior unchanged.
 //   - 2026-10-27 v2.1.0: C-RELEASE-LEDGER-GUARD — the Markdown ledger must name every admitted and excluded item id as a whole id (C-1 does not satisfy C-10), so an admission that edits only the JSON authority fails closed with MT_RELEASE_LEDGER_DRIFT.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — resolve the train through the current-train pointer; accept any metadata-only payload-to-seal span (every commit proven bookkeeping-only) instead of exactly one commit, which merge-commit PRs could never satisfy; replace the hand-grown seal file list with bookkeeping path patterns; drop the Release Please boundary check.
 //   - 2026-10-20 v1.2.0: bind the previous-release boundary, many-to-many item accounting, and strict check set to repository evidence outside the mutable seal.
