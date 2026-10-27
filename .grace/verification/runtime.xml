@@ -5886,6 +5886,7 @@
       <Commands>
         <Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Command>
         <Command>npx vitest run tests/renderer/muya/markdown-round-trip.test.js tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/inline-token-parity.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/emphasis-pairing.test.js tests/renderer/muya/inline-token-parity.test.js</Command>
         <Command>
           npx vitest run tests/renderer/muya/keyboard-undo.test.js
           tests/renderer/muya/copy-data.test.js
@@ -5976,6 +5977,20 @@
               <Command>npx vitest run tests/renderer/muya/copy-cut-stale-selection.test.js</Command>
 </Commands>
       <Scenarios>
+
+        <scenario-commonmark-emphasis-pairing>
+          C-COMMONMARK-EMPHASIS: emphasis delimiter pairing pins. The
+          owner-report paragraph («**Zero-shot **— … **One-shot**», 2026-10-26
+          screenshot) tokenizes to literal typo asterisks plus exactly one
+          STRONG around One-shot, and the marked fork renders the GitHub
+          Markdown API output byte for byte. The theft class (**a **b** c**,
+          A **B **— C** D, *a *b* c*), *** run splitting (em[strong]), masking
+          (escapes, code spans), activation counters, generator round-trip and
+          muya-vs-marked parity are pinned in emphasis-pairing.test.js. Inline
+          goldens re-captured deliberately (UPDATE_INLINE_GOLDENS=1, C-24
+          flow); lexer goldens unchanged.
+        </scenario-commonmark-emphasis-pairing>
+
         <scenario-muya-fence-import-teardown>
           The real Muya fence-export/Guide round-trip suite waits for
           vi.dynamicImportSettled before restoring its console spies and

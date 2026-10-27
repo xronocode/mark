@@ -3749,6 +3749,25 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
+        C-COMMONMARK-EMPHASIS (2026-10-27): strong/em delimiters pair the
+        CommonMark way in both inline code paths. New parser/emphasisPairing.js
+        (M-012 territory, shared module) scans * / _ delimiter runs with
+        CommonMark flanking (escapes and code spans masked), runs the
+        delimiter-stack algorithm (nearest eligible opener, odd-match rule,
+        content-side consumption) and answers the two dispatch gates: muya's
+        own tokenizer (parser/index.js START_BLOCK_EMPHASIS_PAIRING_GATE, the
+        WYSIWYG view) and the vendored marked fork's inlineLexer (the HTML/PDF
+        export and copy-as-HTML path). A regex match survives only when the
+        stack agrees with its opener and closer segments; when the stack pairs
+        the current run with a different closer, a bounded retry emits the
+        stack-paired span under the same validateEmphasize checks. Strings
+        without the theft shape (fewer than three runs per character and no
+        run of three or more delimiters) take a zero-work fast path and stay
+        byte-identical to the legacy tokenizer. Owner report fixed (2026-10-26):
+        «**Zero-shot **— … **One-shot**» renders One-shot bold with the typo
+        asterisks literal, on the editor and in export, exactly as GitHub
+        renders it. Inline goldens re-captured through the C-24 UPDATE flow;
+        C-30 lexer goldens unchanged.
         FIX-015 (2026-10-20): Markdown table export escapes each unescaped
         pipe by preceding-backslash parity and rectangularizes the widest
         advisory or real row. Missing cells become empty strings, extra real

@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/index.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya inline tokenizer: turns a block's text into inline tokens for rendering.
 //   SCOPE: Begin-of-line rules, inline rules, highlight merging; generator for markdown re-serialisation.
-//   DEPENDS: ./rules, ../utils, ./marked/utils, ./utils.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24.
+//   DEPENDS: ./rules, ../utils, ./marked/utils, ./utils, ./emphasisPairing.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24; .grace/changes/active/C-COMMONMARK-EMPHASIS.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -17,9 +17,11 @@
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream muya, previously ungoverned.)
 //   - 2026-10-13 v1.1.0: C-24 START_BLOCK_CALLOUT_MARKER_TOKEN: with options.calloutMarker the `[!type] title` first line (newline included) becomes one callout_marker token.
+//   - 2026-10-27 v1.2.0: C-COMMONMARK-EMPHASIS START_BLOCK_EMPHASIS_PAIRING_GATE: the strong|em dispatch accepts a regex match only when the shared delimiter-stack pairing agrees with its opener and closer segments, and retries with the stack-paired span when it does not — an orphan opener can no longer steal a later clean pair's closer (owner report 2026-10-26: `**Zero-shot **— … **One-shot**` rendered as one giant bold span).
 // END_CHANGE_SUMMARY
 
 import { beginRules, inlineRules, inlineExtensionRules } from './rules'
+import { computeEmphasisPairing } from './emphasisPairing'
 
 const CALLOUT_MARKER_LINE_REG = /^\[![A-Za-z][\w-]*\][+-]?(?:[ \t]+[^\n]*)?\n?/
 import { isLengthEven, union } from '../utils'
@@ -71,9 +73,14 @@ const matchHtmlTag = (src, disableHtml) => {
 
 const tokenizerFac = (src, beginRules, inlineRules, pos = 0, top, labels, options) => {
   const originSrc = src
+  // C-COMMONMARK-EMPHASIS: `pos` arrives in the parent's coordinate space (the
+  // caller passes its own absolute offset), so the emphasis pairing — computed
+  // on this invocation's originSrc — is addressed 0-based via pairingPos.
+  const basePos = pos
   const tokens = []
   let pending = ''
   let pendingStartPos = pos
+  let emphasisPairing
   const { disableHtml, superSubScript, footnote, math } = options
   const pushPending = () => {
     if (pending) {
@@ -197,27 +204,76 @@ const tokenizerFac = (src, beginRules, inlineRules, pos = 0, top, labels, option
     for (const rule of emRules) {
       const to = inlineRules[rule].exec(src)
       if (to && isLengthEven(to[3])) {
-        const isValid = validateEmphasize(src, to[0].length, to[1], pending, validateRules)
-        if (isValid) {
-          inChunk = true
-          pushPending()
-          const range = {
-            start: pos,
-            end: pos + to[0].length
-          }
-          const marker = to[1]
-          tokens.push({
-            type: rule,
-            raw: to[0],
-            range,
-            marker,
-            parent: tokens,
-            children: tokenizerFac(to[2], undefined, inlineRules, pos + to[1].length, false, labels, options),
-            backlash: to[3]
-          })
-          src = src.substring(to[0].length)
-          pos = pos + to[0].length
+        // START_BLOCK_EMPHASIS_PAIRING_GATE
+        // C-COMMONMARK-EMPHASIS: the regex pairs the first opener with the
+        // first flanking-valid closer; the delimiter-stack pairing (computed
+        // once per invocation on originSrc) is the authority on which closer
+        // this opener owns. A null pairing (no theft shape in this string)
+        // auto-passes and behavior stays byte-identical to the legacy
+        // tokenizer. When the stack disagrees with the regex match, the
+        // bounded retry emits the stack-paired span under the same
+        // validateEmphasize checks; on failure the delimiters fall through
+        // to literal text.
+        if (emphasisPairing === undefined) {
+          emphasisPairing = computeEmphasisPairing(originSrc)
         }
+        const pairingPos = pos - basePos
+        const acceptsRegexMatch = emphasisPairing === null ||
+          emphasisPairing.matchForSpan(pairingPos, pairingPos + to[0].length, to[1].length)
+        if (acceptsRegexMatch) {
+          const isValid = validateEmphasize(src, to[0].length, to[1], pending, validateRules)
+          if (isValid) {
+            inChunk = true
+            pushPending()
+            const range = {
+              start: pos,
+              end: pos + to[0].length
+            }
+            const marker = to[1]
+            tokens.push({
+              type: rule,
+              raw: to[0],
+              range,
+              marker,
+              parent: tokens,
+              children: tokenizerFac(to[2], undefined, inlineRules, pos + to[1].length, false, labels, options),
+              backlash: to[3]
+            })
+            src = src.substring(to[0].length)
+            pos = pos + to[0].length
+          }
+        } else if (emphasisPairing !== null) {
+          const stackMatch = emphasisPairing.matchForOpenerStart(pairingPos)
+          if (stackMatch) {
+            const boundedMarkerLen = stackMatch.openerSegEnd - stackMatch.openerSegStart
+            const boundedMarker = src.substring(0, boundedMarkerLen)
+            const boundedSpanLen = stackMatch.closerSegEnd - pairingPos
+            const boundedInner = src.substring(boundedMarkerLen, boundedSpanLen - boundedMarkerLen)
+            const backlashMatch = /(\\*)$/.exec(boundedInner)
+            const boundedBacklash = backlashMatch ? backlashMatch[1] : ''
+            const boundedContent = boundedInner.substring(0, boundedInner.length - boundedBacklash.length)
+            if (isLengthEven(boundedBacklash) && validateEmphasize(src, boundedSpanLen, boundedMarker, pending, validateRules)) {
+              inChunk = true
+              pushPending()
+              const range = {
+                start: pos,
+                end: pos + boundedSpanLen
+              }
+              tokens.push({
+                type: stackMatch.type,
+                raw: src.substring(0, boundedSpanLen),
+                range,
+                marker: boundedMarker,
+                parent: tokens,
+                children: tokenizerFac(boundedContent, undefined, inlineRules, pos + boundedMarkerLen, false, labels, options),
+                backlash: boundedBacklash
+              })
+              src = src.substring(boundedSpanLen)
+              pos = pos + boundedSpanLen
+            }
+          }
+        }
+        // END_BLOCK_EMPHASIS_PAIRING_GATE
         break
       }
     }
