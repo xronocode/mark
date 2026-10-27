@@ -10,6 +10,10 @@
  *
  * Usage:
  *   npx playwright test tests/e2e/showcase-screenshots.spec.ts
+ *
+ * Output: test-results/showcase/showcase-NN-<name>.png (ignored, transient).
+ * Do not write into the retired repo-root screenshots/ path: the public
+ * operational-record boundary requires it to stay absent.
  */
 import { test } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
@@ -481,11 +485,11 @@ test.describe('showcase screenshots', () => {
 
       await page.waitForTimeout(500)
 
-      fs.mkdirSync('screenshots', { recursive: true })
+      fs.mkdirSync('test-results/showcase', { recursive: true })
 
       const idx = String(i).padStart(2, '0')
       await page.screenshot({
-        path: `screenshots/showcase-${idx}-${name}.png`,
+        path: `test-results/showcase/showcase-${idx}-${name}.png`,
         type: 'png',
         clip: { x: 0, y: 0, width: 1280, height: 800 }
       })
