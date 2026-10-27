@@ -1,0 +1,75 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-SAFETY-REVIEW-LANES>
+  <Name>Per-lane safety review locks: a long non-local review must not block every other commit</Name>
+  <ApprovalBasis>Owner instruction 2026-10-27 (translated from Russian): «их два — локальный и удалённый» — there are two reviewers, local and remote — followed by «делай» after the proposal to split the single inference lock by lane so a long non-local review no longer serializes the whole repository.</ApprovalBasis>
+  <Created>2026-10-27</Created>
+  <Priority>high</Priority>
+  <Status>draft</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S–M (≈0.5 day)</Complexity>
+
+  <Summary>
+    review() currently takes one exclusive fcntl.flock on .git/mark-safety/inference.lock for the whole operation: candidate creation, deterministic scan, Gitleaks, the two owner-local model passes and the independent non-local pass. The two reviewers are different resources (a local Ollama model with one loaded-model slot and a remote Ollama endpoint), and the deterministic scan already uses a per-process TemporaryDirectory, so the global lock over-serializes. Measured on the C-TITLEBAR-MODE-CHIPS commit (2026-10-27): 123 local chunks completed, the non-local phase reached chunk 10 after ~18 minutes, and every other commit in the repository received "Another repository safety review owns the inference slot" throughout. This change replaces the single lock with a short candidate lock around snapshot/scan/final identity and two named lane locks: one around local_review and one around non_local_review. Each lane stays single-flight, a waiting commit can finish its local phase while another commit is remote-bound, and candidate identity, receipts and the human override keep their current semantics.
+  </Summary>
+
+  <Problem>
+    <Description>One repository-wide lock guards two independent resources. A large candidate (123 chunks for the titlebar change) holds it through every remote model call, so no other commit or push can be reviewed for hours; the failure message does not say which resource is busy. The local and non-local reviewers are separate endpoints, and the deterministic scan is already concurrency-safe, so the serialization is broader than the invariants require.</Description>
+    <RootCauseTimestamp>2026-10-27 07:08–07:28 +0500, titlebar commit PID 77637: local_review chunks 1–123 then non_local_review chunks 1–10+ while inference.lock stayed held.</RootCauseTimestamp>
+  </Problem>
+
+  <Goals>
+    <R-1>Replace the single inference.lock with named locks: candidate.lock for the short snapshot, scan and final identity/receipt section; local.lock around local_review; non-local.lock around non_local_review. No code path may acquire all three for the duration of a model review.</R-1>
+    <R-2>Keep each lane single-flight: at most one local review (one loaded local model slot) and at most one non-local review at a time. A local phase may run while another operation is in its non-local phase.</R-2>
+    <R-3>Preserve candidate integrity: the candidate snapshot, deterministic checks, Gitleaks, final identity recheck and private receipt stay exact. A concurrent commit that changes the candidate identity invalidates the older review, which must fail closed and re-stage.</R-3>
+    <R-4>Make contention observable: a blocked operation names the busy lane (local or non-local), and no new bypass, environment variable or override path is introduced.</R-4>
+    <R-5>Prove the split: tests show local proceeds while non-local is held, two local reviews serialize, two non-local reviews serialize, and concurrent reviews cannot corrupt per-candidate debug evidence. Update docs/commit-push-safety.md and M-064/V-M-064.</R-5>
+  </Goals>
+
+  <Phases>
+    <P1><Title>Lock split in tools/security_gate.py plus per-candidate review evidence</Title><Complexity>S–M</Complexity></P1>
+    <P2><Title>Concurrency regressions, docs, graph and verification deltas</Title><Complexity>S</Complexity></P2>
+  </Phases>
+
+  <Dependencies>The current two-reviewer gate (C-SAFETY-GATE-MODEL-REVIEW) is on main; its reviewer configuration, ownership preflight, chunking and override semantics are unchanged by this change.</Dependencies>
+
+  <Constraints>
+    <Constraint>The local endpoint must never run two reviews concurrently; reviewer_ownership and the one-loaded-model assumption stay authoritative inside local.lock.</Constraint>
+    <Constraint>The non-local lane remains single-flight by default; this change does not add remote concurrency.</Constraint>
+    <Constraint>Candidate creation, deterministic scan and the final identity check stay serialized in candidate.lock, so two staged candidates cannot interleave their scan or receipt writes.</Constraint>
+    <Constraint>last-model-review.json is shared today; it must become per-candidate (identity in the filename) and be written atomically, or two overlapping reviews corrupt it.</Constraint>
+    <Constraint>Lock files stay owner-only (0600) in the private safety directory; flock releases them when a process dies, so no stale-lock cleanup command is added.</Constraint>
+    <Constraint>The explicit MARK_SAFETY_OVERRIDE path, prompts, models, chunk size, phases and receipt schema for completed reviews are unchanged except the debug-evidence filename.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Running chunks of one review in parallel, or running two local reviews at once.</NonGoal>
+    <NonGoal>Changing reviewer endpoints, models, prompts, chunking, verdict schema or the human override.</NonGoal>
+    <NonGoal>Making the non-local lane concurrent beyond one in-flight review.</NonGoal>
+    <NonGoal>Changing push lanes, history-rewrite lanes or screenshot binary policy.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>review() acquires candidate.lock for snapshot/scan and the final identity/receipt section, local.lock around local_review, and non-local.lock around non_local_review; no inference.lock remains and no lock is held across both model lanes.</Criterion>
+    <Criterion>With non-local.lock held by one operation, a second operation completes local_review; a third local operation fails closed on local.lock with the lane message; two non-local operations fail closed the same way.</Criterion>
+    <Criterion>The contention error names the lane (for example "owns the local review slot" / "owns the non-local review slot").</Criterion>
+    <Criterion>Per-candidate debug evidence is written atomically and two overlapping reviews leave two intact files.</Criterion>
+    <Criterion>npm run safety:test passes; grace lint --path . --assertions current reports zero errors; docs/commit-push-safety.md, M-064 and V-M-064 describe the two lanes.</Criterion>
+  </AcceptanceCriteria>
+
+  <VerificationIntent>
+    <Verification>python3 -m unittest discover -s tests/security -p 'test_*.py' (npm run safety:test) — existing review, override, reviewer-ownership and push-lane cases stay green plus the new lane-concurrency cases.</Verification>
+    <Verification>A targeted concurrency test: patch local_review/non_local_review to block on events, run two review() calls, and assert the second local phase completes while the first is inside non_local_review; assert two local phases do not overlap.</Verification>
+    <Verification>grace lint --path . --assertions current and grace status --path . --with modules --json — zero errors before handoff.</Verification>
+    <Verification>Manual observation on the next large commit: a concurrent small commit completes its local phase while the large one is in non-local, and the blocked message names the lane.</Verification>
+  </VerificationIntent>
+
+  <AffectedAreas>
+    <Area>tools/security_gate.py</Area>
+    <Area>tests/security/test_security_gate.py</Area>
+    <Area>docs/commit-push-safety.md</Area>
+    <Area>.grace/graph/features.xml (M-064)</Area>
+    <Area>.grace/verification/features.xml (V-M-064)</Area>
+    <Area>.grace/changes/active/C-SAFETY-REVIEW-LANES/**</Area>
+  </AffectedAreas>
+</C-SAFETY-REVIEW-LANES>
+</GraceChangeSpec>
