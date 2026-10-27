@@ -32,6 +32,10 @@ import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { setupTestPinia } from '../pinia'
 
+// jsdom mounts the whole chips component; under full-suite load the first
+// mount can exceed the 5 s default, so this suite gets a wider budget.
+vi.setConfig({ testTimeout: 20_000 })
+
 const CHIPS = {
   split: 'Split',
   source: 'Source',
