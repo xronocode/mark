@@ -41,7 +41,12 @@ const STRESS = [
   '**strong *nested em* end** and ~~del **in** del~~ and `code **not**`.',
   '![img](a.png "t") [link](b.md#h) [ref][id] ![refimg][id2] :smile: &copy; &amp;',
   'Trailing  \nhard break and soft\nbreak.',
-  '[!NOTE] marker-looking text in a normal paragraph.'
+  '[!NOTE] marker-looking text in a normal paragraph.',
+  // C-COMMONMARK-EMPHASIS: the theft class (owner report 2026-10-26 plus
+  // the upstream marktext#2086 probes) — pins the delimiter-stack pairing.
+  'Хозяйке на заметку: **Zero-shot **— модель получает только инструкцию. **One-shot** — инструкцию и один готовый пример.',
+  '**a **b** c** and *a *b* c* and ***both***.',
+  'x **b **— c **d** e'
 ]
 
 const VARIANTS = {
