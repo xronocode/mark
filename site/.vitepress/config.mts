@@ -129,6 +129,9 @@ const head: HeadConfig[] = [
 for (const { attrs, body } of analyticsTags(analytics, base)) {
   head.push(body ? ['script', attrs, body] : ['script', attrs])
 }
+// First-party counters (docs/tracking.md in the dashboard repo): our own
+// collector, origin-bound key, no cookies. GA4 stays for the comparison week.
+head.push(['script', { src: `${base}analytics.js`, 'data-key': process.env.PUBLIC_COLLECT_KEY ?? '', defer: '' }])
 // END_BLOCK_DOCS_HEAD
 
 export default defineConfig({
