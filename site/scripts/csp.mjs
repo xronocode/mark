@@ -88,7 +88,7 @@ export function cspFor (html, { analytics = [] } = {}) {
   if (ga) imgSrc.push('https://www.googletagmanager.com', 'https://*.google-analytics.com')
 
   // The landing refreshes the release tag from the GitHub API (non-blocking).
-  const connectSrc = ["'self'", GEO_HOST, 'https://api.github.com']
+  const connectSrc = ["'self'", GEO_HOST, 'https://api.github.com', 'https://dash.xronocode.com']
   if (ga) connectSrc.push('https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com')
   if (cf) connectSrc.push('https://cloudflareinsights.com')
   connectSrc.push(...umamiHosts)

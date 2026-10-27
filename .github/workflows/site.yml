@@ -77,6 +77,7 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
       SITE_BASE: ${{ vars.SITE_BASE }}
       UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID }}
+      PUBLIC_COLLECT_KEY: ${{ secrets.PUBLIC_COLLECT_KEY }}
       GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
       CF_BEACON_TOKEN: ${{ vars.CF_BEACON_TOKEN }}
       GITHUB_TOKEN: ${{ github.token }}
@@ -97,23 +98,29 @@ jobs:
       - run: npm run check
 
       - if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: site-dist
           path: site/.vitepress/dist
 
+  # Cloudflare Pages, not GitHub Pages: the site lives on Cloudflare and the
+  # repository is private, where GitHub Pages is not available on the free plan.
   deploy:
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     concurrency:
       group: pages
       cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        run: npx --yes wrangler@4 pages deploy dist --project-name mark-site --branch main --commit-dirty=true
+      - if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo '::notice::CLOUDFLARE_API_TOKEN is not set; skipping the Pages deploy'
