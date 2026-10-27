@@ -148,7 +148,26 @@
       "auto": "Design: Automatisch",
       "light": "Design: Hell"
     },
-    "guide": "Mark-Leitfaden"
+    "guide": "Mark-Leitfaden",
+    "modeChips": {
+      "split": "Teilen",
+      "source": "Quelltext",
+      "changes": "Änderungen",
+      "typewriter": "Schreibmaschine",
+      "focus": "Fokus",
+      "standard": "Standard",
+      "resetAll": "Alle Modi zurücksetzen",
+      "hintStandard": "der gewohnte Editor mit Text und Formatierung",
+      "hintSplit": "Quelltext und Vorschau nebeneinander",
+      "hintSource": "das rohe Markdown bearbeiten",
+      "hintChanges": "mit der gespeicherten Datei vergleichen",
+      "hintTypewriter": "die Cursorzeile bleibt auf gleicher Höhe, während der Text scrollt",
+      "hintFocus": "blendet alles außer dem bearbeiteten Absatz ab",
+      "hintReset": "zurück zur Standardansicht und Schreibmodi aus",
+      "viewGroup": "Dokumentansicht",
+      "writingGroup": "Schreibmodi",
+      "narrowNote": "Das Fenster ist zu schmal für zwei Bereiche — vergrößern Sie es, um beide zu sehen."
+    }
   },
   "guide": {
     "agentPrompt": {

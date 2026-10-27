@@ -174,6 +174,18 @@ describe('titleBar/index.vue — deep coverage', () => {
     })
   })
 
+  // --- mode chips mount order (C-TITLEBAR-MODE-CHIPS T-004) ---
+  describe('mode chips mount order', () => {
+    it('mounts the chips cluster first in the right cluster', () => {
+      const wrapper = mountComponent()
+      const right = wrapper.find('.titlebar-right')
+      expect(right.exists()).toBe(true)
+      const first = right.element.firstElementChild
+      expect(first).toBeTruthy()
+      expect(first.outerHTML).toContain('mode-chips')
+    })
+  })
+
   // --- themeMode computed (C-41 T-001) ---
   describe('themeMode', () => {
     it('is auto while followSystemTheme is on, else light/dark by the theme', async () => {
