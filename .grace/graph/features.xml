@@ -2459,6 +2459,13 @@
         document; release:governance proves a pull-request title never names a
         FIX-*/DEPS-* delivery ID the base revision already records, because the
         acceptance and train ledgers own those IDs permanently.
+
+        The one-way Project mirror also tolerates eventually consistent
+        Projects read-back: after creating an item it waits for the stable
+        Item ID to appear instead of re-planning a second create (which
+        duplicated C-NATIVE-DOCX-RTF-EXPORT on 2026-10-26), and it fails
+        closed with MT_RELEASE_PROJECT_READBACK_LAG when the row never
+        becomes visible.
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
