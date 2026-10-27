@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 2.0.0
+# VERSION: 2.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks plus two independent model reviewers.
 #   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, two serial owner-local model passes and one independent non-local model pass, an explicit human model-review override, identity recheck, private receipts and common hooks.
@@ -24,7 +24,7 @@
 #   git - checked Git invocation without a shell.
 #   repository - resolve worktree and shared private Git storage.
 #   publication_lines - exclude removed baseline lines from new-exposure scanning.
-#   review_view - mask only removed baseline home prefixes while retaining the complete diff.
+#   review_view - replace removed baseline lines with a placeholder so a cleanup cannot read as new exposure while additions and context stay complete.
 #   validate_lane - keep mobile runtime and desktop release/version writes in their own lanes.
 #   staged_candidate - bind staged blobs, diff and commit message to an index tree.
 #   AI_NAMES - assistant/vendor names that must not appear in attribution trailers or branch names.
@@ -61,7 +61,8 @@
 #   main - dispatch early static checks, full commit/push review, history-rewrite review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: restore exact-candidate model review as two serial owner-local passes plus one independent non-local (private-network) pass, resolved from owner-local configuration or environment, fail-closed with the explicit human override; widen deterministic checks to private-companion and owner-workspace references.
+#   LAST_CHANGE: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and state that a bare secret or variable name is an identifier rather than a value, so documented setup text and cleanups stop reading as new exposure.
+#   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: restore exact-candidate model review as two serial owner-local passes plus one independent non-local (private-network) pass, resolved from owner-local configuration or environment, fail-closed with the explicit human override; widen deterministic checks to private-companion and owner-workspace references.
 #   PREV: 1.10.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one non-main PR rebase only against branch/main identities read from the actual push endpoint and scan only commits replayed above current remote main.
 #   PREV: 1.10.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: preserve exact raw commit-message termination by admitting manifest replacements with or without a final LF.
 #   PREV: 1.10.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one exact-manifest main rewrite only after raw-object ordered-parent DAG proof, deterministic message scans and explicit accounting for unavoidable gpgsig removal.
@@ -105,7 +106,10 @@ PUBLICATION_REVIEW_PROMPT = (
     "they contain no credential bytes and cannot alone justify a private-key or credential finding. A literal "
     "credential, private key, token value, or private data outside those reference forms is still an exposure. "
     "This distinction applies equally inside .github/workflows/release.yml and .github/release-governance.json: "
-    "neither the file path nor a symbolic lookup name is evidence of a secret. Do not report a file solely because "
+    "neither the file path nor a symbolic lookup name is evidence of a secret. A bare Environment secret or "
+    "variable name such as RELEASE_BOT_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY, APPLE_CERTIFICATE or "
+    "RELEASE_PREP_APP_PRIVATE_KEY is an identifier that setup documentation must name; without an assigned value "
+    "it is not an exposure. Do not report a file solely because "
     "it contains these reference forms. In a unified diff, '-' lines remove existing baseline content: removing a "
     "private path or credential is remediation, not a new exposure. New blobs and every outgoing intermediate "
     "commit are statically scanned separately. Never repeat a secret value. "
@@ -916,11 +920,15 @@ def scan(candidate):
 
 
 def review_view(payload):
+    # Removed baseline lines are scanned as absent, so the reviewers must not read
+    # the value a cleanup deletes either: replacing the line keeps the diff shape
+    # without offering a private value as apparent new exposure.
     lines = []
     for line in payload.splitlines(keepends=True):
         if line.startswith("-") and not line.startswith("---"):
-            line = re.sub(r"(?:/Users/|/home/|[A-Za-z]:[\\/]Users[\\/])[A-Za-z0-9_.-]+[\\/]", "<removed-baseline-home>/", line)
-        lines.append(line)
+            lines.append("- <removed baseline line>\n")
+        else:
+            lines.append(line)
     return "".join(lines)
 
 

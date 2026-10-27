@@ -23,9 +23,12 @@ checked.
    before commit or push.
 
 Removed baseline lines are excluded from new-exposure matching so a cleanup can
-remove a private value safely. Added lines and complete new blobs are always
-checked. Push review checks every outgoing intermediate commit, so adding and
-later removing a secret does not hide it.
+remove a private value safely, and the model reviewers receive a placeholder in
+place of those lines instead of the value being quoted at them. Added lines and
+complete new blobs are always checked. Push review checks every outgoing
+intermediate commit, so adding and later removing a secret does not hide it. A
+bare Environment secret or variable name named by setup documentation is an
+identifier, not a valued credential.
 
 The gate also enforces desktop/mobile lane separation, exact staged-index and
 outgoing-history snapshots, the public/private path boundary, safe branch

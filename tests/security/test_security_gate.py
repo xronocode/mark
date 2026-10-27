@@ -1,5 +1,5 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.9.2
+# VERSION: 2.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unavailable or unsafe reviewers, unsupported payloads and candidate changes.
 #   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the two-reviewer receipt, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites; no fixture commits in the project repository.
@@ -14,7 +14,8 @@
 #   SafetyGateTests - exposure, private-reference, exact-index, two-reviewer receipt, override, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: prove private-companion and owner-workspace references fail, synthetic examples pass, both reviewers run with the expected pass counts, unsafe/missing reviewers fail closed and the explicit override writes an identity-bound receipt.
+#   LAST_CHANGE: 2.1.0 - 2026-10-27 FIX-021: prove the reviewer view replaces removed baseline lines with a placeholder, so a cleanup is not read as new exposure, while added lines keep their content.
+#   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: prove private-companion and owner-workspace references fail, synthetic examples pass, both reviewers run with the expected pass counts, unsafe/missing reviewers fail closed and the explicit override writes an identity-bound receipt.
 #   PREV: 1.9.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove a non-main PR rebase is bound to branch/main identities read from the actual push endpoint and scans only replayed commits.
 #   PREV: 1.9.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove an exact replacement may preserve a historical commit message with no trailing LF.
 #   PREV: 1.9.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove exact manifest binding, ordered-parent merge-DAG parity, raw header preservation, explicit signature loss, stale/shallow rejection and candidate recheck.
@@ -212,6 +213,21 @@ class SafetyGateTests(unittest.TestCase):
         self.assertNotIn(personal, text)
         self.assertIn("+~/project", text)
         gate.validate_content([("patch.txt", text.encode())])
+
+    def test_removed_baseline_values_are_not_offered_to_the_reviewers(self):
+        personal = "/Users/" + "private-person" + "/project"
+        workspace = "~/" + "prj" + "/mark"
+        companion = "mark" + "-private"
+        address = "100." + "102.145.59"
+        removed = "-  cd " + workspace + " && read " + companion + " at " + address + " on " + personal + "\n"
+        added = "+  cd " + workspace + " && read " + companion + "\n"
+        self.assertEqual(gate.review_view(removed), "- <removed baseline line>\n")
+        self.assertEqual(gate.review_view(added), added)
+        view = gate.review_view("--- a/docs/file\n+++ b/docs/file\n" + removed + added)
+        self.assertIn("- <removed baseline line>\n", view)
+        self.assertIn(added.strip(), view)
+        for value in [personal, workspace, companion, address]:
+            self.assertNotIn(value, view.replace(added, ""))
 
     def test_binary_and_non_utf8_data_cannot_get_text_only_approval(self):
         for data in [b"image\0pixels", bytes([255, 254, 253])]:
