@@ -1657,7 +1657,7 @@
       <step-3 status="pending">User creates fork at https://github.com/xronocode/mark (empty repo, private or public); hand back confirmation.</step-3>
       <step-4 status="pending">Agent: `cd marktext &amp;&amp; git remote add fork git@github.com:xronocode/mark.git &amp;&amp; git push fork develop:main`.</step-4>
       <step-5 status="pending">Agent: `git checkout -b modernize develop` on fork.</step-5>
-      <step-6 status="pending">Create tap repo scaffold on disk at /Users/myevdokimov/prj/mark/homebrew-mark/ with Casks/mark.rb placeholder (will be pushed to xronocode/homebrew-mark in Phase-A3).</step-6>
+      <step-6 status="pending">Create tap repo scaffold on disk at [repo]/homebrew-mark/ with Casks/mark.rb placeholder (will be pushed to xronocode/homebrew-mark in Phase-A3).</step-6>
       <step-7 status="pending">Verify Gate-Phase-0 evidence.</step-7>
     </Phase-0>
 

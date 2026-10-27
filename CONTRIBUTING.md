@@ -4,12 +4,7 @@ Thanks for helping. Bug reports, ideas and pull requests are all welcome. For an
 
 ## Language and public artifacts
 
-English is the working language for committed code, comments, tests,
-documentation, change records, commit messages and pull requests. Product
-localizations, localization fixtures, transliteration data, frozen GRACE 3 XML
-and archived change bundles are deliberate exceptions; do not translate them as
-cleanup. Never commit credentials, personal absolute paths, captured profiles,
-private infrastructure details or workstation/session output.
+English is the working language; the [engineering protocol](docs/engineering-protocol.md#language-policy) lists the deliberate localization and provenance exceptions. Never commit credentials, personal absolute paths, captured profiles, private infrastructure details or workstation/session output.
 
 Pull-request descriptions, release notes and README "What's new" sections
 follow the [public artifact format](docs/public-artifacts-format.md): user-facing

@@ -1,0 +1,86 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-SAFETY-GATE-MODEL-REVIEW>
+  <Name>Restore the two-model safety review and close the private-path blind spot</Name>
+  <ApprovalBasis>Owner instruction in chat on 2026-10-27 (Russian): the security gate with the local model and the non-local double pass broke, find out why and return it to the pipeline; private paths have leaked into public again, audit the whole train and every latest release. The owner then chose, in the same session: (1) the non-local half is the kari host over Tailscale as an independent reviewer, both reviewers must pass; (2) the gate stays fail-closed with the explicit MARK_SAFETY_OVERRIDE escape hatch; (3) sanitize every public surface, including released train ledgers, frozen documents and archived change bundles.</ApprovalBasis>
+  <Created>2026-10-27</Created>
+  <Priority>high</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>next</RoadmapPhase>
+  <Complexity>M</Complexity>
+
+  <Summary>
+    Commit e6ee2226 (C-PUBLIC-REPOSITORY-HYGIENE, gate 1.9.0, 2026-10-24) removed the two serial local-model passes from tools/security_gate.py and left only deterministic checks. The deterministic home-path regex matches only `/Users/[name]/` and `/home/[name]/`, so the private companion reference an owner-workspace private-companion audit path and the bare private-companion paths form passed every gate afterwards. They are public today in docs/release-trains/2.8.x-next.md, .grace/verification/runtime.xml, src-tauri/src/m052_print.rs and docs/office-export-checklist.md, and the same class remains in released ledgers, frozen plans, archived change bundles and docs. The gate's own override receipts explain the second half: the reviewer was pinned to 127.0.0.1 and offloading it to the non-local host was impossible, so the commit that froze 2.8.x ran with MARK_SAFETY_OVERRIDE and only static checks. This change restores the model gate as two independent reviewers — two serial passes on the owner-local model and one independent pass on the non-local (kari/Tailscale) model — resolves both endpoints and model names from owner-local configuration outside the repository or from environment variables, fails closed when either reviewer is unavailable, keeps the explicit human override with an identity-bound private receipt, and widens the deterministic checks to private-companion references, owner-workspace paths and non-local infrastructure while still accepting synthetic placeholders and generic example homes. It then sanitizes every leaked public surface and records the audit.
+  </Summary>
+
+  <Problem>
+    <Description>
+      (1) The two-pass model review no longer exists in the public gate: version 1.9.0 kept exact-candidate, Gitleaks, lane, ref and identity checks and moved all workstation review out. The safety net for semantic private material disappeared with it. (2) The deterministic rule `(?:/Users/|/home/|C:\\Users\\)[A-Za-z0-9_.-]+/` cannot see a home-relative private companion path (an owner-workspace private-companion path), a bare private repository name (private-companion paths), an owner workspace (owner-workspace paths) or a non-local infrastructure address beyond `*.ts.net`. A direct probe of the current gate against the four leaked files returns PASS for all four. (3) The override receipt of 2026-10-23T22:08 (identity af575781...) records the operational cause: "commit-gate model review offloaded impossible (gate pinned to 127.0.0.1 awaiting its C-* spec)". The freeze commit that carried the private path therefore ran without model review. (4) The live public tree carries 97 private references across 32 tracked files, including released train ledgers, frozen planning documents and archived bundles; the leaked 2.8.x ledger and source comment ship with the product.
+    </Description>
+    <RootCauseTimestamp>2026-10-24, commit e6ee2226 (gate 1.9.0); first public leak in 21fab6cf (2026-10-23, v2.8.1 packaging).</RootCauseTimestamp>
+  </Problem>
+
+  <Goals>
+    <R-1>Restore exact-candidate model review in tools/security_gate.py as two reviewers: the local reviewer runs two serial passes per chunk (review plus skeptical independent recheck) against a loopback Ollama endpoint; the non-local reviewer runs one independent pass per chunk against an explicitly configured private-network Ollama endpoint. Both must return a passing verdict for every chunk. Endpoints and model names come from MARK_SAFETY_LOCAL_*/MARK_SAFETY_REMOTE_* environment variables or from a private reviewers.json in the common Git safety directory; no private host, model pin or owner path is committed.</R-1>
+    <R-2>Keep the gate fail-closed: an unreachable, misconfigured, redirected, ambiguous-slot or malformed-verdict reviewer stops the commit or push; MARK_SAFETY_OVERRIDE with a non-empty human reason skips only the model-review phase after the deterministic checks pass, writes an identity-bound private receipt and is reported as an override in the pass marker.</R-2>
+    <R-3>Widen the deterministic exposure checks to owner-workspace and private-companion references (owner-workspace paths, bare private companion/worktree/media/tooling names), non-local CGNAT and `*.ts.net` addresses, and absolute personal homes whose user segment is not a synthetic placeholder or a documented generic example; keep `/Users/&lt;fixture&gt;`, `/Users/&lt;user&gt;`, `~/project`, `~/Library/...` and the generic example names used by product tests valid.</R-3>
+    <R-4>Sanitize every public surface named by the audit, including the released 2.8.x ledger, frozen docs/verification-plan.xml and docs/development-plan.xml, the GRACE 3 migration record and archived change bundles, replacing private locations with neutral placeholders while preserving the provenance statement; update the publication-privacy regression so it no longer embeds the owner name.</R-4>
+    <R-5>Cover the restored behavior with executable tests (both reviewers, pass counts, fail-closed paths, override receipt, config resolution, new path classes) and record the contract in M-064/V-M-064 and docs/commit-push-safety.md.</R-5>
+  </Goals>
+
+  <Phases>
+    <P1><Title>Spec, plan and diagnosis record</Title><Complexity>S</Complexity></P1>
+    <P2><Title>Gate reviewer layer (local two-pass + non-local pass, config, override)</Title><Complexity>M</Complexity></P2>
+    <P3><Title>Deterministic private-reference rules and regression tests</Title><Complexity>M</Complexity></P3>
+    <P4><Title>Public-surface sanitization and train/release audit</Title><Complexity>M</Complexity></P4>
+    <P5><Title>GRACE anchors, docs, final gates and hook installation</Title><Complexity>S</Complexity></P5>
+  </Phases>
+
+  <Dependencies>The restored reviewer layer needs a reachable Ollama for the local passes and the owner-configured non-local endpoint. The non-local endpoint was unreachable when this change was implemented (kari reachable over Tailscale, TCP 11434 timed out); installation and the first commit use the explicit override and the gate is fail-closed afterwards until the endpoint answers. Gitleaks must be installed for the scan lane.</Dependencies>
+
+  <Constraints>
+    <Constraint>No private endpoint, model pin, GPU-check path, owner home path or private repository name may be committed; the reviewer configuration lives in the common Git safety directory or the environment.</Constraint>
+    <Constraint>The gate may not send candidate bytes to a public address: the non-local reviewer must resolve to loopback, RFC 1918, CGNAT 100.64/10, `.local` or `*.ts.net`; redirects are rejected.</Constraint>
+    <Constraint>The override remains human-only, identity-bound and model-review-only; deterministic exposure, Gitleaks, lane, ref and identity checks stay mandatory and unbypassable.</Constraint>
+    <Constraint>Sanitization preserves wording, dates, hashes and evidence meaning; only private locations and machine names are replaced with neutral placeholders.</Constraint>
+    <Constraint>Existing frozen/archived provenance is edited only for privacy sanitization, never to describe new work; the change summary states this explicitly.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Changing release admission, train state or any version/tag.</NonGoal>
+    <NonGoal>Weakening or removing any existing deterministic check, lane, Gitleaks option or receipt binding.</NonGoal>
+    <NonGoal>Adding a hosted-model provider or sending payloads to the public internet.</NonGoal>
+    <NonGoal>Rewriting product code that the leaked comments only annotate.</NonGoal>
+    <NonGoal>Automating kari startup or storing its credentials.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>tools/security_gate.py runs two local passes and one non-local pass per chunk, rejects any failing or malformed verdict, and reports both reviewer identities in the private receipt without console endpoints.</Criterion>
+    <Criterion>The gate fails closed when the non-local reviewer is not configured, unreachable, redirecting or pointing at a public address; MARK_SAFETY_OVERRIDE skips only the model phase and writes an identity-bound receipt.</Criterion>
+    <Criterion>A staged blob or outgoing commit containing owner-workspace paths, a private-companion name, a private-worktree name, a private-media name, an owner-tooling path, a CGNAT/`*.ts.net` address or `/Users/&lt;real-name&gt;/` fails; `/Users/&lt;fixture&gt;/`, `/Users/&lt;user&gt;/`, `/Users/me/`, `~/project` and `~/Library/...` pass.</Criterion>
+    <Criterion>The four known leaked files, the released train ledgers, frozen plans, migration record, archived bundles and publication-privacy test no longer carry private references; a repeat scan reports zero hits except the documented synthetic examples.</Criterion>
+    <Criterion>python3 -m unittest discover -s tests/security passes; the affected release/publication suites stay green; grace lint --assertions current reports zero errors.</Criterion>
+    <Criterion>The installed hooks call the new gate, the private reviewer configuration exists outside the repository and the gate reports BLOCK_SAFETY_REVIEW_PASS or the explicit override marker.</Criterion>
+  </AcceptanceCriteria>
+
+  <VerificationIntent>
+    <Verification>python3 -m unittest discover -s tests/security -p 'test_*.py' — new private-reference, reviewer-config, two-reviewer, override and verdict cases pass.</Verification>
+    <Verification>python3 tools/security_gate.py review-staged --message 'test' with a reachable reviewer pair; the same command with the non-local endpoint unset fails closed.</Verification>
+    <Verification>npx vitest run tests/renderer/publication-privacy.test.js tests/renderer/release-readiness.test.js tests/renderer/release-materials.test.js — privacy, ledger and material contracts stay green.</Verification>
+    <Verification>grace lint --path . --assertions current and grace status --path . --with modules --json — zero errors before handoff.</Verification>
+  </VerificationIntent>
+
+  <AffectedAreas>
+    <Area>tools/security_gate.py</Area>
+    <Area>tests/security/test_security_gate.py</Area>
+    <Area>docs/commit-push-safety.md</Area>
+    <Area>docs/release-trains/**</Area>
+    <Area>docs/office-export-checklist.md</Area>
+    <Area>docs/verification-plan.xml, docs/development-plan.xml, docs/migrations/**</Area>
+    <Area>src-tauri/src/m052_print.rs</Area>
+    <Area>.grace/verification/runtime.xml, .grace/verification/features.xml, .grace/changes/**</Area>
+    <Area>tests/renderer/publication-privacy.test.js, tests/renderer/util/*</Area>
+    <Area>.grace/graph/features.xml (M-064), .grace/verification/features.xml (V-M-064)</Area>
+    <Area>.grace/changes/active/C-SAFETY-GATE-MODEL-REVIEW/**</Area>
+  </AffectedAreas>
+</C-SAFETY-GATE-MODEL-REVIEW>
+</GraceChangeSpec>

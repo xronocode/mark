@@ -1,0 +1,99 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-SAFETY-GATE-MODEL-REVIEW>
+  <Name>Restore the two-model safety review and sanitize the leaked public surfaces — implementation plan</Name><Created>2026-10-27</Created><Spec>C-SAFETY-GATE-MODEL-REVIEW</Spec>
+  <IntentSummary>
+    Bring back the exact-candidate model review that gate 1.9.0 removed, as two independent reviewers: two serial local passes plus one non-local (kari/Tailscale) pass per chunk, resolved from owner-local configuration outside the repository or environment variables, fail-closed with the explicit human override. Widen the deterministic checks to private-companion and owner-workspace paths without blocking synthetic examples. Sanitize every public surface that leaked private paths, including released ledgers, frozen plans and archived bundles, and record the audit. Update M-064/V-M-064 and the commit/push safety document, then reinstall the hooks.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>tools/security_gate.py</Value></MustExist>
+    <MustExist><Value>tests/security/test_security_gate.py</Value></MustExist>
+    <MustExist><Value>docs/commit-push-safety.md</Value></MustExist>
+    <MustContain><File>tools/security_gate.py</File><Text>def validate_content(blobs):</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>def review(make_candidate, private, operation):</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_portable_public_examples_are_accepted</Text></MustContain>
+    <MustContain><File>docs/commit-push-safety.md</File><Text>Every local commit and push must pass</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>tools/security_gate.py</File><Text>def reviewer_config(private):</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>def local_review(candidate, private, reviewers):</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>def non_local_review(candidate, private, reviewers):</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>MARK_SAFETY_REMOTE_ENDPOINT</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>PRIVATE_REFERENCE</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>Non-local reviewer is not configured</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_private_companion_and_owner_workspace_references_are_rejected</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_non_local_reviewer_must_be_configured_private_and_unredirected</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_review_runs_two_local_passes_and_one_non_local_pass</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_override_skips_only_model_review_and_writes_identity_receipt</Text></MustContain>
+    <MustContain><File>docs/commit-push-safety.md</File><Text>two serial local passes and one independent non-local pass</Text></MustContain>
+    <MustContain><File>.grace/graph/features.xml</File><Text>two serial local model passes and one independent non-local pass</Text></MustContain>
+    <MustContain><File>.grace/verification/features.xml</File><Text>two serial owner-local model passes and one independent non-local pass</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-064/></GraphAnchors><VerificationAnchors><V-M-064/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>tools/security_gate.py</File>
+    <File>tests/security/test_security_gate.py</File>
+    <File>docs/commit-push-safety.md</File>
+    <File>docs/release-trains/2.8.x-next.md</File>
+    <File>docs/office-export-checklist.md</File>
+    <File>docs/verification-plan.xml</File>
+    <File>docs/development-plan.xml</File>
+    <File>docs/migrations/GRACE3_to_GRACE4_2026-08-30.xml</File>
+    <File>docs/acceptance/README.md</File>
+    <File>docs/acceptance/registry.json</File>
+    <File>docs/release-trains/2.6.x-next.md</File>
+    <File>docs/release-trains/2.6.x-next.json</File>
+    <File>src-tauri/src/m052_print.rs</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>.grace/changes/archive/**</File>
+    <File>.grace/changes/active/C-NATIVE-DOCX-RTF-EXPORT/spec.xml</File>
+    <File>.grace/changes/active/C-SAFETY-GATE-MODEL-REVIEW/**</File>
+    <File>tests/renderer/publication-privacy.test.js</File>
+    <File>tests/renderer/util/path-display.test.js</File>
+    <File>tests/renderer/util/clipboard-path.test.js</File>
+    <File>.grace/graph/features.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Spec, plan and diagnosis record</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>The spec records the owner approval and the three mode choices; the plan passes the change-plan schema; both files lint with zero errors.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --change C-SAFETY-GATE-MODEL-REVIEW --assertions target</Command></Verification>
+    </T-001>
+    <T-002>
+      <Title>Reviewer layer: local two-pass, non-local pass, private configuration, fail-closed override</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>reviewer_config resolves endpoints/models from environment or the private reviewers.json, requires the non-local endpoint, enforces loopback for local and private/CGNAT/ts.net for non-local, and rejects redirects. local_review performs two serial passes per chunk; non_local_review performs one; review() validates every verdict, rechecks identity and writes a receipt naming both reviewers. The override path is restored with its identity-bound receipt and marker.</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py' -k test_review_runs_two_local_passes_and_one_non_local_pass</Command></Verification>
+    </T-002>
+    <T-003>
+      <Title>Deterministic private-reference rules and synthetic-example allowances</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>Full blobs and the message/diff text reject owner-workspace paths, bare private companion/worktree/media/tooling names, CGNAT and ts.net addresses and non-generic absolute home users; `/Users/&lt;fixture&gt;/`, `/Users/&lt;user&gt;/`, `/Users/me/`, `/Users/dev/`, `/Users/x/`, `~/project`, `~/Library/...` and the existing fixture corpus pass. A direct probe of the four leaked files blocks each one.</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command></Verification>
+    </T-003>
+    <T-004>
+      <Title>Public-surface sanitization and train/release audit</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria><Criterion>Every private reference found by the audit is replaced with a neutral placeholder in the listed files, including the released 2.8.x ledger, frozen plans, the migration record, archived bundles and the publication-privacy regression; a repeat scan reports zero unexpected hits and the audit report is written to private storage.</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 tools/security_gate.py review-staged --message 'test'</Command></Verification>
+    </T-004>
+    <T-005>
+      <Title>GRACE anchors, safety document and final gates</Title>
+      <DependsOn>T-004</DependsOn>
+      <AcceptanceCriteria><Criterion>M-064 and V-M-064 describe the two-reviewer contract and the widened deterministic boundary; docs/commit-push-safety.md documents both reviewers, the private configuration, the private-network restriction and the override; the security and publication suites and grace lint are green.</Criterion></AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --change C-SAFETY-GATE-MODEL-REVIEW --assertions final --run-commands</Command></Verification>
+    </T-005>
+    <T-006>
+      <Title>Install the restored gate</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria><Criterion>The shared hooks execute the new gate from the common Git safety directory; the private reviewers.json exists with owner-configured endpoints and is mode 0600 outside the repository; an install/commit reports the two-reviewer pass marker or the explicit override marker.</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 tools/security_gate.py install</Command></Verification>
+    </T-006>
+  </ImplementationPlan>
+  <Gates>
+    <Gate kind="unit">python3 -m unittest discover -s tests/security -p 'test_*.py' — all safety gate cases pass.</Gate>
+    <Gate kind="unit">npx vitest run tests/renderer/publication-privacy.test.js tests/renderer/release-readiness.test.js tests/renderer/release-materials.test.js — privacy and train contracts pass.</Gate>
+    <Gate kind="lint">grace lint --path . --assertions current — zero errors.</Gate>
+    <Gate kind="grace">grace status --path . --with modules --json — healthy before handoff.</Gate>
+  </Gates>
+</C-SAFETY-GATE-MODEL-REVIEW></GraceChangePlan>

@@ -2,7 +2,8 @@
  * CI wiring for the acceptance registry (C-ACCEPTANCE-REGISTRY).
  * Runs the same validator as `node tools/acceptance-registry.mjs --check`
  * inside the standard vitest matrix: schema, git sha resolvability and
- * two-way consistency with the current train.
+ * two-way consistency with the current train, and pins the checked-in
+ * README survey to the `--survey` output.
  */
 import { describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
@@ -31,6 +32,27 @@ describe('acceptance registry (C-ACCEPTANCE-REGISTRY)', () => {
     for (const item of registry.items) {
       expect(survey).toContain(`| ${item.id} `)
     }
+  })
+
+  it('the checked-in README survey matches the generator', () => {
+    const readme = readFileSync(resolve(process.cwd(), 'docs/acceptance/README.md'), 'utf8').replace(
+      /\r\n?/g,
+      '\n'
+    )
+    const survey = execFileSync(
+      'node',
+      [resolve(process.cwd(), 'tools/acceptance-registry.mjs'), '--survey'],
+      { encoding: 'utf8' }
+    ).trim()
+    const heading = '| Item | State | Artifact | Verdict / Why pending |'
+    const start = readme.indexOf(heading)
+    expect(start, 'survey heading').toBeGreaterThan(-1)
+    const rows = []
+    for (const line of readme.slice(start).split('\n')) {
+      if (!line.startsWith('|')) break
+      rows.push(line)
+    }
+    expect(rows.join('\n')).toBe(survey)
   })
 
   it('every offered artifact has a resolvable source sha', () => {

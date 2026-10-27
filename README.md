@@ -55,26 +55,6 @@ The App Store build and the Homebrew/download build are the same editor with a f
 
 The 2.7.0 highlights — honest sessions, self-contained HTML export, the native Windows title bar — are in [CHANGELOG.md](CHANGELOG.md).
 
-## What's new in 2.7.0
-
-- **Sessions come back honestly.** Launching Mark restores your tabs, folders and the active tab. Turn that off, and the welcome screen's "Last session (2)" row reopens exactly what was there at launch — never a stale no-op.
-- **Closed a tab by accident?** A count-badged button beside the tab strip lists recently closed tabs. ⇧⌘T brings the newest one back; repeated presses walk further back; "Reopen all" restores a whole batch in order.
-- **HTML exports travel on their own.** Export as HTML now embeds local images into the file, so one .html opens anywhere without its picture folder. Remote images are never fetched.
-- **⇧⌘P is back** — the command palette shortcut returns on macOS. Table exports keep every real cell, and turning Auto Save off stops pending saves immediately.
-- **Windows gets its real title bar.** Native system caption buttons, the app-menu and settings buttons kept, the theme toggle docked as a fourth cell — no more alien controls.
-
-The 2.6.0 highlights — tables as pictures, stable wide-table controls, ⌘D compare — are in [CHANGELOG.md](CHANGELOG.md).
-
-## What's new in 2.6.0
-
-- **Tables travel as pictures.** Copy a table as an image, or save a PNG from the fullscreen table viewer — useful for reviews, chats and presentations where Markdown tables fall apart.
-- **Wide tables stay under control.** Full width and Fit to page keep their state through editor updates. The fullscreen viewer uses one clear navigation model — drag to pan — with edge shadows showing where more columns remain.
-- **Compare with what Mark opened.** ⌘D compares a note with the version that was present when Mark opened it, even outside a Git repository; an unchanged note gets a calm, explicit result.
-- **Editing shortcuts work again.** ⇧⌘D duplicates the current paragraph, while ⌘1–6 turns it into H1–H6. The Russian paragraph menu stays readable instead of wrapping shortcuts over labels.
-- **And the rest.** Shift+Up/Down selection no longer stalls under a toolbar; closing a tab keeps the right document active; stale outline entries clear; dark and untitled close dialogs are safer and clearer.
-
-The 2.5.3 highlights — session restore, full-width tables, remembered column widths and daily update checks — are in [CHANGELOG.md](CHANGELOG.md).
-
 ## Why Mark
 
 Agents write plans, specs and reports as Markdown. In a terminal the tables collapse and the diagrams are code. Mark shows the finished page and lets you edit it in place.

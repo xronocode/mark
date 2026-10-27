@@ -1,11 +1,10 @@
 # Drafts: English "What's new" for GitHub releases
 
-English replacements for the Russian release-note sections in `xronocode/mark`.
-Replace only the human-written section above `---`; preserve the automated
-attestation, cosign, and updater block below it unchanged.
-
-The drafts are listed from newest to oldest. They are saved for review;
-this change does not publish them to GitHub.
+Reviewed English sections for GitHub release notes, newest first. A draft is
+the human-written section above the `---` separator; the automated attestation,
+cosign and updater block below it stays unchanged. After publication, prepend
+the section to the live release as described in the
+[release procedure](release-process.md#5-release-notes).
 
 ## v2.8.2
 

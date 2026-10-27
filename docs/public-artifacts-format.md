@@ -6,7 +6,7 @@ App Store release notes — follows one format. The reader of the first
 section is a **user**, not an engineer: they must understand what changed in
 the app from the first screen of text, without opening any linked document.
 
-Cross-references: the [language policy](../AGENTS.md#language-policy)
+Cross-references: the [language policy](engineering-protocol.md#language-policy)
 (English, with the listed localization exceptions), the
 [commit/push safety protocol](commit-push-safety.md), the
 [delivery protocol](release-trains/README.md).
