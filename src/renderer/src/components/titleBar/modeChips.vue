@@ -1,6 +1,6 @@
 <!--
   FILE: src/renderer/src/components/titleBar/modeChips.vue
-  VERSION: 1.1.0
+  VERSION: 1.2.0
   START_MODULE_CONTRACT
     PURPOSE: C-TITLEBAR-MODE-CHIPS T-004 — the titlebar chips cluster:
              one document-view chip (icon + short label) for the current
@@ -30,7 +30,10 @@
   END_MODULE_MAP
 
   START_CHANGE_SUMMARY
-    LAST_CHANGE: v1.1.0 - 2026-10-27 C-TITLEBAR-MODE-CHIPS T-005: the
+    LAST_CHANGE: v1.2.0 - 2026-10-27 C-TITLEBAR-MODE-CHIPS owner amendment:
+    Standard is the full reset (view plus both writing modes), replacing the
+    separate Reset footer row; the menu keeps two groups and no footer.
+    v1.1.0 - 2026-10-27 C-TITLEBAR-MODE-CHIPS T-005: the
     two-group switch menu — exclusive document views with normalization,
     independent writing toggles, visible-surface checkmarks, shipped
     shortcuts, hint lines, the reset footer, live reactivity, outside-click
@@ -108,15 +111,6 @@
         </span>
       </button>
 
-      <div class="mode-menu-footer">
-        <button type="button" class="mode-menu-row mode-menu-reset" @click="resetAll">
-          <span class="mode-menu-check" aria-hidden="true"></span>
-          <span class="mode-menu-text">
-            <span class="mode-menu-label">{{ t('titleBar.modeChips.resetAll') }}</span>
-            <span class="mode-menu-hint">{{ t('titleBar.modeChips.hintReset') }}</span>
-          </span>
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -233,9 +227,14 @@ const selectView = (id) => {
   const current = tab.value
   if (!current) return
   if (id === 'standard') {
+    // Owner amendment 2026-10-27: Standard is the full reset — the view
+    // returns to Standard and both writing modes turn off, replacing the
+    // separate Reset footer row.
     if (current.diffMode) runCommand('view.diff-mode')
     if (current.splitView) runCommand('view.split-view')
     if (preferencesStore.sourceCode) runCommand('view.source-code-mode')
+    if (preferencesStore.typewriter) runCommand('view.typewriter-mode')
+    if (preferencesStore.focus) runCommand('view.focus-mode')
   } else if (id === 'split') {
     if (current.diffMode) runCommand('view.diff-mode')
     if (!current.splitView) runCommand('view.split-view')
@@ -255,13 +254,6 @@ const toggleWriting = (id) => {
   console.debug(
     `[TitleBar][mode-chips][BLOCK_MENU_ACTION command=view.${id}-mode view=${activeView.value}]`
   )
-}
-
-const resetAll = () => {
-  selectView('standard')
-  if (preferencesStore.typewriter) runCommand('view.typewriter-mode')
-  if (preferencesStore.focus) runCommand('view.focus-mode')
-  console.debug('[TitleBar][mode-chips][BLOCK_MENU_ACTION command=reset view=standard]')
 }
 
 const toggleMenu = (event) => {
@@ -400,11 +392,7 @@ defineExpose({ viewId, writingModes, narrow, open })
   font-size: 11px;
   opacity: 0.6;
 }
-.mode-menu-footer {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--floatBorderColor, rgba(0, 0, 0, 0.1));
-}
+
 .mode-chip {
   display: inline-flex;
   align-items: center;

@@ -39,14 +39,12 @@ const CHIPS = {
   typewriter: 'Typewriter',
   focus: 'Focus',
   standard: 'Standard',
-  resetAll: 'Reset all modes',
-  hintStandard: 'the ordinary editor, text and formatting visible',
+  hintStandard: 'return to the standard view and turn writing modes off',
   hintSplit: 'source and rendered side by side',
   hintSource: 'edit the raw markdown',
   hintChanges: 'compare against the saved file',
   hintTypewriter: 'the cursor line stays at one height while the text scrolls',
   hintFocus: 'dims everything except the paragraph you are editing',
-  hintReset: 'return to the standard view and turn writing modes off',
   viewGroup: 'Document View',
   writingGroup: 'Writing Modes',
   narrowNote: 'The window is too narrow for two panes — widen it to see both.'
@@ -213,7 +211,6 @@ describe('titleBar mode chips (C-TITLEBAR-MODE-CHIPS T-004)', () => {
       expect(menu.exists()).toBe(true)
       expect(menu.text()).toContain('Document View')
       expect(menu.text()).toContain('Writing Modes')
-      expect(menu.text()).toContain('Reset all modes')
       expect(menu.text()).toMatch(/⌥⌘\\|Ctrl\+Alt\+\\/)
       expect(menu.text()).toMatch(/⌘D|Ctrl\+D/)
       const rows = menu.findAll('[role="menuitemradio"]')
@@ -238,7 +235,7 @@ describe('titleBar mode chips (C-TITLEBAR-MODE-CHIPS T-004)', () => {
       await attachCommandStub()
       const { wrapper, editor, prefs } = await mountChips({
         tab: { id: 'tab-1', splitView: true, diffMode: true },
-        prefs: { sourceCode: true }
+        prefs: { sourceCode: true, typewriter: true, focus: true }
       })
       const menu = await openMenu(wrapper)
       await menu.findAll('[role="menuitemradio"]')[0].trigger('click')
@@ -246,6 +243,8 @@ describe('titleBar mode chips (C-TITLEBAR-MODE-CHIPS T-004)', () => {
       expect(editor.currentFile.splitView).toBe(false)
       expect(editor.currentFile.diffMode).toBe(false)
       expect(prefs.sourceCode).toBe(false)
+      expect(prefs.typewriter).toBe(false)
+      expect(prefs.focus).toBe(false)
     })
 
     it('keeps source code when picking split and clears diff mode', async () => {
@@ -273,20 +272,6 @@ describe('titleBar mode chips (C-TITLEBAR-MODE-CHIPS T-004)', () => {
       expect(prefs.typewriter).toBe(true)
       const refreshed = wrapper.find('[data-testid="mode-menu"]').findAll('[role="menuitemcheckbox"]')[0]
       expect(refreshed.attributes('aria-checked')).toBe('true')
-    })
-
-    it('resets every mode from the footer', async () => {
-      await attachCommandStub()
-      const { wrapper, editor, prefs } = await mountChips({
-        tab: { id: 'tab-1', splitView: true },
-        prefs: { typewriter: true, focus: true }
-      })
-      const menu = await openMenu(wrapper)
-      await menu.find('.mode-menu-reset').trigger('click')
-      await wrapper.vm.$nextTick()
-      expect(editor.currentFile.splitView).toBe(false)
-      expect(prefs.typewriter).toBe(false)
-      expect(prefs.focus).toBe(false)
     })
 
     it('stays open on inside interactions and closes on outside click', async () => {

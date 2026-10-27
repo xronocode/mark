@@ -2,7 +2,7 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-TITLEBAR-MODE-CHIPS T-003 pin — the titleBar.modeChips
-//            namespace carries exactly seventeen families in all ten
+//            namespace carries exactly fifteen families in all ten
 //            locales, each value is non-empty native copy, and every
 //            shipped *.min.json twin is byte-identical to the compact
 //            serialization of its source table.
@@ -33,9 +33,9 @@ const ROOT = process.cwd()
 const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
 const FAMILIES = [
   'split', 'source', 'changes', 'typewriter', 'focus',
-  'standard', 'resetAll',
+  'standard',
   'hintStandard', 'hintSplit', 'hintSource', 'hintChanges',
-  'hintTypewriter', 'hintFocus', 'hintReset',
+  'hintTypewriter', 'hintFocus',
   'viewGroup', 'writingGroup', 'narrowNote'
 ]
 
@@ -43,7 +43,7 @@ const readTable = (locale) =>
   JSON.parse(readFileSync(join(ROOT, 'static/locales', `${locale}.json`), 'utf8'))
 
 describe('titleBar.modeChips locale families (C-TITLEBAR-MODE-CHIPS T-003)', () => {
-  it('ships exactly the seventeen families in every locale', () => {
+  it('ships exactly the fifteen families in every locale', () => {
     for (const locale of LOCALES) {
       const chips = readTable(locale).titleBar?.modeChips
       expect(chips, locale).toBeTypeOf('object')

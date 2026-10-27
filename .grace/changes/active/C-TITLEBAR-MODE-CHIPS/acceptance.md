@@ -9,7 +9,7 @@ result; paths are repo-relative and no owner-local absolute path is stored.
   → 8 files, 128 tests passed (2026-10-27).
 - chrome-icons: 14 tests, including the six `mode-*` descriptors, 16-grid
   bounds and six distinct drawings.
-- locale parity: 4 tests — 17 families × 10 locales, min twins byte-identical
+- locale parity: 4 tests — 15 families × 10 locales, min twins byte-identical
   to `JSON.stringify(parse(source))`.
 - Full-suite baseline on the shared tree: 5139 tests, 5124 passed, 10 failed,
   2 pending, 3 todo. None of the failures is in this change's files: five are
@@ -25,7 +25,7 @@ result; paths are repo-relative and no owner-local absolute path is stored.
   authorised stopping that process on 2026-10-27, and the gate then ran on the
   real port.
 - `npm run build` → `src/renderer/dist/index.html` sha256
-  `d4e44cae7d53659b280330bf578dfbca23217fab6f14fa180d1a8fb97bbedcf0` (final runtime code, after the menu CSS fix).
+  `443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206` (final runtime code, after the menu CSS fix).
 - `CI=1 npx playwright test --project=chromium --project=webkit-titlebar`
   → **408 passed, 7 skipped (all pre-existing conditional skips), 0 failed,
   10.0 min** (2026-10-27), re-run after the menu CSS fix so the evidence matches
@@ -54,6 +54,43 @@ below when they land.
 - 3xxxxxxx — T-008 graph/verification routing (this change).
 - cea74309 — the C-COMMONMARK-EMPHASIS commit this change's graph edits sit on
   (landed first so the graph/verification files were attributable).
+
+## Machine gate — passed (2026-10-27 13:17)
+
+- `grace lint --path . --change C-TITLEBAR-MODE-CHIPS --assertions target
+  --run-commands` → **exit 0**.
+  - command 1/2 `npx vitest run tests/renderer/components/titleBar-deep.test.js
+    tests/renderer/components/titleBar-mode-chips.test.js
+    tests/renderer/components/chrome-icons.test.js tests/renderer/i18n/`
+    → ✔ 8 s (128 tests).
+  - command 2/2 `npm run build && CI=1 npx playwright test --project=chromium
+    --project=webkit-titlebar` → ✔ 11 min 16 s (408 passed, 7 pre-existing
+    skips, 0 failed), built `src/renderer/dist/index.html` sha256
+    `443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206`
+    at 13:00.
+- Full suite on the candidate, `npx vitest run` with the JSON report →
+  **5139 total, 5134 passed, 0 failed, 2 pending, 3 todo, exit 0**. The two
+  pending and three todo are the pre-existing repo markers, not this change.
+- Dependency refresh: the installed pele was 1.6.0 against the 1.10.0 pin;
+  `npm install` failed on the host npm cache (EPERM) and then on an npm
+  internal error, so the pinned tarball was unpacked into `node_modules`
+  directly — `node -p require('pele/package.json').version` → 1.10.0 and
+  `package-lock.json` is unchanged.
+
+## Owner amendment (2026-10-27, after the first visual pass)
+
+The owner judged the Reset footer redundant with Standard and directed that
+Standard absorb it: the Standard row now returns the view to Standard AND
+turns both writing modes off; the Reset row and its `resetAll` / `hintReset`
+keys are removed, so the namespace carries fifteen families (R-4's original
+inventory) instead of seventeen. Code, tests, ten locales, min twins and the
+plan corners were updated; spec R-3/R-4 are superseded on this point by the
+owner decision. The gate below was re-run after the change.
+
+## Owner verdict
+
+The first visual pass was reviewed in-session; the second pass after this
+amendment is pending.
 
 ## Still to run at acceptance
 
