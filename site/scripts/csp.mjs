@@ -1,5 +1,5 @@
 // FILE: site/scripts/csp.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Content-Security-Policy for every built page — GitHub Pages
 //            cannot send headers (C-64 D-1), so the policy travels as the
@@ -8,7 +8,8 @@
 //   SCOPE: collect the inline <script> texts of an HTML document (skipping
 //          external scripts and application/ld+json), hash them, build the
 //          provider-aware policy (GA4 / Cloudflare beacon / Umami hosts
-//          only when configured), inject/replace the meta, and re-verify a
+//          only when configured, plus the first-party collector origin when
+//          its key is configured), inject/replace the meta, and re-verify a
 //          built page against its own policy. No frame-ancestors (a meta
 //          CSP cannot carry it).
 //   DEPENDS: node:crypto (sha256), node:fs + node:path (applyCsp walk)
@@ -21,14 +22,19 @@
 //
 // START_MODULE_MAP
 //   collectInlineScripts - html -> [{ text, hash }] for every hashable inline script
-//   cspFor - html + { analytics } -> policy string (provider hosts toggle with config)
+//   cspFor - html + { analytics, collect } -> policy string (provider and collector hosts toggle with config)
 //   injectCsp - html + opts -> html with the CSP meta as the first child of <head> (idempotent)
 //   verifyCsp - html -> hashes of inline scripts missing from the page's own CSP meta
 //   applyCsp - outDir + opts -> rewrite every built .html in place, { files, hashes }
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
+//   LAST_CHANGE: [v1.1.0 - 2026-10-27 C-SITE-COUNTERS: connect-src admits the
+//                 first-party collector origin when PUBLIC_COLLECT_KEY
+//                 configures one, derived from the same endpoint the tag
+//                 carries; this supersedes the hardcoded dash origin, so an
+//                 unconfigured build advertises no collector at all.]
+//   PREV: [v1.0.0 - 2026-10-18 C-64 T-003: first version.]
 // END_CHANGE_SUMMARY
 
 import { createHash } from 'node:crypto'
@@ -66,13 +72,15 @@ export function collectInlineScripts (html) {
 //            (GA4 tag manager, Cloudflare beacon CDN, Umami) only when
 //            those providers are configured; styles inline (VitePress and
 //            the pages carry inline styles); GA image/connect hosts; the
-//            consent geo endpoint in connect-src.
-//   INPUTS: { html: string, opts: { analytics?: resolveSiteSettings().analytics } }
+//            consent geo endpoint in connect-src; and the first-party
+//            collector origin when PUBLIC_COLLECT_KEY configured one (the
+//            counter's sendBeacon/fetch would otherwise be blocked).
+//   INPUTS: { html: string, opts: { analytics?: resolveSiteSettings().analytics, collect?: resolveSiteSettings().collect } }
 //   OUTPUTS: { string - the CSP directive list }
 //   SIDE_EFFECTS: none
 // END_CONTRACT: cspFor
 // START_BLOCK_CSP_FOR
-export function cspFor (html, { analytics = [] } = {}) {
+export function cspFor (html, { analytics = [], collect = null } = {}) {
   const ga = analytics.some((a) => a.provider === 'ga4')
   const cf = analytics.some((a) => a.provider === 'cloudflare')
   const umamiHosts = analytics
@@ -88,10 +96,13 @@ export function cspFor (html, { analytics = [] } = {}) {
   if (ga) imgSrc.push('https://www.googletagmanager.com', 'https://*.google-analytics.com')
 
   // The landing refreshes the release tag from the GitHub API (non-blocking).
-  const connectSrc = ["'self'", GEO_HOST, 'https://api.github.com', 'https://dash.xronocode.com']
+  const connectSrc = ["'self'", GEO_HOST, 'https://api.github.com']
   if (ga) connectSrc.push('https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com')
   if (cf) connectSrc.push('https://cloudflareinsights.com')
   connectSrc.push(...umamiHosts)
+  // C-SITE-COUNTERS: one origin, derived from the same endpoint the collector
+  // tag carries, so the tag and the policy cannot drift apart.
+  if (collect && collect.endpoint) connectSrc.push(new URL(collect.endpoint).origin)
 
   return [
     "default-src 'self'",

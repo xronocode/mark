@@ -2662,7 +2662,21 @@
         <Scenario>scenario-12 (C-64 T-003): events — GA4 loads track.js beside consent.js; download_click fires from [data-track] elements with method/placement and beacon transport only while markConsent.granted() and window.gtag exist (copy buttons wait for the .is-copied success signal); markTrack('share_to_mac', {result}) is the code path for the iPhone bar; nothing queues or blocks navigation when consent is missing (corner-7).</Scenario>
         <Scenario>scenario-13 (C-64 T-003): SEO files — dist/llms.txt follows llmstxt.org (summary, ## Install with the App Store / Homebrew / Windows + SmartScreen facts, ## Docs with absolute links incl. /diagrams/, ## Source + MIT) and dist/.well-known/security.txt follows RFC 9116 (Contact via GitHub advisories, Expires = build time + 365 days, en/ru, Canonical); check-dist BLOCK_CHECK_SEO gates both plus the landing head (banner, og-card, JSON-LD version, track.js iff GA4). node site/scripts/og-card.mjs (repo root) regenerates site/public/og-card.png from site/og/card.html — run it and commit the PNG when the card or the version changes.</Scenario>
         <Scenario>scenario-14 (GA4 tracking regression, 2026-10-21): public/track.js uses explicit window browser dependencies and emits doc_read exactly once at 75% depth on guide pages at the root or under SITE_BASE; public/consent.js configures page_location with origin/path plus only utm_source, utm_medium and utm_campaign (no hash or other query fields), reduces page_referrer to its origin, and reaches the config call in the injected fake-browser harness.</Scenario>
-      </Scenarios>
+              <Scenario>
+          scenario-15 (C-SITE-COUNTERS): the first-party collector is
+          configured by PUBLIC_COLLECT_KEY alone — resolveSiteSettings returns
+          collect { key, endpoint } (default project collector, validated key
+          and http(s) endpoint, build failure under BLOCK_RESOLVE_ANALYTICS
+          otherwise), collectTags/collectScript emit one base-aware
+          analytics.js tag for the docs head and the landing and nothing at all
+          without a key, and the meta CSP admits the collector origin in
+          connect-src exactly when that tag exists, derived from the same
+          endpoint so a custom PUBLIC_COLLECT_ENDPOINT moves both. A keyless
+          build ships neither the tag nor the origin. Pinned by
+          tests/site/analytics.test.mjs in the existing
+          `npx vitest run tests/site` command.
+        </Scenario>
+</Scenarios>
       <Markers>
         <Marker>[SiteBuild][buildEnd][BLOCK_BUILD_END]</Marker>
         <Marker>[SiteBuild][applyCsp][BLOCK_CSP]</Marker>

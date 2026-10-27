@@ -1,5 +1,5 @@
 // FILE: site/.vitepress/config.mts
-// VERSION: 2.11.0
+// VERSION: 2.12.0
 // START_MODULE_CONTRACT
 //   PURPOSE: VitePress config for the Mark site — docs, shared head, the
 //            landing served at the site root, and the diagram gallery at
@@ -21,7 +21,11 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.11.0 - 2026-10-21 C-64: guide sidebar gains AI Agents & Clients (/guide/ai-agents) after CLI Usage.]
+//   LAST_CHANGE: [v2.12.0 - 2026-10-27 C-SITE-COUNTERS: the collector tag is
+//                 described once (collectTags/collectScript) and emitted only
+//                 when PUBLIC_COLLECT_KEY configures one, on the docs head and
+//                 the landing alike; the same settings feed the CSP allowance.]
+//   PREV: [v2.11.0 - 2026-10-21 C-64: guide sidebar gains AI Agents & Clients (/guide/ai-agents) after CLI Usage.]
 //   PREV: [v2.10.0 - 2026-10-21 base-path regression: the Diagrams
 //                 theme-nav link is expressed as a root-relative VitePress
 //                 route so VitePress applies SITE_BASE exactly once.]
@@ -75,6 +79,8 @@ import {
   ogImageUrl,
   analyticsTags,
   breadcrumbJsonLd,
+  collectScript,
+  collectTags,
   cnameFor,
   docsHeadTags,
   faqJsonLd,
@@ -99,12 +105,9 @@ setReleaseVersion(release.version)
 console.log(`[SiteBuild][release] version=${release.version} source=${release.source}`)
 
 const settings = resolveSiteSettings(process.env)
-const { siteUrl, base, analytics } = settings
+const { siteUrl, base, analytics, collect } = settings
 const landingTemplate = new URL('../landing/index.html', import.meta.url)
-const analyticsTag = process.env.PUBLIC_COLLECT_KEY
-  ? `<script src="/analytics.js" data-key="${process.env.PUBLIC_COLLECT_KEY}" defer></script>`
-  : ''
-const loadLanding = () => renderLanding(fillLanding(readFileSync(landingTemplate, 'utf8'), undefined, release), settings).replace('%ANALYTICS%', analyticsTag)
+const loadLanding = () => renderLanding(fillLanding(readFileSync(landingTemplate, 'utf8'), undefined, release), settings).replace('%ANALYTICS%', collectScript(collect, base))
 
 // START_BLOCK_DOCS_HEAD
 const head: HeadConfig[] = [
@@ -134,7 +137,11 @@ for (const { attrs, body } of analyticsTags(analytics, base)) {
 }
 // First-party counters (docs/tracking.md in the dashboard repo): our own
 // collector, origin-bound key, no cookies. GA4 stays for the comparison week.
-head.push(['script', { src: `${base}analytics.js`, 'data-key': process.env.PUBLIC_COLLECT_KEY ?? '', defer: '' }])
+// C-SITE-COUNTERS: the tag exists only when a key is configured — a keyless
+// build ships neither the request nor a collector origin in its policy.
+for (const { attrs } of collectTags(collect, base)) {
+  head.push(['script', attrs])
+}
 // END_BLOCK_DOCS_HEAD
 
 export default defineConfig({
@@ -225,7 +232,7 @@ export default defineConfig({
     writeFileSync(join(outDir, 'llms.txt'), llmsTxt(settings))
     mkdirSync(join(outDir, '.well-known'), { recursive: true })
     writeFileSync(join(outDir, '.well-known', 'security.txt'), securityTxt(settings, new Date()))
-    const csp = applyCsp(outDir, { analytics })
+    const csp = applyCsp(outDir, { analytics, collect })
     console.log(`[SiteBuild][buildEnd][BLOCK_BUILD_END] seo+csp files=${csp.files} inlineScripts=${csp.hashes}`)
   },
   // END_BLOCK_BUILD_END

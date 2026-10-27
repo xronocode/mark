@@ -2807,6 +2807,19 @@
         applyCsp / verifyCsp; check-dist fails on a tampered script);
         site/scripts/og-card.mjs regenerates the OG card PNG from
         site/og/card.html with Playwright.
+
+        C-SITE-COUNTERS (2026-10-27): the first-party counters
+        (site/public/analytics.js) are configured like every other provider —
+        PUBLIC_COLLECT_KEY resolves into settings.collect { key, endpoint }
+        (endpoint defaults to the project collector, a malformed key or a
+        non-http(s) endpoint fails the build under BLOCK_RESOLVE_ANALYTICS),
+        collectTags/collectScript describe the one base-aware tag used by both
+        the docs head and the landing, and the meta CSP admits the collector
+        origin in connect-src only when that tag exists, derived from the same
+        endpoint. A keyless build therefore ships neither the request nor the
+        origin; the alert landed as a hardcoded dash entry and is superseded by
+        the derived allowance. Pinned by tests/site/analytics.test.mjs
+        (V-M-053 scenario-15).
       </Summary>
         <Path>site/.vitepress/config.mts</Path>
         <Path>site/.vitepress/landing.mjs</Path>
@@ -2830,6 +2843,7 @@
         <Path>site/public/consent.js</Path>
         <Path>site/public/mark-icon.svg</Path>
         <Path>site/public/track.js</Path>
+        <Path>site/public/analytics.js</Path>
       <Dependencies></Dependencies>
       <VerificationRef>V-M-053</VerificationRef>
       <Interface>

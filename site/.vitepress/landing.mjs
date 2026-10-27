@@ -1,11 +1,13 @@
 // FILE: site/.vitepress/landing.mjs
-// VERSION: 1.10.0
+// VERSION: 1.11.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Single source of site settings and the static-page renderers
 //            shared by the VitePress config (dev middleware + buildEnd) and
 //            unit tests.
-//   SCOPE: resolve SITE_URL/SITE_BASE and analytics env (GA_MEASUREMENT_ID,
-//          CF_BEACON_TOKEN, UMAMI_*) into settings; render static pages
+//   SCOPE: resolve SITE_URL/SITE_BASE, the analytics env (GA_MEASUREMENT_ID,
+//          CF_BEACON_TOKEN, UMAMI_*) and the first-party collector
+//          (PUBLIC_COLLECT_KEY, PUBLIC_COLLECT_ENDPOINT) into settings; render
+//          static pages
 //          (landing + the C-58 /diagrams/ gallery) from templates with the
 //          shared head (per-page canonical/OG, hreflang, apple-itunes-app,
 //          theme-color pair, referrer, JSON-LD @graph) and base token; emit
@@ -32,7 +34,11 @@
 //   GITHUB_RELEASES - latest-release URL (DMG, Windows setup.exe)
 //   appVersion - the pinned release version after setReleaseVersion, else the memoized root package.json version (one source for softwareVersion)
 //   setReleaseVersion - pin appVersion() to the resolved release (undefined resets to package.json)
-//   resolveSiteSettings - env -> { siteUrl, base, analytics[] }
+//   resolveSiteSettings - env -> { siteUrl, base, analytics[], collect }
+//   DEFAULT_COLLECT_ENDPOINT - first-party collector URL used when PUBLIC_COLLECT_ENDPOINT is absent
+//   COLLECT_KEY_RE - accepted public collector key shape, checked before inlining
+//   collectTags - collect -> [{ attrs }] script tag, [] when no collector is configured
+//   collectScript - collectTags serialized to HTML, '' when no collector is configured
 //   GA_ID_RE - accepted GA4 measurement id shape, checked before inlining
 //   CF_TOKEN_RE - accepted Cloudflare beacon token shape, checked before inlining
 //   CONSENT_GEO_URL - shared country lookup that decides whether the cookie banner is needed
@@ -54,7 +60,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.10.0 - 2026-10-19 C-64 version sync: appVersion() returns
+//   LAST_CHANGE: [v1.11.0 - 2026-10-27 C-SITE-COUNTERS: the first-party
+//                 counters get one governed description — resolveSiteSettings
+//                 returns collect { key, endpoint } (PUBLIC_COLLECT_KEY,
+//                 PUBLIC_COLLECT_ENDPOINT, key shape validated), and
+//                 collectTags/collectScript emit the same base-aware tag for
+//                 the docs head and the landing; no collector configured means
+//                 no tag and no settings entry.]
+//   PREV: [v1.10.0 - 2026-10-19 C-64 version sync: appVersion() returns
 //                 the release pinned by setReleaseVersion (config.mts and
 //                 check-dist.mjs resolve it from the latest GitHub release);
 //                 the root package.json stays the fallback and
@@ -212,9 +225,28 @@ export function resolveSiteSettings (env = {}) {
   if (measurementId) analytics.push({ provider: 'ga4', measurementId })
   if (token) analytics.push({ provider: 'cloudflare', token })
   if (websiteId) analytics.push({ provider: 'umami', websiteId, src: read('UMAMI_SRC') || DEFAULT_UMAMI_SRC })
+
+  // C-SITE-COUNTERS: the first-party collector is configured by one public
+  // key; its endpoint is validated so the CSP allowance and the tag always
+  // name the same origin.
+  const collectKey = checked('PUBLIC_COLLECT_KEY', COLLECT_KEY_RE, 'a public collector key (8-128 chars of [A-Za-z0-9._:-])')
+  let collect = null
+  if (collectKey) {
+    const endpoint = read('PUBLIC_COLLECT_ENDPOINT') || DEFAULT_COLLECT_ENDPOINT
+    let parsed
+    try {
+      parsed = new URL(endpoint)
+    } catch {
+      parsed = null
+    }
+    if (!parsed || !/^https?:$/.test(parsed.protocol)) {
+      throw new Error(`[SiteBuild][resolveSiteSettings][BLOCK_RESOLVE_ANALYTICS] PUBLIC_COLLECT_ENDPOINT must be an absolute http(s) URL, got "${endpoint}"`)
+    }
+    collect = { key: collectKey, endpoint }
+  }
   // END_BLOCK_RESOLVE_ANALYTICS
 
-  return { siteUrl, base, analytics }
+  return { siteUrl, base, analytics, collect }
 }
 
 function escapeAttr (value) {
@@ -226,6 +258,46 @@ function escapeAttr (value) {
 }
 
 export const CONSENT_GEO_URL = 'https://avenex.xronocode.com/api/geo'
+
+export const DEFAULT_COLLECT_ENDPOINT = 'https://dash.xronocode.com/api/v1/collect'
+export const COLLECT_KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/
+
+// START_CONTRACT: collectTags
+//   PURPOSE: One description of the first-party collector <script>, shared by
+//            the landing (collectScript) and the VitePress docs head.
+//   INPUTS: collect from resolveSiteSettings() (or null), site base path
+//   OUTPUTS: [{ attrs }] — empty when no collector is configured
+//   LINKS: C-SITE-COUNTERS; site/scripts/csp.mjs (same origin in connect-src)
+// END_CONTRACT: collectTags
+export function collectTags (collect, base = '/') {
+  if (!collect || !collect.key) return []
+  return [
+    {
+      attrs: {
+        src: `${base}analytics.js`,
+        'data-key': collect.key,
+        'data-endpoint': collect.endpoint,
+        defer: ''
+      }
+    }
+  ]
+}
+
+// START_CONTRACT: collectScript
+//   PURPOSE: Serialize the collector tag for the landing template token.
+//   INPUTS: collect, site base path
+//   OUTPUTS: HTML string, '' when no collector is configured
+// END_CONTRACT: collectScript
+export function collectScript (collect, base = '/') {
+  return collectTags(collect, base)
+    .map(({ attrs }) => {
+      const rendered = Object.entries(attrs)
+        .map(([name, value]) => (value === '' ? name : `${name}="${escapeAttr(value)}"`))
+        .join(' ')
+      return `<script ${rendered}></script>`
+    })
+    .join('')
+}
 
 // START_CONTRACT: analyticsTags
 //   PURPOSE: One description of every analytics <script>, shared by the

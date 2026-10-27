@@ -1,0 +1,82 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SITE-COUNTERS>
+    <Name>First-party counters: governed settings, an honest CSP allowance and tests for the collector tag</Name>
+    <ApprovalBasis>Owner instruction in chat on 2026-10-27 («го») accepting the refresh finding F1/F2 for branch c/analytics-landing: the counters shipped without a change bundle, and the built CSP omits the collector origin so the shipped pages cannot report anything.</ApprovalBasis>
+    <Created>2026-10-27</Created>
+    <Priority>high</Priority>
+    <Status>approved</Status>
+    <RoadmapPhase>N</RoadmapPhase>
+    <Complexity>S (≈half a day)</Complexity>
+
+    <Summary>
+      The landing and docs pages load a first-party counter
+      (site/public/analytics.js) whose key arrives from PUBLIC_COLLECT_KEY and
+      whose endpoint defaults to the project's own collector. The refresh audit
+      of 2026-10-27 found the feature inert (the meta CSP did not admit the
+      collector origin, so every beacon was blocked) and ungoverned (no settings
+      entry, no test, no verification scenario, and the docs head emitted the
+      tag even without a key while the landing did not). Within minutes the
+      owner landed the blunt half of the fix — a hardcoded dash origin in
+      connect-src (commit 128636f8) — which restored delivery but left the tag
+      inconsistent, the allowance detached from the configured endpoint, and
+      nothing pinned. This change completes it: the collector resolves through
+      resolveSiteSettings like every other provider, the tag exists only when
+      configured and is identical on both surfaces, connect-src derives its
+      allowance from that same endpoint (so a custom endpoint moves both and a
+      keyless build advertises neither), tests/site pins all of it, and
+      M-053/V-M-053 record the behaviour.
+    </Summary>
+
+    <Problem>
+      <Description>The counter bypassed the settings layer, differed between docs and landing, and had no test or verification entry; its CSP allowance was hardcoded to one host instead of following the configured endpoint, so any other endpoint would have been blocked silently and a keyless build still advertised the owner's collector.</Description>
+      <RootCauseTimestamp>2026-10-27 refresh audit of branch c/analytics-landing (built dist CSP inspected).</RootCauseTimestamp>
+    </Problem>
+
+    <Goals>
+      <R-1>resolveSiteSettings(env) returns collect: { key, endpoint } when PUBLIC_COLLECT_KEY is set and null otherwise; the key shape is validated before it is inlined and a malformed key fails the build with the existing BLOCK_RESOLVE_ANALYTICS marker.</R-1>
+      <R-2>One description of the collector tag (src + data-key + data-endpoint + defer, base-aware) is used by both surfaces; docs and landing emit it exactly when configured and emit nothing otherwise.</R-2>
+      <R-3>cspFor/applyCsp admit the collector origin in connect-src exactly when the collector is configured, derived from the same endpoint the tag carries (superseding commit 128636f8's hardcoded dash entry); no other directive widens, and an unconfigured build carries no collector origin at all.</R-3>
+      <R-4>tests/site/analytics.test.mjs pins resolution (default endpoint, custom endpoint, malformed key), tag emission with and without a key on both surfaces, the connect-src allowance, and the runtime contract of analytics.js: no request without a key, one beacon to the configured endpoint with the key as a query parameter when a batch flushes.</R-4>
+      <R-5>M-053 lists the site sources it actually owns and V-M-053 gains the scenario and the command that prove the collector contract.</R-5>
+    </Goals>
+
+    <Phases>
+      <P1><Title>Settings, tag builder, CSP allowance</Title><Complexity>S</Complexity></P1>
+      <P2><Title>Tests + governance deltas</Title><Complexity>S</Complexity></P2>
+    </Phases>
+
+    <Dependencies>site/scripts/csp.mjs and site/.vitepress/landing.mjs are consumed by config.mts and check-dist.mjs; both keep their existing call shapes (opts carry one more optional field).</Dependencies>
+
+    <Constraints>
+      <Constraint>No third-party provider behaviour changes: GA4, Cloudflare and Umami host toggles stay exactly as they are.</Constraint>
+      <Constraint>The collector stays first-party and cookieless; the key is public by design and bound to the host by the collector's Origin check — this change does not add a secret to the client beyond the key the owner already injects.</Constraint>
+      <Constraint>An unconfigured build must remain identical: no collector tag, no new connect-src entry.</Constraint>
+      <Constraint>No new npm dependency; the site build keeps its single-command contract.</Constraint>
+    </Constraints>
+
+    <NonGoals>
+      <NonGoal>The collector service itself (dash host), its storage, or its Origin policy — only the client wiring and its CSP allowance are in scope.</NonGoal>
+      <NonGoal>Removing GA4 or the comparison-week setup.</NonGoal>
+      <NonGoal>A consent gate for the first-party counters beyond what site/public/consent.js already does for GA4 (the counters carry no cookies and no cross-site identifiers).</NonGoal>
+      <NonGoal>Reworking site/scripts/check-dist.mjs into a CSP/analytics cross-check; the unit suite pins the contract.</NonGoal>
+    </NonGoals>
+
+    <AcceptanceCriteria>
+      <Criterion>A build with PUBLIC_COLLECT_KEY set emits the collector tag on the landing and on docs pages and a CSP whose connect-src contains the collector origin; the same build without the key emits neither the tag nor the origin.</Criterion>
+      <Criterion>resolveSiteSettings rejects a malformed key with BLOCK_RESOLVE_ANALYTICS, defaults the endpoint, and accepts an explicit PUBLIC_COLLECT_ENDPOINT.</Criterion>
+      <Criterion>tests/site/analytics.test.mjs passes in the standard matrix and covers the four R-4 cases, including the analytics.js beacon URL and its no-key early return on fake browser globals.</Criterion>
+      <Criterion>M-053 Paths and V-M-053 scenario-15 name the collector; the existing `npx vitest run tests/site` command already runs the new suite; grace lint --assertions current stays at its recorded baseline.</Criterion>
+    </AcceptanceCriteria>
+
+    <AffectedAreas>
+      <External>site/.vitepress/landing.mjs; site/scripts/csp.mjs; site/.vitepress/config.mts; tests/site/analytics.test.mjs; .grace/graph/features.xml (M-053); .grace/verification/features.xml (V-M-053)</External>
+    </AffectedAreas>
+
+    <VerificationIntent>npx vitest run tests/site/analytics.test.mjs; npx vitest run tests/site; cd site &amp;&amp; PUBLIC_COLLECT_KEY=demo-key npm run build, then inspect connect-src and the tag in .vitepress/dist; grace lint --path . --change C-SITE-COUNTERS --assertions final --run-commands.</VerificationIntent>
+
+    <Approval>
+      <ApprovedBy>owner (chat, 2026-10-27): «го» after the refresh report (findings F1/F2)</ApprovedBy>
+      <ApprovalScope>Implementation, tests and governance deltas on branch c/analytics-landing; no version bump, no tag, no publication.</ApprovalScope>
+    </Approval>
+  </C-SITE-COUNTERS>
+</GraceChangeSpec>

@@ -1,0 +1,95 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SITE-COUNTERS>
+    <Name>First-party counters — implementation plan</Name>
+    <ChangeRef>C-SITE-COUNTERS</ChangeRef>
+    <Created>2026-10-27</Created>
+    <Updated>2026-10-27</Updated>
+    <Spec>C-SITE-COUNTERS</Spec>
+
+    <IntentSummary>
+      Move the collector from ad-hoc env reads into resolveSiteSettings
+      (collect: { key, endpoint } | null, validated), describe its script tag
+      once (collectTags/collectScript, base-aware) for both the docs head and
+      the landing template, admit its origin in the meta CSP connect-src only
+      when configured, pin resolution, tag emission, the CSP allowance and the
+      analytics.js beacon contract in tests/site/analytics.test.mjs, and record
+      the behaviour in M-053/V-M-053.
+    </IntentSummary>
+
+    <BaselineAssertions>
+      <MustExist><Value>site/public/analytics.js</Value></MustExist>
+      <MustContain><File>site/.vitepress/config.mts</File><Text>const settings = resolveSiteSettings(process.env)</Text></MustContain>
+      <MustContain><File>site/scripts/csp.mjs</File><Text>const connectSrc = ["'self'", GEO_HOST, 'https://api.github.com']</Text></MustContain>
+      <MustContain><File>site/.vitepress/landing.mjs</File><Text>export function resolveSiteSettings (env = {}) {</Text></MustContain>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustExist><Value>tests/site/analytics.test.mjs</Value></MustExist>
+      <MustContain><File>site/.vitepress/landing.mjs</File><Text>export const DEFAULT_COLLECT_ENDPOINT</Text></MustContain>
+      <MustContain><File>site/.vitepress/landing.mjs</File><Text>export function collectTags</Text></MustContain>
+      <MustContain><File>site/.vitepress/landing.mjs</File><Text>const collectKey = checked('PUBLIC_COLLECT_KEY'</Text></MustContain>
+      <MustContain><File>site/scripts/csp.mjs</File><Text>collect.endpoint</Text></MustContain>
+      <MustContain><File>site/.vitepress/config.mts</File><Text>collectTags(</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-SITE-COUNTERS</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>scenario-15 (C-SITE-COUNTERS)</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="300">npx vitest run tests/site</Command></MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope><GraphAnchors><M-053/></GraphAnchors><VerificationAnchors><V-M-053/></VerificationAnchors></DurableScope>
+
+    <ObservedWriteScope>
+      <File>site/.vitepress/landing.mjs</File>
+      <File>site/scripts/csp.mjs</File>
+      <File>site/.vitepress/config.mts</File>
+      <File>tests/site/analytics.test.mjs</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <Glob>.grace/changes/active/C-SITE-COUNTERS/**</Glob>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>Settings + tag builder (spec R-1, R-2)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>landing.mjs exports DEFAULT_COLLECT_ENDPOINT, COLLECT_KEY_RE, collectTags(collect, base) and collectScript(collect, base), and resolveSiteSettings returns collect ({ key, endpoint }) validated by checked('PUBLIC_COLLECT_KEY', …) or null; collectScript renders the same attributes through escapeAttr and stays '' for null; the module map and change summary are updated.</Criterion></AcceptanceCriteria>
+        <Verification><Command>node -e "import('./site/.vitepress/landing.mjs').then(m => { const s = m.resolveSiteSettings({ PUBLIC_COLLECT_KEY: 'demo-key' }); if (s.collect.key !== 'demo-key') process.exit(1); if (m.collectScript(null) !== '') process.exit(1); })"</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>CSP allowance (spec R-3)</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>cspFor(html, { analytics, collect }) appends new URL(collect.endpoint).origin to connect-src when collect is set and appends nothing when it is null; the unconfigured policy is byte-identical to today's; csp.mjs PURPOSE/SCOPE/MAP/CHANGE_SUMMARY name the collector; config.mts passes collect to applyCsp.</Criterion></AcceptanceCriteria>
+        <Verification><Command>node -e "import('./site/scripts/csp.mjs').then(m => { const a = m.cspFor('<html></html>', { collect: { endpoint: 'https://dash.example.test/api/v1/collect' } }); if (!a.includes('https://dash.example.test')) process.exit(1); const b = m.cspFor('<html></html>', {}); if (b.includes('dash.example.test')) process.exit(1); })"</Command></Verification>
+      </T-002>
+      <T-003>
+        <Title>Tag emission on both surfaces (spec R-2)</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>config.mts emits the collector tag in the docs head only when settings.collect is set (no keyless data-key="" tag), replaces %ANALYTICS% in the landing template with collectScript(settings.collect, base), and passes the same collect into applyCsp; the CHANGE_SUMMARY records it.</Criterion></AcceptanceCriteria>
+        <Verification><Command>cd site &amp;&amp; PUBLIC_COLLECT_KEY=demo-key npm run build</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Tests + governance (spec R-4, R-5)</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <AcceptanceCriteria><Criterion>tests/site/analytics.test.mjs covers resolution (default, explicit endpoint, malformed key), collectScript/collectTags on both base values, the connect-src allowance and its absence, and the analytics.js runtime (no beacon without a key; one beacon to the configured endpoint carrying the key and a pageview event when a batch flushes); M-053 gains the collector sources/tests, V-M-053 the command and scenario-15; lint current reports its baseline.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/site</Command></Verification>
+      </T-004>
+    </ImplementationPlan>
+
+    <Gates>
+      <Gate kind="unit">npx vitest run tests/site — green, including the new suite.</Gate>
+      <Gate kind="build">cd site &amp;&amp; PUBLIC_COLLECT_KEY=demo-key npm run build — built pages carry both the tag and the collector origin in connect-src.</Gate>
+      <Gate kind="lint">grace lint --path . --change C-SITE-COUNTERS --assertions final --run-commands — zero findings outside the recorded baseline.</Gate>
+    </Gates>
+
+    <ReviewLog>
+      <CornerMatrix>
+        <Corner corner="correctness">The origin in connect-src is derived from the same endpoint string the tag carries, so a custom PUBLIC_COLLECT_ENDPOINT moves both together and cannot drift; an unconfigured build produces the same policy and the same HTML as before this change, which keeps C-64 scenario-10's provider toggles untouched.</Corner>
+        <Corner corner="security">The allowance is one origin, added only when the owner configured a collector; no 'unsafe-inline', no wildcard, script-src still admits only 'self' plus hashes plus configured provider hosts. The key stays public by design and is validated before inlining, so a malformed value cannot break out of the attribute (escapeAttr still runs) and fails the build instead.</Corner>
+        <Corner corner="ux">Landing and docs now behave identically: counters on when configured, completely absent otherwise (no keyless request to /analytics.js). Visitors see no difference; a cookieless counter sends one beacon per batch and nothing else.</Corner>
+        <Corner corner="performance">One defer script adds a request only when configured; the policy gains a single connect-src token; the build gains no step.</Corner>
+        <Corner corner="delivery-bookkeeping">M-053/V-M-053 now name the source set and the scenario the branch actually ships, so the next refresh sees the collector as governed rather than unexplained drift.</Corner>
+        <Corner corner="rollback">Reverting the three site files plus the test restores the previous (inert) wiring in one commit; the governance entries are additive and independently revertible.</Corner>
+      </CornerMatrix>
+    </ReviewLog>
+  </C-SITE-COUNTERS>
+</GraceChangePlan>
