@@ -83,6 +83,22 @@ marker; the same content must repeat the override at push time. Deterministic
 exposure, lane, Gitleaks and identity checks remain mandatory and
 unbypassable.
 
+## Review scope
+
+Review cost follows the diff, not the file count. Every 6 KB of reviewer view
+becomes one chunk with two local passes and one non-local pass, and each lane is
+single-flight, so a large candidate holds that lane for the whole run. Check the
+staged size before starting:
+
+```sh
+git diff --cached | wc -c
+```
+
+Above roughly 150 KB (about 25 chunks), split the work into logical commits — for
+example assets and locales, then code, then tests and the change bundle — and
+commit them separately. A candidate near the 2 MB payload ceiling can hold a
+lane for hours; do not bypass the gate to avoid the wait.
+
 ## Message-only main rewrites
 
 A non-fast-forward update of `main` is admitted only through a separately
