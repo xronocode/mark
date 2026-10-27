@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 2.1.0
+# VERSION: 2.1.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks plus two independent model reviewers.
 #   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, two serial owner-local model passes and one independent non-local model pass, an explicit human model-review override, identity recheck, private receipts and common hooks.
@@ -15,6 +15,7 @@
 #   LOCAL_PHASES - the two serial owner-local review phases.
 #   NON_LOCAL_PHASE - the independent non-local review phase.
 #   REVIEW_CHUNK_BYTES - UTF-8 byte bound for one reviewer chunk.
+#   REVIEW_OUTPUT_TOKENS - output budget for one reviewer answer.
 #   HOME_PLACEHOLDERS - synthetic home users accepted by the absolute-path rule.
 #   PRIVATE_REFERENCE - owner-workspace and private-companion reference rule.
 #   HOME_PATH - absolute personal home path rule.
@@ -61,7 +62,8 @@
 #   main - dispatch early static checks, full commit/push review, history-rewrite review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and state that a bare secret or variable name is an identifier rather than a value, so documented setup text and cleanups stop reading as new exposure.
+#   LAST_CHANGE: 2.1.1 - 2026-10-27: name the sanitized done_reason and answering model in the incomplete-payload rejection, which could not tell a truncated answer from a model swap, and raise the reviewer answer budget from 600 to 2048 output tokens as headroom.
+#   PREV: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and state that a bare secret or variable name is an identifier rather than a value, so documented setup text and cleanups stop reading as new exposure.
 #   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: restore exact-candidate model review as two serial owner-local passes plus one independent non-local (private-network) pass, resolved from owner-local configuration or environment, fail-closed with the explicit human override; widen deterministic checks to private-companion and owner-workspace references.
 #   PREV: 1.10.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one non-main PR rebase only against branch/main identities read from the actual push endpoint and scan only commits replayed above current remote main.
 #   PREV: 1.10.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: preserve exact raw commit-message termination by admitting manifest replacements with or without a final LF.
@@ -120,6 +122,11 @@ PUBLICATION_REVIEW_PROMPT = (
 LOCAL_PHASES = ("review", "skeptical independent recheck")
 NON_LOCAL_PHASE = "independent non-local review"
 REVIEW_CHUNK_BYTES = 6000
+# Output budget for one reviewer answer. The verdict JSON must reach its terminator
+# inside it: a truncated answer finishes with done_reason "length" and is rejected
+# as an incomplete payload. Sized above the measured need so a finding-heavy chunk
+# still finishes instead of failing closed on the budget.
+REVIEW_OUTPUT_TOKENS = 2048
 HOME_PLACEHOLDERS = {
     "<fixture>", "<user>", "<home>", "<owner>", "<name>",
     "ada", "dev", "example", "me", "name", "test", "u", "user", "username", "x", "you",
@@ -1107,7 +1114,7 @@ def _review_chunk(reviewer, phase, chunk, opener, private, candidate, records, i
         "think": False,
         "format": "json",
         "keep_alive": "10m",
-        "options": {"num_ctx": 8192, "num_predict": 600, "temperature": 0, "num_batch": 128},
+        "options": {"num_ctx": 8192, "num_predict": REVIEW_OUTPUT_TOKENS, "temperature": 0, "num_batch": 128},
         "messages": [
             {"role": "system", "content": PUBLICATION_REVIEW_PROMPT},
             {"role": "user", "content": "PASS TYPE: " + phase + "\nCHUNK " + str(index) + "\n" + chunk},
@@ -1126,7 +1133,15 @@ def _review_chunk(reviewer, phase, chunk, opener, private, candidate, records, i
             or answer.get("done_reason") != "stop"
             or answer.get("model") != reviewer["model"]
         ):
-            raise GateError(reviewer["label"] + " reviewer did not complete the payload")
+            # Only reduced, enumerated fields: the answer is untrusted text and must not
+            # be able to push candidate bytes into the terminal diagnostic.
+            finished = re.sub(r"[^A-Za-z0-9_.:-]", "", str(answer.get("done_reason")))[:24] or "none"
+            answered = re.sub(r"[^A-Za-z0-9_.:-]", "", str(answer.get("model")))[:32] or "none"
+            raise GateError(
+                reviewer["label"]
+                + " reviewer did not complete the payload (done_reason=" + finished
+                + ", expected_model=" + reviewer["model"] + ", answered_model=" + answered + ")"
+            )
         content = answer["message"]["content"]
     except GateError:
         raise
