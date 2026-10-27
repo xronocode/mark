@@ -2454,6 +2454,18 @@
         as the state/version header — every admitted or excluded item id must
         appear as a whole id (C-1 is not satisfied by C-10), so an admission
         that edits only the JSON fails closed with MT_RELEASE_LEDGER_DRIFT.
+
+        C-DIFF-COVERAGE-GATE (2026-10-27): tools/diff-coverage.mjs scores the
+        executable lines a payload adds between a merge base and the head
+        against the LCOV record the coverage run already writes, fails below
+        100% and on a new gated file LCOV never instrumented, and reports
+        unchanged, out-of-scope and non-instrumented files instead of silently
+        inflating the number; the Ubuntu pull-request renderer lane runs it
+        after npm run test:coverage, so the changed-line figure a release
+        inherits is fixed at the pull request that introduces it. The audit
+        that motivated the gate measured v2.8.1 at 79.7% and v2.8.2 at 86.0%
+        of changed executable lines while CI enforced only the static global
+        floor over src/renderer/src.
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
@@ -2591,6 +2603,7 @@
           tools/release-project-sync.mjs, tools/release-github-controls.mjs,
           tools/release-normalize.mjs, tools/release-notes.mjs,
           tools/release-train.mjs,
+          tools/diff-coverage.mjs,
           docs/release-process.md,
           docs/release-trains/current.json,
           .github/workflows/release.yml,
@@ -2599,7 +2612,7 @@
           .github/workflows/promote-release.yml
         </Source>
         <KnowledgeGraphPath>tools/release-readiness.mjs, tools/release-github-controls.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
-        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/publication-privacy.test.js</Tests>
+        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/diff-coverage.test.js, tests/renderer/publication-privacy.test.js</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>

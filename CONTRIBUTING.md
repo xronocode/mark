@@ -42,6 +42,17 @@ npm run build && npm run test:e2e          # end-to-end tests (Playwright, Chrom
 
 Renderer tests live in `tests/renderer/`, end-to-end tests in `tests/e2e/`, Rust tests next to the code in `src-tauri/src/`. CI runs the unit suites on macOS, Windows and Linux. Coverage thresholds only go up: if a change drops coverage, add tests rather than lowering the threshold.
 
+The global coverage gate is a floor, not a promise about your change. `npm run coverage:diff` scores the lines your branch added inside the gated scope (`src/renderer/src`, `src/muya`) against `coverage/lcov.info` and fails below 100%:
+
+```sh
+npm run test:coverage          # writes coverage/lcov.info
+npm run coverage:diff          # compare with the main-line ref
+npm run coverage:diff -- --worktree                      # uncommitted work (git add -N new files first)
+node tools/diff-coverage.mjs --base v2.8.1 --head v2.8.2 --no-merge-base --report-only   # release audit
+```
+
+A new gated file that the coverage run never instrumented fails the gate; a modified file outside the instrumented surface is reported as not measured, so the log never pretends it was scored. Comment-only and stylesheet changes score nothing and pass, and `--report-only` prints the same table without failing. CI runs the gate on the Ubuntu pull-request lane, so the changed-line number a release inherits is fixed at the pull request that introduces it.
+
 ## How the code is organised (GRACE)
 
 Mark is developed with GRACE, a set of conventions that keeps a large codebase navigable. Every module has a contract at the top of the file (`START_MODULE_CONTRACT` with its purpose, scope and dependencies) and a `MODULE_MAP` of what it exports. Longer functions are split into named `START_BLOCK_…` / `END_BLOCK_…` sections, and important log lines carry the block name, so a log message leads straight to the code that wrote it.

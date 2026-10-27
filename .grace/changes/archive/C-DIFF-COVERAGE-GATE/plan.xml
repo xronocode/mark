@@ -1,0 +1,115 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-DIFF-COVERAGE-GATE>
+    <Name>Changed-line coverage gate — implementation plan</Name>
+    <ChangeRef>C-DIFF-COVERAGE-GATE</ChangeRef>
+    <Created>2026-10-27</Created>
+    <Updated>2026-10-27</Updated>
+    <Spec>C-DIFF-COVERAGE-GATE</Spec>
+
+    <IntentSummary>
+      Add tools/diff-coverage.mjs, a read-only script that merges LCOV records,
+      parses the unified diff between a merge base and the head, and scores only
+      the executable lines the payload added inside an explicit scope
+      (src/renderer/src, src/muya). It prints per-file rows with the uncovered
+      line numbers and fails below the threshold (100% by default); changed
+      files outside the scope or behind the configured coverage exclusions are
+      reported as such and never silently counted. A new gated file that LCOV
+      never mentions fails, so an untested module cannot pass by absence of
+      data. CI runs the gate on the Ubuntu pull-request renderer lane after the
+      coverage run; CONTRIBUTING documents the rule; M-046/V-M-046 record it.
+    </IntentSummary>
+
+    <BaselineAssertions>
+      <MustExist><Value>vitest.config.ts</Value></MustExist>
+      <MustExist><Value>.github/workflows/test.yml</Value></MustExist>
+      <MustExist><Value>tools/release-train.mjs</Value></MustExist>
+      <MustContain><File>vitest.config.ts</File><Text>lines: 92.74</Text></MustContain>
+      <MustContain><File>.github/workflows/test.yml</File><Text>run: npm run test:coverage</Text></MustContain>
+      <MustContain><File>.github/workflows/test.yml</File><Text>fetch-depth: 0</Text></MustContain>
+      <MustContain><File>CONTRIBUTING.md</File><Text>Coverage thresholds only go up</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>&lt;M-046&gt;</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>&lt;V-M-046&gt;</Text></MustContain>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustExist><Value>tools/diff-coverage.mjs</Value></MustExist>
+      <MustExist><Value>tests/renderer/diff-coverage.test.js</Value></MustExist>
+      <MustContain><File>tools/diff-coverage.mjs</File><Text>START_MODULE_CONTRACT</Text></MustContain>
+      <MustContain><File>tools/diff-coverage.mjs</File><Text>BLOCK_DIFF_COVERAGE_PASS</Text></MustContain>
+      <MustContain><File>tools/diff-coverage.mjs</File><Text>BLOCK_DIFF_COVERAGE_MISS</Text></MustContain>
+      <MustContain><File>tools/diff-coverage.mjs</File><Text>MT_DIFF_COVERAGE_UNMEASURED</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"coverage:diff": "node tools/diff-coverage.mjs"</Text></MustContain>
+      <MustContain><File>.github/workflows/test.yml</File><Text>node tools/diff-coverage.mjs</Text></MustContain>
+      <MustContain><File>.github/workflows/test.yml</File><Text># VERSION: 1.5.0</Text></MustContain>
+      <MustContain><File>CONTRIBUTING.md</File><Text>npm run coverage:diff</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-DIFF-COVERAGE-GATE</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>scenario-34 (C-DIFF-COVERAGE-GATE)</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="300">npx vitest run tests/renderer/diff-coverage.test.js</Command></MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+
+    <ObservedWriteScope>
+      <File>tools/diff-coverage.mjs</File>
+      <File>tests/renderer/diff-coverage.test.js</File>
+      <File>tests/renderer/release-governance.test.js</File>
+      <File>package.json</File>
+      <File>.github/workflows/test.yml</File>
+      <File>CONTRIBUTING.md</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <Glob>.grace/changes/active/C-DIFF-COVERAGE-GATE/**</Glob>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>diff-coverage tool (spec R-1..R-4)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>tools/diff-coverage.mjs exports parseLcov, parseUnifiedDiff, normalizePath, isInScope, isExcluded, evaluate, formatReport, parseArgs, runGate and main behind a SCRIPT/LOCALS contract with a MODULE_MAP that matches the exports exactly. parseLcov merges repeated SF records by summing DA hits and normalizes absolute and Windows-separator paths against the repository root; parseUnifiedDiff yields per-path added line numbers plus a created flag from /dev/null and handles multiple hunks, renames, whitespace paths and deletions; evaluate classifies each changed file as scored, outside-scope, excluded, no-executable-lines or unmeasured, scores added lines only where LCOV has a DA record, and fails on a new unmeasured in-scope file unless allowUnmeasuredNew. CLI defaults: base origin/main, head HEAD, lcov coverage/lcov.info, scope src/renderer/src and src/muya, threshold 100; flags --base/--head/--lcov/--scope/--exclude/--threshold/--allow-unmeasured-new/--report-only/--json; exit 0 pass, 1 miss, 2 usage or environment error; BLOCK_DIFF_COVERAGE_PASS/MISS/SKIP/UNMEASURED markers carry hit, total, pct, threshold.</Criterion></AcceptanceCriteria>
+        <Verification><Command>node tools/diff-coverage.mjs --base v2.8.1 --head v2.8.2 --lcov /tmp/cov-all/lcov.info --report-only</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Unit suite (spec R-6)</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>tests/renderer/diff-coverage.test.js carries a TEST/LOCALS contract and pins: LCOV merge across duplicate records, path normalization, diff hunks for modified/new/deleted/renamed files, all five file classifications, the 100% and lower-threshold comparison, uncovered line reporting, the unmeasured-new failure and its override, the argument parser defaults and rejections, and the pass/miss marker text.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/renderer/diff-coverage.test.js</Command></Verification>
+      </T-002>
+      <T-003>
+        <Title>Package script and CI wiring (spec R-5)</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>package.json exposes coverage:diff; test.yml v1.5.0 runs the gate on the Ubuntu lane only for pull_request events, after npm run test:coverage, with --base "${{ github.event.pull_request.base.sha }}" and --lcov coverage/lcov.info; push and workflow_dispatch gain no step; the existing vitest coverage gate is untouched; release-governance.test.js pins that step and its ordering after the coverage run.</Criterion></AcceptanceCriteria>
+        <Verification><Command>node -e "const y=require('fs').readFileSync('.github/workflows/test.yml','utf8'); if(!y.includes('node tools/diff-coverage.mjs')) process.exit(1)"</Command></Verification>
+      </T-003>
+      <T-004>
+        <Title>Contributor documentation (spec R-6)</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria><Criterion>CONTRIBUTING.md Tests section states the changed-line rule, the local command, the gated scope and the report-only mode; the existing global-threshold sentence stays truthful and unchanged in meaning.</Criterion></AcceptanceCriteria>
+        <Verification><Command>grep -n "coverage:diff" CONTRIBUTING.md</Command></Verification>
+      </T-004>
+      <T-005>
+        <Title>Governance deltas, lint and archive (spec R-6)</Title>
+        <DependsOn>T-001, T-002, T-003, T-004</DependsOn>
+        <AcceptanceCriteria><Criterion>M-046 Summary gains the C-DIFF-COVERAGE-GATE paragraph and Sources/Tests list the new files; V-M-046 gains the vitest command, the BLOCK_DIFF_COVERAGE_* markers and scenario-34; final lint with --run-commands passes; after archiving, current lint matches the recorded baseline and grace status reports no active change for this id.</Criterion></AcceptanceCriteria>
+        <Verification><Command>grace lint --path . --change C-DIFF-COVERAGE-GATE --assertions final --run-commands</Command></Verification>
+      </T-005>
+    </ImplementationPlan>
+
+    <Gates>
+      <Gate kind="unit">npx vitest run tests/renderer/diff-coverage.test.js — green, including the marker and exit-code cases.</Gate>
+      <Gate kind="behaviour">node tools/diff-coverage.mjs --base v2.8.0 --head v2.8.1 --lcov &lt;merged lcov&gt; --report-only reproduces the audit table for that release (renderer rows, 100% / miss rows).</Gate>
+      <Gate kind="lint">grace lint --path . --change C-DIFF-COVERAGE-GATE --assertions final --run-commands — zero findings outside the recorded pre-existing warnings.</Gate>
+      <Gate kind="grace">grace status --path . --with modules --json — healthy before handoff.</Gate>
+    </Gates>
+
+    <ReviewLog>
+      <CornerMatrix>
+        <Corner corner="correctness">The number this gate prints must be the number a reviewer can reproduce by hand: added lines come from git's own unified diff at merge-base, executable lines come from the same LCOV record the coverage run produced, and the score is the intersection. Nothing is estimated: a line absent from LCOV is not executable (comment, blank, import name, template text) and is excluded from the denominator; a file absent from LCOV is reported, never scored as zero. A comment-only payload scores zero changed executable lines and passes — which is correct — while a payload whose only change is an untested new module fails through the unmeasured-new rule instead of passing by absence of data.</Corner>
+        <Corner corner="security">The tool reads two local inputs (git diff, LCOV text) and writes one stdout report; no network, no credentials, no repository mutation, no shell interpolation of diff content (pathspecs and refs are passed as argv, and refs are validated as revision arguments by git itself). LCOV paths are normalized against the repository root, so an absolute path from another checkout cannot claim coverage for a local path.</Corner>
+        <Corner corner="ux">The author sees the same artifact CI sees: a table of changed files, the executed/total counts and the uncovered line numbers, so fixing is mechanical. --report-only gives the table without a failure for exploration; --json serves future tooling. The failure text names the exact command to rerun locally, and the two markers distinguish a threshold miss from a measurement error (exit 2), which are different problems with different fixes.</Corner>
+        <Corner corner="performance">One git diff call plus one pass over the LCOV text per run (the 2.8.x LCOV is ~200 files / 11k DA records, parsed in milliseconds); no extra test execution, no dependency install, and the CI step adds seconds to a lane that already spent minutes in vitest.</Corner>
+        <Corner corner="delivery-bookkeeping">No version, tag, train, seal, requiredChecks or release workflow changes: the gate is a pull-request step and a local script. The release payload number a train inherits is now enforced where the change is introduced, so a train no longer needs a hand-reconstructed diff-coverage audit.</Corner>
+        <Corner corner="rollback">Deleting the test.yml step restores today's behavior immediately; the script and suite remain harmless and locally useful. No state, cache or artifact is created, so rollback is a single-file revert with no cleanup.</Corner>
+      </CornerMatrix>
+    </ReviewLog>
+  </C-DIFF-COVERAGE-GATE>
+</GraceChangePlan>

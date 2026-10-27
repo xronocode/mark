@@ -2408,6 +2408,7 @@
         <Command>npm run release:github-controls -- --dry-run</Command>
         <Command>npm run release:github-controls -- --check-active</Command>
         <Command>npx vitest run tests/renderer/release-preflight.test.js tests/renderer/release-governance.test.js tests/renderer/release-readiness.test.js tests/renderer/release-materials.test.js tests/renderer/release-project-sync.test.js tests/renderer/release-github-controls.test.js tests/renderer/release-notes.test.js tests/renderer/release-normalize.test.js tests/renderer/release-train.test.js</Command>
+        <Command>npx vitest run tests/renderer/diff-coverage.test.js</Command>
         <Command>npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session</Command>
         <Command>npx vitest run tests/renderer/publication-privacy.test.js</Command>
         <Command>npx vitest run tests/renderer/localstorage-webstorage-compat.test.js</Command>
@@ -2496,6 +2497,19 @@
           tests/renderer/{release-normalize,release-materials}.test.js and
           tests/renderer/whatsNew/content.test.js.
         </Scenario>
+        <Scenario>
+          scenario-34 (C-DIFF-COVERAGE-GATE): tools/diff-coverage.mjs scores
+          only the executable lines a payload adds between the merge base and
+          the head, against the LCOV record the coverage run already writes,
+          inside an explicit scope (src/renderer/src, src/muya); a comment-only,
+          stylesheet or out-of-scope change scores nothing and passes, a new
+          gated file LCOV never instrumented fails with
+          MT_DIFF_COVERAGE_UNMEASURED, an unreadable LCOV or an unresolvable
+          base exits 2 instead of passing, and the Ubuntu pull-request renderer
+          lane runs the gate after npm run test:coverage so the changed-line
+          figure a release inherits is enforced where it is introduced. Pinned
+          by tests/renderer/diff-coverage.test.js.
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
@@ -2510,6 +2524,10 @@
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_TAG_MISMATCH]</Marker>
         <Marker>[ReleasePublish][publish][BLOCK_RELEASE_LATEST_ADVANCED]</Marker>
         <Marker>[ReleaseTrain][resolve][BLOCK_RELEASE_TRAIN_POINTER_REJECTED]</Marker>
+        <Marker>[DiffCoverage][gate][BLOCK_DIFF_COVERAGE_PASS]</Marker>
+        <Marker>[DiffCoverage][gate][BLOCK_DIFF_COVERAGE_MISS]</Marker>
+        <Marker>[DiffCoverage][gate][BLOCK_DIFF_COVERAGE_SKIP]</Marker>
+        <Marker>[DiffCoverage][gate][BLOCK_DIFF_COVERAGE_UNMEASURED]</Marker>
         <Marker>[ReleaseNormalize][plan][BLOCK_RELEASE_NORMALIZE_CHECKED]</Marker>
       </Markers>
       <TraceAssertions/>

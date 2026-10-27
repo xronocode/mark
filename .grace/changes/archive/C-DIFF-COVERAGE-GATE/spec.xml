@@ -1,0 +1,84 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-DIFF-COVERAGE-GATE>
+    <Name>Changed-line coverage gate: a release payload fails when any executable line it changed is never executed</Name>
+    <ApprovalBasis>Owner instruction in chat on 2026-10-27 («го») accepting the coverage audit of v2.8.1 and v2.8.2 and its first recommendation: gate every changed executable line of a payload instead of trusting a global percentage. The audit measured 2.8.1 at 55/69 changed executable lines (79.7%) and 2.8.2 at 425/494 (86.0%), with the FIX-018 fix lines themselves never executed, while CI enforced only a static global floor of 92.74% lines over src/renderer/src.</ApprovalBasis>
+    <Created>2026-10-27</Created>
+    <Priority>medium</Priority>
+    <Status>approved</Status>
+    <RoadmapPhase>N</RoadmapPhase>
+    <Complexity>S (≈1 day)</Complexity>
+
+    <Summary>
+      The repository proves that its suite is green and that the whole renderer
+      stays above a static global threshold, but nothing checks the one thing a
+      release review actually asks: are the lines this payload changed executed
+      by the suite? The audit of the last two releases answered that by hand —
+      2.8.1: 79.7%, 2.8.2: 86.0% — and had to reconstruct the answer with a
+      throwaway script, because no such gate existed. This change adds
+      tools/diff-coverage.mjs: it reads the LCOV the coverage run already writes,
+      derives the changed executable lines from the merge base to HEAD inside an
+      explicit scope, prints a per-file table with the uncovered line numbers the
+      author has to fix, and exits non-zero below the threshold (100% by
+      default). CI runs it on the Ubuntu renderer-unit lane for every pull
+      request, so the changed-line number a release inherits is enforced at the
+      pull request that introduces it rather than discovered afterwards.
+    </Summary>
+
+    <Problem>
+      <Description>Coverage is measured globally and only for src/renderer/src, so a payload can ship thousands of changed lines with a comfortable global percentage while individual changed lines — including a security fix — are never executed; the per-release answer is reconstructed by hand, after the fact, with an ad-hoc script that is not checked in and cannot fail anything.</Description>
+      <RootCauseTimestamp>2026-10-27 coverage audit of v2.8.1 and v2.8.2 (measured diff coverage 79.7% and 86.0%).</RootCauseTimestamp>
+    </Problem>
+
+    <Goals>
+      <R-1>One deterministic command scores the changed executable lines of a revision range: tools/diff-coverage.mjs merges one or more LCOV records, parses the unified diff from the merge base to the head, and reports per file the added executable lines, the executed ones, the percentage, and the uncovered line numbers.</R-1>
+      <R-2>Fail closed below the threshold: the default threshold is 100% of changed executable lines; a file with no executable changed lines (comment, documentation or locale edit) contributes nothing and never fails, and an unchanged tree passes.</R-2>
+      <R-3>An explicit, honest scope: only paths under --scope (default src/renderer/src and src/muya) are scored; changed files outside the scope are listed as out of scope instead of silently inflating or deflating the number; the configured coverage exclusions (_shims, main.js, codeMirror/loadmode.js) are listed as excluded rather than counted as misses.</R-3>
+      <R-4>A brand-new gated file that the coverage run never instrumented fails the gate (MT_DIFF_COVERAGE_UNMEASURED) unless --allow-unmeasured-new is passed, so adding a module without a test cannot pass by absence of data.</R-4>
+      <R-5>CI enforcement at the pull request that introduces the change: the Ubuntu renderer-unit lane runs the gate against github.event.pull_request.base.sha after npm run test:coverage, with full history already checked out; the push-to-main and manual-dispatch lanes keep their current behavior.</R-5>
+      <R-6>Truthful governance: the contributor doc states the rule and the local command, M-046 records the gate and its markers, V-M-046 gains the scenario and the command, and the tool's own behavior is pinned by a unit suite in the standard matrix.</R-6>
+    </Goals>
+
+    <Phases>
+      <P1><Title>Tool + unit suite + contributor doc</Title><Complexity>S</Complexity></P1>
+      <P2><Title>CI wiring on the pull-request renderer lane</Title><Complexity>S</Complexity></P2>
+      <P3><Title>Graph and verification deltas</Title><Complexity>XS</Complexity></P3>
+    </Phases>
+
+    <Dependencies>None blocking. The tool consumes the LCOV that npm run test:coverage already produces; no new dependency, service, secret or network call is introduced.</Dependencies>
+
+    <Constraints>
+      <Constraint>Read-only: the tool never writes files, never mutates the checkout, never calls the network, and never tags, publishes or changes the release train.</Constraint>
+      <Constraint>Exit-code contract is stable: 0 pass, 1 gate miss, 2 usage or environment error (missing LCOV, unresolvable base) — a broken measurement must never look like a pass.</Constraint>
+      <Constraint>No threshold lowering anywhere: the static vitest gate stays as is; this gate is additional.</Constraint>
+      <Constraint>Zero runtime dependencies beyond the Node.js standard library and git.</Constraint>
+      <Constraint>Governed by the existing MARK logs protocol: pass and miss emit distinct BLOCK_DIFF_COVERAGE_* markers with stable fields.</Constraint>
+    </Constraints>
+
+    <NonGoals>
+      <NonGoal>Rust coverage enforcement (cargo llvm-cov) — measured at 64.1% and proposed as a separate change; this gate scores the renderer LCOV it is given and can be pointed at a second LCOV later.</NonGoal>
+      <NonGoal>Raising coverage of old code; the audit's P1–P4 targets are separate work.</NonGoal>
+      <NonGoal>Mutation testing, per-file thresholds, or a coverage dashboard.</NonGoal>
+      <NonGoal>Blocking direct pushes to main (the pull request is where the author can still fix the number).</NonGoal>
+    </NonGoals>
+
+    <AcceptanceCriteria>
+      <Criterion>node tools/diff-coverage.mjs --base v2.8.1 --head v2.8.2 --no-merge-base --lcov &lt;lcov&gt; --report-only reproduces the audit's 2.8.2 renderer result (9/9 changed executable lines, 100%, exit 0), and --base v2.7.0 --head v2.8.0 --lcov &lt;lcov&gt; --report-only reproduces the 2.8.0 result (240/265, 90.57%, exit 1 without --report-only); the default merge-base mode scores the branch delta a pull request actually introduces.</Criterion>
+      <Criterion>A staged fixture diff in which one added executable line is not covered exits 1 and prints that file with its uncovered line number; adding --report-only exits 0 with the same table.</Criterion>
+      <Criterion>Comment-only, locale, documentation, YAML and Rust changes are reported as out of scope or excluded and never change the verdict; a new in-scope file absent from LCOV exits 1 unless --allow-unmeasured-new.</Criterion>
+      <Criterion>tests/renderer/diff-coverage.test.js pins LCOV parsing, diff hunks, new/renamed/deleted files, scope and exclusion classification, the threshold comparison, the unmeasured-new rule, the argument parser and the report markers; the suite passes in the standard matrix.</Criterion>
+      <Criterion>.github/workflows/test.yml (v1.5.0) runs the gate on the Ubuntu pull-request lane after npm run test:coverage and does not add a step to push or manual dispatch.</Criterion>
+      <Criterion>CONTRIBUTING.md documents the local command and the 100% changed-line rule; M-046 and V-M-046 carry the gate, its markers and scenario-34; grace lint --assertions current stays at its recorded baseline.</Criterion>
+    </AcceptanceCriteria>
+
+    <AffectedAreas>
+      <External>tools/diff-coverage.mjs; tests/renderer/diff-coverage.test.js; package.json (coverage:diff script); .github/workflows/test.yml; CONTRIBUTING.md; .grace/graph/features.xml (M-046); .grace/verification/features.xml (V-M-046)</External>
+    </AffectedAreas>
+
+    <VerificationIntent>npx vitest run tests/renderer/diff-coverage.test.js; node tools/diff-coverage.mjs --base &lt;merge-base&gt; --head HEAD --report-only (the audit table on this branch); grace lint --path . --change C-DIFF-COVERAGE-GATE --assertions final --run-commands; grace lint --path . --assertions current; grace status --path . --with modules --json.</VerificationIntent>
+
+    <Approval>
+      <ApprovedBy>owner (chat, 2026-10-27): «го» after the coverage audit and its recommendation list</ApprovedBy>
+      <ApprovalScope>Implementation, unit suite, CI step and governance deltas in this repository; no version bump, no tag, no publication.</ApprovalScope>
+    </Approval>
+  </C-DIFF-COVERAGE-GATE>
+</GraceChangeSpec>

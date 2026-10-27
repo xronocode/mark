@@ -17,7 +17,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   - 2026-10-27 v2.1.0: delivery IDs are permanent — a PR title naming an ID the base revision already records is rejected.
+//   - 2026-10-27 v2.1.0: C-DIFF-COVERAGE-GATE — the pull-request renderer lane runs the changed-line gate.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — Release Please removed; release-bearing merges stay closed only while Preparing/Frozen and open again once the seal is Ready.
 //   - 2026-10-21 v1.5.0: keep the partial-Project-identity negative fixture valid after the real Project identity is recorded.
 //   - 2026-10-20 v1.4.0: require complete history in both governance and cross-platform renderer-unit jobs.
@@ -155,6 +155,21 @@ describe('release governance', () => {
     expect(governanceJob).toContain('tests/renderer/release-normalize.test.js')
     expect(rendererUnitJob).toContain('fetch-depth: 0')
     expect(rendererUnitJob).toContain('npm run test:coverage')
+  })
+
+  it('gates changed executable lines on the pull-request renderer lane', () => {
+    const rendererUnitJob = testWorkflow
+      .split(/^  renderer-unit:/m)[1]
+      .split(/^  backend-unit:/m)[0]
+    const step = rendererUnitJob.split(/^      - name: changed-line coverage$/m)[1].split(/^      - name:/m)[0]
+    expect(step).toContain("if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'")
+    expect(step).toContain('node tools/diff-coverage.mjs')
+    expect(step).toContain('${{ github.event.pull_request.base.sha }}')
+    expect(step).toContain('coverage/lcov.info')
+    expect(step.indexOf('changed-line coverage')).toBe(-1)
+    expect(rendererUnitJob.indexOf('npm run test:coverage')).toBeLessThan(
+      rendererUnitJob.indexOf('tools/diff-coverage.mjs')
+    )
   })
 
   it('keeps control resources disabled until an explicit owner activation', () => {

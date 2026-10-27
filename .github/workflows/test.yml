@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.4.0
+# VERSION: 1.5.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,7 +11,8 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.4.0 - 2026-10-20: fetch full history for renderer-unit so release-boundary normalization tests can inspect their pinned bootstrap commit.
+#   LAST_CHANGE: v1.5.0 - 2026-10-27 C-DIFF-COVERAGE-GATE: the Ubuntu pull-request renderer lane scores every changed executable line against the coverage record it just wrote, so a payload cannot ship a changed line the suite never executes.
+#   PREV: v1.4.0 - 2026-10-20: fetch full history for renderer-unit so release-boundary normalization tests can inspect their pinned bootstrap commit.
 #   PREV: v1.3.0 - 2026-10-19: gate session restore and close/edit ownership in WebKit.
 #   PREV: v1.2.0 - 2026-10-19: gate opened-baseline priority and calm diff exits in WebKit.
 #   PREV: v1.1.0 - 2026-10-19: gate native vertical selection with the passive format toolbar in WebKit.
@@ -89,6 +90,15 @@ jobs:
 
       - name: vitest run with coverage
         run: npm run test:coverage
+
+      # C-DIFF-COVERAGE-GATE: the numbers a release inherits are enforced where
+      # they are introduced. Only the pull-request lane gates: the base sha is
+      # the pull request's own base, and the job already checks out full history.
+      - name: changed-line coverage
+        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        env:
+          DIFF_BASE: ${{ github.event.pull_request.base.sha }}
+        run: node tools/diff-coverage.mjs --base "$DIFF_BASE" --lcov coverage/lcov.info
 
   backend-unit:
     name: backend unit (${{ matrix.os }})
