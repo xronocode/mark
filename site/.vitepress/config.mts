@@ -101,7 +101,10 @@ console.log(`[SiteBuild][release] version=${release.version} source=${release.so
 const settings = resolveSiteSettings(process.env)
 const { siteUrl, base, analytics } = settings
 const landingTemplate = new URL('../landing/index.html', import.meta.url)
-const loadLanding = () => renderLanding(fillLanding(readFileSync(landingTemplate, 'utf8'), undefined, release), settings)
+const analyticsTag = process.env.PUBLIC_COLLECT_KEY
+  ? `<script src="/analytics.js" data-key="${process.env.PUBLIC_COLLECT_KEY}" defer></script>`
+  : ''
+const loadLanding = () => renderLanding(fillLanding(readFileSync(landingTemplate, 'utf8'), undefined, release), settings).replace('%ANALYTICS%', analyticsTag)
 
 // START_BLOCK_DOCS_HEAD
 const head: HeadConfig[] = [
