@@ -45,8 +45,9 @@ mechanics, content rendering, folder work, AI/agents and breadth.
   items, locale keys in all ten `static/locales/*.json` files, an “Also” line
   and the exact release URL. Titles are at most 32 characters and texts at most
   90. Run `tests/renderer/whatsNew/content.test.js`.
-- Update the README “What's new” section and point to the previous highlights in
-  CHANGELOG. Capture fresh screenshots with
+- Update the README “What's new” section: keep the three most recent releases
+  and replace anything older with one line pointing to CHANGELOG. Capture fresh
+  screenshots with
   `README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium`
   and commit them under `docs/assets/readme/` with their manifest evidence.
 - Add a dated CHANGELOG entry using the same categories.
@@ -102,7 +103,8 @@ Derive the content from the frozen train, shipped change specs and exact release
 diff (`git log vPREV..vNEW --oneline` plus the relevant spec names, summaries and
 decisions).
 
-Beta tags are published as normal releases (`PRERELEASE=false`, asserted by
-tests), so `/releases/latest` advances for the in-app updater. A release is live
+Beta tags are published as normal releases (`--prerelease=false` on the
+draft-to-published edit, asserted by tests), so `/releases/latest` advances for
+the in-app updater. A release is live
 only when `https://github.com/xronocode/mark/releases/latest/download/latest.json`
 serves the new version.

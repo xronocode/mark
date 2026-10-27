@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 1.9.2
+# VERSION: 2.1.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Verify that deterministic publication safety fails closed on leaks, private paths, unsupported payloads and candidate changes.
-#   SCOPE: Reserved private paths, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, exact identity receipts, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites; no fixture commits in the project repository.
+#   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unavailable or unsafe reviewers, unsupported payloads and candidate changes.
+#   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the two-reviewer receipt, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites; no fixture commits in the project repository.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -11,10 +11,12 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, exact-index, deterministic receipt, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
+#   SafetyGateTests - exposure, private-reference, exact-index, two-reviewer receipt, override, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 1.9.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove a non-main PR rebase is bound to branch/main identities read from the actual push endpoint and scans only replayed commits.
+#   LAST_CHANGE: 2.1.0 - 2026-10-27 FIX-021: prove the reviewer view replaces removed baseline lines with a placeholder, so a cleanup is not read as new exposure, while added lines keep their content.
+#   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: prove private-companion and owner-workspace references fail, synthetic examples pass, both reviewers run with the expected pass counts, unsafe/missing reviewers fail closed and the explicit override writes an identity-bound receipt.
+#   PREV: 1.9.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove a non-main PR rebase is bound to branch/main identities read from the actual push endpoint and scans only replayed commits.
 #   PREV: 1.9.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove an exact replacement may preserve a historical commit message with no trailing LF.
 #   PREV: 1.9.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove exact manifest binding, ordered-parent merge-DAG parity, raw header preservation, explicit signature loss, stale/shallow rejection and candidate recheck.
 #   PREV: 1.8.0 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace workstation-model scenarios with deterministic scan, exact identity and private receipt assertions.
@@ -27,6 +29,7 @@
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -100,6 +103,108 @@ class SafetyGateTests(unittest.TestCase):
 
     def test_portable_public_examples_are_accepted(self):
         gate.validate_content([("docs/example.md", b"Use ~/project and /Users/<user>/project; https://github.com/xronocode/mark")])
+    def test_private_companion_and_owner_workspace_references_are_rejected(self):
+        private_companion = "mark-" + "private"
+        owner_workspace = "~/" + "prj"
+        blocked = [
+            "see " + owner_workspace + "/" + private_companion + "/audit/report.md",
+            private_companion + "/research/bakeoff/",
+            "mark-" + "wt/c65",
+            "mark-" + "media/story/history.md",
+            "_skills/" + "local-ai-safety/gpu_check.sh",
+            "cd " + owner_workspace + "/mark",
+            "host." + "tail123abc" + ".ts.net",
+            ".".join(["100", "102", "145", "59"]),
+            "/Users/" + "private-person" + "/notes/plan.md",
+        ]
+        for value in blocked:
+            with self.subTest(value=value), self.assertRaises(gate.GateError) as found:
+                gate.validate_content([("docs/example.md", value.encode())])
+            self.assertNotIn(value, str(found.exception))
+        for value in ["Use ~/project", "/Users/<fixture>/notes", "/Users/<user>/project", "/Users/me/notes", "/Users/dev/project", "/Users/x/Pictures", "~/Library/Application Support/com.example.mark", "C:\\Users\\x\\doc.md"]:
+            gate.validate_content([("docs/example.md", value.encode())])
+
+    def test_non_local_reviewer_must_be_configured_private_and_unredirected(self):
+        remote = "http://" + ".".join(["100", "102", "145", "59"]) + ":11434"
+        with tempfile.TemporaryDirectory() as name:
+            private = Path(name)
+            config = {"local": {"endpoint": "http://127.0.0.1:11434", "model": "qwen3:4b"}, "nonLocal": {"endpoint": remote, "model": "qwen3:4b"}}
+            path = private / "reviewers.json"
+            with patch.dict(os.environ, {}, clear=True), self.assertRaises(gate.GateError):
+                gate.reviewer_config(private)
+            path.write_text(json.dumps(config))
+            os.chmod(path, 0o600)
+            with patch.dict(os.environ, {"MARK_SAFETY_REMOTE_ENDPOINT": remote}, clear=True):
+                reviewers = gate.reviewer_config(private)
+            self.assertEqual(reviewers["nonLocal"]["endpoint"], remote)
+            public = dict(config, nonLocal={"endpoint": "http://8.8.8.8:11434", "model": "qwen3:4b"})
+            path.write_text(json.dumps(public))
+            with patch.dict(os.environ, {}, clear=True), self.assertRaises(gate.GateError):
+                gate.reviewer_config(private)
+            non_loopback = dict(config, local={"endpoint": "http://10.0.0.5:11434", "model": "qwen3:4b"})
+            path.write_text(json.dumps(non_loopback))
+            with patch.dict(os.environ, {}, clear=True), self.assertRaises(gate.GateError):
+                gate.reviewer_config(private)
+            with self.assertRaises(gate.GateError):
+                gate.NoRedirect().redirect_request(None, None, 302, None, {}, "http://example.invalid")
+
+    def test_review_runs_two_local_passes_and_one_non_local_pass(self):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value={"local": {"label": "local", "model": "local-model"}, "nonLocal": {"label": "non-local", "model": "remote-model"}}), patch.object(gate, "local_review", return_value=[{}, {}]) as local, patch.object(gate, "non_local_review", return_value=[{}]) as remote:
+            candidate = {"identity": "b" * 64, "payload": "public"}
+            gate.review(lambda: dict(candidate), Path(name), "commit")
+            local.assert_called_once()
+            remote.assert_called_once()
+            receipt = json.loads((Path(name) / ("commit-" + candidate["identity"] + ".json")).read_text())
+            self.assertEqual(receipt["passes"], 3)
+
+    def test_override_skips_only_model_review_and_writes_identity_receipt(self):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.dict(os.environ, {"MARK_SAFETY_OVERRIDE": "non-local reviewer offline"}, clear=False), patch.object(gate, "reviewer_config", side_effect=AssertionError("reviewers must not run")):
+            candidate = {"identity": "c" * 64, "payload": "public"}
+            gate.review(lambda: dict(candidate), Path(name), "commit")
+            receipt = json.loads((Path(name) / ("override-commit-" + candidate["identity"] + ".json")).read_text())
+            self.assertEqual(receipt["reason"], "non-local reviewer offline")
+            self.assertIn("Gitleaks", receipt["scope"])
+            self.assertIn("skipped", receipt["scope"])
+            self.assertFalse(list(Path(name).glob("commit-*.json")))
+
+    def test_reviewer_chunk_fails_closed_on_wrong_model_or_verdict(self):
+        class Response:
+            def __init__(self, body):
+                self.body = body
+            def __enter__(self):
+                import io
+                return io.BytesIO(self.body)
+            def __exit__(self, *args):
+                return False
+        class Opener:
+            def __init__(self, chat):
+                self.chat = chat
+            def open(self, request, timeout=0):
+                url = request if isinstance(request, str) else request.full_url
+                if url.endswith("/api/ps"):
+                    return Response(json.dumps({"models": []}).encode())
+                return Response(json.dumps({"done": True, "done_reason": "stop", "model": self.chat.get("model", "qwen3:4b"), "message": {"content": self.chat["content"]}}).encode())
+        reviewer = {"label": "local", "endpoint": "http://127.0.0.1:11434", "model": "qwen3:4b", "gpuCheck": ""}
+        candidate = {"identity": "e" * 64, "payload": "public"}
+        with tempfile.TemporaryDirectory() as name:
+            records = []
+            ok = {"model": "qwen3:4b", "content": json.dumps({"verdict": "pass", "findings": []})}
+            gate._review_chunk(reviewer, "review", "chunk", Opener(ok), Path(name), candidate, records, 1)
+            self.assertEqual(len(records), 1)
+            for chat in [
+                {"model": "qwen3:4b", "content": json.dumps({"verdict": "fail", "findings": [{"category": "private path"}]})},
+                {"model": "qwen3:4b", "content": "not json"},
+                {"model": "other-model", "content": json.dumps({"verdict": "pass", "findings": []})},
+            ]:
+                with self.subTest(chat=chat), self.assertRaises(gate.GateError):
+                    gate._review_chunk(reviewer, "review", "chunk", Opener(chat), Path(name), candidate, [], 1)
+
+    def test_reviewer_verdict_must_be_strict_and_passing(self):
+        for content in ["not json", "{}", json.dumps({"verdict": "fail", "findings": [{"category": "private path", "relative_path": "docs/x"}]}), json.dumps({"verdict": "pass", "findings": [{"category": "x"}]})]:
+            with self.subTest(content=content), self.assertRaises(gate.GateError):
+                gate.validate_verdict(content, "local")
+        self.assertEqual(gate.validate_verdict(json.dumps({"verdict": "pass", "findings": []}), "local"), {"verdict": "pass", "findings": []})
+
 
     def test_removed_baseline_values_do_not_prevent_their_remediation(self):
         personal = "/Users/" + "private-person" + "/project"
@@ -108,6 +213,21 @@ class SafetyGateTests(unittest.TestCase):
         self.assertNotIn(personal, text)
         self.assertIn("+~/project", text)
         gate.validate_content([("patch.txt", text.encode())])
+
+    def test_removed_baseline_values_are_not_offered_to_the_reviewers(self):
+        personal = "/Users/" + "private-person" + "/project"
+        workspace = "~/" + "prj" + "/mark"
+        companion = "mark" + "-private"
+        address = "100." + "102.145.59"
+        removed = "-  cd " + workspace + " && read " + companion + " at " + address + " on " + personal + "\n"
+        added = "+  cd " + workspace + " && read " + companion + "\n"
+        self.assertEqual(gate.review_view(removed), "- <removed baseline line>\n")
+        self.assertEqual(gate.review_view(added), added)
+        view = gate.review_view("--- a/docs/file\n+++ b/docs/file\n" + removed + added)
+        self.assertIn("- <removed baseline line>\n", view)
+        self.assertIn(added.strip(), view)
+        for value in [personal, workspace, companion, address]:
+            self.assertNotIn(value, view.replace(added, ""))
 
     def test_binary_and_non_utf8_data_cannot_get_text_only_approval(self):
         for data in [b"image\0pixels", bytes([255, 254, 253])]:
@@ -183,21 +303,22 @@ class SafetyGateTests(unittest.TestCase):
         self.assertIn("Gitleaks rejected", str(found.exception))
 
     def test_candidate_changes_fail_after_scan_and_before_receipt(self):
-        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value={"local": {"label": "local", "model": "local-model"}, "nonLocal": {"label": "non-local", "model": "remote-model"}}), patch.object(gate, "local_review", return_value=[{}, {}]), patch.object(gate, "non_local_review", return_value=[{}]):
             snapshots = iter([{"identity": "first", "payload": "public"}, {"identity": "changed"}])
             with self.assertRaises(gate.GateError):
                 gate.review(lambda: next(snapshots), Path(name), "commit")
             self.assertFalse(list(Path(name).glob("commit-*.json")))
 
-    def test_exact_candidate_scan_writes_a_private_deterministic_receipt(self):
-        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"):
+    def test_exact_candidate_scan_writes_a_private_two_reviewer_receipt(self):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value={"local": {"label": "local", "model": "local-model"}, "nonLocal": {"label": "non-local", "model": "remote-model"}}), patch.object(gate, "local_review", return_value=[{}, {}]), patch.object(gate, "non_local_review", return_value=[{}]):
             candidate = {"identity": "a" * 64, "payload": "public"}
             gate.review(lambda: dict(candidate), Path(name), "commit")
             receipt_path = Path(name) / ("commit-" + candidate["identity"] + ".json")
             receipt = json.loads(receipt_path.read_text())
             self.assertEqual(receipt["identity"], candidate["identity"])
-            self.assertEqual(receipt["checks"], ["static-exposure", "gitleaks", "candidate-identity"])
-            self.assertNotIn("model", receipt)
+            self.assertEqual(receipt["checks"], ["static-exposure", "gitleaks", "local-model-review", "non-local-model-review", "candidate-identity"])
+            self.assertEqual([(r["label"], r["passes"]) for r in receipt["reviewers"]], [("local", 2), ("non-local", 1)])
+            self.assertEqual(receipt["passes"], 3)
             self.assertNotIn("reason", receipt)
 
     def test_outgoing_history_includes_intermediate_commits_not_just_tip(self):

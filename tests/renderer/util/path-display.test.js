@@ -20,11 +20,11 @@
 
 import { shortenMiddle, pathBasename, pathDirname } from '@/util/pathDisplay'
 
-const LONG_HOME_PATH = '~/prj/clients/acme/very-long-project-name/docs/specs'
+const LONG_HOME_PATH = '~/work/clients/acme/very-long-project-name/docs/specs'
 
 describe('shortenMiddle', () => {
   it('keeps short paths unchanged', () => {
-    expect(shortenMiddle('~/prj/mark')).toBe('~/prj/mark')
+    expect(shortenMiddle('~/work/mark')).toBe('~/work/mark')
     expect(shortenMiddle('')).toBe('')
   })
 

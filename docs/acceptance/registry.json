@@ -365,7 +365,7 @@
           "date": "2026-10-21",
           "actor": "agent",
           "artifact": null,
-          "blocked": "Windows artifact required; polygon (kari) offline 2026-10-21 (ping 100% loss). Owner options: (a) polygon online -> NSIS from the branch via the standard procedure; (b) accept on the pixel-measured amendment-5 crops of polygon rebuild 8 already reviewed."
+          "blocked": "Windows artifact required; polygon (the Windows test laptop) offline 2026-10-21 (ping 100% loss). Owner options: (a) polygon online -> NSIS from the branch via the standard procedure; (b) accept on the pixel-measured amendment-5 crops of polygon rebuild 8 already reviewed."
         },
         {
           "state": "owner-verdict",

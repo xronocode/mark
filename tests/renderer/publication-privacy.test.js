@@ -1,9 +1,9 @@
 // FILE: tests/renderer/publication-privacy.test.js
-// VERSION: 1.4.1
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Guard the public boundary for operational records, retired current-tree artifacts and legacy preference examples.
+//   PURPOSE: Guard the public boundary for operational records, retired current-tree artifacts, private home paths and legacy preference examples.
 //   SCOPE: Reject captured profiles, private operations and exact retired paths; preserve authored/release assets; validate synthetic paths and exact fixture hashes.
-//   DEPENDS: node:crypto, node:fs, node:path, node:url, vitest
+//   DEPENDS: node:crypto, node:fs, node:os, node:path, node:url, vitest
 //   LINKS: M-005, M-046, V-M-005, V-M-046, C-PUBLIC-REPOSITORY-HYGIENE
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -18,6 +18,7 @@
 // END_MODULE_MAP
 
 import { createHash } from 'node:crypto'
+import { userInfo } from 'node:os'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -111,8 +112,9 @@ describe('public operational-record boundary', () => {
     ]) {
       expect(ignores, `exact ignore rule: ${rule}`).toContain(rule)
     }
-    expect(readFileSync(resolve(root, 'docs/archive/phase-8-final-audit.md'), 'utf8'))
-      .not.toContain('/Users/myevdokimov')
+    const finalAudit = readFileSync(resolve(root, 'docs/archive/phase-8-final-audit.md'), 'utf8')
+    expect(finalAudit).not.toContain('/Users/' + userInfo().username)
+    expect(finalAudit).not.toMatch(/\/(?:Users|home)\/(?!<)[A-Za-z0-9_.-]+\//)
     const readmeShots = readFileSync(resolve(root, 'tests/e2e/readme-shots.spec.ts'), 'utf8')
     expect(readmeShots).not.toContain('/Users/ada')
     expect(readmeShots).toContain('/Users/<fixture>/projects/atlas')
@@ -158,7 +160,8 @@ describe('public operational-record boundary', () => {
 // END_BLOCK_PUBLICATION_BOUNDARY_SUITE
 
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.1 - Pin the portable synthetic home identity used by README screenshot fixtures.
+//   LAST_CHANGE: v1.5.0 - Stop embedding the owner name in the regression; check the live username and any non-placeholder home path instead.
+//   PREV: v1.4.1 - Pin the portable synthetic home identity used by README screenshot fixtures.
 //   PREVIOUS_CHANGE: v1.4.0 - Pin local-only Claude/environment files, the retired methodology, sanitized live paths and canonical updater-signing references.
 //   PREVIOUS_CHANGE: v1.3.0 - Pin the exact obsolete QA, handoff and generated screenshot removals while preserving authored work and release screenshot evidence.
 //   PREVIOUS_CHANGE: v1.2.0 - Normalize native separators and parse CRLF manifests; Git attributes preserve exact fixture bytes on Windows.

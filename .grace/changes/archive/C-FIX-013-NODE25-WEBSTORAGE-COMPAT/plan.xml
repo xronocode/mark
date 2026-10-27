@@ -1,7 +1,7 @@
 <GraceChangePlan graceVersion="4.0" status="applied"><C-FIX-013-NODE25-WEBSTORAGE-COMPAT>
   <ChangeRef>C-FIX-013-NODE25-WEBSTORAGE-COMPAT</ChangeRef><Created>2026-10-20</Created>
   <IntentSummary>Guard the canonical vitest configuration against the Node &gt;= 25 default-on experimental Web Storage global (conditional test.execArgv with `--no-experimental-webstorage`), pin a functional jsdom localStorage regression check, and add .nvmrc so the Node 22 reference runtime is mechanical, not tribal knowledge. Tooling compatibility only; the sidebar cold-start timeout stays out of scope per the owner.</IntentSummary>
-  <ExecutionPolicy>Single sequential pass; no dependency on other active bundles. Verification runs locally on Node 22 and on the Windows polygon (laptop-kari, Node 25) with no NODE_OPTIONS override.</ExecutionPolicy>
+  <ExecutionPolicy>Single sequential pass; no dependency on other active bundles. Verification runs locally on Node 22 and on the Windows polygon (the Windows test laptop, Node 25) with no NODE_OPTIONS override.</ExecutionPolicy>
   <BaselineAssertions>
     <MustExist>
       <Value>vitest.config.ts</Value>

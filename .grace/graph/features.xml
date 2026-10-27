@@ -2958,11 +2958,20 @@
         from that main, and every replayed commit unique to the rebuilt branch
         passes the normal push scan. The endpoint is never retained in review
         payloads, receipts or diagnostics.
-        Optional owner-local review is outside this public module.
+
+        C-SAFETY-GATE-MODEL-REVIEW restores the exact-candidate model review
+        as two serial local model passes and one independent non-local pass.
+        Both reviewers must pass every chunk; endpoints and model names come
+        from owner-local configuration outside the repository, the non-local
+        endpoint must resolve to a private or overlay address, and an
+        unreachable or unsafe reviewer fails closed. An explicit human
+        MARK_SAFETY_OVERRIDE skips only the model phase and writes an
+        identity-bound private receipt. The deterministic boundary also
+        rejects owner-workspace and private-companion references.
       </Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>
-      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic exposure, lane, Gitleaks and identity checks, including manifest-bound screenshot evidence, exact-manifest proof for an approved message-only main rewrite, and push-endpoint live-tip/current-main proof for a rebuilt desktop PR branch.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message, independently grouped outgoing commits, a push-endpoint/current-main-bound desktop PR rebase, or paired raw commit DAGs plus an owner-local rewrite manifest</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, incomplete evidence, unsupported payload, changed candidate, stale or shallow history, missing push endpoint, stale branch/main identity, unbased desktop PR rebase, rewrite manifest/DAG/header/signature mismatch, an unproven branch deletion, AI attribution, or an AI-named branch.</Description></Error></Errors></Contract>
+      <Contract><Purpose>Stop a local commit or push unless the exact complete candidate passes deterministic exposure, lane, Gitleaks and identity checks plus two serial local model passes and one independent non-local model pass, including manifest-bound screenshot evidence, exact-manifest proof for an approved message-only main rewrite, and push-endpoint live-tip/current-main proof for a rebuilt desktop PR branch.</Purpose><Inputs><Input><Name>candidate</Name><Type>staged tree/message, independently grouped outgoing commits, a push-endpoint/current-main-bound desktop PR rebase, or paired raw commit DAGs plus an owner-local rewrite manifest</Type></Input></Inputs><Outputs><Output><Name>decision</Name><Type>pass or fail with redacted markers and private hash-bound evidence</Type></Output></Outputs><Errors><Error><Code>SAFETY_STOP</Code><Description>Exposure, private-companion reference, incomplete evidence, unsupported payload, changed candidate, missing, unreachable, public, redirecting, slot-ambiguous or non-passing model reviewer, stale or shallow history, missing push endpoint, stale branch/main identity, unbased desktop PR rebase, rewrite manifest/DAG/header/signature mismatch, an unproven branch deletion, AI attribution, or an AI-named branch.</Description></Error></Errors></Contract>
       <Sources><Source>tools/security_gate.py</Source><Tests>tests/security/test_security_gate.py</Tests></Sources>
     </M-064>
     <M-065>

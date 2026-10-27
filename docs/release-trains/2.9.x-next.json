@@ -143,6 +143,12 @@
       "date": "2026-10-25",
       "actor": "release-agent",
       "evidence": "Boundary moved to v2.8.2 (seal 3b6d49e4, tree fcc46b7b) after the 2.8.2 patch shipped from 2.8.2-next; this train is now the current train. No item admitted yet; no release activity authorized."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-10-27",
+      "actor": "release-agent",
+      "evidence": "Admissions landed after the boundary move: C-GITHUB-THEME (61ae6747, 2026-10-25), C-NOTIFICATION-SYSTEM (1207b4ae, 2026-10-26), C-NATIVE-DOCX-RTF-EXPORT (def74a68, 2026-10-26) and C-FILE-POSITION-MEMORY (d64c1fa7, 2026-10-27). The train stays Collecting; no dispatch or release activity is authorized."
     }
   ]
 }

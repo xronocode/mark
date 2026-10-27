@@ -779,8 +779,8 @@
           <marker>[legacy][detect][BLOCK_LEGACY_NONE]</marker>
         </log-markers-emitted>
         <real-world-smoke>
-          <command>./target/debug/mark (5s, real $HOME=/Users/myevdokimov, SIGTERM)</command>
-          <stderr-captured>[legacy][detect][BLOCK_LEGACY_FOUND] marktext=Some("/Users/myevdokimov/Library/Application Support/marktext") mark=Some("/Users/myevdokimov/Library/Application Support/mark")</stderr-captured>
+          <command>./target/debug/mark (5s, real $HOME=[owner-home], SIGTERM)</command>
+          <stderr-captured>[legacy][detect][BLOCK_LEGACY_FOUND] marktext=Some("[owner-home]/Library/Application Support/marktext") mark=Some("[owner-home]/Library/Application Support/mark")</stderr-captured>
           <window-side-effect>None — pre-window path runs to completion before tauri::Builder::default() is constructed.</window-side-effect>
         </real-world-smoke>
         <constraints-honored>
@@ -1082,7 +1082,7 @@
       <live-end-to-end-evidence generation="phase-b-pre2-D-walkthrough" date="2026-04-26" host="darwin-arm64-ru_RU.UTF-8">
         <scenario name="continue-path" recorded-at="2026-04-26T01:30+05">
           <stderr-captured>
-            [legacy][detect][BLOCK_LEGACY_FOUND] marktext=Some("/Users/myevdokimov/Library/Application Support/marktext") mark=Some("/Users/myevdokimov/Library/Application Support/mark")
+            [legacy][detect][BLOCK_LEGACY_FOUND] marktext=Some("[owner-home]/Library/Application Support/marktext") mark=Some("[owner-home]/Library/Application Support/mark")
             [dialog][ask_migration][BLOCK_DIALOG_OPEN]
             [dialog][ask_migration][BLOCK_DIALOG_CLOSED choice=Continue]
             [main][bootstrap][BLOCK_DIALOG_CHOICE choice=Continue]
@@ -3896,13 +3896,13 @@
         <evidence-1>All 6 docs/*.xml exist and reference UC-001..UC-028, M-001..M-013, M-014..M-020, V-M-001..V-M-013, V-M-014..V-M-020.</evidence-1>
         <evidence-2>marktext/ has `fork` remote → git@github.com:xronocode/mark.git.</evidence-2>
         <evidence-3>Current branch is `modernize` (checked out from upstream `develop`).</evidence-3>
-        <evidence-4>Local scaffold exists at /Users/myevdokimov/prj/mark/homebrew-mark/Casks/mark.rb placeholder.</evidence-4>
+        <evidence-4>Local scaffold exists at [repo]/homebrew-mark/Casks/mark.rb placeholder.</evidence-4>
       </required-evidence>
     </Gate-Phase-0>
 
     <Gate-Phase-A1-5 PHASE="Phase-A1.5">
       <goal>Renderer has no direct Node/Electron imports; @electron/remote removed; listener-cleanup convention introduced; existing tests still green.</goal>
-      <working-directory>/Users/myevdokimov/prj/mark/marktext/ (all gate commands run from this dir)</working-directory>
+      <working-directory>[repo]/marktext/ (all gate commands run from this dir)</working-directory>
       <commands>
         <command-1>! grep -rnE "require\('(fs|path|child_process|crypto|os|buffer)'\)|from '(fs|path|child_process|crypto|os|buffer)'" src/renderer/ 2&gt;/dev/null</command-1>
         <command-2>! grep -rnE "@electron/remote" src/renderer/ 2&gt;/dev/null</command-2>
@@ -3976,7 +3976,7 @@
     <Gate-Phase-A5 PHASE="Phase-A5">
       <goal>v1.0.1 polish release shipped: titlebar sidebar-toggle, auto-resize on toggle/file-open, tightened Preferences typography. Cask refreshed. Existing v1.0.0 functionality intact.</goal>
       <commands>
-        <command-1>cd /Users/myevdokimov/prj/mark/mark-electron &amp;&amp; npm run build</command-1>
+        <command-1>cd [repo]/mark-electron &amp;&amp; npm run build</command-1>
         <command-2>gh release view v1.0.1 --repo xronocode/mark --json tagName,assets</command-2>
         <command-3>shasum -a 256 ~/Library/Caches/Homebrew/downloads/*Mark*1.0.1*.dmg | head -1 (after brew upgrade)</command-3>
       </commands>
@@ -3999,7 +3999,7 @@
     <Gate-Phase-A6 PHASE="Phase-A6">
       <goal>v1.1.0 multi-root workspace shipped: 📂 click adds another folder when on Files view with projects; ✕ close-button per root; sidebar Tree v-for renders all roots; search ranges across all roots; nested-root rejected with notification; no watcher leaks; no regressions in single-root behavior.</goal>
       <commands>
-        <command-1>cd /Users/myevdokimov/prj/mark/mark-electron &amp;&amp; npm run build</command-1>
+        <command-1>cd [repo]/mark-electron &amp;&amp; npm run build</command-1>
         <command-2>gh release view v1.1.0 --repo xronocode/mark --json tagName,assets</command-2>
         <command-3>shasum -a 256 ~/Library/Caches/Homebrew/downloads/*Mark*1.1.0*.dmg | head -1</command-3>
       </commands>
@@ -4101,9 +4101,9 @@
     <Gate-Phase-B10-smart-paste PHASE="Phase-B10-smart-paste">
       <goal>Smart paste from AI chats and rendered web content is trustworthy: markdown MIME wins when present, rich HTML is normalized into semantic Markdown structures, unsafe payloads are blocked, and image-localization regressions stay closed.</goal>
       <commands>
-        <command-1>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/util/clipboard-fixture-capture.test.js tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</command-1>
-        <command-2>cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts</command-2>
-        <command-3>cd /Users/myevdokimov/prj/mark &amp;&amp; rg \"BLOCK_SOURCE_DETECTED|BLOCK_SMART_PASTE_NORMALIZE|BLOCK_SMART_PASTE_FALLBACK|BLOCK_SMART_PASTE_REJECTED|BLOCK_TRANSFORM_IMAGE_PATHS\" src/muya src/renderer src-tauri</command-3>
+        <command-1>cd [repo] &amp;&amp; npx vitest run tests/renderer/util/clipboard-fixture-capture.test.js tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</command-1>
+        <command-2>cd [repo] &amp;&amp; npx playwright test tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts</command-2>
+        <command-3>cd [repo] &amp;&amp; rg \"BLOCK_SOURCE_DETECTED|BLOCK_SMART_PASTE_NORMALIZE|BLOCK_SMART_PASTE_FALLBACK|BLOCK_SMART_PASTE_REJECTED|BLOCK_TRANSFORM_IMAGE_PATHS\" src/muya src/renderer src-tauri</command-3>
       </commands>
       <required-evidence>
         <evidence-1>M-044 can harvest browser-visible clipboard fixtures on at least one macOS browser and one Windows browser without requiring a local Mark build, and the exported JSON is commit-ready.</evidence-1>
@@ -5258,8 +5258,8 @@
       <test>tests/e2e/html-paste-images.spec.ts — existing PR-4150 regression remains mandatory</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</module-local>
-      <e2e>cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts</e2e>
+      <module-local>cd [repo] &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js tests/renderer/muya/pasteSourceDetector.test.js tests/renderer/muya/pasteSourceAdapters.test.js tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/muya/smartPasteImport.test.js tests/renderer/muya/smartPaste-entry.test.js tests/renderer/util/dompurify-deep.test.js</module-local>
+      <e2e>cd [repo] &amp;&amp; npx playwright test tests/e2e/smart-paste.spec.ts tests/e2e/html-paste-images.spec.ts</e2e>
     </commands>
     <wave-follow-up>Run the frozen fixture corpus on a macOS dev session and capture one success trace plus one hostile-payload trace to prove trajectory correctness, not just final markdown equality.</wave-follow-up>
     <phase-follow-up>Manual clipboard smoke with real rendered answers from Claude in VS Code and ChatGPT; verify inline code, nested lists, fenced code, and tables visually.</phase-follow-up>
@@ -5280,7 +5280,7 @@
       <test>tests/renderer/muya/clipboardPayload.test.js</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js</module-local>
+      <module-local>cd [repo] &amp;&amp; npx vitest run tests/renderer/muya/clipboardPayload.test.js</module-local>
     </commands>
     <wave-follow-up>Replay payload fixtures under macOS and Windows clipboard mocks to ensure MIME priority and CRLF normalization stay platform-stable.</wave-follow-up>
   </V-M-039>
@@ -5300,7 +5300,7 @@
       <test>tests/renderer/muya/pasteSourceDetector.test.js</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/pasteSourceDetector.test.js</module-local>
+      <module-local>cd [repo] &amp;&amp; npx vitest run tests/renderer/muya/pasteSourceDetector.test.js</module-local>
     </commands>
     <wave-follow-up>Any detector loosenings must be justified by a committed raw fixture update first; do not patch heuristics against screenshots or prose descriptions alone.</wave-follow-up>
   </V-M-040>
@@ -5320,7 +5320,7 @@
       <test>tests/renderer/muya/pasteSourceAdapters.test.js</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/pasteSourceAdapters.test.js</module-local>
+      <module-local>cd [repo] &amp;&amp; npx vitest run tests/renderer/muya/pasteSourceAdapters.test.js</module-local>
     </commands>
     <wave-follow-up>Review adapter diff output against frozen fixtures side by side before merge; source-specific heuristics are intentionally narrow and easy to overfit.</wave-follow-up>
   </V-M-041>
@@ -5343,8 +5343,8 @@
       <test>tests/renderer/util/dompurify-deep.test.js — existing sanitizer invariants stay green</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/util/dompurify-deep.test.js</module-local>
-      <e2e>cd /Users/myevdokimov/prj/mark &amp;&amp; npx playwright test tests/e2e/html-paste-images.spec.ts</e2e>
+      <module-local>cd [repo] &amp;&amp; npx vitest run tests/renderer/muya/pasteHtmlNormalizer.test.js tests/renderer/util/dompurify-deep.test.js</module-local>
+      <e2e>cd [repo] &amp;&amp; npx playwright test tests/e2e/html-paste-images.spec.ts</e2e>
     </commands>
     <wave-follow-up>Security review checkpoint: inspect sanitize ordering and assert every unsafe-scheme regression is backed by deterministic fixtures before autonomous execution is allowed.</wave-follow-up>
     <phase-follow-up>Run the broader XSS suite around clipboard `file://` and rich-HTML paste payloads to confirm smart paste did not weaken M-010 guarantees.</phase-follow-up>
@@ -5365,7 +5365,7 @@
       <test>tests/renderer/muya/smartPasteImport.test.js</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/muya/smartPasteImport.test.js</module-local>
+      <module-local>cd [repo] &amp;&amp; npx vitest run tests/renderer/muya/smartPasteImport.test.js</module-local>
     </commands>
     <wave-follow-up>On every Turndown/import rule change, rerun frozen markdown snapshots and inspect diff noise before widening serializer behavior.</wave-follow-up>
   </V-M-043>
@@ -5387,7 +5387,7 @@
       <test>tools/clipboard-capture/index.html manual smoke in Chrome or Edge on at least one non-macOS host</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; npx vitest run tests/renderer/util/clipboard-fixture-capture.test.js</module-local>
+      <module-local>cd [repo] &amp;&amp; npx vitest run tests/renderer/util/clipboard-fixture-capture.test.js</module-local>
     </commands>
     <wave-follow-up>When a new source family is added to Smart Paste scope, capture at least one real fixture with M-044 before detector or adapter heuristics are widened.</wave-follow-up>
     <phase-follow-up>Before beta.3 tagging, confirm one Windows browser run can open the page directly from disk and export JSON without a local dev server.</phase-follow-up>
@@ -5474,7 +5474,7 @@
       <test>src-tauri/src/m045_ext/tests.rs</test>
     </test-targets>
     <commands>
-      <module-local>cd /Users/myevdokimov/prj/mark &amp;&amp; cargo test --bin mark m045_ext</module-local>
+      <module-local>cd [repo] &amp;&amp; cargo test --bin mark m045_ext</module-local>
     </commands>
     <wave-follow-up>When a second extension type is added beyond TokMo, verify that no M-045 code changes are required (extensibility test).</wave-follow-up>
     <phase-follow-up>Before beta.4 tagging, run full integration test: mock extension discovered, enabled, responds to text.transform via mt_ext_invoke, streams document via live server. m001_validate must pass with all 5 new commands registered.</phase-follow-up>
