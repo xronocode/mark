@@ -5205,7 +5205,8 @@
           notice. C-68 is queued in desktop 2.5.x-next; async race evidence
           remains automated and publication requires a separate instruction.
         </Scenario>
-      </Scenarios>
+              <Scenario>scenario-titlebar-chips (C-TITLEBAR-MODE-CHIPS): the titlebar right cluster mounts the chips cluster first (chips → theme → Share → captions), renders one flag-truth view chip and compact writing chips only when a document is open, swaps the view chip per tab, appends the narrow note on the Split tooltip below 800 px, and logs BLOCK_CHIPS_RENDERED / BLOCK_MENU_ACTION without content.</Scenario>
+</Scenarios>
       <Markers>
         <Marker>[Editor][handleFileChange][BLOCK_RENDER_OWNER_MISMATCH]</Marker>
         <Marker>[Editor][reconcileActiveDocument][BLOCK_ACTIVE_DOCUMENT_RECONCILED]</Marker>
@@ -12956,7 +12957,8 @@
       <Scenarios>
         <Scenario>scenario-1 (C-40 T-002): the drawn chrome icon set (16 px grid, 1.4 stroke, round caps) — every descriptor renders an svg with currentColor and unknown names render nothing; the title bar draws its icons from this module.</Scenario>
         <Scenario>scenario-2 (C-38 T-006 N4 d): the set covers the whole chrome on the single 0 0 16 16 grid — the full glyph inventory, the 1.4 stroke with round caps on every stroked path, no colour literals (currentColor only), the svg.chrome-icon class, the fill/cap rendering overrides and the chromeIconMarkup string twin for the notification service; the swapped components (tree, treeFolder, treeOpenedTab, tabs, find bar, notifications) render the right glyph with aria/click targets preserved; the static scan keeps every sprite / assets-icons / #icon- reference out of components, prefComponents and pages; e2e asserts every svg in the chrome containers is a chrome-icon at stroke 1.4.</Scenario>
-      </Scenarios>
+              <Scenario>scenario-mode-glyphs (C-TITLEBAR-MODE-CHIPS): the six mode-* descriptors (standard, split, source, diff, typewriter, focus) exist on the 0 0 16 16 grid with the shared 1.4 stroke and round caps, keep distinct path data, and render only the focus centre dot as fill.</Scenario>
+</Scenarios>
       <Markers/>
     </V-M-057>
     <V-M-058>
@@ -13010,5 +13012,22 @@
         <Marker>[Shim][openDroppedPath][BLOCK_DROP_FOLDER_OPEN_FAILED] — dropped folder workspace open failed (R-4)</Marker>
       </Markers>
     </V-M-059>
+
+    <V-M-062>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/components/titleBar-mode-chips.test.js tests/renderer/components/titleBar-deep.test.js tests/renderer/components/chrome-icons.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        <Command>npx playwright test tests/e2e/titlebar-mode-chips.spec.ts --project=chromium --project=webkit-titlebar</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-chips-render (C-TITLEBAR-MODE-CHIPS T-004): flag truth diff &gt; split &gt; source; one labelled view chip plus compact writing chips (three maximum); no wrapper in the standard state and with no document; the view chip swaps on tab switch while writing chips persist; aria-label from the short label and the hint as tooltip; the Split tooltip appends narrowNote below the 800 px floor.</Scenario>
+        <Scenario>scenario-menu-normalization (T-005): the two-group menu marks the visible winner, shows the shipped shortcuts and hints, and normalizes in one action — Standard clears splitView + diffMode + sourceCode, Split clears diffMode and keeps sourceCode, Source clears splitView and diffMode, Changes clears splitView; writing toggles are independent; Reset returns Standard with both writing modes off; the menu stays live while a mode toggles from another surface and closes only on outside click or Escape.</Scenario>
+        <Scenario>scenario-locale-parity (T-003): the seventeen titleBar.modeChips families exist in all ten locales and every *.min.json twin is byte-identical to JSON.stringify(parse(source)).</Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[TitleBar][mode-chips][BLOCK_CHIPS_RENDERED]</Marker>
+        <Marker>[TitleBar][mode-chips][BLOCK_MENU_ACTION]</Marker>
+      </Markers>
+    </V-M-062>
   </VD-RUNTIME>
 </GraceVerificationDocument>

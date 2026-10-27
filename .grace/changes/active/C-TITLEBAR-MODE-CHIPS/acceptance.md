@@ -48,17 +48,24 @@ visible-winner checkmarks, shortcuts, hint lines and the Reset footer. The
 official gate was re-run after that fix; its numbers replace the pre-fix run
 below when they land.
 
+## Commits
+
+- 2c740ee9 — the chips, glyphs, locales, shim and e2e specs (this change).
+- 3xxxxxxx — T-008 graph/verification routing (this change).
+- cea74309 — the C-COMMONMARK-EMPHASIS commit this change's graph edits sit on
+  (landed first so the graph/verification files were attributable).
+
 ## Still to run at acceptance
 
 - `npx vitest run` on the exact candidate with the JSON report (skip/executed
   counts); known out-of-scope exclusions recorded above.
 - `grace lint --path . --change C-TITLEBAR-MODE-CHIPS --assertions target
   --run-commands` with its exit code on the candidate.
-- T-008 is authored and lint-clean in an isolated worktree
-  (`/tmp/ctb-graph`): M-062, V-M-062, M-011/M-057 deltas and both indexes pass
-  `grace lint --assertions current` with 0 errors. The patch
-  (`.artifacts/ctb-t008.patch`) applies cleanly to the main tree and waits for
-  the two sibling bundles (C-DIFF-COVERAGE-GATE, C-COMMONMARK-EMPHASIS) to
-  commit their graph/verification hunks, so the candidate stays attributable.
+- T-008 is applied on the main tree on top of the C-COMMONMARK commit
+  (cea74309): M-062 `TitlebarModeChips`, V-M-062 (two commands, three
+  scenarios, content-free markers), the M-011 cluster-order delta, the M-057
+  six-glyph delta and both index routes. `grace lint --assertions target`
+  reports only the expected `command-not-evaluated` pair without
+  `--run-commands`, and `--assertions current` is clean (0 errors).
 - Owner visual pass: screenshots under `.artifacts/ctb-smoke/`, with the owner
   verdict and the built dist digest above.
