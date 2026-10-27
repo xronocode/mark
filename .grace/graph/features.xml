@@ -2449,23 +2449,23 @@
         release-train protocol links to it directly without changing release
         admission or publication behavior.
 
-        C-RELEASE-LEDGER-GUARD (2026-10-27): readiness validates the human
-        Markdown ledger against the JSON authority for item membership as well
-        as the state/version header — every admitted or excluded item id must
-        appear as a whole id (C-1 is not satisfied by C-10), so an admission
-        that edits only the JSON fails closed with MT_RELEASE_LEDGER_DRIFT.
+        Drift hygiene (2026-10-27): the ordinary checks now fail closed on
+        bookkeeping drift instead of trusting prose — release:readiness proves
+        the current ledger carries a heading and a commit for every admitted
+        item and at least one dated history bullet per lifecycle transition,
+        proves docs/release-trains/current.json and the protocol README name the
+        same train (with existing documents), and proves the source-controlled
+        Project Train single-select offers an option for every checked-in train
+        document; release:governance proves a pull-request title never names a
+        FIX-*/DEPS-* delivery ID the base revision already records, because the
+        acceptance and train ledgers own those IDs permanently.
 
-        C-DIFF-COVERAGE-GATE (2026-10-27): tools/diff-coverage.mjs scores the
-        executable lines a payload adds between a merge base and the head
-        against the LCOV record the coverage run already writes, fails below
-        100% and on a new gated file LCOV never instrumented, and reports
-        unchanged, out-of-scope and non-instrumented files instead of silently
-        inflating the number; the Ubuntu pull-request renderer lane runs it
-        after npm run test:coverage, so the changed-line figure a release
-        inherits is fixed at the pull request that introduces it. The audit
-        that motivated the gate measured v2.8.1 at 79.7% and v2.8.2 at 86.0%
-        of changed executable lines while CI enforced only the static global
-        floor over src/renderer/src.
+        The one-way Project mirror also tolerates eventually consistent
+        Projects read-back: after creating an item it waits for the stable
+        Item ID to appear instead of re-planning a second create (which
+        duplicated C-NATIVE-DOCX-RTF-EXPORT on 2026-10-26), and it fails
+        closed with MT_RELEASE_PROJECT_READBACK_LAG when the row never
+        becomes visible.
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
@@ -2603,7 +2603,6 @@
           tools/release-project-sync.mjs, tools/release-github-controls.mjs,
           tools/release-normalize.mjs, tools/release-notes.mjs,
           tools/release-train.mjs,
-          tools/diff-coverage.mjs,
           docs/release-process.md,
           docs/release-trains/current.json,
           .github/workflows/release.yml,
@@ -2612,7 +2611,7 @@
           .github/workflows/promote-release.yml
         </Source>
         <KnowledgeGraphPath>tools/release-readiness.mjs, tools/release-github-controls.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
-        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/diff-coverage.test.js, tests/renderer/publication-privacy.test.js</Tests>
+        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/publication-privacy.test.js</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>
@@ -2760,116 +2759,6 @@
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-046; docs/development-plan.xml: M-046</LegacySource>
     </M-046>
-    <M-053>
-      <Name>SiteBuild</Name>
-      <DisplayName>Site engine + publish pipeline</DisplayName>
-      <Type>UTILITY</Type>
-      <Status>implemented</Status>
-      <Layer>TOOLING</Layer>
-      <PhaseRef>C-22-T-001</PhaseRef>
-      <Summary>
-        VitePress site with the marketing landing emitted at the root and the
-        diagram gallery at /diagrams/ (C-58) by buildEnd hooks (both served
-        by dev middlewares), env-driven SITE_URL/SITE_BASE, a shared
-        per-page SEO/OG head, sitemap/robots/CNAME, opt-in cookieless Umami
-        analytics, a dist link checker that also gates the gallery page, and
-        a single GitHub Pages workflow (PR build+check, main deploy). The
-        gallery renders site/gallery/examples.mjs through pele at build time
-        into inline SVGs recoloured live by --pele-* variables derived from
-        the app's own theme CSS via muya's buildPeleVariables
-        (site/gallery/theme-vars.json, regenerated on every build). Since
-        C-64 T-001 the site wears one brand: site/shared/brand.css is the
-        single token source (paper/ink/marker, light+dark, self-hosted
-        Bricolage/Plex faces under /fonts/brand/), the docs theme
-        (site/.vitepress/theme) extends DefaultTheme over it, and the
-        shared no-flash theme-init script keeps docs, gallery and landing
-        on one VitePress-storage-key choice.
-        C-64 T-002 rebuilds the landing itself as the mobile-first page per
-        D-9: a draggable before/after hero (raw agent Markdown versus Mark's
-        rendered page, diagrams injected at build time into DIAGRAM
-        placeholders with theme data from THEME_VARS_JSON), the d1
-        four-fact strip, the d2 diagram wall as section 02 with live theme
-        chips, install cards carrying the verified facts (v2.5.0, App Store
-        id, full brew command, Windows setup.exe), an iOS/iPadOS
-        Mark-for-Mac sticky bar (Web Share with copy fallback, remembered
-        dismiss, share_to_mac events) and download_click hooks on every
-        install CTA; tests/site/landing-content.test.mjs pins the contract.
-                C-64 T-003 adds the SEO/consent/security layer: the shared head carries
-        apple-itunes-app, the brand theme-color pair, strict referrer,
-        hreflang en + x-default, the 1200x630 og-card.png and a JSON-LD
-        @graph (SoftwareApplication with softwareVersion from the root
-        package.json + WebSite; docs pages get docsHeadTags with WebSite
-        only); GA4 loads consent.js (Consent Mode v2, geo gate, card shown
-        only after the [data-consent-after] hero leaves the viewport) plus
-        track.js (consent-gated download_click / outbound_click / kofi_click,
-        one-shot guide doc_read at 75% depth, and share_to_mac /
-        snippet_copy / diagram_copy / diagram_filter via window.markTrack).
-        GA configuration strips the URL hash and non-campaign query fields,
-        preserves only named UTM values, and reduces referrers to their
-        origin. VitePress owns SITE_BASE application for theme-nav routes;
-        full-navigation links from guide content stay base-agnostic. buildEnd
-        also emits llms.txt and
-        .well-known/security.txt (site/scripts/seo-files.mjs) and rewrites
-        every built page with a meta CSP pinning each inline script by its
-        exact-content sha256 (site/scripts/csp.mjs: cspFor / injectCsp /
-        applyCsp / verifyCsp; check-dist fails on a tampered script);
-        site/scripts/og-card.mjs regenerates the OG card PNG from
-        site/og/card.html with Playwright.
-      </Summary>
-        <Path>site/.vitepress/config.mts</Path>
-        <Path>site/.vitepress/landing.mjs</Path>
-        <Path>site/.vitepress/theme/index.ts</Path>
-        <Path>site/.vitepress/theme/custom.css</Path>
-        <Path>site/shared/brand.css</Path>
-        <Path>site/shared/theme-init.js</Path>
-        <Path>site/shared/theme-init.mjs</Path>
-        <Path>site/scripts/build-gallery.mjs</Path>
-        <Path>site/scripts/gallery-theme-vars.mjs</Path>
-        <Path>site/scripts/check-dist.mjs</Path>
-        <Path>site/scripts/csp.mjs</Path>
-        <Path>site/scripts/seo-files.mjs</Path>
-        <Path>site/scripts/og-card.mjs</Path>
-        <Path>site/scripts/landing-fill.mjs</Path>
-        <Path>site/scripts/shots.mjs</Path>
-        <Path>site/og/card.html</Path>
-        <Path>site/gallery/examples.mjs</Path>
-        <Path>site/gallery/theme-vars.json</Path>
-        <Path>site/landing/index.html</Path>
-        <Path>site/public/consent.js</Path>
-        <Path>site/public/mark-icon.svg</Path>
-        <Path>site/public/track.js</Path>
-      <Dependencies></Dependencies>
-      <VerificationRef>V-M-053</VerificationRef>
-      <Interface>
-        <fn-resolveSiteSettings>env -> siteUrl/base/analytics</fn-resolveSiteSettings>
-        <fn-appVersion>memoized root package.json version (one source for softwareVersion)</fn-appVersion>
-        <fn-sharedHeadTags>settings + page {path,title,description} -> shared head HTML (SEO set + JSON-LD + analytics)</fn-sharedHeadTags>
-        <fn-docsHeadTags>settings -> VitePress HeadConfig list (banner, theme pair, referrer, WebSite JSON-LD)</fn-docsHeadTags>
-        <fn-jsonLd>settings + page -> JSON-LD @graph body with '&lt;' escaped</fn-jsonLd>
-        <fn-renderPage>template + settings + page meta -> servable static page</fn-renderPage>
-        <fn-renderLanding>landing template -> served root page</fn-renderLanding>
-        <fn-deriveThemeVars>app theme CSS files -> gallery theme table (16 --pele-* keys + page + dark per theme)</fn-deriveThemeVars>
-        <fn-renderGallery>settings -> /diagrams/ page (build-time pele SVGs, theme strip, slideshow, fullscreen show)</fn-renderGallery>
-        <fn-checkDist>fail the build on unresolved internal links, leftover tokens, or an incomplete gallery page</fn-checkDist>
-        <fn-THEME_INIT_JS>theme-init.js contents as a string — the no-flash head script shared by docs head config, the gallery and (later) the landing</fn-THEME_INIT_JS>
-        <var-brandCss>site/shared/brand.css tokens — the single source of the site look, imported by the docs theme and inlined into the gallery build</var-brandCss>
-        <fn-llmsTxt>settings -> llms.txt body (install paths + docs map, absolute URLs)</fn-llmsTxt>
-        <fn-securityTxt>settings + now -> RFC 9116 body (365-day expiry)</fn-securityTxt>
-        <fn-cspFor>html + analytics -> meta CSP string with a sha256 per inline script, provider hosts toggled by config</fn-cspFor>
-        <fn-injectCsp>html + opts -> html with the CSP meta as the first child of head (idempotent)</fn-injectCsp>
-        <fn-applyCsp>outDir + opts -> rewrite every built .html with its policy, {files, hashes}</fn-applyCsp>
-        <fn-verifyCsp>html -> inline script hashes missing from the page's own CSP meta</fn-verifyCsp>
-        <fn-checkDist>fail the build on unresolved internal links, leftover tokens, an incomplete gallery page, a missing/broken SEO set, or an unpinned inline script</fn-checkDist>
-        <fn-windowMarkTrack>name + params -> consent-gated GA4 event with an in-memory pre-decision queue</fn-windowMarkTrack>
-        <fn-gaPageLocation>window.location -> GA4 page URL containing only origin, path and named UTM parameters</fn-gaPageLocation>
-      </Interface>
-      <ChangeRefs>
-        <C-14/>
-        <C-22/>
-        <C-58/>
-        <C-64/>
-      </ChangeRefs>
-    </M-053>
     <M-054>
       <Name>WindowsReleaseLane</Name>
       <DisplayName>Windows release lane</DisplayName>
@@ -2976,13 +2865,6 @@
         MARK_SAFETY_OVERRIDE skips only the model phase and writes an
         identity-bound private receipt. The deterministic boundary also
         rejects owner-workspace and private-companion references.
-
-        C-SAFETY-REVIEW-LANES (2026-10-27): the two reviewers run under
-        independent local and non-local lane locks, with a short candidate lock
-        around the snapshot, scan, final identity check and receipt. Each lane
-        stays single-flight, so a remote-bound review no longer blocks another
-        operation's local phase; per-chunk review evidence is candidate-scoped
-        and written atomically.
       </Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>

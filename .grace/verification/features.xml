@@ -2434,6 +2434,7 @@
         <Scenario>scenario-17 (C-PUBLIC-REPOSITORY-HYGIENE): the public tree excludes C-59 operational submission records, promotion planning, the owner backlog, table-copy discussion previews and the exact retired QA, handoff and generated showcase paths while retaining reusable release tooling, authored work and release screenshots; legacy fixture checks pass on all hosts with native-separator normalization and byte-stable LF examples/manifests.</Scenario>
         <Scenario>scenario-33 (C-PUBLIC-REPOSITORY-HYGIENE): the canonical release runbook lives in docs/release-process.md and is linked by the short AGENTS router, release-train authority and README screenshot capture contract; no release workflow, readiness rule or publication state changes.</Scenario>
         <Scenario>scenario-34 (release-train drift hygiene, 2026-10-27): the ordinary gates reject bookkeeping drift instead of trusting prose — release:readiness fails closed (MT_RELEASE_LEDGER_DRIFT) when the current train's ledger lacks a heading or a commit for an admitted item or keeps fewer dated history bullets than lifecycle transitions, (MT_RELEASE_CURRENT_TRAIN_DRIFT) when the README "Current train" line disagrees with docs/release-trains/current.json, (MT_RELEASE_CURRENT_TRAIN_INVALID) when the pointer names a train without JSON/Markdown documents, and (MT_RELEASE_PROJECT_OPTION_MISSING) when the source-controlled Project Train single-select omits an option for a checked-in train document; release:governance fails closed (MT_RELEASE_DELIVERY_ID_REUSED) when a pull-request title names a FIX-*/DEPS-* delivery ID the base revision already records. Terminal trains keep the header-only ledger rule, and the seeded negative cases live in tests/renderer/release-readiness.test.js and tests/renderer/release-governance.test.js inside the standard matrix.</Scenario>
+        <Scenario>scenario-35 (Project mirror read-back lag, 2026-10-27): the apply loop tolerates eventually consistent GitHub Projects read-back — after a create it waits for the new stable Item ID instead of re-planning a second create (the duplicate C-NATIVE-DOCX-RTF-EXPORT of 2026-10-26), and it fails closed with MT_RELEASE_PROJECT_READBACK_LAG when the created row never appears rather than mirroring the row twice; the stray duplicate was removed owner-side with deleteProjectV2Item.</Scenario>
         <Scenario>scenario-18 (C-FIX-013): the canonical vitest run passes --no-experimental-webstorage to workers only on Node major &gt;= 25 (keeping worker arguments byte-identical on the Node 22 reference runtime pinned in .nvmrc), keeping the jsdom localStorage implementation authoritative on every platform; the functional getItem/setItem/key/removeItem/clear regression check must stay green without any NODE_OPTIONS override.</Scenario>
         <Scenario>scenario-13 (C-63): renderer-e2e invokes the existing C-60 and C-62 WebKit projects after installing WebKit, before the aggregate status can succeed. Both projects pass locally; CI triggers, existing jobs and release workflows remain unchanged.</Scenario>
         <Scenario>
@@ -2660,45 +2661,6 @@
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-046</LegacySource>
     </V-M-046>
-    <V-M-053>
-      <Priority>medium</Priority>
-      <Commands>
-        <Command>npx vitest run tests/renderer/site/landing.test.js</Command>
-        <Command>npx vitest run tests/site</Command>
-        <Command>cd site &amp;&amp; npm run build &amp;&amp; npm run check</Command>
-        <Command>cd site &amp;&amp; SITE_BASE=/mark/ SITE_URL=https://xronocode.github.io/mark npm run build &amp;&amp; SITE_BASE=/mark/ npm run check</Command>
-      </Commands>
-      <Scenarios>
-        <Scenario>scenario-1: default build targets https://mark.xronocode.com at / — dist has landing index.html, CNAME, robots.txt, sitemap.xml; checker resolves every internal link.</Scenario>
-        <Scenario>scenario-2: SITE_BASE=/mark/ build (github.io fallback) — no CNAME, all links under /mark/, checker green; the VitePress Diagrams nav applies the base exactly once and the guide's full-navigation gallery link resolves without a hard-coded deployment base.</Scenario>
-        <Scenario>scenario-3: analytics off by default (no third-party script); UMAMI_WEBSITE_ID injects the Umami script into landing and docs.</Scenario>
-        <Scenario>scenario-4: a broken internal link or leftover %BASE% token fails npm run check (and the CI job) before deploy.</Scenario>
-        <Scenario>scenario-5: landing tabs use valid tabpanel elements, copy buttons expose their visible command and state, and code language labels meet contrast requirements.</Scenario>
-        <Scenario>scenario-6: documentation and privacy descriptions describe each page; GA consent loader is deferred and analytics grants never grant advertising consent.</Scenario>
-        <Scenario>scenario-7 (C-58): the diagram gallery — buildEnd (and the dev middleware) emit /diagrams/index.html with one build-time pele SVG per example (unique ids, no PeleError, self-hosted fonts only, under 400 KB — BLOCK_CHECK_GALLERY); theme-vars.json is derived from the app theme CSS through the app's own buildPeleVariables (34 themes x 16 --pele-* keys, Paper/Ink and every shared theme equal the 2026-10-18 runtime snapshot, committed file must equal a fresh derivation); every example renders with pele in tests/site, so a pele upgrade that breaks an example fails the build (corner-6); a theme file added to the app joins the table on the next build (corner-5).</Scenario>
-        <Scenario>scenario-8 (C-64 T-001): the brand foundation — site/shared/brand.css defines the icon palette exactly (paper #F5EFE4 / ink #17191E / marker #FFCF1A / on-marker #17191E) with the warm neutrals and a dark set (paper #17191E / ink #F5EFE4 / mute #A49C8C / rule #33353C / chip #24262C / card #1F2127); the no-JS prefers-color-scheme fallback block equals the dark block; the five self-hosted faces load from /fonts/brand/ (no Schibsted/JetBrains); THEME_INIT_JS is a self-contained IIFE on the 'vitepress-theme-appearance' key that sets data-theme and toggles the dark class and still resolves when localStorage throws; the built gallery inlines it before the first stylesheet, carries no pre-brand palette (#F2EDE3/#FFD21F/#131418), and exposes a folio appearance toggle on the same key; the docs themeConfig nav has at most five top-level items with a Diagrams link (tests/site/brand.test.mjs).</Scenario>
-        <Scenario>scenario-9 (C-64 T-003): the shared head — apple-itunes-app app-id=6814590464, theme-color pair #F5EFE4/#17191E by prefers-color-scheme, strict-origin-when-cross-origin referrer, hreflang en + x-default on the canonical, og:image = og-card.png with 1200x630 + alt, and a parseable JSON-LD @graph whose SoftwareApplication.softwareVersion equals the root package.json (tests/site/head.test.mjs pins all of it; SITE_META.description no longer claims 11 MB).</Scenario>
-        <Scenario>scenario-10 (C-64 T-003): CSP by hashes — buildEnd's applyCsp rewrites every dist .html (landing, /diagrams/, docs pages, 404) with a meta CSP that pins each inline script's exact-content sha256 (ld+json and src scripts excluded), provider hosts (GA4 / Cloudflare / Umami) appear only when configured, no frame-ancestors; check-dist BLOCK_CHECK_CSP fails on a tampered inline script (corner-6); tests pin first-in-head + idempotent injection and verifyCsp detection.</Scenario>
-        <Scenario>scenario-11 (C-64 T-003): consent never covers the hero — public/consent.js keeps Consent Mode v2 defaults denied with wait_for_update 1500, the localStorage 'consent.v1' key, the #cookie-settings reopen link, the avenex.xronocode.com geo gate with time-zone fallback and the outside-gate auto-grant (analytics only, never advertising — pinned by tests/site/head.test.mjs on fake globals); the slim brand card appears only after the [data-consent-after] element fully leaves the viewport (IntersectionObserver, scroll fallback) or, without one, after the first scroll or 6 s; window.markConsent exposes granted()/onChange()/open() with avenexConsent as an alias.</Scenario>
-        <Scenario>scenario-12 (C-64 T-003): events — GA4 loads track.js beside consent.js; download_click fires from [data-track] elements with method/placement and beacon transport only while markConsent.granted() and window.gtag exist (copy buttons wait for the .is-copied success signal); markTrack('share_to_mac', {result}) is the code path for the iPhone bar; nothing queues or blocks navigation when consent is missing (corner-7).</Scenario>
-        <Scenario>scenario-13 (C-64 T-003): SEO files — dist/llms.txt follows llmstxt.org (summary, ## Install with the App Store / Homebrew / Windows + SmartScreen facts, ## Docs with absolute links incl. /diagrams/, ## Source + MIT) and dist/.well-known/security.txt follows RFC 9116 (Contact via GitHub advisories, Expires = build time + 365 days, en/ru, Canonical); check-dist BLOCK_CHECK_SEO gates both plus the landing head (banner, og-card, JSON-LD version, track.js iff GA4). node site/scripts/og-card.mjs (repo root) regenerates site/public/og-card.png from site/og/card.html — run it and commit the PNG when the card or the version changes.</Scenario>
-        <Scenario>scenario-14 (GA4 tracking regression, 2026-10-21): public/track.js uses explicit window browser dependencies and emits doc_read exactly once at 75% depth on guide pages at the root or under SITE_BASE; public/consent.js configures page_location with origin/path plus only utm_source, utm_medium and utm_campaign (no hash or other query fields), reduces page_referrer to its origin, and reaches the config call in the injected fake-browser harness.</Scenario>
-      </Scenarios>
-      <Markers>
-        <Marker>[SiteBuild][buildEnd][BLOCK_BUILD_END]</Marker>
-        <Marker>[SiteBuild][applyCsp][BLOCK_CSP]</Marker>
-        <Marker>[SiteBuild][checkDist][BLOCK_CHECK_LINKS]</Marker>
-        <Marker>[SiteBuild][checkDist][BLOCK_CHECK_GALLERY]</Marker>
-        <Marker>[SiteBuild][checkDist][BLOCK_CHECK_SEO]</Marker>
-        <Marker>[SiteBuild][checkDist][BLOCK_CHECK_CSP]</Marker>
-        <Marker>[SiteBuild][ogCard][BLOCK_OG_CARD]</Marker>
-        <Marker>[SiteBuild][renderLanding][BLOCK_RENDER_LANDING]</Marker>
-        <Marker>[SiteBuild][renderPage][BLOCK_RENDER_PAGE]</Marker>
-        <Marker>[SiteBuild][buildGallery][BLOCK_GALLERY_CARDS]</Marker>
-        <Marker>[SiteGallery][deriveThemeVars][BLOCK_DERIVE_THEME_VARS]</Marker>
-        <Marker>[SiteGallery][writeThemeVarsFile][BLOCK_WRITE_THEME_VARS]</Marker>
-      </Markers>
-    </V-M-053>
     <V-M-054>
       <Priority>high</Priority>
       <Commands>

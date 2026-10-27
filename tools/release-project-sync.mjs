@@ -1,8 +1,8 @@
 // FILE: tools/release-project-sync.mjs
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Mirror the checked-in release train into one user-owned GitHub Project without making Project availability part of release admission.
-//   SCOPE: Public-field projection, paginated read, deterministic dry-run/check/apply planning, idempotent owned-field writes, and duplicate protection; never reverse-syncs or deletes.
+//   SCOPE: Public-field projection, paginated read, deterministic dry-run/check/apply planning, idempotent owned-field writes, read-back lag tolerance, and duplicate protection; never reverse-syncs or deletes.
 //   DEPENDS: Node.js fs/path/url; GitHub GraphQL Projects v2 API; release-readiness train authority; .github/release-governance.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
@@ -15,6 +15,7 @@
 //   planProjectReconciliation - Diff owned fields by stable Item ID without deleting or touching unowned fields.
 //   GraphqlProjectClient - Paginated GitHub Projects v2 read/apply client with bounded retries.
 //   reconcileProject - Run dry-run/check/apply and prove apply idempotence by read-back.
+//   stableIdsPresent - Prove the read-back already exposes every newly created stable Item ID.
 //   recordProjectIdentity - Bind a successful owner-local bootstrap to the Project number/node ID in source control.
 //   validateProjectMutationBoundary - Keep unbound Project creation owner-local and confirmed.
 //   OWNED_FIELDS - Exact public Project fields governed by the one-way mirror.
@@ -29,6 +30,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v1.5.0: tolerate GitHub Project read-back lag after a create — the apply loop waits for the new stable Item ID instead of re-planning a second create, which duplicated C-NATIVE-DOCX-RTF-EXPORT on 2026-10-26; a read-back that never exposes the created row fails closed with MT_RELEASE_PROJECT_READBACK_LAG rather than creating a duplicate.
 //   - 2026-10-24 v1.4.0: C-RELEASE-CONVEYOR — derive evidence URLs from the manifest's own train ID instead of a hardcoded train.
 //   - 2026-10-21 v1.3.0: use the current draft-item payload field, skip absent values on new items, and clear existing empty values through the dedicated GraphQL mutation.
 //   - 2026-10-20 v1.2.0: name the dedicated external credential PROJECT_MIRROR_AUTH consistently across local and Actions callers.
@@ -451,6 +453,13 @@ export class GraphqlProjectClient {
 //   LINKS: .grace/verification/features.xml V-M-046 project mirror scenarios
 // END_CONTRACT: reconcileProject
 // START_BLOCK_RECONCILE_PROJECT
+const stableIdsPresent = (snapshot, stableIds) => {
+  const present = new Set(
+    (snapshot?.items ?? []).map((item) => item.fields?.['Item ID']).filter(Boolean)
+  )
+  return [...stableIds].every((stableId) => present.has(stableId))
+}
+
 export const reconcileProject = async ({ client, desired, mode }) => {
   const actual = mode === 'dry-run' ? {} : await client.read(desired)
   let operations = planProjectReconciliation(desired, actual)
@@ -460,11 +469,29 @@ export const reconcileProject = async ({ client, desired, mode }) => {
   }
   if (mode === 'apply') {
     let attempts = 0
+    const awaiting = new Set()
     while (operations.length) {
       attempts += 1
       if (attempts > 500) fail('MT_RELEASE_PROJECT_APPLY_FAILED', 'operations=non-convergent')
-      await client.apply(operations[0], desired)
-      operations = planProjectReconciliation(desired, await client.read(desired))
+      const operation = operations[0]
+      await client.apply(operation, desired)
+      if (operation.type === 'create-item') awaiting.add(operation.row.stableId)
+      let snapshot = null
+      // GitHub Projects read-back is eventually consistent: a create can be
+      // invisible to the very next read. Re-planning on that stale snapshot
+      // created a second draft for C-NATIVE-DOCX-RTF-EXPORT (2026-10-26), so
+      // wait for the created stable ID instead, and fail closed if it never
+      // appears rather than mirroring the row twice.
+      for (let wait = 0; wait < 5; wait += 1) {
+        snapshot = await client.read(desired)
+        if (!awaiting.size || stableIdsPresent(snapshot, awaiting)) break
+        await sleep(250 * (wait + 1))
+      }
+      if (awaiting.size && !stableIdsPresent(snapshot, awaiting)) {
+        fail('MT_RELEASE_PROJECT_READBACK_LAG', `items=${awaiting.size}`)
+      }
+      awaiting.clear()
+      operations = planProjectReconciliation(desired, snapshot)
     }
   }
   return { mode, operations: initial, converged: mode === 'apply' ? operations.length === 0 : initial.length === 0 }

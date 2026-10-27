@@ -29,8 +29,6 @@ playwright/.cache/
 .vision-sidecar-telemetry/
 
 # VitePress docs build output
-site/.vitepress/dist/
-site/.vitepress/cache/
 
 # OS / editor cruft
 .DS_Store
@@ -50,7 +48,6 @@ sbom/
 homebrew-mark/
 .DS_Store
 .opendesign-work/
-site/node_modules/
 
 # C-15 MAS signing material — must never be committed
 *.p12
