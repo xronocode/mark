@@ -50,32 +50,39 @@ below when they land.
 
 ## Commits
 
-- 2c740ee9 — the chips, glyphs, locales, shim and e2e specs (this change).
-- 3xxxxxxx — T-008 graph/verification routing (this change).
-- cea74309 — the C-COMMONMARK-EMPHASIS commit this change's graph edits sit on
-  (landed first so the graph/verification files were attributable).
+- c65c534a (rebased from 2c740ee9) — chips, glyphs, locales, shim, e2e specs.
+- 358fd9ec (rebased from b937f4b6) — T-008 graph/verification routing.
+- bf6e008 — owner amendment: Standard is the full reset, Reset row removed.
+- 35fa3a39 — the chips unit suite's load-proof mount budget.
+- ef1b2d81 — the C-COMMONMARK-EMPHASIS commit this change sits on.
 
-## Machine gate — passed (2026-10-27 13:17)
+## Machine gate — passed (2026-10-27, isolated worktree on main)
 
 - `grace lint --path . --change C-TITLEBAR-MODE-CHIPS --assertions target
-  --run-commands` → **exit 0**.
-  - command 1/2 `npx vitest run tests/renderer/components/titleBar-deep.test.js
-    tests/renderer/components/titleBar-mode-chips.test.js
-    tests/renderer/components/chrome-icons.test.js tests/renderer/i18n/`
-    → ✔ 8 s (128 tests).
-  - command 2/2 `npm run build && CI=1 npx playwright test --project=chromium
-    --project=webkit-titlebar` → ✔ 11 min 16 s (408 passed, 7 pre-existing
-    skips, 0 failed), built `src/renderer/dist/index.html` sha256
-    `443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206`
-    at 13:00.
-- Full suite on the candidate, `npx vitest run` with the JSON report →
-  **5139 total, 5134 passed, 0 failed, 2 pending, 3 todo, exit 0**. The two
-  pending and three todo are the pre-existing repo markers, not this change.
-- Dependency refresh: the installed pele was 1.6.0 against the 1.10.0 pin;
-  `npm install` failed on the host npm cache (EPERM) and then on an npm
-  internal error, so the pinned tarball was unpacked into `node_modules`
-  directly — `node -p require('pele/package.json').version` → 1.10.0 and
-  `package-lock.json` is unchanged.
+  --run-commands` → **2/2 commands passed (total 10 min 52 s)**.
+  - unit/i18n batch → ✔ 6 s.
+  - `npm run build && CI=1 npx playwright test --project=chromium
+    --project=webkit-titlebar` → ✔ 10 min 45 s, built
+    `src/renderer/dist/index.html` sha256
+    `443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206`.
+- Full suite in the same worktree, `npx vitest run` with the JSON report →
+  **5150 total, 5143 passed, 2 failed, 2 pending, 3 todo**. Both failures are
+  outside this change: `tests/renderer/release-readiness.test.js`
+  "release-train bookkeeping drift" (missingItems 2 and 3) — the release
+  train ledger line, not the titlebar.
+- `grace lint --assertions current` → **1 error, 11 warnings**, the error being
+  `markup.module-map-mismatch` in `tools/release-readiness.mjs` from the site
+  line of work; every path this change writes is clean (0 errors), and the
+  foreign error is recorded here rather than fixed (no side fixes).
+
+## Commit gate note
+
+The amendment commit `bf6e008` used the owner's explicit
+`MARK_SAFETY_OVERRIDE` after the model lanes spent more than an hour on the
+1.34 MB locale-heavy staged set (224 chunks × 2 local + 1 non-local pass); the
+deterministic exposure checks and Gitleaks still ran for the exact candidate.
+The follow-up `35fa3a39` took the normal gate and passed. The override reason
+and receipt are stored in the private safety directory.
 
 ## Owner amendment (2026-10-27, after the first visual pass)
 
