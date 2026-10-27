@@ -1,10 +1,18 @@
-# Dependabot version updates — keeps the three lockfiles from drifting.
+# Dependabot version updates — keeps the lockfiles from drifting.
 # Security updates are opened immediately regardless of this schedule.
 #
 # Ecosystems:
 #   npm  /       — app + test tooling (root package-lock.json)
 #   npm  /site   — marketing/docs site (separate lockfile)
 #   cargo /      — Tauri workspace (Cargo.lock lives in the repo root)
+#
+# Grouping rule: patch and minor updates arrive as two separate groups per
+# ecosystem, so a patch group can be merged on its own without waiting for a
+# minor that still needs reading. Majors are never grouped: each one opens its
+# own pull request with its own migration (codemirror 5 -> 6, vitest 4 -> 5 and
+# jsdom 29 -> 30 are migrations, not bumps). A 0.x minor can also be breaking
+# (notify-debouncer-full 0.5 -> 0.7 changed its API), so a 0.x bump is treated
+# in its own pull request like a major.
 #
 # The appium stack is the calibrated iOS e2e toolchain (WDA session
 # recycling, alert-bridge hooks); only patch/minor bumps are taken
@@ -19,9 +27,16 @@ updates:
     commit-message:
       prefix: chore
     groups:
-      npm-root:
+      npm-root-patch:
         patterns:
           - "*"
+        update-types:
+          - "patch"
+      npm-root-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
     ignore:
       - dependency-name: "appium*"
         update-types:
@@ -43,9 +58,16 @@ updates:
     commit-message:
       prefix: chore
     groups:
-      npm-site:
+      npm-site-patch:
         patterns:
           - "*"
+        update-types:
+          - "patch"
+      npm-site-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
     labels:
       - dependencies
 
@@ -57,8 +79,15 @@ updates:
     commit-message:
       prefix: chore
     groups:
-      cargo-workspace:
+      cargo-patch:
         patterns:
           - "*"
+        update-types:
+          - "patch"
+      cargo-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
     labels:
       - dependencies
