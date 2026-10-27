@@ -77,6 +77,7 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
       SITE_BASE: ${{ vars.SITE_BASE }}
       UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID }}
+      PUBLIC_COLLECT_KEY: ${{ secrets.PUBLIC_COLLECT_KEY }}
       GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
       CF_BEACON_TOKEN: ${{ vars.CF_BEACON_TOKEN }}
       GITHUB_TOKEN: ${{ github.token }}
