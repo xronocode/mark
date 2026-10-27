@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-project-sync.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove the GitHub Project mirror is public-data-only, one-way, duplicate-safe, paginated/retry-capable, non-destructive, and idempotent.
 //   SCOPE: Pure projection/planning plus an in-memory apply adapter and bounded request retry; no live GitHub mutation.
@@ -21,6 +21,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v1.5.0: prove the apply loop waits for a lagging read-back instead of creating the same stable Item ID twice, and fails closed when the created row never appears.
 //   - 2026-10-21 v1.4.0: pin the current draft-item payload field and prove empty optional values are skipped on create and cleared with GitHub's dedicated field-value mutation.
 //   - 2026-10-21 v1.3.1: keep the test module map aligned with the checked-in collecting-train fixture.
 //   - 2026-10-20 v1.3.0: use minimal non-credential constructor sentinels in GraphQL transport coverage.
@@ -80,10 +81,19 @@ class FakeProjectClient {
   constructor() {
     this.actual = { project: null, fields: [], items: [] }
     this.applied = []
+    // GitHub Projects read-back is eventually consistent; tests can make the
+    // next reads hide the newest item to reproduce that lag.
+    this.lagAfterCreate = 0
+    this.pendingLag = 0
   }
 
   async read() {
-    return structuredClone(this.actual)
+    const snapshot = structuredClone(this.actual)
+    if (this.pendingLag > 0) {
+      snapshot.items = snapshot.items.slice(0, -1)
+      this.pendingLag -= 1
+    }
+    return snapshot
   }
 
   async apply(operation) {
@@ -105,6 +115,7 @@ class FakeProjectClient {
       const field = this.actual.fields.find(({ name }) => name === operation.field.name)
       field.options = structuredClone(operation.field.options)
     } else if (operation.type === 'create-item') {
+      this.pendingLag = this.lagAfterCreate
       this.actual.items.push({
         id: `ITEM_${this.actual.items.length}`,
         title: operation.row.title,
@@ -157,6 +168,24 @@ describe('release Project mirror', () => {
     })
     expect(client.actual.items.every((item) => item.fields['Unowned notes'] === 'preserve me')).toBe(true)
   })
+
+  it('waits out an eventually consistent read-back instead of duplicating a created row', async () => {
+    const client = new FakeProjectClient()
+    client.lagAfterCreate = 2
+    const result = await reconcileProject({ client, desired, mode: 'apply' })
+    expect(result.converged).toBe(true)
+    expect(client.applied.filter((type) => type === 'create-item')).toHaveLength(desired.rows.length)
+    const ids = client.actual.items.map((item) => item.fields['Item ID'])
+    expect(new Set(ids).size).toBe(ids.length)
+  }, 30000)
+
+  it('fails closed instead of mirroring twice when the created row never appears', async () => {
+    const client = new FakeProjectClient()
+    client.lagAfterCreate = 99
+    await expect(reconcileProject({ client, desired, mode: 'apply' })).rejects.toMatchObject({
+      code: 'MT_RELEASE_PROJECT_READBACK_LAG'
+    })
+  }, 30000)
 
   it('rejects duplicate stable Item ID rows instead of choosing one', () => {
     const row = desired.rows[1]
