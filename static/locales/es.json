@@ -148,7 +148,26 @@
       "auto": "Tema: Automático",
       "light": "Tema: Claro"
     },
-    "guide": "Guía de Mark"
+    "guide": "Guía de Mark",
+    "modeChips": {
+      "split": "Dividir",
+      "source": "Código",
+      "changes": "Cambios",
+      "typewriter": "Máquina de escribir",
+      "focus": "Enfoque",
+      "standard": "Estándar",
+      "resetAll": "Restablecer todos los modos",
+      "hintStandard": "el editor de siempre, con texto y formato visibles",
+      "hintSplit": "código y vista previa uno al lado del otro",
+      "hintSource": "editar el markdown sin procesar",
+      "hintChanges": "comparar con el archivo guardado",
+      "hintTypewriter": "la línea del cursor se mantiene a la misma altura mientras el texto se desplaza",
+      "hintFocus": "atenúa todo excepto el párrafo que estás editando",
+      "hintReset": "volver a la vista estándar y desactivar los modos de escritura",
+      "viewGroup": "Vista del documento",
+      "writingGroup": "Modos de escritura",
+      "narrowNote": "La ventana es demasiado estrecha para dos paneles: amplíala para ver ambos."
+    }
   },
   "guide": {
     "agentPrompt": {

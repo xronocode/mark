@@ -148,7 +148,26 @@
       "auto": "主题：自动",
       "light": "主题：浅色"
     },
-    "guide": "Mark 指南"
+    "guide": "Mark 指南",
+    "modeChips": {
+      "split": "分栏",
+      "source": "源码",
+      "changes": "更改",
+      "typewriter": "打字机",
+      "focus": "专注",
+      "standard": "标准",
+      "resetAll": "重置所有模式",
+      "hintStandard": "普通编辑器，显示文本和格式",
+      "hintSplit": "源码与预览并排显示",
+      "hintSource": "编辑原始 Markdown",
+      "hintChanges": "与已保存文件比较",
+      "hintTypewriter": "滚动时保持光标行高度不变",
+      "hintFocus": "调暗除当前段落以外的内容",
+      "hintReset": "返回标准视图并关闭写作模式",
+      "viewGroup": "文档视图",
+      "writingGroup": "写作模式",
+      "narrowNote": "窗口太窄，无法显示两个窗格——请加宽窗口。"
+    }
   },
   "guide": {
     "agentPrompt": {

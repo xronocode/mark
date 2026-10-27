@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/chrome-icons.test.js
-// VERSION: 2.4.0
+// VERSION: 2.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the one drawn chrome icon set (C-40 T-002 / C-38 T-006 / C-51 T-006 / C-51 T-011 / C-51 T-013 / M-057) — descriptor integrity, the shared 16 px grid metrics, the ChromeIcon render component, the chromeIconMarkup string twin and the filled pin silhouette.
 //   SCOPE: pure module tests over components/icons/chromeIcons.js.
@@ -15,6 +15,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v2.5.0 C-TITLEBAR-MODE-CHIPS: the six mode-* descriptors
+//     join the pinned name list, with a contract test for the 16-grid
+//     bounds, the shared stroke and six distinct drawings.
 //   - 2026-10-21 v2.4.0 C-WINDOWS-TITLEBAR-ALIGNMENT: the round-cap
 //     invariant documents the FLAT_CAP exemption for the four redrawn
 //     window-* caption descriptors (butt caps, full-width geometry).
@@ -65,10 +68,69 @@ const ICON_NAMES = [
   // C-51 T-011: the pinned-file row mark (sidebar tree + Opened files).
   'pin',
   // C-FIX-009-RECENTLY-CLOSED: the tab-strip recovery button (↺).
-  'reopen'
+  'reopen',
+  // C-TITLEBAR-MODE-CHIPS T-002: the six mode-chip glyphs.
+  'mode-standard', 'mode-split', 'mode-source',
+  'mode-diff', 'mode-typewriter', 'mode-focus'
 ]
 
 const COLOR_LITERAL = /#(?:[0-9a-f]{3,8})\b|rgb\(|rgba\(|hsl\(|hsla\(/i
+
+describe('mode glyphs (C-TITLEBAR-MODE-CHIPS T-002)', () => {
+  const MODE_NAMES = [
+    'mode-standard', 'mode-split', 'mode-source',
+    'mode-diff', 'mode-typewriter', 'mode-focus'
+  ]
+
+  it('ships the six frozen mode descriptors', () => {
+    for (const name of MODE_NAMES) {
+      expect(CHROME_ICONS[name], name).toBeDefined()
+      expect(Array.isArray(CHROME_ICONS[name]), name).toBe(true)
+      expect(CHROME_ICONS[name].length).toBeGreaterThan(0)
+      for (const part of CHROME_ICONS[name]) {
+        expect(Object.isFrozen(part), name).toBe(true)
+      }
+    }
+  })
+
+  it('draws every mode glyph inside the shared 16 grid', () => {
+    const within = (v) => v >= 0 && v <= 16
+    for (const name of MODE_NAMES) {
+      for (const part of CHROME_ICONS[name]) {
+        const a = part.attrs
+        for (const key of ['x', 'y', 'cx', 'cy']) {
+          if (a[key] !== undefined) expect(within(a[key]), `${name}.${key}`).toBe(true)
+        }
+        for (const key of ['width', 'height', 'r']) {
+          if (a[key] !== undefined) expect(a[key], `${name}.${key}`).toBeGreaterThan(0)
+        }
+        if (a.width !== undefined && a.x !== undefined) {
+          expect(a.x + a.width, `${name} width`).toBeLessThanOrEqual(16)
+        }
+        if (a.height !== undefined && a.y !== undefined) {
+          expect(a.y + a.height, `${name} height`).toBeLessThanOrEqual(16)
+        }
+        if (part.tag === 'path') {
+          expect(a.d.startsWith('M'), `${name} path starts with M`).toBe(true)
+          expect(part.cap, `${name} open path needs round caps`).toBe('round')
+        }
+      }
+    }
+  })
+
+  it('keeps six distinct drawings', () => {
+    const serialized = MODE_NAMES.map((n) => JSON.stringify(CHROME_ICONS[n]))
+    expect(new Set(serialized).size).toBe(MODE_NAMES.length)
+  })
+
+  it('renders one mode glyph with the shared stroke contract', () => {
+    const wrapper = mount(ChromeIcon, { props: { name: 'mode-focus' } })
+    const svg = wrapper.find('svg')
+    expect(svg.attributes('viewBox')).toBe('0 0 16 16')
+    expect(svg.attributes('stroke-width')).toBe('1.4')
+    expect(svg.attributes('stroke')).toBe('currentColor')
+  })
+})
 
 describe('chromeIcons shared set (C-40 T-002, C-38 T-006)', () => {
   it('ships every chrome descriptor, frozen, with the shared 1.4 stroke', () => {

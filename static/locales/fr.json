@@ -148,7 +148,26 @@
       "auto": "Thème : Automatique",
       "light": "Thème : Clair"
     },
-    "guide": "Guide Mark"
+    "guide": "Guide Mark",
+    "modeChips": {
+      "split": "Diviser",
+      "source": "Code",
+      "changes": "Modifications",
+      "typewriter": "Machine à écrire",
+      "focus": "Concentration",
+      "standard": "Standard",
+      "resetAll": "Réinitialiser tous les modes",
+      "hintStandard": "l’éditeur habituel, texte et mise en forme visibles",
+      "hintSplit": "source et rendu côte à côte",
+      "hintSource": "modifier le markdown brut",
+      "hintChanges": "comparer au fichier enregistré",
+      "hintTypewriter": "la ligne du curseur reste à la même hauteur pendant le défilement",
+      "hintFocus": "atténue tout sauf le paragraphe en cours d’édition",
+      "hintReset": "revenir à la vue standard et désactiver les modes d’écriture",
+      "viewGroup": "Vue du document",
+      "writingGroup": "Modes d’écriture",
+      "narrowNote": "La fenêtre est trop étroite pour deux volets — élargissez-la pour voir les deux."
+    }
   },
   "guide": {
     "agentPrompt": {
