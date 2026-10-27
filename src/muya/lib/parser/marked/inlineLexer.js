@@ -1,8 +1,29 @@
+// FILE: src/muya/lib/parser/marked/inlineLexer.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Muya inline lexer for the export/copy path — turns one block's text into inline HTML through the renderer.
+//   SCOPE: InlineLexer class (output and helpers) over the normal/gfm/pedantic inline grammars; strong/em dispatches gated by the shared delimiter-stack pairing.
+//   DEPENDS: ./renderer, ./inlineRules, ./options, ./utils, ../utils, ../emphasisPairing.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-COMMONMARK-EMPHASIS.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - InlineLexer constructor (prototype: output, outputLink, and inline rule helpers).
+// END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   - (v1.0.0 implied: upstream marked-derived inline lexer, previously ungoverned.)
+//   - 2026-10-27 v1.1.0: C-COMMONMARK-EMPHASIS — strong/em dispatches consult the shared delimiter-stack pairing (two-step gate: regex-aligned accept or bounded stack-paired retry), so an orphan opener can no longer steal a later clean pair's closer in HTML export, PDF print and copy-as-HTML.
+// END_CHANGE_SUMMARY
+
 import Renderer from './renderer'
 import { normal, breaks, gfm, pedantic } from './inlineRules'
 import defaultOptions from './options'
 import { escape, findClosingBracket, getUniqueId, rtrim } from './utils'
 import { validateEmphasize, lowerPriority } from '../utils'
+import { computeEmphasisPairing } from '../emphasisPairing'
 
 /**
  * Inline Lexer & Compiler
@@ -63,6 +84,10 @@ InlineLexer.prototype.output = function (src) {
   let cap
   let prevCapZero
   let lastChar = ''
+  // C-COMMONMARK-EMPHASIS: the delimiter-stack pairing for this level's full
+  // source (levelSrc), computed lazily on the first emphasis dispatch.
+  const levelSrc = src
+  let emphasisPairing
 
   while (src) {
     // escape
@@ -229,27 +254,84 @@ InlineLexer.prototype.output = function (src) {
     // strong
     cap = this.rules.strong.exec(src)
     if (cap) {
-      const marker = cap[0].match(/^(?:_{1,2}|\*{1,2})/)[0]
-      const isValid = validateEmphasize(src, cap[0].length, marker, lastChar, this.highPriorityEmpRules)
-      if (isValid) {
-        src = src.substring(cap[0].length)
-        lastChar = cap[0].charAt(cap[0].length - 1)
-        out += this.renderer.strong(this.output(cap[4] || cap[3] || cap[2] || cap[1]))
-        continue
+      // START_BLOCK_EMPHASIS_PAIRING_GATE_STRONG
+      // C-COMMONMARK-EMPHASIS: same two-step gate as muya's tokenizer — the
+      // regex match survives only when the delimiter-stack pairing agrees
+      // with its segments; otherwise the stack-paired span (if any) is
+      // rendered under the same validateEmphasize checks. A null pairing
+      // auto-passes and behavior is byte-identical to the legacy lexer.
+      if (emphasisPairing === undefined) {
+        emphasisPairing = computeEmphasisPairing(levelSrc)
       }
+      const strongOffset = levelSrc.length - src.length
+      const strongMarker = cap[0].match(/^(?:_{1,2}|\*{1,2})/)[0]
+      const strongAccepted = emphasisPairing === null ||
+        emphasisPairing.matchForSpan(strongOffset, strongOffset + cap[0].length, strongMarker.length)
+      if (strongAccepted) {
+        const isValid = validateEmphasize(src, cap[0].length, strongMarker, lastChar, this.highPriorityEmpRules)
+        if (isValid) {
+          src = src.substring(cap[0].length)
+          lastChar = cap[0].charAt(cap[0].length - 1)
+          out += this.renderer.strong(this.output(cap[4] || cap[3] || cap[2] || cap[1]))
+          continue
+        }
+      } else if (emphasisPairing !== null) {
+        const stackMatch = emphasisPairing.matchForOpenerStart(strongOffset)
+        if (stackMatch) {
+          const boundedMarkerLen = stackMatch.openerSegEnd - stackMatch.openerSegStart
+          const boundedSpanLen = stackMatch.closerSegEnd - strongOffset
+          const boundedContent = src.substring(boundedMarkerLen, boundedSpanLen - boundedMarkerLen)
+          const boundedMarker = src.substring(0, boundedMarkerLen)
+          if (validateEmphasize(src, boundedSpanLen, boundedMarker, lastChar, this.highPriorityEmpRules)) {
+            src = src.substring(boundedSpanLen)
+            lastChar = boundedMarker.charAt(boundedMarkerLen - 1)
+            out += (stackMatch.type === 'strong' ? this.renderer.strong : this.renderer.em)
+              .call(this.renderer, this.output(boundedContent))
+            continue
+          }
+        }
+      }
+      // END_BLOCK_EMPHASIS_PAIRING_GATE_STRONG
     }
 
     // em
     cap = this.rules.em.exec(src)
     if (cap) {
-      const marker = cap[0].match(/^(?:_{1,2}|\*{1,2})/)[0]
-      const isValid = validateEmphasize(src, cap[0].length, marker, lastChar, this.highPriorityEmpRules)
-      if (isValid) {
-        src = src.substring(cap[0].length)
-        lastChar = cap[0].charAt(cap[0].length - 1)
-        out += this.renderer.em(this.output(cap[6] || cap[5] || cap[4] || cap[3] || cap[2] || cap[1]))
-        continue
+      // START_BLOCK_EMPHASIS_PAIRING_GATE_EM
+      // C-COMMONMARK-EMPHASIS: em side of the two-step gate (see the strong
+      // dispatch above for the full rationale).
+      if (emphasisPairing === undefined) {
+        emphasisPairing = computeEmphasisPairing(levelSrc)
       }
+      const emOffset = levelSrc.length - src.length
+      const emMarker = cap[0].match(/^(?:_{1,2}|\*{1,2})/)[0]
+      const emAccepted = emphasisPairing === null ||
+        emphasisPairing.matchForSpan(emOffset, emOffset + cap[0].length, emMarker.length)
+      if (emAccepted) {
+        const isValid = validateEmphasize(src, cap[0].length, emMarker, lastChar, this.highPriorityEmpRules)
+        if (isValid) {
+          src = src.substring(cap[0].length)
+          lastChar = cap[0].charAt(cap[0].length - 1)
+          out += this.renderer.em(this.output(cap[6] || cap[5] || cap[4] || cap[3] || cap[2] || cap[1]))
+          continue
+        }
+      } else if (emphasisPairing !== null) {
+        const emStackMatch = emphasisPairing.matchForOpenerStart(emOffset)
+        if (emStackMatch) {
+          const emBoundedMarkerLen = emStackMatch.openerSegEnd - emStackMatch.openerSegStart
+          const emBoundedSpanLen = emStackMatch.closerSegEnd - emOffset
+          const emBoundedContent = src.substring(emBoundedMarkerLen, emBoundedSpanLen - emBoundedMarkerLen)
+          const emBoundedMarker = src.substring(0, emBoundedMarkerLen)
+          if (validateEmphasize(src, emBoundedSpanLen, emBoundedMarker, lastChar, this.highPriorityEmpRules)) {
+            src = src.substring(emBoundedSpanLen)
+            lastChar = emBoundedMarker.charAt(emBoundedMarkerLen - 1)
+            out += (emStackMatch.type === 'strong' ? this.renderer.strong : this.renderer.em)
+              .call(this.renderer, this.output(emBoundedContent))
+            continue
+          }
+        }
+      }
+      // END_BLOCK_EMPHASIS_PAIRING_GATE_EM
     }
 
     // code
