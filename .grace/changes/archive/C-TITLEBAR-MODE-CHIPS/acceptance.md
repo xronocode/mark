@@ -96,8 +96,9 @@ owner decision. The gate below was re-run after the change.
 
 ## Owner verdict
 
-The first visual pass was reviewed in-session; the second pass after this
-amendment is pending.
+ACCEPTED by the owner on 2026-10-27, after the amendment: the Reset footer was
+removed and Standard became the full reset (view plus both writing modes). The
+bundle is archived as applied with this record.
 
 ## Still to run at acceptance
 
