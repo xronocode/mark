@@ -44,7 +44,7 @@ import { fileURLToPath } from 'node:url'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor } from './fixtures/helpers'
 
-const EVIDENCE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../.grace/changes/active/C-NOTIFICATION-SYSTEM/evidence')
+const EVIDENCE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../.grace/changes/archive/C-NOTIFICATION-SYSTEM/evidence')
 
 // Complete prefs table (the shim applies only what mt_prefs_get_all
 // returns), pinned to the two normative themes.
