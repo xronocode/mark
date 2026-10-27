@@ -69,6 +69,12 @@ site/node_modules/
 /fixtures/**/Local Storage/
 /fixtures/**/*.plist
 
+# Change-bundle acceptance crops stay in the local checkout: the public gate
+# admits only reviewed README screenshots, and each bundle's acceptance record
+# keeps the filenames for local reproduction.
+/.grace/changes/**/evidence/*.png
+/.grace/changes/**/evidence-*.png
+
 # Retired personal QA and one-off handoff artifacts.
 /Mark-qa-C2-C6.md
 /Mark-v2.1.2-beta-QA.md
