@@ -1,5 +1,5 @@
 // FILE: tests/renderer/site/landing.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the site landing renderer and settings resolution (M-053).
 //   SCOPE: base normalization, %BASE% substitution, shared head, analytics
@@ -16,7 +16,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.2.0 - 2026-10-18 C-64 T-006: renderLanding strips every
+//   LAST_CHANGE: [v1.3.0 - 2026-10-27 C-SITE-COUNTERS: the settings default
+//                 carries the first-party collector slot (collect: null) so an
+//                 unconfigured build keeps rendering without a collector tag.]
+//   PREV: [v1.2.0 - 2026-10-18 C-64 T-006: renderLanding strips every
 //                 HTML comment and trims leading whitespace, so the rendered
 //                 landing starts with <!doctype html> and carries no <!--
 //                 (S-4) — asserted on the real template.]
@@ -41,7 +44,7 @@ const TEMPLATE = '<head><title>t</title><!--SITE_HEAD--></head><a href="%BASE%gu
 
 describe('resolveSiteSettings', () => {
   it('defaults to the custom domain at the root with analytics off', () => {
-    expect(resolveSiteSettings({})).toEqual({ siteUrl: 'https://mark.xronocode.com', base: '/', analytics: [] })
+    expect(resolveSiteSettings({})).toEqual({ siteUrl: 'https://mark.xronocode.com', base: '/', analytics: [], collect: null })
   })
 
   it('normalizes base slashes and trims the url', () => {
