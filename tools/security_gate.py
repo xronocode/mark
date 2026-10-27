@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 2.0.0
+# VERSION: 2.2.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks plus two independent model reviewers.
-#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, two serial owner-local model passes and one independent non-local model pass, an explicit human model-review override, identity recheck, private receipts and common hooks.
+#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, two serial owner-local model passes and one independent non-local model pass under independent per-lane locks, an explicit human model-review override, identity recheck, private receipts and common hooks.
 #   DEPENDS: Python stdlib, git, gitleaks, owner-configurable Ollama endpoints for the local and non-local reviewers.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFETY-GATE-MODEL-REVIEW; C-PUBLIC-REPOSITORY-HYGIENE; C-MESSAGE-ONLY-HISTORY-REWRITE-V3.
 #   ROLE: SCRIPT
@@ -15,6 +15,7 @@
 #   LOCAL_PHASES - the two serial owner-local review phases.
 #   NON_LOCAL_PHASE - the independent non-local review phase.
 #   REVIEW_CHUNK_BYTES - UTF-8 byte bound for one reviewer chunk.
+#   REVIEW_OUTPUT_TOKENS - output budget for one reviewer answer.
 #   HOME_PLACEHOLDERS - synthetic home users accepted by the absolute-path rule.
 #   PRIVATE_REFERENCE - owner-workspace and private-companion reference rule.
 #   HOME_PATH - absolute personal home path rule.
@@ -24,7 +25,7 @@
 #   git - checked Git invocation without a shell.
 #   repository - resolve worktree and shared private Git storage.
 #   publication_lines - exclude removed baseline lines from new-exposure scanning.
-#   review_view - mask only removed baseline home prefixes while retaining the complete diff.
+#   review_view - replace removed baseline lines with a placeholder so a cleanup cannot read as new exposure while additions and context stay complete.
 #   validate_lane - keep mobile runtime and desktop release/version writes in their own lanes.
 #   staged_candidate - bind staged blobs, diff and commit message to an index tree.
 #   AI_NAMES - assistant/vendor names that must not appear in attribution trailers or branch names.
@@ -56,12 +57,15 @@
 #   reviewer_ownership - prove an empty slot or the expected loaded model before inference.
 #   local_review - run two serial owner-local passes per chunk.
 #   non_local_review - run one independent non-local pass per chunk.
-#   review - lock, scan, honour the explicit override, run both reviewers, recheck identity and write a private receipt.
+#   review - take the candidate lock, scan, honour the explicit override, run the local and non-local reviewers under their own lane locks, recheck identity and write a private receipt.
 #   install - scan the staged bootstrap and install common fail-closed hooks.
 #   main - dispatch early static checks, full commit/push review, history-rewrite review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: restore exact-candidate model review as two serial owner-local passes plus one independent non-local (private-network) pass, resolved from owner-local configuration or environment, fail-closed with the explicit human override; widen deterministic checks to private-companion and owner-workspace references.
+#   LAST_CHANGE: 2.2.0 - 2026-10-27 C-SAFETY-REVIEW-LANES: replace the single inference.lock with candidate, local and non-local lane locks, so a remote-bound review no longer blocks another operation's local phase; keep each lane single-flight, make per-chunk evidence candidate-scoped and atomic, and preserve the FIX-021 reviewer view plus the 2.1.1 output-budget diagnostics.
+#   PREV: 2.1.1 - 2026-10-27: name the sanitized done_reason and answering model in the incomplete-payload rejection, which could not tell a truncated answer from a model swap, and raise the reviewer answer budget from 600 to 2048 output tokens as headroom.
+#   PREV: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and state that a bare secret or variable name is an identifier rather than a value, so documented setup text and cleanups stop reading as new exposure.
+#   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: restore exact-candidate model review as two serial owner-local passes plus one independent non-local (private-network) pass, resolved from owner-local configuration or environment, fail-closed with the explicit human override; widen deterministic checks to private-companion and owner-workspace references.
 #   PREV: 1.10.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one non-main PR rebase only against branch/main identities read from the actual push endpoint and scan only commits replayed above current remote main.
 #   PREV: 1.10.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: preserve exact raw commit-message termination by admitting manifest replacements with or without a final LF.
 #   PREV: 1.10.0 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: admit one exact-manifest main rewrite only after raw-object ordered-parent DAG proof, deterministic message scans and explicit accounting for unavoidable gpgsig removal.
@@ -105,7 +109,10 @@ PUBLICATION_REVIEW_PROMPT = (
     "they contain no credential bytes and cannot alone justify a private-key or credential finding. A literal "
     "credential, private key, token value, or private data outside those reference forms is still an exposure. "
     "This distinction applies equally inside .github/workflows/release.yml and .github/release-governance.json: "
-    "neither the file path nor a symbolic lookup name is evidence of a secret. Do not report a file solely because "
+    "neither the file path nor a symbolic lookup name is evidence of a secret. A bare Environment secret or "
+    "variable name such as RELEASE_BOT_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY, APPLE_CERTIFICATE or "
+    "RELEASE_PREP_APP_PRIVATE_KEY is an identifier that setup documentation must name; without an assigned value "
+    "it is not an exposure. Do not report a file solely because "
     "it contains these reference forms. In a unified diff, '-' lines remove existing baseline content: removing a "
     "private path or credential is remediation, not a new exposure. New blobs and every outgoing intermediate "
     "commit are statically scanned separately. Never repeat a secret value. "
@@ -116,6 +123,11 @@ PUBLICATION_REVIEW_PROMPT = (
 LOCAL_PHASES = ("review", "skeptical independent recheck")
 NON_LOCAL_PHASE = "independent non-local review"
 REVIEW_CHUNK_BYTES = 6000
+# Output budget for one reviewer answer. The verdict JSON must reach its terminator
+# inside it: a truncated answer finishes with done_reason "length" and is rejected
+# as an incomplete payload. Sized above the measured need so a finding-heavy chunk
+# still finishes instead of failing closed on the budget.
+REVIEW_OUTPUT_TOKENS = 2048
 HOME_PLACEHOLDERS = {
     "<fixture>", "<user>", "<home>", "<owner>", "<name>",
     "ada", "dev", "example", "me", "name", "test", "u", "user", "username", "x", "you",
@@ -916,11 +928,15 @@ def scan(candidate):
 
 
 def review_view(payload):
+    # Removed baseline lines are scanned as absent, so the reviewers must not read
+    # the value a cleanup deletes either: replacing the line keeps the diff shape
+    # without offering a private value as apparent new exposure.
     lines = []
     for line in payload.splitlines(keepends=True):
         if line.startswith("-") and not line.startswith("---"):
-            line = re.sub(r"(?:/Users/|/home/|[A-Za-z]:[\\/]Users[\\/])[A-Za-z0-9_.-]+[\\/]", "<removed-baseline-home>/", line)
-        lines.append(line)
+            lines.append("- <removed baseline line>\n")
+        else:
+            lines.append(line)
     return "".join(lines)
 
 
@@ -1099,7 +1115,7 @@ def _review_chunk(reviewer, phase, chunk, opener, private, candidate, records, i
         "think": False,
         "format": "json",
         "keep_alive": "10m",
-        "options": {"num_ctx": 8192, "num_predict": 600, "temperature": 0, "num_batch": 128},
+        "options": {"num_ctx": 8192, "num_predict": REVIEW_OUTPUT_TOKENS, "temperature": 0, "num_batch": 128},
         "messages": [
             {"role": "system", "content": PUBLICATION_REVIEW_PROMPT},
             {"role": "user", "content": "PASS TYPE: " + phase + "\nCHUNK " + str(index) + "\n" + chunk},
@@ -1118,7 +1134,15 @@ def _review_chunk(reviewer, phase, chunk, opener, private, candidate, records, i
             or answer.get("done_reason") != "stop"
             or answer.get("model") != reviewer["model"]
         ):
-            raise GateError(reviewer["label"] + " reviewer did not complete the payload")
+            # Only reduced, enumerated fields: the answer is untrusted text and must not
+            # be able to push candidate bytes into the terminal diagnostic.
+            finished = re.sub(r"[^A-Za-z0-9_.:-]", "", str(answer.get("done_reason")))[:24] or "none"
+            answered = re.sub(r"[^A-Za-z0-9_.:-]", "", str(answer.get("model")))[:32] or "none"
+            raise GateError(
+                reviewer["label"]
+                + " reviewer did not complete the payload (done_reason=" + finished
+                + ", expected_model=" + reviewer["model"] + ", answered_model=" + answered + ")"
+            )
         content = answer["message"]["content"]
     except GateError:
         raise
@@ -1127,10 +1151,21 @@ def _review_chunk(reviewer, phase, chunk, opener, private, candidate, records, i
     validate_verdict(content, reviewer["label"])
     record = {"reviewer": reviewer["label"], "chunk": index, "phase": phase, "model": answer.get("model"), "result": content}
     records.append(record)
-    (private / "last-model-review.json").write_text(
-        json.dumps({"identity": candidate["identity"], "reviewers": sorted({r["reviewer"] for r in records}), "records": records}, indent=2)
-    )
-    os.chmod(private / "last-model-review.json", 0o600)
+    evidence = private / ("last-model-review-" + candidate["identity"] + ".json")
+    descriptor, temporary = tempfile.mkstemp(prefix=".last-model-review-", dir=str(private))
+    try:
+        with os.fdopen(descriptor, "w") as handle:
+            handle.write(
+                json.dumps(
+                    {"identity": candidate["identity"], "reviewers": sorted({r["reviewer"] for r in records}), "records": records},
+                    indent=2,
+                )
+            )
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, evidence)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
     return record
 
 
@@ -1169,12 +1204,28 @@ def non_local_review(candidate, private, reviewers):
 
 def review(make_candidate, private, operation):
     # START_BLOCK_EXACT_CANDIDATE_REVIEW
+    import contextlib
     import fcntl
-    with (private / "inference.lock").open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise GateError("Another repository safety review owns the inference slot") from None
+
+    @contextlib.contextmanager
+    def lane(filename, message):
+        path = private / filename
+        with path.open("a") as lock:
+            os.chmod(path, 0o600)
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise GateError(message) from None
+            try:
+                yield
+            finally:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+
+    # Lock order: candidate (short) -> local -> non-local -> candidate (short).
+    # The candidate lock is never held while a model lane is held, so a
+    # remote-bound review cannot block another operation's local phase and the
+    # two lane locks cannot form a cycle.
+    with lane("inference-candidate.lock", "Another repository safety review owns the candidate review slot"):
         candidate = make_candidate()
         scan(candidate)
         # START_BLOCK_MANUAL_REVIEW_OVERRIDE
@@ -1200,12 +1251,15 @@ def review(make_candidate, private, operation):
             print("[RepositorySafety][override][BLOCK_SAFETY_OVERRIDE_USED]", operation, candidate["identity"], "reason=" + override)
             return
         # END_BLOCK_MANUAL_REVIEW_OVERRIDE
-        reviewers = reviewer_config(private)
+    reviewers = reviewer_config(private)
+    with lane("inference-local.lock", "Another repository safety review owns the local review slot"):
         records = local_review(candidate, private, reviewers)
+    with lane("inference-non-local.lock", "Another repository safety review owns the non-local review slot"):
         records += non_local_review(candidate, private, reviewers)
-        expected = len(chunks(review_view(candidate["payload"]))) * (len(LOCAL_PHASES) + 1)
-        if len(records) != expected:
-            raise GateError("Incomplete two-reviewer model review")
+    expected = len(chunks(review_view(candidate["payload"]))) * (len(LOCAL_PHASES) + 1)
+    if len(records) != expected:
+        raise GateError("Incomplete two-reviewer model review")
+    with lane("inference-candidate.lock", "Another repository safety review owns the candidate review slot"):
         if make_candidate()["identity"] != candidate["identity"]:
             raise GateError("Candidate changed during review; stage and review again")
         receipt = {

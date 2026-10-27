@@ -30,6 +30,14 @@ intermediate commit, so adding and later removing a secret does not hide it. A
 bare Environment secret or variable name named by setup documentation is an
 identifier, not a valued credential.
 
+Model review runs in separate local and non-local review lanes. The local
+reviewer holds the local lane for its two passes, the non-local reviewer holds
+the non-local lane for its independent pass, and a short candidate lane
+serializes the snapshot, scan, final identity check and receipt. Each lane is
+single-flight, so a commit waiting on the non-local lane can still finish its
+local phase while another commit is remote-bound, and contention reports which
+lane is busy.
+
 The gate also enforces desktop/mobile lane separation, exact staged-index and
 outgoing-history snapshots, the public/private path boundary, safe branch
 deletion proof, the AI-attribution and branch-name ban, and reviewed screenshot
