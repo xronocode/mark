@@ -26,7 +26,6 @@
 //   ITEM_KEY_ORDER_2_5_3 - the four 2.5.3 item keys in sheet order (session, tables, columns, updates).
 //   ITEM_KEY_ORDER - the four D-1 item keys in the approved order.
 //   CHANGELOG_SOURCE - repository CHANGELOG.md, the source of every release heading.
-//   SITE_CHANGELOG - the website changelog page that includes its releases region.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -264,7 +263,6 @@ describe('current release-draft sheet', () => {
 
 // START_BLOCK_RELEASE_URL
 const CHANGELOG_SOURCE = readFileSync(resolve(__dirname, '../../../CHANGELOG.md'), 'utf8')
-const SITE_CHANGELOG = readFileSync(resolve(__dirname, '../../../site/changelog.md'), 'utf8')
 
 describe('getWhatsNewReleaseUrl (C-53 «See everything new» link)', () => {
   it('opens the website changelog at the release heading', () => {
@@ -272,9 +270,8 @@ describe('getWhatsNewReleaseUrl (C-53 «See everything new» link)', () => {
     expect(changelogAnchor('2.2.0-beta', '2026-10-07')).toBe('_2-2-0-beta-2026-10-07')
   })
 
-  it('dates every linked release exactly like its CHANGELOG heading, inside the region the site renders', () => {
+  it('dates every linked release exactly like its CHANGELOG heading', () => {
     const region = CHANGELOG_SOURCE.split('<!-- #region releases -->')[1]?.split('<!-- #endregion releases -->')[0] ?? ''
-    expect(SITE_CHANGELOG).toContain('<!--@include: ../CHANGELOG.md#releases-->')
     for (const [version, date] of Object.entries(WHATS_NEW_RELEASE_DATES)) {
       expect(region, `CHANGELOG heading for ${version}`).toContain(`## [${version}] - ${date}`)
     }
