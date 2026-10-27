@@ -51,21 +51,42 @@ below when they land.
 ## Commits
 
 - 2c740ee9 — the chips, glyphs, locales, shim and e2e specs (this change).
-- 3xxxxxxx — T-008 graph/verification routing (this change).
+- b937f4b6 — T-008 graph/verification routing (this change).
 - cea74309 — the C-COMMONMARK-EMPHASIS commit this change's graph edits sit on
   (landed first so the graph/verification files were attributable).
 
-## Still to run at acceptance
+## Machine gate — passed (2026-10-27 13:17)
 
-- `npx vitest run` on the exact candidate with the JSON report (skip/executed
-  counts); known out-of-scope exclusions recorded above.
 - `grace lint --path . --change C-TITLEBAR-MODE-CHIPS --assertions target
-  --run-commands` with its exit code on the candidate.
+  --run-commands` → **exit 0**.
+  - command 1/2 `npx vitest run tests/renderer/components/titleBar-deep.test.js
+    tests/renderer/components/titleBar-mode-chips.test.js
+    tests/renderer/components/chrome-icons.test.js tests/renderer/i18n/`
+    → ✔ 8 s (128 tests).
+  - command 2/2 `npm run build && CI=1 npx playwright test --project=chromium
+    --project=webkit-titlebar` → ✔ 11 min 16 s (408 passed, 7 pre-existing
+    skips, 0 failed), built `src/renderer/dist/index.html` sha256
+    `d4e44cae7d53659b280330bf578dfbca23217fab6f14fa180d1a8fb97bbedcf0`
+    at 13:00.
+- Full suite on the candidate, `npx vitest run` with the JSON report →
+  **5139 total, 5134 passed, 0 failed, 2 pending, 3 todo, exit 0**. The two
+  pending and three todo are the pre-existing repo markers, not this change.
+- Dependency refresh: the installed pele was 1.6.0 against the 1.10.0 pin;
+  `npm install` failed on the host npm cache (EPERM) and then on an npm
+  internal error, so the pinned tarball was unpacked into `node_modules`
+  directly — `node -p require('pele/package.json').version` → 1.10.0 and
+  `package-lock.json` is unchanged.
+
+## Owner verdict
+
+Pending: the owner reviewed the three smoke crops in-session on 2026-10-27
+(standard bar, split + typewriter chips, open menu) after the menu layout fix;
+the formal verdict line is recorded here once given.
+
+## Still to run at acceptance
 - T-008 is applied on the main tree on top of the C-COMMONMARK commit
   (cea74309): M-062 `TitlebarModeChips`, V-M-062 (two commands, three
   scenarios, content-free markers), the M-011 cluster-order delta, the M-057
   six-glyph delta and both index routes. `grace lint --assertions target`
   reports only the expected `command-not-evaluated` pair without
   `--run-commands`, and `--assertions current` is clean (0 errors).
-- Owner visual pass: screenshots under `.artifacts/ctb-smoke/`, with the owner
-  verdict and the built dist digest above.
