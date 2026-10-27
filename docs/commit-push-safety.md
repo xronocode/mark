@@ -50,9 +50,10 @@ is not a documented synthetic example; `/Users/<fixture>/`, `/Users/<user>/`,
 ## Two model reviewers
 
 After the deterministic checks pass, the exact candidate runs through two
-independent reviewers: two serial local passes and one independent non-local pass.
-The local passes are a review and a skeptical independent recheck on the
-owner-local model; the non-local pass runs on the owner-configured host. Every
+independent reviewers: one owner-local pass and one independent non-local pass
+(owner policy of 2026-10-27 — the second local pass was retired as duplicative
+at the small-model size). The local pass reviews on the owner-local model; the
+non-local pass is the independent recheck on the owner-configured host. Every
 chunk must pass every pass; a malformed verdict, a different loaded model, a redirect, an unreachable
 endpoint or a missing non-local configuration stops the commit or push.
 
