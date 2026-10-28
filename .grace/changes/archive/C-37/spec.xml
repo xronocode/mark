@@ -1,12 +1,15 @@
-<GraceChangeSpec graceVersion='4.0' status='draft'>
+<GraceChangeSpec graceVersion='4.0' status="applied">
 <C-37>
   <Name>Portfolio case study: Mark product, storefront and website as a reference</Name>
   <Created>2026-10-14</Created>
   <Priority>low</Priority>
-  <Status>draft</Status>
+  <Status>retired</Status>
   <RoadmapPhase>P</RoadmapPhase>
   <Complexity>S–M (3–5 days)</Complexity>
 
+  <Disposition>Retired 2026-10-28. The portfolio article is marketing content for the public site, which moved to the mark-site repository (PR #96, 2026-10-27); its remaining dependencies (C-35 site work, the case-study material) live there now. Nothing was executed in this repository.</Disposition>
+  <AppliedEvidence>Retired draft archived on 2026-10-28; nothing was ever planned or executed in this repository. The owner-directed backlog decision for goal item 5 and the mark-site extraction (PR #96) supply the closure.</AppliedEvidence>
+  <Replacement>mark-site repository (site content moved by PR #96)</Replacement>
   <Summary>
     Write the Mark case (and site/assistant once shipped) in the Avenex article format: task, real tools, pipeline, pitfalls, what to check in your case, soft CTA. Material: MarkView gap audit, 4 icon rounds with independent reviews and the Prosely look-alike search, 10-locale storefront with Codex + local Gemma translation review, bugs found on the way (diff view, UI languages, context-menu race).
   </Summary>

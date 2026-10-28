@@ -3,9 +3,10 @@
   <Name>Advanced agent setup: Claude Code hooks that open agent-written Markdown in Mark and feed the user's edits back</Name>
   <Created>2026-10-15</Created>
   <Priority>medium</Priority>
-  <Status>draft</Status>
+  <Status>deferred</Status>
   <RoadmapPhase>R2</RoadmapPhase>
   <Complexity>M</Complexity>
+  <Disposition>Deferred 2026-10-28 (backlog decision, goal item 5). The feature is feasible — its dependencies C-40 and C-46 shipped and the m020 CLI exists — but it is not in 2.9.x, has no owner execution instruction and no allocated product slot. The design below is unchanged; revive it by approving a plan when agent integration gets a slot, and re-check the CLI surface and the App Store sandbox boundary at that time.</Disposition>
   <Summary>Next to the universal prompt (C-40 R-1a) the Guide and the welcome screen offer "Advanced agent setup" (user 2026-10-15). It installs two Claude Code hooks so nothing depends on the agent remembering instructions: PostToolUse on Write/Edit/MultiEdit opens a written .md in Mark in the background (open -g -a Mark); UserPromptSubmit compares the .md files the agent wrote with the hash recorded at its last write and, when the user changed them in Mark, adds a short "the user edited plan.md" diff to Claude's context.</Summary>
   <Problem><Description>The prompt-only setup relies on the agent following instructions; hooks make the loop automatic. User: «про хуки я бы добавил вариант типа адвенсед агент сетап».</Description></Problem>
   <Goals>
