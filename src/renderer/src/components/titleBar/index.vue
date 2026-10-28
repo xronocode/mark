@@ -72,6 +72,9 @@
            gone everywhere: Help › Mark Guide in the window menu bar
            covers it (owner, 2026-10-20). -->
       <div class="titlebar-right title-no-drag">
+        <!-- C-TITLEBAR-MODE-CHIPS: chips left of the theme button on
+             macOS and before the caption cluster on Win/Linux. -->
+        <mode-chips @open-menu="handleModeMenuOpen"></mode-chips>
         <div
           v-if="isOsx"
           class="titlebar-nav-btn"
@@ -211,12 +214,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.2.5
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover, native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it).
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks.
 //   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, util/docStats, components/icons/chromeIcons.
-//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT.
+//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons), M-062 (mode chips); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -247,6 +250,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-27 v2.3.0 C-TITLEBAR-MODE-CHIPS T-004: the mode-chips
+//     cluster mounts first in the right cluster (left of the theme button
+//     on macOS, before the caption cluster on Win/Linux); it emits the
+//     open-menu request that T-005 turns into the switch menu.
 //   - 2026-10-20 v2.2.5: owner amendment 5 — the ☰ app-menu button and ⚙
 //     Settings gear return to the Win/Linux bar: palette-only
 //     reachability proved undiscoverable in real use. Everything else
@@ -346,6 +353,7 @@ import { useProjectStore } from '@/store/project'
 import { useI18n } from 'vue-i18n'
 import { writeText as writeClipboardText } from '@tauri-apps/plugin-clipboard-manager'
 import { ChromeIcon } from '../icons/chromeIcons.js'
+import ModeChips from './modeChips.vue'
 import { formatRelativeTime } from '@/util/relativeTime.js'
 import { countDocumentLines, readingMinutes } from '@/util/docStats.js'
 
@@ -404,6 +412,13 @@ const themeMode = computed(() => {
 })
 
 const themeTooltip = computed(() => t(`titleBar.themeMode.${themeMode.value}`))
+
+// C-TITLEBAR-MODE-CHIPS T-004: the chips emit the open request; T-005
+// renders the switch menu anchored to this element.
+const modeMenuAnchor = ref(null)
+const handleModeMenuOpen = ({ anchor } = {}) => {
+  modeMenuAnchor.value = anchor
+}
 
 const handleThemeToggle = () => {
   const next = THEME_CYCLE[themeMode.value]

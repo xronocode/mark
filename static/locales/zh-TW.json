@@ -148,7 +148,24 @@
       "auto": "主題：自動",
       "light": "主題：淺色"
     },
-    "guide": "Mark 指南"
+    "guide": "Mark 指南",
+    "modeChips": {
+      "split": "分割",
+      "source": "原始碼",
+      "changes": "變更",
+      "typewriter": "打字機",
+      "focus": "專注",
+      "standard": "標準",
+      "hintStandard": "回到標準檢視並關閉寫作模式",
+      "hintSplit": "原始碼與預覽並排顯示",
+      "hintSource": "編輯原始 Markdown",
+      "hintChanges": "與已儲存的檔案比較",
+      "hintTypewriter": "捲動時保持游標行高度不變",
+      "hintFocus": "調暗目前段落以外的內容",
+      "viewGroup": "文件檢視",
+      "writingGroup": "寫作模式",
+      "narrowNote": "視窗太窄，無法顯示兩個窗格——請加寬視窗。"
+    }
   },
   "guide": {
     "agentPrompt": {
@@ -600,7 +617,6 @@
       "shortcutInUseMessage": "此快捷鍵已指派給另一個命令",
       "reset": "重設",
       "keybinding": "按鍵綁定",
-      "resetAll": "全部重設",
       "command": "命令",
       "save": "儲存",
       "searchPlaceholder": "搜尋按鍵綁定",

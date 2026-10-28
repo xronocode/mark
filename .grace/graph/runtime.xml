@@ -2594,6 +2594,13 @@
     <M-011>
       <Name>mt-renderer</Name>
         <SummaryDelta>
+        C-TITLEBAR-MODE-CHIPS (2026-10-27): the titlebar right cluster
+        hosts the mode-chips cluster first (modeChips.vue, M-062) — one
+        document-view chip for the current tab's exclusive view state plus
+        compact chips for the active writing modes, and the two-group
+        switch menu — then the theme/Share buttons (and, on Win/Linux, the
+        caption strip after the cluster): the mount order is chips →
+        theme → Share → captions.
         C-WINDOWS-TITLEBAR-ALIGNMENT (2026-10-20, amendment-5 final state):
         the Win/Linux titlebar keeps its primary entry points — the ☰
         app-menu button and ⚙ Settings gear stay on the bar (palette-only
@@ -7632,7 +7639,11 @@
         fill-only exception to the 1.4 stroke idiom (round head circle,
         tapering body, needle; every part fill=currentColor
         stroke=none) because the stroked T-head drawing read as a thin
-        stick/cross at the 12 px mark size.
+        stick/cross at the 12 px mark size. C-TITLEBAR-MODE-CHIPS (2026-10-27):
+        six mode-* descriptors (standard page, split panes, source angle
+        brackets, diff bars, typewriter fixed line with arrows, focus ring
+        with centre dot) join the set on the same grid and stroke, pinned by
+        the chrome-icons contract tests.
       </Summary>
       <PlannedPath>src/renderer/src/components/icons/chromeIcons.js</PlannedPath>
       <Dependencies>
@@ -7650,6 +7661,7 @@
         <C-40/>
         <C-38/>
         <C-51/>
+        <C-TITLEBAR-MODE-CHIPS/>
       </ChangeRefs>
     </M-057>
 
@@ -7816,5 +7828,46 @@
         <C-52/>
       </ChangeRefs>
     </M-059>
+
+    <M-062>
+      <Name>TitlebarModeChips</Name>
+      <DisplayName>Titlebar mode chips and switch menu</DisplayName>
+      <Type>UI_COMPONENT</Type>
+      <Status>shipped</Status>
+      <Layer>2</Layer>
+      <PhaseRef>C-TITLEBAR-MODE-CHIPS-T-004</PhaseRef>
+      <Summary>
+        C-TITLEBAR-MODE-CHIPS: the titlebar chips cluster and its two-group
+        switch menu (modeChips.vue), mounted first in the right titlebar
+        cluster. Flag truth diffMode &gt; splitView &gt; sourceCode selects one
+        document-view chip with icon and short label; the writing modes add
+        compact icon chips (typewriter, focus; at most three chips). The
+        standard state and the no-document state render no wrapper at all.
+        Each chip's tooltip is its menu hint; the Split tooltip appends the
+        narrow-window note below the 800 px editor floor. The menu groups
+        DOCUMENT VIEW (Standard/Split/Source/Changes — exclusive, checkmark
+        on the visible winner, shipped shortcuts and hint lines) and WRITING
+        MODES (independent toggles) plus the Reset footer; actions dispatch
+        the five existing command ids and normalize the view in one step.
+        The menu is live (toggles from any old surface update rows and
+        chips) and closes on outside click or Escape only. Log markers are
+        content-free.
+      </Summary>
+      <PlannedPath>src/renderer/src/components/titleBar/modeChips.vue</PlannedPath>
+      <Dependencies>
+        <M-011/>
+        <M-057/>
+      </Dependencies>
+      <VerificationRef>V-M-062</VerificationRef>
+      <Interface>
+        <fn-modeChips>render the chips cluster and the switch menu; emit open-menu on chip click</fn-modeChips>
+        <fn-selectView>normalize to Standard/Split/Source/Changes through the shipped command ids</fn-selectView>
+        <fn-toggleWriting>toggle typewriter/focus through their shipped command ids</fn-toggleWriting>
+        <fn-resetAll>return to the standard view and turn both writing modes off</fn-resetAll>
+      </Interface>
+      <ChangeRefs>
+        <C-TITLEBAR-MODE-CHIPS/>
+      </ChangeRefs>
+    </M-062>
   </GD-RUNTIME>
 </GraceGraphDocument>

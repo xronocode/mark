@@ -148,7 +148,24 @@
       "auto": "Thème : Automatique",
       "light": "Thème : Clair"
     },
-    "guide": "Guide Mark"
+    "guide": "Guide Mark",
+    "modeChips": {
+      "split": "Diviser",
+      "source": "Code",
+      "changes": "Modifications",
+      "typewriter": "Machine à écrire",
+      "focus": "Concentration",
+      "standard": "Standard",
+      "hintStandard": "revenir à la vue standard et désactiver les modes d’écriture",
+      "hintSplit": "source et rendu côte à côte",
+      "hintSource": "modifier le markdown brut",
+      "hintChanges": "comparer au fichier enregistré",
+      "hintTypewriter": "la ligne du curseur reste à la même hauteur pendant le défilement",
+      "hintFocus": "atténue tout sauf le paragraphe en cours d’édition",
+      "viewGroup": "Vue du document",
+      "writingGroup": "Modes d’écriture",
+      "narrowNote": "La fenêtre est trop étroite pour deux volets — élargissez-la pour voir les deux."
+    }
   },
   "guide": {
     "agentPrompt": {
@@ -600,7 +617,6 @@
       "shortcutInUseMessage": "Ce raccourci est déjà assigné à une autre commande",
       "reset": "Réinitialiser",
       "keybinding": "Raccourci clavier",
-      "resetAll": "Tout réinitialiser",
       "command": "Commande",
       "save": "Enregistrer",
       "searchPlaceholder": "Rechercher des raccourcis clavier",
