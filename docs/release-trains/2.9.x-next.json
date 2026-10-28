@@ -93,7 +93,26 @@
         }
       }
     ],
-    "operational": [],
+    "operational": [
+      {
+        "id": "C-GRAPH-RUNTIME-PATHS",
+        "summary": "Runtime source-path repair: the graph's M-010 and M-016 sources and tests name the modules that implement them again (src-tauri/src/m010_security.rs, src-tauri/src/m016_updater.rs) and the retired test/specs/security/xss.spec.js anchor is gone; the Path and KnowledgeGraphPath entries were already correct, and the frozen GRACE 3 provenance blocks keep the historical filenames by design.",
+        "state": "queued",
+        "commits": [
+          "495a58b98a6f2b0b1118d02396d2379184e5d0be"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-28",
+          "testedArtifact": "None — bookkeeping only. PR #99 squash-merged as 495a58b9 after 19 checks passed on a rerun; the first Windows renderer-unit attempt failed in editor-coverage.test.js, a lane flake outside this diff (main's Windows lane is green on 11b88a93).",
+          "scenarios": [
+            "AUTOMATED: grace lint --assertions current reports 0 findings on main; the graph source-path scan reports 0 declared files missing.",
+            "MANUAL BEFORE ADMISSION: none; the diff edits one Sources block pair and adds an archived change bundle.",
+            "INTENTIONALLY UNVERIFIED: nothing — no runtime behavior, build surface or user-facing surface changes."
+          ]
+        }
+      }
+    ],
     "notPresent": []
   },
   "commitAccounting": {
