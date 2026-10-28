@@ -311,3 +311,107 @@ describe('titleBar mode chips (C-TITLEBAR-MODE-CHIPS T-004)', () => {
     expect(wrapper.findAll('button')).toHaveLength(2)
   })
 })
+
+describe('mode chips branch coverage (C-TITLEBAR-MODE-CHIPS)', () => {
+  afterEach(() => {
+    vi.doUnmock('@/util')
+    vi.resetModules()
+  })
+
+  it('renders the macOS shortcut glyphs when the platform is macOS', async () => {
+    vi.resetModules()
+    vi.doMock('@/util', async () => {
+      const actual = await vi.importActual('@/util')
+      return { ...actual, isOsx: true }
+    })
+    const { wrapper } = await mountChips({ tab: { id: 'tab-1', splitView: true } })
+    await wrapper.find('[data-testid="mode-chips"] button').trigger('click')
+    expect(wrapper.find('[data-testid="mode-menu"]').text()).toMatch(/⌥⌘\\/)
+  })
+
+  it('keeps the menu open state stable on the second chip click', async () => {
+    const { wrapper } = await mountChips({ tab: { id: 'tab-1', splitView: true } })
+    const chip = wrapper.find('[data-testid="mode-chips"] button')
+    await chip.trigger('click')
+    expect(wrapper.find('[data-testid="mode-menu"]').exists()).toBe(true)
+    await chip.trigger('click')
+    expect(wrapper.find('[data-testid="mode-menu"]').exists()).toBe(false)
+  })
+
+  it('ignores outside clicks and non-Escape keys while the menu is closed', async () => {
+    await mountChips({ tab: { id: 'tab-1', splitView: true } })
+    expect(() => document.dispatchEvent(new Event('pointerdown'))).not.toThrow()
+    expect(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }))).not.toThrow()
+    expect(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))).not.toThrow()
+  })
+
+  it('measures the window when no editor surface is mounted', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'innerWidth')
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 700 })
+    try {
+      const { wrapper } = await mountChips({ tab: { id: 'tab-1', splitView: true } })
+      expect(wrapper.find('button').attributes('title')).toMatch(/too narrow/)
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 })
+      window.dispatchEvent(new Event('resize'))
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('button').attributes('title')).not.toMatch(/too narrow/)
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'innerWidth', descriptor)
+    }
+  })
+
+  it('observes the editor surface and disconnects on unmount', async () => {
+    const observe = vi.fn()
+    const disconnect = vi.fn()
+    const Original = globalThis.ResizeObserver
+    globalThis.ResizeObserver = class {
+      observe(...args) { observe(...args) }
+      disconnect(...args) { disconnect(...args) }
+    }
+    const surface = document.createElement('div')
+    surface.className = 'editor-with-tabs'
+    Object.defineProperty(surface, 'clientWidth', { configurable: true, value: 1200 })
+    document.body.appendChild(surface)
+    try {
+      const { wrapper } = await mountChips({ tab: { id: 'tab-1', splitView: true } })
+      expect(observe).toHaveBeenCalled()
+      wrapper.unmount()
+      expect(disconnect).toHaveBeenCalled()
+    } finally {
+      surface.remove()
+      globalThis.ResizeObserver = Original
+    }
+  })
+
+  it('applies menu selections that are already in effect as no-ops', async () => {
+    const bus = (await import('@/bus')).default
+    const emitted = []
+    const handler = (id) => emitted.push(id)
+    bus.on('cmd::execute', handler)
+    try {
+      const { wrapper } = await mountChips({ tab: { id: 'tab-1' }, prefs: { typewriter: true } })
+      await wrapper.find('[data-testid="mode-chips"] button').trigger('click')
+      const rows = wrapper.find('[data-testid="mode-menu"]').findAll('[role="menuitemradio"]')
+      await rows[0].trigger('click') // standard is the full reset: only writing modes emit
+      expect(emitted).toEqual(['view.typewriter-mode'])
+    } finally {
+      bus.off('cmd::execute', handler)
+    }
+  })
+
+  it('toggles focus and logs the action', async () => {
+    const bus = (await import('@/bus')).default
+    const emitted = []
+    const handler = (id) => emitted.push(id)
+    bus.on('cmd::execute', handler)
+    try {
+      const { wrapper } = await mountChips({ tab: { id: 'tab-1' }, prefs: { typewriter: true, focus: false } })
+      await wrapper.find('[data-testid="mode-chips"] button').trigger('click')
+      const boxes = wrapper.find('[data-testid="mode-menu"]').findAll('[role="menuitemcheckbox"]')
+      await boxes[1].trigger('click')
+      expect(emitted).toEqual(['view.focus-mode'])
+    } finally {
+      bus.off('cmd::execute', handler)
+    }
+  })
+})
