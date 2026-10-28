@@ -2351,9 +2351,9 @@
         </fn-sec_strip_bom>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/security.rs</Source>
+        <Source>src-tauri/src/m010_security.rs</Source>
         <KnowledgeGraphPath>src-tauri/src/m010_security.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/security.rs (#[cfg(test)]) + test/specs/security/xss.spec.js</Tests>
+        <Tests>src-tauri/src/m010_security.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Security]</LogPrefix>
@@ -6139,10 +6139,10 @@
         </fn-updater_quit_and_install>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/updater/mod.rs</Source>
+        <Source>src-tauri/src/m016_updater.rs</Source>
         <Source>docs/release-trains/README.md#owner-only-github-rollout</Source>
         <KnowledgeGraphPath>src-tauri/src/m016_updater.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/updater/mod.rs (#[cfg(test)])</Tests>
+        <Tests>src-tauri/src/m016_updater.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[Updater]</LogPrefix>
