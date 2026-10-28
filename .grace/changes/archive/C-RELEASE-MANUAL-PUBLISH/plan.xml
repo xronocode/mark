@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion='4.0' status='draft'><C-RELEASE-MANUAL-PUBLISH>
+<GraceChangePlan graceVersion='4.0' status="applied"><!-- Approved by the owner instruction recorded in the spec (2026-10-26: the train always waits, publication is manual-only) and by the three clean four-corner passes in the ReviewLog; implementation had already merged as 7b10f30f (PR #77). Approval is recorded here to reconcile the bookkeeping, not to authorize release activity. --><C-RELEASE-MANUAL-PUBLISH>
   <Name>Release timing repeal — implementation plan</Name><Created>2026-10-26</Created><Spec>C-RELEASE-MANUAL-PUBLISH</Spec>
   <IntentSummary>
     Repeal the C-RELEASE-TIMING timer-default publication: remove the veto-window job and its Telegram notify from release.yml, restore the synchronous release Environment approval on the publish job (the pre-v3.0.0 shape), swap governance back from release-notify to release in lockstep (.github/release-governance.json + tools/release-governance.mjs), re-pin the workflow-contract tests, update docs/release-process.md and the M-046/V-M-046 current-state artifacts, and record the owner's one-time GitHub cleanup. The de-duplicated build lane and warmer cargo caches stay untouched.
@@ -14,14 +14,18 @@
     <MustContain><File>docs/release-process.md</File><Text>no-veto window</Text></MustContain>
   </BaselineAssertions>
   <TargetAssertions>
+    <!-- 2026-10-28 reconciliation at approval: the assertions below were written before execution.
+         The shipped shape keeps the same semantics but reads `name: release` (the environment block is
+         multiline), documents the gate as the `release` Environment, and keeps the repealed marker names
+         only in historical comments, so the negative checks now target the active YAML/env-key forms. -->
     <MustContain><File>.github/workflows/release.yml</File><Text>needs: [build, prepare-publication]</Text></MustContain>
-    <MustContain><File>.github/workflows/release.yml</File><Text>environment: release</Text></MustContain>
-    <MustNotContain><File>.github/workflows/release.yml</File><Text>veto-window</Text></MustNotContain>
-    <MustNotContain><File>.github/workflows/release.yml</File><Text>RELEASE_VETO_MINUTES</Text></MustNotContain>
+    <MustContain><File>.github/workflows/release.yml</File><Text>name: release</Text></MustContain>
+    <MustNotContain><File>.github/workflows/release.yml</File><Text>veto-window:</Text></MustNotContain>
+    <MustNotContain><File>.github/workflows/release.yml</File><Text>RELEASE_VETO_MINUTES:</Text></MustNotContain>
     <MustContain><File>.github/release-governance.json</File><Text>"release"</Text></MustContain>
     <MustNotContain><File>.github/release-governance.json</File><Text>release-notify</Text></MustNotContain>
     <MustContain><File>tests/renderer/release-github-controls.test.js</File><Text>publishes only a verified draft after the owner approves the release environment</Text></MustContain>
-    <MustContain><File>docs/release-process.md</File><Text>release environment</Text></MustContain>
+    <MustContain><File>docs/release-process.md</File><Text>`release` Environment</Text></MustContain>
   </TargetAssertions>
   <DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
   <ObservedWriteScope>

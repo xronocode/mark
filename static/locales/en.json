@@ -150,7 +150,24 @@
       "light": "Theme: Light"
     },
     "guide": "Mark Guide",
-    "share": "Share"
+    "share": "Share",
+    "modeChips": {
+      "split": "Split",
+      "source": "Source",
+      "changes": "Changes",
+      "typewriter": "Typewriter",
+      "focus": "Focus",
+      "standard": "Standard",
+      "hintStandard": "return to the standard view and turn writing modes off",
+      "hintSplit": "source and rendered side by side",
+      "hintSource": "edit the raw markdown",
+      "hintChanges": "compare against the saved file",
+      "hintTypewriter": "the cursor line stays at one height while the text scrolls",
+      "hintFocus": "dims everything except the paragraph you are editing",
+      "viewGroup": "Document View",
+      "writingGroup": "Writing Modes",
+      "narrowNote": "The window is too narrow for two panes — widen it to see both."
+    }
   },
   "guide": {
     "agentPrompt": {
@@ -608,7 +625,6 @@
       "shortcutInUseMessage": "This shortcut is already assigned to {accelerator}",
       "reset": "Reset",
       "keybinding": "Keybinding",
-      "resetAll": "Reset all",
       "command": "Command",
       "save": "Save",
       "searchPlaceholder": "Search keybindings",

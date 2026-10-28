@@ -148,7 +148,24 @@
       "auto": "Design: Automatisch",
       "light": "Design: Hell"
     },
-    "guide": "Mark-Leitfaden"
+    "guide": "Mark-Leitfaden",
+    "modeChips": {
+      "split": "Teilen",
+      "source": "Quelltext",
+      "changes": "Änderungen",
+      "typewriter": "Schreibmaschine",
+      "focus": "Fokus",
+      "standard": "Standard",
+      "hintStandard": "zurück zur Standardansicht und Schreibmodi aus",
+      "hintSplit": "Quelltext und Vorschau nebeneinander",
+      "hintSource": "das rohe Markdown bearbeiten",
+      "hintChanges": "mit der gespeicherten Datei vergleichen",
+      "hintTypewriter": "die Cursorzeile bleibt auf gleicher Höhe, während der Text scrollt",
+      "hintFocus": "blendet alles außer dem bearbeiteten Absatz ab",
+      "viewGroup": "Dokumentansicht",
+      "writingGroup": "Schreibmodi",
+      "narrowNote": "Das Fenster ist zu schmal für zwei Bereiche — vergrößern Sie es, um beide zu sehen."
+    }
   },
   "guide": {
     "agentPrompt": {
@@ -600,7 +617,6 @@
       "shortcutInUseMessage": "Dieses Tastenkürzel ist bereits {accelerator} zugeordnet",
       "reset": "Zurücksetzen",
       "keybinding": "Tastenkürzel",
-      "resetAll": "Alle zurücksetzen",
       "command": "Befehl",
       "save": "Speichern",
       "searchPlaceholder": "Tastenkürzel suchen",

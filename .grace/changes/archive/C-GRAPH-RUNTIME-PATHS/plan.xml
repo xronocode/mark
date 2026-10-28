@@ -1,0 +1,64 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-GRAPH-RUNTIME-PATHS>
+    <Name>Runtime source-path repair — implementation plan</Name>
+    <ChangeRef>C-GRAPH-RUNTIME-PATHS</ChangeRef>
+    <Created>2026-10-27</Created>
+    <Updated>2026-10-27</Updated>
+    <Spec>C-GRAPH-RUNTIME-PATHS</Spec>
+
+    <IntentSummary>
+      Point M-010 and M-016 at the files that actually implement them
+      (src-tauri/src/m010_security.rs, src-tauri/src/m016_updater.rs), drop the
+      retired test/specs/security/xss.spec.js anchor, and leave the frozen GRACE 3
+      LegacyBase blocks untouched.
+    </IntentSummary>
+
+    <!-- No BaselineAssertions: this change replaces the exact lines a baseline
+         would assert (the stale Source entries are recorded verbatim in the
+         spec's Summary instead). -->
+    <BaselineAssertions>
+      <MustExist><Value>src-tauri/src/m010_security.rs</Value></MustExist>
+      <MustExist><Value>src-tauri/src/m016_updater.rs</Value></MustExist>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>&lt;Source&gt;src-tauri/src/m010_security.rs&lt;/Source&gt;</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>&lt;Source&gt;src-tauri/src/m016_updater.rs&lt;/Source&gt;</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>&lt;Tests&gt;src-tauri/src/m010_security.rs (#[cfg(test)])&lt;/Tests&gt;</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>&lt;Tests&gt;src-tauri/src/m016_updater.rs (#[cfg(test)])&lt;/Tests&gt;</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="120">! grep -q "src-tauri/src/security.rs\|src-tauri/src/updater/mod.rs" .grace/graph/runtime.xml</Command></MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope><GraphAnchors><M-010/><M-016/></GraphAnchors></DurableScope>
+
+    <ObservedWriteScope>
+      <File>.grace/graph/runtime.xml</File>
+      <Glob>.grace/changes/active/C-GRAPH-RUNTIME-PATHS/**</Glob>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>Repair the two Sources blocks (spec R-1..R-3)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>M-010 Source/Tests name m010_security.rs and the retired xss.spec.js anchor is removed; M-016 Source/Tests name m016_updater.rs; the LegacyBase blocks, Path and KnowledgeGraphPath entries are untouched; grace lint reports no new findings.</Criterion></AcceptanceCriteria>
+        <Verification><Command>grep -n "m010_security.rs\|m016_updater.rs" .grace/graph/runtime.xml | head</Command></Verification>
+      </T-001>
+    </ImplementationPlan>
+
+    <Gates>
+      <Gate kind="lint">grace lint --path . --change C-GRAPH-RUNTIME-PATHS --assertions final --run-commands — zero errors.</Gate>
+      <Gate kind="scan">Repo-path scan over .grace/graph finds no missing declared sources.</Gate>
+    </Gates>
+
+    <ReviewLog>
+      <CornerMatrix>
+        <Corner corner="correctness">Both target files exist and carry their own `mod tests`, so the Tests anchors name real in-file suites; the retired xss.spec.js is confirmed absent from the tree, which is why it is dropped instead of repaired.</Corner>
+        <Corner corner="security">No executable surface changes: the diff edits XML metadata only.</Corner>
+        <Corner corner="ux">`grace module show M-010` / `M-016` now resolve to files a reader can open.</Corner>
+        <Corner corner="performance">None.</Corner>
+        <Corner corner="delivery-bookkeeping">Historical GRACE 3 provenance stays frozen, so the repair does not rewrite evidence; only the current-state Sources blocks move.</Corner>
+        <Corner corner="rollback">Revert restores the previous (stale) pointers.</Corner>
+      </CornerMatrix>
+    </ReviewLog>
+  </C-GRAPH-RUNTIME-PATHS>
+</GraceChangePlan>

@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/components/icons/chromeIcons.js
-// VERSION: 2.5.1
+// VERSION: 2.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: One drawn chrome-icon set (16 px grid, 1.4 px stroke, round caps/joins) for every icon around the document — title bar, tabs, sidebar, find bar, dialogs, notifications, status bar (C-40 T-002, C-38 T-006 N4 d), the document-surface expand glyph (C-51 T-006) and the pinned-file row mark (C-51 T-011; redrawn as a filled pushpin silhouette in C-51 T-013 — the set's one fill-only glyph).
 //   SCOPE: Icon path descriptors drawn on the approved canvas grid plus the ChromeIcon render component and a string renderer (chromeIconMarkup) for non-Vue surfaces (the notification service template); no theming, no IPC. The expand descriptor is the canonical drawing — muya duplicates it inline (EXPAND_ICON_PATH) and a unit test pins the two identical.
@@ -13,12 +13,19 @@
 //   CHROME_ICONS - frozen descriptor table: name → [ { tag, attrs, fill?, cap?, join? } ] — every glyph on the 0 0 16 16 grid (canvas Icons board metrics); the pin mark is the one fill-only silhouette (round head + tapering body + needle).
 //   CHROME_ICON_STROKE - shared stroke width (1.4) for every stroke part.
 //   CHROME_ICON_NAMES - sorted glyph names (verification helper).
+//   mode-* descriptors - the six C-TITLEBAR-MODE-CHIPS glyphs (standard,
+//   split, source, diff, typewriter, focus) on the same grid/stroke.
 //   ChromeIcon - <chrome-icon :name :size> renders one descriptor as an inline svg.chrome-icon using currentColor.
 //   chromeIconMarkup - same descriptor as an HTML string for template-based surfaces (notification service); class/aria mirror ChromeIcon.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.5.1 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace the
+//   LAST_CHANGE: v2.6.0 - 2026-10-27 C-TITLEBAR-MODE-CHIPS: six mode-*
+//   descriptors join the set for the titlebar chips (standard page, two
+//   split panes, source angle brackets, diff plus/minus bars, typewriter
+//   fixed line with arrows, focus ring with centre dot) — same 0 0 16 16
+//   grid, shared 1.4 stroke, round caps, no fill except the focus dot.
+//   v2.5.1 - 2026-10-24 C-PUBLIC-REPOSITORY-HYGIENE: replace the
 //   workstation-specific review label with a neutral reference-host label;
 //   icon geometry and runtime behavior are unchanged.
 //   PREVIOUS_CHANGE: v2.5.0 - 2026-10-20 C-WINDOWS-TITLEBAR-ALIGNMENT: the four
@@ -309,6 +316,39 @@ export const CHROME_ICONS = Object.freeze({
   // tests/renderer/muya/block-expand-button.test.js.
   expand: Object.freeze([
     part('path', { d: 'M9.6 2.4h4v4M13.4 2.6 9.2 6.8M6.4 13.6h-4v-4M2.6 13.4l4.2-4.2' }, { cap: 'round', join: 'round' })
+  ]),
+
+  // ── C-TITLEBAR-MODE-CHIPS T-002: the six mode chips glyphs ──
+  // Drawn from R-5's textual geometry on the shared grid (the .canvas
+  // Icons board is owner-side; the deviation is recorded in the change
+  // plan). Each drawing is distinct and pinned by chrome-icons tests.
+  'mode-standard': Object.freeze([
+    part('rect', { x: 3, y: 1.8, width: 10, height: 12.4, rx: 1.8 }),
+    part('path', { d: 'M5.4 5.2h5.2' }, { cap: 'round' }),
+    part('path', { d: 'M5.4 8h5.2' }, { cap: 'round' }),
+    part('path', { d: 'M5.4 10.8h3.4' }, { cap: 'round' })
+  ]),
+  'mode-split': Object.freeze([
+    part('rect', { x: 1.8, y: 2.6, width: 5.4, height: 10.8, rx: 1.6 }),
+    part('rect', { x: 8.8, y: 2.6, width: 5.4, height: 10.8, rx: 1.6 })
+  ]),
+  'mode-source': Object.freeze([
+    part('path', { d: 'M6.2 4.4 2.8 8l3.4 3.6' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M9.8 4.4 13.2 8l-3.4 3.6' }, { cap: 'round', join: 'round' })
+  ]),
+  'mode-diff': Object.freeze([
+    part('path', { d: 'M3 5.2h3.4M4.7 3.5v3.4' }, { cap: 'round' }),
+    part('path', { d: 'M3 10.8h3.4' }, { cap: 'round' }),
+    part('path', { d: 'M9 5.2h4M9 10.8h4' }, { cap: 'round' })
+  ]),
+  'mode-typewriter': Object.freeze([
+    part('path', { d: 'M1.8 8h12.4' }, { cap: 'round' }),
+    part('path', { d: 'M4.4 5.8V3M3.2 4.2 4.4 3l1.2 1.2' }, { cap: 'round', join: 'round' }),
+    part('path', { d: 'M11.6 10.2V13M10.4 11.8l1.2 1.2 1.2-1.2' }, { cap: 'round', join: 'round' })
+  ]),
+  'mode-focus': Object.freeze([
+    part('circle', { cx: 8, cy: 8, r: 6 }),
+    part('circle', { cx: 8, cy: 8, r: 1.5 }, { fill: true })
   ]),
 
   // ── C-51 T-011/T-013: the pinned-file row mark (tree + Opened files) ──

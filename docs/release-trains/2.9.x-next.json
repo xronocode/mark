@@ -91,9 +91,65 @@
             "INTENTIONALLY UNVERIFIED: owner's hands-on check of positions on a real build (restart with several tabs, file rename, relaunch) deferred to the train acceptance protocol per rule 5."
           ]
         }
+      },
+      {
+        "id": "C-TITLEBAR-MODE-CHIPS",
+        "summary": "Titlebar mode chips and the two-group switch menu: active-mode chips sit in the titlebar right cluster (flag truth diffMode > splitView > sourceCode, compact writing chips, tooltips, aria-labels, narrow-window note) and the menu switches views and writing modes; Standard is the full reset (view plus both writing modes, per the owner amendment that removed the separate Reset row); six mode-* glyphs join the frozen chrome set on the 16 px / 1.4 stroke grid; fifteen locale families ship in all ten languages with regenerated min twins; the e2e shim gains __TAURI_EVENT_PLUGIN_INTERNALS__ so tab teardown is testable; M-062/V-M-062 route the module and M-011/M-057 carry their deltas.",
+        "state": "queued",
+        "commits": [
+          "d14335e451515b5064e42fd233dded2b8a3e7cd5"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-27",
+          "testedArtifact": "None — the owner accepted after the 2026-10-27 visual pass and the Standard-full-reset amendment; the merge commit d14335e4 passed the 17-check PR #113 CI run. Evidence is archived with the bundle (acceptance.md).",
+          "scenarios": [
+            "machine gate (grace lint --assertions target --run-commands): 2/2 commands green — 128 unit/i18n tests (including the six mode-* descriptors, 16-grid bounds and fifteen locale families x ten locales with byte-identical min twins) and the full chromium + webkit-titlebar e2e run (408 passed, 7 pre-existing conditional skips, 0 failed) against built dist sha256 443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206",
+            "full suite on the change tree: 5150 tests, 5143 passed, 2 failed, both outside this change (release-train bookkeeping); the known full-suite mount timeouts stay out of scope",
+            "shim control experiment: removing __TAURI_EVENT_PLUGIN_INTERNALS__ makes the teardown row fail with exactly two unregisterListener pageerrors; with the repair it passes",
+            "owner amendment: Standard returns the view to Standard and turns both writing modes off; the Reset row and its resetAll/hintReset keys are removed"
+          ]
+        }
+      },
+      {
+        "id": "C-COMMONMARK-EMPHASIS",
+        "summary": "CommonMark emphasis delimiter pairing: a self-contained module scans * / _ runs (escapes and code spans masked), classifies flanking and runs the delimiter-stack algorithm, and gates both the WYSIWYG tokenizer and the marked export/copy lexer. The reported paragraph now renders **One-shot** bold with the typo asterisks literal in editor and export exactly as GitHub does; the theft class no longer swallows later clean pairs; ***bold italic*** nests as em[strong]; ordinary paragraphs keep the zero-activation fast path and byte-identical tokenization.",
+        "state": "queued",
+        "commits": [
+          "a64f718a0f61becf5f2e5dc590f90e4e901c83b6"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-27",
+          "testedArtifact": "Merge candidate of PR #87, squash-merged as a64f718a after a green check run; no separate visual check beyond the PR evidence.",
+          "scenarios": [
+            "new suite tests/renderer/muya/emphasis-pairing.test.js 9/9: the owner-report paragraph is byte-identical to GitHub's /markdown output for the report case; theft class, *** nesting, masking, fast-path activation counters, generator round-trip and viewer-vs-marked parity are pinned",
+            "muya suite 650/650 (five files that timed out under parallel machine load pass serially, 79/79); inline goldens recaptured through the documented UPDATE flow with the diff limited to the three new STRESS entries; C-30 lexer goldens byte-unchanged",
+            "grace lint --path . --assertions current reports 0 errors; renderer and export paths agree for every suite input"
+          ]
+        }
       }
     ],
-    "operational": [],
+    "operational": [
+      {
+        "id": "C-GRAPH-RUNTIME-PATHS",
+        "summary": "Runtime source-path repair: the graph's M-010 and M-016 sources and tests name the modules that implement them again (src-tauri/src/m010_security.rs, src-tauri/src/m016_updater.rs) and the retired test/specs/security/xss.spec.js anchor is gone; the Path and KnowledgeGraphPath entries were already correct, and the frozen GRACE 3 provenance blocks keep the historical filenames by design.",
+        "state": "queued",
+        "commits": [
+          "495a58b98a6f2b0b1118d02396d2379184e5d0be"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-28",
+          "testedArtifact": "None — bookkeeping only. PR #99 squash-merged as 495a58b9 after 19 checks passed on a rerun; the first Windows renderer-unit attempt failed in editor-coverage.test.js, a lane flake outside this diff (main's Windows lane is green on 11b88a93).",
+          "scenarios": [
+            "AUTOMATED: grace lint --assertions current reports 0 findings on main; the graph source-path scan reports 0 declared files missing.",
+            "MANUAL BEFORE ADMISSION: none; the diff edits one Sources block pair and adds an archived change bundle.",
+            "INTENTIONALLY UNVERIFIED: nothing — no runtime behavior, build surface or user-facing surface changes."
+          ]
+        }
+      }
+    ],
     "notPresent": []
   },
   "commitAccounting": {
@@ -149,6 +205,12 @@
       "date": "2026-10-27",
       "actor": "release-agent",
       "evidence": "Admissions landed after the boundary move: C-GITHUB-THEME (61ae6747, 2026-10-25), C-NOTIFICATION-SYSTEM (1207b4ae, 2026-10-26), C-NATIVE-DOCX-RTF-EXPORT (def74a68, 2026-10-26) and C-FILE-POSITION-MEMORY (d64c1fa7, 2026-10-27). The train stays Collecting; no dispatch or release activity is authorized."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-10-28",
+      "actor": "release-agent",
+      "evidence": "Admitted C-TITLEBAR-MODE-CHIPS (d14335e4, PR #113), C-COMMONMARK-EMPHASIS (a64f718a, PR #87) and C-GRAPH-RUNTIME-PATHS (operational, PR #99) after their admissions PRs passed CI. The train stays Collecting; no dispatch or release activity is authorized."
     }
   ]
 }
