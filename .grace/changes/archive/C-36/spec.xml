@@ -1,12 +1,15 @@
-<GraceChangeSpec graceVersion='4.0' status='draft'>
+<GraceChangeSpec graceVersion='4.0' status="applied">
 <C-36>
   <Name>Portable site AI assistant as a reusable open-source module (extracted from Avenex outreach)</Name>
   <Created>2026-10-14</Created>
   <Priority>medium</Priority>
-  <Status>draft</Status>
+  <Status>retired</Status>
   <RoadmapPhase>A</RoadmapPhase>
   <Complexity>L (≈2 weeks)</Complexity>
 
+  <Disposition>Retired 2026-10-28. The public site and its server-side surfaces moved to the mark-site repository (PR #96, 2026-10-27); Mark no longer owns the site worker, knowledge base, widget or budgets, so this draft cannot execute here. Nothing was executed. The proposal stays available in this archived bundle if the assistant is picked up inside mark-site.</Disposition>
+  <AppliedEvidence>Retired draft archived on 2026-10-28; nothing was ever planned or executed in this repository. The owner-directed backlog decision for goal item 5 and the mark-site extraction (PR #96) supply the closure.</AppliedEvidence>
+  <Replacement>mark-site repository (site, worker and knowledge base moved by PR #96)</Replacement>
   <Summary>
     Extract the Avenex outreach chat (Cloudflare Worker: answer model + separate topic gate, KB grounding with whole-KB or top-k retrieval, HMAC-signed history, link catalog validation, D1 neuron budget, per-visitor limits, hashed IPs, 90-day log, localStorage client) into a standalone repository used by both Avenex and Mark with per-site knowledge bases and budgets; evaluate publishing it as open source.
   </Summary>

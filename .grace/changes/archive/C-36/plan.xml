@@ -1,0 +1,36 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-36>
+    <ChangeRef>C-36</ChangeRef>
+    <Created>2026-10-28</Created>
+    <IntentSummary>Closure plan of record for a draft that was never planned or executed: the site assistant belongs to the mark-site repository after PR #96. The bundle is archived with an applied closure so the active set stops advertising work this repository cannot execute.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-36/spec.xml</File>
+        <Text>Retired 2026-10-28</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/changes/archive/C-36/spec.xml')"</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <Glob>.grace/changes/archive/C-36/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Archive closure</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The retired draft resides in archive/ with its disposition text preserved; no implementation was ever planned or executed for it.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/changes/archive/C-36/spec.xml')"</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-36>
+</GraceChangePlan>
