@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved"><C-GITHUB-THEME>
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-GITHUB-THEME>
   <Name>GitHub theme family — GitHub and GitHub Dark editor themes</Name><Created>2026-10-23</Created>
   <Summary>Add the GitHub theme family (github light + github-dark) built on GitHub Primer palette values, so writers who want the familiar clean GitHub reading look get it as a first-class system theme with a light/dark pair, matching the already GitHub-like C-39 table rendering.</Summary>
   <ApprovalBasis>Owner instruction during the 2026-10-23 table-theming discussion: «кстати давай тему гитхаб сделаем, кому-то реально хочется чистого лаконичного» — make a GitHub theme for people who want the clean laconic look. Implementation is uncommitted until the owner reviews the result.</ApprovalBasis>

@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-NATIVE-DOCX-RTF-EXPORT>
     <IntentSummary>Ship "Export to Word…" in the File menu and a fourth export group in the tab context menu, backed by a renderer-only pipeline: the existing styled-HTML export (muya's own marked-fork render) through the M-065 image-embed pass, a data-only pre-pass (strip pre.front-matter, adapt footnote markup, rasterize figures to PNG), a lazy docx/docx-html dynamic import (htmlToContent + styleMap, geometry from the remembered print options), Packer.toBlob, and the existing binary write facade. Modal-less by owner decision; the success toast carries a quiet "Export settings" actions descriptor the legacy notify drops silently and the notification rework renders automatically. RTF is out of v1. Implementation queues behind the P1 print-crash fix (2.8.1) merging to main.</IntentSummary>
     <BaselineAssertions>
@@ -35,8 +35,9 @@
         <Command budgetSeconds="900">npx playwright test tests/e2e/export-office.spec.ts tests/e2e/print-export.spec.ts tests/e2e/export-html-images.spec.ts --project=chromium</Command>
       </MustPassCommand>
       <MustPassCommand>
-        <Command budgetSeconds="120">node tools/build-notices-node.mjs &amp;&amp; git diff --exit-code -- NOTICES-node.md</Command>
+        <Command budgetSeconds="120">npx --yes --package license-checker -- license-checker --production --json | node tools/build-notices-node.mjs | diff -u NOTICES-node.md -</Command>
       </MustPassCommand>
+      <!-- 2026-10-28 gate correction at archival: the earlier command invoked build-notices-node.mjs with no stdin and could never pass (JSON.parse of empty input); the documented license-checker pipe is now explicit. Verified 2026-10-28: command green, NOTICES-node.md diff-clean. -->
     </TargetAssertions>
     <DurableScope>
       <GraphAnchors>
@@ -77,7 +78,7 @@
         </AcceptanceCriteria>
         <Verification>
           <Command>node -p "require('docx/package.json').version"</Command>
-          <Command>node tools/build-notices-node.mjs &amp;&amp; git diff --exit-code -- NOTICES-node.md</Command>
+          <Command>npx --yes --package license-checker -- license-checker --production --json | node tools/build-notices-node.mjs | diff -u NOTICES-node.md -</Command>
           <Command>npm run build &amp;&amp; node scripts/check-export-chunk.mjs</Command>
         </Verification>
       </T-001>
