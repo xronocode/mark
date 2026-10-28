@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status="applied">
 <C-RELEASE-MANUAL-PUBLISH>
   <Name>Release timing repeal: manual-only publication — restore the synchronous owner approval on the publish job, remove the no-veto window and its Telegram notify</Name>
   <ApprovalBasis>Owner instruction in chat on 2026-10-26 setting the delivery-protocol rule (owner, translated from Russian): «the train always stands and waits until I say depart» — the train always waits; nothing departs or publishes without an explicit owner instruction. Recorded as rule 1 of the five-rule train protocol in docs/release-trains/README.md (PR #75). The same instruction approved the three scoping decisions: restore the synchronous publish approval, keep the de-duplicated build lane and warmer cargo caches, and drop the window's Telegram ping.</ApprovalBasis>
