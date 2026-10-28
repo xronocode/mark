@@ -1,0 +1,31 @@
+name: Lane CI
+
+# Mobile and integration lanes keep their own signal. They never trigger the
+# desktop CI or any desktop release workflow, and the desktop CI does not run
+# for their pushes. A lane change reaches desktop only through a reviewed
+# pull request into main, which runs the full desktop CI.
+on:
+  push:
+    branches:
+      - 'mobile/**'
+      - 'integ/**'
+  workflow_dispatch:
+
+concurrency:
+  group: lane-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Cargo test
+        run: cargo test
