@@ -148,7 +148,24 @@
       "auto": "Tema: Automático",
       "light": "Tema: Claro"
     },
-    "guide": "Guia do Mark"
+    "guide": "Guia do Mark",
+    "modeChips": {
+      "split": "Dividir",
+      "source": "Código",
+      "changes": "Alterações",
+      "typewriter": "Máquina de escrever",
+      "focus": "Foco",
+      "standard": "Padrão",
+      "hintStandard": "voltar à visualização padrão e desativar os modos de escrita",
+      "hintSplit": "código e pré-visualização lado a lado",
+      "hintSource": "editar o markdown bruto",
+      "hintChanges": "comparar com o arquivo salvo",
+      "hintTypewriter": "a linha do cursor mantém a mesma altura enquanto o texto rola",
+      "hintFocus": "escurece tudo exceto o parágrafo que você está editando",
+      "viewGroup": "Visualização do documento",
+      "writingGroup": "Modos de escrita",
+      "narrowNote": "A janela está estreita demais para dois painéis — amplie-a para ver ambos."
+    }
   },
   "guide": {
     "agentPrompt": {
@@ -600,7 +617,6 @@
       "shortcutInUseMessage": "Este atalho já está atribuído a outro comando",
       "reset": "Resetar",
       "keybinding": "Atalho de Teclado",
-      "resetAll": "Resetar todos",
       "command": "Comando",
       "save": "Salvar",
       "searchPlaceholder": "Pesquisar atalhos de teclado",

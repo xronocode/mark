@@ -145,6 +145,15 @@ export async function installTauriShim(page: Page): Promise<void> {
     ;(window as any).__shimCallbacks = new Map()
     let __callbackId = 0
 
+    // @tauri-apps/api/event.js#_unlisten reads this object before the
+    // already-mocked plugin:event|unlisten invoke. Real Tauri 2.6+ injects
+    // it on the host; the harness must too, or any listener teardown
+    // (liveViewer unmount, titleBar onResized cleanup) throws a pageerror.
+    // Probed 2026-10-27 against node_modules/@tauri-apps/api/event.js:43.
+    ;(window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      unregisterListener: (_event: string, _eventId: number) => null
+    }
+
     ;(window as any).__TAURI_INTERNALS__ = {
       metadata: {
         currentWindow: { label: 'main' },

@@ -1,0 +1,63 @@
+<GraceChangeDesignContext graceVersion="4.0">
+  <Change>C-TITLEBAR-MODE-CHIPS</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    <Section name="origin">The owner reported on 2026-10-27 (translated from Russian; original preserved owner-side): "bug — there is no way to figure out how to exit split view". Investigation the same day found the exit paths all functional (View menu toggle, ⌥⌘\, tab context menu, command palette) but invisible: the split container has no close control (splitView.vue:26-38 — the divider only drags and swaps), the View menu item is a plain MenuItem with no state (the view.split-view row vs the four CheckMenuItemBuilder rows in the same View submenu of m009_menu.rs — anchor-cited, the file is under parallel edits), and the shortcut ⌘\ — the muscle-memory guess — is the sidebar toggle. The owner then proposed the surface himself: "when any non-standard mode is on, show extra buttons on the titlebar with a menu that switches modes".</Section>
+    <Section name="owner-comprehension">Asked to review the mode list, the owner could not say what Typewriter and Focus do (owner quote 2026-10-27: "I don't understand what the typewriter and focus modes are", translated). Both are shipped, working Mark Text heritage (typewriter: the .typewriter .editor-component padding rule plus the selectionChange handler that scrolls the cursor line to the STANDAR_Y = 320 constant, both in editor.vue — cited by anchor, not line: the file is under active parallel edits; focus: .ag-focus-mode dims .ag-paragraph to opacity 0.25 except .ag-active, src/muya/lib/assets/styles/index.css ~:1433-1446) — but nothing in the product ever explains them. Conclusion driving R-4: the explanation must live in the menu rows and chip tooltips, not in external docs.</Section>
+    <Section name="probe-baseline">Verification probe run 2026-10-27 against a fresh build (Playwright + tauri-shim, viewport 1280×800, throwaway spec, deleted after the run; screenshots kept owner-side): Typewriter — 40-paragraph document, click into paragraph 36: active-paragraph center at 477px from the scroller top (scroller 732px) with the mode off; 264px immediately after activation; still exactly 264px after moving the cursor to the next paragraph — the stable-line invariant holds. The fixed line targets STANDAR_Y = 320px (cursor), so the paragraph center lands at 264px, above geometric center (366px) on tall windows — heritage constant, recorded as designed behaviour, not touched. Focus — 10 paragraphs + heading, click paragraph 5: computed opacity active 1, non-active paragraph 0.25, h1 heading 0.25 (an image-analysis pass first misread the bold heading as undimmed — the computed-style number settled it), all restored to 1 on toggle-off. One pageerror fired during probing: "Cannot read properties of undefined (reading 'unregisterListener')" — traced to node_modules/@tauri-apps/api/event.js:43 reading window.__TAURI_EVENT_PLUGIN_INTERNALS__, which the e2e shim does not define (real Tauri 2.6+ hosts inject it). Harness-only; drives R-6(a).</Section>
+    <Section name="mode-taxonomy">The mode list splits cleanly into two kinds, which the menu encodes as two groups: exclusive document views (Standard / Split / Source Code / Changes — split and diff already share a v-show exclusion, index.vue:11) and combinable writing modes (Typewriter / Focus, orthogonal to any view). The per-tab document lock is neither — it is per-tab non-view state whose indicator is the tab badge (C-40 T-004 precedent: the lock is deliberately a plain menu item because per-tab state lives in the renderer; the same logic keeps it out of the chips and keeps mt_menu_set_checked unextended).</Section>
+    <Section name="icon-rationale">Six glyphs on the frozen M-057 grid (16px, 1.4 stroke, round caps, currentColor; the set's one fill-only exception remains the pin): mode-split echoes the live split divider (two panes + center bar); mode-source is the classic angle brackets; mode-diff stacked plus/minus bars; mode-typewriter a fixed line with up/down arrows (the invariant it delivers); mode-focus a ring with center dot (spotlight); mode-standard a page with text lines (the default, needed for the menu row, not for chips). The chevrons-left-right glyph is reserved for C-PAGE-WIDTH-TABLES and must not be reused for any mode.</Section>
+  </Rationale>
+  <Alternatives>
+    <Alternative name="single-modes-button">One always-present modes button with a dot indicator when anything is active. Rejected by the owner 2026-10-27: which mode is on stays hidden behind the dot; the button also fails the original complaint (exit still requires knowing the dot means modes). Trade-off retained: the bar never changes shape — acceptable loss given at most three chips.</Alternative>
+    <Alternative name="quick-settings-view-tab">Fold the modes into the C-PAGE-WIDTH-TABLES quick-settings panel (new View-tab sections). Rejected by the owner 2026-10-27: zero new chrome, but state is invisible until the panel is opened (two steps to see, three to exit), and the panel is not yet built — the fix would wait on an unrelated L-change.</Alternative>
+    <Alternative name="menu-check-items">Make the View menu rows CheckMenuItems synced via mt_menu_set_checked. Rejected: per-tab state in an app-global menu contradicts the C-40 T-004 lock precedent, and the checkmark still lives where the user is not looking (the original complaint was about the surface the user stares at — the editor, hence the titlebar).</Alternative>
+    <Alternative name="chip-close-x">A hover × on each chip for one-click exit. Rejected (owner-accepted agent call, 2026-10-27): two interaction models on one chip; the menu already reaches exit in two clicks and doubles as the switcher and the teaching surface.</Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>Exact chip render size (titlebar-nav-btn family range) and chip label truncation rules for the longest locale — plan-time visual pass on the .canvas board.</Decision>
+    <Decision>Whether the chips cluster also hosts future per-tab state beyond modes (e.g. a collapsed-split warning badge vs tooltip-only note) — deferred until a second consumer exists; R-7 ships the tooltip note only.</Decision>
+    <Decision>Whether the Guide gains short mode sections mirroring the hint copy — separate doc-surface change if the owner wants it; this change ships hints in menu + tooltips only.</Decision>
+    <Decision>Graduating the probe's narrow-window observation (active-but-collapsed split) into a visible warning state on the chip beyond the tooltip note — deferred with R-7 as the shipped minimum.</Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>Owner's original case: split on, user stares at the editor, no exit in sight → the Split chip sits in the titlebar the whole time; click → menu with Standard on top; one click → back to the standard bar (chips gone).</Scenario>
+    <Scenario>Writing long prose: typewriter + focus both on → view chip absent (Standard), two compact chips present; menu shows both checked; "Reset all modes" clears both at once.</Scenario>
+    <Scenario>Two tabs, one in split: switching tabs swaps the view chip in place (like the save-dot); the writing-mode chips do not move (global state).</Scenario>
+    <Scenario>Narrow window: sidebar + small window collapse the split layout below 800px → chip remains, tooltip explains why the panes are gone while the state is on.</Scenario>
+    <Scenario>Learning the modes cold: a user who has never heard of Typewriter opens the menu from any chip and reads one line under each row before ever toggling anything.</Scenario>
+  </Scenarios>
+  <ReviewLog>
+    <Note>Four-corner review per AGENTS.md Principle 7 (codified 2026-10-27, owner instruction). Every pass was run by a FRESH independent agent over the then-current artifacts; no self-review. Round structure: Pass A = Correctness &amp; GRACE contracts; Pass B = Security, Verification, UX, Performance. A round with any finding resets the clean counter; the gate is two consecutive fully clean rounds.</Note>
+    <Review number="1" verdict="findings-fixed" task="four-corner">
+      <Pass corner="correctness+contracts" verdict="clean" />
+      <Pass corner="security+verification+ux+performance" verdict="findings" />
+      <Findings>1 blocking (private /tmp path in the probe section), 4 important (stale editor.vue line cites; ExpectedCommand phantom test path; dual-flag view states undefined; locale key families undercounted), 8 nits (citation attachment, shareCapable vs pathname, anchor-ceiling wording, four-exits phrasing, menu-open reactivity, empty-window state, shim blast radius, independence note). All fixed before Round 2.</Findings>
+    </Review>
+    <Review number="2" verdict="findings-fixed" task="four-corner">
+      <Pass corner="correctness+contracts" verdict="findings" />
+      <Pass corner="security+verification+ux+performance" verdict="clean" />
+      <Findings>1 blocking-class inconsistency (ExpectedCommand still named util/locale-keys.test.js while R-4/AC declared i18n/locale-keys.test.js), 1 important (assumption said the runtime graph ends at M-057; it ends at M-059), 4 nits (missing Standard-row hint making the blanket hint sentence false; e2e spec path unnamed in R-8). Fixed — Standard hint added (fifteen families), paths aligned, e2e path named in R-8. Clean counter reset.</Findings>
+    </Review>
+    <Review number="3" verdict="clean" task="four-corner">
+      <Pass corner="correctness+contracts" verdict="clean" />
+      <Pass corner="security+verification+ux+performance" verdict="clean" />
+      <Findings>Zero blocking. Two reviewer word-corrections applied after the pass (Assumption 3 range V-M-901+; full src/muya/lib path for the focus CSS in design-context). Clean pass 1 of 2.</Findings>
+    </Review>
+    <Review number="4" verdict="clean" task="two-clean-passes">
+      <Pass corner="correctness+contracts" verdict="clean" />
+      <Pass corner="security+verification+ux+performance" verdict="clean" />
+      <Findings>Zero blocking. Gate PASSED 2026-10-27: two consecutive clean rounds (3 and 4). Carry-forward to the plan, recorded as non-blocking by the reviewers: (1) the locale key inventory may be off by up to two families — the menu's Standard row label and the exact "Reset all modes" footer label are covered by neither the fifteen-family count nor any existing key in the ten locales (verified); the plan counts them or declares the exact reuse. (2) The .canvas/Icons.dc.html board cited by the chromeIcons LINKS convention is owner-side and absent from the tree — the plan recreates or locates it before drawing. (3) The consumer of the Typewriter/Focus short-label keys (the chips are icon-only; candidates: aria-label, menu display) is pinned at plan time.</Findings>
+    </Review>
+    <Approval>
+      <Date>2026-10-27</Date>
+      <By>owner</By>
+      <Quote>"approve" (chat, 2026-10-27)</Quote>
+      <Note>Status flipped to approved after the two-consecutive-clean-passes gate (Rounds 3-4). The plan pass is next, with its own corner matrix, four-corner review and two clean passes.</Note>
+    </Approval>
+    <Recovery>
+      <Date>2026-10-27</Date>
+      <Note>spec.xml and design-context.xml were wiped from the shared worktree by parallel-session git operations between the approval and the plan pass (plan.xml, created after the wipe, survived); both files were reconstructed byte-carefully from the session history and re-validated (well-formed, status approved). Recorded per the 2026-10-24 parallel-wipe protocol.</Note>
+    </Recovery>
+  </ReviewLog>
+</GraceChangeDesignContext>
