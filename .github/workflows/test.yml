@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.4.0
+# VERSION: 1.5.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,7 +11,8 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.4.0 - 2026-10-20: fetch full history for renderer-unit so release-boundary normalization tests can inspect their pinned bootstrap commit.
+#   LAST_CHANGE: v1.5.0 - 2026-10-27: bound, IPv4-pinned and retried the Linux Tauri sysdeps install so a stalled apt fetch fails fast inside the job budget instead of cancelling the run and blocking the aggregate status check.
+#   PREV: v1.4.0 - 2026-10-20: fetch full history for renderer-unit so release-boundary normalization tests can inspect their pinned bootstrap commit.
 #   PREV: v1.3.0 - 2026-10-19: gate session restore and close/edit ownership in WebKit.
 #   PREV: v1.2.0 - 2026-10-19: gate opened-baseline priority and calm diff exits in WebKit.
 #   PREV: v1.1.0 - 2026-10-19: gate native vertical selection with the passive format toolbar in WebKit.
@@ -120,17 +121,51 @@ jobs:
           restore-keys: |
             cargo-test-${{ matrix.os }}-
 
+      # The hosted Ubuntu image occasionally blackholes IPv6 and stalls the
+      # apt fetch. Unbounded, that consumed the whole 30-minute job budget and
+      # left the aggregate "status check" unfinished, so main could not go
+      # green and no pull request could satisfy the required checks. Prefer
+      # IPv4, bound every fetch, retry, and fail this step fast instead.
       - name: install tauri sysdeps (linux)
         if: matrix.os == 'ubuntu-latest'
+        timeout-minutes: 20
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev
+          set -euo pipefail
+          apt_opts=(
+            -o Acquire::ForceIPv4=true
+            -o Acquire::Retries=3
+            -o Acquire::http::Timeout=30
+            -o Acquire::https::Timeout=30
+          )
+          updated=0
+          for attempt in 1 2; do
+            if sudo timeout -k 10 180 apt-get update "${apt_opts[@]}"; then
+              updated=1
+              break
+            fi
+            echo "::warning::apt-get update attempt ${attempt} failed; retrying"
+            sleep 10
+          done
+          if [ "$updated" != 1 ]; then
+            echo "::error::apt-get update failed after 2 attempts"
+            exit 1
+          fi
+          for attempt in 1 2 3; do
+            if sudo timeout -k 10 300 apt-get install -y --no-install-recommends "${apt_opts[@]}" \
+              libwebkit2gtk-4.1-dev \
+              libgtk-3-dev \
+              libsoup-3.0-dev \
+              libjavascriptcoregtk-4.1-dev \
+              libayatana-appindicator3-dev \
+              librsvg2-dev; then
+              exit 0
+            fi
+            echo "::warning::tauri sysdeps install attempt ${attempt} failed; retrying"
+            sudo dpkg --configure -a || true
+            sleep 10
+          done
+          echo "::error::tauri sysdeps install failed after 3 attempts"
+          exit 1
 
       - name: cargo test
         working-directory: src-tauri
