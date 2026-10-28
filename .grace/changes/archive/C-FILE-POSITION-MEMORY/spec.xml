@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved"><C-FILE-POSITION-MEMORY>
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FILE-POSITION-MEMORY>
   <Name>Reading position memory: caret survives arrows; cursor and scroll survive close and relaunch</Name><Created>2026-10-23</Created>
   <Summary>Close both gaps from the owner's 2026-10-23 "f-cursor" report: (A) the caret moved only by arrow keys no longer snaps back to the last click/edit position on tab switch; (B) every file remembers its last cursor position (line/ch) and scroll offset on disk, so closing a tab, reopening a file and relaunching the app return the reader to where they were — the same per-file persistence pattern the table layouts already use.</Summary>
   <ApprovalBasis>Owner instruction 2026-10-23, after the session's verified diagnosis (probe evidence: arrows P10→P90 snap back to P10 on switch; close/reopen loses scrollTop 3778→0; session snapshot stores paths only): «Фикс стрелок — маленький… Память „по файлу" — функция… 2 — давай поштормим корнеры, подумай, сделай спеку и 2 чистых ревью проходки с 4 углов».</ApprovalBasis>

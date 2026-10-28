@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status="applied">
 <C-NATIVE-DOCX-RTF-EXPORT>
   <Name>Native DOCX export without pandoc, plus export entries in the tab context menu: File menu and tab menu gain "Export to Word…" backed by a lazy renderer-side docx/html conversion of the styled export HTML, in every build including App Store; RTF deferred</Name>
   <ApprovalBasis>Owner approved with explicit "ок" on 2026-10-23 (evening) over the revised spec — renderer-side docx/html architecture per the four-way bake-off, four fresh review passes green-after-fixes (Review 2), the modal-less owner decision folded in (Review 3), RTF out of v1, and the tab-context-menu export group merged as R-2 — authorizing plan creation under the standing four-corner review protocol.</ApprovalBasis>
