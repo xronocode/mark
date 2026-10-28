@@ -1,0 +1,207 @@
+<GraceChangePlan graceVersion='4.0' status='approved'>
+  <C-UPDATER-ROLLBACK>
+    <IntentSummary>Implement the approved rollback spec in one wave in a dedicated worktree off fork/main: a new governed Rust module M-068 (mt-rollback) owning the rollback manager (prepare/snapshot/digest, strict manifest validation, per-platform restore, Windows installer fetch verified by the app-pinned minisign key, spawn serialization), the --rollback/--yes CLI flags in M-020 handled pre-boot in M-001 (store gate, validity, live-instance probe with delegation), the renderer prepare-step in installSignedUpdate plus the confirmation dialog, the desktop-only Help-menu item in M-009 with ten-locale copy, the IPC contract chain (types.ts CommandMap, regenerated fixture, m001_validate REGISTERED_COMMANDS), graph and verification routing for M-068/V-M-068, and the mark-site guides/FAQ entries as a sibling deliverable in the mark-site repository. Fail-closed orderings, promote-only-after-success, exit codes 0/3/4/5/6/7 (code 2 left to clap) and the 13-corner matrix are normative from the spec; the plan's own review gate (four corners, two consecutive clean passes) runs before execution, per the owner instruction of 2026-10-28 recorded in spec R-10. Fixed here as the spec deferred: the probe mechanism is a dedicated advisory instance lock in the data root (std File::try_lock — flock on macOS, LockFileEx on Windows, no new crate) acquired by every desktop instance at boot and held for its lifetime — the pre-boot --rollback handler probes it non-blocking; the delegation ask/ack rides request/ack files beside the lock (the launcher writes rollback/delegate.request with a nonce, the running desktop instance polls the directory on a 1-second lightweight timer, opens or focuses the confirmation dialog singleton, and answers rollback/delegate.ack with the same nonce; the launcher waits up to 10 seconds — ack means exit 0 delegated, timeout means decline exit 6; worst case a local writer can cause is a dialog appearing or being focused, never stacking, never an action); the staging lock guards the restore entry on both platforms with the same std File::try_lock primitive on a staging-area lock file; Windows prefs quiescence = the Rust restore command holds the m005 prefs write lock across the snapshot overwrite and skip write, and the renderer awaits its outstanding prefs-set promises before invoking restore; the machine-readable output line is `MARK_ROLLBACK event=restored|delegated|pending|failed|declined|nosnapshot|store from=V to=V` printed exactly once at the end, with from/to omitted when inapplicable; disk math: staged copy ≈ 32 MB on disk at v2.8.2, transient ≈ 64 MB peak during staging/refresh, both in the data root. mt_paths.rs (data root) and m048_build_mode.rs (updater capability) are consumed read-only — no edit. New crate dependencies this wave: sha2 and trash are new direct dependencies, and only trash is new to the lock — sha2 0.10.9 and minisign-verify 0.2.5 are already locked transitively (minisign-verify via tauri-plugin-updater, reused directly) — recorded in src-tauri/Cargo.toml and the tracked Cargo.lock. Sequencing note: the active locale-twin change (C-LOCALE-MIN-TWIN-REMOVAL) touches the same static/locales and tests/renderer/i18n areas as T-006 — the wave re-runs grace lint --parallel-preflight before its first locale write and sequences or rebases per its verdict. Approval basis: the owner instruction of 2026-10-28 recorded in spec R-10 ("A separate worktree? If so, go execute.") covers this plan's execution; this plan's own review gate (four corners, two consecutive clean passes — rounds 3-4 of the ReviewLog) completed before approval.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m020_cli.rs</Value>
+        <Value>src-tauri/src/main.rs</Value>
+        <Value>src-tauri/src/m009_menu.rs</Value>
+        <Value>src-tauri/src/m005_prefs.rs</Value>
+        <Value>src-tauri/src/mt_paths.rs</Value>
+        <Value>src/renderer/src/commands/index.js</Value>
+        <Value>src/renderer/src/store/autoUpdates.js</Value>
+        <Value>test/fixtures/ipc-channels/tauri.v2.json</Value>
+        <Value>static/locales/en.json</Value>
+        <Value>tests/renderer/commands/updater.test.js</Value>
+        <Value>tests/renderer/menu-bridge.test.js</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>SKIPPED_UPDATE_VERSION_KEY = 'skippedUpdateVersion'</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>export const installSignedUpdate</Text></MustContain>
+      <MustContain><File>src-tauri/src/m020_cli.rs</File><Text>print-version</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>let cli = m020_cli::parse();</Text></MustContain>
+      <MustNotContain><File>src-tauri/src/m020_cli.rs</File><Text>rollback</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m009_menu.rs</File><Text>Roll Back to Mark</Text></MustNotContain>
+      <MustNotContain><File>test/fixtures/ipc-channels/tauri.v2.json</File><Text>rollback</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/commands/index.js</File><Text>rollback</Text></MustNotContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-068</Module>
+      </MustVerify>
+      <MustExist><Value>src-tauri/src/m068_rollback.rs</Value></MustExist>
+      <MustExist><Value>src/renderer/src/components/rollbackConfirm/index.vue</Value></MustExist>
+      <MustContain><File>src-tauri/src/m020_cli.rs</File><Text>--rollback</Text></MustContain>
+      <MustContain><File>src-tauri/src/m020_cli.rs</File><Text>--yes</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>BLOCK_ROLLBACK_PREPARE</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>BLOCK_ROLLBACK_VERIFY</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>BLOCK_ROLLBACK_RESTORE</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>mt_rollback_prepare</Text></MustContain>
+      <MustContain><File>test/fixtures/ipc-channels/tauri.v2.json</File><Text>mt::rollback::prepare</Text></MustContain>
+      <MustContain><File>test/fixtures/ipc-channels/tauri.v2.json</File><Text>mt::rollback::status</Text></MustContain>
+      <MustContain><File>test/fixtures/ipc-channels/tauri.v2.json</File><Text>mt::rollback::restore</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>mt_rollback_restore</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>rollback</Text></MustContain>
+      <MustPassCommand><Command>cargo test --manifest-path src-tauri/Cargo.toml rollback</Command></MustPassCommand>
+      <MustPassCommand><Command>npx vitest run tests/renderer/commands/updater.test.js tests/renderer/menu-bridge.test.js tests/renderer/i18n</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-068 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-068 />
+      </VerificationAnchors>
+      <ContextArtifact>requirements.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m068_rollback.rs</File>
+      <File>src-tauri/src/main.rs</File>
+      <File>src-tauri/src/m020_cli.rs</File>
+      <File>src-tauri/src/m009_menu.rs</File>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <File>src-tauri/src/m001_validate.rs</File>
+      <File>src/renderer/src/ipc/contract/types.ts</File>
+      <File>src/renderer/src/commands/index.js</File>
+      <File>src/renderer/src/store/autoUpdates.js</File>
+      <File>src/renderer/src/components/rollbackConfirm/index.vue</File>
+      <File>src-tauri/Cargo.toml</File>
+      <File>Cargo.lock</File>
+      <Glob>static/locales/*.json</Glob>
+      <File>test/fixtures/ipc-channels/tauri.v2.json</File>
+      <File>tests/renderer/commands/updater.test.js</File>
+      <File>tests/renderer/menu-bridge.test.js</File>
+      <Glob>tests/renderer/i18n/**</Glob>
+      <Glob>.grace/graph/*.xml</Glob>
+      <Glob>.grace/verification/*.xml</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-068 core: manifest, digest, atomic staging, strict validation</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>New src-tauri/src/m068_rollback.rs with the house MODULE_CONTRACT header (M-068 mt-rollback) defines the manifest (previous version strict-semver, platform, staged paths, SHA-256 digests via the new sha2 dependency, timestamp), stages macOS bundle + prefs copies via temp sibling then rename, digests both artifacts, validates strictly (schema, semver, platform, paths under the data root, derivation consistency, equals-running-version rejection) and exposes prepare-for-update plus promote-only-after-success; a stale temp sibling is cleaned at prepare/restore; all guarded cfg(not(feature = "app-store")). Unit tests live in a dedicated #[cfg(test)] mod named rollback_core inside m068_rollback.rs, with named cases including manifest_valid_rejects_equals_running_version, staging_is_atomic_and_cleans_stale_temp, promote_only_after_success, digests_recorded_in_manifest and validation_rejects_derivation_mismatch, so the cargo filter rollback_core is guaranteed non-empty and pinned to the charter properties.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml rollback_core</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>M-020: --rollback and --yes CLI flags</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>m020_cli.rs gains --rollback and --yes flags in the clap derive with help text matching the guide wording; new parse tests named rollback_flag_parses / yes_flag_parses are added to the existing m020_cli tests module so the m020_cli filter gains new assertions (not just the pre-existing ones), and clap's own usage-error exit 2 stays untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml m020_cli</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Restore paths: macOS swap and Windows verified installer</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>macOS restore: validate + digest re-verify, swap staged .app over the running bundle path (never hardcoded) with the departed bundle moved via the new trash dependency (failure logged, non-blocking), unwritable path fails closed exit 6, then prefs snapshot restore and skippedUpdateVersion write, then staging-directory deletion, then relaunch. Windows restore: prefs+skip writes as last writes before spawn — quiescence = the restore command holds the m005 prefs write lock across the snapshot overwrite and skip write while the renderer awaits its outstanding prefs-set promises before invoking (order covered by a test where a pending prefs write lands before the snapshot restore) — then the installer is fetched by deterministic asset name from the v{version} release, feed version cross-checked against the manifest, minisignature from the release latest.json verified against the updater pubkey pinned in the app reusing the minisign-verify crate already in the graph via tauri-plugin-updater, executed bytes re-digested immediately before spawn, spawn passive + exit 0 pending, a staging-area lock file (std File::try_lock, both platforms) serializes concurrent restore attempts, next-launch finalization deletes the set, failed install keeps it for idempotent retry. Unit tests live in a dedicated #[cfg(test)] mod named rollback_restore and prove: a tampered signature or download failure never executes and surfaces as exit 4; a feed whose version field disagrees with the manifest is rejected before its platform entry is used; a restore-time digest mismatch aborts untouched (exit 6); injected path/URL material is rejected before any fetch; a corrupted manifest equals missing and constructs no HTTP client; the fetch-attempt counter asserts exactly two fetches on the Windows happy path (latest.json + installer) and zero on the macOS path; m005's tolerance of unknown newer keys is re-verified by a regression test in this wave.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml rollback_restore</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>M-001 wiring: pre-boot handler, probe, IPC registration</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>main.rs handles --rollback before the window is created: app-store gate first (exit 3, store-managed voice), then local manifest validity (exit 7), then a non-blocking std File::try_lock probe of the dedicated instance lock file in the data root — a live instance is asked via the request/ack file pair (nonce-matched, 1-second poll in the GUI, 10-second launcher timeout) to open the in-app confirmation (a repeat invocation while the dialog is open focuses it instead of stacking) and the launcher exits 0 with the machine-readable line; an instance that cannot acknowledge within the timeout declines with exit 6 and quit-first instructions; no TTY without --yes declines exit 5. The CLI prompt prints the three disclosures (target version, settings revert to the pre-update snapshot, skip of the departed version) and every terminal state prints exactly one machine-readable line of the pinned form MARK_ROLLBACK event=restored|delegated|pending|failed|declined|nosnapshot|store from=V to=V, from/to omitted when inapplicable. The module's commands are exposed through the contract chain — mt::rollback::prepare, mt::rollback::status, mt::rollback::restore declared in src/renderer/src/ipc/contract/types.ts (the fixture's source of truth), the fixture regenerated via node tools/gen-tauri-v2-fixture.mjs, the Rust fns (mt_rollback_prepare etc.) registered in generate_handler!, and m001_validate.rs REGISTERED_COMMANDS updated — so the boot IPC drift check stays green. Unit tests live in a dedicated #[cfg(test)] mod named rollback_cli inside m068_rollback.rs, with named cases including store_gate_precedes_validity, delegation_ack_exits_zero_with_line, delegation_ack_nonce_mismatch_ignored (a mismatched ack keeps the launcher waiting into the timeout path), delegation_timeout_declines_exit_six, machine_line_printed_exactly_once, non_tty_without_yes_declines_exit_five and focus_existing_dialog_on_repeat.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml rollback_cli &amp;&amp; npx vitest run tests/renderer/menu-bridge.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Renderer: prepare step and confirmation dialog</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>installSignedUpdate invokes the prepare command (mt::rollback::prepare) before check()/downloadAndInstall and aborts the update with a clear failure toast if prepare fails (fail-closed; order asserted by test); a rollbackConfirm component shows the three spec disclosures (target version, settings revert, skip of the departed version) and drives mt::rollback::restore, with a named cancel-is-a-no-op test (cancel changes nothing, no command invoked); autoUpdates surfaces manifest presence from mt::rollback::status; app-store builds expose none of this (buildCapabilities.updater gating).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/commands/updater.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>M-009 menu item and ten-locale copy</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>m009_menu.rs gains a desktop-only Help item "Roll Back to Mark {version}…" present only when a valid manifest exists at menu build, routing through the existing command taxonomy to the renderer confirmation; the dialog and notice copy (including the prepare-failure toast from T-005) ships in all ten locales as native copy with i18n tests; the menu label stays English per the existing m009 convention.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/menu-bridge.test.js tests/renderer/i18n</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Governance sync: contracts, graph, verification</Title>
+        <DependsOn>T-001, T-002, T-003, T-004, T-005, T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Every touched governed file gets VERSION bump + CHANGE_SUMMARY entry (m020_cli.rs, main.rs, m001_validate.rs, m009_menu.rs, m005_prefs.rs, ipc/contract/types.ts, commands/index.js, autoUpdates.js, new m068_rollback.rs with full header + MODULE_MAP); .grace/graph gains the M-068 routing and .grace/verification gains V-M-068 with commands, scenarios and the content-free markers ([Rollback][prepare][BLOCK_ROLLBACK_PREPARE], [Rollback][verify][BLOCK_ROLLBACK_VERIFY], [Rollback][restore][BLOCK_ROLLBACK_RESTORE], [Rollback][cli][BLOCK_ROLLBACK_CLI]); grace lint --change C-UPDATER-ROLLBACK --assertions target is clean.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --change C-UPDATER-ROLLBACK --assertions target</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>mark-site guides and FAQ (sibling repository)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In ../mark-site: guide/faq.md gains the question-form entry "Mark will not start after an update — how do I roll back?" with exact per-OS commands (macOS /Applications/Mark.app/Contents/MacOS/mark --rollback; Windows the per-user NSIS default layout %LOCALAPPDATA%\Programs\Mark\Mark.exe --rollback, re-verified against the shipped installer at execution), the --yes form, the exit-code table (code 2 = clap usage errors; Windows exit 0 = installer spawned, outcome pending), the first-hop limitation, the adjust-the-path hint, the quit-Mark-first advice and the release-history fallback for exits 4 and 7; guide/cli.md documents --rollback and --yes; no GRACE bundle in mark-site; site build and check-dist gates green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>(cd ../mark-site &amp;&amp; npm run build &amp;&amp; npm run check)</Command>
+        </Verification>
+      </T-008>
+      <T-009>
+        <Title>Wave gates: targeted suites and whole-suite acceptance</Title>
+        <DependsOn>T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Gate tier: cargo rollback suites and the targeted vitest suites pass in the worktree; acceptance tier: full npm test passes; the archive-time final gate (grace lint --path . --change C-UPDATER-ROLLBACK --assertions final --run-commands) is executed at wave end before handoff; the two-platform manual restore protocol (macOS local, Windows polygon) is recorded as pending owner-executed evidence with the terminal transcript format fixed by this wave (the MARK_ROLLBACK machine-readable line).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm test</Command>
+        </Verification>
+      </T-009>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <C-1><Name>Headless crash recovery</Name><Expected>The restore runs headless (macOS flow; Windows follows the per-platform ordering in R-3): TTY y/N confirmation (non-interactive runs require --yes and decline without it, exit 5); staged previous bundle is re-verified against its recorded digest, then swapped over the current bundle path; preferences snapshot restored atomically; skippedUpdateVersion set to the departed version; staging directory deleted; app relaunches as the previous version; exit code 0; every step emits its structured marker ([Rollback][*][BLOCK_*]) to the terminal transcript.</Expected></C-1>
+      <C-2><Name>Second launch while a healthy instance runs</Name><Expected>No headless swap under a running app and no second process: the pre-boot handler probes for a live instance; a live instance answers, the handler delegates by asking the running instance to open the in-app rollback confirmation dialog (R-4) and exits 0 with a machine-readable line distinguishing delegation from restore; cancelling the dialog changes nothing; a repeated invocation while the dialog is already open focuses the existing dialog instead of stacking another.</Expected></C-2>
+      <C-3><Name>No snapshot available</Name><Expected>The Help menu shows no rollback item; the CLI prints that no snapshot exists together with the address of the release-history page for a manual download, and exits 7; no partial writes, no network access.</Expected></C-3>
+      <C-4><Name>Snapshot failure at update time</Name><Expected>Fail-closed: downloadAndInstall is never invoked; the user-visible flow reports that the update was cancelled because a rollback snapshot could not be prepared; the running version is untouched; no half-valid manifest or staging directory remains (atomic temp-sibling staging with cleanup on error; a stale temp sibling from an earlier interrupted run is removed at this point too); if the failure happens later — a download or install that fails after a successful prepare — the previous live set is untouched (promotion happens only after success), so the older escape hatch survives.</Expected></C-4>
+      <C-5><Name>Settings changed after updating</Name><Expected>Both confirmation surfaces (dialog and CLI) warn that settings return to the pre-update snapshot; the restore writes the snapshot over the canonical preferences file; the previous version boots with known-good settings; the departed preferences file is not preserved.</Expected></C-5>
+      <C-6><Name>App moved to a non-default location</Name><Expected>Restore targets the bundle path the app actually runs from (current executable ancestry), never a hardcoded /Applications; the departed bundle goes to Trash so the user can inspect it; an unwritable bundle path fails closed with exit 6 and a clear message (no privileged helpers, never a half-swap); a Trash failure after a successful swap is logged and non-blocking; on Windows the installer's own logic decides the location.</Expected></C-6>
+      <C-7><Name>Windows verification failure</Name><Expected>The installer is never executed; the failure is reported with exit code 4; the rollback set stays intact; a retry is possible; when the asset simply does not exist for that release, the message points to the release-history page for a manual download; nothing outside the staging area is written; the CLI has already exited 0 with the outcome pending at spawn time — an installer run that fails after verification keeps the set and is detected by the departed version at its next launch, which re-offers an idempotent retry (a failed Windows attempt has already restored the pre-update preferences snapshot; the retry re-restores the same snapshot, and the confirmation consented to that revert).</Expected></C-7>
+      <C-8><Name>App-store build exposes nothing</Name><Expected>None: no menu item, no manifest writes, no restore code path reachable; mark --rollback prints the "Updates are managed by the App Store" message (same voice as mt_updater_check) and exits 3; the M-048 capability map reports no rollback capability to the renderer.</Expected></C-8>
+      <C-9><Name>Fixed newer release after rollback</Name><Expected>The notice for 2.9.2 appears normally (skip is exact-version by the existing autoUpdates.js semantics); updating to 2.9.2 snapshots 2.9.0 first, refreshing the rollback set and cleaning the old staging; the cycle continues.</Expected></C-9>
+      <C-10><Name>Repeated rollback attempt</Name><Expected>Not offered: the manifest was cleared by the successful restore, so the menu item is absent and the CLI behaves as the no-snapshot case (C-3, exit 7); moving forward again happens only through the normal update flow.</Expected></C-10>
+      <C-11><Name>Prefs restore failure after bundle swap</Name><Expected>The restore still completes and relaunches the previous version: the bundle is the load-bearing step; the preferences step failure is logged with its marker and the current (newer-version) preferences file is left in place; the old version's tolerance of unknown newer keys (m005_prefs never errors on unknown keys) is covered by a regression test.</Expected></C-11>
+      <C-12><Name>Corrupted or tampered rollback set</Name><Expected>Fail closed as "no snapshot": an invalid manifest hides the menu item and the CLI exits 7 with no network access; a digest mismatch discovered at restore time aborts before any swap with the current state untouched (exit 6); injected path or URL material in the manifest is rejected before any fetch; nothing is ever half-applied.</Expected></C-12>
+      <C-13><Name>Failed update attempt</Name><Expected>The previous live set is untouched and still valid (promotion to the live set happens only after the update is applied), so the older escape hatch survives; no self-rollback surface appears (a manifest whose previous version equals the running version is invalid by definition and can never surface — R-1 promotes only after success, R-3 validity rejects it defensively); retrying the update re-runs prepare; on Windows a failed installer run keeps the set and the departed version re-offers the retry at next launch.</Expected></C-13>
+    </CornerMatrix>
+    <ReviewLog>
+      <Review number="1" date="2026-10-28" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 1, two fresh independent agents over the plan. Verdict: changes-requested — 2 blocking, 4 important, 8 notes; all fixed in the same edit pass. (B1) the fixture stores mt:: channel names, never mt_underscore — target pin and T-004 now use mt::rollback::prepare/status/restore through the contract chain (types.ts CommandMap is the source of truth, fixture regenerated, m001_validate REGISTERED_COMMANDS updated). (B2) ObservedWriteScope omitted ipc/contract/types.ts and m001_validate.rs, both mandatory for the IPC chain — added, together with src-tauri/Cargo.toml and Cargo.lock (new deps sha2, minisign-verify, trash). (I1) cargo filters could match zero tests and pass vacuously — T-001/T-003/T-004 pin dedicated #[cfg(test)] mods (rollback_core/rollback_restore/rollback_cli) and T-002 pins new named flag tests. (I2) dependency additions undeclared — now in IntentSummary and task criteria. (I3) mark-site check-dist needs a build first — T-008 verification is now build then check. (I4) the CLI prompt copy and machine-readable line format were deferred to plan and unpinned — now fixed in IntentSummary and T-004 (MARK_ROLLBACK event=... from=V to=V, printed exactly once). Notes also applied: disk math recorded in IntentSummary; probe mechanism chosen (dedicated flock instance lock in the data root); Windows guide path pinned to the per-user NSIS default with execution-time re-verification; feed-version-mismatch and restore-time-digest-mismatch fixtures plus the zero-fetch assertion on the invalid-manifest path; locale scope widened to notices incl. the prepare-failure toast; m005 unknown-key tolerance regression test assigned to T-003; focus-existing-dialog in T-004; final --run-commands lint named in T-009; mt_paths/m048 recorded as read-only.
+        </Findings>
+      </Review>
+      <Review number="2" date="2026-10-28" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 2, two fresh independent agents over the plan. Correctness/Performance corner: clean. Security/UX corner: 0 blocking, 2 important, 4 notes; all fixed in the same edit pass. (I1) the flock probe detected liveness but carried no delegation request — the ask/ack channel is now pinned: request/ack files beside the lock, nonce-matched, 1-second GUI poll, 10-second launcher timeout, dialog singleton (worst case a local writer causes a dialog to appear or focus, never stacking, never an action). (I2) Windows prefs-quiescence was restated, not chosen — now pinned: the restore command holds the m005 prefs write lock across the snapshot overwrite and skip write, the renderer awaits outstanding prefs-set promises before invoking, order covered by a named test. Notes also applied: the instance lock and staging lock primitives named (std File::try_lock — flock on macOS, LockFileEx on Windows — no fourth crate; staging lock guards both platforms); the fetch-counter fixture now asserts exactly two fetches on the Windows happy path and zero on macOS; rollback_core/rollback_cli tests itemized by name for the charter properties; minisign-verify recorded as already-transitive (only sha2 and trash are new); the machine-readable line omits from/to when inapplicable; fixture pins added for mt::rollback::status and mt::rollback::restore plus mt_rollback_restore in main.rs.
+        </Findings>
+      </Review>
+      <Review number="3" date="2026-10-28" verdict="green" task="two-clean-passes">
+        <Findings>
+          Round 3, consolidation pass over all four corners by a fresh agent. VERDICT: clean (0 blocking, 0 important, 5 notes). First clean pass for the plan. Notes applied between passes: minisign-verify declared as a direct [dependencies] entry at its already-locked version (only sha2 and trash are new to the lock); named test delegation_ack_nonce_mismatch_ignored added; cancel-is-a-no-op named test on rollbackConfirm; exit 4 asserted in the tampered-signature/download-failure case; sequencing note recorded for the locale-area overlap with C-LOCALE-MIN-TWIN-REMOVAL (parallel-preflight re-run before the first locale write).
+        </Findings>
+      </Review>
+      <Review number="4" date="2026-10-28" verdict="green" task="two-clean-passes">
+        <Findings>
+          Round 4, consolidation pass over all four corners by a fresh agent. VERDICT: clean (0 blocking, 0 important, 1 note). Together with round 3 this completes the plan's two-consecutive-clean-passes gate. The note (sha2 already in the lock transitively; only trash is new to the lock) was applied after the verdict as a wording-only correction; no assertion, task or scope changed.
+        </Findings>
+      </Review>
+    </ReviewLog>
+  </C-UPDATER-ROLLBACK>
+</GraceChangePlan>

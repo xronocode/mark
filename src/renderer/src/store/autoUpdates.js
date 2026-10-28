@@ -33,11 +33,18 @@
 //   CHECK_INTERVAL_MS - 24 h minimum spacing between automatic checks.
 //   evaluateAutoUpdateGate - pure gate: { check, reason } from build mode, What's New deferral, switch state and the 24 h clock.
 //   evaluateUpdateNotice - pure decision: { show, version, reason } for an mt_updater_check status against the skipped version.
-//   useAutoUpdatesStore - Pinia store: RUN_LAUNCH_CHECK (boot init), DISMISS_NOTICE (Later), SKIP_VERSION, INSTALL_UPDATE (shared signed install flow).
+//   useAutoUpdatesStore - Pinia store: RUN_LAUNCH_CHECK (boot init), DISMISS_NOTICE (Later), SKIP_VERSION, INSTALL_UPDATE (shared signed install flow), OPEN/CLOSE_ROLLBACK_CONFIRM + CONFIRM_ROLLBACK (C-UPDATER-ROLLBACK confirmation card).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-19 C-66 T-001/T-002: the store leaves
+//   LAST_CHANGE: v1.1.0 - 2026-10-28 C-UPDATER-ROLLBACK T-005: rollback
+//   confirmation state (rollback: { visible, previousVersion,
+//   currentVersion }) plus OPEN_ROLLBACK_CONFIRM / CLOSE_ROLLBACK_CONFIRM
+//   / CONFIRM_ROLLBACK actions — OPEN gates on a fresh mt_rollback_status
+//   (invalid set never shows the card), CONFIRM invokes
+//   mt_rollback_restore (Rust re-validates everything; quiescence is the
+//   m005 store mutex), CANCEL is a strict no-op.
+//   v1.0.0 - 2026-10-19 C-66 T-001/T-002: the store leaves
 //   its dead shell — a launch-time check (max once per 24 h, persisted
 //   lastUpdateCheckAt) runs mt_updater_check when autoCheckUpdates is on
 //   and the build has the updater capability; a newer, not-skipped
@@ -123,7 +130,15 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
      * `status` keeps the mt_updater_check answer that queued the notice —
      * INSTALL_UPDATE hands it to the shared signed install flow.
      */
-    notice: { visible: false, version: '', status: null }
+    notice: { visible: false, version: '', status: null },
+    /**
+     * C-UPDATER-ROLLBACK: the rollback confirmation card
+     * (components/rollbackConfirm renders it in the shared notification
+     * stack). Set by OPEN_ROLLBACK_CONFIRM from a fresh
+     * mt_rollback_status answer; CONFIRM/CLOSE are the only writers of
+     * `visible` afterwards.
+     */
+    rollback: { visible: false, previousVersion: null, currentVersion: null }
   }),
 
   actions: {
@@ -243,9 +258,9 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
     // START_BLOCK_INSTALL_UPDATE
     // Update: hand the queued mt_updater_check status to the very same
     // signed install flow the manual command runs (commands/index.js
-    // installSignedUpdate — check → downloadAndInstall → relaunch, with
-    // its own toasts and error notification). The notice hides first;
-    // the flow owns everything the user sees afterwards.
+    // installSignedUpdate — rollback-prepare → check → downloadAndInstall
+    // → relaunch, with its own toasts and error notification). The notice
+    // hides first; the flow owns everything the user sees afterwards.
     async INSTALL_UPDATE() {
       const status = this.notice.status
       this.notice.visible = false
@@ -259,7 +274,70 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
       } catch (e) {
         console.error('[autoUpdates][INSTALL_UPDATE][BLOCK_INSTALL_DISPATCH_FAILED]', e)
       }
-    }
+    },
     // END_BLOCK_INSTALL_UPDATE
+
+    // START_BLOCK_ROLLBACK_CONFIRM
+    // C-UPDATER-ROLLBACK: the rollback confirmation card. OPEN fetches
+    // mt_rollback_status and shows the card only when a valid snapshot
+    // exists (mirroring the menu item's presence gating); CONFIRM awaits
+    // the outstanding prefs promises implicitly through the Rust store
+    // mutex (m005 PrefsState serializes the snapshot overwrite with any
+    // in-flight prefs write) and invokes mt_rollback_restore, which
+    // re-validates everything before touching the system; CANCEL is a
+    // strict no-op (nothing invoked, nothing persisted).
+    async OPEN_ROLLBACK_CONFIRM({ invokeFn = null } = {}) {
+      let invoke = invokeFn
+      if (!invoke) {
+        invoke = (await import('@tauri-apps/api/core')).invoke
+      }
+      try {
+        const status = await invoke('mt_rollback_status')
+        if (!status || status.available !== true || !status.previousVersion) {
+          console.log('[autoUpdates][OPEN_ROLLBACK_CONFIRM][BLOCK_NO_SNAPSHOT]')
+          return false
+        }
+        this.rollback = {
+          visible: true,
+          previousVersion: status.previousVersion,
+          currentVersion: status.currentVersion
+        }
+        console.log(
+          `[autoUpdates][OPEN_ROLLBACK_CONFIRM][BLOCK_CONFIRM_QUEUED to=${status.previousVersion}]`
+        )
+        return true
+      } catch (e) {
+        console.error('[autoUpdates][OPEN_ROLLBACK_CONFIRM][BLOCK_STATUS_FAILED]', e)
+        return false
+      }
+    },
+
+    CLOSE_ROLLBACK_CONFIRM() {
+      this.rollback.visible = false
+    },
+
+    async CONFIRM_ROLLBACK({ invokeFn = null } = {}) {
+      const previousVersion = this.rollback.previousVersion
+      this.rollback.visible = false
+      if (!previousVersion) return
+      let invoke = invokeFn
+      if (!invoke) {
+        invoke = (await import('@tauri-apps/api/core')).invoke
+      }
+      try {
+        // On macOS this restarts into the restored version; on Windows
+        // the Rust side spawns the verified installer and exits.
+        await invoke('mt_rollback_restore')
+      } catch (e) {
+        console.error('[autoUpdates][CONFIRM_ROLLBACK][BLOCK_RESTORE_FAILED]', e)
+        const notice = (await import('../services/notification')).default
+        notice.notify({
+          title: 'Rollback failed',
+          message: String(e),
+          type: 'warning'
+        })
+      }
+    }
+    // END_BLOCK_ROLLBACK_CONFIRM
   }
 })

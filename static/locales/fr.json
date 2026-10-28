@@ -1696,5 +1696,11 @@
       "search": "Rechercher",
       "toc": "Table des matières"
     }
+  },
+  "rollback": {
+    "title": "Revenir à Mark {version}",
+    "body": "Les réglages reviennent à l’instantané pris avant la mise à jour — les modifications faites après sont annulées. Mark {current} sera ignoré jusqu’à une version plus récente.",
+    "confirm": "Revenir",
+    "cancel": "Annuler"
   }
 }

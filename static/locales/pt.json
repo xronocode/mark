@@ -1696,5 +1696,11 @@
       "search": "Pesquisar",
       "toc": "Índice"
     }
+  },
+  "rollback": {
+    "title": "Voltar para o Mark {version}",
+    "body": "As configurações voltam ao instantâneo tirado antes da atualização — as alterações feitas depois são revertidas. O Mark {current} será ignorado até sair uma versão mais recente.",
+    "confirm": "Voltar",
+    "cancel": "Cancelar"
   }
 }

@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.5.5-fixwave
+// VERSION: 2.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -13,7 +13,8 @@
 //   RootCommand - Command-palette root and subcommand coordinator.
 //   file.open-from-clipboard - File › Open from Clipboard (⌥⌘V): resolver opens a clipboard folder as the workspace (replace) or a Markdown file in a tab (C-52).
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
-//   installSignedUpdate - Shared signed install flow (C-66): plugin check → downloadAndInstall → relaunch, with toasts and the «Update failed» catch; used by file.check-update and the autoUpdates notice.
+//   installSignedUpdate - Shared signed install flow (C-66): rollback-snapshot prepare → plugin check → downloadAndInstall → relaunch, with toasts and the «Update failed» catch; used by file.check-update and the autoUpdates notice (C-UPDATER-ROLLBACK adds the fail-closed prepare step).
+//   help.rollback - Opens the rollback confirmation card when a valid snapshot exists (C-UPDATER-ROLLBACK; desktop builds only).
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
@@ -41,6 +42,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-28 C-UPDATER-ROLLBACK T-005: installSignedUpdate gains the
+//     fail-closed prepare step — mt_rollback_prepare runs before the
+//     plugin check/downloadAndInstall, and a prepare failure cancels the
+//     update with a clear toast (an update is never applied without a
+//     restorable snapshot); promotion of the staged snapshot to the live
+//     set happens at the next boot (main.rs reconcile_at_boot), which
+//     honors promote-only-after-success even across a crash between
+//     install and relaunch. New help.rollback command (desktop builds
+//     only) opens the rollback confirmation card via the autoUpdates
+//     store.
 //   - 2026-10-21 C-FIX-009-RECENTLY-CLOSED: new file.reopen-closed-tab
 //     command (File › Reopen Closed Tab, Shift+Cmd/Ctrl+T) reopens the
 //     newest closed-tab history entry through the
@@ -1195,6 +1206,23 @@ const commands = [
 export const installSignedUpdate = async (status) => {
   const notice = (await import('../services/notification')).default
   try {
+    // C-UPDATER-ROLLBACK: fail-closed prepare — snapshot the running
+    // version BEFORE anything downloads. A prepare failure cancels the
+    // update (the running version is untouched); the staged set is
+    // promoted to the live set only after the update is applied (boot
+    // reconciliation in main.rs), so a failed download never destroys
+    // the previous escape hatch.
+    const { invoke } = await import('@tauri-apps/api/core')
+    try {
+      await invoke('mt_rollback_prepare')
+    } catch (e) {
+      notice.notify({
+        title: 'Update cancelled',
+        message: `Could not prepare a rollback snapshot: ${String(e)}`,
+        type: 'warning'
+      })
+      return
+    }
     const { check } = await import('@tauri-apps/plugin-updater')
     const update = await check()
     if (update) {
@@ -1240,6 +1268,22 @@ if (isUpdatable()) {
       } catch (e) {
         notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
       }
+    }
+  })
+}
+
+// C-UPDATER-ROLLBACK: opens the rollback confirmation card. The store
+// fetches mt_rollback_status and only shows the card when a valid
+// snapshot exists — matching the menu item's presence gating. Desktop
+// builds only (isUpdatable gates this registry entry off in store
+// builds; the Rust command itself also re-validates and answers with
+// the store-managed voice there).
+if (isUpdatable()) {
+  commands.push({
+    id: 'help.rollback',
+    execute: async () => {
+      const { useAutoUpdatesStore } = await import('../store/autoUpdates')
+      await useAutoUpdatesStore().OPEN_ROLLBACK_CONFIRM()
     }
   })
 }

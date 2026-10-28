@@ -41,6 +41,7 @@
       <import-modal></import-modal>
       <zoom-indicator></zoom-indicator>
       <update-notice></update-notice>
+      <rollback-confirm></rollback-confirm>
       <notification-stack></notification-stack>
       <notifications-history></notifications-history>
       <workspace-mode-dialog></workspace-mode-dialog>
@@ -65,6 +66,11 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-28 C-UPDATER-ROLLBACK T-005/T-006: the shell mounts the
+//     rollback confirmation card (components/rollbackConfirm) beside the
+//     update notice — it renders the C-UPDATER-ROLLBACK confirmation
+//     through the shared notification stack and listens for the
+//     mt::rollback-delegate event (pre-boot --rollback delegation).
 //   - 2026-10-20 FIX-010: install one macOS-only, layout-independent
 //     Shift+Command+KeyP capture route for view.command-palette. It works
 //     from editor and welcome surfaces, ignores composition/repeat, and
@@ -155,6 +161,7 @@ import ImportModal from '@/components/import'
 import LiveViewer from '@/components/liveViewer'
 import ZoomIndicator from '@/components/zoomIndicator'
 import UpdateNotice from '@/components/updateNotice'
+import RollbackConfirm from '@/components/rollbackConfirm'
 import NotificationStack from '@/components/notificationStack'
 import NotificationsHistory from '@/components/notificationsHistory'
 import WhatsNewDialog from '@/components/whatsNew'
