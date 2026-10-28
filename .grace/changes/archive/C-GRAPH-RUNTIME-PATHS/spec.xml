@@ -1,0 +1,64 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-GRAPH-RUNTIME-PATHS>
+    <Name>Repair the stale current-state source paths for M-010 and M-016</Name>
+    <ApprovalBasis>Owner instruction in chat on 2026-10-27 («го») accepting refresh finding F3: the runtime graph still names the pre-split files for two backend modules, so `grace module show` navigates to paths that no longer exist.</ApprovalBasis>
+    <Created>2026-10-27</Created>
+    <Priority>low</Priority>
+    <Status>approved</Status>
+    <RoadmapPhase>N</RoadmapPhase>
+    <Complexity>XS (minutes)</Complexity>
+
+    <Summary>
+      `.grace/graph/runtime.xml` declares `src-tauri/src/security.rs` as M-010's
+      source and `src-tauri/src/updater/mod.rs` as M-016's, and repeats the
+      former as the test anchor; both files were retired when the backend moved
+      to one module per file (`m010_security.rs`, `m016_updater.rs`), and the
+      `Path` and `KnowledgeGraphPath` entries already point at the new names.
+      The mismatch survives because nothing resolves Sources paths at lint
+      time. This change corrects the two Source/Tests entries and drops a test
+      anchor (`test/specs/security/xss.spec.js`) that no longer exists; the
+      frozen GRACE 3 `LegacyBase` provenance blocks are left untouched.
+    </Summary>
+
+    <Problem>
+      <Description>Two runtime modules name retired files in their current-state Sources/Tests, so module navigation and source audits resolve to paths that do not exist.</Description>
+      <RootCauseTimestamp>2026-10-27 refresh audit (repo-path scan over .grace/graph and .grace/verification).</RootCauseTimestamp>
+    </Problem>
+
+    <Goals>
+      <R-1>M-010's Source and Tests name src-tauri/src/m010_security.rs; the retired test/specs/security/xss.spec.js anchor is gone.</R-1>
+      <R-2>M-016's Source and Tests name src-tauri/src/m016_updater.rs.</R-2>
+      <R-3>The frozen LegacyBase blocks and every other historical entry stay byte-identical.</R-3>
+    </Goals>
+
+    <Phases><P1><Title>Graph path repair</Title><Complexity>XS</Complexity></P1></Phases>
+
+    <Dependencies>None; bookkeeping only.</Dependencies>
+
+    <Constraints>
+      <Constraint>No behaviour, test, workflow or release change — the diff is confined to two Sources blocks in .grace/graph/runtime.xml.</Constraint>
+      <Constraint>Frozen GRACE 3 provenance (LegacyBase, docs/*.xml) is not edited; the V-M-016 LegacyBase still cites the historical file.</Constraint>
+    </Constraints>
+
+    <NonGoals>
+      <NonGoal>Re-auditing every historical anchor in the graph; the refresh scan found these two and nothing else.</NonGoal>
+      <NonGoal>Removing LegacyBase or migrating GRACE 3 provenance.</NonGoal>
+    </NonGoals>
+
+    <AcceptanceCriteria>
+      <Criterion>Neither `src-tauri/src/security.rs` nor `src-tauri/src/updater/mod.rs` appears in a current-state Sources element; m010_security.rs / m016_updater.rs appear instead.</Criterion>
+      <Criterion>grace lint --assertions current reports the recorded baseline (0 errors) and the repo-path scan over .grace/graph finds no missing declared sources.</Criterion>
+    </AcceptanceCriteria>
+
+    <AffectedAreas>
+      <External>.grace/graph/runtime.xml (M-010, M-016)</External>
+    </AffectedAreas>
+
+    <VerificationIntent>grep checks over .grace/graph/runtime.xml; node repo-path scan; grace lint --path . --change C-GRAPH-RUNTIME-PATHS --assertions final --run-commands; grace lint --path . --assertions current.</VerificationIntent>
+
+    <Approval>
+      <ApprovedBy>owner (chat, 2026-10-27): «го» after the refresh report (finding F3)</ApprovedBy>
+      <ApprovalScope>Current-state graph correction only; no version, tag or publication.</ApprovalScope>
+    </Approval>
+  </C-GRAPH-RUNTIME-PATHS>
+</GraceChangeSpec>
