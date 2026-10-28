@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status="applied">
   <C-COMMONMARK-EMPHASIS>
     <Name>CommonMark emphasis delimiter pairing: strong/em stop stealing closers from later pairs</Name>
     <Created>2026-10-27</Created>
