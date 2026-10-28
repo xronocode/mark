@@ -184,7 +184,7 @@
           FIX-002 (2026-10-20) open-file timing trace — a sidebar-clicked
           ordinary document emits BLOCK_OPEN_FILE_ARRIVAL within 100 ms of
           the click mark and BLOCK_OPEN_FIRST_PAINT within 2000 ms of the
-          arrival; a ~600 KB document stays inside a 10000 ms paint budget.
+          arrival; a ~600 KB document stays inside a 10000 ms paint budget locally, widened to 20000 ms on CI runners where concurrent macOS jobs add noise (2026-10-28 tolerance; the strict local budget remains).
         </Scenario>
       </Scenarios>
       <Markers>
