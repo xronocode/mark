@@ -1,0 +1,69 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-SAFETY-REVIEW-LANES>
+  <Name>Per-lane safety review locks — implementation plan</Name><Created>2026-10-27</Created><Spec>C-SAFETY-REVIEW-LANES</Spec>
+  <IntentSummary>
+    Split the single repository-wide inference.lock into a short candidate lock plus independent local and non-local review lane locks, so a large remote-bound review no longer blocks every other commit. Keep each lane single-flight, preserve candidate identity and receipt semantics, make the per-chunk debug evidence candidate-scoped and atomic, prove the concurrency contract with gated unit tests, and record the two-lane model in docs/commit-push-safety.md, M-064 and V-M-064.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>tools/security_gate.py</Value></MustExist>
+    <MustExist><Value>tests/security/test_security_gate.py</Value></MustExist>
+    <MustContain><File>tools/security_gate.py</File><Text>with (private / "inference.lock").open("a") as lock:</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>Another repository safety review owns the inference slot</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>last-model-review.json</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>def local_review(candidate, private, reviewers):</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>def non_local_review(candidate, private, reviewers):</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>tools/security_gate.py</File><Text>inference-candidate.lock</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>inference-local.lock</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>inference-non-local.lock</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>owns the local review slot</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>owns the non-local review slot</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>last-model-review-</Text></MustContain>
+    <MustNotContain><File>tools/security_gate.py</File><Text>with (private / "inference.lock").open("a") as lock:</Text></MustNotContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_local_review_proceeds_while_non_local_is_held</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_local_reviews_serialize</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_non_local_reviews_serialize</Text></MustContain>
+    <MustContain><File>docs/commit-push-safety.md</File><Text>separate local and non-local review lanes</Text></MustContain>
+    <MustContain><File>.grace/verification/features.xml</File><Text>a local review may run while another operation is in its non-local phase</Text></MustContain>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-064/></GraphAnchors><VerificationAnchors><V-M-064/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>tools/security_gate.py</File>
+    <File>tests/security/test_security_gate.py</File>
+    <File>docs/commit-push-safety.md</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>.grace/changes/active/C-SAFETY-REVIEW-LANES/spec.xml</File>
+    <File>.grace/changes/active/C-SAFETY-REVIEW-LANES/plan.xml</File>
+    <File>.grace/changes/active/C-SAFETY-REVIEW-LANES/design-context.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Split the global lock into candidate, local and non-local locks; make review evidence candidate-scoped</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria><Criterion>review() takes inference-candidate.lock only around make_candidate(), scan() and the final identity check plus receipt write; local_review runs under inference-local.lock and non_local_review under inference-non-local.lock; the single inference.lock and its message are gone.</Criterion><Criterion>A blocked acquisition names the busy lane: "owns the local review slot" or "owns the non-local review slot"; the candidate lane names the candidate slot.</Criterion><Criterion>Each lane stays single-flight; the two model lanes are never held together; a failed or killed process releases flock normally.</Criterion><Criterion>_review_chunk writes last-model-review-&lt;identity&gt;.json through a temporary file plus os.replace, so overlapping reviews leave intact files; no shared last-model-review.json remains.</Criterion><Criterion>MARK_SAFETY_OVERRIDE, reviewer_config, reviewer_ownership, prompts, chunking, phases and the completed-review receipt schema are unchanged.</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 -m unittest discover -s tests/security -p 'test_*.py'</Command><BudgetSeconds>120</BudgetSeconds></Verification>
+    </T-001>
+    <T-002>
+      <Title>Prove the lane concurrency contract with gated regressions</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria><Criterion>test_local_review_proceeds_while_non_local_is_held: operation A blocks inside non_local_review while operation B completes local_review and writes its receipt.</Criterion><Criterion>test_local_reviews_serialize and test_non_local_reviews_serialize: a second acquisition of the same lane fails closed with the lane-specific message before any model call.</Criterion><Criterion>A concurrent two-review case proves two candidate-scoped last-model-review files with valid JSON, and an identity-drift case still fails closed with "Candidate changed during review".</Criterion><Criterion>The tests use events and threads/processes already available in the standard library; no sleeps longer than 50 ms are used as synchronization.</Criterion></AcceptanceCriteria>
+      <Verification><Command>python3 -m unittest tests.security.test_security_gate.SafetyGateTests.test_local_review_proceeds_while_non_local_is_held tests.security.test_security_gate.SafetyGateTests.test_local_reviews_serialize tests.security.test_security_gate.SafetyGateTests.test_non_local_reviews_serialize tests.security.test_security_gate.SafetyGateTests.test_concurrent_reviews_write_distinct_evidence</Command><BudgetSeconds>120</BudgetSeconds></Verification>
+    </T-002>
+    <T-003>
+      <Title>Document the two lanes and synchronize M-064 and V-M-064</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria><Criterion>docs/commit-push-safety.md states that commits and pushes use separate local and non-local review lanes, that each lane is single-flight, and that a waiting operation can complete its local phase while another is remote-bound.</Criterion><Criterion>M-064 Summary and V-M-064 scenario record the lane locks and the concurrency regression; the file contracts in tools/security_gate.py and tests/security/test_security_gate.py advance their VERSION and CHANGE_SUMMARY per the engineering protocol.</Criterion><Criterion>grace lint --path . --assertions current reports zero errors and the current-state documents contain no reference to the removed global lock.</Criterion></AcceptanceCriteria>
+      <Verification>
+        <Command>rg -n "separate local and non-local review lanes" docs/commit-push-safety.md</Command>
+        <Command>rg -n "a local review may run while another operation is in its non-local phase" .grace/verification/features.xml</Command>
+        <BudgetSeconds>30</BudgetSeconds>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <Gates>
+    <Gate kind="unit">python3 -m unittest discover -s tests/security -p 'test_*.py' — all security gate cases pass, including the lane-concurrency class.</Gate>
+    <Gate kind="lint">grace lint --path . --assertions current — zero errors in this change's scope.</Gate>
+    <Gate kind="grace">grace status --path . --with modules --json — M-064 healthy before handoff.</Gate>
+  </Gates>
+</C-SAFETY-REVIEW-LANES></GraceChangePlan>

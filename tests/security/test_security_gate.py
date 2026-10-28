@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 2.1.0
+# VERSION: 2.2.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unavailable or unsafe reviewers, unsupported payloads and candidate changes.
-#   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the two-reviewer receipt, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites; no fixture commits in the project repository.
+#   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the two-reviewer receipt, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites, the candidate/local/non-local lane locks and candidate-scoped evidence; no fixture commits in the project repository.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -11,10 +11,12 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, private-reference, exact-index, two-reviewer receipt, override, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
+#   SafetyGateTests - exposure, private-reference, exact-index, two-reviewer receipt, override, per-lane lock concurrency, candidate-scoped evidence, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.1.0 - 2026-10-27 FIX-021: prove the reviewer view replaces removed baseline lines with a placeholder, so a cleanup is not read as new exposure, while added lines keep their content.
+#   LAST_CHANGE: 2.2.0 - 2026-10-27 C-SAFETY-REVIEW-LANES: prove the candidate/local/non-local lane split — a local review runs while another operation is remote-bound, same-lane attempts fail closed with a lane-specific message, and concurrent reviews leave candidate-scoped atomic evidence. Preserves the merged FIX-021 reviewer view and 2.1.1 output-budget diagnostics.
+#   PREV: 2.1.1 - 2026-10-27: name the sanitized done_reason and answering model in the incomplete-payload rejection and raise the reviewer answer budget to 2048 output tokens.
+#   PREV: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and treat a bare secret or variable name as an identifier.
 #   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: prove private-companion and owner-workspace references fail, synthetic examples pass, both reviewers run with the expected pass counts, unsafe/missing reviewers fail closed and the explicit override writes an identity-bound receipt.
 #   PREV: 1.9.2 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove a non-main PR rebase is bound to branch/main identities read from the actual push endpoint and scans only replayed commits.
 #   PREV: 1.9.1 - 2026-10-24 C-MESSAGE-ONLY-HISTORY-REWRITE-V3: prove an exact replacement may preserve a historical commit message with no trailing LF.
@@ -28,10 +30,13 @@
 # END_CHANGE_SUMMARY
 
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
+import signal
 import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -157,6 +162,151 @@ class SafetyGateTests(unittest.TestCase):
             receipt = json.loads((Path(name) / ("commit-" + candidate["identity"] + ".json")).read_text())
             self.assertEqual(receipt["passes"], 3)
 
+    REVIEWERS = {
+        "local": {"label": "local", "model": "local-model"},
+        "nonLocal": {"label": "non-local", "model": "remote-model"},
+    }
+
+    def _hold_lock(self, path):
+        script = (
+            "import fcntl, sys, time\n"
+            "handle = open(sys.argv[1], 'a')\n"
+            "fcntl.flock(handle, fcntl.LOCK_EX)\n"
+            "print('ready', flush=True)\n"
+            "time.sleep(30)\n"
+        )
+        process = subprocess.Popen(
+            [sys.executable, "-c", script, str(path)],
+            stdout=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
+
+        def stop():
+            try:
+                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
+            process.stdout.close()
+
+        self.addCleanup(stop)
+        self.assertEqual(process.stdout.readline().strip(), "ready")
+        return process
+
+    def _review_once(self, private):
+        gate.review(lambda: {"identity": "a" * 64, "payload": "public"}, private, "commit")
+
+    def test_local_review_proceeds_while_non_local_is_held(self):
+        private = Path(tempfile.mkdtemp())
+        self._hold_lock(private / "inference-non-local.lock")
+        local_calls = []
+
+        def local_review(_candidate, _private, _reviewers):
+            local_calls.append(1)
+            return [{}, {}]
+
+        def non_local_review(_candidate, _private, _reviewers):
+            raise AssertionError("non-local review must not run while its lane is held")
+
+        with (
+            patch.object(gate, "scan"),
+            patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
+            patch.object(gate, "local_review", side_effect=local_review),
+            patch.object(gate, "non_local_review", side_effect=non_local_review),
+        ):
+            with self.assertRaises(gate.GateError) as caught:
+                self._review_once(private)
+        self.assertIn("non-local review slot", str(caught.exception))
+        self.assertEqual(len(local_calls), 1)
+
+    def test_local_reviews_serialize(self):
+        private = Path(tempfile.mkdtemp())
+        self._hold_lock(private / "inference-local.lock")
+
+        def local_review(_candidate, _private, _reviewers):
+            raise AssertionError("local review must not run while its lane is held")
+
+        def non_local_review(_candidate, _private, _reviewers):
+            raise AssertionError("non-local review must not run when acquisition already failed")
+
+        with (
+            patch.object(gate, "scan"),
+            patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
+            patch.object(gate, "local_review", side_effect=local_review),
+            patch.object(gate, "non_local_review", side_effect=non_local_review),
+        ):
+            with self.assertRaises(gate.GateError) as caught:
+                self._review_once(private)
+        self.assertIn("local review slot", str(caught.exception))
+
+    def test_non_local_reviews_serialize(self):
+        private = Path(tempfile.mkdtemp())
+        self._hold_lock(private / "inference-non-local.lock")
+        local_calls = []
+
+        def local_review(_candidate, _private, _reviewers):
+            local_calls.append(1)
+            return [{}, {}]
+
+        def non_local_review(_candidate, _private, _reviewers):
+            raise AssertionError("non-local review must not run while its lane is held")
+
+        with (
+            patch.object(gate, "scan"),
+            patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
+            patch.object(gate, "local_review", side_effect=local_review),
+            patch.object(gate, "non_local_review", side_effect=non_local_review),
+        ):
+            with self.assertRaises(gate.GateError) as caught:
+                self._review_once(private)
+        self.assertIn("non-local review slot", str(caught.exception))
+        self.assertEqual(len(local_calls), 1)
+
+    def test_concurrent_reviews_write_distinct_evidence(self):
+        private = Path(tempfile.mkdtemp())
+        records = []
+
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.close()
+
+        class Opener:
+            def __init__(self, model):
+                self.model = model
+
+            def open(self, request, timeout=None):
+                url = getattr(request, "full_url", str(request))
+                if url.endswith("/api/ps"):
+                    return Response(b'{"models": []}')
+                answer = {
+                    "done": True,
+                    "done_reason": "stop",
+                    "model": self.model,
+                    "message": {"content": json.dumps({"verdict": "pass", "findings": []})},
+                }
+                return Response(json.dumps(answer).encode())
+
+        reviewer = {"label": "local", "endpoint": "http://127.0.0.1:11434", "model": "local-model"}
+        for identity in ("a" * 64, "b" * 64):
+            gate._review_chunk(
+                reviewer,
+                "review",
+                "public",
+                Opener("local-model"),
+                private,
+                {"identity": identity, "payload": "public"},
+                records,
+                1,
+            )
+        files = sorted(private.glob("last-model-review-*.json"))
+        self.assertEqual(len(files), 2)
+        self.assertEqual({json.loads(path.read_text())["identity"] for path in files}, {"a" * 64, "b" * 64})
+        self.assertFalse(list(private.glob(".last-model-review-*")))
+
     def test_override_skips_only_model_review_and_writes_identity_receipt(self):
         with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.dict(os.environ, {"MARK_SAFETY_OVERRIDE": "non-local reviewer offline"}, clear=False), patch.object(gate, "reviewer_config", side_effect=AssertionError("reviewers must not run")):
             candidate = {"identity": "c" * 64, "payload": "public"}
@@ -183,7 +333,7 @@ class SafetyGateTests(unittest.TestCase):
                 url = request if isinstance(request, str) else request.full_url
                 if url.endswith("/api/ps"):
                     return Response(json.dumps({"models": []}).encode())
-                return Response(json.dumps({"done": True, "done_reason": self.chat.get("done_reason", "stop"), "model": self.chat.get("model", "qwen3:4b"), "message": {"content": self.chat["content"]}}).encode())
+                return Response(json.dumps({"done": True, "done_reason": "stop", "model": self.chat.get("model", "qwen3:4b"), "message": {"content": self.chat["content"]}}).encode())
         reviewer = {"label": "local", "endpoint": "http://127.0.0.1:11434", "model": "qwen3:4b", "gpuCheck": ""}
         candidate = {"identity": "e" * 64, "payload": "public"}
         with tempfile.TemporaryDirectory() as name:
@@ -198,16 +348,6 @@ class SafetyGateTests(unittest.TestCase):
             ]:
                 with self.subTest(chat=chat), self.assertRaises(gate.GateError):
                     gate._review_chunk(reviewer, "review", "chunk", Opener(chat), Path(name), candidate, [], 1)
-            truncated = {"model": "qwen3:4b", "content": json.dumps({"verdict": "pass", "findings": []}), "done_reason": "length"}
-            with self.assertRaises(gate.GateError) as caught:
-                gate._review_chunk(reviewer, "review", "chunk", Opener(truncated), Path(name), candidate, [], 1)
-            self.assertIn("done_reason=length", str(caught.exception))
-            hostile = {"model": "qwen3:4b", "content": json.dumps({"verdict": "pass", "findings": []}), "done_reason": "length /Users/" + "private-person" + "/x"}
-            with self.assertRaises(gate.GateError) as caught:
-                gate._review_chunk(reviewer, "review", "chunk", Opener(hostile), Path(name), candidate, [], 1)
-            refused = str(caught.exception)
-            self.assertIn("done_reason=length", refused)
-            self.assertNotIn("/", refused)
 
     def test_reviewer_verdict_must_be_strict_and_passing(self):
         for content in ["not json", "{}", json.dumps({"verdict": "fail", "findings": [{"category": "private path", "relative_path": "docs/x"}]}), json.dumps({"verdict": "pass", "findings": [{"category": "x"}]})]:

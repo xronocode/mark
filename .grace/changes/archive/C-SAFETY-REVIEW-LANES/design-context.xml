@@ -1,0 +1,25 @@
+<GraceChangeDesignContext graceVersion="4.0">
+  <Change>C-SAFETY-REVIEW-LANES</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    <Section name="measured-blocking">On 2026-10-27 the C-TITLEBAR-MODE-CHIPS commit held .git/mark-safety/inference.lock from 07:08. By 07:28 local_review had printed chunks 1-123 and non_local_review was at chunk 10; every other commit or push in the checkout received "Another repository safety review owns the inference slot". The lock file itself is a normal flock target (created 2026-10-19) and is released only when the owning process exits.</Section>
+    <Section name="two-resources">The local reviewer is an Ollama endpoint with one loaded-model slot, protected by reviewer_ownership() (/api/ps: empty slot or the expected model, never two models). The non-local reviewer is a separate Ollama-style endpoint reached through a no-redirect opener. They share no model, no GPU and no process state. Deterministic scan() already builds its own tempfile.TemporaryDirectory, so two scans cannot collide on files.</Section>
+    <Section name="what-the-lock-really-protects">The global lock protects four things today: (1) candidate creation from a mutable index, (2) the deterministic scan, (3) exclusive use of the local model slot, (4) the final identity recheck and receipt write. Only (3) needs to last for the whole local phase; (1), (2) and (4) are short and can use a separate candidate lock. The non-local phase needs its own single-flight lane but no local-model exclusivity.</Section>
+    <Section name="shared-debug-file">_review_chunk writes .git/mark-safety/last-model-review.json on every chunk. Two overlapping reviews would interleave that file. The change makes it candidate-scoped (identity in the filename) and writes it through a temporary file plus os.replace, so overlapping reviews leave intact evidence.</Section>
+    <Section name="fail-closed-under-concurrency">A second commit that changes the staged identity while the first review runs makes the first final make_candidate() identity differ. The existing "Candidate changed during review; stage and review again" failure stays: the older review must re-stage and re-run. This is a safety property, not a regression; the plan tests it explicitly.</Section>
+  </Rationale>
+  <Alternatives>
+    <Alternative name="release-and-reacquire-one-lock">Release inference.lock between local_review and non_local_review and reacquire it for the remote phase. Simpler diff, but a second commit that grabs the lock for its local phase then blocks the first commit's remote phase; the two operations just alternate on one file, so the long remote phase still stalls everyone. Rejected.</Alternative>
+    <Alternative name="two-lane-locks-plus-short-candidate-lock">candidate.lock around snapshot/scan/final identity, local.lock around local_review, non-local.lock around non_local_review. A waiting commit can scan and run its local phase while another is remote-bound; local and non-local each stay single-flight. Chosen.</Alternative>
+    <Alternative name="lease-or-queue-with-timeout">A journaled queue with leases and a visible waiting list. More machinery, new failure modes and a new state directory for a problem that two flock files solve. Rejected for this change; can be proposed separately if multi-agent contention grows.</Alternative>
+  </Alternatives>
+  <FailureModes>
+    <Mode name="local-model-contention">Two local reviews would fight for the one loaded model. local.lock plus reviewer_ownership keeps one at a time; the second fails closed before any model call.</Mode>
+    <Mode name="remote-rate-limit">Non-local endpoint capacity is unknown. non-local.lock keeps one review stream in flight, preserving the current request pattern.</Mode>
+    <Mode name="identity-drift">A concurrent commit changes the index. The final identity recheck fails closed; the older review is discarded and must re-stage.</Mode>
+    <Mode name="stale-lock">A killed process releases flock automatically. No stale-lock command or TTL is introduced.</Mode>
+  </FailureModes>
+  <TestApproach>
+    Unit tests patch local_review and non_local_review with threading.Event gates. Case 1: operation A blocks inside non_local_review; operation B completes local_review and writes its receipt. Case 2: two local_review calls overlap and the second blocks until the first releases. Case 3: two non_local_review calls serialize. Case 4: two overlapping reviews leave two candidate-scoped last-model-review files with valid JSON. Existing review/override/push cases stay unchanged.
+  </TestApproach>
+</GraceChangeDesignContext>
