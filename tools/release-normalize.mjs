@@ -401,7 +401,6 @@ export const planReleaseNormalization = (
 
   for (const locale of SOURCE_LOCALES) {
     const sourcePath = `static/locales/${locale}.json`
-    const minPath = `static/locales/${locale}.min.json`
     const table = renameLocaleDraft(
       readJson(resolve(root, sourcePath)),
       oldMaterialVersion,
@@ -409,7 +408,6 @@ export const planReleaseNormalization = (
       locale
     )
     addChange(changes, root, sourcePath, withNewline(table))
-    addChange(changes, root, minPath, JSON.stringify(table))
   }
 
   const oldManifestPath = resolve(root, `docs/assets/readme/${oldMaterialVersion}.manifest.json`)

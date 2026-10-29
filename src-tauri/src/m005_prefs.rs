@@ -23,6 +23,11 @@
 //     renderer now implements followSystemTheme (util/autoTheme.js), so a
 //     persisted Auto must survive restarts; replaced by the
 //     follow_system_theme_true_survives_reload test pin.
+//   - 2026-10-28 C-UPDATER-ROLLBACK T-003: add the snapshot-restore
+//     helpers the rollback manager uses — PrefsState::
+//     replace_from_snapshot (store-mutex quiescence anchor for the GUI
+//     restore path) and the free replace_prefs_from_snapshot (headless
+//     CLI path); both write through the same atomic save machinery.
 
 use crate::m013b::SecurityCtx;
 use crate::mt_paths;
@@ -241,6 +246,49 @@ impl PrefsState {
             .all()
             .clone()
     }
+
+    /// C-UPDATER-ROLLBACK: replace the live store's contents with a
+    /// snapshot's map plus one extra key/value (the skip write), all
+    /// under the store mutex — the quiescence anchor for the GUI
+    /// restore path (in-flight mt_prefs_set calls serialize behind this
+    /// lock; the renderer additionally awaits its outstanding prefs
+    /// promises before invoking the restore command).
+    pub fn replace_from_snapshot(
+        &self,
+        snapshot: &Path,
+        extra_key: &str,
+        extra_value: &str,
+    ) -> Result<(), String> {
+        let snap = PrefsStore::load_from(snapshot.to_path_buf());
+        let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        guard.data = snap.data.clone();
+        guard.set(
+            extra_key.to_string(),
+            Value::String(extra_value.to_string()),
+        );
+        guard.save().map_err(|e| e.to_string())
+    }
+}
+
+/// C-UPDATER-ROLLBACK: headless variant of the snapshot restore — no
+/// live store exists (the pre-boot CLI path runs before Tauri), so the
+/// canonical file is rewritten directly through the same atomic save.
+pub fn replace_prefs_from_snapshot(
+    snapshot: &Path,
+    extra_key: &str,
+    extra_value: &str,
+) -> Result<(), String> {
+    let target = PrefsStore::default_path().ok_or_else(|| "prefs path unavailable".to_string())?;
+    let snap = PrefsStore::load_from(snapshot.to_path_buf());
+    let mut store = PrefsStore {
+        path: target,
+        data: snap.data.clone(),
+    };
+    store.set(
+        extra_key.to_string(),
+        Value::String(extra_value.to_string()),
+    );
+    store.save().map_err(|e| e.to_string())
 }
 
 // ─── Tauri commands ─────────────────────────────────────────────────

@@ -25,9 +25,10 @@ describe('store/autoUpdates (post-W7 stub)', () => {
   it('state holds only the C-66 notice (no legacy update fields)', async () => {
     const { useAutoUpdatesStore } = await import('@/store/autoUpdates')
     const s = useAutoUpdatesStore()
-    // C-66 filled the W7 stub with exactly one state field: the launch
-    // check notice ({ version } or null). No legacy listener state.
-    expect(Object.keys(s.$state)).toEqual(['notice'])
+    // C-66 filled the W7 stub with the launch-check notice; C-UPDATER-
+    // ROLLBACK added the rollback confirmation card state. No legacy
+    // listener state.
+    expect(Object.keys(s.$state)).toEqual(['notice', 'rollback'])
   })
 
   it('exposes no legacy listener actions (LISTEN_FOR_UPDATE* removed)', async () => {

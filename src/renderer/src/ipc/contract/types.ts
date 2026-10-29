@@ -108,6 +108,9 @@ export type CommandName =
   | 'mt::ext::list'
   | 'mt::ext::text_insert'
   | 'mt::ext::text_transform'
+  | 'mt::rollback::prepare'
+  | 'mt::rollback::status'
+  | 'mt::rollback::restore'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -353,6 +356,22 @@ export interface CommandMap {
   }
   'mt::ext::text_transform': {
     args: { extension_id: string; text: string }
+    result: void
+  }
+  'mt::rollback::prepare': {
+    args: Record<string, never>
+    result: void
+  }
+  'mt::rollback::status': {
+    args: Record<string, never>
+    result: {
+      available: boolean
+      previousVersion: string | null
+      currentVersion: string
+    }
+  }
+  'mt::rollback::restore': {
+    args: Record<string, never>
     result: void
   }
 }

@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.1.15-beta
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -53,6 +53,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-28 C-UPDATER-ROLLBACK T-006: desktop-only Help item
+//     "Roll Back to Mark {version}…" — present only when a valid
+//     rollback manifest exists at menu build (cfg_helper_rollback
+//     mirrors the update-hidden pattern); id-dispatched to the renderer
+//     help.rollback command; English label per the m009 convention.
 //   - 2026-10-20 FIX-010: add the macOS-only View › Command Palette…
 //                row (view.command-palette, Cmd+Shift+P). The cfg guard
 //                keeps Windows/Linux behavior unchanged until separately
@@ -862,6 +867,19 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: None,
                     items: None,
                 },
+                // C-UPDATER-ROLLBACK: one-step rollback — the native item
+                // exists only when a valid snapshot set exists at menu
+                // build; id-dispatched only (the renderer opens the
+                // shared confirmation card). English label per the m009
+                // convention (app-specific labels are not localized).
+                #[cfg(not(feature = "app-store"))]
+                MenuItem {
+                    id: "help.rollback".to_string(),
+                    label: "Roll Back to Mark {version}…".to_string(),
+                    command: None,
+                    accelerator: None,
+                    items: None,
+                },
             ]),
         },
     ]
@@ -1285,6 +1303,28 @@ pub fn build_native_menu<R: tauri::Runtime>(
         MenuItemBuilder::with_id("file.check-update", "Check for Updates…").build(handle)
     }
 
+    // C-UPDATER-ROLLBACK: the rollback item exists only when a valid
+    // snapshot set exists at menu build (boot reconciliation has already
+    // run); otherwise a hidden placeholder keeps the builder shape
+    // uniform — mirroring the update-hidden pattern above.
+    #[cfg(feature = "app-store")]
+    fn cfg_helper_rollback<R: tauri::Runtime>(
+        handle: &tauri::AppHandle<R>,
+    ) -> tauri::Result<tauri::menu::MenuItem<R>> {
+        MenuItemBuilder::with_id("help.rollback-hidden", "").build(handle)
+    }
+    #[cfg(not(feature = "app-store"))]
+    fn cfg_helper_rollback<R: tauri::Runtime>(
+        handle: &tauri::AppHandle<R>,
+    ) -> tauri::Result<tauri::menu::MenuItem<R>> {
+        if let Some((_, m)) = crate::m068_rollback::load_valid_live(env!("CARGO_PKG_VERSION")) {
+            let label = format!("Roll Back to Mark {}…", m.previous_version);
+            MenuItemBuilder::with_id("help.rollback", &label).build(handle)
+        } else {
+            MenuItemBuilder::with_id("help.rollback-hidden", "").build(handle)
+        }
+    }
+
     // ── Help menu ────────────────────────────────────────────────────
     // ASC 2.2: the App Store build must not surface "-beta" — take the
     // version from the tauri package info (mas.conf overlay carries the
@@ -1319,6 +1359,10 @@ pub fn build_native_menu<R: tauri::Runtime>(
         // the store owns updates. Desktop keeps the in-app updater.
         .item(
             &cfg_helper_check_update(handle)?,
+        )
+        // C-UPDATER-ROLLBACK: one-step rollback when a snapshot exists.
+        .item(
+            &cfg_helper_rollback(handle)?,
         );
 
     // C-57: Support Mark… ships only in desktop builds (the m048
@@ -1731,6 +1775,9 @@ mod tests {
                     | "view.actual-size"
                     | "help.guide"
                     | "help.support"
+                    // C-UPDATER-ROLLBACK: the rollback item dispatches by
+                    // id to the renderer help.rollback command.
+                    | "help.rollback"
                     | "view.command-palette"
                     | "view.outline"
                     | "view.status-bar"

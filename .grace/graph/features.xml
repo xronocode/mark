@@ -2792,7 +2792,7 @@
       <Layer>RENDERER</Layer>
       <PhaseRef>bugfix-2026-10-14</PhaseRef>
       <Summary>
-        Bundles the ten UI translation tables (static/locales/*.min.json) as
+        Bundles the ten UI translation tables (static/locales/*.json) as
         lazy chunks via import.meta.glob and serves them to vue-i18n through
         window.i18nUtils.loadTranslations; English is imported statically.
         C-45 adds i18n/systemLocale.js: resolveSystemLocale maps
@@ -2865,13 +2865,6 @@
         MARK_SAFETY_OVERRIDE skips only the model phase and writes an
         identity-bound private receipt. The deterministic boundary also
         rejects owner-workspace and private-companion references.
-
-        C-SAFETY-REVIEW-LANES (2026-10-27): the two reviewers run under
-        independent local and non-local lane locks, with a short candidate lock
-        around the snapshot, scan, final identity check and receipt. Each lane
-        stays single-flight, so a remote-bound review no longer blocks another
-        operation's local phase; per-chunk review evidence is candidate-scoped
-        and written atomically.
       </Summary>
       <Path>tools/security_gate.py</Path><PlannedPath>tools/security_gate.py, tests/security/test_security_gate.py, docs/commit-push-safety.md</PlannedPath>
       <Dependencies/><VerificationRef>V-M-064</VerificationRef>
@@ -2950,5 +2943,29 @@
       <Contract><Purpose>Every transient app message renders as one severity-styled card in one stack, is recoverable from the session history, offers only shortcut actions that owe no answer, and lets developers copy any notification text by selecting it.</Purpose><Inputs><Input><Name>NOTIFY payload</Name><Type>{ severity, source, title, message, actions, dedupKey, sticky, time } — legacy {type} maps primary→info, unknown→info</Type></Input></Inputs><Outputs><Output><Name>stack/history state</Name><Type>live entries (max 3 rendered + overflow counter) and FIFO history entries {time, severity, source, title, fullText}</Type></Output></Outputs><Errors><Error><Code>clipboard unavailable</Code><Description>copy-on-select and copy actions silently no-op — a quiet developer feature never surfaces an error</Description></Error></Errors></Contract>
       <Sources><Source>src/renderer/src/store/notifications.js</Source><Source>src/renderer/src/components/notificationCard/index.vue</Source><Source>src/renderer/src/components/notificationStack/index.vue</Source><Source>src/renderer/src/components/notificationsHistory/index.vue</Source><Source>src/renderer/src/services/notification/index.js</Source><Tests>tests/renderer/store/notifications.test.js</Tests><Tests>tests/renderer/components/notificationCard.test.js</Tests><Tests>tests/e2e/notifications-system.spec.ts</Tests></Sources>
     </M-067>
+    <M-068>
+      <Name>RollbackManager</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RUST</Layer>
+      <Summary>
+        One-step updater rollback (C-UPDATER-ROLLBACK): before every in-app update the
+        running version is snapshotted (macOS: staged .app copy + preferences snapshot
+        with SHA-256 digests in a strict manifest under the M-022 data root; Windows:
+        version-only manifest, the restore fetches the previous installer by its
+        deterministic release asset name and verifies the minisignature from that
+        release's latest.json against the app-pinned updater pubkey — exactly two
+        fetches). Boot reconciliation promotes a succeeded update's staging
+        (promote-only-after-success) and finalizes a Windows restore. Restore is
+        reachable from the desktop-only Help item "Roll Back to Mark {version}…", the
+        renderer confirmation card (three disclosures, cancel is a no-op), and the
+        pre-boot --rollback CLI flag (validity exit 7, live-instance probe with
+        nonce-matched request/ack delegation or decline exit 6, TTY y/N with --yes for
+        scripts, machine-readable MARK_ROLLBACK line, exits 0/3/4/5/6/7 with code 2
+        left to clap). The instance lock (std File::try_lock) and the staging lock
+        serialize everything; app-store builds expose nothing (store-managed voice).
+      </Summary>
+      <Path>src-tauri/src/m068_rollback.rs</Path><PlannedPath>src-tauri/src/m068_rollback.rs, src-tauri/src/main.rs, src-tauri/src/m020_cli.rs, src-tauri/src/m005_prefs.rs, src-tauri/src/m009_menu.rs, src-tauri/src/m001_validate.rs, src/renderer/src/ipc/contract/types.ts, src/renderer/src/commands/index.js, src/renderer/src/store/autoUpdates.js, src/renderer/src/components/rollbackConfirm/index.vue, static/locales/*.json</PlannedPath>
+      <Dependencies>mt_paths M-022 (data root); m005_prefs M-005 (snapshot restore + skip write under the store mutex); m020_cli M-020 (--rollback/--yes); m009_menu M-009 (Help item); sha2, minisign-verify (already-transitive, reused directly), trash, reqwest (Windows fetch); consumed by commands/index.js installSignedUpdate (fail-closed prepare step) and store/autoUpdates confirmation actions</Dependencies><VerificationRef>V-M-068</VerificationRef>
+      <Contract><Purpose>Guarantee that every in-app update leaves a restorable previous state, that a restore re-verifies everything before touching the system, and that a version whose UI cannot start is still recoverable from the terminal.</Purpose><Inputs><Input><Name>prepare</Name><Type>IPC mt::rollback::prepare — invoked by installSignedUpdate before check/downloadAndInstall</Type></Input><Input><Name>status</Name><Type>IPC mt::rollback::status — availability + versions for the renderer surface</Type></Input><Input><Name>restore</Name><Type>IPC mt::rollback::restore (dialog path) or the pre-boot --rollback CLI flow</Type></Input></Inputs><Outputs><Output><Name>rollback set</Name><Type>rollback/{staging.tmp,live}/ under the data root: manifest.json + staged artifacts with digests</Type></Output><Output><Name>MARK_ROLLBACK line</Name><Type>event=restored|delegated|pending|failed|declined|nosnapshot|store from=V to=V — printed exactly once per CLI run</Type></Output></Outputs><Errors><Error><Code>7 nosnapshot</Code><Description>missing, corrupted or tampered manifest — behaves exactly like no set; no network, nothing applied</Description></Error><Error><Code>6 failed/declined</Code><Description>digest mismatch, unwritable bundle path, broken live instance, or a declined prompt — current state untouched</Description></Error><Error><Code>4 verification failure</Code><Description>Windows download or minisign failure — installer never executes; the set stays intact</Description></Error></Errors></Contract>
+      <Sources><Source>src-tauri/src/m068_rollback.rs</Source><Source>src/renderer/src/components/rollbackConfirm/index.vue</Source><Tests>cargo test rollback (rollback_core/rollback_restore/rollback_cli + m020_cli flag tests)</Tests><Tests>tests/renderer/commands/updater.test.js</Tests></Sources>
+    </M-068>
   </GD-FEATURES>
 </GraceGraphDocument>

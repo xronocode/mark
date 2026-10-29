@@ -1692,5 +1692,11 @@
       "search": "Suchen",
       "toc": "Inhaltsverzeichnis"
     }
+  },
+  "rollback": {
+    "title": "Zurück zu Mark {version}",
+    "body": "Die Einstellungen kehren zum Stand vor dem Update zurück — nach dem Update gemachte Änderungen werden verworfen. Mark {current} wird übersprungen, bis ein neueres Update erscheint.",
+    "confirm": "Zurücksetzen",
+    "cancel": "Abbrechen"
   }
 }

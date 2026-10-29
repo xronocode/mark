@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/main.rs
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-001 entry point. Strict boot order:
 //              (1) m001_panic::install_panic_hook  — first, so any later
@@ -39,6 +39,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-28 C-UPDATER-ROLLBACK T-004: pre-boot --rollback handling
+//     (store gate exit 3 in app-store builds, then the headless restore
+//     with validity/probe/delegation semantics from M-068), boot-time
+//     rollback reconciliation (promote-only-after-success + restore
+//     finalization), the instance-lock acquisition, the delegate
+//     poller, and the mt_rollback_prepare/status/restore IPC
+//     registrations.
 //   - 2026-10-18 C-61 T-001: register m052_print::mt_export_pdf — the
 //     silent save-to-PDF half of the Print/Export split (WKWebView
 //     print-to-file via NSPrintSaveJob on macOS, WebView2
@@ -126,6 +133,8 @@ mod m018_screenshot;
 mod m019_datacenter;
 mod m020_cli;
 mod m021_default_handler;
+// C-UPDATER-ROLLBACK M-068: one-step updater rollback manager.
+mod m068_rollback;
 mod m031_diff;
 mod m032_share;
 mod m013b;
@@ -265,6 +274,33 @@ fn main() {
         println!("mark {}", env!("CARGO_PKG_VERSION"));
         std::process::exit(0);
     }
+
+    // C-UPDATER-ROLLBACK T-004: --rollback runs strictly pre-boot, so a
+    // version whose UI cannot start is still recoverable. Store builds
+    // answer with the store-managed voice and exit 3 BEFORE any
+    // manifest read (the gate order spec R-5/R-9 pins); desktop builds
+    // hand off to M-068 (validity exit 7 → instance probe → delegation
+    // or headless restore).
+    if cli.rollback {
+        #[cfg(not(feature = "app-store"))]
+        {
+            std::process::exit(m068_rollback::run_cli_rollback(cli.yes));
+        }
+        #[cfg(feature = "app-store")]
+        {
+            println!("Updates are managed by the App Store");
+            println!("MARK_ROLLBACK event=store");
+            std::process::exit(3);
+        }
+    }
+
+    // C-UPDATER-ROLLBACK T-004: boot-time reconciliation — promote a
+    // succeeded update's staging set (promote-only-after-success),
+    // discard a failed attempt's staging, finalize a Windows restore.
+    // Desktop only; before the menu builds so menu presence follows
+    // the reconciled state.
+    #[cfg(not(feature = "app-store"))]
+    m068_rollback::reconcile_at_boot();
 
     // Phase-B1 step-10: install panic hook FIRST (after CLI parse).
     // Before legacy detection, before security audit, before contract
@@ -665,6 +701,21 @@ fn main() {
                 safe_eprintln!("[m001][lifecycle][BLOCK_CLOSE_HANDLER_SKIPPED reason=no-main-window]");
             }
 
+            // C-UPDATER-ROLLBACK T-004: hold the advisory instance lock
+            // for the process lifetime (a pre-boot --rollback probe
+            // tries it non-blocking; the OS releases it on death), and
+            // start the 1-second delegate-request poller that answers
+            // pre-boot delegation asks by emitting
+            // mt::rollback-delegate to the renderer dialog.
+            #[cfg(not(feature = "app-store"))]
+            {
+                if let Some(guard) = m068_rollback::try_acquire_instance_lock() {
+                    std::mem::forget(guard);
+                    safe_eprintln!("[Rollback][cli][BLOCK_ROLLBACK_CLI instance_lock_acquired]");
+                }
+                m068_rollback::spawn_delegate_poller(handle.clone());
+            }
+
             // C-38 T-007 N4 e: Windows 11 Mica behind the custom title
             // bar (m058). Applies the system-following effect when the
             // OS build supports it; the renderer re-tints to the app
@@ -835,6 +886,12 @@ fn main() {
             // Outside the M-013-A typed fixture like mt_print_webview.
             m052_print::mt_export_pdf,
             m016_updater::mt_updater_check,
+            // C-UPDATER-ROLLBACK M-068: rollback manager surface (also
+            // in m001_validate REGISTERED_COMMANDS + the tauri.v2.json
+            // fixture via types.ts).
+            m068_rollback::mt_rollback_prepare,
+            m068_rollback::mt_rollback_status,
+            m068_rollback::mt_rollback_restore,
             m018_screenshot::mt_screenshot_capture,
             m019_datacenter::mt_secret_set,
             m019_datacenter::mt_secret_get,

@@ -18,9 +18,11 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-29 close F-MAIN-ENTRY-DISABLED: install window.* shim.
-//   - 2026-10-14 i18nUtils.loadTranslations bundles static/locales/*.min.json
+//   - 2026-10-14 i18nUtils.loadTranslations bundles the locale tables
 //     via import.meta.glob; the fetch path 404'd in every Tauri build, so
-//     non-English UI languages never loaded.
+//     non-English UI languages never loaded. (2026-10-28 the bundled set
+//     is the full static/locales/*.json tables — the compact twins were
+//     removed by C-LOCALE-MIN-TWIN-REMOVAL.)
 //   - 2026-10-15 C-41 T-001: the boot theme URL param resolves
 //     followSystemTheme users to the lightModeTheme/darkModeTheme member for
 //     the current prefers-color-scheme, so Auto users on a dark OS open on
@@ -559,7 +561,7 @@ const commandExists = {
 // v1 exposed loadTranslations(locale) returning the JSON map. Renderer
 // reads it once at boot to populate vue-i18n. Tables come from the
 // bundle via i18n/localeLoader (import.meta.glob over static/locales):
-// the old fetch(`/locales/${locale}.min.json`) never resolved in the
+// the old fetch(`/locales/${locale}`) table request never resolved in the
 // Tauri build, so every non-English UI language fell back to English.
 const i18nUtils = {
   loadTranslations: (locale) => loadLocaleTable(locale)

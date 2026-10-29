@@ -272,7 +272,7 @@ describe('six new family member registration (C-41 T-003)', () => {
       ulyssesDark: 'Ulysses Dark'
     }
     const locales = readdirSync(resolve(ROOT, 'static/locales'))
-      .filter((f) => f.endsWith('.json') && !f.endsWith('.min.json'))
+      .filter((f) => f.endsWith('.json'))
     expect(locales.length).toBe(10)
     for (const file of locales) {
       const table = JSON.parse(readFileSync(resolve(ROOT, 'static/locales', file), 'utf-8'))

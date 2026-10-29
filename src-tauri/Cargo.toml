@@ -41,6 +41,12 @@ tauri-plugin-process = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"  # C-15 T-W4: second launch ("Open With") forwards files to the running instance
 reqwest = { version = "0.12", features = ["json"] }
+# C-UPDATER-ROLLBACK M-068: rollback manager crypto/trash deps.
+# minisign-verify is already in the lock transitively (tauri-plugin-updater)
+# and is reused directly; sha2 likewise already-locked; trash is new.
+minisign-verify = "0.2"
+sha2 = "0.10"
+trash = "5"
 rand = "0.8"
 tokio = { version = "1", features = ["sync", "rt", "time", "net", "macros"] }
 axum = "0.8"
