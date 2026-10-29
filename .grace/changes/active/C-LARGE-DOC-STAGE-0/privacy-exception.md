@@ -1,12 +1,13 @@
 # Privacy exception — owner-local folder path
 
 An earlier design context and the first-round review record quoted an owner-local research
-folder by a tilde-relative path (`~/Downloads/…`). It contains no user name, no credential and
+folder by a tilde-relative path (`~/D…s/…`). It contains no user name, no credential and
 no absolute path, and it is now published on this branch's history.
 
-Decision (owner, 2026-10-27): the published history is **not** rewritten. A rewrite would change
-every commit id cited by the review records, the acceptance entries and the plan, and the value
-of removing a tilde-relative folder name does not justify breaking that audit trail.
+Decision (owner, 2026-10-27, re-affirmed for the rebuilt publish lineage on 2026-10-29):
+the tilde-relative folder name may stand in review provenance where the owner already
+published it; the publish lineage was rebuilt anyway (privacy filtering of absolute paths
+and private-workspace names), and the final tree carries no folder name at all.
 
 ## Rule from now on
 

@@ -41,7 +41,7 @@ not gates of this change**.
 | `npm test` (quiet machine) | 377 files / 5,076 passed, 2 skipped, 3 todo, 0 failed |
 | `git diff --exit-code 466d4c57..HEAD -- editor.vue store/editor.js` | no diff |
 | `git diff --name-only 466d4c57..HEAD` | 62 files (61 before this evidence file), all bench / fixtures / tests / docs / `.grace` / `playwright.config.ts` |
-| Scoped privacy scan | `sh -c '! git grep -nE "[/]Users[/]|[~]/Downloads" -- src/renderer/bench tests/renderer/perf tests/e2e/perf tests/e2e/fixtures/large-doc playwright.config.ts'` → exit 0 (no hits) |
+| Scoped privacy scan | `sh -c '! git grep -nE "[/]Users[/]|[~]/D…s" -- src/renderer/bench tests/renderer/perf tests/e2e/perf tests/e2e/fixtures/large-doc playwright.config.ts'` → exit 0 (no hits) |
 
 A previous `npm test` run under heavy parallel load had 9 hook/test timeouts in
 unrelated suites (`app-deep`, `table-column-resize`, `export-docx`, …); every
