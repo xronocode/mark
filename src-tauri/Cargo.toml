@@ -68,7 +68,7 @@ core-foundation-sys = "0.8"
 # lock, webview2-com's own dependency) supplies Interface::cast/HSTRING.
 # Both resolve to existing lock entries; no new crates.
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-version = "0.1"
+windows-version = "0.100"
 webview2-com = "0.38"
 windows-core = "0.61"
 
