@@ -96,3 +96,27 @@ T-005, `29aae406` review corrections.
   the privacy scan.
 - No release, tag, train admission, Wave A/B work or production behavior
   change follows from this evidence.
+
+## Final pre-merge review dispositions (2026-10-29, final four-corner cycle)
+
+Two independent reviewers walked all four corners on HEAD a32859a0; every
+corner passed with three minor, non-blocking findings, dispositioned here:
+
+1. **Time-to-input (spec R-4 letter).** The harness emits no time-to-input
+   value and carries no harness-local not-applicable label; the deferral is
+   recorded in owner-decision.md (Decision 2), plan.xml T-011 evidence and
+   .grace/context/ux-guidelines.xml, and the tier-3 capture grammar covers
+   it where genuinely measurable. Disposition: accept the recorded deferral
+   as-is; no amendment to the approved spec bytes.
+2. **Durable-contract write scope.** The ux-guidelines.xml LargeDocumentContract
+   write (a32859a0) is not declared in the approved plan's
+   ObservedWriteScope. It is sanctioned by spec R-9/AffectedAreas (the named
+   landing place) and was executed only after the owner's FINAL 2026-10-29
+   decisions. Disposition: this note is the scope addendum; the pinned plan
+   bytes stay untouched.
+3. **Gate freshness.** The recorded 2026-10-27 final gate predated later
+   commits. Disposition: fresh `grace lint --change C-LARGE-DOC-STAGE-0
+   --assertions final --run-commands` re-run on final HEAD a32859a0 —
+   **7/7 commands passed (1m 53s)**, including a live webkit-perf execution
+   of tests/e2e/perf.
+
