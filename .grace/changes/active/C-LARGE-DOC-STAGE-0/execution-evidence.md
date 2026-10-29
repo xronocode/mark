@@ -120,3 +120,26 @@ corner passed with three minor, non-blocking findings, dispositioned here:
    **7/7 commands passed (1m 53s)**, including a live webkit-perf execution
    of tests/e2e/perf.
 
+## Agent-side partial native observations (2026-10-29, publish-prep)
+
+Built the isolated measurement artifact (tauri build at the publish-lineage
+tree; separate bundle identifier so the owner's running Mark instance is
+never touched) and cold-opened corpus files in the real system WKWebView,
+sampling the window region at ~150 ms per frame:
+
+- semantic-edge.md: first visible content ~300 ms after launch (includes app
+  boot; tiny document).
+- mixed-100k.md: ~750 ms median of three cold opens.
+- size-1mb.md: ~1650 ms median of three cold opens.
+- The 1.7 MB run is discarded (screen-region pollution from a neighbouring
+  window invalidated the baseline frame); no number is claimed.
+
+Method: frame-size >1.25x over the empty-window baseline, two consecutive
+frames; precision ~±150 ms; single owner machine. These are PARTIAL native
+observations only — the instrumented BLOCK capture (typing p50/p95 with
+truth and typed_landed, scroll distribution) remains the owner-run
+acceptance protocol and stays pending as recorded; GUI keystroke injection
+from this workstation is blocked by the OS accessibility policy, so no
+typing numbers are claimed here. No budget is asserted against any of these
+numbers.
+
