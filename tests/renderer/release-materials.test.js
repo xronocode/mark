@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-materials.test.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin exact release-material identity for the checked-in package version across train scope, public prose, ten locales, README image references, tracked files, and screenshot digests.
 //   SCOPE: Repository-positive integration plus isolated locale, image-set, review, and digest negative fixtures; no screenshot capture or publication.
@@ -17,7 +17,7 @@
 //   STRICT_STATES - Train states whose materials must be complete.
 //   SCREENSHOTS - Screenshot manifest path of VERSION.
 //   readJson - Read one repository JSON fixture.
-//   localeTables - Load source and minified locale tables for pure validation.
+//   localeTables - Load the source locale tables for pure validation.
 //   rejectedWith - Assert one stable materials failure code.
 //   restoreChangelogDraft - Reconstruct a stable draft fixture from a promoted release section.
 //   windowsNewlines - Produce exactly one CRLF sequence per logical line break.
@@ -25,6 +25,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-28 v2.2.0: C-LOCALE-MIN-TWIN-REMOVAL — validateLocaleMaterials runs on the
+//     source tables alone; the source/minified drift fixture retired with the twins.
 //   - 2026-10-24 v2.1.0: the in-app link is checked through the release date that must equal the CHANGELOG heading date.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — derive the version, its train, locale keys and screenshot manifest from the repository instead of pinning 2.8.1, so a version bump no longer breaks this suite.
 //   - 2026-10-21 v1.4.0: keep negative material fixtures stable across collecting and prepared release-PR states.
@@ -60,9 +62,6 @@ const SCREENSHOTS = `docs/assets/readme/${VERSION}.manifest.json`
 const localeTables = () => ({
   source: Object.fromEntries(
     LOCALES.map((locale) => [locale, readJson(`static/locales/${locale}.json`)])
-  ),
-  minified: Object.fromEntries(
-    LOCALES.map((locale) => [locale, readJson(`static/locales/${locale}.min.json`)])
   )
 })
 const rejectedWith = (callback, code) => {
@@ -137,16 +136,6 @@ describe('release materials', () => {
       'docs/dark@2x.png',
       'docs/light.png'
     ])
-  })
-
-  it('rejects source/minified locale drift independently', () => {
-    const { source, minified } = localeTables()
-    const [entry] = Object.keys(minified.fr.whatsNew[VERSION_KEY])
-    minified.fr.whatsNew[VERSION_KEY][entry].title = 'drift'
-    rejectedWith(
-      () => validateLocaleMaterials(source, minified, VERSION),
-      'MT_RELEASE_LOCALE_MIN_DRIFT'
-    )
   })
 
   it('rejects a missing CHANGELOG entry independently', () => {
@@ -224,32 +213,30 @@ describe('release materials', () => {
   })
 
   it('rejects a locale that translates a product name the English copy uses', () => {
-    const { source, minified } = localeTables()
+    const { source } = localeTables()
     const [entry] = Object.keys(source.en.whatsNew[VERSION_KEY])
     const english = JSON.stringify(source.en.whatsNew[VERSION_KEY])
     const token = ['Mark', 'macOS', 'PDF', 'Markdown'].find((name) => english.includes(name))
     if (!token) return
     source.de.whatsNew[VERSION_KEY][entry].text = source.de.whatsNew[VERSION_KEY][entry].text.replaceAll(token, 'X')
-    minified.de = structuredClone(source.de)
-    rejectedWith(() => validateLocaleMaterials(source, minified, VERSION), 'MT_RELEASE_LOCALE_COPY_INVALID')
+    rejectedWith(() => validateLocaleMaterials(source, VERSION), 'MT_RELEASE_LOCALE_COPY_INVALID')
   })
 
   it('rejects one missing locale independently', () => {
-    const { source, minified } = localeTables()
+    const { source } = localeTables()
     delete source.ja
     rejectedWith(
-      () => validateLocaleMaterials(source, minified, VERSION),
+      () => validateLocaleMaterials(source, VERSION),
       'MT_RELEASE_LOCALE_MISSING'
     )
   })
 
   it('rejects copy that exceeds the board layout independently', () => {
-    const { source, minified } = localeTables()
+    const { source } = localeTables()
     const [entry] = Object.keys(source.en.whatsNew[VERSION_KEY])
     source.en.whatsNew[VERSION_KEY][entry].title = 'x'.repeat(33)
-    minified.en = structuredClone(source.en)
     rejectedWith(
-      () => validateLocaleMaterials(source, minified, VERSION),
+      () => validateLocaleMaterials(source, VERSION),
       'MT_RELEASE_LOCALE_LAYOUT_INVALID'
     )
   })

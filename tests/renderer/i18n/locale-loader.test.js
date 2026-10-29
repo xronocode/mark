@@ -2,7 +2,7 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin that every shipped UI language loads from the bundle (regression: the fetch path 404'd in Tauri builds).
-//   SCOPE: loadLocaleTable over all static/locales/*.min.json; missing-locale fallback.
+//   SCOPE: loadLocaleTable over all static/locales/*.json; missing-locale fallback.
 //   DEPENDS: src/renderer/src/i18n/localeLoader.js
 //   LINKS: src/renderer/src/_shims/install-window-globals.js window.i18nUtils
 //   ROLE: TEST
