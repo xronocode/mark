@@ -863,7 +863,8 @@ pub fn run_cli_rollback(yes: bool) -> i32 {
 
     // Live-instance probe: delegate or decline — never swap under a
     // live instance.
-    if let Some(root) = rollback_root() {
+    {
+        let root = &root;
         if try_acquire_instance_lock().is_none() {
             let nonce = format!("rollback-{}", now_secs());
             match delegate_ask(&root, &nonce, std::time::Duration::from_secs(DELEGATE_TIMEOUT_SECS)) {
