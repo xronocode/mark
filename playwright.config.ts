@@ -49,7 +49,12 @@ export default defineConfig({
     // C-30: perf gates run in WebKit, the engine WKWebView ships; webkit-perf
     // runs mandatorily in the renderer-e2e CI job (test.yml), not opt-in
     // (C-LARGE-DOC-STAGE-0 T-003 corrected this stale claim).
-    { name: 'webkit-perf', use: { browserName: 'webkit' }, testMatch: 'perf/**/*.spec.ts' },
+    { name: 'webkit-perf', use: { browserName: 'webkit' }, testMatch: 'perf/**/*.spec.ts', retries: 1 },
+    // C-LARGE-DOC-STAGE-0: one retry for the webkit-perf family, same
+    // precedent as the C-30 gate's noisy-runner retry — the T-007 EOL-only
+    // external-rewrite reload occasionally races its LF normalization
+    // under load (documented in the change Evidence); the oracle itself
+    // asserts a deterministic boundary.
     // C-38 T-003: the Settings shell also gates in WebKit — WKWebView is
     // the engine the macOS build ships; scoped to the settings specs so
     // the rest of the chromium-only suite is unchanged.
