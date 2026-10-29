@@ -58,7 +58,7 @@ target; treat the 1.7 MB / 9,000+ section shape as the stress/reference shape
 that must remain usable but is not promised the same latency; 100 KB is the
 ordinary-document baseline for relative tolerance.
 
-**Owner decision: 1.7 MB / 9000 sections** (recorded 2026-10-29, owner instruction «действуем по твоей рекомендации»; preliminary until re-confirmed against these tables) — source: decisions-preliminary.md
+**Owner decision (FINAL, 2026-10-29): the two-tier target** — 1 MB is the comfortable supported target; the 1.7 MB / 9,000+ section shape is the stress/reference shape that must remain usable under the softer stress budgets; ≤100 KB is the ordinary-document baseline for relative tolerance. Confirmed against these tables via the owner interactive menu.
 
 ## Decision 2 — Absolute budgets and same-run relative tolerance
 
@@ -82,7 +82,7 @@ content ≤ 400 ms; p95 input-to-next-paint ≤ 50 ms; same-run relative toleran
 WebKit/event-loop-lag-proxy are separate series and are never merged.
 Tail-mount and time-to-input budgets: deferred to Wave A, explicitly absent.
 
-**Owner decision: pending the final tables** (deliberately open: absolute + relative budgets are approved only against the completed baseline tables per the spec, never guessed)
+**Owner decision (FINAL, 2026-10-29): the proposed budgets are approved as gated numbers** — ordinary ≤100 KB: first visible content ≤ 400 ms, p95 input-to-next-paint ≤ 50 ms, same-run relative tolerance +20% against the recorded baseline; 1 MB target: open ≤ 1,500 ms, typing p95 ≤ 100 ms; 1.7 MB stress: open ≤ 4,000 ms, typing p95 ≤ 250 ms, longest task ≤ 300 ms, scroll frame p95 ≤ 50 ms. Chromium/Long-Tasks and WebKit/event-loop-lag-proxy stay separate labelled series, never merged. Tail-mount and time-to-input budgets are explicitly deferred to Wave A.
 
 ## Decision 3 — Wave A / Wave B order
 
@@ -101,7 +101,7 @@ then Wave B1/B2 (change-source contract, lazy derived pipeline), with B3
 (history materialization) last. Wave B must not start before the Wave A
 baseline is re-shot on the same corpus.
 
-**Owner decision: Wave A first** (progressive mount; recorded 2026-10-29, preliminary — mount dominates: 809 ms of ~890 on 1 MB while parsing is 18 ms) — source: decisions-preliminary.md
+**Owner decision (FINAL, 2026-10-29): Wave A first** (progressive mount), then B1/B2, B3 last; Wave B does not start before the Wave A baseline is re-shot on the same corpus.
 
 ## Decision 4 — Crash-durability contract
 
@@ -121,7 +121,7 @@ in-place save can damage even the previous file. The target is an atomic
 old-or-new save, approved as its own prerequisite change. A durable-before-ack
 WAL requires a separate approval before any claim.
 
-**Owner decision: no WAL, honest** (atomic old-or-new save; no unsaved-recovery guarantee claimed; WAL may come as a separately approved change; recorded 2026-10-29, preliminary) — source: decisions-preliminary.md
+**Owner decision (FINAL, 2026-10-29): no-WAL honest contract** — no unsaved-recovery guarantee is claimed; a hard crash may lose edits since the last committed save; the atomic old-or-new save is its own prerequisite change; any durable-before-ack WAL requires separate approval before any claim.
 
 ## Decision 5 — Later-wave experimental access model
 
@@ -137,7 +137,7 @@ local, default-off and session-latched behind a visible Experimental setting
 that never persists silently; flipping a default requires a separate approved
 change. Support-only preference and private build are the alternatives.
 
-**Owner decision: visible Experimental settings section** (local, default-off, session-latched until a separately approved flip; recorded 2026-10-29, preliminary) — source: decisions-preliminary.md
+**Owner decision (FINAL, 2026-10-29): visible Experimental settings section** — local, default-off, session-latched, never persisting silently; flipping any default requires a separately approved change.
 
 ---
 

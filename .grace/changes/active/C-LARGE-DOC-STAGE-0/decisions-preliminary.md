@@ -1,5 +1,11 @@
 # Preliminary owner positions — C-LARGE-DOC-STAGE-0 (recorded 2026-10-29)
 
+> SUPERSEDED 2026-10-29: the owner re-confirmed all decisions against the
+> final baseline tables via the interactive menu; the FINAL positions
+> (including the two-tier 1 MB/1.7 MB target and the approved budgets) live
+> in owner-decision.md and durably in .grace/context/ux-guidelines.xml.
+> This file is kept as the provenance of the preliminary positions.
+
 Owner instruction: "act on your recommendation" — recorded as PRELIMINARY
 positions; each is re-confirmed against the final baseline tables in the
 T-011 decision document before anything binds. The fifth decision
