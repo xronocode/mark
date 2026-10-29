@@ -128,6 +128,61 @@
             "grace lint --path . --assertions current reports 0 errors; renderer and export paths agree for every suite input"
           ]
         }
+      },
+      {
+        "id": "C-UPDATER-ROLLBACK",
+        "summary": "One-step updater rollback: every update snapshots the previous version and its settings first, Help › Roll Back to Mark… restores the snapshot together with the settings it had before the update, and the version being left is skipped until a newer release ships; if an update breaks startup the same restore runs from the terminal before the UI boots (mark --rollback, --yes for scripts). A failed snapshot cancels the update with a clear notice, the fresh snapshot promotes only after the new version actually boots (staging-to-live at next-boot reconcile), the Windows restore verifies the previous installer's minisignature from that release's feed against the pinned public key (two network requests; macOS restore fully offline), a concurrent mark --rollback delegates to the running app's confirmation, and the App Store edition exposes no rollback surface; M-068/V-M-068 route the new mt-rollback module.",
+        "state": "queued",
+        "commits": [
+          "8dc938f356ffc0d53f684afc3ba3bd21ab874ad6"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-29",
+          "testedArtifact": "None — PR #120 squash-merged as 8dc938f3 after a fully green run (cargo 459/459, npm test 4932/0, macOS packaging smoke); acceptance record in the archived bundle. The two-platform manual restore protocol (macOS menu + terminal crash path, Windows polygon installer) is owed as owner-executed evidence in V-M-068; hands-on rollback on a dispatch build is deferred to the train acceptance protocol (rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): cargo test full bin suite 459 passed / 0 failed — 19 dedicated rollback tests (snapshot validity, digests, tampered-signature-never-executes, two-fetch counter, delegation nonce, CLI line format); npm test 4932/0 (prepare-order pins, fail-closed cancel, cancel-is-a-no-op, ten-locale coverage, menu-command consistency); coverage gate over thresholds; grace lint --assertions final --run-commands 0 errors.",
+            "AUTOMATED (guards): strict snapshot-manifest validation — corrupted, tampered or self-referential manifests behave exactly like 'no snapshot', nothing is half-applied, digests re-verified before any swap; the Update button installs nothing unless the snapshot was taken; mark-site build + check-dist 22/22 pages / 740 links.",
+            "MANUAL BEFORE ADMISSION: none beyond the archived four-corner review record (spec and plan, two consecutive clean passes each).",
+            "INTENTIONALLY UNVERIFIED: a real two-version restore on both platforms — pending owner-executed evidence in V-M-068; hands-on rollback on a dispatch build deferred to the train acceptance protocol (rule 5)."
+          ]
+        }
+      },
+      {
+        "id": "FIX-020",
+        "summary": "Cut and copy recover from a stale selection: Cmd+X/Cmd+C and the Edit menu silently did nothing for the rest of a session once a stale table-cell or image selection existed (its anchor blocks gone after a tab switch or content load), because the flags were cleared only by a click inside the editor. clearStaleSelections() now runs first in all four cut/copy entry points, setMarkdown resets both flags whenever other content loads (tab switch, format document, split-view mirror), and live table selections behave exactly as before; copyCutCtrl.js gains its first GRACE module contract.",
+        "state": "queued",
+        "commits": [
+          "4e6aa2c5eafee7d0164105d7737d5f86fb5e80af"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-26",
+          "testedArtifact": "None — PR #81 squash-merged after a green run (originally b3388391; 4e6aa2c5 after the 2026-10-28 message-only history rewrite). The manual scenario below is not yet run on a local build; hands-on verification is deferred to the train acceptance protocol (rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): tests/renderer/muya/copy-cut-stale-selection.test.js 9/9; muya suite 641/641; full renderer suite 364 files / 4868 passed / 0 failed; grace lint --assertions current 0 errors; live table selections pinned unchanged by tests.",
+            "MANUAL SCENARIO (for the train acceptance protocol): open a document with a table, click a cell, Cmd+A selects the cell; switch tabs by clicking the tab bar; in the second document select text with Shift+arrows (a mouse click also clears the flag and masks the bug); Cmd+X or Edit › Cut now cuts the text — before the fix nothing happened until an app restart.",
+            "INTENTIONALLY UNVERIFIED: the manual scenario on a real build before admission; evidence anchor V-M-012 scenario-75, graph anchor fn-clearStaleSelections."
+          ]
+        }
+      },
+      {
+        "id": "DEPS-PELE-1-10",
+        "summary": "Pele diagram engine 1.6.0 → 1.10.0 (four upstream minors), app and site in lockstep: labels support sub/sup/code/kbd and friends, List<T>-style text is no longer eaten by label HTML parsing, long CJK labels wrap between characters instead of stretching diagrams, rendered SVG is always valid XML (no U+FFFE/U+FFFF/unpaired surrogates — matters for the export paths), wrapped lines sit closer together and %% comments no longer eat the preceding character; the C-58 pin literals, e2e provenance comments and NOTICES-node advance with the bump.",
+        "state": "queued",
+        "commits": [
+          "643d5dd58c2ed39a3288eb946f7aa6f36c9c5e17"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-26",
+          "testedArtifact": "None — PR #80 squash-merged after a green run (originally 35f12ac8; 643d5dd5 after the 2026-10-28 message-only history rewrite). Visual before/after corpus evidence from the implementing session; hands-on diagram check is deferred to the train acceptance protocol (rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): full npm test 5054 green; pele e2e 25/25 (pele-render, pele-theme, showcase-screenshots, chromium); full chromium e2e 384/385 — the single miss is an unrelated large-doc paint-budget flake, re-verified solo at 9.5 s against the 10 s budget.",
+            "VISUAL CORPUS (implementing session): 1.6.0 rendered 'Value x2' / 'List container'; 1.10.0 renders 'Value x₂' (true subscript tspan) / 'List<T> container'; the sequence/state corpus renders byte-identical or near-identical with no fixture changes anywhere.",
+            "INTENTIONALLY UNVERIFIED: hands-on diagram editing with the new label syntax on a dispatch build — deferred to the train acceptance protocol (rule 5)."
+          ]
+        }
       }
     ],
     "operational": [
@@ -146,6 +201,42 @@
             "AUTOMATED: grace lint --assertions current reports 0 findings on main; the graph source-path scan reports 0 declared files missing.",
             "MANUAL BEFORE ADMISSION: none; the diff edits one Sources block pair and adds an archived change bundle.",
             "INTENTIONALLY UNVERIFIED: nothing — no runtime behavior, build surface or user-facing surface changes."
+          ]
+        }
+      },
+      {
+        "id": "C-LOCALE-MIN-TWIN-REMOVAL",
+        "summary": "The locale min twins are gone: the Electron-era byte-compacted .min.json twins (560,622 bytes across ten languages, an inherited fetch optimization the Tauri port had made pointless) are removed end to end — the loader globs the full tables, an inverted directory guard (exactly ten .json tables, no .min.json; a reintroduced twin fails CI naming the file) replaces the byte-parity laws, the release tools stop writing and validating twins, the dead zero-importer src/common/i18n.js goes, and every graph/verification/context mention is rewritten in the bundle; locale-commit diffs drop from ~1.13 MB to kilobytes and the installed locale payload grows a bounded 66,168 bytes.",
+        "state": "queued",
+        "commits": [
+          "2474281761404fb08bc80bf3f01c3dda4d314061"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-29",
+          "testedArtifact": "None — infrastructure cleanup with no user-visible behaviour change beyond bundle bytes; the owner pipeline mandate of 2026-10-28 approved the direction, pipeline and commit. Acceptance record in the archived bundle.",
+          "scenarios": [
+            "AUTOMATED: targeted vitest over the thirteen touched suites 193/193; the locale-keys guard keeps the three C-TITLEBAR-MODE-CHIPS T-003 gates and adds the directory guard; npm test full suite 369 files / 4924 passed / 0 failed (quiet-window run); typecheck:ipc clean after git rm src/common/i18n.js (zero importers re-verified).",
+            "AUTOMATED (hygiene): repo-wide min.json residue is exactly the guard test, the .gitignore entry and the frozen docs/development-plan.xml provenance; chromium e2e on the two i18n-dependent specs 13/13.",
+            "INTENTIONALLY UNVERIFIED: no manual product probe applies — no user-visible behaviour change beyond bundle bytes."
+          ]
+        }
+      },
+      {
+        "id": "C-SAFETY-REVIEW-LANES",
+        "summary": "The pre-push safety gate runs its two model reviewers under independent lane locks: candidate reviews no longer serialize behind one another or fail-open under contention, lane ownership is visible in the gate's messages, and the gate's evidence records which lane served each review. Developer tooling only; no shipped-app surface changes.",
+        "state": "queued",
+        "commits": [
+          "ff9ff6e112c7cf48ac018c25be5e58dc1842befd"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-28",
+          "testedArtifact": "None — developer tooling. PR #98 squash-merged (originally 4ac68cbc; ff9ff6e1 after the 2026-10-28 message-only history rewrite); an independent code review (request-changes) verified the lane-logic core — no deadlocks, no leaks, no fail-open — and its blocker was closed by PR #118 restoring the two truncated+hostile done_reason tests and the Opener passthrough verbatim from main (e05d170b, 2026-10-29).",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): full check run green including x3-OS units after the lane rework; PR #118's restored done_reason diagnostics tests pass on main.",
+            "REVIEW: independent code review with request-changes; blockers closed via #118, four non-blocking follow-ups recorded (contention-message test, weakened two-operation concurrency test, non-concurrent distinct-evidence test, last-model-review cleanup).",
+            "INTENTIONALLY UNVERIFIED: nothing user-facing — the gate is developer tooling; lane contention with parallel sessions was exercised live during the 2026-10-28 night merges."
           ]
         }
       }
@@ -211,6 +302,12 @@
       "date": "2026-10-28",
       "actor": "release-agent",
       "evidence": "Admitted C-TITLEBAR-MODE-CHIPS (d14335e4, PR #113), C-COMMONMARK-EMPHASIS (a64f718a, PR #87) and C-GRAPH-RUNTIME-PATHS (operational, PR #99) after their admissions PRs passed CI. The train stays Collecting; no dispatch or release activity is authorized."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-10-29",
+      "actor": "release-agent",
+      "evidence": "Admitted the 2026-10-28/29 merged wave: C-UPDATER-ROLLBACK (8dc938f3, PR #120), FIX-020 (4e6aa2c5, PR #81) and DEPS-PELE-1-10 (643d5dd5, PR #80) as user-facing; C-LOCALE-MIN-TWIN-REMOVAL (24742817, PR #122) and C-SAFETY-REVIEW-LANES (ff9ff6e1, PR #98) as operational. Commit shas reflect the 2026-10-28 message-only history rewrite (FIX-020 and DEPS-PELE-1-10 were originally b3388391 and 35f12ac8). The train stays Collecting; no dispatch or release activity is authorized."
     }
   ]
 }
