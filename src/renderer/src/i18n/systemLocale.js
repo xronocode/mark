@@ -3,7 +3,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Map the OS preferred languages (navigator.languages) onto one shipped UI locale for the language='system' preference.
 //   SCOPE: pure resolution only — no i18n application, no listeners (C-45 T-001).
-//   DEPENDS: none at runtime; SHIPPED_LOCALES mirrors static/locales/*.min.json (pinned by tests/renderer/i18n/locale-loader.test.js).
+//   DEPENDS: none at runtime; SHIPPED_LOCALES mirrors static/locales/*.json (pinned by tests/renderer/i18n/locale-loader.test.js).
 //   LINKS: src/renderer/src/i18n/index.js setLanguage; src/renderer/src/store/preferences.js LISTEN_SYSTEM_LANGUAGE; src/renderer/src/prefComponents/general/config.js getLanguageOptions.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -21,7 +21,7 @@
 
 export const SYSTEM_LANGUAGE = 'system'
 
-// Keep in sync with static/locales/*.min.json (localeLoader BUNDLED_LOCALES).
+// Keep in sync with static/locales/*.json (localeLoader BUNDLED_LOCALES).
 export const SHIPPED_LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
 
 // zh script/region families (subtags lowercased): Hans + simplified-region

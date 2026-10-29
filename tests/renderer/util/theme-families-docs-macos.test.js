@@ -335,7 +335,7 @@ describe('member registration on every surface (C-51 T-007)', () => {
 
   it('every locale ships the four display names', () => {
     const locales = readdirSync(resolve(ROOT, 'static/locales'))
-      .filter((f) => f.endsWith('.json') && !f.endsWith('.min.json'))
+      .filter((f) => f.endsWith('.json'))
       .map((f) => f.replace(/\.json$/, ''))
       .sort()
     expect(locales).toEqual(['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW'])

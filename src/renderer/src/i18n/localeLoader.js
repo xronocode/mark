@@ -1,9 +1,9 @@
 // FILE: src/renderer/src/i18n/localeLoader.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Load a UI translation table for a locale from the bundled static/locales/*.min.json files.
+//   PURPOSE: Load a UI translation table for a locale from the bundled static/locales/*.json full tables.
 //   SCOPE: import.meta.glob lazy chunks (one per locale), so the tables ship inside the renderer bundle in dev and in every Tauri build; unknown locales resolve to an empty map.
-//   DEPENDS: static/locales/*.min.json (build-time glob).
+//   DEPENDS: static/locales/*.json (build-time glob; the compact twins were removed by C-LOCALE-MIN-TWIN-REMOVAL, pinned by tests/renderer/i18n/locale-keys.test.js).
 //   LINKS: src/renderer/src/_shims/install-window-globals.js window.i18nUtils; src/renderer/src/i18n/index.js setLanguage.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -15,12 +15,18 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - block anchors for both log markers; error object logged with its stack. Replaces fetch(`/locales/<l>.min.json`), which 404'd in every Tauri build (vite publicDir does not exist), so non-English UI languages never loaded.
+//   LAST_CHANGE: v1.1.0 - 2026-10-28 C-LOCALE-MIN-TWIN-REMOVAL: the glob and the LOADERS
+//   lookup key switch from the removed compact twins to the full *.json tables
+//   (identical content; the twins were byte-compactions of these files). v1.0.0 -
+//   block anchors for both log markers; error object logged with its stack.
+//   Replaces the old fetch(`/locales/<locale>`) table path, which 404'd in every
+//   Tauri build (vite publicDir does not exist), so non-English UI languages
+//   never loaded.
 // END_CHANGE_SUMMARY
 
-const LOADERS = import.meta.glob('../../../../static/locales/*.min.json', { import: 'default' })
+const LOADERS = import.meta.glob('../../../../static/locales/*.json', { import: 'default' })
 
-const codeOf = (path) => path.split('/').pop().replace('.min.json', '')
+const codeOf = (path) => path.split('/').pop().replace('.json', '')
 
 export const BUNDLED_LOCALES = Object.keys(LOADERS).map(codeOf).sort()
 
@@ -33,7 +39,7 @@ export const BUNDLED_LOCALES = Object.keys(LOADERS).map(codeOf).sort()
 // END_CONTRACT: loadLocaleTable
 export async function loadLocaleTable(locale) {
   // START_BLOCK_LOCALE_MISSING
-  const load = LOADERS[`../../../../static/locales/${locale}.min.json`]
+  const load = LOADERS[`../../../../static/locales/${locale}.json`]
   if (!load) {
     console.warn(`[i18n][loadLocaleTable][BLOCK_LOCALE_MISSING] no bundled locale ${locale}`)
     return {}

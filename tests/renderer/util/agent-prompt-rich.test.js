@@ -11,7 +11,7 @@
 //
 // START_MODULE_MAP
 //   EXPECTED - the ten UI languages.
-//   TABLES - the raw static/locales/*.json translation tables (not the .min.json bundle, so the pin holds before the min files regenerate).
+//   TABLES - the raw static/locales/*.json translation tables.
 //   MERMAID_TYPES - the 22 mermaid diagram keywords the prompt names.
 //   TOKENS - every syntax token that must survive every translation and the i18n message compiler verbatim.
 //   SHOWCASE_MARKERS - the showcase features every Guide document must carry.

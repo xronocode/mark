@@ -1,8 +1,8 @@
 // FILE: tools/release-materials.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify that every public 2.6.0 release-material surface and screenshot digest describes one admitted release-train identity.
-//   SCOPE: Repository-only README, CHANGELOG, English notes, What's New, ten source/minified locales, train scope, and tracked PNG validation; no image capture or publication.
+//   SCOPE: Repository-only README, CHANGELOG, English notes, What's New, ten source locales, train scope, and tracked PNG validation; no image capture or publication.
 //   DEPENDS: Node.js crypto, child_process, fs, path, and url standard-library modules; release-readiness and release-notes tools.
 //   LINKS: .grace/graph/features.xml M-046; .grace/graph/runtime.xml M-011; .grace/verification/features.xml V-M-046; .grace/verification/runtime.xml V-M-011.
 //   ROLE: SCRIPT
@@ -12,7 +12,7 @@
 // START_MODULE_MAP
 //   ReleaseMaterialsError - Stable coded materials validation error.
 //   extractReadmeImages - Finds local Markdown and HTML image references.
-//   validateLocaleMaterials - Enforces ten-locale copy, layout, product-token, and minified parity rules.
+//   validateLocaleMaterials - Enforces ten-locale copy, layout and product-token rules.
 //   UNTRANSLATED_TOKENS - Product names, formats and shortcuts that every locale keeps verbatim.
 //   validateScreenshotManifest - Enforces exact tracked README PNG membership and SHA-256 identity.
 //   validateMaterialHeaders - Cross-checks release headings across human materials.
@@ -34,6 +34,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-28 v1.4.0: C-LOCALE-MIN-TWIN-REMOVAL — validateLocaleMaterials runs on the
+//     source tables alone; the source/minified parity rule and the MT_RELEASE_LOCALE_MIN_DRIFT
+//     failure retired with the twin files.
 //   - 2026-10-24 v1.3.0: untranslated product names, formats and shortcuts are derived from the English copy instead of a per-release token list; the What's New link opens the website changelog; the in-app release date must equal the version's CHANGELOG heading date; a Released version tolerates the next release's CHANGELOG draft.
 //   - 2026-10-22 v1.3.0: advance the per-locale product-token pin set to the 2.6.1 sheet (Mark, ⇧⌘T, ⇧⌘P, .html); layout limits and manifest identity checks unchanged.
 //   - 2026-10-20 v1.2.0: normalize Markdown newlines so Windows CRLF checkouts validate the same release identity as LF checkouts.
@@ -106,8 +109,8 @@ export const extractReadmeImages = (markdown) => {
 const stableJson = (value) => JSON.stringify(value)
 
 // START_CONTRACT: validateLocaleMaterials
-//   PURPOSE: Enforce one complete native-copy section across ten source locales with exact minified derivatives and layout limits.
-//   INPUTS: { sourceTables: object - locale to source JSON, minifiedTables: object - locale to minified JSON, version: string - release version }
+//   PURPOSE: Enforce one complete native-copy section across ten source locales with layout limits.
+//   INPUTS: { sourceTables: object - locale to source JSON, version: string - release version }
 //   OUTPUTS: { object - locale count, item count, and version key }
 //   SIDE_EFFECTS: none.
 //   LINKS: src/renderer/src/whatsNew/data.js; tests/renderer/whatsNew/content.test.js
@@ -115,16 +118,12 @@ const stableJson = (value) => JSON.stringify(value)
 // START_BLOCK_VALIDATE_LOCALE_MATERIALS
 const UNTRANSLATED_TOKENS = ['Mark', 'Paper', 'Ink', 'Docs', 'macOS', 'Windows', 'Mermaid', 'Guide', 'Markdown', 'PDF', 'HTML', 'PNG', 'SVG', '⌘D', '⌥⌘V']
 
-export const validateLocaleMaterials = (sourceTables, minifiedTables, version) => {
+export const validateLocaleMaterials = (sourceTables, version) => {
   const key = `v${version.replace(/[.-]/g, '_')}`
   let itemKeys = null
   for (const locale of LOCALES) {
     const source = sourceTables[locale]
-    const minified = minifiedTables[locale]
-    if (!source || !minified) fail('MT_RELEASE_LOCALE_MISSING', `locale=${locale}`)
-    if (stableJson(source) !== stableJson(minified)) {
-      fail('MT_RELEASE_LOCALE_MIN_DRIFT', `locale=${locale}`)
-    }
+    if (!source) fail('MT_RELEASE_LOCALE_MISSING', `locale=${locale}`)
     const section = source.whatsNew?.[key]
     if (!section || typeof section !== 'object') {
       fail('MT_RELEASE_LOCALE_MISSING', `locale=${locale};key=${key}`)
@@ -320,12 +319,10 @@ export const validateReleaseMaterials = (workspaceRoot, tag, { trainPath } = {})
   validateWhatsNewSource(whatsNewSource, version, releaseDate)
 
   const sourceTables = {}
-  const minifiedTables = {}
   for (const locale of LOCALES) {
     sourceTables[locale] = readJson(resolve(root, `static/locales/${locale}.json`))
-    minifiedTables[locale] = readJson(resolve(root, `static/locales/${locale}.min.json`))
   }
-  const locales = validateLocaleMaterials(sourceTables, minifiedTables, version)
+  const locales = validateLocaleMaterials(sourceTables, version)
   const screenshotPath = train.materials?.screenshotManifest
   if (screenshotPath !== `docs/assets/readme/${version}.manifest.json`) {
     fail('MT_RELEASE_SCREENSHOT_MANIFEST_INVALID', `path=${screenshotPath ?? 'missing'}`)

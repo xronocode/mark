@@ -1064,7 +1064,7 @@
           </Attribute>
         </LegacyAttributes>
         i18n strings: close-folder tooltip + nested-root notification across 10
-        locales. Regen *.min.json.
+        locales.
       </step-A6-8>
       <step-A6-9>
         <LegacyAttributes>

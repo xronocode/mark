@@ -115,7 +115,7 @@ describe('store/notification', () => {
 
     it('the installPandoc locale key is gone from every locale', () => {
       const locales = fs.readdirSync(path.resolve(__dirname, '../../../static/locales'))
-        .filter((f) => f.endsWith('.json') && !f.endsWith('.min.json'))
+        .filter((f) => f.endsWith('.json'))
       expect(locales.length).toBe(10)
       const hits = locales.filter((f) =>
         fs.readFileSync(path.resolve(__dirname, '../../../static/locales', f), 'utf8').includes('installPandoc')

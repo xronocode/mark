@@ -9,8 +9,7 @@
 //            safety, the kept-untranslated product names and shortcuts,
 //            and the changelog-section URL lookup used by the footer link.
 //   SCOPE: src/renderer/src/whatsNew/data.js tables + all
-//          static/locales/*.json whatsNew sections (source tables — the
-//          .min.json files are regenerated from them).
+//          static/locales/*.json whatsNew sections (source tables).
 //   DEPENDS: vitest, whatsNew/data.js, static/locales/*.json.
 //   LINKS: .grace/changes/archive/C-53/spec.xml R-1 + D-1; V-M-011
 //          scenario-46.

@@ -11,7 +11,7 @@
 // START_MODULE_MAP
 //   MEDIUM_TABLE - natural-width table wider than the text column but narrower than a large editor viewport.
 //   LONG_CELL_TABLE - long prose cells fitting the editor while exceeding the outline-reduced width.
-//   locales - ten shipped translation dictionaries, excluding generated minified copies.
+//   locales - ten shipped translation dictionaries.
 //   tableGeometry - actual table center and full owning editor client bounds.
 //   documentState - current normalized Markdown and saved flag for scroll-only mutation checks.
 // END_MODULE_MAP
@@ -44,7 +44,7 @@ Some text.
 
 More text.
 `
-const locales = readdirSync(resolve('static/locales')).filter(f => f.endsWith('.json') && !f.endsWith('.min.json'))
+const locales = readdirSync(resolve('static/locales')).filter(f => f.endsWith('.json'))
   .map(f => ({ name: f, data: JSON.parse(readFileSync(resolve('static/locales', f), 'utf8')) }))
 
 const LONG_CELL_TABLE = `# Long-cell table
