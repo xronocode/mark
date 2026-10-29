@@ -47,5 +47,32 @@
       Installed version, updater state, release metadata, and Homebrew
       availability remain understandable and consistent to the user.
     </ReleaseContinuity>
+    <LargeDocumentContract>
+      Approved by the owner on 2026-10-29 from the C-LARGE-DOC-STAGE-0
+      decision gate (owner-decision.md in that change; budgets are
+      acceptance gates for later waves, never regression excuses).
+      Target sizes: 1 MB is the comfortable supported target; the 1.7 MB /
+      9,000+ section shape is the stress/reference shape that must remain
+      usable; documents up to 100 KB are the ordinary baseline. Budgets:
+      ordinary documents get first visible content within 400 ms and p95
+      input-to-next-paint within 50 ms with a +20 percent same-run relative
+      tolerance against the recorded baseline; the 1 MB target gets open
+      within 1,500 ms and typing p95 within 100 ms; the 1.7 MB stress shape
+      gets open within 4,000 ms, typing p95 within 250 ms, longest
+      main-thread task within 300 ms and scroll frame p95 within 50 ms.
+      Chromium/Long-Tasks and WebKit/event-loop-lag-proxy are separate
+      labelled series and are never merged. Wave order: Wave A (progressive
+      mount) first, then B1/B2, B3 last; Wave B starts only after the Wave A
+      baseline is re-shot on the same corpus. Crash durability: no-WAL
+      honest contract — no unsaved-recovery guarantee is claimed, a hard
+      crash may lose edits since the last committed save, the atomic
+      old-or-new save is its own prerequisite change, and any WAL requires
+      separate approval. Experimental access: any experimental
+      large-document path ships local, default-off and session-latched
+      behind a visible Experimental setting that never persists silently;
+      default flips require separately approved changes. Tail-mount and
+      time-to-input budgets are deferred to Wave A and are explicitly
+      absent here.
+    </LargeDocumentContract>
   </Guidelines>
 </GraceUXGuidelines>

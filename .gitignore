@@ -75,3 +75,13 @@ homebrew-mark/
 
 # Locale min twins were removed (C-LOCALE-MIN-TWIN-REMOVAL); guard: tests/renderer/i18n/locale-keys.test.js
 static/locales/*.min.json
+
+# C-LARGE-DOC-STAGE-0: non-UTF-8 byte-policy fixtures materialize deterministically from generators
+/tests/e2e/fixtures/large-doc/byte-policy/utf16le-bom.md
+/tests/e2e/fixtures/large-doc/byte-policy/utf16be-bom.md
+/tests/e2e/fixtures/large-doc/byte-policy/latin1.md
+/tests/e2e/fixtures/large-doc/byte-policy/koi8-r.md
+/tests/e2e/fixtures/large-doc/byte-policy/cp1251.md
+/tests/e2e/fixtures/large-doc/byte-policy/shift-jis.md
+/tests/e2e/fixtures/large-doc/byte-policy/gb2312.md
+>>>>>>> 8a021b55 (test(fixtures): C-LARGE-DOC-STAGE-0 T-002 wave 1 — corpus generators, determinism/materializer gates, byte-policy UTF-8 variants, edge and pathological fixtures (non-UTF-8 byte-policy fixtures hash-pinned, materialized on demand))

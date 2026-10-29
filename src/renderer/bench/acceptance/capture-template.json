@@ -1,0 +1,39 @@
+{
+  "tier": "real-app",
+  "engineLabel": "<native-wkwebview or tauri-artifact — never a browser/Playwright label>",
+  "artifactCommit": "<hex commit the artifact was built from; must exist in this repository>",
+  "artifactLabel": "<bundle/build label; no private path>",
+  "runConditions": "<macOS version, hardware class, cold/warm start; no private data>",
+  "fixture": {
+    "id": "<opaque fixture id>",
+    "path": "tests/e2e/fixtures/large-doc/size-1mb.md",
+    "bytes": 0,
+    "sha256": "<sha256 printed by fixture-identity.mjs>"
+  },
+  "markers": [
+    {
+      "name": "BLOCK_FIXTURE",
+      "values": { "id": "<opaque fixture id>", "bytes": 0, "sha256": "<sha256>" }
+    },
+    {
+      "name": "BLOCK_OPEN",
+      "values": { "first_content_ms": 0, "time_to_input_ms": 0 }
+    },
+    {
+      "name": "BLOCK_TYPING",
+      "values": { "n": 0, "p50_ms": 0, "p95_ms": 0, "truth": "ok", "typed_landed": false }
+    },
+    {
+      "name": "BLOCK_SCROLL",
+      "values": { "frames": 0, "frame_p95_ms": 0, "jank_frames": 0 }
+    },
+    {
+      "name": "BLOCK_CLOSE",
+      "values": { "ms": 0 }
+    },
+    {
+      "name": "BLOCK_DONE",
+      "values": { "status": "ok" }
+    }
+  ]
+}

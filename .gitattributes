@@ -12,3 +12,7 @@ fixtures/fixture-pin.lock text eol=lf
 # Node scripts with a shebang are imported by vitest; a CRLF checkout
 # breaks the shebang line, so keep tools scripts LF on every checkout.
 tools/*.mjs text eol=lf
+
+# C-LARGE-DOC-STAGE-0: the corpus is byte-pinned (sha256 in shape-metadata.json);
+# no EOL conversion on any platform — checkout must yield the committed bytes
+tests/e2e/fixtures/large-doc/** -text
