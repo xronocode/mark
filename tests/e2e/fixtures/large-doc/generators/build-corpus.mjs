@@ -24,6 +24,7 @@
 import { mkdir, writeFile, rm } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex')
 
 import { makeRng, mixedParagraph, bodyBlock, tableRows, codeBlock, nestedList, nestedQuote, ENCODERS, NL, SAMPLE_RU, SAMPLE_EN, SAMPLE_SHIFT_JIS_TEXT, SAMPLE_SHIFT_JIS_BYTES, SAMPLE_GB2312_TEXT, SAMPLE_GB2312_BYTES, enSentence, ruSentence } from './lib.mjs'
@@ -218,7 +219,7 @@ export async function main (outDir, opts = {}) {
   return metadata
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const outDir = process.argv[2] || path.resolve(new URL('.', import.meta.url).pathname, '..')
   const with10m = process.argv.includes('--with-10m')
   await rm(path.join(outDir, '.regen-tmp'), { recursive: true, force: true })

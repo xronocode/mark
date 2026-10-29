@@ -23,6 +23,7 @@ import { readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { main as buildCorpus } from './build-corpus.mjs'
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex')
@@ -48,7 +49,7 @@ export async function ensureCorpus () {
   return corpusDir
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const dir = await ensureCorpus()
   console.log(`[corpus][ensure] fixtures ready under ${dir}`)
 }
