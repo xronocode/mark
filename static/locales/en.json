@@ -1711,5 +1711,11 @@
       "search": "Search",
       "toc": "Table of Contents"
     }
+  },
+  "rollback": {
+    "title": "Roll back to Mark {version}",
+    "body": "Settings return to the snapshot taken before the update — changes made after updating are reverted. Mark {current} will be skipped until a newer release ships.",
+    "confirm": "Roll Back",
+    "cancel": "Cancel"
   }
 }

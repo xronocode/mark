@@ -14,6 +14,8 @@
 // CHANGE_SUMMARY:
 //   - 2026-04-29 B3-step-3: initial clap parser + CliBoot facade.
 //   - 2026-05-20 B7-M-033: add --preview flag for read-only tab opens.
+//   - 2026-10-28 C-UPDATER-ROLLBACK T-002: add --rollback and --yes
+//                flags (headless crash-recovery path; parsed before UI).
 
 use clap::Parser;
 use std::path::PathBuf;
@@ -71,6 +73,18 @@ pub struct CliArgs {
     /// Print version and exit.
     #[arg(long = "print-version")]
     pub print_version: bool,
+
+    /// Roll the app back to the previously snapshotted version before
+    /// the UI boots — the crash-recovery path when a bad update breaks
+    /// startup. Headless: asks y/N on a TTY, needs --yes when not.
+    /// Desktop builds only (store builds print a store-managed note).
+    #[arg(long = "rollback")]
+    pub rollback: bool,
+
+    /// Non-interactive confirmation for --rollback (scripts). Without a
+    /// TTY, --rollback declines with exit 5 unless --yes is passed.
+    #[arg(long = "yes")]
+    pub yes: bool,
 }
 
 /// Parse process::args() and return the result.
@@ -245,5 +259,35 @@ mod tests {
         let args = parse_from(&["mark", "--watch", "--diff", "a.md"]).unwrap();
         assert!(args.watch);
         assert!(args.diff);
+    }
+
+    #[test]
+    fn rollback_flag_parses() {
+        let args = parse_from(&["mark", "--rollback"]).unwrap();
+        assert!(args.rollback);
+        assert!(!args.yes);
+        assert!(args.files.is_empty());
+    }
+
+    #[test]
+    fn yes_flag_parses() {
+        let args = parse_from(&["mark", "--rollback", "--yes"]).unwrap();
+        assert!(args.rollback);
+        assert!(args.yes);
+    }
+
+    #[test]
+    fn yes_without_rollback_parses_but_is_inert() {
+        let args = parse_from(&["mark", "--yes", "note.md"]).unwrap();
+        assert!(args.yes);
+        assert!(!args.rollback);
+        assert_eq!(args.files, vec![PathBuf::from("note.md")]);
+    }
+
+    #[test]
+    fn rollback_defaults_false() {
+        let args = parse_from(&["mark"]).unwrap();
+        assert!(!args.rollback);
+        assert!(!args.yes);
     }
 }

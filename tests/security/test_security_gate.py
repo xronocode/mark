@@ -333,7 +333,7 @@ class SafetyGateTests(unittest.TestCase):
                 url = request if isinstance(request, str) else request.full_url
                 if url.endswith("/api/ps"):
                     return Response(json.dumps({"models": []}).encode())
-                return Response(json.dumps({"done": True, "done_reason": "stop", "model": self.chat.get("model", "qwen3:4b"), "message": {"content": self.chat["content"]}}).encode())
+                return Response(json.dumps({"done": True, "done_reason": self.chat.get("done_reason", "stop"), "model": self.chat.get("model", "qwen3:4b"), "message": {"content": self.chat["content"]}}).encode())
         reviewer = {"label": "local", "endpoint": "http://127.0.0.1:11434", "model": "qwen3:4b", "gpuCheck": ""}
         candidate = {"identity": "e" * 64, "payload": "public"}
         with tempfile.TemporaryDirectory() as name:
@@ -348,6 +348,16 @@ class SafetyGateTests(unittest.TestCase):
             ]:
                 with self.subTest(chat=chat), self.assertRaises(gate.GateError):
                     gate._review_chunk(reviewer, "review", "chunk", Opener(chat), Path(name), candidate, [], 1)
+            truncated = {"model": "qwen3:4b", "content": json.dumps({"verdict": "pass", "findings": []}), "done_reason": "length"}
+            with self.assertRaises(gate.GateError) as caught:
+                gate._review_chunk(reviewer, "review", "chunk", Opener(truncated), Path(name), candidate, [], 1)
+            self.assertIn("done_reason=length", str(caught.exception))
+            hostile = {"model": "qwen3:4b", "content": json.dumps({"verdict": "pass", "findings": []}), "done_reason": "length /Users/" + "private-person" + "/x"}
+            with self.assertRaises(gate.GateError) as caught:
+                gate._review_chunk(reviewer, "review", "chunk", Opener(hostile), Path(name), candidate, [], 1)
+            refused = str(caught.exception)
+            self.assertIn("done_reason=length", refused)
+            self.assertNotIn("/", refused)
 
     def test_reviewer_verdict_must_be_strict_and_passing(self):
         for content in ["not json", "{}", json.dumps({"verdict": "fail", "findings": [{"category": "private path", "relative_path": "docs/x"}]}), json.dumps({"verdict": "pass", "findings": [{"category": "x"}]})]:

@@ -111,6 +111,9 @@
         <!-- C-NOTIFICATION-SYSTEM: V-M-067 owns the unified card/stack/
              history system (unit matrix, component pins, e2e visual probe). -->
         <V-M-067/>
+        <!-- C-UPDATER-ROLLBACK: V-M-068 owns the rollback manager's
+             commands, scenarios and content-free markers. -->
+        <V-M-068/>
       </Owns>
     </VD-FEATURES>
   </VerificationDocuments>

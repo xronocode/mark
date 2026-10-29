@@ -1,0 +1,145 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-LOCALE-MIN-TWIN-REMOVAL>
+    <ChangeRef>C-LOCALE-MIN-TWIN-REMOVAL</ChangeRef>
+    <Created>2026-10-28</Created>
+    <IntentSummary>Remove the ten static/locales/*.min.json twins and the laws that keep them alive: the loader glob switches to the full tables (localeLoader.js), both parity tests retire (locale-keys' byte-parity block becomes an inverted ten-file guard keeping the three T-003 gates; updateNotice's sync test is deleted), seven dead filter clauses and stale regeneration comments go, release tools stop writing and validating twins, dead src/common/i18n.js is deleted, and every living graph/verification/context artifact naming twins (M-055/V-M-055, M-011/V-M-011, V-M-012, V-M-062, deployment.xml) is rewritten in the same bundle; order matters — twins are deleted before the loader switch so the *.json glob never matches a live .min.json.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>.grace/changes/active/C-LOCALE-MIN-TWIN-REMOVAL/spec.xml</Value></MustExist>
+      <MustContain><File>.grace/changes/active/C-LOCALE-MIN-TWIN-REMOVAL/spec.xml</File><Text>status='approved'</Text></MustContain>
+      <MustExist><Value>static/locales/ru.min.json</Value></MustExist>
+      <MustExist><Value>static/locales/zh-TW.min.json</Value></MustExist>
+      <MustContain><File>src/renderer/src/i18n/localeLoader.js</File><Text>static/locales/*.min.json</Text></MustContain>
+      <MustContain><File>tests/renderer/i18n/locale-keys.test.js</File><Text>byte-identical</Text></MustContain>
+      <MustContain><File>tests/renderer/components/updateNotice.test.js</File><Text>stay in sync</Text></MustContain>
+      <MustContain><File>tools/release-normalize.mjs</File><Text>minPath</Text></MustContain>
+      <MustContain><File>tools/release-materials.mjs</File><Text>minifiedTables</Text></MustContain>
+      <MustExist><Value>src/common/i18n.js</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>static/locales/en.json</Value></MustExist>
+      <MustExist><Value>static/locales/ru.json</Value></MustExist>
+      <MustExist><Value>static/locales/zh-TW.json</Value></MustExist>
+      <MustContain><File>src/renderer/src/i18n/localeLoader.js</File><Text>static/locales/*.json</Text></MustContain>
+      <MustContain><File>tests/renderer/i18n/locale-keys.test.js</File><Text>readdirSync</Text></MustContain>
+      <MustContain><File>tests/renderer/i18n/locale-keys.test.js</File><Text>titleBar.modeChips</Text></MustContain>
+      <MustContain><File>.gitignore</File><Text>static/locales/*.min.json</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="300">npx vitest run tests/renderer/i18n/ tests/renderer/release-normalize.test.js tests/renderer/release-materials.test.js tests/renderer/components/updateNotice.test.js tests/renderer/store/notification.test.ts tests/renderer/util/agent-prompt-rich.test.js tests/renderer/util/theme-contrast.test.js tests/renderer/util/theme-families-docs-macos.test.js tests/renderer/whatsNew/content.test.js</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="300">npm run typecheck:ipc</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="1800">npm test</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="1500">npm run build &amp;&amp; CI=1 npx playwright test tests/e2e/settings-tabs-content.spec.ts tests/e2e/table-ui-regressions.spec.ts --project=chromium</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="60">bash -c 'hits=$(git grep -Il "min.json" -- . ":(exclude).grace/changes" 2>/dev/null); unexpected=$(printf "%s\n" "$hits" | grep -v "^tests/renderer/i18n/locale-keys.test.js$" | grep -v "^.gitignore$" | grep -v "^docs/development-plan.xml$" | grep -v "^$"); test -z "$unexpected" || { printf "UNEXPECTED min.json residue:\n%s\n" "$unexpected"; exit 1; }'</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-055 /><M-046 /><M-011 /></GraphAnchors>
+      <VerificationAnchors><V-M-055 /><V-M-011 /><V-M-012 /><V-M-062 /></VerificationAnchors>
+      <ContextArtifact>deployment.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <Glob>static/locales/*.min.json</Glob>
+      <File>.gitignore</File>
+      <File>src/renderer/src/i18n/localeLoader.js</File>
+      <File>src/renderer/src/i18n/systemLocale.js</File>
+      <File>src/renderer/src/_shims/install-window-globals.js</File>
+      <File>src/common/i18n.js</File>
+      <File>tools/release-normalize.mjs</File>
+      <File>tools/release-materials.mjs</File>
+      <Glob>tests/renderer/i18n/*.js</Glob>
+      <File>tests/renderer/components/updateNotice.test.js</File>
+      <File>tests/renderer/store/notification.test.ts</File>
+      <File>tests/renderer/util/theme-contrast.test.js</File>
+      <File>tests/renderer/util/theme-families-docs-macos.test.js</File>
+      <File>tests/renderer/util/agent-prompt-rich.test.js</File>
+      <File>tests/renderer/whatsNew/content.test.js</File>
+      <File>tests/renderer/release-normalize.test.js</File>
+      <File>tests/renderer/release-materials.test.js</File>
+      <File>tests/e2e/table-ui-regressions.spec.ts</File>
+      <File>tests/e2e/settings-tabs-content.spec.ts</File>
+      <Glob>.grace/graph/*.xml</Glob>
+      <Glob>.grace/verification/*.xml</Glob>
+      <File>.grace/context/deployment.xml</File>
+      <Glob>.grace/changes/active/C-LOCALE-MIN-TWIN-REMOVAL/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Preflight: parallel gate and fact re-verification before the first write</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>PREFLIGHT GATE (before the first write of this plan): re-run grace lint --path . --parallel-preflight and sequence against whatever overlaps it reports (spec Constraint: re-run, not trusted); re-verify the two deletion-safety facts with a fresh repo-wide grep: zero importers of src/common/i18n.js (excluding node_modules and build output; the renderer's window.i18nUtils.loadTranslations is an unrelated symbol) and the R-6 governance inventory unchanged (graph/runtime.xml M-011 2823, 3051-3054, 3074; verification/runtime.xml 4135, 4964, 5153, 6192, 6690, 6789, 13010; .grace/context/deployment.xml:1067). Any drift from the spec's inventory is fixed in the spec's ownership model (extend the task list, do not silently expand scope). No source writes in this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --parallel-preflight</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Delete the ten twins, guard the directory, retire the byte-parity law</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>git rm the ten static/locales/*.min.json; .gitignore gains the static/locales/*.min.json pattern (with a one-line comment naming the guard test); tests/renderer/i18n/locale-keys.test.js: the byte-parity it-block (lines 73-79) is replaced by a guard reading the directory with readdirSync and asserting (a) exactly the ten expected full tables by name and (b) no file matching *.min.json — a reintroduced twin fails naming the file; the three C-TITLEBAR-MODE-CHIPS T-003 gates (fifteen families, non-empty native copy, truncation range) stay byte-identical in their assertions; MODULE_CONTRACT PURPOSE rewritten to the guard (fifteen families; no twin law); MODULE_MAP and CHANGE_SUMMARY "seventeen" corrected to fifteen; LINKS refreshed from the active/ path to the archived bundle path .grace/changes/archive/C-TITLEBAR-MODE-CHIPS/spec.xml. Ordering rule: this lands before T-003 so the loader's new *.json glob never sees a live twin.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/i18n/locale-keys.test.js &amp;&amp; test $(ls static/locales/*.json | wc -l) -eq 10 &amp;&amp; test -z "$(ls static/locales/*.min.json 2>/dev/null)"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Switch the loader to the full tables</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/i18n/localeLoader.js: the import.meta.glob pattern changes from ../../../../static/locales/*.min.json to ../../../../static/locales/*.json; the LOADERS lookup-key template inside loadLocaleTable (line 36, `../../../../static/locales/${locale}.min.json`) switches to the same .json form in the same edit; codeOf strips the plain .json suffix; BUNDLED_LOCALES still resolves the same ten codes, loadLocaleTable keeps both fallbacks and both [i18n][loadLocaleTable] markers untouched; MODULE_CONTRACT PURPOSE/DEPENDS and the stale min.json comments in localeLoader.js, systemLocale.js (DEPENDS/keep-in-sync comments) and src/renderer/src/_shims/install-window-globals.js (the two comment lines) are updated to the full-table pipeline; VERSION bump and CHANGE_SUMMARY entry per file convention. English's static import in i18n/index.js is untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/i18n/locale-loader.test.js tests/renderer/i18n/index.test.js tests/renderer/i18n/index-deep.test.js tests/renderer/i18n/system-language.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Test-file cleanup: switch, retire, sweep</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>(a) tests/renderer/i18n/locale-loader.test.js: any direct readFileSync/import of *.min.json switches to the full tables and its SCOPE/PURPOSE header lines drop twin wording; (b) tests/renderer/i18n/system-language.test.js: the "(min.json)" test title at line 135 retitles without the twin suffix; (c) tests/renderer/components/updateNotice.test.js: the min/full sync it-block (lines 203-217) is deleted outright — retired, not switched; (d) dead .min.json exclusion filters deleted: tests/renderer/store/notification.test.ts:118, tests/renderer/util/theme-families-docs-macos.test.js:338, tests/e2e/table-ui-regressions.spec.ts:47, tests/renderer/util/theme-contrast.test.js:275 (each becomes a plain .json list); (e) stale regeneration comments deleted: tests/renderer/util/agent-prompt-rich.test.js:14, tests/renderer/whatsNew/content.test.js:13, tests/e2e/settings-tabs-content.spec.ts (the "until the .min.json regeneration runs" comment). No assertion semantics change beyond the retired sync law. Depends on T-003 as well because this task's verification runs the loader-coupled suites (locale-loader, system-language), which are red in the window where the twins are deleted but the glob still points at them.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/i18n/locale-loader.test.js tests/renderer/i18n/system-language.test.js tests/renderer/components/updateNotice.test.js tests/renderer/store/notification.test.ts tests/renderer/util/agent-prompt-rich.test.js tests/renderer/util/theme-contrast.test.js tests/renderer/util/theme-families-docs-macos.test.js tests/renderer/whatsNew/content.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Release tools stop writing and validating twins</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tools/release-normalize.mjs: the PLAN_RELEASE_NORMALIZATION loop drops the minPath variable and its addChange — only the full sourcePath tables are written; tools/release-materials.mjs: the minifiedTables map is deleted, validateLocaleMaterials is called with the source tables alone, and the source-to-minified parity requirement inside it (stableJson comparison failing as MT_RELEASE_LOCALE_MIN_DRIFT) is removed deliberately; tests/renderer/release-normalize.test.js and tests/renderer/release-materials.test.js: fixtures stop creating .min.json twins (lines 110, 212, 226 and the fixture reader at release-materials.test.js:62-65) and assert the new twin-free change shape; both tools' MODULE_CONTRACT/CHANGE_SUMMARY headers updated if they name twins.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/release-normalize.test.js tests/renderer/release-materials.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Delete the dead src/common/i18n.js</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Immediately before deleting, re-run the importer grep (zero hits expected, node_modules and build output excluded); git rm src/common/i18n.js; no other file changes — the module has no MODULE_CONTRACT, graph entry or verification anchor of its own (verified at spec time, re-verified in T-001), so no governance artifact loses an owner; typecheck:ipc stays clean.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run typecheck:ipc &amp;&amp; test ! -e src/common/i18n.js</Command>
+      </Verification>
+      </T-006>
+      <T-007>
+        <Title>Governance sweep: every living twin mention rewritten</Title>
+        <DependsOn>T-003, T-004, T-005, T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Same-bundle rewrites, in the .grace working tree: graph/features.xml M-055 Summary (min.json to full tables), verification/features.xml V-M-055 scenarios (scenario-1's "import.meta.glob over static/locales/*.min.json" and the 404 history stay — only the current-state twin wording changes), graph/runtime.xml M-011 (2823 "json + min.json", 3051-3054 the source/minified catalogs passage incl. the release-materials parity claim, 3074 "json + min.json"), verification/runtime.xml V-M-011 (4135, 4964, 5153), V-M-012 (6192, 6690, 6789), V-M-062 (13010: drop the byte-parity clause, correct "seventeen" to fifteen, keep the locale-keys.test.js Commands entry), .grace/context/deployment.xml (1067: drop the "Regen *.min.json" instruction). Post-sweep proof: git grep -I "min.json" over .grace/graph .grace/verification .grace/context returns zero hits. Frozen history (docs/development-plan.xml, archive bundles) untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bash -c 'test -z "$(git grep -Il "min.json" -- .grace/graph .grace/verification .grace/context 2>/dev/null)"'</Command>
+      </Verification>
+      </T-007>
+      <T-008>
+        <Title>Full gates and the residue proof</Title>
+        <DependsOn>T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>(a) targeted vitest run over every touched suite (the TargetAssertions command) green; (b) npm test fully green; (c) npm run build &amp;&amp; CI=1 npx playwright test tests/e2e/settings-tabs-content.spec.ts tests/e2e/table-ui-regressions.spec.ts --project=chromium green (the harness serves vite preview from dist/, so build first; port 4173 held fails closed under CI=1); (d) npm run typecheck:ipc clean; (e) the TargetAssertions residue grep passes: every repo min.json hit is the guard test, the .gitignore entry or the frozen docs/development-plan.xml. Any failure routes back to its owning task — no side fixes outside the ObservedWriteScope.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm test</Command>
+      </Verification>
+      </T-008>
+    </ImplementationPlan>
+  </C-LOCALE-MIN-TWIN-REMOVAL>
+</GraceChangePlan>

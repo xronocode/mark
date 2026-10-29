@@ -1695,5 +1695,11 @@
       "search": "搜尋",
       "toc": "目錄"
     }
+  },
+  "rollback": {
+    "title": "回退到 Mark {version}",
+    "body": "設定將恢復到更新前的快照——更新後所做的變更會遺失。在較新版本發布之前，將跳過 Mark {current}。",
+    "confirm": "回退",
+    "cancel": "取消"
   }
 }

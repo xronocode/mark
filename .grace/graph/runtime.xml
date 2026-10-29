@@ -2820,7 +2820,7 @@
         the native window title follows the active tab
         (preference.vue APPLY_WINDOW_TITLE via getCurrentWindow().setTitle);
         src-tauri mt_open_setting_window builds the fixed 640×620 window;
-        preferences.tabs labels ship in all ten locales (json + min.json).
+        preferences.tabs labels ship in all ten locales (json).
         C-38 T-004: the five tabs carry their real content per the N2 IA —
         prefComponents/tabs/{general,appearance,editor,markdown,advanced}
         built only from prefComponents/common controls (grouped compound
@@ -3048,10 +3048,9 @@
         docs/assets/readme/01-agents, 03-diagrams, 05-viewer, 07-home
         and 08-dark PNGs).
         C-RELEASE-PIPELINE-AUTOMATION: WHATS_NEW_CONTENT and all ten
-        source/minified locale catalogs include the reviewed 2.6.0 entry;
+        locale catalogs include the reviewed 2.6.0 entry;
         release-materials enforces one to four ordered items, title/text/Also
-        limits, exact release URL, product-token preservation, and source ↔
-        minified parity. M-046 owns admission/publication; M-011 owns only the
+        limits, exact release URL and product-token preservation. M-046 owns admission/publication; M-011 owns only the
         in-app sheet content and rendering contract.
         C-68 T-001: ⌘D always has something to compare. store/diffSnapshots.js
         keeps a second per-tab map — one «opened» snapshot
@@ -3071,7 +3070,7 @@
         view.diff-mode untitled pre-check uses the same calm wording). The
         diff header labels the opened source («Since you opened the file ·
         {time}», diffView.sourceOpened in all ten locales; the superseded
-        noPath/noBaseline keys retired from json + min.json). Pinned by
+        noPath/noBaseline keys retired from json). Pinned by
         tests/renderer/store/diff-snapshots.test.js (slot semantics),
         tests/renderer/store/opened-snapshots.test.js (load-path wiring),
         tests/renderer/components/diff-opened-baseline.test.js (priority

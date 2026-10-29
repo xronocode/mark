@@ -10,6 +10,7 @@
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
 //   MARKER_RE - Extracts the marker name and its millisecond value from a BLOCK_OPEN_* log line.
+//   LARGE_DOC_PAINT_BUDGET_MS - Paint budget constant: 10000 ms locally, 20000 ms on CI (concurrent-job noise headroom, #119).
 //   openTiming - Boots the app, arms the click stamp, delivers one mt::open-new-tab event and collects the emitted markers.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY

@@ -7,9 +7,8 @@ import { installTauriShim } from './fixtures/tauri-shim'
  * Runs in chromium AND webkit: every tab opens on its redesigned rows
  * (a sentinel label per tab), nothing overflows horizontally, and no
  * .pref-row-label is clipped (scrollWidth <= clientWidth). The RU pass
- * repeats the geometry scan — until the .min.json regeneration runs, a
- * stale RU table falls back to the EN labels, which the generic
- * clipping check tolerates either way.
+ * repeats the geometry scan over the live RU table; the generic
+ * clipping check tolerates either label language.
  */
 
 test.use({ viewport: { width: 640, height: 620 } })
