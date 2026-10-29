@@ -72,3 +72,6 @@ homebrew-mark/
 /docs/archive/F-CASK-PUBLISH-HANDOFF.md
 /docs/archive/F-UPDATER-WIRE-PLUGIN-handoff.md
 /docs/grace-ai-standards-hygiene-methodology.md
+
+# Locale min twins were removed (C-LOCALE-MIN-TWIN-REMOVAL); guard: tests/renderer/i18n/locale-keys.test.js
+static/locales/*.min.json

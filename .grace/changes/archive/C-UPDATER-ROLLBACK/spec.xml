@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
   <C-UPDATER-ROLLBACK>
     <Name>Updater rollback: one-step restore of the previous version from the Help menu or a terminal command when the UI will not start</Name>
     <Created>2026-10-28</Created>

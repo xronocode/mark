@@ -132,7 +132,7 @@ describe("'As in system' option label (C-45)", () => {
     expect(options[0].label).toBe('As in system')
   })
 
-  it('exists in every shipped translation table (min.json) and in the en source', async () => {
+  it('exists in every shipped translation table and in the en source', async () => {
     for (const locale of BUNDLED_LOCALES) {
       const table = await loadLocaleTable(locale)
       expect(table.preferences.general.language.system, locale).toBeTruthy()

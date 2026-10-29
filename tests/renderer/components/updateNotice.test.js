@@ -7,7 +7,7 @@
 //            the localized «Mark X.Y.Z is available» title and the three
 //            Update / Later / Skip this version actions dispatching the
 //            matching store actions — plus the presence of every C-66 key
-//            in all ten locale tables (json + min form).
+//            in all ten locale tables.
 //   SCOPE: src/renderer/src/components/updateNotice/index.vue behaviour
 //          (via store/notifications state), store/autoUpdates dispatch
 //          spies, and the static/locales C-66 key inventory.
@@ -24,7 +24,7 @@
 //   mountNotice - mount the logic component with a fresh Pinia.
 //   queueNotice - flip the autoUpdates store into the post-check state.
 //   LOCALES - the ten shipped locale codes.
-//   readJson - read a locale table (json or min form).
+//   readJson - read a locale table.
 //   NOTICE_KEYS - the updateNotice.* key inventory.
 //   UPDATES_KEYS - the preferences.general.updates key inventory.
 //   SEARCH_KEY - the preferences.search.items key checked alongside.
@@ -196,22 +196,6 @@ describe('updateNotice + updates switch — all ten locales', () => {
       expect(typeof searchItem, `${locale} preferences.search.items.${SEARCH_KEY}`).toBe('string')
       expect(searchItem.length, `${locale} preferences.search.items.${SEARCH_KEY}`).toBeGreaterThan(
         0
-      )
-    }
-  })
-
-  it('the compact .min.json tables stay in sync (same keys, same values)', () => {
-    for (const locale of LOCALES) {
-      const full = readJson(`${locale}.json`)
-      const min = readJson(`${locale}.min.json`)
-      expect(min.updateNotice, `${locale}.min.json updateNotice`).toEqual(full.updateNotice)
-      expect(min.preferences.general.updates.autoCheck, `${locale}.min.json updates.autoCheck`)
-        .toBe(full.preferences.general.updates.autoCheck)
-      expect(min.preferences.general.updates.autoCheckHelp, `${locale}.min.json autoCheckHelp`).toBe(
-        full.preferences.general.updates.autoCheckHelp
-      )
-      expect(min.preferences.search.items.autoCheckUpdates, `${locale}.min.json search item`).toBe(
-        full.preferences.search.items.autoCheckUpdates
       )
     }
   })
