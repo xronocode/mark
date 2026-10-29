@@ -23,6 +23,11 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-04-28 B1-step-7: initial parity check.
+//   - 2026-10-28 C-UPDATER-ROLLBACK T-004: register the three M-068
+//     rollback commands (mt_rollback_prepare/status/restore); the
+//     fixture regeneration also exposed five fs commands that were
+//     always registered in generate_handler! but missing from this
+//     hand-kept list (the stale fixture masked the gap) — added.
 
 /// The fixture is embedded at compile time. If the file is missing or
 /// the path drifts, the build fails — which is the right behavior:
@@ -46,11 +51,16 @@ const TAURI_V2_FIXTURE: &str =
 // through SavedTabState rather than M-013-A CommandMap.
 const REGISTERED_COMMANDS: &[&str] = &[
     "mt_fonts_list",
+    "mt_fs_copy",
+    "mt_fs_mkdir",
+    "mt_fs_move",
     "mt_fs_read",
+    "mt_fs_read_binary",
     "mt_fs_readdir",
     "mt_fs_stat",
     "mt_fs_unlink",
     "mt_fs_write",
+    "mt_fs_write_binary",
     "mt_menu_taxonomy",
     "mt_pandoc_export",
     "mt_pandoc_status",
@@ -63,6 +73,10 @@ const REGISTERED_COMMANDS: &[&str] = &[
     "mt_recent_insert",
     "mt_recent_list",
     "mt_recent_remove",
+    // C-UPDATER-ROLLBACK M-068 rollback manager surface.
+    "mt_rollback_prepare",
+    "mt_rollback_restore",
+    "mt_rollback_status",
     "mt_screenshot_capture",
     "mt_search_cancel",
     "mt_search_spawn",

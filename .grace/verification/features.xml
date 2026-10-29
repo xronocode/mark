@@ -2745,5 +2745,17 @@
       <Markers><Marker>[notifications][BLOCK_NOTIFY_DEDUP]</Marker><Marker>[notifications][BLOCK_NOTIFY_HISTORY_APPEND]</Marker><Marker>[notifications][BLOCK_COPY_ON_SELECT]</Marker><Marker>[notifications][BLOCK_NOTICE_STACK_SYNC]</Marker></Markers>
       <TraceAssertions><TraceAssertion>Store markers and history never log message bodies — titles and full text stay in state, off the console (console-privacy convention).</TraceAssertion></TraceAssertions>
     </V-M-067>
+      <V-M-068>
+      <Priority>high</Priority><Commands><Command>cargo test --manifest-path src-tauri/Cargo.toml rollback</Command><Command>npx vitest run tests/renderer/commands/updater.test.js</Command><Command>npx vitest run tests/renderer/i18n tests/renderer/menu-bridge.test.js</Command></Commands>
+      <Scenarios>
+        <Scenario>Rust unit matrix (rollback_core): manifest validity — equals-running-version rejection (failed-attempt state), derivation mismatch with injected path material, unknown schema/platform/non-strict-semver rejection, digests recorded, atomic staging with stale-temp cleanup, promote-only-after-success decision table.</Scenario>
+        <Scenario>Rust unit matrix (rollback_restore): corrupted manifest equals missing with zero fetches; restore-time digest mismatch aborts untouched (exit 6); non-TTY without --yes declines (exit 5); tampered signature never executes (exit 4); exactly two fetches on the Windows happy path (latest.json + installer) and zero on macOS; feed-version mismatch rejected before its platform entry is used; m005 tolerance of unknown newer keys.</Scenario>
+        <Scenario>Rust unit matrix (rollback_cli + m020_cli): the MARK_ROLLBACK machine line format (from/to omitted when inapplicable); nonce-mismatched acks ignored into the timeout path; delegate serve idempotency; --rollback/--yes flag parsing; deterministic Windows asset-name derivation.</Scenario>
+        <Scenario>Renderer pins: installSignedUpdate invokes mt_rollback_prepare before check/downloadAndInstall (invocationCallOrder); a prepare failure cancels the update fail-closed; help.rollback registered; OPEN gates on mt_rollback_status; cancel is a no-op; CONFIRM invokes mt_rollback_restore. Locale coverage: rollback strings in all ten locale pairs (full + byte-identical min twins).</Scenario>
+        <Scenario>Manual protocol (owner-executed, transcript attached at archive): a real two-version restore on macOS via the menu and via the terminal crash path; a polygon (laptop-kari) Windows restore through the verified installer; the terminal transcript shows every BLOCK_ROLLBACK_* marker and exactly one MARK_ROLLBACK line.</Scenario>
+      </Scenarios>
+      <Markers><Marker>[Rollback][prepare][BLOCK_ROLLBACK_PREPARE]</Marker><Marker>[Rollback][verify][BLOCK_ROLLBACK_VERIFY]</Marker><Marker>[Rollback][restore][BLOCK_ROLLBACK_RESTORE]</Marker><Marker>[Rollback][cli][BLOCK_ROLLBACK_CLI]</Marker></Markers>
+      <TraceAssertions><TraceAssertion>CLI transcripts carry version identifiers and outcomes only — no paths beyond the derived release asset names, no user data.</TraceAssertion></TraceAssertions>
+    </V-M-068>
   </VD-FEATURES>
 </GraceVerificationDocument>
