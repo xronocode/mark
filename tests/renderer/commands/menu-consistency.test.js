@@ -176,6 +176,9 @@ describe('menu ↔ commands consistency', () => {
     // with a label-less placeholder so the menu geometry is unchanged —
     // it is never user-visible and maps to no renderer command.
     'help.update-hidden',
+    // C-UPDATER-ROLLBACK: same placeholder pattern — the rollback item
+    // is replaced by a label-less placeholder when no snapshot exists.
+    'help.rollback-hidden',
   ])
 
   it('every native menu ID has a renderer command', () => {

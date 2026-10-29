@@ -5,9 +5,9 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-05-09T08:23:20.661Z",
+  "generated_at": "2026-10-28T17:33:46.831Z",
   "counts": {
-    "commands": 42,
+    "commands": 50,
     "error_codes": 4
   },
   "error_codes": [
@@ -21,7 +21,7 @@
       "name": "mt::ext::disable",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-045",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -29,7 +29,7 @@
       "name": "mt::ext::discover",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-045",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -37,7 +37,7 @@
       "name": "mt::ext::enable",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-045",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -45,7 +45,7 @@
       "name": "mt::ext::invoke",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-045",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -53,7 +53,7 @@
       "name": "mt::ext::list",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-045",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -61,7 +61,7 @@
       "name": "mt::ext::text_insert",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-045",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -69,7 +69,7 @@
       "name": "mt::ext::text_transform",
       "direction": "renderer->main",
       "transport": "invoke",
-      "layer": "M-045",
+      "layer": "M-013-A",
       "has_args": true,
       "has_result": true
     },
@@ -82,7 +82,39 @@
       "has_result": true
     },
     {
+      "name": "mt::fs::copy",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::mkdir",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::move",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
       "name": "mt::fs::read",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::read_binary",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013-A",
@@ -115,6 +147,14 @@
     },
     {
       "name": "mt::fs::write",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::fs::write_binary",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013-A",
@@ -219,6 +259,30 @@
     },
     {
       "name": "mt::recent::remove",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::rollback::prepare",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::rollback::restore",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::rollback::status",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013-A",

@@ -10,7 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   LOCALES - Ten source/minified locale identifiers.
+//   LOCALES - Ten source locale identifiers.
 //   PREVIOUS - Synthetic previous release version.
 //   PLANNED - Synthetic planned version the drafts are written for.
 //   DATE - Deterministic normalization date.
@@ -107,7 +107,6 @@ const synthetic = ({ packageVersion = PLANNED, state = 'Collecting' } = {}) => {
   for (const locale of LOCALES) {
     const table = { whatsNew: { [draftKey(PLANNED)]: { alpha: { title: `A-${locale}` } } } }
     writeJson(root, `static/locales/${locale}.json`, table)
-    writeFile(root, `static/locales/${locale}.min.json`, JSON.stringify(table))
   }
   writeJson(root, 'docs/release-trains/current.json', { schemaVersion: '1.0.0', trainId: '1.5.x-next' })
   writeJson(root, 'docs/release-trains/1.5.x-next.json', {
@@ -209,7 +208,7 @@ describe('release normalization', () => {
         'README.md',
         'docs/release-notes-en-drafts.md',
         'src/renderer/src/whatsNew/data.js',
-        ...LOCALES.flatMap((locale) => [`static/locales/${locale}.json`, `static/locales/${locale}.min.json`])
+        ...LOCALES.flatMap((locale) => [`static/locales/${locale}.json`])
       ])
     )
     const after = (path) => plan.changes.find((change) => change.path === path).after
@@ -223,7 +222,6 @@ describe('release normalization', () => {
     expect(whatsNew).not.toContain(`'${PLANNED}': '`)
     const locale = JSON.parse(after('static/locales/fr.json'))
     expect(Object.keys(locale.whatsNew)).toEqual([draftKey(target)])
-    expect(after('static/locales/fr.min.json')).toBe(JSON.stringify(locale))
     expect(JSON.parse(after('docs/release-trains/1.5.x-next.json')).computedVersion).toBe(target)
   })
 

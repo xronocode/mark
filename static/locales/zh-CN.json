@@ -1687,5 +1687,11 @@
       "search": "搜索",
       "toc": "目录"
     }
+  },
+  "rollback": {
+    "title": "回退到 Mark {version}",
+    "body": "设置将恢复到更新前的快照——更新后所做的更改会丢失。在更新的版本发布之前，将跳过 Mark {current}。",
+    "confirm": "回退",
+    "cancel": "取消"
   }
 }

@@ -1695,5 +1695,11 @@
       "search": "Buscar",
       "toc": "Tabla de Contenidos"
     }
+  },
+  "rollback": {
+    "title": "Volver a Mark {version}",
+    "body": "Los ajustes vuelven a la copia tomada antes de la actualización: los cambios hechos después se pierden. Mark {current} se omitirá hasta que salga una versión más reciente.",
+    "confirm": "Volver",
+    "cancel": "Cancelar"
   }
 }
