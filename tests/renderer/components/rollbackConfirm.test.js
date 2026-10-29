@@ -25,6 +25,7 @@
 //   mountCard - mount the logic component with a fresh Pinia.
 //   armRollback - flip the autoUpdates store into the confirmed-available state.
 //   entry - the live stack entry the card injected.
+//   listenMock - hoisted @tauri-apps/api/event listen spy (delegate listener pin).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
