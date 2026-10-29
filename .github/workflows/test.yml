@@ -174,7 +174,11 @@ jobs:
   renderer-e2e:
     name: renderer e2e playwright (macos-14)
     runs-on: macos-14
-    timeout-minutes: 25
+    # C-LARGE-DOC-STAGE-0: raised from 25 — the webkit-perf characterization
+    # oracles add ~5 minutes of WebKit suites; the first full green run took
+    # 25m14s and merge-commit runs (one flake retry) tipped over the old
+    # ceiling and were cancelled. Gate budgets and assertions are unchanged.
+    timeout-minutes: 35
 
     steps:
       - name: checkout
