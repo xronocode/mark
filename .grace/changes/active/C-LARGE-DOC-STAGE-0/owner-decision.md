@@ -58,7 +58,7 @@ target; treat the 1.7 MB / 9,000+ section shape as the stress/reference shape
 that must remain usable but is not promised the same latency; 100 KB is the
 ordinary-document baseline for relative tolerance.
 
-**Owner decision: ____________________** (target size)
+**Owner decision: 1.7 MB / 9000 sections** (recorded 2026-10-29, owner instruction «действуем по твоей рекомендации»; preliminary until re-confirmed against these tables) — source: decisions-preliminary.md
 
 ## Decision 2 — Absolute budgets and same-run relative tolerance
 
@@ -82,7 +82,7 @@ content ≤ 400 ms; p95 input-to-next-paint ≤ 50 ms; same-run relative toleran
 WebKit/event-loop-lag-proxy are separate series and are never merged.
 Tail-mount and time-to-input budgets: deferred to Wave A, explicitly absent.
 
-**Owner decision: ____________________** (absolute + relative budgets)
+**Owner decision: pending the final tables** (deliberately open: absolute + relative budgets are approved only against the completed baseline tables per the spec, never guessed)
 
 ## Decision 3 — Wave A / Wave B order
 
@@ -101,7 +101,7 @@ then Wave B1/B2 (change-source contract, lazy derived pipeline), with B3
 (history materialization) last. Wave B must not start before the Wave A
 baseline is re-shot on the same corpus.
 
-**Owner decision: ____________________** (wave order)
+**Owner decision: Wave A first** (progressive mount; recorded 2026-10-29, preliminary — mount dominates: 809 ms of ~890 on 1 MB while parsing is 18 ms) — source: decisions-preliminary.md
 
 ## Decision 4 — Crash-durability contract
 
@@ -121,7 +121,7 @@ in-place save can damage even the previous file. The target is an atomic
 old-or-new save, approved as its own prerequisite change. A durable-before-ack
 WAL requires a separate approval before any claim.
 
-**Owner decision: ____________________** (crash contract; WAL yes/no)
+**Owner decision: no WAL, honest** (atomic old-or-new save; no unsaved-recovery guarantee claimed; WAL may come as a separately approved change; recorded 2026-10-29, preliminary) — source: decisions-preliminary.md
 
 ## Decision 5 — Later-wave experimental access model
 
@@ -137,7 +137,7 @@ local, default-off and session-latched behind a visible Experimental setting
 that never persists silently; flipping a default requires a separate approved
 change. Support-only preference and private build are the alternatives.
 
-**Owner decision: ____________________** (access model)
+**Owner decision: visible Experimental settings section** (local, default-off, session-latched until a separately approved flip; recorded 2026-10-29, preliminary) — source: decisions-preliminary.md
 
 ---
 

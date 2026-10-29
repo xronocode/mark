@@ -11,9 +11,11 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   bench(label, fn, opts) - warmup + N-sample timing; logs [MICROBENCH] label n=… p50_ms=… p95_ms=… mean_ms=…; returns stats (finite).
-//   loadFixtures() - reads mixed-100k.md, semantic-edge.md and size-1mb.md from the corpus (byte counts logged; exact fixture identity comes from tests/e2e/fixtures/large-doc/shape-metadata.json).
-//   makeStateBuilder() - FakeContentState patched with importRegister + tocCtrl mixins; provides markdownToState() and getTOC() without the full Muya DOM app.
+//   percentile - sorted-array percentile helper used by bench().
+//   bench - warmup + N-sample timing; logs [MICROBENCH] label n=… p50_ms=… p95_ms=… mean_ms=…; returns stats (finite).
+//   corpusDir - resolved path of the committed large-doc corpus.
+//   fixture - reads one corpus fixture, returning {name, text, bytes}.
+//   makeStateBuilder - real ContentState on a minimal muya stub (all controller mixins self-apply at module load).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
