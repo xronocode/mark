@@ -86,14 +86,19 @@ T-005, `29aae406` review corrections.
   verifier are delivered and tested, and the pass criterion (numeric required
   phases + `typed_landed: true`) is enforced by the verifier. The owner runs
   the capture; until then Stage 0 is not fully evidenced.
-- Stage 0 budgets/target size: owner decisions, lines blank in
-  `owner-decision.md`.
+- Stage 0 budgets/target size: RESOLVED 2026-10-29 — all five owner lines
+  are FINAL in `owner-decision.md` and mirrored in the ux-guidelines
+  LargeDocumentContract.
 - The built-in-fixture legacy Phase-B1 gate reports 3.16–3.39× on this machine
   and exits FAIL; recorded, not tuned. It is not a gate of this change.
-- This branch must not be pushed as-is: `466d4c57` still contains a
-  since-redacted owner-local path in its tree. A push needs a clean history
-  (the rewritten clean branch) or an owner-approved rewrite, plus a re-run of
-  the privacy scan.
+- Branch pushability: RESOLVED 2026-10-29 — the original lineage (through
+  b3dc3304) was never pushable (`466d4c57` carried a since-redacted
+  owner-local path); the publish lineage was rebuilt and privacy-filtered,
+  and the standing privacy scan passes. Lineage note:
+  `baseline.json` cites `commit 29aae406` / `recordedBaseCommit 466d4c57` —
+  truthful at capture time, unreachable on this lineage by design; the
+  corpus fixture pins it recorded are byte-identical here (re-verified by
+  regen --check and the round-2/3 reviewers).
 - No release, tag, train admission, Wave A/B work or production behavior
   change follows from this evidence.
 
