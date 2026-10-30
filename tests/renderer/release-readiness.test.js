@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-readiness.test.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
@@ -20,9 +20,15 @@
 //   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag; the seal span can be several bookkeeping commits, a merge commit, or carry a reverted product change.
 //   strictOptions - Default strict identity options for one strict repository.
 //   rejectedWith - Assert one stable release-readiness failure code.
+//   SHA_D - Deterministic lane merge-commit fixture.
+//   laneFixture - Minimal valid lane-train (td-N) authority in a chosen state.
+//   laneLedger - Lane ledger fixture that satisfies the always-complete lane rules.
+//   laneWorkspace - Workspace with a carrier product train and one lane document pair.
+//   laneRejected - Assert one stable lane-validation failure code.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-30 v2.2.0: lane trains — prove lane lifecycle, base/head accounting, premature departure, carrier admission of every lane commit, the always-complete lane ledger and the per-run validation of every td-N document.
 //   - 2026-10-27 v2.1.0: current-train bookkeeping drift — prove a missing admitted-item heading, commit, or history bullet fails, terminal ledgers stay header-only, and the pointer/README/Project-schema trio must agree.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — validate the live train through the current-train pointer (no hardcoded train or version); prove multi-commit and merge-commit metadata-only seal spans pass while a product commit anywhere in the span (even one reverted later) and a seal equal to the payload fail; drop the Release Please boundary case.
 //   - 2026-10-21 v1.3.1: derive the collecting-train item count from the checked-in manifest so routine admissions do not require a duplicate fixture edit.
@@ -41,6 +47,9 @@ import { resolveCurrentTrain } from '../../tools/release-train.mjs'
 import {
   readTrainManifest,
   validateCurrentTrainPointer,
+  validateLaneTrainLedger,
+  validateLaneTrainManifest,
+  validateLaneTrains,
   validateProjectFieldCoverage,
   validateStrictRepositoryState,
   validateTrainLedger,
@@ -691,3 +700,183 @@ describe('release-train bookkeeping drift', () => {
   })
 })
 // END_BLOCK_RELEASE_TRAIN_DRIFT_TESTS
+
+// START_BLOCK_LANE_TRAIN_TESTS
+const SHA_D = 'd'.repeat(40)
+
+const laneFixture = (state = 'Collecting') => {
+  const frozen = state === 'Frozen' || state === 'Merged'
+  const transitions = [{ state: 'Collecting', date: '2026-10-30' }]
+  if (frozen) transitions.push({ state: 'Frozen', date: '2026-10-31' })
+  if (state === 'Merged') transitions.push({ state: 'Merged', date: '2026-11-01' })
+  return {
+    schemaVersion: '1.0.0',
+    kind: 'lane',
+    trainId: 'td-1',
+    state,
+    lane: {
+      branch: 'integ/techdebt',
+      baseSha: SHA_A,
+      headSha: frozen ? SHA_C : null,
+      mergeSha: state === 'Merged' ? SHA_D : null,
+      carrierTrain: state === 'Merged' ? '9.9.x-next' : null
+    },
+    items: {
+      userFacing: [],
+      operational: [
+        {
+          id: 'TD-1',
+          summary: 'Dependency advisories closed',
+          commits: [SHA_C],
+          acceptance: {
+            owner: 'owner',
+            date: '2026-10-30',
+            testedArtifact: 'None — dependency bump only',
+            scenarios: ['AUTOMATED: cargo audit reports no vulnerabilities.']
+          }
+        }
+      ],
+      notPresent: []
+    },
+    commitAccounting: {
+      fromExclusive: SHA_A,
+      throughInclusive: frozen ? SHA_C : null,
+      entries: [{ sha: SHA_C, classification: 'operational', itemIds: ['TD-1'] }]
+    },
+    transitions
+  }
+}
+
+const laneLedger = (manifest) =>
+  [
+    `| State | ${manifest.state} |`,
+    '| Lane branch | `integ/techdebt` |',
+    '| Machine-readable authority | [td-1.json](td-1.json) |',
+    '',
+    '### TD-1',
+    `- Source commit: \`${SHA_C.slice(0, 8)}\``,
+    ...manifest.transitions.map(({ date }) => `- ${date}: lifecycle event`),
+    ''
+  ].join('\n')
+
+const laneWorkspace = ({ manifest = laneFixture('Merged'), carried = [SHA_D, SHA_C] } = {}) => {
+  const root = mkdtempSync(resolve(tmpdir(), 'mark-lane-train-'))
+  mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
+  writeFileSync(
+    resolve(root, 'docs/release-trains/9.9.x-next.json'),
+    JSON.stringify({
+      trainId: '9.9.x-next',
+      items: {
+        userFacing: [],
+        operational: carried ? [{ id: 'td-1', summary: 'Tech-debt lane', commits: carried }] : []
+      }
+    })
+  )
+  writeFileSync(resolve(root, 'docs/release-trains/td-1.json'), JSON.stringify(manifest))
+  writeFileSync(resolve(root, 'docs/release-trains/td-1.md'), laneLedger(manifest))
+  return root
+}
+
+const laneRejected = (manifest, code, workspaceRoot = process.cwd()) => {
+  expect(() => validateLaneTrainManifest(manifest, { workspaceRoot })).toThrow(
+    expect.objectContaining({ code })
+  )
+}
+
+describe('lane trains', () => {
+  it('accepts a collecting lane with partial accounting', () => {
+    expect(validateLaneTrainManifest(laneFixture())).toMatchObject({
+      trainId: 'td-1',
+      state: 'Collecting',
+      branch: 'integ/techdebt',
+      itemCounts: { operational: 1 }
+    })
+  })
+
+  it('accepts a frozen lane accounted through its head', () => {
+    expect(validateLaneTrainManifest(laneFixture('Frozen')).state).toBe('Frozen')
+  })
+
+  it('rejects a frozen lane without a head or with accounting that stops short', () => {
+    const headless = laneFixture('Frozen')
+    headless.lane.headSha = null
+    laneRejected(headless, 'MT_RELEASE_COMMIT_ACCOUNTING_INVALID')
+    const short = laneFixture('Frozen')
+    short.commitAccounting.entries = []
+    laneRejected(short, 'MT_RELEASE_COMMIT_ACCOUNTING_INVALID')
+  })
+
+  it('rejects accounting that does not start at the lane base', () => {
+    const manifest = laneFixture()
+    manifest.commitAccounting.fromExclusive = SHA_B
+    laneRejected(manifest, 'MT_RELEASE_COMMIT_ACCOUNTING_INVALID')
+  })
+
+  it.each([
+    ['kind', (m) => delete m.kind, 'MT_RELEASE_LANE_INVALID'],
+    ['product-style ID', (m) => (m.trainId = '2.9.x-next'), 'MT_RELEASE_LANE_INVALID'],
+    ['main as the lane branch', (m) => (m.lane.branch = 'main'), 'MT_RELEASE_LANE_INVALID'],
+    ['missing base', (m) => (m.lane.baseSha = null), 'MT_RELEASE_LANE_INVALID'],
+    ['product state', (m) => (m.state = 'Released'), 'MT_RELEASE_LIFECYCLE_INVALID'],
+    ['premature departure', (m) => (m.lane.mergeSha = SHA_D), 'MT_RELEASE_LANE_INVALID']
+  ])('rejects a lane with %s', (_name, mutate, code) => {
+    const manifest = laneFixture()
+    mutate(manifest)
+    laneRejected(manifest, code)
+  })
+
+  it('rejects a lane that skips Frozen on its way to Merged', () => {
+    const manifest = laneFixture('Merged')
+    manifest.transitions = manifest.transitions.filter(({ state }) => state !== 'Frozen')
+    laneRejected(manifest, 'MT_RELEASE_LIFECYCLE_INVALID', laneWorkspace({ manifest }))
+  })
+
+  it('accepts a merged lane its carrier train holds in full', () => {
+    const root = laneWorkspace()
+    expect(validateLaneTrainManifest(laneFixture('Merged'), { workspaceRoot: root }).state).toBe(
+      'Merged'
+    )
+  })
+
+  it.each([
+    ['no carrier item', null],
+    ['the merge commit missing', [SHA_C]],
+    ['a lane commit missing', [SHA_D]]
+  ])('rejects a merged lane with %s', (_name, carried) => {
+    const root = laneWorkspace({ carried })
+    laneRejected(laneFixture('Merged'), 'MT_RELEASE_LANE_CARRIER_MISSING', root)
+  })
+
+  it('rejects a merged lane whose carrier train is not checked in', () => {
+    const manifest = laneFixture('Merged')
+    manifest.lane.carrierTrain = '9.8.x-next'
+    laneRejected(manifest, 'MT_RELEASE_LANE_CARRIER_MISSING', laneWorkspace())
+  })
+
+  it('demands a heading for operational lane items and a current header', () => {
+    const manifest = laneFixture()
+    expect(validateLaneTrainLedger(laneLedger(manifest), manifest)).toBe(true)
+    expect(() =>
+      validateLaneTrainLedger(laneLedger(manifest).replace('### TD-1', '### TD-9'), manifest)
+    ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' }))
+    expect(() =>
+      validateLaneTrainLedger(laneLedger(manifest).replace('| State | Collecting |', '| State | Frozen |'), manifest)
+    ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_LEDGER_DRIFT' }))
+  })
+
+  it('validates every checked-in lane and rejects a lane file whose ID disagrees', () => {
+    const root = laneWorkspace()
+    expect(validateLaneTrains(root).map(({ trainId }) => trainId)).toEqual(['td-1'])
+    const renamed = laneFixture('Merged')
+    renamed.trainId = 'td-2'
+    writeFileSync(resolve(root, 'docs/release-trains/td-1.json'), JSON.stringify(renamed))
+    expect(() => validateLaneTrains(root)).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_LANE_INVALID' })
+    )
+  })
+
+  it('finds no lanes on a main that has none', () => {
+    expect(validateLaneTrains(process.cwd())).toEqual([])
+  })
+})
+// END_BLOCK_LANE_TRAIN_TESTS
