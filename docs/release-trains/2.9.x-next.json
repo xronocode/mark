@@ -183,6 +183,25 @@
             "INTENTIONALLY UNVERIFIED: hands-on diagram editing with the new label syntax on a dispatch build — deferred to the train acceptance protocol (rule 5)."
           ]
         }
+      },
+      {
+        "id": "FIX-021",
+        "summary": "The native View menu gains Standard View: the one-click full reset the titlebar chip menu's Standard row performs, reachable through View › Standard View at the head of the mode group (before Source Code Mode). The renderer view.standard-mode command re-dispatches only the active flags through the five shipped view.* toggles — no new command ids, no new end states; the command palette carries the entry localized in all ten locales (each locale reuses its own wording of the chip Standard hint).",
+        "state": "queued",
+        "commits": [
+          "75219f629d45617e6959f442f6668815f2b9ae02"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-30",
+          "testedArtifact": "None — owner-ordered delivery («давай в поезд») from the reported registry entry; the semantics are the chip menu's already-accepted Standard behavior through a new dispatch route. Hands-on check deferred to the train acceptance protocol (rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): cargo 461/0 incl. two new m009 pins (view.standard-mode is id-dispatched with no accelerator; it sits before view.source-code-mode in the taxonomy and the built menu); vitest 371 files / 4942 passed / 0 failed incl. the new standard-view suite 4/4 (all-five-on reset in the chip order diff → split → source → typewriter → focus under fake timers, no-op in the standard state, no-op without an open tab); chromium e2e titlebar-mode-chips + view-menu-checks 12/12 incl. new case 5a (the menu id resets all five modes through the same mt::menu-invoked route the native menu rides, chips cluster gone); i18n suites 69/69; grace lint --assertions current 0 findings.",
+            "AUTOMATED (PR CI): fully green after the rebase onto the C-LARGE-DOC-STAGE-0 main; the single build miss was the known macOS runner bundle_dmg.sh hdiutil flake, green on rerun; renderer e2e lane green at 25m31s.",
+            "MANUAL BEFORE ADMISSION: none — the reset semantics were accepted with the chip menu (C-TITLEBAR-MODE-CHIPS); this change only adds a dispatch route.",
+            "INTENTIONALLY UNVERIFIED: a hands-on View › Standard View check on a dispatch build — deferred to the train acceptance protocol (rule 5)."
+          ]
+        }
       }
     ],
     "operational": [
@@ -308,6 +327,12 @@
       "date": "2026-10-29",
       "actor": "release-agent",
       "evidence": "Admitted the 2026-10-28/29 merged wave: C-UPDATER-ROLLBACK (8dc938f3, PR #120), FIX-020 (4e6aa2c5, PR #81) and DEPS-PELE-1-10 (643d5dd5, PR #80) as user-facing; C-LOCALE-MIN-TWIN-REMOVAL (24742817, PR #122) and C-SAFETY-REVIEW-LANES (ff9ff6e1, PR #98) as operational. Commit shas reflect the 2026-10-28 message-only history rewrite (FIX-020 and DEPS-PELE-1-10 were originally b3388391 and 35f12ac8). The train stays Collecting; no dispatch or release activity is authorized."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-10-30",
+      "actor": "release-agent",
+      "evidence": "Admitted FIX-021 (75219f62, PR #128) as user-facing after its fully green CI. The train stays Collecting; no dispatch or release activity is authorized."
     }
   ]
 }
