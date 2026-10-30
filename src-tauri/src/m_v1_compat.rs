@@ -15,6 +15,9 @@
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
 // CHANGE_SUMMARY:
+//   - 2026-10-30 M-069: mt_open_setting_window badges the settings
+//     window icon through m069_dev_badge::apply_window_badge (no-op
+//     without developer tools; macOS uses the Dock icon).
 //   - 2026-10-16 C-52 T-001: mt_pick_folder takes an optional
 //     `default_path` and pre-points the Open Folder panel there (R-5 App
 //     Store routing: a clipboard path grants no sandbox access, the panel
@@ -794,6 +797,8 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
     // the redundant bar. No-op on macOS.
     #[cfg(not(target_os = "macos"))]
     let _ = _win.hide_menu();
+    // M-069: the settings window carries the DEV chevron too.
+    crate::m069_dev_badge::apply_window_badge(&_win);
     // C-51 T-008 (live smoke): the native title bar painted in the macOS
     // appearance/window colour, not the app theme (light bar over a dark
     // Settings page). Same treatment as the main window: a transparent
