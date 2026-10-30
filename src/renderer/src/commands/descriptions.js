@@ -187,6 +187,8 @@ const COMMAND_KEY_MAP = {
 
   // 编辑模式
   'view.toggle-source-code-mode': 'commands.view.toggleSourceCodeMode',
+  // FIX-021: the native View › Standard View full reset
+  'view.standard-mode': 'commands.view.standardView',
   'view.source-code-mode': 'commands.view.sourceCodeMode',
   'view.diff-mode': 'commands.view.diffMode',
   'view.split-view': 'commands.view.splitView',

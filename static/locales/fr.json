@@ -335,7 +335,8 @@
       "statusBar": "Afficher ou masquer la barre d'état",
       "toggleTabbar": "Basculer la barre d'onglets",
       "reloadImages": "Recharger les images",
-      "notificationsHistory": "Notifications : afficher les récentes"
+      "notificationsHistory": "Notifications : afficher les récentes",
+      "standardView": "Revenir à la vue standard et désactiver les modes d’écriture"
     },
     "utils": {
       "noUpdateResourceFile": "Aucun fichier de ressource de mise à jour",

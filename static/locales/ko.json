@@ -335,7 +335,8 @@
       "statusBar": "상태 표시줄 표시/숨기기",
       "toggleTabbar": "탭바 토글",
       "reloadImages": "이미지 새로고침",
-      "notificationsHistory": "알림: 최근 항목 표시"
+      "notificationsHistory": "알림: 최근 항목 표시",
+      "standardView": "표준 보기로 돌아가고 작성 모드를 끕니다"
     },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",

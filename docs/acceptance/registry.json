@@ -598,6 +598,18 @@
           "detail": "Queued in train 2.8.2-next."
         }
       ]
+    },
+    {
+      "id": "FIX-021",
+      "summary": "The native View menu gains a Standard full-reset item mirroring the titlebar chip menu's Standard: one command that returns the view to Standard and turns both writing modes off.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-30",
+          "actor": "owner",
+          "detail": "Owner request raised during the 2.9.x-next train CUA acceptance (2026-10-30): the titlebar chip menu carries the one-click Standard reset (C-TITLEBAR-MODE-CHIPS owner amendment of 2026-10-27 — Standard is the full reset), while the native View menu exposes only the five separate toggles (view.diff-mode, view.split-view, view.source-code-mode, view.typewriter-mode, view.focus-mode); returning to the standard view through the native menu takes up to five toggles. Scope: one menu item in m009_menu.rs reusing the chip menu's command sequence (no new command ids), ten locales, view-menu checkmark sync, e2e pin."
+        }
+      ]
     }
   ]
 }

@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.6.0
+// VERSION: 2.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -42,6 +42,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-30 FIX-021: view.standard-mode — the native View › Standard
+//     View row and the palette route to the chip menu's one-click full
+//     reset; the execute re-dispatches only the active flags through the
+//     five shipped view.* toggles (no new ids, no new end states).
 //   - 2026-10-28 C-UPDATER-ROLLBACK T-005: installSignedUpdate gains the
 //     fail-closed prepare step — mt_rollback_prepare runs before the
 //     plugin check/downloadAndInstall, and a prepare failure cancels the
@@ -906,6 +910,32 @@ const commands = [
     }
   },
 
+  {
+    // FIX-021: Standard View — the native View menu's route to the chip
+    // menu's one-click Standard full reset (C-TITLEBAR-MODE-CHIPS owner
+    // amendment of 2026-10-27): return the view to Standard and turn both
+    // writing modes off. Reuses the five shipped toggles — no new ids, no
+    // new end states; each toggle re-reads its own live flag, so only the
+    // active ones fire.
+    id: 'view.standard-mode',
+    execute: async () => {
+      const { useEditorStore } = await import('@/store/editor')
+      const editor = useEditorStore()
+      const tab = editor.currentFile
+      if (!tab || !tab.id) return
+      const preferencesStore = usePreferencesStore()
+      const active = []
+      if (tab.diffMode) active.push('view.diff-mode')
+      if (tab.splitView) active.push('view.split-view')
+      if (preferencesStore.sourceCode) active.push('view.source-code-mode')
+      if (preferencesStore.typewriter) active.push('view.typewriter-mode')
+      if (preferencesStore.focus) active.push('view.focus-mode')
+      for (const id of active) {
+        const cmd = commands.find((c) => c.id === id)
+        if (cmd) await cmd.execute()
+      }
+    }
+  },
   {
     id: 'view.source-code-mode',
     execute: async () => {

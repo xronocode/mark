@@ -71,3 +71,4 @@ reload picks the verdict up):
 | C-SELF-CONTAINED-HTML-EXPORT | reviewed | No isolated test artifact was built: the owner accepted on the in-session automated evidence (unit/component/e2e matrix above); a live manual export on macOS was not performed by the owner. | accepted 2026-10-22 |
 | C-MULTI-SOURCE-WORKSPACE | owner-verdict | mark-test-msw-ab3367c2 | pending |
 | FIX-019 | queued | mark-test-fix019-52443b1 | accepted 2026-10-25 |
+| FIX-021 | reported | — | pending |

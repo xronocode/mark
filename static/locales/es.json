@@ -335,7 +335,8 @@
       "statusBar": "Mostrar u ocultar la barra de estado",
       "toggleTabbar": "Alternar Barra de Pestañas",
       "reloadImages": "Recargar Imágenes",
-      "notificationsHistory": "Notificaciones: mostrar recientes"
+      "notificationsHistory": "Notificaciones: mostrar recientes",
+      "standardView": "Volver a la vista estándar y desactivar los modos de escritura"
     },
     "utils": {
       "noUpdateResourceFile": "No hay archivo de recurso de actualización",

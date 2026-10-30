@@ -335,7 +335,8 @@
       "statusBar": "Statusleiste ein- oder ausblenden",
       "toggleTabbar": "Tab-Leiste umschalten",
       "reloadImages": "Bilder neu laden",
-      "notificationsHistory": "Benachrichtigungen: letzte anzeigen"
+      "notificationsHistory": "Benachrichtigungen: letzte anzeigen",
+      "standardView": "Zurück zur Standardansicht und Schreibmodi aus"
     },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",

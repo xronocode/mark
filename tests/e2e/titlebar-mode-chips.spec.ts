@@ -125,6 +125,31 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     expect(state.diffMode).toBe(false)
   })
 
+  test('5a. the native View › Standard View menu id performs the same full reset (FIX-021)', async ({ page }) => {
+    await bootEditor(page)
+    await openFileTab(page, '/tmp/ctb/menu-standard.md', DOC)
+    // Every mode on: diff truth over a stale split flag, plus both
+    // writing modes and source view.
+    await invokeCommand(page, 'view.split-view')
+    await invokeCommand(page, 'view.diff-mode')
+    await invokeCommand(page, 'view.source-code-mode')
+    await invokeCommand(page, 'view.typewriter-mode')
+    await invokeCommand(page, 'view.focus-mode')
+    await expect(chips(page).first()).toContainText('Changes')
+
+    // The native menu row dispatches view.standard-mode through the same
+    // mt::menu-invoked route the m009 item rides.
+    await invokeCommand(page, 'view.standard-mode')
+
+    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(0)
+    const state = await editorState(page)
+    expect(state.splitView).toBe(false)
+    expect(state.diffMode).toBe(false)
+    expect(state.sourceCode).toBe(false)
+    expect(state.typewriter).toBe(false)
+    expect(state.focus).toBe(false)
+  })
+
   test('6. the open menu updates while a mode toggles elsewhere', async ({ page }) => {
     await bootEditor(page)
     await openFileTab(page, '/tmp/ctb/live.md', DOC)

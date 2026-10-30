@@ -19,7 +19,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.1 - 2026-10-20 FIX-010 review: pin both macOS cfg guards around the Command Palette taxonomy and native-menu row.
+//   LAST_CHANGE: v1.7.0 - 2026-10-30 FIX-021: pin view.standard-mode — a
+//   plain View-menu item at the head of the mode group (before
+//   view.source-code-mode) with no accelerator, id-dispatched to the
+//   renderer view.standard-mode command (the chip menu's one-click
+//   Standard full reset through the native menu).
+//   PREV: v1.6.1 - 2026-10-20 FIX-010 review: pin both macOS cfg guards around the Command Palette taxonomy and native-menu row.
 //   PREV: v1.6.0 - C-40 T-004: pin view.status-bar (CheckMenuItem,
 //   no accelerator) and view.lock-document (plain item, no accelerator)
 //   View-menu items — both id-dispatched to renderer commands of the same
@@ -482,6 +487,21 @@ describe('menu ↔ commands consistency', () => {
       }
     }
     expect(stale).toEqual([])
+  })
+
+  it('pins Standard View menu item id, head-of-group position and no accelerator (FIX-021)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+
+    // Plain id-dispatched item — the shipped toggle pattern.
+    expect(buildFn).toMatch(
+      /with_id\("view\.standard-mode", "Standard View"\)\s*\n\s*\.build\(handle\)\?/
+    )
+    // Head of the mode group: the built submenu places it before
+    // view.source-code-mode, mirroring the chip menu's Standard-first row.
+    expect(buildFn.indexOf('with_id("view.standard-mode"')).toBeLessThan(
+      buildFn.indexOf('with_id("view.source-code-mode"')
+    )
   })
 
   it('no allowlist entry is also in native menu (redundant)', () => {
