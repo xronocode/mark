@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "lane",
+  "trainId": "td-1",
+  "state": "Collecting",
+  "lane": {
+    "branch": "integ/techdebt",
+    "baseSha": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
+    "headSha": null,
+    "mergeSha": null,
+    "carrierTrain": null
+  },
+  "items": {
+    "userFacing": [],
+    "operational": [],
+    "notPresent": []
+  },
+  "commitAccounting": {
+    "fromExclusive": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
+    "throughInclusive": null,
+    "entries": []
+  },
+  "transitions": [
+    {
+      "state": "Collecting",
+      "date": "2026-10-31",
+      "actor": "owner",
+      "evidence": "owner instruction recorded 2026-10-30: technical-debt fixes ride their own train (README, Lane trains)"
+    }
+  ]
+}
