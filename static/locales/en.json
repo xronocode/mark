@@ -343,7 +343,8 @@
       "statusBar": "Show or hide the status bar",
       "toggleTabbar": "Toggle Tab Bar",
       "reloadImages": "Reload Images",
-      "notificationsHistory": "Notifications: show recent"
+      "notificationsHistory": "Notifications: show recent",
+      "standardView": "Return to the standard view and turn writing modes off"
     },
     "utils": {
       "noUpdateResourceFile": "No update resource file",

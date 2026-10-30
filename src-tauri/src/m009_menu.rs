@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -53,6 +53,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-30 FIX-021: View › Standard View — the one-click full reset
+//                mirroring the titlebar chip menu's Standard row (owner
+//                amendment of 2026-10-27), now reachable from the native
+//                menu. Plain id-dispatched item at the head of the mode
+//                group; the renderer view.standard-mode command reuses the
+//                five shipped view.* toggles — no new end states.
 //   - 2026-10-28 C-UPDATER-ROLLBACK T-006: desktop-only Help item
 //     "Roll Back to Mark {version}…" — present only when a valid
 //     rollback manifest exists at menu build (cfg_helper_rollback
@@ -691,6 +697,19 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: Some("Cmd+Shift+P".to_string()),
                     items: None,
                 },
+                // FIX-021: View › Standard View — the one-click full reset
+                // the titlebar chip menu's Standard row performs (owner
+                // amendment of 2026-10-27), reachable from the native
+                // menu. Id-dispatched to the renderer view.standard-mode
+                // command, which reuses the five shipped toggles; no
+                // accelerator — the chip menu's Standard carries none.
+                MenuItem {
+                    id: "view.standard-mode".to_string(),
+                    label: "Standard View".to_string(),
+                    command: None,
+                    accelerator: None,
+                    items: None,
+                },
                 MenuItem {
                     id: "view.source-code-mode".to_string(),
                     label: "Source Code Mode".to_string(),
@@ -1207,6 +1226,15 @@ pub fn build_native_menu<R: tauri::Runtime>(
 
     let view_submenu = view_submenu
         .separator()
+        .item(
+            // FIX-021: the chip menu's one-click Standard full reset
+            // (view + both writing modes), reached through the native
+            // View menu. Plain item, like the five mode toggles below —
+            // the renderer's view.standard-mode command decides what to
+            // turn off by reading the live flags.
+            &MenuItemBuilder::with_id("view.standard-mode", "Standard View")
+                .build(handle)?,
+        )
         .item(
             &MenuItemBuilder::with_id("view.source-code-mode", "Source Code Mode")
                 .accelerator("CmdOrCtrl+Alt+S")
@@ -1766,6 +1794,8 @@ mod tests {
             // C-MULTI-SOURCE-WORKSPACE: File › Add Folder… / Replace
             // Workspace… dispatch their ids to the renderer commands of
             // the same names — id-dispatched only.
+            // FIX-021: View › Standard View dispatches its id to the
+            // renderer view.standard-mode command — id-dispatched only.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1784,6 +1814,7 @@ mod tests {
                     | "view.lock-document"
                     | "file.add-folder"
                     | "file.replace-workspace"
+                    | "view.standard-mode"
             );
             if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(
@@ -1857,6 +1888,42 @@ mod tests {
         assert!(item.accelerator.is_none(), "view.lock-document has no accelerator");
     }
     // END_BLOCK_C40_T004_MENU_TESTS
+
+    #[test]
+    fn view_menu_standard_view_item_is_id_dispatched() {
+        // FIX-021: View › Standard View is the native-menu route to the
+        // chip menu's one-click full reset. Plain item — like the five
+        // mode toggles, no check item (the renderer command reads the
+        // live flags) and no accelerator (the chip menu's Standard row
+        // carries none).
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let item = flat
+            .iter()
+            .find(|i| i.id == "view.standard-mode")
+            .unwrap_or_else(|| panic!("menu missing view.standard-mode"));
+        assert_eq!(item.label, "Standard View");
+        assert!(item.command.is_none(), "view.standard-mode must be id-dispatched only");
+        assert!(item.accelerator.is_none(), "view.standard-mode has no accelerator");
+    }
+
+    #[test]
+    fn view_menu_standard_view_sits_at_the_head_of_the_mode_group() {
+        // FIX-021: the reset leads the mode group in both surfaces — the
+        // chip menu lists Standard first, and the native View menu must
+        // place Standard View before Source Code Mode (menu order is the
+        // built submenu's, asserted here through the taxonomy's view
+        // child order, which the builder mirrors).
+        let menu = standard_menu();
+        let view = menu
+            .iter()
+            .find(|i| i.id == "view")
+            .unwrap_or_else(|| panic!("menu missing view group"));
+        let items = view.items.as_ref().expect("view group has children");
+        let pos = |id: &str| items.iter().position(|i| i.id == id)
+            .unwrap_or_else(|| panic!("view group missing {id}"));
+        assert!(pos("view.standard-mode") < pos("view.source-code-mode"));
+    }
 
     #[test]
     fn view_menu_zoom_items_dispatch_by_id_with_accelerators() {

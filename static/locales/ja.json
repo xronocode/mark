@@ -335,7 +335,8 @@
       "statusBar": "ステータスバーの表示/非表示",
       "toggleTabbar": "タブバーを切り替え",
       "reloadImages": "画像を再読み込み",
-      "notificationsHistory": "通知：最近のものを表示"
+      "notificationsHistory": "通知：最近のものを表示",
+      "standardView": "標準表示に戻し、執筆モードをオフにします"
     },
     "utils": {
       "noUpdateResourceFile": "アップデートリソースファイルなし",

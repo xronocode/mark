@@ -335,7 +335,8 @@
       "statusBar": "顯示或隱藏狀態列",
       "toggleTabbar": "切換標籤欄",
       "reloadImages": "重新載入圖片",
-      "notificationsHistory": "通知：顯示最近記錄"
+      "notificationsHistory": "通知：顯示最近記錄",
+      "standardView": "回到標準檢視並關閉寫作模式"
     },
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",
