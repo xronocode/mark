@@ -258,6 +258,20 @@
             "INTENTIONALLY UNVERIFIED: nothing user-facing — the gate is developer tooling; lane contention with parallel sessions was exercised live during the 2026-10-28 night merges."
           ]
         }
+      },
+      {
+        "id": "M-046-LANE-TRAINS",
+        "summary": "Technical-debt fixes collect on their own train: a lane train td-N collects on the integ/techdebt branch (release readiness accounts for every commit between two releases, so a second train cannot collect on main), departs into main as one reviewed merge commit, and is admitted to the carrying product train as a single item. release:readiness validates every td-N document each run; lane-admitted items count as train-admitted in the acceptance registry; the full test suite runs on integ/techdebt.",
+        "commits": [
+          "cca6d784970c331da51004251289ef655505aa6f"
+        ]
+      },
+      {
+        "id": "MACOS-15-RUNNERS",
+        "summary": "Every macOS CI lane runs on the macos-15 runner image: the unit matrix and e2e job with its Playwright cache keys, both release-build matrix entries, the Tauri dry-run matrix with its platform conditions, and the deployment context notes. The macos-14 image retires on 2026-11-02 with brownout windows failing macos-14 jobs until then.",
+        "commits": [
+          "d2abf46c4a65bbb1aa1fd3d0058f0515da4ea451"
+        ]
       }
     ],
     "notPresent": []

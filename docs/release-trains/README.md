@@ -69,6 +69,32 @@ Required release admission evidence:
 - Reviewed contents and release materials covering both C-* changes and small FIX-* repairs.
 - The owner-confirmed version from the dispatch discussion, and the owner's explicit instruction to release this train/version. Record the instruction separately from acceptance.
 
+## Lane trains
+
+Owner instruction recorded on 2026-10-30: technical-debt fixes ride their own train instead of the product train. Because release readiness accounts for every commit between two releases, a train that should not ride with the product train cannot collect on main. It collects on its own branch instead:
+
+- **Branch and ID.** A lane train collects on `integ/techdebt` and is named `td-N` (`td-1`, `td-2`, …), never reused. Its `td-N.json` and `td-N.md` live in this directory on the lane branch. The [current pointer](current.json) stays on the product train; a lane is never current and is not mirrored to the Project.
+- **Admission.** A lane PR targets `integ/techdebt`, gets the full test suite there, and joins through a separate `chore(train)` commit on the lane, with the same testing protocol as rule 4. Every admitted item — user-facing or operational — needs a `###` heading in the lane ledger.
+- **Lifecycle.** `Collecting` → `Frozen` → `Merged`, or `Aborted`; `Frozen` may return to `Collecting`. `lane.baseSha` is the main commit the lane branched from, and commit accounting runs from it. `Frozen` fixes `lane.headSha`: every lane commit is accounted through it, and the lane takes no more admissions.
+- **Departure.** Only the owner's explicit instruction departs a lane (rule 1). A frozen lane enters main through one reviewed merge-commit PR, never a squash, so the lane's commits stay reachable from main. The next `chore(train)` commit on main does two things together: it sets the lane to `Merged` with `lane.mergeSha` and `lane.carrierTrain`, and it admits the lane into that product train as one item with ID `td-N`, whose commits list the merge commit and every lane commit. From there the lane ships with the carrier train under the product rules.
+
+`npm run release:readiness` validates every lane document on each run. It rejects a lane whose accounting, ledger or lifecycle drifts, and a `Merged` lane that its carrier train does not carry in full.
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "kind": "lane",
+  "trainId": "td-1",
+  "state": "Collecting",
+  "lane": { "branch": "integ/techdebt", "baseSha": "<40-hex main commit>", "headSha": null, "mergeSha": null, "carrierTrain": null },
+  "items": { "userFacing": [], "operational": [], "notPresent": [] },
+  "commitAccounting": { "fromExclusive": "<lane.baseSha>", "throughInclusive": null, "entries": [] },
+  "transitions": [{ "state": "Collecting", "date": "YYYY-MM-DD", "actor": "…", "evidence": "…" }]
+}
+```
+
+The lane ledger's header table carries `| State | … |`, ``| Lane branch | `integ/techdebt` |`` and `| Machine-readable authority | [td-N.json](td-N.json) |`, plus one dated history bullet per transition.
+
 ## Automated preparation and publication boundary
 
 `docs/release-trains/<train>.json` is the reproducible authority. GitHub Projects is a public, one-way operational mirror: an outage or missing Project scope is visible drift, not permission to bypass readiness. Conventional PR titles may describe their changes, but they never choose the version: the owner negotiates it immediately before dispatch and the preparation PR applies the agreed version (rule 2). Release-bearing merges are held only while the train is Preparing or Frozen.

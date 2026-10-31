@@ -1,6 +1,6 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **336 packages**.
+Generated from `license-checker --production` over **386 packages**.
 
 Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,10 +13,10 @@ npx --package license-checker -- license-checker --production --json | \
 
 | License | Package count |
 |---|---:|
-| MIT | 237 |
+| MIT | 285 |
 | BSD-3-Clause | 40 |
-| ISC | 36 |
-| Apache-2.0 | 6 |
+| ISC | 37 |
+| Apache-2.0 | 7 |
 | MIT OR Apache-2.0 | 5 |
 | BSD-2-Clause | 2 |
 | (MIT AND Zlib) | 1 |
@@ -29,24 +29,33 @@ npx --package license-checker -- license-checker --production --json | \
 | UNLICENSED | 1 |
 | WTFPL | 1 |
 
-## MIT (237)
+## MIT (285)
 
 | Package | Version | Repository |
 |---|---|---|
 | @babel/helper-string-parser | 7.29.7 | https://github.com/babel/babel |
+| @babel/helper-string-parser | 8.0.8 | https://github.com/babel/babel |
 | @babel/helper-validator-identifier | 7.29.7 | https://github.com/babel/babel |
+| @babel/helper-validator-identifier | 8.0.6 | https://github.com/babel/babel |
 | @babel/parser | 7.29.9 | https://github.com/babel/babel |
+| @babel/parser | 8.0.8 | https://github.com/babel/babel |
 | @babel/types | 7.29.8 | https://github.com/babel/babel |
+| @babel/types | 8.0.8 | https://github.com/babel/babel |
 | @ctrl/tinycolor | 4.2.0 | https://github.com/scttcper/tinycolor |
 | @element-plus/icons-vue | 2.3.2 | https://github.com/element-plus/element-plus-icons |
+| @esbuild/darwin-arm64 | 0.28.2 | https://github.com/evanw/esbuild |
 | @floating-ui/core | 1.7.5 | https://github.com/floating-ui/floating-ui |
 | @floating-ui/dom | 1.7.6 | https://github.com/floating-ui/floating-ui |
 | @floating-ui/utils | 0.2.11 | https://github.com/floating-ui/floating-ui |
-| @intlify/core-base | 11.4.0 | https://github.com/intlify/vue-i18n |
-| @intlify/devtools-types | 11.4.0 | https://github.com/intlify/vue-i18n |
-| @intlify/message-compiler | 11.4.0 | https://github.com/intlify/vue-i18n |
-| @intlify/shared | 11.4.0 | https://github.com/intlify/vue-i18n |
-| @jridgewell/sourcemap-codec | 1.5.5 | https://github.com/jridgewell/sourcemaps |
+| @intlify/core-base | 11.4.16 | https://github.com/intlify/vue-i18n |
+| @intlify/devtools-types | 11.4.16 | https://github.com/intlify/vue-i18n |
+| @intlify/message-compiler | 11.4.16 | https://github.com/intlify/vue-i18n |
+| @intlify/shared | 11.4.16 | https://github.com/intlify/vue-i18n |
+| @jridgewell/gen-mapping | 0.3.13 | https://github.com/jridgewell/sourcemaps |
+| @jridgewell/remapping | 2.3.5 | https://github.com/jridgewell/sourcemaps |
+| @jridgewell/resolve-uri | 3.1.2 | https://github.com/jridgewell/resolve-uri |
+| @jridgewell/sourcemap-codec | 1.6.0 | https://github.com/jridgewell/sourcemaps |
+| @jridgewell/trace-mapping | 0.3.31 | https://github.com/jridgewell/sourcemaps |
 | @marktext/file-icons | 1.0.6 | https://github.com/marktext/file-icons |
 | @octokit/auth-token | 6.0.0 | https://github.com/octokit/auth-token.js |
 | @octokit/core | 7.0.6 | https://github.com/octokit/core.js |
@@ -62,6 +71,7 @@ npx --package license-checker -- license-checker --production --json | \
 | @octokit/types | 16.0.0 | https://github.com/octokit/types.ts |
 | @panzoom/panzoom | 4.6.2 | https://github.com/timmywil/panzoom |
 | @popperjs/core | 2.11.8 | https://github.com/popperjs/popper-core |
+| @rollup/rollup-darwin-arm64 | 4.60.2 | https://github.com/rollup/rollup |
 | @types/estree | 1.0.8 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/geojson | 7946.0.16 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/lodash | 4.17.24 | https://github.com/DefinitelyTyped/DefinitelyTyped |
@@ -69,14 +79,18 @@ npx --package license-checker -- license-checker --production --json | \
 | @types/node | 26.6.5 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/trusted-types | 2.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/web-bluetooth | 0.0.20 | https://github.com/DefinitelyTyped/DefinitelyTyped |
+| @vue-macros/common | 3.1.4 | https://github.com/vue-macros/vue-macros |
 | @vue/compiler-core | 3.5.44 | https://github.com/vuejs/core |
 | @vue/compiler-dom | 3.5.44 | https://github.com/vuejs/core |
 | @vue/compiler-sfc | 3.5.44 | https://github.com/vuejs/core |
 | @vue/compiler-ssr | 3.5.44 | https://github.com/vuejs/core |
 | @vue/devtools-api | 6.6.4 | https://github.com/vuejs/vue-devtools |
 | @vue/devtools-api | 7.7.9 | https://github.com/vuejs/devtools |
+| @vue/devtools-api | 8.2.1 | https://github.com/vuejs/devtools |
 | @vue/devtools-kit | 7.7.9 | https://github.com/vuejs/devtools |
+| @vue/devtools-kit | 8.2.1 | https://github.com/vuejs/devtools |
 | @vue/devtools-shared | 7.7.9 | https://github.com/vuejs/devtools |
+| @vue/devtools-shared | 8.2.1 | https://github.com/vuejs/devtools |
 | @vue/reactivity | 3.5.44 | https://github.com/vuejs/core |
 | @vue/runtime-core | 3.5.44 | https://github.com/vuejs/core |
 | @vue/runtime-dom | 3.5.44 | https://github.com/vuejs/core |
@@ -86,12 +100,16 @@ npx --package license-checker -- license-checker --production --json | \
 | @vueuse/metadata | 12.0.0 | https://github.com/vueuse/vueuse |
 | @vueuse/shared | 12.0.0 | https://github.com/vueuse/vueuse |
 | @xmldom/xmldom | 0.9.12 | https://github.com/xmldom/xmldom |
+| acorn | 8.19.0 | https://github.com/acornjs/acorn |
 | agent-base | 6.0.2 | https://github.com/TooTallNate/node-agent-base |
 | animation-frame-polyfill | 1.1.0 | https://github.com/webdeveric/animation-frame-polyfill |
 | ansi-regex | 6.2.2 | https://github.com/chalk/ansi-regex |
 | ansi-styles | 6.2.3 | https://github.com/chalk/ansi-styles |
 | array-buffer-byte-length | 1.0.2 | https://github.com/inspect-js/array-buffer-byte-length |
 | array-from | 2.1.1 | https://github.com/studio-b12/array-from |
+| ast-kit | 2.2.0 | https://github.com/sxzz/ast-kit |
+| ast-kit | 3.0.0 | https://github.com/sxzz/ast-kit |
+| ast-walker-scope | 0.10.0 | https://github.com/sxzz/ast-walker-scope |
 | async-validator | 4.2.5 | https://github.com/yiminghe/async-validator |
 | asynckit | 0.4.0 | https://github.com/alexindigo/asynckit |
 | atoa | 1.0.0 | https://github.com/bevacqua/atoa |
@@ -105,12 +123,15 @@ npx --package license-checker -- license-checker --production --json | \
 | call-bind | 1.0.9 | https://github.com/ljharb/call-bind |
 | call-bind-apply-helpers | 1.0.2 | https://github.com/ljharb/call-bind-apply-helpers |
 | call-bound | 1.0.4 | https://github.com/ljharb/call-bound |
+| chokidar | 5.0.0 | https://github.com/paulmillr/chokidar |
 | clone-regexp | 3.0.0 | https://github.com/sindresorhus/clone-regexp |
 | codemirror | 5.65.21 | https://github.com/codemirror/CodeMirror |
 | combined-stream | 1.0.8 | https://github.com/felixge/node-combined-stream |
 | commander | 15.0.0 | https://github.com/tj/commander.js |
 | commander | 2.20.3 | https://github.com/tj/commander.js |
 | commander | 7.2.0 | https://github.com/tj/commander.js |
+| confbox | 0.1.8 | https://github.com/unjs/confbox |
+| confbox | 0.3.1 | https://github.com/unjs/confbox |
 | contra | 1.9.4 | https://github.com/bevacqua/contra |
 | copy-anything | 4.0.5 | https://github.com/mesqueeb/copy-anything |
 | core-util-is | 1.0.3 | https://github.com/isaacs/core-util-is |
@@ -138,16 +159,21 @@ npx --package license-checker -- license-checker --production --json | \
 | es-get-iterator | 1.1.3 | https://github.com/ljharb/es-get-iterator |
 | es-object-atoms | 1.1.1 | https://github.com/ljharb/es-object-atoms |
 | es-set-tostringtag | 2.1.0 | https://github.com/es-shims/es-set-tostringtag |
+| esbuild | 0.28.2 | https://github.com/evanw/esbuild |
 | escalade | 3.2.0 | https://github.com/lukeed/escalade |
 | estree-walker | 2.0.2 | https://github.com/Rich-Harris/estree-walker |
+| estree-walker | 3.0.3 | https://github.com/Rich-Harris/estree-walker |
 | execall | 3.0.0 | https://github.com/sindresorhus/execall |
+| exsolve | 1.1.3 | https://github.com/unjs/exsolve |
 | fast-content-type-parse | 3.0.0 | https://github.com/fastify/fast-content-type-parse |
 | fast-json-patch | 3.1.1 | https://github.com/Starcounter-Jack/JSON-Patch |
+| fdir | 6.5.0 | https://github.com/thecodrr/fdir |
 | fill-range | 7.1.1 | https://github.com/jonschlinkert/fill-range |
-| flowchart.js | 1.18.0 | https://github.com/adrai/flowchart.js |
+| flowchart.js | 1.18.1 | https://github.com/adrai/flowchart.js |
 | follow-redirects | 1.16.1 | https://github.com/follow-redirects/follow-redirects |
 | for-each | 0.3.5 | https://github.com/Raynos/for-each |
 | form-data | 4.0.6 | https://github.com/form-data/form-data |
+| fsevents | 2.3.3 | https://github.com/fsevents/fsevents |
 | function-bind | 1.1.2 | https://github.com/Raynos/function-bind |
 | functions-have-names | 1.2.3 | https://github.com/inspect-js/functions-have-names |
 | fuzzaldrin | 2.1.0 | https://github.com/atom/fuzzaldrin |
@@ -190,12 +216,13 @@ npx --package license-checker -- license-checker --production --json | \
 | isarray | 1.0.0 | https://github.com/juliangruber/isarray |
 | isarray | 2.0.5 | https://github.com/juliangruber/isarray |
 | iselement | 1.1.4 | https://github.com/fczbkk/iselement |
-| iso-639-1 | 3.1.5 | https://github.com/meikidd/iso-639-1 |
+| iso-639-1 | 3.1.6 | https://github.com/meikidd/iso-639-1 |
 | joplin-turndown-plugin-gfm | 1.0.12 | https://github.com/laurent22/joplin-turndown-plugin-gfm |
 | json-stringify-pretty-compact | 4.0.0 | https://github.com/lydell/json-stringify-pretty-compact |
 | json-with-bigint | 3.5.8 | https://github.com/Ivan-Korolenko/json-with-bigint |
 | katex | 0.18.10 | https://github.com/KaTeX/KaTeX |
 | lie | 3.3.0 | https://github.com/calvinmetcalf/lie |
+| local-pkg | 1.2.1 | https://github.com/antfu-collective/local-pkg |
 | lodash | 4.18.1 | https://github.com/lodash/lodash |
 | lodash-es | 4.18.1 | https://github.com/lodash/lodash |
 | lodash-unified | 1.0.3 |  |
@@ -205,15 +232,20 @@ npx --package license-checker -- license-checker --production --json | \
 | lodash.remove | 4.7.0 | https://github.com/lodash/lodash |
 | lodash.uniq | 4.5.0 | https://github.com/lodash/lodash |
 | magic-string | 0.30.21 | https://github.com/Rich-Harris/magic-string |
+| magic-string | 1.4.3 | https://github.com/Rich-Harris/magic-string |
+| magic-string-ast | 1.0.3 | https://github.com/sxzz/magic-string-ast |
 | math-intrinsics | 1.1.0 | https://github.com/es-shims/math-intrinsics |
 | memoize-one | 6.0.0 | https://github.com/alexreardon/memoize-one |
 | micromatch | 4.0.8 | https://github.com/micromatch/micromatch |
 | mime-db | 1.52.0 | https://github.com/jshttp/mime-db |
 | mime-types | 2.1.35 | https://github.com/jshttp/mime-types |
 | mitt | 3.0.1 | https://github.com/developit/mitt |
+| mlly | 1.8.2 | https://github.com/unjs/mlly |
 | ms | 2.1.3 | https://github.com/vercel/ms |
+| muggle-string | 0.4.1 | https://github.com/johnsoncodehk/muggle-string |
 | nanoid | 3.3.20 | https://github.com/ai/nanoid |
 | nanoid | 6.0.2 | https://github.com/ai/nanoid |
+| nostics | 1.3.0 | https://github.com/vercel-labs/nostics |
 | object-assign | 4.1.1 | https://github.com/sindresorhus/object-assign |
 | object-inspect | 1.13.4 | https://github.com/inspect-js/object-inspect |
 | object-is | 1.1.6 | https://github.com/es-shims/object-is |
@@ -221,23 +253,33 @@ npx --package license-checker -- license-checker --production --json | \
 | object.assign | 4.1.7 | https://github.com/ljharb/object.assign |
 | parse-sel | 1.0.0 | https://github.com/acstll/parse-sel |
 | path-browserify | 1.0.1 | https://github.com/browserify/path-browserify |
+| pathe | 2.0.3 | https://github.com/unjs/pathe |
 | pele | 1.10.0 | https://github.com/obsidianmd/pele |
 | perfect-debounce | 1.0.0 | https://github.com/unjs/perfect-debounce |
+| perfect-debounce | 2.1.0 | https://github.com/unjs/perfect-debounce |
 | picomatch | 2.3.2 | https://github.com/micromatch/picomatch |
+| picomatch | 4.0.4 | https://github.com/micromatch/picomatch |
+| picomatch | 4.0.7 | https://github.com/micromatch/picomatch |
 | pinia | 3.0.4 | https://github.com/vuejs/pinia |
+| pkg-types | 1.3.1 | https://github.com/unjs/pkg-types |
+| pkg-types | 2.4.0 | https://github.com/unjs/pkg-types |
 | plist | 3.1.1 | https://github.com/TooTallNate/node-plist |
 | possible-typed-array-names | 1.1.0 | https://github.com/ljharb/possible-typed-array-names |
 | postcss | 8.5.31 | https://github.com/postcss/postcss |
 | prismjs | 1.30.0 | https://github.com/PrismJS/prism |
 | process-nextick-args | 2.0.1 | https://github.com/calvinmetcalf/process-nextick-args |
 | proxy-from-env | 2.1.0 | https://github.com/Rob--W/proxy-from-env |
+| quansync | 0.2.11 | https://github.com/quansync-dev/quansync |
 | raphael | 2.3.0 | https://github.com/DmitryBaranovskiy/raphael |
 | readable-stream | 2.3.8 | https://github.com/nodejs/readable-stream |
+| readdirp | 5.1.1 | https://github.com/paulmillr/readdirp |
 | regexp.prototype.flags | 1.5.4 | https://github.com/es-shims/RegExp.prototype.flags |
 | rfdc | 1.4.1 | https://github.com/davidmarkclements/rfdc |
+| rollup | 4.60.2 | https://github.com/rollup/rollup |
 | safe-buffer | 5.1.2 | https://github.com/feross/safe-buffer |
 | safe-regex-test | 1.1.0 | https://github.com/ljharb/safe-regex-test |
 | safer-buffer | 2.1.2 | https://github.com/ChALkeR/safer-buffer |
+| scule | 1.3.0 | https://github.com/unjs/scule |
 | set-function-length | 1.2.2 | https://github.com/ljharb/set-function-length |
 | set-function-name | 2.0.2 | https://github.com/ljharb/set-function-name |
 | setimmediate | 1.0.5 | https://github.com/YuzuJS/setImmediate |
@@ -245,7 +287,7 @@ npx --package license-checker -- license-checker --production --json | \
 | side-channel-list | 1.0.1 | https://github.com/ljharb/side-channel-list |
 | side-channel-map | 1.0.1 | https://github.com/ljharb/side-channel-map |
 | side-channel-weakmap | 1.0.2 | https://github.com/ljharb/side-channel-weakmap |
-| snabbdom | 3.6.3 | https://github.com/snabbdom/snabbdom |
+| snabbdom | 3.6.4 | https://github.com/snabbdom/snabbdom |
 | snabbdom-to-html | 7.1.0 | https://github.com/acstll/snabbdom-to-html |
 | snapsvg-cjs | 0.0.6 | https://github.com/geelen/Snap.svg-cjs |
 | stop-iteration-iterator | 1.1.0 | https://github.com/ljharb/stop-iteration-iterator |
@@ -254,16 +296,22 @@ npx --package license-checker -- license-checker --production --json | \
 | strip-ansi | 7.2.0 | https://github.com/chalk/strip-ansi |
 | superjson | 2.2.6 | https://github.com/blitz-js/superjson |
 | ticky | 1.0.1 | https://github.com/bevacqua/ticky |
+| tinyglobby | 0.2.17 | https://github.com/SuperchupuDev/tinyglobby |
 | to-regex-range | 5.0.1 | https://github.com/micromatch/to-regex-range |
 | turndown | 7.2.4 | https://github.com/mixmark-io/turndown |
 | type-func | 1.0.3 |  |
+| ufo | 1.6.4 | https://github.com/unjs/ufo |
 | underscore | 1.13.8 | https://github.com/jashkenas/underscore |
 | undici-types | 8.9.0 | https://github.com/nodejs/undici |
+| unplugin | 3.4.0 | https://github.com/unjs/unplugin |
+| unplugin-utils | 0.3.2 | https://github.com/sxzz/unplugin-utils |
 | util-deprecate | 1.0.2 | https://github.com/TooTallNate/util-deprecate |
+| vite | 7.3.7 | https://github.com/vitejs/vite |
 | vue | 3.5.44 | https://github.com/vuejs/core |
 | vue-component-type-helpers | 3.2.7 | https://github.com/vuejs/language-tools |
-| vue-i18n | 11.4.0 | https://github.com/intlify/vue-i18n |
-| vue-router | 4.6.4 | https://github.com/vuejs/router |
+| vue-i18n | 11.4.16 | https://github.com/intlify/vue-i18n |
+| vue-router | 5.4.0 | https://github.com/vuejs/router |
+| webpack-virtual-modules | 0.6.2 | https://github.com/sysgears/webpack-virtual-modules |
 | which-boxed-primitive | 1.1.1 | https://github.com/inspect-js/which-boxed-primitive |
 | which-collection | 1.0.2 | https://github.com/inspect-js/which-collection |
 | which-typed-array | 1.1.20 | https://github.com/inspect-js/which-typed-array |
@@ -316,7 +364,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-voronoi | 5.1.0 | https://github.com/vega/vega |
 | vega-wordcloud | 5.1.0 | https://github.com/vega/vega |
 
-## ISC (36)
+## ISC (37)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -355,28 +403,30 @@ npx --package license-checker -- license-checker --production --json | \
 | universal-user-agent | 7.0.3 | https://github.com/gr2m/universal-user-agent |
 | y18n | 5.0.8 | https://github.com/yargs/y18n |
 | yallist | 3.1.1 | https://github.com/isaacs/yallist |
+| yaml | 2.8.3 | https://github.com/eemeli/yaml |
 | yargs-parser | 22.0.0 | https://github.com/yargs/yargs-parser |
 
-## Apache-2.0 (6)
+## Apache-2.0 (7)
 
 | Package | Version | Repository |
 |---|---|---|
+| @typescript/typescript-darwin-arm64 | 7.0.2 | https://github.com/microsoft/TypeScript |
 | before-after-hook | 4.0.0 | https://github.com/gr2m/before-after-hook |
 | diff-match-patch | 1.0.5 | https://github.com/JackuB/diff-match-patch |
 | eve | 0.5.4 | https://github.com/adobe-webplatform/eve |
 | snapsvg | 0.5.1 | https://github.com/adobe-webplatform/Snap.svg |
-| typescript | 5.9.3 | https://github.com/microsoft/TypeScript |
+| typescript | 7.0.2 | https://github.com/microsoft/TypeScript |
 | webfontloader | 1.6.28 | https://github.com/typekit/webfontloader |
 
 ## MIT OR Apache-2.0 (5)
 
 | Package | Version | Repository |
 |---|---|---|
-| @tauri-apps/plugin-clipboard-manager | 2.3.2 | https://github.com/tauri-apps/plugins-workspace |
-| @tauri-apps/plugin-dialog | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
-| @tauri-apps/plugin-opener | 2.5.4 | https://github.com/tauri-apps/plugins-workspace |
-| @tauri-apps/plugin-process | 2.3.1 | https://github.com/tauri-apps/plugins-workspace |
-| @tauri-apps/plugin-updater | 2.10.1 | https://github.com/tauri-apps/plugins-workspace |
+| @tauri-apps/plugin-clipboard-manager | 2.5.0 | https://github.com/tauri-apps/plugins-workspace |
+| @tauri-apps/plugin-dialog | 2.8.4 | https://github.com/tauri-apps/plugins-workspace |
+| @tauri-apps/plugin-opener | 2.7.2 | https://github.com/tauri-apps/plugins-workspace |
+| @tauri-apps/plugin-process | 2.4.0 | https://github.com/tauri-apps/plugins-workspace |
+| @tauri-apps/plugin-updater | 2.14.1 | https://github.com/tauri-apps/plugins-workspace |
 
 ## BSD-2-Clause (2)
 
@@ -413,7 +463,7 @@ npx --package license-checker -- license-checker --production --json | \
 
 | Package | Version | Repository |
 |---|---|---|
-| @tauri-apps/api | 2.11.0 | https://github.com/tauri-apps/tauri |
+| @tauri-apps/api | 2.12.4 | https://github.com/tauri-apps/tauri |
 
 ## Apache* (1)
 
