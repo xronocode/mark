@@ -272,6 +272,24 @@
         "commits": [
           "d2abf46c4a65bbb1aa1fd3d0058f0515da4ea451"
         ]
+      },
+      {
+        "id": "C-SAFETY-LOCAL-FIRST-REVIEW",
+        "summary": "The commit/push safety gate reviews every chunk with one local-first model pass on a resolved executor: the owner-local model by default, and the optional offload host only while it is powered on and healthy (a bounded health probe decides), so a missing, powered-off or busy offload host never blocks a commit or push. Receipts and markers record the executed reviewer and the offload state. Developer tooling only; no shipped-app surface changes.",
+        "state": "queued",
+        "commits": [
+          "1f4ce7e5eaca3db5abdbf541ddd07f15cbf76410"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-31",
+          "testedArtifact": "None — developer tooling. PR #140 squash-merged (1f4ce7e5); the new gate reviewed its own delivery live — the bootstrap install and the delivery commit resolved to the offload executor (reviewers=offload(1), 12 and 13 chunks) while the Mac GPU stayed free, and the follow-up archive-status chore commit (PR #144) resolved locally (reviewers=local(1)) — both receipt-bound.",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): npm run safety:test 50/50 including the executor-resolution matrix (unconfigured, unreachable or busy offload selects local; healthy executes there; public or redirecting fails closed); full PR check run green.",
+            "LIVE: both executor directions exercised in production use — offload while the host was powered on, local when it was not reachable — plus a deterministic verdict-slip (a malformed \":findings\" key) diagnosed via a local chunk replay and cleared by re-chunking, proving the fail-closed verdict path.",
+            "INTENTIONALLY UNVERIFIED: nothing user-facing — the gate is developer tooling; the Windows machine remains a test polygon outside the gate."
+          ]
+        }
       }
     ],
     "notPresent": []
