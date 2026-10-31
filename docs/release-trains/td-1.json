@@ -19,6 +19,13 @@
         "commits": [
           "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386"
         ]
+      },
+      {
+        "id": "GRAPH-INDEX-XML",
+        "summary": "The graph index comment no longer contains a double hyphen, so strict XML parsers accept .grace/graph/index.xml again.",
+        "commits": [
+          "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4"
+        ]
       }
     ],
     "notPresent": []

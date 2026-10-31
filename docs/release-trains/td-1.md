@@ -18,3 +18,9 @@
 - Summary: developer tools ship disabled in every default build (explicit `--features devtools` opt-in or a debug build), and a runtime-drawn orange DEV chevron marks the app icon while they are on.
 - Source commit: `b9d8e5f6` (PR #133); admission commit on the lane.
 - Testing protocol (rule 4): full suite green on the lane CI after the sync (macos-15, ubuntu, windows); macOS debug-launch check with the Dock chevron and the `BLOCK_DEV_BADGE_APPLIED` marker; cargo 467/0 on macOS including the M-069 badge tests.
+
+### GRAPH-INDEX-XML
+
+- Summary: the rollback manager comment in the graph index no longer contains a double hyphen, so strict XML parsers accept the file again.
+- Source commit: `f5f18ab9` (PR #134); admission commit on the lane.
+- Testing protocol (rule 4): xmllint --noout accepts .grace/graph/index.xml; lane CI green.
