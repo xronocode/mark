@@ -7740,6 +7740,66 @@
         <C-38/>
       </ChangeRefs>
     </M-058>
+    <M-069>
+      <Name>DevBadge</Name>
+      <DisplayName>Developer-tools rule and DEV chevron</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>implemented</Status>
+      <Layer>1</Layer>
+      <PhaseRef>TD-DEVTOOLS</PhaseRef>
+      <Summary>
+        Owner instruction 2026-10-30: developer tools are off in release
+        builds, and a build that has them must say so on its icon. The
+        tauri devtools feature is no longer forced on every build (it was
+        on in release and App Store builds); src-tauri/Cargo.toml exposes
+        it as the opt-in cargo feature devtools = ["tauri/devtools"].
+        DEVTOOLS_ENABLED is true in debug builds and with that feature;
+        then the setup hook paints an orange chevron band with the letters
+        DEV over the embedded app icon (inside its alpha mask, no binary
+        asset) and applies it to the macOS Dock icon and to the main and
+        settings window icons on Windows and Linux. Release builds compile
+        the hooks to no-ops. Tests pin that the tauri dependency never
+        forces devtools, that the default features never include it, and
+        that the release workflows and the App Store build script never
+        enable it.
+      </Summary>
+      <PlannedPath>src-tauri/src/m069_dev_badge.rs, src-tauri/Cargo.toml, src-tauri/src/main.rs, src-tauri/src/m_v1_compat.rs</PlannedPath>
+      <Dependencies>
+        <M-001/>
+      </Dependencies>
+      <VerificationRef>V-M-069</VerificationRef>
+      <Contract>
+        <Purpose>
+          Keep the web inspector out of release builds unless explicitly
+          opted in, and make every build that has it visibly different.
+        </Purpose>
+        <Inputs>
+          <Input>
+            <Name>build configuration</Name>
+            <Type>debug_assertions, cargo feature devtools</Type>
+          </Input>
+        </Inputs>
+        <Outputs>
+          <Output>
+            <Name>badged icon</Name>
+            <Type>Dock icon (macOS) or window icons (Windows/Linux) with the DEV chevron, only when DEVTOOLS_ENABLED</Type>
+          </Output>
+        </Outputs>
+        <Errors>
+          <Error>icon decode, set_icon or Dock update failure → logged marker, app keeps the plain icon</Error>
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-paint_dev_badge>pure: chevron band and DEV letters inside the icon alpha mask</fn-paint_dev_badge>
+        <fn-dev_icon>badged app icon, or None without developer tools</fn-dev_icon>
+        <fn-apply_dev_badge>setup hook: Dock icon (macOS) and main window icon</fn-apply_dev_badge>
+        <fn-apply_window_badge>per-window hook for windows created later (settings)</fn-apply_window_badge>
+      </Interface>
+      <Sources>
+        <Source>src-tauri/src/m069_dev_badge.rs</Source>
+        <Tests>cd src-tauri &amp;&amp; cargo test m069_dev_badge</Tests>
+      </Sources>
+    </M-069>
     <M-059>
       <Name>ClipboardPaths</Name>
       <DisplayName>System clipboard file-path reader</DisplayName>
