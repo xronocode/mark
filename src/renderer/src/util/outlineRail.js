@@ -111,8 +111,8 @@ export const resolveCurrentHeading = (railHeadings, listToc, activeSlug) => {
 // right inset (canvas: right: 22px, width: 170px). It may render only
 // when that box clears the centred text column's text edge — the column
 // box's right edge minus its right padding — by at least RAIL_TEXT_GAP.
-// With the shipped default column (--editorAreaWidth: 750px, 50px inner
-// padding) this means the rail appears from roughly 1070 px of editor
+// With the shipped default column (--editorAreaWidth: calc(100px + 768px), 50px inner
+// padding) this means the rail appears from roughly 1170 px of editor
 // width and always hides below the approved 1000 px floor; a wide
 // editorLineWidth column simply keeps the rail hidden until the margin
 // fits it, so text is never overlapped.

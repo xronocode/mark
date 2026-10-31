@@ -93,7 +93,7 @@
   --notifyWarning: #C46510;
   --notifyError: #D5453C;
   --maskColor: rgba(1, 4, 9, 0.5);
-  --editorAreaWidth: 750px;
+  --editorAreaWidth: calc(100px + 768px);
 
   /* C-GITHUB-THEME: theme-defined chart palette (mermaidTheme.readActiveThemeTokens
      series token) — GitHub Primer's categorical role colours. */
