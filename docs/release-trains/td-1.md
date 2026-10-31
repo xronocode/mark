@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| State | Collecting |
+| State | Frozen |
 | Lane branch | `integ/techdebt` |
 | Base | main `2bae3364` (2026-10-29, PR #129) |
 | Protocol | [Acceptance and release trains](README.md) |
@@ -30,3 +30,13 @@
 - Summary: the cfg-asymmetric `relaunch` parameter of the rollback restore core is silenced for non-macOS clippy runs, matching the existing `fetch`/`spawn_installer` treatment.
 - Source commit: `d688f2fc` (PR #135); admission commit on the lane.
 - Testing protocol (rule 4): cargo check green on macOS with the patch; lane CI green.
+
+### TD-1-ADMIN (operational)
+
+- Summary: lane bookkeeping — the td-1 opening commit, the main sync merge (lane-train tooling and macos-15 runners) and the three admission commits.
+- Source commits: `9f507343`, `8c4bff76`, `8461c4e5`, `dc9fc5f1`, `ce6eebcc`.
+- Testing protocol (rule 4): release:readiness validated the lane at every step; lane CI green through the sync.
+
+## Freeze
+
+- 2026-10-31 — frozen at the owner's departure instruction; `lane.headSha` is fixed at `ce6eebcc` and every lane commit is accounted through it (eight entries, four items). The lane takes no more admissions.

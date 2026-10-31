@@ -2,11 +2,11 @@
   "schemaVersion": "1.0.0",
   "kind": "lane",
   "trainId": "td-1",
-  "state": "Collecting",
+  "state": "Frozen",
   "lane": {
     "branch": "integ/techdebt",
     "baseSha": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
-    "headSha": null,
+    "headSha": "ce6eebcc90a44a68869900053de353ce1735e3ca",
     "mergeSha": null,
     "carrierTrain": null
   },
@@ -33,14 +33,82 @@
         "commits": [
           "d688f2fc2f349d3ef1d8660dd33353a04f8062a1"
         ]
+      },
+      {
+        "id": "TD-1-ADMIN",
+        "summary": "Lane bookkeeping: the td-1 opening, the main sync merge (lane-train tooling and macos-15 runners) and the three admission commits.",
+        "commits": [
+          "9f5073437854b211d5bfc21f4350d024619e9771",
+          "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
+          "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
+          "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+          "ce6eebcc90a44a68869900053de353ce1735e3ca"
+        ]
       }
     ],
     "notPresent": []
   },
   "commitAccounting": {
     "fromExclusive": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
-    "throughInclusive": null,
-    "entries": []
+    "throughInclusive": "ce6eebcc90a44a68869900053de353ce1735e3ca",
+    "entries": [
+      {
+        "sha": "9f5073437854b211d5bfc21f4350d024619e9771",
+        "classification": "operational",
+        "itemIds": [
+          "TD-1-ADMIN"
+        ]
+      },
+      {
+        "sha": "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
+        "classification": "operational",
+        "itemIds": [
+          "TD-1-ADMIN"
+        ]
+      },
+      {
+        "sha": "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
+        "classification": "operational",
+        "itemIds": [
+          "DEV-BADGE"
+        ]
+      },
+      {
+        "sha": "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
+        "classification": "operational",
+        "itemIds": [
+          "GRAPH-INDEX-XML"
+        ]
+      },
+      {
+        "sha": "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
+        "classification": "operational",
+        "itemIds": [
+          "RELAUNCH-SILENCE"
+        ]
+      },
+      {
+        "sha": "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
+        "classification": "operational",
+        "itemIds": [
+          "TD-1-ADMIN"
+        ]
+      },
+      {
+        "sha": "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+        "classification": "operational",
+        "itemIds": [
+          "TD-1-ADMIN"
+        ]
+      },
+      {
+        "sha": "ce6eebcc90a44a68869900053de353ce1735e3ca",
+        "classification": "operational",
+        "itemIds": [
+          "TD-1-ADMIN"
+        ]
+      }
+    ]
   },
   "transitions": [
     {
@@ -48,6 +116,12 @@
       "date": "2026-10-31",
       "actor": "owner",
       "evidence": "owner instruction recorded 2026-10-30: technical-debt fixes ride their own train (README, Lane trains)"
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-10-31",
+      "actor": "owner",
+      "evidence": "owner departure instruction of 2026-10-31 (ок го): freeze td-1 and merge it into main as one merge commit"
     }
   ]
 }
