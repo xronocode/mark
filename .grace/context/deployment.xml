@@ -63,10 +63,10 @@
     <product-name>Mark</product-name>
     <bundle-id>com.xronocode.mark</bundle-id>
     <ci-os-matrix>
-      Blocking test lanes: ubuntu-latest and macos-14 (renderer + backend
-      unit), macos-14 renderer E2E; windows-latest joins renderer + backend
+      Blocking test lanes: ubuntu-latest and macos-15 (renderer + backend
+      unit), macos-15 renderer E2E; windows-latest joins renderer + backend
       unit as blocking with C-15 Phase W. The release workflow builds
-      macos-14 (aarch64) and windows-latest (x86_64-pc-windows-msvc).
+      macos-15 (aarch64) and windows-latest (x86_64-pc-windows-msvc).
     </ci-os-matrix>
     <signing-strategy>
       macOS: CI Developer ID signing + notarization (APPLE_* secrets,
@@ -730,7 +730,7 @@
             <Value>done</Value>
           </Attribute>
         </LegacyAttributes>
-        .github/workflows/release.yml rewritten: matrix macos-14 (arm64,
+        .github/workflows/release.yml rewritten: matrix macos-15 (arm64,
         blocking), macos-13 (x64, blocking), ubuntu-22.04 + windows-latest
         (continue-on-error). Inline minify-locales + vite + electron-builder
         steps; ad-hoc signature verification step.
@@ -817,7 +817,7 @@
             <Value>done</Value>
           </Attribute>
         </LegacyAttributes>
-        Verified x64 DMG cross-built on macos-14 runner had arm64 native modules
+        Verified x64 DMG cross-built on macos-15 runner had arm64 native modules
         (broken on Intel); deleted x64 dmg/zip from draft. Cancelled queued
         macos-13 job (runner queue never freed during release window). Intel
         deferred to v1.0.1.
@@ -1573,7 +1573,7 @@
         Electron baseline (main + renderer + GPU + helper processes); Phase B
         (Tauri+WKWebView) targets ~30 MB and is the structural answer.
         (F-B-pre2-FOLLOWUP-4) Native-dialog visual regression in
-        ru_RU+zh_CN+ja_JP across macos-14 / ubuntu-22.04 / windows-latest —
+        ru_RU+zh_CN+ja_JP across macos-15 / ubuntu-22.04 / windows-latest —
         original gate criterion; superseded as a CI-checklist item rather than a
         hard gate because reborn-mark steps 1-7 already prove the dispatch path
         with real $HOME smoke. (F-B-pre2-FOLLOWUP-5) Native-speaker review of 9
@@ -2112,7 +2112,7 @@
         </Attribute>
       </LegacyAttributes>
       <goal>
-        tauri-action dry-run on macos-14 runner produces unsigned dmg artifact +
+        tauri-action dry-run on macos-15 runner produces unsigned dmg artifact +
         bundle size measurement + toolchain warnings allowlist.
       </goal>
       <step-1>
@@ -2164,14 +2164,14 @@
             <Value>done</Value>
           </Attribute>
         </LegacyAttributes>
-        tauri-action produces unsigned dmg on macos-14 runner. **Closed
+        tauri-action produces unsigned dmg on macos-15 runner. **Closed
         2026-04-28** via xronocode/mark CI run 25066008872 on branch `tauri`:
         Mark_0.0.1_aarch64.dmg + Mark.app produced at
         target/aarch64-apple-darwin/release/bundle/. Took 4 iterations to reach
         green: (1) lockfile missing → committed package-lock.json, (2)
         bundle.active=false → set true + targets [app, dmg], (3) workflow paths
         searched src-tauri/target instead of target (workspace root) → fixed,
-        (4) green. matrix: macos-14 / aarch64-apple-darwin only initially (B4
+        (4) green. matrix: macos-15 / aarch64-apple-darwin only initially (B4
         step-1 rename adds x64 + linux + windows).
       </step-4>
       <step-5>
@@ -2198,7 +2198,7 @@
         25066008872: hdiutil mount → cp Mark.app /Applications → xattr -cr →
         open → &quot;alive after 1s&quot; (helper process pgrep&apos;d within
         10s window) → pkill -9 cleanup. Validated full user-install flow on
-        clean macos-14 runner.
+        clean macos-15 runner.
       </step-6>
       <step-7>
         <LegacyAttributes>
@@ -3922,7 +3922,7 @@
           gate — `--ci` mode reads `tools/bench-baseline.json` (checked-in
           ground truth, schema-versioned). Fails if any waterfall stage
           regresses &gt;10% (per-stage tunable via `tools/bench-config.json`).
-          `.github/workflows/perf-gate.yml` runs on macos-14 for PRs touching
+          `.github/workflows/perf-gate.yml` runs on macos-15 for PRs touching
           src-tauri or src/renderer. `tools/bench-lint-markers.mjs` enforces
           elapsed_ms uniformity across all V-M-024..029 markers. BLOCK_* (21
           harness markers). Phase ordering invariant emits BLOCK_ORDER_VIOLATION
