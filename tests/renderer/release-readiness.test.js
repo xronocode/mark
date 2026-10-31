@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-readiness.test.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
@@ -28,6 +28,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-31 v2.3.0: the empty-lane-discovery test moves from the live checkout to a temp workspace — after the first lane departure main legitimately carries td-N documents, so the live tree must not be asserted lane-free.
 //   - 2026-10-30 v2.2.0: lane trains — prove lane lifecycle, base/head accounting, premature departure, carrier admission of every lane commit, the always-complete lane ledger and the per-run validation of every td-N document.
 //   - 2026-10-27 v2.1.0: current-train bookkeeping drift — prove a missing admitted-item heading, commit, or history bullet fails, terminal ledgers stay header-only, and the pointer/README/Project-schema trio must agree.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — validate the live train through the current-train pointer (no hardcoded train or version); prove multi-commit and merge-commit metadata-only seal spans pass while a product commit anywhere in the span (even one reverted later) and a seal equal to the payload fail; drop the Release Please boundary case.
@@ -875,8 +876,10 @@ describe('lane trains', () => {
     )
   })
 
-  it('finds no lanes on a main that has none', () => {
-    expect(validateLaneTrains(process.cwd())).toEqual([])
+  it('finds no lanes in a workspace that has none', () => {
+    const root = mkdtempSync(resolve(tmpdir(), 'mark-lane-train-'))
+    mkdirSync(resolve(root, 'docs/release-trains'), { recursive: true })
+    expect(validateLaneTrains(root)).toEqual([])
   })
 })
 // END_BLOCK_LANE_TRAIN_TESTS
