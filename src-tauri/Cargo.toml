@@ -23,7 +23,12 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["devtools", "image-png"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rfd = "0.17"
+# default-features = false: rfd 0.17.x flipped its Linux default to
+# xdg-portal, which collides with tauri-plugin-dialog's gtk3 backend
+# (rfd's build.rs panics when both are enabled — the 2026-10-31 wave-1
+# Linux failure). The plugin owns the backend choice; our direct uses
+# ride it.
+rfd = { version = "0.17", default-features = false }
 notify-debouncer-full = "0.5"
 ignore = "0.4"
 regex = "1"
@@ -47,7 +52,7 @@ reqwest = { version = "0.12", features = ["json"] }
 minisign-verify = "0.2"
 sha2 = "0.10"
 trash = "5"
-rand = "0.8"
+rand = "0.10"
 tokio = { version = "1", features = ["sync", "rt", "time", "net", "macros"] }
 axum = "0.8"
 signal-hook = "0.4"
@@ -69,8 +74,8 @@ core-foundation-sys = "0.8"
 # Both resolve to existing lock entries; no new crates.
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-version = "0.100"
-webview2-com = "0.38"
-windows-core = "0.61"
+webview2-com = "0.39"
+windows-core = "0.62"
 
 [dev-dependencies]
 tempfile = "3"

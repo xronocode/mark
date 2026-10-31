@@ -2460,6 +2460,17 @@
         FIX-*/DEPS-* delivery ID the base revision already records, because the
         acceptance and train ledgers own those IDs permanently.
 
+        Lane trains (owner instruction 2026-10-30): technical-debt fixes
+        collect on their own lane train (td-N) on the integ/techdebt branch,
+        where test.yml runs the full suite, and depart into main as one
+        reviewed merge commit; the carrier product train then admits the
+        lane as one item holding the merge commit and every lane commit.
+        release:readiness validates every td-N document on each run (lane
+        lifecycle Collecting/Frozen/Merged/Aborted, accounting from
+        lane.baseSha through lane.headSha, an always-complete ledger, carrier
+        admission once Merged), the current pointer stays product-only, and
+        acceptance-registry treats lane-admitted items as train-admitted.
+
         The one-way Project mirror also tolerates eventually consistent
         Projects read-back: after creating an item it waits for the stable
         Item ID to appear instead of re-planning a second create (which
