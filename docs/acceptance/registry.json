@@ -622,6 +622,52 @@
           "detail": "Queued in train 2.9.x-next."
         }
       ]
+    },
+    {
+      "id": "M-046-LANE-TRAINS",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-30",
+          "actor": "owner",
+          "detail": "Owner instruction recorded in docs/release-trains/README.md: technical-debt fixes ride their own train instead of the product train, collecting on integ/techdebt as td-N and departing into main as one reviewed merge commit."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-31",
+          "actor": "agent",
+          "detail": "PR #132 squash-merged as cca6d784: release-train lane listing and td-N grammars, release-readiness lane lifecycle/accounting/ledger/carrier validation, acceptance-registry lane admission, the full test suite on integ/techdebt, README lane rules, M-046/V-M-046. vitest 4986/0; the full commit gate ran both model reviewers on the landing diff."
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-31",
+          "actor": "agent",
+          "detail": "Queued in train 2.9.x-next."
+        }
+      ]
+    },
+    {
+      "id": "MACOS-15-RUNNERS",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-31",
+          "actor": "owner",
+          "detail": "Owner approval of the CI migration plan after GitHub's scheduled macos-14 brownouts failed the macOS lanes (the image retires 2026-11-02; actions/runner-images#13518)."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-31",
+          "actor": "agent",
+          "detail": "PR #136 squash-merged as d2abf46c: 18 macos-14 to macos-15 replacements across test.yml, release.yml, release-tauri.yml plus the deployment context; the PR's own CI ran the migrated macOS lanes green on macos-15."
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-31",
+          "actor": "agent",
+          "detail": "Queued in train 2.9.x-next."
+        }
+      ]
     }
   ]
 }

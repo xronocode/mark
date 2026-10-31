@@ -74,3 +74,5 @@ reload picks the verdict up):
 | C-MULTI-SOURCE-WORKSPACE | owner-verdict | mark-test-msw-ab3367c2 | pending |
 | FIX-019 | queued | mark-test-fix019-52443b1 | accepted 2026-10-25 |
 | FIX-021 | queued | — | pending |
+| M-046-LANE-TRAINS | queued | — | pending |
+| MACOS-15-RUNNERS | queued | — | pending |
