@@ -22,6 +22,25 @@ locale, RDP enabled as the manual fallback). Everything below was proven live by
 into the webview is therefore always CDP; UIA stays authoritative for the native chrome.
 cua `call` invocations are stateless — element tokens live only inside one `run_script`.
 
+**Menu rail (rehearsal finding, 2026-10-31).** App menus are reached in three moves:
+(1) CDP `window.electron.ipcRenderer.invoke('mt::window-popup-app-menu', {x, y})` opens
+the real native menu — the call **blocks** (modal) until an item is chosen, so a hung
+invoke is the "menu is open" signal; (2) a desktop screenshot plus row-cluster pixel
+analysis (dark panel RGB(43,43,43), text rows ≈24 px apart) yields item coordinates;
+(3) a native cua desktop click selects the item; the menu closes and the command
+dispatches. Trusted mouse clicks on the ☰ button itself do **not** reach the Vue
+handler on this build — the direct invoke is the supported workaround. Renderer-level
+bindings (e.g. Ctrl+\\ sidebar) do respond to trusted CDP key events; native menu
+accelerators do not (see known issues).
+
+**Polygon build traps (2026-10-31, all hit and fixed once).** `npx tauri build --config`
+JSON must be cmd-escaped (`{\"bundle\":…}`) even inside a PowerShell script — the npx
+`.cmd` shim routes through cmd.exe. PowerShell 5.1 parses BOM-less `.ps1` in the OEM
+codepage (GBK on this OS): one non-ASCII character breaks parsing with instant exit 1
+and no transcript — write polygon scripts ASCII-only with a UTF-8 BOM. Bundle output
+lives in the workspace ROOT `target\x86_64-pc-windows-msvc\release\bundle\nsis\`, not
+under `src-tauri\target\`.
+
 ## Verification standard
 
 Every claim closes with at least two of three evidence kinds:
@@ -87,6 +106,13 @@ Scenarios come from the ledger's "intentionally unverified" fields. Order = risk
 
 ## Constraints and standing decisions
 
+- **Known issues blocking Windows acceptance (2026-10-31, FIX handover filed):** native
+  menu accelerators do not fire on Windows (Ctrl+Alt+S source, Ctrl+Alt+\\ split — the
+  hidden menu bar from C-15 T-W1 apparently does not register them), and the titlebar
+  mode chips do not render even with a document open and a mode engaged
+  (`titlebar-mode-chips-wrap` present, `v-if="chips.length"` inner absent). Both affect
+  C-TITLEBAR-MODE-CHIPS / FIX-021 acceptance on this platform and must be resolved (or
+  explicitly waived) before the train acceptance run.
 - **Windows 10 22H2 only** — Win11 surfaces (mica et al.) are not covered; noted in the
   registry, acceptable for 2.9.
 - **docx verification happens on the owner's Mac** (owner decision 2026-10-30).
@@ -107,3 +133,12 @@ the polygon repository carries no pilot changes.
 
 Artifacts: `~/Downloads/mark-acceptance/2.9.x-next-pilot/` (screenshots + CDP scripts)
 and `D:\polygon\pilot-0*.png` on the polygon.
+
+## Rehearsal (2026-10-31, Mark 2.8.2 from main `d2abf46c`, built and installed on the polygon)
+
+NSIS 9.79 MB, SHA-256 `AA650D81…58000`. The emphasis scenario passed end-to-end on the
+real build (live insert of the owner-report paragraph → exactly one `<strong>One-shot</strong>`,
+typo asterisks literal, document strongs intact, full-editor pixel diff). The menu rail
+above was proven live: direct invoke opened the popup (screenshot-proven panel), pixel
+row analysis located the items, a native click engaged a view mode (editor restructured,
+DOM-verified). Curated evidence deck: `~/Downloads/mark-acceptance/2.9.x-next-rehearsal/deck/`.
