@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.5.0
+# VERSION: 1.6.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,7 +11,8 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.5.0 - 2026-10-27: bound, IPv4-pinned and retried the Linux Tauri sysdeps install so a stalled apt fetch fails fast inside the job budget instead of cancelling the run and blocking the aggregate status check.
+#   LAST_CHANGE: v1.6.0 - 2026-10-31: move every macOS lane to the macos-15 runner image ahead of the macos-14 retirement (matrix jobs, e2e job name and Playwright cache keys).
+#   PREV: v1.5.0 - 2026-10-27: bound, IPv4-pinned and retried the Linux Tauri sysdeps install so a stalled apt fetch fails fast inside the job budget instead of cancelling the run and blocking the aggregate status check.
 #   PREV: v1.4.0 - 2026-10-20: fetch full history for renderer-unit so release-boundary normalization tests can inspect their pinned bootstrap commit.
 #   PREV: v1.3.0 - 2026-10-19: gate session restore and close/edit ownership in WebKit.
 #   PREV: v1.2.0 - 2026-10-19: gate opened-baseline priority and calm diff exits in WebKit.
@@ -42,7 +43,7 @@
 #     suite does not link the windowing layer, BUT tauri-build runs at
 #     compile time and pulls webkit pkg-config probes — installing the
 #     deps avoids spurious failures and keeps parity with future jobs.
-#   - Playwright runs macos-14 only initially; Linux is added under the
+#   - Playwright runs macos-15 only initially; Linux is added under the
 #     same matrix entry once it has been observed green at least once.
 
 name: test
@@ -69,7 +70,7 @@ jobs:
       matrix:
         # C-15 T-W3: windows-latest joined as a blocking lane — the
         # renderer platform shim is build-host-dependent now.
-        os: [ubuntu-latest, macos-14, windows-latest]
+        os: [ubuntu-latest, macos-15, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
 
@@ -99,7 +100,7 @@ jobs:
         # C-15 T-W3: windows-latest is the Windows-cfg compile gate
         # (cross-check from macOS is blocked by ring's MSVC toolchain
         # needs — see C-15 plan T-W2 verification note).
-        os: [ubuntu-latest, macos-14, windows-latest]
+        os: [ubuntu-latest, macos-15, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
 
@@ -172,8 +173,8 @@ jobs:
         run: cargo test --bin mark
 
   renderer-e2e:
-    name: renderer e2e playwright (macos-14)
-    runs-on: macos-14
+    name: renderer e2e playwright (macos-15)
+    runs-on: macos-15
     # C-LARGE-DOC-STAGE-0: raised from 25 — the webkit-perf characterization
     # oracles add ~5 minutes of WebKit suites; the first full green run took
     # 25m14s and merge-commit runs (one flake retry) tipped over the old
@@ -200,9 +201,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/ms-playwright
-          key: playwright-macos-14-${{ hashFiles('package-lock.json') }}
+          key: playwright-macos-15-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            playwright-macos-14-
+            playwright-macos-15-
 
       - name: install playwright chromium
         run: npx playwright install chromium --with-deps
