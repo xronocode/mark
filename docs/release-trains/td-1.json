@@ -12,7 +12,15 @@
   },
   "items": {
     "userFacing": [],
-    "operational": [],
+    "operational": [
+      {
+        "id": "DEV-BADGE",
+        "summary": "Developer tools ship disabled in every default build (explicit --features devtools opt-in or a debug build) and a runtime-drawn orange DEV chevron marks the app icon while they are on (M-069).",
+        "commits": [
+          "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386"
+        ]
+      }
+    ],
     "notPresent": []
   },
   "commitAccounting": {

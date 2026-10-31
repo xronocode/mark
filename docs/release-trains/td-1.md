@@ -9,3 +9,12 @@
 | Machine-readable authority | [td-1.json](td-1.json) — deterministic admission state; this Markdown file remains the human evidence ledger |
 
 - 2026-10-31 — lane opened on `integ/techdebt` from main `2bae3364`, following the owner instruction of 2026-10-30 that technical-debt fixes collect on their own train. Collecting; no admissions yet.
+- 2026-10-31 — lane synced with main through `8c4bff76` (lane-train tooling via #132, macos-15 runners via #136); the full suite now runs on this branch.
+
+## Admitted items
+
+### DEV-BADGE
+
+- Summary: developer tools ship disabled in every default build (explicit `--features devtools` opt-in or a debug build), and a runtime-drawn orange DEV chevron marks the app icon while they are on.
+- Source commit: `b9d8e5f6` (PR #133); admission commit on the lane.
+- Testing protocol (rule 4): full suite green on the lane CI after the sync (macos-15, ubuntu, windows); macOS debug-launch check with the Dock chevron and the `BLOCK_DEV_BADGE_APPLIED` marker; cargo 467/0 on macOS including the M-069 badge tests.
