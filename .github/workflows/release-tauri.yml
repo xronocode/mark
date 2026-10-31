@@ -1,9 +1,9 @@
 # FILE: .github/workflows/release-tauri.yml
-# VERSION: 1.0.0
+# VERSION: 1.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Build and smoke-test unsigned macOS candidate bundles without exposing production signing credentials.
 #   SCOPE: Path-filtered PR/tauri-branch builds, updater-disabled Tauri packaging, ad-hoc app signing, installed-app smoke, size evidence, warning checks, and short-lived artifacts.
-#   DEPENDS: Node 22, Rust stable, Tauri CLI/action, macos-14, M-046 release configuration.
+#   DEPENDS: Node 22, Rust stable, Tauri CLI/action, macos-15, M-046 release configuration.
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
@@ -14,7 +14,8 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2026-10-21 v1.0.0 - disable updater artifact signing in the unprivileged dry-run while retaining .app/DMG packaging and smoke coverage.
+#   LAST_CHANGE: 2026-10-31 v1.1.0 - build the macOS dry-run lane on the macos-15 runner image ahead of the macos-14 retirement (matrix os and the platform conditions).
+#   PREV: 2026-10-21 v1.0.0 - disable updater artifact signing in the unprivileged dry-run while retaining .app/DMG packaging and smoke coverage.
 # END_CHANGE_SUMMARY
 #
 # Phase-B1.5 dry-run workflow retained as the unprivileged candidate bundle
@@ -74,7 +75,7 @@ jobs:
       matrix:
         platform:
           - name: macos-arm64
-            os: macos-14
+            os: macos-15
             target: aarch64-apple-darwin
     runs-on: ${{ matrix.platform.os }}
     timeout-minutes: 45
@@ -139,7 +140,7 @@ jobs:
       # Works on ephemeral runner WITHOUT keychain provisioning — that's
       # the whole point of ad-hoc.
       - name: ad-hoc codesign
-        if: matrix.platform.os == 'macos-14'
+        if: matrix.platform.os == 'macos-15'
         run: |
           set -euo pipefail
           APP_PATH=$(find target -name 'Mark.app' -type d | head -1)
@@ -155,7 +156,7 @@ jobs:
       # Mount DMG → /Applications → xattr -cr → open → assert alive →
       # kill. Validates the full user-install flow on a clean runner.
       - name: smoke launch
-        if: matrix.platform.os == 'macos-14'
+        if: matrix.platform.os == 'macos-15'
         run: |
           set -euo pipefail
           DMG=$(find target -name '*.dmg' | head -1)
@@ -192,7 +193,7 @@ jobs:
 
       # ── bundle size measurement (Phase-B1.5 step-7) ──────────────
       - name: bundle size
-        if: matrix.platform.os == 'macos-14'
+        if: matrix.platform.os == 'macos-15'
         id: size
         run: |
           set -euo pipefail
@@ -225,7 +226,7 @@ jobs:
       # then diff against the allowlist. New unlisted warnings fail the
       # allowlist check; expected warnings pass through.
       - name: warnings allowlist check
-        if: matrix.platform.os == 'macos-14'
+        if: matrix.platform.os == 'macos-15'
         run: |
           set -euo pipefail
           cd src-tauri
@@ -237,7 +238,7 @@ jobs:
 
       # ── upload artifacts ─────────────────────────────────────────
       - name: upload dmg
-        if: matrix.platform.os == 'macos-14' && always()
+        if: matrix.platform.os == 'macos-15' && always()
         uses: actions/upload-artifact@v4
         with:
           name: mark-${{ matrix.platform.name }}-dmg
@@ -246,7 +247,7 @@ jobs:
           retention-days: 14
 
       - name: upload toolchain warnings json
-        if: matrix.platform.os == 'macos-14' && always()
+        if: matrix.platform.os == 'macos-15' && always()
         uses: actions/upload-artifact@v4
         with:
           name: toolchain-warnings-${{ matrix.platform.name }}
