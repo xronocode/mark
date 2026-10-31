@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.6.0
+# VERSION: 1.7.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,7 +11,8 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.6.0 - 2026-10-31: move every macOS lane to the macos-15 runner image ahead of the macos-14 retirement (matrix jobs, e2e job name and Playwright cache keys).
+#   LAST_CHANGE: v1.7.0 - 2026-10-30: the tech-debt lane (integ/techdebt) runs the full suite on push and on pull requests into it, so lane admissions carry the same evidence as main.
+#   PREV: v1.6.0 - 2026-10-31: move every macOS lane to the macos-15 runner image ahead of the macos-14 retirement (matrix jobs, e2e job name and Playwright cache keys).
 #   PREV: v1.5.0 - 2026-10-27: bound, IPv4-pinned and retried the Linux Tauri sysdeps install so a stalled apt fetch fails fast inside the job budget instead of cancelling the run and blocking the aggregate status check.
 #   PREV: v1.4.0 - 2026-10-20: fetch full history for renderer-unit so release-boundary normalization tests can inspect their pinned bootstrap commit.
 #   PREV: v1.3.0 - 2026-10-19: gate session restore and close/edit ownership in WebKit.
@@ -50,9 +51,9 @@ name: test
 
 on:
   push:
-    branches: [main]
+    branches: [main, integ/techdebt]
   pull_request:
-    branches: [main]
+    branches: [main, integ/techdebt]
   workflow_dispatch:
 
 concurrency:
