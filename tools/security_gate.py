@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 2.2.0
+# VERSION: 2.3.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks plus two independent model reviewers.
-#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, two serial owner-local model passes and one independent non-local model pass under independent per-lane locks, an explicit human model-review override, identity recheck, private receipts and common hooks.
-#   DEPENDS: Python stdlib, git, gitleaks, owner-configurable Ollama endpoints for the local and non-local reviewers.
+#   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks plus one local-first model review pass with an optional offload executor.
+#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, one single-pass model review per chunk on the resolved executor under that executor's lane lock — local by default, the owner-configured offload endpoint when a bounded health probe proves it ready — an explicit human model-review override, identity recheck, private receipts and common hooks.
+#   DEPENDS: Python stdlib, git, gitleaks, owner-configurable Ollama endpoints for the local reviewer and the optional offload executor.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFETY-GATE-MODEL-REVIEW; C-PUBLIC-REPOSITORY-HYGIENE; C-MESSAGE-ONLY-HISTORY-REWRITE-V3.
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT
 # START_MODULE_MAP
 #   GateError - non-sensitive fail-closed diagnostic.
-#   PUBLICATION_REVIEW_PROMPT - immutable public/private review boundary for both model reviewers.
-#   LOCAL_PHASES - the two serial owner-local review phases.
-#   NON_LOCAL_PHASE - the independent non-local review phase.
+#   PUBLICATION_REVIEW_PROMPT - immutable public/private review boundary for the model reviewer.
+#   REVIEW_PHASE - the single model review pass label.
+#   OFFLOAD_PROBE_TIMEOUT - bound for the optional offload health probe.
 #   REVIEW_CHUNK_BYTES - UTF-8 byte bound for one reviewer chunk.
 #   REVIEW_OUTPUT_TOKENS - output budget for one reviewer answer.
 #   HOME_PLACEHOLDERS - synthetic home users accepted by the absolute-path rule.
@@ -52,17 +52,18 @@
 #   validate_verdict - reject malformed or non-passing reviewer responses.
 #   NoRedirect - prevent a reviewer redirect from exporting the payload.
 #   validate_reviewer_endpoint - validate and classify one reviewer endpoint.
-#   reviewer_config - resolve the local and non-local reviewers from private owner configuration.
+#   reviewer_config - resolve the local reviewer and the optional offload executor from private owner configuration.
 #   gpu_preflight - bound an optional owner-configured host check and redact diagnostics.
 #   reviewer_ownership - prove an empty slot or the expected loaded model before inference.
-#   local_review - run two serial owner-local passes per chunk.
-#   non_local_review - run one independent non-local pass per chunk.
-#   review - take the candidate lock, scan, honour the explicit override, run the local and non-local reviewers under their own lane locks, recheck identity and write a private receipt.
+#   resolve_review_executor - pick the review executor once: the offload endpoint when configured and healthy, otherwise the local reviewer, never failing on the offload host's state.
+#   model_review - run one single pass per chunk on the resolved executor.
+#   review - take the candidate lock, scan, honour the explicit override, resolve the executor, run the model pass under its lane lock, recheck identity and write a private receipt.
 #   install - scan the staged bootstrap and install common fail-closed hooks.
 #   main - dispatch early static checks, full commit/push review, history-rewrite review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.2.0 - 2026-10-27 C-SAFETY-REVIEW-LANES: replace the single inference.lock with candidate, local and non-local lane locks, so a remote-bound review no longer blocks another operation's local phase; keep each lane single-flight, make per-chunk evidence candidate-scoped and atomic, and preserve the FIX-021 reviewer view plus the 2.1.1 output-budget diagnostics.
+#   LAST_CHANGE: 2.3.0 - 2026-10-31 C-SAFETY-LOCAL-FIRST-REVIEW: make the model review local-first and single-pass — one pass per chunk on the resolved executor, with the offload endpoint optional (used when a bounded health probe proves it ready, silent local fallback otherwise); remove the mandatory non-local pass and its configuration error; per-executor lane lock, receipt and marker updated; fail-closed verdict, address-safety and override semantics unchanged.
+#   PREV: 2.2.0 - 2026-10-27 C-SAFETY-REVIEW-LANES: replace the single inference.lock with candidate, local and non-local lane locks, so a remote-bound review no longer blocks another operation's local phase; keep each lane single-flight, make per-chunk evidence candidate-scoped and atomic, and preserve the FIX-021 reviewer view plus the 2.1.1 output-budget diagnostics.
 #   PREV: 2.1.1 - 2026-10-27: name the sanitized done_reason and answering model in the incomplete-payload rejection, which could not tell a truncated answer from a model swap, and raise the reviewer answer budget from 600 to 2048 output tokens as headroom.
 #   PREV: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and state that a bare secret or variable name is an identifier rather than a value, so documented setup text and cleanups stop reading as new exposure.
 #   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: restore exact-candidate model review as two serial owner-local passes plus one independent non-local (private-network) pass, resolved from owner-local configuration or environment, fail-closed with the explicit human override; widen deterministic checks to private-companion and owner-workspace references.
@@ -120,8 +121,10 @@ PUBLICATION_REVIEW_PROMPT = (
     "for a concrete exposure, each finding an object with category and relative path, without raw values."
 )
 
-LOCAL_PHASES = ("review", "skeptical independent recheck")
-NON_LOCAL_PHASE = "independent non-local review"
+REVIEW_PHASE = "publication exposure review"
+# Bound for the optional offload health probe: a powered-off or half-dead
+# offload host must select the local reviewer quickly, never stall a commit.
+OFFLOAD_PROBE_TIMEOUT = 3
 REVIEW_CHUNK_BYTES = 6000
 # Output budget for one reviewer answer. The verdict JSON must reach its terminator
 # inside it: a truncated answer finishes with done_reason "length" and is rejected
@@ -1051,7 +1054,7 @@ def reviewer_config(private):
         "gpuCheck": os.environ.get("MARK_SAFETY_LOCAL_GPU_CHECK") or local_settings.get("gpuCheck") or "",
     }
     non_local = {
-        "label": "non-local",
+        "label": "offload",
         "endpoint": os.environ.get("MARK_SAFETY_REMOTE_ENDPOINT")
         or non_local_settings.get("endpoint")
         or "",
@@ -1060,17 +1063,13 @@ def reviewer_config(private):
         or "qwen3:4b",
         "gpuCheck": os.environ.get("MARK_SAFETY_REMOTE_GPU_CHECK") or non_local_settings.get("gpuCheck") or "",
     }
-    if not non_local["endpoint"]:
-        raise GateError(
-            "Non-local reviewer is not configured; set MARK_SAFETY_REMOTE_ENDPOINT "
-            "or write reviewers.json in the private safety directory"
-        )
     for reviewer in (local, non_local):
         if not isinstance(reviewer["model"], str) or not reviewer["model"].strip() or not isinstance(reviewer["gpuCheck"], str):
             raise GateError(reviewer["label"] + " reviewer configuration is malformed")
         reviewer["model"] = reviewer["model"].strip()
     local["endpoint"] = validate_reviewer_endpoint("Owner-local", local["endpoint"], True)
-    non_local["endpoint"] = validate_reviewer_endpoint("Non-local", non_local["endpoint"], False)
+    if non_local["endpoint"]:
+        non_local["endpoint"] = validate_reviewer_endpoint("Offload", non_local["endpoint"], False)
     return {"local": local, "nonLocal": non_local}
     # END_BLOCK_REVIEWER_CONFIG
 
@@ -1105,6 +1104,32 @@ def reviewer_ownership(reviewer, opener):
         raise GateError("Cannot prove exclusive ownership of the " + reviewer["label"] + " review model slot") from None
     return bool(models)
     # END_BLOCK_REVIEWER_OWNERSHIP
+
+
+def resolve_review_executor(reviewers, opener=None):
+    # START_BLOCK_RESOLVE_REVIEW_EXECUTOR
+    # Owner policy 2026-10-31: the offload host is an optional executor, never
+    # a commit dependency — its power state is the offload switch. Any probe
+    # failure selects the local reviewer instead of failing the operation.
+    offload = reviewers["nonLocal"]
+    if not offload["endpoint"]:
+        return reviewers["local"], "unconfigured"
+    if opener is None:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+    try:
+        with opener.open(offload["endpoint"] + "/api/ps", timeout=OFFLOAD_PROBE_TIMEOUT) as response:
+            models = json.load(response)["models"]
+        if not isinstance(models, list) or len(models) > 1:
+            raise ValueError("Ambiguous loaded-model inventory")
+        if models and (
+            not isinstance(models[0], dict)
+            or (models[0].get("name") or models[0].get("model")) != offload["model"]
+        ):
+            raise ValueError("Another model owns the slot")
+    except (OSError, ValueError, KeyError, TypeError, urllib.error.URLError):
+        return reviewers["local"], "unavailable"
+    return offload, "used"
+    # END_BLOCK_RESOLVE_REVIEW_EXECUTOR
 
 
 def _review_chunk(reviewer, phase, chunk, opener, private, candidate, records, index):
@@ -1178,28 +1203,15 @@ def _review_with(reviewer, phases, candidate, private, opener, records, marker):
     return len(payload_chunks)
 
 
-def local_review(candidate, private, reviewers):
-    # START_BLOCK_LOCAL_REVIEW
-    reviewer = reviewers["local"]
+def model_review(candidate, private, reviewer):
+    # START_BLOCK_MODEL_REVIEW
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
     records = []
-    count = _review_with(reviewer, LOCAL_PHASES, candidate, private, opener, records, "[RepositorySafety][local_review][BLOCK_LOCAL_REVIEW]")
-    if len(records) != count * len(LOCAL_PHASES):
-        raise GateError("Incomplete owner-local two-pass review")
-    return records
-    # END_BLOCK_LOCAL_REVIEW
-
-
-def non_local_review(candidate, private, reviewers):
-    # START_BLOCK_NON_LOCAL_REVIEW
-    reviewer = reviewers["nonLocal"]
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
-    records = []
-    count = _review_with(reviewer, (NON_LOCAL_PHASE,), candidate, private, opener, records, "[RepositorySafety][non_local_review][BLOCK_NON_LOCAL_REVIEW]")
+    count = _review_with(reviewer, (REVIEW_PHASE,), candidate, private, opener, records, "[RepositorySafety][model_review][BLOCK_MODEL_REVIEW]")
     if len(records) != count:
-        raise GateError("Incomplete non-local review")
+        raise GateError("Incomplete model review")
     return records
-    # END_BLOCK_NON_LOCAL_REVIEW
+    # END_BLOCK_MODEL_REVIEW
 
 
 def review(make_candidate, private, operation):
@@ -1221,10 +1233,10 @@ def review(make_candidate, private, operation):
             finally:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
-    # Lock order: candidate (short) -> local -> non-local -> candidate (short).
-    # The candidate lock is never held while a model lane is held, so a
-    # remote-bound review cannot block another operation's local phase and the
-    # two lane locks cannot form a cycle.
+    # Lock order: candidate (short) -> the resolved executor's lane -> candidate (short).
+    # A review holds exactly one executor lane, so an offload-bound review never
+    # blocks another operation's local phase and the two executor lanes cannot
+    # form a cycle.
     with lane("inference-candidate.lock", "Another repository safety review owns the candidate review slot"):
         candidate = make_candidate()
         scan(candidate)
@@ -1243,7 +1255,7 @@ def review(make_candidate, private, operation):
                 "reason": override,
                 "overriddenAt": int(time.time()),
                 "gateSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                "scope": "local two-pass and non-local model review skipped by explicit human decision; deterministic exposure checks and Gitleaks ran and passed",
+                "scope": "model review skipped by explicit human decision; deterministic exposure checks and Gitleaks ran and passed",
             }
             path = private / ("override-" + operation + "-" + candidate["identity"] + ".json")
             path.write_text(json.dumps(receipt, indent=2))
@@ -1252,27 +1264,25 @@ def review(make_candidate, private, operation):
             return
         # END_BLOCK_MANUAL_REVIEW_OVERRIDE
     reviewers = reviewer_config(private)
-    with lane("inference-local.lock", "Another repository safety review owns the local review slot"):
-        records = local_review(candidate, private, reviewers)
-    with lane("inference-non-local.lock", "Another repository safety review owns the non-local review slot"):
-        records += non_local_review(candidate, private, reviewers)
-    expected = len(chunks(review_view(candidate["payload"]))) * (len(LOCAL_PHASES) + 1)
+    executor, offload_state = resolve_review_executor(reviewers)
+    executor_lane = "inference-local.lock" if executor is reviewers["local"] else "inference-non-local.lock"
+    with lane(executor_lane, "Another repository safety review owns the " + executor["label"] + " review slot"):
+        records = model_review(candidate, private, executor)
+    expected = len(chunks(review_view(candidate["payload"])))
     if len(records) != expected:
-        raise GateError("Incomplete two-reviewer model review")
+        raise GateError("Incomplete model review")
     with lane("inference-candidate.lock", "Another repository safety review owns the candidate review slot"):
         if make_candidate()["identity"] != candidate["identity"]:
             raise GateError("Candidate changed during review; stage and review again")
         receipt = {
             "operation": operation,
             "identity": candidate["identity"],
-            "reviewers": [
-                {"label": item["label"], "model": item["model"], "passes": len(LOCAL_PHASES)}
-                for item in (reviewers["local"],)
-            ] + [{"label": reviewers["nonLocal"]["label"], "model": reviewers["nonLocal"]["model"], "passes": 1}],
+            "reviewers": [{"label": executor["label"], "model": executor["model"], "passes": len(records)}],
+            "offload": offload_state,
             "passes": len(records),
             "reviewedAt": int(time.time()),
             "gateSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-            "checks": ["static-exposure", "gitleaks", "local-model-review", "non-local-model-review", "candidate-identity"],
+            "checks": ["static-exposure", "gitleaks", "model-review", "candidate-identity"],
         }
         if candidate.get("receipt"):
             receipt["details"] = candidate["receipt"]
@@ -1286,8 +1296,9 @@ def review(make_candidate, private, operation):
             "[RepositorySafety][scan][BLOCK_SAFETY_SCAN_PASS]",
             operation,
             candidate["identity"],
-            "checks=5",
-            "reviewers=local(2),non-local(1)",
+            "checks=4",
+            "reviewers=" + executor["label"] + "(1)",
+            "offload=" + offload_state,
             "passes=" + str(len(records)),
         )
         # END_BLOCK_SAFETY_REVIEW_PASS
