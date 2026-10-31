@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| State | Frozen |
+| State | Merged |
 | Lane branch | `integ/techdebt` |
 | Base | main `2bae3364` (2026-10-29, PR #129) |
 | Protocol | [Acceptance and release trains](README.md) |
@@ -39,4 +39,5 @@
 
 ## Freeze
 
+- 2026-10-31 — departed into main as merge commit `0d142333` (PR #139) at the owner's go; carried by [2.9.x-next](2.9.x-next.md) as the td-1 lane item. Merged.
 - 2026-10-31 — frozen at the owner's departure instruction; `lane.headSha` is fixed at `ce6eebcc` and every lane commit is accounted through it (eight entries, four items). The lane takes no more admissions.

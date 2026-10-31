@@ -290,6 +290,23 @@
             "INTENTIONALLY UNVERIFIED: nothing user-facing — the gate is developer tooling; the Windows machine remains a test polygon outside the gate."
           ]
         }
+      },
+      {
+        "id": "td-1",
+        "summary": "The first technical-debt lane train: developer tools off in release builds with a DEV chevron while on (M-069), the graph-index XML comment repair, the rollback relaunch clippy silencing, and the lane's own bookkeeping, departed into main as one merge commit after a fully green suite and the full commit gate.",
+        "commits": [
+          "0d142333b2d929f8fbdad0098b4935fac9614c41",
+          "9f5073437854b211d5bfc21f4350d024619e9771",
+          "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
+          "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
+          "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
+          "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
+          "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
+          "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+          "ce6eebcc90a44a68869900053de353ce1735e3ca",
+          "849cffa9cb93a71cc387d64d87303830a00a7eef",
+          "8ea9d16e23434a6b248f06694a357ec64cd0b999"
+        ]
       }
     ],
     "notPresent": []
