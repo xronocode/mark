@@ -56,6 +56,7 @@
         <M-052/>
         <M-057/>
         <M-058/>
+        <M-069/>
         <M-059/>
         <M-062/>
       </Owns>
@@ -108,7 +109,7 @@
              notification system; the legacy toast service is its facade. -->
         <M-067/>
         <!-- C-UPDATER-ROLLBACK: M-068 owns the rollback manager
-             (snapshot/validate/restore + the pre-boot --rollback CLI). -->
+             (snapshot/validate/restore + the pre-boot rollback CLI). -->
         <M-068/>
         <!-- C-NATIVE-DOCX-RTF-EXPORT: M-066 owns the renderer-side Word
              converter (pre-pass + lazy docx/html + geometry mapping). -->
