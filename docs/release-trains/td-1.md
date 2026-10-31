@@ -24,3 +24,9 @@
 - Summary: the rollback manager comment in the graph index no longer contains a double hyphen, so strict XML parsers accept the file again.
 - Source commit: `f5f18ab9` (PR #134); admission commit on the lane.
 - Testing protocol (rule 4): xmllint --noout accepts .grace/graph/index.xml; lane CI green.
+
+### RELAUNCH-SILENCE
+
+- Summary: the cfg-asymmetric `relaunch` parameter of the rollback restore core is silenced for non-macOS clippy runs, matching the existing `fetch`/`spawn_installer` treatment.
+- Source commit: `d688f2fc` (PR #135); admission commit on the lane.
+- Testing protocol (rule 4): cargo check green on macOS with the patch; lane CI green.

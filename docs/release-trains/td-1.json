@@ -26,6 +26,13 @@
         "commits": [
           "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4"
         ]
+      },
+      {
+        "id": "RELAUNCH-SILENCE",
+        "summary": "The cfg-asymmetric relaunch parameter of the rollback restore core is silenced for non-macOS clippy, matching the existing fetch/spawn_installer treatment.",
+        "commits": [
+          "d688f2fc2f349d3ef1d8660dd33353a04f8062a1"
+        ]
       }
     ],
     "notPresent": []
