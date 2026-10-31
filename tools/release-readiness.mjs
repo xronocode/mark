@@ -1,8 +1,8 @@
 // FILE: tools/release-readiness.mjs
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, ledger/pointer projection, Project schema coverage, or requested release identity is inconsistent.
-//   SCOPE: Read one public train JSON document, validate its deterministic repository-only invariants, prove the current train's human ledger and README pointer carry the admitted items, and prove the checked-in Project schema covers every train file; online check-run proof and publication remain workflow concerns.
+//   SCOPE: Read one public train JSON document and every lane train, validate their deterministic repository-only invariants, prove the current train's human ledger and README pointer carry the admitted items, and prove the checked-in Project schema covers every train file; online check-run proof and publication remain workflow concerns.
 //   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json; .github/release-governance.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
@@ -16,12 +16,18 @@
 //   validateTrainLedger - Rejects drift between the JSON authority and its human Markdown ledger header, and proves the current ledger carries every admitted item.
 //   validateCurrentTrainPointer - Proves current.json names an existing train and the README "Current train" line names the same train.
 //   validateProjectFieldCoverage - Proves the checked-in Project Train field offers an option for every train document.
+//   validateLaneTrainManifest - Validates a lane train (td-N): lane lifecycle, membership, accounting from the lane base, and carrier admission once Merged.
+//   validateLaneTrainLedger - Rejects drift between a lane's JSON authority and its always-complete Markdown ledger.
+//   validateLaneTrains - Validates every checked-in lane train and ledger.
 //   validateStrictRepositoryState - Proves payload/seal/tag/check-run identity from repository and supplied API evidence.
 //   runReleaseReadiness - Runs the offline gate and emits its stable success marker.
 //   TRAIN_SCHEMA_VERSION - Exact supported train-document schema.
 //   RELEASE_STATES - Complete release lifecycle state set.
 //   TRANSITIONS - Allowed forward and recovery lifecycle transitions.
 //   STRICT_STATES - Lifecycle states that require repository identity proof.
+//   LANE_STATES - Complete lane-train lifecycle state set.
+//   LANE_TRANSITIONS - Allowed lane-train lifecycle transitions.
+//   LANE_STRICT_STATES - Lane states that require complete commit accounting through the lane head.
 //   SHA_PATTERN - Exact full Git commit SHA grammar.
 //   SEMVER_PATTERN - Exact supported release-version grammar.
 //   SEAL_PATH_PATTERNS - Release-bookkeeping paths a payload-to-seal commit may touch.
@@ -49,6 +55,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-30 v2.2.0: lane trains — every td-N document is validated on each run (lane lifecycle Collecting/Frozen/Merged/Aborted, accounting from lane.baseSha through lane.headSha, always-complete ledger covering operational items too); a Merged lane must be carried by its product train as one item holding the merge commit and every lane commit.
 //   - 2026-10-27 v2.1.0: fail closed on bookkeeping drift — the current train's ledger must carry a heading and a commit for every admitted item and at least one dated history bullet per lifecycle transition; current.json and the README "Current train" line must name the same train; the checked-in Project Train field must offer an option for every train document.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — resolve the train through the current-train pointer; accept any metadata-only payload-to-seal span (every commit proven bookkeeping-only) instead of exactly one commit, which merge-commit PRs could never satisfy; replace the hand-grown seal file list with bookkeeping path patterns; drop the Release Please boundary check.
 //   - 2026-10-20 v1.2.0: bind the previous-release boundary, many-to-many item accounting, and strict check set to repository evidence outside the mutable seal.
@@ -60,7 +67,13 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { resolveCurrentTrain } from './release-train.mjs'
+import {
+  LANE_BRANCH_PATTERN,
+  LANE_TRAIN_ID_PATTERN,
+  TRAIN_ID_PATTERN,
+  listLaneTrains,
+  resolveCurrentTrain
+} from './release-train.mjs'
 
 const TRAIN_SCHEMA_VERSION = '1.0.0'
 const RELEASE_STATES = new Set([
@@ -80,6 +93,16 @@ const TRANSITIONS = new Map([
   ['Aborted', new Set()]
 ])
 const STRICT_STATES = new Set(['Frozen', 'Ready', 'Released'])
+// Lane trains (td-N) collect on an integ/ branch and depart by one merge
+// commit into main, where the carrier product train accounts for them.
+const LANE_STATES = new Set(['Collecting', 'Frozen', 'Merged', 'Aborted'])
+const LANE_TRANSITIONS = new Map([
+  ['Collecting', new Set(['Frozen', 'Aborted'])],
+  ['Frozen', new Set(['Collecting', 'Merged', 'Aborted'])],
+  ['Merged', new Set()],
+  ['Aborted', new Set()]
+])
+const LANE_STRICT_STATES = new Set(['Frozen', 'Merged'])
 const SHA_PATTERN = /^[0-9a-f]{40}$/
 const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/
 // Train ledgers (any generation, so Released-state corrections stay
@@ -146,7 +169,7 @@ export const readTrainManifest = (workspaceRoot, trainPath) => {
 }
 // END_BLOCK_READ_TRAIN_MANIFEST
 
-const validateTransitions = (manifest) => {
+const validateTransitions = (manifest, states = RELEASE_STATES, transitions = TRANSITIONS) => {
   const history = manifest.transitions
   if (!Array.isArray(history) || history.length === 0) {
     fail('MT_RELEASE_LIFECYCLE_INVALID', 'transitions=missing')
@@ -155,10 +178,10 @@ const validateTransitions = (manifest) => {
   for (const [index, event] of history.entries()) {
     requireString(event?.state, 'MT_RELEASE_LIFECYCLE_INVALID', `transition[${index}].state`)
     requireString(event?.date, 'MT_RELEASE_LIFECYCLE_INVALID', `transition[${index}].date`)
-    if (!RELEASE_STATES.has(event.state)) {
+    if (!states.has(event.state)) {
       fail('MT_RELEASE_LIFECYCLE_INVALID', `transition[${index}].state=${event.state}`)
     }
-    if (previous && previous !== event.state && !TRANSITIONS.get(previous)?.has(event.state)) {
+    if (previous && previous !== event.state && !transitions.get(previous)?.has(event.state)) {
       fail('MT_RELEASE_LIFECYCLE_INVALID', `transition=${previous}->${event.state}`)
     }
     previous = event.state
@@ -217,13 +240,21 @@ const validateMembership = (manifest, workspaceRoot) => {
   return groups
 }
 
-const validateCommitAccounting = (manifest, groups) => {
+const validateCommitAccounting = (
+  manifest,
+  groups,
+  {
+    boundary = manifest.previousRelease.bootstrapSha,
+    strict = STRICT_STATES.has(manifest.state),
+    through = manifest.payloadSha
+  } = {}
+) => {
   const accounting = manifest.commitAccounting
   requireSha(accounting?.fromExclusive, 'MT_RELEASE_COMMIT_ACCOUNTING_INVALID', 'fromExclusive')
-  if (accounting.fromExclusive !== manifest.previousRelease.bootstrapSha) {
+  if (accounting.fromExclusive !== boundary) {
     fail(
       'MT_RELEASE_COMMIT_ACCOUNTING_INVALID',
-      `from=${accounting.fromExclusive};bootstrap=${manifest.previousRelease.bootstrapSha}`
+      `from=${accounting.fromExclusive};bootstrap=${boundary}`
     )
   }
   if (!Array.isArray(accounting?.entries)) {
@@ -266,12 +297,12 @@ const validateCommitAccounting = (manifest, groups) => {
       }
     }
   }
-  if (STRICT_STATES.has(manifest.state)) {
+  if (strict) {
     requireSha(accounting.throughInclusive, 'MT_RELEASE_COMMIT_ACCOUNTING_INVALID', 'throughInclusive')
-    if (accounting.throughInclusive !== manifest.payloadSha) {
+    if (accounting.throughInclusive !== through) {
       fail(
         'MT_RELEASE_COMMIT_ACCOUNTING_INVALID',
-        `through=${accounting.throughInclusive};payload=${manifest.payloadSha}`
+        `through=${accounting.throughInclusive};payload=${through}`
       )
     }
     if (accounting.entries.length === 0) {
@@ -373,6 +404,106 @@ export const validateTrainManifest = (
 }
 // END_BLOCK_VALIDATE_TRAIN_MANIFEST
 
+// START_CONTRACT: validateLaneTrainManifest
+//   PURPOSE: Enforce the lane-train schema, lane lifecycle, membership, owner acceptance and commit accounting from the lane base, and — once Merged — prove the named carrier product train admits the lane as one item carrying its merge commit and every lane commit.
+//   INPUTS: { manifest: object - parsed lane authority, options: object - workspaceRoot }
+//   OUTPUTS: { object - normalized lane identity and item counts }
+//   SIDE_EFFECTS: Reads the carrier train JSON when the lane is Merged; may test exclusion paths; otherwise none.
+//   LINKS: docs/release-trains/README.md lane trains; .grace/verification/features.xml V-M-046
+// END_CONTRACT: validateLaneTrainManifest
+// START_BLOCK_VALIDATE_LANE_TRAIN_MANIFEST
+export const validateLaneTrainManifest = (manifest, { workspaceRoot = process.cwd() } = {}) => {
+  if (manifest?.schemaVersion !== TRAIN_SCHEMA_VERSION) {
+    fail('MT_RELEASE_TRAIN_INVALID', `schema=${manifest?.schemaVersion ?? 'missing'}`)
+  }
+  if (manifest.kind !== 'lane') fail('MT_RELEASE_LANE_INVALID', `kind=${manifest.kind ?? 'missing'}`)
+  if (!LANE_TRAIN_ID_PATTERN.test(manifest.trainId ?? '')) {
+    fail('MT_RELEASE_LANE_INVALID', `trainId=${manifest.trainId ?? 'missing'}`)
+  }
+  if (!LANE_STATES.has(manifest.state)) {
+    fail('MT_RELEASE_LIFECYCLE_INVALID', `state=${manifest.state ?? 'missing'}`)
+  }
+  const lane = manifest.lane ?? {}
+  if (!LANE_BRANCH_PATTERN.test(lane.branch ?? '')) {
+    fail('MT_RELEASE_LANE_INVALID', `branch=${lane.branch ?? 'missing'}`)
+  }
+  requireSha(lane.baseSha, 'MT_RELEASE_LANE_INVALID', 'lane.baseSha')
+
+  validateTransitions(manifest, LANE_STATES, LANE_TRANSITIONS)
+  const groups = validateMembership(manifest, workspaceRoot)
+  validateCommitAccounting(manifest, groups, {
+    boundary: lane.baseSha,
+    strict: LANE_STRICT_STATES.has(manifest.state),
+    through: lane.headSha
+  })
+
+  if (manifest.state !== 'Merged') {
+    if (lane.mergeSha != null || lane.carrierTrain != null) {
+      fail('MT_RELEASE_LANE_INVALID', `state=${manifest.state};departure=premature`)
+    }
+  } else {
+    requireSha(lane.mergeSha, 'MT_RELEASE_LANE_INVALID', 'lane.mergeSha')
+    if (!TRAIN_ID_PATTERN.test(lane.carrierTrain ?? '')) {
+      fail('MT_RELEASE_LANE_INVALID', `carrierTrain=${lane.carrierTrain ?? 'missing'}`)
+    }
+    let carrier
+    try {
+      carrier = readJson(resolve(workspaceRoot, `docs/release-trains/${lane.carrierTrain}.json`))
+    } catch {
+      fail('MT_RELEASE_LANE_CARRIER_MISSING', `carrier=${lane.carrierTrain};manifest=unreadable`)
+    }
+    const carried = Object.values(normalizeItems(carrier))
+      .flat()
+      .find((item) => item?.id === manifest.trainId)
+    if (!carried) {
+      fail('MT_RELEASE_LANE_CARRIER_MISSING', `carrier=${lane.carrierTrain};item=${manifest.trainId}`)
+    }
+    const carriedCommits = new Set(carried.commits ?? [])
+    const laneCommits = [
+      lane.mergeSha,
+      ...[...groups.userFacing, ...groups.operational].flatMap((item) => item.commits)
+    ]
+    const uncarried = laneCommits.find((sha) => !carriedCommits.has(sha))
+    if (uncarried) {
+      fail('MT_RELEASE_LANE_CARRIER_MISSING', `carrier=${lane.carrierTrain};sha=${uncarried}`)
+    }
+  }
+  return {
+    trainId: manifest.trainId,
+    state: manifest.state,
+    branch: lane.branch,
+    itemCounts: Object.fromEntries(
+      Object.entries(groups).map(([name, entries]) => [name, entries.length])
+    )
+  }
+}
+// END_BLOCK_VALIDATE_LANE_TRAIN_MANIFEST
+
+// START_CONTRACT: validateLaneTrainLedger
+//   PURPOSE: Keep a lane ledger's header synchronized with its JSON authority and prove it carries every admitted item and lifecycle event; a lane ledger is always complete.
+//   INPUTS: { markdown: string - human ledger, manifest: object - validated lane authority }
+//   OUTPUTS: { true - header identities agree and every admitted item is present }
+//   SIDE_EFFECTS: none; throws ReleaseReadinessError on drift.
+//   LINKS: docs/release-trains/README.md lane trains; .grace/verification/features.xml V-M-046
+// END_CONTRACT: validateLaneTrainLedger
+// START_BLOCK_VALIDATE_LANE_TRAIN_LEDGER
+export const validateLaneTrainLedger = (markdown, manifest) => {
+  const expectations = [
+    `| State | ${manifest.state} |`,
+    `| Lane branch | \`${manifest.lane?.branch}\` |`,
+    `| Machine-readable authority | [${manifest.trainId}.json](${manifest.trainId}.json)`
+  ]
+  if (expectations.some((line) => !markdown.includes(line))) {
+    fail('MT_RELEASE_LEDGER_DRIFT', `lane=${manifest.trainId};header=stale`)
+  }
+  return validateTrainLedger(markdown, manifest, {
+    complete: true,
+    headerChecked: true,
+    groups: ['userFacing', 'operational']
+  })
+}
+// END_BLOCK_VALIDATE_LANE_TRAIN_LEDGER
+
 // START_CONTRACT: validateTrainLedger
 //   PURPOSE: Keep the Markdown train header synchronized with the machine-readable authority, and prove the current train's ledger carries every admitted item without treating prose as an alternate authority.
 //   INPUTS: { markdown: string - human ledger, manifest: object - validated JSON authority, options: object - complete flag for the current train }
@@ -381,8 +512,12 @@ export const validateTrainManifest = (
 //   LINKS: docs/release-trains/README.md; .grace/verification/features.xml V-M-046
 // END_CONTRACT: validateTrainLedger
 // START_BLOCK_VALIDATE_TRAIN_LEDGER
-export const validateTrainLedger = (markdown, manifest, { complete = false } = {}) => {
-  const expectations = [
+export const validateTrainLedger = (
+  markdown,
+  manifest,
+  { complete = false, headerChecked = false, groups = ['userFacing'] } = {}
+) => {
+  const expectations = headerChecked ? [] : [
     `| State | ${manifest.state} |`,
     `| Target version / date | ${manifest.computedVersion} / unscheduled |`,
     `| Machine-readable authority | [${manifest.trainId}.json](${manifest.trainId}.json)`
@@ -392,7 +527,7 @@ export const validateTrainLedger = (markdown, manifest, { complete = false } = {
     fail('MT_RELEASE_LEDGER_DRIFT', `missing=${missing.length}`)
   }
   if (!complete) return true
-  for (const item of manifest.items?.userFacing ?? []) {
+  for (const item of groups.flatMap((group) => manifest.items?.[group] ?? [])) {
     const heading = new RegExp(`^###\\s+${escapeRegex(item?.id)}\\b`, 'm')
     if (!heading.test(markdown)) {
       fail('MT_RELEASE_LEDGER_DRIFT', `item=${item?.id ?? 'missing'};heading=missing`)
@@ -626,6 +761,37 @@ export const validateStrictRepositoryState = (
 }
 // END_BLOCK_VALIDATE_STRICT_REPOSITORY_STATE
 
+// START_CONTRACT: validateLaneTrains
+//   PURPOSE: Validate every checked-in lane train (td-N) and its ledger, so a lane branch and main both fail closed on lane bookkeeping drift.
+//   INPUTS: { workspaceRoot: string - repository root }
+//   OUTPUTS: { array - validated lane identities }
+//   SIDE_EFFECTS: Reads lane JSON/Markdown files and, for Merged lanes, their carrier train; writes one path-free marker per lane to stdout.
+//   LINKS: docs/release-trains/README.md lane trains; .grace/verification/features.xml V-M-046
+// END_CONTRACT: validateLaneTrains
+// START_BLOCK_VALIDATE_LANE_TRAINS
+export const validateLaneTrains = (workspaceRoot) =>
+  listLaneTrains(workspaceRoot).map((paths) => {
+    let manifest
+    try {
+      manifest = readJson(resolve(workspaceRoot, paths.json))
+    } catch (error) {
+      fail('MT_RELEASE_LANE_INVALID', `lane=${paths.trainId};manifest=unreadable;reason=${error.name}`)
+    }
+    if (manifest.trainId !== paths.trainId) {
+      fail('MT_RELEASE_LANE_INVALID', `lane=${paths.trainId};trainId=${manifest.trainId ?? 'missing'}`)
+    }
+    const result = validateLaneTrainManifest(manifest, { workspaceRoot })
+    if (!existsSync(resolve(workspaceRoot, paths.markdown))) {
+      fail('MT_RELEASE_LEDGER_DRIFT', `lane=${paths.trainId};ledger=missing`)
+    }
+    validateLaneTrainLedger(readFileSync(resolve(workspaceRoot, paths.markdown), 'utf8'), manifest)
+    console.info(
+      `[ReleaseReadiness][validateLane][BLOCK_RELEASE_LANE_VALID] lane=${result.trainId} state=${result.state} userFacing=${result.itemCounts.userFacing} operational=${result.itemCounts.operational}`
+    )
+    return result
+  })
+// END_BLOCK_VALIDATE_LANE_TRAINS
+
 // START_CONTRACT: runReleaseReadiness
 //   PURPOSE: Execute the repository-only release-train gate and emit stable success evidence.
 //   INPUTS: { workspaceRoot: string - repository root, options: object - trainPath, tag, and payload }
@@ -649,13 +815,14 @@ export const runReleaseReadiness = (workspaceRoot, options = {}) => {
     complete: manifest.trainId === current.trainId
   })
   validateProjectFieldCoverage(workspaceRoot)
+  const lanes = validateLaneTrains(workspaceRoot)
   const strict = options.mode === 'strict'
     ? validateStrictRepositoryState(workspaceRoot, manifest, options)
     : null
   console.info(
     `[ReleaseReadiness][validateTrain][${strict ? 'BLOCK_RELEASE_READINESS_CONFIRMED' : 'BLOCK_RELEASE_TRAIN_VALID'}] train=${result.trainId} state=${result.state} version=${result.version} userFacing=${result.itemCounts.userFacing}`
   )
-  return { ...result, strict }
+  return { ...result, strict, lanes }
 }
 // END_BLOCK_RUN_RELEASE_READINESS
 

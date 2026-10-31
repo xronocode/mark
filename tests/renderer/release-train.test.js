@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-train.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove the current-train pointer is the only place a train ID is named, and that it fails closed on malformed or traversing IDs.
 //   SCOPE: Pointer resolution, path derivation, CLI path/field output, and a repository sweep for hardcoded train IDs in workflows and tools.
@@ -15,6 +15,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-30 v1.1.0: lane trains — listLaneTrains returns td-N documents only, numerically ordered.
 //   - 2026-10-24 v1.0.0: C-RELEASE-CONVEYOR — new.
 // END_CHANGE_SUMMARY
 
@@ -23,7 +24,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { resolveCurrentTrain, trainPaths } from '../../tools/release-train.mjs'
+import { listLaneTrains, resolveCurrentTrain, trainPaths } from '../../tools/release-train.mjs'
 
 const pointerRoot = (pointer) => {
   const root = mkdtempSync(resolve(tmpdir(), 'mark-release-train-'))
@@ -100,3 +101,24 @@ describe('current release train pointer', () => {
   })
 })
 // END_BLOCK_RELEASE_TRAIN_POINTER_TESTS
+
+// START_BLOCK_LANE_TRAIN_LIST_TESTS
+describe('lane train listing', () => {
+  it('lists only td-N documents, in numeric order, never the product trains', () => {
+    const root = pointerRoot({ schemaVersion: '1.0.0', trainId: '2.9.x-next' })
+    for (const name of ['td-10.json', 'td-2.json', 'td-0.json', 'td-x.json', '2.9.x-next.json', 'td-2.md']) {
+      writeFileSync(resolve(root, 'docs/release-trains', name), '{}')
+    }
+    expect(listLaneTrains(root).map(({ trainId }) => trainId)).toEqual(['td-2', 'td-10'])
+    expect(listLaneTrains(root)[0]).toEqual({
+      trainId: 'td-2',
+      json: 'docs/release-trains/td-2.json',
+      markdown: 'docs/release-trains/td-2.md'
+    })
+  })
+
+  it('returns no lanes when the train directory is absent', () => {
+    expect(listLaneTrains(mkdtempSync(resolve(tmpdir(), 'mark-release-lanes-')))).toEqual([])
+  })
+})
+// END_BLOCK_LANE_TRAIN_LIST_TESTS

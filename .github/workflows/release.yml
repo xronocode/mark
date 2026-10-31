@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.2.0
+# VERSION: 3.3.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -19,6 +19,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-31 v3.3.0: build the macOS release lanes on the macos-15 runner image ahead of the macos-14 retirement (both matrix os entries).
 #   - 2026-10-26 v3.2.0: C-RELEASE-MANUAL-PUBLISH — repeal the C-RELEASE-TIMING
 #     timer-default publication: delete the veto-window job (window, TG notify,
 #     RELEASE_VETO_MINUTES, cancel-as-veto) and restore the synchronous release
@@ -183,7 +184,7 @@ jobs:
       matrix:
         platform:
           - name: macos-arm64
-            os: macos-14
+            os: macos-15
             target: aarch64-apple-darwin
           - name: windows-x64
             os: windows-latest
@@ -230,7 +231,7 @@ jobs:
       matrix:
         platform:
           - name: macos-arm64
-            os: macos-14
+            os: macos-15
             target: aarch64-apple-darwin
           # C-15 T-W3: Windows lane — NSIS x64 installer + updater
           # artifacts. Windows release assets are staged behind the
