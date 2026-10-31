@@ -74,8 +74,8 @@ core-foundation-sys = "0.8"
 # Both resolve to existing lock entries; no new crates.
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-version = "0.100"
-webview2-com = "0.38"
-windows-core = "0.61"
+webview2-com = "0.39"
+windows-core = "0.62"
 
 [dev-dependencies]
 tempfile = "3"
