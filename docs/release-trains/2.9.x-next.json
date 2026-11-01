@@ -238,6 +238,25 @@
             "INTENTIONALLY UNVERIFIED: nothing — the fix is platform-guard logic pinned by cross-host fixture tests; the owner workspace stayed read-only throughout."
           ]
         }
+      },
+      {
+        "id": "C-PAGE-WIDTH-TABLES-768",
+        "summary": "The default writing column becomes an honest 768 px of text: the shared :root default and all 34 shipped themes carry --editorAreaWidth: calc(100px + 768px) — the padding-inclusive form the preference writer has always used — replacing the raw 750px value that rendered only 650 px of content; the out-of-the-box column and a manually set 768px are pixel-identical.",
+        "state": "queued",
+        "commits": [
+          "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-02",
+          "testedArtifact": "None beyond the owner's direction — a default value flip with a pinned equivalence (guard test editor-width-default.test.js); hands-on check deferred to the train acceptance protocol.",
+          "scenarios": [
+            "guard: the calc form present in all 35 shipped width sources, zero raw 750px defaults, exactly 34 theme files",
+            "renderer suite green on real node_modules (4965/4965); PR CI green on three OS lanes including the full e2e run",
+            "column geometry: the editor box is 868px (calc(100px+768px)), centred in the canvas (leftGap==rightGap)",
+            "follow-up recorded: boot-time application of a persisted editorLineWidth looks broken store-to-column (pre-existing, not caused here)"
+          ]
+        }
       }
     ],
     "operational": [
