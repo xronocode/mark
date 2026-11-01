@@ -2,13 +2,13 @@
   "schemaVersion": "1.0.0",
   "kind": "lane",
   "trainId": "td-1",
-  "state": "Frozen",
+  "state": "Merged",
   "lane": {
     "branch": "integ/techdebt",
     "baseSha": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
     "headSha": "ce6eebcc90a44a68869900053de353ce1735e3ca",
-    "mergeSha": null,
-    "carrierTrain": null
+    "mergeSha": "0d142333b2d929f8fbdad0098b4935fac9614c41",
+    "carrierTrain": "2.9.x-next"
   },
   "items": {
     "userFacing": [],
@@ -122,6 +122,12 @@
       "date": "2026-10-31",
       "actor": "owner",
       "evidence": "owner departure instruction of 2026-10-31 (ок го): freeze td-1 and merge it into main as one merge commit"
+    },
+    {
+      "state": "Merged",
+      "date": "2026-10-31",
+      "actor": "owner",
+      "evidence": "departed into main as merge commit 0d142333 (PR #139, owner go + temporary merge-method enablement); carried by 2.9.x-next"
     }
   ]
 }

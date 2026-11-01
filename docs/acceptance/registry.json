@@ -668,6 +668,29 @@
           "detail": "Queued in train 2.9.x-next."
         }
       ]
+    },
+    {
+      "id": "td-1",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-10-30",
+          "actor": "owner",
+          "detail": "Owner instruction: technical-debt fixes ride their own train; td-1 collects on integ/techdebt."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-10-31",
+          "actor": "agent",
+          "detail": "Departed into main as merge commit 0d142333 (PR #139): DEV-BADGE (b9d8e5f6, PR #133), GRAPH-INDEX-XML (f5f18ab9, PR #134), RELAUNCH-SILENCE (d688f2fc, PR #135) and TD-1-ADMIN bookkeeping; every lane commit accounted; full suite and the commit gate green throughout."
+        },
+        {
+          "state": "queued",
+          "date": "2026-10-31",
+          "actor": "agent",
+          "detail": "Queued in train 2.9.x-next as the td-1 lane item."
+        }
+      ]
     }
   ]
 }
