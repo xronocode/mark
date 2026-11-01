@@ -93,7 +93,7 @@
   --notifyWarning: #C46510;
   --notifyError: #D5453C;
   --maskColor: rgba(0, 0, 0, .3);
-  --editorAreaWidth: 750px;
+  --editorAreaWidth: calc(100px + 768px);
 }
 
 ::-webkit-scrollbar {

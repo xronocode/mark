@@ -162,6 +162,10 @@ test.describe('per-diagram appearance (C-62)', () => {
   })
 
   test('viewer shares the mode, keeps pan/zoom, and Escape dismisses the menu first', async ({ page }) => {
+    // A narrow column so the overflow-gated fullscreen affordance shows:
+    // this test exercises the viewer, not the shipped default width
+    // (calc(100px + 768px) since C-PAGE-WIDTH-TABLES T-101).
+    await page.addStyleTag({ content: ':root{--editorAreaWidth: calc(100px + 300px) !important}' })
     const figure = page.locator(FIGURE).first()
     const originalFill = await fill(page)
     await figure.locator('button.ag-block-toolbar-expand').click()
