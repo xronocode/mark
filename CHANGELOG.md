@@ -53,6 +53,7 @@ Export to Word, an undo for updates, one notification center, and files that rem
 - The Electron-era byte-compacted locale twins are gone — one full table per language, end to end, with an inverted directory guard in CI.
 - Large-document groundwork: a measurement corpus and behavioral oracles now run in CI, ahead of the upcoming rendering-performance work.
 - Release infrastructure: technical-debt fixes now travel on their own train, CI runs on current macOS images, and the commit gate reviews with a single local-first model pass.
+- Tooling repairs riding the same train: the commit gate's two model reviews run under independent lane locks instead of serializing, the updater's restore path no longer logs a spurious relaunch-parameter warning, and the dependency graph's module bookkeeping names its real sources again.
 
 ## [2.8.2] - 2026-10-24
 

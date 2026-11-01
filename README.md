@@ -45,6 +45,7 @@ The App Store build and the Homebrew/download build are the same editor with a f
 - **One message center.** Notices became severity-styled cards in a single stack, with a searchable session history in the command palette.
 - **You re-open where you left.** Every file remembers its scroll position and caret across sessions, reopens and renames.
 - **Sharper writing.** Titlebar mode chips with a one-click Standard view, GitHub themes, CommonMark-correct emphasis, lighter Pele diagrams, and a fix for cut/copy going silent.
+- **Windows repaired.** Menu shortcuts (Ctrl+S, Ctrl+N…) respond again, and saving actually writes the file — both were silently broken on Windows.
 
 ## What's new in 2.8.2
 
