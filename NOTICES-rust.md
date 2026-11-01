@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **616 crates**.
+Generated from `cargo-bundle-licenses --format json` over **626 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,19 +13,19 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | License | Crate count |
 |---|---:|
-| MIT OR Apache-2.0 | 275 |
-| MIT | 135 |
-| Apache-2.0 OR MIT | 54 |
-| MIT/Apache-2.0 | 32 |
+| MIT OR Apache-2.0 | 287 |
+| MIT | 140 |
+| Apache-2.0 OR MIT | 52 |
+| MIT/Apache-2.0 | 28 |
 | Unicode-3.0 | 18 |
 | Zlib OR Apache-2.0 OR MIT | 18 |
 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | 15 |
 | Unlicense OR MIT | 7 |
 | ISC | 6 |
 | MPL-2.0 | 6 |
-| Apache-2.0/MIT | 5 |
 | MIT OR Apache-2.0 OR Zlib | 5 |
 | Apache-2.0 | 4 |
+| Apache-2.0/MIT | 4 |
 | Apache-2.0 OR ISC OR MIT | 3 |
 | BSD-3-Clause | 3 |
 | BSD-2-Clause OR Apache-2.0 OR MIT | 2 |
@@ -52,7 +52,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | MIT AND BSD-3-Clause | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
 
-## MIT OR Apache-2.0 (275)
+## MIT OR Apache-2.0 (287)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -62,13 +62,13 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | anstyle-query | 1.1.5 | https://github.com/rust-cli/anstyle.git |
 | anstyle-wincon | 3.0.11 | https://github.com/rust-cli/anstyle.git |
 | anyhow | 1.0.102 | https://github.com/dtolnay/anyhow |
-| arbitrary | 1.4.2 | https://github.com/rust-fuzz/arbitrary/ |
 | arboard | 3.6.1 | https://github.com/1Password/arboard |
 | async-broadcast | 0.7.2 | https://github.com/smol-rs/async-broadcast |
 | async-recursion | 1.1.1 | https://github.com/dcchut/async-recursion |
 | async-trait | 0.1.89 | https://github.com/dtolnay/async-trait |
 | base64 | 0.21.7 | https://github.com/marshallpierce/rust-base64 |
 | base64 | 0.22.1 | https://github.com/marshallpierce/rust-base64 |
+| base64 | 0.23.1 | https://github.com/marshallpierce/rust-base64 |
 | bitflags | 2.13.0 | https://github.com/bitflags/bitflags |
 | block-buffer | 0.10.4 | https://github.com/RustCrypto/utils |
 | bstr | 1.12.1 | https://github.com/BurntSushi/bstr |
@@ -77,9 +77,9 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | cargo-platform | 0.1.9 | https://github.com/rust-lang/cargo |
 | cfg-if | 1.0.4 | https://github.com/rust-lang/cfg-if |
 | chrono | 0.4.45 | https://github.com/chronotope/chrono |
-| clap | 4.6.1 | https://github.com/clap-rs/clap |
-| clap_builder | 4.6.0 | https://github.com/clap-rs/clap |
-| clap_derive | 4.6.1 | https://github.com/clap-rs/clap |
+| clap | 4.6.7 | https://github.com/clap-rs/clap |
+| clap_builder | 4.6.7 | https://github.com/clap-rs/clap |
+| clap_derive | 4.6.7 | https://github.com/clap-rs/clap |
 | clap_lex | 1.1.0 | https://github.com/clap-rs/clap |
 | cocoa | 0.26.1 | https://github.com/servo/core-foundation-rs |
 | cocoa-foundation | 0.2.1 | https://github.com/servo/core-foundation-rs |
@@ -102,9 +102,9 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | crossbeam-utils | 0.8.21 | https://github.com/crossbeam-rs/crossbeam |
 | crypto-common | 0.1.7 | https://github.com/RustCrypto/traits |
 | deranged | 0.5.8 | https://github.com/jhpratt/deranged |
-| derive_arbitrary | 1.4.2 | https://github.com/rust-fuzz/arbitrary |
 | digest | 0.10.7 | https://github.com/RustCrypto/traits |
 | dirs | 6.0.0 | https://github.com/soc/dirs-rs |
+| dirs | 7.0.0 | https://codeberg.org/dirs/dirs-rs |
 | dirs-sys | 0.5.0 | https://github.com/dirs-dev/dirs-sys-rs |
 | displaydoc | 0.2.6 | https://github.com/yaahc/displaydoc |
 | dtoa | 1.0.11 | https://github.com/dtolnay/dtoa |
@@ -141,7 +141,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | heck | 0.5.0 | https://github.com/withoutboats/heck |
 | hermit-abi | 0.5.2 | https://github.com/hermit-os/hermit-rs |
 | hex | 0.4.3 | https://github.com/KokaKiwi/rust-hex |
-| html5ever | 0.38.0 | https://github.com/servo/html5ever |
+| html5ever | 0.39.0 | https://github.com/servo/html5ever |
 | http | 1.4.2 | https://github.com/hyperium/http |
 | httparse | 1.10.1 | https://github.com/seanmonstar/httparse |
 | httpdate | 1.0.3 | https://github.com/pyfisch/httpdate |
@@ -158,18 +158,20 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | jni-sys | 0.4.1 | https://github.com/jni-rs/jni-sys |
 | jni-sys-macros | 0.4.1 | https://github.com/jni-rs/jni-sys |
 | js-sys | 0.3.102 | https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/js-sys |
-| jsonptr | 0.6.3 | https://github.com/chanced/jsonptr |
+| jsonptr | 0.7.1 | https://github.com/chanced/jsonptr |
 | keyboard-types | 0.7.0 | https://github.com/pyfisch/keyboard-types |
+| keyboard-types | 0.8.3 | https://github.com/rust-windowing/keyboard-types |
 | keyring | 3.6.3 | https://github.com/hwchen/keyring-rs.git |
 | lazy_static | 1.5.0 | https://github.com/rust-lang-nursery/lazy-static.rs |
 | leb128fmt | 0.1.0 | https://github.com/bluk/leb128fmt |
 | libc | 0.2.186 | https://github.com/rust-lang/libc |
 | lock_api | 0.4.14 | https://github.com/Amanieu/parking_lot |
 | log | 0.4.32 | https://github.com/rust-lang/log |
-| markup5ever | 0.38.0 | https://github.com/servo/html5ever |
+| markup5ever | 0.39.0 | https://github.com/servo/html5ever |
 | mime | 0.3.17 | https://github.com/hyperium/mime |
 | native-tls | 0.2.18 | https://github.com/rust-native-tls/rust-native-tls |
 | ndk | 0.9.0 | https://github.com/rust-mobile/ndk |
+| ndk-context | 0.1.1 | https://github.com/rust-windowing/android-ndk-rs |
 | ndk-sys | 0.6.0+11769913 | https://github.com/rust-mobile/ndk |
 | notify-debouncer-full | 0.5.0 | https://github.com/notify-rs/notify.git |
 | notify-types | 2.1.0 | https://github.com/notify-rs/notify.git |
@@ -186,7 +188,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | percent-encoding | 2.3.2 | https://github.com/servo/rust-url/ |
 | petgraph | 0.8.3 | https://github.com/petgraph/petgraph |
 | piper | 0.2.5 | https://github.com/smol-rs/piper |
-| png | 0.17.16 | https://github.com/image-rs/image-png |
 | png | 0.18.1 | https://github.com/image-rs/image-png |
 | powerfmt | 0.2.0 | https://github.com/jhpratt/powerfmt |
 | ppv-lite86 | 0.2.21 | https://github.com/cryptocorrosion/cryptocorrosion |
@@ -216,11 +217,11 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | security-framework | 3.7.0 | https://github.com/kornelski/rust-security-framework |
 | security-framework-sys | 2.17.0 | https://github.com/kornelski/rust-security-framework |
 | semver | 1.0.28 | https://github.com/dtolnay/semver |
-| serde | 1.0.228 | https://github.com/serde-rs/serde |
-| serde_core | 1.0.228 | https://github.com/serde-rs/serde |
-| serde_derive | 1.0.228 | https://github.com/serde-rs/serde |
+| serde | 1.0.229 | https://github.com/serde-rs/serde |
+| serde_core | 1.0.229 | https://github.com/serde-rs/serde |
+| serde_derive | 1.0.229 | https://github.com/serde-rs/serde |
 | serde_derive_internals | 0.29.1 | https://github.com/serde-rs/serde |
-| serde_json | 1.0.150 | https://github.com/serde-rs/json |
+| serde_json | 1.0.154 | https://github.com/serde-rs/json |
 | serde_path_to_error | 0.1.20 | https://github.com/dtolnay/path-to-error |
 | serde_repr | 0.1.20 | https://github.com/dtolnay/serde-repr |
 | serde_spanned | 0.6.9 | https://github.com/toml-rs/toml |
@@ -232,6 +233,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | serialize-to-javascript-impl | 0.1.2 | https://github.com/chippers/serialize-to-javascript |
 | servo_arc | 0.4.3 | https://github.com/servo/stylo |
 | sha2 | 0.10.9 | https://github.com/RustCrypto/hashes |
+| signal-hook | 0.4.5 | https://github.com/vorner/signal-hook |
 | signal-hook-registry | 1.4.8 | https://github.com/vorner/signal-hook |
 | simdutf8 | 0.1.5 | https://github.com/rusticstuff/simdutf8 |
 | smallvec | 1.15.2 | https://github.com/servo/rust-smallvec |
@@ -239,12 +241,13 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | softbuffer | 0.4.8 | https://github.com/rust-windowing/softbuffer |
 | stable_deref_trait | 1.2.1 | https://github.com/storyyeller/stable_deref_trait |
 | string_cache | 0.9.0 | https://github.com/servo/string-cache |
-| swift-rs | 1.0.7 | https://github.com/Brendonovich/swift-rs |
+| swift-rs | 1.0.9 | https://github.com/Brendonovich/swift-rs |
 | syn | 1.0.109 | https://github.com/dtolnay/syn |
 | syn | 2.0.117 | https://github.com/dtolnay/syn |
+| syn | 3.0.9 | https://github.com/dtolnay/syn |
 | system-configuration | 0.7.0 | https://github.com/mullvad/system-configuration-rs |
 | system-configuration-sys | 0.6.0 | https://github.com/mullvad/system-configuration-rs |
-| tao-macros | 0.1.3 | https://github.com/tauri-apps/tao |
+| tao-macros | 0.1.4 | https://github.com/tauri-apps/tao |
 | tar | 0.4.46 | https://github.com/composefs/tar-rs |
 | tempfile | 3.27.0 | https://github.com/Stebalien/tempfile |
 | tendril | 0.5.0 | https://github.com/servo/html5ever |
@@ -264,7 +267,8 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | toml_edit | 0.25.12+spec-1.1.0 | https://github.com/toml-rs/toml |
 | toml_parser | 1.1.2+spec-1.1.0 | https://github.com/toml-rs/toml |
 | toml_writer | 1.1.1+spec-1.1.0 | https://github.com/toml-rs/toml |
-| tray-icon | 0.23.1 | https://github.com/tauri-apps/tray-icon |
+| tray-icon | 0.25.1 | https://github.com/tauri-apps/tray-icon |
+| typed-path | 0.13.0 | https://github.com/chipsenkbeil/typed-path |
 | typeid | 1.0.3 | https://github.com/dtolnay/typeid |
 | typenum | 1.20.1 | https://github.com/paholg/typenum |
 | unicode-segmentation | 1.13.3 | https://github.com/unicode-rs/unicode-segmentation |
@@ -279,8 +283,10 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | wasm-streams | 0.5.0 | https://github.com/MattiasBuelens/wasm-streams/ |
 | web_atoms | 0.2.4 | https://github.com/servo/html5ever |
 | web-sys | 0.3.102 | https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/web-sys |
+| web-time | 1.1.0 | https://github.com/daxpedda/web-time |
 | weezl | 0.1.12 | https://github.com/image-rs/weezl |
 | windows | 0.61.3 | https://github.com/microsoft/windows-rs |
+| windows | 0.62.2 | https://github.com/microsoft/windows-rs |
 | windows_aarch64_gnullvm | 0.42.2 | https://github.com/microsoft/windows-rs |
 | windows_aarch64_gnullvm | 0.52.6 | https://github.com/microsoft/windows-rs |
 | windows_aarch64_gnullvm | 0.53.1 | https://github.com/microsoft/windows-rs |
@@ -305,14 +311,18 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | windows_x86_64_msvc | 0.52.6 | https://github.com/microsoft/windows-rs |
 | windows_x86_64_msvc | 0.53.1 | https://github.com/microsoft/windows-rs |
 | windows-collections | 0.2.0 | https://github.com/microsoft/windows-rs |
+| windows-collections | 0.3.2 | https://github.com/microsoft/windows-rs |
 | windows-core | 0.61.2 | https://github.com/microsoft/windows-rs |
 | windows-core | 0.62.2 | https://github.com/microsoft/windows-rs |
 | windows-future | 0.2.1 | https://github.com/microsoft/windows-rs |
+| windows-future | 0.3.2 | https://github.com/microsoft/windows-rs |
 | windows-implement | 0.60.2 | https://github.com/microsoft/windows-rs |
 | windows-interface | 0.59.3 | https://github.com/microsoft/windows-rs |
 | windows-link | 0.1.3 | https://github.com/microsoft/windows-rs |
 | windows-link | 0.2.1 | https://github.com/microsoft/windows-rs |
+| windows-link | 0.100.0 | https://github.com/microsoft/windows-rs |
 | windows-numerics | 0.2.0 | https://github.com/microsoft/windows-rs |
+| windows-numerics | 0.3.1 | https://github.com/microsoft/windows-rs |
 | windows-registry | 0.6.1 | https://github.com/microsoft/windows-rs |
 | windows-result | 0.3.4 | https://github.com/microsoft/windows-rs |
 | windows-result | 0.4.1 | https://github.com/microsoft/windows-rs |
@@ -327,12 +337,14 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | windows-targets | 0.52.6 | https://github.com/microsoft/windows-rs |
 | windows-targets | 0.53.5 | https://github.com/microsoft/windows-rs |
 | windows-threading | 0.1.0 | https://github.com/microsoft/windows-rs |
+| windows-threading | 0.2.1 | https://github.com/microsoft/windows-rs |
 | windows-version | 0.1.7 | https://github.com/microsoft/windows-rs |
+| windows-version | 0.100.0 | https://github.com/microsoft/windows-rs |
 | x11rb | 0.13.2 | https://github.com/psychon/x11rb |
 | x11rb-protocol | 0.13.2 | https://github.com/psychon/x11rb |
 | xattr | 1.6.1 | https://github.com/Stebalien/xattr |
 
-## MIT (135)
+## MIT (140)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -346,7 +358,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | cairo-rs | 0.18.5 | https://github.com/gtk-rs/gtk-rs-core |
 | cairo-sys-rs | 0.18.2 | https://github.com/gtk-rs/gtk-rs-core |
 | cargo_metadata | 0.19.2 | https://github.com/oli-obk/cargo_metadata |
-| cfb | 0.7.3 | https://github.com/mdsteele/rust-cfb |
+| cfb | 0.14.0 | https://github.com/mdsteele/rust-cfb |
 | combine | 4.6.7 | https://github.com/Marwes/combine |
 | crunchy | 0.2.4 | https://github.com/eira-fransham/crunchy |
 | darling | 0.23.0 | https://github.com/TedDriggs/darling |
@@ -357,7 +369,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | dlib | 0.5.3 | https://github.com/elinorbgr/dlib |
 | dlopen2 | 0.8.2 | https://github.com/OpenByteDev/dlopen2 |
 | dlopen2_derive | 0.4.3 | https://github.com/OpenByteDev/dlopen2 |
-| dom_query | 0.27.0 | https://github.com/niklak/dom_query |
+| dom_query | 0.28.0 | https://github.com/niklak/dom_query |
 | endi | 1.1.1 | https://github.com/zeenix/endi |
 | fax | 0.2.7 | https://github.com/pdf-rs/fax |
 | freetype-sys | 0.20.1 | https://github.com/PistonDevelopers/freetype-sys.git |
@@ -384,8 +396,8 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | http-body-util | 0.1.3 | https://github.com/hyperium/http-body |
 | hyper | 1.10.1 | https://github.com/hyperium/hyper |
 | hyper-util | 0.1.20 | https://github.com/hyperium/hyper-util |
-| ico | 0.5.0 | https://github.com/mdsteele/rust-ico |
-| infer | 0.19.0 | https://github.com/bojand/infer |
+| ico | 0.6.0 | https://github.com/mdsteele/rust-ico |
+| infer | 0.22.0 | https://github.com/bojand/infer |
 | is-docker | 0.2.0 | https://github.com/TheLarkInn/is-docker |
 | is-wsl | 0.4.0 | https://github.com/TheLarkInn/is-wsl |
 | javascriptcore-rs | 1.1.2 | https://github.com/tauri-apps/javascriptcore-rs |
@@ -396,8 +408,10 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | malloc_buf | 0.0.6 | https://github.com/SSheldon/malloc_buf |
 | memoffset | 0.9.1 | https://github.com/Gilnaa/memoffset |
 | minisign-verify | 0.2.5 | https://github.com/jedisct1/rust-minisign-verify |
+| minisign-verify | 0.3.0 | https://github.com/jedisct1/rust-minisign-verify |
 | mio | 1.2.1 | https://github.com/tokio-rs/mio |
 | new_debug_unreachable | 1.0.6 | https://github.com/mbrubeck/rust-debug-unreachable |
+| nix | 0.31.3 | https://github.com/nix-rust/nix |
 | nom | 8.0.0 | https://github.com/rust-bakery/nom |
 | objc | 0.2.7 | http://github.com/SSheldon/rust-objc |
 | objc2 | 0.6.4 | https://github.com/madsmtm/objc2 |
@@ -417,7 +431,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | quick-xml | 0.39.4 | https://github.com/tafia/quick-xml |
 | redox_syscall | 0.5.18 | https://gitlab.redox-os.org/redox-os/syscall |
 | redox_users | 0.5.2 | https://gitlab.redox-os.org/redox-os/users |
-| rfd | 0.16.0 | https://github.com/PolyMeilex/rfd |
 | rfd | 0.17.2 | https://github.com/PolyMeilex/rfd |
 | schannel | 0.1.29 | https://github.com/steffengy/schannel-rs |
 | schemars | 0.8.22 | https://github.com/GREsau/schemars |
@@ -442,10 +455,12 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | tracing | 0.1.44 | https://github.com/tokio-rs/tracing |
 | tracing-attributes | 0.1.31 | https://github.com/tokio-rs/tracing |
 | tracing-core | 0.1.36 | https://github.com/tokio-rs/tracing |
+| trash | 5.2.9 | https://github.com/ArturKovacs/trash |
 | tree_magic_mini | 3.2.2 | https://github.com/mbrubeck/tree_magic/ |
 | try-lock | 0.2.5 | https://github.com/seanmonstar/try-lock |
 | uds_windows | 1.2.1 | https://github.com/haraldh/rust_uds_windows |
-| urlpattern | 0.3.0 | https://github.com/denoland/rust-urlpattern |
+| urlencoding | 2.1.3 | https://github.com/kornelski/rust_urlencoding |
+| urlpattern | 0.6.0 | https://github.com/denoland/rust-urlpattern |
 | want | 0.3.1 | https://github.com/seanmonstar/want |
 | wayland-backend | 0.3.15 | https://github.com/smithay/wayland-rs |
 | wayland-client | 0.31.14 | https://github.com/smithay/wayland-rs |
@@ -456,8 +471,10 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | webkit2gtk | 2.0.2 | https://github.com/tauri-apps/webkit2gtk-rs |
 | webkit2gtk-sys | 2.0.2 | https://github.com/tauri-apps/webkit2gtk-rs |
 | webview2-com | 0.38.2 | https://github.com/wravery/webview2-rs |
+| webview2-com | 0.39.1 | https://github.com/wravery/webview2-rs |
 | webview2-com-macros | 0.8.1 | https://github.com/wravery/webview2-rs |
 | webview2-com-sys | 0.38.2 | https://github.com/wravery/webview2-rs |
+| webview2-com-sys | 0.39.1 | https://github.com/wravery/webview2-rs |
 | winnow | 0.5.40 | https://github.com/winnow-rs/winnow |
 | winnow | 1.0.3 | https://github.com/winnow-rs/winnow |
 | x11 | 2.21.0 | https://github.com/AltF02/x11-rs.git |
@@ -466,13 +483,13 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | zbus | 5.16.0 | https://github.com/z-galaxy/zbus/ |
 | zbus_macros | 5.16.0 | https://github.com/z-galaxy/zbus/ |
 | zbus_names | 4.3.2 | https://github.com/z-galaxy/zbus/ |
-| zip | 4.6.1 | https://github.com/zip-rs/zip2.git |
+| zip | 9.1.3 | https://github.com/zip-rs/zip2 |
 | zmij | 1.0.21 | https://github.com/dtolnay/zmij |
 | zvariant | 5.12.0 | https://github.com/z-galaxy/zbus/ |
 | zvariant_derive | 5.12.0 | https://github.com/z-galaxy/zbus/ |
 | zvariant_utils | 3.4.0 | https://github.com/z-galaxy/zbus/ |
 
-## Apache-2.0 OR MIT (54)
+## Apache-2.0 OR MIT (52)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -488,10 +505,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | bit-vec | 0.8.0 | https://github.com/contain-rs/bit-vec |
 | blocking | 1.6.2 | https://github.com/smol-rs/blocking |
 | concurrent-queue | 2.5.0 | https://github.com/smol-rs/concurrent-queue |
-| ctor | 0.8.0 | https://github.com/mmastrac/rust-ctor |
-| ctor-proc-macro | 0.0.7 | https://github.com/mmastrac/rust-ctor |
-| dtor | 0.3.0 | https://github.com/mmastrac/rust-ctor |
-| dtor-proc-macro | 0.0.6 | https://github.com/mmastrac/rust-ctor |
+| ctor | 1.0.13 | https://github.com/mmastrac/linktime |
 | equivalent | 1.0.2 | https://github.com/indexmap-rs/equivalent |
 | event-listener | 5.4.1 | https://github.com/smol-rs/event-listener |
 | event-listener-strategy | 0.5.4 | https://github.com/smol-rs/event-listener-strategy |
@@ -503,41 +517,43 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | indexmap | 2.14.0 | https://github.com/indexmap-rs/indexmap |
 | libappindicator | 0.9.0 |  |
 | libappindicator-sys | 0.9.0 |  |
-| muda | 0.19.2 | https://github.com/tauri-apps/muda |
+| muda | 0.20.0 | https://github.com/tauri-apps/muda |
+| multiversion_no_op | 1.0.0 | https://github.com/hsivonen/multiversion_no_op |
 | parking | 2.2.1 | https://github.com/smol-rs/parking |
 | pin-project-lite | 0.2.17 | https://github.com/taiki-e/pin-project-lite |
 | polling | 3.11.0 | https://github.com/smol-rs/polling |
 | rustc-hash | 2.1.2 | https://github.com/rust-lang/rustc-hash |
 | simd_cesu8 | 1.1.1 | https://github.com/seancroach/simd_cesu8 |
-| tauri | 2.11.2 | https://github.com/tauri-apps/tauri |
-| tauri-codegen | 2.6.2 | https://github.com/tauri-apps/tauri |
-| tauri-macros | 2.6.2 | https://github.com/tauri-apps/tauri |
-| tauri-plugin-clipboard-manager | 2.3.2 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-dialog | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-fs | 2.5.1 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-global-shortcut | 2.3.2 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-opener | 2.5.4 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-process | 2.3.1 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-single-instance | 2.4.5 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-updater | 2.10.1 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-window-state | 2.4.1 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-runtime | 2.11.2 | https://github.com/tauri-apps/tauri |
-| tauri-runtime-wry | 2.11.2 | https://github.com/tauri-apps/tauri |
-| tauri-utils | 2.9.2 | https://github.com/tauri-apps/tauri |
+| tauri | 2.12.5 | https://github.com/tauri-apps/tauri |
+| tauri-codegen | 2.7.4 | https://github.com/tauri-apps/tauri |
+| tauri-macros | 2.7.4 | https://github.com/tauri-apps/tauri |
+| tauri-plugin-clipboard-manager | 2.5.0 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-dialog | 2.8.4 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-fs | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-global-shortcut | 2.4.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-opener | 2.7.2 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-process | 2.4.0 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-single-instance | 2.5.5 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-updater | 2.14.1 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-window-state | 2.5.0 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-runtime | 2.12.2 | https://github.com/tauri-apps/tauri |
+| tauri-runtime-wry | 2.12.3 | https://github.com/tauri-apps/tauri |
+| tauri-utils | 2.10.2 | https://github.com/tauri-apps/tauri |
 | utf8_iter | 1.0.4 | https://github.com/hsivonen/utf8_iter |
 | utf8parse | 0.2.2 | https://github.com/alacritty/vte |
 | uuid | 1.23.3 | https://github.com/uuid-rs/uuid |
-| window-vibrancy | 0.6.0 | https://github.com/tauri-apps/tauri-plugin-vibrancy |
-| wry | 0.55.1 | https://github.com/tauri-apps/wry |
+| window-vibrancy | 0.8.1 | https://github.com/tauri-apps/tauri-plugin-vibrancy |
+| wry | 0.57.1 | https://github.com/tauri-apps/wry |
 | zeroize | 1.9.0 | https://github.com/RustCrypto/utils |
 
-## MIT/Apache-2.0 (32)
+## MIT/Apache-2.0 (28)
 
 | Crate | Version | Repository |
 |---|---|---|
 | android_system_properties | 0.1.5 | https://github.com/nical/android_system_properties |
 | bitflags | 1.3.2 | https://github.com/bitflags/bitflags |
 | bs58 | 0.5.1 | https://github.com/Nullus157/bs58-rs |
+| core_detect | 1.0.0 | https://github.com/thomcc/core_detect |
 | downcast-rs | 1.2.1 | https://github.com/marcianx/downcast-rs |
 | filetime | 0.2.29 | https://github.com/alexcrichton/filetime |
 | foreign-types | 0.3.2 | https://github.com/sfackler/foreign-types |
@@ -549,7 +565,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | id-arena | 2.3.0 | https://github.com/fitzgen/id-arena |
 | ident_case | 1.0.1 | https://github.com/TedDriggs/ident_case |
 | jni | 0.21.1 | https://github.com/jni-rs/jni-rs |
-| json-patch | 3.0.1 | https://github.com/idubrov/json-patch |
+| json-patch | 4.2.0 | https://github.com/idubrov/json-patch |
 | openssl-macros | 0.1.1 |  |
 | pathdiff | 0.2.3 | https://github.com/Manishearth/pathdiff |
 | pathfinder_geometry | 0.5.1 | https://github.com/servo/pathfinder |
@@ -557,11 +573,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | scoped-tls | 1.0.1 | https://github.com/alexcrichton/scoped-tls |
 | serde_urlencoded | 0.7.1 | https://github.com/nox/serde_urlencoded |
 | siphasher | 1.0.3 | https://github.com/jedisct1/rust-siphash |
-| unic-char-property | 0.9.0 | https://github.com/open-i18n/rust-unic/ |
-| unic-char-range | 0.9.0 | https://github.com/open-i18n/rust-unic/ |
-| unic-common | 0.9.0 | https://github.com/open-i18n/rust-unic/ |
-| unic-ucd-ident | 0.9.0 | https://github.com/open-i18n/rust-unic/ |
-| unic-ucd-version | 0.9.0 | https://github.com/open-i18n/rust-unic/ |
 | winapi | 0.3.9 | https://github.com/retep998/winapi-rs |
 | winapi-i686-pc-windows-gnu | 0.4.0 | https://github.com/retep998/winapi-rs |
 | winapi-x86_64-pc-windows-gnu | 0.4.0 | https://github.com/retep998/winapi-rs |
@@ -642,7 +653,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | byteorder | 1.5.0 | https://github.com/BurntSushi/byteorder |
 | byteorder-lite | 0.1.0 | https://github.com/image-rs/byteorder-lite |
 | globset | 0.4.18 | https://github.com/BurntSushi/ripgrep/tree/master/crates/globset |
-| ignore | 0.4.26 | https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore |
+| ignore | 0.4.32 | https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore |
 | memchr | 2.8.2 | https://github.com/BurntSushi/memchr |
 | winapi-util | 0.1.11 | https://github.com/BurntSushi/winapi-util |
 
@@ -661,22 +672,12 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | Crate | Version | Repository |
 |---|---|---|
-| cssparser | 0.36.0 | https://github.com/servo/rust-cssparser |
-| cssparser-macros | 0.6.1 | https://github.com/servo/rust-cssparser |
+| cssparser | 0.37.0 | https://github.com/servo/rust-cssparser |
+| cssparser-macros | 0.7.1 | https://github.com/servo/rust-cssparser |
 | dtoa-short | 0.3.5 | https://github.com/upsuper/dtoa-short |
 | dwrote | 0.11.5 | https://github.com/servo/dwrote-rs |
 | option-ext | 0.2.0 | https://github.com/soc/option-ext.git |
-| selectors | 0.36.1 | https://github.com/servo/stylo |
-
-## Apache-2.0/MIT (5)
-
-| Crate | Version | Repository |
-|---|---|---|
-| cesu8 | 1.1.0 | https://github.com/emk/cesu8-rs |
-| dbus | 0.9.11 | https://github.com/diwic/dbus-rs |
-| libdbus-sys | 0.2.7 | https://github.com/diwic/dbus-rs |
-| pollster | 0.4.0 | https://github.com/zesterer/pollster |
-| signal-hook | 0.3.18 | https://github.com/vorner/signal-hook |
+| selectors | 0.38.0 | https://github.com/servo/stylo |
 
 ## MIT OR Apache-2.0 OR Zlib (5)
 
@@ -695,22 +696,31 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | gethostname | 1.1.0 | https://codeberg.org/swsnr/gethostname.rs.git |
 | openssl | 0.10.81 | https://github.com/rust-openssl/rust-openssl |
 | sync_wrapper | 1.0.2 | https://github.com/Actyx/sync_wrapper |
-| tao | 0.35.3 | https://github.com/tauri-apps/tao |
+| tao | 0.37.2 | https://github.com/tauri-apps/tao |
+
+## Apache-2.0/MIT (4)
+
+| Crate | Version | Repository |
+|---|---|---|
+| cesu8 | 1.1.0 | https://github.com/emk/cesu8-rs |
+| dbus | 0.9.11 | https://github.com/diwic/dbus-rs |
+| libdbus-sys | 0.2.7 | https://github.com/diwic/dbus-rs |
+| pollster | 0.4.0 | https://github.com/zesterer/pollster |
 
 ## Apache-2.0 OR ISC OR MIT (3)
 
 | Crate | Version | Repository |
 |---|---|---|
 | hyper-rustls | 0.27.9 | https://github.com/rustls/hyper-rustls |
-| rustls | 0.23.45 | https://github.com/rustls/rustls |
+| rustls | 0.23.46 | https://github.com/rustls/rustls |
 | rustls-native-certs | 0.8.4 | https://github.com/rustls/rustls-native-certs |
 
 ## BSD-3-Clause (3)
 
 | Crate | Version | Repository |
 |---|---|---|
-| alloc-no-stdlib | 2.0.4 | https://github.com/dropbox/rust-alloc-no-stdlib |
-| alloc-stdlib | 0.2.2 | https://github.com/dropbox/rust-alloc-no-stdlib |
+| alloc-no-stdlib | 3.0.0 | https://github.com/dropbox/rust-alloc-no-stdlib |
+| alloc-stdlib | 0.3.0 | https://github.com/dropbox/rust-alloc-no-stdlib |
 | subtle | 2.6.1 | https://github.com/dalek-cryptography/subtle |
 
 ## BSD-2-Clause OR Apache-2.0 OR MIT (2)
@@ -766,7 +776,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | Crate | Version | Repository |
 |---|---|---|
-| encoding_rs | 0.8.35 | https://github.com/hsivonen/encoding_rs |
+| encoding_rs | 0.8.42 | https://github.com/hsivonen/encoding_rs |
 
 ## (MIT OR Apache-2.0) AND Unicode-3.0 (1)
 
@@ -808,13 +818,13 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | Crate | Version | Repository |
 |---|---|---|
-| brotli | 8.0.3 | https://github.com/dropbox/rust-brotli |
+| brotli | 9.1.1 | https://github.com/dropbox/rust-brotli |
 
 ## BSD-3-Clause/MIT (1)
 
 | Crate | Version | Repository |
 |---|---|---|
-| brotli-decompressor | 5.0.1 | https://github.com/dropbox/rust-brotli-decompressor |
+| brotli-decompressor | 6.2.0 | https://github.com/dropbox/rust-brotli-decompressor |
 
 ## CC0-1.0 (1)
 

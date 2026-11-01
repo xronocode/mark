@@ -36,7 +36,7 @@ static MEM_STORE: std::sync::LazyLock<Mutex<HashMap<String, String>>> =
 // START_BLOCK_GENERATE
 pub fn generate_secret() -> String {
     let mut bytes = [0u8; 32];
-    rand::thread_rng().fill(&mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     hex_encode(&bytes)
 }
 

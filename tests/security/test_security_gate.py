@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 2.2.0
+# VERSION: 2.3.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unavailable or unsafe reviewers, unsupported payloads and candidate changes.
-#   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the two-reviewer receipt, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites, the candidate/local/non-local lane locks and candidate-scoped evidence; no fixture commits in the project repository.
+#   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the single-reviewer receipt with the offload state, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites, the candidate and executor lane locks and candidate-scoped evidence; no fixture commits in the project repository.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -11,10 +11,10 @@
 # START_MODULE_MAP
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
-#   SafetyGateTests - exposure, private-reference, exact-index, two-reviewer receipt, override, per-lane lock concurrency, candidate-scoped evidence, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
+#   SafetyGateTests - exposure, private-reference, exact-index, executor-resolution, single-reviewer receipt, override, per-executor lane concurrency, candidate-scoped evidence, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.2.0 - 2026-10-27 C-SAFETY-REVIEW-LANES: prove the candidate/local/non-local lane split — a local review runs while another operation is remote-bound, same-lane attempts fail closed with a lane-specific message, and concurrent reviews leave candidate-scoped atomic evidence. Preserves the merged FIX-021 reviewer view and 2.1.1 output-budget diagnostics.
+#   LAST_CHANGE: 2.3.0 - 2026-10-31 C-SAFETY-LOCAL-FIRST-REVIEW: prove the local-first single-pass review — the executor-resolution matrix (unconfigured, unreachable or busy offload selects local; a healthy offload executes there; a public or redirecting offload endpoint fails closed), the single-reviewer receipt with the offload state and checks=4 marker, per-executor lane use and the unchanged override and fail-closed verdict semantics.
 #   PREV: 2.1.1 - 2026-10-27: name the sanitized done_reason and answering model in the incomplete-payload rejection and raise the reviewer answer budget to 2048 output tokens.
 #   PREV: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and treat a bare secret or variable name as an identifier.
 #   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: prove private-companion and owner-workspace references fail, synthetic examples pass, both reviewers run with the expected pass counts, unsafe/missing reviewers fail closed and the explicit override writes an identity-bound receipt.
@@ -29,6 +29,7 @@
 #   PREV: 1.0.0 - 2026-10-19 C-SAFE-DELIVERY: executable fail-closed safety contracts.
 # END_CHANGE_SUMMARY
 
+import contextlib
 import importlib.util
 import io
 import json
@@ -129,16 +130,19 @@ class SafetyGateTests(unittest.TestCase):
         for value in ["Use ~/project", "/Users/<fixture>/notes", "/Users/<user>/project", "/Users/me/notes", "/Users/dev/project", "/Users/x/Pictures", "~/Library/Application Support/com.example.mark", "C:\\Users\\x\\doc.md"]:
             gate.validate_content([("docs/example.md", value.encode())])
 
-    def test_non_local_reviewer_must_be_configured_private_and_unredirected(self):
+    def test_offload_public_endpoint_fails_closed(self):
         remote = "http://" + ".".join(["100", "102", "145", "59"]) + ":11434"
         with tempfile.TemporaryDirectory() as name:
             private = Path(name)
             config = {"local": {"endpoint": "http://127.0.0.1:11434", "model": "qwen3:4b"}, "nonLocal": {"endpoint": remote, "model": "qwen3:4b"}}
             path = private / "reviewers.json"
-            with patch.dict(os.environ, {}, clear=True), self.assertRaises(gate.GateError):
-                gate.reviewer_config(private)
-            path.write_text(json.dumps(config))
+            # An absent offload configuration is the default local-only mode, not an error.
+            path.write_text(json.dumps({"local": config["local"]}))
             os.chmod(path, 0o600)
+            with patch.dict(os.environ, {}, clear=True):
+                reviewers = gate.reviewer_config(private)
+            self.assertEqual(reviewers["nonLocal"]["endpoint"], "")
+            self.assertEqual(reviewers["nonLocal"]["label"], "offload")
             with patch.dict(os.environ, {"MARK_SAFETY_REMOTE_ENDPOINT": remote}, clear=True):
                 reviewers = gate.reviewer_config(private)
             self.assertEqual(reviewers["nonLocal"]["endpoint"], remote)
@@ -153,18 +157,88 @@ class SafetyGateTests(unittest.TestCase):
             with self.assertRaises(gate.GateError):
                 gate.NoRedirect().redirect_request(None, None, 302, None, {}, "http://example.invalid")
 
-    def test_review_runs_two_local_passes_and_one_non_local_pass(self):
-        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value={"local": {"label": "local", "model": "local-model"}, "nonLocal": {"label": "non-local", "model": "remote-model"}}), patch.object(gate, "local_review", return_value=[{}, {}]) as local, patch.object(gate, "non_local_review", return_value=[{}]) as remote:
+    def test_offload_unreachable_falls_back_locally(self):
+        class Refused:
+            def open(self, request, timeout=None):
+                raise OSError("connection refused")
+
+        cases = (
+            (Refused(), "local", "unavailable"),
+            (self._probe_opener([{"name": "other-model"}]), "local", "unavailable"),
+            (self._probe_opener([{"name": "remote-model"}]), "offload", "used"),
+            (self._probe_opener([]), "offload", "used"),
+        )
+        for opener, label, state in cases:
+            with self.subTest(expected=label + "/" + state):
+                executor, offload_state = gate.resolve_review_executor(self.REVIEWERS_WITH_OFFLOAD, opener)
+                self.assertEqual(executor["label"], label)
+                self.assertEqual(offload_state, state)
+        executor, offload_state = gate.resolve_review_executor(self.REVIEWERS, Refused())
+        self.assertEqual((executor["label"], offload_state), ("local", "unconfigured"))
+
+    @staticmethod
+    def _probe_opener(models):
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.close()
+
+        class Opener:
+            def open(self, request, timeout=None):
+                url = getattr(request, "full_url", str(request))
+                if url.endswith("/api/ps"):
+                    return Response(json.dumps({"models": models}).encode())
+                raise AssertionError("only the offload health probe may run here")
+
+        return Opener()
+
+    def test_offload_unconfigured_runs_locally(self):
+        with (
+            tempfile.TemporaryDirectory() as name,
+            patch.object(gate, "scan"),
+            patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
+            patch.object(gate, "resolve_review_executor", return_value=(self.REVIEWERS["local"], "unconfigured")),
+            patch.object(gate, "model_review", return_value=[{}]) as single_pass,
+        ):
             candidate = {"identity": "b" * 64, "payload": "public"}
-            gate.review(lambda: dict(candidate), Path(name), "commit")
-            local.assert_called_once()
-            remote.assert_called_once()
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                gate.review(lambda: dict(candidate), Path(name), "commit")
+            single_pass.assert_called_once()
             receipt = json.loads((Path(name) / ("commit-" + candidate["identity"] + ".json")).read_text())
-            self.assertEqual(receipt["passes"], 3)
+            self.assertEqual(receipt["reviewers"], [{"label": "local", "model": "local-model", "passes": 1}])
+            self.assertEqual(receipt["offload"], "unconfigured")
+            self.assertEqual(receipt["checks"], ["static-exposure", "gitleaks", "model-review", "candidate-identity"])
+            self.assertEqual(receipt["passes"], 1)
+            self.assertIn("checks=4", buffer.getvalue())
+            self.assertIn("reviewers=local(1)", buffer.getvalue())
+            self.assertIn("offload=unconfigured", buffer.getvalue())
+
+    def test_offload_healthy_executes_on_offload(self):
+        offload = dict(self.REVIEWERS["nonLocal"], endpoint="http://127.0.0.1:11434")
+        with (
+            tempfile.TemporaryDirectory() as name,
+            patch.object(gate, "scan"),
+            patch.object(gate, "reviewer_config", return_value={"local": self.REVIEWERS["local"], "nonLocal": offload}),
+            patch.object(gate, "resolve_review_executor", return_value=(offload, "used")),
+            patch.object(gate, "model_review", return_value=[{}]) as single_pass,
+        ):
+            gate.review(lambda: {"identity": "d" * 64, "payload": "public"}, Path(name), "commit")
+            self.assertEqual(single_pass.call_args[0][2]["label"], "offload")
+            receipt = json.loads(next(Path(name).glob("commit-*.json")).read_text())
+            self.assertEqual(receipt["reviewers"], [{"label": "offload", "model": "remote-model", "passes": 1}])
+            self.assertEqual(receipt["offload"], "used")
 
     REVIEWERS = {
         "local": {"label": "local", "model": "local-model"},
-        "nonLocal": {"label": "non-local", "model": "remote-model"},
+        "nonLocal": {"label": "offload", "model": "remote-model", "endpoint": ""},
+    }
+
+    REVIEWERS_WITH_OFFLOAD = {
+        "local": {"label": "local", "model": "local-model"},
+        "nonLocal": {"label": "offload", "model": "remote-model", "endpoint": "http://127.0.0.1:11434"},
     }
 
     def _hold_lock(self, path):
@@ -194,74 +268,36 @@ class SafetyGateTests(unittest.TestCase):
         self.assertEqual(process.stdout.readline().strip(), "ready")
         return process
 
-    def _review_once(self, private):
-        gate.review(lambda: {"identity": "a" * 64, "payload": "public"}, private, "commit")
+    def test_review_uses_only_resolved_executor_lane(self):
+        calls = []
 
-    def test_local_review_proceeds_while_non_local_is_held(self):
-        private = Path(tempfile.mkdtemp())
-        self._hold_lock(private / "inference-non-local.lock")
-        local_calls = []
+        def model_review(_candidate, _private, reviewer):
+            calls.append(reviewer["label"])
+            return [{}]
 
-        def local_review(_candidate, _private, _reviewers):
-            local_calls.append(1)
-            return [{}, {}]
+        def run(private, label, state):
+            with (
+                patch.object(gate, "scan"),
+                patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
+                patch.object(gate, "resolve_review_executor", return_value=(self.REVIEWERS[label], state)),
+                patch.object(gate, "model_review", side_effect=model_review),
+            ):
+                gate.review(lambda: {"identity": "a" * 64, "payload": "public"}, private, "commit")
 
-        def non_local_review(_candidate, _private, _reviewers):
-            raise AssertionError("non-local review must not run while its lane is held")
+        offload_held = Path(tempfile.mkdtemp())
+        self._hold_lock(offload_held / "inference-non-local.lock")
+        run(offload_held, "local", "unavailable")
+        with self.assertRaises(gate.GateError) as caught:
+            run(offload_held, "nonLocal", "used")
+        self.assertIn("offload review slot", str(caught.exception))
 
-        with (
-            patch.object(gate, "scan"),
-            patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
-            patch.object(gate, "local_review", side_effect=local_review),
-            patch.object(gate, "non_local_review", side_effect=non_local_review),
-        ):
-            with self.assertRaises(gate.GateError) as caught:
-                self._review_once(private)
-        self.assertIn("non-local review slot", str(caught.exception))
-        self.assertEqual(len(local_calls), 1)
-
-    def test_local_reviews_serialize(self):
-        private = Path(tempfile.mkdtemp())
-        self._hold_lock(private / "inference-local.lock")
-
-        def local_review(_candidate, _private, _reviewers):
-            raise AssertionError("local review must not run while its lane is held")
-
-        def non_local_review(_candidate, _private, _reviewers):
-            raise AssertionError("non-local review must not run when acquisition already failed")
-
-        with (
-            patch.object(gate, "scan"),
-            patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
-            patch.object(gate, "local_review", side_effect=local_review),
-            patch.object(gate, "non_local_review", side_effect=non_local_review),
-        ):
-            with self.assertRaises(gate.GateError) as caught:
-                self._review_once(private)
+        local_held = Path(tempfile.mkdtemp())
+        self._hold_lock(local_held / "inference-local.lock")
+        run(local_held, "nonLocal", "used")
+        with self.assertRaises(gate.GateError) as caught:
+            run(local_held, "local", "unavailable")
         self.assertIn("local review slot", str(caught.exception))
-
-    def test_non_local_reviews_serialize(self):
-        private = Path(tempfile.mkdtemp())
-        self._hold_lock(private / "inference-non-local.lock")
-        local_calls = []
-
-        def local_review(_candidate, _private, _reviewers):
-            local_calls.append(1)
-            return [{}, {}]
-
-        def non_local_review(_candidate, _private, _reviewers):
-            raise AssertionError("non-local review must not run while its lane is held")
-
-        with (
-            patch.object(gate, "scan"),
-            patch.object(gate, "reviewer_config", return_value=self.REVIEWERS),
-            patch.object(gate, "local_review", side_effect=local_review),
-            patch.object(gate, "non_local_review", side_effect=non_local_review),
-        ):
-            with self.assertRaises(gate.GateError) as caught:
-                self._review_once(private)
-        self.assertIn("non-local review slot", str(caught.exception))
-        self.assertEqual(len(local_calls), 1)
+        self.assertEqual(calls, ["local", "offload"])
 
     def test_concurrent_reviews_write_distinct_evidence(self):
         private = Path(tempfile.mkdtemp())
@@ -463,22 +499,23 @@ class SafetyGateTests(unittest.TestCase):
         self.assertIn("Gitleaks rejected", str(found.exception))
 
     def test_candidate_changes_fail_after_scan_and_before_receipt(self):
-        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value={"local": {"label": "local", "model": "local-model"}, "nonLocal": {"label": "non-local", "model": "remote-model"}}), patch.object(gate, "local_review", return_value=[{}, {}]), patch.object(gate, "non_local_review", return_value=[{}]):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value=self.REVIEWERS), patch.object(gate, "resolve_review_executor", return_value=(self.REVIEWERS["local"], "unavailable")), patch.object(gate, "model_review", return_value=[{}]):
             snapshots = iter([{"identity": "first", "payload": "public"}, {"identity": "changed"}])
             with self.assertRaises(gate.GateError):
                 gate.review(lambda: next(snapshots), Path(name), "commit")
             self.assertFalse(list(Path(name).glob("commit-*.json")))
 
-    def test_exact_candidate_scan_writes_a_private_two_reviewer_receipt(self):
-        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value={"local": {"label": "local", "model": "local-model"}, "nonLocal": {"label": "non-local", "model": "remote-model"}}), patch.object(gate, "local_review", return_value=[{}, {}]), patch.object(gate, "non_local_review", return_value=[{}]):
+    def test_exact_candidate_scan_writes_a_private_single_reviewer_receipt(self):
+        with tempfile.TemporaryDirectory() as name, patch.object(gate, "scan"), patch.object(gate, "reviewer_config", return_value=self.REVIEWERS), patch.object(gate, "resolve_review_executor", return_value=(self.REVIEWERS["local"], "unavailable")), patch.object(gate, "model_review", return_value=[{}]):
             candidate = {"identity": "a" * 64, "payload": "public"}
             gate.review(lambda: dict(candidate), Path(name), "commit")
             receipt_path = Path(name) / ("commit-" + candidate["identity"] + ".json")
             receipt = json.loads(receipt_path.read_text())
             self.assertEqual(receipt["identity"], candidate["identity"])
-            self.assertEqual(receipt["checks"], ["static-exposure", "gitleaks", "local-model-review", "non-local-model-review", "candidate-identity"])
-            self.assertEqual([(r["label"], r["passes"]) for r in receipt["reviewers"]], [("local", 2), ("non-local", 1)])
-            self.assertEqual(receipt["passes"], 3)
+            self.assertEqual(receipt["checks"], ["static-exposure", "gitleaks", "model-review", "candidate-identity"])
+            self.assertEqual([(r["label"], r["passes"]) for r in receipt["reviewers"]], [("local", 1)])
+            self.assertEqual(receipt["offload"], "unavailable")
+            self.assertEqual(receipt["passes"], 1)
             self.assertNotIn("reason", receipt)
 
     def test_outgoing_history_includes_intermediate_commits_not_just_tip(self):

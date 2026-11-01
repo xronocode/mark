@@ -12968,6 +12968,24 @@
         <Marker>[micaWindow][sync][BLOCK_MICA_RETIRED] mica=false</Marker>
       </Markers>
     </V-M-058>
+    <V-M-069>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>cd src-tauri &amp;&amp; cargo test m069_dev_badge</Command>
+        <Command>cd src-tauri &amp;&amp; cargo build --release (no devtools feature): no BLOCK_DEV_BADGE_APPLIED at boot, no inspector</Command>
+        <Command>macOS smoke: npm run tauri dev — Dock icon shows the DEV chevron, BLOCK_DEV_BADGE_APPLIED devtools=on</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (rule): DEVTOOLS_ENABLED is true under cargo test (debug assertions) and dev_icon returns a badged icon; the tauri dependency line never lists devtools, Cargo.toml declares devtools = ["tauri/devtools"], and the default feature set never includes it.</Scenario>
+        <Scenario>scenario-2 (release lanes): .github/workflows/release.yml, .github/workflows/release-tauri.yml and tools/build-mas.sh never enable devtools.</Scenario>
+        <Scenario>scenario-3 (painter): on the shipped 512×512 icon the band fills the badge colour below the chevron edge, the area above the chevron and the transparent corners are untouched, the first cell of D is white and the gap after it is badge-coloured; a short buffer is left unchanged.</Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[DevBadge][apply][BLOCK_DEV_BADGE_APPLIED devtools=on]</Marker>
+        <Marker>[DevBadge][apply][BLOCK_DEV_BADGE_WINDOW_FAILED reason=…]</Marker>
+        <Marker>[DevBadge][apply][BLOCK_DEV_BADGE_DOCK_FAILED reason=…]</Marker>
+      </Markers>
+    </V-M-069>
     <V-M-059>
       <Priority>high</Priority>
       <Commands>
