@@ -178,6 +178,12 @@ async function phaseInitRender() {
     t: (key) => key
   })
   const mountMs = performance.now() - t0
+  // C-LARGE-DOC-WAVE-A T-002: expose the live instance and the engine class
+  // for driver-side mount-path probes (progressive feasibility spike; the
+  // tail-mount driver phase reuses this later). Read-only access; phases own
+  // the primary instance's lifecycle.
+  window.__BENCH_EDITOR = editor
+  window.__BENCH_MUYA = Muya
   await nextPaint()
   const t1 = performance.now()
   performance.mark('init-end')
