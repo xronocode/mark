@@ -8,6 +8,8 @@ accepted or rejected it, and why anything went back for rework.**
 - Machine authority: [registry.json](registry.json) — validated by `node tools/acceptance-registry.mjs --check`,
   which also runs inside the standard test matrix (`tests/renderer/acceptance-registry.test.js`).
 - Pre-2.6.0 acceptance history is frozen prose in the Released `2.5.x-next` record; the registry starts at `2.6.x-next`.
+- From 2.9.x-next, train acceptance runs include CUA e2e on the Windows polygon:
+  [CUA e2e acceptance on the Windows polygon](cua-e2e-windows-polygon.md) (owner instruction 2026-10-30).
 
 ## Lifecycle (one vocabulary with the trains)
 
