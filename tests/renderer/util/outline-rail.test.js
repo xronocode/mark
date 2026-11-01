@@ -111,7 +111,7 @@ describe('resolveCurrentHeading', () => {
 })
 
 describe('railFitsWithoutOverlap (geometry gate)', () => {
-  // Shipped default column: 750px wide, 50px inner padding, centred.
+  // Fixture column: 750px wide, 50px inner padding, centred (the SHIPPED default is now the 868px box / 768px content column — pinned by tests/renderer/util/editor-width-default.test.js; this file keeps its own explicit 750px fixture).
   const columnRightFor = (containerWidth, columnWidth = 750) =>
     (containerWidth + Math.min(columnWidth, containerWidth)) / 2
 
@@ -128,7 +128,7 @@ describe('railFitsWithoutOverlap (geometry gate)', () => {
   it('hides near the 1000px floor where the margin cannot clear the text column', () => {
     // At 1000px: rail left = 808, text right = 825 → the rail would overlap text.
     expect(railFitsWithoutOverlap(1000, columnRightFor(1000))).toBe(false)
-    // From ~1070px the default layout fits.
+    // From ~1170px the shipped-default layout fits (fixture: from ~1054px).
     expect(railFitsWithoutOverlap(1100, columnRightFor(1100))).toBe(true)
   })
 

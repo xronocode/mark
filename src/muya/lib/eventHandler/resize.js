@@ -56,7 +56,7 @@ class Resize {
     // window resize event — observe the container itself when available.
     if (typeof ResizeObserver !== 'undefined') {
       this.observer = new ResizeObserver(this.listener)
-      // The text column can stay 750px wide while its viewport changes.
+      // The text column can stay at the calc(100px + 768px) default while its viewport changes.
       // Outline v-show changes its box between zero and a visible width,
       // without resizing the column or dispatching a window resize.
       const scroller = this.muya.container.closest?.('.editor-component')
