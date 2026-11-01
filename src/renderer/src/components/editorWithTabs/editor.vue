@@ -3,7 +3,10 @@
     class="editor-wrapper"
     :class="[
       { typewriter: typewriter, focus: focus, source: sourceCode && !mirror },
-      { 'is-preview': isPreviewMode, 'is-mirror': mirror }
+      { 'is-preview': isPreviewMode, 'is-mirror': mirror },
+      // C-LARGE-DOC-WAVE-A T-004: reserved-space indication while a
+      // progressive tail is pending (see the .ag-tail-pending style).
+      { 'ag-tail-pending': progressiveTailPending && !mirror }
     ]"
       :style="{
       lineHeight: lineHeight,
@@ -78,23 +81,28 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.31.0
+// VERSION: 1.32.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration.
-//   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; does not own Markdown parsing rules or backend file persistence.
-//   DEPENDS: Muya, Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence).
-//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring).
+//   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
+//   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
+//   DEPENDS: Muya, muya/lib BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE markers (C-LARGE-DOC-WAVE-A T-003), Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence).
+//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   setMarkdownToEditor - Loads only the selected document; equal store text may skip rendering only when Muya already belongs to that tab.
+//   setMarkdownToEditor - Loads only the selected document; equal store text may skip rendering only when Muya already belongs to that tab; with the experimental toggle ON a plain load (no cursor) routes through muya.progressiveMount.
 //   renderedTabId - Identity of the successfully rendered Muya buffer, independent of active-tab selection.
-//   handleFileChange - Restores only the active tab's document, cursor, history and scroll; tracks the owner of successfully rendered content.
+//   handleFileChange - Restores only the active tab's document, cursor, history and scroll; tracks the owner of successfully rendered content; plain content loads (no cursor/blocks/muyaIndexCursor — T-003's marker-counted set) route through muya.progressiveMount when the experimental toggle is ON; all restores stay byte-identical legacy.
 //   reconcileActiveDocument - Restores the selected tab after a missed activation event, without duplicating a successful synchronous render.
 //   scrollToCords - Restores saved scrollTop without leaving the editor hidden behind a delayed animation frame.
 //   scrollToCordsAfterReload - Clamps the pre-edit scrollTop into a reloaded document's real scrollable range (no phantom padding, no blank viewport).
+//   refreshProgressiveTailPending - C-LARGE-DOC-WAVE-A T-004: recomputes the tail-pending flag from muya.progressive.info() after every mount-path call and open-path marker.
+//   shouldUseProgressiveMount - C-LARGE-DOC-WAVE-A T-004 gate: the experimental toggle is ON, this is the primary (non-mirror) surface.
+//   mountDocumentProgressively - C-LARGE-DOC-WAVE-A T-004: muya.progressiveMount entry with a legacy belt (T-003 never throws, but a broken entry must still open the document).
+//   handleProgressiveScrollPrefetch - C-LARGE-DOC-WAVE-A T-004: throttled scroll-time prefetch mounting ~3 viewports ahead of the reading position while a progressive tail is pending (R-2).
+//   progressiveTailPending - C-LARGE-DOC-WAVE-A T-004: reactive flag driving the reserved-space ag-tail-pending indication and the scroll-write gating.
 //   syncPreviewSurface - Mirrors previewMode onto Muya's real replacement container and restores caret focus on exit.
 //   imageAction - Applies configured local/upload image insertion behavior; with the relative preference on a saved document it writes straight into the relative folder (C-24).
 //   handleDropImage - Inserts an image dropped from Finder (mt::drop-image) at the cursor through imageAction (C-24 R-4).
@@ -119,6 +127,18 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.32.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-004 —
+//   experimental progressive-mount orchestration. Plain document opens
+//   (the T-003 marker-counted set: no cursor/blocks/muyaIndexCursor)
+//   route through muya.progressiveMount when the session-latched toggle
+//   is ON; restores (cursor, blocks cache, muyaIndexCursor, tab switches,
+//   live reload) stay byte-identical legacy. Scroll-driven prefetch
+//   mounts ~3 viewports ahead while a tail is pending; the
+//   ag-tail-pending class reserves ~2 viewports of bottom space (the
+//   document never appears truncated); scrollToCursor(0) is gated on
+//   !tailPending; the BLOCK_MOUNT_SERVED marker feeds the per-session
+//   counters (mirror panes excluded). Toggle OFF = the legacy path
+//   unchanged.
 //   - 2026-10-26 C-FILE-POSITION-MEMORY review wave: the flush debounce
 //     passes the false sentinel when getMuyaIndexCursor THROWS (logged with
 //     BLOCK_POSITION_CURSOR_COMPUTE_FAILED — the stale stored cursor never
@@ -127,7 +147,7 @@
 //     refreshes tab.muyaIndexCursor on demand for the close/quit flush —
 //     pure arrow-key navigation persists its caret too; unregistered on
 //     unmount with the other bus handlers.
-//   LAST_CHANGE: v1.31.0 - 2026-10-22 C-SELF-CONTAINED-HTML-EXPORT: the
+//   PREV: v1.31.0 - 2026-10-22 C-SELF-CONTAINED-HTML-EXPORT: the
 //   styledHtml export runs embedLocalImages (M-065) over the generated
 //   HTML before saving — local images become base64 data-URLs so the
 //   single .html file is self-contained; a warning notice reports the
@@ -240,6 +260,10 @@ import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } 
 import log from 'electron-log'
 // import ViewImage from 'view-image'
 import Muya from 'muya/lib'
+// C-LARGE-DOC-WAVE-A T-004: the T-003 content-free open-path marker names,
+// re-exported from muya's public surface ('muya/lib' — the same entry the
+// editor already imports Muya from).
+import { BLOCK_MOUNT_SERVED, BLOCK_SYNC_REGION_DONE, BLOCK_TAIL_MOUNT_DONE } from 'muya/lib'
 import { formatMarkdown } from '@/util/markdownFormat'
 import { checkMarkdownLinks } from '@/util/linkCheck'
 import { htmlToStructuredText, structuredMarkedOptions } from '@/util/structuredText'
@@ -2147,6 +2171,136 @@ const handleCollectPosition = ({ id } = {}) => {
 bus.on('mt::collect-position', handleCollectPosition)
 // END_BLOCK_POSITION_FLUSH_DEBOUNCE
 
+// START_BLOCK_EXPERIMENTAL_PROGRESSIVE_ORCHESTRATION
+// C-LARGE-DOC-WAVE-A T-004 (R-2/R-4): the experimental progressive-mount
+// orchestration. The session-latched toggle lives in store/preferences
+// (in-memory only); with it ON, PLAIN document opens — exactly the
+// content-load set the T-003 BLOCK_MOUNT_SERVED marker counts (no cursor,
+// no blocks cache, no muyaIndexCursor) — route through
+// muya.progressiveMount: the document parses whole, the visible region
+// mounts synchronously and the remaining tail mounts in bounded
+// cooperative slices. Every restore-shaped load (cursor restore, blocks
+// cache, muyaIndexCursor position restore, tab switches, live reload)
+// keeps the legacy path byte-identically: those loads re-parse through
+// setMarkdown's cursor-DNA / block-restore branches which the progressive
+// entry deliberately does not replicate, and "no remount of open tabs"
+// means the flip only affects documents opened after it. Toggle OFF =
+// today's behavior with zero extra work on the mount path.
+const PROGRESSIVE_PREFETCH_VIEWPORTS = 3
+const PROGRESSIVE_PREFETCH_THROTTLE_MS = 150
+
+const progressiveTailPending = ref(false)
+let progressivePrefetchAt = 0
+
+// Single source of truth for the pending flag: ask the T-003 controller.
+// Called after every mount-path call (both branches) and on every
+// open-path marker, so a tail that ends by fallback, completion,
+// cancellation or a legacy setMarkdown replacement clears the indication.
+const refreshProgressiveTailPending = () => {
+  const muya = editor.value
+  if (!muya) {
+    progressiveTailPending.value = false
+    return
+  }
+  const info = muya.progressive && typeof muya.progressive.info === 'function'
+    ? muya.progressive.info()
+    : null
+  progressiveTailPending.value = !!(info && info.status === 'tailing')
+}
+
+const shouldUseProgressiveMount = () =>
+  !props.mirror && preferencesStore.experimentalProgressiveMount === true
+
+// A plain content load (the marker-counted open set). Mirrors T-003's
+// own served=legacy condition in setMarkdown so the counter and the
+// routed set can never diverge.
+const isPlainContentLoad = (markdown, cursor, blocks, muyaIndexCursor) =>
+  typeof markdown === 'string' &&
+  !!markdown &&
+  !cursor &&
+  !blocks &&
+  !muyaIndexCursor
+
+const mountDocumentProgressively = (markdown) => {
+  const muya = editor.value
+  if (!muya || typeof muya.progressiveMount !== 'function') return false
+  try {
+    // T-003 contract: parse whole (model complete from parse onward —
+    // word count/TOC/search/save see the full document), mount the sync
+    // region, hand the tail to the cooperative scheduler, fall back to
+    // the legacy single-pass mount on any internal failure. `done`
+    // settles on completion, fallback or cancellation — nothing here
+    // needs to await it; markers drive the UI state.
+    muya.progressiveMount(markdown)
+  } catch (err) {
+    // Belt only: the T-003 catch-all makes a throw from this entry
+    // unreachable, but a broken entry must never leave a blank editor.
+    console.warn('[Editor][progressive][BLOCK_PROGRESSIVE_ENTRY_FAILED]', err)
+    muya.setMarkdown(markdown)
+  }
+  refreshProgressiveTailPending()
+  return true
+}
+
+// R-2 prefetch: while a tail is pending, keep mounted content ahead of a
+// normally scrolling reader (~3 viewports). Rides muya's already-debounced
+// scroll event (100 ms) plus this light throttle, and maps the pixel
+// position ahead onto a whole-model block (contentState.blocks — block
+// keys only) through the public mountToBlockKey; the call itself is
+// bounded by the T-003 slice budget. Fast scrolls that cross into the
+// reserved space simply mount toward the end (catch-up).
+const handleProgressiveScrollPrefetch = () => {
+  if (!progressiveTailPending.value || props.mirror) return
+  const muya = editor.value
+  if (!muya) return
+  const info = muya.progressive && typeof muya.progressive.info === 'function'
+    ? muya.progressive.info()
+    : null
+  if (!info || info.status !== 'tailing') {
+    progressiveTailPending.value = false
+    return
+  }
+  const now = Date.now()
+  if (now - progressivePrefetchAt < PROGRESSIVE_PREFETCH_THROTTLE_MS) return
+  progressivePrefetchAt = now
+  const container = muya.container
+  const blocks = muya.contentState && Array.isArray(muya.contentState.blocks)
+    ? muya.contentState.blocks
+    : null
+  if (!container || !blocks || !blocks.length) return
+  const root = container.firstElementChild // #ag-editor-id
+  if (!root || !root.children.length) return
+  // Uniform-height estimate over the mounted region (one layout read):
+  // the target block index sits ~3 viewports past the viewport bottom.
+  const averageBlockHeight = Math.max(1, root.offsetHeight / root.children.length)
+  const viewportBottom = container.scrollTop + container.clientHeight
+  const aheadPx = PROGRESSIVE_PREFETCH_VIEWPORTS * container.clientHeight
+  const targetIdx = Math.min(
+    blocks.length - 1,
+    Math.floor((viewportBottom + aheadPx) / averageBlockHeight)
+  )
+  if (targetIdx < info.mountedThrough) return // already mounted past the target
+  const target = blocks[targetIdx]
+  if (target && target.key && typeof muya.mountToBlockKey === 'function') {
+    muya.mountToBlockKey(target.key)
+    refreshProgressiveTailPending()
+  }
+}
+
+// Named marker handlers (muya's unsubscribe matches on the function
+// identity, so the unmount path needs the same references).
+const handleBlockMountServed = ({ served } = {}) => {
+  if (!props.mirror) {
+    preferencesStore.RECORD_EXPERIMENTAL_MOUNT_SERVED(served)
+  }
+  refreshProgressiveTailPending()
+}
+
+const handleProgressiveMarker = () => {
+  refreshProgressiveTailPending()
+}
+// END_BLOCK_EXPERIMENTAL_PROGRESSIVE_ORCHESTRATION
+
 // listen for `open-single-file` event, it will call this method only when open a new file.
 const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) => {
   if (id && id !== currentFile.value?.id) {
@@ -2169,10 +2323,20 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
       return
     }
     editor.value.clearHistory()
-    if (newCursor) {
+    // C-LARGE-DOC-WAVE-A T-004: with the experimental toggle ON, a plain
+    // open (no cursor to restore) mounts progressively; cursor-bearing
+    // loads keep the legacy restore semantics exactly.
+    if (
+      shouldUseProgressiveMount() &&
+      isPlainContentLoad(newMarkdown, newCursor, undefined, undefined)
+    ) {
+      mountDocumentProgressively(newMarkdown)
+    } else if (newCursor) {
       editor.value.setMarkdown(newMarkdown, newCursor, true)
+      refreshProgressiveTailPending()
     } else {
       editor.value.setMarkdown(newMarkdown)
+      refreshProgressiveTailPending()
     }
     // C-29: the mirror already shows this document; skip the debounced re-render.
     renderedTabId = currentFile.value?.id || null
@@ -2233,8 +2397,25 @@ const handleFileChange = ({
       const sameDocument = id && renderedTabId === id && activeFile?.id === id && newMarkdown === activeFile.markdown
       if (sameDocument && newCursor && renderCursor !== true && !history && !blocks && !muyaIndexCursor) {
         editor.value.setCursor(newCursor)
+      } else if (
+        // C-LARGE-DOC-WAVE-A T-004: plain content loads (fresh opens and
+        // content replacements without cursor/blocks/muyaIndexCursor —
+        // exactly the set T-003 counts with the served marker) mount
+        // progressively when the experimental toggle is ON. Every restore
+        // (cursor, blocks cache, muyaIndexCursor position) stays legacy,
+        // and so does any load with a real undo history: a history stack
+        // references block keys of a previous parse, which a fresh
+        // progressive parse would invalidate.
+        shouldUseProgressiveMount() &&
+        isPlainContentLoad(newMarkdown, newCursor, blocks, muyaIndexCursor) &&
+        (!history || !Array.isArray(history.stack) || history.stack.length === 0)
+      ) {
+        mountDocumentProgressively(newMarkdown)
       } else {
         editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
+        // A legacy content load cancels any pending progressive tail
+        // (T-003 setMarkdown wiring) — drop the indication right away.
+        refreshProgressiveTailPending()
       }
       renderedTabId = activeFile?.id || null
       if (props.mirror) mirroredMarkdown = newMarkdown
@@ -2265,6 +2446,16 @@ const handleFileChange = ({
       // A disk content reload renders a NEW document: the pre-edit scrollTop
       // must be clamped into the new scrollable range. Same-document restores
       // (boot, tab switch back) keep the padding-preserving scrollToCords.
+      // (C-LARGE-DOC-WAVE-A T-004: reload/restore loads always carry cursor
+      // state, so they are legacy and never tail-pending here; the rare
+      // scroll-only position restore that DID route progressively composes
+      // with scrollToCords by design — its temporary bottom padding plus
+      // ResizeObserver self-retire as the progressive tail lands, the exact
+      // growing-content case that mechanism was built for. The frozen-region
+      // guarantee keeps everything above the viewport untouched, so the
+      // restored reading position cannot shift while the tail mounts; the
+      // editor also disables native scroll anchoring
+      // (.editor-component overflow-anchor:none), so nothing fights.)
       if (contentReloaded) {
         scrollToCordsAfterReload(scrollTop, id || activeFile?.id)
       } else {
@@ -2276,9 +2467,13 @@ const handleFileChange = ({
       // Tabs with no saved scroll position (new/agent-opened documents) must
       // not inherit the previously active tab's scrollTop: a shorter document
       // would then sit scrolled out of view and read as blank until the user
-      // manually scrolls and the browser clamps scrollTop back into range.
+      // scrolls and the browser clamps scrollTop back into range.
       container.scrollTop = 0
-      scrollToCursor(0)
+      // C-LARGE-DOC-WAVE-A T-004: the animated cursor scroll is an explicit
+      // scrollTop writer — never run it while a progressive tail is pending
+      // (the viewport is already at the document top; the animation would
+      // chase a target computed against a still-growing layout).
+      if (!progressiveTailPending.value) scrollToCursor(0)
     }
   }
 }
@@ -2738,6 +2933,19 @@ onMounted(() => {
   bus.on('ext-context-request', handleExtContextRequest)
   bus.on('formatDocument', diffGuarded.handleFormatDocument)
 
+  // START_BLOCK_EXPERIMENTAL_MARKER_SUBSCRIPTIONS
+  // C-LARGE-DOC-WAVE-A T-003/T-004: the content-free open-path markers.
+  // BLOCK_MOUNT_SERVED feeds the per-session progressive-vs-legacy counter
+  // (R-4) — subscribed BEFORE the boot hydration so boot opens count too.
+  // The mirror pane never counts: its setMarkdown re-renders are views of
+  // an already-open document, not opens. All three markers refresh the
+  // tail-pending indication (a fallback records served=legacy and clears
+  // it; completion records BLOCK_TAIL_MOUNT_DONE and clears it).
+  editor.value.on(BLOCK_MOUNT_SERVED, handleBlockMountServed)
+  editor.value.on(BLOCK_SYNC_REGION_DONE, handleProgressiveMarker)
+  editor.value.on(BLOCK_TAIL_MOUNT_DONE, handleProgressiveMarker)
+  // END_BLOCK_EXPERIMENTAL_MARKER_SUBSCRIPTIONS
+
   // The pending-open drain runs in parallel with Vue mount. If an agent or
   // Finder event selected a tab before this component subscribed, replay the
   // active tab once so the first paint cannot be an empty white surface.
@@ -2782,6 +2990,10 @@ onMounted(() => {
     // events fire at frame rate) and tell the TOC to highlight it.
     if (tocActiveTimer) clearTimeout(tocActiveTimer)
     tocActiveTimer = setTimeout(emitActiveHeading, 200)
+    // C-LARGE-DOC-WAVE-A T-004 (R-2): scroll-driven prefetch — while a
+    // progressive tail is pending, keep mounted content ~3 viewports
+    // ahead of the reading position (no-op on the legacy path).
+    handleProgressiveScrollPrefetch()
   })
 
   editor.value.on('heading-copy-link', ({ key }) => {
@@ -2934,6 +3146,12 @@ onBeforeUnmount(() => {
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')
   editor.value.off('scroll')
+  // C-LARGE-DOC-WAVE-A T-004: drop the open-path marker subscriptions
+  // before muya is destroyed (real handler references — muya's
+  // unsubscribe matches on function identity).
+  editor.value.off(BLOCK_MOUNT_SERVED, handleBlockMountServed)
+  editor.value.off(BLOCK_SYNC_REGION_DONE, handleProgressiveMarker)
+  editor.value.off(BLOCK_TAIL_MOUNT_DONE, handleProgressiveMarker)
   // C-56: drop the viewer export dispatch before muya is destroyed.
   editor.value.off('muya-diagram-export', handleDiagramExportAction)
   // C-56 T-006: drop the image-copy dispatch before muya is destroyed.
@@ -2993,6 +3211,32 @@ onBeforeUnmount(() => {
   width: 100%;
   flex-shrink: 0;
 }
+
+/* START_BLOCK_TAIL_PENDING_INDICATION */
+/* C-LARGE-DOC-WAVE-A T-004 (R-2): reserved-space indication while a
+ * progressive tail is pending — the document never appears to end early.
+ * The class lives on the Vue-owned .editor-wrapper (muya replaces the
+ * inner editor node, so reactive bindings must stay on the wrapper); the
+ * strip itself is a last flex item of the scroll container: ~2 viewports
+ * of reserved layout space with a dimmed, neutral gradient marking the
+ * still-mounting region. Removed on BLOCK_TAIL_MOUNT_DONE / fallback /
+ * any legacy replacement (refreshProgressiveTailPending). */
+.editor-wrapper.ag-tail-pending .editor-component::after {
+  content: '';
+  display: block;
+  flex-shrink: 0;
+  width: 100%;
+  height: 200vh;
+  pointer-events: none;
+  /* Neutral grey ramp (light/dark parity; no theme hooks needed). */
+  background: linear-gradient(
+    to bottom,
+    rgba(127, 127, 127, 0) 0%,
+    rgba(127, 127, 127, 0.04) 35%,
+    rgba(127, 127, 127, 0.09) 100%
+  );
+}
+/* END_BLOCK_TAIL_PENDING_INDICATION */
 
 /* M-022 mt-preview-mode: read-only visual treatment.
  * - caret-color:transparent hides the blinking cursor that contenteditable

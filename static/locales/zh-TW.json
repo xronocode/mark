@@ -543,7 +543,14 @@
       "markdown": "Markdown",
       "general": "一般",
       "advanced": "進階",
-      "appearance": "外觀"
+      "appearance": "外觀",
+      "experimental": "實驗功能"
+    },
+    "experimental": {
+      "title": "實驗功能",
+      "progressiveMount": "大型文件漸進式掛載",
+      "progressiveMountHelp": "實驗性功能：漸進式掛載大型文件，開啟時保持回應。預設關閉；重新啟動後重設。大型文件效能契約的一部分。",
+      "sessionCount": "本次工作階段：漸進式開啟 {progressive} 次 / 傳統方式 {legacy} 次"
     },
     "markdown": {
       "title": "Markdown",

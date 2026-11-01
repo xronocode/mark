@@ -2,8 +2,8 @@
  * Tests for src/renderer/src/router/index.js
  *
  * Covers: routes function, parseSettingsPage logic, the C-38 T-003 five
- * tab routes, the remembered-tab '' redirect and every legacy-route
- * redirect.
+ * tab routes (plus the C-LARGE-DOC-WAVE-A experimental tab), the
+ * remembered-tab '' redirect and every legacy-route redirect.
  */
 
 // Mock all page/component imports
@@ -14,6 +14,7 @@ vi.mock('@/prefComponents/tabs/appearance', () => ({ default: { name: 'Appearanc
 vi.mock('@/prefComponents/tabs/editor', () => ({ default: { name: 'EditorTab' } }))
 vi.mock('@/prefComponents/tabs/markdown', () => ({ default: { name: 'MarkdownTab' } }))
 vi.mock('@/prefComponents/tabs/advanced', () => ({ default: { name: 'AdvancedTab' } }))
+vi.mock('@/prefComponents/tabs/experimental', () => ({ default: { name: 'ExperimentalTab' } }))
 
 import routes from '@/router'
 
@@ -61,29 +62,32 @@ describe('router/index', () => {
     })
   })
 
-  describe('five tab routes', () => {
-    it('has exactly the 5 tab children with tab components', () => {
+  describe('tab routes', () => {
+    it('has exactly the 5 IA tab children plus the experimental tab', () => {
       const children = preferenceRoute().children.filter((c) => c.name)
       expect(children.map((c) => c.name)).toEqual([
         'general',
         'appearance',
         'editor',
         'markdown',
-        'advanced'
+        'advanced',
+        'experimental'
       ])
       expect(children.map((c) => c.path)).toEqual([
         'general',
         'appearance',
         'editor',
         'markdown',
-        'advanced'
+        'advanced',
+        'experimental'
       ])
       expect(children.map((c) => c.component.name)).toEqual([
         'GeneralTab',
         'AppearanceTab',
         'EditorTab',
         'MarkdownTab',
-        'AdvancedTab'
+        'AdvancedTab',
+        'ExperimentalTab'
       ])
     })
 

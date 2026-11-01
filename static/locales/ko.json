@@ -543,7 +543,14 @@
       "markdown": "마크다운",
       "general": "일반",
       "advanced": "고급",
-      "appearance": "화면 표시"
+      "appearance": "화면 표시",
+      "experimental": "실험 기능"
+    },
+    "experimental": {
+      "title": "실험 기능",
+      "progressiveMount": "큰 문서 점진적 마운트",
+      "progressiveMountHelp": "실험적 기능: 큰 문서를 점진적으로 마운트하여 열 때 반응성을 유지합니다. 기본값은 꺼짐이며 재시작하면 초기화됩니다. 대용량 문서 성능 계약의 일부입니다.",
+      "sessionCount": "이 세션: 점진적 {progressive}회 / 레거시 {legacy}회 열기"
     },
     "markdown": {
       "title": "마크다운",

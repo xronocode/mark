@@ -359,7 +359,10 @@ class Muya {
     // sync, document open) record the serving path. The legacy mount served
     // this open; cursor/blocks restores and the empty constructor mount stay
     // silent so the marker counts real content loads only.
-    if (!cursor && !blocks && !muyaIndexCursor && markdown) {
+    if (!cursor && !blocks && !muyaIndexCursor && markdown && this.eventCenter) {
+      // The eventCenter guard keeps bare test doubles (prototype-level
+      // setMarkdown.call({contentState}) without an event center) alive —
+      // the marker is telemetry, never a load-bearing call.
       this.eventCenter.dispatch(BLOCK_MOUNT_SERVED, { served: 'legacy' })
     }
     setTimeout(() => {
