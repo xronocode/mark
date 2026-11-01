@@ -1041,7 +1041,7 @@
   },
   "whatsNew": {
     "title": "Was ist neu",
-    "also": "Neu auch: Modus-Chips mit Standard-Ansicht, GitHub-Themen, Akzent-Fixes, leichtere Diagramme, Ausschneiden repariert.",
+    "also": "Neu außerdem: Modus-Chips mit Standard-Ansicht, GitHub-Themes, Akzent-Fixes, leichtere Diagramme, gemerkte Positionen.",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1191,9 +1191,9 @@
         "title": "Meldungen, neu gedacht",
         "text": "Jede Meldung ist eine Karte mit Wichtigkeit; die Palette behält die Geschichte."
       },
-      "position": {
-        "title": "Du öffnest, wo du warst",
-        "text": "Jede Datei merkt sich Scrollposition und Cursor über Sitzungen hinweg."
+      "windows": {
+        "title": "Windows: Kürzel & Speichern",
+        "text": "Ctrl+S, Ctrl+N und alle Menükürzel reagieren wieder — und Speichern schreibt die Datei."
       }
     },
     "v2_8_2": {

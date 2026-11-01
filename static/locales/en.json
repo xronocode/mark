@@ -1052,7 +1052,7 @@
   },
   "whatsNew": {
     "title": "What's new",
-    "also": "Also new: mode chips with a one-click Standard view, GitHub themes, emphasis fixes, lighter diagrams, a cut/copy repair.",
+    "also": "Also new: mode chips with Standard view, GitHub themes, emphasis fixes, lighter diagrams, remembered positions.",
     "seeEverything": "See everything new",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1202,9 +1202,9 @@
         "title": "Notifications, rebuilt",
         "text": "Every notice is a severity card in one corner stack; the palette keeps the history."
       },
-      "position": {
-        "title": "You re-open where you left",
-        "text": "Every file remembers its scroll spot and caret across sessions and renames."
+      "windows": {
+        "title": "Windows: shortcuts and saving",
+        "text": "Ctrl+S, Ctrl+N and all menu shortcuts respond again — and saving writes the file."
       }
     },
     "v2_8_2": {

@@ -1041,7 +1041,7 @@
   },
   "whatsNew": {
     "title": "Novedades",
-    "also": "También: chips de modos con vista Standard, temas GitHub, énfasis corregido, diagramas más ligeros, cortar reparado.",
+    "also": "También: chips de modo con vista Standard, temas GitHub, énfasis corregido, diagramas livianos, posiciones recordadas.",
     "seeEverything": "Ver todas las novedades",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1191,9 +1191,9 @@
         "title": "Notificaciones renovadas",
         "text": "Cada aviso es una tarjeta con severidad; la paleta guarda el historial."
       },
-      "position": {
-        "title": "Vuelves donde estabas",
-        "text": "Cada archivo recuerda desplazamiento y cursor entre sesiones y renombres."
+      "windows": {
+        "title": "Windows: atajos y guardado",
+        "text": "Ctrl+S, Ctrl+N y todos los atajos responden de nuevo, y guardar escribe el archivo."
       }
     },
     "v2_8_2": {

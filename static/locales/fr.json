@@ -1042,7 +1042,7 @@
   },
   "whatsNew": {
     "title": "Nouveautés",
-    "also": "Aussi : puces de modes avec vue Standard, thèmes GitHub, emphase corrigée, diagrammes plus légers, couper réparé.",
+    "also": "Aussi : puces de mode avec vue Standard, thèmes GitHub, emphase corrigée, diagrammes légers, positions retenues.",
     "seeEverything": "Voir toutes les nouveautés",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1192,9 +1192,9 @@
         "title": "Notifications repensées",
         "text": "Chaque avis devient une carte par gravité ; la palette garde l'historique."
       },
-      "position": {
-        "title": "Vous rouvrez où vous étiez",
-        "text": "Chaque fichier retient défilement et curseur, même après renommage."
+      "windows": {
+        "title": "Windows : clavier et sauvegarde",
+        "text": "Ctrl+S, Ctrl+N et les raccourcis répondent à nouveau, et enregistrer écrit le fichier."
       }
     },
     "v2_8_2": {

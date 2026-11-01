@@ -28,7 +28,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.6.0 - 2026-11-01 release 2.9.0 draft: the four items are Word export, update rollback, the notification center and reading position memory; the draft pin keeps Word literal in every locale.
+//   LAST_CHANGE: v1.6.1 - 2026-11-01 2.9.0 draft amendment: the fourth item is the Windows repair (menu shortcuts + saving); reading position memory moves to the also line. The draft pin keeps Word literal in every locale.
 //   PREV: v1.5.0 - 2026-10-25 the footer link opens the release's website changelog section; every release date matches its CHANGELOG heading.
 //   PREV: v1.4.0 - 2026-10-20 derive the current release identity from the newest sheet so normalization never rewrites historical test text.
 //   PREV: v1.3.0 - 2026-10-20 release 2.6.0 draft: pin the four
@@ -222,8 +222,8 @@ describe('whatsNew 2.5.3 sheet', () => {
 
 // START_BLOCK_CONTENT_2_5_4
 // Release 2.9.0 draft: Word export, update rollback, the rebuilt
-// notification center, reading position memory — four items.
-const RELEASE_DRAFT_ITEM_KEYS = ['word', 'rollback', 'notices', 'position']
+// notification center, the Windows repair (shortcuts + saving) — four items.
+const RELEASE_DRAFT_ITEM_KEYS = ['word', 'rollback', 'notices', 'windows']
 
 describe('current release-draft sheet', () => {
   it('ships the four accepted-train items in order with distinct one-char icons', () => {

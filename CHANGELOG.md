@@ -8,7 +8,7 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 ## [2.9.0] - 2026-11-01
 
-Export to Word, an undo for updates, one notification center, and files that remember where you were — plus titlebar mode chips, GitHub themes, CommonMark-exact emphasis and lighter diagrams.
+Export to Word, an undo for updates, one notification center, and files that remember where you were — plus titlebar mode chips, GitHub themes, CommonMark-exact emphasis, lighter diagrams, and two repairs Windows users will feel: keyboard shortcuts and saving work again.
 
 ### Export to Word
 - File › Export to Word — also the tab context menu and the export command in the palette — writes real `.docx` files, generated entirely inside the app.
@@ -43,6 +43,8 @@ Export to Word, an undo for updates, one notification center, and files that rem
 - The Pele diagram engine advances four minors to 1.10: labels gain sub/sup/code/kbd styling, text that looks like `<T>` lists is no longer eaten by label parsing, long CJK labels wrap between characters instead of stretching diagrams, `%%` comments no longer swallow the preceding character, wrapped lines sit closer together, and every rendered diagram is valid XML — which the export paths rely on.
 
 ### Fixed
+- On Windows, every menu keyboard shortcut was dead — the hidden menu bar never registered its accelerators, so Ctrl+S saved nothing, Ctrl+N opened nothing, and the view-mode chords were unreachable. All 22 menu shortcuts now respond through a window-level dispatcher; macOS is untouched.
+- On Windows, saving a file never reached the disk: the security sandbox's path check rejected every Windows path, leaving the editor reporting failure. The check now compares paths the way Windows writes them, and saves land on disk — verified on real hardware.
 - Cut and copy no longer die silently for the rest of a session after a stale table-cell or image selection (a tab switch or content load could leave one behind); all four cut/copy entry points clear stale state first, and live table selections behave exactly as before.
 
 ### Under the hood

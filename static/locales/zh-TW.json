@@ -1040,7 +1040,7 @@
   },
   "whatsNew": {
     "title": "新內容",
-    "also": "另有：模式晶片與一鍵 Standard 檢視、GitHub 主題、強調修復、更輕的圖表、剪下修復。",
+    "also": "另有：模式晶片與 Standard 檢視、GitHub 主題、強調修復、更輕的圖表、記住位置。",
     "seeEverything": "查看全部新功能",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1190,9 +1190,9 @@
         "title": "通知煥然一新",
         "text": "每則通知都是帶層級的卡片；命令面板保留完整歷史。"
       },
-      "position": {
-        "title": "回到上次位置",
-        "text": "每個檔案記住捲動位置與游標，重新命名後依然保留。"
+      "windows": {
+        "title": "Windows：快捷鍵與儲存",
+        "text": "Ctrl+S、Ctrl+N 與所有選單快捷鍵恢復反應，儲存也會寫入檔案。"
       }
     },
     "v2_8_2": {

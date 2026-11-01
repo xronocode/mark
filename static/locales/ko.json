@@ -1040,7 +1040,7 @@
   },
   "whatsNew": {
     "title": "새로운 기능",
-    "also": "덧붙여: 모드 칩과 Standard 보기, GitHub 테마, 강조 수정, 가벼운 다이어그램, 잘라내기 수정.",
+    "also": "그밖에: 모드 칩과 Standard 보기, GitHub 테마, 강조 수정, 가벼운 다이어그램, 위치 기억.",
     "seeEverything": "모든 새 기능 보기",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1190,9 +1190,9 @@
         "title": "새로운 알림",
         "text": "알림은 심각도 표시 카드로 표시되고 팔레트에 기록이 남습니다."
       },
-      "position": {
-        "title": "이어서 읽기",
-        "text": "파일은 스크롤 위치와 커서를 기억하며 이름이 바뀌어도 유지됩니다."
+      "windows": {
+        "title": "Windows: 단축키와 저장",
+        "text": "Ctrl+S, Ctrl+N 등 메뉴 단축키가 돌아오고, 저장도 파일을 기록합니다."
       }
     },
     "v2_8_2": {

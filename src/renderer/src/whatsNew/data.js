@@ -33,7 +33,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.7.0 - 2026-10-25 «See everything new» opens the
+//   LAST_CHANGE: v1.8.0 - 2026-11-01 2.9.0 sheet
+//   amendment: the fourth item becomes the Windows repair (menu shortcuts
+//   + saving); remembered positions move to the also line.
+//   PREV: v1.7.0 - 2026-10-25 «See everything new» opens the
 //   release's section of the website changelog (version → release date →
 //   heading anchor) instead of a GitHub release page.
 //   PREV: v1.6.0 - 2026-10-20 release 2.6.0 draft: the sheet shows
@@ -97,9 +100,9 @@ export const WHATS_NEW_CONTENT = {
       textKey: 'whatsNew.v2_9_0.notices.text'
     },
     {
-      icon: '⌖',
-      titleKey: 'whatsNew.v2_9_0.position.title',
-      textKey: 'whatsNew.v2_9_0.position.text'
+      icon: '⌨',
+      titleKey: 'whatsNew.v2_9_0.windows.title',
+      textKey: 'whatsNew.v2_9_0.windows.text'
     }
   ],
   '2.8.2': [

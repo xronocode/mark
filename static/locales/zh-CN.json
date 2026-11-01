@@ -1040,7 +1040,7 @@
   },
   "whatsNew": {
     "title": "新变化",
-    "also": "另有：模式芯片与一键 Standard 视图、GitHub 主题、强调修复、更轻的图表、剪切修复。",
+    "also": "另有：模式芯片与 Standard 视图、GitHub 主题、强调修复、更轻的图表、记住位置。",
     "seeEverything": "查看全部新功能",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1190,9 +1190,9 @@
         "title": "通知焕然一新",
         "text": "每条通知都是带级别的卡片；命令面板保留全部历史。"
       },
-      "position": {
-        "title": "回到上次位置",
-        "text": "每个文件记住滚动位置与光标，改名后依然保留。"
+      "windows": {
+        "title": "Windows：快捷键与保存",
+        "text": "Ctrl+S、Ctrl+N 和所有菜单快捷键恢复响应，保存也会写入文件。"
       }
     },
     "v2_8_2": {
