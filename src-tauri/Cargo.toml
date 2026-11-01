@@ -32,7 +32,7 @@ serde_json = "1"
 # Linux failure). The plugin owns the backend choice; our direct uses
 # ride it.
 rfd = { version = "0.17", default-features = false }
-notify-debouncer-full = "0.5"
+notify-debouncer-full = "0.7"
 ignore = "0.4"
 regex = "1"
 chardet = "0.2"
