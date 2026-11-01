@@ -2226,7 +2226,16 @@
         tab/CRLF-smuggled variants), shell-open executable-extension blocklist.
         Renderer-side concerns (HTML sanitizer / KaTeX / Vega / punycode warning
         / shell.open user-confirm prompt) deferred to Phase-B3.
-      </Summary>
+      
+        C-WINDOWS-SAVE-PIPELINE (2026-11-01): the prefix compare is
+        Windows-honest — a root-only sandbox (the permissive "/" default)
+        admits absolute paths on every platform (a DOS path never
+        prefix-matched the bare root, denying every Windows write), both
+        sides are compared with \\?\ / \\?\UNC\ device prefixes stripped
+        (canonicalize-stored sandboxes are UNC, requests are DOS form),
+        and the symlink step skips its prefix denial under the
+        permissive root (canonicalize("/") on Windows is the
+        current-drive root). All other denials unchanged.</Summary>
       <Path>src-tauri/src/m010_security.rs</Path>
       <Dependencies/>
       <VerificationRef>V-M-010</VerificationRef>
