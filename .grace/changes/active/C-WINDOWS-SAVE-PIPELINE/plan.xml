@@ -1,0 +1,68 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved basis: owner menu answer 2026-11-01 «Чинить в 2.9.0 (рекомендую)» — explicit go for this fix in the 2.9.0 train. --><C-WINDOWS-SAVE-PIPELINE>
+  <Name>Windows save pipeline — sandbox prefix check fix plan</Name><Created>2026-11-01</Created><Spec>C-WINDOWS-SAVE-PIPELINE</Spec>
+  <IntentSummary>
+    Make m010_security::check_path Windows-honest: a root-only sandbox (the permissive "/" default) admits absolute paths on every platform instead of denying every DOS path; the step-4 lexical prefix comparison strips the \\?\ and \\?\UNC\ device prefixes from both sides; the step-5 symlink comparison skips its prefix denial when the sandbox is the permissive root (canonicalize("/") on Windows is the current-drive root and would falsely deny cross-drive writes) while still returning the canonicalized request. NUL/overlong/lexical-.. /symlink-escape/out-of-sandbox denials all keep holding. Unit tests pin the matrix with Windows-style fixtures; the polygon proves a real disk write through Ctrl+S on the rebuilt NSIS using a scratch document under D:\polygon (the owner's workspace stays read-only).
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>src-tauri/src/m010_security.rs</Value></MustExist>
+    <MustContain><File>src-tauri/src/m010_security.rs</File><Text>fn check_path</Text></MustContain>
+    <MustContain><File>src-tauri/src/m010_security.rs</File><Text>lexical.starts_with(&amp;sandbox_lex)</Text></MustContain>
+    <MustContain><File>src-tauri/src/m013b/state.rs</File><Text>PathBuf::from("/")</Text></MustContain>
+    <MustContain><File>src-tauri/src/m005_prefs.rs</File><Text>fn workspace_set_inner</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>src-tauri/src/m010_security.rs</File><Text>C-WINDOWS-SAVE-PIPELINE</Text></MustContain>
+    <MustContain><File>src-tauri/src/m010_security.rs</File><Text>fn strip_device_prefix</Text></MustContain>
+    <MustContain><File>src-tauri/src/m010_security.rs</File><Text>fn is_permissive_root</Text></MustContain>
+    <MustContain><File>src-tauri/src/m010_security.rs</File><Text>permissive_root_default_allows_windows_absolute</Text></MustContain>
+    <MustContain><File>src-tauri/src/m010_security.rs</File><Text>unc_sandbox_matches_dos_request</Text></MustContain>
+    <MustPassCommand><Command>cd src-tauri &amp;&amp; cargo test m010_security</Command></MustPassCommand>
+    <MustPassCommand><Command>cd src-tauri &amp;&amp; cargo test m001_save_close</Command></MustPassCommand>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-010/></GraphAnchors><VerificationAnchors><V-M-010/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>src-tauri/src/m010_security.rs</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>docs/release-trains/2.9.x-next.json</File>
+    <File>docs/release-trains/2.9.x-next.md</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>check_path: permissive-root semantics + device-prefix-stripped comparison</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Two pure helpers land in m010_security.rs: strip_device_prefix(path) removing leading \\?\ and rewriting \\?\UNC\x to \\x, and is_permissive_root(path) true only for a path whose components are at most a RootDir with no drive Prefix and no further components ("/" and "\" — the SecurityCtx::default form on both platforms).</Criterion>
+        <Criterion>Step 4 compares strip_device_prefix(lexical).starts_with(strip_device_prefix(sandbox_lex)) and is skipped entirely when is_permissive_root(sandbox_lex); the returned validated path stays the unstripped lexical form (callers write to what they asked for).</Criterion>
+        <Criterion>Step 5 keeps canonicalizing both existing paths and returning req_canon, but its prefix denial only applies when the sandbox is not the permissive root — canonicalize("/") on Windows (current-drive root) must not fence cross-drive writes under the global default.</Criterion>
+        <Criterion>Every denial keeps firing: NUL, overlong, lexical .. above root, out-of-sandbox DOS/UNC mismatches (a \\?\C:\other request against a \\?\D:\ws sandbox stays PathTraversal), symlink escapes under a real sandbox.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>cd src-tauri &amp;&amp; cargo test m010_security</Command><BudgetSeconds>300</BudgetSeconds></Verification>
+    </T-001>
+    <T-002>
+      <Title>Unit tests: the Windows fixture matrix</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>New tests pin: permissive_root_default_allows_windows_absolute (sandbox "/", request D:\work\a.md → Ok), unc_sandbox_matches_dos_request (sandbox \\?\D:\ws, request D:\ws\notes.md → Ok), dos_sandbox_matches_unc_request symmetric case, unc_cross_drive_still_denied (\\?\C:\other vs \\?\D:\ws → PathTraversal), traversal_above_root_still_denied, and existing symlink/outside cases stay green.</Criterion>
+        <Criterion>Fixtures are plain PathBuf::from strings so the suite runs green on every host OS (the helpers are string/component logic, no Windows-only API).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>cd src-tauri &amp;&amp; cargo test m010_security</Command><BudgetSeconds>300</BudgetSeconds></Verification>
+    </T-002>
+    <T-003>
+      <Title>Graph + verification entries: M-010 / V-M-010 update</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>M-010's summary and interface record the Windows-honest comparison (permissive root, device-prefix strip, step-5 guard); V-M-010 gains the scenario set: the fixture matrix, the unchanged denial suite, and the polygon disk-write proof.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --change C-WINDOWS-SAVE-PIPELINE --assertions target</Command><BudgetSeconds>120</BudgetSeconds></Verification>
+    </T-003>
+    <T-004>
+      <Title>Polygon acceptance: real disk write through Ctrl+S on the rebuilt NSIS</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Branch NSIS rebuilt on the polygon and silently reinstalled; a scratch document is created under D:\polygon (owner workspace untouched), opened through the mt_open_file channel, dirtied via insertText; real SendInput Ctrl+S → isSaved true, file mtime moves, the probe text round-trips from disk; the README save failure notification no longer appears for workspace files either (permissive default path).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>ssh kari "dir D:\\polygon\\wacc-save.md 2>nul | findstr wacc"</Command><BudgetSeconds>60</BudgetSeconds></Verification>
+    </T-004>
+  </ImplementationPlan>
+</C-WINDOWS-SAVE-PIPELINE></GraceChangePlan>

@@ -2917,7 +2917,8 @@
           scenario-10: BOM stripped before regex; payload with leading BOM still
           detected.
         </Scenario>
-      </Scenarios>
+      
+        <Scenario>C-WINDOWS-SAVE-PIPELINE scenario-win-sandbox (2026-11-01): cargo test m010_security 29/29 incl. the Windows fixture matrix (permissive root admits DOS absolutes, UNC↔DOS prefix equivalence, cross-drive denial at the compare layer, drive-root non-permissive, traversal above root); cargo test m001_save_close 16/16; polygon proof — real Ctrl+S on the rebuilt NSIS writes a scratch document under D:\polygon (mtime moves, content round-trips, isSaved true).</Scenario></Scenarios>
       <Markers>
         <Marker>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]</Marker>
         <Marker>[Security][shellOpen][BLOCK_CONFIRM_PROMPT]</Marker>
