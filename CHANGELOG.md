@@ -8,35 +8,49 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 ## [2.9.0] - 2026-11-01
 
-Export to Word, an undo for updates, one notification center, and files that remember where you were.
+Export to Word, an undo for updates, one notification center, and files that remember where you were — plus titlebar mode chips, GitHub themes, CommonMark-exact emphasis and lighter diagrams.
 
 ### Export to Word
-- File › Export to Word — also the tab context menu and the command palette — writes real `.docx` files: native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, footnotes and native OMML equations from KaTeX MathML. Figures rasterize at 2x and page geometry follows your remembered print options. Everything is generated inside the app.
+- File › Export to Word — also the tab context menu and the export command in the palette — writes real `.docx` files, generated entirely inside the app.
+- Documents export with native Word heading styles, tables that keep their per-column alignment, live hyperlinks, task checkboxes, real footnotes and native OMML equations from KaTeX MathML.
+- Figures rasterize at 2x for print quality, and page geometry follows your remembered print options. The Word library loads lazily in a tiny chunk, so startup pays nothing for it.
 
 ### Update safety
-- Every update now snapshots the running version and its settings before anything changes. Help › Roll Back to Mark… restores that snapshot in one step, and the version you left is skipped until something newer ships. If an update ever breaks startup, the same restore runs from the terminal before the interface boots (`mark --rollback`). A failed snapshot cancels the update outright, and the snapshot only counts as good after the new version actually starts.
+- Every update now snapshots the running version and its settings before anything changes; a failed snapshot cancels the update outright instead of proceeding unprotected.
+- Help › Roll Back to Mark… restores that snapshot in one step together with the settings it had before the update, and the version you left is not re-offered until something newer ships.
+- If an update ever breaks startup, the same restore runs from the terminal before the interface boots (`mark --rollback`, with `--yes` for scripts). On Windows the restore verifies the previous installer before running it.
+- The snapshot only counts as good after the new version actually starts — a version that never boots never becomes the point of no return.
 
 ### Notifications
-- One notification system replaces the old toast pile: every transient message is a severity-styled card in a single bottom-right stack — at most three visible with an overflow counter, sticky errors, hover-paused auto-dismiss, Esc closes the topmost, and selecting a card's text copies it. The command palette recovers everything shown during the session with full texts.
+- One notification system replaces the old toast pile: every transient message renders as a severity-styled card in a single bottom-right stack, themed with the active palette.
+- At most three cards are visible with a localized overflow counter, errors stay until dismissed, hovering pauses auto-dismiss, and Esc closes the topmost card.
+- Selecting text inside a card copies it, with a quiet confirmation pulse.
+- Everything shown during the session is recoverable: the command palette lists it with full texts and per-entry copy. The update banner and the per-file message strip join the same family.
 
 ### Reading position
-- Every file reopens exactly where you left it — scroll position and a mode-neutral caret — across tab close and reopen, app relaunches and file renames.
+- Every file reopens exactly where you left it — scroll position plus a mode-neutral caret — across tab close and reopen, app relaunch and file rename.
+- A caret moved only by arrow keys survives tab switching, so walking between tabs does not lose your editing spot.
 
 ### Titlebar and modes
-- Active mode chips sit in the titlebar and switch Diff, Split and Source directly; the two-group mode menu covers views and writing modes, and View › Standard View is the one-click full reset.
+- Active mode chips sit in the titlebar's right cluster and switch Diff, Split and Source directly, with tooltips, screen-reader labels and a narrow-window fallback.
+- The mode menu covers views and writing modes in two groups, and View › Standard View is the one-click full reset of everything at once.
 
 ### Themes
-- GitHub and GitHub Dark join the built-in themes — 17 pairs now — with Primer palettes and matching code highlighting, registered everywhere themes live and in all ten languages.
+- GitHub and GitHub Dark join as the 17th built-in pair — GitHub's Primer light and dark palettes with matching code-highlight companions — registered in the theme list, the View › Theme menu, the palette, Settings › Appearance and all ten languages.
 
 ### Markdown and diagrams
-- Emphasis now pairs `*` and `_` the way CommonMark specifies: nested `***bold italic***`, boundary runs and stray asterisks render exactly as on GitHub, in the editor and in exports.
-- The Pele diagram engine advances four minors to 1.10: labels gain sub/sup/code/kbd styling, long CJK labels wrap between characters instead of stretching diagrams, rendered SVG is always valid XML, and wrapped lines sit tighter.
+- Emphasis now pairs `*` and `_` the way CommonMark specifies: nested `***bold italic***`, boundary runs and stray asterisks render exactly as on GitHub, in the editor and in every export.
+- The Pele diagram engine advances four minors to 1.10: labels gain sub/sup/code/kbd styling, text that looks like `<T>` lists is no longer eaten by label parsing, long CJK labels wrap between characters instead of stretching diagrams, `%%` comments no longer swallow the preceding character, wrapped lines sit closer together, and every rendered diagram is valid XML — which the export paths rely on.
 
 ### Fixed
-- Cut and copy no longer die silently for the rest of a session after a stale table-cell or image selection; all four cut/copy entry points clear stale state first.
+- Cut and copy no longer die silently for the rest of a session after a stale table-cell or image selection (a tab switch or content load could leave one behind); all four cut/copy entry points clear stale state first, and live table selections behave exactly as before.
 
 ### Under the hood
-- Developer tools are off in every release build and opt-in only; while they are on, an orange DEV chevron marks the app icon so development builds are recognizable at a glance.
+- Developer tools are off in every release build and opt-in only (`--features devtools`); while they are on, an orange DEV chevron marks the app icon so development builds are recognizable at a glance.
+- The dependency stack modernized with fully green runs: Tauri 2.12 across cargo and npm (the updater now packs with zip 9), rand 0.10, TypeScript 7, vue-router 5, jsdom 30 and the routine patch/minor waves.
+- The Electron-era byte-compacted locale twins are gone — one full table per language, end to end, with an inverted directory guard in CI.
+- Large-document groundwork: a measurement corpus and behavioral oracles now run in CI, ahead of the upcoming rendering-performance work.
+- Release infrastructure: technical-debt fixes now travel on their own train, CI runs on current macOS images, and the commit gate reviews with a single local-first model pass.
 
 ## [2.8.2] - 2026-10-24
 
