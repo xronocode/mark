@@ -202,6 +202,24 @@
             "INTENTIONALLY UNVERIFIED: a hands-on View › Standard View check on a dispatch build — deferred to the train acceptance protocol (rule 5)."
           ]
         }
+      },
+      {
+        "id": "C-WINDOWS-MENU-ACCELERATORS",
+        "summary": "Windows/Linux menu accelerators rescued through a window-level renderer dispatcher: the C-15 T-W1 hidden menu bar never registered its accelerator table, so every app-level menu shortcut was dead on Windows (Ctrl+S left a dirty document unsaved; Ctrl+N and the view-mode chords were unreachable, leaving the titlebar mode chips with no way to appear). The audited 22 chords now dispatch to the same static command registry ids the native menu uses, off on darwin; the Windows acceptance 'FIX-2 mode chips' finding is reclassified as a measurement phantom, with the corrected probe recipe landed in the polygon protocol.",
+        "state": "queued",
+        "commits": [
+          "bc8ad8aef3e731660c11f320dc54c14c703f8536"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-01",
+          "testedArtifact": "Windows polygon: NSIS rebuilt from the branch (SHA-256 295CA9D6...7133), silently reinstalled; real SendInput hotkeys (cua delivery_mode foreground) drove the acceptance round.",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): vitest 4996/0 including the m009 parity cross-check; playwright windows-accelerators 4/4 on chromium; full PR #158 check run green.",
+            "LIVE: Ctrl+Alt+S engages Source Code Mode with the titlebar mode chip rendered (the C-TITLEBAR-MODE-CHIPS Windows acceptance effect); Ctrl+N opens a tab; every chord logs BLOCK_ACCELERATOR_FIRED; the darwin gate stays silent without the e2e seam.",
+            "INTENTIONALLY UNVERIFIED: nothing for this item — the Windows save-pipeline write gap found during the round is a separate finding (draft C-WINDOWS-SAVE-PIPELINE), not part of this change."
+          ]
+        }
       }
     ],
     "operational": [
