@@ -220,6 +220,24 @@
             "INTENTIONALLY UNVERIFIED: nothing for this item — the Windows save-pipeline write gap found during the round is a separate finding (draft C-WINDOWS-SAVE-PIPELINE), not part of this change."
           ]
         }
+      },
+      {
+        "id": "C-WINDOWS-SAVE-PIPELINE",
+        "summary": "Saving works on Windows: the sandbox prefix check in m010_security::check_path was Windows-blind — the permissive default sandbox \"/\" normalizes to a bare root no DOS path ever prefix-matches (every absolute write denied with MT_FS_PATH_DENIED), and a restored workspace added the \\\\?\\ UNC-form mismatch. A root-only sandbox is now permissive on every platform, both comparison sides strip the \\\\?\\ / \\\\?\\UNC\\ device prefixes, and the symlink step skips its prefix denial under the permissive root; every other denial keeps firing.",
+        "state": "queued",
+        "commits": [
+          "f7ffccd8e64d9967f547c95ce6fe4b209adb5938"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-01",
+          "testedArtifact": "Windows polygon: NSIS rebuilt from the branch (SHA-256 6840EA3D...F8149), silently reinstalled; real SendInput Ctrl+S wrote a scratch document under D:\\polygon.",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): cargo test m010_security 29/29 with the new Windows fixture matrix; cargo test m001_save_close 16/16; grace final --run-commands 2/2; full PR #162 check run green (governance with release:user-facing after the label-race reopen).",
+            "LIVE: scratch doc opened via the mt_open_file channel, dirtied through the editor; real Ctrl+S (cua hotkey foreground) — isSaved true, no notification, file mtime 01:02:13 -> 01:06:14, size 15 -> 44 bytes, probe text round-trips from disk.",
+            "INTENTIONALLY UNVERIFIED: nothing — the fix is platform-guard logic pinned by cross-host fixture tests; the owner workspace stayed read-only throughout."
+          ]
+        }
       }
     ],
     "operational": [
