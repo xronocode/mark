@@ -38,6 +38,10 @@ updates:
         update-types:
           - "minor"
     ignore:
+      # Pele is lockstep-managed (app + site ride one admitted minor
+      # per train item, e.g. DEPS-PELE-1-10); group bumps would break
+      # the lockstep.
+      - dependency-name: "pele"
       - dependency-name: "appium*"
         update-types:
           - "version-update:semver-major"
