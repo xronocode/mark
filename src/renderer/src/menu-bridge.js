@@ -18,7 +18,13 @@
 
 import staticCommands from './commands'
 
-const findCommandById = (commands, id, parent = null) => {
+// Exported for C-WINDOWS-MENU-ACCELERATORS (windowMenuAccelerators.js):
+// the same registry walk the mt::menu-invoked bridge uses, so the
+// accelerator dispatcher and the native menu execute identical commands.
+// findCommandInRegistry is the single-arg form the dispatcher calls.
+export const findCommandInRegistry = (id) => findCommandById(staticCommands, id)
+
+export const findCommandById = (commands, id, parent = null) => {
   for (const c of commands) {
     if (c?.id === id) return { command: c, parent }
     if (Array.isArray(c?.subcommands)) {
