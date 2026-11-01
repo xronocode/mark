@@ -4277,6 +4277,11 @@
         M-060 drives this engine through its real input pipeline and marked
         Lexer for evidence; Muya production code is not modified and M-060
         absorbs none of its product responsibility (V-M-060).
+        C-LARGE-DOC-WAVE-A (2026-11-02): the mount path of this engine is
+        extended by M-063 — the progressive mount subsystem mounts behind
+        the setMarkdown entry (progressive/ plus instance-scoped
+        StateRender region entries) with the legacy full mount kept as the
+        untouched default and the fail-safe fallback (V-M-063).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -8018,5 +8023,124 @@
         <C-TITLEBAR-MODE-CHIPS/>
       </ChangeRefs>
     </M-062>
+    <M-063>
+      <Name>progressive-mount</Name>
+      <DisplayName>Progressive mount subsystem (frozen-block regions)</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>implemented</Status>
+      <Layer>0</Layer>
+      <PhaseRef>C-LARGE-DOC-WAVE-A</PhaseRef>
+      <Summary>
+        C-LARGE-DOC-WAVE-A (2026-11-02): progressive mount subsystem for
+        large documents, owned by the muya mount entry region:
+        src/muya/lib/progressive/ (the region model — frozen regions split
+        at top-level block boundaries, oversized single blocks as guarded
+        units, a depth/traversal guard that flattens oversize subtrees;
+        the cooperative scheduler — requestIdleCallback where the engine
+        provides it, a MessageChannel yielding lane on WebKit, ~12 ms
+        slices under a 16 ms frame with a starvation-proof timeout lane;
+        the content-free marker names), the progressive entries in
+        src/muya/lib/index.js (progressiveMount, mountToBlockKey,
+        mountToOffset, cancelProgressive, the marker re-exports on muya's
+        public surface, pending-tail cancellation on content replacement
+        and destroy, served=legacy on plain legacy loads) and the
+        instance-scoped StateRender entries renderRegion/extendRegion in
+        src/muya/lib/parser/render/index.js (legacy render entries
+        untouched). The document still parses whole — every model-reading
+        consumer (save, serialization, word count, TOC, search) reads the
+        complete document from parse onward; only DOM mounting is
+        progressive: the first 100 blocks (about 11 ms at the 1 MB shape,
+        T-002-measured) mount synchronously to first visible content and
+        an input-ready editor, the tail mounts in bounded cooperative
+        slices, mounted regions are never re-mounted, and any chunking
+        failure, guard trip or mount error abandons the attempt and
+        completes the open through the legacy single-pass mount from the
+        CURRENT document model, so accepted edits survive the fallback.
+        The editor open orchestration seam (editor.vue progressive branch
+        for plain content loads, scroll prefetch ~3 viewports ahead of
+        the reading position, explicit-scroll gating while a tail is
+        pending, the reserved-space ag-tail-pending indication) and the
+        Experimental settings surface (prefComponents/tabs/experimental
+        toggle plus the per-session progressive-versus-fallback counter
+        over session-only store state in store/preferences.js — local,
+        default-off, session-latched, never persisted) complete the
+        subsystem. The default path is exactly today's legacy mount.
+        M-012 owns the engine whose mount path this module extends; M-060
+        is the harness that proves its budgets (V-M-063).
+      </Summary>
+      <PlannedPath>
+        src/muya/lib/progressive, src/muya/lib/index.js,
+        src/muya/lib/parser/render/index.js,
+        src/renderer/src/components/editorWithTabs/editor.vue,
+        src/renderer/src/prefComponents/tabs/experimental,
+        src/renderer/src/store/preferences.js, src/renderer/src/store/editor.js
+      </PlannedPath>
+      <Dependencies>
+        <M-012/>
+        <M-060/>
+      </Dependencies>
+      <VerificationRef>V-M-063</VerificationRef>
+      <Contract>
+        <Purpose>
+          Open large documents without one synchronous O(document) mount:
+          first visible content and input readiness come from mounting the
+          visible region synchronously, the tail lands in bounded
+          cooperative slices that never hold the main thread past the
+          contract's longest-task budget, the legacy single-pass mount
+          stays the exact default path and the bounded worst-case
+          fallback, and content-free markers tell consumers which path
+          served each open.
+        </Purpose>
+        <Inputs>
+          The parsed whole-document block tree from setMarkdown (the
+          parser is untouched); the session-only experimental toggle and
+          open-path events from the editor seam; scroll and viewport
+          signals for prefetch and on-demand region mounting.
+        </Inputs>
+        <Outputs>
+          Progressively mounted editable DOM (visible region synchronous,
+          tail incremental, frozen regions never re-mounted); the public
+          region API on muya (progressiveMount, mountToBlockKey,
+          mountToOffset, cancelProgressive); the content-free markers
+          BLOCK_MOUNT_SERVED / BLOCK_SYNC_REGION_DONE /
+          BLOCK_TAIL_MOUNT_DONE at the muya event seam; the per-session
+          served-opens counter.
+        </Outputs>
+        <Errors>
+          Any chunking failure, guard trip or unexpected mount error
+          abandons the progressive attempt, clears its partial state and
+          completes the open through the legacy single-pass mount from
+          the current document model (every accepted edit preserved);
+          BLOCK_MOUNT_SERVED records served=legacy on that fallback and
+          no reachable state leaves a blank or wedged editor behind a
+          silent fallback.
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-progressiveMount>parse whole, mount the visible region synchronously and the tail in bounded slices; never throws — any failure completes through the legacy mount</fn-progressiveMount>
+        <fn-mountToBlockKey>on-demand region mount for navigation into the not-yet-mounted tail (jump, search, TOC/link, prefetch anchor)</fn-mountToBlockKey>
+        <fn-mountToOffset>on-demand mount through a character offset so the destination is revealed mounted</fn-mountToOffset>
+        <fn-cancelProgressive>cancel a pending tail (setMarkdown content replacement, destroy)</fn-cancelProgressive>
+        <fn-renderRegion>instance-scoped StateRender entry mounting an arbitrary top-level block range into this instance's container</fn-renderRegion>
+        <fn-extendRegion>instance-scoped StateRender entry appending the next block range after the last mounted key</fn-extendRegion>
+      </Interface>
+      <Sources>
+        <Source>src/muya/lib/progressive/ (regions, scheduler, markers, index)</Source>
+        <Source>progressive entries and marker re-exports in src/muya/lib/index.js; instance-scoped renderRegion/extendRegion in src/muya/lib/parser/render/index.js</Source>
+        <Source>open-path progressive branch, scroll prefetch and ag-tail-pending indication in src/renderer/src/components/editorWithTabs/editor.vue</Source>
+        <Source>Experimental tab in src/renderer/src/prefComponents/tabs/experimental/; session-only state in src/renderer/src/store/preferences.js</Source>
+        <Tests>npx vitest run tests/renderer/perf</Tests>
+      </Sources>
+      <Observability>
+        Markers: BLOCK_MOUNT_SERVED (served=progressive|legacy, exactly
+        once per served open), BLOCK_SYNC_REGION_DONE (blocks),
+        BLOCK_TAIL_MOUNT_DONE (blocks, ms) — content-free, dispatched at
+        the muya event seam; the M-060 bench tail-mount phase and the
+        session served-opens counter consume them.
+      </Observability>
+      <ChangeRefs>
+        <C-LARGE-DOC-WAVE-A/>
+      </ChangeRefs>
+    </M-063>
   </GD-RUNTIME>
 </GraceGraphDocument>
