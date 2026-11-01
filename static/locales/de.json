@@ -1041,7 +1041,7 @@
   },
   "whatsNew": {
     "title": "Was ist neu",
-    "also": "Außerdem: jeder macOS-Druckaufruf wird jetzt gegen die echte System-API geprüft",
+    "also": "Neu auch: Modus-Chips mit Standard-Ansicht, GitHub-Themen, Akzent-Fixes, leichtere Diagramme, Ausschneiden repariert.",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1176,6 +1176,24 @@
       "pdfFix": {
         "title": "PDF-Export repariert",
         "text": "Der PDF-Export beendet die App nicht mehr und schreibt dein Dokument auf die Festplatte."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Export nach Word",
+        "text": "Datei › Als Word exportieren schreibt echte .docx mit Stilen, Tabellen, Formeln."
+      },
+      "rollback": {
+        "title": "Updates sind umkehrbar",
+        "text": "Jedes Update sichert die alte Version; Hilfe › Roll Back stellt sie wieder her."
+      },
+      "notices": {
+        "title": "Meldungen, neu gedacht",
+        "text": "Jede Meldung ist eine Karte mit Wichtigkeit; die Palette behält die Geschichte."
+      },
+      "position": {
+        "title": "Du öffnest, wo du warst",
+        "text": "Jede Datei merkt sich Scrollposition und Cursor über Sitzungen hinweg."
       }
     },
     "v2_8_2": {

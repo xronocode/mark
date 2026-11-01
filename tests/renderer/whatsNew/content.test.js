@@ -1,5 +1,5 @@
 // FILE: tests/renderer/whatsNew/content.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the What's New release content — exactly four ordered
 //            current release-draft items, every locale table (all 10)
@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-25 the footer link opens the release's website changelog section; every release date matches its CHANGELOG heading.
+//   LAST_CHANGE: v1.6.0 - 2026-11-01 release 2.9.0 draft: the four items are Word export, update rollback, the notification center and reading position memory; the draft pin keeps Word literal in every locale.
+//   PREV: v1.5.0 - 2026-10-25 the footer link opens the release's website changelog section; every release date matches its CHANGELOG heading.
 //   PREV: v1.4.0 - 2026-10-20 derive the current release identity from the newest sheet so normalization never rewrites historical test text.
 //   PREV: v1.3.0 - 2026-10-20 release 2.6.0 draft: pin the four
 //   accepted-train items, their ten-locale matrix, layout limits, stable
@@ -220,9 +221,9 @@ describe('whatsNew 2.5.3 sheet', () => {
 // END_BLOCK_CONTENT_2_5_3
 
 // START_BLOCK_CONTENT_2_5_4
-// Release 2.8.2 draft: the «See everything new» link opens the website
-// changelog — one item.
-const RELEASE_DRAFT_ITEM_KEYS = ['changelog']
+// Release 2.9.0 draft: Word export, update rollback, the rebuilt
+// notification center, reading position memory — four items.
+const RELEASE_DRAFT_ITEM_KEYS = ['word', 'rollback', 'notices', 'position']
 
 describe('current release-draft sheet', () => {
   it('ships the four accepted-train items in order with distinct one-char icons', () => {
@@ -248,7 +249,7 @@ describe('current release-draft sheet', () => {
         expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
       }
       expect(table.whatsNew.also.length, `${code}: also`).toBeLessThanOrEqual(120)
-      expect(section.changelog.text, `${code}: changelog names Mark`).toContain('Mark')
+      expect(section.word.text, `${code}: word names Word`).toContain('Word')
     }
   })
 

@@ -1052,7 +1052,7 @@
   },
   "whatsNew": {
     "title": "What's new",
-    "also": "Also: every macOS print call is now checked against the live system API",
+    "also": "Also new: mode chips with a one-click Standard view, GitHub themes, emphasis fixes, lighter diagrams, a cut/copy repair.",
     "seeEverything": "See everything new",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1187,6 +1187,24 @@
       "pdfFix": {
         "title": "PDF export fixed",
         "text": "Export to PDF no longer crashes the app and writes your document to disk."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Export to Word",
+        "text": "File › Export to Word writes real .docx files with styles, tables and equations."
+      },
+      "rollback": {
+        "title": "Updates can be undone",
+        "text": "Every update keeps a snapshot; Help › Roll Back restores it with your settings."
+      },
+      "notices": {
+        "title": "Notifications, rebuilt",
+        "text": "Every notice is a severity card in one corner stack; the palette keeps the history."
+      },
+      "position": {
+        "title": "You re-open where you left",
+        "text": "Every file remembers its scroll spot and caret across sessions and renames."
       }
     },
     "v2_8_2": {

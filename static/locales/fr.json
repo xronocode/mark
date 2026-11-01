@@ -1042,7 +1042,7 @@
   },
   "whatsNew": {
     "title": "Nouveautés",
-    "also": "Aussi : chaque appel d'impression macOS est désormais vérifié auprès de la vraie API système",
+    "also": "Aussi : puces de modes avec vue Standard, thèmes GitHub, emphase corrigée, diagrammes plus légers, couper réparé.",
     "seeEverything": "Voir toutes les nouveautés",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1177,6 +1177,24 @@
       "pdfFix": {
         "title": "Export PDF corrigé",
         "text": "L'export PDF ne quitte plus l'app et enregistre votre document sur le disque."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Export Word",
+        "text": "Fichier › Exporter en Word écrit de vrais .docx : styles, tableaux, équations."
+      },
+      "rollback": {
+        "title": "Mises à jour réversibles",
+        "text": "Chaque mise à jour garde un instantané ; Aide › Roll Back le restaure."
+      },
+      "notices": {
+        "title": "Notifications repensées",
+        "text": "Chaque avis devient une carte par gravité ; la palette garde l'historique."
+      },
+      "position": {
+        "title": "Vous rouvrez où vous étiez",
+        "text": "Chaque fichier retient défilement et curseur, même après renommage."
       }
     },
     "v2_8_2": {

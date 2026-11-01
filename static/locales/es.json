@@ -1041,7 +1041,7 @@
   },
   "whatsNew": {
     "title": "Novedades",
-    "also": "Además: cada llamada de impresión de macOS ahora se comprueba contra la API real del sistema",
+    "also": "También: chips de modos con vista Standard, temas GitHub, énfasis corregido, diagramas más ligeros, cortar reparado.",
     "seeEverything": "Ver todas las novedades",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1176,6 +1176,24 @@
       "pdfFix": {
         "title": "Exportación a PDF arreglada",
         "text": "Exportar a PDF ya no cierra la app y guarda tu documento en el disco."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Exportar a Word",
+        "text": "Archivo › Exportar a Word escribe .docx reales con estilos, tablas y ecuaciones."
+      },
+      "rollback": {
+        "title": "Las actualizaciones se deshacen",
+        "text": "Cada actualización guarda una copia; Ayuda › Roll Back la restaura."
+      },
+      "notices": {
+        "title": "Notificaciones renovadas",
+        "text": "Cada aviso es una tarjeta con severidad; la paleta guarda el historial."
+      },
+      "position": {
+        "title": "Vuelves donde estabas",
+        "text": "Cada archivo recuerda desplazamiento y cursor entre sesiones y renombres."
       }
     },
     "v2_8_2": {

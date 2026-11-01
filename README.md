@@ -38,6 +38,14 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
+## What's new in 2.9.0
+
+- **Export to Word.** File › Export to Word writes real `.docx` files — heading styles, tables, hyperlinks, footnotes and native equations — generated entirely inside the app.
+- **Updates can be undone.** Every update snapshots the version it replaces; Help › Roll Back to Mark… restores it with your settings in one step, and a broken update still restores from the terminal before the app boots.
+- **One message center.** Notices became severity-styled cards in a single stack, with a searchable session history in the command palette.
+- **You re-open where you left.** Every file remembers its scroll position and caret across sessions, reopens and renames.
+- **Sharper writing.** Titlebar mode chips with a one-click Standard view, GitHub themes, CommonMark-correct emphasis, lighter Pele diagrams, and a fix for cut/copy going silent.
+
 ## What's new in 2.8.2
 
 **See everything new, in one changelog.** The "See everything new" link in What's New opens the release's section of the [changelog](https://mark.xronocode.com/changelog) on the Mark website, which now lists every release again.
@@ -46,14 +54,7 @@ The App Store build and the Homebrew/download build are the same editor with a f
 
 - **Fixed PDF export on macOS** — exporting to PDF no longer crashes the app (a day-one bug in the print call) and writes your document to disk; a new automated audit now checks every macOS print call against the live system APIs.
 
-## What's new in 2.8.0
-
-- **Several folders, one window.** ⇧⌘O adds a folder beside the ones already open; **File › Replace Workspace…** swaps them, asking about unsaved tabs first. Tabs with the same name carry their folder as a dimmed suffix.
-- **Cloud folders as roots.** iCloud Drive and OneDrive folders open in the sidebar by their real names; a once-per-folder note explains that online-only files appear after download, and drive-sized folders stream in without freezing the window.
-- **Search you can trust.** Folder search marks each hit with its folder, keeps every result while you type, and counts read correctly in all ten languages.
-- **⌘Q asks before quitting.** Unsaved edits get Save & Quit or Don't Save — nothing disappears silently anymore.
-
-The 2.7.0 highlights — honest sessions, self-contained HTML export, the native Windows title bar — are in [CHANGELOG.md](CHANGELOG.md).
+Earlier releases — several folders in one window, cloud roots, honest sessions, self-contained HTML export — are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Why Mark
 

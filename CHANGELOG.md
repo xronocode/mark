@@ -6,6 +6,38 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 <!-- #region releases -->
 
+## [2.9.0] - 2026-11-01
+
+Export to Word, an undo for updates, one notification center, and files that remember where you were.
+
+### Export to Word
+- File › Export to Word — also the tab context menu and the command palette — writes real `.docx` files: native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, footnotes and native OMML equations from KaTeX MathML. Figures rasterize at 2x and page geometry follows your remembered print options. Everything is generated inside the app.
+
+### Update safety
+- Every update now snapshots the running version and its settings before anything changes. Help › Roll Back to Mark… restores that snapshot in one step, and the version you left is skipped until something newer ships. If an update ever breaks startup, the same restore runs from the terminal before the interface boots (`mark --rollback`). A failed snapshot cancels the update outright, and the snapshot only counts as good after the new version actually starts.
+
+### Notifications
+- One notification system replaces the old toast pile: every transient message is a severity-styled card in a single bottom-right stack — at most three visible with an overflow counter, sticky errors, hover-paused auto-dismiss, Esc closes the topmost, and selecting a card's text copies it. The command palette recovers everything shown during the session with full texts.
+
+### Reading position
+- Every file reopens exactly where you left it — scroll position and a mode-neutral caret — across tab close and reopen, app relaunches and file renames.
+
+### Titlebar and modes
+- Active mode chips sit in the titlebar and switch Diff, Split and Source directly; the two-group mode menu covers views and writing modes, and View › Standard View is the one-click full reset.
+
+### Themes
+- GitHub and GitHub Dark join the built-in themes — 17 pairs now — with Primer palettes and matching code highlighting, registered everywhere themes live and in all ten languages.
+
+### Markdown and diagrams
+- Emphasis now pairs `*` and `_` the way CommonMark specifies: nested `***bold italic***`, boundary runs and stray asterisks render exactly as on GitHub, in the editor and in exports.
+- The Pele diagram engine advances four minors to 1.10: labels gain sub/sup/code/kbd styling, long CJK labels wrap between characters instead of stretching diagrams, rendered SVG is always valid XML, and wrapped lines sit tighter.
+
+### Fixed
+- Cut and copy no longer die silently for the rest of a session after a stale table-cell or image selection; all four cut/copy entry points clear stale state first.
+
+### Under the hood
+- Developer tools are off in every release build and opt-in only; while they are on, an orange DEV chevron marks the app icon so development builds are recognizable at a glance.
+
 ## [2.8.2] - 2026-10-24
 
 The "See everything new" link in What's New now opens this changelog.

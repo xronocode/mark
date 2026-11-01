@@ -1040,7 +1040,7 @@
   },
   "whatsNew": {
     "title": "新內容",
-    "also": "另外：macOS 的每個列印呼叫現在都會對照真實系統 API 校驗",
+    "also": "另有：模式晶片與一鍵 Standard 檢視、GitHub 主題、強調修復、更輕的圖表、剪下修復。",
     "seeEverything": "查看全部新功能",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1175,6 +1175,24 @@
       "pdfFix": {
         "title": "修復 PDF 匯出",
         "text": "匯出 PDF 不再導致應用程式結束，文件會正常寫入磁碟。"
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "匯出 Word",
+        "text": "檔案 › 匯出 Word 產生真正的 .docx，含樣式、表格與公式。"
+      },
+      "rollback": {
+        "title": "更新可復原",
+        "text": "每次更新先留快照；說明 › Roll Back 連同設定一鍵還原。"
+      },
+      "notices": {
+        "title": "通知煥然一新",
+        "text": "每則通知都是帶層級的卡片；命令面板保留完整歷史。"
+      },
+      "position": {
+        "title": "回到上次位置",
+        "text": "每個檔案記住捲動位置與游標，重新命名後依然保留。"
       }
     },
     "v2_8_2": {
