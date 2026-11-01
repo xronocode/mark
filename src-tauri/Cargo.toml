@@ -39,7 +39,7 @@ chardet = "0.2"
 encoding_rs = "0.8"
 clap = { version = "4", features = ["derive"] }
 font-kit = "0.14"
-keyring = "3"
+keyring = "4"
 tauri-plugin-updater = "2"  # non-optional: capabilities/default.json references updater:default, and tauri-build fails without the plugin in the tree even when the app-store cfg never registers it
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-dialog = "2"
