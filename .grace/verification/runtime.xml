@@ -12986,6 +12986,20 @@
         <Marker>[DevBadge][apply][BLOCK_DEV_BADGE_DOCK_FAILED reason=…]</Marker>
       </Markers>
     </V-M-069>
+    <V-M-070>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/services/windowMenuAccelerators.test.js</Command>
+        <Command>npx playwright test tests/e2e/windows-accelerators.spec.ts --project=chromium</Command>
+        <Command>Windows polygon: cua hotkey delivery_mode=foreground — Ctrl+Alt+S engages source mode with the mode chip rendered; Ctrl+S writes a dirty scratch doc (mtime moves); Ctrl+N opens a tab</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (parity): the table equals the win-relevant m009_menu.rs accelerators minus the documented exclusions (zoom trio alive in app.vue; fullscreen collapses into Ctrl+F), every commandId resolves through the registry, and drift in either direction fails the m009 cross-check.</Scenario>
+        <Scenario>scenario-2 (guards): physical-code matching works on non-Latin layouts, mac meta chords/IME composition/auto-repeat never match, Ctrl+A carves out non-editor input surfaces while serving the editor, and unmatched chords pass through.</Scenario>
+        <Scenario>scenario-3 (e2e): real key presses on the forced dispatcher — Ctrl+Alt+S turns sourceCode on and renders the mode chip, Ctrl+S dispatches file.save, Ctrl+W closes the focused tab; without the seam a darwin-built app stays silent.</Scenario>
+        <Scenario>scenario-4 (polygon): real SendInput chords on the rebuilt NSIS engage the modes with chips rendered and save a dirty document — the acceptance effect for C-TITLEBAR-MODE-CHIPS on Windows.</Scenario>
+      </Scenarios>
+    </V-M-070>
     <V-M-059>
       <Priority>high</Priority>
       <Commands>

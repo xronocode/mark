@@ -7800,6 +7800,59 @@
         <Tests>cd src-tauri &amp;&amp; cargo test m069_dev_badge</Tests>
       </Sources>
     </M-069>
+    <M-070>
+      <Name>WindowMenuAccelerators</Name>
+      <DisplayName>Window-level menu-accelerator dispatcher (Windows/Linux rescue)</DisplayName>
+      <Type>UTILITY</Type>
+      <Status>implemented</Status>
+      <Layer>2</Layer>
+      <PhaseRef>C-WINDOWS-MENU-ACCELERATORS</PhaseRef>
+      <Summary>
+        C-WINDOWS-MENU-ACCELERATORS (2026-11-01): on Windows/Linux the
+        C-15 T-W1 hidden menu bar leaves the accelerator table
+        unregistered — real SendInput on the polygon proved the whole
+        app-level surface dead (Ctrl+Alt+S, Ctrl+Alt+\, Ctrl+D, Ctrl+N
+        and Ctrl+S with a dirty document left unsaved). This module
+        rescues the audited 22 chords through one window-level capture
+        keydown dispatcher mapping physical-code chords to the SAME
+        static command registry ids the native menu dispatches
+        (menu-bridge findCommandInRegistry). Inactive on darwin (the
+        native menu owns the chords); chords already alive in the
+        renderer (zoom trio in app.vue, Ctrl+\ sidebar in editor.vue)
+        stay with their owners and are absent from the table. The e2e
+        seam window.__FORCE_WINDOW_ACCELERATORS forces the dispatcher on
+        darwin-built preview apps.
+      </Summary>
+      <Contract>
+        <Inputs>
+          <Input>
+            <Name>window keydown events</Name>
+            <Type>KeyboardEvent (capture, window level, non-darwin platform)</Type>
+          </Input>
+        </Inputs>
+        <Outputs>
+          <Output>
+            <Name>registry command executions</Name>
+            <Type>staticCommands execute()/executeSubcommand() — identical to the mt::menu-invoked bridge path, BLOCK_ACCELERATOR_FIRED marker</Type>
+          </Output>
+        </Outputs>
+        <Errors>
+          <Error>unmatched or carved-out chord passes through untouched; unknown command id or failed execute logs a warn/error marker and never throws out of the listener</Error>
+        </Errors>
+      </Contract>
+      <Interface>
+        <const-WINDOW_MENU_ACCELERATORS>frozen 22-entry chord table (accelerator → commandId)</const-WINDOW_MENU_ACCELERATORS>
+        <fn-matchAccelerator>KeyboardEvent → table entry or null (physical event.code, IME/repeat guards, Ctrl+A input-surface carve-out)</fn-matchAccelerator>
+        <fn-resolveEnabled>runtime platform gate: darwin off, force seam honored</fn-resolveEnabled>
+        <fn-installWindowMenuAccelerators>window capture listener + disposer (no-op on darwin)</fn-installWindowMenuAccelerators>
+      </Interface>
+      <Sources>
+        <Source>src/renderer/src/services/windowMenuAccelerators.js</Source>
+        <Source>wired in src/renderer/src/pages/app.vue beside the zoom/palette capture handlers</Source>
+        <Tests>npx vitest run tests/renderer/services/windowMenuAccelerators.test.js</Tests>
+      </Sources>
+      <VerificationRef>V-M-070</VerificationRef>
+    </M-070>
     <M-059>
       <Name>ClipboardPaths</Name>
       <DisplayName>System clipboard file-path reader</DisplayName>
