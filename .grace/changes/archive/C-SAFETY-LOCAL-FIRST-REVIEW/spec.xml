@@ -1,0 +1,86 @@
+<GraceChangeSpec graceVersion='4.0' status='applied'>
+<C-SAFETY-LOCAL-FIRST-REVIEW>
+  <Name>Local-first single-pass model review: the non-local host becomes an optional offload executor, never a commit dependency</Name>
+  <ApprovalBasis>Owner instruction 2026-10-31 (translated from Russian): «секьюрити гейт про проверку лкальными ллм надо переделать, ремоут не обязателен это офлоад опция! кроме конечно случая когда нужна конкретно виндовс машина для теста вин версии, например» — the security gate must be reworked to review with local LLMs; the remote host is not required, it is an offload option; the Windows machine is needed only when the task specifically requires it, for example to test the Windows build. The owner then chose in the interactive decision menu (2026-10-31): (1) kari's role = offload executor — local by default, review passes move to kari only while it is powered on and healthy, a powered-off kari never blocks a commit or push; (2) pass policy — «Задача получить чистый ревью от локальной модели, если он чисты то все, если нет, то нужен еще один, пока не будет чистым»: the goal is one clean review from the local model; a clean verdict completes the phase, an unclean one means fix the candidate and review again until clean. This supersedes the 2026-10-27 owner choice recorded in C-SAFETY-GATE-MODEL-REVIEW that both reviewers must always pass and the gate must fail closed while the non-local host is asleep. Spec approval 2026-10-31: after the full design summary was presented with an explicit approve-or-change ask, the owner replied «дальше?» — go ahead; the draft was presented in full before this approval.</ApprovalBasis>
+  <Created>2026-10-31</Created>
+  <Priority>high</Priority>
+  <Status>applied</Status>
+  <RoadmapPhase>N</RoadmapPhase>
+  <Complexity>S–M (≈0.5 day)</Complexity>
+
+  <Summary>
+    tools/security_gate.py 2.2.0 requires a second, non-local reviewer for every commit and push: two serial owner-local passes plus one mandatory independent non-local pass per chunk, a missing nonLocal configuration is a hard configuration error, and an unreachable non-local host fails the whole operation closed (documented as "wake the non-local host's Ollama service before a commit or push; the gate fails closed while it is asleep"). On the night of 2026-10-30/31 a powered-off kari blocked a fully-gated stage commit with «Cannot prove exclusive ownership of the non-local review model slot», leaving the commit waiting for the Windows box or an explicit override. This change makes the model review local-first and single-pass: exactly one model pass per chunk of the exact candidate, executed on the owner-local reviewer by default; when the optional offload endpoint (reviewers.json nonLocal / MARK_SAFETY_REMOTE_*) is configured and passes a short bounded health probe, the same single pass executes there and the Mac's GPU slot stays free; any unconfigured, unreachable, half-dead or busy offload host silently falls back to local execution and never blocks the operation. A failing verdict keeps the gate fail-closed exactly as today: fix the candidate and review the new identity until the verdict is clean. Deterministic checks, Gitleaks, candidate identity recheck, per-lane locks, private receipts and the human override keep their semantics.
+  </Summary>
+
+  <Problem>
+    <Description>(1) Availability coupling: the commit pipeline of a macOS-first repository depends on the power state of a Windows QA polygon; kari off means no commit and no push without MARK_SAFETY_OVERRIDE, and the override path exists exactly to paper over this coupling (override receipts cite "non-local reviewer offline"). (2) Pass policy drift: the owner's 2026-10-31 policy is one clean review from the local model — clean is sufficient, unclean means fix and review again — while the gate always pays two serial local passes plus one non-local pass per chunk on every candidate. (3) Documentation drift: docs/commit-push-safety.md states the second local pass "was retired as duplicative" (a line that arrived via the unrelated titlebar PR #113, commit 1d8e67fb) while the code and tests enforce local(2)+non-local(1); the doc, the code and the tests tell three different stories about how many reviews run.</Description>
+    <RootCauseTimestamp>2026-10-30/31 night: [RepositorySafety][scan][BLOCK_SAFETY_SCAN_STOP] Cannot prove exclusive ownership of the non-local review model slot — a fully-gated stage commit in an owner-local worktree left waiting for kari or an owner-approved MARK_SAFETY_OVERRIDE; kari powered off, "cannot be started from here" per protocol.</RootCauseTimestamp>
+  </Problem>
+
+  <Goals>
+    <R-1>Single-pass review: exactly one model pass per chunk of the exact candidate; a passing verdict on every chunk completes the model phase. The two serial local phases (LOCAL_PHASES / START_BLOCK_LOCAL_REVIEW) and the mandatory independent non-local pass (START_BLOCK_NON_LOCAL_REVIEW as a required second reviewer) are removed from the review flow.</R-1>
+    <R-2>Local-first executor: the local reviewer (loopback endpoint, gpuCheck preflight, exclusive one-loaded-model proof via /api/ps) is the default and is always sufficient. A missing nonLocal configuration is no longer an error.</R-2>
+    <R-3>Offload when healthy: a configured offload endpoint that answers a bounded health probe (reachable, not redirecting, empty slot or the expected model loaded) executes all passes of that review on the offload host under the offload lane; the Mac loads no model and runs no local gpuCheck for that review. The power state of the offload host is the owner's offload switch.</R-3>
+    <R-4>Fail-closed verdict semantics unchanged: any failing or malformed verdict blocks the operation; identical candidate bytes are never re-rolled for a better verdict (temperature 0); the fix-and-review-again cycle enters review with a new candidate identity. MARK_SAFETY_OVERRIDE keeps skipping only the model phase after the deterministic checks pass.</R-4>
+    <R-5>Address safety unchanged: candidate bytes may only go to loopback, RFC 1918, CGNAT 100.64/10, .local or *.ts.net endpoints; redirects are rejected. A configured offload endpoint that fails this validation is a deterministic configuration error raised before any request carries candidate bytes — fallback must not silently accept an unsafe endpoint.</R-5>
+    <R-6>Lanes, receipts, markers: a review acquires only the lane of its resolved executor (existing inference-local.lock / inference-non-local.lock filenames, now "the executor's lane"); the private receipt records the single executed reviewer (label, model, one pass per chunk) and offload availability; the console PASS marker reflects the new check set; per-chunk evidence stays candidate-scoped and atomic.</R-6>
+    <R-7>Docs, graph and verification: docs/commit-push-safety.md is rewritten for local-first single-pass review with the optional offload (the "wake the non-local host … fails closed while it is asleep" requirement and the stale "second local pass retired" line are removed; the config example keeps both keys with offload semantics; the Windows-machine testing role stays outside the gate); M-064 and V-M-064 describe the new behavior.</R-7>
+  </Goals>
+
+  <Phases>
+    <P1><Title>Gate rework: executor resolution, single-pass review, lanes, receipts, markers (tools/security_gate.py)</Title><Complexity>S–M</Complexity></P1>
+    <P2><Title>Test matrix, docs rewrite, M-064/V-M-064 deltas</Title><Complexity>S</Complexity></P2>
+  </Phases>
+
+  <Dependencies>The two-reviewer gate 2.2.0 (ff9ff6e1, C-SAFETY-REVIEW-LANES) is on main; its reviewer configuration file shape (reviewers.json local/nonLocal), environment variable names, chunking, verdict validation and override machinery are reused unchanged in name. Gitleaks is installed for the scan lane. The offload host runs Ollama with the same /api/ps semantics (empty slot or single loaded model).</Dependencies>
+
+  <Constraints>
+    <Constraint>The gate may not send candidate bytes to a public address; offload endpoint validation and the NoRedirect behaviour stay authoritative before inference.</Constraint>
+    <Constraint>The offload health probe is bounded (on the order of 3 seconds): a probe failure, timeout, connection refusal, wrong loaded model or DNS failure is a local-execution fallback, never an operation error.</Constraint>
+    <Constraint>A failing verdict is never retried on identical candidate bytes; only a new candidate identity re-enters review.</Constraint>
+    <Constraint>Deterministic exposure checks, Gitleaks, lane separation, the candidate identity recheck, private owner-only receipts and the explicit human override remain mandatory with unchanged scope.</Constraint>
+    <Constraint>Local execution keeps the exclusive one-loaded-model proof (gpuCheck + /api/ps); no local gpuCheck runs when the resolved executor is the offload host.</Constraint>
+    <Constraint>No new environment variables or configuration keys; MARK_SAFETY_LOCAL_*/MARK_SAFETY_REMOTE_* and reviewers.json keep their names, with nonLocal reinterpreted as the optional offload target.</Constraint>
+    <Constraint>Lock files keep their existing names and 0600 mode; a review holds exactly one executor lane plus the short candidate lane, never both executor lanes.</Constraint>
+  </Constraints>
+
+  <NonGoals>
+    <NonGoal>Waking, restarting or auto-starting the offload host from the gate (no Wake-on-LAN, no Tailscale autostart, no remote service control; starting Tailscale for kari remains an operator/agent-protocol action outside the gate).</NonGoal>
+    <NonGoal>Changing the deterministic checks, Gitleaks integration, prompts, chunk size, verdict schema, output budget or override semantics.</NonGoal>
+    <NonGoal>Changing push lanes, history-rewrite, PR-rebase or screenshot binary policy.</NonGoal>
+    <NonGoal>Removing offload support or weakening its private-network address restrictions.</NonGoal>
+    <NonGoal>Moving or changing Windows-version testing; kari's QA-polygon role is entirely outside this gate.</NonGoal>
+    <NonGoal>Introducing bigger or additional reviewer models, or multi-pass structures beyond the single pass.</NonGoal>
+  </NonGoals>
+
+  <AcceptanceCriteria>
+    <Criterion>With reviewers.json absent or containing only the local entry, and the local slot holding the expected model, review-staged completes with exactly one model pass per chunk; the receipt lists one executed reviewer (local) with one pass per chunk, checks ["static-exposure", "gitleaks", "model-review", "candidate-identity"], and the PASS marker prints the executed reviewer with checks=4; no offload lane is acquired.</Criterion>
+    <Criterion>With a healthy offload endpoint configured, every chunk pass is served by the offload endpoint under the offload lane; the Mac makes no local /api/ps ownership call and runs no local gpuCheck for that review; the receipt names the offload reviewer.</Criterion>
+    <Criterion>With an offload endpoint configured but unreachable, timing out or busy with a different model, review completes locally with exit success and the receipt records that the offload was unavailable; no error is raised for the offload host's state.</Criterion>
+    <Criterion>With an offload endpoint that resolves to a public address or redirects, the gate fails closed with a configuration error before any request carries candidate bytes.</Criterion>
+    <Criterion>A failing or malformed verdict on any chunk fails the operation closed with the existing finding diagnostics; MARK_SAFETY_OVERRIDE skips only the model phase and writes the identity-bound receipt unchanged.</Criterion>
+    <Criterion>A review acquires only its resolved executor's lane: a local-executor review proceeds while another operation holds the offload lane and vice versa; per-chunk evidence remains per-candidate and atomic.</Criterion>
+    <Criterion>npm run safety:test passes with the new resolution-matrix, single-pass, receipt-shape and lane cases replacing the two-reviewer cases; grace lint --path . --assertions current reports zero errors; docs/commit-push-safety.md, M-064 and V-M-064 describe local-first single-pass review with the optional offload and contain no "must wake the non-local host" requirement.</Criterion>
+  </AcceptanceCriteria>
+
+  <VerificationIntent>
+    <ExpectedCommand>npm run safety:test &amp;&amp; grace lint --path . --change C-SAFETY-LOCAL-FIRST-REVIEW --assertions target</ExpectedCommand>
+    <ExpectedEvidence>python3 -m unittest discover -s tests/security -p 'test_*.py' green, including: offload unconfigured → local single pass; offload healthy → passes executed on the offload endpoint with no local ownership call; offload unreachable/busy → local fallback with receipt note; offload public/redirect → deterministic configuration error; fail verdict → closed operation; override receipt unchanged; lane behavior per resolved executor. Live smoke on a real staged candidate with kari off (local completion, offload-unavailable note in the private receipt) and, when the owner powers kari on, the same candidate re-review executing on kari while the Mac's ollama ps stays empty. A repo grep for consumers of BLOCK_SAFETY_SCAN_PASS, checks=5 and "non-local-model-review" confirms every consumer (scripts, docs, ledgers referencing current behavior) was updated or is historical-frozen material.</ExpectedEvidence>
+  </VerificationIntent>
+
+  <AffectedAreas>
+    <Area>tools/security_gate.py</Area>
+    <Area>tests/security/test_security_gate.py</Area>
+    <Area>docs/commit-push-safety.md</Area>
+    <Area>.grace/graph/features.xml (M-064)</Area>
+    <Area>.grace/verification/features.xml (V-M-064)</Area>
+    <Area>.grace/changes/active/C-SAFETY-LOCAL-FIRST-REVIEW/**</Area>
+  </AffectedAreas>
+
+  <Assumptions>
+    <Assumption>Ollama /api/ps semantics (empty models list = idle slot; exactly the expected model = owned slot) remain the health and ownership signal on both hosts.</Assumption>
+    <Assumption>The owner powers the offload host on when offload is wanted; the gate treats power state as the offload switch and adds no wake mechanism.</Assumption>
+    <Assumption>Private receipts and console markers are not a stable external API; their schema may change in this change without migration, and the repo grep in the verification intent proves no automation depends on the old marker shape.</Assumption>
+  </Assumptions>
+</C-SAFETY-LOCAL-FIRST-REVIEW>
+</GraceChangeSpec>

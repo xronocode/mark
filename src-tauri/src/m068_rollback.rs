@@ -40,6 +40,9 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-10-28 C-UPDATER-ROLLBACK T-001/T-003/T-004: initial module.
+//   - 2026-10-31 td-1: silence the cfg-asymmetric `relaunch` parameter
+//     (its only use sits in the macOS restore path) for non-macOS
+//     clippy runs.
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -561,8 +564,9 @@ pub fn restore_inner(
     relaunch: Option<&dyn Fn() -> Result<(), String>>,
     dry_paths: bool,
 ) -> Result<RestoreOutcome, (i32, String)> {
-    // Silence cfg-asymmetric params (fetch/spawn are Windows-only).
-    let _ = (fetch, spawn_installer);
+    // Silence cfg-asymmetric params (fetch/spawn are Windows-only,
+    // relaunch is macOS-only).
+    let _ = (fetch, spawn_installer, relaunch);
     let root = match root_override {
         Some(p) => p.to_path_buf(),
         None => match rollback_root() {

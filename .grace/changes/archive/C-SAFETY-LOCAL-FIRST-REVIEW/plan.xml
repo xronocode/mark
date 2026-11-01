@@ -1,0 +1,99 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved 2026-10-31: the full plan was summarized in chat with an approve-and-do ask; the owner's standing continuation reply «дальше?» covers «план и реализация» as presented, and the follow-up approval menu was closed without an answer (standing rule: closing is not a rejection). Applied the same day after final assertions and command evidence passed; owner confirmed apply in chat with «применяй». --><C-SAFETY-LOCAL-FIRST-REVIEW>
+  <Name>Local-first single-pass model review with optional offload — implementation plan</Name><Created>2026-10-31</Created><Spec>C-SAFETY-LOCAL-FIRST-REVIEW</Spec>
+  <IntentSummary>
+    Replace the mandatory two-reviewer flow (two serial local passes plus one required non-local pass per chunk) with a single model pass per chunk executed local-first: the gate resolves one executor per review — the optional offload endpoint when it is configured and passes a bounded health probe, otherwise the owner-local reviewer — and never fails an operation because the offload host is absent, off, busy or unconfigured. Keep every fail-closed property that is not the offload host's availability: verdict pass required on every chunk, no verdict re-rolls on identical bytes, private-network endpoint validation before any bytes leave, per-executor lane locks, candidate identity recheck, private receipts and the explicit human override. Synchronize docs/commit-push-safety.md (drop the "wake the non-local host" mandate and the stale "second local pass retired" line), M-064 and V-M-064, and update every consumer of the old marker shape.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>tools/security_gate.py</Value></MustExist>
+    <MustExist><Value>tests/security/test_security_gate.py</Value></MustExist>
+    <MustContain><File>tools/security_gate.py</File><Text>Non-local reviewer is not configured</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>LOCAL_PHASES = </Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>Incomplete non-local review</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>reviewers=local(2),non-local(1)</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_review_runs_two_local_passes_and_one_non_local_pass</Text></MustContain>
+    <MustContain><File>docs/commit-push-safety.md</File><Text>gate fails closed while it is asleep</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain><File>tools/security_gate.py</File><Text>def resolve_review_executor(</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>OFFLOAD_PROBE_TIMEOUT</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>"label": "offload"</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>"model-review"</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>checks=4</Text></MustContain>
+    <MustContain><File>tools/security_gate.py</File><Text>"unavailable"</Text></MustContain>
+    <MustNotContain><File>tools/security_gate.py</File><Text>Non-local reviewer is not configured</Text></MustNotContain>
+    <MustNotContain><File>tools/security_gate.py</File><Text>LOCAL_PHASES = </Text></MustNotContain>
+    <MustNotContain><File>tools/security_gate.py</File><Text>NON_LOCAL_PHASE = </Text></MustNotContain>
+    <MustNotContain><File>tools/security_gate.py</File><Text>Incomplete non-local review</Text></MustNotContain>
+    <MustNotContain><File>tools/security_gate.py</File><Text>reviewers=local(2),non-local(1)</Text></MustNotContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_offload_unconfigured_runs_locally</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_offload_healthy_executes_on_offload</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_offload_unreachable_falls_back_locally</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_offload_public_endpoint_fails_closed</Text></MustContain>
+    <MustContain><File>tests/security/test_security_gate.py</File><Text>test_review_uses_only_resolved_executor_lane</Text></MustContain>
+    <MustNotContain><File>tests/security/test_security_gate.py</File><Text>test_review_runs_two_local_passes_and_one_non_local_pass</Text></MustNotContain>
+    <MustContain><File>docs/commit-push-safety.md</File><Text>optional offload</Text></MustContain>
+    <MustNotContain><File>docs/commit-push-safety.md</File><Text>gate fails closed while it is asleep</Text></MustNotContain>
+    <MustNotContain><File>docs/commit-push-safety.md</File><Text>second local pass was retired</Text></MustNotContain>
+    <MustContain><File>.grace/verification/features.xml</File><Text>offload</Text></MustContain>
+    <MustPassCommand><Command>npm run safety:test</Command></MustPassCommand>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-064/></GraphAnchors><VerificationAnchors><V-M-064/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>tools/security_gate.py</File>
+    <File>tests/security/test_security_gate.py</File>
+    <File>docs/commit-push-safety.md</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <File>.grace/changes/active/C-SAFETY-LOCAL-FIRST-REVIEW/spec.xml</File>
+    <File>.grace/changes/active/C-SAFETY-LOCAL-FIRST-REVIEW/plan.xml</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Single-pass local-first review flow in tools/security_gate.py: executor resolution, per-executor lane, receipt and marker</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>reviewer_config no longer raises when the nonLocal entry is absent; a configured offload endpoint still goes through validate_reviewer_endpoint with the unchanged private-network address classes, and a public or redirecting endpoint is a deterministic configuration error raised before any request carries candidate bytes.</Criterion>
+        <Criterion>resolve_review_executor(private, reviewers) picks the executor once per review: it probes the offload endpoint's /api/ps with OFFLOAD_PROBE_TIMEOUT (on the order of 3 seconds, NoRedirect opener, no proxy); reachable with an empty slot or exactly the expected model → the offload reviewer with label "offload"; unconfigured, unreachable, timing out, or loaded with a different model → the local reviewer, with the offload state recorded for the receipt ("used", "unavailable" or "unconfigured"). A probe failure is never an operation error.</Criterion>
+        <Criterion>The model phase runs exactly one pass per chunk on the resolved executor: LOCAL_PHASES, NON_LOCAL_PHASE and the two-reviewer orchestration are gone; per-chunk evidence stays candidate-scoped and atomic; the existing chunking, prompt, verdict validation, output budget and review_view semantics are unchanged.</Criterion>
+        <Criterion>review() acquires only the resolved executor's lane (inference-local.lock or inference-non-local.lock) around the model phase plus the short candidate lane around snapshot/scan and the final identity check; no review holds both executor lanes. Local execution keeps gpuCheck plus the exclusive /api/ps one-loaded-model proof; offload execution proves ownership on the offload host and runs no local gpuCheck.</Criterion>
+        <Criterion>Any failing or malformed verdict still fails the operation closed; identical candidate bytes are never re-rolled; MARK_SAFETY_OVERRIDE still skips only the model phase after the deterministic checks pass, with the identity-bound receipt unchanged.</Criterion>
+        <Criterion>The receipt lists the single executed reviewer (label, model, one pass per chunk), an offload availability field, and checks ["static-exposure", "gitleaks", "model-review", "candidate-identity"]; the PASS marker prints the executed reviewer with checks=4; MODULE_CONTRACT, MODULE_MAP and CHANGE_SUMMARY advance to 2.3.0 with C-SAFETY-LOCAL-FIRST-REVIEW.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm run safety:test</Command><BudgetSeconds>120</BudgetSeconds></Verification>
+    </T-001>
+    <T-002>
+      <Title>Regressions: executor resolution matrix, single-pass flow, receipt shape, per-executor lanes</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>test_offload_unconfigured_runs_locally: with only the local reviewer configured, review completes with one model pass per chunk, a receipt listing the local reviewer with the model-review check set, the checks=4 marker, and no offload lane acquired.</Criterion>
+        <Criterion>test_offload_healthy_executes_on_offload: with a mocked healthy offload /api/ps, every chunk pass is requested from the offload endpoint under the offload lane while the local reviewer receives no ownership call and no gpuCheck runs locally; the receipt names the offload reviewer.</Criterion>
+        <Criterion>test_offload_unreachable_falls_back_locally: a probing error, timeout or wrong-model slot selects the local executor, the operation succeeds, and the receipt records the offload as unavailable; no exception escapes for the offload host's state.</Criterion>
+        <Criterion>test_offload_public_endpoint_fails_closed: a configured offload endpoint that resolves to a public address or redirects raises the configuration error before any inference request, proving fallback never bypasses address safety.</Criterion>
+        <Criterion>test_review_uses_only_resolved_executor_lane: a local-executor review completes while another operation holds the offload lane, and vice versa; same-lane attempts still fail closed with the lane-specific message.</Criterion>
+        <Criterion>The two-reviewer cases (two local passes plus one non-local pass, mandatory non-local configuration, incomplete non-local review) are removed; the override, verdict-failure and identity-drift cases keep passing unchanged; the tests keep their MODULE_MAP contract header in sync with the new gate map.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>python3 -m unittest tests.security.test_security_gate.SafetyGateTests.test_offload_unconfigured_runs_locally tests.security.test_security_gate.SafetyGateTests.test_offload_healthy_executes_on_offload tests.security.test_security_gate.SafetyGateTests.test_offload_unreachable_falls_back_locally tests.security.test_security_gate.SafetyGateTests.test_offload_public_endpoint_fails_closed tests.security.test_security_gate.SafetyGateTests.test_review_uses_only_resolved_executor_lane</Command><BudgetSeconds>60</BudgetSeconds></Verification>
+    </T-002>
+    <T-003>
+      <Title>Docs, M-064/V-M-064 and marker-consumer synchronization</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>docs/commit-push-safety.md replaces the two-reviewer section with the single-pass local-first review and the optional offload: one clean pass per chunk is sufficient, a finding means fix and re-review, the offload host's state never blocks an operation, the "wake the non-local host / fails closed while it is asleep" mandate and the "second local pass was retired" line are gone, and the config example keeps both keys with offload semantics plus the unchanged private-network address rule.</Criterion>
+        <Criterion>M-064 Summary and V-M-064 scenarios describe the executor resolution, the offload fallback and the single pass; the file contracts in tools/security_gate.py and tests/security/test_security_gate.py are consistent with them.</Criterion>
+        <Criterion>A repository grep over non-frozen paths for BLOCK_SAFETY_SCAN_PASS consumers, "checks=5", "non-local-model-review" and "reviewers=local(2)" finds no active consumer of the old marker shape; matches inside archived change bundles, frozen ledgers and history-accurate material are documented as intentional and left untouched.</Criterion>
+        <Criterion>grace lint --path . --assertions current reports zero errors attributable to this change, and grace status --path . --with modules --json shows M-064 healthy before handoff.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>rg -n "optional offload" docs/commit-push-safety.md &amp;&amp; ! rg -n "fails closed while it is asleep|second local pass was retired" docs/commit-push-safety.md</Command>
+        <Command>rg -n "offload" .grace/verification/features.xml | head -3</Command>
+        <Command>rg -ln "checks=5|non-local-model-review|reviewers=local\(2\)" --glob '!.grace/changes/archive/**' --glob '!docs/release-trains/**' . | wc -l</Command>
+        <BudgetSeconds>30</BudgetSeconds>
+      </Verification>
+    </T-003>
+  </ImplementationPlan>
+  <Gates>
+    <Gate kind="unit">npm run safety:test — the full security gate suite passes, including the executor-resolution matrix and the per-executor lane cases.</Gate>
+    <Gate kind="lint">grace lint --path . --assertions current — zero errors in this change's scope (pre-existing findings in foreign worktrees and the C-LARGE-DOC-STAGE-0 archive are out of scope and reported separately).</Gate>
+    <Gate kind="grace">grace status --path . --with modules --json — M-064 healthy, change state consistent before handoff.</Gate>
+  </Gates>
+</C-SAFETY-LOCAL-FIRST-REVIEW></GraceChangePlan>

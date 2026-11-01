@@ -18,7 +18,7 @@ checked.
    allow-comments and no caller-provided ignore or configuration overrides.
 4. Rebuild the exact candidate after scanning. Any staged-tree, message, ref or
    outgoing-commit identity change invalidates the result.
-5. Run the two model reviewers described below, then store only a hash-bound
+5. Run the model review described below, then store only a hash-bound
    receipt in the common Git directory and inspect the final diff independently
    before commit or push.
 
@@ -30,13 +30,12 @@ intermediate commit, so adding and later removing a secret does not hide it. A
 bare Environment secret or variable name named by setup documentation is an
 identifier, not a valued credential.
 
-Model review runs in separate local and non-local review lanes. The local
-reviewer holds the local lane for its passes, the non-local reviewer holds
-the non-local lane for its independent pass, and a short candidate lane
-serializes the snapshot, scan, final identity check and receipt. Each lane is
-single-flight, so a commit waiting on the non-local lane can still finish its
-local phase while another commit is remote-bound, and contention reports which
-lane is busy.
+Model review resolves one executor per candidate and holds only that
+executor's lane: the local reviewer uses the local lane, the optional offload
+executor uses the offload lane, and a short candidate lane serializes the
+snapshot, scan, final identity check and receipt. Each lane is single-flight,
+so a locally reviewing commit is never blocked by an offload-bound review,
+and contention reports which lane is busy.
 
 The gate also enforces desktop/mobile lane separation, exact staged-index and
 outgoing-history snapshots, the public/private path boundary, safe branch
@@ -47,15 +46,26 @@ non-local CGNAT and `*.ts.net` addresses, and absolute homes whose user segment
 is not a documented synthetic example; `/Users/<fixture>/`, `/Users/<user>/`,
 `/Users/me/`, `~/project` and `~/Library/...` remain valid.
 
-## Two model reviewers
+## Model review: one clean local pass, optional offload
 
-After the deterministic checks pass, the exact candidate runs through two
-independent reviewers: one owner-local pass and one independent non-local pass
-(owner policy of 2026-10-27 — the second local pass was retired as duplicative
-at the small-model size). The local pass reviews on the owner-local model; the
-non-local pass is the independent recheck on the owner-configured host. Every
-chunk must pass every pass; a malformed verdict, a different loaded model, a redirect, an unreachable
-endpoint or a missing non-local configuration stops the commit or push.
+After the deterministic checks pass, the exact candidate runs through one
+model review pass per chunk on a locally resolved executor (owner policy of
+2026-10-31: the goal is a clean review from the local model — a clean verdict
+completes the phase, a finding means fix the candidate and review the new
+identity until the verdict is clean). The local reviewer is the default and is
+always sufficient. When an optional offload endpoint is configured and a short
+bounded health probe proves it ready — reachable, not redirecting, with an
+empty slot or the expected model loaded — the same single pass executes there
+and this Mac's GPU slot stays free. A missing, powered-off, unreachable or
+busy offload host never blocks a commit or push: the gate silently runs the
+pass locally and records the offload state in the private receipt. The power
+state of the offload host is the offload switch; the Windows machine is
+required only for Windows-version testing, which is outside this gate.
+
+Every chunk must pass its pass: a malformed verdict, a different loaded model,
+a redirect or an unreachable resolved executor stops the commit or push. A
+failing verdict is never re-rolled on identical candidate bytes — fix the
+candidate and review the new identity.
 
 The endpoints and model names are owner-local configuration, never repository
 content. The gate reads `MARK_SAFETY_LOCAL_ENDPOINT`, `MARK_SAFETY_LOCAL_MODEL`,
@@ -71,11 +81,12 @@ safety directory:
 ```
 
 The file stays outside the repository and must be mode `0600`. The local
-reviewer must be loopback; the non-local reviewer must resolve to loopback,
-RFC 1918, the CGNAT shared range, `.local` or `*.ts.net`, so candidate bytes are
-never sent to a public address. Wake the non-local host's Ollama service before
-a commit or push (on kari: `Start-ScheduledTask -TaskName OllamaServe`); the
-gate fails closed while it is asleep.
+reviewer must be loopback; the optional offload endpoint must resolve to
+loopback, RFC 1918, the CGNAT shared range, `.local` or `*.ts.net`, so
+candidate bytes are never sent to a public address — a configured public or
+redirecting offload endpoint is a configuration error raised before any
+inference. The `nonLocal` key is the optional offload target; omit it for
+local-only review.
 
 `MARK_SAFETY_OVERRIDE="<reason>"` skips only the two model reviewers, after the
 deterministic checks and Gitleaks have passed for the exact candidate identity.

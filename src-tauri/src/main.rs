@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/main.rs
-// VERSION: 2.4.0
+// VERSION: 2.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-001 entry point. Strict boot order:
 //              (1) m001_panic::install_panic_hook  — first, so any later
@@ -39,6 +39,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-30 M-069: setup applies m069_dev_badge::apply_dev_badge after
+//     the Mica hook; the tauri devtools feature became an opt-in cargo
+//     feature instead of being on in every build.
 //   - 2026-10-28 C-UPDATER-ROLLBACK T-004: pre-boot --rollback handling
 //     (store gate exit 3 in app-store builds, then the headless restore
 //     with validity/probe/delegation semantics from M-068), boot-time
@@ -146,6 +149,8 @@ mod m053_review;
 mod m058_window_effects;
 // C-52: system clipboard file-path reader (mt_read_clipboard_paths).
 mod m059_clipboard;
+// M-069: developer-tools rule and the DEV chevron on the app icon.
+mod m069_dev_badge;
 mod m_v1_compat;
 mod mt_paths;
 
@@ -723,6 +728,10 @@ fn main() {
             // title-bar strip transparent (.mica-active). macOS/Linux:
             // BLOCK_MICA_UNSUPPORTED log line, no window changes.
             m058_window_effects::apply_mica_at_boot(&handle);
+
+            // M-069: a build with web inspector access (debug, or the
+            // opt-in devtools feature) wears the DEV chevron on its icon.
+            m069_dev_badge::apply_dev_badge(&handle);
 
             // BUG-5: SIGTERM bypasses Tauri's RunEvent::Exit, so
             // tauri-plugin-window-state never flushes to disk.
