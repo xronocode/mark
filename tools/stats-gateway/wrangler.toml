@@ -1,0 +1,18 @@
+# M-071 mt-stats-gateway — Cloudflare Worker route for the update-funnel
+# counters (C-UPDATER-STATS). Deployed owner-side; see README.md.
+#
+# The gateway answers on exactly one host: workers_dev is disabled and the
+# route binds updates.mark.xronocode.com/* (the xronocode.com zone is
+# DNS-managed in Cloudflare — the C-22 fact; the site itself is served by
+# GitHub Pages per C-64 D-1, which does not matter for a zone-level
+# Worker route).
+name = "mark-stats-gateway"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+route = { pattern = "updates.mark.xronocode.com/*", zone_name = "xronocode.com" }
+
+[[analytics_engine_datasets]]
+binding = "STATS"
+dataset = "mark_update_funnel"

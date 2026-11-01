@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.3.0
+# VERSION: 3.4.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -19,6 +19,11 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-10-30 C-UPDATER-STATS T-005: the latest.json platform url
+#     fields route through the counting gateway (updates.mark.xronocode.com/pkg/...)
+#     so updater artifact fetches are counted; the signature fields and
+#     the feed schema are unchanged and every URL still resolves to the
+#     same GitHub bytes.
 #   - 2026-10-31 v3.3.0: build the macOS release lanes on the macos-15 runner image ahead of the macos-14 retirement (both matrix os entries).
 #   - 2026-10-26 v3.2.0: C-RELEASE-MANUAL-PUBLISH — repeal the C-RELEASE-TIMING
 #     timer-default publication: delete the veto-window job (window, TG notify,
@@ -519,7 +524,7 @@ jobs:
             "platforms": {
               "darwin-aarch64": {
                 "signature": "${SIG}",
-                "url": "https://github.com/xronocode/mark/releases/download/${TAG}/Mark_${VER}_aarch64.app.tar.gz"
+                "url": "https://updates.mark.xronocode.com/pkg/darwin-aarch64/${VER}"
               }
             }
           }
@@ -666,7 +671,7 @@ jobs:
             "platforms": {
               "windows-x86_64": {
                 "signature": "${SIG}",
-                "url": "https://github.com/xronocode/mark/releases/download/${TAG}/Mark_${VER}_x64-setup.exe"
+                "url": "https://updates.mark.xronocode.com/pkg/windows-x86_64/${VER}"
               }
             }
           }

@@ -2757,5 +2757,21 @@
       <Markers><Marker>[Rollback][prepare][BLOCK_ROLLBACK_PREPARE]</Marker><Marker>[Rollback][verify][BLOCK_ROLLBACK_VERIFY]</Marker><Marker>[Rollback][restore][BLOCK_ROLLBACK_RESTORE]</Marker><Marker>[Rollback][cli][BLOCK_ROLLBACK_CLI]</Marker></Markers>
       <TraceAssertions><TraceAssertion>CLI transcripts carry version identifiers and outcomes only — no paths beyond the derived release asset names, no user data.</TraceAssertion></TraceAssertions>
     </V-M-068>
+      <V-M-071>
+      <Priority>high</Priority><Commands><Command>npx vitest run tests/tools/stats-gateway.test.mjs tests/renderer/release-preflight.test.js</Command><Command>node tools/stats-gateway/query.mjs --dry</Command></Commands>
+      <Scenarios>
+        <Scenario>Derivation table: both platforms map to the exact deterministic GitHub asset URLs; unknown platforms and non-strict versions return null; the OS table ({{target}} values) stays strictly apart from the platform table.</Scenario>
+        <Scenario>/feed: valid from/os records exactly one check datapoint (UTC day, os, from) and 302s to the GitHub manifest; every malformed class (missing/extra/garbage params, wrong tables, non-strict version, case, trailing slash, non-GET) is a 404 with zero datapoints and zero redirects.</Scenario>
+        <Scenario>/pkg: valid platform/version records exactly one pkg datapoint and 302s to the derived asset; traversal, queries, case, slash and extra-segment variants 404 without datapoints.</Scenario>
+        <Scenario>Open-redirect guard: every Location in every probe is a derived GitHub URL, never reflected; a comment-stripped source scan proves worker.mjs reads no request.cf / CF-IPCountry / user-agent and no request headers at all.</Scenario>
+        <Scenario>Best-effort counting: an absent or erroring binding changes no response (corner C-6).</Scenario>
+        <Scenario>Renderer egress delta: a source scan proves src/renderer adds no network-egress or analytics API beyond the named baseline allowlist (C-56 fetch, blob fetches/shims, dormant axios).</Scenario>
+        <Scenario>Wave-surface pins: the two-entry endpoints array (gateway first, pubkey and installMode unchanged), both gateway pkg prefixes in the release.yml feed fragments, and m068's windows_release_base byte-unchanged (restore never touches the gateway).</Scenario>
+        <Scenario>query.mjs dry mode renders the day x event table and the from-breakdown from the inlined fixtures (output-shape test, zero network); live mode reads only CF_API_TOKEN.</Scenario>
+        <Scenario>Owner-executed after deployment (pending evidence, mirroring the C-UPDATER-ROLLBACK pattern): one live check and one live pkg fetch appear in the query output.</Scenario>
+      </Scenarios>
+      <Markers><Marker>[StatsGateway][feed][BLOCK_STATS_FEED]</Marker><Marker>[StatsGateway][pkg][BLOCK_STATS_PKG]</Marker></Markers>
+      <TraceAssertions><TraceAssertion>The worker's own log lines carry only route, tables and versions — no IPs, no identifiers, nothing reflected from input.</TraceAssertion></TraceAssertions>
+    </V-M-071>
   </VD-FEATURES>
 </GraceVerificationDocument>

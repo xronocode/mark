@@ -72,7 +72,8 @@ export default defineConfig({
     setupFiles: ['./tests/renderer/setup.ts'],
     include: [
       'src/renderer/**/*.{test,spec}.{js,ts}',
-      'tests/renderer/**/*.{test,spec}.{js,ts}'
+      'tests/renderer/**/*.{test,spec}.{js,ts}',
+    'tests/tools/**/*.{test,spec}.{js,ts,mjs}'
     ],
     // Existing M-013-A contract stubs in src/renderer/src/ipc/**/*.test.ts
     // are TYPE-ONLY assertions (no describe/it blocks) consumed by

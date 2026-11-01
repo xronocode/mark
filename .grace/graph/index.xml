@@ -115,6 +115,8 @@
         <!-- C-NATIVE-DOCX-RTF-EXPORT: M-066 owns the renderer-side Word
              converter (pre-pass + lazy docx/html + geometry mapping). -->
         <M-066/>
+        <!-- C-UPDATER-STATS: M-071 owns the counting gateway. -->
+        <M-071/>
       </Owns>
     </GD-FEATURES>
     <GD-FLOWS>
