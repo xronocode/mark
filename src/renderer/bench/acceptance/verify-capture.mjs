@@ -3,9 +3,9 @@
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate a tier-3 (real-app WKWebView) acceptance capture before the owner reviews it: label honesty, exact fixture identity, marker grammar, content-free markers, and a commit that exists in this repository.
-//   SCOPE: Reads one capture JSON (never committed — it lives under .mark-local/) plus the fixture it names, re-hashes the fixture bytes, checks the recorded commit with git, and rejects unfilled placeholders, browser-tier labels, private absolute paths, unknown/extra marker keys, non-numeric metrics and a missing required phase. It does not measure anything and never claims native measurements itself.
+//   SCOPE: Reads one capture JSON (never committed — it lives under .mark-local/) plus the fixture it names, re-hashes the fixture bytes, checks the recorded commit with git, and rejects unfilled placeholders, browser-tier labels, private absolute paths, unknown/extra marker keys, non-numeric metrics, a made-up mount-path label and a missing required phase. It does not measure anything and never claims native measurements itself.
 //   DEPENDS: node:fs, node:crypto, node:path, node:child_process (git cat-file), tests/e2e/fixtures/large-doc/shape-metadata.json.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); src/renderer/bench/acceptance/README.md.
+//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); C-LARGE-DOC-WAVE-A T-005 (tail_mount_ms + served_path on BLOCK_OPEN); src/renderer/bench/acceptance/README.md.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -13,6 +13,7 @@
 // START_MODULE_MAP
 //   REPO_ROOT - this checkout's root.
 //   ALLOWED_ENGINE_LABELS - native-only labels; a browser/Playwright label is a lie for this tier.
+//   ALLOWED_SERVED_PATHS - content-free mount-path labels BLOCK_OPEN.served_path may carry (progressive or legacy — the fallback is an honest legacy).
 //   MARKERS - required marker to allowed keys (content-free proof: unknown keys are rejected).
 //   NUMERIC_KEYS - marker keys that must be finite numbers.
 //   PLACEHOLDER - unfilled template marker.
@@ -27,7 +28,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-LARGE-DOC-STAGE-0 T-005: first capture verifier for the owner-run real-app tier.
+//   LAST_CHANGE: v1.1.0 - C-LARGE-DOC-WAVE-A T-005 (R-6): BLOCK_OPEN gains
+//                 tail_mount_ms (finite number — tail completion is its own
+//                 phase and is never summed into time_to_input_ms) and
+//                 served_path (enum progressive|legacy — a made-up path
+//                 label is rejected like an engine-label lie).
+//   PREV: v1.0.0 - C-LARGE-DOC-STAGE-0 T-005: first capture verifier for
+//         the owner-run real-app tier.
 // END_CHANGE_SUMMARY
 
 import { execFileSync } from 'node:child_process'
@@ -38,9 +45,10 @@ import { fileURLToPath } from 'node:url'
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..')
 const ALLOWED_ENGINE_LABELS = ['native-wkwebview', 'tauri-artifact']
+const ALLOWED_SERVED_PATHS = ['progressive', 'legacy']
 const MARKERS = {
   BLOCK_FIXTURE: ['id', 'bytes', 'sha256'],
-  BLOCK_OPEN: ['first_content_ms', 'time_to_input_ms'],
+  BLOCK_OPEN: ['first_content_ms', 'time_to_input_ms', 'tail_mount_ms', 'served_path'],
   BLOCK_TYPING: ['n', 'p50_ms', 'p95_ms', 'truth', 'typed_landed'],
   BLOCK_SCROLL: ['frames', 'frame_p95_ms', 'jank_frames'],
   BLOCK_CLOSE: ['ms'],
@@ -50,6 +58,7 @@ const NUMERIC_KEYS = new Set([
   'bytes',
   'first_content_ms',
   'time_to_input_ms',
+  'tail_mount_ms',
   'n',
   'p50_ms',
   'p95_ms',
@@ -212,6 +221,15 @@ function main () {
   const typing = byName.get('BLOCK_TYPING')
   check(Boolean(typing) && typing.truth === 'ok', 'BLOCK_TYPING.truth is ok', JSON.stringify(typing && typing.truth))
   check(Boolean(typing) && typing.typed_landed === true, 'BLOCK_TYPING.typed_landed is true (the typed character is in the measured block)', JSON.stringify(typing && typing.typed_landed))
+  // C-LARGE-DOC-WAVE-A T-005: the open-path label is an enum — a made-up
+  // mount path (or a tier label smuggled into it) is a lie, exactly like a
+  // browser engineLabel claiming native.
+  const open = byName.get('BLOCK_OPEN')
+  check(
+    Boolean(open) && ALLOWED_SERVED_PATHS.includes(open.served_path),
+    'BLOCK_OPEN.served_path is a known mount path (progressive | legacy)',
+    JSON.stringify(open && open.served_path)
+  )
 
   return finish()
 }

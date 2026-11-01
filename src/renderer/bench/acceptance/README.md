@@ -44,7 +44,7 @@ Playwright WebKit is *never* called native evidence. A capture that labels it
    | Marker | Required keys | Meaning |
    |---|---|---|
    | `BLOCK_FIXTURE` | `id`, `bytes`, `sha256` | exact input identity |
-   | `BLOCK_OPEN` | `first_content_ms`, `time_to_input_ms` | open path |
+   | `BLOCK_OPEN` | `first_content_ms`, `time_to_input_ms`, `tail_mount_ms`, `served_path` | open path. `tail_mount_ms` is tail-mount completion as its own phase — it is never summed into `time_to_input_ms` (Wave A R-6 mapping: the open budget is satisfied by time-to-input; first visible content and tail completion are reported separately). `served_path` records which mount path served the open — `progressive` or `legacy` (`legacy` is also the honest value when the fail-safe fallback fired) |
    | `BLOCK_TYPING` | `n`, `p50_ms`, `p95_ms`, `truth`, `typed_landed` | typing latency; `truth` must be `ok` (the edit changed the document and undo restored it) and `typed_landed` must be `true` (the typed character is visibly in the measured block — the tier-3 pass criterion) |
    | `BLOCK_SCROLL` | `frames`, `frame_p95_ms`, `jank_frames` | scroll frame distribution, not average FPS alone |
    | `BLOCK_CLOSE` | `ms` | close/teardown |
@@ -66,10 +66,11 @@ Playwright WebKit is *never* called native evidence. A capture that labels it
    ```
 
    The verifier fails on: a browser-tier or Playwright label masquerading as
-   native evidence, a fixture hash/byte mismatch against the real file, a
-   missing required marker, an unknown marker name, an unfilled template
-   placeholder, a private absolute path, or a commit that does not exist in
-   this repository.
+   native evidence, a made-up mount-path label in `served_path` (only
+   `progressive` and `legacy` are real), a fixture hash/byte mismatch against
+   the real file, a missing required marker or marker key, an unknown marker
+   name, a non-numeric `tail_mount_ms`, an unfilled template placeholder, a
+   private absolute path, or a commit that does not exist in this repository.
 
 6. **Review.** The owner reads the verified capture. Only then does tier 3
    count as evidence. It still does not authorize a release or train
