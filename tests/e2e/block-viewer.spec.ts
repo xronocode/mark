@@ -153,7 +153,7 @@ const WIDE_DIAGRAM_MD = (() => {
 })()
 
 // Three medium nodes: at the default viewport the diagram keeps its
-// natural width (the text column is ~700-750 px); at a 460 px viewport
+// natural width (the text column is ~750-770 px); at a 460 px viewport
 // the column (~410 px) scales the SVG down and the button appears (the
 // resize re-evaluation case). Labels sized so the natural width sits
 // comfortably between the two columns.
@@ -1258,7 +1258,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     // well below the diagram's natural width — so the SVG scales down,
     // the shared ResizeObserver re-runs the rule and the button appears.
     // (A small step is not enough: the column is capped at
-    // --editorAreaWidth 750 px and only shrinks once the viewport does.)
+    // --editorAreaWidth (the 768 px calc default) and only shrinks once the viewport does.)
     await page.setViewportSize({ width: 460, height: 720 })
 
     await expect(figure).toHaveClass(/ag-expand-needed/, { timeout: 5_000 })

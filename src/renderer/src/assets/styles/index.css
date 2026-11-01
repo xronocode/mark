@@ -3,7 +3,7 @@
   --titleBarHeight: 32px;
   --titleBarBgColor: #f6f6f6;
   --titleBarBorderColor: rgba(0, 0, 0, 0.08);
-  --editorAreaWidth: 750px;
+  --editorAreaWidth: calc(100px + 768px);
 
   /* ── C-38 T-006 N4 a/b: chrome system identity ─────────────────────
      One system UI stack for everything around the document (the stack
