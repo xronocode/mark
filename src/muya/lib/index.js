@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/index.js
-// VERSION: 1.10.0
+// VERSION: 1.11.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), and destroy() teardown incl. the C-51 T-010 expand-need observation release. C-62: Per-diagram appearance controller lifecycle, writable metadata and read-only view overrides.
-//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins.; ./ui/diagramAppearance.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010; C-51 T-014 (muya-options-rerender, consumed by ui/blockViewer).; .grace/changes/archive/C-62.
+//   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), destroy() teardown incl. the C-51 T-010 expand-need observation release, and C-LARGE-DOC-WAVE-A T-003: the progressive mount entry points (progressiveMount/mountToBlockKey/mountToOffset/cancelProgressive over muya.progressive), the content-free open-path marker names (BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE, re-exported), the pending-tail cancellation on setMarkdown content loads (R-2 prefix-mismatch reset) and on destroy, and the served=legacy marker for plain legacy content loads (corner-2). C-62: Per-diagram appearance controller lifecycle, writable metadata and read-only view overrides.
+//   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins, ./progressive (progressive mount subsystem, C-LARGE-DOC-WAVE-A T-003); ./ui/diagramAppearance.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010; C-51 T-014 (muya-options-rerender, consumed by ui/blockViewer).; .grace/changes/archive/C-62; .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-1/R-2/R-3/R-3 markers; plan T-003; M-063 routing lands with T-008).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -15,15 +15,30 @@
 //   Muya#reparseMarkdown - rebuild blocks under the current footnote grammar without a content event or history entry, preserving source selection and scroll.
 //   Muya#refreshCodeBlockLineNumbers - re-measure every code-block gutter (wrap or code-font change without a re-render).
 //   muya.tableResize - TableResize instance (C-39 T-002): in-memory session column widths per table block key; never touches markdown, history or isSaved.
+//   muya.progressive - createProgressiveMount controller (C-LARGE-DOC-WAVE-A T-003): progressiveMount/mountToBlockKey/mountToOffset/cancelProgressive delegate here.
+//   BLOCK_MOUNT_SERVED - re-exported content-free open-path marker name (payload { served }).
+//   BLOCK_SYNC_REGION_DONE - re-exported content-free open-path marker name (payload { blocks }).
+//   BLOCK_TAIL_MOUNT_DONE - re-exported content-free open-path marker name (payload { blocks, ms }).
+//   BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE - content-free open-path telemetry marker names (C-LARGE-DOC-WAVE-A T-003, R-3); dispatched on muya.eventCenter, never carrying document text.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.10.0 - FIX-019: setMarkdown resets the table-cell and
+//   LAST_CHANGE: v1.11.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-003:
+//                progressive mount entry points (progressiveMount — parse
+//                whole, mount the sync region, schedule the tail;
+//                mountToBlockKey/mountToOffset on-demand navigation mounts;
+//                cancelProgressive), the content-free marker names living on
+//                muya's public surface, pending-tail cancellation when
+//                setMarkdown replaces the document (R-2 prefix-mismatch
+//                reset) and on destroy, and served=legacy recorded for plain
+//                legacy content loads. The legacy setMarkdown mount behavior
+//                is unchanged — progressive runs only when invoked.
+//   PREV: v1.10.0 - FIX-019: setMarkdown resets the table-cell and
 //                image selection flags whenever other content loads (tab
 //                switch, format, mirror sync) — selections made on a
 //                previous document used to survive and turn the next
 //                cut/copy into a silent no-op until an app restart.
-//   PREV: v1.9.1 - 2026-10-25 C-FILE-POSITION-MEMORY e2e hardening:
+//   v1.9.1 - 2026-10-25 C-FILE-POSITION-MEMORY e2e hardening:
 //                Muya.use is idempotent (editor.vue re-runs it per mount; a
 //                duplicate registration instantiated extra float plugins and
 //                leaked body-level containers), and destroy() tears down
@@ -79,8 +94,23 @@ import ExportHtml from './utils/exportHtml'
 import ToolTip from './ui/tooltip'
 import I18nCSS from './utils/i18nCSS'
 import DiagramAppearance from './ui/diagramAppearance'
+// C-LARGE-DOC-WAVE-A T-003 (M-063): the progressive mount subsystem and the
+// content-free open-path marker names (the names are re-exported so they live
+// on muya's public surface; payloads stay content-free — counters and enums).
+import { createProgressiveMount, BLOCK_MOUNT_SERVED, BLOCK_SYNC_REGION_DONE, BLOCK_TAIL_MOUNT_DONE } from './progressive'
 import './assets/styles/index.css'
 import './assets/styles/callout.css'
+
+// Content-free open-path telemetry markers (C-LARGE-DOC-WAVE-A T-003, R-3):
+//  - BLOCK_MOUNT_SERVED      { served: 'progressive' | 'legacy' } — exactly
+//                            one per served open; the R-3 fallback always
+//                            records 'legacy', so a blank/partial editor
+//                            never exists without a served marker.
+//  - BLOCK_SYNC_REGION_DONE  { blocks } — the synchronous region mounted.
+//  - BLOCK_TAIL_MOUNT_DONE   { blocks, ms } — the whole document is mounted.
+// Consumers (bench driver, editor.vue in later tasks) subscribe through
+// muya.eventCenter; payloads never carry document text.
+export { BLOCK_MOUNT_SERVED, BLOCK_SYNC_REGION_DONE, BLOCK_TAIL_MOUNT_DONE }
 
 class Muya {
   static plugins = []
@@ -282,6 +312,15 @@ class Muya {
   ) {
     let finalCursor = null
 
+    // C-LARGE-DOC-WAVE-A T-003 (R-2 prefix-mismatch reset): a content load
+    // while a progressive tail is pending cancels it — the document was
+    // replaced above the mounted regions, so the new open proceeds fresh
+    // through whatever path serves it. No-op when no session is active, so
+    // the legacy path is unchanged.
+    if (this._progressive) {
+      this.cancelProgressive()
+    }
+
     if (blocks && cursor) {
       // We have blocks and a cursor, so we can set the blocks and the cursor in the contentState.
       finalCursor = cursor
@@ -315,9 +354,71 @@ class Muya {
 
     this.contentState.importCursor(finalCursor)
     this.contentState.render(isRenderCursor)
+    // C-LARGE-DOC-WAVE-A T-003 (corner-2): plain content loads (no cursor
+    // restore, no block restore, non-empty text — tab switch, format, mirror
+    // sync, document open) record the serving path. The legacy mount served
+    // this open; cursor/blocks restores and the empty constructor mount stay
+    // silent so the marker counts real content loads only.
+    if (!cursor && !blocks && !muyaIndexCursor && markdown) {
+      this.eventCenter.dispatch(BLOCK_MOUNT_SERVED, { served: 'legacy' })
+    }
     setTimeout(() => {
       this.dispatchChange()
     }, 0)
+  }
+
+  // ── C-LARGE-DOC-WAVE-A T-003: progressive mount entry points (R-1/R-2).
+  // The subsystem lives in ./progressive; these are the public surface. The
+  // legacy setMarkdown path is unchanged — progressive runs only when
+  // explicitly invoked (default-off experiment, T-004 wires the toggle).
+  get progressive () {
+    if (!this._progressive) {
+      this._progressive = createProgressiveMount(this)
+    }
+    return this._progressive
+  }
+
+  /**
+   * Open `markdown` through the progressive mount: parse the document WHOLE
+   * (the model is complete from parse onward — save, word count, TOC and
+   * search all read the full document), mount the synchronous region (first
+   * ~100 top-level blocks, extended to cover the viewport when layout is
+   * measurable) so the editor is visible and input-ready immediately, then
+   * mount the remaining tail in bounded cooperative slices. Emits
+   * BLOCK_SYNC_REGION_DONE, BLOCK_TAIL_MOUNT_DONE and BLOCK_MOUNT_SERVED on
+   * muya.eventCenter (content-free payloads). Any failure falls back to the
+   * legacy single-pass mount from the current model and records
+   * served=legacy — this method never leaves a blank or partial editor.
+   *
+   * @returns {{ done: Promise<void>, info: () => object }} `done` settles
+   *   when the open completed (progressive, fallback or cancelled).
+   */
+  progressiveMount (markdown, opts) {
+    return this.progressive.open(markdown, opts)
+  }
+
+  /**
+   * On-demand region mount for navigation (R-2): mount the top-level region
+   * containing the block with `key` synchronously-ish (bounded by the same
+   * slice ceiling), then return; the tail scheduler resumes toward the
+   * target if the ceiling stopped short. The destination never mounts blank.
+   */
+  mountToBlockKey (key) {
+    return this.progressive.mountToBlockKey(key)
+  }
+
+  /**
+   * Offset variant of the on-demand mount: maps a serialized-markdown
+   * character offset onto its top-level block (best-effort, exact per
+   * block) and mounts that region.
+   */
+  mountToOffset (offset) {
+    return this.progressive.mountToOffset(offset)
+  }
+
+  /** Cancel a pending progressive tail (R-2 reset / teardown). */
+  cancelProgressive () {
+    return this.progressive.cancel('api')
   }
 
   setCursor(cursor) {
@@ -715,6 +816,11 @@ class Muya {
   }
 
   destroy() {
+    // C-LARGE-DOC-WAVE-A T-003: a destroyed editor stops its progressive
+    // tail — no lane may fire after teardown.
+    if (this._progressive) {
+      this.cancelProgressive()
+    }
     this.diagramAppearance.destroy()
     this.contentState.clear()
     // C-FILE-POSITION-MEMORY e2e hardening: destroy every registered UI

@@ -1,21 +1,27 @@
 // FILE: src/muya/lib/parser/render/index.js
-// VERSION: 2.1.1
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render muya ContentState blocks to the DOM via snabbdom and drive the asynchronous previews (math, pele diagrams, diagrams, images).
-//   SCOPE: StateRender — full/partial/single-block render, cursor-safe selector building, pele dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, keeping C-39 table scroll and C-39 T-002 session column widths across renders, and the C-51 T-010 expand-need sync after every render path and diagram insert. C-62: Pass appearance override and insert synchronization callbacks to Pele.
-//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./pelePipeline, ./diagramTheme, ./contentTheme, ./renderBlock/expandNeed, ../../renderers, ../../config, ../../utils, ../rules; muya.diagramAppearance.
-//   LINKS: M-011 muya editor surface; C-34 R2.1; C-55; START_BLOCK_PELE_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP; C-51 T-010 expandNeed sync; .grace/changes/archive/C-62; .grace/changes/archive/C-FIX-012-RENDER-CURSOR-GUARD; .grace/changes/archive/C-FIX-012-RENDER-CONFLICT-GUARD.
+//   SCOPE: StateRender — full/partial/single-block render, cursor-safe selector building, pele dispatch into the resilient pipeline, diagram rendering (C-51 T-005: vega-lite/flowchart/sequence options and post-pass themed from the active app theme), render caches, the C-38 line-number gutter measurement queue, keeping C-39 table scroll and C-39 T-002 session column widths across renders, the C-51 T-010 expand-need sync after every render path and diagram insert, and C-LARGE-DOC-WAVE-A T-003: the instance-scoped progressive entries (resolveOwnRoot/renderRegion/extendRegion — own-container variants of render/partialRender for the progressive mount subsystem; legacy entries unchanged).
+//   DEPENDS: ./snabbdom, ./renderBlock, ./renderInlines, ./pelePipeline, ./diagramTheme, ./contentTheme, ./renderBlock/expandNeed, ../../renderers, ../../config, ../../utils, ../rules; muya.diagramAppearance; muya/lib/progressive (consumer of the own-root entries).
+//   LINKS: M-011 muya editor surface; C-34 R2.1; C-55; START_BLOCK_PELE_DISPATCH; START_BLOCK_DIAGRAM_THEME_OPTIONS; C-38 T-005 lineNumberPreKeys; C-39 T-001 START_BLOCK_TABLE_SCROLL_KEEP; C-39 T-002 START_BLOCK_TABLE_WIDTHS_KEEP; C-51 T-010 expandNeed sync; .grace/changes/archive/C-62; .grace/changes/archive/C-FIX-012-RENDER-CURSOR-GUARD; .grace/changes/archive/C-FIX-012-RENDER-CONFLICT-GUARD; START_BLOCK_PROGRESSIVE_OWN_ROOT (C-LARGE-DOC-WAVE-A T-003; M-063 routing lands with T-008).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   default - StateRender class: cursor-safe Muya block renderer and preview orchestrator; lineNumberPreKeys holds the pre keys whose gutter must be measured by the next postRender (C-38 T-005); every render path ends with syncExpandNeed (C-51 T-010); C-62 callbacks pass per-figure read-only appearance overrides and synchronize button attributes after every Pele insertion.
+//   resolveOwnRoot/renderRegion/extendRegion - C-LARGE-DOC-WAVE-A T-003: instance-scoped render entries for the progressive mount path (the legacy document-global root query is the proven multi-instance trap); see START_BLOCK_PROGRESSIVE_OWN_ROOT.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.1 - 2026-10-20 FIX-012: selector activity and token-conflict checks tolerate transient incomplete cursor state during tab rendering.
-//   PREV: v2.1.0 - 2026-10-18 C-62: connect local appearance overrides and stable button-state synchronization to the raw SVG pipeline.
+//   LAST_CHANGE: v2.2.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-003: added
+//                resolveOwnRoot/renderRegion/extendRegion — instance-scoped
+//                variants of render/partialRender for the progressive mount
+//                subsystem (own-container root/anchor resolution; the legacy
+//                entries and their behavior are untouched).
+//   PREV: v2.1.1 - 2026-10-20 FIX-012: selector activity and token-conflict checks tolerate transient incomplete cursor state during tab rendering.
+//   v2.1.0 - 2026-10-18 C-62: connect local appearance overrides and stable button-state synchronization to the raw SVG pipeline.
 //   v1.6.0 - 2026-10-16 C-51 T-010 (D-7): every render path
 //   (render/partialRender/singleRender) runs syncExpandNeed after the
 //   diagram dispatch, renderDiagram re-evaluates each figure after its
@@ -111,6 +117,114 @@ class StateRender {
   setContainer(container) {
     this.container = container
   }
+
+  // START_BLOCK_PROGRESSIVE_OWN_ROOT
+  // C-LARGE-DOC-WAVE-A T-003 (M-063): instance-scoped render entries for the
+  // progressive mount subsystem. render()/partialRender() resolve the editor
+  // root through document.querySelector('div#ag-editor-id') — a
+  // DOCUMENT-GLOBAL singleton (proven by the T-002 probe: a second live
+  // instance patches the FIRST instance's DOM and leaves its own container
+  // empty; never exercised by the single-instance app, fatal for the
+  // progressive path and any multi-instance bench page). These variants
+  // resolve the root and the splice anchor through THIS instance's own DOM
+  // (muya.container, falling back to the constructor-time stateRender
+  // container) and are otherwise the same mount operations as
+  // render()/partialRender(). The legacy entries and their behavior are
+  // untouched.
+  resolveOwnRoot() {
+    const scope = (this.muya && this.muya.container) || this.container
+    return (
+      (scope && scope.querySelector && scope.querySelector(`div#${CLASS_OR_ID.AG_EDITOR_ID}`)) ||
+      this.container
+    )
+  }
+
+  // Own-root variant of render(): mounts exactly `blocks` as the editor
+  // root's children (the progressive synchronous region / region re-mount).
+  renderRegion(blocks, activeBlocks, matches) {
+    const selector = `div#${CLASS_OR_ID.AG_EDITOR_ID}`
+    const t = this.muya.options.t || ((key) => key)
+    const children = blocks.map((block) => {
+      return this.renderBlock(null, block, activeBlocks, matches, true, t)
+    })
+    const newVdom = h(selector, children)
+    const rootDom = this.resolveOwnRoot()
+    const oldVdom = toVNode(rootDom)
+
+    const tableScroll = this.saveTableScroll()
+    patch(oldVdom, newVdom)
+    this.restoreTableScroll(tableScroll)
+    this.applyTableColumnWidths()
+    this.renderPele()
+    this.renderDiagram()
+    syncExpandNeed((this.muya && this.muya.container) || this.container)
+    this.codeCache.clear()
+  }
+
+  // Own-root variant of partialRender(): anchored extension — the slice must
+  // include its splice anchor at its head; replaces the anchor onwards in
+  // this instance's DOM with the slice (endKey null → to the end). Anchor
+  // and cursor lookups are scoped to this instance's container (block keys
+  // are engine-unique, but scoping removes the multi-instance ambiguity).
+  extendRegion(blocks, activeBlocks, matches, startKey, endKey) {
+    const scope = (this.muya && this.muya.container) || this.container || document
+    const cursorOutMostBlock = activeBlocks[activeBlocks.length - 1]
+    // If cursor is not in render blocks, need to render cursor block independently
+    const needRenderCursorBlock = blocks.indexOf(cursorOutMostBlock) === -1
+    const t = this.muya.options.t || ((key) => key)
+    const newVnode = h(
+      'section',
+      blocks.map((block) => this.renderBlock(null, block, activeBlocks, matches, false, t))
+    )
+    const html = toHTML(newVnode).replace(/^<section>([\s\S]+?)<\/section>$/, '$1')
+
+    const needToRemoved = []
+    const firstOldDom = startKey
+      ? scope.querySelector(`#${startKey}`)
+      : this.resolveOwnRoot().firstElementChild
+    if (!firstOldDom) {
+      // The anchor left the DOM (region was superseded) — nothing to splice.
+      return
+    }
+    const tableScroll = this.saveTableScroll()
+    needToRemoved.push(firstOldDom)
+    let nextSibling = firstOldDom.nextElementSibling
+    while (nextSibling && nextSibling.id !== endKey) {
+      needToRemoved.push(nextSibling)
+      nextSibling = nextSibling.nextElementSibling
+    }
+    nextSibling && needToRemoved.push(nextSibling)
+
+    firstOldDom.insertAdjacentHTML('beforebegin', html)
+
+    Array.from(needToRemoved).forEach((dom) => dom.remove())
+
+    // Render cursor block independently
+    if (needRenderCursorBlock) {
+      const { key } = cursorOutMostBlock
+      const cursorDom = scope.querySelector(`#${key}`)
+      if (cursorDom) {
+        const oldCursorVnode = toVNode(cursorDom)
+        const newCursorVnode = this.renderBlock(
+          null,
+          cursorOutMostBlock,
+          activeBlocks,
+          matches,
+          false,
+          t
+        )
+        patch(oldCursorVnode, newCursorVnode)
+      }
+    }
+    this.restoreTableScroll(tableScroll)
+    this.applyTableColumnWidths()
+
+    this.renderPele()
+    this.renderDiagram()
+    syncExpandNeed((this.muya && this.muya.container) || this.container)
+    this.codeCache.clear()
+  }
+  // END_BLOCK_PROGRESSIVE_OWN_ROOT
 
   // collect link reference definition
   collectLabels(blocks) {
