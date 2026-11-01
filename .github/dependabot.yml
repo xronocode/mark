@@ -42,6 +42,10 @@ updates:
       # per train item, e.g. DEPS-PELE-1-10); group bumps would break
       # the lockstep.
       - dependency-name: "pele"
+      # The e2e toolchain is pinned: a five-minor Playwright jump changed
+      # composition timing and broke the IME characterization gate
+      # (2026-11-01); bump it deliberately, with the gate re-validated.
+      - dependency-name: "@playwright/test"
       - dependency-name: "appium*"
         update-types:
           - "version-update:semver-major"
