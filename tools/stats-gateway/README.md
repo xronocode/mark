@@ -1,10 +1,10 @@
 # mark-stats-gateway (M-071)
 
 Redirect-only counting gateway for the update funnel (C-UPDATER-STATS).
-Answers on exactly one host: `updates.mark.xronocode.com/*` (the
-xronocode.com zone is DNS-managed in Cloudflare — the C-22 fact; the
-site itself is served by GitHub Pages, which does not matter for a
-zone-level Worker route).
+Answers on exactly one host: `updates.mark.xronocode.com`, provisioned
+as a Workers custom domain (Cloudflare manages its DNS record and
+certificate automatically; the xronocode.com zone lives in Cloudflare
+per C-22). Deployed 2026-11-02, worker version `78a377b3`.
 
 ## Routes
 
