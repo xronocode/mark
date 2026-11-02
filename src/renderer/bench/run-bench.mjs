@@ -121,11 +121,16 @@ async function singleRun(browserType, engineLabel) {
   }
 
   await page.goto(URL, { waitUntil: 'load', timeout: TIMEOUT_MS })
+  // Playwright binds waitForFunction's 2nd param to `arg` — the `undefined`
+  // placeholder keeps the options object in the 3rd (options) slot so the
+  // declared TIMEOUT_MS cap actually applies (the 1.7MB progressive combo
+  // was the first run to exceed the silent 30s default).
   await page.waitForFunction(
     () => {
       const el = document.getElementById('report')
       return el && el.textContent.includes('REPORT_DONE')
     },
+    undefined,
     { timeout: TIMEOUT_MS }
   )
   await browser.close()

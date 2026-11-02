@@ -145,8 +145,10 @@ function summarizeEngine (runs) {
           tti_ms: stats(pick((r) => r.tail_mount && r.tail_mount.tti_ms)),
           tail_done_ms: stats(pick((r) => r.tail_mount && r.tail_mount.tail_done_ms)),
           served: first((r) => r.tail_mount && r.tail_mount.served) ?? null,
-          canon_ok: tailRuns.every((t) => t.canon_ok === true),
-          dom_ok: tailRuns.every((t) => t.dom_ok === true),
+          // parseMarker keeps truth tokens as the STRINGS 'true'/'ok' — the
+          // strict boolean compares here recorded false for every real PASS.
+          canon_ok: tailRuns.every((t) => t.canon_ok === 'true'),
+          dom_ok: tailRuns.every((t) => t.dom_ok === 'true'),
           typing_during_tail_ok: tailRuns.every((t) => t.typing_during_tail === 'ok')
         }
       : null,

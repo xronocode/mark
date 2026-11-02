@@ -67,7 +67,11 @@ export { BLOCK_MOUNT_SERVED, BLOCK_SYNC_REGION_DONE, BLOCK_TAIL_MOUNT_DONE } fro
 // are the plan-time decisions recorded in the plan's Execution section.
 export const PROGRESSIVE_DEFAULTS = {
   syncRegionBlocks: 100,
-  tailChunkBlocks: 50,
+  // T-007 tune (50 -> 100): the stress shape (19k blocks) needed 382 ranges
+  // at 50 blocks and its idle-sliced tail wall-clock exceeded the proposed
+  // 6s ceiling; 100 halves the range count while every measured range stays
+  // far under the 300ms ceiling (T-002: chunk-100 median ~13ms, spikes ~100ms).
+  tailChunkBlocks: 100,
   oversizedBytes: OVERSIZED_BLOCK_BYTES,
   depthCap: DEPTH_CAP,
   nodeCap: NODE_CAP,
