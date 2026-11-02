@@ -118,6 +118,8 @@
         <!-- C-UPDATER-ROLLBACK: V-M-068 owns the rollback manager's
              commands, scenarios and content-free markers. -->
         <V-M-068/>
+        <!-- C-UPDATER-STATS: V-M-071 owns the gateway verification. -->
+        <V-M-071/>
       </Owns>
     </VD-FEATURES>
   </VerificationDocuments>
