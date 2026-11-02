@@ -21,7 +21,7 @@ Measured: progressive TTI 39–169 ms across engines/runs on size-1mb
 legacy TTI on the same shape 518–1593 ms. The proposal leaves ≥80 ms headroom
 over the worst measured progressive run.
 
-Owner: ______
+Owner: FINAL 2026-11-02 — approved as proposed (interactive decision menu, "по рекомендациям").
 
 ## Decision 2 — Tail-mount completion budget (contract-deferred)
 
@@ -41,7 +41,7 @@ ceiling. Tail completion is background work: input is ready at 121–146 ms
 300 ms, scroll 50 ms) is met at the stress shape while the tail mounts.
 The ceiling's purpose is anti-infinite-jank, not speed.
 
-Owner: ______
+Owner: FINAL 2026-11-02 — approved as proposed (interactive decision menu, "по рекомендациям").
 
 ## Decision 3 — Budget-semantics mapping ratification (open → TTI)
 
@@ -54,7 +54,7 @@ call. Measured progressive TTI (39–169 ms) sits far inside both open
 budgets (1500/4000 ms), so the mapping changes which meter gates, not
 whether the gates pass.
 
-Owner: ______
+Owner: FINAL 2026-11-02 — approved as proposed (interactive decision menu, "по рекомендациям").
 
 ## Decision 4 — Ratification: hard budgets live in evidence, CI asserts emission + loose ceilings (R-6 narrowing)
 
@@ -63,7 +63,7 @@ contract budgets are gated by the baseline-artifact verdict and the
 owner-run acceptance capture (anti-flake, Stage 0 precedent). Owner
 ratifies this reading of R-6.
 
-Owner: ______
+Owner: FINAL 2026-11-02 — approved as proposed (interactive decision menu, "по рекомендациям").
 
 ## Decision 5 — Recorded deviations: oversized-block one-unit mount and the restored-cursor legacy narrowing
 
@@ -87,7 +87,7 @@ restoration (asserted in T-006: such opens land mounted, served silently
 legacy). Recommendation: record as a known narrowing; cursor-carrying
 progressive open is the first Wave B candidate.
 
-Owner: ______
+Owner: FINAL 2026-11-02 — approved as proposed (interactive decision menu, "по рекомендациям").
 
 ## Non-goals restated
 
