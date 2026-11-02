@@ -39,7 +39,7 @@ chardet = "0.2"
 encoding_rs = "0.8"
 clap = { version = "4", features = ["derive"] }
 font-kit = "0.14"
-keyring = "3"
+keyring = "4"
 tauri-plugin-updater = "2"  # non-optional: capabilities/default.json references updater:default, and tauri-build fails without the plugin in the tree even when the app-store cfg never registers it
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-dialog = "2"
@@ -48,7 +48,7 @@ tauri-plugin-opener = "2"
 tauri-plugin-process = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"  # C-15 T-W4: second launch ("Open With") forwards files to the running instance
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 # C-UPDATER-ROLLBACK M-068: rollback manager crypto/trash deps.
 # minisign-verify is already in the lock transitively (tauri-plugin-updater)
 # and is reused directly; sha2 likewise already-locked; trash is new.
