@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
   <C-UPDATER-STATS>
     <Name>Update funnel counters: feed checks, Update-button clicks and update successes counted at our own gateway — no identifiers, redirect-only</Name>
     <Created>2026-10-29</Created>
