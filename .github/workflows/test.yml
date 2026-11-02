@@ -180,7 +180,12 @@ jobs:
     # oracles add ~5 minutes of WebKit suites; the first full green run took
     # 25m14s and merge-commit runs (one flake retry) tipped over the old
     # ceiling and were cancelled. Gate budgets and assertions are unchanged.
-    timeout-minutes: 35
+    # C-LARGE-DOC-WAVE-A follow-up (2026-11-02): 35 -> 45 — the Wave A
+    # progressive/failsafe webkit-perf suites plus capacity-slowed macOS
+    # queueing pushed merge-commit runs past 35m again (the vite-8 bump
+    # PR's rerun died on the ceiling with zero failing tests). Operational
+    # headroom only; no gate, budget or assertion is weakened.
+    timeout-minutes: 45
 
     steps:
       - name: checkout
