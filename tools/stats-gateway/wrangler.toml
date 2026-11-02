@@ -2,16 +2,17 @@
 # counters (C-UPDATER-STATS). Deployed owner-side; see README.md.
 #
 # The gateway answers on exactly one host: workers_dev is disabled and the
-# route binds updates.mark.xronocode.com/* (the xronocode.com zone is
-# DNS-managed in Cloudflare — the C-22 fact; the site itself is served by
-# GitHub Pages per C-64 D-1, which does not matter for a zone-level
-# Worker route).
+# host updates.mark.xronocode.com is a Workers CUSTOM DOMAIN (provisioned
+# 2026-11-02 — Cloudflare manages the DNS record and the certificate
+# automatically; the xronocode.com zone lives in Cloudflare per C-22).
 name = "mark-stats-gateway"
 main = "worker.mjs"
 compatibility_date = "2026-10-01"
 workers_dev = false
 
-route = { pattern = "updates.mark.xronocode.com/*", zone_name = "xronocode.com" }
+routes = [
+  { pattern = "updates.mark.xronocode.com", custom_domain = true }
+]
 
 [[analytics_engine_datasets]]
 binding = "STATS"
