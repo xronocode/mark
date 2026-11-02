@@ -2984,5 +2984,31 @@
       <Contract><Purpose>Guarantee that every in-app update leaves a restorable previous state, that a restore re-verifies everything before touching the system, and that a version whose UI cannot start is still recoverable from the terminal.</Purpose><Inputs><Input><Name>prepare</Name><Type>IPC mt::rollback::prepare — invoked by installSignedUpdate before check/downloadAndInstall</Type></Input><Input><Name>status</Name><Type>IPC mt::rollback::status — availability + versions for the renderer surface</Type></Input><Input><Name>restore</Name><Type>IPC mt::rollback::restore (dialog path) or the pre-boot --rollback CLI flow</Type></Input></Inputs><Outputs><Output><Name>rollback set</Name><Type>rollback/{staging.tmp,live}/ under the data root: manifest.json + staged artifacts with digests</Type></Output><Output><Name>MARK_ROLLBACK line</Name><Type>event=restored|delegated|pending|failed|declined|nosnapshot|store from=V to=V — printed exactly once per CLI run</Type></Output></Outputs><Errors><Error><Code>7 nosnapshot</Code><Description>missing, corrupted or tampered manifest — behaves exactly like no set; no network, nothing applied</Description></Error><Error><Code>6 failed/declined</Code><Description>digest mismatch, unwritable bundle path, broken live instance, or a declined prompt — current state untouched</Description></Error><Error><Code>4 verification failure</Code><Description>Windows download or minisign failure — installer never executes; the set stays intact</Description></Error></Errors></Contract>
       <Sources><Source>src-tauri/src/m068_rollback.rs</Source><Source>src/renderer/src/components/rollbackConfirm/index.vue</Source><Tests>cargo test rollback (rollback_core/rollback_restore/rollback_cli + m020_cli flag tests)</Tests><Tests>tests/renderer/commands/updater.test.js</Tests></Sources>
     </M-068>
+      <M-071>
+      <Name>StatsGateway</Name><Type>SCRIPT</Type><Status>implemented</Status><Layer>TOOLS</Layer>
+      <Summary>
+        Redirect-only counting gateway for the update funnel (C-UPDATER-STATS): a Cloudflare
+        Worker (tools/stats-gateway/worker.mjs, deployed owner-side on
+        updates.mark.xronocode.com with workers_dev disabled) whose /feed route counts one
+        check datapoint (day/os/from — the values Tauri's {{current_version}} and {{target}}
+        placeholders substitute; os validated against the bare-OS table {darwin, windows}) and
+        302-redirects to the GitHub latest.json manifest, and whose /pkg/{platform}/{version}
+        route counts one pkg datapoint (day/platform/version; platform against
+        {darwin-aarch64, windows-x86_64}) and 302-redirects to the deterministic GitHub
+        release asset. GET-only, exactly-the-expected-parameters, strict x.y.z validation,
+        every Location derived (never reflected — not an open redirector), unknown input a
+        plain 404 with zero datapoints, the AE write inside waitUntil (best-effort — a
+        binding failure changes no response), and Cloudflare edge metadata never read.
+        query.mjs prints the day x event x OS/platform table and the from-breakdown (dry
+        mode on inlined fixtures, live mode via CF_API_TOKEN); the client side is exactly
+        the tauri.conf.json endpoints array (gateway feed URL first, GitHub fallback) and
+        the release.yml feed-fragment urls through the pkg routes; release-preflight pins
+        the two-entry array.
+      </Summary>
+      <Path>tools/stats-gateway/worker.mjs</Path><PlannedPath>tools/stats-gateway/worker.mjs, tools/stats-gateway/wrangler.toml, tools/stats-gateway/query.mjs, tools/stats-gateway/README.md, tests/tools/stats-gateway.test.mjs</PlannedPath>
+      <Dependencies>Workers runtime (fetch/waitUntil, env.STATS Analytics Engine binding, dataset mark_update_funnel); consumers: tauri.conf.json updater endpoints (gateway first, GitHub fallback), release.yml latest.json platform fragments (pkg routes); NO client code, NO renderer egress; the C-UPDATER-ROLLBACK restore fetches stay direct-GitHub by design</Dependencies><VerificationRef>V-M-071</VerificationRef>
+      <Contract><Purpose>Count the update funnel — checks, Update-button artifact fetches, and (by from-version transition) update successes — as day-level aggregates with no identifiers, while the updater keeps working unchanged whenever the gateway is slow, wrong or gone.</Purpose><Inputs><Input><Name>/feed</Name><Type>GET with exactly from (strict semver) and os (darwin|windows); the Tauri updater's placeholder-substituted check request</Type></Input><Input><Name>/pkg/{platform}/{version}</Name><Type>GET with no query; platform darwin-aarch64|windows-x86_64, version strict x.y.z; the updater's artifact fetch via the release feed's url field</Type></Input></Inputs><Outputs><Output><Name>302</Name><Type>Location: the derived GitHub manifest/asset URL</Type></Output><Output><Name>datapoint</Name><Type>{index: check|pkg, blobs: [day, os|platform, from|version]} — one per valid request, UTC day</Type></Output></Outputs><Errors><Error><Code>404</Code><Description>any other method, path, parameter set or value — zero datapoints, zero redirects</Description></Error><Error><Code>binding failure</Code><Description>swallowed inside waitUntil; the redirect always returns (best-effort counting)</Description></Error></Errors></Contract>
+      <Sources><Source>tools/stats-gateway/worker.mjs</Source><Source>tools/stats-gateway/query.mjs</Source><Tests>tests/tools/stats-gateway.test.mjs</Tests></Sources>
+    </M-071>
   </GD-FEATURES>
 </GraceGraphDocument>

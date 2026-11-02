@@ -106,13 +106,21 @@ Scenarios come from the ledger's "intentionally unverified" fields. Order = risk
 
 ## Constraints and standing decisions
 
-- **Known issues blocking Windows acceptance (2026-10-31, FIX handover filed):** native
-  menu accelerators do not fire on Windows (Ctrl+Alt+S source, Ctrl+Alt+\\ split — the
-  hidden menu bar from C-15 T-W1 apparently does not register them), and the titlebar
-  mode chips do not render even with a document open and a mode engaged
-  (`titlebar-mode-chips-wrap` present, `v-if="chips.length"` inner absent). Both affect
-  C-TITLEBAR-MODE-CHIPS / FIX-021 acceptance on this platform and must be resolved (or
-  explicitly waived) before the train acceptance run.
+- **Windows accelerator status (updated 2026-11-01, C-WINDOWS-MENU-ACCELERATORS):** the
+  2026-10-31 finding stands for the pre-fix builds — real SendInput proved the whole
+  app-level menu-accelerator surface dead with the hidden bar (Ctrl+Alt+S, Ctrl+Alt+\\,
+  Ctrl+D, Ctrl+N and Ctrl+S: a dirty document stays unsaved). C-WINDOWS-MENU-ACCELERATORS
+  rescues the audited chords through a window-level renderer dispatcher (off on darwin);
+  acceptance on this platform re-runs the chord round on the fixed build (see the probe
+  hygiene section).
+- **FIX-2 reclassified as a measurement phantom (2026-11-01):** the "mode chips do not
+  render" repro did not hold. Live pinia probes on the same build proved the chips
+  render whenever a mode actually engages; the rounds' dispatcher
+  (`ipcRenderer.invoke('mt::menu-invoked', …)`) is a silent v1-stub no-op (the command
+  does not exist — the bridge listens to the Tauri *event*), so no mode ever engaged,
+  and the loose "mode OK" selectors (`[class*="source"]`, `[class*=split-view]`) match
+  resting-state elements. No renderer defect exists; the probe rules below prevent a
+  repeat.
 - **Windows 10 22H2 only** — Win11 surfaces (mica et al.) are not covered; noted in the
   registry, acceptable for 2.9.
 - **docx verification happens on the owner's Mac** (owner decision 2026-10-30).
@@ -121,6 +129,26 @@ Scenarios come from the ledger's "intentionally unverified" fields. Order = risk
   run on a clean launch without the CDP wrapper.
 - Cyrillic input goes through `insertText` / `dispatchKeyEvent` (Unicode-safe, no IME
   dependence).
+
+## Probe hygiene (2026-11-01 errata — supersedes the round recipe)
+
+- **Chip probes** must query `.titlebar-mode-chips-wrap .mode-chip` (the welcome screen
+  reuses `.chip-button`) and must assert mode engagement through state, not loose class
+  selectors: read `#app.__vue_app__…$pinia` — `editor.currentFile.id` (document open),
+  `currentFile.splitView`/`diffMode`, `preferences.sourceCode`.
+- **Dispatching menu commands from CDP** goes through the event, never the invoke stub:
+  `window.__TAURI_INTERNALS__.invoke('plugin:event|emit', { event: 'mt::menu-invoked',
+  payload: '<command-id>' })`. `ipcRenderer.invoke('mt::menu-invoked')` resolves
+  `undefined` silently.
+- **Accelerator tests need real input**: `cua-driver call hotkey` with
+  `delivery_mode:"foreground"` (SendInput + SetForegroundWindow). `press_key` posts
+  WM_KEYDOWN without OS modifier state and can never prove or disprove an accelerator;
+  CDP `Input.dispatchKeyEvent` likewise stays inside the webview.
+- **Coordinate trap:** the polygon display scale is 125% — desktop screenshots are
+  physical pixels, CDP `Input.dispatchMouseEvent` takes CSS pixels. Derive click points
+  from `getBoundingClientRect()` in-page, never from screenshot pixels (the 2026-10-31
+  "☰ click does not reach the handler" conclusion was this artifact; trusted clicks do
+  reach the button).
 
 ## Pilot evidence (2026-10-30, kari, Mark 2.5.3)
 

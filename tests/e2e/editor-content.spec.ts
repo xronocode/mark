@@ -67,7 +67,9 @@ test.describe('editor content', () => {
     await expect(page.locator('#ag-editor-id h1')).toBeVisible({ timeout: 5_000 })
 
     // A non-flex parent makes WKWebView fill fully selected blocks across
-    // the whole window instead of the 750px column.
+    // the whole window instead of the column (the shipped default is the
+    // padding-inclusive calc(100px + 768px) — an 868px box, pinned by
+    // tests/renderer/util/editor-width-default.test.js).
     const geo = await page.evaluate(() => {
       const editor = document.querySelector('#ag-editor-id') as HTMLElement
       const parent = editor.parentElement as HTMLElement
@@ -81,7 +83,7 @@ test.describe('editor content', () => {
       }
     })
     expect(geo.display).toBe('flex')
-    expect(geo.width).toBe(750)
+    expect(geo.width).toBe(868)
     expect(Math.abs(geo.leftGap - geo.rightGap)).toBeLessThanOrEqual(1)
   })
 })

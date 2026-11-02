@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.23.0
+// VERSION: 2.24.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, unprivileged candidate packaging, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static dry-run/production workflow assertions.
@@ -15,6 +15,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-30 v2.24.0 (C-UPDATER-STATS T-004): the updater endpoints
+//     pin becomes the two-entry array — the counting gateway feed URL
+//     (from/os placeholders) first, the GitHub manifest as the fallback.
 //   LAST_CHANGE: 2026-10-24 v2.23.0 - advance the normalized positive fixture to v2.8.2.
 //   PREV: 2026-10-24 v2.22.0 - C-RELEASE-TIMING: the release build lane stops re-running the payload-covered suites (renderer unit, e2e, standalone renderer build, Rust unit) behind strict admission's status-check aggregate; tauri beforeBuildCommand owns the renderer build; typecheck:ipc stays lane-local.
 //   PREVIOUS_LATEST: 2026-10-23 v2.21.0 - advance the fixture to the v2.8.1 patch (FIX-018 PDF export root cause).
@@ -239,6 +242,7 @@ describe('production release workflow', () => {
 
   it('publishes beta tags as normal releases so the /latest updater feed advances', () => {
     expect(tauriConfig.plugins.updater.endpoints).toEqual([
+      'https://updates.mark.xronocode.com/feed?from={{current_version}}&os={{target}}',
       'https://github.com/xronocode/mark/releases/latest/download/latest.json'
     ])
     expect(workflow).toContain('--draft=false --prerelease=false')

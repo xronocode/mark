@@ -1,0 +1,107 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved basis: owner directive «чинить давай все» (2026-11-01, chat) + unanswered scope menu resolved by the published recommendation per the standing closing-is-not-rejection rule; same pattern as C-SAFETY-LOCAL-FIRST-REVIEW. --><C-WINDOWS-MENU-ACCELERATORS>
+  <Name>Windows/Linux menu-accelerator rescue — implementation plan</Name><Created>2026-11-01</Created><Spec>C-WINDOWS-MENU-ACCELERATORS</Spec>
+  <IntentSummary>
+    Add src/renderer/src/services/windowMenuAccelerators.js: a non-macOS window-level capture keydown dispatcher holding the audited table of 22 menu chords (Ctrl+S/N/O/W/P/F/H/G/D/B/M, Shift-variants, Alt+Ctrl+V, the mode trio, tab cycles) mapped to existing command registry ids, with IMe/repeat guards, physical event.code matching, and input-surface carve-outs; wire it once at boot in app.vue beside the existing zoom/palette capture handlers; reuse menu-bridge's findCommandById for dispatch. Unit tests pin table-registry parity and an m009_menu.rs source cross-check (win-relevant accelerators vs table, alive-excluded absent); a chromium e2e spec with the platform stubbed win32 proves chord dispatch end-to-end (source mode + chip, save, close tab) and darwin silence; the Windows acceptance protocol doc carries the FIX-2 errata and corrected probe recipe; graph M-070 / verification V-M-070 land with the module; the polygon round (NSIS rebuild + real cua hotkeys) closes the acceptance effect.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>src/renderer/src/pages/app.vue</Value></MustExist>
+    <MustExist><Value>src/renderer/src/menu-bridge.js</Value></MustExist>
+    <MustExist><Value>src-tauri/src/m009_menu.rs</Value></MustExist>
+    <MustExist><Value>docs/acceptance/cua-e2e-windows-polygon.md</Value></MustExist>
+    <MustContain><File>src/renderer/src/pages/app.vue</File><Text>setupZoomKeysFontSize</Text></MustContain>
+    <MustContain><File>src/renderer/src/menu-bridge.js</File><Text>const findCommandById</Text></MustContain>
+    <MustContain><File>src-tauri/src/main.rs</File><Text>hide_menu()</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustExist><Value>src/renderer/src/services/windowMenuAccelerators.js</Value></MustExist>
+    <MustExist><Value>tests/renderer/services/windowMenuAccelerators.test.js</Value></MustExist>
+    <MustExist><Value>tests/e2e/windows-accelerators.spec.ts</Value></MustExist>
+    <MustContain><File>src/renderer/src/services/windowMenuAccelerators.js</File><Text>WINDOW_MENU_ACCELERATORS</Text></MustContain>
+    <MustContain><File>src/renderer/src/services/windowMenuAccelerators.js</File><Text>C-WINDOWS-MENU-ACCELERATORS</Text></MustContain>
+    <MustContain><File>src/renderer/src/pages/app.vue</File><Text>installWindowMenuAccelerators</Text></MustContain>
+    <MustContain><File>src/renderer/src/menu-bridge.js</File><Text>export const findCommandById</Text></MustContain>
+    <MustContain><File>tests/renderer/services/windowMenuAccelerators.test.js</File><Text>m009</Text></MustContain>
+    <MustContain><File>docs/acceptance/cua-e2e-windows-polygon.md</File><Text>FIX-2</Text></MustContain>
+    <MustNotContain><File>src/renderer/src/services/windowMenuAccelerators.js</File><Text>registerGlobalShortcut</Text></MustNotContain>
+    <MustPassCommand><Command>npx vitest run tests/renderer/services/windowMenuAccelerators.test.js</Command></MustPassCommand>
+    <MustPassCommand><Command>npx playwright test tests/e2e/windows-accelerators.spec.ts --project=chromium</Command></MustPassCommand>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-070/></GraphAnchors><VerificationAnchors><V-M-070/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/services/windowMenuAccelerators.js</File>
+    <File>src/renderer/src/pages/app.vue</File>
+    <File>src/renderer/src/menu-bridge.js</File>
+    <File>tests/renderer/services/windowMenuAccelerators.test.js</File>
+    <File>tests/e2e/windows-accelerators.spec.ts</File>
+    <File>docs/acceptance/cua-e2e-windows-polygon.md</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <File>docs/release-trains/2.9.x-next.md</File>
+  </ObservedWriteScope>
+  <ImplementationPlan>
+    <T-001>
+      <Title>windowMenuAccelerators module: chord table, matcher, dispatcher, guards</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>WINDOW_MENU_ACCELERATORS lists exactly the 22 audited chords (spec Goal-2 list) as { accelerator, commandId } entries; the table is a frozen const and every commandId resolves through the static command registry imported from commands/index.js — no ids that the registry or its subcommands do not define.</Criterion>
+        <Criterion>matchAccelerator(event) maps a KeyboardEvent to a normalized accelerator string using physical event.code (KeyS→S, Digit0→0, Backslash, Tab, Equal, Minus) with Ctrl/Alt/Shift modifier sets, layout-independent, reusing the house getAcceleratorFromKeyboardEvent normalization where it fits; a modifier-only or composing (isComposing) or auto-repeat event never matches.</Criterion>
+        <Criterion>The dispatcher runs as a window capture keydown listener: on a match it preventDefaults, resolves the command via menu-bridge's now-exported findCommandById and executes it (execute() or executeSubcommand fallback, identical to the mt::menu-invoked bridge path), skipping when the event target sits inside a non-editor input surface for the chords where the browser default is correct (at minimum Ctrl+A inside input/textarea outside the editor surface); unmatched events pass through untouched.</Criterion>
+        <Criterion>installWindowMenuAccelerators() is a no-op returning a noop disposer when isOsx is true (mac's native menu owns the chords); on win/linux it registers the listener and returns its disposer. MODULE_CONTRACT (PURPOSE/SCOPE/DEPENDS/LINKS M-070), MODULE_MAP and CHANGE_SUMMARY v1.0.0 C-WINDOWS-MENU-ACCELERATORS blocks are present.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/services/windowMenuAccelerators.test.js</Command><BudgetSeconds>180</BudgetSeconds></Verification>
+    </T-001>
+    <T-002>
+      <Title>app.vue boot wiring beside the existing capture handlers</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>installWindowMenuAccelerators() is called once during app setup directly beside setupZoomKeysFontSize/setupCommandPaletteShortcut with its disposer handled the same way, and app.vue's CHANGE_SUMMARY advances with C-WINDOWS-MENU-ACCELERATORS.</Criterion>
+        <Criterion>No other component or store is touched: sidebar Ctrl+\, zoom trio and palette binding keep their existing owners; the new listener adds no duplicate handling for them (they are absent from the table).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/pages/app.test.js tests/renderer/services/windowMenuAccelerators.test.js</Command><BudgetSeconds>240</BudgetSeconds></Verification>
+    </T-002>
+    <T-003>
+      <Title>Unit tests: registry parity, guards, gates, m009 source cross-check</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Every table entry's commandId exists in the static registry (depth-first incl. subcommands); the excluded chords are asserted absent (Ctrl+= / Ctrl+- / Ctrl+0, Cmd+, / Cmd+Q / Cmd+Shift+P, Ctrl+CmdOrCtrl+F).</Criterion>
+        <Criterion>The m009 cross-check reads src-tauri/src/m009_menu.rs, extracts every win-relevant declared accelerator (CmdOrCtrl/Ctrl/Alt forms), normalizes them the same way the matcher does, and asserts the table equals that set minus the documented exclusions — drift in either direction fails CI.</Criterion>
+        <Criterion>Guard tests: isOsx gate (no listener on darwin), IME composing, auto-repeat, Ctrl+A carve-out inside a sidebar input, and a dispatch test proving the matched chord executes the registry command exactly once with preventDefault called.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx vitest run tests/renderer/services/windowMenuAccelerators.test.js</Command><BudgetSeconds>180</BudgetSeconds></Verification>
+    </T-003>
+    <T-004>
+      <Title>E2E: chord dispatch on a win32-stubbed platform, silence on darwin</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tests/e2e/windows-accelerators.spec.ts runs on the chromium tauri-shim project with the platform stubbed win32: Ctrl+Alt+S turns sourceCode on and the titlebar mode chip renders; Ctrl+S saves a dirty document (content reaches disk or the save command marker fires per the house e2e save pattern); Ctrl+W closes the focused tab.</Criterion>
+        <Criterion>The same spec proves the darwin-stubbed run leaves the chords unhandled by the new dispatcher (commands not executed through it), pinning the macOS no-op gate.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/windows-accelerators.spec.ts --project=chromium</Command><BudgetSeconds>420</BudgetSeconds></Verification>
+    </T-004>
+    <T-005>
+      <Title>Acceptance protocol errata: FIX-2 reclassification and corrected probe recipe</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>docs/acceptance/cua-e2e-windows-polygon.md gains the FIX-2 errata (measurement phantom: silent ipcRenderer.invoke no-op dispatcher + loose resting-state selectors; chips proven functional by pinia probe) and replaces the round recipe with: strict chip selector .titlebar-mode-chips-wrap .mode-chip, pinia-state assertions for mode engagement, dispatch via the mt::menu-invoked Tauri event emit, real-input accelerator testing via cua hotkey with delivery_mode foreground, and the 125% desktop-scale coordinate trap note.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>grep -c "FIX-2" docs/acceptance/cua-e2e-windows-polygon.md</Command><BudgetSeconds>30</BudgetSeconds></Verification>
+    </T-005>
+    <T-006>
+      <Title>Graph and verification entries: M-070 / V-M-070</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>.grace/graph/runtime.xml gains M-070 for the module with its contract-linked summary; .grace/verification/runtime.xml gains V-M-070 with scenarios covering table parity, dispatch, gates and the polygon hotkey round; both route consistently with the existing m009/menu-bridge/app.vue links.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --change C-WINDOWS-MENU-ACCELERATORS --assertions target</Command><BudgetSeconds>120</BudgetSeconds></Verification>
+    </T-006>
+    <T-007>
+      <Title>Polygon acceptance: NSIS rebuild + real-input hotkey round</Title>
+      <DependsOn>T-002, T-003, T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Branch build on the polygon (house NSIS recipe, createUpdaterArtifacts off) + silent reinstall; real cua hotkey Ctrl+Alt+S (delivery_mode foreground) turns Source Code Mode on with the mode chip rendered in the titlebar; Ctrl+S writes a dirty scratch document (mtime moves); Ctrl+N opens a tab; Ctrl+Tab cycles when more than one tab is open — if WebView2 swallows the chord, the two tab-cycle entries are dropped to a documented follow-up and the rest stands.</Criterion>
+        <Criterion>Round evidence lands in the acceptance folder (probe outputs + screenshots) and the ☰ click path is re-verified from real rect coordinates (menu opens).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>ssh kari "dir D:\\polygon\\mark\\target\\x86_64-pc-windows-msvc\\release\\bundle\\nsis | findstr exe"</Command><BudgetSeconds>60</BudgetSeconds></Verification>
+    </T-007>
+  </ImplementationPlan>
+</C-WINDOWS-MENU-ACCELERATORS></GraceChangePlan>

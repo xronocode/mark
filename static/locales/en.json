@@ -551,7 +551,14 @@
       "markdown": "Markdown",
       "general": "General",
       "advanced": "Advanced",
-      "appearance": "Appearance"
+      "appearance": "Appearance",
+      "experimental": "Experimental"
+    },
+    "experimental": {
+      "title": "Experimental features",
+      "progressiveMount": "Progressive mount for large documents",
+      "progressiveMountHelp": "Experimental: mounts large documents progressively (opens stay responsive). Off by default; resets on restart. Part of the large-document performance contract.",
+      "sessionCount": "This session: {progressive} progressive / {legacy} legacy opens"
     },
     "markdown": {
       "title": "Markdown",

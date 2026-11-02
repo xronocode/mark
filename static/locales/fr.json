@@ -543,7 +543,14 @@
       "markdown": "Markdown",
       "general": "Général",
       "advanced": "Avancé",
-      "appearance": "Apparence"
+      "appearance": "Apparence",
+      "experimental": "Expérimental"
+    },
+    "experimental": {
+      "title": "Fonctions expérimentales",
+      "progressiveMount": "Montage progressif des documents volumineux",
+      "progressiveMountHelp": "Expérimental : monte progressivement les documents volumineux (l'ouverture reste réactive). Désactivé par défaut ; réinitialisé au redémarrage. Partie du contrat de performance des documents volumineux.",
+      "sessionCount": "Cette session : {progressive} ouvertures progressives / {legacy} ouvertures héritées"
     },
     "markdown": {
       "title": "Markdown",

@@ -202,6 +202,61 @@
             "INTENTIONALLY UNVERIFIED: a hands-on View › Standard View check on a dispatch build — deferred to the train acceptance protocol (rule 5)."
           ]
         }
+      },
+      {
+        "id": "C-WINDOWS-MENU-ACCELERATORS",
+        "summary": "Windows/Linux menu accelerators rescued through a window-level renderer dispatcher: the C-15 T-W1 hidden menu bar never registered its accelerator table, so every app-level menu shortcut was dead on Windows (Ctrl+S left a dirty document unsaved; Ctrl+N and the view-mode chords were unreachable, leaving the titlebar mode chips with no way to appear). The audited 22 chords now dispatch to the same static command registry ids the native menu uses, off on darwin; the Windows acceptance 'FIX-2 mode chips' finding is reclassified as a measurement phantom, with the corrected probe recipe landed in the polygon protocol.",
+        "state": "queued",
+        "commits": [
+          "bc8ad8aef3e731660c11f320dc54c14c703f8536"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-01",
+          "testedArtifact": "Windows polygon: NSIS rebuilt from the branch (SHA-256 295CA9D6...7133), silently reinstalled; real SendInput hotkeys (cua delivery_mode foreground) drove the acceptance round.",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): vitest 4996/0 including the m009 parity cross-check; playwright windows-accelerators 4/4 on chromium; full PR #158 check run green.",
+            "LIVE: Ctrl+Alt+S engages Source Code Mode with the titlebar mode chip rendered (the C-TITLEBAR-MODE-CHIPS Windows acceptance effect); Ctrl+N opens a tab; every chord logs BLOCK_ACCELERATOR_FIRED; the darwin gate stays silent without the e2e seam.",
+            "INTENTIONALLY UNVERIFIED: nothing for this item — the Windows save-pipeline write gap found during the round is a separate finding (draft C-WINDOWS-SAVE-PIPELINE), not part of this change."
+          ]
+        }
+      },
+      {
+        "id": "C-WINDOWS-SAVE-PIPELINE",
+        "summary": "Saving works on Windows: the sandbox prefix check in m010_security::check_path was Windows-blind — the permissive default sandbox \"/\" normalizes to a bare root no DOS path ever prefix-matches (every absolute write denied with MT_FS_PATH_DENIED), and a restored workspace added the \\\\?\\ UNC-form mismatch. A root-only sandbox is now permissive on every platform, both comparison sides strip the \\\\?\\ / \\\\?\\UNC\\ device prefixes, and the symlink step skips its prefix denial under the permissive root; every other denial keeps firing.",
+        "state": "queued",
+        "commits": [
+          "f7ffccd8e64d9967f547c95ce6fe4b209adb5938"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-01",
+          "testedArtifact": "Windows polygon: NSIS rebuilt from the branch (SHA-256 6840EA3D...F8149), silently reinstalled; real SendInput Ctrl+S wrote a scratch document under D:\\polygon.",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): cargo test m010_security 29/29 with the new Windows fixture matrix; cargo test m001_save_close 16/16; grace final --run-commands 2/2; full PR #162 check run green (governance with release:user-facing after the label-race reopen).",
+            "LIVE: scratch doc opened via the mt_open_file channel, dirtied through the editor; real Ctrl+S (cua hotkey foreground) — isSaved true, no notification, file mtime 01:02:13 -> 01:06:14, size 15 -> 44 bytes, probe text round-trips from disk.",
+            "INTENTIONALLY UNVERIFIED: nothing — the fix is platform-guard logic pinned by cross-host fixture tests; the owner workspace stayed read-only throughout."
+          ]
+        }
+      },
+      {
+        "id": "C-PAGE-WIDTH-TABLES-768",
+        "summary": "The default writing column becomes an honest 768 px of text: the shared :root default and all 34 shipped themes carry --editorAreaWidth: calc(100px + 768px) — the padding-inclusive form the preference writer has always used — replacing the raw 750px value that rendered only 650 px of content; the out-of-the-box column and a manually set 768px are pixel-identical.",
+        "state": "queued",
+        "commits": [
+          "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-02",
+          "testedArtifact": "None beyond the owner's direction — a default value flip with a pinned equivalence (guard test editor-width-default.test.js); hands-on check deferred to the train acceptance protocol.",
+          "scenarios": [
+            "guard: the calc form present in all 35 shipped width sources, zero raw 750px defaults, exactly 34 theme files",
+            "renderer suite green on real node_modules (4965/4965); PR CI green on three OS lanes including the full e2e run",
+            "column geometry: the editor box is 868px (calc(100px+768px)), centred in the canvas (leftGap==rightGap)",
+            "follow-up recorded: boot-time application of a persisted editorLineWidth looks broken store-to-column (pre-existing, not caused here)"
+          ]
+        }
       }
     ],
     "operational": [

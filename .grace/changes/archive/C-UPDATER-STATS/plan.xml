@@ -1,0 +1,217 @@
+<GraceChangePlan graceVersion='4.0' status='applied'>
+  <C-UPDATER-STATS>
+    <IntentSummary>Implement the approved update-funnel counters spec in one wave in a dedicated worktree off fork/main: the governed SCRIPT module M-071 mt-stats-gateway (tools/stats-gateway/ — redirect-only Cloudflare Worker with the /feed and /pkg routes, strict OS/platform/semver validation, one aggregate Analytics Engine datapoint per valid request via waitUntil, workers_dev disabled, owner-executed deployment documented in the README; plus query.mjs with dry/live aggregate tables), the two-entry client endpoints array in tauri.conf.json (gateway feed URL with exactly the from/os placeholders first, today's GitHub URL second), the release.yml feed-fragment url fields pointed at the /pkg routes (in-file VERSION + CHANGE_SUMMARY bump there; the strict-JSON config edit recorded in this bundle), the vitest include growth so tests/tools runs under npm test, the two-entry expectation in tests/renderer/release-preflight.test.js, and the mark-site privacy-page amendment per R-6 (local repository, deploy separate). Fixed here as the spec deferred: the wrangler route pattern updates.mark.xronocode.com/* with workers_dev = false; query.mjs speaks the Analytics Engine SQL API over GraphQL (owner CF_API_TOKEN); day buckets are UTC. No product code beyond configuration; MAS, rollback paths and the signature scheme untouched; nothing deploys and no release runs from this wave. The plan's own review gate (four corners, two consecutive clean passes — rounds 10-11 of the ReviewLog) completed before approval. Approval basis: the owner instruction of 2026-10-30 (translated from Russian: "1 давай реализуем" — implement the stats change), extending spec R-9's protocol order; execution and the PR follow this approval, deployment stays owner-executed.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/tauri.conf.json</Value>
+        <Value>.github/workflows/release.yml</Value>
+        <Value>vitest.config.ts</Value>
+        <Value>tests/renderer/release-preflight.test.js</Value>
+      </MustExist>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>https://github.com/xronocode/mark/releases/latest/download/latest.json</Text></MustContain>
+      <MustContain><File>tests/renderer/release-preflight.test.js</File><Text>releases/latest/download/latest.json</Text></MustContain>
+      <MustContain><File>.github/workflows/release.yml</File><Text>Mark_${VER}_aarch64.app.tar.gz</Text></MustContain>
+      <MustContain><File>.github/workflows/release.yml</File><Text>Mark_${VER}_x64-setup.exe</Text></MustContain>
+      <MustContain><File>vitest.config.ts</File><Text>tests/renderer/**/*.{test,spec}.{js,ts}</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>https://github.com/xronocode/mark/releases/download/v{version}</Text></MustContain>
+      <MustNotContain><File>src-tauri/tauri.conf.json</File><Text>updates.mark.xronocode.com</Text></MustNotContain>
+      <MustNotContain><File>vitest.config.ts</File><Text>tests/tools</Text></MustNotContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>tools/stats-gateway/worker.mjs</Value>
+        <Value>tools/stats-gateway/wrangler.toml</Value>
+        <Value>tools/stats-gateway/query.mjs</Value>
+        <Value>tools/stats-gateway/README.md</Value>
+        <Value>tests/tools/stats-gateway.test.mjs</Value>
+      </MustExist>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>https://updates.mark.xronocode.com/feed?from={{current_version}}</Text></MustContain>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>&amp;os={{target}}</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>BLOCK_STATS_FEED</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>BLOCK_STATS_PKG</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/wrangler.toml</File><Text>workers_dev = false</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/wrangler.toml</File><Text>updates.mark.xronocode.com/*</Text></MustContain>
+      <MustContain><File>.github/workflows/release.yml</File><Text>https://updates.mark.xronocode.com/pkg/darwin-aarch64/</Text></MustContain>
+      <MustContain><File>.github/workflows/release.yml</File><Text>https://updates.mark.xronocode.com/pkg/windows-x86_64/</Text></MustContain>
+      <MustContain><File>vitest.config.ts</File><Text>tests/tools/**/*.{test,spec}.{js,ts,mjs}</Text></MustContain>
+      <MustPassCommand>
+        <Command>npx vitest run tests/tools/stats-gateway.test.mjs tests/renderer/release-preflight.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-071 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-071 />
+      </VerificationAnchors>
+      <ContextArtifact>requirements.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/stats-gateway/worker.mjs</File>
+      <File>tools/stats-gateway/wrangler.toml</File>
+      <File>tools/stats-gateway/query.mjs</File>
+      <File>tools/stats-gateway/README.md</File>
+      <File>tests/tools/stats-gateway.test.mjs</File>
+      <File>src-tauri/tauri.conf.json</File>
+      <File>.github/workflows/release.yml</File>
+      <File>vitest.config.ts</File>
+      <File>tests/renderer/release-preflight.test.js</File>
+      <Glob>.grace/graph/*.xml</Glob>
+      <Glob>.grace/verification/*.xml</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-071 gateway worker: routes, validation, redirect-only counting</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tools/stats-gateway/worker.mjs with the house MODULE_CONTRACT header (M-071 mt-stats-gateway, SCRIPT + LOCALS): /feed validates GET-only, exactly the from/os parameters, os against {darwin, windows} (the {{target}} substitution) and from against strict semver, then fires one Analytics Engine datapoint (index event=check, blobs day/os/from, UTC day) inside waitUntil and 302-redirects to the GitHub latest.json URL; /pkg/{platform}/{version} validates against the platform table {darwin-aarch64, windows-x86_64} plus strict semver, fires event=pkg (blobs day/platform/version) and 302-redirects to the derived GitHub asset URL; every other method, path, parameter set or value is a plain 404 with zero datapoints and zero redirects; route and platform matching is exact and case-sensitive with no trailing-slash or percent-decoding tolerance; no route ever returns a body it made; Cloudflare edge metadata (request.cf, CF-IPCountry) is never read; worker.mjs emits the BLOCK_STATS_FEED / BLOCK_STATS_PKG log markers on the two counted paths; wrangler.toml carries the updates.mark.xronocode.com/* route, workers_dev = false and the Analytics Engine binding (zone pre-check: the README cites the C-22 fact that the xronocode.com zone is DNS-managed in Cloudflare before any route is deployed).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node --check tools/stats-gateway/worker.mjs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Gateway unit pins: derivation table, guards, best-effort counting</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>vitest.config.ts's include grows tests/tools/**/*.{test,spec}.{js,ts,mjs} FIRST (matching no pre-existing file; coverage include and thresholds untouched) so the new suite is runnable from this task on; tests/tools/stats-gateway.test.mjs (with the house MODULE_CONTRACT header, an M-071 local) pins: the full derivation table (both platforms × version → exact GitHub Location), the os-table vs platform-table separation, 404-with-zero-datapoints for every malformed class (non-GET, missing/extra/garbage parameters, unknown platform, non-strict version, traversal input, trailing slashes, wrong case), zero reflected input in any Location (open-redirect guard), the datapoint shape against a fixture binding, best-effort counting (an absent or erroring binding changes no response — the redirect/404 always returns), and two baseline-true source scans (house precedent: tests/renderer/commands/updater.test.js reads sources): worker.mjs never reads request.cf / CF-IPCountry / user-agent, and src/renderer sources introduce no NEW network-egress or analytics APIs beyond the named baseline allowlist (the spec's delta-form pin: the C-56 remote image-copy fetch in editorWithTabs/editor.vue, blob-URL fetches, and the dormant globally-registered axios client — src/renderer/src/axios/index.js, imported in main.js with zero call sites — are pre-existing and allowed; anything else that initiates network traffic or smells of analytics fails); the suite's remaining static pins (the two-entry endpoints array, both gateway pkg URL prefixes in release.yml, m068's windows_release_base byte-unchanged) are added in T-005 once those edits exist.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Query tooling with dry/live modes</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tools/stats-gateway/query.mjs (with the house MODULE_CONTRACT header, an M-071 local): dry mode (fixtures inlined in the script, zero network, no fixture files) prints the day × event × OS/platform table and the from-version breakdown; live mode reads only CF_API_TOKEN from the environment and queries the Analytics Engine SQL API printing the same shape; the README documents the owner-executed wrangler deploy steps and route, the C-22 zone fact (the xronocode.com zone is DNS-managed in Cloudflare), the Analytics Engine binding, workers_dev disabled, the success reading (from={N} appearing after N shipped, with the fresh-install caveat), the downloads-vs-clicks reading (plain downloads as the GitHub-counter-derived approximation: asset total minus pkg counts), the three-month retention window and UTC day buckets; no credentials or account identifiers are committed.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node tools/stats-gateway/query.mjs --dry</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Client endpoints array + preflight pin</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tauri.conf.json plugins.updater.endpoints becomes exactly two entries — https://updates.mark.xronocode.com/feed?from={{current_version}}&amp;os={{target}} first, today's GitHub URL second — with the pubkey and installMode byte-unchanged and the mas overlay still shipping no updater; tests/renderer/release-preflight.test.js endpoints expectation becomes the same two-entry array (gateway first, GitHub second), with the file's own in-file VERSION bump + CHANGE_SUMMARY entry (governed M-046 local).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/release-preflight.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Release feed fragments through the gateway + wave-surface static pins</Title>
+        <DependsOn>T-002, T-003, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>release.yml's latest.json platform fragments point url at https://updates.mark.xronocode.com/pkg/darwin-aarch64/ and /pkg/windows-x86_64/ with the release's own version while signature fields and the feed schema stay byte-compatible; the file's in-file VERSION bumps and CHANGE_SUMMARY gains the C-UPDATER-STATS entry; the task also extends tests/tools/stats-gateway.test.mjs with the static pins that become expressible once both config edits exist: the two-entry endpoints array in tauri.conf.json (gateway feed URL first) and both gateway pkg URL prefixes in release.yml's feed fragments (the m068 windows_release_base byte-unchanged pin is baseline-true and rides along here for wave cohesion), plus a dry-mode output-shape test for query.mjs (spawn it with --dry on the fixtures and assert the day × event × OS/platform table and the from-breakdown render) so R-5's CI validation holds after implementation, not only at implementation time; nothing else in the pipeline changes and no release runs from this wave.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>vitest include growth + governance sync</Title>
+        <DependsOn>T-002, T-003, T-004, T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph gains M-071 and .grace/verification gains V-M-071 (commands, scenarios, content-free markers BLOCK_STATS_FEED / BLOCK_STATS_PKG); every touched governed file carries its VERSION + CHANGE_SUMMARY record (release.yml and tests/renderer/release-preflight.test.js in-file, the latter done in T-004; tauri.conf.json and vitest.config.ts via this bundle); grace lint --change C-UPDATER-STATS --assertions target is clean.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --change C-UPDATER-STATS --assertions target</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>mark-site privacy amendment (sibling repository)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In ../mark-site privacy.md: the opening "no analytics, no telemetry" framing, the update-check destination sentence, the "complete list" framing and the "What we collect / no servers" paragraph are reconciled with the gateway reality, and the aggregate-counting disclosure is added (aggregate daily numbers: event, OS/platform, version only; no identifiers; three-month window; download edition only); every network-activity statement on the page remains true; the local build + check-dist gates stay green (the relative verification path assumes the wave worktree sits beside the mark-site checkout, matching the C-UPDATER-ROLLBACK precedent).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>(cd ../mark-site &amp;&amp; npm run build &amp;&amp; npm run check)</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Wave gates</Title>
+        <DependsOn>T-006, T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Gate tier: the targeted vitest suites pass in the worktree; acceptance tier: full npm test and cargo test --manifest-path src-tauri/Cargo.toml pass unchanged (no client code changed) and the release-tauri dry-run lane stays green; the archive-time final gate (grace lint --assertions final --run-commands) runs at wave end; the owner-executed deployment checklist (wrangler deploy + one live check + one live pkg fetch visible in query.mjs) is recorded as pending evidence, mirroring the C-UPDATER-ROLLBACK protocol pattern.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm test &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <C-1><Name>Gateway outage or 5xx</Name><Situation>The worker is down, rate-limited or erroring during a client's periodic update check.</Situation><Expected>The updater treats the non-2XX as a miss for that entry and continues to the second endpoints entry — the GitHub latest.json — so the check completes exactly as before; auto-checks and manual checks both keep working; the only effect is that the outage window is absent from the counters (undercounting, never breakage).</Expected></C-1>
+      <C-2><Name>Gateway never speaks for the feed</Name><Situation>Any bug, compromise or misconfiguration of the worker that could affect manifest content.</Situation><Expected>A correct or misconfigured worker cannot affect content: every route is redirect-only — a Location header and no body it made — so the manifest bytes a client parses always come from the redirect target. A COMPROMISED worker controls the Location header and can point anywhere; the honest bound is what can be applied, not where it can point: the pinned minisign key lets only project-signed artifacts install (never arbitrary code), the updater's default version check additionally refuses downgrades, and any anomaly surfaces as from-transition outliers in the counters.</Expected></C-2>
+      <C-3><Name>Not an open redirector</Name><Situation>Malformed or hostile input: /pkg/../../evil, /pkg/unknown/1.0.0, /feed with garbage parameters, unexpected paths, scanner traffic.</Situation><Expected>Strict validation (platform against the two-entry table, version against strict semver) means every unrecognized input gets a plain 404 with zero datapoints and zero redirects; every Location header ever produced is one of the derived GitHub URLs; nothing from the request appears in any response target.</Expected></C-3>
+      <C-4><Name>Mixed fleet rollout</Name><Situation>Old clients (pre-config-change) and new clients coexist after the change ships.</Situation><Expected>Old clients keep checking GitHub directly (uncounted) but read whatever latest.json the newest release publishes — so their artifact fetches count at the gateway as soon as the first R-3 manifest ships; new clients' checks count too (R-2 config); coverage grows monotonically with releases and is reported honestly (the README and query tool state which population each number covers).</Expected></C-4>
+      <C-5><Name>Windows split finally exists</Name><Situation>A Windows user clicks Update in-app; another downloads the installer from the website.</Situation><Expected>The in-app click resolves through /pkg/windows-x86_64/{ver} (counted as a pkg event) while the website link stays the direct GitHub asset (uncounted by us) — the two populations separate by URL construction, replacing today's single mixed counter; the minisignature against the app-pinned key verifies the installer identically on both paths.</Expected></C-5>
+      <C-6><Name>Counting write fails</Name><Situation>The Analytics Engine binding is absent, throttled, or errors on a request.</Situation><Expected>The response is identical to the healthy case — the datapoint write happens inside waitUntil, its failure is swallowed with a log line, and the redirect still returns; counting is best-effort by contract, and no client ever waits on or notices the datastore.</Expected></C-6>
+      <C-7><Name>Retention window</Name><Situation>The owner queries numbers older than three months, or wants year-over-year history.</Situation><Expected>The query tool and README state the Analytics Engine three-month retention plainly; day buckets are UTC; queries outside the window return nothing rather than inventing data; long-term storage is a recorded NonGoal (a future export change if the rolling window proves too short) — no data-loss claims are made beyond the window.</Expected></C-7>
+      <C-8><Name>Update success attribution</Name><Situation>The owner asks how many of the clickers actually landed on the new version.</Situation><Expected>No client code exists for this and none is added: a success is the appearance of from={new version} among later checks (the placeholder carries it); the query tool prints the from-breakdown and the README explains the reading and its honest limits (a user who updates and never launches again is invisible; a fresh site install of N also reports from=N — the pkg and site counters separate the populations).</Expected></C-8>
+      <C-9><Name>Privacy posture unchanged</Name><Situation>Any user or reviewer asks what Mark now tracks.</Situation><Expected>The app still contains zero analytics and its CSP still forbids renderer egress (pinned by a source scan); the gateway records day-level aggregates (event, OS/platform, version) with no IP, no user agent, no identifiers; the site privacy page says exactly this in the amended disclosure; no cross-session or cross-user correlation is possible from the stored data by construction.</Expected></C-9>
+      <C-10><Name>App Store edition</Name><Situation>MAS/TestFlight builds and this change.</Situation><Expected>Nothing: the mas overlay strips the updater block entirely, store builds never touch the gateway, and their update story stays the store's own; the privacy-page sentence scopes itself to the download edition.</Expected></C-10>
+      <C-11><Name>Rollback paths untouched</Name><Situation>A user runs the C-UPDATER-ROLLBACK restore while the gateway is in place.</Situation><Expected>The restore behaves exactly as its applied spec pinned: two direct deterministic GitHub fetches, offline on macOS; the gateway neither counts nor intermediates restore traffic, and a gateway outage cannot affect a rollback (recovery never depends on analytics infrastructure).</Expected></C-11>
+      <C-12><Name>Release pipeline discipline</Name><Situation>The R-3 edit lands in release.yml while releases remain owner-gated.</Situation><Expected>The feed composition changes in code and CI (the build lane stays green; the manifest shape is pinned by the static fragment tests, and the first live proof is the owner-gated release), and no release runs, tags or publishes follow from merging this change; the first real release that carries the new manifest is a separate owner authorization, and until then the feed is byte-identical to today's.</Expected></C-12>
+    </CornerMatrix>
+    <ReviewLog>
+      <Review number="1" date="2026-10-29" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 1, consolidation pass over all four corners by a fresh agent. Verdict: changes-requested — 1 blocking, 4 important, 4 notes; all fixed in the same edit pass. (F1 BLOCKING) the per-task verifications were not runnable at their DAG positions — T-001 gated on a test file its successor creates and T-002/T-006 formed an include cycle; restructured: the vitest include growth moved into T-002 (runnable from there on), T-001's verification became a self-contained node --check smoke. (F2) the plan's corner matrix had drifted from design-context on C-9/C-10 — resynced verbatim. (F3) T-005's verification was vacuous for its own diff and the spec's release.yml static pin had no owner — T-002's suite now static-pins endpoints/feed-fragments/m068 by reading sources, and T-005 depends on T-002. (F4) T-003 was a leaf nothing depended on — added to T-006's DependsOn (T-008 covered transitively). (F5) the BLOCK_STATS_* marker literals had no producing task — T-001 now emits them. Notes also applied: the CF-metadata source scan added to T-002; T-008 names cargo test and the release-tauri dry-run lane; T-001 cites the C-22 zone pre-check; T-007 states the sibling-worktree path assumption.
+        </Findings>
+      </Review>
+      <Review number="2" date="2026-10-29" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 2, consolidation pass by a fresh agent. Verdict: changes-requested — 1 blocking, 2 important, 2 notes. (F1 BLOCKING) the round-1 fix had reintroduced the class it fixed: T-002's static pins referenced the T-004 endpoints edit and the T-005 fragment edit that do not exist at T-002's position — the wave-surface pins moved to T-005 (DependsOn T-002, T-004), and T-002 keeps only baseline-true pins (m068 byte-unchanged, the worker CF-metadata scan, and the new renderer no-egress scan). (F2) the spec's renderer no-new-egress source scan had no owner — added to T-002 as a baseline-true pin. (F3) cargo test was commanded nowhere — T-008's Verification chains npm test and cargo test. Notes also applied: "daily" restored in T-007's disclosure parenthetical; the AE binding added to T-003's README list.
+        </Findings>
+      </Review>
+      <Review number="3" date="2026-10-30" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 3, consolidation pass over all four corners by a fresh agent (resumed after the provider usage limit). Verdict: changes-requested — 0 blocking, 1 important, 3 notes. (F1) the round-2 no-egress pin was an absolute and baseline-FALSE — editor.vue's C-56 remote image-copy fetch initiates renderer network traffic by design; reworded to the spec's delta form with a named baseline allowlist (that fetch and blob-URL fetches allowed; anything new fails). (F2) T-005's parenthetical mischaracterized the baseline-true m068 pin as wave-surface; fixed. (F4) the C-22 zone citation pinned in T-001 now also rests in T-003's README list so a task-by-task executor cannot drop it. (F3, no text change) the ../mark-site command path is disclosed environment prep — the executor places a sibling mark-site checkout before T-007.
+        </Findings>
+      </Review>
+      <Review number="4" date="2026-10-30" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 4, consolidation pass by a fresh agent. Verdict: changes-requested — 1 blocking, 1 note. (F1 BLOCKING) the planned M-069/V-M-069 were taken BETWEEN plan rounds by a parallel session's implemented DevBadge module (graph runtime.xml M-069 implemented 2026-10-30; M-070 WindowMenuAccelerators also taken) — exactly the plan-time id re-check the spec's assumption promises; all normative surfaces renumbered to the next free ids M-071/V-M-071 (this ReviewLog keeps the historical M-069 mentions as they were reviewed). (F2) T-001's zone-pre-check ordering was unsatisfiable at its position (the README is a T-003 artifact) — reworded from "before any route is written" to "before any route is deployed".
+        </Findings>
+      </Review>
+      <Review number="5" date="2026-10-30" verdict="green" task="two-clean-passes">
+        <Findings>
+          Round 5, consolidation pass by a fresh agent. VERDICT: clean (0 blocking, 0 important, 1 optional note). First clean pass of the required two consecutive. Id availability re-verified live (graph ceiling M-070; M-071/V-M-071 free). The note — the wrangler route literal now joins workers_dev in lint-enforced TargetAssertions — was applied between passes.
+        </Findings>
+      </Review>
+      <Review number="6" date="2026-10-30" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 6, consolidation pass by a fresh agent. Verdict: changes-requested — 0 blocking, 1 important. (F1) governance routing: tests/renderer/release-preflight.test.js is a governed M-046 local carrying its own in-file VERSION/CHANGE_SUMMARY history — R-8 said "the one touched governed file" (release.yml) and T-006 routed the test file's record to the bundle; fixed: R-8 names the two marker-carrying files, T-004 owns the test file's in-file bump, T-006's routing lists release.yml and the test file in-file with tauri.conf.json/vitest.config.ts on the bundle route. The clean streak resets; two consecutive clean rounds follow.
+        </Findings>
+      </Review>
+      <Review number="7" date="2026-10-30" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 7, consolidation pass by a fresh agent. Verdict: changes-requested — 0 blocking, 1 important, 1 note. (F1) R-5's "dry mode validates the output shape in CI" had no test owner after implementation — a dry-mode output-shape test (spawn query.mjs --dry on fixtures, assert the tables) joins T-005's suite extension, and T-005 gains the T-003 dependency. (Note) query.mjs and the test file now explicitly carry the house MODULE_CONTRACT header as M-071 locals.
+        </Findings>
+      </Review>
+      <Review number="8" date="2026-10-30" verdict="green" task="two-clean-passes">
+        <Findings>
+          Round 8, consolidation pass by a fresh agent. VERDICT: clean (0 blocking, 0 important, 2 advisory notes) — first clean pass after round 7's reset. Notes applied between passes: the dormant axios client named in the renderer delta-allowlist; query.mjs fixtures pinned inline in the script (no out-of-scope fixture files).
+        </Findings>
+      </Review>
+      <Review number="9" date="2026-10-30" verdict="changes-requested" task="two-clean-passes">
+        <Findings>
+          Round 9, consolidation pass by a fresh agent. Verdict: changes-requested — 0 blocking, 1 important, self-inflicted: round 8's ReviewLog recorded the axios allowlist note as applied, but the edit had not landed (a string replace whose target carried the wrong prefix — "the spec's delta-form pin:" — silently missed; the round-8 fixtures note did land). The dormant axios client now joins the named baseline allowlist, this time asserted (exactly-one match, replaced, re-grepped). Lesson recorded: between-pass note applications must assert their replacement landed. The clean streak resets.
+        </Findings>
+      </Review>
+      <Review number="10" date="2026-10-30" verdict="green" task="two-clean-passes">
+        <Findings>
+          Round 10, consolidation pass by a fresh agent (with the between-pass-claims audit: every ReviewLog "applied" claim since round 5 verified landed, including round 9's asserted axios re-application). VERDICT: clean (0 blocking, 0 important, 1 advisory note, no text change required). The note, recorded for the executor: muya's pre-existing XMLHttpRequest image-loading (src/muya/lib/utils/index.js:178,220) sits outside the no-new-egress scan's src/renderer scope by design — this change edits no muya code, so the delta pin holds trivially there; do not widen the scan.
+        </Findings>
+      </Review>
+      <Review number="11" date="2026-10-30" verdict="green" task="two-clean-passes">
+        <Findings>
+          Round 11, consolidation pass by a fresh agent. VERDICT: clean — zero findings. Together with round 10 this completes the plan's two-consecutive-clean-passes gate (eleven rounds; the gate's decisive catches: rounds 1-2's DAG-position runnability, round 4's mid-gate module-id collision, round 6's governance routing, round 9's unapplied-note bookkeeping). The plan is approval-ready.
+        </Findings>
+      </Review>
+    </ReviewLog>
+  </C-UPDATER-STATS>
+</GraceChangePlan>

@@ -1,9 +1,9 @@
 // FILE: tests/e2e/perf/characterization-metadata-external.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Freeze the CURRENT metadata / external-change / byte-policy / rename-Move-To / live-reference behavior of the renderer store (C-LARGE-DOC-STAGE-0 R-6/R-7, task T-007) so a later large-document refactor cannot change it invisibly — every known-defect family is recorded as today's fact (observedLegacyBehavior) plus a future gate (desiredInvariant), never as an approved oracle.
 //   SCOPE: Renderer-only harness (vite preview + tauri shim): named tabs opened through the real mt::open-new-tab payload; line-ending/encoding/final-newline metadata changed through the real SET_LINE_ENDING store action and the mt::set-line-ending / mt::set-file-encoding / mt::set-final-newline bus channels; FILE_SAVE / FILE_SAVE_AS / CLOSE_TAB / RENAME / RESPONSE_FOR_RENAME / MOVE_FILE_TO through the real Pinia editor store (the title-bar inline rename dialog reached through the real bus 'rename' path); external changes delivered through the real mt::watch::event {kind, paths} watcher shape and the mt_fs_read disk transport; byte-policy fixtures read from the repository (utf8.md / utf8-bom.md / utf8-crlf.md); live-reference alias matrix (tab identity, history snapshot separation, listToc/toc copies, source-mode mirror); an exported dependency-free cursor/TOC DTO scaffold (future contract, explicitly not wired into the runtime). Only backend transports are mocked (window.__mockInvoke, window.fileUtils.move, the directory picker). No production code, shared fixture or config is touched; the suite freezes observations only.
-//   DEPENDS: Playwright webkit-perf project, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/fixtures/helpers.ts (bootEditor), src/renderer/src/store/editor.js (SET_LINE_ENDING, FILE_SAVE, FILE_SAVE_AS, APPLY_SAVE_OUTCOME, CLOSE_TAB, RENAME, RESPONSE_FOR_RENAME, MOVE_FILE_TO, APPLY_FILE_CHANGE, loadChange), src/renderer/src/store/diffSnapshots.js, src/renderer/src/store/project.js watcher translation, src/renderer/src/components/rename/index.vue (inline-rename dialog), src/renderer/src/components/titleBar/index.vue (rename entry point), src/renderer/src/util/listToTree.js (TOC tree copies).
+//   DEPENDS: Playwright webkit-perf project, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/perf/helpers/experimental (the fixtures/helpers bootEditor pass-through, plus the WAVEA_EXPERIMENTAL=1 real-UI progressive-toggle enabling — C-LARGE-DOC-WAVE-A T-006), src/renderer/src/store/editor.js (SET_LINE_ENDING, FILE_SAVE, FILE_SAVE_AS, APPLY_SAVE_OUTCOME, CLOSE_TAB, RENAME, RESPONSE_FOR_RENAME, MOVE_FILE_TO, APPLY_FILE_CHANGE, loadChange), src/renderer/src/store/diffSnapshots.js, src/renderer/src/store/project.js watcher translation, src/renderer/src/components/rename/index.vue (inline-rename dialog), src/renderer/src/components/titleBar/index.vue (rename entry point), src/renderer/src/util/listToTree.js (TOC tree copies).
 //   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0/plan.xml T-007; .grace/changes/active/C-LARGE-DOC-STAGE-0/spec.xml R-6, R-7; .grace/verification/performance.xml V-M-060; src-tauri/src/m014_encoding.rs (decode-to-String BOM strip mirrored by decodeLikeBackend); src-tauri/src/m_v1_compat.rs build_open_new_tab_payload (hardcoded open metadata mirrored by openTab).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -53,7 +53,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-27 C-LARGE-DOC-STAGE-0 T-007 follow-up:
+//   LAST_CHANGE: v1.2.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-006: added the
+//   WAVEA_EXPERIMENTAL beforeAll hook — bootEditor now imports through
+//   tests/e2e/perf/helpers/experimental so WAVEA_EXPERIMENTAL=1 enables
+//   the session-latched progressive-mount toggle through the real Settings
+//   UI after every boot (no-op without the env var). Zero assertion
+//   changes: the suite freezes the same boundaries on both paths.
+//   v1.1.0 - 2026-10-27 C-LARGE-DOC-STAGE-0 T-007 follow-up:
 //   added the rename / Move To characterization group (the title-bar inline
 //   rename confirm calls the undefined editorStore.rename and throws; cancel
 //   paths are no-ops; direct RENAME and successful Move To clear the dirty
@@ -87,7 +93,20 @@ import type { Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { installTauriShim } from '../fixtures/tauri-shim'
-import { bootEditor } from '../fixtures/helpers'
+// C-LARGE-DOC-WAVE-A T-006: bootEditor comes from the Wave A experimental
+// helper — byte-for-byte the shared fixture when WAVEA_EXPERIMENTAL is
+// unset; with WAVEA_EXPERIMENTAL=1 every boot also enables the
+// session-latched progressive-mount toggle through the REAL Settings UI,
+// so the whole suite reruns on the progressive path with ZERO assertion
+// changes (the beforeAll hook below arms it).
+import { bootEditor, waveaExperimentalBeforeAll } from './helpers/experimental'
+
+// C-LARGE-DOC-WAVE-A T-006: the WAVEA_EXPERIMENTAL=1 characterization
+// rerun hook — arms the bootEditor wrapper's real-UI toggle enabling
+// (no-op without the env var); no assertion changes.
+test.beforeAll(() => {
+  waveaExperimentalBeforeAll()
+})
 
 const E2E_ROOT = '/tmp/mark-e2e'
 

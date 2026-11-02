@@ -22,6 +22,7 @@
       <!-- C-60: M-012 fn-reparseMarkdown and M-011 footnote tab-cache ownership. -->
       <!-- C-62: M-012 fn-diagramAppearance owns mode metadata, menu and editor/viewer/export palettes; M-011 supplies localized copy. -->
       <!-- C-PRIVATE-OPERATIONS: M-005 owns sanitized legacy preference examples and their publication check. -->
+      <!-- C-LARGE-DOC-WAVE-A: M-063 owns the progressive mount subsystem (muya mount entry region, editor open orchestration seam, Experimental surface); it extends M-012's mount path and its budgets are proved by M-060. -->
       <Owns>
         <M-001/>
         <M-002/>
@@ -57,8 +58,10 @@
         <M-057/>
         <M-058/>
         <M-069/>
+        <M-070/>
         <M-059/>
         <M-062/>
+        <M-063/>
       </Owns>
     </GD-RUNTIME>
     <GD-PERFORMANCE>
@@ -114,6 +117,8 @@
         <!-- C-NATIVE-DOCX-RTF-EXPORT: M-066 owns the renderer-side Word
              converter (pre-pass + lazy docx/html + geometry mapping). -->
         <M-066/>
+        <!-- C-UPDATER-STATS: M-071 owns the counting gateway. -->
+        <M-071/>
       </Owns>
     </GD-FEATURES>
     <GD-FLOWS>

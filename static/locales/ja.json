@@ -543,7 +543,14 @@
       "markdown": "Markdown",
       "general": "一般",
       "advanced": "詳細",
-      "appearance": "外観"
+      "appearance": "外観",
+      "experimental": "実験的機能"
+    },
+    "experimental": {
+      "title": "実験的機能",
+      "progressiveMount": "大きなドキュメントのプログレッシブマウント",
+      "progressiveMountHelp": "実験的機能：大きなドキュメントを段階的にマウントし、開く操作の応答性を保ちます。デフォルトはオフで、再起動するとリセットされます。大規模ドキュメントのパフォーマンス契約の一部です。",
+      "sessionCount": "このセッション: プログレッシブ {progressive} 件 / レガシー {legacy} 件"
     },
     "markdown": {
       "title": "Markdown",

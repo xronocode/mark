@@ -195,8 +195,19 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
     // 4. Sandbox-prefix check on lexical form. Sandbox itself is also
     //    normalized (the caller may pass a path with `..` for a test
     //    fixture).
+    // C-WINDOWS-SAVE-PIPELINE: compare Windows-honestly. The permissive
+    // default sandbox "/" admits every absolute path on POSIX by
+    // prefix; on Windows a DOS path (Prefix(D:) + RootDir components)
+    // never starts_with a bare root, which denied EVERY absolute write
+    // on that platform. A root-only sandbox therefore means global;
+    // otherwise both sides are compared with the \\?\ / \\?\UNC\
+    // device prefixes stripped (canonicalize-stored sandboxes are UNC,
+    // renderer requests are DOS form).
     let sandbox_lex = lexical_normalize(sandbox).unwrap_or_else(|| sandbox.to_path_buf());
-    if !lexical.starts_with(&sandbox_lex) {
+    let permissive = is_permissive_root(&sandbox_lex);
+    if !permissive
+        && !strip_device_prefix(&lexical).starts_with(&strip_device_prefix(&sandbox_lex))
+    {
         safe_eprintln!(
             "[Security][path][BLOCK_REJECT_TRAVERSAL reason=outside_sandbox request={} sandbox={}]",
             lexical.display(),
@@ -213,10 +224,14 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
     //    Only run when both paths exist; if `requested` is for a not-
     //    yet-created file we can't canonicalize it but we already
     //    proved lexical safety above.
+    // C-WINDOWS-SAVE-PIPELINE: under the permissive root the prefix
+    // denial is vacuous (on Windows canonicalize("/") is the
+    // CURRENT-DRIVE root and would falsely fence cross-drive writes);
+    // the canonicalized request is still returned.
     if lexical.exists() && sandbox_lex.exists() {
         match (std::fs::canonicalize(&lexical), std::fs::canonicalize(&sandbox_lex)) {
             (Ok(req_canon), Ok(box_canon)) => {
-                if !req_canon.starts_with(&box_canon) {
+                if !permissive && !req_canon.starts_with(&box_canon) {
                     safe_eprintln!(
                         "[Security][path][BLOCK_SYMLINK_ESCAPES resolved={} sandbox={}]",
                         req_canon.display(),
@@ -239,6 +254,35 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
     }
 
     Ok(lexical)
+}
+
+/// C-WINDOWS-SAVE-PIPELINE: true when the sandbox is only a root with
+/// no drive prefix and no further components — the SecurityCtx::default
+/// "/" (and its Windows lexical form "\"). A drive root (D:\) is NOT
+/// permissive: it carries a Prefix component and stays drive-scoped.
+fn is_permissive_root(p: &Path) -> bool {
+    let mut components = p.components();
+    components
+        .next()
+        .is_some_and(|first| matches!(first, Component::RootDir))
+        && components.all(|c| matches!(c, Component::RootDir | Component::CurDir))
+}
+
+/// C-WINDOWS-SAVE-PIPELINE: strip Windows device prefixes so a UNC-form
+/// sandbox (fs::canonicalize output, \\?\D:\ws or \\?\UNC\server\ws)
+/// compares equal to the DOS/UNC form the request carries. Pure string
+/// logic — a no-op on forms without the prefix and on non-Windows hosts.
+fn strip_device_prefix(p: &Path) -> PathBuf {
+    let s = p.as_os_str().as_encoded_bytes();
+    if let Some(rest) = s.strip_prefix(br"\\?\UNC\") {
+        let mut out = std::ffi::OsString::from("\\\\");
+        out.push(unsafe { std::ffi::OsStr::from_encoded_bytes_unchecked(rest) });
+        PathBuf::from(out)
+    } else if let Some(rest) = s.strip_prefix(br"\\?\") {
+        PathBuf::from(unsafe { std::ffi::OsStr::from_encoded_bytes_unchecked(rest) })
+    } else {
+        p.to_path_buf()
+    }
 }
 
 // ─── URL scheme allowlist ───────────────────────────────────────────
@@ -307,6 +351,57 @@ mod tests {
     use tempfile::TempDir;
 
     // ─── path sandbox ──────────────────────────────────────────────
+    // C-WINDOWS-SAVE-PIPELINE: the Windows fixture matrix. Fixtures are
+    // plain PathBuf strings so the suite runs on every host — the
+    // helpers are string/component logic with no Windows-only API.
+    #[test]
+    fn permissive_root_default_allows_windows_absolute() {
+        // SecurityCtx::default ("/"); a DOS absolute path must pass on
+        // every host — on Windows it previously died at the bare-root
+        // prefix compare (Prefix(D:) never starts_with RootDir).
+        let ok = check_path(Path::new("/"), Path::new(r"D:\work\a.md"));
+        assert!(ok.is_ok(), "permissive default must admit DOS absolute: {ok:?}");
+    }
+
+    #[test]
+    fn unc_sandbox_matches_dos_request() {
+        // Workspace restored from fs::canonicalize → \\?\ UNC sandbox;
+        // the renderer sends the DOS form.
+        let ok = check_path(Path::new(r"\\?\D:\ws"), Path::new(r"D:\ws\notes.md"));
+        assert!(ok.is_ok(), "UNC sandbox must admit the DOS-form request: {ok:?}");
+    }
+
+    #[test]
+    fn dos_sandbox_matches_unc_request() {
+        let ok = check_path(Path::new(r"D:\ws"), Path::new(r"\\?\D:\ws\notes.md"));
+        assert!(ok.is_ok(), "DOS sandbox must admit the UNC-form request: {ok:?}");
+    }
+
+    #[test]
+    fn unc_cross_drive_still_denied() {
+        // Denial matrix at the comparison layer: on a POSIX host a
+        // Windows-style string is a RELATIVE path and check_path would
+        // join it under the sandbox (always inside), so the invariant
+        // is pinned on the exact comparison check_path performs.
+        let req = strip_device_prefix(Path::new(r"\\?\C:\other\x.md"));
+        let sandbox = strip_device_prefix(Path::new(r"\\?\D:\ws"));
+        assert!(!req.starts_with(&sandbox), "cross-drive must not prefix-match");
+    }
+
+    #[test]
+    fn traversal_above_root_still_denied() {
+        let err = check_path(Path::new("/ws"), Path::new("/ws/../../other/f.md"));
+        assert!(matches!(err, Err(SecurityError::PathTraversal { .. })));
+    }
+
+    #[test]
+    fn drive_root_sandbox_is_not_permissive() {
+        // D:\ carries a drive Prefix — drive-scoped, never global.
+        assert!(!is_permissive_root(Path::new(r"D:\")));
+        assert!(!is_permissive_root(Path::new("/ws")));
+        assert!(is_permissive_root(Path::new("/")));
+    }
+
     #[test]
     fn nul_byte_in_path_rejected() {
         let sandbox = Path::new("/workspace");

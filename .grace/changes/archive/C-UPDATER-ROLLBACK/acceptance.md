@@ -10,6 +10,10 @@
 
 `grace lint --path . --change C-UPDATER-ROLLBACK --assertions final --run-commands` — 0 errors; the four expected current-lint baseline MustNotContain violations clear with this archival (the change is applied on main).
 
+## Post-archive evidence update (2026-10-30)
+
+The owner executed the two-platform manual restore protocol and confirmed completion in chat (owner, 2026-10-30: "2 сделан" — item 2 of the session-tail review, referring to this protocol). The pending-evidence marker below is therefore satisfied from the owner side; the transcript itself stays owner-side.
+
 ## Intentionally not verified here
 
 The two-platform manual restore protocol (a real two-version restore on macOS through the menu and the terminal crash path; a Windows polygon restore through the verified installer) is recorded as pending owner-executed evidence in V-M-068 and stays owed after this archival — it observes shipped binaries, not this repository.

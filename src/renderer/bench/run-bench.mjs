@@ -13,15 +13,25 @@
 //   3) node src/renderer/bench/run-bench.mjs [--fixture <path>]
 //        [--phases open,typing,scroll] [--runs N] [--engines chromium,webkit]
 //        [--typing-samples N] [--scroll-ms N] [--json <out.json>]
+//        [--progressive]
 //
 // --json writes the machine-readable run report the Stage 0 baseline capture
 // (baseline/capture-baseline.mjs, task T-009) consumes: commit, fixture
 // identity, runtime, per-run parsed markers and the verdict.
 //
 // Phases: `open`, `typing` and `scroll` are REQUIRED and must emit numeric
-// results; `overhead` is an optional diagnostic (observer overhead against a
-// same-run uninstrumented control) and is reported separately from every
-// baseline number.
+// results; `tail-mount` (C-LARGE-DOC-WAVE-A T-005) is required when
+// requested — numeric sync_region/first_paint/tti/tail_done plus
+// canon_ok/dom_ok/typing_during_tail truth tokens from the isolated
+// progressive measurement; `overhead` is an optional diagnostic (observer
+// overhead against a same-run uninstrumented control) and is reported
+// separately from every baseline number.
+//
+// --progressive (C-LARGE-DOC-WAVE-A T-005) is the bench-level seam to the
+// muya progressive entry — the primary editor opens through
+// progressiveMount and PHASE_INIT_RENDER gains served=/tti_ms. This is
+// harness routing, distinct from the product experimental toggle (T-004).
+// Without the flag every default and the legacy mount path are unchanged.
 //
 // Semantics (spec R-5, constraint 3): a REQUIRED phase that fails to emit a
 // numeric result (SKIPPED, FAILED, or missing) in any engine run fails the
@@ -60,6 +70,7 @@ function parseArgs() {
     else if (args[i] === '--typing-samples') out.typingSamples = Number(args[++i])
     else if (args[i] === '--scroll-ms') out.scrollMs = Number(args[++i])
     else if (args[i] === '--json') out.json = args[++i]
+    else if (args[i] === '--progressive') out.progressive = true
     else throw new Error(`unknown flag: ${args[i]}`)
   }
   return out
@@ -97,23 +108,29 @@ async function singleRun(browserType, engineLabel) {
     if (text.includes('[BENCH]')) benchLines.push(text)
   })
 
-  if (fixtureText !== null || ARGS.typingSamples || ARGS.scrollMs || ARGS.phases) {
+  if (fixtureText !== null || ARGS.typingSamples || ARGS.scrollMs || ARGS.phases || ARGS.progressive) {
     await page.addInitScript((options) => {
       window.__BENCH_OPTIONS__ = options
     }, {
       fixtureText: fixtureText ?? undefined,
       phases: PHASES,
       typingSamples: ARGS.typingSamples,
-      scrollMs: ARGS.scrollMs
+      scrollMs: ARGS.scrollMs,
+      progressive: ARGS.progressive || undefined
     })
   }
 
   await page.goto(URL, { waitUntil: 'load', timeout: TIMEOUT_MS })
+  // Playwright binds waitForFunction's 2nd param to `arg` — the `undefined`
+  // placeholder keeps the options object in the 3rd (options) slot so the
+  // declared TIMEOUT_MS cap actually applies (the 1.7MB progressive combo
+  // was the first run to exceed the silent 30s default).
   await page.waitForFunction(
     () => {
       const el = document.getElementById('report')
       return el && el.textContent.includes('REPORT_DONE')
     },
+    undefined,
     { timeout: TIMEOUT_MS }
   )
   await browser.close()
@@ -127,6 +144,7 @@ async function singleRun(browserType, engineLabel) {
     initLine: line('INIT_RENDER')[0] ?? null,
     typingLines: line('TYPING'),
     scrollLines: line('SCROLL'),
+    tailMountLines: line('TAIL_MOUNT'),
     overheadLines: line('OVERHEAD'),
     memoryLines: line('MEMORY'),
     rawLines: benchLines,
@@ -196,7 +214,7 @@ const ENGINE_MAP = { chromium, webkit }
   console.log(`# muya bench driver — C-LARGE-DOC-STAGE-0 T-003 (Phases-B1 step-2.5b successor)`)
   console.log(`URL: ${URL}`)
   console.log(`Fixture: ${fixtureIdentity}`)
-  console.log(`Phases: ${PHASES.join(', ')} (required: open/typing/scroll · overhead is a diagnostic) · runs/engine: ${RUNS} · engines: ${ENGINES.join(', ')}`)
+  console.log(`Phases: ${PHASES.join(', ')} (required: open/typing/scroll · tail-mount required when requested · overhead is a diagnostic) · runs/engine: ${RUNS} · engines: ${ENGINES.join(', ')}${ARGS.progressive ? ' · progressive: on' : ''}`)
   console.log(`Node: ${process.version} on ${process.platform}-${process.arch}`)
   console.log(``)
 
@@ -229,6 +247,68 @@ const ENGINE_MAP = { chromium, webkit }
   if (PHASES.includes('open')) phaseTable('Initial render (ms)', (r) => r.initRenderMs)
   if (PHASES.includes('typing')) phaseTable('Typing input→next-paint (ms)', (r) => numeric(r.typingLines, 'p50_ms'))
   if (PHASES.includes('scroll')) phaseTable('Scroll frame interval (ms, p50 of frame deltas)', (r) => numeric(r.scrollLines, 'frame_p50_ms'))
+
+  // C-LARGE-DOC-WAVE-A T-005: time-to-input is a budgeted metric (R-6). The
+  // table appears only when the run exercises the new paths (--progressive or
+  // the tail-mount phase) so default legacy output stays unchanged.
+  if (PHASES.includes('open') && (ARGS.progressive || PHASES.includes('tail-mount'))) {
+    const ttiOf = (r) => {
+      const m = (r.initLine || '').match(/tti_ms=(-?[\d.]+)/)
+      return m ? parseFloat(m[1]) : null
+    }
+    console.log(``)
+    console.log(`## Time-to-input (ms — open start → first accepted keystroke; injector driven at the earliest input-ready moment)`)
+    console.log(``)
+    console.log(`| engine   | n | p50  | p95  | mean | min  | max  |`)
+    console.log(`|----------|---|------|------|------|------|------|`)
+    for (const name of ENGINES) {
+      const samples = perEngine[name].map(ttiOf)
+      if (samples.every((v) => v === null)) {
+        failures.push(`${name}: tti_ms produced no numeric result`)
+        console.log(`| ${name} | 0 | — | — | — | — | — | MISSING`)
+        continue
+      }
+      const st = stats(samples.filter((v) => v !== null).map(Number))
+      if (st.n < RUNS) failures.push(`${name}: only ${st.n}/${RUNS} runs produced numeric tti_ms`)
+      console.log(`| ${name} | ${st.n} | ${st.p50.toFixed(1)} | ${st.p95.toFixed(1)} | ${st.mean.toFixed(1)} | ${st.min.toFixed(1)} | ${st.max.toFixed(1)} |`)
+    }
+  }
+
+  // C-LARGE-DOC-WAVE-A T-005: tail-mount phase — required-when-requested.
+  // The four numeric fields plus the truth tokens (canon_ok/dom_ok/
+  // typing_during_tail) all gate; the phase is reported separately and its
+  // numbers are never summed into open/typing (R-6).
+  if (PHASES.includes('tail-mount')) {
+    console.log(``)
+    console.log(`## Progressive tail-mount (ms — isolated second instance; reported separately, never summed into open/typing)`)
+    console.log(``)
+    console.log(`| engine   | n | sync_region p50 | first_paint p50 | tti p50 | tail_done p50 | served | canon_ok | dom_ok | typing_during_tail |`)
+    console.log(`|----------|---|-----------------|------------------|---------|---------------|--------|----------|--------|--------------------|`)
+    for (const name of ENGINES) {
+      const lines = perEngine[name].flatMap((r) => r.tailMountLines)
+      if (!lines.length) {
+        failures.push(`${name}: required tail-mount phase produced no numeric result`)
+        console.log(`| ${name} | 0 | — | — | — | — | — | — | — | — | MISSING`)
+        continue
+      }
+      const col = (key) => {
+        const st = stats(perEngine[name].map((r) => numeric(r.tailMountLines, key)).filter((v) => v !== null).map(Number))
+        return st.n ? st.p50.toFixed(1) : '—'
+      }
+      const servedVals = [...new Set(lines.map((l) => (l.match(/ served=(\S+)/) || [])[1]).filter(Boolean))]
+      const canonOk = lines.every((l) => l.includes('canon_ok=true'))
+      const domOk = lines.every((l) => l.includes('dom_ok=true'))
+      const tdt = lines.every((l) => l.includes('typing_during_tail=ok'))
+      const numericCount = perEngine[name].filter((r) => numeric(r.tailMountLines, 'tail_done_ms') !== null).length
+      if (numericCount < RUNS) failures.push(`${name}: only ${numericCount}/${RUNS} runs produced numeric tail-mount results`)
+      if (!canonOk) failures.push(`${name}: tail-mount canon_ok not true in every run`)
+      if (!domOk) failures.push(`${name}: tail-mount dom_ok not true in every run`)
+      if (!tdt) failures.push(`${name}: tail-mount typing_during_tail not ok in every run`)
+      console.log(
+        `| ${name} | ${numericCount} | ${col('sync_region_ms')} | ${col('first_paint_ms')} | ${col('tti_ms')} | ${col('tail_done_ms')} | ${servedVals.join('/') || '—'} | ${canonOk} | ${domOk} | ${tdt} |`
+      )
+    }
+  }
 
   // Observer overhead is a DIAGNOSTIC, never a required phase: it is
   // reported in its own table and never folded into the tables above.
@@ -298,6 +378,7 @@ const ENGINE_MAP = { chromium, webkit }
       init_render: parseMarker(r.initLine),
       typing: parseMarker(r.typingLines[0]),
       scroll: parseMarker(r.scrollLines[0]),
+      tail_mount: parseMarker(r.tailMountLines[0]),
       overhead: parseMarker(r.overheadLines[0]),
       memory: r.memoryLines.map(parseMarker),
       failed: r.failed
@@ -312,6 +393,7 @@ const ENGINE_MAP = { chromium, webkit }
       commit: CURRENT_COMMIT,
       fixture: fixtureReport,
       phases: PHASES,
+      progressive: Boolean(ARGS.progressive),
       runsPerEngine: RUNS,
       engines: Object.fromEntries(ENGINES.map((name) => [name, runsOf(name)])),
       legacyGate,

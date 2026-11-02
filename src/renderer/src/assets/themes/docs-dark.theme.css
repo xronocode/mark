@@ -93,7 +93,7 @@
   --notifyWarning: #F5A83C;
   --notifyError: #F87A72;
   --maskColor: rgba(0, 0, 0, .3);
-  --editorAreaWidth: 750px;
+  --editorAreaWidth: calc(100px + 768px);
 
   /* C-51 T-007: theme-defined chart palette (mermaidTheme.readActiveThemeTokens
      series token) — brighter variants of the Docs light hues for the dark

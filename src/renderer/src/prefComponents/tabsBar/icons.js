@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/prefComponents/tabsBar/icons.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: The five Settings toolbar tab icons as inline SVG functional components, drawn to the approved C-38 N3 mockup metrics (22×22, 1.6 stroke, currentColor).
+//   PURPOSE: The Settings toolbar tab icons as inline SVG functional components — the five C-38 N3 mockup icons (22×22, 1.6 stroke, currentColor) plus the C-LARGE-DOC-WAVE-A Experimental flask.
 //   SCOPE: Presentational SVG components only — no state, no props, no events.
 //   DEPENDS: vue (h).
-//   LINKS: .grace/changes/archive/C-38 (mockup .c38-mockup/Settings.dc.html); .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 (mockup .c38-mockup/Settings.dc.html); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -15,10 +15,14 @@
 //   EditorTabIcon - pencil for the Editor tab.
 //   MarkdownTabIcon - rounded rect with M + ↓ glyph for the Markdown tab.
 //   AdvancedTabIcon - two slider lines with knobs for the Advanced tab.
+//   ExperimentalTabIcon - erlenmeyer flask for the Experimental tab (C-LARGE-DOC-WAVE-A T-004), drawn to the same mockup metrics.
 //   TAB_ICONS - id → icon component map consumed by tabsBar/index.vue.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-02 v1.1.0: C-LARGE-DOC-WAVE-A T-004 — ExperimentalTabIcon
+//     (flask) joins TAB_ICONS for the new Experimental tab; drawn to the
+//     same scaffold metrics as the five C-38 icons.
 //   - 2026-10-15 v1.0.0: C-38 T-003 — icons transplanted verbatim from the approved mockup (stroke/fill=currentColor so the active-tab accent and dark mode both apply).
 // END_CHANGE_SUMMARY
 
@@ -93,10 +97,22 @@ export const AdvancedTabIcon = svg(
   'AdvancedTabIcon'
 )
 
+// Erlenmeyer flask: neck plus conical body with a fill line, in the same
+// 24-grid stroke style as the mockup icons (C-LARGE-DOC-WAVE-A T-004).
+export const ExperimentalTabIcon = svg(
+  [
+    path('M9.5 3.5h5'),
+    path('M10.5 3.5v5.2L5.6 16.9a2 2 0 0 0 1.8 3h9.2a2 2 0 0 0 1.8-3L13.5 8.7V3.5'),
+    path('M8 14.5h8')
+  ],
+  'ExperimentalTabIcon'
+)
+
 export const TAB_ICONS = {
   general: GeneralTabIcon,
   appearance: AppearanceTabIcon,
   editor: EditorTabIcon,
   markdown: MarkdownTabIcon,
-  advanced: AdvancedTabIcon
+  advanced: AdvancedTabIcon,
+  experimental: ExperimentalTabIcon
 }

@@ -78,6 +78,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
+        "https://updates.mark.xronocode.com/feed?from={{current_version}}&os={{target}}",
         "https://github.com/xronocode/mark/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZGQUZCOTYzQUI2QTM3N0YKUldSL04ycXJZN212LzVuak9nWFhDdW9LeE9WQnZNeGN1WkFDVEVJV3V4V2RzLzluQzB3ZlZoSWoK",

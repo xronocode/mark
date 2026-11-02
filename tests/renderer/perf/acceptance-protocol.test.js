@@ -1,10 +1,10 @@
 // FILE: tests/renderer/perf/acceptance-protocol.test.js
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Prove the tier-3 real-app acceptance tooling is honest (C-LARGE-DOC-STAGE-0 T-005): fixture-identity pins exact bytes/sha256 and refuses non-repository paths; verify-capture rejects label lies, byte/hash mismatches, phantom commits, missing phases, extra (content-bearing) marker keys, private absolute paths and unfilled templates.
+//   PURPOSE: Prove the tier-3 real-app acceptance tooling is honest (C-LARGE-DOC-STAGE-0 T-005): fixture-identity pins exact bytes/sha256 and refuses non-repository paths; verify-capture rejects label lies, byte/hash mismatches, phantom commits, missing phases, extra (content-bearing) marker keys, private absolute paths and unfilled templates. C-LARGE-DOC-WAVE-A T-005 extends the proof to the two new BLOCK_OPEN fields: a missing or non-numeric tail_mount_ms and a made-up served_path mount-path label are both rejected.
 //   SCOPE: Spawns both CLIs with node against a synthetic capture in the OS temp directory; mutates it per case. Does not run the real app (that is owner-side, never CI) and does not measure anything it then reports as native evidence.
 //   DEPENDS: src/renderer/bench/acceptance/fixture-identity.mjs, verify-capture.mjs, tests/e2e/fixtures/large-doc/semantic-edge.md + shape-metadata.json, node:child_process, Vitest.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); src/renderer/bench/acceptance/README.md.
+//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); .grace/changes/active/C-LARGE-DOC-WAVE-A plan T-005 (tail_mount_ms + served_path); src/renderer/bench/acceptance/README.md.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -22,13 +22,19 @@
 //   verifyCli - runs the capture verifier CLI.
 //   HEAD - current commit id the synthetic captures point at.
 //   SHA256 - sha256 of the fixture bytes.
-//   capture - a structurally valid tier-3 capture.
+//   capture - a structurally valid tier-3 capture (Wave A BLOCK_OPEN fields included).
 //   caseId - monotonic temp-file suffix.
 //   withCapture - writes a mutated capture and runs the verifier.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - C-LARGE-DOC-STAGE-0 T-005: first test of the real-app acceptance verifier (label honesty + fixture identity + content-free markers).
+//   LAST_CHANGE: v1.1.0 - C-LARGE-DOC-WAVE-A T-005: BLOCK_OPEN gains
+//                 tail_mount_ms + served_path; new rejection cases for a
+//                 missing/non-numeric tail_mount_ms and made-up/missing
+//                 served_path labels.
+//   PREV: v1.0.0 - C-LARGE-DOC-STAGE-0 T-005: first test of the real-app
+//         acceptance verifier (label honesty + fixture identity +
+//         content-free markers).
 // END_CHANGE_SUMMARY
 
 import { afterAll, describe, expect, it } from 'vitest'
@@ -77,7 +83,7 @@ function capture () {
     fixture: { id: 'F-SEMANTIC-EDGE', path: FIXTURE, bytes: FIXTURE_BYTES.length, sha256: SHA256 },
     markers: [
       { name: 'BLOCK_FIXTURE', values: { id: 'F-SEMANTIC-EDGE', bytes: FIXTURE_BYTES.length, sha256: SHA256 } },
-      { name: 'BLOCK_OPEN', values: { first_content_ms: 120, time_to_input_ms: 240 } },
+      { name: 'BLOCK_OPEN', values: { first_content_ms: 120, time_to_input_ms: 240, tail_mount_ms: 610, served_path: 'progressive' } },
       { name: 'BLOCK_TYPING', values: { n: 40, p50_ms: 33, p95_ms: 71, truth: 'ok', typed_landed: true } },
       { name: 'BLOCK_SCROLL', values: { frames: 240, frame_p95_ms: 21, jank_frames: 1 } },
       { name: 'BLOCK_CLOSE', values: { ms: 40 } },
@@ -171,6 +177,49 @@ describe('verify-capture CLI (tier 3)', () => {
     })
     expect(res.status).toBe(1)
     expect(res.stdout).toContain('is a finite number')
+  })
+
+  // ── C-LARGE-DOC-WAVE-A T-005: the two new BLOCK_OPEN fields ────────────
+
+  it('rejects a missing tail_mount_ms (tail completion is a required phase metric)', () => {
+    const res = withCapture((c) => {
+      delete c.markers.find((m) => m.name === 'BLOCK_OPEN').values.tail_mount_ms
+    })
+    expect(res.status).toBe(1)
+    expect(res.stdout).toContain('BLOCK_OPEN carries every required key')
+    expect(res.stdout).toContain('tail_mount_ms')
+  })
+
+  it('rejects a non-numeric tail_mount_ms', () => {
+    const res = withCapture((c) => {
+      c.markers.find((m) => m.name === 'BLOCK_OPEN').values.tail_mount_ms = 'tail finished quickly'
+    })
+    expect(res.status).toBe(1)
+    expect(res.stdout).toContain('BLOCK_OPEN.tail_mount_ms is a finite number')
+  })
+
+  it('rejects a made-up served_path mount-path label (label lie)', () => {
+    for (const lie of ['hybrid', 'native-progressive', 'progressive (chromium)']) {
+      const res = withCapture((c) => {
+        c.markers.find((m) => m.name === 'BLOCK_OPEN').values.served_path = lie
+      })
+      expect(res.status, lie).toBe(1)
+      expect(res.stdout, lie).toContain('served_path is a known mount path')
+    }
+  })
+
+  it('rejects a missing served_path and accepts the honest legacy value (fallback evidence)', () => {
+    const missing = withCapture((c) => {
+      delete c.markers.find((m) => m.name === 'BLOCK_OPEN').values.served_path
+    })
+    expect(missing.status).toBe(1)
+    expect(missing.stdout).toContain('BLOCK_OPEN carries every required key')
+
+    const legacy = withCapture((c) => {
+      c.markers.find((m) => m.name === 'BLOCK_OPEN').values.served_path = 'legacy'
+    })
+    expect(legacy.stdout).toContain('VERDICT: PASS')
+    expect(legacy.status).toBe(0)
   })
 
   it('rejects a typing marker whose typed character did not land', () => {
