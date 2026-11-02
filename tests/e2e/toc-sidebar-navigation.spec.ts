@@ -31,6 +31,10 @@ test.describe('sidebar TOC retirement (C-40 T-003)', () => {
 
   test('a stale toc right-column shows Files; navigation lives in the rail', async ({ page }) => {
     await bootEditor(page)
+    // A narrow column, applied directly: this test exercises the outline
+    // rail (overflow-gated) and must not depend on the shipped default
+    // width (calc(100px + 768px) since C-PAGE-WIDTH-TABLES T-101).
+    await page.addStyleTag({ content: ':root{--editorAreaWidth: calc(100px + 300px) !important}' })
     await openFileTab(page, '/tmp/toc-nav.md', DOC)
 
     await expect(page.locator('.editor-with-tabs h1').first())

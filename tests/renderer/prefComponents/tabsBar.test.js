@@ -58,11 +58,11 @@ describe('tabsBar/index.vue – Settings toolbar', () => {
     wrapper?.unmount()
   })
 
-  it('renders the toolbar with all 5 tabs and data-tab ids', () => {
+  it('renders the toolbar with all tabs and data-tab ids (5 IA tabs + experimental)', () => {
     wrapper = mountBar()
     expect(wrapper.find('nav.pref-toolbar').exists()).toBe(true)
     const ids = wrapper.findAll('.pref-tab').map((b) => b.attributes('data-tab'))
-    expect(ids).toEqual(['general', 'appearance', 'editor', 'markdown', 'advanced'])
+    expect(ids).toEqual(['general', 'appearance', 'editor', 'markdown', 'advanced', 'experimental'])
   })
 
   it('renders an icon and a label per tab', () => {

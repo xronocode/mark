@@ -249,7 +249,7 @@ describe('editorWithTabs/outlineRail.vue', () => {
   })
 
   it('hides when the rail would overlap the centred text column (wide editorLineWidth)', async () => {
-    // A 1100px container shows the default 750px column, but a 950px
+    // A wide container shows the default 768px-content column, but a 950px
     // column (editorLineWidth) leaves no room: rail left = 908, text
     // right = (1100+950)/2 - 50 = 1025 → hidden.
     geometry.containerWidth = 1100

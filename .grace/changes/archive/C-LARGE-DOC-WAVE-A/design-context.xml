@@ -1,0 +1,111 @@
+<GraceChangeDesignContext graceVersion='4.0'>
+  <Change>C-LARGE-DOC-WAVE-A</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    Wave A attacks the opening trajectory because Stage 0 measured it as the
+    dominant cost: ~809 ms of mount inside an ~890 ms open at the 1 MB shape,
+    with parse at ~20 ms (recorded parse_proxy) and derived work cheap
+    (serialization ~3.8 ms at 1 MB, word count ~1 ms, TOC under 0.01 ms). Fixing parse or derived work
+    first would leave the user-facing block untouched; the contract's wave
+    order (Wave A progressive mount, then B1/B2, B3 last) encodes that
+    evidence. The architecture is region-based rather than
+    character-offset-based because Mark's advantage over the external
+    blueprint is the parsed block tree: muya already knows the top-level
+    block boundaries before mounting, so split points are exact and no
+    heuristic scanning is needed. The toggle ships default-off and
+    session-latched because the contract's experimental access model
+    requires it and because a progressive mount changes what users see
+    during the first seconds of a large document — that deserves a soak on
+    the experimental path before any default-flip proposal, which is a
+    separately approved change by contract.
+  </Rationale>
+  <Provenance>
+    <ExternalDigest>
+      <Name>Claude Code 2.1.312 markdown-stack research digest</Name>
+      <Path>owner-local report outside the repository: ~/Downloads/mark-claudecode-md-2026-10-30.md</Path>
+      <Date>2026-10-30</Date>
+      <Note>Exploratory reverse-engineering of a third-party binary (methods and byte offsets
+      documented in the report). Design reference only: mechanisms adapted, no code copied,
+      no numeric threshold inherited without its own Stage 0 grounding. The report's
+      large-document-relevant findings distilled below; its other findings (table formatter,
+      diff colors, link hygiene, daltonism themes, HTML import, file versioning) are outside
+      this line and stay with the owner's backlog decisions.</Note>
+    </ExternalDigest>
+    <Stage0Evidence>
+      <Item>Committed corpus and generators: tests/e2e/fixtures/large-doc/ (mixed-100k, size-1mb, size-1_7mb-9000sections, pathological and semantic-edge shapes, byte-policy matrix with shape-metadata.json).</Item>
+      <Item>Recorded baselines and cost breakdowns: src/renderer/bench/baseline/ (capture-baseline.mjs and per-shape artifacts).</Item>
+      <Item>Acceptance protocol already carrying time_to_input_ms as a BLOCK_OPEN capture field: src/renderer/bench/acceptance/ (capture-template.json, verify-capture.mjs).</Item>
+      <Item>Characterization oracle suites (the equivalence oracle for this change): tests/e2e/perf/ and tests/renderer/perf/ as landed by C-LARGE-DOC-STAGE-0.</Item>
+      <Item>Normative contract: .grace/context/ux-guidelines.xml LargeDocumentContract (owner-approved 2026-10-29).</Item>
+    </Stage0Evidence>
+  </Provenance>
+  <Blueprint Digest='claude-code-2.1.312 frozen-chunk streaming, adapted'>
+    <Mechanism Name='frozen chunks'>
+      <Observed>Rendered regions above a stable boundary are never re-parsed or re-rendered;
+      freezing triggers when the stable prefix or the active tail exceeds a threshold
+      (4096 in the source); the active tail re-renders each frame.</Observed>
+      <Adaptation>Mark's frozen region is the mounted prefix of the block tree: blocks above
+      the furthest mount boundary are mounted once and never re-mounted while the document
+      stays above that boundary; muya's existing per-block update machinery already keeps
+      edited blocks correct without touching siblings, which is the same property the
+      blueprint builds by hand. The 4096-character threshold is not inherited: Mark's
+      freeze boundary is structural (block count and viewport margin), sized at plan time
+      from the corpus, not a character count.</Adaptation>
+    </Mechanism>
+    <Mechanism Name='safe split points'>
+      <Observed>The cut point prefers a newline at distance, then a space, then a hard cut
+      shifted off surrogate pairs (codePointAt 0xD800-0xDFFF check) so emoji are never
+      halved; an open code fence makes the tail raw code; unclosed links/HTML suppress
+      link wrapping.</Observed>
+      <Adaptation>Mark does not need the heuristic ladder: split points are top-level block
+      boundaries from the parsed tree. The surrogate-pair rule still binds wherever text
+      is sliced (validated offsets), and the open-fence rule maps to extending the
+      synchronous region past an unresolved construct instead of splitting inside it.</Adaptation>
+    </Mechanism>
+    <Mechanism Name='prefix-mismatch reset'>
+      <Observed>If the text no longer starts with the frozen source (edit or rollback above
+      the boundary), all streaming state resets and rendering restarts.</Observed>
+      <Adaptation>The same escape hatch, bounded: revalidate the affected region and remount
+      it; the worst case is one full progressive-state reset completing the open through
+      the legacy mount — never a wedged editor.</Adaptation>
+    </Mechanism>
+    <Mechanism Name='resilience belts'>
+      <Observed>Four belts around the parser: a fast-path "is this markdown" regex, a depth
+      guard (100) via tokenizer overrides, a render traversal budget (300 elements / 64
+      deep, flattening beyond), and a RangeError catch that degrades the block to
+      plain text so the UI never crashes.</Observed>
+      <Adaptation>Wave A adopts the belts that protect the mount: a depth/traversal guard
+      on mounting (flatten oversize subtrees) and a catch-all fallback to the legacy
+      mount. The fast-path regex and token LRU cache are deliberately not adopted —
+      Stage 0 measured Mark's parse as cheap (recorded parse_proxy: 5–11 ms at the
+      ordinary ~100 KB shape, ~20 ms at the 1 MB shape), so those belts solve
+      a cost Mark does not have on this path; they are recorded here for any future
+      change that makes parsing hot again.</Adaptation>
+    </Mechanism>
+    <Mechanism Name='two-layer rendering'>
+      <Observed>The same token stream feeds a rich component layer and a flat string layer
+      (windowed mode, copy, screen readers).</Observed>
+      <Adaptation>Not needed as an architecture: Mark already has one render tree plus
+      copy/export readers. The equivalence goal (R-7) is the local equivalent — every
+      reader and consumer must observe identical output under both mount paths.</Adaptation>
+    </Mechanism>
+  </Blueprint>
+  <AlternativesRejected>
+    <Alternative Name='content-visibility as the whole fix'>Rejected: it hides layout cost
+    but not mount/DOM-construction cost, is already a separate default-off experiment, and
+    cannot deliver the time-to-input budget by itself.</Alternative>
+    <Alternative Name='windowed/virtualized rendering now'>Rejected as Wave D scope: it
+    changes scroll, search, copy and export semantics across the product; progressive
+    mount delivers the contract budgets without redefining any reader.</Alternative>
+    <Alternative Name='chunked parsing or streaming parse'>Rejected: parse is measured-cheap
+    and whole-document parse keeps every existing oracle trivially intact; chunking it
+    would add correctness risk for no budget gain.</Alternative>
+    <Alternative Name='shipping progressive mount on by default'>Rejected by contract: the
+    experimental access model is default-off and session-latched until a separately
+    approved default flip; this change does not propose that flip.</Alternative>
+    <Alternative Name='inheriting the blueprint thresholds'>Rejected: the source's numbers
+    (4096 freeze, 2048/1536 split distances, depth 100, 300/64 traversal, 500-entry LRU)
+    describe a terminal renderer on different constraints; every Wave A number is either
+    grounded in the Stage 0 baseline or explicitly an owner decision (R-5).</Alternative>
+  </AlternativesRejected>
+</GraceChangeDesignContext>

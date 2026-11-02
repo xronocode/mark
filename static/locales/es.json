@@ -543,7 +543,14 @@
       "markdown": "Markdown",
       "general": "General",
       "advanced": "Avanzado",
-      "appearance": "Apariencia"
+      "appearance": "Apariencia",
+      "experimental": "Experimental"
+    },
+    "experimental": {
+      "title": "Funciones experimentales",
+      "progressiveMount": "Montaje progresivo de documentos grandes",
+      "progressiveMountHelp": "Experimental: monta los documentos grandes de forma progresiva (la apertura sigue siendo fluida). Desactivado de forma predeterminada; se restablece al reiniciar. Parte del contrato de rendimiento para documentos grandes.",
+      "sessionCount": "Esta sesión: {progressive} aperturas progresivas / {legacy} aperturas heredadas"
     },
     "markdown": {
       "title": "Markdown",

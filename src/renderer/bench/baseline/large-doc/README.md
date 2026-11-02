@@ -33,6 +33,16 @@ Honest labels carried in the data:
 - `verdict` records whether the driver's required phases passed. A failed
   entry is kept in the artifact rather than dropped.
 
+Since C-LARGE-DOC-WAVE-A T-005 each fixture is captured on BOTH mount
+paths as paired entries carrying a `path` field (`legacy` |
+`progressive`). The committed artifact below predates Wave A and holds
+`legacy` entries only (no `path` field — read as legacy); the Wave A
+re-shoot (plan T-007) records both paths with the same run conditions.
+Progressive entries add a `tail_mount` summary per engine
+(sync_region/first_paint/tti/tail_done stats plus the served/canon_ok/
+dom_ok/typing_during_tail truth tokens) — separate phases, never summed
+into open or typing, per Wave A R-6.
+
 ## Regenerate
 
 ```sh
@@ -41,7 +51,9 @@ node src/renderer/bench/baseline/capture-baseline.mjs
 
 The capture is self-contained: it builds the renderer once if the bench bundle
 is missing and starts/stops its own preview server (an already-running server
-on :4173 is reused).
+on :4173 is reused). Both paths (legacy + progressive) are captured per
+fixture; `--render-only` re-renders `baseline.md` from the existing JSON
+without re-measuring (pre-Wave-A single-path JSON stays readable).
 
 Fixture set and runs/engine are declared in `capture-baseline.mjs`
 (`mixed-100k.md` ×3, `size-1mb.md` ×3, `size-1_7mb-9000sections.md` ×1).

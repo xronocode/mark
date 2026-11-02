@@ -1,9 +1,9 @@
 // FILE: tests/e2e/perf/characterization-ime-seeded.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Freeze CURRENT IME-composition behavior at the save/close/session boundaries and run deterministic seeded multi-action sessions for C-LARGE-DOC-STAGE-0 T-008 (spec R-6/R-7), recording every observed defect as observedLegacyBehavior paired with desiredInvariant — never as an accepted oracle.
 //   SCOPE: Renderer-only Playwright WebKit tier (vite preview + tauri shim) against the real Muya composition handlers and the real Pinia editor store. WebKit automation has no native IME driver, so the composition envelope is synthesized: compositionstart/compositionend are bubbling CompositionEvents dispatched on the real contenteditable paragraph while the text itself enters through Playwright's real keyboard editing path (keyboard.type / keyboard.insertText → native input events). Muya's real isComposed gate, inputHandler, getMarkdown and store LISTEN_FOR_CONTENT_CHANGE are the subject; no markdown is written directly to fake an outcome. Native process exit, native pickers and real disk bytes are the only unreachable parts and are asserted at the renderer transport instead (see the boundary coverage note).
-//   DEPENDS: Playwright webkit-perf, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/fixtures/helpers.ts, the real Pinia editor store, tests/e2e/fixtures/large-doc/semantic-edge.md pinned in shape-metadata.json.
+//   DEPENDS: Playwright webkit-perf, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/perf/helpers/experimental (the fixtures/helpers bootEditor/openFileTab pass-throughs, plus the WAVEA_EXPERIMENTAL=1 real-UI progressive-toggle enabling — C-LARGE-DOC-WAVE-A T-006), the real Pinia editor store, tests/e2e/fixtures/large-doc/semantic-edge.md pinned in shape-metadata.json.
 //   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0/plan.xml T-008 (spec R-6/R-7); .grace/verification/performance.xml V-M-060; src/muya/lib/eventHandler/keyboard.js recordIsComposed/inputBinding; src/muya/lib/contentState/inputCtrl.js inputHandler; src/renderer/src/store/editor.js FILE_SAVE/FILE_SAVE_AS/ASK_FOR_SAVE_ALL/HANDLE_AUTO_SAVE/APPLY_FILE_CHANGE/UPDATE_CURRENT_FILE/CLOSE_TAB/QUIT_APP.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -70,7 +70,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-27 C-LARGE-DOC-STAGE-0 T-008: initial
+//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-006: added the
+//   WAVEA_EXPERIMENTAL beforeAll hook — bootEditor/openFileTab now import
+//   through tests/e2e/perf/helpers/experimental so WAVEA_EXPERIMENTAL=1
+//   enables the session-latched progressive-mount toggle through the real
+//   Settings UI after every boot (no-op without the env var). Zero
+//   assertion changes: the suite freezes the same boundaries on both paths.
+//   v1.0.0 - 2026-10-27 C-LARGE-DOC-STAGE-0 T-008: initial
 //   characterization oracle. Records current composition behavior at save,
 //   Save As, Save All, autosave, external change, tab switch, source mode,
 //   diff entry, export, copy, workspace replace, rename, move, close and quit,
@@ -83,7 +89,13 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 import { installTauriShim } from '../fixtures/tauri-shim'
-import { bootEditor, openFileTab } from '../fixtures/helpers'
+// C-LARGE-DOC-WAVE-A T-006: bootEditor/openFileTab come from the Wave A
+// experimental helper — byte-for-byte the shared fixture when
+// WAVEA_EXPERIMENTAL is unset; with WAVEA_EXPERIMENTAL=1 every boot also
+// enables the session-latched progressive-mount toggle through the REAL
+// Settings UI, so the whole suite reruns on the progressive path with
+// ZERO assertion changes (the beforeAll hook below arms it).
+import { bootEditor, openFileTab, waveaExperimentalBeforeAll } from './helpers/experimental'
 
 const FIXTURE = 'semantic-edge.md'
 const FIXTURE_PATH = resolve('tests/e2e/fixtures/large-doc', FIXTURE)
@@ -123,6 +135,10 @@ function fixtureIdentity (): FixtureIdentity {
 const FIXTURE_MARKDOWN = readFileSync(FIXTURE_PATH, 'utf8')
 
 test.beforeAll(() => {
+  // C-LARGE-DOC-WAVE-A T-006: WAVEA_EXPERIMENTAL=1 arms the bootEditor
+  // wrapper's real-UI progressive-toggle enabling (no-op otherwise) — the
+  // toggle-on characterization rerun rides this hook; no assertion changes.
+  waveaExperimentalBeforeAll()
   // Pin the fixture's exact bytes/sha256 from shape-metadata.json before any
   // characterization result is allowed to stand.
   fixtureIdentity()

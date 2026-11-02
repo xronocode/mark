@@ -57,6 +57,7 @@
         <V-M-057/>
         <V-M-058/>
         <V-M-069/>
+        <V-M-070/>
         <V-M-059/>
         <V-M-048/>
         <V-M-049/>
@@ -69,6 +70,7 @@
     <VD-PERFORMANCE>
       <Path>verification/performance.xml</Path>
       <!-- C-LARGE-DOC-STAGE-0: V-M-060 owns the three labelled Stage 0 evidence tiers, the deterministic fixture gate and the baseline artifacts. -->
+      <!-- C-LARGE-DOC-WAVE-A: V-M-063 owns the progressive-path Wave A gates — two-path budget evidence in the baseline artifacts, fail-safe fallback, unmounted-tail interaction, the Experimental surface and WAVEA_EXPERIMENTAL=1 equivalence. -->
       <Owns>
         <V-M-024/>
         <V-M-025/>
@@ -78,6 +80,7 @@
         <V-M-029/>
         <V-M-030/>
         <V-M-060/>
+        <V-M-063/>
       </Owns>
     </VD-PERFORMANCE>
     <VD-FEATURES>
@@ -117,6 +120,8 @@
         <!-- C-UPDATER-ROLLBACK: V-M-068 owns the rollback manager's
              commands, scenarios and content-free markers. -->
         <V-M-068/>
+        <!-- C-UPDATER-STATS: V-M-071 owns the gateway verification. -->
+        <V-M-071/>
       </Owns>
     </VD-FEATURES>
   </VerificationDocuments>

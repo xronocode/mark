@@ -1,13 +1,15 @@
 # muya WKWebView perf harness
 
 Phase-B1 step-2.5 verification gate, extended by C-LARGE-DOC-STAGE-0
-(T-003) into the Stage 0 measurement vehicle. Self-contained synthetic
-harness: **no IPC, no Pinia, no Element Plus, no router** — just muya
-mounted on a fixture markdown so initial-render cost, typing latency, and
-scroll jank can be measured cleanly across runtimes. Typing and scroll
-phases are measured only in runs that emit numeric PHASE_ markers — the
-old SKIPPED stubs are gone; a required phase without a numeric result
-fails the driver.
+(T-003) into the Stage 0 measurement vehicle, and by C-LARGE-DOC-WAVE-A
+(T-005) with the progressive-mount `tail-mount` phase, the `--progressive`
+driver flag and the budgeted time-to-input metric (`tti_ms`, both paths).
+Self-contained synthetic harness: **no IPC, no Pinia, no Element Plus,
+no router** — just muya mounted on a fixture markdown so initial-render
+cost, typing latency, and scroll jank can be measured cleanly across
+runtimes. Typing and scroll phases are measured only in runs that emit
+numeric PHASE_ markers — the old SKIPPED stubs are gone; a required phase
+without a numeric result fails the driver.
 
 Per `docs/development-plan.xml` Phase-B1 step-2.5 PASS criterion (applies
 to the built-in ~4 KB fixture with default open-only phases):
@@ -39,7 +41,15 @@ FAIL → escalate to user; do NOT proceed to Phase-B2.
 
 ## Stable log markers
 
-- `[BENCH] [PHASE_INIT_RENDER ms=N]`
+- `[BENCH] [PHASE_INIT_RENDER ms=N]` — gains `tti_ms=` (Wave A T-005,
+  both paths) and `served=progressive|legacy` (only when the run is
+  `--progressive`). `tti_ms` is the budgeted time-to-input metric: open
+  start → the first REAL keystroke ACCEPTED through the input pipeline
+  (the PHASE_TYPING injector driven at the earliest input-ready moment —
+  right after the constructor returns on the legacy path, right after the
+  sync region is mounted on the progressive path). The probe keystroke is
+  undone outside the measured windows; no paint wait is folded into the
+  metric.
 - `[BENCH] [PHASE_TYPING n=N p50_ms=A p95_ms=B max_ms=C mean_ms=D truth=ok]`
   — per-keystroke input→next-paint through the REAL input pipeline:
   `document.execCommand('insertText')` fires the genuine
@@ -49,10 +59,29 @@ FAIL → escalate to user; do NOT proceed to Phase-B2.
 - `[BENCH] [PHASE_SCROLL frames=N elapsed_ms=M fps=F frame_p50_ms=A
   frame_p95_ms=B frame_max_ms=C frames_gt_50ms=G]` — frame-interval jank
   distribution of a programmatic document scroll, not just average FPS.
+- `[BENCH] [PHASE_TAIL_MOUNT sync_region_ms=A sync_blocks=B total_blocks=C
+  first_paint_ms=D tti_ms=E tail_done_ms=F served=progressive canon_ok=true
+  dom_ok=true typing_during_tail=ok primary_intact=true]` — Wave A T-005:
+  the progressive open measured end-to-end on a SECOND, isolated muya
+  instance (`muya.progressiveMount`), with the same-run primary editor as
+  the canonical Markdown reference. The phases are reported separately
+  and never summed: sync region → first visible content → time-to-input →
+  tail completion. Truth tokens: `canon_ok` (progressive round-trip ===
+  the primary's Markdown), `dom_ok` (the second instance's OWN root
+  carries every top-level block), `typing_during_tail` (one real keystroke
+  accepted AND undone while the tail was still pending),
+  `primary_intact` (the primary's DOM survived the phase). This phase
+  always runs LAST and detaches the primary container for its duration —
+  the legacy renderer's root lookup (`document.querySelector('div#ag-editor-id')`)
+  is document-global (the T-002 multi-instance trap) and both the second
+  instance's empty bootstrap and the undo full-render still walk it; the
+  finally restores the primary at its exact position. A
+  `no-tail-window` label (fixture too small to have a pending tail) is
+  reported honestly; on corpus fixtures `typing_during_tail` must be `ok`.
 - `[BENCH] [PHASE_OVERHEAD n=N instrumented_p50_ms=A control_p50_ms=B
   delta_p50_ms=D ratio_p50=R … truth=ok]` — optional diagnostic: the same
-  typing burst measured with the responsiveness observers on and off in the
-  same run. Reported on its own line and never folded into baseline
+  typing burst measured with the responsiveness observers on and off in
+  the same run. Reported on its own line and never folded into baseline
   numbers.
 - `[BENCH] [REPORT_DONE status=ok|fail]`
 
@@ -85,7 +114,30 @@ node src/renderer/bench/run-bench.mjs \
 node src/renderer/bench/run-bench.mjs \
   --fixture tests/e2e/fixtures/large-doc/size-1mb.md \
   --phases open,typing,overhead,scroll --runs 1 # + observer-overhead control
+node src/renderer/bench/run-bench-preview.mjs \
+  --fixture tests/e2e/fixtures/large-doc/size-1mb.md \
+  --phases open,tail-mount,typing,scroll --progressive   # Wave A: progressive path
+node src/renderer/bench/run-bench-preview.mjs \
+  --fixture tests/e2e/fixtures/large-doc/size-1mb.md \
+  --phases open,tail-mount,typing,scroll        # Wave A control: legacy path
 ```
+
+`--progressive` (C-LARGE-DOC-WAVE-A T-005) is the bench-level seam to the
+muya progressive mount entry — the bench-level harness routing, distinct
+from the product Experimental toggle (T-004). With the flag the PRIMARY
+editor opens through `muya.progressiveMount` (empty bootstrap, parse
+whole, sync region, cooperative tail) and `PHASE_INIT_RENDER` gains
+`served=progressive|legacy` (fallback honesty) — the tail-mount phase is
+measured either way through its own isolated second instance. Without the
+flag every default and the legacy mount path are unchanged; both paths
+emit `tti_ms`.
+
+The `tail-mount` phase token is required-when-requested: the driver gates
+on numeric `sync_region_ms` / `first_paint_ms` / `tti_ms` /
+`tail_done_ms` plus the `canon_ok` / `dom_ok` / `typing_during_tail`
+truth tokens, and prints a dedicated table that is never summed into the
+open/typing tables. The time-to-input table appears whenever the run
+exercises the new paths (`--progressive` or the `tail-mount` phase).
 
 The driver prints the fixture identity (bytes + sha256), per-engine stats
 tables for every required phase, the raw per-run phase lines for evidence
@@ -107,7 +159,12 @@ Cross-runtime comparison protocol:
    runtimes — eliminates Vite-config drift as a confound.
 2. Run each phase 5 times per runtime (3 for corpus fixtures); discard
    min+max; average the remainder.
-3. Record corpus results in `baseline/large-doc/` (Stage 0 T-009).
+3. Record corpus results in `baseline/large-doc/` (Stage 0 T-009). Since
+   Wave A T-005 the baseline capture records BOTH mount paths per fixture
+   as paired entries with a `path` field (`legacy` invocation unchanged;
+   `progressive` adds `--progressive` and the tail-mount phase) — the
+   two-path numbers support the Wave A tail-mount/time-to-input budget
+   decision and are never merged into one series.
 
 ## What this harness does NOT exercise
 

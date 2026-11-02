@@ -17,7 +17,12 @@
     },
     {
       "name": "BLOCK_OPEN",
-      "values": { "first_content_ms": 0, "time_to_input_ms": 0 }
+      "values": {
+        "first_content_ms": 0,
+        "time_to_input_ms": 0,
+        "tail_mount_ms": 0,
+        "served_path": "<progressive | legacy>"
+      }
     },
     {
       "name": "BLOCK_TYPING",

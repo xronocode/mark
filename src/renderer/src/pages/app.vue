@@ -66,6 +66,11 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-01 C-WINDOWS-MENU-ACCELERATORS: boot installs the
+//     window-level menu-accelerator dispatcher beside the zoom/palette
+//     capture handlers (off on darwin; disposes with the other window
+//     listeners) — the hidden Win/Linux menu bar registers no
+//     accelerators, so the audited menu chords dispatch renderer-side.
 //   - 2026-10-28 C-UPDATER-ROLLBACK T-005/T-006: the shell mounts the
 //     rollback confirmation card (components/rollbackConfirm) beside the
 //     update notice — it renders the C-UPDATER-ROLLBACK confirmation
@@ -146,6 +151,7 @@ import { resolveAutoTheme, watchSystemColorScheme } from '@/util/autoTheme'
 import { installMicaWindowEffect, syncMicaTheme } from '@/util/micaWindow'
 import { watchViewMenuChecks } from '@/util/menuChecks'
 import { isOsx } from '@/util'
+import { installWindowMenuAccelerators } from '@/services/windowMenuAccelerators'
 import Recent from '@/components/recent'
 import EditorWithTabs from '@/components/editorWithTabs'
 import TitleBar from '@/components/titleBar'
@@ -194,6 +200,7 @@ let cleanupPinchZoom = null
 let cleanupDragDrop = null
 let cleanupNativeZoom = null
 let cleanupCommandPaletteShortcut = null
+let cleanupWindowAccelerators = null
 
 // States from Pini
 const { windowActive, platform, init } = storeToRefs(mainStore)
@@ -500,6 +507,11 @@ onMounted(async () => {
   cleanupDragDrop = setupDragDropHandler()
   cleanupPinchZoom = setupCtrlWheelFontSize()
   cleanupNativeZoom = setupZoomKeysFontSize()
+  // C-WINDOWS-MENU-ACCELERATORS: the hidden Win/Linux menu bar (C-15 T-W1)
+  // registers no accelerators, so the audited menu chords dispatch through
+  // this window-level capture listener instead (off on darwin — the native
+  // menu owns the chords there).
+  cleanupWindowAccelerators = installWindowMenuAccelerators()
 
   // START_BLOCK_C48_STARTUP
   // C-48: What's New gate first (it records lastSeenVersion and stamps
@@ -561,6 +573,7 @@ onUnmounted(() => {
   if (cleanupPinchZoom) cleanupPinchZoom()
   if (cleanupNativeZoom) cleanupNativeZoom()
   if (cleanupCommandPaletteShortcut) cleanupCommandPaletteShortcut()
+  if (cleanupWindowAccelerators) cleanupWindowAccelerators()
   // C-41 T-001: drop the prefers-color-scheme listener with the window.
   stopColorSchemeWatch()
 })

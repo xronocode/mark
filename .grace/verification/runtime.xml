@@ -2917,7 +2917,8 @@
           scenario-10: BOM stripped before regex; payload with leading BOM still
           detected.
         </Scenario>
-      </Scenarios>
+      
+        <Scenario>C-WINDOWS-SAVE-PIPELINE scenario-win-sandbox (2026-11-01): cargo test m010_security 29/29 incl. the Windows fixture matrix (permissive root admits DOS absolutes, UNC↔DOS prefix equivalence, cross-drive denial at the compare layer, drive-root non-permissive, traversal above root); cargo test m001_save_close 16/16; polygon proof — real Ctrl+S on the rebuilt NSIS writes a scratch document under D:\polygon (mtime moves, content round-trips, isSaved true).</Scenario></Scenarios>
       <Markers>
         <Marker>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]</Marker>
         <Marker>[Security][shellOpen][BLOCK_CONFIRM_PROMPT]</Marker>
@@ -5887,6 +5888,7 @@
       <Commands>
         <Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Command>
         <Command>npx vitest run tests/renderer/muya/markdown-round-trip.test.js tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/inline-token-parity.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/emphasis-pairing.test.js tests/renderer/muya/inline-token-parity.test.js</Command>
         <Command>
           npx vitest run tests/renderer/muya/keyboard-undo.test.js
           tests/renderer/muya/copy-data.test.js
@@ -5977,6 +5979,20 @@
               <Command>npx vitest run tests/renderer/muya/copy-cut-stale-selection.test.js</Command>
 </Commands>
       <Scenarios>
+
+        <scenario-commonmark-emphasis-pairing>
+          C-COMMONMARK-EMPHASIS (merged PR #87): emphasis delimiter pairing
+          pins. The owner-report paragraph («**Zero-shot **— … **One-shot**»,
+          2026-10-26 screenshot) tokenizes to literal typo asterisks plus
+          exactly one STRONG around One-shot, and the marked fork renders the
+          GitHub Markdown API output byte for byte. The theft class (**a
+          **b** c**, A **B **— C** D, *a *b* c*), *** run splitting
+          (em[strong]), masking (escapes, code spans), activation counters,
+          generator round-trip and muya-vs-marked parity are pinned in
+          emphasis-pairing.test.js. Inline goldens re-captured deliberately
+          (UPDATE_INLINE_GOLDENS=1, C-24 flow); lexer goldens unchanged.
+        </scenario-commonmark-emphasis-pairing>
+
         <scenario-muya-fence-import-teardown>
           The real Muya fence-export/Guide round-trip suite waits for
           vi.dynamicImportSettled before restoring its console spies and
@@ -12986,6 +13002,20 @@
         <Marker>[DevBadge][apply][BLOCK_DEV_BADGE_DOCK_FAILED reason=…]</Marker>
       </Markers>
     </V-M-069>
+    <V-M-070>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/services/windowMenuAccelerators.test.js</Command>
+        <Command>npx playwright test tests/e2e/windows-accelerators.spec.ts --project=chromium</Command>
+        <Command>Windows polygon: cua hotkey delivery_mode=foreground — Ctrl+Alt+S engages source mode with the mode chip rendered; Ctrl+S writes a dirty scratch doc (mtime moves); Ctrl+N opens a tab</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>scenario-1 (parity): the table equals the win-relevant m009_menu.rs accelerators minus the documented exclusions (zoom trio alive in app.vue; fullscreen collapses into Ctrl+F), every commandId resolves through the registry, and drift in either direction fails the m009 cross-check.</Scenario>
+        <Scenario>scenario-2 (guards): physical-code matching works on non-Latin layouts, mac meta chords/IME composition/auto-repeat never match, Ctrl+A carves out non-editor input surfaces while serving the editor, and unmatched chords pass through.</Scenario>
+        <Scenario>scenario-3 (e2e): real key presses on the forced dispatcher — Ctrl+Alt+S turns sourceCode on and renders the mode chip, Ctrl+S dispatches file.save, Ctrl+W closes the focused tab; without the seam a darwin-built app stays silent.</Scenario>
+        <Scenario>scenario-4 (polygon): real SendInput chords on the rebuilt NSIS engage the modes with chips rendered and save a dirty document — the acceptance effect for C-TITLEBAR-MODE-CHIPS on Windows.</Scenario>
+      </Scenarios>
+    </V-M-070>
     <V-M-059>
       <Priority>high</Priority>
       <Commands>

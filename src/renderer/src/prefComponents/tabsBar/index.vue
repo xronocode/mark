@@ -30,24 +30,27 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabsBar/index.vue
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: The C-38 T-003 Settings toolbar — 5 icon tabs (centred macOS-style on macOS, underline tabs on Windows/Linux) that drive the /preference router-view, plus the ⌘F/Ctrl+F settings-search panel.
+//   PURPOSE: The C-38 T-003 Settings toolbar — icon tabs (the 5 mockup tabs plus the C-LARGE-DOC-WAVE-A Experimental tab; centred macOS-style on macOS, underline tabs on Windows/Linux) that drive the /preference router-view, plus the ⌘F/Ctrl+F settings-search panel.
 //   SCOPE: Tab rendering and routing, active-tab tracking from the route, search-panel open/close on Cmd/Ctrl+F.
 //   DEPENDS: prefComponents/tabsBar/config (TABS), tabsBar/icons (TAB_ICONS), tabsBar/searchPanel, vue-router, vue-i18n, util (isOsx).
-//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   tabs - TABS enriched with the translated label and the mockup icon per id.
-//   activeTabId - route.name when it is one of the 5 tab ids (redirects resolve before this renders).
+//   activeTabId - route.name when it is one of the tab ids (redirects resolve before this renders).
 //   pick - router.push to the tab path (no re-push when already active).
 //   onKeydown - ⌘F/Ctrl+F toggles the search panel (the mockup toolbar has no search field; see searchPanel.vue).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-02 v1.2.0: C-LARGE-DOC-WAVE-A T-004 — the toolbar renders
+//     the Experimental tab that TABS/TAB_ICONS now carry (no logic change
+//     here: tabs already map over the catalog).
 //   - 2026-10-16 v1.1.0: C-51 T-008 — on macOS the Settings window has a transparent title bar over full-size content (m_v1_compat settings_transparent_titlebar), so the toolbar is the title-bar surface in the theme colour: it reserves the 28 px traffic-light strip and is a window drag region.
 //   - 2026-10-15 v1.0.0: C-38 T-003 — replaces the 9-item left rail (prefComponents/sideBar/index.vue) with the 5-tab toolbar from the approved mockup.
 // END_CHANGE_SUMMARY

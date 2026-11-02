@@ -1,18 +1,19 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 1.9.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, and the C-51 T-001 treeShowAllFiles preference.
-//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001).
-//   DEPENDS: pinia, @tauri-apps/api/core, bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js.
-//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); .grace/changes/archive/C-49; .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001.
+//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, the C-51 T-001 treeShowAllFiles preference, and the C-LARGE-DOC-WAVE-A T-004 experimental progressive-mount toggle plus its session-only served-opens counters.
+//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001), the experimental session-only surface (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT, the hydration strip of EXPERIMENTAL_SESSION_ONLY_KEYS and the mt::experimental-progressive-* cross-window events; never persisted, never resettable).
+//   DEPENDS: pinia, @tauri-apps/api/core, @tauri-apps/api/event (listen/emit — experimental cross-window sync only), bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); prefComponents/tabs/experimental (the Experimental tab); components/editorWithTabs/editor.vue (the open-path consumer); .grace/changes/archive/C-49; .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001; .grace/changes/active/C-LARGE-DOC-WAVE-A.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE; MIGRATE_CODE_BLOCK_LINE_NUMBERS one-time default flip; RESET_PREFERENCES_TO_DEFAULTS bulk reset).
-//   preferenceDefaults - the fresh state factory, reused by RESET_PREFERENCES_TO_DEFAULTS so the reset always reads the code-level defaults (C-38 T-004).
-//   RESETTABLE_PREFERENCE_KEYS - the user-visible preference keys «Restore all defaults» resets (schema-backed settings only; user data like the image folder, uploaders and recent files are never touched).
+//   usePreferencesStore - Pinia store factory (state defaults, hydration, persistence, C-49 zoom actions, LISTEN_* wiring incl. LISTEN_SYSTEM_LANGUAGE; MIGRATE_CODE_BLOCK_LINE_NUMBERS one-time default flip; RESET_PREFERENCES_TO_DEFAULTS bulk reset; the C-LARGE-DOC-WAVE-A experimental session-only actions SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT).
+//   preferenceDefaults - the fresh state factory, reused by RESET_PREFERENCES_TO_DEFAULTS so the reset always reads the code-level defaults (C-38 T-004); includes the experimentalProgressiveMount flag and the progressive/legacy served-opens counters, which are SESSION-ONLY state (see EXPERIMENTAL_SESSION_ONLY_KEYS — they never persist).
+//   RESETTABLE_PREFERENCE_KEYS - the user-visible preference keys «Restore all defaults» resets (schema-backed settings only; user data like the image folder, uploaders and recent files are never touched; the experimental session-only keys are excluded).
+//   EXPERIMENTAL_SESSION_ONLY_KEYS - the C-LARGE-DOC-WAVE-A T-004 in-memory-only state keys (toggle + served-opens counters), stripped from hydration and never written through mt_prefs_set.
 //   FONT_SIZE_MIN - unified-zoom lower clamp bound (C-49).
 //   FONT_SIZE_MAX - unified-zoom upper clamp bound (C-49).
 //   FONT_SIZE_DEFAULT - unified-zoom base unit (C-49).
@@ -20,7 +21,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.9.0 - 2026-10-19 C-69 T-002: restoreSessionOnLaunch
+//   LAST_CHANGE: v2.0.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-004: the
+//   experimental progressive-mount surface — in-memory-only state
+//   (experimentalProgressiveMount, default false; the progressive/legacy
+//   served-opens counters), the SET/RECORD/LISTEN actions, and the
+//   content-free mt::experimental-progressive-* cross-window events so a
+//   Settings-window flip reaches the editor windows without any persistence
+//   (session-latched: a relaunch returns to off; EXPERIMENTAL_SESSION_ONLY_KEYS
+//   are stripped from hydration and never enter SET_SINGLE_PREFERENCE,
+//   RESETTABLE_PREFERENCE_KEYS or any mt_prefs_set write).
+//   v1.9.0 - 2026-10-19 C-69 T-002: restoreSessionOnLaunch
 //   (default true, Settings › General › Startup, resettable) — read by
 //   store/editor.js BOOT_SESSION on a cold launch without files.
 //   v1.8.0 - 2026-10-19 C-66 T-003: three new persisted
@@ -89,6 +99,10 @@
 
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
+// C-LARGE-DOC-WAVE-A T-004: listen/emit carry ONLY the experimental
+// session-only sync (content-free payloads); preference persistence itself
+// stays on mt_prefs_set (invoke) exactly as before.
+import { listen as tauriListen, emit as tauriEmit } from '@tauri-apps/api/event'
 import bus from '../bus'
 import notice from '../services/notification'
 import { setLanguage, getCurrentLanguage } from '../i18n'
@@ -122,6 +136,42 @@ const bootDirtyKeys = new Set()
 // (module scope — not Pinia state — so repeated LISTEN_SYSTEM_LANGUAGE
 // calls from remounts never stack duplicate listeners).
 let systemLanguageListenersBound = false
+
+// START_BLOCK_EXPERIMENTAL_SESSION_STATE
+// C-LARGE-DOC-WAVE-A T-004 (R-4): the experimental progressive-mount
+// surface is LOCAL, DEFAULT-OFF and SESSION-LATCHED — it never persists.
+// The Settings window and the editor windows are separate webviews with
+// separate Pinia instances, so flips and served-opens counts travel on
+// two content-free Tauri events instead of mt_prefs_set:
+//   mt::experimental-progressive-mount  { enabled: boolean }
+//   mt::experimental-progressive-served { served: 'progressive' | 'legacy' }
+// Persistence-leak proof (the exact mechanisms verified):
+//   (1) mt_prefs_set is invoked only by SET_SINGLE_PREFERENCE /
+//       SET_USER_DATA / the migrations / the reset — none of which ever
+//       name these keys (the Experimental tab calls
+//       SET_EXPERIMENTAL_PROGRESSIVE_MOUNT, not SET_SINGLE_PREFERENCE);
+//   (2) RESET_PREFERENCES_TO_DEFAULTS maps over RESETTABLE_PREFERENCE_KEYS
+//       only, and these keys are not members;
+//   (3) ASK_FOR_USER_PREFERENCE strips EXPERIMENTAL_SESSION_ONLY_KEYS from
+//       the hydration payload, so even a hand-edited prefs.json entry can
+//       never resurrect the flag across a relaunch;
+//   (4) the backend broadcast (mt::user-preference) echoes only what
+//       prefs.json holds, and these keys never enter it.
+export const EXPERIMENTAL_SESSION_ONLY_KEYS = Object.freeze([
+  'experimentalProgressiveMount',
+  'progressiveMountServedProgressiveCount',
+  'progressiveMountServedLegacyCount'
+])
+
+const EXPERIMENTAL_PROGRESSIVE_MOUNT_EVENT = 'mt::experimental-progressive-mount'
+const EXPERIMENTAL_PROGRESSIVE_SERVED_EVENT = 'mt::experimental-progressive-served'
+
+// Bind-once guard (per store instance — the C-45 systemLanguage pattern,
+// keyed by instance so each window's single store binds exactly once while
+// remounts never stack listeners): every hydrating window registers the
+// two listeners through LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT at boot.
+const storesWithExperimentalListeners = new WeakSet()
+// END_BLOCK_EXPERIMENTAL_SESSION_STATE
 
 // START_BLOCK_PREFERENCE_DEFAULTS
 // The state factory is named (not inline) so RESET_PREFERENCES_TO_DEFAULTS
@@ -292,6 +342,22 @@ export const preferenceDefaults = () => ({
     autoCheckUpdates: true,
     lastUpdateCheckAt: '',
     skippedUpdateVersion: '',
+
+    // START_BLOCK_EXPERIMENTAL_DEFAULTS
+    // C-LARGE-DOC-WAVE-A T-004 (R-4): experimental progressive mount —
+    // LOCAL, DEFAULT-OFF, SESSION-LATCHED. These keys are Pinia state for
+    // reactivity ONLY (same precedent as typewriter/focus/sourceCode —
+    // «not part of persistent settings»): nothing ever writes them through
+    // mt_prefs_set, they are not resettable, hydration strips them, and a
+    // relaunch therefore always returns to off. The counters are
+    // content-free per-session counts of opens served by the progressive
+    // path vs the legacy path (R-4: an enabled user can see when the
+    // experiment did not serve an open). editor.vue feeds them from the
+    // muya BLOCK_MOUNT_SERVED marker; the Experimental tab displays them.
+    experimentalProgressiveMount: false,
+    progressiveMountServedProgressiveCount: 0,
+    progressiveMountServedLegacyCount: 0,
+    // END_BLOCK_EXPERIMENTAL_DEFAULTS
 
     // --------------------------------------------------------------------------
 
@@ -501,11 +567,24 @@ export const usePreferencesStore = defineStore('preferences', {
      * SET_SINGLE_PREFERENCE call has already persisted the new value.
      */
     async ASK_FOR_USER_PREFERENCE() {
+      // C-LARGE-DOC-WAVE-A T-004: both window kinds (editor via app.vue,
+      // Settings via preference.vue) hydrate through this action, so this
+      // is the single place to bind the experimental cross-window
+      // listeners once per renderer (idempotent, module-scope guard).
+      this.LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT()
       try {
         const prefs = await invoke('mt_prefs_get_all')
         if (prefs && typeof prefs === 'object') {
           const hydrated = { ...prefs }
           for (const key of bootDirtyKeys) {
+            delete hydrated[key]
+          }
+          // C-LARGE-DOC-WAVE-A T-004 (R-4 session-latch): the experimental
+          // keys are in-memory only. Strip them from the hydration payload
+          // so even a hand-edited prefs.json cannot resurrect the flag (or
+          // seed bogus counters) across a relaunch — the toggle always
+          // returns to off.
+          for (const key of EXPERIMENTAL_SESSION_ONLY_KEYS) {
             delete hydrated[key]
           }
           // START_BLOCK_MIGRATE_RETIRED_THEMES
@@ -740,6 +819,62 @@ export const usePreferencesStore = defineStore('preferences', {
       reResolve()
       // END_BLOCK_SYSTEM_LANGUAGE_BIND
     },
+
+    // ─── C-LARGE-DOC-WAVE-A T-004: experimental progressive mount ──────
+    // Local, default-off, session-latched (R-4). None of these actions
+    // persist anything: flips and served-opens travel on the content-free
+    // mt::experimental-progressive-* events so every open webview follows
+    // the same session state without a single mt_prefs_set write.
+
+    // START_BLOCK_SET_EXPERIMENTAL_PROGRESSIVE_MOUNT
+    // The Experimental tab switch calls this (NOT SET_SINGLE_PREFERENCE —
+    // persistence is forbidden for the experiment). The flip takes effect
+    // for documents opened after the flip only; already-open tabs are
+    // never remounted (editor.vue reads the flag at open time).
+    SET_EXPERIMENTAL_PROGRESSIVE_MOUNT(enabled) {
+      const value = enabled === true
+      this.experimentalProgressiveMount = value
+      // Best-effort fan-out to the other windows (and this one — the
+      // listener re-applies the same value idempotently; it never emits,
+      // so there is no loop). A failed emit (plain-browser dev shims)
+      // leaves this window's in-memory flag correct.
+      tauriEmit(EXPERIMENTAL_PROGRESSIVE_MOUNT_EVENT, { enabled: value }).catch(() => {})
+    },
+    // END_BLOCK_SET_EXPERIMENTAL_PROGRESSIVE_MOUNT
+
+    // START_BLOCK_RECORD_EXPERIMENTAL_MOUNT_SERVED
+    // editor.vue calls this from the muya BLOCK_MOUNT_SERVED marker
+    // (served: 'progressive' | 'legacy', content-free). The action only
+    // emits; every window's LISTEN handler (including this one, via the
+    // event echo) increments its own counters exactly once — that keeps
+    // the Settings-window counter a live sum over all editor windows
+    // without any persisted state.
+    RECORD_EXPERIMENTAL_MOUNT_SERVED(served) {
+      if (served !== 'progressive' && served !== 'legacy') return
+      tauriEmit(EXPERIMENTAL_PROGRESSIVE_SERVED_EVENT, { served }).catch(() => {})
+    },
+    // END_BLOCK_RECORD_EXPERIMENTAL_MOUNT_SERVED
+
+    // START_BLOCK_LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT
+    // Idempotent per store instance (WeakSet guard), bound at boot from
+    // ASK_FOR_USER_PREFERENCE in every window kind. Handlers only apply
+    // in-memory state — they never emit (no echo loop) and never persist.
+    LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT() {
+      if (storesWithExperimentalListeners.has(this)) return
+      storesWithExperimentalListeners.add(this)
+      tauriListen(EXPERIMENTAL_PROGRESSIVE_MOUNT_EVENT, (event) => {
+        this.experimentalProgressiveMount = !!(event && event.payload && event.payload.enabled)
+      })
+      tauriListen(EXPERIMENTAL_PROGRESSIVE_SERVED_EVENT, (event) => {
+        const served = event && event.payload && event.payload.served
+        if (served === 'progressive') {
+          this.progressiveMountServedProgressiveCount += 1
+        } else if (served === 'legacy') {
+          this.progressiveMountServedLegacyCount += 1
+        }
+      })
+    },
+    // END_BLOCK_LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT
 
     DISPATCH_EDITOR_VIEW_STATE(viewState) {
       // mt::view-layout-changed routes through the v1-compat command

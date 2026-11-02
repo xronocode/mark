@@ -24,8 +24,15 @@ describe('tabsBar/config.js', () => {
   })
 
   describe('TABS catalog', () => {
-    it('has the 5 IA tabs in display order', () => {
-      expect(TAB_IDS).toEqual(['general', 'appearance', 'editor', 'markdown', 'advanced'])
+    it('has the 5 IA tabs plus the experimental tab in display order', () => {
+      expect(TAB_IDS).toEqual([
+        'general',
+        'appearance',
+        'editor',
+        'markdown',
+        'advanced',
+        'experimental'
+      ])
     })
 
     it('every tab has an i18n label key and a /preference path', () => {
@@ -43,7 +50,7 @@ describe('tabsBar/config.js', () => {
       )
     })
 
-    it('every redirect target is one of the 5 tab paths', () => {
+    it('every redirect target is one of the tab paths', () => {
       Object.values(LEGACY_ROUTE_REDIRECTS).forEach((target) => {
         expect(TABS.map((t) => t.path)).toContain(target)
       })
