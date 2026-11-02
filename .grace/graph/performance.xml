@@ -760,6 +760,15 @@
         owner-run real-app acceptance tooling. Instrumentation and tests only:
         it never absorbs M-011/M-012 product responsibility and never changes
         production behavior.
+        C-LARGE-DOC-WAVE-A (2026-11-02): extended as a dependency handoff
+        from M-063 — the bench driver gains the tail-mount phase
+        (PHASE_TAIL_MOUNT with sync-region, budgeted tti_ms and tail-done
+        fields, reported separately and never summed into open/typing),
+        the --progressive bench-level flag and the paired legacy/progressive
+        baseline capture per fixture (two-path baseline with commit, fixture
+        hash, engine and run conditions per path); still instrumentation and
+        tests only, absorbing no product responsibility, and V-M-063 proves
+        the Wave A budgets through these seams.
       </Summary>
       <PlannedPath>
         src/renderer/bench, tests/e2e/fixtures/large-doc,

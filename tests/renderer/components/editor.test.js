@@ -18,6 +18,12 @@ vi.mock('electron-log', () => ({
 }))
 
 vi.mock('muya/lib', () => {
+  // C-LARGE-DOC-WAVE-A T-004: the content-free open-path marker names
+  // editor.vue subscribes to.
+  const BLOCK_MOUNT_SERVED = 'BLOCK_MOUNT_SERVED'
+  const BLOCK_SYNC_REGION_DONE = 'BLOCK_SYNC_REGION_DONE'
+  const BLOCK_TAIL_MOUNT_DONE = 'BLOCK_TAIL_MOUNT_DONE'
+
   class MockMuya {
     constructor(el, opts) {
       this.container = el
@@ -37,7 +43,7 @@ vi.mock('muya/lib', () => {
     focus() {}
     blur() {}
   }
-  return { default: MockMuya }
+  return { default: MockMuya, BLOCK_MOUNT_SERVED, BLOCK_SYNC_REGION_DONE, BLOCK_TAIL_MOUNT_DONE }
 })
 
 vi.mock('muya/lib/ui/tablePicker', () => ({ default: {} }))

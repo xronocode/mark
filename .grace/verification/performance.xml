@@ -1544,5 +1544,81 @@
       </Markers>
       <TraceAssertions/>
     </V-M-060>
+    <V-M-063>
+      <Priority>high</Priority>
+      <Commands>
+        <Command>npx vitest run tests/renderer/perf</Command>
+        <Command>npx playwright test tests/e2e/perf/progressive-mount.spec.ts tests/e2e/perf/progressive-failsafe.spec.ts --project=webkit-perf</Command>
+        <Command>WAVEA_EXPERIMENTAL=1 npx playwright test tests/e2e/perf/characterization-save-close.spec.ts tests/e2e/perf/characterization-metadata-external.spec.ts tests/e2e/perf/characterization-ime-seeded.spec.ts --project=webkit-perf</Command>
+        <Command>node src/renderer/bench/run-bench-preview.mjs --fixture tests/e2e/fixtures/large-doc/size-1mb.md --phases open,tail-mount,typing,scroll</Command>
+        <Command>node src/renderer/bench/run-bench-preview.mjs --fixture tests/e2e/fixtures/large-doc/size-1mb.md --phases open,tail-mount,typing,scroll --progressive</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>
+          Progressive-path budgets: the bench driver emits numeric
+          first-visible-content, budgeted time-to-input (tti_ms) and
+          tail-mount completion for both the legacy and the progressive
+          path on the committed corpus; the hard LargeDocumentContract
+          budgets and the two owner-approved Wave A budgets are evidenced
+          in the baseline artifacts with commit, fixture hash, engine and
+          run conditions per path — never guessed into a flaky CI ceiling
+          — and the tail-mount table is reported separately, never summed
+          into open/typing.
+        </Scenario>
+        <Scenario>
+          Default-path invariance: with the toggle off (the default,
+          including fresh sessions and relaunch) the legacy mount serves
+          every open (BLOCK_MOUNT_SERVED records served=legacy), the
+          existing V-M-025 open-file timing, webkit-perf and webkit-session
+          gates stay green and no existing budget, marker or suite is
+          weakened, reinterpreted or renamed.
+        </Scenario>
+        <Scenario>
+          Fail-safe fallback: an injected chunking failure and an injected
+          mount error each abandon the progressive attempt, clear its
+          partial state and complete the open through the legacy
+          single-pass mount from the current document model — canonical
+          Markdown identical to the legacy path and every edit accepted
+          before the injected failure preserved; the depth/traversal guard
+          bounds nested-deep and giant-list mounting with oversize
+          subtrees flattened instead of recursing; no test path yields a
+          blank or partial editor without the served-path marker.
+        </Scenario>
+        <Scenario>
+          Unmounted-tail interaction: navigation into a not-yet-mounted
+          region (scroll jump, search hit, TOC or link jump, restored
+          remembered cursor position, jump-to-end) lands on mounted content
+          through the on-demand region mount; continuous scrolling never
+          overtakes the mount boundary (prefetch keeps mounted content
+          ahead of the viewport); the reading position holds steady while
+          the tail mounts and the ag-tail-pending reserved-space
+          indication keeps the document from appearing truncated.
+        </Scenario>
+        <Scenario>
+          Experimental surface: the toggle is visible under the
+          Experimental settings tab, off by default, returns to off after
+          relaunch (no silent persistence), affects only documents opened
+          after the flip without remounting already-open tabs, labels the
+          feature experimental and names the large-document contract it
+          serves, and the per-session progressive-versus-fallback counter
+          reflects the opens actually served.
+        </Scenario>
+        <Scenario>
+          Equivalence under WAVEA_EXPERIMENTAL=1: the Stage 0
+          characterization suites pass unchanged with the toggle enabled
+          through the real Settings UI — same canonical Markdown and
+          on-disk bytes, same dirty/saved transitions, same
+          save/close/external-change outcomes; progressive mount is
+          observationally equivalent to legacy mount for every reader and
+          consumer except timing.
+        </Scenario>
+      </Scenarios>
+      <Markers>
+        <Marker>[BLOCK_MOUNT_SERVED] served=progressive|legacy — which path served an open, exactly once per served open</Marker>
+        <Marker>[BLOCK_SYNC_REGION_DONE] blocks=N — the synchronous region finished mounting</Marker>
+        <Marker>[BLOCK_TAIL_MOUNT_DONE] blocks=N ms=T — the whole document is mounted</Marker>
+      </Markers>
+      <TraceAssertions/>
+    </V-M-063>
   </VD-PERFORMANCE>
 </GraceVerificationDocument>

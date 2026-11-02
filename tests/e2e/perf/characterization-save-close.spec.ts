@@ -1,9 +1,9 @@
 // FILE: tests/e2e/perf/characterization-save-close.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Freeze the CURRENT observable save / Save As / Save All / Save & Close / Quit / session / reader output behavior of the renderer at the boundaries named by R-6, dual-recording every known-defect observation instead of blessing it.
 //   SCOPE: Renderer-only (vite preview + Tauri shim, WebKit) against the committed semantic-edge corpus: FILE_SAVE, APPLY_SAVE_OUTCOME revision ownership, FILE_SAVE_AS (payload + overwrite-by-path), ASK_FOR_SAVE_ALL(false) mt_save_tabs no-op, CLOSE_TAB -> unsaved-close dialog -> mt_save_and_close_tabs, edit-after-payload-before-close race, QUIT_APP dialogs/payloads, _saveSessionState prefs writes, muya-derived wordCount/TOC/cursor, whole-document Copy as Markdown and styled-HTML export, and the --new-window no-op. It does NOT cover real Tauri IPC, real disk bytes, native WKWebView, or the multi-window behavior F-MULTI-WINDOW will add.
-//   DEPENDS: Playwright webkit-perf project, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/fixtures/helpers.ts, the real Pinia editor store, src/muya wordCount/getTOC semantics, the committed tests/e2e/fixtures/large-doc corpus.
+//   DEPENDS: Playwright webkit-perf project, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/perf/helpers/experimental (the fixtures/helpers bootEditor/openFileTab pass-throughs, plus the WAVEA_EXPERIMENTAL=1 real-UI progressive-toggle enabling — C-LARGE-DOC-WAVE-A T-006), the real Pinia editor store, src/muya wordCount/getTOC semantics, the committed tests/e2e/fixtures/large-doc corpus.
 //   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-006 and spec R-6/R-7; .grace/verification/performance.xml V-M-060; tests/e2e/unsaved-close-actions.spec.ts (dialog action model); tests/e2e/export-html-images.spec.ts (styled-HTML export harness).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -38,7 +38,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-27 C-LARGE-DOC-STAGE-0 T-006: initial
+//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-006: added the
+//   WAVEA_EXPERIMENTAL beforeAll hook — bootEditor/openFileTab now import
+//   through tests/e2e/perf/helpers/experimental so WAVEA_EXPERIMENTAL=1
+//   enables the session-latched progressive-mount toggle through the real
+//   Settings UI after every boot (no-op without the env var). Zero
+//   assertion changes: the suite freezes the same boundaries on both paths.
+//   v1.0.0 - 2026-10-27 C-LARGE-DOC-STAGE-0 T-006: initial
 //   characterization suite — canonical Markdown and transport payload
 //   identity, revision ownership with the stale-ack guard marker, Save As
 //   payload/overwrite behavior, the unregistered mt_save_tabs Save All
@@ -55,7 +61,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { installTauriShim } from '../fixtures/tauri-shim'
-import { bootEditor, openFileTab } from '../fixtures/helpers'
+// C-LARGE-DOC-WAVE-A T-006: bootEditor/openFileTab come from the Wave A
+// experimental helper — byte-for-byte the shared fixture when
+// WAVEA_EXPERIMENTAL is unset; with WAVEA_EXPERIMENTAL=1 every boot also
+// enables the session-latched progressive-mount toggle through the REAL
+// Settings UI, so the whole suite reruns on the progressive path with
+// ZERO assertion changes (the beforeAll hook below arms it).
+import { bootEditor, openFileTab, waveaExperimentalBeforeAll } from './helpers/experimental'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const CORPUS_DIR = path.resolve(HERE, '..', 'fixtures', 'large-doc')
@@ -112,6 +124,10 @@ function headingsInMarkdown (markdown: string) {
 }
 
 test.beforeAll(() => {
+  // C-LARGE-DOC-WAVE-A T-006: WAVEA_EXPERIMENTAL=1 arms the bootEditor
+  // wrapper's real-UI progressive-toggle enabling (no-op otherwise) — the
+  // toggle-on characterization rerun rides this hook; no assertion changes.
+  waveaExperimentalBeforeAll()
   const bytes = fs.readFileSync(FIXTURE_PATH)
   const metadata = JSON.parse(fs.readFileSync(path.join(CORPUS_DIR, 'shape-metadata.json'), 'utf8'))
   const entry = metadata.fixtures.find((f: any) => f.name === FIXTURE_NAME)

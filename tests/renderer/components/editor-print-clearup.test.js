@@ -115,7 +115,14 @@ const mockSpellchecker = vi.hoisted(() => ({
 /* ── mocks — identical to editor-coverage.test.js except isOsx ───── */
 vi.mock('@/bus', () => ({ default: busMock }))
 vi.mock('electron-log', () => ({ default: logMock }))
-vi.mock('muya/lib', () => ({ default: MockMuya }))
+vi.mock('muya/lib', () => ({
+  default: MockMuya,
+  // C-LARGE-DOC-WAVE-A T-004: the content-free open-path marker names
+  // editor.vue subscribes to.
+  BLOCK_MOUNT_SERVED: 'BLOCK_MOUNT_SERVED',
+  BLOCK_SYNC_REGION_DONE: 'BLOCK_SYNC_REGION_DONE',
+  BLOCK_TAIL_MOUNT_DONE: 'BLOCK_TAIL_MOUNT_DONE'
+}))
 vi.mock('muya/lib/ui/tablePicker', () => ({ default: {} }))
 vi.mock('muya/lib/ui/quickInsert', () => ({ default: {} }))
 vi.mock('muya/lib/ui/codePicker', () => ({ default: {} }))

@@ -70,9 +70,22 @@
       separate approval. Experimental access: any experimental
       large-document path ships local, default-off and session-latched
       behind a visible Experimental setting that never persists silently;
-      default flips require separately approved changes. Tail-mount and
-      time-to-input budgets are deferred to Wave A and are explicitly
-      absent here.
+      default flips require separately approved changes. Wave A decisions
+      (owner-approved 2026-11-02 from the C-LARGE-DOC-WAVE-A decision
+      document): time-to-input within first-visible-content + 250 ms on
+      every shape; tail-mount completion within 2500 ms at the 1 MB shape
+      and 25000 ms at the stress shape (background work — the ceiling
+      guards against never-finishing mounting, not speed); on the
+      progressive path the contract's open budget is satisfied by
+      time-to-input, with first visible content and tail-mount reported as
+      separate phases, never summed; hard budgets are gated by the
+      baseline artifacts and the owner-run acceptance capture while CI
+      asserts numeric emission with loose non-flaky ceilings (the ratified
+      R-6 reading); and two accepted narrowings — oversized single blocks
+      mount as one unit (content-chunking stays a Wave B candidate with
+      the recorded numbers), and opens restoring a remembered cursor or
+      block cache stay on the legacy path until progressive open learns
+      cursor restoration.
     </LargeDocumentContract>
   </Guidelines>
 </GraceUXGuidelines>

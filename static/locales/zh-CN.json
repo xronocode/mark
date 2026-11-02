@@ -543,7 +543,14 @@
       "markdown": "Markdown",
       "general": "通用",
       "advanced": "高级",
-      "appearance": "外观"
+      "appearance": "外观",
+      "experimental": "实验功能"
+    },
+    "experimental": {
+      "title": "实验功能",
+      "progressiveMount": "大文档渐进式挂载",
+      "progressiveMountHelp": "实验性功能：渐进式挂载大文档，打开时保持响应。默认关闭；重启后重置。大文档性能契约的一部分。",
+      "sessionCount": "本次会话：渐进式打开 {progressive} 次 / 传统方式 {legacy} 次"
     },
     "markdown": {
       "title": "Markdown",

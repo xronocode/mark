@@ -1,7 +1,7 @@
 {
   "kind": "stage0-baseline",
-  "generatedAt": "2026-10-26T22:55:20.558Z",
-  "commit": "29aae40659ad66f1c4628060fb1bf6bd36dc5688",
+  "generatedAt": "2026-11-02T00:20:07.377Z",
+  "commit": "6f770729e78e3ff22562fb847916c657ca68d0da",
   "recordedBaseCommit": "466d4c57f5308c7893510537700da5c817e6a63b",
   "runConditions": {
     "url": "http://localhost:4173/bench/",
@@ -11,8 +11,13 @@
     "viewport": "1024x768",
     "note": "single owner machine; numbers are observations for the R-9 decision, not budgets"
   },
+  "paths": [
+    "legacy",
+    "progressive"
+  ],
   "entries": [
     {
+      "path": "legacy",
       "fixture": {
         "name": "mixed-100k.md",
         "path": "tests/e2e/fixtures/large-doc/mixed-100k.md",
@@ -25,17 +30,18 @@
           "failed": 0,
           "open_ms": {
             "n": 3,
-            "p50": 140.1,
-            "p95": 151.4,
-            "mean": 139.2,
-            "min": 126.2,
-            "max": 151.4
+            "p50": 91.2,
+            "p95": 116.1,
+            "mean": 98.4,
+            "min": 87.8,
+            "max": 116.1
           },
           "open_breakdown_ms": {
-            "parse_proxy": 11.2,
-            "mount": 128.4,
-            "first_paint": 23
+            "parse_proxy": 7.8,
+            "mount": 93.6,
+            "first_paint": 22.5
           },
+          "tail_mount": null,
           "typing_ms": {
             "p50": {
               "n": 3,
@@ -47,10 +53,10 @@
             },
             "p95": {
               "n": 3,
-              "p50": 33.9,
+              "p50": 33.5,
               "p95": 33.9,
-              "mean": 33.8,
-              "min": 33.7,
+              "mean": 33.6,
+              "min": 33.5,
               "max": 33.9
             }
           },
@@ -71,11 +77,11 @@
             },
             "frame_p95_ms": {
               "n": 3,
-              "p50": 17.6,
-              "p95": 17.6,
-              "mean": 17.6,
-              "min": 17.6,
-              "max": 17.6
+              "p50": 17.3,
+              "p95": 17.4,
+              "mean": 17.3,
+              "min": 17.3,
+              "max": 17.4
             },
             "frames_gt_50ms": 0,
             "frames": 181
@@ -101,8 +107,8 @@
             "ratio_p50": 1
           },
           "memory": {
-            "after_open": 13.6,
-            "after_edit": 13.6,
+            "after_open": 17.4,
+            "after_edit": 17.4,
             "c68_opened_baseline": "not-applicable-bench-harness",
             "doc_change_journal": "not-applicable-change-not-in-tree"
           }
@@ -112,16 +118,282 @@
           "failed": 0,
           "open_ms": {
             "n": 3,
-            "p50": 191,
-            "p95": 233,
-            "mean": 203,
-            "min": 185,
-            "max": 233
+            "p50": 98,
+            "p95": 114,
+            "mean": 102.7,
+            "min": 96,
+            "max": 114
           },
           "open_breakdown_ms": {
-            "parse_proxy": 5,
-            "mount": 163,
-            "first_paint": 70
+            "parse_proxy": 3,
+            "mount": 82,
+            "first_paint": 32
+          },
+          "tail_mount": null,
+          "typing_ms": {
+            "p50": {
+              "n": 3,
+              "p50": 33,
+              "p95": 33,
+              "mean": 33,
+              "min": 33,
+              "max": 33
+            },
+            "p95": {
+              "n": 3,
+              "p50": 34,
+              "p95": 34,
+              "mean": 34,
+              "min": 34,
+              "max": 34
+            }
+          },
+          "responsiveness": {
+            "meter": "event-loop-lag-proxy",
+            "longtask_max_ms": null,
+            "longtasks_gt_50ms": null,
+            "loop_lag_p95_ms": 9
+          },
+          "scroll": {
+            "fps": {
+              "n": 3,
+              "p50": 60,
+              "p95": 60,
+              "mean": 60,
+              "min": 60,
+              "max": 60
+            },
+            "frame_p95_ms": {
+              "n": 3,
+              "p50": 18,
+              "p95": 18,
+              "mean": 17.7,
+              "min": 17,
+              "max": 18
+            },
+            "frames_gt_50ms": 0,
+            "frames": 180
+          },
+          "overhead": {
+            "note": "same-run uninstrumented control; reported separately from every baseline number",
+            "instrumented_p50_ms": {
+              "n": 3,
+              "p50": 33,
+              "p95": 33,
+              "mean": 33,
+              "min": 33,
+              "max": 33
+            },
+            "control_p50_ms": {
+              "n": 3,
+              "p50": 33,
+              "p95": 33,
+              "mean": 33,
+              "min": 33,
+              "max": 33
+            },
+            "ratio_p50": 1
+          },
+          "memory": {
+            "after_open": "not-supported",
+            "after_edit": "not-supported",
+            "c68_opened_baseline": "not-applicable-bench-harness",
+            "doc_change_journal": "not-applicable-change-not-in-tree"
+          }
+        }
+      },
+      "verdict": {
+        "status": "PASS",
+        "failures": []
+      }
+    },
+    {
+      "path": "progressive",
+      "fixture": {
+        "name": "mixed-100k.md",
+        "path": "tests/e2e/fixtures/large-doc/mixed-100k.md",
+        "bytes": 107602,
+        "sha256": "4180ed7769c4a87c82819bc7ca8e28026966695b9442e82039df5e26a4ed353f"
+      },
+      "engines": {
+        "chromium": {
+          "runs": 3,
+          "failed": 0,
+          "open_ms": {
+            "n": 3,
+            "p50": 36.8,
+            "p95": 37.5,
+            "mean": 37,
+            "min": 36.6,
+            "max": 37.5
+          },
+          "open_breakdown_ms": {
+            "parse_proxy": 6.2,
+            "mount": 26.1,
+            "first_paint": 10.5
+          },
+          "tail_mount": {
+            "sync_region_ms": {
+              "n": 3,
+              "p50": 22.6,
+              "p95": 24.1,
+              "mean": 22.5,
+              "min": 20.9,
+              "max": 24.1
+            },
+            "first_paint_ms": {
+              "n": 3,
+              "p50": 47.6,
+              "p95": 52.1,
+              "mean": 48.3,
+              "min": 45.3,
+              "max": 52.1
+            },
+            "tti_ms": {
+              "n": 3,
+              "p50": 26,
+              "p95": 27.8,
+              "mean": 25.9,
+              "min": 23.8,
+              "max": 27.8
+            },
+            "tail_done_ms": {
+              "n": 3,
+              "p50": 118,
+              "p95": 123,
+              "mean": 119.3,
+              "min": 117,
+              "max": 123
+            },
+            "served": "progressive",
+            "canon_ok": true,
+            "dom_ok": true,
+            "typing_during_tail_ok": true
+          },
+          "typing_ms": {
+            "p50": {
+              "n": 3,
+              "p50": 33.3,
+              "p95": 33.3,
+              "mean": 33.3,
+              "min": 33.3,
+              "max": 33.3
+            },
+            "p95": {
+              "n": 3,
+              "p50": 33.5,
+              "p95": 33.7,
+              "mean": 33.5,
+              "min": 33.4,
+              "max": 33.7
+            }
+          },
+          "responsiveness": {
+            "meter": "longtask-api",
+            "longtask_max_ms": 0,
+            "longtasks_gt_50ms": 0,
+            "loop_lag_p95_ms": null
+          },
+          "scroll": {
+            "fps": {
+              "n": 3,
+              "p50": 60,
+              "p95": 60,
+              "mean": 60,
+              "min": 60,
+              "max": 60
+            },
+            "frame_p95_ms": {
+              "n": 3,
+              "p50": 17.3,
+              "p95": 17.4,
+              "mean": 17.3,
+              "min": 17.3,
+              "max": 17.4
+            },
+            "frames_gt_50ms": 0,
+            "frames": 181
+          },
+          "overhead": {
+            "note": "same-run uninstrumented control; reported separately from every baseline number",
+            "instrumented_p50_ms": {
+              "n": 3,
+              "p50": 33.3,
+              "p95": 33.3,
+              "mean": 33.3,
+              "min": 33.3,
+              "max": 33.3
+            },
+            "control_p50_ms": {
+              "n": 3,
+              "p50": 33.3,
+              "p95": 33.3,
+              "mean": 33.3,
+              "min": 33.3,
+              "max": 33.3
+            },
+            "ratio_p50": 1
+          },
+          "memory": {
+            "after_open": 11.3,
+            "after_edit": 11.3,
+            "c68_opened_baseline": "not-applicable-bench-harness",
+            "doc_change_journal": "not-applicable-change-not-in-tree"
+          }
+        },
+        "webkit": {
+          "runs": 3,
+          "failed": 0,
+          "open_ms": {
+            "n": 3,
+            "p50": 66,
+            "p95": 67,
+            "mean": 65.3,
+            "min": 63,
+            "max": 67
+          },
+          "open_breakdown_ms": {
+            "parse_proxy": 2,
+            "mount": 29,
+            "first_paint": 38
+          },
+          "tail_mount": {
+            "sync_region_ms": {
+              "n": 3,
+              "p50": 20,
+              "p95": 22,
+              "mean": 20.7,
+              "min": 20,
+              "max": 22
+            },
+            "first_paint_ms": {
+              "n": 3,
+              "p50": 77,
+              "p95": 79,
+              "mean": 73.7,
+              "min": 65,
+              "max": 79
+            },
+            "tti_ms": {
+              "n": 3,
+              "p50": 24,
+              "p95": 26,
+              "mean": 24.3,
+              "min": 23,
+              "max": 26
+            },
+            "tail_done_ms": {
+              "n": 3,
+              "p50": 77,
+              "p95": 124,
+              "mean": 91.7,
+              "min": 74,
+              "max": 124
+            },
+            "served": "progressive",
+            "canon_ok": true,
+            "dom_ok": true,
+            "typing_during_tail_ok": true
           },
           "typing_ms": {
             "p50": {
@@ -145,7 +417,7 @@
             "meter": "event-loop-lag-proxy",
             "longtask_max_ms": null,
             "longtasks_gt_50ms": null,
-            "loop_lag_p95_ms": 8
+            "loop_lag_p95_ms": 9
           },
           "scroll": {
             "fps": {
@@ -201,6 +473,7 @@
       }
     },
     {
+      "path": "legacy",
       "fixture": {
         "name": "size-1mb.md",
         "path": "tests/e2e/fixtures/large-doc/size-1mb.md",
@@ -213,17 +486,18 @@
           "failed": 0,
           "open_ms": {
             "n": 3,
-            "p50": 813.9,
-            "p95": 931.5,
-            "mean": 852.9,
-            "min": 813.4,
-            "max": 931.5
+            "p50": 563.7,
+            "p95": 574.9,
+            "mean": 567,
+            "min": 562.3,
+            "max": 574.9
           },
           "open_breakdown_ms": {
-            "parse_proxy": 19.9,
-            "mount": 845.9,
-            "first_paint": 85.6
+            "parse_proxy": 11.7,
+            "mount": 505.7,
+            "first_paint": 69.2
           },
+          "tail_mount": null,
           "typing_ms": {
             "p50": {
               "n": 3,
@@ -235,11 +509,11 @@
             },
             "p95": {
               "n": 3,
-              "p50": 34.4,
-              "p95": 34.8,
-              "mean": 34.5,
-              "min": 34.3,
-              "max": 34.8
+              "p50": 34.2,
+              "p95": 34.3,
+              "mean": 34.2,
+              "min": 34.2,
+              "max": 34.3
             }
           },
           "responsiveness": {
@@ -253,16 +527,16 @@
               "n": 3,
               "p50": 60,
               "p95": 60.1,
-              "mean": 59.9,
-              "min": 59.5,
+              "mean": 60,
+              "min": 60,
               "max": 60.1
             },
             "frame_p95_ms": {
               "n": 3,
-              "p50": 17.4,
+              "p50": 17.6,
               "p95": 17.6,
-              "mean": 17.4,
-              "min": 17.3,
+              "mean": 17.6,
+              "min": 17.6,
               "max": 17.6
             },
             "frames_gt_50ms": 0,
@@ -273,24 +547,24 @@
             "instrumented_p50_ms": {
               "n": 3,
               "p50": 33.3,
+              "p95": 33.4,
+              "mean": 33.3,
+              "min": 33.3,
+              "max": 33.4
+            },
+            "control_p50_ms": {
+              "n": 3,
+              "p50": 33.3,
               "p95": 33.3,
               "mean": 33.3,
               "min": 33.3,
               "max": 33.3
             },
-            "control_p50_ms": {
-              "n": 3,
-              "p50": 33.3,
-              "p95": 34.1,
-              "mean": 33.6,
-              "min": 33.3,
-              "max": 34.1
-            },
-            "ratio_p50": 0.99
+            "ratio_p50": 1
           },
           "memory": {
-            "after_open": 51,
-            "after_edit": 51,
+            "after_open": 73.1,
+            "after_edit": 73.1,
             "c68_opened_baseline": "not-applicable-bench-harness",
             "doc_change_journal": "not-applicable-change-not-in-tree"
           }
@@ -300,17 +574,18 @@
           "failed": 0,
           "open_ms": {
             "n": 3,
-            "p50": 723,
-            "p95": 1316,
-            "mean": 913,
-            "min": 700,
-            "max": 1316
+            "p50": 471,
+            "p95": 478,
+            "mean": 472.3,
+            "min": 468,
+            "max": 478
           },
           "open_breakdown_ms": {
-            "parse_proxy": 19,
-            "mount": 640,
-            "first_paint": 60
+            "parse_proxy": 12,
+            "mount": 428,
+            "first_paint": 50
           },
+          "tail_mount": null,
           "typing_ms": {
             "p50": {
               "n": 3,
@@ -322,18 +597,18 @@
             },
             "p95": {
               "n": 3,
-              "p50": 35,
-              "p95": 39,
-              "mean": 36,
+              "p50": 34,
+              "p95": 35,
+              "mean": 34.3,
               "min": 34,
-              "max": 39
+              "max": 35
             }
           },
           "responsiveness": {
             "meter": "event-loop-lag-proxy",
             "longtask_max_ms": null,
             "longtasks_gt_50ms": null,
-            "loop_lag_p95_ms": 22
+            "loop_lag_p95_ms": 15
           },
           "scroll": {
             "fps": {
@@ -389,6 +664,272 @@
       }
     },
     {
+      "path": "progressive",
+      "fixture": {
+        "name": "size-1mb.md",
+        "path": "tests/e2e/fixtures/large-doc/size-1mb.md",
+        "bytes": 1058416,
+        "sha256": "5f66dea2d1386f7e43f163fcb5d47dc725178bad200074b596b8a68d5b043904"
+      },
+      "engines": {
+        "chromium": {
+          "runs": 3,
+          "failed": 0,
+          "open_ms": {
+            "n": 3,
+            "p50": 75.6,
+            "p95": 79.6,
+            "mean": 75.6,
+            "min": 71.6,
+            "max": 79.6
+          },
+          "open_breakdown_ms": {
+            "parse_proxy": 11.5,
+            "mount": 35.1,
+            "first_paint": 36.5
+          },
+          "tail_mount": {
+            "sync_region_ms": {
+              "n": 3,
+              "p50": 25.4,
+              "p95": 28.8,
+              "mean": 26.1,
+              "min": 24.2,
+              "max": 28.8
+            },
+            "first_paint_ms": {
+              "n": 3,
+              "p50": 53.5,
+              "p95": 60.5,
+              "mean": 55.8,
+              "min": 53.3,
+              "max": 60.5
+            },
+            "tti_ms": {
+              "n": 3,
+              "p50": 36.4,
+              "p95": 41.3,
+              "mean": 37.9,
+              "min": 35.9,
+              "max": 41.3
+            },
+            "tail_done_ms": {
+              "n": 3,
+              "p50": 1065,
+              "p95": 1101,
+              "mean": 1051.7,
+              "min": 989,
+              "max": 1101
+            },
+            "served": "progressive",
+            "canon_ok": true,
+            "dom_ok": true,
+            "typing_during_tail_ok": true
+          },
+          "typing_ms": {
+            "p50": {
+              "n": 3,
+              "p50": 33.4,
+              "p95": 33.4,
+              "mean": 33.4,
+              "min": 33.4,
+              "max": 33.4
+            },
+            "p95": {
+              "n": 3,
+              "p50": 45.7,
+              "p95": 46.5,
+              "mean": 45.2,
+              "min": 43.4,
+              "max": 46.5
+            }
+          },
+          "responsiveness": {
+            "meter": "longtask-api",
+            "longtask_max_ms": 0,
+            "longtasks_gt_50ms": 0,
+            "loop_lag_p95_ms": null
+          },
+          "scroll": {
+            "fps": {
+              "n": 3,
+              "p50": 60,
+              "p95": 60.1,
+              "mean": 60,
+              "min": 60,
+              "max": 60.1
+            },
+            "frame_p95_ms": {
+              "n": 3,
+              "p50": 17.6,
+              "p95": 17.7,
+              "mean": 17.6,
+              "min": 17.6,
+              "max": 17.7
+            },
+            "frames_gt_50ms": 0,
+            "frames": 181
+          },
+          "overhead": {
+            "note": "same-run uninstrumented control; reported separately from every baseline number",
+            "instrumented_p50_ms": {
+              "n": 3,
+              "p50": 33.3,
+              "p95": 33.3,
+              "mean": 33.3,
+              "min": 33.3,
+              "max": 33.3
+            },
+            "control_p50_ms": {
+              "n": 3,
+              "p50": 33.3,
+              "p95": 33.3,
+              "mean": 33.3,
+              "min": 33.3,
+              "max": 33.3
+            },
+            "ratio_p50": 1
+          },
+          "memory": {
+            "after_open": 33.5,
+            "after_edit": 33.5,
+            "c68_opened_baseline": "not-applicable-bench-harness",
+            "doc_change_journal": "not-applicable-change-not-in-tree"
+          }
+        },
+        "webkit": {
+          "runs": 3,
+          "failed": 0,
+          "open_ms": {
+            "n": 3,
+            "p50": 92,
+            "p95": 93,
+            "mean": 90.7,
+            "min": 87,
+            "max": 93
+          },
+          "open_breakdown_ms": {
+            "parse_proxy": 14,
+            "mount": 44,
+            "first_paint": 49
+          },
+          "tail_mount": {
+            "sync_region_ms": {
+              "n": 3,
+              "p50": 26,
+              "p95": 27,
+              "mean": 26.3,
+              "min": 26,
+              "max": 27
+            },
+            "first_paint_ms": {
+              "n": 3,
+              "p50": 105,
+              "p95": 107,
+              "mean": 105.3,
+              "min": 104,
+              "max": 107
+            },
+            "tti_ms": {
+              "n": 3,
+              "p50": 39,
+              "p95": 40,
+              "mean": 39,
+              "min": 38,
+              "max": 40
+            },
+            "tail_done_ms": {
+              "n": 3,
+              "p50": 820,
+              "p95": 824,
+              "mean": 817,
+              "min": 807,
+              "max": 824
+            },
+            "served": "progressive",
+            "canon_ok": true,
+            "dom_ok": true,
+            "typing_during_tail_ok": true
+          },
+          "typing_ms": {
+            "p50": {
+              "n": 3,
+              "p50": 33,
+              "p95": 33,
+              "mean": 33,
+              "min": 33,
+              "max": 33
+            },
+            "p95": {
+              "n": 3,
+              "p50": 59,
+              "p95": 63,
+              "mean": 53.3,
+              "min": 38,
+              "max": 63
+            }
+          },
+          "responsiveness": {
+            "meter": "event-loop-lag-proxy",
+            "longtask_max_ms": null,
+            "longtasks_gt_50ms": null,
+            "loop_lag_p95_ms": 21
+          },
+          "scroll": {
+            "fps": {
+              "n": 3,
+              "p50": 60.1,
+              "p95": 60.1,
+              "mean": 60.1,
+              "min": 60.1,
+              "max": 60.1
+            },
+            "frame_p95_ms": {
+              "n": 3,
+              "p50": 18,
+              "p95": 18,
+              "mean": 17.7,
+              "min": 17,
+              "max": 18
+            },
+            "frames_gt_50ms": 0,
+            "frames": 181
+          },
+          "overhead": {
+            "note": "same-run uninstrumented control; reported separately from every baseline number",
+            "instrumented_p50_ms": {
+              "n": 3,
+              "p50": 33,
+              "p95": 33,
+              "mean": 33,
+              "min": 33,
+              "max": 33
+            },
+            "control_p50_ms": {
+              "n": 3,
+              "p50": 33,
+              "p95": 33,
+              "mean": 33,
+              "min": 33,
+              "max": 33
+            },
+            "ratio_p50": 1
+          },
+          "memory": {
+            "after_open": "not-supported",
+            "after_edit": "not-supported",
+            "c68_opened_baseline": "not-applicable-bench-harness",
+            "doc_change_journal": "not-applicable-change-not-in-tree"
+          }
+        }
+      },
+      "verdict": {
+        "status": "PASS",
+        "failures": []
+      }
+    },
+    {
+      "path": "legacy",
       "fixture": {
         "name": "size-1_7mb-9000sections.md",
         "path": "tests/e2e/fixtures/large-doc/size-1_7mb-9000sections.md",
@@ -401,64 +942,73 @@
           "failed": 0,
           "open_ms": {
             "n": 1,
-            "p50": 1812,
-            "p95": 1812,
-            "mean": 1812,
-            "min": 1812,
-            "max": 1812
+            "p50": 1499.6,
+            "p95": 1499.6,
+            "mean": 1499.6,
+            "min": 1499.6,
+            "max": 1499.6
           },
           "open_breakdown_ms": {
-            "parse_proxy": 30.1,
-            "mount": 1477.8,
-            "first_paint": 334.2
+            "parse_proxy": 23.1,
+            "mount": 1158.1,
+            "first_paint": 341.5
           },
+          "tail_mount": null,
           "typing_ms": {
             "p50": {
               "n": 1,
-              "p50": 101.6,
-              "p95": 101.6,
-              "mean": 101.6,
-              "min": 101.6,
-              "max": 101.6
+              "p50": 138,
+              "p95": 138,
+              "mean": 138,
+              "min": 138,
+              "max": 138
             },
             "p95": {
               "n": 1,
-              "p50": 148.2,
-              "p95": 148.2,
-              "mean": 148.2,
-              "min": 148.2,
-              "max": 148.2
+              "p50": 166.7,
+              "p95": 166.7,
+              "mean": 166.7,
+              "min": 166.7,
+              "max": 166.7
             }
           },
           "responsiveness": {
             "meter": "longtask-api",
-            "longtask_max_ms": 154,
+            "longtask_max_ms": 210,
             "longtasks_gt_50ms": 60,
             "loop_lag_p95_ms": null
           },
           "scroll": {
             "fps": {
               "n": 1,
-              "p50": 59.9,
-              "p95": 59.9,
-              "mean": 59.9,
-              "min": 59.9,
-              "max": 59.9
+              "p50": 55.9,
+              "p95": 55.9,
+              "mean": 55.9,
+              "min": 55.9,
+              "max": 55.9
             },
             "frame_p95_ms": {
               "n": 1,
-              "p50": 17.7,
-              "p95": 17.7,
-              "mean": 17.7,
-              "min": 17.7,
-              "max": 17.7
+              "p50": 33.3,
+              "p95": 33.3,
+              "mean": 33.3,
+              "min": 33.3,
+              "max": 33.3
             },
             "frames_gt_50ms": 0,
-            "frames": 180
+            "frames": 168
           },
           "overhead": {
             "note": "same-run uninstrumented control; reported separately from every baseline number",
             "instrumented_p50_ms": {
+              "n": 1,
+              "p50": 125.1,
+              "p95": 125.1,
+              "mean": 125.1,
+              "min": 125.1,
+              "max": 125.1
+            },
+            "control_p50_ms": {
               "n": 1,
               "p50": 104.4,
               "p95": 104.4,
@@ -466,15 +1016,7 @@
               "min": 104.4,
               "max": 104.4
             },
-            "control_p50_ms": {
-              "n": 1,
-              "p50": 102.6,
-              "p95": 102.6,
-              "mean": 102.6,
-              "min": 102.6,
-              "max": 102.6
-            },
-            "ratio_p50": 1.02
+            "ratio_p50": 1.2
           },
           "memory": {
             "after_open": 98.2,
@@ -488,80 +1030,346 @@
           "failed": 0,
           "open_ms": {
             "n": 1,
-            "p50": 2389,
-            "p95": 2389,
-            "mean": 2389,
-            "min": 2389,
-            "max": 2389
+            "p50": 1458,
+            "p95": 1458,
+            "mean": 1458,
+            "min": 1458,
+            "max": 1458
           },
           "open_breakdown_ms": {
-            "parse_proxy": 51,
-            "mount": 2180,
-            "first_paint": 209
+            "parse_proxy": 25,
+            "mount": 1263,
+            "first_paint": 195
           },
+          "tail_mount": null,
           "typing_ms": {
             "p50": {
               "n": 1,
-              "p50": 87,
-              "p95": 87,
-              "mean": 87,
-              "min": 87,
-              "max": 87
+              "p50": 73,
+              "p95": 73,
+              "mean": 73,
+              "min": 73,
+              "max": 73
             },
             "p95": {
               "n": 1,
-              "p50": 116,
-              "p95": 116,
-              "mean": 116,
-              "min": 116,
-              "max": 116
+              "p50": 102,
+              "p95": 102,
+              "mean": 102,
+              "min": 102,
+              "max": 102
             }
           },
           "responsiveness": {
             "meter": "event-loop-lag-proxy",
             "longtask_max_ms": null,
             "longtasks_gt_50ms": null,
-            "loop_lag_p95_ms": 85
+            "loop_lag_p95_ms": 72
           },
           "scroll": {
             "fps": {
               "n": 1,
-              "p50": 50.2,
-              "p95": 50.2,
-              "mean": 50.2,
-              "min": 50.2,
-              "max": 50.2
+              "p50": 46,
+              "p95": 46,
+              "mean": 46,
+              "min": 46,
+              "max": 46
             },
             "frame_p95_ms": {
               "n": 1,
-              "p50": 37,
-              "p95": 37,
-              "mean": 37,
-              "min": 37,
-              "max": 37
+              "p50": 46,
+              "p95": 46,
+              "mean": 46,
+              "min": 46,
+              "max": 46
             },
             "frames_gt_50ms": 1,
-            "frames": 151
+            "frames": 139
           },
           "overhead": {
             "note": "same-run uninstrumented control; reported separately from every baseline number",
             "instrumented_p50_ms": {
               "n": 1,
-              "p50": 78,
-              "p95": 78,
-              "mean": 78,
-              "min": 78,
-              "max": 78
+              "p50": 70,
+              "p95": 70,
+              "mean": 70,
+              "min": 70,
+              "max": 70
             },
             "control_p50_ms": {
               "n": 1,
-              "p50": 77,
-              "p95": 77,
-              "mean": 77,
-              "min": 77,
-              "max": 77
+              "p50": 88,
+              "p95": 88,
+              "mean": 88,
+              "min": 88,
+              "max": 88
             },
-            "ratio_p50": 1.01
+            "ratio_p50": 0.8
+          },
+          "memory": {
+            "after_open": "not-supported",
+            "after_edit": "not-supported",
+            "c68_opened_baseline": "not-applicable-bench-harness",
+            "doc_change_journal": "not-applicable-change-not-in-tree"
+          }
+        }
+      },
+      "verdict": {
+        "status": "PASS",
+        "failures": []
+      }
+    },
+    {
+      "path": "progressive",
+      "fixture": {
+        "name": "size-1_7mb-9000sections.md",
+        "path": "tests/e2e/fixtures/large-doc/size-1_7mb-9000sections.md",
+        "bytes": 1801827,
+        "sha256": "6416a3ddeee16a4fde20e16f2ad5c5b5583060de00dd174febfe5d944cf72c8b"
+      },
+      "engines": {
+        "chromium": {
+          "runs": 1,
+          "failed": 0,
+          "open_ms": {
+            "n": 1,
+            "p50": 205.5,
+            "p95": 205.5,
+            "mean": 205.5,
+            "min": 205.5,
+            "max": 205.5
+          },
+          "open_breakdown_ms": {
+            "parse_proxy": 31.4,
+            "mount": 88.4,
+            "first_paint": 117.1
+          },
+          "tail_mount": {
+            "sync_region_ms": {
+              "n": 1,
+              "p50": 83.1,
+              "p95": 83.1,
+              "mean": 83.1,
+              "min": 83.1,
+              "max": 83.1
+            },
+            "first_paint_ms": {
+              "n": 1,
+              "p50": 236.6,
+              "p95": 236.6,
+              "mean": 236.6,
+              "min": 236.6,
+              "max": 236.6
+            },
+            "tti_ms": {
+              "n": 1,
+              "p50": 145.8,
+              "p95": 145.8,
+              "mean": 145.8,
+              "min": 145.8,
+              "max": 145.8
+            },
+            "tail_done_ms": {
+              "n": 1,
+              "p50": 22380,
+              "p95": 22380,
+              "mean": 22380,
+              "min": 22380,
+              "max": 22380
+            },
+            "served": "progressive",
+            "canon_ok": true,
+            "dom_ok": true,
+            "typing_during_tail_ok": true
+          },
+          "typing_ms": {
+            "p50": {
+              "n": 1,
+              "p50": 80.4,
+              "p95": 80.4,
+              "mean": 80.4,
+              "min": 80.4,
+              "max": 80.4
+            },
+            "p95": {
+              "n": 1,
+              "p50": 120.5,
+              "p95": 120.5,
+              "mean": 120.5,
+              "min": 120.5,
+              "max": 120.5
+            }
+          },
+          "responsiveness": {
+            "meter": "longtask-api",
+            "longtask_max_ms": 108,
+            "longtasks_gt_50ms": 52,
+            "loop_lag_p95_ms": null
+          },
+          "scroll": {
+            "fps": {
+              "n": 1,
+              "p50": 45.7,
+              "p95": 45.7,
+              "mean": 45.7,
+              "min": 45.7,
+              "max": 45.7
+            },
+            "frame_p95_ms": {
+              "n": 1,
+              "p50": 50,
+              "p95": 50,
+              "mean": 50,
+              "min": 50,
+              "max": 50
+            },
+            "frames_gt_50ms": 6,
+            "frames": 139
+          },
+          "overhead": {
+            "note": "same-run uninstrumented control; reported separately from every baseline number",
+            "instrumented_p50_ms": {
+              "n": 1,
+              "p50": 157.5,
+              "p95": 157.5,
+              "mean": 157.5,
+              "min": 157.5,
+              "max": 157.5
+            },
+            "control_p50_ms": {
+              "n": 1,
+              "p50": 149.9,
+              "p95": 149.9,
+              "mean": 149.9,
+              "min": 149.9,
+              "max": 149.9
+            },
+            "ratio_p50": 1.05
+          },
+          "memory": {
+            "after_open": 77.6,
+            "after_edit": 77.6,
+            "c68_opened_baseline": "not-applicable-bench-harness",
+            "doc_change_journal": "not-applicable-change-not-in-tree"
+          }
+        },
+        "webkit": {
+          "runs": 1,
+          "failed": 0,
+          "open_ms": {
+            "n": 1,
+            "p50": 356,
+            "p95": 356,
+            "mean": 356,
+            "min": 356,
+            "max": 356
+          },
+          "open_breakdown_ms": {
+            "parse_proxy": 48,
+            "mount": 117,
+            "first_paint": 239
+          },
+          "tail_mount": {
+            "sync_region_ms": {
+              "n": 1,
+              "p50": 55,
+              "p95": 55,
+              "mean": 55,
+              "min": 55,
+              "max": 55
+            },
+            "first_paint_ms": {
+              "n": 1,
+              "p50": 250,
+              "p95": 250,
+              "mean": 250,
+              "min": 250,
+              "max": 250
+            },
+            "tti_ms": {
+              "n": 1,
+              "p50": 121,
+              "p95": 121,
+              "mean": 121,
+              "min": 121,
+              "max": 121
+            },
+            "tail_done_ms": {
+              "n": 1,
+              "p50": 12643,
+              "p95": 12643,
+              "mean": 12643,
+              "min": 12643,
+              "max": 12643
+            },
+            "served": "progressive",
+            "canon_ok": true,
+            "dom_ok": true,
+            "typing_during_tail_ok": true
+          },
+          "typing_ms": {
+            "p50": {
+              "n": 1,
+              "p50": 224,
+              "p95": 224,
+              "mean": 224,
+              "min": 224,
+              "max": 224
+            },
+            "p95": {
+              "n": 1,
+              "p50": 282,
+              "p95": 282,
+              "mean": 282,
+              "min": 282,
+              "max": 282
+            }
+          },
+          "responsiveness": {
+            "meter": "event-loop-lag-proxy",
+            "longtask_max_ms": null,
+            "longtasks_gt_50ms": null,
+            "loop_lag_p95_ms": 200
+          },
+          "scroll": {
+            "fps": {
+              "n": 1,
+              "p50": 40.1,
+              "p95": 40.1,
+              "mean": 40.1,
+              "min": 40.1,
+              "max": 40.1
+            },
+            "frame_p95_ms": {
+              "n": 1,
+              "p50": 53,
+              "p95": 53,
+              "mean": 53,
+              "min": 53,
+              "max": 53
+            },
+            "frames_gt_50ms": 9,
+            "frames": 121
+          },
+          "overhead": {
+            "note": "same-run uninstrumented control; reported separately from every baseline number",
+            "instrumented_p50_ms": {
+              "n": 1,
+              "p50": 113,
+              "p95": 113,
+              "mean": 113,
+              "min": 113,
+              "max": 113
+            },
+            "control_p50_ms": {
+              "n": 1,
+              "p50": 109,
+              "p95": 109,
+              "mean": 109,
+              "min": 109,
+              "max": 109
+            },
+            "ratio_p50": 1.04
           },
           "memory": {
             "after_open": "not-supported",
