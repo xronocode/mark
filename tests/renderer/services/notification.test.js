@@ -18,7 +18,7 @@ vi.mock('@/util', () => ({
   getUniqueId: vi.fn(() => 'test-id')
 }))
 
-import notification from '@/services/notification'
+import notification, { copySelectionText } from '@/services/notification'
 import { useNotificationsStore, normalizeSeverity } from '@/store/notifications'
 import { setupTestPinia } from '../pinia'
 
@@ -87,5 +87,38 @@ describe('notification facade (C-NOTIFICATION-SYSTEM)', () => {
     expect(normalizeSeverity('error')).toBe('error')
     expect(normalizeSeverity('nonsense')).toBe('info')
     expect(normalizeSeverity(undefined)).toBe('info')
+  })
+
+  // C-RENDER-REVIEW-FIXES T-005 cross-pin: the history-copy caller
+  // (components/notificationsHistory, covered in its own suite) fires
+  // copySelectionText and discards the return — the promise contract keeps
+  // that fire-and-forget shape rejection-safe, so the caller behavior is
+  // unchanged.
+  describe('copySelectionText — the history-copy caller contract (C-RENDER-REVIEW-FIXES T-005)', () => {
+    it('a fire-and-forget call (return discarded) writes exactly the string', async () => {
+      const writeText = vi.fn(() => Promise.resolve())
+      Object.defineProperty(window, 'navigator', {
+        value: { clipboard: { writeText } },
+        configurable: true
+      })
+      copySelectionText('the copyable body')
+      expect(writeText).toHaveBeenCalledTimes(1)
+      expect(writeText).toHaveBeenCalledWith('the copyable body')
+    })
+
+    it('a discarded result on a rejecting write leaves no unhandled rejection', async () => {
+      const unhandled = []
+      const onUnhandled = (reason) => { unhandled.push(reason) }
+      process.on('unhandledRejection', onUnhandled)
+      const writeText = vi.fn(() => Promise.reject(new Error('denied')))
+      Object.defineProperty(window, 'navigator', {
+        value: { clipboard: { writeText } },
+        configurable: true
+      })
+      copySelectionText('x')
+      await new Promise((r) => setTimeout(r, 0))
+      process.off('unhandledRejection', onUnhandled)
+      expect(unhandled).toEqual([])
+    })
   })
 })

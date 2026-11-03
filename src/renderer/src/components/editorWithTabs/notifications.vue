@@ -95,17 +95,27 @@ const severityIcon = computed(() => {
 })
 
 // Spec R-3/R-8: same copy-on-select contract as the cards — release with a
-// selection inside the banner copies it and double-pulses; never answers
-// the banner's own OK/close buttons (they stopPropagation).
+// selection inside the banner copies it; the double-pulse confirms a real
+// clipboard write (C-RENDER-REVIEW-FIXES T-005: pulse only on a resolved
+// successful write); never answers the banner's own OK/close buttons
+// (they stopPropagation).
 const onSelectionRelease = (event) => {
   const root = event.currentTarget
   const sel = window.getSelection && window.getSelection()
   if (sel && !sel.isCollapsed && root && root.contains(sel.anchorNode)) {
-    copySelectionText(sel.toString())
     try {
-      applyCopyPulse(sel.getRangeAt(0))
+      // C-RENDER-REVIEW-FIXES T-005: capture the Range synchronously, before
+      // the chain — a deferred getRangeAt can throw IndexSizeError past this
+      // catch or pulse the wrong node once the selection collapses; the
+      // captured Range is a frozen snapshot that survives the collapse.
+      if (sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0)
+        copySelectionText(sel.toString()).then((ok) => {
+          if (ok) applyCopyPulse(range)
+        }).catch(() => {})
+      }
     } catch {
-      /* non-range selection: the copy already happened */
+      /* non-range selection: nothing to pulse */
     }
   }
 }

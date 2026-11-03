@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/services/notification/index.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-NOTIFICATION-SYSTEM compatibility facade — keeps the legacy
 //            `import notice from '../services/notification'` call shape used
@@ -23,13 +23,20 @@
 //
 // START_MODULE_MAP
 //   default - the legacy facade object: { name: 'notify', notify(opts), clear() }.
-//   copySelectionText - writes exactly the given selection string to the clipboard; failures are silent no-ops.
+//   copySelectionText - writes exactly the given selection string to the clipboard; resolves the real outcome as a promise (true only after an observed write; false for empty input, a missing API or a failed write) — silent either way.
 //   applyCopyPulse - double green pulse on a Range or Element target; self-cleans on animationend.
 //   prefersReducedMotion - shared prefers-reduced-motion probe.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-23 C-NOTIFICATION-SYSTEM T-002: the DOM
+//   LAST_CHANGE: v2.1.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-005: the
+//   truthful copy contract — copySelectionText reports the real clipboard
+//   outcome as a promise on EVERY path (false for empty input, a missing
+//   Clipboard API, a rejected or synchronously-throwing writeText; true
+//   only after a resolved write), so callers chain unconditionally and
+//   pulse only on a real write; failures stay silent (the quiet-developer
+//   voice, corner C-4). applyCopyPulse unchanged.
+//   v2.0.0 - 2026-10-23 C-NOTIFICATION-SYSTEM T-002: the DOM
 //   template builder, the Fluent blur-circle mousemove effect, the
 //   rePositionNotices JS geometry and the confirm-circle Promise semantics
 //   are gone (corner C-7); rendering moved to components/notificationCard +
@@ -53,19 +60,25 @@ export const prefersReducedMotion = () => {
 // START_BLOCK_COPY_SELECTION_TEXT
 // Corner C-4: clipboard rejections or a missing API never surface — the copy
 // is a quiet developer feature (spec R-3); failing silently beats an error
-// toast about a toast.
+// toast about a toast. C-RENDER-REVIEW-FIXES T-005: the function reports the
+// real clipboard outcome as a promise on EVERY path and never claims a
+// success it did not observe — it resolves false for empty input, for a
+// missing Clipboard API and for a rejected or synchronously-throwing
+// writeText (the whole body is wrapped: every path, thrown or not, returns
+// a promise), and resolves true only after a resolved write. Callers chain
+// unconditionally.
 export const copySelectionText = (selection) => {
-  const text = selection ? String(selection) : ''
-  if (!text) return false
   try {
+    const text = selection ? String(selection) : ''
+    if (!text) return Promise.resolve(false)
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      const result = navigator.clipboard.writeText(text)
-      if (result && typeof result.catch === 'function') result.catch(() => {})
+      return navigator.clipboard.writeText(text).then(() => true, () => false)
     }
+    return Promise.resolve(false)
   } catch {
-    /* silent no-op by contract */
+    /* silent no-op by contract — a synchronous throw resolves false */
+    return Promise.resolve(false)
   }
-  return true
 }
 // END_BLOCK_COPY_SELECTION_TEXT
 

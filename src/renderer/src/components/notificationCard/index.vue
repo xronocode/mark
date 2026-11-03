@@ -106,15 +106,25 @@ const sourceLabel = computed(() => {
 // START_BLOCK_COPY_ON_SELECT
 // Spec R-3: releasing a selection inside the card copies exactly the
 // selection and never dismisses (corner C-3); the double green pulse is the
-// only confirmation; reduced motion copies silently (corner C-10).
+// only confirmation and fires only after a resolved successful write
+// (C-RENDER-REVIEW-FIXES T-005: no pulse for a missing API or a failed
+// write); reduced motion copies silently (corner C-10).
 const onSelectionRelease = () => {
   const sel = window.getSelection && window.getSelection()
   if (sel && !sel.isCollapsed && root.value && root.value.contains(sel.anchorNode)) {
-    copySelectionText(sel.toString())
     try {
-      applyCopyPulse(sel.getRangeAt(0))
+      // C-RENDER-REVIEW-FIXES T-005: capture the Range synchronously, before
+      // the chain — a deferred getRangeAt can throw IndexSizeError past this
+      // catch or pulse the wrong node once the selection collapses; the
+      // captured Range is a frozen snapshot that survives the collapse.
+      if (sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0)
+        copySelectionText(sel.toString()).then((ok) => {
+          if (ok) applyCopyPulse(range)
+        }).catch(() => {})
+      }
     } catch {
-      /* non-range selection: the copy already happened */
+      /* non-range selection: nothing to pulse */
     }
   }
 }

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/autoUpdates.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-66 automatic-update gate — the full decision table
 //            (24 h throttle, What's New deferral, App Store gate, switch
@@ -28,7 +28,18 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: the
+//   LAST_CHANGE: v1.3.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-006: the
+//   prefs-skip boot-notice pins — a fresh mt_rollback_restore_outcome
+//   record raises exactly one sticky localized warning notice
+//   (rollback.prefsSkipped*, dedupKey 'rollback-prefs-skipped', source
+//   'rollback', the marker's error field never in the GUI) even when the
+//   updater gate returns check:false; a null outcome is silent; a stale
+//   (49 h) record is suppressed with a console marker only; a failing
+//   outcome query stays quiet with zero unhandled rejections; the
+//   invokeFn seam stays exclusive to mt_updater_check (the new tests
+//   inject outcomeInvokeFn directly, the five existing invoke-count pins
+//   are untouched).
+//   v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: the
 //   CONFIRM_ROLLBACK failure pins — an injected mt_rollback_restore
 //   rejection and an injected @tauri-apps/api/core import failure both
 //   raise the localized rollback.restoreFailed* error notice (source
@@ -658,5 +669,139 @@ describe('autoUpdates — rollback confirmation (CONFIRM_ROLLBACK, C-RENDER-REVI
     expect(invoke).toHaveBeenCalledWith('mt_rollback_restore')
     expect(store.rollback.visible).toBe(false)
     expect(useNotificationsStore().stack).toHaveLength(0)
+  })
+})
+
+describe('autoUpdates — rollback prefs-skip boot notice (RUN_LAUNCH_CHECK, C-RENDER-REVIEW-FIXES)', () => {
+  beforeEach(() => {
+    setupTestPinia()
+    vi.clearAllMocks()
+  })
+
+  // The mt_rollback_restore_outcome record shape (T-001): unix-seconds `at`.
+  const skipRecord = (ageHours) => ({
+    prefs: 'skipped',
+    error: 'disk full',
+    at: Math.floor((NOW.getTime() - HOURS(ageHours)) / 1000)
+  })
+
+  it('a fresh skip record shows exactly the one sticky localized notice even when the updater gate is off (gated boot case)', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockResolvedValue(skipRecord(0))
+    const invoke = vi.fn()
+    // Gate off via the facade stub: the early return this notice must survive.
+    const ipc = makeFakeIpc({ [AUTO_CHECK_UPDATES_KEY]: false })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    // The gate still early-returns (unchanged boot result) — but the notice
+    // was raised before it.
+    expect(out).toEqual({ check: false, reason: 'disabled', checked: false })
+    expect(outcomeInvoke).toHaveBeenCalledTimes(1)
+    expect(outcomeInvoke).toHaveBeenCalledWith('mt_rollback_restore_outcome')
+    // The shared updater seam stays exclusive to mt_updater_check: the gate
+    // is off, so the injected invokeFn mock is never called.
+    expect(invoke).not.toHaveBeenCalled()
+
+    expect(useNotificationsStore().stack).toHaveLength(1)
+    const notice = useNotificationsStore().stack[0]
+    expect(notice.severity).toBe('warning')
+    expect(notice.sticky).toBe(true)
+    expect(notice.dedupKey).toBe('rollback-prefs-skipped')
+    expect(notice.source).toBe('rollback')
+    // From the keys, not interpolated diagnostics: the marker's error field
+    // ('disk full') never reaches the GUI.
+    expect(notice.title).toBe(t('rollback.prefsSkippedTitle'))
+    expect(notice.message).toBe(t('rollback.prefsSkippedBody'))
+    expect(notice.message).not.toContain('disk full')
+    warn.mockRestore()
+    log.mockRestore()
+  })
+
+  it('a null outcome changes nothing on the boot path and never touches the updater seam', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockResolvedValue(null)
+    const ipc = makeFakeIpc()
+    const invoke = vi.fn().mockResolvedValue(statusUpToDate())
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    expect(outcomeInvoke).toHaveBeenCalledTimes(1)
+    expect(outcomeInvoke).toHaveBeenCalledWith('mt_rollback_restore_outcome')
+    // Seam exclusivity on a due boot: exactly one updater invoke, for
+    // mt_updater_check only — the outcome query never rides invokeFn.
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(invoke).toHaveBeenCalledWith('mt_updater_check')
+    expect(out.checked).toBe(true)
+    expect(useNotificationsStore().stack).toHaveLength(0)
+  })
+
+  it('a stale record (at older than 48 h) is suppressed with a console marker only', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockResolvedValue(skipRecord(49))
+    const invoke = vi.fn()
+    const ipc = makeFakeIpc({ [AUTO_CHECK_UPDATES_KEY]: false })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    expect(outcomeInvoke).toHaveBeenCalledTimes(1)
+    expect(out).toEqual({ check: false, reason: 'disabled', checked: false })
+    expect(useNotificationsStore().stack).toHaveLength(0)
+    expect(warn).not.toHaveBeenCalled()
+    expect(log).toHaveBeenCalledWith('[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_OUTCOME_STALE]')
+    warn.mockRestore()
+    log.mockRestore()
+  })
+
+  it('a failing outcome query stays quiet: console marker, no notice, zero unhandled rejections', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockRejectedValue(new Error('fact channel down'))
+    const ipc = makeFakeIpc()
+    const invoke = vi.fn().mockResolvedValue(statusUpToDate())
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const rejections = []
+    const onUnhandled = (reason) => rejections.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    // Give an unhandled rejection (if one existed) a macrotask to surface.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(rejections).toEqual([])
+    process.off('unhandledRejection', onUnhandled)
+
+    expect(error.mock.calls.some((c) => String(c[0]).includes('BLOCK_OUTCOME_QUERY_FAILED'))).toBe(
+      true
+    )
+    expect(useNotificationsStore().stack).toHaveLength(0)
+    // The boot continues past the broken fact channel: the updater check
+    // still runs and completes.
+    expect(out).toMatchObject({ check: true, checked: true })
+    error.mockRestore()
   })
 })
