@@ -84,4 +84,7 @@ static/locales/*.min.json
 /tests/e2e/fixtures/large-doc/byte-policy/cp1251.md
 /tests/e2e/fixtures/large-doc/byte-policy/shift-jis.md
 /tests/e2e/fixtures/large-doc/byte-policy/gb2312.md
->>>>>>> 8a021b55 (test(fixtures): C-LARGE-DOC-STAGE-0 T-002 wave 1 — corpus generators, determinism/materializer gates, byte-policy UTF-8 variants, edge and pathological fixtures (non-UTF-8 byte-policy fixtures hash-pinned, materialized on demand))
+
+# wrangler local-dev convention files — never stageable (C-STATS-READOUT T-001)
+tools/stats-gateway/.dev.vars
+tools/stats-gateway/.wrangler/
