@@ -30,8 +30,9 @@ parameter sets, unknown platforms, non-strict versions, traversal
 input — is a plain 404 with zero datapoints and zero redirects. Every
 redirect target is derived from validated inputs; nothing from the
 request is ever reflected. The readout route is equally strict: only
-the exact pathname (a query string, another method or wrong case 404s
-with `Cache-Control: no-store`), a wrong or missing `X-Read-Key` is a
+the exact pathname (a query string, another method or wrong case 404s —
+the query-string 404 carries `Cache-Control: no-store`, the shared
+router 404s stay bare), a wrong or missing `X-Read-Key` is a
 bodyless 401, and upstream trouble is the fixed
 `{"error":"stats-upstream"}` 502.
 
@@ -224,14 +225,15 @@ are git-ignored precisely so local experiments can never be staged.
 
 ### Verifying end-to-end
 
-From any machine with the read key in the environment:
+From any machine with the read key in the environment (a repo-less
+machine can use the curl example in the reading section above):
 
 ```sh
 read -s STATS_READ_KEY && export STATS_READ_KEY
 node tools/stats-gateway/query.mjs --remote
 ```
 
-The two tables printing confirms all three secrets work together.
+If the two tables print, all three secrets work together.
 Expect the tables after a few seconds on a cache miss — instant on a
 hit; the 60-second cache is per isolate. Failure mapping:
 

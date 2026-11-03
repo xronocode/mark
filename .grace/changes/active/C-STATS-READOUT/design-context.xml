@@ -1,0 +1,338 @@
+<GraceChangeDesignContext graceVersion="4.0">
+  <Change>C-STATS-READOUT</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    <Paragraph>Why the readout moves server-side at all: the owner framed the problem as scalability of access, not as a missing feature — every consumer of the numbers would otherwise need its own Cloudflare account credential (a platform token) or a trip through the personal dashboard, which is exactly the shape the owner rejected ("a dashboard over API" is the requested replacement). One keyed HTTP route on the already-deployed worker turns N token-holders into N key-holders, where the key unlocks daily aggregate counts and nothing else, and rotates in seconds without a redeploy.</Paragraph>
+    <Paragraph>Why one credential still exists, and where it lives: the Analytics Engine binding inside a Worker can only write (writeDataPoint); every read path is the SQL REST API, which demands a bearer token. So the choice is not "token vs no token" but "token on machines vs token inside Cloudflare". A Worker secret (dashboard-side, never in the repository, rotatable without redeploy) is the minimal confinement available; consumers hold only the read key.</Paragraph>
+    <Paragraph>Why a header and not a query parameter: keys in URLs leak into logs, browser history and shell history by construction; an X-Read-Key header stays out of all three (the live wrangler tail does render request headers, but only to the account holder — an owner-only channel; the spec's pinned guarantee is the branch's own emission bound below). Why exact-match comparison without constant-time machinery: the key is a random high-entropy string, the protected data is daily aggregates with no per-request secret of value, and a timing oracle on a Workers route adds no practical attack surface — the honest residual risk is handled by rotation, which is a seconds-long dashboard edit (and the plan is expected to adopt crypto.subtle.timingSafeEqual — near-zero cost in the Workers runtime, but a Workers-only API: Node 22 does not expose it, so the plan either uses the portable pre-hash alternative in the shared code or shims it in tests — as belt-and-braces on top, with its length-mismatch throw caught and mapped to the same 401, so no uncaught exception can surface a platform error page or a key-length signal).</Paragraph>
+    <Paragraph>Why the check order is route shape, then auth, then secret-presence, then cache, then upstream: every check is cheaper and more stateless than the one after it, and pinning the order settles three otherwise-ambiguous outcomes — malformed requests (wrong method, wrong path, stray query) 404 before any key comparison; denial (401) costs zero subrequests on every path; and an unset or empty upstream secret yields 502 even while a stale cache entry exists, so the fail-closed guarantee does not depend on cache warmth. The 10-second abort exists because a hung upstream would otherwise hold the invocation until a platform timeout; it maps to the same 502 as every other upstream failure. The log channel is bounded the same way: the readout branch emits at most one fixed marker constant — never the upstream URL, an upstream response, or any secret — so wrangler tail and Workers Logs cannot become a leak path.</Paragraph>
+    <Paragraph>Why tables.mjs must exist: the aggregation today lives inside query.mjs, which executes its CLI switch at import top-level — importable by nothing (a Workers bundle would run the CLI). Extracting the pure renderer into a side-effect-free module gives the worker, the script and the tests one implementation of byDay/fromBreakdown instead of two drifting copies, and makes the /stats response shape and the --dry/--remote prints provably identical by construction.</Paragraph>
+    <Paragraph>Why 60 seconds of per-isolate caching: the data is daily buckets read for human eyes; a minute of staleness is invisible, while the cache keeps any accidental polling or a shared bookmark hammering the route from translating into SQL API traffic (per isolate — a polller reaching several PoPs pays one call per isolate per window, still nothing at this volume). Per-isolate is enough — a cold isolate paying one extra query is fine at this volume, and no consistency promise is made across isolates.</Paragraph>
+    <Paragraph>Why 401 and not 404-on-deny: the route's existence is public (the README documents it; counting routes are public too), so hiding the auth boundary buys nothing; an explicit 401 keeps the contract honest — key wrong, not resource absent. Why no CORS headers: the consumers are curl/CLI by design; a future browser page is a separate change with its own CORS decision, and absent CORS means a browser cannot read the response cross-origin today (a no-cors request may still be sent — and is harmlessly 404 or 401), which is the safe default.</Paragraph>
+    <Paragraph>Terminology: the README section is "Readout access" (not a translation of the owner's Russian "кабинет") — the artifacts speak English, and "cabinet" would read as a cupboard or a .cab file to a native reader; the owner's quoted phrase stays "a dashboard over API" in translation.</Paragraph>
+  </Rationale>
+  <Alternatives>
+    <Alternative>Per-machine read tokens (the status quo extended): rejected by the owner — a platform-scoped credential on every reading machine does not scale and is exactly what the 2026-11-02 messages reject.</Alternative>
+    <Alternative>Durable Object or KV counters instead of Analytics Engine reads: rejected — it builds a second storage for data AE already holds, adds runtime cost and a migration of live counting semantics, all to avoid one dashboard-side secret; the C-UPDATER-STATS write path stays frozen instead.</Alternative>
+    <Alternative>GraphQL API instead of SQL REST: rejected — the SQL API is what query.mjs --live already speaks, so the server-side read is a byte-identical query, and GraphQL would add a second query dialect for no benefit.</Alternative>
+    <Alternative>Scheduled Worker exporting JSON to a static host (Pages/GitHub): rejected — introduces a second deployed artifact and a staleness/refresh story to gain nothing over serving the live query behind a cache.</Alternative>
+    <Alternative>Keep the broad wrangler OAuth for future deploys: rejected — a narrow deploy token covers deploy needs at a fraction of the scope, matching the owner's "only a Workers token" instruction; the broad grant is revoked instead.</Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>An HTML rendering of /stats (a small page or a rich terminal formatter) — deferred until the owner actually wants to look at something prettier than JSON; it would need its own CORS and caching posture.</Decision>
+    <Decision>Multiple or per-person read keys — deferred until more than the owner ever reads the stats; the single shared key is the whole auth model here.</Decision>
+    <Decision>Longer-retention export beyond Analytics Engine's three months — unchanged from C-UPDATER-STATS, deferred there.</Decision>
+    <Decision>Read-side row capping for the readout (a SQL LIMIT or a rendered top-N of from-versions) — deferred: counting semantics are frozen and honest degradation is documented in the Assumptions; capping becomes its own change if junk from-version inflation ever makes the readout unpleasant to read.</Decision>
+    <Decision>The exact minimal deploy-permission set: the README documents both the prebuilt "Edit Cloudflare Workers" template (accurately scoped) and the minimal custom alternative (Account | Workers Scripts | Edit); which one the first redeploy actually requires (e.g. whether re-asserting the custom-domain route needs zone-side rights) is resolved and recorded at that redeploy.</Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>Key rotation after a leak: owner edits the STATS_READ_KEY secret in the dashboard; the old key stops working on the next request (auth is checked per request and never cached); no redeploy, no code change, no other consumer coordination beyond sharing the new key.</Scenario>
+    <Scenario>Analytics token expired or revoked: authorized requests return 502 {"error":"stats-upstream"} once the R-4 cache window has expired (at most 60 seconds of stale 200s may remain on a warm isolate); counting routes keep counting and redirecting unaffected; the owner pastes a fresh token into the secret and the next request after the cache window recovers.</Scenario>
+    <Scenario>Upstream SQL API outage or hang: non-2XX, network failure, and a call hung past the 10-second abort all map to the same 502; the failed attempt is not cached, so recovery is immediate on the first request after the outage ends.</Scenario>
+    <Scenario>Cold isolate after a deploy or eviction: the readout cache is empty; the first authorized request pays one upstream query and repopulates; counting routes are indifferent.</Scenario>
+    <Scenario>Scanner hits /stats without a key: bodyless 401, zero upstream calls — probing the readout costs Cloudflare nothing beyond the Worker invocation itself.</Scenario>
+    <Scenario>Owner misconfigures a secret as an empty string: an empty STATS_READ_KEY behaves as unset (401, fail closed); an empty STATS_API_TOKEN or STATS_ACCOUNT_ID behaves as unset (502 regardless of cache state) — no fail-open path exists through an empty credential.</Scenario>
+  </Scenarios>
+  <CornerMatrix>
+    <!-- Spec-time corners (non-normative; the plan re-baselines them for execution). They double as the reviewer checklists for the four-corner gate. -->
+    <C-1>
+      <Name>Correct key happy path</Name>
+      <Situation>GET /stats with X-Read-Key exactly equal to the STATS_READ_KEY secret, secrets STATS_API_TOKEN and STATS_ACCOUNT_ID set, upstream SQL API answering fixture rows.</Situation>
+      <Expected>200, application/json, Cache-Control: no-store, body exactly { byDay, fromBreakdown } in the renderTables shape — computed through the shared tables.mjs, identical to what --dry prints for the same rows.</Expected>
+    </C-1>
+    <C-2>
+      <Name>Auth denial, fail closed</Name>
+      <Situation>GET /stats with a missing X-Read-Key header, a wrong value, or with STATS_READ_KEY unset or set to an empty string.</Situation>
+      <Expected>A bodyless 401, and the upstream SQL API is not called at all — the auth check runs before cache and upstream work, so denial costs zero subrequests.</Expected>
+    </C-2>
+    <C-3>
+      <Name>Upstream secrets absent, before the cache</Name>
+      <Situation>Authorized request while STATS_API_TOKEN or STATS_ACCOUNT_ID is unset or set to an empty string — including when a successful result is still warm in the R-4 cache.</Situation>
+      <Expected>502 with body exactly {"error":"stats-upstream"} — the secret-presence check runs before the cache is consulted, so the mapping holds regardless of cache state; no distinct error reveals which secret is missing.</Expected>
+    </C-3>
+    <C-4>
+      <Name>Upstream failure and leak guard</Name>
+      <Situation>Upstream SQL API returns non-2XX (including a 403 for an insufficient read-token permission — the worker maps it to the same 502), or the fetch rejects (network), or hangs past the 10-second abort, or the response body is not parseable as JSON.</Situation>
+      <Expected>502 with body exactly {"error":"stats-upstream"}; the response contains no upstream body text, no token, no account id — and neither does any log statement (the branch logs at most a fixed marker constant); the failed attempt is not cached (next request retries upstream).</Expected>
+    </C-4>
+    <C-5>
+      <Name>Cache window, same isolate</Name>
+      <Situation>A second authorized GET /stats arrives within 60 seconds of a successful one, on the same isolate.</Situation>
+      <Expected>200 served from the module-scope cache with zero additional upstream fetches; a cold isolate simply re-queries once and repopulates; no cross-isolate consistency is promised.</Expected>
+    </C-5>
+    <C-6>
+      <Name>Counting routes invariant</Name>
+      <Situation>Any counting-route request — /feed valid and malformed, /pkg valid and malformed, unknown paths, non-GET methods — after this change is deployed.</Situation>
+      <Expected>Byte-identical behavior to the post-C-UPDATER-REVIEW-FIXES gateway (the archived C-UPDATER-STATS counting semantics with the sibling's wire-shape repairs): same validation, same derived-only Locations, same 404 classes with zero datapoints, same best-effort waitUntil counting; the readout branch and its cache are invisible to these paths, and /stats writes zero datapoints on every path.</Expected>
+    </C-6>
+    <C-7>
+      <Name>Secrets-name-only scan over the touched files</Name>
+      <Situation>A source scan of every file this change touches (tools/stats-gateway/, the gateway test file, the amended .grace/graph/features.xml and .grace/verification/features.xml entries, the change bundle itself, and .gitignore), comments stripped, after implementation.</Situation>
+      <Expected>Only NAMES — the secrets (STATS_API_TOKEN, STATS_ACCOUNT_ID, STATS_READ_KEY) and the credential-family variables (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CF_API_TOKEN, CF_ACCOUNT_ID) — the public gateway URL, and the design's fixed non-secret constants appear; no value of any of the three secret shapes (32-hex account id, 64-hex read key, 40-plus consecutive alphanumerics with no separators — so the bundle's own run ids cannot trip it); test fixtures for the secrets use obviously-fake non-hex placeholders; .gitignore carries the .dev.vars and .wrangler entries and no dangling merge marker; wrangler.toml is byte-unchanged.</Expected>
+    </C-7>
+    <C-8>
+      <Name>Route shape edges</Name>
+      <Situation>GET /stats?anything=1, GET /stats/, GET /STATS, POST /stats.</Situation>
+      <Expected>404 in all four cases: shape checks precede auth, so the query-string 404 holds regardless of the key — the handler rejects a non-empty query string explicitly (the /pkg precedent — pathname equality cannot see the query string), the router's exact pathname match rejects /stats/ and /STATS, and the GET-only gate rejects POST before any auth or upstream work.</Expected>
+    </C-8>
+    <C-9>
+      <Name>Single renderer, import-safe</Name>
+      <Situation>Importing tables.mjs inside the Workers bundler and importing query.mjs inside a test runner.</Situation>
+      <Expected>tables.mjs executes nothing on import (pure functions only); query.mjs executes nothing on import (CLI behind a main guard); the aggregation exists in exactly one place, so /stats output and --dry/--remote prints cannot drift.</Expected>
+    </C-9>
+    <C-10>
+      <Name>Remote mode and its missing-variable error</Name>
+      <Situation>node tools/stats-gateway/query.mjs --remote with STATS_READ_KEY in the environment and the gateway answering fixture JSON (stubbed in tests); then without the variable.</Situation>
+      <Expected>The same two tables print as --dry for equivalent rows; without the variable, or with an empty one, the script fails with an actionable error naming STATS_READ_KEY; a non-2XX gateway answer prints the status and the fixed body only and exits nonzero; --live and --dry are unchanged; the usage line lists all three modes.</Expected>
+    </C-10>
+    <C-11>
+      <Name>README sufficiency for the owner</Name>
+      <Situation>The owner follows the README's "Readout access" section alone, in Safari, without this conversation's context.</Situation>
+      <Expected>All three dashboard-side secrets are created and pasted without ambiguity — the token-creation click-path stated (My Profile -> API Tokens -> Create Token), the custom token with the permission exactly as the dashboard shows it (Account | Account Analytics | Read), the account's 32-character ID from the dashboard account home (secret values are not re-viewable after saving, so the docs point at the dashboard, never at the secret), a stated generation command for the read key — rotation-without-redeploy is stated with the dashboard's apply step, secrets are stated as dashboard-side only, the narrow deploy-token flow works from the README alone (accurately scoped template, minimal custom alternative, CLOUDFLARE_ACCOUNT_ID from the dashboard) with the Deployment section carrying the same single credential story, the reading section makes --remote the documented path with the X-Read-Key header named for curl consumers, the Privacy section's datapoint sentence is reconciled (one per valid counting request — the readout writes none), an end-to-end verification step (query.mjs --remote returning the tables, with the failure mapping: 401 = key mismatch; 404 = the deployed gateway predates the readout route — deploy first; 502 = upstream refused or unreachable, including the insufficient-permission case where the fallback permission applies) closes the setup, the rotation apply step, the 403-fallback permission note, the retained readings with their honest limits, the no-embed --live rewrite and the read -s pattern are all present, the broad-OAuth revocation step is present, and no doc line asks for or displays a secret value.</Expected>
+    </C-11>
+  </CornerMatrix>
+  <ReviewLog>
+    <Review number="1" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-3e0fc5ad-1bf5-45cb-9bbc-80033086bfa0 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>0/4 corners clean; 3 blocking, 8 important, 11 note findings.</Result>
+      <Applied>
+        <Fix>Correctness F-1 (blocking): CornerMatrix rewritten from attribute form to semantic-anchor tag form with Name/Situation/Expected children — the house form; removes the 11 artifact.semantic-anchor-attribute lint errors the reviewers measured.</Fix>
+        <Fix>Correctness F-2 + Security F-1 (blocking, same defect): R-8/AC-6 now sanction exactly one amendment to the baseline worker.mjs source scan — the single x-read-key header read of R-1 is allowlisted while every other ban (request.cf, CF-IPCountry, user-agent) stays — resolving the contradiction between R-1 header auth and the unchanged-and-green promise.</Fix>
+        <Fix>Correctness F-3 (important): R-1, AC-1 and the route-edges corner now specify explicit handler-level query rejection (searchParams non-empty means 404, the /pkg precedent); the false exact-pathname-rejects-query mechanism is gone.</Fix>
+        <Fix>Security F-2 (important): empty-string read key pinned as fail-closed 401 in R-1, AC-1, the denial corner and a scenario — symmetric with the upstream secrets.</Fix>
+        <Fix>Security F-3 (important): the secrets scan is widened to every touched file (tools/stats-gateway/ plus the test file) with obviously-fake fixture placeholders pinned; the claim no longer says repository while scanning less.</Fix>
+        <Fix>UX F-1 (important): the cabinet calque is removed; the README section is Readout access, with a terminology note in Rationale.</Fix>
+        <Fix>UX F-2 (important): the missing-read-key actionable error is now normative in R-5, AC-5 and the remote-mode corner, not corner-only.</Fix>
+        <Fix>UX F-3 (important): R-6 and the README-sufficiency corner now state where the account id comes from (the dashboard's 32-character ID) and how to generate the read key (a stated command).</Fix>
+        <Fix>UX F-4 (important): R-6, the docs criterion and AffectedAreas now require revising the README's opening description, Routes and Deployment sections (no more redirect-only-only wording; the readout route documented; the stale zone-route sentence corrected to the custom-domain form; one unified credential story).</Fix>
+        <Fix>Performance F-1 (important): check order pinned (auth, then secret-presence, then cache, then upstream) in R-1/R-2/R-4, the two criteria, and a Rationale paragraph; the token-rotation scenario no longer claims instant 502 while a cache window may persist.</Fix>
+        <Fix>Notes — Correctness F-5, Security F-4, Security F-5, UX F-5, UX F-6, UX F-7, UX F-8, Performance F-2, Performance F-3, Performance F-4 — all applied: unset-or-empty wording for upstream secrets (R-2/AC-2); zero-writeDataPoint pin on readout paths (R-7/R-8/AC-6, counting-invariance corner); bodyless 401 and the fixed 502-only token (Constraints, R-1); route-edges mechanism wording; R-6 grammar (a custom token whose permission is ...); template scope stated accurately with the minimal custom alternative (R-6, Assumptions, DeferredDecisions); awkward-for-the-owner phrasing; payload estimate corrected to hundreds of rows; 10-second upstream abort added (R-2/AC-2, the upstream-failure corner, a scenario); same-isolate qualifier on the cache criterion.</Fix>
+      </Applied>
+      <Deferred>None — every round-1 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="2" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-2a78bcaa-a491-4c99-ab52-dbeb827d83e4 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>1/4 corners clean; 0 blocking, 4 important, 10 note findings.</Result>
+      <Applied>
+        <Fix>Correctness F-1 (important): the sanctioned amendment is now one class of edit covering the test source-scan AND its normative mirrors — the V-M-071 verification text (reads-no-request-headers phrase updated) and the M-071 graph contract (Summary/Outputs/Errors grow the readout route) — so no normative mirror stays false after implementation.</Fix>
+        <Fix>Security F-1 (important): the leak guarantee now covers the Workers-log channel — the readout branch emits at most one fixed marker constant and never logs the upstream URL, an upstream response, or any secret; pinned in R-2, the upstream-failure criterion, the no-logging scan pin and the corner.</Fix>
+        <Fix>UX F-1 (important): the Assumption's template scope corrected to the full eight permissions of the current token-template reference (Scripts/KV/Routes/Tail/R2/Account Settings/User Details/User Memberships), so the README drafted from it cannot understate the scope.</Fix>
+        <Fix>UX F-2 (important): the deploy leg now sets CLOUDFLARE_ACCOUNT_ID beside CLOUDFLARE_API_TOKEN (an account-scoped token cannot make wrangler's account-lookup call), in R-6, the docs criterion and the README-sufficiency corner.</Fix>
+        <Fix>Notes — Correctness F-2 (LINKS file-name drift runtime.xml to features.xml fixed beside the archive path), Correctness F-3 + Security F-3 (scan enumeration now lists every touched file: tools, tests, graph/verification entries, the bundle itself), Correctness F-4 + Security F-4 + UX F-4 (README Deployment section: stale zone-route sentence corrected, unified credential story), Security F-2 (route-shape checks pinned before auth, resolving the 401-vs-404 ambiguity), UX F-3 (redirect-only-only coinage removed), Performance F-1 (cold-start co-location acknowledged with a measured 3.45 KiB baseline), Performance F-2 (cache reset between tests deferred to the plan explicitly) — all applied.</Fix>
+      </Applied>
+      <Deferred>None — every round-2 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="3" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-9c36015c-17b6-4937-9c08-d4bd8667e510 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>2/4 corners clean; 0 blocking, 2 important, 16 note findings.</Result>
+      <Applied>
+        <Fix>Security F-1 (important): the local-dev leak path closed — this change adds tools/stats-gateway/.dev.vars to .gitignore (a wrangler-dev secrets file can never be staged by routine git add), and R-6/AC-7/C-7 pin the dashboard-side-only secrets statement for the README.</Fix>
+        <Fix>UX F-1 (important): the README's reading section joins the revision list — --remote with the read key becomes the documented reading path, --live framed as debug/diagnostic — in R-6, the docs criterion, AffectedAreas and C-11, resolving the contradiction with the change's premise.</Fix>
+        <Fix>Notes — Correctness F-1 (LINKS fix named for both governed headers, worker.mjs and query.mjs), Correctness F-2 (marker analogy reworded: the readout marker interpolates no dynamic values, unlike counting-route markers), Correctness F-3 (graph amendments name Sources and PlannedPath gaining tables.mjs), Security F-2 (scan bans pinned per shape: 32-hex id, 64-hex key, 40-plus-char token; non-hex placeholder fixtures), Security F-3 (V-M-071 replacement phrase headers-scoped and quoted by its exact clause), Security F-4 (--remote non-2XX pinned: status plus fixed body, nonzero exit), UX F-2 (AffectedAreas aligned with R-6's README scope), UX F-3 (account-lookup rationale scoped to the minimal custom token), UX F-4 (token-creation click-path pinned), UX F-5 (CLOUDFLARE_ACCOUNT_ID sourced from the dashboard account home, not from the non-re-viewable secret), UX F-6 (query.mjs contract header amendment and map dedup named in R-8), UX F-7 (OAuth-file mtime fact softened to plan-time re-verification), Performance F-1 (volume claim re-anchored to the AE pricing read-query quota, Free 10k/day), Performance F-2 (probe-influenced cardinality acknowledged with a bounded worst case), Performance F-3 (SQL text becomes a shared constant in tables.mjs alongside the renderer), Performance F-4 (a passed-checks record, nothing to apply) — all applied except as noted.</Fix>
+      </Applied>
+      <Deferred>None — every round-3 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="4" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-443d1e8b-93f7-4175-a0c0-933ab46cd372 (four fresh GLM-5.3-Flash reviewers; the run was stopped by a provider quota error mid-round and resumed same-day)</Run>
+      <Result>2/4 corners clean; 0 blocking, 2 important, 12 note findings.</Result>
+      <Applied>
+        <Fix>Correctness F-1 (important): Assumption states corrected from the live bundles — C-47 is deferred (not draft), C-50 and C-PAGE-WIDTH-TABLES approved; the baseline enumeration now also names the pre-existing heuristic-confidence warnings and states the operative no-new-errors rule.</Fix>
+        <Fix>UX F-1 (important): the LINKS fix is named for all THREE governed headers carrying the stale path — worker.mjs, query.mjs and tests/tools/stats-gateway.test.mjs.</Fix>
+        <Fix>Notes — Correctness F-2 (the upstream-JSON-to-rows normalization moves to tables.mjs too, closing the single-implementation seam), Correctness F-3 (bumps land in every touched governed file that carries them; worker.mjs's MODULE_MAP explicitly grows the readout locals), Correctness F-4 (warning baseline enumerated), Security F-1 (.gitignore joins the scan set), Security F-2 (the README --remote example never inlines the key into the command line), Security F-3 (the committed dangling merge marker at .gitignore line 87 is removed by the same edit — verified: marker present at line 87, committed in 89541d8e), UX F-2 (used only in the deploy command, not used once), UX F-3 (fixed 502 body terminology unified where touched), UX F-4 (dashboard-side-only gains the --remote environment caveat), UX F-5 (three credential families named by purpose), Performance F-1 (6.81 KiB figure marked as a draft-time prototype measurement the plan re-measures), Performance F-2 (typical 1-2 second miss latency stated; the abort is the bound, not the expectation) — all applied.</Fix>
+      </Applied>
+      <Deferred>None — every round-4 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="5" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-f9b5154e-8df5-48ae-9f67-f3966691b0ce (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — FIRST CLEAN PASS; 0 blocking, 0 important, 12 note findings.</Result>
+      <Applied>
+        <Fix>Notes applied before round 6 (all wording-level): the SCOPE closing sentence of worker.mjs's contract named by its exact wording in R-8's amendment; .gitignore added to the corner C-7 scan situation; the constraints' metadata phrase scoped headers-only (no request header reads beyond x-read-key); the no-inline rule generalized to every README example (the --live example rewritten to export-then-run form); the secrets navigation path uses the dashboard label (Workers &amp; Pages) with the Write/Edit terminology note; the readout's expected latency added to R-6's section contents; CF_ACCOUNT_ID attributed to the --live family; two English fixes (awkward as designed; fixed 502 body, not token); the dashboard-side-only constraint gains the --remote caveat; both pricing-plan quota branches stated (Free 10k/day, Paid 1M/month); the abort-timing test mechanism joined the plan-fixed list.</Fix>
+      </Applied>
+      <Deferred>None.</Deferred>
+    </Review>
+    <Review number="6" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-48d58358-9edf-4264-a97b-e300a8eb9f8d (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>2/4 corners clean; 0 blocking, 2 important, 7 note findings. The clean-pass counter reset: round 5's green stands, but two consecutive clean passes must now be reached again (round 7 onward).</Result>
+      <Applied>
+        <Fix>UX F-1 (important): retention clause added to R-6 — the existing readings and their honest limits (update-success, downloads-vs-clicks, UTC buckets, three-month window) are retained in substance, keeping the archived C-UPDATER-STATS README obligations and query.mjs's LINKS promise true.</Fix>
+        <Fix>Performance F-1 (important): the payload worst-case restated honestly — the from-version axis is third-party-inflatable via the public /feed (frozen semantics), no documented SQL API response cap bounds it, and the degradation mode (readout-only, bounded by the abort and the 502 failure surface) replaces the false KiB figure; read-side row capping recorded as a deferred decision.</Fix>
+        <Fix>Notes — Correctness F-1 (the no-new-logging constraint scoped to data logging, the optional marker's plan-fixed decision), Correctness F-2 (.gitignore marker absence pinned in AC-7 and the corner), Security F-1 (the shell-history claim weakened to "no documented command embeds the value", with a read -s pattern offered), UX F-2 (empty-matching coinage removed), UX F-3 (the Write-vs-Edit gloss expanded), Performance F-2 (the cache window opens on landed success; overlapping misses accepted), Performance F-3 (the change-bundle scan target made archive-stable via the plan) — all applied.</Fix>
+      </Applied>
+      <Deferred>None — every round-6 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="7" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-0a546d5a-126a-4700-a5a7-38739676fbb3 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 11 note findings.</Result>
+      <Applied>
+        <Fix>UX F-1 (important): the Summary's headline claim scoped to reality — "no Cloudflare account credential lives in the repository, in CI, or on any machine; the only things any consumer ever holds are the gateway read key and, at deploy time, the narrow deploy token".</Fix>
+        <Fix>Notes — Correctness F-1 (the PURPOSE datapoint clause and its graph Outputs mirror join R-8's named amendments: one per valid counting request, the readout writes none), Correctness F-2 (the already-false "reads only CF_API_TOKEN" clause corrected to name CF_ACCOUNT_ID, in query.mjs PURPOSE and the V-M-071 scenario), Security F-1 (the no-logging scan's branch-isolation mechanism explicitly plan-fixed), Security F-2 (a 2XX valid-JSON answer without a result array yields empty tables, the query.mjs precedent — not a failure), Security F-3 (.wrangler/ joins .dev.vars in the .gitignore gain), UX F-2 (token shown-once note, Account Resources selection, OAuth-revocation click-path added to the sufficiency bar), UX F-3 (the owner quote rendered "on the worker side", exactly), UX F-4 (the last "token" for the 502 body reworded), UX F-5 (a 403 fallback permission documented in the README), Performance F-1 (the 50-subrequest free-plan limit named), Performance F-2 (CPU exhaustion surfaces as a platform error, not the fixed 502 — wording corrected) — all applied.</Fix>
+      </Applied>
+      <Deferred>None — every round-7 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="8" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-4422d554-04ad-424d-952e-d61cd161551c (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 7 note findings.</Result>
+      <Applied>
+        <Fix>Security F-1 (important): the Summary headline rewritten a third time to a claim that is true on the spec's own terms — "reading the numbers requires no Cloudflare account credential at all; the reader holds only the gateway read key (the optional --live debug path keeps its owner-side CF_API_TOKEN, and the rare deploy uses the narrow, owner-held deploy token)".</Fix>
+        <Fix>Notes — Correctness F-1 (Inputs joins Summary/Outputs/Errors in the graph-contract amendment), Correctness F-2 (V-M-071's Markers inventory and TraceAssertion sentence conditionally amended when the optional marker is implemented), Security F-2 (Cache-Control: no-store pinned on all three /stats statuses, not just 200), UX F-1 (the "it;," punctuation typo in R-8), UX F-2 (notes this once), UX F-3 (the wave-surface pins glossed with their referents), UX F-4 (R-5's --live now names CF_ACCOUNT_ID) — all applied.</Fix>
+      </Applied>
+      <Deferred>None — every round-8 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="9" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-e4181731-7f78-499c-aeb6-8f12e23914fb (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 10 note findings.</Result>
+      <Applied>
+        <Fix>Notes applied before round 10: the AC-7/C-7 scan claim restated as no-secret-VALUES with the design's fixed non-secret constants enumerated; the token-shape ban pinned as 40-plus consecutive alphanumerics without separators (the bundle's own hyphenated run ids cannot trip it); the no-logging pin holds at zero markers (no output other than at most the marker); the Name headline scoped like the Summary (reading needs no account token); the worker.mjs STATUS clause's stale zone-route description joins the amendment sweep; the 403-fallback permission attributed and hedged (the dashboard may not offer it; the documented permission is authoritative); the secrets rotation's apply/confirmation step noted; the Assumption's upstream-call bound restated per window with the overlapping-misses caveat. UX F-5 (the recurring "grows" idiom) accepted as consistent house style, meaning-preserving.</Fix>
+      </Applied>
+      <Deferred>None.</Deferred>
+    </Review>
+    <Review number="10" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-8a884d5d-0939-46ef-9d86-6aacd36b89db (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 11 note findings. Round 9's clean streak reset; two consecutive clean passes still required.</Result>
+      <Applied>
+        <Fix>UX F-1 (important): the README Privacy section joins the revision list in R-6, the docs criterion and AffectedAreas — its "One aggregate datapoint per valid request" sentence is reconciled to "one per valid counting request — the readout route writes none", mirroring the R-8 contract amendment.</Fix>
+        <Fix>Notes — Correctness F-1 (the graph Summary's stale opening and its already-false live-mode clause quoted into R-8's amendment), Correctness F-2 (the no-store header pin repeated on the 401 and 502 in AC-1/AC-2), Security F-1 (R-6's closing claim scoped to the touched files, matching the scan), Security F-2 (the rationale's log claim qualified — live wrangler tail renders headers to the account holder only), Security F-3 (timingSafeEqual noted as an optional plan choice), UX F-2 (an end-to-end verification step closes the README setup), UX F-3 (the X-Read-Key header documented for curl consumers), UX F-4 (the "fixture recording stock" coinage reworded to the recorded-datapoint fixture sink), Performance F-1 (no change — recorded so a later pass does not "correct" the hundreds-of-rows estimate back to tens), Performance F-2 (the C-8 slash/case edges left to the plan's optional pin) — all applied or recorded.</Fix>
+      </Applied>
+      <Deferred>None — every round-10 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="11" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-9f41dc65-bb0f-449d-882f-0cdd7220423d (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 12 note findings (several pure verification records: the scan bans re-run live with zero hits, the baseline suite re-run green 18/18, every Cloudflare quota figure re-verified against the live docs).</Result>
+      <Applied>
+        <Fix>Notes applied before round 12: Constraint 7 gains "beyond the single sanctioned amendment of R-8" (the unweakened wording read against the sanctioned scan allowlist); the read -s pattern now serves STATS_READ_KEY too; the AC-6 gloss corrected (the renderer egress allowlist belongs to the separate egress scan, not the T-005 pins); the R-8 LINKS antecedent precise (the archive path is in worker.mjs and the test file; the stale file name is in query.mjs); the plan is now expected to adopt timingSafeEqual as belt-and-braces. Correctness F-2/F-3/F-4, Security F-2 and Performance F-1/F-2/F-3 are verification records — nothing to apply, including the explicit note that the two-clean-passes gate is not yet satisfied and the hundreds-of-rows estimate must not be "corrected" back to tens.</Fix>
+      </Applied>
+      <Deferred>None.</Deferred>
+    </Review>
+    <Review number="12" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-a903d063-386e-47ee-a54d-4d7b778ebda1 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 8 note findings. Round 11's clean streak reset; two consecutive clean passes still required.</Result>
+      <Applied>
+        <Fix>Correctness F-1 (important): the round-11 LINKS "precision" itself misattributed the file-name drift — re-verified against the three headers: the stale archive path sits in worker.mjs and the test file, the stale runtime.xml file names sit in worker.mjs AND query.mjs; R-8's wording now states exactly that.</Fix>
+        <Fix>Notes — Correctness F-2 (the headers-scoped justification non-sequitur removed: the original clause was already header-scoped, the rewording serves the x-read-key read), Security F-1 (the CORS rationale says cannot read, not cannot fetch — a no-cors request may be sent and is harmlessly 404/401), Security F-2 (memory pressure on the shared 128 MiB isolate joined the degradation narrative; R-7's isolation qualified as code-level), UX F-1 (an empty STATS_READ_KEY fails with the same actionable error as an absent one, in R-5, AC-5 and the corner), Performance F-1 (the 10 ms free-plan CPU figure named, making the deferred row-capping decision actionable) — all applied; Security F-3 and Performance F-2/F-3 are verification records (baseline suite 18/18, bundle 3.45/1.40 KiB re-measured, quotas re-verified live).</Fix>
+      </Applied>
+      <Deferred>None — every round-12 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="13" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-2c1857bc-0ecb-41c9-bccf-7dc1b8d423e0 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 11 note findings (mostly verification records: all three scan bans re-run live with zero hits, the .wrangler directory confirmed untracked-and-unignored today, every platform/quota figure re-verified against live Cloudflare docs, the baseline suite re-run green 18/18).</Result>
+      <Applied>
+        <Fix>Notes applied before round 14: R-7's parenthetical tightened (the cache is the readout's only cross-request state, never consulted by counting routes); the R-6 403-fallback sentence's grammar repaired (the second permission THAT third-party tooling names); the docs criterion's revocation leg now defers to the R-6 flow with plan-time verification of logout's server-side semantics; R-3's main-guard wording states the current defect honestly (today it executes at import top-level); the degradation headline drops "alone" and names the sibling-failure caveat of a hard isolate OOM; the junk-from-value axis gains its second multiplier (rows AND per-row length — strictSemver bounds shape, not length). Correctness F-2, Security F-1/F-3 and Performance F-2/F-3 are verification records with nothing to apply.</Fix>
+      </Applied>
+      <Deferred>None.</Deferred>
+    </Review>
+    <Review number="14" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-b83ba76e-03ee-4e61-a99e-6f94d8eeb48d (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 1 blocking, 0 important, 16 note findings. Round 13's clean streak reset.</Result>
+      <Applied>
+        <Fix>Correctness F-1 (blocking): sibling-awareness amendment — the fifth active bundle C-UPDATER-REVIEW-FIXES (approved, parallel session, same three files) discovered and verified against the live code; the spec now names it in Summary, gains a Sibling-ordering constraint (it lands first, this change rebases, pins read against the post-sibling baseline), re-anchors R-2 normalization (json.data envelope, index1 column), R-3 (post-sibling SQL form), R-5 (line citations per the rebased baseline), R-7/AC-6 (byte-identical and exactly-one-amendment claims scoped to the tests as left by the sibling, whose own test amendments are its own), and corrects Assumption 3 to the five-bundle landscape; the Summary's "already counting" premise reworded per the sibling's dispute (counting by design; the wire-shape defects are the sibling's subject).</Fix>
+        <Fix>Notes — Correctness F-2 (the SCOPE middle 404 sentence scoped to counting routes in R-8), Correctness F-3 (the sanctioned amendment names the actual /headers\.get\(/ regex), Correctness F-4 (the T-005 gloss gains the m068 byte-pin), Security F-1 (timingSafeEqual's throw must map to 401 or pre-hash — plan-pinned), Security F-2 (TraceAssertion precision left to the plan, recorded), UX F-1 (Account Resources selection pinned for both token flows), UX F-2 ("a /stats"), UX F-3 ("aggregate rows"), Performance F-5 (OOM wording softened to worst case with the platform's fresh-isolate behavior), Performance F-6 (the anti-polling rationale qualified per-isolate) — all applied; UX F-4 and Performance F-1/F-2/F-3/F-4/F-7 are verification records or honest not-run notes with nothing to apply.</Fix>
+      </Applied>
+      <Deferred>None — every round-14 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="15" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-4c32aa47-f835-49d6-8e45-350b7c9e759f (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>2/4 corners clean; 0 blocking, 2 important, 10 note findings.</Result>
+      <Applied>
+        <Fix>Correctness F-1 (important): R-8's LINKS enumeration re-scoped to the post-sibling baseline — the sibling repairs worker.mjs's LINKS itself, so worker.mjs only gains the C-STATS-READOUT reference; the archive-path fix names the test file only; the runtime.xml fix names query.mjs only.</Fix>
+        <Fix>UX F-1 (important): AC-7/C-7's whitelist widened to the credential-variable NAMES (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CF_API_TOKEN, CF_ACCOUNT_ID) alongside the three STATS_* names, resolving the contradiction with R-6's mandated README content.</Fix>
+        <Fix>Notes — Correctness F-2 (the sibling-ordering constraint's file list gains the shared M-071/V-M-071 graph/verification entries), Security F-2 (no-CORS is now a normative R-1 sentence, not only rationale), UX F-2 (the verification step carries the failure mapping: 401 = key mismatch, 502 = upstream secrets), UX F-3 (the template-scope enumeration marked as plan-re-baselined against the dashboard), UX F-4 (a residual unrevoked grant becomes a recorded owner action item) — all applied; Security F-1/F-3 and Performance F-1/F-2/F-3 are verification records (scans zero-hit, quotas and bundle figures re-verified live) with nothing to apply.</Fix>
+      </Applied>
+      <Deferred>None — every round-15 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="16" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-dd4b9afe-307b-46e9-95df-bb56f06b6b5d (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 15 note findings (verification records: all platform figures exact against live docs, baseline bundle 3.45/1.40 KiB and suite 18/18 reproduced, the no-cap absence-claims confirmed on three live pages).</Result>
+      <Applied>
+        <Fix>Notes applied before round 17: the query.mjs DEPENDS line joins R-8's header amendment (it carries the same false CF_API_TOKEN-only claim); R-8's rebase step verifies the sibling corrected BOTH worker.mjs links (graph and verification) and corrects any survivor; the no-store enumeration covers the handler's query-rejection 404; the upstream answer is judged by res.ok and JSON parsing alone (no response-header reads — the scan allowlist stays single-purpose); the header-name casing equivalence stated; index1 and the m068 byte-pin glossed in place. UX F-2 (gloss placement) accepted as unambiguous in substance; UX F-3 (--live's missing-CF_ACCOUNT_ID asymmetry) accepted by the spec's own debug-path framing; Performance F-1..F-5 are verification records.</Fix>
+      </Applied>
+      <Deferred>None.</Deferred>
+    </Review>
+    <Review number="17" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-7a014280-ab1d-40e3-a1b8-1ef524c5bc70 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 10 note findings. Round 16's clean streak reset.</Result>
+      <Applied>
+        <Fix>UX-1 (important): the six R-6 README obligations mirrored into the docs criterion, the AffectedAreas README item and the C-11 Expected — retained readings, 403 fallback, verification failure mapping, rotation apply step, no-embed --live rewrite, read -s pattern — so an implementation dropping any of them can no longer pass the Docs gate.</Fix>
+        <Fix>Notes — Correctness F-N1 (Constraint 6 gains the .wrangler path), Correctness F-N2 (AC-6's no-other-changes clause explicitly suite-scoped), Security F-1 (R-1 normatively permits constant-time comparison with all error paths mapping to the bodyless 401), Security F-2 (AC-5 defers to R-5's never-echo-more clause for non-fixed bodies), UX-2 (the stray unbalanced parenthesis in Assumption 1 removed), Performance F-2 (the README latency phrase qualified per-isolate), Performance F-3 (the plan-time re-measure records the wrangler version) — all applied; Security F-3 and Performance F-1/F-4 are verification or not-run records.</Fix>
+      </Applied>
+      <Deferred>None — every round-17 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="18" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-bdf6b24e-c801-4619-9d65-8fae3a60ec7b (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 11 note findings (several verification records, incl. both wrangler builds reproducing the 3.45/1.40 KiB baseline identically).</Result>
+      <Applied>
+        <Fix>UX F-1 (important): the 403-fallback and the failure mapping are now connected — an upstream 403 (insufficient read-token permission) manifests to the owner as the same 502 per R-2, so R-6, the docs criterion and C-11 all state that a 502 means unreachable-or-refused (wrong secrets OR insufficient permission, the fallback applying exactly then); the README loop no longer misleads on the most likely misconfiguration path.</Fix>
+        <Fix>Notes — Correctness F-1 (C-4 narrowed to not-parseable-as-JSON, matching R-2's missing-data-is-not-failure), Correctness F-2 (C-6's baseline restated as post-sibling), Security S-2 (no-store explicitly never added to the shared notFound constructor — the R-7 byte-identity trap closed), UX F-2 (the garden-path "as designed" re-punctuated) — all applied; Security S-3 and Performance F-1..F-5 are verification records.</Fix>
+      </Applied>
+      <Deferred>None — every round-18 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="19" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-ae8ec2c6-99a8-49a7-85bf-a15fb3ecbf22 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 15 note findings (almost all verification records: every R-8/AC-6 docs claim checked against live files, platform figures exact, baseline suite and bundle reproduced, the ReviewLog's recorded doc verifications corroborated).</Result>
+      <Applied>
+        <Fix>Notes applied before round 20: --remote's transport-level rejection pinned to the CLI's default nonzero-exit behavior (error text names only the public URL); the surviving archived-spec citations gain a pointer-adjacent note that the readout route is this change's documented exception; the local-runs sentence qualified "in the documented flows" (so a future wrangler-dev flow cannot falsify it); the deploy and curl examples explicitly inherit the export-then-run form; R-6's latency phrase harmonized with AC-7's per-isolate qualifier. Correctness F-3/F-4, Security F-2, UX F-3/F-4 and Performance F-1..F-5 are verification or process records with nothing to apply.</Fix>
+      </Applied>
+      <Deferred>None.</Deferred>
+    </Review>
+    <Review number="20" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-a15bf0b6-b0fc-456b-9c1f-29d8a27e2977 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 8 note findings (mostly verification records). Round 19's clean streak reset.</Result>
+      <Applied>
+        <Fix>UX F-1 (important): the failure mapping gains the 404 branch — the deployed gateway predating the readout route returns a bodyless 404 during the owner's first setup, so R-6, the docs criterion and C-11 now all say "404 = deploy the new worker version first".</Fix>
+        <Fix>Notes — Correctness F-1 (the transport-rejection wording generalized to "no secret material in the default output", matching measured Node behavior), Security F-1 (a 2XX answer with invalid JSON fails with a fixed error and nonzero exit, never echoing a body fragment), UX F-2 (the Routes "Everything else is a plain 404" sentence pinned for exact-wording reconciliation like the Privacy sentence), Performance F-2 (128 MiB aligned to the platform's 128 MB figure) — all applied; Correctness F-2 and Performance F-1/F-3/F-4 are loose-citation or verification records with nothing to apply.</Fix>
+      </Applied>
+      <Deferred>None — every round-20 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="21" verdict="red" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-f237ee61-50ee-44b1-b85c-d45f4f989f8a (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>3/4 corners clean; 0 blocking, 1 important, 12 note findings (mostly verification records).</Result>
+      <Applied>
+        <Fix>Correctness F-1 (important): the sibling's acceptance criteria were re-read live (updated 20:39) — they now make every stale LINKS reference true in ALL THREE shared headers, including query.mjs's verification link; R-8's LINKS item re-scoped accordingly (this change only adds the C-STATS-READOUT reference with the exception note and corrects any survivor at rebase), removing the double-claim of the sibling's fix.</Fix>
+        <Fix>Notes — Security F-1 (timingSafeEqual measured undefined in Node 22.19: the rationale names the Workers-only constraint and the portable pre-hash/shim alternatives) — applied; Correctness F-2, Security F-2/F-3/F-4 and UX F-1/F-2/F-3 and Performance F-1..F-4 are verification records (baseline 18/18 and lint baseline reproduced, all contract quotes verbatim, scan bans zero-hit, permission names corroborated against live docs) with nothing to apply.</Fix>
+      </Applied>
+      <Deferred>None — every round-21 finding is addressed in the bundle.</Deferred>
+    </Review>
+    <Review number="22" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-ff3b5038-8c53-4c56-be31-c6ce32df3e2e (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 9 note findings (mostly verification records: baseline bundle and suite reproduced, Node-22 timingSafeEqual absence re-measured, all platform figures exact).</Result>
+      <Applied>
+        <Fix>Notes applied before round 23: the R-8 LINKS attribution made exact per the sibling's live AC (worker.mjs and query.mjs — sibling-fixed; the test file's archive path — this change's own correction); R-2's failure wording aligned to "not parseable as JSON"; the 502 gains the application/json Content-Type for symmetry; the .gitignore gain ordered as the earliest implementation edit, before any local wrangler invocation. UX F-1 (R-6 length as a readability observation) and Performance F-1/F-2/F-3 are verification records with nothing to apply.</Fix>
+      </Applied>
+      <Deferred>None.</Deferred>
+    </Review>
+    <Review number="23" verdict="green" task="two-clean-passes">
+      <Date>2026-11-02</Date>
+      <Run>dwfrun-8c07ed5b-6c82-4524-bf02-962055a93369 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+      <Result>4/4 corners clean — SECOND CONSECUTIVE CLEAN PASS (rounds 22-23): the two-clean-passes gate is CLOSED; 0 blocking, 0 important, 12 note findings.</Result>
+      <Applied>None — the gate closed on this exact text, and the round-23 notes are recorded rather than applied to preserve the clean pair: Correctness F-1 (a skimming-hazard residual in R-8's opening LINKS clause, resolved by the explicit re-scope later in the same item), Security S-5 (the plan should pin the non-fixed-body stub for the leak-guard test), UX-N1 (the "importable by nothing" phrasing), UX-N2 (an optional one-line 502-disambiguation diagnostic for the README) — all note-level; the remaining eight are verification records (live scans zero-hit, measured Node behavior, doc-verified platform figures).</Applied>
+      <GateState>CLOSED — the owner-approval request follows on this text.</GateState>
+    </Review>
+    <Approval>
+      <Date>2026-11-02</Date>
+      <Basis>Owner menu choice (translated from Russian): "1: Approve — make the plan (Recommended)", given after the closed two-clean-passes gate (rounds 22-23) and a plain-language explanation of the deferred round-23 notes.</Basis>
+      <Result>spec.xml status set to approved; the grace-plan phase begins with its own four-corner gate.</Result>
+      <Addendum>Post-approval factual correction (2026-11-02, during the plan gate): the sibling C-UPDATER-REVIEW-FIXES updated its acceptance criteria a fourth time and now names tests/tools/stats-gateway.test.mjs among the LINKS blocks it makes true; R-8's attribution sentence was corrected accordingly (verify-at-rebase-and-correct-survivors for all three headers). No normative requirement changed — the rebase sanction already covered every outcome.</Addendum>
+    </Approval>
+  </ReviewLog>
+</GraceChangeDesignContext>
