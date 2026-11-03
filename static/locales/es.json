@@ -1709,5 +1709,64 @@
     "body": "Los ajustes vuelven a la copia tomada antes de la actualización: los cambios hechos después se pierden. Mark {current} se omitirá hasta que salga una versión más reciente.",
     "confirm": "Volver",
     "cancel": "Cancelar"
+  },
+  "quickSettings": {
+    "title": "Ajustes rápidos",
+    "openSettings": "Abrir ajustes…",
+    "tabs": {
+      "page": "Página",
+      "view": "Vista",
+      "tables": "Tablas"
+    },
+    "page": {
+      "widthGroup": "Ancho de página",
+      "preset": "Preajuste",
+      "fullWindow": "Ventana completa",
+      "width": "Ancho",
+      "widthHelpCh": "≈ {px} px con la fuente actual — ch se escala con el tamaño de la fuente",
+      "widthHelpPx": "píxeles fijos, independientes de la fuente",
+      "widthHelpPercent": "una proporción del área del editor — sigue la ventana y la barra lateral en vivo",
+      "widthHelpFull": "todo el área del editor; sigue la barra lateral en vivo",
+      "unit": "Unidad",
+      "unitHelp": "ch — se escala con la fuente · px — fija · % — proporción del área del editor",
+      "exportNote": "La exportación a PDF y la impresión usan esta misma columna; el tamaño del papel y los márgenes se eligen en el diálogo de impresión.",
+      "sourceDocument": "activo: este documento",
+      "sourceGlobal": "activo: todos los documentos",
+      "textGroup": "Texto",
+      "fontSize": "Tamaño del texto",
+      "fontSizeHelp": "el mismo valor que ⌘+ y ⌘−",
+      "lineHeight": "Interlineado",
+      "lineHeightHelp": "el mismo interlineado que en Ajustes · 1.2–2.0",
+      "scope": "Para todos los documentos",
+      "scopeHelpOn": "Activado — este ancho se convierte en el habitual para todos los archivos. Desactivado — solo para este archivo.",
+      "scopeHelpOff": "Desactivado — el ancho se guarda solo para este archivo.",
+      "scopeHelpUntitled": "un documento sin título siempre escribe el valor global",
+      "reset": "Restablecer",
+      "usualWidth": "Ancho habitual: {width}"
+    },
+    "view": {
+      "themeGroup": "Tema",
+      "mode": "Apariencia",
+      "modeHelp": "Automático — como el sistema · Clara/Oscura — el lado claro u oscuro de la familia",
+      "modeAuto": "Automático",
+      "modeLight": "Clara",
+      "modeDark": "Oscura",
+      "override": "Tema propio para este archivo",
+      "overrideHelpOn": "Activado — este archivo conserva su tema aunque cambie el ciclo global.",
+      "overrideHelpOff": "Desactivado — el archivo sigue el tema global.",
+      "overrideHelpUntitled": "un documento sin título no puede llevar tema propio",
+      "sourcePinned": "{family} — este archivo",
+      "sourceGlobal": "{family} · todos los documentos"
+    },
+    "tables": {
+      "group": "Tablas",
+      "defaultMode": "Modo predeterminado",
+      "defaultModeHelp": "para tablas nuevas · Auto conserva el tamaño del contenido, Ajustar fija el marco en la columna de texto, Completo abarca el área del editor",
+      "modeAuto": "Auto",
+      "modeFit": "Ajustar",
+      "modeFull": "Completo",
+      "rememberSizes": "Recordar tamaños de columna",
+      "rememberSizesHelp": "los tamaños de columna se guardan por archivo y se reaplican proporcionalmente al cambiar el ancho"
+    }
   }
 }

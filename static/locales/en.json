@@ -1725,5 +1725,64 @@
     "body": "Settings return to the snapshot taken before the update — changes made after updating are reverted. Mark {current} will be skipped until a newer release ships.",
     "confirm": "Roll Back",
     "cancel": "Cancel"
+  },
+  "quickSettings": {
+    "title": "Quick settings",
+    "openSettings": "Open Settings…",
+    "tabs": {
+      "page": "Page",
+      "view": "View",
+      "tables": "Tables"
+    },
+    "page": {
+      "widthGroup": "Page width",
+      "preset": "Preset",
+      "fullWindow": "Full window",
+      "width": "Width",
+      "widthHelpCh": "≈ {px} px at the current font — ch scales with the font size",
+      "widthHelpPx": "fixed pixels, independent of the font",
+      "widthHelpPercent": "a share of the editor area — follows the window and the sidebar live",
+      "widthHelpFull": "the whole editor area; follows the sidebar live",
+      "unit": "Unit",
+      "unitHelp": "ch — scales with the font · px — fixed · % — a share of the editor area",
+      "exportNote": "PDF export and printing print this same column; paper size and margins live in the print dialog.",
+      "sourceDocument": "active: this document",
+      "sourceGlobal": "active: all documents",
+      "textGroup": "Text",
+      "fontSize": "Text size",
+      "fontSizeHelp": "the same value as ⌘+ and ⌘−",
+      "lineHeight": "Line spacing",
+      "lineHeightHelp": "the same line spacing as in Settings · 1.2–2.0",
+      "scope": "For all documents",
+      "scopeHelpOn": "On — this width becomes the usual width for every file. Off — only for this file.",
+      "scopeHelpOff": "Off — the width is stored for this file only.",
+      "scopeHelpUntitled": "an untitled document always writes the global default",
+      "reset": "Reset",
+      "usualWidth": "Usual width: {width}"
+    },
+    "view": {
+      "themeGroup": "Theme",
+      "mode": "Appearance",
+      "modeHelp": "Auto — as the system · Light/Dark — the light or dark side of the family",
+      "modeAuto": "Auto",
+      "modeLight": "Light",
+      "modeDark": "Dark",
+      "override": "Own theme for this file",
+      "overrideHelpOn": "On — this file keeps its theme while the global cycle changes.",
+      "overrideHelpOff": "Off — the file follows the global theme.",
+      "overrideHelpUntitled": "an untitled document cannot carry its own theme",
+      "sourcePinned": "{family} — this file",
+      "sourceGlobal": "{family} · all documents"
+    },
+    "tables": {
+      "group": "Tables",
+      "defaultMode": "Default mode",
+      "defaultModeHelp": "for new tables · Auto keeps the content size, Fit pins the frame to the text column, Full spans the editor area",
+      "modeAuto": "Auto",
+      "modeFit": "Fit",
+      "modeFull": "Full",
+      "rememberSizes": "Remember column sizes",
+      "rememberSizesHelp": "column sizes are stored per file and re-applied proportionally when the width changes"
+    }
   }
 }

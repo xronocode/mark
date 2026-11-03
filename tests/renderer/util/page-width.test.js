@@ -1,5 +1,5 @@
 // FILE: tests/renderer/util/page-width.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin util/pageWidth.js — the C-PAGE-WIDTH-TABLES T-002 (M-061) width resolution pipeline and canvas model: document > theme > global precedence with the source named, the ch/px/% conversion with the 10% preset snap and nearest-preset anchor, canvas = window − sidebar, the render-time clamp (min(setting, canvas − indent), 400px floor) that never mutates the stored value (corner C-2), the % recompute across canvas changes (corner C-3), the F-WINDOW-AUTO-RESIZE formula integration point, and the single inline writer with its theme-ordering guarantee (review finding F1: theme→width and width→theme both settle on the effective value).
 //   SCOPE: Pure functions over plain objects plus the DOM writer and the theme.js re-apply hook in jsdom; themeColor/config are mocked lightweight (mirroring theme.test.js) so the ordering test exercises the real addThemeStyle switch logic without the 34 shipped stylesheets.
@@ -16,7 +16,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-002 (M-061):
+//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-003 (M-061):
+//   the panel-wave additions pinned — FULL_WINDOW_WIDTH ({100,'%'}),
+//   isFullWindowWidth and the clearAppliedEditorWidth hand-off (clear
+//   forgets, re-apply is a no-op, a later apply wins again).
+//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-002 (M-061):
 //   new suite — precedence and source naming, parse/sanitize, presets
 //   snap/anchor/bounds, canvas and rendered-box arithmetic (clamped never
 //   mutates), effective resolution, the auto-resize formula point, and
@@ -312,6 +316,46 @@ describe('util/pageWidth (C-PAGE-WIDTH-TABLES T-002)', () => {
       expect(computeAutoResizeTargetWidth(effective.boxPx, {})).toBe(1000)
       // Junk box degrades to the sidebar part only — never a NaN target.
       expect(computeAutoResizeTargetWidth(undefined, { sidebarVisible: true, sidebarWidth: 280 })).toBe(280)
+    })
+  })
+
+  describe('T-003 panel-wave surface: Full window sentinel and the clear hand-off', () => {
+    it('FULL_WINDOW_WIDTH is the {100,%} sentinel and isFullWindowWidth recognises it', async () => {
+      const { FULL_WINDOW_WIDTH, isFullWindowWidth, sanitizeWidth } = await loadPipeline()
+      expect(FULL_WINDOW_WIDTH).toEqual({ value: 100, unit: '%' })
+      expect(isFullWindowWidth({ value: 100, unit: '%' })).toBe(true)
+      expect(isFullWindowWidth({ value: 100, unit: 'px' })).toBe(false)
+      expect(isFullWindowWidth({ value: 90, unit: '%' })).toBe(false)
+      // The sentinel survives the ordinary sanitize grammar — no fourth
+      // unit exists in the store or the pipeline.
+      expect(sanitizeWidth(FULL_WINDOW_WIDTH)).toEqual({ value: 100, unit: '%' })
+    })
+
+    it('clearAppliedEditorWidth removes the inline property and forgets the recorded value', async () => {
+      const { applyEditorWidth, clearAppliedEditorWidth, reapplyLastEditorWidth, getLastAppliedEditorWidth } = await loadPipeline()
+      applyEditorWidth({ boxPx: 1000, source: 'document' })
+      expect(document.documentElement.style.getPropertyValue('--editorAreaWidth')).toBe('1000px')
+
+      expect(clearAppliedEditorWidth()).toBe(true)
+      expect(document.documentElement.style.getPropertyValue('--editorAreaWidth')).toBe('')
+      expect(getLastAppliedEditorWidth()).toBeNull()
+      // The hand-off is total: the theme hook has nothing to re-apply.
+      expect(reapplyLastEditorWidth()).toBe(false)
+
+      // Clearing with nothing applied is an honest false.
+      expect(clearAppliedEditorWidth()).toBe(false)
+    })
+
+    it('a width applied after a clear wins the cascade again (tier hand-back round trip)', async () => {
+      const { applyEditorWidth, clearAppliedEditorWidth } = await loadPipeline()
+      applyEditorWidth({ boxPx: 1000, source: 'document' })
+      clearAppliedEditorWidth()
+      // The legacy global writer (theme.js setEditorWidth) owns the
+      // variable now; a later pipeline apply must still win inline.
+      applyEditorWidth({ boxPx: 1200, source: 'document' })
+      expect(document.documentElement.style.getPropertyValue('--editorAreaWidth')).toBe('1200px')
+      // Leave the shared writer registry clean for the suites below.
+      clearAppliedEditorWidth()
     })
   })
 

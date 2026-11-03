@@ -10,7 +10,9 @@
       <span v-if="helpLine" class="pref-row-help">{{ helpLine }}</span>
     </div>
     <div class="pref-row-control pref-stepper-control">
-      <!-- Value + unit rendered exactly once (the v1 "14px px" bug). -->
+      <!-- Value + unit rendered exactly once (the v1 "14px px" bug).
+           displayText (C-PAGE-WIDTH-TABLES T-004) overrides both for
+           symbolic values such as the Full window width. -->
       <span class="pref-value">{{ displayValue }}</span>
       <span class="pref-stepper">
         <button
@@ -44,19 +46,19 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/common/range/index.vue
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings numeric row (C-38 T-003 anatomy) — the old range slider rendered as the mockup stepper: label + help left, value (unit once) with up/down steppers right, honouring the same min/max/step/onChange contract.
-//   SCOPE: Stepping, clamping and float-safe rounding; props-compatible with every existing range caller.
+//   SCOPE: Stepping, clamping and float-safe rounding; props-compatible with every existing range caller. C-PAGE-WIDTH-TABLES T-004: the optional displayText prop replaces the value+unit text with a verbatim string (the quick-settings Page tab renders "Full window" on the width stepper while its buttons stay disabled) — unset leaves every existing row byte-identical.
 //   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
-//   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 (unit-rendered-once regression).
+//   LINKS: .grace/changes/archive/C-38 T-003; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-003/T-004); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 (unit-rendered-once regression).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   selectValue - current numeric value (mirrors the value prop through a watcher).
-//   displayValue - value + unit as one string, rendered once per row.
+//   displayValue - displayText verbatim when provided, else value + unit as one string rendered once per row.
 //   decimals - step-derived precision so 1.6 + 0.1 never shows 1.7000000000000002.
 //   clamp - min/max guard (string values such as legacy '14px' coerce to numbers).
 //   step - applies ±step through clamp and calls onChange with the number.
@@ -65,6 +67,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-02 v2.1.0: C-PAGE-WIDTH-TABLES T-004 — optional displayText
+//     prop renders a verbatim value text (the panel's Full window width
+//     state); the numeric path is untouched when the prop is unset.
 //   - 2026-10-15 v2.0.0: C-38 T-003 — slider replaced by the mockup stepper; row anatomy with optional help; value+unit rendered exactly once ("14 px", never "14px px"); numeric coercion for legacy string values.
 //   - (v1.x: el-slider with value/unit printed twice-ish — retired.)
 // END_CHANGE_SUMMARY
@@ -85,6 +90,9 @@ const props = defineProps({
   unit: String,
   step: Number,
   more: String,
+  // C-PAGE-WIDTH-TABLES T-004: verbatim value text override (e.g. the
+  // Full window width). The stepper stays governed by value/min/max.
+  displayText: String,
   disable: {
     type: Boolean,
     default: false
@@ -138,6 +146,9 @@ const formatNumber = (value) => {
 }
 
 const displayValue = computed(() => {
+  if (typeof props.displayText === 'string' && props.displayText !== '') {
+    return props.displayText
+  }
   const text = formatNumber(round(selectValue.value))
   return props.unit ? `${text} ${props.unit}` : text
 })

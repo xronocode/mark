@@ -1710,5 +1710,64 @@
     "body": "Les réglages reviennent à l’instantané pris avant la mise à jour — les modifications faites après sont annulées. Mark {current} sera ignoré jusqu’à une version plus récente.",
     "confirm": "Revenir",
     "cancel": "Annuler"
+  },
+  "quickSettings": {
+    "title": "Réglages rapides",
+    "openSettings": "Ouvrir les réglages…",
+    "tabs": {
+      "page": "Page",
+      "view": "Affichage",
+      "tables": "Tableaux"
+    },
+    "page": {
+      "widthGroup": "Largeur de page",
+      "preset": "Préréglage",
+      "fullWindow": "Pleine fenêtre",
+      "width": "Largeur",
+      "widthHelpCh": "≈ {px} px avec la police actuelle — ch suit la taille de la police",
+      "widthHelpPx": "pixels fixes, indépendants de la police",
+      "widthHelpPercent": "une part de la zone de l'éditeur — suit la fenêtre et la barre latérale en direct",
+      "widthHelpFull": "toute la zone de l'éditeur ; suit la barre latérale en direct",
+      "unit": "Unité",
+      "unitHelp": "ch — suit la police · px — fixe · % — une part de la zone de l'éditeur",
+      "exportNote": "L'export PDF et l'impression impriment cette même colonne ; le format papier et les marges se règlent dans la boîte d'impression.",
+      "sourceDocument": "actif : ce document",
+      "sourceGlobal": "actif : tous les documents",
+      "textGroup": "Texte",
+      "fontSize": "Taille du texte",
+      "fontSizeHelp": "la même valeur que ⌘+ et ⌘−",
+      "lineHeight": "Interligne",
+      "lineHeightHelp": "le même interligne que dans les réglages · 1.2–2.0",
+      "scope": "Pour tous les documents",
+      "scopeHelpOn": "Activé — cette largeur devient la largeur habituelle de tous les fichiers. Désactivé — pour ce fichier uniquement.",
+      "scopeHelpOff": "Désactivé — la largeur n'est enregistrée que pour ce fichier.",
+      "scopeHelpUntitled": "un document sans nom écrit toujours la valeur globale",
+      "reset": "Réinitialiser",
+      "usualWidth": "Largeur habituelle : {width}"
+    },
+    "view": {
+      "themeGroup": "Thème",
+      "mode": "Apparence",
+      "modeHelp": "Automatique — comme le système · Clair/Sombre — le côté clair ou sombre de la famille",
+      "modeAuto": "Automatique",
+      "modeLight": "Clair",
+      "modeDark": "Sombre",
+      "override": "Thème propre à ce fichier",
+      "overrideHelpOn": "Activé — ce fichier garde son thème même si le cycle global change.",
+      "overrideHelpOff": "Désactivé — le fichier suit le thème global.",
+      "overrideHelpUntitled": "un document sans nom ne peut pas porter son propre thème",
+      "sourcePinned": "{family} — ce fichier",
+      "sourceGlobal": "{family} · tous les documents"
+    },
+    "tables": {
+      "group": "Tableaux",
+      "defaultMode": "Mode par défaut",
+      "defaultModeHelp": "pour les nouveaux tableaux · Auto garde la taille du contenu, Ajuster cadre le tableau dans la colonne de texte, Pleine largeur occupe la zone de l'éditeur",
+      "modeAuto": "Auto",
+      "modeFit": "Ajuster",
+      "modeFull": "Pleine largeur",
+      "rememberSizes": "Mémoriser les tailles des colonnes",
+      "rememberSizesHelp": "les tailles des colonnes sont enregistrées par fichier et réappliquées proportionnellement quand la largeur change"
+    }
   }
 }

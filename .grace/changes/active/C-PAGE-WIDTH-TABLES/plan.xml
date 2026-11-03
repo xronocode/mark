@@ -22,6 +22,8 @@
       </MustContain>
       <MustContain>
         <File>src/renderer/src/components/titleBar/index.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/store/editor.js</File>
         <Text>themeTooltip</Text>
       </MustContain>
       <MustContain>

@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, the C-51 T-001 treeShowAllFiles preference, and the C-LARGE-DOC-WAVE-A T-004 experimental progressive-mount toggle plus its session-only served-opens counters.
+//   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, the C-51 T-001 treeShowAllFiles preference, the C-LARGE-DOC-WAVE-A T-004 experimental progressive-mount toggle plus its session-only served-opens counters, and the C-PAGE-WIDTH-TABLES T-006 table preferences (the default table mode under the existing muya option name tableFullWidthDefault and the rememberTableColumnSizes switch — the quick-settings Tables tab writes them through the same SET_SINGLE_PREFERENCE path as every other row).
 //   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001), the experimental session-only surface (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT, the hydration strip of EXPERIMENTAL_SESSION_ONLY_KEYS and the mt::experimental-progressive-* cross-window events; never persisted, never resettable).
 //   DEPENDS: pinia, @tauri-apps/api/core, @tauri-apps/api/event (listen/emit — experimental cross-window sync only), bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js.
-//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); prefComponents/tabs/experimental (the Experimental tab); components/editorWithTabs/editor.vue (the open-path consumer); .grace/changes/archive/C-49; .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001; .grace/changes/active/C-LARGE-DOC-WAVE-A.
+//   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); prefComponents/tabs/experimental (the Experimental tab); components/editorWithTabs/editor.vue (the open-path consumer); components/titleBar/quickSettings/tablesTab.vue (the T-006 writer of the table preference keys); src/muya/lib/config/index.js tableFullWidthDefault (the option the tri-state preference feeds from plan T-007); .grace/changes/archive/C-49; .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001; .grace/changes/active/C-LARGE-DOC-WAVE-A; .grace/changes/active/C-PAGE-WIDTH-TABLES.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -21,7 +21,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-004: the
+//   LAST_CHANGE: v2.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-006: two new
+//   persisted, resettable keys for the quick-settings Tables tab —
+//   tableFullWidthDefault (the tri-state 'auto'|'fit'|'full' default
+//   table mode under the EXISTING muya option name; 'auto' per owner
+//   gate №5; muya consumes it from plan T-007) and
+//   rememberTableColumnSizes (default true — today's C-65 sizes-memory
+//   behaviour; user-facing copy says "column sizes", R-12c).
+//   v2.0.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-004: the
 //   experimental progressive-mount surface — in-memory-only state
 //   (experimentalProgressiveMount, default false; the progressive/legacy
 //   served-opens counters), the SET/RECORD/LISTEN actions, and the
@@ -243,6 +250,17 @@ export const preferenceDefaults = () => ({
     wrapCodeBlocks: true,
     editorLineWidth: '',
 
+    // C-PAGE-WIDTH-TABLES T-006: the default table mode — the tri-state
+    // ('auto' | 'fit' | 'full') preference under the EXISTING muya option
+    // name tableFullWidthDefault, so plan T-007 consumes one stored
+    // value with no second source of truth. 'auto' is the owner-gated
+    // default (gate №5); until muya consumes the tri-state (T-007), the
+    // muya-side boolean default behaviour is unchanged.
+    tableFullWidthDefault: 'auto',
+    // C-PAGE-WIDTH-TABLES T-006: the "Remember column sizes" switch —
+    // default true, today's C-65 behaviour (per-table sizes remembered).
+    rememberTableColumnSizes: true,
+
     autoPairBracket: true,
     autoPairMarkdownSyntax: true,
     autoPairQuote: true,
@@ -411,6 +429,8 @@ export const RESETTABLE_PREFERENCE_KEYS = Object.freeze([
   'baseFontSize',
   'lineHeight',
   'editorLineWidth',
+  'tableFullWidthDefault',
+  'rememberTableColumnSizes',
   'hideScrollbar',
   'wordWrapInToc',
   'treeShowAllFiles',

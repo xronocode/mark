@@ -1710,5 +1710,64 @@
     "body": "As configurações voltam ao instantâneo tirado antes da atualização — as alterações feitas depois são revertidas. O Mark {current} será ignorado até sair uma versão mais recente.",
     "confirm": "Voltar",
     "cancel": "Cancelar"
+  },
+  "quickSettings": {
+    "title": "Ajustes rápidos",
+    "openSettings": "Abrir ajustes…",
+    "tabs": {
+      "page": "Página",
+      "view": "Ver",
+      "tables": "Tabelas"
+    },
+    "page": {
+      "widthGroup": "Largura da página",
+      "preset": "Predefinição",
+      "fullWindow": "Janela inteira",
+      "width": "Largura",
+      "widthHelpCh": "≈ {px} px com a fonte atual — ch acompanha o tamanho da fonte",
+      "widthHelpPx": "pixels fixos, independentes da fonte",
+      "widthHelpPercent": "uma fração da área do editor — segue a janela e a barra lateral em tempo real",
+      "widthHelpFull": "toda a área do editor; segue a barra lateral em tempo real",
+      "unit": "Unidade",
+      "unitHelp": "ch — acompanha a fonte · px — fixa · % — fração da área do editor",
+      "exportNote": "A exportação em PDF e a impressão usam esta mesma coluna; o tamanho do papel e as margens ficam na caixa de impressão.",
+      "sourceDocument": "ativo: este documento",
+      "sourceGlobal": "ativo: todos os documentos",
+      "textGroup": "Texto",
+      "fontSize": "Tamanho do texto",
+      "fontSizeHelp": "o mesmo valor que ⌘+ e ⌘−",
+      "lineHeight": "Espaçamento entre linhas",
+      "lineHeightHelp": "o mesmo espaçamento dos ajustes · 1.2–2.0",
+      "scope": "Para todos os documentos",
+      "scopeHelpOn": "Ativado — esta largura passa a ser a habitual para todos os arquivos. Desativado — só para este arquivo.",
+      "scopeHelpOff": "Desativado — a largura é guardada apenas para este arquivo.",
+      "scopeHelpUntitled": "um documento sem título sempre grava o valor global",
+      "reset": "Redefinir",
+      "usualWidth": "Largura habitual: {width}"
+    },
+    "view": {
+      "themeGroup": "Tema",
+      "mode": "Aparência",
+      "modeHelp": "Automático — como o sistema · Claro/Escuro — o lado claro ou escuro da família",
+      "modeAuto": "Automático",
+      "modeLight": "Claro",
+      "modeDark": "Escuro",
+      "override": "Tema próprio para este arquivo",
+      "overrideHelpOn": "Ativado — este arquivo mantém o tema mesmo quando o ciclo global muda.",
+      "overrideHelpOff": "Desativado — o arquivo segue o tema global.",
+      "overrideHelpUntitled": "um documento sem título não pode ter tema próprio",
+      "sourcePinned": "{family} — este arquivo",
+      "sourceGlobal": "{family} · todos os documentos"
+    },
+    "tables": {
+      "group": "Tabelas",
+      "defaultMode": "Modo padrão",
+      "defaultModeHelp": "para tabelas novas · Auto mantém o tamanho do conteúdo, Ajustar prende a moldura à coluna de texto, Completa ocupa a área do editor",
+      "modeAuto": "Auto",
+      "modeFit": "Ajustar",
+      "modeFull": "Completa",
+      "rememberSizes": "Lembrar tamanhos das colunas",
+      "rememberSizesHelp": "os tamanhos das colunas são guardados por arquivo e reaplicados proporcionalmente quando a largura muda"
+    }
   }
 }
