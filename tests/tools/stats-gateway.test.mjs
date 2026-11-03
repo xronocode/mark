@@ -226,7 +226,12 @@ describe('tools/stats-gateway — open-redirect guard', () => {
     expect(src).not.toContain('request.cf')
     expect(src).not.toContain('CF-IPCountry')
     expect(src).not.toContain('user-agent')
-    expect(src).not.toMatch(/headers\.get\(/)
+    // C-STATS-READOUT R-8: the single sanctioned allowlist — the readout
+    // branch's x-read-key read. The exact expression is removed before
+    // the ban matches; any other headers.get( use stays banned.
+    expect(src.replaceAll("request.headers.get('x-read-key')", '')).not.toMatch(
+      /headers\.get\(/
+    )
   })
 })
 
