@@ -324,5 +324,27 @@
   "wave": "test-debt",
   "date": "2026-11-04",
   "note": "page-width-panel.spec 'per-document tier writes pageWidths' marked fixme: the e2e shim's prefs are not read-through, so the host's post-announcement re-read races the captured write and clears the inline width in the harness only; product delivery (same renderer bus both ends) and the document-tier apply are pinned by editor-page-width-host.test.js (18 tests). Reactivate with a read-through shim prefs table."
+ },
+ {
+  "change": "C-PAGE-WIDTH-TABLES",
+  "wave": "Execution wave 5 — plan task T-012 (governance routing and final evidence)",
+  "date": "2026-11-02",
+  "executorNote": "Recorded in this bundle file because the approved plan.xml must not be edited in place (waves 1-4 precedent); the plan's Evidence slot for T-012 is satisfied by this record. Nothing under .grace/changes/archive/** was touched.",
+  "routing": {
+   "M-061": "defined once in .grace/graph/performance.xml under GD-PERFORMANCE (the plan's TargetAssertions pin M-061 text in graph/performance.xml, and every wave-added MODULE_CONTRACT LINKS line already points there), after M-060, mirroring the in-document M-060 element set plus the C-LARGE-DOC-WAVE-A M-063 richer children (Contract, Interface, Sources, Observability, ChangeRefs); Name page-width, Type CORE_LOGIC, Status implemented, PhaseRef C-PAGE-WIDTH-TABLES, VerificationRef V-M-061; Dependencies M-011 (the renderer shell hosting the titlebar mount point and the editor.vue/store/editor.js host seam) and M-012 (the muya engine consuming the resolved width and owning tableFullWidthDefault and the table mode model); routed exactly once in graph/index.xml GD-PERFORMANCE Owns with a C-PAGE-WIDTH-TABLES comment line",
+   "V-M-061": "defined once in .grace/verification/performance.xml under VD-PERFORMANCE (inserted between V-M-060 and V-M-063), Priority high, four terminating commands, four scenarios (width precedence and honesty; panel design-system fidelity and Page/View tab arithmetic; honest table modes with ratios and drag affordances; locale and menu truth), eight content-free marker entries (BLOCK_PAGE_WIDTH_* store/host seams, BLOCK_TABLE_MODE, BLOCK_TABLE_WALL_WIDTH/WALL_RESET, BLOCK_TABLE_LAYOUTS_SKIPPED, BLOCK_COLUMN_COUNT_RECONCILED), routed exactly once in verification/index.xml VD-PERFORMANCE Owns with a C-PAGE-WIDTH-TABLES comment line",
+   "narratives": "graph/runtime.xml M-011 Summary and M-012 Summary each gained one C-PAGE-WIDTH-TABLES (2026-11-02) dependency-handoff paragraph naming M-061, the hosting/consumption relation and V-M-061 (the plan's DurableScope anchors M-011/M-012)"
+  },
+  "vM061Commands": [
+   "npx vitest run tests/renderer/util/page-width.test.js tests/renderer/util/page-width-store.test.js tests/renderer/muya/table-fit.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/components/quick-settings.test.js",
+   "npx vitest run tests/renderer/store/editor-page-width.test.js tests/renderer/components/editor-page-width-host.test.js",
+   "npx vitest run tests/renderer/util/theme-contrast.test.js tests/renderer/commands/menu-consistency.test.js tests/renderer/release-materials.test.js",
+   "npx playwright test tests/e2e/page-width-panel.spec.ts tests/e2e/table-modes.spec.ts --project=chromium"
+  ],
+  "moduleContracts": "verified, no drift: the wave-added START_MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY blocks in pageWidthStore.js, pageWidth.js, quickSettings/{index,pageTab,viewTab,tablesTab}.vue, tableLayoutStore.js, tableLayoutRatios.js, tableFit.js, tableResize/index.js, tableCue.js, renderTableToolbar.js, titleBar/index.vue, theme.js, editor.vue, store/editor.js, store/preferences.js all claim M-061 and their LINKS lines resolve against the routed homes (.grace/graph/performance.xml M-061, .grace/verification/performance.xml V-M-061); M-011/M-012 own the unchanged narrative modules",
+  "graceLintCurrent": "exit clean of new findings: 2 errors / 5 warnings, byte-identical to the wave-1 baseline (the 2 foreign C-UPDATER-REVIEW-FIXES archive-status errors; 1 durable-overlap warning vs C-50 on M-011 resolved by the recorded owner sequencing, 4 heuristic-confidence warnings)",
+  "graceLintTarget": "after routing, every MustExist/MustContain target assertion is green; the only remaining target errors are the 2 MustPassCommand command-not-evaluated items (require --run-commands) plus the 2 foreign archive-status errors",
+  "graceStatus": "C-PAGE-WIDTH-TABLES spec=approved plan=approved, bundle ready to execute",
+  "xmllint": "noout green on all five touched .grace XML files"
  }
 ]

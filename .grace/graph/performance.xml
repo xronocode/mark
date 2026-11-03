@@ -816,5 +816,116 @@
         [MICROBENCH] name=..., [bench-phases-webkit] tier=renderer-webkit.
       </Observability>
     </M-060>
+    <M-061>
+      <Name>page-width</Name>
+      <DisplayName>Per-document page width store, resolution pipeline and quick-settings panel</DisplayName>
+      <Type>CORE_LOGIC</Type>
+      <Status>implemented</Status>
+      <PhaseRef>C-PAGE-WIDTH-TABLES</PhaseRef>
+      <Summary>
+        C-PAGE-WIDTH-TABLES (2026-11-02): page width as a first-class,
+        per-document property, owned by the renderer seam that M-011 hosts.
+        util/pageWidthStore.js is the document-scoped store — one prefs key
+        (pageWidths) keyed by pathname, entries carry {value, unit,
+        themeOverride?}, sanitize keeps finite positive numbers and the
+        ch/px/% units only, the store caps at 200 newest entries, the
+        rename/move follows the file through the same store/editor.js flows
+        tableLayoutStore uses, untitled and guide tabs never gain an entry,
+        every mutation serializes through one queue and a failed read never
+        becomes the base of a write. util/pageWidth.js is the resolution
+        pipeline and canvas model — document &gt; theme &gt; global with the
+        active source named, ch/px/% conversion with the 10% preset snap and
+        the nearest-preset anchor mark, canvas = window − sidebar and
+        rendered = min(setting, canvas − indent) with the 400px floor and
+        centring, clamping never mutates the stored value, and a % value
+        recomputes on sidebar show/hide/drag without a content re-render.
+        components/titleBar/quickSettings/ is the titlebar panel boundary —
+        the shell plus the Page / View / Tables tabs built only from the
+        C-38 component set in the neutral settings palette, following the
+        light/dark member via data-darkmode and never tinted by the editor
+        theme, inner interactions keep it open while outside click or Escape
+        closes it, the footer opens the real Settings window, and the R-4
+        per-document theme override pins the document against the global
+        cycle with the active source named. The host seam in editor.vue plus
+        store/editor.js applies the resolved value as one inline custom
+        property on the editor root (theme CSS can never win the cascade),
+        re-applies on sidebar and window changes and moves the stored entry
+        on rename. The Tables tab writes the same preference objects the
+        rest of the app reads — the table mode model itself stays owned by
+        M-012 (fn-tableResize); this module owns only the panel boundary
+        over it. M-011 owns the renderer shell whose editor.vue,
+        store/editor.js and titleBar mount points host this module; M-012
+        owns the muya engine whose editor surface consumes the resolved
+        width and whose tableFullWidthDefault option the Tables tab feeds
+        (V-M-061).
+      </Summary>
+      <PlannedPath>
+        src/renderer/src/util/pageWidthStore.js,
+        src/renderer/src/util/pageWidth.js,
+        src/renderer/src/components/titleBar/quickSettings/,
+        src/renderer/src/components/editorWithTabs/editor.vue,
+        src/renderer/src/store/editor.js
+      </PlannedPath>
+      <Dependencies>
+        <M-011/>
+        <M-012/>
+      </Dependencies>
+      <VerificationRef>V-M-061</VerificationRef>
+      <Contract>
+        <Purpose>
+          Make page width a first-class per-document property: a width
+          pinned on one file follows that file and never leaks into untitled
+          documents, resolution is document &gt; theme &gt; global with the
+          active source named, clamping never mutates the setting, % follows
+          the canvas live, and one governed panel surface edits the same
+          preference objects the rest of the app reads — no second source of
+          truth.
+        </Purpose>
+        <Inputs>
+          The per-file store entries over the mt::prefs channel (numbers,
+          the ch/px/% unit enum, an optional theme id — never document
+          content, never paths beyond the pathname keys); window and sidebar
+          geometry for the canvas model; the shipped theme CSS for the
+          View-tab swatch tiles (parsed in-process, memoized per theme).
+        </Inputs>
+        <Outputs>
+          The resolved width and its named source applied as one inline
+          custom property on the editor root; the persisted per-document
+          store under the pageWidths prefs key; the quick-settings panel
+          with its three live tabs; the View &gt; Page Width menu state.
+        </Outputs>
+        <Errors>
+          A failed prefs read aborts the mutation without writing (the store
+          never wipes from a failed read); entries whose file is confirmed
+          missing are pruned on load while «cannot tell» keeps them; a
+          failed host apply or menu-state resolution degrades to the global
+          default and logs its content-free marker — no reachable state
+          wedges the editor width or silently drops a stored document value.
+        </Errors>
+      </Contract>
+      <Interface>
+        <fn-pageWidthStore>the per-document store flows — loadPageWidthFor (read, prune, cap, write-back), savePageWidth (write or delete one file's entry), movePageWidthEntry (the rename move); queued, untitled never gains an entry</fn-pageWidthStore>
+        <fn-pageWidth>resolve the effective width (document &gt; theme &gt; global, source named), convert ch/px/% with the 10% snap and the nearest-preset anchor, compute canvas/rendered with the 400px floor; clamping never writes</fn-pageWidth>
+        <fn-quickSettings>the titlebar panel shell with the Page / View / Tables tabs — inner interactions keep it open, outside click or Escape closes it, the footer opens Settings</fn-quickSettings>
+        <fn-applyHostPageState>the editor.vue/store/editor.js host seam — one inline custom property on the editor root, canvas re-applies on sidebar show/hide/drag and window changes, rename moves the entry</fn-applyHostPageState>
+      </Interface>
+      <Sources>
+        <Source>src/renderer/src/util/pageWidthStore.js (store, queue, prune, cap)</Source>
+        <Source>src/renderer/src/util/pageWidth.js (resolution pipeline and canvas model)</Source>
+        <Source>src/renderer/src/components/titleBar/quickSettings/ (shell plus pageTab/viewTab/tablesTab)</Source>
+        <Source>host seam: src/renderer/src/components/editorWithTabs/editor.vue applyHostPageState; src/renderer/src/store/editor.js rename/move flows</Source>
+        <Tests>npx vitest run tests/renderer/util/page-width.test.js tests/renderer/util/page-width-store.test.js tests/renderer/components/quick-settings.test.js</Tests>
+      </Sources>
+      <Observability>
+        Content-free markers at the store/host seams:
+        BLOCK_PAGE_WIDTH_READ_FAILED, BLOCK_PAGE_WIDTH_WRITE_FAILED,
+        BLOCK_PAGE_WIDTH_PRUNED (files=N capped=X),
+        BLOCK_PAGE_WIDTH_MOVED, BLOCK_PAGE_WIDTH_MOVE_FAILED,
+        BLOCK_PAGE_WIDTH_APPLY_FAILED, BLOCK_PAGE_WIDTH_MENU_STATE_FAILED.
+      </Observability>
+      <ChangeRefs>
+        <C-PAGE-WIDTH-TABLES/>
+      </ChangeRefs>
+    </M-061>
   </GD-PERFORMANCE>
 </GraceGraphDocument>
