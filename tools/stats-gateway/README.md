@@ -1,9 +1,10 @@
 # mark-stats-gateway (M-071)
 
-Counting gateway for the update funnel (C-UPDATER-STATS) with one keyed
-aggregate-readout route (C-STATS-READOUT): `GET /stats` serves the
-aggregate tables and is the gateway's single documented exception to
-the redirect-only behavior of its counting routes. Answers on exactly
+Counting gateway for the update funnel (C-UPDATER-STATS): every
+counted event is also pushed best-effort to the owner's analytics
+dashboard (C-STATS-DASH-PUSH), and the keyed `GET /stats` readout
+route (C-STATS-READOUT) exists but stays dormant — see
+[Where the numbers go](#where-the-numbers-go). Answers on exactly
 one host: `updates.mark.xronocode.com`, provisioned as a Workers
 custom domain (Cloudflare manages its DNS record and certificate
 automatically; the xronocode.com zone lives in Cloudflare per C-22).
@@ -19,11 +20,11 @@ ships with the next owner-side deploy.
   Update-button click) and 302-redirects to the deterministic GitHub
   release asset (`darwin-aarch64` → the `.app.tar.gz`, `windows-x86_64`
   → the `x64-setup.exe`).
-- `GET /stats` — the keyed aggregate readout (C-STATS-READOUT): a
-  caller authorized by the `X-Read-Key` header receives the 90-day
-  tables as JSON (`{ byDay, fromBreakdown }`). No redirect, no
-  datapoint; setup and verification in
-  [Readout access](#readout-access).
+- `GET /stats` — the keyed readout route (C-STATS-READOUT), currently
+  dormant: it answers 401 without a key and the fixed 502 for
+  authorized reads, because no Cloudflare API token backs it (see
+  [Where the numbers go](#where-the-numbers-go)). No redirect, no
+  datapoint.
 
 Everything else on the counting routes — non-GET methods, wrong
 parameter sets, unknown platforms, non-strict versions, traversal
@@ -39,12 +40,12 @@ bodyless 401, and upstream trouble is the fixed
 ## Deployment (owner-executed)
 
 Deploys are rare and owner-executed (no CI deployment),
-authenticated by the narrow deploy token created in
-[Readout access](#readout-access) — not a broad OAuth grant:
+authenticated by the narrow deploy token (see
+[Where the numbers go](#where-the-numbers-go)) — not a broad OAuth grant:
 
 ```sh
 cd tools/stats-gateway
-export CLOUDFLARE_API_TOKEN=…   # the narrow deploy token (Readout access)
+export CLOUDFLARE_API_TOKEN=…   # the narrow deploy token
 export CLOUDFLARE_ACCOUNT_ID=…  # the account ID from the dashboard account home
 npx wrangler deploy
 ```
@@ -55,7 +56,7 @@ plus the Analytics Engine binding (`STATS`, dataset
 `mark_update_funnel`) and `workers_dev = false` (no second live
 hostname). No credentials, tokens or account identifiers live in this
 repository; the worker's secrets are set dashboard-side under
-[Readout access](#readout-access).
+[Where the numbers go](#where-the-numbers-go).
 
 ## Privacy
 
@@ -67,48 +68,29 @@ geo/ASN) is never read — and the readout route reads no request header
 beyond `x-read-key`. Analytics Engine retains the data for three
 months; no long-term warehouse exists.
 
-## Reading the numbers (`query.mjs`)
+## Reading the numbers
 
-`--remote` is the documented reading path — the gateway read key, no
-Cloudflare credential, no account id:
+The reading surface is the owner's own dashboard: the
+[dashboard push](#where-the-numbers-go) delivers every event there,
+so the numbers are read where every other site's numbers are read —
+no per-machine credential of any kind.
 
-```sh
-export STATS_READ_KEY=…                       # the gateway read key
-node tools/stats-gateway/query.mjs --remote
-```
-
-A pasted value still enters interactive shell history — the export
-line itself is remembered. The history-free form is `read -s`:
-
-```sh
-read -s STATS_READ_KEY && export STATS_READ_KEY
-node tools/stats-gateway/query.mjs --remote
-```
-
-Direct curl consumers send the same header:
-
-```sh
-read -s STATS_READ_KEY && export STATS_READ_KEY
-curl -sS -H "X-Read-Key: $STATS_READ_KEY" https://updates.mark.xronocode.com/stats
-```
-
-Latency: expect seconds on a cache miss (the worker queries the
-Analytics Engine SQL API upstream), instant on a cache hit — the
-60-second result cache lives per isolate.
+`query.mjs` stays for the dormant `/stats` route and local fixtures:
 
 ```sh
 node tools/stats-gateway/query.mjs --dry   # inlined fixtures, zero network
 ```
 
-`--live` is the owner-side debug/diagnostic path — a direct Analytics
-Engine SQL API call that needs a per-machine account-scoped token
-(exactly the per-machine credential shape `--remote` exists to avoid):
-
-```sh
-export CF_API_TOKEN=…
-export CF_ACCOUNT_ID=…
-node tools/stats-gateway/query.mjs --live
-```
+`--remote` would read the dormant `/stats` route with the gateway
+read key (`STATS_READ_KEY`, sent as `X-Read-Key`; no Cloudflare
+credential) — while the route stays dormant it prints the gateway's
+fixed 502 notice and exits nonzero. `--live` is the owner-side debug
+path that calls the Analytics Engine SQL API directly and needs a
+per-machine account-scoped token (`CF_API_TOKEN` with
+`CF_ACCOUNT_ID`) — exactly the per-machine credential shape this
+gateway's story deliberately avoids; it exists only for emergencies.
+A pasted value still enters interactive shell history — the
+history-free form is `read -s KEY && export KEY`.
 
 Readings and their honest limits:
 
@@ -126,123 +108,94 @@ Readings and their honest limits:
 - Day buckets are **UTC**; the retention window is **three months**;
   queries outside the window return nothing.
 
-## Readout access
+## Where the numbers go
 
-Reading the funnel needs no Cloudflare account credential — only the
-gateway read key. This section alone covers creating and rotating the
-three worker secrets, creating the narrow deploy token, revoking the
-old broad OAuth grant, and verifying the setup end-to-end.
+Two sinks, one decision. Every counted event (a check on `/feed`, an
+updater fetch on `/pkg`) is written twice, both best-effort through
+`waitUntil` — neither can ever change a response:
 
-### The three secrets
+1. **The owner's analytics dashboard (live)** — one event is pushed to
+   `https://dash.xronocode.com/api/v1/collect` with the site ingest
+   key, exactly like every other site the dashboard already collects.
+2. **Workers Analytics Engine (raw storage)** — the aggregate datapoint
+   written since C-UPDATER-STATS; three months of history, no
+   identifiers, same as before.
 
-All three live dashboard-side only (the read key has exactly one more
-home — the reading machine's environment for `--remote`, shown in the
-examples; that is the explicit exception, not a file). Worker secret
-values are not re-viewable after saving: the dashboard shows only
-names, so this section states each value's source and never a stored
-secret. Set and rotate all three at: **Workers & Pages →
-mark-stats-gateway → Settings → Variables and Secrets**. A new or
-rotated secret takes effect through the dashboard's apply/confirmation
-step — no redeploy is needed; the worker reads the secrets at request
-time.
+### Dashboard push (live)
 
-- **`STATS_API_TOKEN`** — a custom API token whose permission is
-  `Account | Account Analytics | Read` (the Analytics Engine SQL API's
-  documented requirement). If that permission alone is refused with a
-  403 at query time, add the second permission third-party tooling
-  names alongside it — `Account | Analytics Engine | Read`. The token
-  editor may not offer that second permission; in that case the
-  documented `Account | Account Analytics | Read` is authoritative.
-  (Cloudflare's token docs list some of the same permissions as
-  *Write* where the dashboard shows *Edit*; this section uses
-  dashboard labels throughout — the gloss is noted once here.)
-- **`STATS_ACCOUNT_ID`** — the account's 32-character ID from the
-  dashboard account home. The same value is reused as
-  `CLOUDFLARE_ACCOUNT_ID` for deploys (see below).
-- **`STATS_READ_KEY`** — generated once locally, e.g.
-  `openssl rand -hex 32`, and the printed value saved as the secret.
-  Rotating it means generating a fresh value, saving it at the same
-  path, and updating the reading machines' environment.
+The push carries the same aggregate dimensions the storage write
+already keeps — the event kind, the OS or platform, the version — and
+nothing else: no IP, no user agent, no identifiers, no
+request-derived metadata. The `session` field is the fixed string
+`gateway` (the dashboard's schema requires a session; it carries no
+identity).
 
-### Creating the API tokens
+Setup is one key, issued by the dashboard itself — the same
+«Выдать ключ» flow every other site uses:
 
-The click-path is **My Profile → API Tokens → Create Token**. The
-token string is shown once at creation — miss it and the token must be
-recreated. Under **Account Resources**, select **Include → this
-account** — for both token flows below.
+1. In the dashboard (you log in with Google), create a site for the
+   gateway and issue its ingest key (the value is shown once — copy it).
+2. **Workers & Pages → mark-stats-gateway → Settings → Variables and
+   Secrets** → add the secret `DASH_COLLECT_KEY` with that value, and
+   apply. No redeploy is needed: the worker reads the key at request
+   time, and the push starts with the next counted event.
+3. Rotation = a new key in the dashboard, then the same secret edit.
 
-- **The read token** (becomes `STATS_API_TOKEN`): a Custom Token with
-  the permission named in the bullet above.
-- **The deploy token** (becomes `CLOUDFLARE_API_TOKEN`): either the
-  prebuilt **Edit Cloudflare Workers** template or a minimal Custom
-  Token with the single permission `Account | Workers Scripts | Edit`.
+An unset or empty `DASH_COLLECT_KEY` disables the push completely —
+zero dashboard requests, counting unchanged. Failures on the
+dashboard side (outage, rejected batch) are swallowed silently; the
+dashboard's own `(site, id)` dedup makes retries unnecessary, so
+there are none.
 
-The prebuilt template is broader than its name: besides the Workers
-Scripts permission it carries Workers KV Storage, Workers Routes
-(zone-level), Workers Tail, Workers R2 Storage, Account Settings, User
-Details and User Memberships entries (a mix of edit and read; the
-dashboard shows the exact list on screen at creation — confirm it
-there, since both six- and eight-permission variants of this template
-have been shown). The minimal custom token is the narrow alternative.
+Verify: open the dashboard, open the gateway's site, and the first
+`mark.update_check` / `mark.update_pkg` events appear within minutes
+of any update check.
 
-`CLOUDFLARE_ACCOUNT_ID` accompanies the deploy token in the deploy
-command (the Deployment section above): required for the minimal
-custom token — an account-scoped token cannot make wrangler's
-user-level account-lookup call — and harmless for the prebuilt
-template, which happens to carry the lookup permission. Its value is
-the dashboard account home's Account ID: the same value you pasted as
-`STATS_ACCOUNT_ID`.
+### The `/stats` readout (dormant)
 
-### Revoking the broad OAuth grant
+The keyed `GET /stats` route (C-STATS-READOUT) still exists and still
+answers: **401** without a key, **404** before the route's version is
+deployed, and the fixed **502** for authorized reads — because reading
+Analytics Engine requires a Cloudflare account API token, and per the
+owner's decision (2026-11-03) **no Cloudflare API token is used
+anywhere in this gateway's story** — the dashboard push replaced the
+need for one. The `STATS_READ_KEY` and `STATS_ACCOUNT_ID` secrets stay
+set (they are harmless); reviving the readout would be its own future
+change, documented here only so the route's behavior is not a mystery.
 
-The 2026-11-02 deploy authenticated through a broad wrangler OAuth
-grant on the deploying machine. After the narrow deploy token exists
-and one deploy has succeeded with it, retire the broad grant: run
-`npx wrangler logout` on that machine, and use the dashboard-side
-revocation path if it is listed (My Profile → API Tokens and its
-token-management pages — revoke the OAuth entry there when shown). If
-neither path revokes the grant server-side, the residual grant is an
-owner action item: revoke it from the dashboard and confirm the local
-wrangler config no longer authenticates.
+### Deploying the worker (narrow token, no broad OAuth)
 
-### The three credential families
+Deploys are rare and owner-executed:
 
-They exist for different purposes and must not be confused at manual
-setup:
+```sh
+export CLOUDFLARE_API_TOKEN=…   # narrow deploy token, not a broad OAuth grant
+export CLOUDFLARE_ACCOUNT_ID=…  # the account ID from the dashboard account home
+cd tools/stats-gateway && npx wrangler deploy
+```
 
-- **Reading** — `STATS_READ_KEY`, sent as `X-Read-Key`; unlocks the
-  gateway's aggregate tables and nothing else.
+The deploy token: **My Profile → API Tokens → Create Token** — either
+the prebuilt **Edit Cloudflare Workers** template or a minimal Custom
+Token with the single permission `Account | Workers Scripts | Edit`
+(the minimal token requires the accompanying account id; the template
+does not). The token string is shown once at creation — miss it and
+the token must be recreated. The broad wrangler OAuth grant from the
+2026-11-02 deploy was already retired with `npx wrangler logout`; if
+a future deploy ever authenticates broadly again, retire it the same
+way and use the dashboard-side revocation path if it is listed.
+
+The three credential families, so they are not confused at setup:
+
+- **The dashboard push** — `DASH_COLLECT_KEY`, the dashboard's own
+  site key; unlocks nothing else anywhere.
 - **Deploying** — `CLOUDFLARE_API_TOKEN` with `CLOUDFLARE_ACCOUNT_ID`,
-  used only in the `npx wrangler deploy` command.
+  used only in the deploy command above.
 - **Debugging** — `CF_API_TOKEN` with `CF_ACCOUNT_ID`, the `--live`
   direct SQL path on the owner's machine.
 
 Local runs in the documented flows never place real values in local
-files: every example above keeps secrets in environment variables
-only, and the wrangler-dev convention paths
-(`tools/stats-gateway/.dev.vars`, `tools/stats-gateway/.wrangler/`)
-are git-ignored precisely so local experiments can never be staged.
-
-### Verifying end-to-end
-
-From any machine with the read key in the environment (a repo-less
-machine can use the curl example in the reading section above):
-
-```sh
-read -s STATS_READ_KEY && export STATS_READ_KEY
-node tools/stats-gateway/query.mjs --remote
-```
-
-If the two tables print, all three secrets work together.
-Expect the tables after a few seconds on a cache miss — instant on a
-hit; the 60-second cache is per isolate. Failure mapping:
-
-- **401** — the read key mismatches (wrong value, a rotation the
-  environment missed, or the secret unset).
-- **404** — the deployed gateway does not serve `/stats` yet:
-  deploy the new worker version first.
-- **502** — the upstream refused or was unreachable: wrong
-  `STATS_API_TOKEN` / `STATS_ACCOUNT_ID` values, or a read token whose
-  permission is insufficient (an upstream 403 surfaces as this 502) —
-  exactly where the `Account | Analytics Engine | Read` fallback
-  applies.
+files: every example keeps secrets in environment variables only (a
+pasted value still enters interactive shell history — use
+`read -s KEY && export KEY` where that matters), and the wrangler-dev
+convention paths (`tools/stats-gateway/.dev.vars`,
+`tools/stats-gateway/.wrangler/`) are git-ignored precisely so local
+experiments can never be staged.
