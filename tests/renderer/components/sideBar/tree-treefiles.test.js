@@ -73,6 +73,12 @@ const makeRoot = (files = [], folders = []) => ({
   files
 })
 
+// vitest 5 requires vi.hoisted/vi.mock at the module top level (they are
+// hoisted there anyway; nesting them inside describe is now an error)
+const showContextMenuMock = vi.hoisted(() => vi.fn())
+vi.mock('@/contextMenu/sideBar', () => ({ showContextMenu: showContextMenuMock }))
+
+
 describe('sideBar/tree.vue — C-51 T-001 view filter + switcher', () => {
   let pinia, Tree, projectStore, preferenceStore
 
@@ -175,8 +181,6 @@ describe('sideBar/treeFile.vue — C-51 T-002 pin context-menu options', () => {
     pinia = setupTestPinia()
   })
 
-  const showContextMenuMock = vi.hoisted(() => vi.fn())
-  vi.mock('@/contextMenu/sideBar', () => ({ showContextMenu: showContextMenuMock }))
 
   const mountFile = async (file) => {
     const TreeFile = (await import('@/components/sideBar/treeFile.vue')).default
