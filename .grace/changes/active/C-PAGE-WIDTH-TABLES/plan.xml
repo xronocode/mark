@@ -22,8 +22,6 @@
       </MustContain>
       <MustContain>
         <File>src/renderer/src/components/titleBar/index.vue</File>
-      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
-      <File>src/renderer/src/store/editor.js</File>
         <Text>themeTooltip</Text>
       </MustContain>
       <MustContain>
@@ -95,6 +93,8 @@
       <File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File>
       <File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File>
       <File>src/renderer/src/components/titleBar/quickSettings/tablesTab.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/store/editor.js</File>
       <File>src/renderer/src/prefComponents/common/segmented.vue</File>
       <File>src/renderer/src/prefComponents/common/range.vue</File>
       <File>src/renderer/src/store/preferences.js</File>
@@ -108,6 +108,8 @@
       <File>tests/renderer/util/table-layout-ratios.test.js</File>
       <File>tests/renderer/muya/table-fit.test.js</File>
       <File>tests/renderer/components/quick-settings.test.js</File>
+      <File>tests/renderer/store/editor-page-width.test.js</File>
+      <File>tests/renderer/components/editor-page-width-host.test.js</File>
       <File>tests/e2e/page-width-panel.spec.ts</File>
       <File>tests/e2e/table-modes.spec.ts</File>
       <Glob>static/locales/*.json</Glob>

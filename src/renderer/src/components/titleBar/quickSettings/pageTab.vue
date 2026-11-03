@@ -83,11 +83,11 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/quickSettings/pageTab.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-004 (M-061) the quick-settings Page tab — the document typography triple (width / font size / line height) built from the shared C-38 rows: per-unit presets plus Full window, a bounds-respecting stepper whose unit switch converts with the 10% preset snap and the nearest-preset anchor mark, the single 12-36 font range shared with zoom, line height 1.2-2.0 step 0.1, the "For all documents" scope switch writing the global vs per-document tier, and the footer naming the live global default.
 //   SCOPE: Width state machine for the active document. Full window is the R-3 canvas-model sentinel ({ value: 100, unit: '%' } — util/pageWidth.js FULL_WINDOW_WIDTH): the column spans the canvas and follows the sidebar live, and both persistence grammars hold it without a fourth unit. Global-tier writes hand the CSS variable back to the legacy writer (clearAppliedEditorWidth + the editorLineWidth preference the shipped watcher applies); document-tier writes go through the per-document store (util/pageWidthStore.js) and the resolution pipeline (resolveEffectiveWidth → applyEditorWidth — the clamp never mutates the stored value, corner C-2). While the panel is open, a canvas change (window resize, sidebar show/hide/drag) re-applies the pipeline value so % columns follow live (corner C-3) — never a content re-render. The untitled scope is forced global with the panel naming it (review finding F4). Host wiring (applying the stored width on document open/switch and the rename move) stays with the later host wave — the plan's ObservedWriteScope has no editor.vue/editor.js.
-//   DEPENDS: vue, vue-i18n, pinia storeToRefs, @/store/preferences (editorLineWidth / fontSize / lineHeight, SET_SINGLE_PREFERENCE, APPLY_FONT_SIZE — the C-49 zoom-shared 12-36 path), @/store/layout (sidebar visibility/width for the canvas), util/pageWidth.js (pure pipeline + writers), util/pageWidthStore.js (load/save), the shared C-38 rows (compound/segmented/range/bool).
+//   DEPENDS: vue, vue-i18n, pinia storeToRefs, @/bus (the mt::document-page-state-changed announcement the editor host re-reads the entry on), @/store/preferences (editorLineWidth / fontSize / lineHeight, SET_SINGLE_PREFERENCE, APPLY_FONT_SIZE — the C-49 zoom-shared 12-36 path), @/store/layout (sidebar visibility/width for the canvas), util/pageWidth.js (pure pipeline + writers), util/pageWidthStore.js (load/save), the shared C-38 rows (compound/segmented/range/bool).
 //   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-004, corners C-1/C-2/C-3/C-5); .grace/graph/performance.xml M-061; util/pageWidth.js; util/pageWidthStore.js; components/titleBar/quickSettings/index.vue (the shell); the approved mock (approved.html Page tab, panel-layer.final.js presets).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -108,12 +108,18 @@
 //   onScopeChange - global tier: clearAppliedEditorWidth + the editorLineWidth preference (+ the per-document entry removed); document tier: savePageWidth + applyPipeline.
 //   onFontSizeChange/onLineHeightChange - the global typography rows (APPLY_FONT_SIZE — the zoom-shared action; SET_SINGLE_PREFERENCE lineHeight).
 //   onReset - global scope → editorLineWidth '' (the honest theme-default resolution); document scope → the per-document entry removed and the pipeline value cleared.
-//   persistAndApply - the write path (tier choice + store/prefs writes + pipeline apply).
+//   persistAndApply - the write path (tier choice + store/prefs writes + pipeline apply + the host announcement).
+//   announcePageStateChange - the mt::document-page-state-changed bus emit the editor host re-reads the entry on.
 //   applyPipeline - resolveEffectiveWidth over the canvas + applyEditorWidth (one inline custom property, never a content re-render).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-004 (M-061):
+//   LAST_CHANGE: v1.1.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring
+//   wave: the write paths (persistAndApply, onReset) announce the saved
+//   document tier on the renderer bus (mt::document-page-state-changed)
+//   so the editor host re-reads the entry and its cached state never goes
+//   stale behind a panel write. The write semantics are unchanged.
+//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-004 (M-061):
 //   new tab. Per-unit presets (ch 60/80/110 · px 600/750/900 · % 60/80/100)
 //   plus Full window ({100,'%'}), the unit switch converting with the 10%
 //   preset snap and marking the nearest preset, the 12-36 font range
@@ -128,6 +134,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
+import bus from '@/bus'
 import { usePreferencesStore } from '@/store/preferences'
 import { useLayoutStore } from '@/store/layout'
 import {
@@ -286,11 +293,19 @@ const persistAndApply = async () => {
       type: 'editorLineWidth',
       value: `${width.value}${width.unit}`
     })
-    return
+  } else {
+    await savePageWidth(props.pathname, width)
+    loadedEntry.value = { ...(loadedEntry.value || {}), ...width }
+    applyPipeline()
   }
-  await savePageWidth(props.pathname, width)
-  loadedEntry.value = { ...(loadedEntry.value || {}), ...width }
-  applyPipeline()
+  announcePageStateChange()
+}
+
+// The editor host re-reads the entry (editor.vue applyHostPageState) so
+// its cached document tier never goes stale behind a panel write.
+const announcePageStateChange = () => {
+  if (!props.pathname) return
+  bus.emit('mt::document-page-state-changed', { pathname: props.pathname })
 }
 
 const onPresetPick = (picked) => {
@@ -345,11 +360,13 @@ const onReset = async () => {
     await preferencesStore.SET_SINGLE_PREFERENCE({ type: 'editorLineWidth', value: '' })
     unit.value = DEFAULT_GLOBAL_WIDTH.unit
     value.value = DEFAULT_GLOBAL_WIDTH.value
+    announcePageStateChange()
     return
   }
   await savePageWidth(props.pathname, null)
   loadedEntry.value = null
   clearAppliedEditorWidth()
+  announcePageStateChange()
 }
 // END_BLOCK_WIDTH_ACTIONS
 

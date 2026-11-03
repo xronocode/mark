@@ -137,5 +137,61 @@
   "wave": "scope-amendment",
   "date": "2026-11-03",
   "note": "ObservedWriteScope gains editorWithTabs/editor.vue and store/editor.js (Wave A router precedent): the plan never named the host files, but the store/pipeline cannot apply to real documents without open/switch apply, sidebar-drag re-apply and RENAME move wiring — executors deferred it twice as out-of-scope; wave 3 lands it."
+ },
+ {
+  "change": "C-PAGE-WIDTH-TABLES",
+  "wave": "Execution wave 3 — the scope-amended host wiring: editor.vue START_BLOCK_PAGE_WIDTH_HOST (open/switch apply, canvas re-applies, panel-write freshness, clear on close), store/editor.js RENAME/RENAME_IF_NEEDED move wiring, and the R-4 pinned-theme application to the document surface",
+  "date": "2026-11-03",
+  "executorNote": "Appended as wave 3 (same shape as waves 1-2). Lands the 2026-11-03 scope amendment recorded below: ObservedWriteScope gains editorWithTabs/editor.vue and store/editor.js. Nothing under .grace/changes/archive/** was touched. src/muya untouched (next wave).",
+  "implementation": {
+   "planHostWidth-editorVue": {
+    "file": "src/renderer/src/components/editorWithTabs/editor.vue (v1.32.0 -> v1.33.0, new START_BLOCK_PAGE_WIDTH_HOST + MODULE_CONTRACT/DEPENDS/MAP canon)",
+    "scope": "applyHostPageState is the open/tab-switch funnel: an immediate watcher on the active tab id (covering boot via the app.vue v-if mount, switches, and close-to-unmount), seq-guarded per tab exactly like applyStoredTableLayouts. It loads the document's pageWidths entry through util/pageWidthStore.loadPageWidthFor (prune + cap inside the store util; a falsy pathname — untitled/guide tabs — short-circuits without any IO), applies the document tier through resolveEffectiveWidth -> applyEditorWidth (one inline --editorAreaWidth write; the canvas clamp never writes the store, corner C-2), and for entry-less documents calls clearAppliedEditorWidth so the legacy global writer (theme.js setEditorWidth via the shipped editorLineWidth watcher) owns the variable again — exactly one writer, the panel's hand-off semantics.",
+    "canvasReapply": "reapplyHostWidthFromCache + a watcher on [window resize, showSideBar, sideBarWidth]: the cached entry re-resolves onto the canvas — one custom-property write per relayout event, never a content re-render, no store IO on the tick (corner C-3; the sidebar drag commits its width on mouseup, the same layout-store model the panel uses). A 150 ms trailing freshen re-reads the entry once per burst, and an editorLineWidth change schedules the same freshen — so the panel's direct store writes can never leave the host cache stale.",
+    "panelAnnouncement": "handleDocumentPageStateChanged: the panel announces its writes on the renderer bus (mt::document-page-state-changed, emitted by pageTab.persistAndApply/onReset and viewTab.saveEntry); the host re-reads the entry so a fresh pin or width reaches the surface without waiting for a tab switch; announcements for other documents are ignored.",
+    "cleanup": "onBeforeUnmount (the last document closed — app.vue v-if unmounts the editor column): the pending freshen dies, the resize listener and the bus handler come off, the inline pipeline value is cleared (the legacy writer owns the variable for the welcome screen) and a pinned surface theme is restored — the C-FILE-POSITION-MEMORY cleanup discipline."
+   },
+   "planRenameMove-editorStore": {
+    "file": "src/renderer/src/store/editor.js (LINKS + module-map note; no new exports)",
+    "scope": "RENAME and RENAME_IF_NEEDED both call util/pageWidthStore.movePageWidthEntry — fire-and-forget with the BLOCK_PAGE_WIDTH_MOVE_FAILED marker, mirroring the moveTableLayoutsEntry/moveFilePositionsEntry hooks line-for-line — so a document's remembered width and the pinned theme inside the same entry follow renames from both the title-bar card and the sidebar."
+   },
+   "planPinnedTheme-R4": {
+    "scope": "applyDocumentSurfaceTheme applies entry.themeOverride to the document surface through addThemeStyle, with syncDiagramClassification keeping the muya mermaid/vega options on the APPLIED theme (the shipped watch(theme) /dark/i branch — the global preference is never rewritten). A global theme cycle (title bar, Settings, Auto resolution, cross-window echo) while a pin is on the surface re-asserts the pin and never touches the stored entry (only the View tab writes themeOverride). Switching to an unpinned document, or unmount, restores the Auto-aware global theme (resolveAutoTheme under followSystemTheme). The boot funnel runs at setup AND once at the end of onMounted: the setup pass can land before the Muya instance exists (Vue flushes mounted hooks on a microtask that can lose to the funnel's first await), so the second pass guarantees the classification sync; the duplicate apply costs one extra property write + one store read at boot.",
+    "panelFiles": [
+     "src/renderer/src/components/titleBar/quickSettings/pageTab.vue (v1.0.0 -> v1.1.0: persistAndApply/onReset announce mt::document-page-state-changed)",
+     "src/renderer/src/components/titleBar/quickSettings/viewTab.vue (v1.0.0 -> v1.1.0: saveEntry announces mt::document-page-state-changed)"
+    ]
+   },
+   "planRepair": "The wave-2 commit had dropped the two host files into the BaselineAssertions MustContain of titleBar/index.vue (three <File> fields -> assertion.invalid-shape, plus a factually wrong 'must contain themeTooltip' claim for files that never carry it). Repaired in this wave: that MustContain returns to its pre-wave-2 single-File shape, and the amendment entries landed where they belong — ObservedWriteScope gains editorWithTabs/editor.vue, store/editor.js and this wave's two new test files (what the scope-amendment note below declares). The approved intent is unchanged."
+  },
+  "tests": {
+   "new": [
+    "tests/renderer/store/editor-page-width.test.js — 3 tests green (RENAME and RENAME_IF_NEEDED move the entry with (oldPath, newPath); a failed rename never calls the move and shows the notice) — the editor-table-layouts.test.js pattern",
+    "tests/renderer/components/editor-page-width-host.test.js — 15 tests green over the REAL util/pageWidth pipeline: open applies 80ch -> 850px box with source 'document'; entry-less and untitled documents clear to the global tier (untitled without store IO); a tab switch applies the next document; the seq guard drops a late load; a window resize re-applies from the cache with exactly one property write plus one trailing re-read; a sidebar show/drag commit re-clamps (1024 -> 744); an editorLineWidth change re-reads (panel global-write freshness); a pin applies addThemeStyle + the /dark/i diagram classification; a switch to an unpinned document restores the global theme; a global cycle while pinned re-asserts the pin without re-reading the store; the bus announcement lands a fresh pin without a tab switch; foreign-document announcements are ignored; unmount clears the width and restores the theme; the Auto restore resolves the family member; the Split View mirror never applies"
+   ]
+  },
+  "verification": {
+   "newTestCommands": [
+    "npx vitest run tests/renderer/store/editor-page-width.test.js -> 1 file, 3 tests passed",
+    "npx vitest run tests/renderer/components/editor-page-width-host.test.js -> 1 file, 15 tests passed"
+   ],
+   "affectedSuites": [
+    "npx vitest run tests/renderer/components/editor.test.js editor-coverage editor-progressive-mount editor-export-images editor-print-clearup editorWithTabs quick-settings -> 7 files, 248 passed, 2 skipped (pre-existing), 0 failed",
+    "npx vitest run tests/renderer/store -> 53 files, 967 tests passed"
+   ],
+   "targetedRegression": "npx vitest run tests/renderer -> 383 files, 5100 tests passed, 2 skipped (pre-existing skips), 3 todo, 0 failed",
+   "rendererBuild": "npm run build exit 0 (vite build, 36 s)",
+   "graceLintAfterWave": "grace lint --path . --assertions current -> 914 files checked, Errors: 2 — only the 2 foreign C-UPDATER-REVIEW-FIXES archive-status errors. Warnings unchanged (the M-011 durable overlap with C-50, resolved by the recorded owner sequencing, plus the 4 pre-existing python heuristics). Two transient wave findings were fixed in the same wave: the wave-2-committed plan.xml MustContain shape (see planRepair) and the new test file's LOCALS map."
+  },
+  "deviations": [
+   "The two panel tab components gained one bus emit each (pageTab.vue, viewTab.vue v1.0.0 -> v1.1.0) beyond the amendment's two named files: without the announcement a theme pin written in the open panel would only reach the document surface at the next tab switch. The emit is announce-only — no store logic moved; the quick-settings source-level pins (CSS not-forked) are unaffected and green.",
+   "plan.xml was repaired as described in planRepair (the amendment's own entries landed properly); the repair is mechanical — the MustContain block returns to its pre-wave-2 shape and the host files join ObservedWriteScope, which the 2026-11-03 scope-amendment note already declares.",
+   "The boot funnel runs twice (setup + end of onMounted) — see planPinnedTheme-R4 for why; the duplicate is one extra property write and one store read at boot."
+  ],
+  "deferred": [
+   "tests/e2e/page-width-panel.spec.ts / table-modes.spec.ts were not re-run this wave (not in this wave's verify list; the unit + regression suites cover the wiring).",
+   "muya consumption of tableFullWidthDefault/rememberTableColumnSizes (plan T-007), the View > Page Width menu (T-010), the Settings terminology repairs (T-011) and the .min locale derivatives — unchanged from wave 2's deferral list."
+  ],
+  "release": "No version bump, tag or publication is authorized by this wave; release stays behind the separate owner-controlled workflow."
  }
 ]

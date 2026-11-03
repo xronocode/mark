@@ -59,11 +59,11 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/quickSettings/viewTab.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-005 (M-061) the quick-settings View tab — the theme mode segmented control with the titlebar cycle semantics (Auto → followSystemTheme; Light/Dark pin the manual member), the full 17-family swatch grid whose tile colours are parsed from the shipped theme CSS through the memoized util/themeSwatchColors cache (never a second palette table), and the R-4 per-document override switch pinning this document's family + mode member against the global cycle with the active source named.
-//   SCOPE: Theme mode and family picks write the SAME preference objects the titlebar cycle and the Settings Appearance tab write (followSystemTheme / theme / lightModeTheme / darkModeTheme — no second source of truth). The R-4 switch stores the pinned theme id in the document's pageWidths entry (util/pageWidthStore.js themeOverride — the field the T-001 store sanitize already carries); pinning snapshots the current effective width into the entry when none exists, because a store entry must carry a valid width; unpinning clears only the themeOverride field. While pinned, family picks update ONLY the stored override — the global preferences and the cycle are untouched (changing the global cycle on a pinned document is a no-op for this document's stored theme). Applying a pinned theme to the document surface on open/switch needs the editor host (editor.vue/app.vue) and stays with the later host wave, exactly like the width host wiring — this tab stores, names and restores the pin.
-//   DEPENDS: vue, vue-i18n, pinia storeToRefs, @/store/preferences (theme / followSystemTheme / lightModeTheme / darkModeTheme), util/themeFamilies (THEME_FAMILIES, themeFamilyOf), util/themeSwatchColors (familySwatchColors — the parse cache), util/autoTheme (familyMemberForMode), util/config isDarkTheme (the titlebar's own classification), util/pageWidthStore (load/save of the document entry), the shared C-38 rows (compound/segmented/bool).
+//   SCOPE: Theme mode and family picks write the SAME preference objects the titlebar cycle and the Settings Appearance tab write (followSystemTheme / theme / lightModeTheme / darkModeTheme — no second source of truth). The R-4 switch stores the pinned theme id in the document's pageWidths entry (util/pageWidthStore.js themeOverride — the field the T-001 store sanitize already carries); pinning snapshots the current effective width into the entry when none exists, because a store entry must carry a valid width; unpinning clears only the themeOverride field. While pinned, family picks update ONLY the stored override — the global preferences and the cycle are untouched (changing the global cycle on a pinned document is a no-op for this document's stored theme). Every saved entry announces on the renderer bus (mt::document-page-state-changed) so the editor host applies the pin to the document surface immediately — the host (editor.vue) owns application, this tab stores and names the pin.
+//   DEPENDS: vue, vue-i18n, pinia storeToRefs, @/bus (the mt::document-page-state-changed announcement the editor host re-reads the entry on), @/store/preferences (theme / followSystemTheme / lightModeTheme / darkModeTheme), util/themeFamilies (THEME_FAMILIES, themeFamilyOf), util/themeSwatchColors (familySwatchColors — the parse cache), util/autoTheme (familyMemberForMode), util/config isDarkTheme (the titlebar's own classification), util/pageWidthStore (load/save of the document entry), the shared C-38 rows (compound/segmented/bool).
 //   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-005, corners C-1/C-6, spec R-4/R-7); .grace/graph/performance.xml M-061; components/titleBar/index.vue START_BLOCK_THEME_CYCLE (the mode semantics this tab mirrors); prefComponents/tabs/appearance (the family-grid precedent this tab follows); components/titleBar/quickSettings/index.vue (the shell).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -83,7 +83,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-005 (M-061):
+//   LAST_CHANGE: v1.1.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring
+//   wave: saveEntry announces the saved entry on the renderer bus
+//   (mt::document-page-state-changed) so the editor host applies a fresh
+//   pin to the document surface immediately instead of at the next tab
+//   switch. The store side (pin/unpin/family-pick semantics) is unchanged.
+//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-005 (M-061):
 //   new tab. The theme mode segmented control rides the exact titlebar
 //   cycle semantics; the 17-family grid renders two-half tiles whose
 //   colours come from the shipped theme CSS through the memoized swatch
@@ -97,6 +102,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
+import bus from '@/bus'
 import { usePreferencesStore } from '@/store/preferences'
 import { THEME_FAMILIES, themeFamilyOf } from '@/util/themeFamilies'
 import { familySwatchColors } from '@/util/themeSwatchColors'
@@ -214,6 +220,10 @@ const saveEntry = async (entry) => {
   loadedEntry.value = entry
     ? { ...entry, savedAt: loadedEntry.value ? loadedEntry.value.savedAt : 0 }
     : null
+  // The editor host re-reads the entry and applies the pin (editor.vue
+  // applyHostPageState) — a fresh pin reaches the document surface
+  // without waiting for a tab switch.
+  bus.emit('mt::document-page-state-changed', { pathname: props.pathname })
 }
 
 const onOverrideChange = (on) => {
