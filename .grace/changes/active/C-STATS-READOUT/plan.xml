@@ -1,0 +1,272 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-STATS-READOUT>
+    <IntentSummary>Implement the approved C-STATS-READOUT spec against the post-C-UPDATER-REVIEW-FIXES baseline: the keyed GET /stats readout route on the mark-stats-gateway worker, the shared tables.mjs (renderer, SQL constant, normalization), the query.mjs --remote mode with a main guard, the README "Readout access" section with the full revision sweep, the .gitignore hardening, and the M-071/V-M-071 graph and verification amendments — with the counting routes byte-identical and every gate green. Execution discipline: T-003 and T-004 are logically independent but touch files the same suite spawns (the dry-mode test runs node query.mjs), so the executor runs them serially — single-writer, no interleaving.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-071</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-071</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-071</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npm test</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-071 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-071 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.gitignore</File>
+      <File>tools/stats-gateway/tables.mjs</File>
+      <File>tools/stats-gateway/worker.mjs</File>
+      <File>tools/stats-gateway/query.mjs</File>
+      <File>tools/stats-gateway/README.md</File>
+      <File>tests/tools/stats-gateway.test.mjs</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Gitignore hardening first (the spec's earliest edit)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.gitignore gains tools/stats-gateway/.dev.vars and tools/stats-gateway/.wrangler/ (the wrangler-dev convention paths can never be staged by a routine git add), and the committed dangling merge-conflict marker at line 87 is removed in the same edit; nothing else in the file changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git check-ignore tools/stats-gateway/.dev.vars &amp;&amp; git check-ignore tools/stats-gateway/.wrangler/ &amp;&amp; ! grep -n "&gt;&gt;&gt;&gt;&gt;&gt;&gt;" .gitignore</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>tables.mjs — the single renderer, SQL constant and normalization module</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>New governed side-effect-free module tools/stats-gateway/tables.mjs exports renderTables (created here verbatim from query.mjs's implementation; the removal of query.mjs's local copies belongs to T-004), the 90-day GROUP BY SQL text as one named constant SQL_TEXT (the post-sibling index1 form — select blob1/index1/blob2/blob3 with SUM(_sample_interval), the 90-day window, the same GROUP BY and ORDER BY as query.mjs --live), and the upstream-JSON-to-rows normalization as a named export normalizeRows (String/Number coercion of day/event/dim/extra/count; a missing data array yields empty rows — the query.mjs precedent). Pure functions only: no top-level I/O, no CLI, importable by both the Workers bundler and Node. Carries a governed MODULE_CONTRACT/MODULE_MAP header (M-071, ROLE SCRIPT, MAP_MODE LOCALS) with VERSION 1.0.0, a CHANGE_SUMMARY entry for this change, and LINKS to .grace/graph/features.xml and .grace/verification/features.xml and C-STATS-READOUT.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node --input-type=module -e "import('./tools/stats-gateway/tables.mjs').then(m =&gt; { if (typeof m.renderTables !== 'function' || typeof m.SQL_TEXT !== 'string' || typeof m.normalizeRows !== 'function') process.exit(1); const t = m.renderTables([]); if (!('byDay' in t &amp;&amp; 'fromBreakdown' in t)) process.exit(1); if (m.normalizeRows({data:[]}).length !== 0) process.exit(1); })"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>worker.mjs — the keyed /stats readout branch</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The router gains the exact /stats pathname branch; the handler enforces, in order: route shape (non-empty searchParams is a 404 with Cache-Control: no-store), auth (the x-read-key header exact-matched or constant-time-compared against STATS_READ_KEY — the constant-time variant, if adopted, is the portable pre-hash form: SHA-256 digest both sides, then compare, so the code runs identically in Node tests and the Workers runtime with no crypto.subtle.timingSafeEqual dependency; the executor wraps the ENTIRE auth step (the pre-hash digest included, not only the comparison) so any error path maps to the bodyless 401 — never a platform error page; unset or empty secret fails closed; every comparison error path, including a length-mismatch throw, maps to the same bodyless 401 with no-store; no-store is never added to the shared notFound constructor), upstream-secret presence (unset or empty STATS_API_TOKEN/STATS_ACCOUNT_ID yields the fixed 502 regardless of cache state), the 60-second module-scope cache (opens on landed success; holds mapped rows only), then one upstream fetch to the SQL API endpoint built from env.STATS_ACCOUNT_ID with Bearer env.STATS_API_TOKEN, aborted at 10 seconds VIA A SETTIMEOUT-DRIVEN controller.abort (the injection seam for T-005's fake-timer test — AbortSignal.timeout is NOT fake-timer-advanceable, proven by probe), judged by res.ok and JSON parsing alone (no response-header reads). Responses: 200 application/json Cache-Control no-store with { byDay, fromBreakdown } via tables.mjs; bodyless 401; 502 with exactly {"error":"stats-upstream"} (application/json, no-store). The branch writes zero datapoints on every path and logs nothing (the spec's "at most one" marker resolves to ZERO: the readout branch emits no log output at all, so V-M-071's Markers inventory and TraceAssertion sentence stay unchanged); the branch is delimited in the source by begin/end comment markers (// --- C-STATS-READOUT readout branch --- / // --- end readout branch ---) enclosing the ENTIRE readout handler and the cache variable (the router dispatch line is covered by the route-shape pins instead), markers that the no-logging scan slices between. The governed header is amended per the spec's R-8: PURPOSE/SCOPE rewordings (including the datapoint clause "one per valid counting request — the readout route writes none", the SCOPE middle 404 sentence scoped to counting routes, and the closing body-sentence exception), MODULE_MAP gains the readout locals, STATUS carries the custom-domain form, LINKS reference C-STATS-READOUT (with the archive-exception note) — surviving any stale reference the sibling's landing left — and the file's VERSION is bumped with a CHANGE_SUMMARY entry for this change. handleFeed/handlePkg/OS_TABLE/PLATFORM_TABLE semantics untouched. THE SINGLE SANCTIONED SCAN AMENDMENT LANDS IN THIS TASK: the /headers\.get\(/ source-scan ban in tests/tools/stats-gateway.test.mjs grows the one x-read-key allowlist — matching the exact read expression request.headers.get('x-read-key'), never a line or substring filter — in the same commit as the read it permits, so the suite is green the moment this task's verification runs (not deferred to T-005).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>query.mjs — --remote mode and the main guard</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>query.mjs imports renderTables, the SQL constant and the normalization from tables.mjs (its local copies removed); the CLI switch moves behind a main guard (importing the module executes nothing); a new --remote mode reads STATS_READ_KEY (absent or empty fails with an actionable error naming the variable), GETs the gateway /stats with the X-Read-Key header, and prints the same tables from the JSON; a non-2XX answer prints the status and the fixed body only and exits nonzero (never-echo-more governs non-fixed bodies; a 2XX answer with invalid JSON fails with a fixed error and nonzero exit; a transport rejection exits nonzero with no secret material in the default output). --dry and --live are unchanged in behavior (live keeps reading CF_API_TOKEN with CF_ACCOUNT_ID); the usage line lists --dry, --live, --remote. The governed header is amended: PURPOSE and DEPENDS corrected to name both live-mode variables, --remote and the shared module (tables.mjs in DEPENDS), MODULE_MAP documents the new mode and is deduplicated, LINKS corrected (features.xml; C-STATS-READOUT with the archive-exception note), and the file's VERSION is bumped with a CHANGE_SUMMARY entry for this change.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>sh -c 'node tools/stats-gateway/query.mjs --badmode; [ $? -ne 0 ]' &amp;&amp; sh -c 'out=$(node tools/stats-gateway/query.mjs --badmode 2&gt;&amp;1); echo "$out" | grep -q -e "--dry" &amp;&amp; echo "$out" | grep -q -e "--live" &amp;&amp; echo "$out" | grep -q -e "--remote"' &amp;&amp; sh -c 'STATS_READ_KEY= node tools/stats-gateway/query.mjs --remote; [ $? -ne 0 ]' &amp;&amp; sh -c 'node tools/stats-gateway/query.mjs --dry &gt;/dev/null'</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Tests — the new pin set (the scan amendment landed in T-003)</Title>
+        <DependsOn>T-003, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/tools/stats-gateway.test.mjs grows the spec's pin set: auth fail-closed (missing key, wrong key, wrong-LENGTH key — belt-and-braces for the exact-match variant; under the fixed pre-hash form it degenerates to a wrong-key case, green either way —, unset and empty-string secret) with zero upstream calls; the 200 body equal to renderTables output through tables.mjs (stubbed upstream); the exact upstream SQL and secrets-only construction; the 502 mapping (non-2XX, network error, injected abort timing — not real waits; the stubbed upstream honors the passed AbortSignal and rejects on the abort event; malformed/unparseable JSON) with the fixed body and the leak guard (no upstream text/token/account id in any response); the 2XX-valid-JSON-without-data case yielding empty tables; cache behavior (fetch-count zero within the window on the same isolate, via module re-import as the reset mechanism — vi.resetModules plus a dynamic import helper introduced FOR every case needing a cold cache (the cache pins, the 502-mapping class, the empty-data case and the SQL-construction pin; the existing static top-level worker import stays untouched for the counting pins); a failed upstream attempt is NOT cached — the next request retries, pinned by a fail-then-retry fetch-count stub; the check order pinned BEHAVIORALLY: denial costs zero subrequests AND a wrong key against a populated (warm) cache still returns the bodyless 401 — never a cached 200 (the auth cases join the cold-cache reset list); absent or empty-string upstream secrets yield 502 with a warm cache); zero writeDataPoint on every /stats path (against the recorded-datapoint fixture); the route-shape 404s (query string, /stats/, /STATS, non-GET) with the 404 carrying no-store only when handler-made; a CORS pin (the readout handler's Response constructors set no Access-Control-* headers); the remote-mode stub test (happy path, missing/empty key error, non-fixed-body never-echo, and the 2XX-invalid-JSON fixed-error case); the no-logging comment-stripped scan with ITS MECHANISM FIXED HERE: the test locates the begin/end readout-branch comment markers in the RAW source first (comment-stripping would erase the delimiters) and strips comments only inside the slice, asserting the slice contains no console token at all (the marker decision is zero), plus a one-line companion assertion that tables.mjs contains no console token either; and the secrets-name-only scan over every touched file (tools/stats-gateway/, the test file, the graph/verification entries in their pre-amendment state at this task's position — the post-amendment state is swept by T-008 — and .gitignore) plus the change bundle via THE ARCHIVE-STABLE STRATEGY FIXED HERE: the scan resolves the bundle by checking .grace/changes/active/C-STATS-READOUT/ and .grace/changes/archive/C-STATS-READOUT/ with fs.existsSync and scanning whichever exists (correct both before and after archiving), with the three shape bans (32-hex, 64-hex, 40-plus separator-free alnum) and obviously-fake non-hex fixtures. The source-scan allowlist amendment itself landed in T-003 (its one permit: the x-read-key read, matching the code's lowercase literal); this task changes no existing pin and no other expectation. The file's governed header: VERSION bumped, CHANGE_SUMMARY entry added, LINKS corrected (archive path) and referencing C-STATS-READOUT with the pointer-adjacent note that the readout route is this change's documented exception.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>README — the Readout access section and the revision sweep</Title>
+        <DependsOn>T-003, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The README gains the "Readout access" section carrying the full spec R-6 content: the three dashboard-side secrets NAMED (STATS_API_TOKEN, STATS_ACCOUNT_ID, STATS_READ_KEY) with their sources (custom token with Account | Account Analytics | Read plus the attributed 403-fallback permission with its caveat; the dashboard's 32-character account id — Worker secret values are not re-viewable after saving, so the README points at the dashboard, never at the secret; a stated generation command for the read key), the token-creation click-path (My Profile -&gt; API Tokens -&gt; Create Token — with dashboard labels throughout; the shown-once token note with its recreate tail: miss it and the token must be recreated; Account Resources Include -&gt; this account for both token flows), the set/rotate path (Workers &amp; Pages -&gt; mark-stats-gateway -&gt; Settings -&gt; Variables and Secrets, rotatable without a redeploy, with the apply/confirmation step), the narrow deploy flow (template scope stated accurately with the Write-vs-Edit gloss once — placed beside the STATS_API_TOKEN permission sentence, where the dashboard-vs-docs mismatch bites the owner first —, minimal custom alternative — CLOUDFLARE_ACCOUNT_ID required for the minimal custom token, harmless for the prebuilt template —, CLOUDFLARE_ACCOUNT_ID from the dashboard account home, export-then-run examples throughout with the caution that a pasted value still enters interactive shell history, the read -s pattern, and the note that local runs in the documented flows never place real values in local files), the broad wrangler OAuth revocation (npx wrangler logout and the dashboard-side click-path if listed, with the residual-grant owner action item), the X-Read-Key header for curl consumers, the --remote reading example, the expected latency (seconds on a cache miss, instant on a hit — per isolate), the retained readings with their honest limits (the downloads-vs-clicks reading named), the credential families by purpose, the CLOUDFLARE_ACCOUNT_ID cross-link (the same value the owner pasted as STATS_ACCOUNT_ID), and the end-to-end verification step with the full failure mapping (401 = key mismatch; 404 = deploy the new worker version first; 502 = upstream refused or unreachable, including the insufficient-permission case where the fallback applies). The same edit revises the opening description, Routes (including scoping the "Everything else ... plain 404" sentence to counting routes), Deployment (the actual custom-domain route form; the unified credential story), reading (--remote documented, --live framed as debug, the --live example rewritten to export-then-run) and Privacy (the datapoint sentence reconciled to "one per valid counting request — the readout route writes none"). No doc line asks for or displays a secret value; the secrets are stated as dashboard-side only with the --remote environment caveat; at execution, the permission names and the template scope are re-checked against the live dashboard if the executor has dashboard access — otherwise against the spec's 2026-11-02 live-reference enumeration, with the true dashboard confirmation landing owner-side at deploy — and the check recorded in the task's evidence.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>for s in "Readout access" "STATS_API_TOKEN" "STATS_ACCOUNT_ID" "STATS_READ_KEY" "Account Analytics" "Analytics Engine | Read" "Edit Cloudflare Workers" "Workers Scripts" "Account Resources" "My Profile" "API Tokens" "Create Token" "recreated" "three months" "UTC" "Variables and Secrets" "X-Read-Key" "CLOUDFLARE_API_TOKEN" "CLOUDFLARE_ACCOUNT_ID" "CF_API_TOKEN" "CF_ACCOUNT_ID" "openssl rand" "wrangler logout" "read -s" "per isolate" "one per valid counting request" "--remote" "401" "502" "deploy the new worker version" "shell history" "downloads-vs-clicks" "counting routes" "custom domain" "apply" "export CF_API_TOKEN" "export CLOUDFLARE_API_TOKEN" "export STATS_READ_KEY" "shown once" "dashboard-side" "residual" "GET /stats" "same value" "authoritative"; do grep -q -e "$s" tools/stats-gateway/README.md || exit 1; done &amp;&amp; ! grep -qi "redirect-only counting gateway" tools/stats-gateway/README.md &amp;&amp; ! grep -q "zone_name" tools/stats-gateway/README.md &amp;&amp; ! grep -nE "(CF_API_TOKEN|CF_ACCOUNT_ID|CLOUDFLARE_API_TOKEN|CLOUDFLARE_ACCOUNT_ID|STATS_READ_KEY)=.*(node|npx|curl)" tools/stats-gateway/README.md &amp;&amp; ! grep -nE "[0-9a-fA-F]{32}|[0-9a-fA-F]{64}" tools/stats-gateway/README.md</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>M-071 / V-M-071 graph and verification amendments</Title>
+        <DependsOn>T-003, T-004, T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/features.xml's M-071 entry: Summary rewritten (the stale "Redirect-only counting gateway" opening and the "live mode via CF_API_TOKEN" clause corrected; the keyed readout route described), Inputs/Outputs/Errors grow the readout route (GET /stats with X-Read-Key; 200 JSON / 401 / 502), Sources and PlannedPath gain tools/stats-gateway/tables.mjs, and the Contract Output datapoint phrase becomes "one per valid counting request — the readout route writes none". .grace/verification/features.xml's V-M-071 entry: the "no request headers at all" clause becomes "no request headers beyond x-read-key", the already-false CF_API_TOKEN-only scenario clause names CF_ACCOUNT_ID, the /stats pin set is added (mirroring T-005, plus an owner-executed live-matrix scenario recorded as pending evidence after deployment, per the C-UPDATER-STATS acceptance pattern), and the Markers inventory and TraceAssertion stay unchanged (the marker decision is zero — the readout branch logs nothing). All anchors stay XML tags (no attribute anchors); the edits are routed in this change's bundle with the code.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grep -c "tables.mjs" .grace/graph/features.xml &amp;&amp; grep -c "beyond x-read-key" .grace/verification/features.xml</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Rebase verification, bundle re-measure and the closing sweep</Title>
+        <DependsOn>T-001, T-003, T-004, T-005, T-006, T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Against the landed sibling state (this change rebases on C-UPDATER-REVIEW-FIXES, which lands first): the sibling's wire-shape repairs are present (writeDataPoint indexes, the index1 SQL, the data envelope) and every LINKS reference in the three governed headers is true — correcting any survivor per the spec's rebase sanction (the sibling's live criteria name all three files, so this is verification, with correction as the fallback); the readout branch's real bundle is re-measured with wrangler deploy --dry-run (the wrangler version recorded in the task's evidence; the wrangler.toml stays byte-unchanged); the wrangler logout server-side semantics are verified and recorded — via the wrangler documentation/source, NOT by destructive execution (logout would destroy the only current deploy credential before the owner holds the narrow token): whether logout revokes the OAuth grant server-side, or only clears local state — in which case the README's dashboard-path and residual-grant action item are the documented remedy, per AC-8; the secrets-name-only scan is re-run over every touched file in its FINAL state (including the amended graph/verification entries and the bundle); and the full gate set is green: npm test (whole suite — measured at 119-306 s across sessions on this host; the budgetSeconds="900" allocation holds with headroom, and the execution flow's command timeout must be at least 420 s). Grace lint target/final are run externally by the execution flow, not by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git diff --quiet HEAD -- tools/stats-gateway/wrangler.toml &amp;&amp; cd tools/stats-gateway &amp;&amp; npx wrangler --version &amp;&amp; npx wrangler deploy --dry-run --config wrangler.toml --outdir /tmp/mark-stats-readout-bundle</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <!-- Execution-phase corners: the spec's eleven re-baselined against the implementation, plus the execution-specific checks. -->
+      <C-1>
+        <Situation>Authorized GET /stats end-to-end with stubbed upstream in vitest (real handler, real tables.mjs).</Situation>
+        <Expected>200 application/json Cache-Control no-store, body exactly renderTables(fixture rows); one upstream call on the cold cache.</Expected>
+      </C-1>
+      <C-2>
+        <Situation>Missing key, wrong key, unset secret, empty-string secret — each with a fetch-call-counting stub.</Situation>
+        <Expected>Bodyless 401 (no-store) with zero upstream calls on every path; a constant-time comparison's error paths map to the same 401.</Expected>
+      </C-2>
+      <C-3>
+        <Situation>Upstream non-2XX / network error / injected abort / unparseable body; and 2XX valid JSON without a data array.</Situation>
+        <Expected>The first three yield the fixed 502 (application/json, no-store) with no upstream text anywhere; the last yields 200 with empty tables.</Expected>
+      </C-3>
+      <C-4>
+        <Situation>Second authorized request within 60 s on the same isolate (module re-import resets between cases).</Situation>
+        <Expected>Zero additional upstream fetches; absent upstream secrets yield 502 even with a warm cache.</Expected>
+      </C-4>
+      <C-5>
+        <Situation>Every pre-existing counting-route pin plus the sibling's wire-format pins, after all edits.</Situation>
+        <Expected>All green with exactly one amended pin (the headers.get allowlist); zero writeDataPoint on every /stats path.</Expected>
+      </C-5>
+      <C-6>
+        <Situation>node query.mjs --remote with a stubbed gateway (happy, missing key, empty key, non-fixed 502 body, invalid-JSON 200).</Situation>
+        <Expected>Tables print; named-variable errors; status+fixed-body-only prints with nonzero exit; never a body fragment.</Expected>
+      </C-6>
+      <C-7>
+        <Situation>The secrets-name-only scan (three shape bans) over every touched file, comments stripped, archive-stable bundle path.</Situation>
+        <Expected>Zero hits; fixtures are obviously-fake non-hex; the scan survives archiving.</Expected>
+      </C-7>
+      <C-8>
+        <Situation>Route-shape edges: query string, /stats/, /STATS, POST /stats.</Situation>
+        <Expected>404 in all cases; no-store present only on handler-made responses; the shared notFound constructor untouched.</Expected>
+      </C-8>
+      <C-9>
+        <Situation>Import of query.mjs and tables.mjs in vitest; wrangler dry-run bundling of worker.mjs.</Situation>
+        <Expected>Both imports execute nothing; the bundle builds (real size recorded, wrangler version noted); wrangler.toml byte-unchanged.</Expected>
+      </C-9>
+      <C-10>
+        <Situation>git check-ignore and grep sweeps after T-001.</Situation>
+        <Expected>.dev.vars and .wrangler/ ignored; no dangling merge marker anywhere in .gitignore.</Expected>
+      </C-10>
+      <C-11>
+        <Situation>The rebase against the landed sibling (T-008).</Situation>
+        <Expected>Wire-shape repairs present; every LINKS reference in the three governed headers true; survivors corrected; npm test green.</Expected>
+      </C-11>
+      <C-12>
+        <Situation>The spec's C-11 re-baselined: the owner follows the shipped README's Readout access section alone, in Safari, without this conversation's context; T-006's phrase-chain verification has passed.</Situation>
+        <Expected>All six content obligations, the three named secrets, the click-paths, the failure mapping (401/404/502), the apply step and the export-then-run/read -s patterns are present in the shipped README; no secret value anywhere.</Expected>
+      </C-12>
+    </CornerMatrix>
+    <ReviewLog>
+      <!-- The plan's own four-corner gate: two consecutive clean passes required before the execution proposal. Rounds appended below. -->
+      <Review number="1" verdict="red" task="two-clean-passes">
+        <Date>2026-11-02</Date>
+        <Run>dwfrun-5adbdb1e-e272-43bc-9849-ffb29aef5ef5 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>0/4 corners clean; 2 blocking, 9 important, 8 note findings. npm test measured at ~306 s by a reviewer (recorded in T-008).</Result>
+        <Applied>
+          <Fix>Blocking (Correctness F-1 + Performance F-1, same defect): the single sanctioned scan amendment moved INTO T-003 — the /headers\.get\(/ allowlist lands in the same commit as the x-read-key read it permits, so T-003's verification is green at its DAG position; T-005 now changes no existing pin.</Fix>
+          <Fix>The four spec-reserved decisions FIXED in the plan: the marker decision is ZERO (the readout branch logs nothing; V-M-071 Markers/TraceAssertion unchanged — T-003, T-007); the no-logging isolation mechanism is the begin/end comment-marker slice with a no-console assertion (T-003 delivers the markers, T-005 slices); the archive-stable bundle strategy is fs.existsSync over the active and archive C-STATS-READOUT paths (T-005); the logout server-side semantics verification is assigned to T-008 with the README remedy path.</Fix>
+          <Fix>VERSION/CHANGE_SUMMARY bumps added explicitly to T-002 (new file), T-003, T-004, T-005 (the spec's R-8/AC-9 obligation, previously unrouted).</Fix>
+          <Fix>T-006's verification strengthened to a 15-phrase obligation chain (every secret name, click-path, failure-mapping entry, apply step, pattern and reconciled Privacy phrase must be present) plus the hex bans — a one-line stub section can no longer pass.</Fix>
+          <Fix>Notes — the spec's C-11 README-sufficiency corner re-baselined as plan C-12; T-008 now depends on T-001 (the gitignore earliest edit is inside the graph); T-004's verification made fail-able (sh -c exit-code assertions instead of echo); a CORS pin added to T-005; T-005's graph/verification scan scoped to its DAG position; T-007's marker clause made unconditional on the zero decision; the npm test budget recorded in prose (the schema carries no budget field — the execution flow must allow ≥ 420 s). The spec's R-8 test-file attribution corrected post-approval (the sibling's live criteria now name the test file too — fourth drift; recorded in the design-context Approval addendum).</Fix>
+        </Applied>
+        <Deferred>None — every round-1 finding is addressed.</Deferred>
+      </Review>
+      <Review number="2" verdict="red" task="two-clean-passes">
+        <Date>2026-11-02</Date>
+        <Run>dwfrun-d902a224-b10f-410a-b672-99d51d5a8ad7 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>1/4 corners clean; 1 blocking, 1 important, 11 note findings. A reviewer probe proved vitest fake timers do not advance AbortSignal.timeout, and measured the full suite at 151 s.</Result>
+        <Applied>
+          <Fix>Blocking (Performance F-1): the abort injection seam fixed in T-003 — a setTimeout-driven controller.abort (fake-timer-advanceable; AbortSignal.timeout proven not advanceable by the reviewer's probe), so T-005's injected-timing mechanism is implementable without retrofit.</Fix>
+          <Fix>UX F-1 (important): T-006's verification chain rebuilt — 23 phrases covering every obligation class (secret names, both click-paths, the full failure mapping including the 404 branch phrase, --remote, the credential families, the shell-history caution) plus negative checks ("Redirect-only counting gateway" must be gone); the two vacuum phrases ("Analytics Engine", bare "404") replaced with load-bearing ones.</Fix>
+          <Fix>Notes — the V-M-071 pending-evidence live-matrix scenario added to T-007 (the C-UPDATER-STATS acceptance pattern); T-001's check-ignore split per-path (one-pass-with-one-path failure mode closed); the wrong-LENGTH key pin added to T-005; the no-logging scan's ordering fixed (locate markers in raw source, strip comments only inside the slice); the four R-6 sub-items added to T-006's criterion; the pointer-adjacent exception note added to T-005's header amendment; budgetSeconds="900" set on the TargetAssertions Command (the sibling plan's proven attribute form — the round-1 "no budget field" claim was wrong); the single-writer serial discipline for T-003/T-004 recorded in the IntentSummary; T-008 gains the git diff --quiet wrangler.toml pin; T-002's "moved verbatim" clarified (creation here, removal in T-004). Correctness F-3 is the plan's conscious external-gate design, recorded.</Fix>
+        </Applied>
+        <Deferred>None — every round-2 finding is addressed.</Deferred>
+      </Review>
+      <Review number="3" verdict="red" task="two-clean-passes">
+        <Date>2026-11-02</Date>
+        <Run>dwfrun-dc18bfc8-f4fd-4ff2-90eb-7216d5565088 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>2/4 corners clean; 1 blocking, 2 important, 7 note findings. A reviewer run proved grep -q "--remote" exits 2 (option parsing) on both BSD grep and ugrep.</Result>
+        <Applied>
+          <Fix>Blocking (UX F-1): the T-006 grep loop fixed with -e (grep -q -e "$s") — the chain was unpassable as written, failing a perfect README on the --remote phrase.</Fix>
+          <Fix>Correctness F-1 + Security F-1 (important, same defect): the failed-upstream-not-cached pin added to T-005 (fail-then-retry fetch-count stub) — the spec AC-3 clause now has a pin owner.</Fix>
+          <Fix>UX F-2 (important): the phrase chain extended to 30 phrases — the 502 branch, the fallback permission (Analytics Engine), the template and minimal-custom names (Edit Cloudflare Workers, Workers Scripts), the retained readings marker (downloads-vs-clicks), the Routes scoping (counting routes) and the Deployment form (custom domain) — plus a negative check that the stale zone_name line is gone.</Fix>
+          <Fix>Notes — the allowlist exemption semantics pinned (exact-expression match, never a line filter); the cache-reset mechanism made concrete (vi.resetModules + dynamic-import helper replacing the static top-level import); the stale 306 s suite figure corrected to the measured 119-306 s range. UX N-1/N-2 and Performance F-1's residual notes are records with the criterion text binding.</Fix>
+        </Applied>
+        <Deferred>None — every round-3 finding is addressed.</Deferred>
+      </Review>
+      <Review number="4" verdict="red" task="two-clean-passes">
+        <Date>2026-11-02</Date>
+        <Run>dwfrun-036ed67a-e3dd-48d1-a84a-3cddeb2dbee8 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>2/4 corners clean; 0 blocking, 1 important, 12 note findings. A reviewer ran the T-006 loop against today's README and proved two phrases vacuum and two obligations mechanically uncovered.</Result>
+        <Applied>
+          <Fix>UX F-1 (important): the phrase chain rebuilt on evidence — "Analytics Engine" replaced by the distinctive "Analytics Engine | Read" (the fallback permission), and five new phrases pin the apply step ("apply"), the --live rewrite ("export CF_API_TOKEN"), shown-once, dashboard-side, residual and "/stats"; a negative check bans the old inline form (CF_API_TOKEN=... node on one line). 36 phrases + 4 negative checks.</Fix>
+          <Fix>Notes — T-008's wrangler.toml pin compares against HEAD (worktree-vs-index blind spot) and emits the wrangler version; the SQL constant export pinned to exactly SQL_TEXT; the usage-line obligation gets an executable pin (the --badmode output must list all three modes); the cache-reset wording de-tensioned (the dynamic helper serves the cache-isolated cases; the static import stays for counting pins); the warm-cache pin covers empty-string upstream secrets; T-004's DEPENDS amendment names tables.mjs. Security F-1 (counting-routes-never-consult-cache) is structurally guaranteed by the R-7 freeze — recorded, not pinned.</Fix>
+        </Applied>
+        <Deferred>None — every round-4 finding is addressed.</Deferred>
+      </Review>
+      <Review number="5" verdict="red" task="two-clean-passes">
+        <Date>2026-11-02</Date>
+        <Run>dwfrun-ec483293-b88b-4532-99e3-5c1a66396ac2 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>3/4 corners clean; 0 blocking, 2 important, 15 note findings — including a full live validation of all eight verification commands, the DAG, the coverage map and the phase rules (sh -n + executed runs proving fail-ability at DAG positions).</Result>
+        <Applied>
+          <Fix>UX F-1 (important): the negative inline check rebuilt to match the actual two-variable inline form — any line where an env assignment of CF_API_TOKEN/CLOUDFLARE_API_TOKEN/STATS_READ_KEY leads to node/npx/curl is banned (single- and multi-variable forms both caught; export lines pass).</Fix>
+          <Fix>UX F-2 (important): the deploy and curl export-then-run examples get discriminating pins — "export CLOUDFLARE_API_TOKEN" and "export STATS_READ_KEY" phrases, with the broadened negative covering their inline forms.</Fix>
+          <Fix>Notes — the normalization export pinned by name (normalizeRows, with a behavior check in T-002's verification); the constant-time variant fixed to the portable pre-hash form (SHA-256 both sides — no crypto.subtle dependency, identical in Node and Workers); the marker region required to enclose the entire handler plus cache (the router line covered by route pins); the "/stats" phrase made distinctive ("GET /stats"); the account-id cross-link and the fallback-caveat tail added ("same value", "authoritative"); the live-dashboard re-check of permission names and template scope assigned to T-006's execution evidence. S-N2 (T-001/T-002 parallel ordering — no wrangler or git add between them), F-N3/N4/N5/N6 and Performance F-1/F-2/F-3 are verification records or conscious design.</Fix>
+        </Applied>
+        <Deferred>None — every round-5 finding is addressed.</Deferred>
+      </Review>
+      <Review number="6" verdict="green" task="two-clean-passes">
+        <Date>2026-11-02</Date>
+        <Run>dwfrun-bd5cd7f5-c8af-43f0-9a76-ec89ddec727d (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 12 note findings.</Result>
+        <Applied>
+          <Fix>Notes applied before round 7: the provenance hole repaired (the Approval addendum the round-1 record cited now actually exists in design-context — the fourth sibling drift correction); the remote-stub enumeration gains the 2XX-invalid-JSON case; the logout verification mechanism fixed to documentation/source, never destructive execution; the cache-reset helper's scope widened to every cold-cache case (502 class, empty-data, SQL-construction); the abort stub required to honor the AbortSignal; the wrong-LENGTH pin's rationale corrected for the pre-hash variant; the account-id cross-link and downloads-vs-clicks wording added to T-006's criterion. Correctness F-1/F-2/F-3/F-4/F-5 and UX F-2 are records of conscious design (single-writer prose, AC-3 structural guarantee, T-008 late rebase check, criterion-bound amendment completeness).</Fix>
+        </Applied>
+        <Deferred>None.</Deferred>
+      </Review>
+      <Review number="7" verdict="red" task="two-clean-passes">
+        <Date>2026-11-02</Date>
+        <Run>dwfrun-a8f1798a-01c2-4b8d-b970-1d1b2dc08c0e (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>3/4 corners clean; 0 blocking, 1 important, 14 note findings. Round 6's clean streak reset.</Result>
+        <Applied>
+          <Fix>Security F-1 (important): the auth-before-cache ordering pinned behaviorally — a wrong key against a populated (warm) cache must still return the bodyless 401, never a cached 200 (the shape-presence-cache-auth implementation that passed the whole prior pin set is now caught); the auth cases join the cold-cache reset list.</Fix>
+          <Fix>Notes — T-005's stale title fixed (the scan amendment lives in T-003); a no-console-token companion assertion covers tables.mjs; the Write-vs-Edit gloss placed beside the STATS_API_TOKEN permission sentence; the dashboard re-check given an agent-executor fallback (the spec's live-reference enumeration, true confirmation owner-side); the inline-ban regex extended to the account-id variables (hybrid export+inline forms caught). Correctness F-1..F-5, Security F-2/F-3-prior and Performance F-1/F-2/F-3 are records of conscious design (chain-as-floor with criterion binding, T-006 soft ordering, T-003-to-T-005 pin gap by design, tie-first gitignore, wrangler resolution verified).</Fix>
+        </Applied>
+        <Deferred>None — every round-7 finding is addressed.</Deferred>
+      </Review>
+      <Review number="8" verdict="green" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-fae9468e-279a-4e8b-bf5a-fb5188265228 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>4/4 corners clean — clean pass #1 of the closing streak; 0 blocking, 0 important, 11 note findings (all note-level; several verification records incl. measured task-command durations and the sibling's unlanded state confirmed).</Result>
+        <Applied>
+          <Fix>Notes applied before round 9: the SQL constant named SQL_TEXT in the T-002 criterion (criterion/verification symmetry); the executor wraps the ENTIRE auth step — digest included — into the 401 mapping (no platform error page from any path); the shown-once note gains its recreate tail and "dashboard labels throughout" enters the click-path clause; the T-006 chain gains "Create Token", "recreated", "three months" and "UTC" phrases, and the redirect-only negative check becomes case-insensitive. Correctness F-N2/F-N3/F-N4, Security S-N2/S-N3 and UX F-3 are records of conscious design (late rebase verification, leaf commands, structural guarantee, external lint, the sibling's live AC making the test-file LINKS correction a verify-no-op).</Fix>
+        </Applied>
+        <Deferred>None.</Deferred>
+      </Review>
+      <Review number="9" verdict="green" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-cbb09d88-6928-4ad2-be06-cb201b24f81d (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>4/4 corners clean — SECOND CONSECUTIVE CLEAN PASS (rounds 8-9): the plan's two-clean-passes gate is CLOSED; 0 blocking, 0 important, 12 note findings (all note-level; verification records include a live npm test run at 121 s confirming the budget headroom, regex-semantics probes, and a zero-hit scan pre-state).</Result>
+        <Applied>None — the gate closed on this exact text and the round-9 notes are recorded rather than applied to preserve the clean pair: the router-dispatch line sits outside the no-logging slice by documented boundary choice; the update-success reading rides the criterion text (chain-as-floor); weak substrings (401/502/apply) are presence-floors by recorded design; the final-state secrets sweep is owned by the plan-level npm test; task-command budgets verified by execution. All are already-bound or recorded-design items.</Applied>
+        <GateState>CLOSED — the owner-approval request for the plan follows on this text; execution additionally waits for the sibling C-UPDATER-REVIEW-FIXES to land first.</GateState>
+      </Review>
+      <Approval>
+        <Date>2026-11-03</Date>
+        <Basis>Owner approval (translated from Russian: "go"), given after the closed two-clean-passes gate (rounds 8-9) and a plain-language eight-task summary in chat.</Basis>
+        <Result>plan.xml status set to approved; execution begins as soon as the sibling C-UPDATER-REVIEW-FIXES lands (the fixed ordering: sibling first, this change rebases on it).</Result>
+      </Approval>
+    </ReviewLog>
+  </C-STATS-READOUT>
+</GraceChangePlan>

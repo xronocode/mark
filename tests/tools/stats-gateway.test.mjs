@@ -1,5 +1,5 @@
 // FILE: tests/tools/stats-gateway.test.mjs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the M-071 gateway worker's contract (C-UPDATER-STATS):
 //            the full derivation table (both platforms -> exact GitHub
@@ -17,8 +17,11 @@
 //   DEPENDS: vitest, node:fs (source scans — house precedent
 //            tests/renderer/commands/updater.test.js).
 //   LINKS: .grace/changes/archive/C-UPDATER-STATS spec R-1/R-4, corners
-//          C-2/C-3/C-6/C-9; T-005 extends this file with the
-//          wave-surface pins and the dry-mode output-shape test.
+//          C-2/C-3/C-6/C-9;
+//          .grace/changes/active/C-STATS-READOUT plan T-005 — the
+//          readout route is this change's documented exception, and the
+//          bundle path moves under .grace/changes/archive/ when the
+//          change archives.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -32,6 +35,18 @@
 //   recorded - Fixture sink collecting writeDataPoint calls.
 //   waiting - Fixture sink collecting waitUntil promises.
 //   readSource - Read a repo file for the source scans.
+//   freshWorker - vi.resetModules + dynamic re-import: a cold-cache worker isolate for the readout pins (the static import above stays untouched for the counting pins).
+//   READOUT_ROWS - The canonical upstream rows fixture for the readout.
+//   READ_KEY - Obviously-fake non-hex read key fixture (this file is inside the secrets shape scan itself).
+//   UPSTREAM_TOKEN - Obviously-fake non-hex upstream token fixture.
+//   UPSTREAM_ACCOUNT - Obviously-fake non-hex upstream account fixture.
+//   readoutEnv - The readout fixture env: the recorded STATS binding plus the three readout secrets (overridable per case).
+//   statsCall - Invoke the worker fetch for /stats (key/method/url overridable; key === null sends no header).
+//   upstreamOk - Counting fetch stub serving the SQL API rows payload.
+//   expectFixed401 - Bodyless-401 assertion (no-store + leak guard).
+//   expectFixed502 - Fixed-502 body assertion (no-store + leak guard).
+//   stripLineComments - Full-line // comment stripper for the scans.
+//   drainDatapoints - Await and clear the shared recorded datapoint sink.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -46,10 +61,21 @@
 //     asserts the exact written object (indexes: [index]), and new
 //     live-format subprocess tests drive query.mjs via the fetch
 //     preload; LINKS names the archived stats bundle.
+//   - 2026-11-03 v1.2.0 C-STATS-READOUT T-005: the readout pin set —
+//     auth fail-closed with zero upstream calls on every denial
+//     (including a wrong key against a warm cache), the 200 body
+//     through tables.mjs, the exact SQL/secrets-only upstream
+//     construction, the 502 mapping (non-2XX, network, fake-timer
+//     abort, unparseable JSON) with the leak guard, the empty-data
+//     case, the 60 s cache behavior (vi.resetModules + dynamic
+//     re-import reset; failed attempts never cached), zero datapoints
+//     and no CORS headers on every /stats path, the route-shape 404s,
+//     the --remote stub tests, the no-logging marker-slice scan and
+//     the archive-stable secrets shape scan.
 // END_CHANGE_SUMMARY
 
-import { describe, it, expect } from 'vitest'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { describe, it, expect, vi } from 'vitest'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -61,6 +87,10 @@ import worker, {
   derivePkgUrl,
   utcDay
 } from '../../tools/stats-gateway/worker.mjs'
+import { renderTables, SQL_TEXT } from '../../tools/stats-gateway/tables.mjs'
+// Importing query.mjs executes nothing (the T-004 main guard) — the
+// --remote stub tests below call runRemote directly.
+import { runRemote } from '../../tools/stats-gateway/query.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const readSource = (rel) => readFileSync(resolve(ROOT, rel), 'utf8')
@@ -226,7 +256,12 @@ describe('tools/stats-gateway — open-redirect guard', () => {
     expect(src).not.toContain('request.cf')
     expect(src).not.toContain('CF-IPCountry')
     expect(src).not.toContain('user-agent')
-    expect(src).not.toMatch(/headers\.get\(/)
+    // C-STATS-READOUT R-8: the single sanctioned allowlist — the readout
+    // branch's x-read-key read. The exact expression is removed before
+    // the ban matches; any other headers.get( use stays banned.
+    expect(src.replaceAll("request.headers.get('x-read-key')", '')).not.toMatch(
+      /headers\.get\(/
+    )
   })
 })
 
@@ -428,5 +463,636 @@ describe('tools/stats-gateway — query.mjs live format (C-UPDATER-REVIEW-FIXES 
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// C-STATS-READOUT T-005 — the /stats readout pin set. Every case that must
+// not inherit cache state runs on its own isolate via freshWorker
+// (vi.resetModules + dynamic re-import); the static top-level worker import
+// above stays untouched for the counting pins. Fixtures are obviously-fake
+// non-hex (this very file sits inside the secrets shape scan below).
+// ---------------------------------------------------------------------------
+
+const READOUT_ROWS = [
+  { day: '2026-11-02', event: 'check', dim: 'darwin', extra: '2.8.2', count: 41 },
+  { day: '2026-11-02', event: 'check', dim: 'windows', extra: '2.8.2', count: 7 },
+  { day: '2026-11-02', event: 'pkg', dim: 'darwin-aarch64', extra: '2.9.0', count: 12 },
+  { day: '2026-11-02', event: 'pkg', dim: 'windows-x86_64', extra: '2.9.0', count: 2 },
+  { day: '2026-11-03', event: 'check', dim: 'darwin', extra: '2.9.0', count: 15 }
+]
+
+const READ_KEY = 'test-read-key-fake'
+const UPSTREAM_TOKEN = 'fake-upstream-token'
+const UPSTREAM_ACCOUNT = 'fake-account-id'
+
+const freshWorker = async () => {
+  vi.resetModules()
+  return (await import('../../tools/stats-gateway/worker.mjs')).default
+}
+
+const readoutEnv = (over = {}) => ({
+  STATS: { writeDataPoint: (dp) => recorded.push(dp) },
+  STATS_READ_KEY: READ_KEY,
+  STATS_API_TOKEN: UPSTREAM_TOKEN,
+  STATS_ACCOUNT_ID: UPSTREAM_ACCOUNT,
+  ...over
+})
+
+// Invoke the worker fetch against /stats; key === null sends no
+// x-read-key header at all (omitting key sends the fixture key).
+const statsCall = (
+  worker,
+  env,
+  { key = READ_KEY, method = 'GET', url = 'https://updates.mark.xronocode.com/stats' } = {}
+) =>
+  worker.fetch(
+    new Request(url, { method, headers: key === null ? {} : { 'x-read-key': key } }),
+    env,
+    makeCtx()
+  )
+
+// A counting upstream stub serving the SQL API rows payload.
+const upstreamOk = (rows) => {
+  const calls = { count: 0 }
+  const impl = async () => {
+    calls.count += 1
+    return new Response(JSON.stringify({ meta: [], data: rows }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+  return { impl, calls }
+}
+
+// Bodyless-401: no body, no-store, and nothing secret anywhere.
+const expectFixed401 = async (res, label = '401') => {
+  expect(res.status, label).toBe(401)
+  expect(res.headers.get('cache-control'), label).toBe('no-store')
+  const text = await res.text()
+  expect(text, label).toBe('')
+  expect(text, label).not.toContain(UPSTREAM_TOKEN)
+  expect(text, label).not.toContain(UPSTREAM_ACCOUNT)
+}
+
+// The fixed 502: exact body, application/json + no-store, and the leak
+// guard — no upstream text, no token, no account id in the response.
+const expectFixed502 = async (res, { upstreamText = '', label = '502' } = {}) => {
+  expect(res.status, label).toBe(502)
+  expect(res.headers.get('content-type'), label).toBe('application/json')
+  expect(res.headers.get('cache-control'), label).toBe('no-store')
+  const text = await res.text()
+  expect(text, label).toBe('{"error":"stats-upstream"}')
+  if (upstreamText) expect(text, label).not.toContain(upstreamText)
+  expect(text, label).not.toContain(UPSTREAM_TOKEN)
+  expect(text, label).not.toContain(UPSTREAM_ACCOUNT)
+}
+
+// Full-line // comment stripper shared by the source scans.
+const stripLineComments = (text) =>
+  text
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('//'))
+    .join('\n')
+
+// Fixture hygiene: earlier counting pins may leave recorded datapoints in
+// the shared sinks, so a zero-datapoint assertion for /stats drains first
+// and then asserts nothing NEW was written.
+const drainDatapoints = () => {
+  recorded.splice(0)
+  waiting.splice(0)
+}
+
+describe('tools/stats-gateway — /stats auth fail-closed (C-STATS-READOUT)', () => {
+  // Every denial: the bodyless 401 (no-store) with ZERO upstream calls,
+  // on a cold-cache isolate. The unset/empty-secret cases double as the
+  // auth-before-secret-gate order pin (401, never the 502 gate).
+  const denialCase = async ({ env = readoutEnv(), key = READ_KEY, label }) => {
+    const worker = await freshWorker()
+    const { impl, calls } = upstreamOk(READOUT_ROWS)
+    vi.stubGlobal('fetch', impl)
+    try {
+      await expectFixed401(await statsCall(worker, env, { key }), label)
+      expect(calls.count, `${label}: denial costs zero subrequests`).toBe(0)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  }
+
+  it('a missing x-read-key header is a bodyless 401 with zero upstream calls', async () => {
+    await denialCase({ key: null, label: 'missing key' })
+  })
+
+  it('a wrong key is a bodyless 401 with zero upstream calls', async () => {
+    await denialCase({ key: 'not-the-read-key', label: 'wrong key' })
+  })
+
+  it('a wrong-LENGTH key is a bodyless 401 with zero upstream calls (pre-hash form: degenerates to wrong-key)', async () => {
+    await denialCase({
+      key: 'not-the-read-key-but-much-longer-than-the-secret',
+      label: 'wrong-length key'
+    })
+  })
+
+  it('an unset STATS_READ_KEY secret fails closed to the bodyless 401 (never the 502 gate)', async () => {
+    await denialCase({ env: readoutEnv({ STATS_READ_KEY: undefined }), label: 'unset secret' })
+  })
+
+  it('an empty-string STATS_READ_KEY secret fails closed to the bodyless 401', async () => {
+    await denialCase({ env: readoutEnv({ STATS_READ_KEY: '' }), label: 'empty secret' })
+  })
+})
+
+describe('tools/stats-gateway — /stats authorized readout (C-STATS-READOUT)', () => {
+  it('answers 200 application/json no-store with exactly the renderTables body through tables.mjs', async () => {
+    const worker = await freshWorker()
+    drainDatapoints()
+    const { impl, calls } = upstreamOk(READOUT_ROWS)
+    vi.stubGlobal('fetch', impl)
+    try {
+      const res = await statsCall(worker, readoutEnv())
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toBe('application/json')
+      expect(res.headers.get('cache-control')).toBe('no-store')
+      const text = await res.text()
+      expect(JSON.parse(text)).toEqual(renderTables(READOUT_ROWS))
+      expect(text).not.toContain(UPSTREAM_TOKEN)
+      expect(text).not.toContain(UPSTREAM_ACCOUNT)
+      // One upstream call on the cold cache.
+      expect(calls.count).toBe(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    // The readout route writes no datapoint.
+    expect(await writePoint()).toHaveLength(0)
+  })
+
+  it('builds the upstream call from the secrets alone and posts the exact shared SQL_TEXT', async () => {
+    const worker = await freshWorker()
+    const seen = []
+    vi.stubGlobal('fetch', async (url, init = {}) => {
+      seen.push({ url: String(url), init })
+      return new Response(JSON.stringify({ meta: [], data: READOUT_ROWS }), { status: 200 })
+    })
+    try {
+      expect((await statsCall(worker, readoutEnv())).status).toBe(200)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    expect(seen).toHaveLength(1)
+    // Secrets-only construction: the account id lives exactly in the URL
+    // path, the token exactly in the bearer header — nothing else enters.
+    expect(seen[0].url).toBe(
+      'https://api.cloudflare.com/client/v4/accounts/fake-account-id/analytics_engine/sql'
+    )
+    expect(seen[0].init.method).toBe('POST')
+    expect(seen[0].init.headers.Authorization).toBe('Bearer fake-upstream-token')
+    // The exact SQL: the shared 90-day GROUP BY constant from tables.mjs.
+    expect(seen[0].init.body).toBe(SQL_TEXT)
+    expect(SQL_TEXT).toContain("INTERVAL '90' DAY")
+    expect(SQL_TEXT).toContain('GROUP BY blob1, index1, blob2, blob3')
+    expect(SQL_TEXT).toContain('ORDER BY blob1 DESC')
+    expect(SQL_TEXT).toContain('index1 AS event')
+  })
+})
+
+describe('tools/stats-gateway — /stats upstream failure mapping (C-STATS-READOUT)', () => {
+  const upstreamLeakBody = 'upstream-leak-page: partial rows and credentials inside'
+
+  it('maps a non-2XX upstream answer to the fixed 502 with no upstream text', async () => {
+    const worker = await freshWorker()
+    vi.stubGlobal('fetch', async () => new Response(upstreamLeakBody, { status: 500 }))
+    try {
+      await expectFixed502(await statsCall(worker, readoutEnv()), {
+        upstreamText: upstreamLeakBody,
+        label: 'non-2XX'
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('maps a network rejection to the fixed 502', async () => {
+    const worker = await freshWorker()
+    vi.stubGlobal('fetch', async () => {
+      throw new Error('network unreachable')
+    })
+    try {
+      await expectFixed502(await statsCall(worker, readoutEnv()), {
+        upstreamText: 'network unreachable',
+        label: 'network'
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('maps an injected 10 s upstream abort to the fixed 502 (fake timers — no real wait)', async () => {
+    vi.useFakeTimers()
+    try {
+      const worker = await freshWorker()
+      let seenSignal = null
+      // The stub honors the AbortSignal it receives and rejects on the
+      // abort event — the real fetch contract.
+      const slowUpstream = (_url, init = {}) =>
+        new Promise((_resolve, reject) => {
+          seenSignal = init.signal
+          seenSignal.addEventListener('abort', () =>
+            reject(new Error('The operation was aborted'))
+          )
+        })
+      vi.stubGlobal('fetch', slowUpstream)
+      const pending = statsCall(worker, readoutEnv())
+      // The pre-hash digest is native async (not timer-driven); flush
+      // microtasks until the upstream call has been reached.
+      for (let i = 0; i < 100 && seenSignal === null; i += 1) {
+        await vi.advanceTimersByTimeAsync(1)
+      }
+      expect(seenSignal, 'the stubbed upstream must have been reached').not.toBeNull()
+      // The seam: the setTimeout-driven controller.abort fires at 10 s.
+      await vi.advanceTimersByTimeAsync(10000)
+      await expectFixed502(await pending, { label: 'abort' })
+      expect(seenSignal.aborted).toBe(true)
+    } finally {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('maps an unparseable 2XX JSON body to the fixed 502', async () => {
+    const worker = await freshWorker()
+    const garbage = '<html>not json at all</html>'
+    vi.stubGlobal('fetch', async () => new Response(garbage, { status: 200 }))
+    try {
+      await expectFixed502(await statsCall(worker, readoutEnv()), {
+        upstreamText: garbage,
+        label: 'unparseable'
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
+
+describe('tools/stats-gateway — /stats empty dataset (C-STATS-READOUT)', () => {
+  it('maps a 2XX valid-JSON answer without a data array to 200 with empty tables', async () => {
+    const worker = await freshWorker()
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ meta: [] }), { status: 200 }))
+    try {
+      const res = await statsCall(worker, readoutEnv())
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ byDay: [], fromBreakdown: [] })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
+
+describe('tools/stats-gateway — /stats cache behavior (C-STATS-READOUT)', () => {
+  it('serves a second authorized request inside the 60 s window with zero additional upstream fetches', async () => {
+    const worker = await freshWorker()
+    const { impl, calls } = upstreamOk(READOUT_ROWS)
+    vi.stubGlobal('fetch', impl)
+    try {
+      expect((await statsCall(worker, readoutEnv())).status).toBe(200)
+      expect((await statsCall(worker, readoutEnv())).status).toBe(200)
+      expect(calls.count).toBe(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('does not cache a failed upstream attempt — the next request retries', async () => {
+    const worker = await freshWorker()
+    const calls = { count: 0 }
+    const flaky = async () => {
+      calls.count += 1
+      if (calls.count === 1) return new Response('upstream-leak-page', { status: 503 })
+      return new Response(JSON.stringify({ meta: [], data: READOUT_ROWS }), { status: 200 })
+    }
+    vi.stubGlobal('fetch', flaky)
+    try {
+      const first = await statsCall(worker, readoutEnv())
+      expect(first.status).toBe(502)
+      expect(await first.text()).toBe('{"error":"stats-upstream"}')
+      const second = await statsCall(worker, readoutEnv())
+      expect(second.status).toBe(200)
+      expect(calls.count, 'the failed attempt must have been retried').toBe(2)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('a wrong key against a warm cache still returns the bodyless 401 — never a cached 200', async () => {
+    const worker = await freshWorker()
+    const { impl, calls } = upstreamOk(READOUT_ROWS)
+    vi.stubGlobal('fetch', impl)
+    try {
+      expect((await statsCall(worker, readoutEnv())).status).toBe(200)
+      expect(calls.count).toBe(1)
+      await expectFixed401(
+        await statsCall(worker, readoutEnv(), { key: 'not-the-read-key' }),
+        'warm-cache denial'
+      )
+      expect(calls.count, 'denial costs zero subrequests').toBe(1)
+      // The cache survives the denial untouched for the authorized reader.
+      expect((await statsCall(worker, readoutEnv())).status).toBe(200)
+      expect(calls.count).toBe(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('absent or empty upstream secrets yield the fixed 502 even with a warm cache', async () => {
+    const worker = await freshWorker()
+    const { impl, calls } = upstreamOk(READOUT_ROWS)
+    vi.stubGlobal('fetch', impl)
+    try {
+      expect((await statsCall(worker, readoutEnv())).status).toBe(200)
+      const cases = [
+        ['absent token', readoutEnv({ STATS_API_TOKEN: undefined })],
+        ['empty token', readoutEnv({ STATS_API_TOKEN: '' })],
+        ['absent account id', readoutEnv({ STATS_ACCOUNT_ID: undefined })],
+        ['empty account id', readoutEnv({ STATS_ACCOUNT_ID: '' })]
+      ]
+      for (const [label, env] of cases) {
+        await expectFixed502(await statsCall(worker, env), { label })
+      }
+      expect(calls.count, 'the secret gate never fetches').toBe(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
+
+describe('tools/stats-gateway — /stats datapoints, route shape, CORS (C-STATS-READOUT)', () => {
+  it('writes zero datapoints on every /stats path', async () => {
+    const worker = await freshWorker()
+    drainDatapoints()
+    vi.stubGlobal('fetch', upstreamOk(READOUT_ROWS).impl)
+    try {
+      expect((await statsCall(worker, readoutEnv())).status).toBe(200)
+      expect(await writePoint()).toHaveLength(0)
+      expect((await statsCall(worker, readoutEnv(), { key: 'not-the-read-key' })).status).toBe(401)
+      expect(await writePoint()).toHaveLength(0)
+      expect((await statsCall(worker, readoutEnv({ STATS_API_TOKEN: undefined }))).status).toBe(
+        502
+      )
+      expect(await writePoint()).toHaveLength(0)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    for (const [method, url] of [
+      ['GET', 'https://updates.mark.xronocode.com/stats?x=1'],
+      ['GET', 'https://updates.mark.xronocode.com/stats/'],
+      ['GET', 'https://updates.mark.xronocode.com/STATS'],
+      ['POST', 'https://updates.mark.xronocode.com/stats']
+    ]) {
+      expect((await call(method, url)).status, url).toBe(404)
+      expect(await writePoint(), url).toHaveLength(0)
+    }
+  })
+
+  it('404s the route-shape edges and adds no-store only to handler-made responses', async () => {
+    // Handler-made: the query-rejection 404 inside the readout handler.
+    const queried = await call('GET', 'https://updates.mark.xronocode.com/stats?x=1')
+    expect(queried.status).toBe(404)
+    expect(queried.headers.get('cache-control')).toBe('no-store')
+    expect(await queried.text()).toBe('')
+    // Shared-constructor 404s stay bare — the shared notFound constructor
+    // is untouched, so no Cache-Control at all.
+    for (const [method, url, label] of [
+      ['GET', 'https://updates.mark.xronocode.com/stats/', 'trailing slash'],
+      ['GET', 'https://updates.mark.xronocode.com/STATS', 'wrong case'],
+      ['POST', 'https://updates.mark.xronocode.com/stats', 'non-GET']
+    ]) {
+      const res = await call(method, url)
+      expect(res.status, label).toBe(404)
+      expect(res.headers.get('cache-control'), label).toBeNull()
+    }
+  })
+
+  it('sets no Access-Control-* headers on any readout response', async () => {
+    const noCors = (res, label) => {
+      for (const name of [...res.headers.keys()]) {
+        expect(name.toLowerCase().startsWith('access-control-'), `${label}: ${name}`).toBe(false)
+      }
+    }
+    const worker = await freshWorker()
+    vi.stubGlobal('fetch', upstreamOk(READOUT_ROWS).impl)
+    try {
+      noCors(await statsCall(worker, readoutEnv()), '200')
+      noCors(await statsCall(worker, readoutEnv(), { key: 'not-the-read-key' }), '401')
+      noCors(await statsCall(worker, readoutEnv({ STATS_API_TOKEN: undefined })), '502')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    noCors(await call('GET', 'https://updates.mark.xronocode.com/stats?x=1'), '404-query')
+  })
+})
+
+describe('tools/stats-gateway — query.mjs --remote stub tests (C-STATS-READOUT)', () => {
+  // In-process harness: runRemote exits via process.exit, so the harness
+  // replaces exit with a recorder (the sentinel carries the code), captures
+  // console output and restores every stub afterwards.
+  class RemoteExit extends Error {}
+
+  const runRemoteStubbed = async ({ readKey, fetchImpl }) => {
+    const prev = {
+      key: process.env.STATS_READ_KEY,
+      fetch: globalThis.fetch,
+      exit: process.exit,
+      log: console.log,
+      error: console.error
+    }
+    const outs = []
+    const errs = []
+    let exitCode = null
+    if (readKey === undefined) delete process.env.STATS_READ_KEY
+    else process.env.STATS_READ_KEY = readKey
+    globalThis.fetch = fetchImpl
+    process.exit = (code) => {
+      exitCode = code
+      throw new RemoteExit(`exit ${code}`)
+    }
+    console.log = (...a) => outs.push(a.map(String).join(' '))
+    console.error = (...a) => errs.push(a.map(String).join(' '))
+    try {
+      await runRemote()
+      return { exitCode, outs, errs }
+    } catch (err) {
+      if (err instanceof RemoteExit) return { exitCode, outs, errs }
+      throw err
+    } finally {
+      if (prev.key === undefined) delete process.env.STATS_READ_KEY
+      else process.env.STATS_READ_KEY = prev.key
+      globalThis.fetch = prev.fetch
+      process.exit = prev.exit
+      console.log = prev.log
+      console.error = prev.error
+    }
+  }
+
+  it('GETs the gateway /stats with X-Read-Key and prints the tables', async () => {
+    const seen = []
+    const { exitCode, outs, errs } = await runRemoteStubbed({
+      readKey: READ_KEY,
+      fetchImpl: async (url, init = {}) => {
+        seen.push({ url: String(url), headers: init.headers ?? {} })
+        return new Response(JSON.stringify(renderTables(READOUT_ROWS)), { status: 200 })
+      }
+    })
+    expect(exitCode).toBeNull()
+    expect(seen).toHaveLength(1)
+    expect(seen[0].url).toBe('https://updates.mark.xronocode.com/stats')
+    expect(seen[0].headers['X-Read-Key']).toBe(READ_KEY)
+    const printed = outs.join('\n')
+    expect(printed).toContain('checks darwin')
+    expect(printed).toContain('from-version breakdown (checks):')
+    expect(printed).toContain('from=2.9.0')
+    expect(errs).toEqual([])
+  })
+
+  it('fails with the named STATS_READ_KEY error when the key is missing', async () => {
+    const { exitCode, errs, outs } = await runRemoteStubbed({
+      readKey: undefined,
+      fetchImpl: async () => {
+        throw new Error('fetch must not be called without a key')
+      }
+    })
+    expect(exitCode).toBe(1)
+    expect(errs.join('\n')).toContain('STATS_READ_KEY')
+    expect(outs).toEqual([])
+  })
+
+  it('fails with the same named error for an empty-string key', async () => {
+    const { exitCode, errs, outs } = await runRemoteStubbed({
+      readKey: '',
+      fetchImpl: async () => {
+        throw new Error('fetch must not be called without a key')
+      }
+    })
+    expect(exitCode).toBe(1)
+    expect(errs.join('\n')).toContain('STATS_READ_KEY')
+    expect(outs).toEqual([])
+  })
+
+  it('withholds a non-fixed non-2XX body (never-echo-more)', async () => {
+    const leaky = '<html>gateway exploded: partial rows and secrets inside</html>'
+    const { exitCode, errs } = await runRemoteStubbed({
+      readKey: READ_KEY,
+      fetchImpl: async () => new Response(leaky, { status: 503 })
+    })
+    expect(exitCode).toBe(1)
+    const joined = errs.join('\n')
+    expect(joined).toContain('503')
+    expect(joined).toContain('withheld')
+    expect(joined).not.toContain('gateway exploded')
+    expect(joined).not.toContain('<html>')
+  })
+
+  it('fails with the fixed error on a 2XX body that is not valid JSON', async () => {
+    const bad = 'not-json-at-all {'
+    const { exitCode, errs } = await runRemoteStubbed({
+      readKey: READ_KEY,
+      fetchImpl: async () => new Response(bad, { status: 200 })
+    })
+    expect(exitCode).toBe(1)
+    const joined = errs.join('\n')
+    expect(joined).toContain('not valid JSON')
+    expect(joined).not.toContain('not-json-at-all')
+  })
+})
+
+describe('tools/stats-gateway — readout source scans (C-STATS-READOUT)', () => {
+  it('the readout branch slice carries no console token (markers located in raw source; comments stripped only inside)', () => {
+    // Comment-stripping the raw source first would erase the delimiters
+    // themselves — locate the begin/end markers in the RAW source, then
+    // strip comments only inside the slice.
+    const raw = readSource('tools/stats-gateway/worker.mjs')
+    const begin = raw.indexOf('// --- C-STATS-READOUT readout branch ---')
+    const end = raw.indexOf('// --- end readout branch ---')
+    expect(begin, 'begin marker present in the raw source').toBeGreaterThan(-1)
+    expect(end, 'end marker present after the begin marker').toBeGreaterThan(begin)
+    const code = stripLineComments(raw.slice(begin, end))
+    // The marker decision is zero: the readout branch logs nothing.
+    expect(code).not.toMatch(/\bconsole\b/)
+  })
+
+  it('tables.mjs carries no console token either (companion assertion)', () => {
+    expect(stripLineComments(readSource('tools/stats-gateway/tables.mjs'))).not.toMatch(
+      /\bconsole\b/
+    )
+  })
+})
+
+describe('tools/stats-gateway — secrets shape scan (C-STATS-READOUT)', () => {
+  // Name-only, value-shape bans: no hex blob of either canonical length
+  // and no 40-plus separator-free alnum run anywhere in a touched file.
+  const BANS = [
+    ['32-hex', /\b[0-9a-fA-F]{32}\b/],
+    ['64-hex', /\b[0-9a-fA-F]{64}\b/],
+    ['40-plus separator-free alnum', /\b[0-9a-zA-Z]{40,}\b/]
+  ]
+
+  const walkFiles = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = join(dir, entry.name)
+      return entry.isDirectory() ? walkFiles(full) : [full]
+    })
+
+  const xmlEntry = (text, tag) => {
+    const begin = text.indexOf(`<${tag}>`)
+    const end = text.indexOf(`</${tag}>`)
+    expect(begin, `${tag} entry present`).toBeGreaterThan(-1)
+    expect(end, `${tag} entry closed`).toBeGreaterThan(begin)
+    return text.slice(begin, end)
+  }
+
+  it('every touched file and the (active or archived) change bundle carry no secret-shaped material', () => {
+    const sources = []
+    // The touched gateway files (tracked sources — the wrangler local-dev
+    // convention files T-001 gitignored, .dev.vars and .wrangler/, are
+    // local-only by design and never touched by this change, so dotfiles
+    // are skipped).
+    for (const abs of walkFiles(join(ROOT, 'tools/stats-gateway'))) {
+      if (abs.includes('/.')) continue
+      sources.push([abs, readFileSync(abs, 'utf8')])
+    }
+    sources.push([
+      'tests/tools/stats-gateway.test.mjs',
+      readSource('tests/tools/stats-gateway.test.mjs')
+    ])
+    sources.push(['.gitignore', readSource('.gitignore')])
+    // The graph/verification entries in their state at this task's DAG
+    // position (the final-state re-sweep belongs to T-008).
+    sources.push([
+      '.grace/graph/features.xml#M-071',
+      xmlEntry(readSource('.grace/graph/features.xml'), 'M-071')
+    ])
+    sources.push([
+      '.grace/verification/features.xml#V-M-071',
+      xmlEntry(readSource('.grace/verification/features.xml'), 'V-M-071')
+    ])
+    // The archive-stable bundle resolution: whichever of the two possible
+    // locations exists — correct both before and after archiving.
+    const activeBundle = join(ROOT, '.grace/changes/active/C-STATS-READOUT')
+    const archiveBundle = join(ROOT, '.grace/changes/archive/C-STATS-READOUT')
+    const bundle = existsSync(activeBundle)
+      ? activeBundle
+      : existsSync(archiveBundle)
+        ? archiveBundle
+        : null
+    expect(bundle, 'the C-STATS-READOUT bundle must exist under active/ or archive/').not.toBeNull()
+    for (const abs of walkFiles(bundle)) sources.push([abs, readFileSync(abs, 'utf8')])
+
+    const offenders = []
+    for (const [path, text] of sources) {
+      const stripped = stripLineComments(text)
+      for (const [name, re] of BANS) {
+        if (re.test(stripped)) offenders.push(`${path}: ${name}`)
+      }
+    }
+    expect(offenders).toEqual([])
   })
 })
