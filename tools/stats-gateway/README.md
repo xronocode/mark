@@ -9,7 +9,7 @@ one host: `updates.mark.xronocode.com`, provisioned as a Workers
 custom domain (Cloudflare manages its DNS record and certificate
 automatically; the xronocode.com zone lives in Cloudflare per C-22).
 Deployed 2026-11-02 (worker version `78a377b3`); the readout route
-ships with the next owner-side deploy.
+and the dashboard push both ship with the next owner-side deploy.
 
 ## Routes
 
@@ -62,7 +62,8 @@ geo/ASN) is never read — and the readout route reads no request header
 beyond `x-read-key`. The event lands in exactly two stores, both the
 owner's own: Workers Analytics Engine (three-month retention, no
 longer-term warehouse) and the owner's analytics dashboard, which
-ingests and keeps the same aggregate events like any site's analytics.
+ingests and keeps the same aggregate events as it does for every other
+site.
 No third party receives anything.
 
 ## Reading the numbers
@@ -138,8 +139,10 @@ Setup is one key, issued by the dashboard itself — the same
    every push with a 403 the worker swallows.
 2. **Workers & Pages → mark-stats-gateway → Settings → Variables and
    Secrets** → add the secret `DASH_COLLECT_KEY` with that value, and
-   apply. No redeploy is needed: the worker reads the key at request
-   time, and the push starts with the next counted event.
+   apply. The key itself needs no redeploy — the worker reads it at
+   request time — but the push code ships with the next owner-side
+   deploy: until that deploy runs, setting the key changes nothing
+   (the live worker version predates the push).
 3. Rotation = a new key in the dashboard, then the same secret edit.
 
 An unset or empty `DASH_COLLECT_KEY` disables the push completely —
@@ -148,12 +151,14 @@ dashboard side (outage, rejected batch) are swallowed silently; the
 dashboard's own `(site, id)` dedup makes retries unnecessary, so
 there are none.
 
-Verify: open the dashboard, open the gateway's site, and the first
-`mark.update_check` / `mark.update_pkg` events appear within minutes
-of any update check. If nothing appears after several checks: confirm
-the `DASH_COLLECT_KEY` secret is set and applied, and re-issue the key
-with the domain field left empty — a bound domain is the one silent
-failure mode (every push 403s, swallowed by design).
+Verify (after the push code is deployed): open the dashboard, open
+the gateway's site, and the first `mark.update_check` /
+`mark.update_pkg` events appear within minutes of any update check. If
+nothing appears after several checks, in order: confirm the new worker
+version is deployed (the 2026-11-02 version predates the push);
+confirm the `DASH_COLLECT_KEY` secret is set and applied; then
+re-issue the key with the domain field left empty — a bound domain is
+the one silent failure mode (every push 403s, swallowed by design).
 
 ### The `/stats` readout (dormant)
 
@@ -182,7 +187,9 @@ The deploy token: **My Profile → API Tokens → Create Token** — either
 the prebuilt **Edit Cloudflare Workers** template or a minimal Custom
 Token with the single permission `Account | Workers Scripts | Edit`
 (the minimal token requires the accompanying account id; the template
-does not). The token string is shown once at creation — miss it and
+does not). The prebuilt template is broader than its name — it carries
+several extra permissions beyond Workers Scripts — so the minimal
+custom token is the narrow alternative. The token string is shown once at creation — miss it and
 the token must be recreated. After any deploy that authenticated broadly (the 2026-11-02 one did),
 retire the grant: `npx wrangler logout` on the deploying machine, and
 the dashboard-side revocation path if it is listed. Treat this as a

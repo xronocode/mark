@@ -106,6 +106,14 @@
           <Fix>Notes: CC-N1/UXD-2/PF-2 are the gate's own count corrections (6 new pins, 54 total — recorded here); CC-N2/SP-N1/UXD-3 confirm the narrowed token story is the operative one; CC-N3 records the scan-scope vacuity (harmless, the bundle greps clean); CC-N4 is the by-design split of the no-log property into the source-slice pin; SP-N2 records the redirect-hop subrequest ceiling (~21 max, far under 50); UXD-5 records the dashboard-side derived dimensions (device/country columns on mark.update_* events).</Fix>
         </Applied>
       </Review>
+      <Review number="3" verdict="red" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>3/4 corners clean; 0 blocking, 1 important, 20 notes (mostly verification records incl. full R-1/receiver-contract conformance readbacks and live latency probes).</Result>
+        <Applied>
+          <Fix>UXD-P1 (important): the README now discloses the push's pre-deploy state — the header names the push among what ships with the next owner-side deploy, the setup step says setting the key changes nothing until that deploy, and the Verify checklist leads with confirming the deploy before the key and the domain field.</Fix>
+          <Fix>Notes applied: UXD-N1 (the same...as idiom), UXD-N3 (the prebuilt-template-broader-than-name caution restored), CC-N3 (worker DEPENDS names DASH_COLLECT_KEY). CC-N1/UXD-N5/PF-N1 are the gate's count corrections (already recorded); CC-N2/CC-N4/SP-N2/UXD-N4 confirm adjudicated states; CC-N5 records the foreign working-tree noise excluded from the branch; SP-N1 records the receiver-side derived transport dimensions; PF-N3/PF-N4 are environment/probe artifacts.</Fix>
+        </Applied>
+      </Review>
     </ReviewLog>
   </C-STATS-DASH-PUSH>
 </GraceChangePlan>

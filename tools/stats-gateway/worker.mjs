@@ -33,7 +33,8 @@
 //   DEPENDS: tables.mjs (the shared renderer, SQL text and
 //            normalization); Workers runtime fetch/waitUntil; env
 //            bindings (STATS; the readout secrets STATS_READ_KEY,
-//            STATS_API_TOKEN, STATS_ACCOUNT_ID).
+//            STATS_API_TOKEN, STATS_ACCOUNT_ID; the dashboard push
+//            secret DASH_COLLECT_KEY).
 //   LINKS:   .grace/graph/features.xml M-071;
 //            .grace/verification/features.xml V-M-071;
 //            .grace/changes/archive/C-UPDATER-STATS spec R-1..R-5,
