@@ -248,7 +248,8 @@ describe('util/filePositionStore (C-FILE-POSITION-MEMORY)', () => {
     const store = io.dump().get(FILE_POSITIONS_PREFS_KEY)
     expect(store.files['/deleted.md']).toBeUndefined()
     expect(store.files['/evicted.md']).toBeTruthy()
-    expect(rejecting('MT_FS_PERM_DENIED')).rejects.toBeInstanceOf(Error)
+    // vitest 5 fails unawaited async assertions — await the rejects
+    await expect(rejecting('MT_FS_PERM_DENIED')).rejects.toBeInstanceOf(Error)
   })
 
   it('the default stat checker maps MT_FS_NOT_FOUND rejections to confirmed-missing', async () => {
