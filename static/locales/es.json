@@ -538,7 +538,7 @@
         "title": "Texto",
         "font": "Fuente del texto",
         "lineHeight": "Interlineado",
-        "lineWidthHelp": "Déjalo vacío para usar el ancho del tema o introduce un número con px, % o ch; por ejemplo, 720px.",
+        "lineWidthHelp": "Déjalo vacío para usar todo el ancho o introduce un número con px, % o ch; por ejemplo, 720px.",
         "fontSize": "Tamaño del texto",
         "unlimited": "Sin límite",
         "lineWidth": "Ancho del área de escritura"
@@ -1275,7 +1275,8 @@
       "project": "Proyecto",
       "update": "Actualización",
       "agent": "Agente",
-      "system": "Sistema"
+      "system": "Sistema",
+      "rollback": "Reversión"
     },
     "actions": {
       "copy": "Copiar",
@@ -1287,7 +1288,9 @@
       "title": "Notificaciones",
       "empty": "Sin notificaciones en esta sesión",
       "copy": "Copiar"
-    }
+    },
+    "actionFailedTitle": "Falló la acción",
+    "actionFailedBody": "Los detalles están en el registro."
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1437,7 +1440,8 @@
       "fontFamily": "Familia de fuente:"
     },
     "info": {
-      "description": "Por favor personalice la apariencia de la página y haga clic en \"exportar\" para continuar."
+      "description": "Por favor personalice la apariencia de la página y haga clic en \"exportar\" para continuar.",
+      "label": "Información"
     },
     "page": {
       "topBottom": "Superior/Inferior:",
@@ -1447,10 +1451,13 @@
       "leftRight": "Izquierda/Derecha:",
       "widthHeight": "Ancho/Alto en mm:",
       "pageSize": "Tamaño de página:",
-      "pageMarginPreset": "Márgenes:"
+      "pageMarginPreset": "Márgenes:",
+      "pageMargin": "Margen de página en mm:"
     },
     "theme": {
-      "theme": "Tema"
+      "theme": "Tema",
+      "label": "Tema",
+      "description": "Puede cambiar la apariencia del documento eligiendo un tema o creando uno personalizado."
     },
     "headerFooter": {
       "customizeStyle": "Personalizar estilo",
@@ -1461,7 +1468,16 @@
       "footerText": "Pie de página",
       "leftSlot": "Izquierda",
       "centerSlot": "Centro",
-      "rightSlot": "Derecha"
+      "rightSlot": "Derecha",
+      "footerType": "Tipo de pie de página",
+      "description": "El texto aparece en todas las páginas si se define encabezado y/o pie de página.",
+      "mainHeaderText": "Texto del encabezado principal",
+      "rightHeaderText": "Texto del encabezado derecho",
+      "headerType": "Tipo de encabezado",
+      "leftFooterText": "Texto del pie izquierdo",
+      "rightFooterText": "Texto del pie derecho",
+      "mainFooterText": "Texto del pie principal",
+      "leftHeaderText": "Texto del encabezado izquierdo"
     },
     "autoNumberingHeadings": "Numeración automática de encabezados",
     "showFrontMatter": "Mostrar metadatos",
@@ -1470,7 +1486,8 @@
     "toc": {
       "title": "Tabla de Contenidos",
       "includeTopHeading": "Incluir encabezado superior",
-      "includeTopHeadingDetail": "Incluir detalle del encabezado superior"
+      "includeTopHeadingDetail": "Incluir detalle del encabezado superior",
+      "label": "Tabla de Contenidos"
     },
     "options": {
       "headerFooterStyles": {
@@ -1718,7 +1735,11 @@
     "title": "Volver a Mark {version}",
     "body": "Los ajustes vuelven a la copia tomada antes de la actualización: los cambios hechos después se pierden. Mark {current} se omitirá hasta que salga una versión más reciente.",
     "confirm": "Volver",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "restoreFailedTitle": "Falló la reversión",
+    "restoreFailedBody": "No se pudo restaurar la versión anterior. Los detalles están en el registro.",
+    "prefsSkippedTitle": "Reversión completada",
+    "prefsSkippedBody": "La versión anterior se restauró, pero no se pudieron recuperar los ajustes guardados: es posible que algunos ajustes hayan vuelto a los valores predeterminados."
   },
   "quickSettings": {
     "title": "Ajustes rápidos",

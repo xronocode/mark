@@ -33,6 +33,7 @@
 //   mt_rollback_prepare - Stage the running version before downloadAndInstall.
 //   mt_rollback_status - Report whether a valid rollback set exists.
 //   mt_rollback_restore - Re-validate and restore (menu/dialog path).
+//   mt_rollback_restore_outcome - Read-and-clear the restore-outcome marker (one-shot prefs-skip fact).
 //   run_cli_rollback - Headless pre-boot --rollback entry point.
 //   reconcile_at_boot - Promote a succeeded update's staging / finalize a restore.
 //   acquire_instance_lock - Hold the advisory instance lock for the process lifetime.
@@ -49,6 +50,12 @@
 //     boot promotion, lifetime instance lock, truthful
 //     restored_norelaunch CLI outcome; LINKS rerouted to the features
 //     graph/verification and the archived rollback bundle.
+//   - 2026-11-03 C-RENDER-REVIEW-FIXES T-001: structured restore-outcome
+//     fact — restore-outcome.json at the rollback root, written
+//     best-effort at the logged-and-skipped prefs site, stale/unconsumed
+//     copies removed at every restore and prepare entry, plus the
+//     read-and-clear mt_rollback_restore_outcome command (the app-store
+//     stub returns null).
 // END_CHANGE_SUMMARY
 
 use serde::{Deserialize, Serialize};
@@ -67,6 +74,17 @@ const INSTANCE_LOCK_FILE: &str = "instance.lock";
 const PROMOTION_ASIDE_DIR: &str = "live.promotion-aside";
 const DELEGATE_REQUEST_FILE: &str = "delegate.request";
 const DELEGATE_ACK_FILE: &str = "delegate.ack";
+/// The structured restore-outcome fact (T-001 C-RENDER-REVIEW-FIXES):
+/// a root-level sibling of instance.lock / delegate.* — never inside
+/// the live/ set the restore consumes — written best-effort at the
+/// logged-and-skipped preferences site and consumed read-and-clear by
+/// mt_rollback_restore_outcome.
+const RESTORE_OUTCOME_FILE: &str = "restore-outcome.json";
+/// The write-side diagnostics cap, shared with the strict read side
+/// (an over-cap error field reads as null). Truncation is on char
+/// boundaries — a byte slice would panic on localized multi-byte
+/// error text.
+const RESTORE_OUTCOME_ERROR_CAP: usize = 200;
 const DELEGATE_TIMEOUT_SECS: u64 = 10;
 /// The prefs key the renderer's skip-this-version logic already reads
 /// (autoUpdates.js SKIPPED_UPDATE_VERSION_KEY, exact-match semantics).
@@ -381,6 +399,10 @@ fn now_secs() -> u64 {
 #[cfg(not(feature = "app-store"))]
 pub fn prepare_inner() -> Result<(), String> {
     let root = rollback_root().ok_or_else(|| "data root unavailable".to_string())?;
+    // An unconsumed marker is dead once a new update begins (T-001
+    // C-RENDER-REVIEW-FIXES): clear it through the root-explicit helper —
+    // no signature change, the root comes from the existing seam.
+    clear_restore_outcome(&root);
     let staging = root.join(STAGING_DIR);
     // Clean stale temp siblings from earlier interrupted runs first.
     if staging.exists() {
@@ -815,6 +837,93 @@ fn finalize_finished_restore(root: &Path, running: &str) {
     }
 }
 
+// ─── Restore-outcome fact (T-001 C-RENDER-REVIEW-FIXES) ─────────────
+
+/// The marker schema, strict on BOTH sides (T-001 C-RENDER-REVIEW-FIXES):
+/// the write side caps the diagnostics on char boundaries; the read side
+/// treats any parse failure — a missing `at` field included — or an
+/// over-cap `error` as null. `at` is the unix-seconds write time that
+/// bounds the fact's consumer window in the renderer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreOutcomeRecord {
+    pub prefs: String,
+    pub error: String,
+    pub at: i64,
+}
+
+/// Truncate to `cap` chars ON CHAR BOUNDARIES: `char_indices`, never a
+/// byte slice — a byte cut mid-codepoint would panic on localized
+/// (multi-byte) OS error text.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn truncate_chars(s: &str, cap: usize) -> &str {
+    match s.char_indices().nth(cap) {
+        Some((idx, _)) => &s[..idx],
+        None => s,
+    }
+}
+
+/// The strict read-side bound: an `error` over the write-side cap reads
+/// as null (and clears) — the same bound the writer enforced.
+#[cfg(not(feature = "app-store"))]
+fn error_exceeds_cap(err: &str) -> bool {
+    err.chars().count() > RESTORE_OUTCOME_ERROR_CAP
+}
+
+/// Write the marker best-effort at the logged-and-skipped preferences
+/// site (macOS only — the sole logged-and-skipped site; a Windows prefs
+/// failure hard-aborts the restore instead). The root is the live set's
+/// parent (rollback_root itself, never inside the consumed live/ set) —
+/// the root level that already hosts instance.lock and the delegate
+/// files, so the marker survives both the restore's remove_dir_all(base)
+/// and the boot finalization. A failed write is a stderr marker only —
+/// the fact channel must never alter the restore outcome or its exit
+/// code.
+#[cfg(target_os = "macos")]
+fn write_restore_outcome_marker(base: &Path, reason: &str) {
+    let Some(root) = base.parent() else {
+        return;
+    };
+    let record = RestoreOutcomeRecord {
+        prefs: "skipped".to_string(),
+        error: truncate_chars(reason, RESTORE_OUTCOME_ERROR_CAP).to_string(),
+        at: now_secs() as i64,
+    };
+    let written = serde_json::to_string(&record)
+        .map_err(|e| e.to_string())
+        .and_then(|raw| {
+            std::fs::write(root.join(RESTORE_OUTCOME_FILE), raw).map_err(|e| e.to_string())
+        });
+    if let Err(e) = written {
+        safe_eprintln!(
+            "[Rollback][restore][BLOCK_ROLLBACK_RESTORE outcome_marker_write_failed err={e}]"
+        );
+    }
+}
+
+/// Remove a stale/unconsumed marker at `root`, ignoring absence and
+/// errors (the `let _ =` removal precedent). Root-explicit on purpose:
+/// the prepare entry has no root seam and keeps its signature — it
+/// derives the root the way it already does and hands it here.
+fn clear_restore_outcome(root: &Path) {
+    let _ = std::fs::remove_file(root.join(RESTORE_OUTCOME_FILE));
+}
+
+/// Read-and-clear: parse the marker at `root` strictly — any parse
+/// failure (a missing `at` field included) or an over-cap `error` is
+/// null — and remove the file in the same call whatever the read
+/// yielded. Absent file → None (idempotent).
+#[cfg(not(feature = "app-store"))]
+fn read_and_clear_restore_outcome(root: &Path) -> Option<RestoreOutcomeRecord> {
+    let path = root.join(RESTORE_OUTCOME_FILE);
+    let parsed = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<RestoreOutcomeRecord>(&raw).ok())
+        .filter(|record| !error_exceeds_cap(&record.error));
+    let _ = std::fs::remove_file(&path);
+    parsed
+}
+
 // ─── Restore (T-003) ────────────────────────────────────────────────
 
 /// Fetch abstraction so unit tests can count fetches and serve
@@ -1177,6 +1286,10 @@ pub(crate) fn gui_restore_verified(
     if let Err(e) = prefs_restore(&prefs_snap, &m.previous_version) {
         safe_eprintln!("{}", prefs_skipped_human_line(&e));
         safe_eprintln!("[Rollback][restore][BLOCK_ROLLBACK_RESTORE prefs_skipped reason={e}]");
+        // The structured fact (T-001 C-RENDER-REVIEW-FIXES): best-effort
+        // and non-fatal, written BEFORE the live set below is consumed —
+        // the root comes from base.parent(), never inside that set.
+        write_restore_outcome_marker(base, &e);
     }
     // 4. The set is consumed by the completed restore (one-step depth).
     let _ = std::fs::remove_dir_all(base);
@@ -1204,6 +1317,10 @@ pub(crate) fn gui_restore_core(
         Some(p) => p.to_path_buf(),
         None => rollback_root().ok_or_else(|| "No valid rollback snapshot".to_string())?,
     };
+    // Stale-marker removal at this restore entry (T-001 C-RENDER-REVIEW-
+    // FIXES): a marker left by an earlier restore must not survive into
+    // this restore's outcome.
+    clear_restore_outcome(&root);
     let base = root.join(LIVE_DIR);
     let (_, m) = load_valid_live_at(&base, running)
         .ok_or_else(|| "No valid rollback snapshot".to_string())?;
@@ -1284,6 +1401,11 @@ pub fn restore_inner(
             None => return Err((7, "no data root".into())),
         },
     };
+    // Stale-marker removal at this restore entry (T-001 C-RENDER-REVIEW-
+    // FIXES) — the CLI and Windows-dialog entry beside gui_restore_core;
+    // it sits ahead of validation, so even an early no-snapshot error
+    // leaves the root clean.
+    clear_restore_outcome(&root);
     let base = root.join(LIVE_DIR);
 
     // 1. Validate (invalid == missing; exit 7).
@@ -1898,6 +2020,16 @@ pub async fn mt_rollback_restore(
     }
 }
 
+/// Read-and-clear the restore-outcome fact (T-001 C-RENDER-REVIEW-FIXES):
+/// the parsed skip record once, then null — the restored session's boot
+/// consumes the marker exactly once. No arguments, no content logging.
+#[cfg(not(feature = "app-store"))]
+#[tauri::command]
+pub async fn mt_rollback_restore_outcome() -> Result<Option<RestoreOutcomeRecord>, String> {
+    let root = rollback_root().ok_or_else(|| "data root unavailable".to_string())?;
+    Ok(read_and_clear_restore_outcome(&root))
+}
+
 // App-store stubs: no rollback surface anywhere (exit 3 voice).
 #[cfg(feature = "app-store")]
 #[tauri::command]
@@ -1917,6 +2049,13 @@ pub async fn mt_rollback_status() -> Result<RollbackStatus, String> {
 #[tauri::command]
 pub async fn mt_rollback_restore() -> Result<(), String> {
     Err("Updates are managed by the App Store".to_string())
+}
+// The status-stub pattern (T-001 C-RENDER-REVIEW-FIXES): Ok(null) keeps
+// an app-store boot quiet instead of logging the fallback error.
+#[cfg(feature = "app-store")]
+#[tauri::command]
+pub async fn mt_rollback_restore_outcome() -> Result<Option<RestoreOutcomeRecord>, String> {
+    Ok(None)
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────
@@ -3402,6 +3541,181 @@ mod rollback_gui_restore {
         assert!(line.contains("complete"), "the restore stands: {line}");
         assert!(!line.contains("abort"), "never claims an abort: {line}");
     }
+
+    /// Raw marker access for the fact-channel tests (T-001
+    /// C-RENDER-REVIEW-FIXES): bypasses the production writer.
+    fn write_raw_marker(root: &Path, text: &str) {
+        fs::write(root.join(RESTORE_OUTCOME_FILE), text).unwrap();
+    }
+
+    fn read_raw_marker(root: &Path) -> Option<String> {
+        fs::read_to_string(root.join(RESTORE_OUTCOME_FILE)).ok()
+    }
+
+    #[test]
+    fn skip_path_writes_marker_with_truncated_error_and_at() {
+        let root = TempDir::new().unwrap();
+        let base = make_valid_set(root.path(), "staged-binary");
+        let target = make_bundle(root.path(), "Mark.app", "running-binary");
+        // The injected reason exceeds the cap: the marker must carry the
+        // truncated prefix, never the full text.
+        let long_reason = "r".repeat(RESTORE_OUTCOME_ERROR_CAP + 40);
+        let reason = long_reason.clone();
+        let restored = gui_restore_core(
+            Some(root.path()),
+            "2.9.1",
+            &target,
+            &|_: &Path, _: &str| Err(reason.clone()),
+            &NoTrash,
+            &sys_rename,
+        )
+        .unwrap();
+        assert_eq!(restored, "2.9.0", "the restore completes despite the skip");
+        assert!(!base.exists(), "the set is consumed by the completed restore");
+        let raw = read_raw_marker(root.path()).expect("the skip path writes the marker");
+        let parsed: RestoreOutcomeRecord = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed.prefs, "skipped");
+        assert_eq!(
+            parsed.error.chars().count(),
+            RESTORE_OUTCOME_ERROR_CAP,
+            "the diagnostics are capped"
+        );
+        assert_eq!(
+            parsed.error,
+            long_reason
+                .chars()
+                .take(RESTORE_OUTCOME_ERROR_CAP)
+                .collect::<String>(),
+            "the cap keeps the prefix, not a tail"
+        );
+        assert!(
+            parsed.at > 0 && parsed.at as u64 <= now_secs(),
+            "the marker carries the unix-seconds write time: {}",
+            parsed.at
+        );
+    }
+
+    #[test]
+    fn cap_truncation_lands_on_char_boundaries() {
+        // Alternating 4-byte and 2-byte chars: a byte slice at the cap
+        // would panic or split a codepoint; char_indices never does.
+        let long = "🔥ё".repeat(RESTORE_OUTCOME_ERROR_CAP);
+        let cut = truncate_chars(&long, RESTORE_OUTCOME_ERROR_CAP);
+        assert_eq!(cut.chars().count(), RESTORE_OUTCOME_ERROR_CAP);
+        assert_eq!(
+            cut,
+            long.chars().take(RESTORE_OUTCOME_ERROR_CAP).collect::<String>()
+        );
+        // End-to-end through the writer on a temp root: no panic, and
+        // the written marker parses back with the capped field.
+        let root = TempDir::new().unwrap();
+        let base = make_valid_set(root.path(), "staged-binary");
+        write_restore_outcome_marker(&base, &long);
+        let raw = read_raw_marker(root.path()).expect("marker written");
+        let parsed: RestoreOutcomeRecord = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed.error.chars().count(), RESTORE_OUTCOME_ERROR_CAP);
+    }
+
+    #[test]
+    fn success_path_writes_no_marker() {
+        let root = TempDir::new().unwrap();
+        let base = make_valid_set(root.path(), "staged-binary");
+        let target = make_bundle(root.path(), "Mark.app", "running-binary");
+        let rec = PrefsRecorder { calls: Mutex::new(vec![]), fail: false };
+        drive(&root, &target, &rec).unwrap();
+        assert!(
+            read_raw_marker(root.path()).is_none(),
+            "a restore whose preferences succeed writes nothing"
+        );
+        assert!(!base.exists(), "the set is consumed");
+    }
+
+    #[test]
+    fn stale_marker_removed_when_a_new_restore_starts_both_entries() {
+        // Entry 1: gui_restore_core (the GUI/menu path).
+        let root = TempDir::new().unwrap();
+        let base = make_valid_set(root.path(), "staged-binary");
+        let target = make_bundle(root.path(), "Mark.app", "running-binary");
+        write_raw_marker(
+            root.path(),
+            r#"{"prefs":"skipped","error":"stale from an earlier restore","at":1}"#,
+        );
+        let rec = PrefsRecorder { calls: Mutex::new(vec![]), fail: false };
+        drive(&root, &target, &rec).unwrap();
+        assert!(
+            read_raw_marker(root.path()).is_none(),
+            "the stale marker did not survive the gui_restore_core entry"
+        );
+        assert!(!base.exists(), "the set is consumed");
+        // Entry 2: restore_inner (the CLI and Windows-dialog entry) —
+        // the removal sits ahead of validation, so even the early
+        // no-snapshot error leaves the root clean.
+        let root2 = TempDir::new().unwrap();
+        write_raw_marker(root2.path(), r#"{"prefs":"skipped","error":"stale","at":1}"#);
+        struct NoFetch;
+        impl Fetch for NoFetch {
+            fn get(&self, _url: &str) -> Result<Vec<u8>, String> {
+                Err("no fetch expected".to_string())
+            }
+        }
+        let noop_prefs = |_: &Path, _: &str| -> Result<(), String> { Ok(()) };
+        let err = restore_inner(
+            &NoFetch,
+            Some(true),
+            "2.9.1",
+            Some(root2.path()),
+            &noop_prefs,
+            None,
+            None,
+            true,
+        )
+        .unwrap_err();
+        assert_eq!(err.0, 7, "no live set in the fixture: {err:?}");
+        assert!(
+            read_raw_marker(root2.path()).is_none(),
+            "the stale marker did not survive the restore_inner entry"
+        );
+    }
+
+    #[test]
+    fn failed_marker_write_leaves_restore_outcome_unchanged() {
+        let root = TempDir::new().unwrap();
+        let base = make_valid_set(root.path(), "staged-binary");
+        let target = make_bundle(root.path(), "Mark.app", "running-binary");
+        // A directory at the marker name makes the best-effort write
+        // fail without touching any restore machinery.
+        fs::create_dir_all(root.path().join(RESTORE_OUTCOME_FILE)).unwrap();
+        let rec = PrefsRecorder { calls: Mutex::new(vec![]), fail: true };
+        let restored = drive(&root, &target, &rec).unwrap();
+        assert_eq!(restored, "2.9.0", "the restore outcome is unchanged");
+        assert_eq!(
+            rec.calls.lock().unwrap().len(),
+            1,
+            "the preferences write still ran"
+        );
+        assert!(!base.exists(), "the set is still consumed");
+        assert!(
+            root.path().join(RESTORE_OUTCOME_FILE).is_dir(),
+            "the failed write left the blocker untouched (stderr marker only)"
+        );
+    }
+
+    #[test]
+    fn marker_survives_the_live_consuming_step() {
+        let root = TempDir::new().unwrap();
+        let base = make_valid_set(root.path(), "staged-binary");
+        let target = make_bundle(root.path(), "Mark.app", "running-binary");
+        let rec = PrefsRecorder { calls: Mutex::new(vec![]), fail: true };
+        let restored = drive(&root, &target, &rec).unwrap();
+        assert_eq!(restored, "2.9.0");
+        assert!(!base.exists(), "the live set is consumed by the restore");
+        let raw = read_raw_marker(root.path())
+            .expect("the root-level marker survives remove_dir_all(base)");
+        let parsed: RestoreOutcomeRecord = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed.prefs, "skipped");
+        assert_eq!(parsed.error, "injected prefs failure");
+        assert!(parsed.at > 0);
+    }
 }
 
 // ─── Truthful relaunch outcome tests (T-006 C-UPDATER-REVIEW-FIXES) ─
@@ -3939,5 +4253,102 @@ mod rollback_boot {
         assert!(!root.path().join(LIVE_DIR).exists());
         assert!(!root.path().join(PROMOTION_ASIDE_DIR).exists());
         assert!(!root.path().join(STAGING_DIR).exists());
+    }
+}
+
+// ─── Restore-outcome read-and-clear tests (T-001 C-RENDER-REVIEW-FIXES)
+
+// The strict read side of the fact channel, driven on TempDir roots via
+// the root-explicit read_and_clear_restore_outcome / clear_restore_outcome
+// seams — never the real data root (the root-override precedent).
+#[cfg(all(test, not(feature = "app-store")))]
+mod rollback_restore_outcome {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn write_raw_marker(root: &Path, text: &str) {
+        fs::write(root.join(RESTORE_OUTCOME_FILE), text).unwrap();
+    }
+
+    #[test]
+    fn clear_restore_outcome_clears_unconsumed_marker_on_tempdir() {
+        let root = TempDir::new().unwrap();
+        write_raw_marker(
+            root.path(),
+            r#"{"prefs":"skipped","error":"unconsumed","at":1}"#,
+        );
+        clear_restore_outcome(root.path());
+        assert!(!root.path().join(RESTORE_OUTCOME_FILE).exists());
+        // Absence is ignored — a second clear is a quiet no-op.
+        clear_restore_outcome(root.path());
+    }
+
+    #[test]
+    fn read_and_clear_returns_record_once_then_none() {
+        let root = TempDir::new().unwrap();
+        write_raw_marker(
+            root.path(),
+            r#"{"prefs":"skipped","error":"injected prefs failure","at":1762100000}"#,
+        );
+        let first = read_and_clear_restore_outcome(root.path())
+            .expect("the first read returns the record");
+        assert_eq!(first.prefs, "skipped");
+        assert_eq!(first.error, "injected prefs failure");
+        assert_eq!(first.at, 1762100000);
+        assert!(
+            !root.path().join(RESTORE_OUTCOME_FILE).exists(),
+            "the file is removed in the same call"
+        );
+        assert!(
+            read_and_clear_restore_outcome(root.path()).is_none(),
+            "the second read is null — read-and-clear is one-shot"
+        );
+        // Idempotent on absent files: a missing root is None too.
+        assert!(read_and_clear_restore_outcome(&root.path().join("absent")).is_none());
+    }
+
+    #[test]
+    fn unparsable_missing_at_or_overlong_error_read_as_null_and_clear() {
+        // 1. Unparsable text.
+        let root = TempDir::new().unwrap();
+        write_raw_marker(root.path(), "{ not json");
+        assert!(read_and_clear_restore_outcome(root.path()).is_none());
+        assert!(
+            !root.path().join(RESTORE_OUTCOME_FILE).exists(),
+            "an unparsable marker is still cleared"
+        );
+        // 2. Schema-valid shape but missing the at field: unparsable by
+        //    the same strict-schema rule.
+        let root = TempDir::new().unwrap();
+        write_raw_marker(root.path(), r#"{"prefs":"skipped","error":"no timestamp"}"#);
+        assert!(read_and_clear_restore_outcome(root.path()).is_none());
+        assert!(
+            !root.path().join(RESTORE_OUTCOME_FILE).exists(),
+            "a missing-at marker is still cleared"
+        );
+        // 3. An error field over the write-side cap reads as null.
+        let root = TempDir::new().unwrap();
+        let overlong = "e".repeat(RESTORE_OUTCOME_ERROR_CAP + 1);
+        write_raw_marker(
+            root.path(),
+            &serde_json::json!({ "prefs": "skipped", "error": overlong, "at": 1 }).to_string(),
+        );
+        assert!(read_and_clear_restore_outcome(root.path()).is_none());
+        assert!(
+            !root.path().join(RESTORE_OUTCOME_FILE).exists(),
+            "an over-cap marker is still cleared"
+        );
+        // Boundary: exactly the cap is within the bound and reads back.
+        let root = TempDir::new().unwrap();
+        let exact = "e".repeat(RESTORE_OUTCOME_ERROR_CAP);
+        write_raw_marker(
+            root.path(),
+            &serde_json::json!({ "prefs": "skipped", "error": exact, "at": 1 }).to_string(),
+        );
+        assert!(
+            read_and_clear_restore_outcome(root.path()).is_some(),
+            "an exactly-cap error is accepted"
+        );
     }
 }

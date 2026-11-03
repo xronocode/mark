@@ -111,6 +111,7 @@ export type CommandName =
   | 'mt::rollback::prepare'
   | 'mt::rollback::status'
   | 'mt::rollback::restore'
+  | 'mt::rollback::restore_outcome'
 
 /**
  * Plain JSON-cloneable file stats. Mirrors v1.2.3's contextBridge
@@ -373,6 +374,10 @@ export interface CommandMap {
   'mt::rollback::restore': {
     args: Record<string, never>
     result: void
+  }
+  'mt::rollback::restore_outcome': {
+    args: Record<string, never>
+    result: { prefs: string; error: string; at: number } | null
   }
 }
 

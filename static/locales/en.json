@@ -546,7 +546,7 @@
         "title": "Text",
         "font": "Text font",
         "lineHeight": "Line spacing",
-        "lineWidthHelp": "Leave empty for the theme default width, or enter a number with px, % or ch — for example 720px.",
+        "lineWidthHelp": "Leave empty for full width, or enter a number with px, % or ch — for example 720px.",
         "fontSize": "Text size",
         "unlimited": "Unlimited",
         "lineWidth": "Writing area width"
@@ -1286,7 +1286,8 @@
       "project": "Project",
       "update": "Update",
       "agent": "Agent",
-      "system": "System"
+      "system": "System",
+      "rollback": "Rollback"
     },
     "actions": {
       "copy": "Copy",
@@ -1298,7 +1299,9 @@
       "title": "Notifications",
       "empty": "No notifications this session",
       "copy": "Copy"
-    }
+    },
+    "actionFailedTitle": "Action failed",
+    "actionFailedBody": "Details are in the log."
   },
   "problems": {
     "title": "Problems",
@@ -1453,7 +1456,8 @@
       "fontFamily": "Font family:"
     },
     "info": {
-      "description": "Please customize the page appearance and click on \"export\" to continue."
+      "description": "Please customize the page appearance and click on \"export\" to continue.",
+      "label": "Info"
     },
     "page": {
       "topBottom": "Top/Bottom:",
@@ -1463,10 +1467,13 @@
       "leftRight": "Left/Right:",
       "widthHeight": "Width/Height in mm:",
       "pageSize": "Page size:",
-      "pageMarginPreset": "Margins:"
+      "pageMarginPreset": "Margins:",
+      "pageMargin": "Page margin in mm:"
     },
     "theme": {
-      "theme": "Theme"
+      "theme": "Theme",
+      "label": "Theme",
+      "description": "You can change the document appearance by choosing a theme or create a handcrafted one."
     },
     "headerFooter": {
       "customizeStyle": "Customize style",
@@ -1477,7 +1484,16 @@
       "footerText": "Footer",
       "leftSlot": "Left",
       "centerSlot": "Center",
-      "rightSlot": "Right"
+      "rightSlot": "Right",
+      "footerType": "Footer type",
+      "description": "The text appear on all pages if header and/or footer is defined.",
+      "mainHeaderText": "Main header text",
+      "rightHeaderText": "Right header text",
+      "headerType": "Header type",
+      "leftFooterText": "Left footer text",
+      "rightFooterText": "Right footer text",
+      "mainFooterText": "Main footer text",
+      "leftHeaderText": "Left header text"
     },
     "autoNumberingHeadings": "Auto numbering headings",
     "showFrontMatter": "Show front matter",
@@ -1486,7 +1502,8 @@
     "toc": {
       "title": "Table of Contents",
       "includeTopHeading": "Include top heading",
-      "includeTopHeadingDetail": "Include top heading detail"
+      "includeTopHeadingDetail": "Include top heading detail",
+      "label": "Table of Contents"
     },
     "options": {
       "headerFooterStyles": {
@@ -1734,7 +1751,11 @@
     "title": "Roll back to Mark {version}",
     "body": "Settings return to the snapshot taken before the update — changes made after updating are reverted. Mark {current} will be skipped until a newer release ships.",
     "confirm": "Roll Back",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "restoreFailedTitle": "Rollback failed",
+    "restoreFailedBody": "The previous version could not be restored. Details are in the log.",
+    "prefsSkippedTitle": "Rollback finished",
+    "prefsSkippedBody": "The previous version was restored, but the saved settings could not be brought back — some settings may be back at their defaults."
   },
   "quickSettings": {
     "title": "Quick settings",
