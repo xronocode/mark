@@ -46,7 +46,8 @@
 //          services/notification (copy helpers), icons/chromeIcons, i18n.
 //   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-3/R-8;
 //          components/notificationCard (shared family, pulse CSS);
-//          store/editor.js BLOCK_LOAD_CHANGE (the file-changed sender).
+//          store/editor.js BLOCK_LOAD_CHANGE (the file-changed sender);
+//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-005).
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT

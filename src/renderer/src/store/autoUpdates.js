@@ -21,7 +21,8 @@
 //          the What's New gate + FETCH_BUILD_MODE);
 //          components/updateNotice (renders this.notice);
 //          src-tauri/src/m016_updater.rs mt_updater_check;
-//          .grace/graph/runtime.xml M-016 / M-011.
+//          .grace/graph/runtime.xml M-016 / M-011;
+//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-004/T-006).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

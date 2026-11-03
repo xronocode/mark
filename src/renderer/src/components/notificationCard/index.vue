@@ -16,7 +16,8 @@
 //   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-1/R-3/R-4;
 //          components/notificationStack (mounts it);
 //          components/updateNotice (actions + onDismiss injection);
-//          components/editorWithTabs/notifications (same visual family).
+//          components/editorWithTabs/notifications (same visual family);
+//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-003/T-005).
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT
