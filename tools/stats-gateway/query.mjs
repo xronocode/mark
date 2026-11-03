@@ -1,5 +1,5 @@
 // FILE: tools/stats-gateway/query.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-071 mt-stats-gateway. Owner-run reporting for the update
 //            funnel counters (C-UPDATER-STATS): prints the day × event ×
@@ -40,6 +40,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-03 v1.3.0 C-STATS-DASH-PUSH: the --remote error pointer
+//     retargeted to the README's 'Where the numbers go' section (the
+//     old Readout access section no longer exists).
 //   - 2026-10-30 C-UPDATER-STATS T-003: initial query tool.
 //   - 2026-11-03 v1.1.0 C-UPDATER-REVIEW-FIXES: live SQL selects
 //     index1 AS event, rows are read from the SQL API data array, and
@@ -146,7 +149,7 @@ export async function runRemote() {
   const readKey = process.env.STATS_READ_KEY
   if (typeof readKey !== 'string' || readKey.length === 0) {
     console.error(
-      'STATS_READ_KEY is required for remote mode (the gateway read key — see the README Readout access section).'
+      "STATS_READ_KEY is required for remote mode (the gateway read key — see the README's 'Where the numbers go' section)."
     )
     process.exit(1)
   }

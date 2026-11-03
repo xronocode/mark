@@ -1,5 +1,5 @@
 // FILE: tests/tools/stats-gateway.test.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the M-071 gateway worker's contract (C-UPDATER-STATS):
 //            the full derivation table (both platforms -> exact GitHub
@@ -47,9 +47,13 @@
 //   expectFixed502 - Fixed-502 body assertion (no-store + leak guard).
 //   stripLineComments - Full-line // comment stripper for the scans.
 //   drainDatapoints - Await and clear the shared recorded datapoint sink.
+//   DASH_KEY - Obviously-fake non-hex dashboard ingest key fixture (C-STATS-DASH-PUSH).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-03 v1.3.0 C-STATS-DASH-PUSH T-002: the dashboard push pins
+//     (event shape and key header per route, off-by-absence, swallow-on-
+//     failure, no push for malformed input).
 //   - 2026-10-30 C-UPDATER-STATS T-002: initial suite (baseline-true
 //     pins only; wave-surface pins and the query.mjs dry-mode test are
 //     added by T-005 once the config edits exist).
@@ -286,6 +290,131 @@ describe('tools/stats-gateway — best-effort counting (corner C-6)', () => {
     )
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toContain('Mark_2.9.0_aarch64.app.tar.gz')
+  })
+})
+
+// C-STATS-DASH-PUSH: the owner's dashboard intake. Obviously-fake
+// non-hex key fixture (this file is inside the secrets shape scan).
+const DASH_KEY = 'fake-dash-ingest-key'
+
+describe('tools/stats-gateway — dashboard push (C-STATS-DASH-PUSH)', () => {
+  const DASH_URL = 'https://dash.xronocode.com/api/v1/collect'
+
+  // A counting fetch stub recording only the dashboard calls; the AE
+  // write is a binding call, not a fetch, so every fetch is a push.
+  const dashRecorder = () => {
+    const calls = []
+    const impl = async (input, init) => {
+      calls.push({ input: String(input), init })
+      return new Response('{"accepted":1}', { status: 202 })
+    }
+    return { impl, calls }
+  }
+
+  const withFetchStub = async (impl, run) => {
+    const original = globalThis.fetch
+    globalThis.fetch = impl
+    try {
+      return await run()
+    } finally {
+      globalThis.fetch = original
+    }
+  }
+
+  const dashEnv = (over = {}) => ({ STATS: { writeDataPoint: (dp) => recorded.push(dp) }, DASH_COLLECT_KEY: DASH_KEY, ...over })
+
+  it('a valid /feed pushes exactly one mark.update_check event with the key header', async () => {
+    const rec = dashRecorder()
+    const res = await withFetchStub(rec.impl, () =>
+      call('GET', 'https://updates.mark.xronocode.com/feed?from=2.8.2&os=darwin', dashEnv(), makeCtx())
+    )
+    await Promise.allSettled(waiting.splice(0))
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toBe(GITHUB_MANIFEST_URL)
+    expect(rec.calls.length).toBe(1)
+    expect(rec.calls[0].input).toBe(DASH_URL)
+    expect(rec.calls[0].init.headers['x-collect-key']).toBe(DASH_KEY)
+    expect(rec.calls[0].init.headers['content-type']).toBe('application/json')
+    const body = JSON.parse(rec.calls[0].init.body)
+    expect(body.events.length).toBe(1)
+    const [event] = body.events
+    expect(event.name).toBe('mark.update_check')
+    expect(event.session).toBe('gateway')
+    expect(event.props).toEqual({ os: 'darwin', from: '2.8.2' })
+    expect(event.ts).toEqual(expect.any(Number))
+    expect(Number.isInteger(event.ts)).toBe(true)
+    expect(Math.abs(event.ts - Date.now())).toBeLessThan(60000)
+    expect(event.id).toMatch(/^[A-Za-z0-9_-]{1,64}$/)
+  })
+
+  it('a valid /pkg pushes exactly one mark.update_pkg event with platform/version props', async () => {
+    const rec = dashRecorder()
+    const res = await withFetchStub(rec.impl, () =>
+      call('GET', 'https://updates.mark.xronocode.com/pkg/windows-x86_64/2.9.0', dashEnv(), makeCtx())
+    )
+    await Promise.allSettled(waiting.splice(0))
+    expect(res.status).toBe(302)
+    expect(rec.calls.length).toBe(1)
+    const [event] = JSON.parse(rec.calls[0].init.body).events
+    expect(event.name).toBe('mark.update_pkg')
+    expect(event.props).toEqual({ platform: 'windows-x86_64', version: '2.9.0' })
+  })
+
+  it('an unset or empty DASH_COLLECT_KEY performs zero dashboard fetches while the AE write still happens', async () => {
+    for (const env of [dashEnv({ DASH_COLLECT_KEY: undefined }), dashEnv({ DASH_COLLECT_KEY: '' })]) {
+      const rec = dashRecorder()
+      recorded.splice(0)
+      const res = await withFetchStub(rec.impl, () =>
+        call('GET', 'https://updates.mark.xronocode.com/feed?from=2.8.2&os=windows', env, makeCtx())
+      )
+      await Promise.allSettled(waiting.splice(0))
+      expect(res.status).toBe(302)
+      expect(rec.calls.length, 'no dashboard fetch without the key').toBe(0)
+      expect(recorded.length, 'the AE write still happened').toBe(1)
+    }
+  })
+
+  it('a rejecting or non-2XX dashboard changes nothing: byte-identical 302, no logs, no retry', async () => {
+    const outcomes = [
+      async () => {
+        throw new Error('network down')
+      },
+      async () => new Response('nope', { status: 500 })
+    ]
+    for (const impl of outcomes) {
+      const res = await withFetchStub(impl, () =>
+        call('GET', 'https://updates.mark.xronocode.com/pkg/darwin-aarch64/2.9.0', dashEnv(), makeCtx())
+      )
+      await Promise.allSettled(waiting.splice(0))
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location')).toContain('Mark_2.9.0_aarch64.app.tar.gz')
+    }
+  })
+
+  it('malformed input still pushes nothing: the push fires only for counted events', async () => {
+    const rec = dashRecorder()
+    const res = await withFetchStub(rec.impl, () =>
+      call('GET', 'https://updates.mark.xronocode.com/feed?from=not-semver&os=darwin', dashEnv(), makeCtx())
+    )
+    await Promise.allSettled(waiting.splice(0))
+    expect(res.status).toBe(404)
+    expect(rec.calls.length).toBe(0)
+    const res2 = await withFetchStub(rec.impl, () =>
+      call('GET', 'https://updates.mark.xronocode.com/pkg/linux-aarch64/2.9.0', dashEnv(), makeCtx())
+    )
+    await Promise.allSettled(waiting.splice(0))
+    expect(res2.status).toBe(404)
+    expect(rec.calls.length, 'malformed /pkg pushes nothing either').toBe(0)
+  })
+
+  it('the pushDash function body contains no console token and aborts at 10 seconds', () => {
+    const raw = readSource('tools/stats-gateway/worker.mjs')
+    const begin = raw.indexOf('function pushDash')
+    const end = raw.indexOf('\n}', begin)
+    expect(begin).toBeGreaterThan(-1)
+    const slice = stripLineComments(raw.slice(begin, end))
+    expect(slice).not.toMatch(/\bconsole\b/)
+    expect(slice).toContain('AbortSignal.timeout(10000)')
   })
 })
 
