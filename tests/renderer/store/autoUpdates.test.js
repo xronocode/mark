@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/autoUpdates.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-66 automatic-update gate — the full decision table
 //            (24 h throttle, What's New deferral, App Store gate, switch
@@ -28,7 +28,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-66 R-7 coverage completion: the
+//   LAST_CHANGE: v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: the
+//   CONFIRM_ROLLBACK failure pins — an injected mt_rollback_restore
+//   rejection and an injected @tauri-apps/api/core import failure both
+//   raise the localized rollback.restoreFailed* error notice (source
+//   'rollback', raw injected error never in the message) with zero
+//   unhandled rejections; the happy path stays silent.
+//   v1.1.0 - 2026-10-19 C-66 R-7 coverage completion: the
 //   ISO-string clock on a COMPLETED check (String(now) stamp) and the
 //   SKIP_VERSION lazy import of the real ipcPrefs facade.
 //   v1.0.0 - 2026-10-19 C-66 T-001: initial pins — the gate
@@ -41,6 +47,14 @@ import { setupTestPinia } from '../pinia'
 
 const { installSignedUpdateMock } = vi.hoisted(() => ({
   installSignedUpdateMock: vi.fn()
+}))
+
+vi.mock('@/util', () => ({
+  getUniqueId: vi.fn(() => 'auto-updates-id'),
+  delay: vi.fn(async () => {}),
+  isOsx: true,
+  isWindows: false,
+  isLinux: false
 }))
 
 vi.mock('@/commands', () => ({
@@ -56,6 +70,8 @@ import {
   SKIPPED_UPDATE_VERSION_KEY,
   CHECK_INTERVAL_MS
 } from '@/store/autoUpdates'
+import { useNotificationsStore } from '@/store/notifications'
+import { t } from '@/i18n'
 
 const NOW = new Date('2026-10-19T09:00:00Z')
 const HOURS = (n) => n * 60 * 60 * 1000
@@ -546,5 +562,101 @@ describe('autoUpdates — notice actions', () => {
 
     expect(store.notice.visible).toBe(false)
     error.mockRestore()
+  })
+})
+
+describe('autoUpdates — rollback confirmation (CONFIRM_ROLLBACK, C-RENDER-REVIEW-FIXES)', () => {
+  beforeEach(() => {
+    setupTestPinia()
+    vi.clearAllMocks()
+  })
+
+  const armRollback = (store) => {
+    store.rollback = { visible: true, previousVersion: '2.9.0', currentVersion: '2.9.1' }
+  }
+
+  it('an mt_rollback_restore rejection raises the localized error notice (source rollback; the raw error never reaches the GUI)', async () => {
+    const store = useAutoUpdatesStore()
+    armRollback(store)
+    const rawError = 'restore failed: prefs copy skipped (os error 13)'
+    const visibleAtInvoke = []
+    const invoke = vi.fn().mockImplementation(async () => {
+      visibleAtInvoke.push(store.rollback.visible)
+      throw new Error(rawError)
+    })
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await store.CONFIRM_ROLLBACK({ invokeFn: invoke })
+
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(invoke).toHaveBeenCalledWith('mt_rollback_restore')
+    // The card hides BEFORE the attempt (unchanged order) and stays hidden.
+    expect(visibleAtInvoke).toEqual([false])
+    expect(store.rollback.visible).toBe(false)
+
+    expect(useNotificationsStore().stack).toHaveLength(1)
+    const notice = useNotificationsStore().stack[0]
+    expect(notice.severity).toBe('error')
+    expect(notice.sticky).toBe(true)
+    expect(notice.source).toBe('rollback')
+    // From the key, not the hardcoded English: compared against the live
+    // i18n lookup, and the injected raw error string is absent.
+    expect(notice.title).toBe(t('rollback.restoreFailedTitle'))
+    expect(notice.message).toBe(t('rollback.restoreFailedBody'))
+    expect(notice.message).not.toContain(rawError)
+    error.mockRestore()
+  })
+
+  it('an @tauri-apps/api/core import failure joins the same failure path (finding-12): localized notice, zero unhandled rejections', async () => {
+    const store = useAutoUpdatesStore()
+    armRollback(store)
+    const rawError = 'injected core import failure'
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const rejections = []
+    const onUnhandled = (reason) => rejections.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    // vi.doMock (not hoisted): the next dynamic import of the module runs
+    // this throwing factory, so the store's import inside the try
+    // rejects. This test is the last core consumer in the file; the
+    // second doMock below restores the standard mock shape anyway.
+    vi.doMock('@tauri-apps/api/core', () => {
+      throw new Error(rawError)
+    })
+
+    await store.CONFIRM_ROLLBACK()
+
+    vi.doMock('@tauri-apps/api/core', () => ({
+      invoke: vi.fn(async () => undefined),
+      convertFileSrc: (path) => path
+    }))
+
+    // Give an unhandled rejection (if one existed) a macrotask to surface.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(rejections).toEqual([])
+    process.off('unhandledRejection', onUnhandled)
+
+    expect(useNotificationsStore().stack).toHaveLength(1)
+    const notice = useNotificationsStore().stack[0]
+    expect(notice.severity).toBe('error')
+    expect(notice.source).toBe('rollback')
+    expect(notice.title).toBe(t('rollback.restoreFailedTitle'))
+    expect(notice.message).toBe(t('rollback.restoreFailedBody'))
+    expect(notice.message).not.toContain(rawError)
+    error.mockRestore()
+  })
+
+  it('the happy path is unchanged: the restore resolves silently with no notice', async () => {
+    const store = useAutoUpdatesStore()
+    armRollback(store)
+    const invoke = vi.fn().mockResolvedValue(undefined)
+
+    await store.CONFIRM_ROLLBACK({ invokeFn: invoke })
+
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(invoke).toHaveBeenCalledWith('mt_rollback_restore')
+    expect(store.rollback.visible).toBe(false)
+    expect(useNotificationsStore().stack).toHaveLength(0)
   })
 })

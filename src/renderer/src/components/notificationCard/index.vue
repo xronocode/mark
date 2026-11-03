@@ -143,8 +143,11 @@ const onHover = (hovering) => {
 // START_BLOCK_ACTIONS
 // Corner C-7 contract: fire-and-forget. Built-in kinds (copy/retry/open/
 // reveal) carry a payload — copy writes it to the clipboard, the others are
-// caller-supplied functions. Custom entries carry label + handler. Nothing
-// resolves, nothing awaits an answer.
+// caller-supplied functions. Custom entries carry label + handler.
+// C-RENDER-REVIEW-FIXES T-003: the card awaits handler/payload — a rejection
+// is logged ([notificationCard][ACTION_FAILED]) and speaks once through a
+// localized warning notice carrying the entry's own source; success paths
+// keep the same handlers and the dismissal-free semantics.
 const actionLabel = (action) => {
   if (action.kind && !action.label) return t('notifications.actions.' + action.kind)
   return action.label || ''
@@ -155,15 +158,26 @@ const actionStyle = (action) => {
   return 'normal'
 }
 
-const runAction = (action) => {
-  if (typeof action.handler === 'function') {
-    action.handler()
-    return
-  }
-  if (action.kind === 'copy' && action.payload !== undefined) {
-    copySelectionText(String(action.payload))
-  } else if (typeof action.payload === 'function') {
-    action.payload()
+const runAction = async (action) => {
+  try {
+    if (typeof action.handler === 'function') {
+      await action.handler()
+      return
+    }
+    if (action.kind === 'copy' && action.payload !== undefined) {
+      copySelectionText(String(action.payload))
+    } else if (typeof action.payload === 'function') {
+      await action.payload()
+    }
+  } catch (e) {
+    console.error('[notificationCard][ACTION_FAILED]', e)
+    const notice = (await import('@/services/notification')).default
+    notice.notify({
+      title: t('notifications.actionFailedTitle'),
+      message: t('notifications.actionFailedBody'),
+      type: 'warning',
+      source: props.entry.source
+    })
   }
 }
 // END_BLOCK_ACTIONS

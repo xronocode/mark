@@ -1,6 +1,6 @@
 <!--
 // FILE: src/renderer/src/components/rollbackConfirm/index.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-UPDATER-ROLLBACK confirmation card — the three spec
 //            disclosures (target version, settings revert, skip of the
@@ -24,6 +24,11 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: onConfirm awaits
+//   store.CONFIRM_ROLLBACK() with a console-only catch — the store
+//   owns user feedback (a failed restore raises the localized
+//   rollback.restoreFailed* error notice there); the component owns
+//   rejection hygiene.
 //   - 2026-10-28 C-UPDATER-ROLLBACK T-005/T-006: initial component.
 // END_CHANGE_SUMMARY
 -->
@@ -47,8 +52,16 @@ let entryId = null
 // START_BLOCK_ROLLBACK_ACTIONS
 // Thin dispatchers: decisions live in the store actions; Cancel is a
 // strict no-op (nothing invoked, nothing persisted — pinned by test).
-const onConfirm = () => {
-  store.CONFIRM_ROLLBACK()
+// Confirm awaits the store action (C-RENDER-REVIEW-FIXES T-004): a
+// failure raises the localized error notice in the store's catch, so
+// the component's own catch is rejection hygiene only — console
+// marker, never user feedback.
+const onConfirm = async () => {
+  try {
+    await store.CONFIRM_ROLLBACK()
+  } catch (e) {
+    console.error('[rollbackConfirm][BLOCK_CONFIRM_FAILED]', e)
+  }
 }
 const onCancel = () => {
   store.CLOSE_ROLLBACK_CONFIRM()

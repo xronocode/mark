@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/store/autoUpdates.js
-// VERSION: 1.0.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-66 launch-time update check — the once-per-24 h gate
 //            (What's New deferral, App Store gate, autoCheckUpdates
@@ -37,7 +37,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-28 C-UPDATER-ROLLBACK T-005: rollback
+//   LAST_CHANGE: v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: the
+//   CONFIRM_ROLLBACK failure path can no longer fail silently — the
+//   @tauri-apps/api/core import moved inside the try (an import
+//   rejection joins the invoke-failure path) and the catch raises the
+//   localized error notice rollback.restoreFailedTitle/Body
+//   (source 'rollback', sticky by the store's error-severity rule);
+//   the raw Rust error stays console-only and never reaches the GUI.
+//   v1.1.0 - 2026-10-28 C-UPDATER-ROLLBACK T-005: rollback
 //   confirmation state (rollback: { visible, previousVersion,
 //   currentVersion }) plus OPEN_ROLLBACK_CONFIRM / CLOSE_ROLLBACK_CONFIRM
 //   / CONFIRM_ROLLBACK actions — OPEN gates on a fresh mt_rollback_status
@@ -58,6 +65,7 @@
 // END_CHANGE_SUMMARY
 
 import { defineStore } from 'pinia'
+import { t } from '../i18n'
 import { normalizeVersion } from '../util/version'
 
 export const AUTO_CHECK_UPDATES_KEY = 'autoCheckUpdates'
@@ -285,7 +293,12 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
     // mutex (m005 PrefsState serializes the snapshot overwrite with any
     // in-flight prefs write) and invokes mt_rollback_restore, which
     // re-validates everything before touching the system; CANCEL is a
-    // strict no-op (nothing invoked, nothing persisted).
+    // strict no-op (nothing invoked, nothing persisted). A failed
+    // restore — invoke rejection or @tauri-apps/api/core import
+    // failure, both inside the try — keeps the raw error to the console
+    // marker and raises the localized error notice
+    // rollback.restoreFailedTitle/Body (source 'rollback'; the card
+    // stays hidden — the notice replaces it, it is not resurrected).
     async OPEN_ROLLBACK_CONFIRM({ invokeFn = null } = {}) {
       let invoke = invokeFn
       if (!invoke) {
@@ -321,20 +334,26 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
       this.rollback.visible = false
       if (!previousVersion) return
       let invoke = invokeFn
-      if (!invoke) {
-        invoke = (await import('@tauri-apps/api/core')).invoke
-      }
       try {
-        // On macOS this restarts into the restored version; on Windows
-        // the Rust side spawns the verified installer and exits.
+        // The import shares the try with the invoke (finding-12): a
+        // failed facade load is a failed restore attempt, not an
+        // unhandled rejection. On macOS this restarts into the restored
+        // version; on Windows the Rust side spawns the verified
+        // installer and exits.
+        if (!invoke) {
+          invoke = (await import('@tauri-apps/api/core')).invoke
+        }
         await invoke('mt_rollback_restore')
       } catch (e) {
+        // Raw error for the logs only (finding-14): the GUI gets the
+        // localized copy, never String(e).
         console.error('[autoUpdates][CONFIRM_ROLLBACK][BLOCK_RESTORE_FAILED]', e)
         const notice = (await import('../services/notification')).default
         notice.notify({
-          title: 'Rollback failed',
-          message: String(e),
-          type: 'warning'
+          title: t('rollback.restoreFailedTitle'),
+          message: t('rollback.restoreFailedBody'),
+          type: 'error',
+          source: 'rollback'
         })
       }
     }

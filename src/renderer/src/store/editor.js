@@ -2261,7 +2261,7 @@ export const useEditorStore = defineStore('editor', {
             {
               kind: 'reveal',
               payload: () => {
-                window.electron.shell.showItemInFolder(filePath)
+                return window.electron.shell.showItemInFolder(filePath)
               }
             },
             {
@@ -2391,7 +2391,7 @@ export const useEditorStore = defineStore('editor', {
           {
             kind: 'reveal',
             payload: () => {
-              window.electron.shell.showItemInFolder(filePath)
+              return window.electron.shell.showItemInFolder(filePath)
             }
           }
         ]
