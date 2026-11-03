@@ -48,7 +48,6 @@
 //   stripLineComments - Full-line // comment stripper for the scans.
 //   drainDatapoints - Await and clear the shared recorded datapoint sink.
 //   DASH_KEY - Obviously-fake non-hex dashboard ingest key fixture (C-STATS-DASH-PUSH).
-//   dashRecorder - Counting fetch stub recording the dashboard push calls (C-STATS-DASH-PUSH).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
