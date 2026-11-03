@@ -1,0 +1,71 @@
+{
+  "change": "C-PAGE-WIDTH-TABLES",
+  "wave": "Execution wave 1 — T-001 preflight + plan tasks T-001 (page width store) and T-002 (width resolution pipeline)",
+  "date": "2026-11-02",
+  "executorNote": "Recorded in this bundle file because the approved plan.xml must not be edited in place (the same rule .grace/changes/active/C-50/sequencing.md states); the plan's Evidence slot for the preflight is satisfied by this record. Nothing under .grace/changes/archive/** was touched.",
+  "preflight": {
+    "date": "2026-11-02",
+    "branch": "feature/pagewidth-tables",
+    "base": "c36a1872 (main), working tree clean before the first write",
+    "graceLintCurrent": {
+      "command": "grace lint --path . --assertions current",
+      "filesChecked": 906,
+      "governedFiles": 393,
+      "xmlArtifacts": 293,
+      "errors": 2,
+      "warnings": 5,
+      "errorsDetail": [
+        "change.invalid-archive-status .grace/changes/archive/C-UPDATER-REVIEW-FIXES/plan.xml (FOREIGN, pre-existing, not ours to fix)",
+        "change.invalid-archive-status .grace/changes/archive/C-UPDATER-REVIEW-FIXES/spec.xml (FOREIGN, pre-existing, not ours to fix)"
+      ],
+      "warningsDetail": [
+        "scope.durable-overlap C-PAGE-WIDTH-TABLES vs C-50 on M-011 (expected; resolved by the recorded owner sequencing — C-50 deferred behind this change)",
+        "4x analysis.heuristic-confidence on python analysis files (pre-existing, unrelated)"
+      ]
+    },
+    "graceLintParallelPreflight": {
+      "command": "grace lint --path . --change C-PAGE-WIDTH-TABLES --assertions current --parallel-preflight",
+      "errors": 4,
+      "finding": "scope.observed-write-overlap and scope.parallel-durable-overlap against C-50 (graph/verification xml globs, locales glob, durable M-011) — C-PAGE-WIDTH-TABLES and C-50 cannot run in parallel. This is the overlap the owner sequencing instruction of 2026-10-27 already resolves: this change executes first, C-50 stays deferred (see .grace/changes/active/C-50/sequencing.md). No other active change overlaps this wave's writes. The 2 foreign C-UPDATER-REVIEW-FIXES archive-status errors are unchanged.",
+      "firstWriteGate": "re-run (not trusted) before the first write on 2026-11-02 — passed with only the findings above"
+    },
+    "moduleAnchorAvailability": {
+      "M-061": "free — no occurrence of M-061 anywhere under .grace/graph/ (graph/performance.xml holds M-001, M-011, M-012, M-021, M-022, M-024..M-030, M-060, M-063)",
+      "V-M-061": "free — no occurrence of V-M-061 anywhere under .grace/verification/ (verification/performance.xml holds V-M-001, V-M-005, V-M-021..V-M-030, V-M-060, V-M-063)",
+      "rule": "the plan claims the ids only through T-012's routing bundle; this wave only confirms availability per the plan's own rule"
+    },
+    "npmCi": "exit 0",
+    "npmRunBuild": "exit 0 (vite build; re-run green after the theme.js edit)"
+  },
+  "implementation": {
+    "planT-001-pageWidthStore": {
+      "file": "src/renderer/src/util/pageWidthStore.js (new, M-061)",
+      "scope": "One prefs key pageWidths; entries { value, unit(ch|px|%), themeOverride?, savedAt }; sanitize drops everything but finite positive integers, the three units and a non-empty-string theme id; 200-newest cap with deterministic path tie-break; tri-state missing-file prune (only a confirmed-missing file prunes); rename move flow mirroring filePositionStore/tableLayoutStore (serialized mutation queue, strict read so a failed read never becomes a write base); untitled and guide tabs (falsy pathname) are refused on save and load without any IO",
+      "tests": "tests/renderer/util/page-width-store.test.js — 13 tests green"
+    },
+    "planT-002-pageWidthPipeline": {
+      "file": "src/renderer/src/util/pageWidth.js (new, M-061)",
+      "scope": "resolveWidth document > theme > global naming the active source; parseWidth for the raw Appearance grammar; ch/px/% conversion on CH_TO_PX = 9.375 (the shipped 80ch = 750px identity) with % riding the live canvas; 10% preset snap onto UNIT_PRESETS plus nearestPreset anchor, isPresetValue, clampUnitValue, UNIT_BOUNDS; computeCanvasWidth = window − sidebar; computeRenderedBox = min(setting, canvas − 100px indent) with the 400px box floor, pure — the stored value is never mutated by clamping (corners C-2/C-3); resolveEffectiveWidth composer; computeAutoResizeTargetWidth = sidebar part + effective box as the recorded F-WINDOW-AUTO-RESIZE integration point (replaces the hardcoded 820 in store/layout.js when that feature revives — layout.js itself untouched, per spec R-3 it is a recorded dependency only)",
+      "themeIntegration": "util/theme.js addThemeStyle now ends with reapplyLastEditorWidth() (util/pageWidth.js): every theme stylesheet re-declares --editorAreaWidth, so the pipeline's inline value must be re-written after theme application; both orders (theme→width, width→theme) settle on the effective value — pinned by tests (review finding F1). setEditorWidth and the raw-preference path are byte-identical (baseline assertion text preserved). theme.js version bumped 2.1.0 → 2.2.0 with contract/map/summary updated",
+      "writer": "applyEditorWidth sets exactly one inline custom property (--editorAreaWidth) on the editor root — the % recompute on sidebar show/hide/drag is one property write per relayout, never a content re-render (corners C-3, finding F6); the host wiring (editor.vue sidebar watchers, per-document load/save hooks) belongs to the panel waves per the plan's task split and is NOT part of this wave",
+      "tests": "tests/renderer/util/page-width.test.js — 18 tests green"
+    }
+  },
+  "verification": {
+    "planT-001Command": "npx vitest run tests/renderer/util/page-width-store.test.js → 1 file, 13 tests passed",
+    "planT-002Command": "npx vitest run tests/renderer/util/page-width.test.js → 1 file, 18 tests passed",
+    "targetedRegression": [
+      "npx vitest run tests/renderer/util tests/renderer/store → 93 files, 1533 tests passed (includes theme.test.js, editor-width-default.test.js, outline-rail.test.js against the modified theme.js)",
+      "npx vitest run tests/renderer/components tests/renderer/muya tests/renderer/pages tests/renderer/prefComponents → 2254 passed, 2 skipped (pre-existing skips), 0 failed"
+    ],
+    "rendererBuild": "npm run build exit 0 (re-run after the theme.js change; built in 1m18s)",
+    "graceLintAfterWave": "grace lint --path . --assertions current → 910 files checked, Errors: 2 — only the 2 foreign C-UPDATER-REVIEW-FIXES archive-status errors; the wave introduced zero new findings (one transient markup.module-map-mismatch on the new test file's LOCALS map was fixed in the same wave)"
+  },
+  "deviations": [
+    "Plan numbering vs orchestrator numbering: this wave's preflight is recorded under the orchestrator's T-001 label; the code+tests deliver plan tasks T-001 (store) and T-002 (pipeline). Plan task T-003 (titlebar panel shell) is NOT part of this wave per the wave scope guard.",
+    "Evidence is recorded in this bundle file, not inside plan.xml — the approved plan must not be edited in place.",
+    "The default width arithmetic uses 768px (the shipped calc(100px + 768px) default, pinned by tests/renderer/util/editor-width-default.test.js), not the spec prose's 750px citations — the spec's own PlanNotes acknowledge the line-citation drift; presets stay px 600/750/900 per R-6.",
+    "editor.js RENAME / RENAME_IF_NEEDED wiring for movePageWidthEntry and the editor.vue host wiring are deferred: those files are outside the plan's ObservedWriteScope; the module exposes the same move flow the sibling stores use and the wiring lands with the panel/host wave."
+  ],
+  "release": "No version bump, tag or publication is authorized by this wave; release stays behind the separate owner-controlled workflow."
+}
