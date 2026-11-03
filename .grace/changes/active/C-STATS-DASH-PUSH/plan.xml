@@ -86,6 +86,16 @@
     </CornerMatrix>
     <ReviewLog>
       <!-- Implementation review gate: two consecutive clean four-corner passes before the PR. -->
+      <Review number="1" verdict="red" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>1/4 corners clean; 0 blocking, 3 important (all docs), 12 notes.</Result>
+        <Applied>
+          <Fix>UX-1 (important): query.mjs --remote error pointer retargeted to the README's 'Where the numbers go' section (the Readout access section no longer exists); query.mjs header bumped v1.3.0 with a CHANGE_SUMMARY entry.</Fix>
+          <Fix>UX-2 (important): the Privacy section discloses both sinks — Workers Analytics Engine (three months) and the owner's analytics dashboard keeping the same aggregate events; 'no long-term warehouse' tension resolved; 'No third party receives anything' added.</Fix>
+          <Fix>UX-3 (important): the absolute 'no Cloudflare API token used anywhere' claim narrowed to the truth — reading the numbers needs no token; the deploy and --live debug tokens remain and are named inline.</Fix>
+          <Fix>Notes applied: worker SCOPE gains the push sentence (plan wording); the dashboard fetch bounded with AbortSignal.timeout(10000); ts pinned as integer ~now; the malformed /pkg no-push case; a pushDash source-slice scan (no console token, the abort present); the duplicated deploy command collapsed to one copy; owner-side logout/state phrased as a post-deploy checklist. NC-5/PF-2/SP-N1 resolve with UX-3's narrowing; SP-N3 with UX-2. 54/54 green.</Fix>
+        </Applied>
+      </Review>
     </ReviewLog>
   </C-STATS-DASH-PUSH>
 </GraceChangePlan>
