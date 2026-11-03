@@ -1,0 +1,128 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-STATS-DASH-PUSH>
+    <IntentSummary>Implement the approved spec: one best-effort dashboard push per counted gateway event (mark.update_check / mark.update_pkg with props), off by absent DASH_COLLECT_KEY, responses byte-unchanged, counting and /stats untouched.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-071</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-071</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-071</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npm test</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-071 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-071 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/stats-gateway/worker.mjs</File>
+      <File>tests/tools/stats-gateway.test.mjs</File>
+      <File>tools/stats-gateway/README.md</File>
+      <File>tools/stats-gateway/query.mjs</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/changes/active/C-STATS-DASH-PUSH/plan.xml</File>
+      <File>.grace/changes/active/C-STATS-DASH-PUSH/spec.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>The pushDash helper and its two call sites</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>worker.mjs gains DASH_COLLECT_URL ('https://dash.xronocode.com/api/v1/collect') and pushDash(ctx, env, name, props): returns immediately when env.DASH_COLLECT_KEY is absent or empty; otherwise ctx.waitUntil one fetch POST with headers content-type application/json and x-collect-key, body JSON {events:[{id: crypto.randomUUID(), name, ts: Date.now(), session: 'gateway', props}]} with the response body cancelled and every error swallowed (try/catch plus .catch). handleFeed calls pushDash(ctx, env, 'mark.update_check', { os, from }) right after count(); handlePkg calls pushDash(ctx, env, 'mark.update_pkg', { platform, version }). Counting validation, redirects, datapoints and logging are otherwise byte-identical. The contract header is amended (PURPOSE/SCOPE sentence for the push, MODULE_MAP grows DASH_COLLECT_URL and pushDash, LINKS add C-STATS-DASH-PUSH, VERSION bump to 1.3.0 with a CHANGE_SUMMARY entry).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node --check tools/stats-gateway/worker.mjs &amp;&amp; grep -c "pushDash" tools/stats-gateway/worker.mjs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Push pins in the suite</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/tools/stats-gateway.test.mjs grows: (a) a stubbed-fetch recorder asserting for a valid /feed exactly one dashboard POST with the exact event object (name mark.update_check, session gateway, props os/from, ts within tolerance) and the x-collect-key header equal to a fake fixture key; (b) the same for /pkg with mark.update_pkg and platform/version; (c) off-by-absence: unset and empty DASH_COLLECT_KEY produce zero dashboard fetches while the AE write still happens; (d) swallow-on-failure: a rejecting or non-2XX dashboard stub leaves the 302 response byte-identical and logs nothing; (e) the secrets-name-only scan's allowed list gains DASH_COLLECT_KEY (fixture values obviously fake, non-hex where applicable). The file's governed header bumps VERSION and CHANGE_SUMMARY. Existing 48 tests keep their expectations unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>README disclosure and setup; graph/verification amendments</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>README: the data-flow/privacy sentences disclose the dashboard push (aggregate dimensions only, owner's own dashboard, best-effort, off without the key); a short setup subsection documents issuing the site ingest key in the dashboard and setting it as the worker secret DASH_COLLECT_KEY; every STATS_API_TOKEN instruction is removed (no Cloudflare API token is documented anywhere). .grace/graph/features.xml M-071: PURPOSE/Summary mention the dashboard push. .grace/verification/features.xml V-M-071: a push scenario mirroring T-002's pins; the owner-side live check (first mark.update_check events visible in the dashboard after the key is set) recorded as pending post-deploy evidence.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('.grace/graph/features.xml'); xml.dom.minidom.parse('.grace/verification/features.xml')" &amp;&amp; grep -c "DASH_COLLECT_KEY" tools/stats-gateway/README.md &amp;&amp; ! grep -q "STATS_API_TOKEN" tools/stats-gateway/README.md</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <C-1>
+        <Situation>Valid /feed with DASH_COLLECT_KEY set and a stubbed dashboard.</Situation>
+        <Expected>One POST, exact event {name mark.update_check, session gateway, props {os, from}, integer-ms ts}; 302 identical to today.</Expected>
+      </C-1>
+      <C-2>
+        <Situation>Valid /pkg likewise.</Situation>
+        <Expected>One POST with mark.update_pkg and props {platform, version}; 302 identical.</Expected>
+      </C-2>
+      <C-3>
+        <Situation>DASH_COLLECT_KEY unset, empty, or the dashboard unreachable/rejecting.</Situation>
+        <Expected>Zero dashboard fetches (absent key) or a fully swallowed failure; responses and AE writes byte-unchanged; no logs.</Expected>
+      </C-3>
+      <C-4>
+        <Situation>The full 48-plus suite and the secrets scan after the change.</Situation>
+        <Expected>Green; the scan allows only the secret NAMES incl. DASH_COLLECT_KEY; README names no Cloudflare API token for reading.</Expected>
+      </C-4>
+    </CornerMatrix>
+    <ReviewLog>
+      <!-- Implementation review gate: two consecutive clean four-corner passes before the PR. -->
+      <Review number="1" verdict="red" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>1/4 corners clean; 0 blocking, 3 important (all docs), 12 notes.</Result>
+        <Applied>
+          <Fix>UX-1 (important): query.mjs --remote error pointer retargeted to the README's 'Where the numbers go' section (the Readout access section no longer exists); query.mjs header bumped v1.3.0 with a CHANGE_SUMMARY entry.</Fix>
+          <Fix>UX-2 (important): the Privacy section discloses both sinks — Workers Analytics Engine (three months) and the owner's analytics dashboard keeping the same aggregate events; 'no long-term warehouse' tension resolved; 'No third party receives anything' added.</Fix>
+          <Fix>UX-3 (important): the absolute 'no Cloudflare API token used anywhere' claim narrowed to the truth — reading the numbers needs no token; the deploy and --live debug tokens remain and are named inline.</Fix>
+          <Fix>Notes applied: worker SCOPE gains the push sentence (plan wording); the dashboard fetch bounded with AbortSignal.timeout(10000); ts pinned as integer ~now; the malformed /pkg no-push case; a pushDash source-slice scan (no console token, the abort present); the duplicated deploy command collapsed to one copy; owner-side logout/state phrased as a post-deploy checklist. NC-5/PF-2/SP-N1 resolve with UX-3's narrowing; SP-N3 with UX-2. 54/54 green.</Fix>
+        </Applied>
+      </Review>
+      <Review number="2" verdict="red" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>2/4 corners clean; 0 blocking, 2 important (PF-1 scope lists, UXD-1 domain-field), 11 notes.</Result>
+        <Applied>
+          <Fix>PF-1 (important): query.mjs added to the plan's ObservedWriteScope and the spec's AffectedAreas (the round-1 UX-1 pointer fix is now a declared write); the CornerMatrix's mis-nested corner tags repaired (C-2..C-4 well-formed).</Fix>
+          <Fix>UXD-1 (important): the README setup step warns to leave the dashboard's optional domain field empty (a bound domain would 403 every push silently), and the Verify paragraph names that as the one silent failure mode to re-issue without; UXD-4 applied alongside (the three-month window attributed to the Analytics Engine store, the dashboard keeps its copy past it).</Fix>
+          <Fix>Notes: CC-N1/UXD-2/PF-2 are the gate's own count corrections (6 new pins, 54 total — recorded here); CC-N2/SP-N1/UXD-3 confirm the narrowed token story is the operative one; CC-N3 records the scan-scope vacuity (harmless, the bundle greps clean); CC-N4 is the by-design split of the no-log property into the source-slice pin; SP-N2 records the redirect-hop subrequest ceiling (~21 max, far under 50); UXD-5 records the dashboard-side derived dimensions (device/country columns on mark.update_* events).</Fix>
+        </Applied>
+      </Review>
+      <Review number="3" verdict="red" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>3/4 corners clean; 0 blocking, 1 important, 20 notes (mostly verification records incl. full R-1/receiver-contract conformance readbacks and live latency probes).</Result>
+        <Applied>
+          <Fix>UXD-P1 (important): the README now discloses the push's pre-deploy state — the header names the push among what ships with the next owner-side deploy, the setup step says setting the key changes nothing until that deploy, and the Verify checklist leads with confirming the deploy before the key and the domain field.</Fix>
+          <Fix>Notes applied: UXD-N1 (the same...as idiom), UXD-N3 (the prebuilt-template-broader-than-name caution restored), CC-N3 (worker DEPENDS names DASH_COLLECT_KEY). CC-N1/UXD-N5/PF-N1 are the gate's count corrections (already recorded); CC-N2/CC-N4/SP-N2/UXD-N4 confirm adjudicated states; CC-N5 records the foreign working-tree noise excluded from the branch; SP-N1 records the receiver-side derived transport dimensions; PF-N3/PF-N4 are environment/probe artifacts.</Fix>
+        </Applied>
+      </Review>
+      <Review number="4" verdict="green" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>4/4 corners clean — clean pass #1; 0 blocking, 0 important, 19 notes (all verification records or stale-ask-count corrections: live runs 54/54, bundle +1.05 KiB raw/+0.32 gzip, exactly one dashboard fetch per counted event, AE write is a binding not a fetch so the subrequest budget sees only the push; README token story confirmed as the adjudicated narrowing; the receiver contract accepted as given, its repo not publicly fetchable).</Result>
+      </Review>
+      <Review number="5" verdict="green" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>4/4 corners clean — SECOND CONSECUTIVE CLEAN PASS (rounds 4-5): the implementation review gate is CLOSED; 0 blocking, 0 important, 18 notes (all verification records: 54/54, bundle +1.05 KiB raw/+0.32 gzip exactly measured, foreign-to-branch npm-test failure traced to the parallel session's uncommitted tableLayoutStore edit, receiver repo not publicly fetchable — contract accepted as verified 2026-11-03). Notes not applied: the count corrections are the gate's own records; UXD-1 (query.mjs header 'documented reading path' phrase) is a one-line cosmetic staleness recorded for a future sweep; UXD-2/3/4 are cosmetic README nits below the bar.</Result>
+        <GateState>CLOSED — the PR follows on this text; execution of the merge and the owner-side deploy follow the owner's standing "go" order.</GateState>
+      </Review>
+    </ReviewLog>
+  </C-STATS-DASH-PUSH>
+</GraceChangePlan>

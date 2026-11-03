@@ -1,12 +1,14 @@
 // FILE: tools/stats-gateway/worker.mjs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-071 mt-stats-gateway. Redirect-only counting routes plus
 //            one keyed aggregate-readout JSON route (the documented
 //            exception) for the update funnel (C-UPDATER-STATS): /feed
 //            counts a check (day/os/from — the values Tauri's
 //            {{current_version}} and {{target}} placeholders substitute)
-//            and 302s to the GitHub manifest;
+//            and 302s to the GitHub manifest; every counted event is
+//            additionally pushed best-effort to the owner's own
+//            analytics dashboard (C-STATS-DASH-PUSH);
 //            /pkg/{platform}/{version} counts an updater artifact fetch
 //            and 302s to the deterministic GitHub asset; the keyed
 //            GET /stats route answers an X-Read-Key-authorized reader
@@ -23,11 +25,16 @@
 //            redirector. Unknown input on the counting routes is a plain
 //            404 with zero datapoints. No counting route ever returns a
 //            body it made; the readout route returns only its JSON
-//            tables and the fixed 502 body.
+//            tables and the fixed 502 body. Beside the AE write, every
+//            counted event is additionally pushed best-effort to the
+//            owner's analytics dashboard (C-STATS-DASH-PUSH) — off
+//            without DASH_COLLECT_KEY, failures swallowed, responses
+//            unchanged.
 //   DEPENDS: tables.mjs (the shared renderer, SQL text and
 //            normalization); Workers runtime fetch/waitUntil; env
 //            bindings (STATS; the readout secrets STATS_READ_KEY,
-//            STATS_API_TOKEN, STATS_ACCOUNT_ID).
+//            STATS_API_TOKEN, STATS_ACCOUNT_ID; the dashboard push
+//            secret DASH_COLLECT_KEY).
 //   LINKS:   .grace/graph/features.xml M-071;
 //            .grace/verification/features.xml V-M-071;
 //            .grace/changes/archive/C-UPDATER-STATS spec R-1..R-5,
@@ -35,7 +42,9 @@
 //            .grace/changes/active/C-STATS-READOUT spec R-1..R-4,
 //            R-7/R-8, plan T-003 — the readout route is this change's
 //            documented exception, and the bundle path moves under
-//            .grace/changes/archive/ when the change archives.
+//            .grace/changes/archive/ when the change archives;
+//            .grace/changes/active/C-STATS-DASH-PUSH — the dashboard
+//            push beside the AE write.
 //   STATUS:  C-UPDATER-STATS T-001. Deployed owner-side via wrangler to
 //            the custom domain updates.mark.xronocode.com (workers_dev
 //            disabled) — see README.md.
@@ -53,6 +62,8 @@
 //   handleFeed - /feed: validate from/os, count check, redirect.
 //   handlePkg - /pkg/{platform}/{version}: validate, count pkg, redirect.
 //   count - Fire one datapoint through waitUntil, swallowing failures.
+//   DASH_COLLECT_URL - The owner's analytics dashboard intake endpoint.
+//   pushDash - Fire one dashboard event through waitUntil, swallowing failures (off without DASH_COLLECT_KEY).
 //   seeOther - 302 response constructor.
 //   notFound - 404 response constructor.
 //   GITHUB_RELEASE_BASE - Constant prefix for derived asset URLs.
@@ -69,6 +80,10 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-10-30 C-UPDATER-STATS T-001: initial gateway worker.
+//   - 2026-11-03 v1.3.0 C-STATS-DASH-PUSH: every counted event is also
+//     pushed best-effort to the owner's dashboard (mark.update_check /
+//     mark.update_pkg with os/from/platform/version props); off without
+//     the DASH_COLLECT_KEY secret; responses byte-unchanged.
 //   - 2026-11-03 v1.1.0 C-UPDATER-REVIEW-FIXES: count() writes the
 //     documented datapoint shape — indexes: [index], blobs, doubles —
 //     instead of the invalid singular index field; LINKS rerouted to
@@ -137,6 +152,44 @@ function count(ctx, env, index, blobs) {
   }
 }
 
+// C-STATS-DASH-PUSH: the owner's own analytics dashboard intake. One
+// best-effort event per counted request, alongside the AE write — an
+// absent DASH_COLLECT_KEY disables the push entirely; failures are
+// swallowed and never change a response. Same aggregate dimensions the
+// AE write already stores; nothing request-derived is relayed.
+const DASH_COLLECT_URL = 'https://dash.xronocode.com/api/v1/collect';
+
+function pushDash(ctx, env, name, props) {
+  const key = env && env.DASH_COLLECT_KEY;
+  if (!key) return;
+  try {
+    ctx.waitUntil(
+      fetch(DASH_COLLECT_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-collect-key': key },
+        body: JSON.stringify({
+          events: [
+            {
+              id: crypto.randomUUID(),
+              name,
+              ts: Date.now(),
+              session: 'gateway',
+              props
+            }
+          ]
+        }),
+        // Bounded like the /stats upstream read: a hung dashboard
+        // connection must not outlive the platform's waitUntil cap.
+        signal: AbortSignal.timeout(10000)
+      })
+        .then((res) => res.body && res.body.cancel && res.body.cancel())
+        .catch(() => {})
+    );
+  } catch (_) {
+    // The push must never affect the response.
+  }
+}
+
 const seeOther = (url) =>
   new Response(null, { status: 302, headers: { Location: url } });
 
@@ -161,6 +214,10 @@ export function handleFeed(url, ctx, env, day) {
     a: params.get('os'),
     b: params.get('from')
   });
+  pushDash(ctx, env, 'mark.update_check', {
+    os: params.get('os'),
+    from: params.get('from')
+  });
   console.log(
     `[StatsGateway][feed][BLOCK_STATS_FEED os=${params.get('os')} from=${params.get('from')}]`
   );
@@ -180,6 +237,7 @@ export function handlePkg(url, ctx, env, day) {
   const target = derivePkgUrl(platform, version);
   if (!target) return notFound();
   count(ctx, env, 'pkg', { day, a: platform, b: version });
+  pushDash(ctx, env, 'mark.update_pkg', { platform, version });
   console.log(`[StatsGateway][pkg][BLOCK_STATS_PKG platform=${platform} version=${version}]`);
   return seeOther(target);
 }
