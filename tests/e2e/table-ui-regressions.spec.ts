@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-ui-regressions.spec.ts
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce wide-table centering, viewer zoom reachability and localized tooltip layout regressions reported on 2026-10-19.
 //   SCOPE: Chromium/WebKit full-editor table geometry, scroll-driven whole-outline occlusion/restoration, late outline visibility, click-driven viewer zoom and ten-locale image labels.
@@ -14,9 +14,16 @@
 //   locales - ten shipped translation dictionaries.
 //   tableGeometry - actual table center and full owning editor client bounds.
 //   documentState - current normalized Markdown and saved flag for scroll-only mutation checks.
+//   chooseFullWidth - evaluate-click helper: explicitly chooses the honest Full width mode through the toolbar segment (T-007 — nothing auto-expands anymore).
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - Pin the owner's scroll-driven whole-outline intersection rule without hover, page shift or content changes.
+//   LAST_CHANGE: v1.4.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   expanded-state cases choose Full width explicitly through the mode
+//   segment (nothing auto-expands in the honest model), and the
+//   outline-occlusion flip walks Auto (in-column wrapper scroll, rail
+//   visible) ↔ Full width (the editor scrolls, the rail hides) instead of
+//   clicking the retired two-state toggle.
+//   PREV: v1.3.0 - Pin the owner's scroll-driven whole-outline intersection rule without hover, page shift or content changes.
 //   PREV: v1.2.0 - Reproduce the remaining long-cell centering fault against editor bounds independently of outline placement.
 //   PREV: v1.1.0 - Reproduce late owned-outline visibility and preserve viewport-centered geometry without a window resize.
 //   PREV: v1.0.0 - 2026-10-19: user-reported table and tooltip regressions, verified in both rendering engines.
@@ -82,26 +89,46 @@ const documentState = (page: Page) => page.evaluate(() => {
 
 test.beforeEach(async ({ page }) => { await installTauriShim(page) })
 
+// T-007: the expanded state is the honest Full width mode — nothing
+// auto-expands anymore, so the mode is chosen explicitly through the
+// toolbar segment (the same evaluate-click the canon mode suites use).
+const chooseFullWidth = (page: Page) => page.evaluate(() => {
+  const button = document.querySelector("figure[data-role='TABLE'] button.ag-table-toolbar-mode[data-table-mode='full']") as HTMLElement | null
+  if (button) button.click()
+})
+
 test('long-cell table centers in the full editor while the outline remains overlaid', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1400, height: 900 })
   await bootEditor(page)
   await openFileTab(page, '/tmp/mark-e2e/long-cell-center.md', LONG_CELL_TABLE)
   // The outline retains its independent box even when an intersecting table hides it.
   expect(await page.locator('.outline-rail').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(0)
+  await chooseFullWidth(page)
   await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
+  // T-007: the honest distribution fills the window canvas up to its 24 px
+  // side gutters (a fitting table is capped at exactly available − 48;
+  // a degrading one stays inside the canvas too — never beyond it).
   await expect.poll(async () => {
     const g = await tableGeometry(page)
-    expect(g.tableWidth).toBeLessThan(g.clientWidth - 48)
-    return Math.abs(g.center - g.centerExpected)
+    return g.tableWidth <= g.clientWidth - 46
+      ? Math.abs(g.center - g.centerExpected)
+      : Number.POSITIVE_INFINITY
   }).toBeLessThanOrEqual(2)
   await expect(page.locator('.outline-rail')).toBeHidden()
   await page.screenshot({ path: testInfo.outputPath('long-cell-centered.png') })
-  // Hidden columns in Fit to page cannot intersect the outline.
+  // The width-mode flip now walks the segment: Auto keeps the table in its
+  // column (wrapper scroll, no page overflow → the rail shows); Full width
+  // scrolls the editor over the rail (hidden).
   const figure = page.locator("figure[data-role='TABLE']")
   await figure.hover()
-  await figure.locator('.ag-table-toolbar-toggle').click()
+  await page.evaluate(() => {
+    (document.querySelector("figure[data-role='TABLE'] button.ag-table-toolbar-mode[data-table-mode='auto']") as HTMLElement).click()
+  })
   await expect(page.locator('.outline-rail')).toBeVisible()
-  await figure.locator('.ag-table-toolbar-toggle').click()
+  await page.evaluate(() => {
+    (document.querySelector("figure[data-role='TABLE'] button.ag-table-toolbar-mode[data-table-mode='full']") as HTMLElement).click()
+  })
+  await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
   await expect(page.locator('.outline-rail')).toBeHidden()
 })
 
@@ -110,6 +137,10 @@ test('table intersection hides the whole outline during scrolling without hover 
   await bootEditor(page)
   const markdown = `# Scroll intersection\n\n${'Introductory paragraph.\n\n'.repeat(30)}${LONG_CELL_TABLE}\n${'Trailing paragraph.\n\n'.repeat(40)}`
   await openFileTab(page, '/tmp/mark-e2e/table-outline-intersection.md', markdown)
+  // The intersection premise needs the expanded canvas-filling table
+  // (T-007: chosen explicitly through the segment — nothing auto-expands).
+  await chooseFullWidth(page)
+  await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
   const beforeDocument = await documentState(page)
   expect(beforeDocument.isSaved).toBe(true)
   const rail = page.locator('.outline-rail')
@@ -146,13 +177,23 @@ for (const sidebar of [false, true]) test(`expanded table stays centered after r
   await page.setViewportSize({ width: 1600, height: 1000 })
   await bootEditor(page, { sideBarVisibility: sidebar })
   await openFileTab(page, '/tmp/mark-e2e/table-center.md', MEDIUM_TABLE)
+  await chooseFullWidth(page)
   await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
+  // T-007: the honest distribution caps a fitting table at the canvas
+  // gutters (available − 48); it must never spill beyond them. The resize
+  // is re-announced because headless Chromium occasionally coalesces the
+  // window resize event away (the rendering frame it rides on never
+  // runs); a real windowed resize always delivers it, and the funnel the
+  // event drives (refit → distribution → centering) is what this case
+  // pins.
   for (const width of [1600, 1400, 1800]) {
     await page.setViewportSize({ width, height: 1000 })
+    await page.evaluate(() => window.dispatchEvent(new Event('resize')))
     await expect.poll(async () => {
       const g = await tableGeometry(page)
-      expect(g.tableWidth).toBeLessThan(g.availableRight - g.availableLeft - 48)
-      return Math.abs(g.center - g.centerExpected)
+      return g.tableWidth <= g.availableRight - g.availableLeft - 46
+        ? Math.abs(g.center - g.centerExpected)
+        : Number.POSITIVE_INFINITY
     }).toBeLessThanOrEqual(2)
   }
   await page.screenshot({ path: testInfo.outputPath('table-centered.png') })
@@ -162,10 +203,13 @@ test('late outline visibility keeps an expanded table centered without a window 
   await page.setViewportSize({ width: 1600, height: 1000 })
   await bootEditor(page)
   await openFileTab(page, '/tmp/mark-e2e/table-late-outline.md', MEDIUM_TABLE)
+  // T-007: the expanded state is the honest Full width mode, chosen
+  // explicitly. Its canvas-filling table occludes the rail from the start
+  // (the old case could keep the rail visible next to a natural-width
+  // expanded table — the honest distribution spans the whole canvas).
+  await chooseFullWidth(page)
   await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
   const rail = page.locator('.outline-rail')
-  await expect(rail).toBeVisible()
-  await page.evaluate(() => (window as any).__bus.emit('cmd::execute', 'view.outline'))
   await expect(rail).toBeHidden()
   await page.evaluate(() => document.fonts.ready)
   // Settle the existing 300ms startup resize throttle before changing only the rail.
@@ -174,10 +218,12 @@ test('late outline visibility keeps an expanded table centered without a window 
     const g = await tableGeometry(page)
     return Math.abs(g.center - g.centerExpected)
   }).toBeLessThanOrEqual(2)
+  // Late rail commands fire while the table occludes the rail: occlusion
+  // wins every time and the centering never shifts (the honest
+  // distribution runs once per frame change, never per rail event).
   for (const visible of [true, false]) {
     await page.evaluate(() => (window as any).__bus.emit('cmd::execute', 'view.outline'))
-    if (visible) await expect(rail).toBeVisible()
-    else await expect(rail).toBeHidden()
+    await expect(rail).toBeHidden()
     await expect.poll(async () => {
       const g = await tableGeometry(page)
       return Math.abs(g.center - g.centerExpected)

@@ -1,10 +1,10 @@
 // FILE: tests/e2e/table-toolbar-labels.spec.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce shrinking corner panels when moving between table/diagram buttons and pin cumulative label reveal until whole-panel exit.
 //   SCOPE: Real pointer traversal over table, Mermaid and Vega-Lite inline toolbars in Chromium/WebKit; label visibility, nonshrinking button/panel widths, panel anchoring, exit reset and unchanged document state.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, built renderer; existing webkit-tables project includes this table-*.spec.ts file.
-//   LINKS: .grace/changes/active/C-TOOLBAR-LABELS; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
+//   LINKS: .grace/changes/active/C-TOOLBAR-LABELS; .grace/changes/active/C-PAGE-WIDTH-TABLES T-007 (the table pill's three-button mode segment); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -13,7 +13,12 @@
 //   documentState - normalized Markdown and saved state, excluding view-only selection.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-20 C-TOOLBAR-LABELS: visited labels remain open through adjacent-button traversal, then reset on leaving the panel.
+//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   preamble click on the retired two-state width toggle is gone — the
+//   table pill now carries the always-visible three-button mode segment
+//   (Auto / Fit to page / Full width), so the traversal walks five real
+//   buttons with no setup click.
+//   PREV: v1.0.0 - 2026-10-20 C-TOOLBAR-LABELS: visited labels remain open through adjacent-button traversal, then reset on leaving the panel.
 // END_CHANGE_SUMMARY
 
 import { test, expect, type Page } from '@playwright/test'
@@ -58,7 +63,9 @@ for (const role of ['TABLE', 'MERMAID', 'VEGA-LITE']) {
     if (role !== 'TABLE') await expect(figure.locator('.ag-container-preview svg')).toBeVisible()
     await figure.scrollIntoViewIfNeeded()
     await figure.hover()
-    if (role === 'TABLE') await figure.locator('.ag-table-toolbar-toggle').click()
+    // T-007: no setup click — the width toggle is retired; the table pill
+    // carries the always-visible three-button mode segment plus Copy and
+    // the need-gated expand action (five buttons on a wide table).
     const panel = figure.locator('div.ag-block-toolbar')
     const buttons = panel.locator('button.ag-block-toolbar-btn:visible')
     const count = await buttons.count()

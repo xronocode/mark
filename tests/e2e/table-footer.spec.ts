@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-footer.spec.ts
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce the owner's table/counter/scrollbar spacing report and pin a compact constant-height reserved footer.
 //   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, continuous shade paint through the noneditable caption, sticky counter visibility, fitting-table width-control gating including restored Full width, bottom drag-handle hit testing and unchanged Markdown.
@@ -16,6 +16,11 @@
 //   shadePaintDelta - screenshot pixels at the same shade x coordinate inside the caption and its lower gap; detects an opaque noneditable caption patch.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 1.4.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the two
+//   toggle-based pins move to the honest model — a fitting table keeps
+//   Copy, has no expand action and carries the always-available mode
+//   segment on Auto (the need-gated toggle is retired), and the restored
+//   legacy fullWidth entry pins the migrated v2 mode on the segment.
 //   LAST_CHANGE: 1.3.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the width-mode preamble moves from the retired fake-fit toggle to the T-007 mode segment (Full width chosen explicitly; Auto carries the in-column overflow state).
 //   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: screenshot pixels catch the noneditable caption background lightening the edge shade.
 //   PREV: v1.1.0 - 2026-10-20 C-TABLE-FOOTER owner review: no width toggle or stray counter on fitting tables, including a restored Full width choice.
@@ -157,18 +162,23 @@ test('reserved footer is equally tall and invisible when narrow or expanded tabl
   expect(Math.abs(overflowing.footerSpace - expanded.footerSpace)).toBeLessThanOrEqual(1)
 })
 
-test('a fitting table has no width toggle while copy as image remains reachable', async ({ page }) => {
+test('a fitting table keeps copy reachable, no expand action, and its always-available mode segment on Auto', async ({ page }) => {
   const narrow = page.locator("figure[data-role='TABLE']").nth(1)
   const before = await documentState(page)
   await narrow.hover()
-  await expect(narrow.locator('.ag-table-toolbar-toggle')).not.toBeVisible()
   await expect(narrow.locator('.ag-table-toolbar-copy')).toBeVisible()
   await expect(narrow.locator('.ag-table-toolbar-expand')).not.toBeVisible()
+  // T-007: the width control is the three-button mode segment now —
+  // present on every table (R-8: Auto is one click from any mode), not a
+  // need-gated toggle; a fitting table sits on Auto and shows no cue.
+  const modes = narrow.locator('button.ag-table-toolbar-mode')
+  await expect(modes).toHaveCount(3)
+  await expect(narrow.locator("button.ag-table-toolbar-mode[data-table-mode='auto']")).toHaveClass(/ag-table-toolbar-active/)
   expect((await footer(narrow)).captionText).toBe('')
   expect(await documentState(page)).toEqual(before)
 })
 
-test('a restored narrow Full width table has no toggle or stray column counter', async ({ page }) => {
+test('a restored narrow legacy-fullWidth table sits on the full mode with no stray column counter', async ({ page }) => {
   await page.addInitScript(profile => {
     const w = window as any
     w.__mockInvoke = { ...w.__mockInvoke,
@@ -181,9 +191,10 @@ test('a restored narrow Full width table has no toggle or stray column counter',
   await openFileTab(page, '/tmp/mark-e2e/table-footer.md', TABLES)
   const narrow = page.locator("figure[data-role='TABLE']").nth(1)
   await expect(narrow).toHaveClass(/ag-table-full-width/)
+  // The legacy fullWidth boolean migrates one-way to the v2 mode: the
+  // segment marks Full width active on the restored narrow table.
+  await expect(narrow.locator("button.ag-table-toolbar-mode[data-table-mode='full']")).toHaveClass(/ag-table-toolbar-active/)
   const before = await documentState(page)
-  await narrow.hover()
-  await expect(narrow.locator('.ag-table-toolbar-toggle')).not.toBeVisible()
   const geometry = await footer(narrow)
   expect(geometry.captionText).toBe('')
   expect(geometry.captionVisible).toBe('hidden')

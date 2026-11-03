@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 3.0.0
+// VERSION: 3.0.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Table column resize and the honest three-mode table model (C-PAGE-WIDTH-TABLES T-007/T-008/T-009 over the C-39 session widths and the C-65 persistent identities): Auto (content-sized, GitHub model), Fit page (the frame IS the text column — columns distributed by the shared tableFit algorithm with the wrap-anywhere fallback and, only when even the minimal sizes cannot fit, an honest minimal-size horizontal-scroll degradation with the «does not fit by N px» badge) and Full width (the whole window canvas — window minus sidebar — same algorithm, same degradation). The legacy fake-fit machinery (the auto-expansion default and the pinned-frame-with-scrolling-content «fit» flag) is retired; stored fit:true entries open in the new Fit page through an idempotent schema-v2 migration. Column sizes persist as px plus ratios plus an optional explicit table width; drags write both; window/zoom/page-width changes and Fit↔Full switches re-apply the ratios to the new frame. Drag affordances: the C-39 col-resize border handles (kept for parity), live %·px chips above every column during a drag, and side-wall handles outside Fit that set an explicit table width (double-click resets; a wall drag in Full switches the table to Auto with that width); walls clamp inside the visible scroll area so they stay hittable while the table overflows.
 //   SCOPE: The width store keyed by table block key (widths + manual + ratios + tableWidth), MIN_COLUMN_WIDTH clamping, column-count reconciliation (a new column takes a content-proportional share and the ratios renormalise), the persistent identity map (document ordinal + header signature), the schema-v2 sanitize/adoption rules with the idempotent fit:true migration (R-8) and the rememberTableColumnSizes guard over the persistence bridge, the mode map (fit/full; absent = auto) over the tri-state tableFullWidthDefault option ('auto' default per owner gate №5; legacy booleans map to auto — the fake-fit expansion default is gone), the tableFit consumption funnel (cached extents per identity/structure/font revision, re-fit debounced ~200 ms + rAF on container/figure resize), the degradation badge dataset + the caption sync, DOM application (colgroup + table-layout fixed; the Full width breakout geometry), the three-button toolbar mode segment DOM, the drag interaction (column drag in Fit/Full fixes that column and re-fits the remainder — the table never leaves its frame), the side-wall drag/auto-switch/reset, the %·px chips, capture-phase pointer/dblclick/scroll guards, a normal bubble-phase toolbar action route, caption isolation, and the ResizeObserver lifecycle (destroy() detaches; a disconnected container self-cleans).
@@ -36,7 +36,22 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007/T-008/T-009:
+//   LAST_CHANGE: v3.0.2 - 2026-11-02 fix: the wall/border overlap split.
+//   The right wall is centered on the table's outer edge, which is also
+//   the last column's C-39 border — the wall swallowed the border drag
+//   there (a scrolled-to-end table could no longer resize its last
+//   column). The zones now split at 1 px inside the cell: the C-39 border
+//   owns the deeper zone (pointerdown drag AND double-click reset), the
+//   wall keeps its center, the whole outward half and the overflow clamp
+//   point.
+//   PREV: v3.0.1 - 2026-11-02 fix: applyTableLayout re-syncs the
+//   caption AFTER the degradeOverflow dataset write. applyModeDom's
+//   caption sync ran BEFORE the new plan's badge fact existed, so a
+//   switch between two degrading modes (Full → Fit) left the previous
+//   mode's px on the badge and a degraded → Auto switch kept the whole
+//   stale badge (with its accent paint) on a table that now scrolls
+//   honestly in Auto.
+//   PREV: v3.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007/T-008/T-009:
 //   the honest three-mode model. Auto is content-sized (the C-39/C-65
 //   wrapper-scroll behaviour, GitHub model); Fit page pins the frame to the
 //   text column and distributes real columns through tableFit.js (wrap
@@ -417,6 +432,32 @@ class TableResize {
   findWall(target) {
     if (!target || target.nodeType !== 1 || !target.closest) return null
     return target.closest(`.${TABLE_WALL_CLASS}`)
+  }
+
+  // R-11 affordance priority: the right/left wall is centered on the
+  // table's outer edge, and that edge IS the last column's C-39 border —
+  // the two hit zones coincide when the edge is visible. The zones split
+  // at 1 px inside the cell: the column border owns the deeper zone (the
+  // shipped border drag grabs 2 px in), the wall keeps its center and the
+  // whole outward half (the shipped wall drag grabs the center) — and the
+  // wall keeps its full hit zone at the overflow clamp point, where no
+  // border sits beneath it.
+  wallOverlappedResizer(event, wall) {
+    if (!event || typeof event.clientX !== 'number' || !Number.isFinite(event.clientX)) return null
+    const figure = wall && wall.closest ? wall.closest("figure[data-role='TABLE']") : null
+    const table = figure && figure.querySelector('div.ag-table-scroll > table')
+    const headRow = table && table.tHead && table.tHead.rows[table.tHead.rows.length - 1]
+    const lastTh = headRow && headRow.cells[headRow.cells.length - 1]
+    if (!lastTh) return null
+    const resizer = lastTh.querySelector(`.${RESIZER_CLASS}`)
+    if (!resizer || typeof resizer.getBoundingClientRect !== 'function') return null
+    const rect = resizer.getBoundingClientRect()
+    if (!(rect.width > 0) || !(rect.height > 0)) return null
+    if (
+      event.clientX < rect.left || event.clientX > rect.right - 1 ||
+      event.clientY < rect.top || event.clientY > rect.bottom
+    ) return null
+    return resizer
   }
 
   findTableToolbarButton(target) {
@@ -842,6 +883,9 @@ class TableResize {
         this.applyExplicitTableWidth(key, figure, table, entry)
       }
       this.positionTableWalls(figure, table)
+      // The badge fact was deleted after applyModeDom's caption sync —
+      // re-sync so the caption drops the stale degradation text (v3.0.1).
+      syncTableCue(figure, this.muya.options && this.muya.options.t)
       return
     }
     const plan = this.planModeWidths(key, figure, table, mode)
@@ -875,6 +919,11 @@ class TableResize {
     this.widths.set(key, next)
     this.applyWidths(table, next)
     this.positionTableWalls(figure, table)
+    // The badge fact was written after applyModeDom's caption sync —
+    // re-sync so the badge states THIS mode's overflow px; a Full → Fit
+    // switch otherwise leaves the previous mode's number on the caption
+    // (v3.0.1).
+    syncTableCue(figure, this.muya.options && this.muya.options.t)
   }
 
   // T-009: the explicit side-wall width — columns refill the width from
@@ -1226,7 +1275,13 @@ class TableResize {
 
   handlePointerDown = event => {
     const wall = this.findWall(event.target)
-    if (wall) {
+    // R-11 priority: where a side wall coincides with a column border —
+    // the table's outer edge IS the last column's border — the C-39
+    // column affordance wins over the wall drag (the wall keeps its
+    // clamp-point hit zone while the table overflows, where no border
+    // sits beneath it).
+    const overlappedResizer = wall ? this.wallOverlappedResizer(event, wall) : null
+    if (wall && !overlappedResizer) {
       if (event.button !== undefined && event.button !== 0) return
       if (!this.enabled()) {
         event.preventDefault()
@@ -1238,7 +1293,7 @@ class TableResize {
       this.startWallDrag(event, wall)
       return
     }
-    const handle = this.findHandle(event.target)
+    const handle = overlappedResizer || this.findHandle(event.target)
     if (!handle) return
     if (event.button !== undefined && event.button !== 0) return
     if (!this.enabled()) {
@@ -1437,7 +1492,10 @@ class TableResize {
   // explicit table width (T-009).
   handleDoubleClick = event => {
     const wall = this.findWall(event.target)
-    if (wall) {
+    // R-11 priority: in the wall/border overlap the C-39 double-click wins
+    // — it resets THAT column, not the explicit table width.
+    const overlappedResizer = wall ? this.wallOverlappedResizer(event, wall) : null
+    if (wall && !overlappedResizer) {
       event.preventDefault()
       event.stopPropagation()
       if (!this.enabled()) return
@@ -1461,7 +1519,7 @@ class TableResize {
       this.persist()
       return
     }
-    const handle = this.findHandle(event.target)
+    const handle = overlappedResizer || this.findHandle(event.target)
     if (!handle) return
     event.preventDefault()
     event.stopPropagation()
