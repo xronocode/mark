@@ -343,6 +343,8 @@ describe('tools/stats-gateway — dashboard push (C-STATS-DASH-PUSH)', () => {
     expect(event.session).toBe('gateway')
     expect(event.props).toEqual({ os: 'darwin', from: '2.8.2' })
     expect(event.ts).toEqual(expect.any(Number))
+    expect(Number.isInteger(event.ts)).toBe(true)
+    expect(Math.abs(event.ts - Date.now())).toBeLessThan(60000)
     expect(event.id).toMatch(/^[A-Za-z0-9_-]{1,64}$/)
   })
 
@@ -398,6 +400,22 @@ describe('tools/stats-gateway — dashboard push (C-STATS-DASH-PUSH)', () => {
     await Promise.allSettled(waiting.splice(0))
     expect(res.status).toBe(404)
     expect(rec.calls.length).toBe(0)
+    const res2 = await withFetchStub(rec.impl, () =>
+      call('GET', 'https://updates.mark.xronocode.com/pkg/linux-aarch64/2.9.0', dashEnv(), makeCtx())
+    )
+    await Promise.allSettled(waiting.splice(0))
+    expect(res2.status).toBe(404)
+    expect(rec.calls.length, 'malformed /pkg pushes nothing either').toBe(0)
+  })
+
+  it('the pushDash function body contains no console token and aborts at 10 seconds', () => {
+    const raw = readSource('tools/stats-gateway/worker.mjs')
+    const begin = raw.indexOf('function pushDash')
+    const end = raw.indexOf('\n}', begin)
+    expect(begin).toBeGreaterThan(-1)
+    const slice = stripLineComments(raw.slice(begin, end))
+    expect(slice).not.toMatch(/\bconsole\b/)
+    expect(slice).toContain('AbortSignal.timeout(10000)')
   })
 })
 

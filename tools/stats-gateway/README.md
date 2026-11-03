@@ -39,16 +39,10 @@ bodyless 401, and upstream trouble is the fixed
 
 ## Deployment (owner-executed)
 
-Deploys are rare and owner-executed (no CI deployment),
-authenticated by the narrow deploy token (see
-[Where the numbers go](#where-the-numbers-go)) — not a broad OAuth grant:
-
-```sh
-cd tools/stats-gateway
-export CLOUDFLARE_API_TOKEN=…   # the narrow deploy token
-export CLOUDFLARE_ACCOUNT_ID=…  # the account ID from the dashboard account home
-npx wrangler deploy
-```
+Deploys are rare and owner-executed (no CI deployment), authenticated
+by the narrow deploy token — never a broad OAuth grant. The single
+copy of the deploy command and the token story lives in
+[Where the numbers go](#where-the-numbers-go).
 
 `wrangler.toml` carries the route as a Workers custom domain —
 `{ pattern = "updates.mark.xronocode.com", custom_domain = true }` —
@@ -65,8 +59,11 @@ none. Each counted request carries event, day (UTC), OS or platform,
 from-version or artifact version. No IP, no user agent, no cookies, no
 identifiers; Cloudflare edge metadata (`request.cf`, `CF-IPCountry`,
 geo/ASN) is never read — and the readout route reads no request header
-beyond `x-read-key`. Analytics Engine retains the data for three
-months; no long-term warehouse exists.
+beyond `x-read-key`. The event lands in exactly two stores, both the
+owner's own: Workers Analytics Engine (three-month retention, no
+longer-term warehouse) and the owner's analytics dashboard, which
+ingests and keeps the same aggregate events like any site's analytics.
+No third party receives anything.
 
 ## Reading the numbers
 
@@ -156,10 +153,11 @@ of any update check.
 The keyed `GET /stats` route (C-STATS-READOUT) still exists and still
 answers: **401** without a key, **404** before the route's version is
 deployed, and the fixed **502** for authorized reads — because reading
-Analytics Engine requires a Cloudflare account API token, and per the
-owner's decision (2026-11-03) **no Cloudflare API token is used
-anywhere in this gateway's story** — the dashboard push replaced the
-need for one. The `STATS_READ_KEY` and `STATS_ACCOUNT_ID` secrets stay
+the numbers needs no Cloudflare API token at all: per the owner's
+decision (2026-11-03) the dashboard push is the reading surface, and no
+token backs the readout. (The narrow deploy token and the owner-machine
+`--live` debug token below remain — they serve deploys and emergencies,
+not reading.) The `STATS_READ_KEY` and `STATS_ACCOUNT_ID` secrets stay
 set (they are harmless); reviving the readout would be its own future
 change, documented here only so the route's behavior is not a mystery.
 
@@ -178,10 +176,10 @@ the prebuilt **Edit Cloudflare Workers** template or a minimal Custom
 Token with the single permission `Account | Workers Scripts | Edit`
 (the minimal token requires the accompanying account id; the template
 does not). The token string is shown once at creation — miss it and
-the token must be recreated. The broad wrangler OAuth grant from the
-2026-11-02 deploy was already retired with `npx wrangler logout`; if
-a future deploy ever authenticates broadly again, retire it the same
-way and use the dashboard-side revocation path if it is listed.
+the token must be recreated. After any deploy that authenticated broadly (the 2026-11-02 one did),
+retire the grant: `npx wrangler logout` on the deploying machine, and
+the dashboard-side revocation path if it is listed. Treat this as a
+post-deploy checklist line, not a one-time fact.
 
 The three credential families, so they are not confused at setup:
 

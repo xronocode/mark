@@ -25,7 +25,11 @@
 //            redirector. Unknown input on the counting routes is a plain
 //            404 with zero datapoints. No counting route ever returns a
 //            body it made; the readout route returns only its JSON
-//            tables and the fixed 502 body.
+//            tables and the fixed 502 body. Beside the AE write, every
+//            counted event is additionally pushed best-effort to the
+//            owner's analytics dashboard (C-STATS-DASH-PUSH) — off
+//            without DASH_COLLECT_KEY, failures swallowed, responses
+//            unchanged.
 //   DEPENDS: tables.mjs (the shared renderer, SQL text and
 //            normalization); Workers runtime fetch/waitUntil; env
 //            bindings (STATS; the readout secrets STATS_READ_KEY,
@@ -172,7 +176,10 @@ function pushDash(ctx, env, name, props) {
               props
             }
           ]
-        })
+        }),
+        // Bounded like the /stats upstream read: a hung dashboard
+        // connection must not outlive the platform's waitUntil cap.
+        signal: AbortSignal.timeout(10000)
       })
         .then((res) => res.body && res.body.cancel && res.body.cancel())
         .catch(() => {})
