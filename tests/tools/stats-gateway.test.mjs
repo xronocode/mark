@@ -1,5 +1,5 @@
 // FILE: tests/tools/stats-gateway.test.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the M-071 gateway worker's contract (C-UPDATER-STATS):
 //            the full derivation table (both platforms -> exact GitHub
@@ -16,7 +16,7 @@
 //            no network, no Workers runtime.
 //   DEPENDS: vitest, node:fs (source scans — house precedent
 //            tests/renderer/commands/updater.test.js).
-//   LINKS: .grace/changes/active/C-UPDATER-STATS spec R-1/R-4, corners
+//   LINKS: .grace/changes/archive/C-UPDATER-STATS spec R-1/R-4, corners
 //          C-2/C-3/C-6/C-9; T-005 extends this file with the
 //          wave-surface pins and the dry-mode output-shape test.
 //   ROLE: TEST
@@ -42,12 +42,17 @@
 //     two-entry endpoints array, both gateway pkg prefixes in the feed
 //     fragments, m068 byte-unchanged) and the dry-mode output-shape
 //     test for query.mjs.
+//   - 2026-11-03 v1.1.0 C-UPDATER-REVIEW-FIXES: the datapoint mock
+//     asserts the exact written object (indexes: [index]), and new
+//     live-format subprocess tests drive query.mjs via the fetch
+//     preload; LINKS names the archived stats bundle.
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { join, resolve, dirname } from 'node:path'
+import { tmpdir } from 'node:os'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import worker, {
   OS_TABLE,
   PLATFORM_TABLE,
@@ -112,10 +117,13 @@ describe('tools/stats-gateway — /feed (check counting)', () => {
     expect(res.headers.get('Location')).toBe(GITHUB_MANIFEST_URL)
     const points = await writePoint()
     expect(points).toHaveLength(1)
-    expect(points[0].index).toBe('check')
-    expect(points[0].blobs[0]).toBe(utcDay())
-    expect(points[0].blobs[1]).toBe('darwin')
-    expect(points[0].blobs[2]).toBe('2.8.2')
+    // The exact Analytics Engine wire shape: indexes is the sample-column
+    // array, not a singular index field.
+    expect(points[0]).toEqual({
+      indexes: ['check'],
+      blobs: [utcDay(), 'darwin', '2.8.2'],
+      doubles: []
+    })
   })
 
   it('accepts windows as an OS value (the {{target}} substitution)', async () => {
@@ -165,9 +173,11 @@ describe('tools/stats-gateway — /pkg (artifact counting)', () => {
     )
     const points = await writePoint()
     expect(points).toHaveLength(1)
-    expect(points[0].index).toBe('pkg')
-    expect(points[0].blobs[1]).toBe('windows-x86_64')
-    expect(points[0].blobs[2]).toBe('2.9.0')
+    expect(points[0]).toEqual({
+      indexes: ['pkg'],
+      blobs: [utcDay(), 'windows-x86_64', '2.9.0'],
+      doubles: []
+    })
   })
 
   it('404s traversal, unknown platforms, non-strict versions, queries, case and slash variants', async () => {
@@ -314,5 +324,109 @@ describe('tools/stats-gateway — query.mjs dry-mode output shape (T-005)', () =
     expect(stdout).toContain('(dry mode')
     // The tables carry fixture rows, proving the renderer shapes data.
     expect(stdout).toMatch(/2026-11-\d{2} \|/)
+  })
+})
+
+describe('tools/stats-gateway — query.mjs live format (C-UPDATER-REVIEW-FIXES T-009)', () => {
+  // The fetch test double, loaded ahead of query.mjs via node --import.
+  const preloadHref = pathToFileURL(
+    resolve(ROOT, 'tests/tools/stats-gateway-fetch-preload.mjs')
+  ).href
+  // Explicit dummy credentials: the child never inherits real
+  // CF_API_TOKEN/CF_ACCOUNT_ID values, so a silently failed fetch
+  // substitution would carry a dummy token — never the owner's.
+  const dummyEnv = () => ({
+    ...process.env,
+    CF_API_TOKEN: 'dummy-token',
+    CF_ACCOUNT_ID: 'dummy-account-id'
+  })
+  const runLiveQuery = async ({ env, payload, log }) => {
+    const { execFile } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    const run = promisify(execFile)
+    const { stdout, stderr } = await run(
+      'node',
+      ['--import', preloadHref, 'tools/stats-gateway/query.mjs', '--live'],
+      {
+        cwd: ROOT,
+        env: {
+          ...env,
+          STATS_GATEWAY_FETCH_PAYLOAD:
+            payload === undefined ? 'null' : JSON.stringify(payload),
+          STATS_GATEWAY_FETCH_LOG: log
+        }
+      }
+    )
+    return { stdout, stderr, log }
+  }
+
+  it('drives --live through the substituted fetch and prints both tables from a one-row data payload', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sgw-live-'))
+    try {
+      const { stdout, log } = await runLiveQuery({
+        env: dummyEnv(),
+        log: join(dir, 'calls.jsonl'),
+        payload: [{ day: '2026-11-02', event: 'check', dim: 'darwin', extra: '2.8.2', count: 41 }]
+      })
+      // Both tables print from the one-row payload.
+      expect(stdout).toContain('checks darwin')
+      expect(stdout).toContain('2026-11-02 |')
+      expect(stdout).toContain('from-version breakdown (checks):')
+      expect(stdout).toContain('from=2.8.2')
+      // The substitute actually received the call: the SQL API URL with
+      // the dummy account id and the dummy bearer token. A silently
+      // failed substitution leaves the log empty and fails here; a stray
+      // request would be a harmless read-only call with a dummy token.
+      const calls = readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line))
+      expect(calls).toHaveLength(1)
+      expect(calls[0]).toEqual({
+        url: 'https://api.cloudflare.com/client/v4/accounts/dummy-account-id/analytics_engine/sql',
+        method: 'POST',
+        authorization: 'Bearer dummy-token'
+      })
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('fails with the named CF_ACCOUNT_ID error when the account id is missing', async () => {
+    const env = dummyEnv()
+    delete env.CF_ACCOUNT_ID
+    const dir = mkdtempSync(join(tmpdir(), 'sgw-live-'))
+    let failure
+    try {
+      await runLiveQuery({ env, log: join(dir, 'calls.jsonl') })
+    } catch (err) {
+      failure = err
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+    expect(failure, '--live must exit non-zero without CF_ACCOUNT_ID').toBeDefined()
+    expect(failure.code).toBe(1)
+    expect(failure.stderr).toContain('CF_ACCOUNT_ID')
+    expect(failure.stdout).toBe('')
+  })
+
+  it('prints the dropped-unnamed-rows counter line for a payload carrying an unnamed event', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sgw-live-'))
+    try {
+      const { stdout } = await runLiveQuery({
+        env: dummyEnv(),
+        log: join(dir, 'calls.jsonl'),
+        payload: [
+          { day: '2026-11-02', event: 'check', dim: 'darwin', extra: '2.8.2', count: 41 },
+          { day: '2026-11-02', event: 'legacy-pre-fix', dim: 'windows', extra: '2.8.2', count: 7 }
+        ]
+      })
+      expect(stdout).toContain('unnamed-event rows dropped: 1')
+      // The named row still prints in both tables.
+      expect(stdout).toContain('2026-11-02 |')
+      expect(stdout).toContain('from=2.8.2')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

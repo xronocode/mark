@@ -1,0 +1,206 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-UPDATER-REVIEW-FIXES>
+    <IntentSummary>Fix the nine review-verified defects of the 2026-11-02 2.9.x-next audit in one wave in a dedicated worktree off fork/main: six in the M-068 RollbackManager (src-tauri/src/m068_rollback.rs) — verify-then-mutate ordering in the GUI restore on both platforms and the Windows CLI, a reversible macOS bundle swap that cannot leave the application path empty, atomic boot promotion that keeps the previous live set until the replacement confirms, the instance-lock guard held for the process lifetime, and a truthful CLI outcome when relaunch fails — and three in the M-071 StatsGateway wire format (tools/stats-gateway/) — writeDataPoint called with indexes: [index], the live SQL selecting index1, and live rows read from the SQL API data array — plus the LINKS hygiene in both files (.grace/graph/features.xml, archived naming) and the M-068/M-071 graph plus V-M-068/V-M-071 verification deltas. Windows-only ordering logic is factored host-agnostically so every failure path is testable on the reference macOS host. Execution mode: the six m068_rollback.rs tasks (T-001 through T-006) run sequentially in a topological order of their DAG (T-001, T-003, T-002, T-004, T-005, T-006) under a single-writer discipline — same-file write-write ordering is a real constraint, so the DAG carries only semantic arcs and the wave executor treats the m068 chain as serial. The counting routes stay byte-identical, no client or renderer code changes, nothing deploys. Sequencing: this change lands before the draft C-STATS-READOUT (shared files worker.mjs, query.mjs, tests/tools/stats-gateway.test.mjs) and that draft rebases on it; the change then joins the 2.9.x-next train through an explicit chore(train) admission commit once its PR is green (train rule 3), before freeze. The plan's own review gate (four corners, two consecutive clean passes over spec and plan together — the spec's scrutiny basis is the 2026-11-02 smart-review report plus independent code re-verification) runs on this draft before approval is requested. Approval basis: the owner's interactive-menu instruction of 2026-11-02 — "Approve + добавить находки 5-6" on draft C-UPDATER-REVIEW-FIXES, extending the earlier scope choice "Одна спека: откат + шлюз" (one spec: rollback + gateway). Plan approval basis: the owner's standing instruction of 2026-11-03 (translated from Russian: "дождаться чистых проходов а потом релизим по протоколу" — wait for the clean passes, then we release per protocol), given after this plan existed and with the gate's two-consecutive-clean criterion already defined; the gate closed with rounds 12-13 clean before this approval was recorded, and the plan carries their post-closure advisory polish.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m068_rollback.rs</Value>
+        <Value>tools/stats-gateway/worker.mjs</Value>
+        <Value>tools/stats-gateway/query.mjs</Value>
+        <Value>tests/tools/stats-gateway.test.mjs</Value>
+      </MustExist>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>replace_from_snapshot</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>try_acquire_instance_lock</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>reconcile_at_boot</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>.grace/graph/runtime.xml</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>env.STATS.writeDataPoint</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>.grace/graph/runtime.xml</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/query.mjs</File><Text>index AS event</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/query.mjs</File><Text>json.result</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>runtime.xml V-M-068</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>runtime.xml V-M-071</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/query.mjs</File><Text>.grace/verification/runtime.xml</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>.grace/changes/active/C-UPDATER-</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>.grace/changes/active/C-UPDATER-STATS</Text></MustContain>
+      <MustContain><File>tests/tools/stats-gateway.test.mjs</File><Text>.grace/changes/active/C-UPDATER-STATS</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m068_rollback.rs</Value>
+        <Value>tools/stats-gateway/worker.mjs</Value>
+        <Value>tools/stats-gateway/query.mjs</Value>
+        <Value>tests/tools/stats-gateway.test.mjs</Value>
+      </MustExist>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>.grace/graph/features.xml</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>indexes: [index]</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>.grace/graph/features.xml</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/query.mjs</File><Text>index1 AS event</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>restored_norelaunch</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>.grace/verification/features.xml</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/worker.mjs</File><Text>.grace/verification/features.xml</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/query.mjs</File><Text>.grace/verification/features.xml</Text></MustContain>
+      <MustNotContain><File>src-tauri/src/m068_rollback.rs</File><Text>runtime.xml V-M-068</Text></MustNotContain>
+      <MustNotContain><File>tools/stats-gateway/worker.mjs</File><Text>runtime.xml V-M-071</Text></MustNotContain>
+      <MustNotContain><File>tools/stats-gateway/query.mjs</File><Text>.grace/verification/runtime.xml</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m068_rollback.rs</File><Text>.grace/changes/active/C-UPDATER-</Text></MustNotContain>
+      <MustNotContain><File>tools/stats-gateway/worker.mjs</File><Text>.grace/changes/active/C-UPDATER-STATS</Text></MustNotContain>
+      <MustNotContain><File>tests/tools/stats-gateway.test.mjs</File><Text>.grace/changes/active/C-UPDATER-STATS</Text></MustNotContain>
+      <MustNotContain><File>tools/stats-gateway/query.mjs</File><Text>json.result</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --bin mark rollback &amp;&amp; npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-068 />
+        <M-071 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-068 />
+        <V-M-071 />
+      </VerificationAnchors>
+      <ContextArtifact>requirements.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m068_rollback.rs</File>
+      <File>tools/stats-gateway/worker.mjs</File>
+      <File>tools/stats-gateway/query.mjs</File>
+      <File>tests/tools/stats-gateway.test.mjs</File>
+      <File>tests/tools/stats-gateway-fetch-preload.mjs</File>
+      <Glob>.grace/graph/*.xml</Glob>
+      <Glob>.grace/verification/*.xml</Glob>
+      <Glob>.grace/context/*.xml</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Reversible macOS bundle swap, shared by CLI and GUI</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The trash-then-rename sequences at m068_rollback.rs:639-644 (CLI) and 1028-1029 (GUI) become one shared swap routine with a deterministic aside name (a stable sibling named {bundle-stem}.rollback-aside in the same parent directory — no .app extension, so the aside is neither launchable nor confusable with a bundle (the string-based current_app_bundle() at m068_rollback.rs:302-310 checks the path text, not the filesystem, so naming cannot close the mid-swap window — that concurrency belongs to the deferred lockless-GUI follow-up); a stale aside from an earlier crashed run is reclaimed or replaced first, but only when the running path is occupied (the T-004 boot-table condition — in the transient empty-path window the aside belongs to the in-flight swap and is never touched) — but a symlinked or otherwise foreign aside aborts fail-closed, the same rule as T-004, and the writability probe creates with create_new/O_EXCL semantics, refusing ANY pre-existing entry — a pre-planted symlink would be written through and a FIFO would hang the recovery forever — with a stale regular probe file from an earlier crashed run reclaimed first via a symlink_metadata check, not exists()): the current bundle is renamed aside, the staged bundle is renamed into the running path, and only after that rename confirms is the departed bundle moved to Trash (R-3 keeps "moving the departed bundle to Trash so it can be inspected"); a failure before the confirmed replacement rolls the aside back to the running path before returning — and if that roll-back rename itself fails, the error names the aside path and prints the FAQ URL (the exit-7 precedent prints release-history) — the recovery entry covers both states with exact commands — an empty running path: mv the aside back; an occupied running path: a foreign occupier, do not move (a blind inline mv would nest the bundle inside an occupier, since mv A B with an existing directory B moves A into B) — while a Trash failure after a confirmed swap is logged and non-blocking per R-3 (no rename-back — the path is occupied); the human error messages drop the now-false "after Trash move" wording and say plainly that the current bundle was left in place; the BLOCK_ROLLBACK_RESTORE marker is emitted only on confirmed success; the routine takes the target bundle path as a parameter (GUI passes current_app_bundle(); tests pass a temp-dir bundle — the test binary has no .app ancestor, m068_rollback.rs:302-310) and the Trash step is injectable (the Fetch-trait precedent at m068_rollback.rs:473-487) so tests never touch the developer's real Trash; the routine preserves the CLI's existing target-under-staged guard (m068_rollback.rs:631) on both paths — a restore running from the staged copy completes with no swap — and the probe's check-then-use window on symlinked names is accepted within R-3's writer bound (same-user or admin-group — /Applications is group-admin-writable, and any writer able to plant the aside has simpler attacks, such as replacing Mark.app itself); the tests cover an injected rename failure (the running path still resolves to a bundle), the double-failure branch where the roll-back rename itself fails (the aside path and FAQ URL are printed), a Trash failure after a confirmed swap (logged, non-blocking), and the two fail-closed hardening branches (a symlinked or foreign aside; a pre-planted symlink at the probe path); the probe's refusal message distinguishes a foreign entry from a genuine permission problem.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --bin mark rollback</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>GUI restore: verify-then-mutate ordering</Title>
+        <DependsOn>T-001, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>mt_rollback_restore's restore core is extracted behind a testable seam (a root override, the restore_inner precedent at m068_rollback.rs:561) so the ordering is unit-testable without tauri::AppHandle/State; on macOS the reorder is strict — load_valid_live, then the snapshot parsed as a valid preferences object (an unparsable snapshot aborts with the current state untouched, so m005's empty-map fallback never runs against live settings; the object-parse lives in restore_inner's shared verification block, so both CLI paths inherit it — defect 1's wipe dies on every path), then the staged-bundle digest re-verified, then the T-001 swap, and only then the preferences write, which after a confirmed swap is logged-and-skipped on failure (R-3 parity with the CLI's prefs_skipped at 651-655) with one human-readable line, not only the structured marker (the CLI prints it in its transcript; in the GUI it stays a log line until the localization follow-up — the accepted bound) — never a hard error that abandons a completed swap; on Windows the unconditional preferences restore at 1010 is removed and the real write rides inside restore_inner as the last write before the spawn, after the fetch, version and minisignature verification (the no-op prefs_write closure at 1049 is gone) — routing through PrefsState::replace_from_snapshot (the quiescence anchor, m005_prefs.rs:250-256), never a direct file write; the GUI's inline digest re-verification at m068_rollback.rs:1014-1020 is removed with the rewrite — the core's check (604-615) stays the single hash of the staged binary on every path; the digest-mismatch "aborting untouched" message becomes true again; tests assert that digest-mismatch and corrupt-snapshot cases leave preferences and bundle byte-identical and that a post-swap prefs failure completes the restore; RollbackManifest::validate additionally opens and parses the snapshot file (today it checks only the manifest structure, m068_rollback.rs:178-229) and treats an unparsable snapshot as no-set — one shared call for the surface gates and the restore paths (the Help item and CLI surface disappear instead of advertising a restore that cannot complete; the exit-7 no-snapshot voice stays the single surface for that state by the R-3/R-5 contract, and the structured log marker names the data-root path for support cases).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --bin mark rollback</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Windows CLI: verification strictly before preference writes</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>restore_inner's non-macOS ordering (shared by the CLI and, after T-002 removes the no-op closure, the Windows GUI): the snapshot restore and skippedUpdateVersion write move after the staging write and before the spawn's final re-digest (final order: fetch, verify, stage, prefs write, re-digest, spawn — the re-digest stays the last step before execution, satisfying both R-3 clauses literally; today the preferences write at m068_rollback.rs:672 precedes both fetches, the verification and the staging); the ordering is factored host-agnostically (a pure decision step or cfg-independent function) so a macOS-host test drives every failure path — feed fetch error, installer fetch error, version disagreement, signature failure, staging write failure — and asserts preferences are unchanged in each; a spawn failure after the writes is the accepted R-3 state (set intact, retry idempotent), prints one user line saying the settings are already restored and a retry is safe, and gets its own test documenting exactly that.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --bin mark rollback</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Atomic boot promotion</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>reconcile_at_boot gains its seams additively — the no-arg reconcile_at_boot() keeps its signature for main.rs:308 (outside this change's scope), with root- and bundle-path parameters on an inner function (the restore_inner precedent at m068_rollback.rs:561) — so its decision table runs against a temp root and temp bundle fixtures in tests; the promotion path validates the staging manifest (strict schema, semver-strict version, platform match, paths contained under the data root) before any mutation — manifest-shape invalidity discards the staging without hashing — and re-verifies artifact digests only on the promotion path before its rename, where a digest mismatch also discards the staging (live set surviving both; the discard-only branch hashes nothing, m068_rollback.rs:438-447 today; the promotion digest re-check costs one sha256 of the staged binary, ~31 MB at roughly 0.1-0.3 s as a software hash on the reference host, and runs only when a promotable staging exists — never on every boot; a persistently failing promotion rename keeps the staging and re-pays the digest on each boot until resolved — accepted, because discarding would destroy the fresh set); the previous live set survives until the replacement rename confirms via its own move-aside in the data root (a rename onto the non-empty live directory is impossible — verified ENOTEMPTY on the reference host — and today's delete-first order at 422-425 is exactly the hole); at boot, reconciliation covers both stale asides with a fail-closed rule: a stale bundle aside (T-001's name) with the running path occupied is trashed, a stale promotion aside with a valid live set is deleted (remove_dir_all — no Trash semantics in the data root; R-6's bounded footprint preserved, the transient peak equals today's staging window, freed in the same reconcile call), a stale promotion aside with a missing or invalid live set is promoted back when its own manifest passes validation and is deleted otherwise (it can never become live — bounded footprint, logged), and a foreign or symlinked aside (anything at an aside name that is not a directory holding a valid set: symlink, file or garbage) skips only its own branch with a log line — never wedging boot or the rest of reconciliation; deletion applies only to the data-root promotion aside (Mark's own directory), never to a foreign object in the bundle's parent (a shared system directory where a name collision is someone else's content — it is left in place and logged, and the FAQ's manual-recovery command covers it), a bundle aside with the running path empty is renamed back — a defensive branch for the transient lockless-GUI window, exercised in tests, never claimed as the user-facing recovery (that stays the documented manual rename) — and a promote-back runs only after the aside's own manifest passes the same strict validation and its artifact digests re-hash clean (an invalid manifest never becomes live, reconciliation included; the manifest check applies to promotion asides — a bundle aside is valid when it is a directory whose Contents/MacOS/mark is a regular file (checked via symlink_metadata — exists()/is_dir() follow symlinks)); the mid-swap bundle window (running path empty) is manual-recovery-by-design and never claimed as self-healing — Mark cannot boot to reconcile an empty path (main.rs:308 runs reconcile inside the app); the covering tests exercise reconcile_at_boot itself against an invalid manifest, a digest mismatch, an injected rename failure, both stale-aside cases and the foreign-aside fail-closed branch, asserting the live set survives each destructive case; the trash step is injectable (with T-001) so the stale-aside tests assert against a fake, never the developer's real Trash.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --bin mark rollback</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Instance lock held for the process lifetime</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The CLI's live-instance probe (m068_rollback.rs:868-892) acquires the lock once and keeps the first successfully acquired guard for the rest of the process, eliminating the probe-then-reacquire gap at 872/889; when the lock cannot be acquired and held, the command takes the existing delegate-or-decline path (R-5: "no headless swap under a running app, no second process") and performs no restore work; a test drives the failed-acquisition path through that seam (the probe/decision factored so no test runs a live delegate_ask against the developer's real data root) and asserts no mutation of the rollback set or the bundle; the declined-branch message names both lock-holder cases (a running GUI — quit it first; another headless restore — wait for it to finish) instead of today's quit-only advice, and the delegation wait prints one line before waiting (asking the running instance, up to 10 seconds), so the command does not look hung.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --bin mark rollback</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Truthful CLI outcome on relaunch failure</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The macOS CLI restore ending (m068_rollback.rs:656-664) no longer reports plain success when relaunch fails: a relaunch error produces the machine-readable outcome event=restored_norelaunch (a new MARK_ROLLBACK token; T-010 extends M-068's dictionary) with exit code 6 — R-5's failure row, whose detail now carries this case — plus printed guidance carrying the exact launch command (open the restored application path) — the machine line and the site row document whole-token matching (event=restored_norelaunch is not event=restored; no substring parsing) —; plain restored (exit 0) stays reserved for restore-and-relaunch; the test injects a failing relaunch closure and asserts the distinct outcome, the exit code and the guidance line while the restored bundle remains in place; the outcome-to-(exit code, printed lines) mapping is factored into a pure testable step (the machine_line precedent), so the test asserts the mapping without running the full CLI.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --bin mark rollback</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>LINKS hygiene in all four module headers</Title>
+        <DependsOn>T-005, T-006, T-009</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The file-local LINKS blocks in m068_rollback.rs (~line 19), worker.mjs (~line 22), query.mjs (~line 14) and tests/tools/stats-gateway.test.mjs (~line 19, which carries the same stale active/C-UPDATER-STATS reference) are made true: the graph links point at .grace/graph/features.xml and the verification links at .grace/verification/features.xml (V-M-068/V-M-071's actual home — .grace/verification/runtime.xml has never carried them), with each rewritten LINKS path on a single line (the current headers break the paths across comment lines — a minimal runtime-to-features substitution would leave the target MustContain literals unmatched); and the already-archived changes C-UPDATER-ROLLBACK and C-UPDATER-STATS are named as archived, not active; each of the four touched governed files also gets its in-file VERSION bump and CHANGE_SUMMARY entry per the engineering protocol (START_CHANGE_SUMMARY — the archived R-8 required exactly this), and query.mjs's PURPOSE line stops claiming "live mode reads only CF_API_TOKEN from the environment" once T-009 adds CF_ACCOUNT_ID validation; beyond the LINKS fix, that one truthfulness edit and the VERSION/CHANGE_SUMMARY convention, no other header content changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">node --check tools/stats-gateway/worker.mjs &amp;&amp; node --check tools/stats-gateway/query.mjs</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Gateway write shape: indexes, not index</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>worker.mjs's count() calls env.STATS.writeDataPoint with the documented shape — indexes: [index], blobs, doubles — replacing the invalid singular index field at worker.mjs:94; the mock binding in tests/tools/stats-gateway.test.mjs asserts the exact written object (its fixture stops pinning the wrong field), so the wire shape is pinned by the suite; the /feed and /pkg routes stay byte-identical in paths, validation, redirects and 404 policy.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="240">npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+        </Verification>
+      </T-008>
+      <T-009>
+        <Title>Live readout format: index1 and data</Title>
+        <DependsOn>T-008</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>query.mjs's live SQL selects index1 AS event (Analytics Engine's actual sample column), reads rows from the SQL API response's data array — json.result is gone — and groups and orders by the raw columns (GROUP BY blob1, index1, blob2, blob3 ... ORDER BY blob1 DESC), the canonical form of the SQL API page's own example (SELECT index1 AS ... GROUP BY index1) — alias-grouping is documented too, so this is a canonical-form choice rather than a correctness claim; a new live-format test drives query.mjs through a subprocess (the existing execFile precedent at tests/tools/stats-gateway.test.mjs:306-309) run with explicit dummy CF_API_TOKEN and CF_ACCOUNT_ID in its environment (real credentials never inherited — a silent substitution failure then carries a dummy token, honoring the no-owner-credentials constraint), with fetch substituted by the new tests/tools/stats-gateway-fetch-preload.mjs (a real file with the house MODULE_CONTRACT header, loaded via node --import) that replaces globalThis.fetch — and the test asserts the substitute actually received the call, so a silently failed substitution fails deterministically (the assertion runs after the fact; a stray request would be a harmless read-only call with a dummy token — no prevention is claimed) — feeding a one-row data payload and asserting both tables print (day x event x OS/platform and the from-version breakdown); two more subprocess tests cover the new branches — the named CF_ACCOUNT_ID error when it is missing, and the dropped-unnamed-rows counter line (fed a payload containing one unnamed row); runLive also validates CF_ACCOUNT_ID up front with a named message (today only CF_API_TOKEN is checked and a missing account id surfaces as an opaque API status) and prints a one-line count of unnamed-event rows the renderer dropped, so the owner-side live smoke distinguishes no-traffic from unnamed pre-fix data; dry mode output stays unchanged (node tools/stats-gateway/query.mjs --dry still prints the fixture tables).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="240">npx vitest run tests/tools/stats-gateway.test.mjs &amp;&amp; node tools/stats-gateway/query.mjs --dry</Command>
+        </Verification>
+      </T-009>
+      <T-010>
+        <Title>Graph deltas for M-068 and M-071</Title>
+        <DependsOn>T-001, T-002, T-003, T-004, T-005, T-006, T-008, T-009</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/features.xml: M-068's Contract and Summary record the now-true guarantees — verification strictly before any mutation on both platforms, a reversible swap with no half-swap state, promote-only-after-confirmed-replacement, the lock held for the process lifetime, a truthful relaunch outcome — M-071's datapoint Output becomes the wire form indexes: [check|pkg] with blobs [day, os|platform, from|version], M-068's MARK_ROLLBACK Output dictionary gains the restored_norelaunch token with the GUI's post-swap preferences-failure semantics recorded (logged and non-blocking, CLI parity), the Error 6 row stops promising "current state untouched" unconditionally (restored_norelaunch is the carve-out: the restore stands, only the relaunch failed), and the Summary's false "the staging lock serialize everything" claim is removed (no staging lock exists in src-tauri; the unimplemented R-3 pending-window serialization is a tracked follow-up, not a graph fact), M-071's Summary phrase "live mode via CF_API_TOKEN" names CF_ACCOUNT_ID alongside it (truthfulness with T-009), and the declined-message deviation is recorded (both lock-holder cases instead of R-5's quit-only advice — the same carve-out style as the exit-6 row), as is the writer-bound restatement (R-3's same-user phrasing widened to same-user/admin-group for the bundle's parent directory, with the simpler-attacks justification); no other module rows change.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml')"</Command>
+        </Verification>
+      </T-010>
+      <T-011>
+        <Title>Verification deltas and measured gate evidence</Title>
+        <DependsOn>T-010</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/verification/features.xml: V-M-068 gains the new rollback regression tests (ordering failures on both platforms, injected swap/promotion/relaunch failures, the lock path) with measured counts, and V-M-071 gains the wire-shape and live-format tests; V-M-068's TraceAssertion is restated truthfully — as written it never held (failure messages already print filesystem paths: m068_rollback.rs:636, 1025, 135-140, 604-611); the rule the delta records: machine-readable MARK_ROLLBACK lines carry no paths, while human-readable error and guidance lines may (bundle path, aside path, restored application path), and structured BLOCK markers that name paths (the T-002 support marker) form the third explicitly named class; the full targeted gate runs green on the reference host and the measured counts are recorded as evidence, including the one regular-path cost (the promotion digest on the first boot after every successful update, on the synchronous pre-window path — first-window appearance is delayed ~0.1-0.3 s there, and on each boot while a promotion rename persistently fails) and the two one-shot crash-window costs (a promote-back re-hash and a bundle-aside trash).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --bin mark rollback &amp;&amp; npx vitest run tests/tools/stats-gateway.test.mjs</Command>
+        </Verification>
+      </T-011>
+      <T-012>
+        <Title>mark-site exit-table row for the new outcome (sibling repository)</Title>
+        <DependsOn>T-005, T-006, T-010</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The live copy of R-5's exit table in the sibling mark-site repository (../mark-site/guide/faq.md — the exit-code table lives there, faq.md:66 today; R-7 placed the table in faq.md and only the flags documentation in cli.md) gains the restored_norelaunch row: exit 6, restore completed, relaunch failed, the printed guidance names the application path, whole-token matching noted; the existing exit-6 row gains the distinguishing caveat (both meanings named, separated by the event token); the exit-6 row's advice names both lock-holder cases (a running GUI — quit it; another headless restore — wait for it), matching T-005's CLI message instead of today's quit-only line, and the entry notes the third trace — a leftover aside after a confirmed swap whose Trash move failed self-heals at the next boot; the mid-swap manual recovery entry covers BOTH states with exact commands — an empty running path: mv "/Applications/Mark.rollback-aside" "/Applications/Mark.app"; an occupied running path: do not move (the occupier is foreign — identify it with ls, a blind mv would nest the backup inside it); the R-7 exact-commands precedent; the write follows the C-UPDATER-STATS sibling-repo pattern — task-level path outside ObservedWriteScope, the wave worktree sits beside the mark-site checkout, deploy separate and owner-executed.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">grep -c restored_norelaunch ../mark-site/guide/faq.md</Command>
+        </Verification>
+      </T-012>
+      <T-013>
+        <Title>Living tracker records for the deferred follow-ups</Title>
+        <DependsOn>T-010</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Two F-* entries land in .grace/context/deployment.xml (the repo's living tracker, so they survive this bundle's archiving — frozen archives cannot carry them): one for the rollback-integrity follow-up (the lockless GUI start at main.rs:717-720; the delegation ack written before the dialog emit at m068_rollback.rs:786-802 with its predictable unix-seconds nonce at :873 — same-user deception within the accepted R-3 bound; R-3's unimplemented Windows pending-window serialization; and the GUI's silent app.restart() failure — tauri (2.12.5 in Cargo.lock) logs internally and exits 0, the user sees a quiet close without relaunch), one for the localization follow-up (review finding 14's English-only rollback error surface, this change's new user-visible English strings, and the silent GUI post-swap preferences skip).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">grep -c 'rollback-integrity' .grace/context/deployment.xml &amp;&amp; grep -c 'localization follow-up' .grace/context/deployment.xml</Command>
+        </Verification>
+      </T-013>
+    </ImplementationPlan>
+  </C-UPDATER-REVIEW-FIXES>
+</GraceChangePlan>

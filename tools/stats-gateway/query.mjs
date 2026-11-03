@@ -1,17 +1,17 @@
 // FILE: tools/stats-gateway/query.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-071 mt-stats-gateway. Owner-run reporting for the update
 //            funnel counters (C-UPDATER-STATS): prints the day × event ×
 //            OS/platform table and the from-version breakdown from
 //            Workers Analytics Engine. Dry mode runs on inlined fixtures
 //            with zero network (CI validates the output shape); live
-//            mode reads only CF_API_TOKEN from the environment and
-//            queries the Analytics Engine SQL API.
+//            mode reads CF_API_TOKEN and CF_ACCOUNT_ID from the
+//            environment and queries the Analytics Engine SQL API.
 //   SCOPE:   read-only aggregate reporting; never attempts to reconstruct
 //            anything finer than counts.
 //   DEPENDS: none at import (live mode uses global fetch + CF_API_TOKEN).
-//   LINKS:   .grace/verification/runtime.xml V-M-071; README.md for the
+//   LINKS:   .grace/verification/features.xml V-M-071; README.md for the
 //            readings (success, downloads-vs-clicks) and their limits.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -31,6 +31,10 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-10-30 C-UPDATER-STATS T-003: initial query tool.
+//   - 2026-11-03 v1.1.0 C-UPDATER-REVIEW-FIXES: live SQL selects
+//     index1 AS event, rows are read from the SQL API data array, and
+//     CF_ACCOUNT_ID is validated up front with a named error; LINKS
+//     rerouted to the features verification.
 // END_CHANGE_SUMMARY
 
 // Inlined dry fixtures — a plausible three-day funnel. Kept inside the
@@ -110,31 +114,49 @@ export async function runLive() {
     console.error('CF_API_TOKEN is required for live mode (read-only Analytics Engine scope).')
     process.exit(1)
   }
+  const accountId = process.env.CF_ACCOUNT_ID
+  if (!accountId) {
+    console.error(
+      'CF_ACCOUNT_ID is required for live mode (the SQL API path is /accounts/<CF_ACCOUNT_ID>/analytics_engine/sql).'
+    )
+    process.exit(1)
+  }
   // Analytics Engine SQL API; the dataset matches wrangler.toml. Day
-  // buckets are UTC; the API retains three months.
+  // buckets are UTC; the API retains three months. The SELECT aliases the
+  // sample columns (index1 is the documented event column) while GROUP BY
+  // and ORDER BY stay on the raw columns — the canonical form of the SQL
+  // API page's own example.
   const res = await fetch('https://api.cloudflare.com/client/v4/accounts/' +
-    process.env.CF_ACCOUNT_ID + '/analytics_engine/sql', {
+    accountId + '/analytics_engine/sql', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'text/plain' },
-    body: `SELECT blob1 AS day, index AS event, blob2 AS dim, blob3 AS extra, SUM(_sample_interval) AS count
+    body: `SELECT blob1 AS day, index1 AS event, blob2 AS dim, blob3 AS extra, SUM(_sample_interval) AS count
            FROM mark_update_funnel
            WHERE timestamp > NOW() - INTERVAL '90' DAY
-           GROUP BY day, event, dim, extra
-           ORDER BY day DESC`
+           GROUP BY blob1, index1, blob2, blob3
+           ORDER BY blob1 DESC`
   })
   if (!res.ok) {
     console.error(`Analytics Engine query failed: ${res.status} ${await res.text()}`)
     process.exit(1)
   }
   const json = await res.json()
-  const rows = (json.result ?? []).map((r) => ({
+  // The SQL API answers with its rows in the data array.
+  const rows = (json.data ?? []).map((r) => ({
     day: String(r.day),
     event: String(r.event),
     dim: String(r.dim),
     extra: String(r.extra),
     count: Number(r.count)
   }))
+  // The renderer only shapes the named check/pkg events; count what it
+  // drops so the live smoke distinguishes no-traffic from unnamed
+  // pre-fix data.
+  const known = new Set(['check', 'pkg'])
+  const dropped = rows.filter((r) => !known.has(r.event)).length
   printTables(renderTables(rows))
+  console.log('')
+  console.log(`unnamed-event rows dropped: ${dropped} (events other than check/pkg — pre-fix data?)`)
 }
 
 const mode = process.argv[2] ?? '--dry'

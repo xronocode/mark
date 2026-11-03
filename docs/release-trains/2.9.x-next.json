@@ -257,6 +257,25 @@
             "follow-up recorded: boot-time application of a persisted editorLineWidth looks broken store-to-column (pre-existing, not caused here)"
           ]
         }
+      },
+      {
+        "id": "C-UPDATER-REVIEW-FIXES",
+        "state": "queued",
+        "summary": "Rollback and update-funnel safety fixes from the 2026-11-02 review of the train: every restore path verifies before mutating (the in-app dialog on both platforms and the terminal command alike), the macOS bundle swap is reversible (move-aside with automatic return, Trash only after a confirmed replacement, crash-recoverable under a deterministic name), boot promotion is atomic via move-aside, the instance lock is held for the process lifetime, a completed restore whose relaunch failed reports restored_norelaunch (exit 6) instead of success, and the stats gateway speaks the documented Analytics Engine wire format (indexes, index1, json.data).",
+        "commits": [
+          "0c1ecbe15be326534281e3f25a03149abe94ddb3"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-03",
+          "scenarios": [
+            "automated: cargo test --bin mark rollback 65 passed (19 baseline + 46 new regression tests covering every fixed failure mode); npx vitest run tests/tools/stats-gateway.test.mjs 21 passed (18 baseline + 3 new live-format subprocess tests); grace lint --change C-UPDATER-REVIEW-FIXES --assertions final --run-commands 0 errors; PR CI across the three OS lanes (this admission lands once the substantive lanes are green — the release/governance check on the PR unblocks by this very admission)",
+            "review gate: four corners (correctness / security / UX / performance), 13 rounds, closed with two consecutive clean passes (rounds 12-13); ~110 findings addressed or explicitly dispositioned (ReviewLog in the change bundle)",
+            "manual before admission: none beyond the review gate — hands-on rollback drills are deferred to the train acceptance protocol (rule 5) and the archived V-M-068 two-platform manual protocol at release time",
+            "intentionally not verified: live Cloudflare Analytics Engine behavior (the owner-side live smoke is recorded as the owed step after the next deploy); Windows-host execution of the cfg(not(macos)) restore branches (type-inspected; the ordering is covered host-agnostically on the macOS reference host)"
+          ],
+          "testedArtifact": "None beyond the automated suites and the review gate — the train acceptance protocol (rule 5) will exercise a real rollback on the train build."
+        }
       }
     ],
     "operational": [
