@@ -102,8 +102,9 @@ Readings and their honest limits:
   checks after N shipped. Honest limits: a user who updates and never
   launches again is invisible; a fresh site install of N also reports
   `from=N` — the `pkg` and site counters separate the populations.
-- Day buckets are **UTC**; the retention window is **three months**;
-  queries outside the window return nothing.
+- Day buckets are **UTC**; the Analytics Engine store's retention
+  window is **three months** (queries against it return nothing older);
+  the dashboard keeps its copy of the events past that window.
 
 ## Where the numbers go
 
@@ -132,6 +133,9 @@ Setup is one key, issued by the dashboard itself — the same
 
 1. In the dashboard (you log in with Google), create a site for the
    gateway and issue its ingest key (the value is shown once — copy it).
+   **Leave the optional domain field empty**: the gateway is a server
+   sender with no origin, and a bound domain would silently reject
+   every push with a 403 the worker swallows.
 2. **Workers & Pages → mark-stats-gateway → Settings → Variables and
    Secrets** → add the secret `DASH_COLLECT_KEY` with that value, and
    apply. No redeploy is needed: the worker reads the key at request
@@ -146,7 +150,10 @@ there are none.
 
 Verify: open the dashboard, open the gateway's site, and the first
 `mark.update_check` / `mark.update_pkg` events appear within minutes
-of any update check.
+of any update check. If nothing appears after several checks: confirm
+the `DASH_COLLECT_KEY` secret is set and applied, and re-issue the key
+with the domain field left empty — a bound domain is the one silent
+failure mode (every push 403s, swallowed by design).
 
 ### The `/stats` readout (dormant)
 

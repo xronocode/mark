@@ -44,7 +44,8 @@
       <Item>tests/tools/stats-gateway.test.mjs — push pins: event shape and key header per route, off-by-absence (zero fetches), swallow-on-failure, response byte-equality; the secrets scan's allowed-names list gains DASH_COLLECT_KEY.</Item>
       <Item>tools/stats-gateway/README.md — the dashboard-push disclosure and the one-key setup step; the STATS_API_TOKEN instructions removed.</Item>
       <Item>.grace/graph/features.xml and .grace/verification/features.xml — M-071/V-M-071 amendments routed in the same bundle as the code.</Item>
-      <Item>Explicitly untouched: tables.mjs, query.mjs (all modes), wrangler.toml, /stats route and its secrets, src/**, src-tauri/**, .github/**.</Item>
+      <Item>tools/stats-gateway/query.mjs — the round-1 review fix only: the --remote error pointer retargeted to the README's 'Where the numbers go' section (the Readout access section it named no longer exists), with the VERSION/CHANGE_SUMMARY bump. No behavioral change to any mode.</Item>
+      <Item>Explicitly untouched: tables.mjs, wrangler.toml, /stats route and its secrets, src/**, src-tauri/**, .github/**.</Item>
     </AffectedAreas>
     <VerificationIntent>
       <ExpectedCommand>npx vitest run tests/tools/stats-gateway.test.mjs &amp;&amp; npm test &amp;&amp; grace lint --path . --change C-STATS-DASH-PUSH --assertions final --run-commands (live push behavior is owner-verified after the key is set: dashboard shows mark.update_check events within minutes)</ExpectedCommand>

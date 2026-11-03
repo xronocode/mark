@@ -29,6 +29,7 @@
       <File>tools/stats-gateway/worker.mjs</File>
       <File>tests/tools/stats-gateway.test.mjs</File>
       <File>tools/stats-gateway/README.md</File>
+      <File>tools/stats-gateway/query.mjs</File>
       <File>.grace/graph/features.xml</File>
       <File>.grace/verification/features.xml</File>
       <File>.grace/changes/active/C-STATS-DASH-PUSH/plan.xml</File>
@@ -74,15 +75,15 @@
       <C-2>
         <Situation>Valid /pkg likewise.</Situation>
         <Expected>One POST with mark.update_pkg and props {platform, version}; 302 identical.</Expected>
-      </C-3>
+      </C-2>
       <C-3>
         <Situation>DASH_COLLECT_KEY unset, empty, or the dashboard unreachable/rejecting.</Situation>
         <Expected>Zero dashboard fetches (absent key) or a fully swallowed failure; responses and AE writes byte-unchanged; no logs.</Expected>
-      </C-4>
+      </C-3>
       <C-4>
         <Situation>The full 48-plus suite and the secrets scan after the change.</Situation>
-        <Expected>Green; the scan allows only the secret NAMES incl. DASH_COLLECT_KEY; README names no Cloudflare API token.</Expected>
-      </C-5>
+        <Expected>Green; the scan allows only the secret NAMES incl. DASH_COLLECT_KEY; README names no Cloudflare API token for reading.</Expected>
+      </C-4>
     </CornerMatrix>
     <ReviewLog>
       <!-- Implementation review gate: two consecutive clean four-corner passes before the PR. -->
@@ -94,6 +95,15 @@
           <Fix>UX-2 (important): the Privacy section discloses both sinks — Workers Analytics Engine (three months) and the owner's analytics dashboard keeping the same aggregate events; 'no long-term warehouse' tension resolved; 'No third party receives anything' added.</Fix>
           <Fix>UX-3 (important): the absolute 'no Cloudflare API token used anywhere' claim narrowed to the truth — reading the numbers needs no token; the deploy and --live debug tokens remain and are named inline.</Fix>
           <Fix>Notes applied: worker SCOPE gains the push sentence (plan wording); the dashboard fetch bounded with AbortSignal.timeout(10000); ts pinned as integer ~now; the malformed /pkg no-push case; a pushDash source-slice scan (no console token, the abort present); the duplicated deploy command collapsed to one copy; owner-side logout/state phrased as a post-deploy checklist. NC-5/PF-2/SP-N1 resolve with UX-3's narrowing; SP-N3 with UX-2. 54/54 green.</Fix>
+        </Applied>
+      </Review>
+      <Review number="2" verdict="red" task="two-clean-passes">
+        <Date>2026-11-04</Date>
+        <Result>2/4 corners clean; 0 blocking, 2 important (PF-1 scope lists, UXD-1 domain-field), 11 notes.</Result>
+        <Applied>
+          <Fix>PF-1 (important): query.mjs added to the plan's ObservedWriteScope and the spec's AffectedAreas (the round-1 UX-1 pointer fix is now a declared write); the CornerMatrix's mis-nested corner tags repaired (C-2..C-4 well-formed).</Fix>
+          <Fix>UXD-1 (important): the README setup step warns to leave the dashboard's optional domain field empty (a bound domain would 403 every push silently), and the Verify paragraph names that as the one silent failure mode to re-issue without; UXD-4 applied alongside (the three-month window attributed to the Analytics Engine store, the dashboard keeps its copy past it).</Fix>
+          <Fix>Notes: CC-N1/UXD-2/PF-2 are the gate's own count corrections (6 new pins, 54 total — recorded here); CC-N2/SP-N1/UXD-3 confirm the narrowed token story is the operative one; CC-N3 records the scan-scope vacuity (harmless, the bundle greps clean); CC-N4 is the by-design split of the no-log property into the source-slice pin; SP-N2 records the redirect-hop subrequest ceiling (~21 max, far under 50); UXD-5 records the dashboard-side derived dimensions (device/country columns on mark.update_* events).</Fix>
         </Applied>
       </Review>
     </ReviewLog>
