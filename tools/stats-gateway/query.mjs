@@ -36,7 +36,7 @@
 //   runDry - Print the fixture tables (zero network).
 //   runLive - Query the AE SQL API with CF_API_TOKEN and CF_ACCOUNT_ID; print the same shape.
 //   runRemote - GET the keyed gateway /stats with X-Read-Key (STATS_READ_KEY); print the same tables.
-//   mode - argv mode switch (--dry default, --live, --remote), behind the main guard.
+//   isMain - Main guard (import.meta.url check) keeping the argv mode dispatch import-safe.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

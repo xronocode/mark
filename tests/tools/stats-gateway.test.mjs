@@ -35,24 +35,18 @@
 //   recorded - Fixture sink collecting writeDataPoint calls.
 //   waiting - Fixture sink collecting waitUntil promises.
 //   readSource - Read a repo file for the source scans.
-//   freshWorker - vi.resetModules + dynamic re-import: a cold-cache
-//                 worker isolate for the readout pins (the static
-//                 import above stays untouched for the counting pins).
+//   freshWorker - vi.resetModules + dynamic re-import: a cold-cache worker isolate for the readout pins (the static import above stays untouched for the counting pins).
 //   READOUT_ROWS - The canonical upstream rows fixture for the readout.
-//   READ_KEY / UPSTREAM_TOKEN / UPSTREAM_ACCOUNT - Obviously-fake
-//                 non-hex readout fixtures (this file is inside the
-//                 secrets shape scan itself).
-//   readoutEnv - The readout fixture env: the recorded STATS binding
-//                plus the three readout secrets (overridable per case).
-//   statsCall - Invoke the worker fetch for /stats (key/method/url
-//               overridable; key === null sends no header).
+//   READ_KEY - Obviously-fake non-hex read key fixture (this file is inside the secrets shape scan itself).
+//   UPSTREAM_TOKEN - Obviously-fake non-hex upstream token fixture.
+//   UPSTREAM_ACCOUNT - Obviously-fake non-hex upstream account fixture.
+//   readoutEnv - The readout fixture env: the recorded STATS binding plus the three readout secrets (overridable per case).
+//   statsCall - Invoke the worker fetch for /stats (key/method/url overridable; key === null sends no header).
 //   upstreamOk - Counting fetch stub serving the SQL API rows payload.
 //   expectFixed401 - Bodyless-401 assertion (no-store + leak guard).
 //   expectFixed502 - Fixed-502 body assertion (no-store + leak guard).
-//   denialCase - One auth fail-closed case on a cold-cache isolate.
 //   stripLineComments - Full-line // comment stripper for the scans.
-//   runRemoteStubbed - In-process --remote harness: fetch/exit/console
-//               stubs with full restoration (RemoteExit sentinel).
+//   drainDatapoints - Await and clear the shared recorded datapoint sink.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY

@@ -57,23 +57,14 @@
 //   notFound - 404 response constructor.
 //   GITHUB_RELEASE_BASE - Constant prefix for derived asset URLs.
 //   READOUT_CACHE_MS - The readout cache window (60 seconds).
-//   readoutCache - Module-scope cache of mapped rows only, opened on
-//                  landed success, consulted by /stats alone.
-//   statsNotFound - The handler-made /stats 404 (no-store) for a
-//                   query-carrying request; the shared notFound stays
-//                   byte-identical.
+//   readoutCache - Module-scope cache of mapped rows only, opened on landed success, consulted by /stats alone.
+//   statsNotFound - The handler-made /stats 404 (no-store) for a query-carrying request; the shared notFound stays byte-identical.
 //   statsUnauthorized - The bodyless 401 (no-store).
 //   statsUpstream - The fixed 502 {"error":"stats-upstream"} constructor.
 //   statsOk - The 200 JSON tables constructor (no-store).
-//   digestHex - SHA-256 of a string as lowercase hex (Node/Workers
-//               portable).
-//   readoutAuthorized - The x-read-key gate: SHA-256 pre-hash both
-//                       sides, constant-time digest compare; the whole
-//                       step is wrapped, every error path fails closed.
-//   handleStats - The keyed GET /stats readout: route shape, auth,
-//                 upstream-secret gate, 60 s cache, one SQL API fetch
-//                 with the 10 s abort. Writes no datapoint, logs
-//                 nothing.
+//   digestHex - SHA-256 of a string as lowercase hex (Node/Workers portable).
+//   readoutAuthorized - The x-read-key gate: SHA-256 pre-hash both sides, constant-time digest compare; the whole step is wrapped, every error path fails closed.
+//   handleStats - The keyed GET /stats readout: route shape, auth, upstream-secret gate, 60 s cache, one SQL API fetch with the 10 s abort; writes no datapoint, logs nothing.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
