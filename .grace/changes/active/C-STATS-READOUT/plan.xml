@@ -264,8 +264,8 @@
       </Review>
       <Approval>
         <Date>2026-11-03</Date>
-        <Basis>Owner approval (translated from Russian): "го", given after the closed two-clean-passes gate (rounds 8-9) and a plain-language eight-task summary in chat.</Basis>
-        <Result>plan.xml status set to approved; execution begins as soon as the sibling C-UPDATER-REVIEW-FIXES lands (the закреплённый ordering: sibling first, this change rebases on it).</Result>
+        <Basis>Owner approval (translated from Russian: "go"), given after the closed two-clean-passes gate (rounds 8-9) and a plain-language eight-task summary in chat.</Basis>
+        <Result>plan.xml status set to approved; execution begins as soon as the sibling C-UPDATER-REVIEW-FIXES lands (the fixed ordering: sibling first, this change rebases on it).</Result>
       </Approval>
     </ReviewLog>
   </C-STATS-READOUT>
