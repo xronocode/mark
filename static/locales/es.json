@@ -336,7 +336,12 @@
       "toggleTabbar": "Alternar Barra de Pestañas",
       "reloadImages": "Recargar Imágenes",
       "notificationsHistory": "Notificaciones: mostrar recientes",
-      "standardView": "Volver a la vista estándar y desactivar los modos de escritura"
+      "standardView": "Volver a la vista estándar y desactivar los modos de escritura",
+      "pageWidthCompact": "Fijar el ancho de página en Compacto 60 ch",
+      "pageWidthStandard": "Fijar el ancho de página en Estándar 80 ch",
+      "pageWidthWide": "Fijar el ancho de página en Ancho 110 ch",
+      "pageWidthFull": "Fijar el ancho de página en Ventana completa",
+      "pageWidthCustom": "Abrir la pestaña Página de los ajustes rápidos"
     },
     "utils": {
       "noUpdateResourceFile": "No hay archivo de recurso de actualización",
@@ -532,7 +537,7 @@
         "title": "Texto",
         "font": "Fuente del texto",
         "lineHeight": "Interlineado",
-        "lineWidthHelp": "Déjalo vacío para usar todo el ancho o introduce un número con px, % o ch; por ejemplo, 720px.",
+        "lineWidthHelp": "Déjalo vacío para usar el ancho del tema o introduce un número con px, % o ch; por ejemplo, 720px.",
         "fontSize": "Tamaño del texto",
         "unlimited": "Sin límite",
         "lineWidth": "Ancho del área de escritura"
@@ -1603,9 +1608,11 @@
   },
   "tableToolbar": {
     "allColumns": "todas las {total} columnas",
+    "modeAuto": "Auto",
     "fitToPage": "Ajustar a la página",
     "fullWidth": "Ancho total",
-    "columnsRange": "columnas {start}–{end} de {total}"
+    "columnsRange": "columnas {start}–{end} de {total}",
+    "doesNotFitBy": "No cabe por {px} px — desplazamiento de columnas en vez de ocultar datos"
   },
   "statusBar": {
     "title": "Estadísticas del documento",

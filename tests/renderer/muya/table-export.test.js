@@ -172,13 +172,16 @@ describe('helpers', () => {
 })
 
 describe('table toolbar Copy as image (C-70 R-2)', () => {
-  it('renders the copy button between the toggle and Open full screen with the shared label', () => {
+  it('renders the copy button after the mode segment with the shared label', () => {
     const vnode = renderTableToolbar((key) => key, { fullWidth: false })
     const buttons = vnode.children
-    expect(buttons).toHaveLength(3)
-    expect(buttons[1].sel).toContain('ag-table-toolbar-copy')
-    expect(buttons[1].data.dataset.tableToolbarAction).toBe('copyImage')
-    expect(buttons[1].data.attrs['aria-label']).toBe('blockToolbar.copyImage')
-    expect(buttons[2].data.dataset.tableToolbarAction).toBe('expand')
+    // The T-007 three-mode segment (Auto/Fit/Full) precedes Copy as image
+    // and Open full screen.
+    expect(buttons).toHaveLength(5)
+    const copy = buttons[3]
+    expect(copy.sel).toContain('ag-table-toolbar-copy')
+    expect(copy.data.dataset.tableToolbarAction).toBe('copyImage')
+    expect(copy.data.attrs['aria-label']).toBe('blockToolbar.copyImage')
+    expect(buttons[4].data.dataset.tableToolbarAction).toBe('expand')
   })
 })

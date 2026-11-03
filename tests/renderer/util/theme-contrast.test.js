@@ -1,19 +1,29 @@
 // FILE: tests/renderer/util/theme-contrast.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: WCAG AA contrast gate over every shipped editor theme plus
-//            C-41 T-003 registration pins for the six new family members.
+//            C-41 T-003 registration pins for the six new family members;
+//            C-PAGE-WIDTH-TABLES T-011 adds the shared segmented
+//            active-tile contrast assertion for BOTH settings members
+//            (the raised dark tile + hairline fix, computed — not just
+//            source-pinned).
 //   SCOPE: Parse src/renderer/src/assets/themes/*.theme.css (top level
 //          only — prismjs/ and export/ companions are separate surfaces),
 //          resolve var() references inside a file, composite rgba alpha
 //          over the background, compute WCAG relative-luminance contrast,
 //          and assert the editor text/link/muted floors; assert every
 //          theme defines the same variable set as paper.theme.css; pin
-//          the six new theme ids in the registration sources and locales.
+//          the six new theme ids in the registration sources and locales;
+//          compute the shared settings segmented control's label-on-tile
+//          contrast in the light and dark members and pin the dark-tile
+//          raise over the retired invisible tile.
 //   DEPENDS: Vitest, Node fs/path, theme css files, util/theme.js source,
 //            util/themeColor.js source, config.js source, commands/index.js
-//            source, m009_menu.rs source, static/locales/*.json.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-48 (C-41 T-003).
+//            source, m009_menu.rs source, static/locales/*.json,
+//            prefComponents/common/segmented source (T-011), the shared
+//            --pref* palette values (pages/preference.vue, mirrored
+//            verbatim by the quick-settings panel).
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-48 (C-41 T-003); .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-011, spec R-12a).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -42,7 +52,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-15 C-41 T-003: first contrast gate over
+//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-011 (R-12a):
+//   the shared segmented active-tile contrast is now COMPUTED for both
+//   settings members — light label on the #ffffff active tile and dark
+//   label on the raised #5a5a60 tile must both meet WCAG AA (4.5:1), and
+//   the dark tile must measure strictly above the retired #454545 tile
+//   against the rgba(255,255,255,.08) container (the "effectively
+//   invisible" shipped state the research review flagged). The fix
+//   itself lives in the shared segmented component (never forked into
+//   the panel — pinned there by quick-settings.test.js).
+//   v1.0.0 - 2026-10-15 C-41 T-003: first contrast gate over
 //   the 28 kept themes (six new members + AA fixes across 11 older ones)
 //   plus registration pins for one-light, alucard, nord-light,
 //   kanagawa-lotus, graphite-dark, ulysses-dark.
@@ -333,3 +352,72 @@ describe('GitHub family registration (C-GITHUB-THEME)', () => {
     expect(darkVars.linkColor).toBe('#4493F8')
   })
 })
+
+// START_BLOCK_C_PAGE_WIDTH_T011_SEGMENTED_CONTRAST
+// C-PAGE-WIDTH-TABLES T-011 (spec R-12a): the shared settings segmented
+// control's active tile must READ in both members. The shipped dark
+// state (the #454545 --prefCtrl tile on the rgba(255,255,255,.08)
+// container) measured effectively invisible in the research review; the
+// fix raises the tile to #5a5a60 with a 0.5px hairline in the SHARED
+// component. This gate computes the real WCAG ratios instead of trusting
+// hex pins: label-on-active-tile >= 4.5:1 (WCAG 1.4.3) in light AND
+// dark, and the dark tile strictly above the retired one against the
+// same container composite. Palette values are the shared --pref*
+// constants (pages/preference.vue, mirrored verbatim by the
+// quick-settings panel; the segmented fallbacks agree).
+describe('shared segmented active-tile contrast (C-PAGE-WIDTH-TABLES T-011, R-12a)', () => {
+  const SEGMENTED_SOURCE = readFileSync(
+    resolve(ROOT, 'src/renderer/src/prefComponents/common/segmented/index.vue'),
+    'utf-8'
+  )
+
+  // The two members' governing values (shared --pref* palette, dark
+  // keyed off body.dark / data-darkmode).
+  const MEMBERS = {
+    light: {
+      label: { r: 0x1d, g: 0x1d, b: 0x1f, a: 1 }, // --prefText
+      activeTile: { r: 255, g: 255, b: 255, a: 1 }, // --prefCtrl
+      container: { r: 0, g: 0, b: 0, a: 0.06 }, // .pref-segmented background
+      backdrop: { r: 255, g: 255, b: 255, a: 1 } // --prefGroup
+    },
+    dark: {
+      label: { r: 0xec, g: 0xec, b: 0xec, a: 1 }, // --prefText
+      activeTile: { r: 0x5a, g: 0x5a, b: 0x60, a: 1 }, // the raised fix
+      container: { r: 255, g: 255, b: 255, a: 0.08 },
+      backdrop: { r: 0x2f, g: 0x2f, b: 0x2f, a: 1 } // --prefGroup
+    }
+  }
+  // The retired dark tile (the pre-fix --prefCtrl value) — the contrast
+  // floor the fix must strictly beat.
+  const RETIRED_DARK_TILE = { r: 0x45, g: 0x45, b: 0x45, a: 1 }
+
+  const tileVsContainer = (member, tile) => {
+    const backdrop = flattenOver(member.container, member.backdrop)
+    return contrastRatio(flattenOver(tile, backdrop), backdrop)
+  }
+
+  it('the raised dark tile and hairline ship in the shared component (never the panel)', () => {
+    expect(SEGMENTED_SOURCE).toMatch(
+      /body\.dark \.pref-segmented-item\.pref-os-mac \.pref-segment\.is-active\s*\{[^}]*#5a5a60[^}]*border:\s*0\.5px solid rgba\(255, 255, 255, 0\.16\)/
+    )
+    expect(SEGMENTED_SOURCE).toContain('rgba(255, 255, 255, 0.08)')
+  })
+
+  it.each([
+    ['light', MEMBERS.light],
+    ['dark', MEMBERS.dark]
+  ])('%s member: the label on the active tile meets WCAG AA (4.5:1)', (_name, member) => {
+    const ratio = contrastRatio(flattenOver(member.label, member.activeTile), member.activeTile)
+    expect(ratio, `${_name} label-on-tile`).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('the dark active tile measures strictly above the retired invisible tile on the same container', () => {
+    const raised = tileVsContainer(MEMBERS.dark, MEMBERS.dark.activeTile)
+    const retired = tileVsContainer(MEMBERS.dark, RETIRED_DARK_TILE)
+    expect(retired, 'the shipped pre-fix state was effectively invisible').toBeLessThan(1.2)
+    expect(raised, 'the raised tile must beat the retired one').toBeGreaterThan(retired)
+    expect(raised, 'the raise must stay meaningful (hairline is the boundary cue, not the only one)')
+      .toBeGreaterThanOrEqual(1.45)
+  })
+})
+// END_BLOCK_C_PAGE_WIDTH_T011_SEGMENTED_CONTRAST

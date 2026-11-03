@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/tableResize/tableCue.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-65 T-003 overflow cue for wide tables — the pure «columns X–Y of N» range math (which columns are mostly visible in the C-39 scroll wrapper) plus the DOM sync pass that drives the caption below the table and the edge-shade side classes, live on scroll, resize and drag.
-//   SCOPE: Visible-column range and caption formatting, live full-width fit detection, width-toggle gating against the text column, native scrollbar-space measurement and caption/shade DOM sync. The reserved caption lives inside the scroll wrapper; fitting tables clear its text without removing space. Scroll/resize/render listeners remain in tableResize and expandNeed.
-//   DEPENDS: pure DOM measurements (wrapper/clientWidth/getBoundingClientRect; jsdom's zero rects degrade to a null state — no cue), a translator function (muya options.t or the module-level setTableCueTranslator pin).
-//   LINKS: .grace/changes/archive/C-65 T-003; .grace/graph/runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-66; renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; expandNeed.js updateFigureExpandNeed (the funnel call site); the C-65 CSS section of lib/assets/styles/index.css.
+//   PURPOSE: C-65 T-003 overflow cue for wide tables — the pure «columns X–Y of N» range math (which columns are mostly visible in the C-39 scroll wrapper) plus the DOM sync pass that drives the caption below the table and the edge-shade side classes, live on scroll, resize and drag. C-PAGE-WIDTH-TABLES T-007: the caption doubles as the honest degradation badge — when even the minimal column sizes cannot fit the frame, TableResize writes the overflow px into the figure's degradeOverflow dataset and the caption reads «does not fit by N px — column scrolling instead of hiding data» in the accent colour instead of the range text (data is never hidden or truncated).
+//   SCOPE: Visible-column range and caption formatting, the degradeOverflow badge fact (dataset read, badge formatting, caption accent class), live full-width fit detection, width-toggle gating against the text column, native scrollbar-space measurement and caption/shade DOM sync. The reserved caption lives inside the scroll wrapper; fitting tables clear its text without removing space. Scroll/resize/render listeners remain in tableResize and expandNeed.
+//   DEPENDS: pure DOM measurements (wrapper/clientWidth/getBoundingClientRect; jsdom's zero rects degrade to a null state — no cue), the figure dataset (degradeOverflow, written by tableResize), a translator function (muya options.t or the module-level setTableCueTranslator pin).
+//   LINKS: .grace/changes/archive/C-65 T-003; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007, spec R-8/R-9, corners C-7/C-8); .grace/graph/runtime.xml M-012 fn-tableResize and performance.xml M-061; .grace/verification/runtime.xml V-M-012 scenario-66; renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; expandNeed.js updateFigureExpandNeed (the funnel call site); the C-65 CSS section of lib/assets/styles/index.css; tableResize/index.js (the degradeOverflow dataset writer).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,18 +14,25 @@
 //   CLIP_TOLERANCE_PX - sub-pixel tolerance for the table-edge clipping check that decides the shade sides.
 //   TABLE_CAPTION_CLASS - reserved caption inside the scroll wrapper, below the table and above its scrollbar ("ag-table-caption").
 //   TABLE_CAPTION_ON_CLASS - class marking a caption that currently shows text ("ag-table-caption-on").
+//   TABLE_CAPTION_DEGRADE_CLASS - accent class marking the caption as the degradation badge ("ag-table-caption-degrade").
 //   TABLE_CUE_LEFT_CLASS / TABLE_CUE_RIGHT_CLASS - wrapper classes gating the edge shades ("ag-table-cue-left"/"ag-table-cue-right").
 //   TABLE_FULL_WIDTH_CLASS - figure class marking the per-table Full width mode ("ag-table-full-width", applied by TableResize).
 //   visibleColumnRange - pure: {spanLeft, spanWidth, columns:[{left,width}]} → {fits, start, end, total, hiddenLeft, hiddenRight} (1-based inclusive range) or null when nothing is measurable.
-//   formatColumnsCaption - pure: translator + cue state → the caption text (null when the table fits or the state is unusable; «all N columns» in full-width mode).
+//   formatColumnsCaption - pure: translator + cue state → the caption text (the degradation badge when the state carries overflow px; null when the table fits; «all N columns» in full-width mode).
 //   setTableCueTranslator - pin the module-level translator used when syncTableCue gets no t (the expandNeed resize funnel has no muya at hand).
-//   tableCueState - DOM gathering + rules for one figure, including a full-width table fitting its viewport.
-//   syncTableCue - apply width-toggle eligibility, caption visibility, shades and measured native scrollbar space; return the state without document writes.
+//   tableCueState - DOM gathering + rules for one figure, including a full-width table fitting its viewport and the degradeOverflow badge fact.
+//   syncTableCue - apply width-toggle eligibility, caption visibility/text/accent, shades and measured native scrollbar space; return the state without document writes.
 //   TABLE_CUE_RIGHT_CLASS - exported helper (TABLE_CUE_RIGHT_CLASS).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: hide the width toggle when the table fits its text column, including restored Full width layouts.
+//   LAST_CHANGE: v1.3.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   caption doubles as the honest degradation badge — a figure whose
+//   dataset carries degradeOverflow (even the minimal column sizes cannot
+//   fit the frame) shows «does not fit by {px} px — column scrolling
+//   instead of hiding data» in the accent colour, replacing the range
+//   text, in Fit page and Full width alike (data is never hidden).
+//   PREV: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: hide the width toggle when the table fits its text column, including restored Full width layouts.
 //   PREV: v1.1.0 - 2026-10-20 C-TABLE-FOOTER: retain invisible footer space when fitting, including Full width, and compensate actual native scrollbar height for a stable 2px gap.
 //   v1.0.0 - 2026-10-18 C-65 T-003: new module. Approved
 //   mockup variant E: no arrows, no chips — an edge shade on each side that
@@ -41,6 +48,8 @@ export const VISIBLE_COLUMN_FRACTION = 0.5
 export const CLIP_TOLERANCE_PX = 1
 export const TABLE_CAPTION_CLASS = 'ag-table-caption'
 export const TABLE_CAPTION_ON_CLASS = 'ag-table-caption-on'
+// T-007: the degradation badge accent (the caption becomes the badge).
+export const TABLE_CAPTION_DEGRADE_CLASS = 'ag-table-caption-degrade'
 export const TABLE_CUE_LEFT_CLASS = 'ag-table-cue-left'
 export const TABLE_CUE_RIGHT_CLASS = 'ag-table-cue-right'
 export const TABLE_FULL_WIDTH_CLASS = 'ag-table-full-width'
@@ -118,6 +127,15 @@ const interpolate = (t, key, params) => {
 
 export const formatColumnsCaption = (t, state) => {
   if (!state) return null
+  // T-007: the honest degradation badge outranks every range text — the
+  // table scrolls its columns because even their minimal sizes do not
+  // fit, and the caption states exactly by how much (data is never
+  // hidden or truncated).
+  if (state.degradeOverflow >= 1) {
+    return interpolate(t, 'tableToolbar.doesNotFitBy', {
+      px: Math.round(state.degradeOverflow)
+    })
+  }
   if (state.fits) return null
   if (state.fullWidth) {
     return interpolate(t, 'tableToolbar.allColumns', { total: state.total })
@@ -131,13 +149,19 @@ export const formatColumnsCaption = (t, state) => {
 // END_BLOCK_CAPTION_FORMAT
 
 // START_BLOCK_TABLE_CUE_STATE
-// DOM gathering for one table figure. Full width short-circuits («all N
-// columns», no shades — the editor scrolls, nothing is hidden by the
-// wrapper). A hidden pane / jsdom measures a zero-width port → null (no
-// verdict; the render/resize funnel re-runs the moment it lays out).
+// The degradation badge fact: tableResize writes the exact overflow px
+// into the figure's degradeOverflow dataset when even the wrapped minimal
+// column sizes cannot fit the mode's frame. The badge shows in BOTH
+// branches (Full width and the in-column fit) — degradation is honest in
+// every mode. DOM gathering for one table figure. Full width short-circuits
+// («all N columns», no shades — the editor scrolls, nothing is hidden by
+// the wrapper). A hidden pane / jsdom measures a zero-width port → null
+// (no verdict; the render/resize funnel re-runs the moment it lays out).
 export const tableCueState = (figure) => {
   if (!figure || figure.nodeType !== 1 || !figure.querySelector) return null
   if (!figure.dataset || figure.dataset.role !== 'TABLE') return null
+  const degradeOverflow = Number.parseInt(figure.dataset.degradeOverflow, 10)
+  const badge = Number.isFinite(degradeOverflow) && degradeOverflow >= 1 ? degradeOverflow : 0
   const wrapper = figure.querySelector('div.ag-table-scroll')
   if (!wrapper) return null
   const table = wrapper.querySelector('table')
@@ -149,6 +173,7 @@ export const tableCueState = (figure) => {
     return {
       fullWidth: true,
       fits: width > 0 && wrapper.clientWidth > 0 && width <= wrapper.clientWidth + CLIP_TOLERANCE_PX,
+      degradeOverflow: badge,
       total,
       start: 1,
       end: total,
@@ -168,7 +193,7 @@ export const tableCueState = (figure) => {
   }
   const range = visibleColumnRange({ spanLeft, spanWidth, columns })
   if (!range) return null
-  return Object.assign({ fullWidth: false, total }, range)
+  return Object.assign({ fullWidth: false, total, degradeOverflow: badge }, range)
 }
 // END_BLOCK_TABLE_CUE_STATE
 
@@ -204,6 +229,18 @@ export const syncTableCue = (figure, t) => {
     } else {
       caption.textContent = ''
       caption.classList.remove(TABLE_CAPTION_ON_CLASS)
+    }
+    // The degradation badge reads in the accent colour (T-007) — an
+    // inline custom-property-free paint keeps the fact on the caption
+    // element itself.
+    const degrade = !!text && state.degradeOverflow >= 1
+    caption.classList.toggle(TABLE_CAPTION_DEGRADE_CLASS, degrade)
+    if (degrade) {
+      caption.style.color = 'var(--chromeAccent, var(--themeColor))'
+      caption.style.opacity = '1'
+    } else {
+      caption.style.color = ''
+      caption.style.opacity = ''
     }
   }
   return state

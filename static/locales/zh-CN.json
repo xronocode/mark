@@ -336,7 +336,12 @@
       "toggleTabbar": "切换标签栏",
       "reloadImages": "重新加载图片",
       "notificationsHistory": "通知：显示最近记录",
-      "standardView": "返回标准视图并关闭写作模式"
+      "standardView": "返回标准视图并关闭写作模式",
+      "pageWidthCompact": "页面宽度设为紧凑 60 ch",
+      "pageWidthStandard": "页面宽度设为标准 80 ch",
+      "pageWidthWide": "页面宽度设为宽 110 ch",
+      "pageWidthFull": "页面宽度设为整个窗口",
+      "pageWidthCustom": "打开快速设置的页面标签页"
     },
     "utils": {
       "noUpdateResourceFile": "没有更新资源文件",
@@ -532,7 +537,7 @@
         "title": "文本",
         "font": "正文字体",
         "lineHeight": "行间距",
-        "lineWidthHelp": "留空表示全宽，或输入带 px、% 或 ch 单位的数值——例如 720px。",
+        "lineWidthHelp": "留空表示使用主题默认宽度，或输入带 px、% 或 ch 单位的数值——例如 720px。",
         "fontSize": "正文大小",
         "unlimited": "不限",
         "lineWidth": "书写区域宽度"
@@ -1600,9 +1605,11 @@
   },
   "tableToolbar": {
     "allColumns": "全部 {total} 列",
+    "modeAuto": "自动",
     "fitToPage": "适应页面",
     "fullWidth": "全宽显示",
-    "columnsRange": "第 {start}–{end} 列，共 {total} 列"
+    "columnsRange": "第 {start}–{end} 列，共 {total} 列",
+    "doesNotFitBy": "还差 {px} 像素 — 改用列滚动，不隐藏任何数据"
   },
   "statusBar": {
     "title": "文档统计",

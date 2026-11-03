@@ -336,7 +336,12 @@
       "toggleTabbar": "タブバーを切り替え",
       "reloadImages": "画像を再読み込み",
       "notificationsHistory": "通知：最近のものを表示",
-      "standardView": "標準表示に戻し、執筆モードをオフにします"
+      "standardView": "標準表示に戻し、執筆モードをオフにします",
+      "pageWidthCompact": "ページ幅をコンパクト 60 ch に設定",
+      "pageWidthStandard": "ページ幅を標準 80 ch に設定",
+      "pageWidthWide": "ページ幅をワイド 110 ch に設定",
+      "pageWidthFull": "ページ幅をフルウィンドウに設定",
+      "pageWidthCustom": "クイック設定のページタブを開く"
     },
     "utils": {
       "noUpdateResourceFile": "アップデートリソースファイルなし",
@@ -532,7 +537,7 @@
         "title": "テキスト",
         "font": "テキストのフォント",
         "lineHeight": "行間",
-        "lineWidthHelp": "空欄にすると全幅になります。px、%、ch を付けた数値も入力できます（例: 720px）。",
+        "lineWidthHelp": "空欄にするとテーマの既定幅になります。px、%、ch を付けた数値も入力できます（例: 720px）。",
         "fontSize": "テキストのサイズ",
         "unlimited": "無制限",
         "lineWidth": "執筆エリアの幅"
@@ -1600,9 +1605,11 @@
   },
   "tableToolbar": {
     "allColumns": "全 {total} 列",
+    "modeAuto": "自動",
     "fitToPage": "ページ幅に合わせる",
     "fullWidth": "フル幅で表示",
-    "columnsRange": "列 {start}～{end}／{total}"
+    "columnsRange": "列 {start}～{end}／{total}",
+    "doesNotFitBy": "{px} px だけ入りません — データを隠さず列スクロールで表示します"
   },
   "statusBar": {
     "title": "ドキュメント統計",

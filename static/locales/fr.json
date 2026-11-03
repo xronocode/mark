@@ -336,7 +336,12 @@
       "toggleTabbar": "Basculer la barre d'onglets",
       "reloadImages": "Recharger les images",
       "notificationsHistory": "Notifications : afficher les récentes",
-      "standardView": "Revenir à la vue standard et désactiver les modes d’écriture"
+      "standardView": "Revenir à la vue standard et désactiver les modes d’écriture",
+      "pageWidthCompact": "Régler la largeur de page sur Compact 60 ch",
+      "pageWidthStandard": "Régler la largeur de page sur Standard 80 ch",
+      "pageWidthWide": "Régler la largeur de page sur Large 110 ch",
+      "pageWidthFull": "Régler la largeur de page sur Pleine fenêtre",
+      "pageWidthCustom": "Ouvrir l’onglet Page des réglages rapides"
     },
     "utils": {
       "noUpdateResourceFile": "Aucun fichier de ressource de mise à jour",
@@ -532,7 +537,7 @@
         "title": "Texte",
         "font": "Police du texte",
         "lineHeight": "Interligne",
-        "lineWidthHelp": "Laissez vide pour utiliser toute la largeur, ou saisissez un nombre suivi de px, % ou ch — par exemple 720px.",
+        "lineWidthHelp": "Laissez vide pour utiliser la largeur du thème, ou saisissez un nombre suivi de px, % ou ch — par exemple 720px.",
         "fontSize": "Taille du texte",
         "unlimited": "Illimitée",
         "lineWidth": "Largeur de la zone d'écriture"
@@ -1604,9 +1609,11 @@
   },
   "tableToolbar": {
     "allColumns": "toutes les {total} colonnes",
+    "modeAuto": "Auto",
     "fitToPage": "Ajuster à la page",
     "fullWidth": "Pleine largeur",
-    "columnsRange": "colonnes {start}–{end} sur {total}"
+    "columnsRange": "colonnes {start}–{end} sur {total}",
+    "doesNotFitBy": "Dépasse de {px} px — défilement des colonnes au lieu de masquer des données"
   },
   "statusBar": {
     "title": "Statistiques du document",

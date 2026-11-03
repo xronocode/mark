@@ -58,6 +58,7 @@ import {
 import renderTableToolbar, {
   TABLE_TOOLBAR_BUTTON_SELECTOR,
   TABLE_TOOLBAR_SELECTOR,
+  TOOLBAR_TABLE_AUTO_ICON_PATH,
   TOOLBAR_TABLE_FIT_ICON_PATH,
   TOOLBAR_TABLE_FULLWIDTH_ICON_PATH
 } from 'muya/lib/parser/render/renderBlock/renderTableToolbar'
@@ -424,8 +425,9 @@ describe('table cue DOM state + sync (C-65 T-003)', () => {
 // END_BLOCK_CUE_STATE_ASSERTIONS
 
 // START_BLOCK_TABLE_TOOLBAR_VNODE_ASSERTIONS
-describe('table toolbar vnode (C-65 T-002, C-56 family)', () => {
+describe('table toolbar vnode (C-PAGE-WIDTH-TABLES T-007 three-mode segment)', () => {
   const TRANSLATIONS = {
+    'tableToolbar.modeAuto': 'Auto',
     'tableToolbar.fullWidth': 'Full width',
     'tableToolbar.fitToPage': 'Fit to page',
     'blockToolbar.openFullScreen': 'Open full screen'
@@ -434,60 +436,64 @@ describe('table toolbar vnode (C-65 T-002, C-56 family)', () => {
 
   const buttonsOf = (vnode) => (vnode.children || []).filter((c) => (c.sel || '').includes('ag-table-toolbar-btn'))
 
-  it('renders the pill with the toggle and the need-gated expand action', () => {
+  it('renders the three-mode segment plus Copy as image and the need-gated expand action', () => {
     const vnode = renderTableToolbar(tt, { fullWidth: false })
     expect(vnode.sel).toBe(TABLE_TOOLBAR_SELECTOR)
     expect(vnode.data.attrs.contenteditable).toBe('false')
     const buttons = buttonsOf(vnode)
-    // C-70: toggle, Copy as image, Open full screen.
-    expect(buttons.length).toBe(3)
-    const [toggle, copy, expand] = buttons
+    // Auto / Fit page / Full width, Copy as image, Open full screen.
+    expect(buttons.length).toBe(5)
+    const [autoBtn, fitBtn, fullBtn, copy, expand] = buttons
     expect(copy.sel).toBe('button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.ag-block-toolbar-copy.ag-table-toolbar-copy')
-    // Family classes: the keyboard.js key guard hooks ag-block-expand; the
-    // shared pill button styling hooks ag-block-toolbar-btn.
-    expect(toggle.sel).toBe('button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.ag-table-toolbar-toggle')
+    for (const modeButton of [autoBtn, fitBtn, fullBtn]) {
+      expect(modeButton.sel).toContain('ag-table-toolbar-mode')
+      expect(modeButton.data.dataset.tableToolbarAction).toBe('setMode')
+    }
+    expect(autoBtn.data.dataset.tableMode).toBe('auto')
+    expect(fitBtn.data.dataset.tableMode).toBe('fit')
+    expect(fullBtn.data.dataset.tableMode).toBe('full')
     expect(expand.sel).toBe('button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.ag-block-toolbar-expand.ag-table-toolbar-expand')
-    // Labels + a11y.
-    expect(toggle.data.attrs.title).toBe('Full width')
-    expect(toggle.data.attrs['aria-label']).toBe('Full width')
+    // Labels + a11y (the retired fake-fit toggle label is gone).
+    expect(autoBtn.data.attrs.title).toBe('Auto')
+    expect(fitBtn.data.attrs.title).toBe('Fit to page')
+    expect(fullBtn.data.attrs.title).toBe('Full width')
     expect(expand.data.attrs.title).toBe('Open full screen')
-    expect(toggle.data.attrs.tabindex).toBe('0')
+    expect(fitBtn.data.attrs.tabindex).toBe('0')
     expect(expand.data.attrs.contenteditable).toBe('false')
     // Hidden hover-reveal label spans carry the same text.
-    const toggleSpan = (toggle.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')
-    expect(toggleSpan.text).toBe('Full width')
-    // Icons: the drawn 16-grid glyphs.
-    const togglePath = ((toggle.children || []).find((c) => c.sel === 'svg').children || [])[0]
-    expect(togglePath.data.attrs.d).toBe(TOOLBAR_TABLE_FULLWIDTH_ICON_PATH)
-    const expandPath = ((expand.children || []).find((c) => c.sel === 'svg').children || [])[0]
-    expect(expandPath.data.attrs.d).toBeDefined()
-    // The capture-phase routing distinguishes the actions by dataset.
-    expect(toggle.data.dataset.tableToolbarAction).toBe('toggleFullWidth')
+    const span = (fitBtn.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')
+    expect(span.text).toBe('Fit to page')
+    // The drawn 16-grid glyphs, all distinct.
+    const pathOf = (button) => ((button.children || []).find((c) => c.sel === 'svg').children || [])[0]
+    expect(pathOf(autoBtn).data.attrs.d).toBe(TOOLBAR_TABLE_AUTO_ICON_PATH)
+    expect(pathOf(fitBtn).data.attrs.d).toBe(TOOLBAR_TABLE_FIT_ICON_PATH)
+    expect(pathOf(fullBtn).data.attrs.d).toBe(TOOLBAR_TABLE_FULLWIDTH_ICON_PATH)
     expect(expand.data.dataset.tableToolbarAction).toBe('expand')
     // clickEvent.js's pill branch keys on blockToolbarAction — the table
     // buttons must never match it.
-    expect(toggle.data.dataset.blockToolbarAction).toBeUndefined()
+    expect(fitBtn.data.dataset.blockToolbarAction).toBeUndefined()
     expect(expand.data.dataset.blockToolbarAction).toBeUndefined()
   })
 
-  it('the active state swaps the icon, the label and adds the active class', () => {
-    const vnode = renderTableToolbar(tt, { fullWidth: true })
-    const toggle = buttonsOf(vnode)[0]
-    expect(toggle.sel).toContain('ag-table-toolbar-active')
-    expect(toggle.data.attrs.title).toBe('Fit to page')
-    const span = (toggle.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')
-    expect(span.text).toBe('Fit to page')
-    const path = ((toggle.children || []).find((c) => c.sel === 'svg').children || [])[0]
-    expect(path.data.attrs.d).toBe(TOOLBAR_TABLE_FIT_ICON_PATH)
+  it('the vnode active state follows the fullWidth fact (Full), Auto is the resting default', () => {
+    const resting = renderTableToolbar(tt, { fullWidth: false })
+    expect(buttonsOf(resting)[0].sel).toContain('ag-table-toolbar-active')
+    expect(buttonsOf(resting)[2].sel).not.toContain('ag-table-toolbar-active')
+    const full = renderTableToolbar(tt, { fullWidth: true })
+    expect(buttonsOf(full)[2].sel).toContain('ag-table-toolbar-active')
+    expect(buttonsOf(full)[0].sel).not.toContain('ag-table-toolbar-active')
+    // The Fit/Auto correction before paint is TableResize's
+    // updateToolbarModeDom (the vnode only knows the Full fact).
   })
 
-  it('defaults to the resting (Fit OFF) state and keeps the glyphs distinct', () => {
-    expect(renderTableToolbar(tt).children.length).toBe(3)
-    expect(renderTableToolbar(tt, {}).children[0].data.attrs.title).toBe('Full width')
-    expect(TOOLBAR_TABLE_FIT_ICON_PATH).not.toBe(TOOLBAR_TABLE_FULLWIDTH_ICON_PATH)
+  it('keeps the family selector and the distinct glyphs', () => {
+    expect(renderTableToolbar(tt).children.length).toBe(5)
     expect(TABLE_TOOLBAR_BUTTON_SELECTOR).toBe('button.ag-table-toolbar-btn')
+    expect(TOOLBAR_TABLE_AUTO_ICON_PATH).not.toBe(TOOLBAR_TABLE_FIT_ICON_PATH)
+    expect(TOOLBAR_TABLE_FIT_ICON_PATH).not.toBe(TOOLBAR_TABLE_FULLWIDTH_ICON_PATH)
   })
 })
+
 // END_BLOCK_TABLE_TOOLBAR_VNODE_ASSERTIONS
 
 // START_BLOCK_TABLE_CUE_CSS_ASSERTIONS

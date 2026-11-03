@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-width-persistence.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-65 T-001 profile persistence round trip in the built renderer — resized column widths and the per-table Full width mode are written to the tableLayouts prefs key only after a real user action, a close+reopen of the same file restores them, an edited header drops that table's widths (corner-2), and a file the (mocked) filesystem no longer has is pruned instead of applied (corner-3).
 //   SCOPE: The editor.vue BLOCK_TABLE_LAYOUTS_HOST wiring (load after document loads, save on muya-table-layouts dispatches), util/tableLayoutStore.js flows, and muya.tableResize adoption.
@@ -15,6 +15,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 1.2.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the persisted-mode assertions move to the schema-v2 shape (mode: 'full'; a drag-only entry carries no mode) and the segment click routes through the same evaluate-click the mode spec uses (the pill's cumulative label reveal shifts real-pointer clicks).
 //   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FOOTER: test explicit Full width persistence on a genuinely wide table; fitting expanded tables have no counter.
 //   PREV: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.0.0 - 2026-10-18 C-65: new — the round trip fails
@@ -144,7 +145,9 @@ test.describe('table layout persistence (C-65 T-001)', () => {
     const entry = fileEntry[pid]
     expect(entry.widths.length).toBe(3)
     expect(entry.manual).toEqual([true, false, false])
-    expect(entry.fullWidth).toBe(false)
+    // Schema v2 (T-008): a drag-only entry carries no mode field.
+    expect(entry.fullWidth).toBeUndefined()
+    expect(entry.mode).toBeUndefined()
 
     // Quit-reopen (close the tab, open the same file again).
     await closeActiveTab(page)
@@ -180,6 +183,7 @@ test.describe('table layout persistence (C-65 T-001)', () => {
   })
 
   test('Full width is remembered per table across a reopen (R-6)', async ({ page }) => {
+    page.on('console', (m) => { console.log('  [page]', m.type(), m.text().slice(0, 200)) })
     await installPersistingShim(page)
     await openDoc(page)
 
@@ -190,9 +194,8 @@ test.describe('table layout persistence (C-65 T-001)', () => {
     const figure = page.locator("figure[data-role='TABLE']").first()
     const tableBox = await page.locator("figure[data-role='TABLE'] table").first().boundingBox()
     await page.mouse.move(tableBox!.x + tableBox!.width / 2, tableBox!.y + tableBox!.height / 2)
-    const toggle = page.locator("figure[data-role='TABLE'] button.ag-table-toolbar-toggle")
-    await toggle.click()
-    if (!await figure.evaluate(el => el.classList.contains('ag-table-full-width'))) await toggle.click()
+    const fullButton = figure.locator("button.ag-table-toolbar-mode[data-table-mode='full']")
+    await fullButton.click()
     expect((await tableState(page))!.fullWidth).toBe(true)
 
     await page.waitForFunction(() => {
@@ -201,7 +204,7 @@ test.describe('table layout persistence (C-65 T-001)', () => {
       if (!files) return false
       const pid = Object.keys(files).find((k) => k !== 'updatedAt')
       const entry = pid ? files[pid] : null
-      return !!(entry && entry.fullWidth === true)
+      return !!(entry && entry.mode === 'full')
     }, undefined, { timeout: 5_000 })
 
     await closeActiveTab(page)

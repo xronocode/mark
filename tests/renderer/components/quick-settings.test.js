@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/quick-settings.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-PAGE-WIDTH-TABLES panel wave (M-061) — the titlebar quick-settings shell (T-003), the Page tab arithmetic (T-004), the View tab theme mode + 17-family grid + the R-4 per-document override pin (T-005) and the Tables tab preferences (T-006): C-38 composition with the neutral palette, dark active-segment fix living in the SHARED segmented component (never forked), outside-click close vs inside-keep, per-unit presets with the 10% snap and the nearest-preset anchor, the 12-36 zoom-shared font range, the scope switch writing global vs per-document tiers, the footer naming the live global default, and the two table preference keys.
 //   SCOPE: Vue/jsdom component tests over the real components with the real en locale and the real theme factories; util/pageWidthStore is mocked at the IO boundary (load/save spies) so the persistence contract asserted here is the calls the tabs make, not the prefs transport (pinned by tests/renderer/util/page-width-store.test.js).
@@ -25,7 +25,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-003..T-006:
+//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the
+//   quick-settings:open bus entry point — the shell opens the panel with
+//   the requested tab and ignores a repeat emit while open; this is the
+//   View › Page Width › Custom… route (view.page-width.custom).
+//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-003..T-006:
 //   new suite. Shell: open/close semantics (inside never closes, outside
 //   mousedown and Escape do), data-darkmode parity, footer → the real
 //   Settings window, the dark active-segment fix pinned in the shared
@@ -149,6 +153,29 @@ describe('quick settings shell (T-003, corner C-4)', () => {
     expect(wrapper.find('.quick-settings-popover').exists()).toBe(true)
     // Three live tabs (Page / View / Tables).
     expect(wrapper.findAll('.quick-tab')).toHaveLength(3)
+  })
+
+  it('opens on the quick-settings:open bus event with the requested tab (T-010 Custom…)', async () => {
+    // View › Page Width › Custom… (the view.page-width.custom command)
+    // opens the panel through this bus event; the shell keeps owning
+    // open/close, the command owns nothing but the emit.
+    const bus = (await import('@/bus')).default
+    const wrapper = await mountShell()
+    expect(wrapper.find('.quick-settings-popover').exists()).toBe(false)
+
+    bus.emit('quick-settings:open', { tab: 'view' })
+    await flush()
+    const panel = wrapper.find('.quick-settings-popover')
+    expect(panel.exists()).toBe(true)
+    // The requested tab is the active one (the View tab chip highlighted).
+    expect(wrapper.findAll('.quick-tab')[1].classes()).toContain('quick-tab--active')
+
+    // Opening again while open is a no-op (no tab reset), and the
+    // event without a payload lands on the Page tab.
+    bus.emit('quick-settings:open', undefined)
+    await flush()
+    expect(wrapper.find('.quick-settings-popover').exists()).toBe(true)
+    expect(wrapper.findAll('.quick-tab')[1].classes()).toContain('quick-tab--active')
   })
 
   it('carries the data-darkmode attribute following the theme member', async () => {

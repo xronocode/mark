@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/menu-consistency.test.js
-// VERSION: 1.6.1
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Keep native application-menu IDs and renderer command IDs synchronized.
 //   SCOPE: Source-level native-menu extraction, renderer command/shortcut extraction, and intentional renderer-only exceptions.
@@ -19,7 +19,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.7.0 - 2026-10-30 FIX-021: pin view.standard-mode — a
+//   LAST_CHANGE: v1.8.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: pin the
+//   View › Page Width submenu — the four preset CheckMenuItems (Compact
+//   60 ch / Standard 80 ch / Wide 110 ch / Full window, checkmarks
+//   following the effective value through mt_menu_set_checked) plus the
+//   plain Custom… row (opens the quick-settings panel), all five
+//   id-dispatched to view.page-width.* renderer commands, no accelerator.
+//   PREV: v1.7.0 - 2026-10-30 FIX-021: pin view.standard-mode — a
 //   plain View-menu item at the head of the mode group (before
 //   view.source-code-mode) with no accelerator, id-dispatched to the
 //   renderer view.standard-mode command (the chip menu's one-click
@@ -61,7 +67,10 @@ const extractNativeMenuIds = () => {
   const rust = readSource('src-tauri/src/m009_menu.rs')
   const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
   const ids = new Set()
-  for (const m of buildFn.matchAll(/with_id\("([^"]+)"/g)) {
+  // \s* keeps the walk rustfmt-proof: long with_id arguments (the
+  // C-PAGE-WIDTH-TABLES Page Width labels wrap across lines) must stay
+  // visible to the id contract.
+  for (const m of buildFn.matchAll(/with_id\(\s*"([^"]+)"/g)) {
     ids.add(m[1])
   }
   return ids
@@ -503,6 +512,65 @@ describe('menu ↔ commands consistency', () => {
       buildFn.indexOf('with_id("view.source-code-mode"')
     )
   })
+
+  // START_BLOCK_C_PAGE_WIDTH_T010_MENU_PINS
+  it('pins the View Page Width submenu ids, labels, check rows and no accelerator (C-PAGE-WIDTH-TABLES T-010)', () => {
+    const rust = readSource('src-tauri/src/m009_menu.rs')
+    const buildFn = rust.slice(rust.indexOf('pub fn build_native_menu'))
+    const taxonomy = rust.slice(0, rust.indexOf('pub fn build_native_menu'))
+
+    // Taxonomy: the submenu sits in the View group with exactly the five
+    // R-13 rows, after the zoom trio and before the dynamic Theme submenu.
+    expect(taxonomy).toContain('id: "view.page-width".to_string()')
+    const rows = [
+      ['view.page-width.compact', 'Compact 60 ch'],
+      ['view.page-width.standard', 'Standard 80 ch'],
+      ['view.page-width.wide', 'Wide 110 ch'],
+      ['view.page-width.full', 'Full window'],
+      ['view.page-width.custom', 'Custom…']
+    ]
+    for (const [id, label] of rows) {
+      expect(taxonomy, `taxonomy row ${id}`).toContain(`id: "${id}".to_string()`)
+      expect(taxonomy, `taxonomy label ${id}`).toContain(`label: "${label}".to_string()`)
+    }
+    expect(taxonomy.indexOf('id: "view.actual-size".to_string()')).toBeLessThan(
+      taxonomy.indexOf('id: "view.page-width".to_string()')
+    )
+    expect(taxonomy.indexOf('id: "view.page-width".to_string()')).toBeLessThan(
+      taxonomy.indexOf('id: "view.theme".to_string()')
+    )
+
+    // Built menu: the four presets are CheckMenuItems built unchecked
+    // (the renderer syncs the effective value through mt_menu_set_checked
+    // / util/menuChecks.js); Custom… is a plain row.
+    expect(buildFn).toContain('SubmenuBuilder::new(handle, "Page Width")')
+    for (const [id, label] of rows.slice(0, 4)) {
+      const item = buildFn.match(
+        new RegExp(`CheckMenuItemBuilder::with_id\\(\\s*"${id.replace('.', '\\.')}",\\s*"${label}"[\\s\\S]*?\\.checked\\(false\\)`)
+      )
+      expect(item, `built check row ${id}`).not.toBeNull()
+    }
+    const custom = buildFn.match(
+      /MenuItemBuilder::with_id\(\s*"view\.page-width\.custom",\s*"Custom…"\)([\s\S]*?)\.build\(handle\)\?/
+    )
+    expect(custom, 'built Custom… row').not.toBeNull()
+    expect(custom[1]).not.toContain('accelerator')
+
+    // Every renderer command the rows dispatch to exists in the registry.
+    for (const [id] of rows) {
+      expect(commandIds.has(id), `${id} renderer command`).toBe(true)
+    }
+
+    // The syncable allow-list carries exactly the four presets (Custom…
+    // is a plain item — nothing to sync).
+    const allowList = rust.match(/const SYNCABLE_CHECK_IDS[^;]+;/)
+    expect(allowList).not.toBeNull()
+    for (const [id] of rows.slice(0, 4)) {
+      expect(allowList[0], `allow-listed ${id}`).toContain(`"${id}"`)
+    }
+    expect(allowList[0]).not.toContain('"view.page-width.custom"')
+  })
+  // END_BLOCK_C_PAGE_WIDTH_T010_MENU_PINS
 
   it('no allowlist entry is also in native menu (redundant)', () => {
     const redundant = []

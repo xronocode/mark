@@ -81,7 +81,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.33.0
+// VERSION: 1.34.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
@@ -121,7 +121,7 @@
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, the C-56 Copy as Image / Save as PNG… / Save as SVG… items (diagram/chart blocks only), Share (C-10/C-11/C-12/C-32/C-56).
-//   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them.
+//   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them. C-PAGE-WIDTH-TABLES T-007: the options also carry the Tables-tab preferences under the names muya's table model consumes — tableFullWidthDefault (tri-state 'auto'|'fit'|'full') and rememberTableColumnSizes — with watchers forwarding changes (the mode default re-renders, the gate does not).
 //   handleTableLayoutsChange - C-65 T-001: muya-table-layouts dispatches (fired by muya only after a real resize / reset / Full width toggle) are saved under the active tab's pathname through util/tableLayoutStore; the mirror never persists and untitled tabs never persist.
 //   applyStoredTableLayouts - C-65 T-001: load the active file's persisted table layouts (prune + cap inside the store util) and hand them to muya.tableResize.applyPersistedLayouts; sequenced per tab so a slow load cannot land on a switched document.
 //   applyHostPageState - C-PAGE-WIDTH-TABLES: the open/tab-switch funnel — re-read the active document's pageWidths entry (prune + cap inside the store util, seq-guarded per tab like applyStoredTableLayouts) and apply the effective width (document > global; the canvas clamp never writes the store) plus the pinned per-document theme; untitled tabs and entry-less documents clear to the global tier without stealing the variable from the legacy writer.
@@ -132,7 +132,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.33.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring
+//   LAST_CHANGE: v1.34.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   Tables-tab preferences reach muya — the Muya options carry the
+//   tri-state tableFullWidthDefault ('auto' | 'fit' | 'full') and the
+//   rememberTableColumnSizes gate over the tableLayouts bridge, and two
+//   watchers forward the changes (the mode default re-renders; the gate
+//   is a plain setOptions).
+//   PREV: v1.33.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring
 //   (scope amendment wave 3): the width system now applies OUTSIDE the
 //   open panel. applyHostPageState funnels open/tab-switch (immediate
 //   watcher on the active tab id, seq-guarded like the table-layout
@@ -430,6 +436,8 @@ const {
   autoCheck,
   editorLineWidth,
   wrapCodeBlocks,
+  tableFullWidthDefault,
+  rememberTableColumnSizes,
   imageInsertAction,
   imagePreferRelativeDirectory,
   imageRelativeDirectoryName,
@@ -843,6 +851,23 @@ watch(hideQuickInsertHint, (value, oldValue) => {
 watch(editorLineWidth, (value, oldValue) => {
   if (value !== oldValue) {
     setEditorWidth(value)
+  }
+})
+
+// C-PAGE-WIDTH-TABLES T-007: the Tables-tab default mode re-renders so
+// every table without an explicit choice re-resolves its mode (the
+// explicit per-table choices in muya.tableResize.modes are untouched).
+watch(tableFullWidthDefault, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ tableFullWidthDefault: value }, true)
+  }
+})
+
+// The «Remember column sizes» switch only gates the persistence bridge —
+// no re-render, the live session layout is untouched.
+watch(rememberTableColumnSizes, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ rememberTableColumnSizes: value })
   }
 })
 
@@ -3086,6 +3111,13 @@ onMounted(() => {
     // surface — including reading/locked tabs — keeps them, because
     // resizing is view-only and never dirties the document.
     disableTableColumnResize: props.mirror,
+    // C-PAGE-WIDTH-TABLES T-007: the Tables-tab preferences reach muya
+    // under the option names its table model consumes — the tri-state
+    // default mode ('auto' | 'fit' | 'full'; the fake-fit boolean default
+    // is retired) and the «Remember column sizes» gate over the
+    // tableLayouts persistence bridge.
+    tableFullWidthDefault: tableFullWidthDefault.value,
+    rememberTableColumnSizes: rememberTableColumnSizes.value,
     t // 添加翻译函数
   }
 

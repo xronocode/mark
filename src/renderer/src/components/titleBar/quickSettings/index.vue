@@ -72,12 +72,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/quickSettings/index.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-003 (M-061) the titlebar quick-settings shell — the chevrons-left-right button beside the theme button and the popover panel (Page / View / Tables live tabs) built exclusively from the C-38 component set in the neutral settings palette. The panel is NOT tinted by the editor theme: it follows the theme mode light/dark member (data-darkmode attribute over the verbatim --pref* palette) and every inner interaction keeps it open — only an outside click or Escape closes it; the footer opens the real Settings window.
-//   SCOPE: Shell only — open/close (window capture-phase mousedown closer, the doc-info-popover precedent), tab switching, dark-member parity, palette/row-anatomy CSS for its subtree and the Settings hand-off. The tab bodies (quickSettings/pageTab.vue, viewTab.vue, tablesTab.vue) own their domain state; this file holds no width or theme logic of its own. The dark active-segment contrast fix lives in the shared segmented component, never here.
-//   DEPENDS: vue, vue-i18n, @/store/preferences (theme member for the data-darkmode parity), @/store/project (OPEN_SETTING_WINDOW — the same Settings entry the gear and palette use), the three tab components.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-003, corner C-4); .grace/graph/performance.xml M-061; components/titleBar/index.vue (the mount point beside the theme button); prefComponents/common/* (the C-38 controls); pages/preference.vue (the palette source these verbatim values mirror); the approved real-app mock artifacts (boot.js section 1 glyph, approved.html structure, approved.css metrics).
+//   SCOPE: Shell only — open/close (window capture-phase mousedown closer, the doc-info-popover precedent; T-010 adds the quick-settings:open bus entry point the View › Page Width › Custom… menu row and its palette command use), tab switching, dark-member parity, palette/row-anatomy CSS for its subtree and the Settings hand-off. The tab bodies (quickSettings/pageTab.vue, viewTab.vue, tablesTab.vue) own their domain state; this file holds no width or theme logic of its own. The dark active-segment contrast fix lives in the shared segmented component, never here.
+//   DEPENDS: vue, vue-i18n, @/bus (the quick-settings:open entry point), @/store/preferences (theme member for the data-darkmode parity), @/store/project (OPEN_SETTING_WINDOW — the same Settings entry the gear and palette use), the three tab components.
+//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-003, corner C-4; plan T-010 — the Custom… bus entry); .grace/graph/performance.xml M-061; components/titleBar/index.vue (the mount point beside the theme button); prefComponents/common/* (the C-38 controls); pages/preference.vue (the palette source these verbatim values mirror); the approved real-app mock artifacts (boot.js section 1 glyph, approved.html structure, approved.css metrics).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -89,12 +89,18 @@
 //   isDarkMember - the theme mode light/dark member (isDarkTheme over the active theme) driving the data-darkmode attribute.
 //   acceleratorCaption - "⌘," on macOS, "Ctrl+," elsewhere (native menu convention; the caption never lies about the platform).
 //   toggle - open/close; opening measures the button to right-align the panel under it.
+//   openPanel - the shared open path with an explicit tab (the button opens 'page'; the quick-settings:open bus event opens the requested tab).
 //   openSettings - projectStore.OPEN_SETTING_WINDOW (the real Settings window, footer row).
 //   onDocMouseDown/onDocKeydown - outside-click (window capture phase, ahead of Tauri drag.js) and Escape closers; inner interactions never close (the closer excludes the panel and this button).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-003 (M-061):
+//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the
+//   quick-settings:open bus entry point — View › Page Width › Custom…
+//   (view.page-width.custom) opens the panel on the requested tab; the
+//   open path is extracted into openPanel(tab) and the listener leaves
+//   with the component. No width or theme logic moved.
+//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-003 (M-061):
 //   new component. The titlebar quick-settings shell: chevrons-left-right
 //   button (the approved mock glyph) beside the theme button; a 428px
 //   popover carrying the three live tabs and the "Open Settings…"
@@ -109,6 +115,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
+import bus from '@/bus'
 import { usePreferencesStore } from '@/store/preferences'
 import { useProjectStore } from '@/store/project'
 import { isDarkTheme } from '@/config'
@@ -170,7 +177,11 @@ const toggle = () => {
     open.value = false
     return
   }
-  activeTab.value = 'page'
+  openPanel('page')
+}
+
+const openPanel = (tabId) => {
+  activeTab.value = tabId || 'page'
   open.value = true
   requestAnimationFrame(() => {
     const panel = panelRef.value
@@ -181,6 +192,15 @@ const toggle = () => {
     const barRight = bar ? bar.getBoundingClientRect().right : window.innerWidth
     panel.style.right = `${Math.max(8, barRight - buttonRight)}px`
   })
+}
+
+// C-PAGE-WIDTH-TABLES T-010: View › Page Width › Custom… (the
+// view.page-width.custom command) and its palette row open the panel on
+// the requested tab through this bus event — the shell keeps owning
+// open/close, the command owns nothing but the emit.
+const onQuickSettingsOpen = (payload) => {
+  if (open.value) return
+  openPanel(payload && payload.tab)
 }
 
 // The footer opens the REAL Settings window (the same entry point the
@@ -212,11 +232,13 @@ const onDocKeydown = (event) => {
 onMounted(() => {
   window.addEventListener('mousedown', onDocMouseDown, true)
   document.addEventListener('keydown', onDocKeydown)
+  bus.on('quick-settings:open', onQuickSettingsOpen)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('mousedown', onDocMouseDown, true)
   document.removeEventListener('keydown', onDocKeydown)
+  bus.off('quick-settings:open', onQuickSettingsOpen)
 })
 </script>
 

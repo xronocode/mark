@@ -336,7 +336,12 @@
       "toggleTabbar": "탭바 토글",
       "reloadImages": "이미지 새로고침",
       "notificationsHistory": "알림: 최근 항목 표시",
-      "standardView": "표준 보기로 돌아가고 작성 모드를 끕니다"
+      "standardView": "표준 보기로 돌아가고 작성 모드를 끕니다",
+      "pageWidthCompact": "페이지 너비를 컴팩트 60 ch로 설정",
+      "pageWidthStandard": "페이지 너비를 표준 80 ch로 설정",
+      "pageWidthWide": "페이지 너비를 넓게 110 ch로 설정",
+      "pageWidthFull": "페이지 너비를 전체 창으로 설정",
+      "pageWidthCustom": "빠른 설정의 페이지 탭 열기"
     },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",
@@ -532,7 +537,7 @@
         "title": "텍스트",
         "font": "텍스트 글꼴",
         "lineHeight": "줄 간격",
-        "lineWidthHelp": "전체 너비를 사용하려면 비워 두세요. 또는 px, % 또는 ch 단위의 숫자를 입력하세요 — 예: 720px.",
+        "lineWidthHelp": "테마 기본 너비를 사용하려면 비워 두세요. 또는 px, % 또는 ch 단위의 숫자를 입력하세요 — 예: 720px.",
         "fontSize": "텍스트 크기",
         "unlimited": "제한 없음",
         "lineWidth": "편집 영역 너비"
@@ -1600,9 +1605,11 @@
   },
   "tableToolbar": {
     "allColumns": "전체 {total}개 열",
+    "modeAuto": "자동",
     "fitToPage": "페이지 폭에 맞추기",
     "fullWidth": "전체 폭으로 보기",
-    "columnsRange": "열 {start}–{end} / {total}"
+    "columnsRange": "열 {start}–{end} / {total}",
+    "doesNotFitBy": "{px} px가 부족합니다 — 데이터를 숨기지 않고 열 스크롤로 표시합니다"
   },
   "statusBar": {
     "title": "문서 통계",

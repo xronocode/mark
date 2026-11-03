@@ -336,7 +336,12 @@
       "toggleTabbar": "Tab-Leiste umschalten",
       "reloadImages": "Bilder neu laden",
       "notificationsHistory": "Benachrichtigungen: letzte anzeigen",
-      "standardView": "Zurück zur Standardansicht und Schreibmodi aus"
+      "standardView": "Zurück zur Standardansicht und Schreibmodi aus",
+      "pageWidthCompact": "Seitenbreite auf Kompakt 60 ch setzen",
+      "pageWidthStandard": "Seitenbreite auf Standard 80 ch setzen",
+      "pageWidthWide": "Seitenbreite auf Breit 110 ch setzen",
+      "pageWidthFull": "Seitenbreite auf Gesamtes Fenster setzen",
+      "pageWidthCustom": "Page-Reiter der Schnelleinstellungen öffnen"
     },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",
@@ -532,7 +537,7 @@
         "title": "Text",
         "font": "Textschrift",
         "lineHeight": "Zeilenabstand",
-        "lineWidthHelp": "Leer lassen für volle Breite oder eine Zahl mit px, % oder ch eingeben — z. B. 720px.",
+        "lineWidthHelp": "Leer lassen für die Standardbreite des Themes, oder eine Zahl mit px, % oder ch eingeben — z. B. 720px.",
         "fontSize": "Textgröße",
         "unlimited": "Unbegrenzt",
         "lineWidth": "Breite des Schreibbereichs"
@@ -1602,9 +1607,11 @@
   },
   "tableToolbar": {
     "allColumns": "alle {total} Spalten",
+    "modeAuto": "Auto",
     "fitToPage": "Auf Seite einpassen",
     "fullWidth": "Volle Breite",
-    "columnsRange": "Spalten {start}–{end} von {total}"
+    "columnsRange": "Spalten {start}–{end} von {total}",
+    "doesNotFitBy": "Passt um {px} px nicht – Spalten-Scrolling statt versteckter Daten"
   },
   "statusBar": {
     "title": "Dokumentstatistik",

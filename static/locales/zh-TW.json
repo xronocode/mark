@@ -336,7 +336,12 @@
       "toggleTabbar": "切換標籤欄",
       "reloadImages": "重新載入圖片",
       "notificationsHistory": "通知：顯示最近記錄",
-      "standardView": "回到標準檢視並關閉寫作模式"
+      "standardView": "回到標準檢視並關閉寫作模式",
+      "pageWidthCompact": "頁面寬度設為緊湊 60 ch",
+      "pageWidthStandard": "頁面寬度設為標準 80 ch",
+      "pageWidthWide": "頁面寬度設為寬 110 ch",
+      "pageWidthFull": "頁面寬度設為整個視窗",
+      "pageWidthCustom": "開啟快速設定的頁面標籤頁"
     },
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",
@@ -532,7 +537,7 @@
         "title": "文字",
         "font": "正文字型",
         "lineHeight": "行距",
-        "lineWidthHelp": "留空表示全寬，或輸入帶 px、% 或 ch 單位的數值——例如 720px。",
+        "lineWidthHelp": "留空表示使用主題預設寬度，或輸入帶 px、% 或 ch 單位的數值——例如 720px。",
         "fontSize": "文字大小",
         "unlimited": "不受限",
         "lineWidth": "書寫區域寬度"
@@ -1608,9 +1613,11 @@
   },
   "tableToolbar": {
     "allColumns": "全部 {total} 欄",
+    "modeAuto": "自動",
     "fitToPage": "符合頁面",
     "fullWidth": "全寬顯示",
-    "columnsRange": "第 {start}–{end} 欄，共 {total} 欄"
+    "columnsRange": "第 {start}–{end} 欄，共 {total} 欄",
+    "doesNotFitBy": "還差 {px} 像素 — 改用欄捲動，不隱藏任何資料"
   },
   "statusBar": {
     "title": "文件統計",

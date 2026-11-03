@@ -339,7 +339,12 @@
       "toggleTabbar": "Переключить панель вкладок",
       "reloadImages": "Обновить изображения",
       "notificationsHistory": "Уведомления: показать недавние",
-      "standardView": "Вернуться к обычному виду и выключить режимы письма"
+      "standardView": "Вернуться к обычному виду и выключить режимы письма",
+      "pageWidthCompact": "Ширина страницы — компактная, 60 ch",
+      "pageWidthStandard": "Ширина страницы — стандартная, 80 ch",
+      "pageWidthWide": "Ширина страницы — широкая, 110 ch",
+      "pageWidthFull": "Ширина страницы — во всё окно",
+      "pageWidthCustom": "Открыть вкладку «Страница» быстрых настроек"
     },
     "utils": {
       "noUpdateResourceFile": "Файл обновления отсутствует",
@@ -535,7 +540,7 @@
         "title": "Текст",
         "font": "Шрифт текста",
         "lineHeight": "Межстрочный интервал",
-        "lineWidthHelp": "Пусто — во всю ширину, или число с px, % или ch — например 720px.",
+        "lineWidthHelp": "Пусто — ширина темы по умолчанию, или число с px, % или ch — например 720px.",
         "fontSize": "Размер текста",
         "unlimited": "Без ограничений",
         "lineWidth": "Ширина области набора"
@@ -1611,9 +1616,11 @@
   },
   "tableToolbar": {
     "allColumns": "все столбцы ({total})",
+    "modeAuto": "Авто",
     "fitToPage": "По ширине страницы",
     "fullWidth": "Во всю ширину",
-    "columnsRange": "столбцы {start}–{end} из {total}"
+    "columnsRange": "столбцы {start}–{end} из {total}",
+    "doesNotFitBy": "Не хватает {px} px — прокрутка столбцов вместо скрытия данных"
   },
   "statusBar": {
     "title": "Статистика документа",
