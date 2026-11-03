@@ -1,5 +1,5 @@
 // FILE: tools/stats-gateway/worker.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-071 mt-stats-gateway. Redirect-only counting gateway for
 //            the update funnel (C-UPDATER-STATS): /feed counts a check
@@ -19,9 +19,10 @@
 //            redirector. Unknown input is a plain 404 with zero
 //            datapoints. No route ever returns a body it made.
 //   DEPENDS: none (Workers runtime fetch/waitUntil; env.STATS binding).
-//   LINKS:   .grace/graph/runtime.xml M-071; .grace/verification/
-//            runtime.xml V-M-071; .grace/changes/active/C-UPDATER-STATS
-//            spec R-1..R-5, corners C-1..C-7.
+//   LINKS:   .grace/graph/features.xml M-071;
+//            .grace/verification/features.xml V-M-071;
+//            .grace/changes/archive/C-UPDATER-STATS spec R-1..R-5,
+//            corners C-1..C-7.
 //   STATUS:  C-UPDATER-STATS T-001. Deployed owner-side via wrangler
 //            (updates.mark.xronocode.com/*, workers_dev disabled) — see
 //            README.md.
@@ -46,6 +47,10 @@
 //
 // START_CHANGE_SUMMARY
 //   - 2026-10-30 C-UPDATER-STATS T-001: initial gateway worker.
+//   - 2026-11-03 v1.1.0 C-UPDATER-REVIEW-FIXES: count() writes the
+//     documented datapoint shape — indexes: [index], blobs, doubles —
+//     instead of the invalid singular index field; LINKS rerouted to
+//     the features graph/verification and the archived stats bundle.
 // END_CHANGE_SUMMARY
 
 // The values the {{target}} placeholder substitutes per the Tauri v2
@@ -92,7 +97,7 @@ function count(ctx, env, index, blobs) {
     ctx.waitUntil(
       Promise.resolve(
         env.STATS.writeDataPoint({
-          index,
+          indexes: [index],
           blobs: [blobs.day, blobs.a, blobs.b],
           doubles: []
         })

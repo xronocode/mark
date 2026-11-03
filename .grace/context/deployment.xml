@@ -5809,5 +5809,57 @@
         <file>docs/development-plan.xml, docs/verification-plan.xml, docs/knowledge-graph.xml</file>
       </write-scope>
     </Phase-Async-Race-Hotfix-2026-08-10>
+    <Phase-Updater-Deferred-Followups-2026-11-03>
+      <LegacyAttributes>
+        <Attribute>
+          <Name>name</Name>
+          <Value>C-UPDATER-REVIEW-FIXES deferred follow-ups</Value>
+        </Attribute>
+        <Attribute>
+          <Name>status</Name>
+          <Value>pending</Value>
+        </Attribute>
+      </LegacyAttributes>
+      <goal>
+        Record the follow-ups deferred by C-UPDATER-REVIEW-FIXES in the living
+        tracker: frozen change archives cannot carry them, so they survive the
+        bundle&apos;s archiving only here.
+      </goal>
+      <step-1>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>status</Name>
+            <Value>pending</Value>
+          </Attribute>
+        </LegacyAttributes>
+        F-UPDATER-ROLLBACK-INTEGRITY — the rollback-integrity follow-up,
+        deferred by C-UPDATER-REVIEW-FIXES (2026-11-03). Four review-verified
+        defects left for one tracked wave: (1) the lockless GUI start at
+        main.rs:717-720 — try_acquire_instance_lock() has no else branch, so
+        the GUI starts without the instance lock a CLI restore may already
+        hold; (2) the delegation ack is written before the dialog emit at
+        m068_rollback.rs:786-802, with the predictable unix-seconds nonce at
+        :873 — same-user deception within the accepted R-3 bound, and the
+        ordering makes R-5&apos;s exit-6 broken-dialog path unreachable; (3)
+        R-3&apos;s Windows pending-window serialization ("a staging-area lock
+        or marker") was never implemented; (4) the GUI&apos;s silent
+        app.restart() failure — tauri (2.12.5 in Cargo.lock) logs internally
+        and exits 0, so the user sees a quiet close without relaunch.
+      </step-1>
+      <step-2>
+        <LegacyAttributes>
+          <Attribute>
+            <Name>status</Name>
+            <Value>pending</Value>
+          </Attribute>
+        </LegacyAttributes>
+        F-UPDATER-LOCALIZATION — the localization follow-up, deferred by
+        C-UPDATER-REVIEW-FIXES (2026-11-03): review finding 14&apos;s
+        English-only rollback error surface; this change&apos;s new
+        user-visible English strings; and the silent GUI post-swap preferences
+        skip — logged and non-blocking (CLI parity), a log line until the
+        localization pass gives it a user-facing surface.
+      </step-2>
+    </Phase-Updater-Deferred-Followups-2026-11-03>
   </ImplementationOrder>
 </GraceDeployment>
