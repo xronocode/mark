@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.9.x-next",
-  "state": "Collecting",
+  "state": "Frozen",
   "previousRelease": {
     "tag": "v2.8.2",
     "commit": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
@@ -277,25 +277,25 @@
           "testedArtifact": "None beyond the automated suites and the review gate — the train acceptance protocol (rule 5) will exercise a real rollback on the train build."
         }
       },
-    {
-      "id": "C-PAGE-WIDTH-TABLES",
-      "summary": "Page width becomes a first-class per-document concept (titlebar quick-settings panel with Page/View/Tables tabs, native View menu presets, palette commands) and the table modes become honest: Auto content-sized, Fit page distributing into the text column with wrap fallback and an exact does-not-fit badge, Full width as the whole window canvas; ratios+px column sizes survive everything; the legacy fake-fit retires; the Leave-empty help lie and dark active-segment contrast fixed.",
-      "state": "queued",
-      "commits": [
-        "9653b76a5218f306571d343b405fac562af5cc3f"
-      ],
-      "acceptance": {
-        "owner": "xronocode",
-        "date": "2026-11-03",
-        "testedArtifact": "The owner-confirmed real-app interactive mock on the product dist («мок норм»); hands-on dispatch-build check deferred to the train acceptance protocol.",
-        "scenarios": [
-          "units: 5222 renderer tests incl. 143 width/table and 32 host-wiring",
-          "e2e: chromium 417 passed / 8 skipped / 1 pre-existing base flake; webkit-tables 55",
-          "panel: 17 passed + 1 documented harness-debt skip (prefs shim not read-through; pinned by host units)",
-          "cargo m009_menu 31; locale parity 69/69"
-        ]
+      {
+        "id": "C-PAGE-WIDTH-TABLES",
+        "summary": "Page width becomes a first-class per-document concept (titlebar quick-settings panel with Page/View/Tables tabs, native View menu presets, palette commands) and the table modes become honest: Auto content-sized, Fit page distributing into the text column with wrap fallback and an exact does-not-fit badge, Full width as the whole window canvas; ratios+px column sizes survive everything; the legacy fake-fit retires; the Leave-empty help lie and dark active-segment contrast fixed.",
+        "state": "queued",
+        "commits": [
+          "9653b76a5218f306571d343b405fac562af5cc3f"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-03",
+          "testedArtifact": "The owner-confirmed real-app interactive mock on the product dist («мок норм»); hands-on dispatch-build check deferred to the train acceptance protocol.",
+          "scenarios": [
+            "units: 5222 renderer tests incl. 143 width/table and 32 host-wiring",
+            "e2e: chromium 417 passed / 8 skipped / 1 pre-existing base flake; webkit-tables 55",
+            "panel: 17 passed + 1 documented harness-debt skip (prefs shim not read-through; pinned by host units)",
+            "cargo m009_menu 31; locale parity 69/69"
+          ]
+        }
       }
-    }
     ],
     "operational": [
       {
@@ -475,6 +475,12 @@
       "date": "2026-10-30",
       "actor": "release-agent",
       "evidence": "Admitted FIX-021 (75219f62, PR #128) as user-facing after its fully green CI. The train stays Collecting; no dispatch or release activity is authorized."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-11-04",
+      "actor": "zcode",
+      "evidence": "Owner instruction freeze. Payload 9653b76a (PR #183); bookkeeping span 0a20c353 (#185 admission) and 8c962bee (#186 archive) sits above it for the metadata-only seal. All macOS gates green on the tip; the non-member post-boundary commits (stats gateway #169/#182/#184, CI/dependency maintenance #172-#181) are classified as excluded-from-membership infrastructure riding the payload. Owner smoke-acceptance protocols per admitted item follow; the seal lands on their all-OK verdict."
     }
   ]
 }
