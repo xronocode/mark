@@ -33,6 +33,7 @@ import {
 } from '../util/guideDoc'
 import { syncViewMenuChecks } from '../util/menuChecks'
 import { moveTableLayoutsEntry } from '../util/tableLayoutStore'
+import { movePageWidthEntry } from '../util/pageWidthStore'
 import {
   loadFilePosition,
   saveFilePosition,
@@ -1144,6 +1145,11 @@ export const useEditorStore = defineStore('editor', {
         moveFilePositionsEntry(pathname, newPathname).catch(e =>
           console.warn(`[editor][rename][BLOCK_POSITION_MOVE_FAILED] ${e}`)
         )
+        // C-PAGE-WIDTH-TABLES: the remembered page width — and the pinned
+        // per-document theme inside the same entry — follows the rename.
+        movePageWidthEntry(pathname, newPathname).catch(e =>
+          console.warn(`[editor][rename][BLOCK_PAGE_WIDTH_MOVE_FAILED] ${e}`)
+        )
         this.APPLY_SAVE_OUTCOME({
           id,
           pathname: newPathname,
@@ -1657,6 +1663,11 @@ export const useEditorStore = defineStore('editor', {
       // C-FILE-POSITION-MEMORY: the remembered position follows the rename.
       moveFilePositionsEntry(src, dest).catch(e =>
         console.warn(`[editor][rename][BLOCK_POSITION_MOVE_FAILED] ${e}`)
+      )
+      // C-PAGE-WIDTH-TABLES: the remembered page width — and the pinned
+      // per-document theme inside the same entry — follows the rename.
+      movePageWidthEntry(src, dest).catch(e =>
+        console.warn(`[editor][rename][BLOCK_PAGE_WIDTH_MOVE_FAILED] ${e}`)
       )
       console.debug(`[editor][rename][BLOCK_TABS_FOLLOWED tabs=${moved.length}]`)
     },
@@ -2787,17 +2798,24 @@ export const useEditorStore = defineStore('editor', {
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED.
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   useEditorStore - Pinia store: tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS).
+//   useEditorStore - Pinia store: tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS); RENAME/RENAME_IF_NEEDED move the stored table layouts, file positions and page widths (util/tableLayoutStore, util/filePositionStore, util/pageWidthStore) to the new path.
 //   __resetBootPhase - test hook that re-arms the boot-phase guard.
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-03 C-PAGE-WIDTH-TABLES (host wiring wave): RENAME and
+//     RENAME_IF_NEEDED also move the file's pageWidths entry through
+//     util/pageWidthStore.movePageWidthEntry (fire-and-forget with the
+//     BLOCK_PAGE_WIDTH_MOVE_FAILED marker, mirroring the table-layout and
+//     file-position moves), so a document's remembered width and its
+//     pinned per-document theme travel with renames from both the
+//     title-bar card and the sidebar.
 //   - 2026-10-26 C-FILE-POSITION-MEMORY review wave: NEW_TAB_WITH_CONTENT
 //     awaits the position restore BEFORE any tab surgery (closing a saved
 //     blank tab and activating the new one stay in one synchronous run —

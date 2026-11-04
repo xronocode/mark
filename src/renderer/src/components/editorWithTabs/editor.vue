@@ -81,12 +81,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.32.0
+// VERSION: 1.34.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
 //   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
-//   DEPENDS: Muya, muya/lib BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE markers (C-LARGE-DOC-WAVE-A T-003), Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence).
-//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004).
+//   DEPENDS: Muya, muya/lib BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE markers (C-LARGE-DOC-WAVE-A T-003), Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence), util/pageWidth + util/pageWidthStore (C-PAGE-WIDTH-TABLES — the width resolution pipeline and the per-document store this host applies), util/autoTheme (the Auto-aware global theme restore behind a pinned surface theme).
+//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004); .grace/changes/active/C-PAGE-WIDTH-TABLES (the page-width host wiring).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -121,13 +121,44 @@
 //   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
 //   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, the C-56 Copy as Image / Save as PNG… / Save as SVG… items (diagram/chart blocks only), Share (C-10/C-11/C-12/C-32/C-56).
-//   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them.
+//   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them. C-PAGE-WIDTH-TABLES T-007: the options also carry the Tables-tab preferences under the names muya's table model consumes — tableFullWidthDefault (tri-state 'auto'|'fit'|'full') and rememberTableColumnSizes — with watchers forwarding changes (the mode default re-renders, the gate does not).
 //   handleTableLayoutsChange - C-65 T-001: muya-table-layouts dispatches (fired by muya only after a real resize / reset / Full width toggle) are saved under the active tab's pathname through util/tableLayoutStore; the mirror never persists and untitled tabs never persist.
 //   applyStoredTableLayouts - C-65 T-001: load the active file's persisted table layouts (prune + cap inside the store util) and hand them to muya.tableResize.applyPersistedLayouts; sequenced per tab so a slow load cannot land on a switched document.
+//   applyHostPageState - C-PAGE-WIDTH-TABLES: the open/tab-switch funnel — re-read the active document's pageWidths entry (prune + cap inside the store util, seq-guarded per tab like applyStoredTableLayouts) and apply the effective width (document > global; the canvas clamp never writes the store) plus the pinned per-document theme; untitled tabs and entry-less documents clear to the global tier without stealing the variable from the legacy writer.
+//   reapplyHostWidthFromCache - C-PAGE-WIDTH-TABLES corner C-3: one --editorAreaWidth property write from the cached entry on canvas changes (window resize, sidebar show/hide/drag commit) — never a content re-render, no store IO on the tick.
+//   applyDocumentSurfaceTheme - C-PAGE-WIDTH-TABLES R-4: apply a pinned themeOverride to the document surface (addThemeStyle + the muya diagram classification mirroring the shipped watch(theme) branch); restore the Auto-aware global theme when the pin leaves.
+//   syncDiagramClassification - C-PAGE-WIDTH-TABLES: the muya mermaid/vega options follow the applied surface theme (dark regex classification — the shipped watch(theme) branch); safe to re-run once the Muya instance exists.
+//   handleDocumentPageStateChanged - C-PAGE-WIDTH-TABLES: the panel's mt::document-page-state-changed handler — a Page/View tab write re-reads the entry so a fresh pin reaches the surface without waiting for a tab switch and the host cache never goes stale behind a panel write.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.32.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-004 —
+//   LAST_CHANGE: v1.34.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   Tables-tab preferences reach muya — the Muya options carry the
+//   tri-state tableFullWidthDefault ('auto' | 'fit' | 'full') and the
+//   rememberTableColumnSizes gate over the tableLayouts bridge, and two
+//   watchers forward the changes (the mode default re-renders; the gate
+//   is a plain setOptions).
+//   PREV: v1.33.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring
+//   (scope amendment wave 3): the width system now applies OUTSIDE the
+//   open panel. applyHostPageState funnels open/tab-switch (immediate
+//   watcher on the active tab id, seq-guarded like the table-layout
+//   loads): the document's pageWidths entry resolves through the
+//   pipeline (document > global) onto the single inline --editorAreaWidth
+//   property, entry-less and untitled documents clear it so the legacy
+//   global writer owns the variable again, and unmount (last document
+//   closed) clears it too. Canvas changes (window resize, sidebar
+//   show/hide/drag commit) re-apply the cached pipeline value with one
+//   property write (C-3) plus one trailing re-read (the panel writes the
+//   store directly; its Page/View writes announce on
+//   mt::document-page-state-changed so a fresh pin or width lands
+//   immediately and the cache never goes stale). The R-4 pinned
+//   per-document theme now reaches the surface: applyDocumentSurfaceTheme
+//   applies entry.themeOverride through addThemeStyle (with the muya
+//   diagram classification mirroring the shipped watch(theme) branch) and
+//   restores the Auto-aware global theme when the pin leaves or the
+//   component unmounts; a global theme cycle while a pin is on the
+//   surface re-asserts the pin and never rewrites the stored entry.
+//   - 2026-11-02 v1.32.0 C-LARGE-DOC-WAVE-A T-004 —
 //   experimental progressive-mount orchestration. Plain document opens
 //   (the T-003 marker-counted set: no cursor/blocks/muyaIndexCursor)
 //   route through muya.progressiveMount when the session-latched toggle
@@ -320,7 +351,19 @@ import { getImageInfo as getDomImageInfo } from 'muya/lib/utils/getImageInfo'
 import { getCssForOptions, getHtmlToc } from '@/util/pdf'
 import { embedLocalImages } from '@/util/exportImages'
 import { loadTableLayoutsFor, saveTableLayoutsFor } from '@/util/tableLayoutStore'
-import { addCommonStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
+import { addCommonStyle, addThemeStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
+// C-PAGE-WIDTH-TABLES (host wiring): the resolution pipeline (pure maths +
+// the single --editorAreaWidth writer), the per-document store and the
+// Auto-theme resolver the pinned-theme restore rides.
+import {
+  applyEditorWidth,
+  clearAppliedEditorWidth,
+  computeCanvasWidth,
+  parseWidth,
+  resolveEffectiveWidth
+} from '@/util/pageWidth'
+import { loadPageWidthFor } from '@/util/pageWidthStore'
+import { resolveAutoTheme } from '@/util/autoTheme'
 import { usePreferencesStore } from '@/store/preferences'
 import { useEditorStore } from '@/store/editor'
 import { useProjectStore } from '@/store/project'
@@ -393,6 +436,8 @@ const {
   autoCheck,
   editorLineWidth,
   wrapCodeBlocks,
+  tableFullWidthDefault,
+  rememberTableColumnSizes,
   imageInsertAction,
   imagePreferRelativeDirectory,
   imageRelativeDirectoryName,
@@ -415,6 +460,10 @@ const { currentFile } = storeToRefs(editorStore)
 
 // Project store refs
 const { projectTree } = storeToRefs(projectStore)
+
+// Layout store refs — the canvas model (canvas = window − sidebar) the
+// width pipeline rides (C-PAGE-WIDTH-TABLES host wiring).
+const { showSideBar, sideBarWidth } = storeToRefs(layoutStore)
 
 // Component state
 const defaultFontFamily = DEFAULT_EDITOR_FONT_FAMILY
@@ -802,6 +851,23 @@ watch(hideQuickInsertHint, (value, oldValue) => {
 watch(editorLineWidth, (value, oldValue) => {
   if (value !== oldValue) {
     setEditorWidth(value)
+  }
+})
+
+// C-PAGE-WIDTH-TABLES T-007: the Tables-tab default mode re-renders so
+// every table without an explicit choice re-resolves its mode (the
+// explicit per-table choices in muya.tableResize.modes are untouched).
+watch(tableFullWidthDefault, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ tableFullWidthDefault: value }, true)
+  }
+})
+
+// The «Remember column sizes» switch only gates the persistence bridge —
+// no re-render, the live session layout is untouched.
+watch(rememberTableColumnSizes, (value, oldValue) => {
+  if (value !== oldValue && editor.value) {
+    editor.value.setOptions({ rememberTableColumnSizes: value })
   }
 })
 
@@ -2121,6 +2187,200 @@ const handleTableLayoutsChange = async ({ entries } = {}) => {
 }
 // END_BLOCK_TABLE_LAYOUTS_HOST
 
+// START_CONTRACT: applyHostPageState / reapplyHostWidthFromCache
+//   PURPOSE: C-PAGE-WIDTH-TABLES — the document host side of the page-width system: every active-document change (open, tab switch, close-to-unmount) re-reads the document's pageWidths entry and applies the effective width (document > global through the resolution pipeline) plus the pinned per-document theme (entry.themeOverride) to the document surface; canvas changes re-apply the pipeline value from the cached entry with one custom-property write, never a content re-render.
+//   INPUTS: { none — reads currentFile, editorLineWidth, the layout store, and the quick-settings panel's mt::document-page-state-changed bus announcements }
+//   OUTPUTS: { Promise<void> }
+//   SIDE_EFFECTS: ipcPrefs read of the pageWidths key (through util/pageWidthStore.loadPageWidthFor: prune + cap inside the store util); one inline --editorAreaWidth custom property write on the document root (util/pageWidth applyEditorWidth / clearAppliedEditorWidth); addThemeStyle of the pinned theme id while a pin governs the surface, restored to the global theme (Auto-aware) when the pin leaves; muya mermaid/vega classification following the applied theme (mirrors the shipped watch(theme) branch).
+//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-002/T-005, corners C-1/C-2/C-3); util/pageWidth.js (the resolution pipeline and the single writer); util/pageWidthStore.js (the per-document store this block reads); util/theme.js addThemeStyle (re-applies the pipeline value after every theme switch); store/editor.js RENAME/RENAME_IF_NEEDED (the rename move).
+// END_CONTRACT: applyHostPageState / reapplyHostWidthFromCache
+// START_BLOCK_PAGE_WIDTH_HOST
+// The window width is a ref so the canvas recompute stays reactive; the
+// sidebar drag commits its width to the layout store on mouseup, so the
+// committed geometry is what the pipeline sees (same model the panel uses).
+const HOST_WIDTH_FRESHEN_DELAY_MS = 150
+const hostWindowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1280)
+const onHostWindowResize = () => {
+  hostWindowWidth.value = window.innerWidth
+}
+const hostCanvasWidth = computed(() =>
+  computeCanvasWidth(hostWindowWidth.value, {
+    sidebarVisible: showSideBar.value,
+    sidebarWidth: sideBarWidth.value
+  })
+)
+
+// Sequence guard (the applyStoredTableLayouts precedent): a slow entry
+// load that lands after the tab switched must not paint the previous
+// document's width or pinned theme.
+let hostPageWidthSeq = 0
+// The active document's entry, cached for the hot resize re-applies (no
+// store IO per resize tick). Null = the global tier owns the variable
+// through the legacy writer (theme.js setEditorWidth) and the host only
+// ever clears the pipeline value.
+let hostPageWidthEntry = null
+// The theme id the host pinned onto the surface. Null = the global theme
+// governs and app.vue's watchers own its application; a global cycle while
+// a pin is on the surface is re-asserted here (the stored entry is only
+// ever rewritten by the View tab, never by a cycle — R-4).
+let hostSurfaceThemeId = null
+let hostWidthFreshenTimer = null
+
+const syncDiagramClassification = (themeId) => {
+  // The diagram themes follow the APPLIED surface theme, not the (untouched)
+  // global preference — the same classification the shipped watch(theme)
+  // branch performs.
+  if (!editor.value) return
+  if (/dark/i.test(themeId)) {
+    editor.value.setOptions({ mermaidTheme: 'dark', vegaTheme: 'dark' }, true)
+  } else {
+    editor.value.setOptions({ mermaidTheme: 'default', vegaTheme: 'latimes' }, true)
+  }
+}
+
+const applySurfaceTheme = (themeId) => {
+  addThemeStyle(themeId)
+  syncDiagramClassification(themeId)
+}
+
+const restoreGlobalSurfaceTheme = () => {
+  hostSurfaceThemeId = null
+  const globalTheme = preferencesStore.followSystemTheme
+    ? resolveAutoTheme(preferencesStore)
+    : preferencesStore.theme
+  if (globalTheme) applySurfaceTheme(globalTheme)
+}
+
+const applyDocumentSurfaceTheme = (entry) => {
+  const pinned =
+    entry && typeof entry.themeOverride === 'string' && entry.themeOverride
+      ? entry.themeOverride
+      : null
+  if (pinned) {
+    if (pinned !== hostSurfaceThemeId) {
+      applySurfaceTheme(pinned)
+      hostSurfaceThemeId = pinned
+    } else {
+      // The boot funnel runs at setup, before the Muya instance exists —
+      // when only the classification is missing (editor.value was null on
+      // the first pass), sync it now that the surface is live.
+      syncDiagramClassification(pinned)
+    }
+    return
+  }
+  if (hostSurfaceThemeId) restoreGlobalSurfaceTheme()
+}
+
+const applyHostPageState = async () => {
+  if (props.mirror) return
+  const file = currentFile.value
+  const tabId = file && file.id
+  const pathname = file && file.pathname
+  const seq = ++hostPageWidthSeq
+  let entry = null
+  if (pathname) {
+    try {
+      entry = await loadPageWidthFor(pathname)
+    } catch (e) {
+      console.warn(`[Editor][applyHostPageState][BLOCK_PAGE_WIDTH_APPLY_FAILED] ${e}`)
+      entry = null
+    }
+  }
+  if (seq !== hostPageWidthSeq || currentFile.value?.id !== tabId) return
+  hostPageWidthEntry = entry
+  if (entry) {
+    // The document tier: the pipeline writer owns the inline variable. The
+    // clamp is a render-time projection — the stored value never mutates
+    // (corner C-2).
+    const effective = resolveEffectiveWidth(
+      { document: entry, theme: null, global: parseWidth(editorLineWidth.value) },
+      hostCanvasWidth.value
+    )
+    if (effective) applyEditorWidth(effective)
+  } else {
+    // Untitled tabs and documents without an entry resolve through the
+    // global tier: the inline property must GO so the legacy writer
+    // (theme.js setEditorWidth via the shipped editorLineWidth watcher)
+    // owns the variable again — exactly one writer ever owns it.
+    clearAppliedEditorWidth()
+  }
+  applyDocumentSurfaceTheme(entry)
+}
+
+// Hot canvas path (corner C-3): one custom-property write from the cached
+// entry — no store IO on the resize tick. Global-tier documents follow the
+// theme CSS variable and need nothing here.
+const reapplyHostWidthFromCache = () => {
+  if (!hostPageWidthEntry) return
+  const effective = resolveEffectiveWidth(
+    { document: hostPageWidthEntry, theme: null, global: parseWidth(editorLineWidth.value) },
+    hostCanvasWidth.value
+  )
+  if (effective) applyEditorWidth(effective)
+}
+
+// Freshness: the panel writes the store directly, so after any canvas or
+// global-setting change the host re-reads the entry once — trailing-
+// debounced so a resize burst costs one re-read. The panel also announces
+// its writes on the bus (handleDocumentPageStateChanged) so a fresh pin or
+// width reaches the surface immediately.
+const scheduleHostWidthFreshen = () => {
+  if (hostWidthFreshenTimer) clearTimeout(hostWidthFreshenTimer)
+  hostWidthFreshenTimer = setTimeout(() => {
+    hostWidthFreshenTimer = null
+    void applyHostPageState()
+  }, HOST_WIDTH_FRESHEN_DELAY_MS)
+}
+
+const handleDocumentPageStateChanged = ({ pathname } = {}) => {
+  if (props.mirror) return
+  if (pathname && pathname !== currentFile.value?.pathname) return
+  void applyHostPageState()
+}
+
+// Open / tab switch / close funnel (the panel is the apply path while it
+// is open; the host owns every state change outside it).
+watch(
+  () => currentFile.value?.id,
+  () => {
+    void applyHostPageState()
+  },
+  { immediate: true }
+)
+
+// A global theme cycle (title bar, Settings, Auto resolution, cross-window
+// echo) must never move a pinned document's surface: re-assert the pin.
+watch(
+  () => [
+    theme.value,
+    preferencesStore.followSystemTheme,
+    preferencesStore.lightModeTheme,
+    preferencesStore.darkModeTheme
+  ],
+  () => {
+    if (hostSurfaceThemeId) applySurfaceTheme(hostSurfaceThemeId)
+  }
+)
+
+// Canvas changes (window resize, sidebar show/hide/drag commit): re-apply
+// the cached pipeline value live, then re-read once at the burst's end.
+watch([hostWindowWidth, showSideBar, sideBarWidth], () => {
+  if (props.mirror) return
+  reapplyHostWidthFromCache()
+  scheduleHostWidthFreshen()
+})
+
+// The global setting moved (Settings window, or the panel's global write —
+// which also rewrote the document entry): re-read the document tier.
+watch(editorLineWidth, () => {
+  if (props.mirror) return
+  scheduleHostWidthFreshen()
+})
+
+bus.on('mt::document-page-state-changed', handleDocumentPageStateChanged)
+window.addEventListener('resize', onHostWindowResize)
+// END_BLOCK_PAGE_WIDTH_HOST
+
 // START_BLOCK_POSITION_FLUSH_DEBOUNCE
 // C-FILE-POSITION-MEMORY (spec D-2): one debounced disk write per 1.5 s of
 // activity. The muyaIndexCursor is computed ONCE here at flush time —
@@ -2851,6 +3111,13 @@ onMounted(() => {
     // surface — including reading/locked tabs — keeps them, because
     // resizing is view-only and never dirties the document.
     disableTableColumnResize: props.mirror,
+    // C-PAGE-WIDTH-TABLES T-007: the Tables-tab preferences reach muya
+    // under the option names its table model consumes — the tri-state
+    // default mode ('auto' | 'fit' | 'full'; the fake-fit boolean default
+    // is retired) and the «Remember column sizes» gate over the
+    // tableLayouts persistence bridge.
+    tableFullWidthDefault: tableFullWidthDefault.value,
+    rememberTableColumnSizes: rememberTableColumnSizes.value,
     t // 添加翻译函数
   }
 
@@ -3092,6 +3359,12 @@ onMounted(() => {
 
   setWrapCodeBlocks(wrapCodeBlocks.value)
   setEditorWidth(editorLineWidth.value)
+
+  // C-PAGE-WIDTH-TABLES: the setup-time funnel ran before this Muya
+  // instance existed (and before the legacy writer seeded the variable) —
+  // re-run it once the surface is live so a pinned theme's diagram
+  // classification and a document-tier width land on the real surface.
+  void applyHostPageState()
 })
 
 onBeforeUnmount(() => {
@@ -3142,6 +3415,19 @@ onBeforeUnmount(() => {
   // C-FILE-POSITION-MEMORY: the pending debounced flush dies with the
   // component — close/quit flushes own the final write.
   if (positionFlushTimer) clearTimeout(positionFlushTimer)
+
+  // C-PAGE-WIDTH-TABLES: the host stops owning the page state when the
+  // editor column unmounts (the last document closed — app.vue v-if): the
+  // pending freshen dies, the inline pipeline value is removed so the
+  // legacy global writer owns the variable for the welcome screen, and a
+  // pinned surface theme is restored to the global theme.
+  bus.off('mt::document-page-state-changed', handleDocumentPageStateChanged)
+  if (hostWidthFreshenTimer) clearTimeout(hostWidthFreshenTimer)
+  window.removeEventListener('resize', onHostWindowResize)
+  if (!props.mirror) {
+    if (hostSurfaceThemeId) restoreGlobalSurfaceTheme()
+    clearAppliedEditorWidth()
+  }
 
   document.removeEventListener('keyup', keyup)
   editor.value.off('change')

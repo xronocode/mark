@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.7.0
+// VERSION: 2.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -20,6 +20,7 @@
 //   edit.copy-as-structured-text - Copies selection (or whole document) as structure-preserving plain text (C-32).
 //   edit.copy-as-markdown - Copies selection (or whole document) as raw Markdown text (C-40 T-004).
 //   view.zoom-in / view.zoom-out / view.actual-size - Unified zoom via preferences ZOOM_STEP/ZOOM_ACTUAL_SIZE (C-49).
+//   view.page-width.compact / .standard / .wide / .full / .custom - View › Page Width presets writing the per-document entry (titled) or the global editorLineWidth (untitled) and the Custom… row opening the quick-settings panel (C-PAGE-WIDTH-TABLES T-010).
 //   view.command-palette - FIX-010 macOS root-palette command (Shift+Command+P); emits the existing show-command-palette route.
 //   help.guide - Opens the localized Mark Guide as a temporary untitled tab (C-40 G-3).
 //   view.outline - Toggles the «On this page» outline rail via the persisted outlineRailVisible preference (C-40 T-003).
@@ -42,6 +43,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the View › Page Width
+//     commands (view.page-width.compact/standard/wide/full/custom) — the
+//     R-13 menu surfacing. The four presets ride setPageWidthPreset (the
+//     Page tab's default-tier write: per-document entry + host
+//     announcement for titled documents, the global editorLineWidth for
+//     untitled tabs); Custom… emits quick-settings:open so the panel
+//     opens on its Page tab. No accelerators (the native menu claims
+//     none for the submenu).
 //   - 2026-10-30 FIX-021: view.standard-mode — the native View › Standard
 //     View row and the palette route to the chip menu's one-click full
 //     reset; the execute re-dispatches only the active flags through the
@@ -196,6 +205,30 @@ export class RootCommand {
 const focusEditorAndExecute = (fn) => {
   setTimeout(() => bus.emit('editor-focus'), 10)
   setTimeout(() => fn(), 150)
+}
+
+// C-PAGE-WIDTH-TABLES T-010: the View › Page Width preset write path —
+// the quick-settings Page tab's default-tier write, mirrored (pageTab
+// persistAndApply): a titled document gains the per-document entry and
+// the host applies it on the announcement; an untitled tab writes the
+// global editorLineWidth (clearing the pipeline variable first, so the
+// legacy writer owns the CSS custom property — exactly one writer).
+const setPageWidthPreset = async (width) => {
+  const { useEditorStore } = await import('@/store/editor')
+  const { savePageWidth } = await import('@/util/pageWidthStore')
+  const { clearAppliedEditorWidth } = await import('@/util/pageWidth')
+  const editorStore = useEditorStore()
+  const pathname = editorStore.currentFile && editorStore.currentFile.pathname
+  if (pathname) {
+    await savePageWidth(pathname, width)
+    bus.emit('mt::document-page-state-changed', { pathname })
+  } else {
+    clearAppliedEditorWidth()
+    await usePreferencesStore().SET_SINGLE_PREFERENCE({
+      type: 'editorLineWidth',
+      value: `${width.value}${width.unit}`
+    })
+  }
 }
 
 // C-15 T-M5: capability gate. applyCapabilityGate() removes commands whose
@@ -1094,6 +1127,46 @@ const commands = [
     shortcut: [isOsx ? 'Cmd' : 'Ctrl', '0'],
     execute: async () => {
       usePreferencesStore().ZOOM_ACTUAL_SIZE()
+    }
+  },
+
+  {
+    // C-PAGE-WIDTH-TABLES T-010 (spec R-13): the View › Page Width
+    // presets — the same write path the quick-settings Page tab uses on
+    // its default tier: a titled document gains the per-document entry
+    // (util/pageWidthStore.savePageWidth) and the editor host applies it
+    // on the mt::document-page-state-changed announcement; an untitled
+    // tab writes the global editorLineWidth preference (the shipped
+    // watcher applies it; F4 — untitled documents never gain a store
+    // entry). Checkmarks follow the effective value through
+    // util/menuChecks.js. view.page-width.custom opens the panel.
+    id: 'view.page-width.compact',
+    execute: async () => {
+      await setPageWidthPreset({ value: 60, unit: 'ch' })
+    }
+  },
+  {
+    id: 'view.page-width.standard',
+    execute: async () => {
+      await setPageWidthPreset({ value: 80, unit: 'ch' })
+    }
+  },
+  {
+    id: 'view.page-width.wide',
+    execute: async () => {
+      await setPageWidthPreset({ value: 110, unit: 'ch' })
+    }
+  },
+  {
+    id: 'view.page-width.full',
+    execute: async () => {
+      await setPageWidthPreset({ value: 100, unit: '%' })
+    }
+  },
+  {
+    id: 'view.page-width.custom',
+    execute: async () => {
+      bus.emit('quick-settings:open', { tab: 'page' })
     }
   },
 

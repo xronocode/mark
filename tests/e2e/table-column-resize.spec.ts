@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-column-resize.spec.ts
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-002 session-only table column resize in the built renderer: dragging a header border resizes that column live and only that column, the markdown stays byte-identical with the tab still saved, widths survive re-renders (typing) and tab switches, closing+reopening the file restores auto layout, double-click resets the column, a table dragged wider than the text column scrolls in the C-39 T-001 wrapper without page overflow, and caret placement still works next to a border.
 //   SCOPE: muya.tableResize (src/muya/lib/tableResize/index.js) + START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js + the C-39 T-002 CSS section.
@@ -17,7 +17,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER: explicitly select Fit to page after the default expands a newly widened table; wait for the real scroll owner instead of racing the resize observer.
+//   LAST_CHANGE: v1.3.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   overflow case drops the double toggle dance — Auto IS the in-column
+//   wrapper-scroll mode now (the C-65 auto-expansion default and the
+//   fake-fit pin it switched between are both retired), so a table dragged
+//   wider than the column simply stays content-sized in Auto and the
+//   wrapper scrolls.
+//   PREV: v1.2.0 - 2026-10-20 C-TABLE-FOOTER: explicitly select Fit to page after the default expands a newly widened table; wait for the real scroll owner instead of racing the resize observer.
 //   PREV: v1.1.0 - 2026-10-15 C-39 T-002: boot through the shared fixtures/helpers (bootEditor + openFileTab) instead of a private prefs bootstrap; every test starts from a file tab so isSaved/filename-based tab selection are deterministic. All eight behaviours above: every test except the caret case fails without the T-002 change (no handles / no colgroup / no session store); the caret case guards the regression the hit zone could cause.
 // END_CHANGE_SUMMARY
 
@@ -250,11 +256,10 @@ test.describe('table column resize (C-39 T-002)', () => {
     await openResizeTab(page)
 
     await dragBorder(page, 0, 600)
+    // T-007: Auto IS the in-column wrapper-scroll mode — the widened table
+    // stays content-sized and nothing auto-expands (the C-65 default this
+    // test used to escape with two toggle clicks is retired).
     const figure = page.locator("figure[data-role='TABLE']").first()
-    await figure.hover()
-    const toggle = figure.locator('.ag-table-toolbar-toggle')
-    await toggle.click()
-    if (await figure.evaluate(el => el.classList.contains('ag-table-full-width'))) await toggle.click()
     await expect(figure).not.toHaveClass(/ag-table-full-width/)
 
     const m = await page.evaluate(() => {

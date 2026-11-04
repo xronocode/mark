@@ -75,6 +75,11 @@
         <!-- C-TITLEBAR-MODE-CHIPS: chips left of the theme button on
              macOS and before the caption cluster on Win/Linux. -->
         <mode-chips @open-menu="handleModeMenuOpen"></mode-chips>
+        <!-- C-PAGE-WIDTH-TABLES T-003: the quick-settings button (the
+             chevrons-left-right glyph) opens the Page/View/Tables panel;
+             it sits beside the theme button on macOS and before Share on
+             Win/Linux (where the theme rides the caption row). -->
+        <quick-settings :pathname="pathname"></quick-settings>
         <div
           v-if="isOsx"
           class="titlebar-nav-btn"
@@ -214,12 +219,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover, native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it).
-//   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks.
-//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, util/docStats, components/icons/chromeIcons.
-//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons), M-062 (mode chips); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT.
+//   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover, native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it). C-PAGE-WIDTH-TABLES T-003: the quick-settings button (chevrons-left-right, quickSettings/index.vue — M-061) mounts in the right cluster between the mode chips and the theme button.
+//   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks. The quick-settings panel is a self-contained child component (open/close, tabs, palette) — this file only mounts it and hands over the active pathname.
+//   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, util/docStats, components/icons/chromeIcons, components/titleBar/quickSettings (M-061).
+//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons), M-062 (mode chips), .grace/graph/performance.xml M-061 (quick settings); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT; .grace/changes/active/C-PAGE-WIDTH-TABLES.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -250,6 +255,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-02 v2.4.0: C-PAGE-WIDTH-TABLES T-003 — the quick-settings
+//     button (quickSettings/index.vue, the chevrons-left-right glyph)
+//     mounts in the right cluster between the mode chips and the theme
+//     button; it opens the Page/View/Tables quick-settings panel and
+//     receives the active pathname for the per-document tiers.
 //   - 2026-10-27 v2.3.0 C-TITLEBAR-MODE-CHIPS T-004: the mode-chips
 //     cluster mounts first in the right cluster (left of the theme button
 //     on macOS, before the caption cluster on Win/Linux); it emits the
@@ -354,6 +364,7 @@ import { useI18n } from 'vue-i18n'
 import { writeText as writeClipboardText } from '@tauri-apps/plugin-clipboard-manager'
 import { ChromeIcon } from '../icons/chromeIcons.js'
 import ModeChips from './modeChips.vue'
+import QuickSettings from './quickSettings/index.vue'
 import { formatRelativeTime } from '@/util/relativeTime.js'
 import { countDocumentLines, readingMinutes } from '@/util/docStats.js'
 

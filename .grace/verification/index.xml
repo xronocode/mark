@@ -71,6 +71,7 @@
       <Path>verification/performance.xml</Path>
       <!-- C-LARGE-DOC-STAGE-0: V-M-060 owns the three labelled Stage 0 evidence tiers, the deterministic fixture gate and the baseline artifacts. -->
       <!-- C-LARGE-DOC-WAVE-A: V-M-063 owns the progressive-path Wave A gates — two-path budget evidence in the baseline artifacts, fail-safe fallback, unmounted-tail interaction, the Experimental surface and WAVEA_EXPERIMENTAL=1 equivalence. -->
+      <!-- C-PAGE-WIDTH-TABLES: V-M-061 owns the page-width and honest-table gates — width precedence and clamp honesty, the panel design-system fidelity and Page/View tab arithmetic, the three-mode table model with ratios and drag affordances, and the locale/menu registration suites. -->
       <Owns>
         <V-M-024/>
         <V-M-025/>
@@ -80,6 +81,7 @@
         <V-M-029/>
         <V-M-030/>
         <V-M-060/>
+        <V-M-061/>
         <V-M-063/>
       </Owns>
     </VD-PERFORMANCE>

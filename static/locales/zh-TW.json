@@ -336,7 +336,12 @@
       "toggleTabbar": "切換標籤欄",
       "reloadImages": "重新載入圖片",
       "notificationsHistory": "通知：顯示最近記錄",
-      "standardView": "回到標準檢視並關閉寫作模式"
+      "standardView": "回到標準檢視並關閉寫作模式",
+      "pageWidthCompact": "頁面寬度設為緊湊 60 ch",
+      "pageWidthStandard": "頁面寬度設為標準 80 ch",
+      "pageWidthWide": "頁面寬度設為寬 110 ch",
+      "pageWidthFull": "頁面寬度設為整個視窗",
+      "pageWidthCustom": "開啟快速設定的頁面標籤頁"
     },
     "utils": {
       "noUpdateResourceFile": "沒有更新資源檔案",
@@ -532,7 +537,7 @@
         "title": "文字",
         "font": "正文字型",
         "lineHeight": "行距",
-        "lineWidthHelp": "留空表示全寬，或輸入帶 px、% 或 ch 單位的數值——例如 720px。",
+        "lineWidthHelp": "留空表示使用主題預設寬度，或輸入帶 px、% 或 ch 單位的數值——例如 720px。",
         "fontSize": "文字大小",
         "unlimited": "不受限",
         "lineWidth": "書寫區域寬度"
@@ -1608,9 +1613,11 @@
   },
   "tableToolbar": {
     "allColumns": "全部 {total} 欄",
+    "modeAuto": "自動",
     "fitToPage": "符合頁面",
     "fullWidth": "全寬顯示",
-    "columnsRange": "第 {start}–{end} 欄，共 {total} 欄"
+    "columnsRange": "第 {start}–{end} 欄，共 {total} 欄",
+    "doesNotFitBy": "還差 {px} 像素 — 改用欄捲動，不隱藏任何資料"
   },
   "statusBar": {
     "title": "文件統計",
@@ -1709,5 +1716,64 @@
     "body": "設定將恢復到更新前的快照——更新後所做的變更會遺失。在較新版本發布之前，將跳過 Mark {current}。",
     "confirm": "回退",
     "cancel": "取消"
+  },
+  "quickSettings": {
+    "title": "快速設定",
+    "openSettings": "開啟設定…",
+    "tabs": {
+      "page": "頁面",
+      "view": "檢視",
+      "tables": "表格"
+    },
+    "page": {
+      "widthGroup": "頁面寬度",
+      "preset": "預設組合",
+      "fullWindow": "整個視窗",
+      "width": "寬度",
+      "widthHelpCh": "目前字體下約 {px} px — ch 隨字級縮放",
+      "widthHelpPx": "固定像素，與字體無關",
+      "widthHelpPercent": "編輯區域的百分比 — 即時跟隨視窗與側欄",
+      "widthHelpFull": "整個編輯區域；即時跟隨側欄",
+      "unit": "單位",
+      "unitHelp": "ch — 隨字體縮放 · px — 固定 · % — 編輯區域的百分比",
+      "exportNote": "匯出 PDF 與列印使用同一欄；紙張大小與邊界在列印對話框中設定。",
+      "sourceDocument": "生效範圍：本文件",
+      "sourceGlobal": "生效範圍：所有文件",
+      "textGroup": "文字",
+      "fontSize": "文字大小",
+      "fontSizeHelp": "與 ⌘+ 和 ⌘− 相同的值",
+      "lineHeight": "行距",
+      "lineHeightHelp": "與設定中的行距相同 · 1.2–2.0",
+      "scope": "套用至所有文件",
+      "scopeHelpOn": "開 — 此寬度將成為所有檔案的常用寬度。關 — 僅用於此檔案。",
+      "scopeHelpOff": "關 — 寬度僅儲存在此檔案。",
+      "scopeHelpUntitled": "未命名文件一律寫入全域預設值",
+      "reset": "重設",
+      "usualWidth": "常用寬度：{width}"
+    },
+    "view": {
+      "themeGroup": "主題",
+      "mode": "外觀",
+      "modeHelp": "自動 — 跟隨系統 · 淺色/深色 — 主題家族的淺色或深色一面",
+      "modeAuto": "自動",
+      "modeLight": "淺色",
+      "modeDark": "深色",
+      "override": "此檔案使用獨立主題",
+      "overrideHelpOn": "開 — 全域切換變化時，此檔案保持自己的主題。",
+      "overrideHelpOff": "關 — 檔案跟隨全域主題。",
+      "overrideHelpUntitled": "未命名文件無法攜帶獨立主題",
+      "sourcePinned": "{family} — 此檔案",
+      "sourceGlobal": "{family} · 所有文件"
+    },
+    "tables": {
+      "group": "表格",
+      "defaultMode": "預設模式",
+      "defaultModeHelp": "用於新表格 · 自動保持內容尺寸，適應將框線收進本文欄，整個佔滿編輯區域",
+      "modeAuto": "自動",
+      "modeFit": "適應",
+      "modeFull": "整個",
+      "rememberSizes": "記住欄尺寸",
+      "rememberSizesHelp": "欄尺寸按檔案儲存，寬度變化時按比例重新套用"
+    }
   }
 }

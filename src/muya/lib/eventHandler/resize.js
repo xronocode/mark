@@ -1,20 +1,27 @@
 // FILE: src/muya/lib/eventHandler/resize.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Re-align table viewports and gutters when owning editor, scroller, outline or font geometry changes.
-//   SCOPE: Instance-scoped throttled window/owned-surface resize and font completion listeners; observe outline visibility without a column resize; table refresh always runs, optional gutters follow their setting; destroy detaches all observers/listeners.
-//   DEPENDS: muya throttle; contentState.resizeLineNumber; tableResize.refreshTableSurfaces; owning editor scroller/outline DOM surfaces.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-resizeSurfaces; .grace/verification/runtime.xml V-M-012 scenario-20 and scenario-69; C-38 T-005; C-71.
+//   PURPOSE: Re-align table viewports, gutters and framed column widths when owning editor, scroller, outline or font geometry changes.
+//   SCOPE: Instance-scoped throttled window/owned-surface resize and font completion listeners; observe outline visibility without a column resize; the framed-table re-fit funnel runs first (R-9: window resizes re-apply the honest distribution — the column's own ResizeObserver cannot see a canvas-only change), the surface refresh always runs, optional gutters follow their setting; destroy detaches all observers/listeners.
+//   DEPENDS: muya throttle; contentState.resizeLineNumber; tableResize.refitNow (the framed re-fit + surface funnel); owning editor scroller/outline DOM surfaces.
+//   LINKS: .grace/graph/runtime.xml M-012 fn-resizeSurfaces; .grace/verification/runtime.xml V-M-012 scenario-20 and scenario-69; C-38 T-005; C-71; .grace/changes/active/C-PAGE-WIDTH-TABLES (spec R-9/R-10 — resize re-applies ratios).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   default - Resize: observe its column, scroller and outline; refresh table/optional gutter geometry; detach on destroy.
+//   default - Resize: observe its column, scroller and outline; re-fit framed tables and refresh table/optional gutter geometry; detach on destroy.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.2.0 - 2026-10-19: late owning outline visibility and scroller changes refresh available table geometry without a window/column resize.
+//   LAST_CHANGE: v2.3.0 - 2026-11-02 C-PAGE-WIDTH-TABLES fix: the resize
+//   funnel runs the framed re-fit (tableResize.refitNow) before the
+//   surface refresh. The honest Fit/Full distributions and the explicit
+//   wall width hung on the column's own ResizeObserver, which cannot fire
+//   when only the window canvas changes (the text column keeps its width)
+//   — a Full width table kept its previous canvas' column widths after a
+//   window resize and overflowed the new one, violating R-9/R-10.
+//   PREV: v2.2.0 - 2026-10-19: late owning outline visibility and scroller changes refresh available table geometry without a window/column resize.
 //   PREV: v2.1.0 - 2026-10-19 C-71: table layout refresh also runs
 //   with line numbers disabled; font loading completion and container
 //   resize keep centered tables aligned without Markdown edits.
@@ -44,7 +51,14 @@ class Resize {
   listen() {
     this.listener = throttle(() => {
       if (this.destroyed) return
-      this.muya.tableResize?.refreshTableSurfaces()
+      // R-9/R-10: a window/scroller/outline resize re-applies the framed
+      // distributions (Fit/Full) and the explicit wall width — the text
+      // column's own ResizeObserver cannot see a canvas-only change, so
+      // the surface refresh alone left stale column widths behind. The
+      // surface refresh stays unconditional (it is what the disabled
+      // plugin case and the cue/wall sync always ran).
+      if (this.muya.tableResize?.refitNow) this.muya.tableResize.refitNow()
+      this.muya.tableResize?.refreshTableSurfaces?.()
       // Width changes re-wrap code lines, so measured gutter heights go
       // stale; non-wrapping code re-checks cheaply (white-space is read
       // per block and natural heights are kept).

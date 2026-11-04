@@ -336,7 +336,12 @@
       "toggleTabbar": "タブバーを切り替え",
       "reloadImages": "画像を再読み込み",
       "notificationsHistory": "通知：最近のものを表示",
-      "standardView": "標準表示に戻し、執筆モードをオフにします"
+      "standardView": "標準表示に戻し、執筆モードをオフにします",
+      "pageWidthCompact": "ページ幅をコンパクト 60 ch に設定",
+      "pageWidthStandard": "ページ幅を標準 80 ch に設定",
+      "pageWidthWide": "ページ幅をワイド 110 ch に設定",
+      "pageWidthFull": "ページ幅をフルウィンドウに設定",
+      "pageWidthCustom": "クイック設定のページタブを開く"
     },
     "utils": {
       "noUpdateResourceFile": "アップデートリソースファイルなし",
@@ -532,7 +537,7 @@
         "title": "テキスト",
         "font": "テキストのフォント",
         "lineHeight": "行間",
-        "lineWidthHelp": "空欄にすると全幅になります。px、%、ch を付けた数値も入力できます（例: 720px）。",
+        "lineWidthHelp": "空欄にするとテーマの既定幅になります。px、%、ch を付けた数値も入力できます（例: 720px）。",
         "fontSize": "テキストのサイズ",
         "unlimited": "無制限",
         "lineWidth": "執筆エリアの幅"
@@ -1600,9 +1605,11 @@
   },
   "tableToolbar": {
     "allColumns": "全 {total} 列",
+    "modeAuto": "自動",
     "fitToPage": "ページ幅に合わせる",
     "fullWidth": "フル幅で表示",
-    "columnsRange": "列 {start}～{end}／{total}"
+    "columnsRange": "列 {start}～{end}／{total}",
+    "doesNotFitBy": "{px} px だけ入りません — データを隠さず列スクロールで表示します"
   },
   "statusBar": {
     "title": "ドキュメント統計",
@@ -1701,5 +1708,64 @@
     "body": "設定はアップデート前のスナップショットに戻ります。アップデート後の変更は失われます。新しいバージョンがリリースされるまで Mark {current} はスキップされます。",
     "confirm": "戻す",
     "cancel": "キャンセル"
+  },
+  "quickSettings": {
+    "title": "クイック設定",
+    "openSettings": "設定を開く…",
+    "tabs": {
+      "page": "ページ",
+      "view": "表示",
+      "tables": "表"
+    },
+    "page": {
+      "widthGroup": "ページ幅",
+      "preset": "プリセット",
+      "fullWindow": "ウィンドウ全体",
+      "width": "幅",
+      "widthHelpCh": "現在のフォントで約 {px} px — ch はフォントサイズに連動します",
+      "widthHelpPx": "固定ピクセル。フォントに依存しません",
+      "widthHelpPercent": "エディター領域に対する割合 — ウィンドウとサイドバーに即座に追従します",
+      "widthHelpFull": "エディター領域全体。サイドバーに追従します",
+      "unit": "単位",
+      "unitHelp": "ch — フォントに連動 · px — 固定 · % — エディター領域に対する割合",
+      "exportNote": "PDF 書き出しと印刷もこの同じ列を使用します。用紙サイズと余白は印刷ダイアログで設定します。",
+      "sourceDocument": "適用中：この文書",
+      "sourceGlobal": "適用中：すべての文書",
+      "textGroup": "テキスト",
+      "fontSize": "テキストのサイズ",
+      "fontSizeHelp": "⌘+ と ⌘− と同じ値",
+      "lineHeight": "行間",
+      "lineHeightHelp": "設定と同じ行間 · 1.2–2.0",
+      "scope": "すべての文書に適用",
+      "scopeHelpOn": "オン — この幅がすべてのファイルの標準幅になります。オフ — このファイルのみ。",
+      "scopeHelpOff": "オフ — 幅はこのファイルにのみ保存されます。",
+      "scopeHelpUntitled": "無題の文書は常にグローバル設定に書き込みます",
+      "reset": "リセット",
+      "usualWidth": "標準の幅：{width}"
+    },
+    "view": {
+      "themeGroup": "テーマ",
+      "mode": "外観",
+      "modeHelp": "自動 — システムに従う · ライト/ダーク — ファミリーの明るい側または暗い側",
+      "modeAuto": "自動",
+      "modeLight": "ライト",
+      "modeDark": "ダーク",
+      "override": "このファイル固有のテーマ",
+      "overrideHelpOn": "オン — グローバルの切り替えが変わっても、このファイルはテーマを保持します。",
+      "overrideHelpOff": "オフ — ファイルはグローバルテーマに従います。",
+      "overrideHelpUntitled": "無題の文書は固有のテーマを持てません",
+      "sourcePinned": "{family} — このファイル",
+      "sourceGlobal": "{family} · すべての文書"
+    },
+    "tables": {
+      "group": "表",
+      "defaultMode": "既定のモード",
+      "defaultModeHelp": "新しい表に対して · 自動は内容のサイズを保ち、Fit は本文列に収め、Full はエディター領域全体に広がります",
+      "modeAuto": "自動",
+      "modeFit": "Fit",
+      "modeFull": "Full",
+      "rememberSizes": "列のサイズを記憶",
+      "rememberSizesHelp": "列のサイズはファイルごとに保存され、幅が変わると比例して再適用されます"
+    }
   }
 }

@@ -67,6 +67,7 @@
     <GD-PERFORMANCE>
       <Path>graph/performance.xml</Path>
       <!-- C-LARGE-DOC-STAGE-0: M-060 owns the Stage 0 bench drivers, deterministic fixture tooling and characterization-session harness; it depends on M-011/M-012 and absorbs no product responsibility. -->
+      <!-- C-PAGE-WIDTH-TABLES: M-061 owns the per-document page width store, the width-resolution pipeline and the titlebar quick-settings panel boundary; it is hosted by M-011's renderer seam and feeds M-012's editor surface and tableFullWidthDefault option. -->
       <Owns>
         <M-024/>
         <M-025/>
@@ -76,6 +77,7 @@
         <M-029/>
         <M-030/>
         <M-060/>
+        <M-061/>
       </Owns>
     </GD-PERFORMANCE>
     <GD-FEATURES>

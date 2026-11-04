@@ -1,16 +1,16 @@
 // FILE: tests/e2e/table-toolbar.spec.ts
-// VERSION: 1.2.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin table toolbar placement/keyboard access and Full width mode, retaining the toolbar on the text-column edge and the reserved caption inside its scroll block; Fit to page returns local scrolling.
-//   SCOPE: renderTableToolbar.js + renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION, the C-65 CSS section of src/muya/lib/assets/styles/index.css, and the TableResize toggle/geometry/cue paths.
+//   PURPOSE: Pin table toolbar placement/keyboard access and the honest three-mode segment (C-PAGE-WIDTH-TABLES T-007): the toolbar retains its text-column anchor and the reserved caption inside its scroll block; a wide table opens in Auto (the wrapper owns the scroll), Full width escapes the column with the honest degradation badge, and the segment round-trips with the choice persisting across re-renders.
+//   SCOPE: renderTableToolbar.js (the three-button mode segment) + renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION, the C-65 CSS section of src/muya/lib/assets/styles/index.css, and the TableResize setMode/geometry/cue paths.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, ./fixtures/helpers (bootEditor/openFileTab), the built renderer served by `npm run preview`; runs in the chromium project and the webkit-tables project.
-//   LINKS: .grace/changes/active/C-65 T-002/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; unit twins tests/renderer/muya/table-cue.test.js + table-layout-persistence.test.js; persistence e2e table-width-persistence.spec.ts.
+//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES T-007 (spec R-8/R-9); .grace/changes/archive/C-65 T-002/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; unit twins tests/renderer/muya/table-cue.test.js + table-layout-persistence.test.js; persistence e2e table-width-persistence.spec.ts; the canon mode suites table-modes.spec.ts / table-layout.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   wideHeader/wideRow/WIDE_18COL_MD - an 18-column fixture wider than the window in Full width mode.
+//   wideHeader/wideRow/WIDE_18COL_MD - an 18-column fixture wider than the window in Auto and in Full width.
 //   NARROW_MD - a 2x2 fixture (the no-need / no-cue corner).
 //   DOC_PATH - test helper (DOC_PATH).
 //   WIDE_18COL_MD - 18-column overflow fixture with the counter anchored inside the scroll viewport.
@@ -19,8 +19,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER: counter belongs to the scroll block; the toolbar retains its text-column anchor.
-//   v1.1.0 - 2026-10-19 Full width is the default for a wide table: it opens in the mode (toggle reads «Fit to page»), one click fits it, a second one returns it.
+//   LAST_CHANGE: v2.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   two-state toggle cases move to the honest three-mode model — the
+//   toolbar state reads the Auto/Fit/Full segment (per-button dataset +
+//   active class), a wide table opens in Auto (the C-65 fake-fit default
+//   that pushed it into Full width is retired), Full width is chosen
+//   explicitly and degrades honestly (badge + editor scroll + gutter),
+//   and the round trip pins Auto ↔ Full with the choice surviving a
+//   re-render (typing).
+//   PREV: v1.2.0 - 2026-10-20 C-TABLE-FOOTER: counter belongs to the scroll block; the toolbar retains its text-column anchor.
+//   v1.1.0 - 2026-10-19 Full width is the default for a wide table (retired in v2.0.0): it opens in the mode (toggle reads «Fit to page»), one click fits it, a second one returns it.
 //   v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.0.0 - 2026-10-18 C-65: new — every case fails without
 //   the toolbar vnode/CSS (no pill), the need gate pin fails if the expand
@@ -105,21 +113,34 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     }
   })
 
+  // The honest toolbar state (T-007): hover/active display facts plus the
+  // three-button mode segment — the active mode's dataset value, the
+  // segment's labels in DOM order, and the need-gated expand action.
   const toolbarState = (page: Page) => page.evaluate(() => {
     const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
     const toolbar = figure.querySelector('div.ag-block-toolbar.ag-table-toolbar') as HTMLElement
-    const toggle = toolbar.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
+    const modeButtons = Array.from(toolbar.querySelectorAll('button.ag-table-toolbar-mode')) as HTMLElement[]
+    const active = modeButtons.find((button) => button.classList.contains('ag-table-toolbar-active'))
     const expand = toolbar.querySelector('button.ag-block-toolbar-expand') as HTMLElement
+    const copy = toolbar.querySelector('button.ag-table-toolbar-copy') as HTMLElement
     return {
       opacity: window.getComputedStyle(toolbar).opacity,
       display: window.getComputedStyle(toolbar).display,
       figureActive: figure.classList.contains('ag-active'),
-      toggleLabel: (toggle.querySelector('span.ag-block-toolbar-label') as HTMLElement).textContent,
-      toggleTitle: toggle.title,
-      toggleActive: toggle.classList.contains('ag-table-toolbar-active'),
-      expandDisplay: window.getComputedStyle(expand).display
+      activeMode: active ? (active as HTMLElement).dataset.tableMode : null,
+      modeLabels: modeButtons.map((button) => button.getAttribute('aria-label')),
+      expandDisplay: window.getComputedStyle(expand).display,
+      copyDisplay: window.getComputedStyle(copy).display
     }
   })
+
+  // The pill is hover-revealed; evaluate-click keeps the action stable
+  // (the same pattern the canon mode suites use).
+  const clickMode = (page: Page, mode: 'auto' | 'fit' | 'full') =>
+    page.evaluate((m) => {
+      const button = document.querySelector(`figure[data-role='TABLE'] button.ag-table-toolbar-mode[data-table-mode='${m}']`) as HTMLElement | null
+      if (button) button.click()
+    }, mode)
 
   test('the toolbar sits above the table with its right edge on the text-column edge, revealed on hover', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
@@ -129,16 +150,16 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(rest.opacity).toBe('0')
     // The need gate keeps the expand action on wide tables…
     expect(rest.expandDisplay).not.toBe('none')
-    // …and a wide table opens in Full width (the default): the toggle
-    // offers «Fit to page».
-    expect(rest.toggleLabel).toBe('Fit to page')
-    expect(rest.toggleActive).toBe(true)
+    // …and the honest default is Auto: the segment marks Auto active (the
+    // C-65 fake-fit default — a wide table opening in a pinned frame — is
+    // retired with the honest model, R-8).
+    expect(rest.activeMode).toBe('auto')
+    expect(rest.modeLabels).toEqual(['Auto', 'Fit to page', 'Full width'])
 
     // Hover over the table reveals the pill.
     await page.locator("figure[data-role='TABLE'] table").first().hover()
     // The reveal is a 150 ms opacity transition — poll, never sample once.
     await expect.poll(async () => (await toolbarState(page)).opacity).toBe('1')
-    const hovered = await toolbarState(page)
 
     // Placement: ABOVE the table (never over its middle), right edge on
     // the column edge (±1px).
@@ -151,20 +172,29 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
 
     // Keyboard focus within the figure reveals it too (focus-within).
     await page.evaluate(() => {
-      document.querySelector("figure[data-role='TABLE'] button.ag-table-toolbar-toggle")!.focus()
+      document.querySelector("figure[data-role='TABLE'] button.ag-table-toolbar-mode")!.focus()
     })
     const focused = await toolbarState(page)
     expect(focused.opacity).toBe('1')
   })
 
-  test('a narrow table: no cue, the expand action stays need-gated, the toggle still works', async ({ page }) => {
+  test('a narrow table: no cue, the expand action stays need-gated, the mode segment still works', async ({ page }) => {
     await openDoc(page, NARROW_MD)
 
     const rest = await toolbarState(page)
     expect(rest.expandDisplay).toBe('none')
-    expect(rest.toggleLabel).toBe('Full width')
+    expect(rest.activeMode).toBe('auto')
     const g = await geometry(page)
     expect(g!.captionText).toBe('')
+
+    // The segment IS the width control now: Full width is one click away
+    // even on a table that fits (R-8), and Auto returns it.
+    await clickMode(page, 'full')
+    await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
+    await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('full')
+    await clickMode(page, 'auto')
+    await expect(page.locator("figure[data-role='TABLE']")).not.toHaveClass(/ag-table-full-width/)
+    await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('auto')
   })
 
   test('the caret inside a table keeps its toolbar reachable on hover (unlike diagrams)', async ({ page }) => {
@@ -177,7 +207,7 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
 
     // A caret in a cell is normal table work: the toolbar is not removed
     // (diagrams hide theirs while the source is edited) and the hover over
-    // the table shows it, so «Fit to page» is never locked away.
+    // the table shows it, so the mode segment is never locked away.
     await page.locator("figure[data-role='TABLE'] table").first().hover()
     await expect.poll(async () => {
       const st = await toolbarState(page)
@@ -185,25 +215,68 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     }).toEqual({ active: true, display: 'flex', opacity: '1' })
   })
 
-  test('a wide table opens in Full width by default: gutter from the editor\'s left edge, the editor scrolls, the cue reads «all N columns»', async ({ page }) => {
+  test('a wide table opens in Auto: the wrapper owns the scroll, the cue reads the visible range (T-007)', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
 
-    // No click: the default puts a table wider than the column in the mode.
-    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
+    // No click: the honest default keeps a wide table content-sized in its
+    // column — the wrapper scrolls (the GitHub model, R-8).
     const g = await geometry(page)
-    expect(g!.figureFullWidth).toBe(true)
-    // The table starts at the editor area's left edge…
-    // An 18-column table is wider than the editor: it starts the 24 px
-    // gutter (FULL_WIDTH_GUTTER_PX) from the editor's left edge.
-    expect(Math.abs(g!.tableLeft - g!.scrollerLeft - 24)).toBeLessThanOrEqual(2)
-    // …and is wider than the window: the EDITOR scroller owns the scrollbar.
-    expect(g!.scrollerScrollWidth).toBeGreaterThan(g!.scrollerClientWidth + 100)
-    expect(g!.computedOverflowX).toBe('visible')
+    expect(g!.figureFullWidth).toBe(false)
+    expect(g!.computedOverflowX).toBe('auto')
+    expect(g!.wrapperScrollWidth).toBeGreaterThan(g!.wrapperClientWidth + 100)
+    // The page never gains horizontal overflow.
+    expect(g!.scrollerScrollWidth).toBeLessThanOrEqual(g!.scrollerClientWidth + 1)
     // The toolbar keeps its text-column anchor; the counter belongs to the scroll block.
     expect(Math.abs(g!.toolbarRight - g!.columnRight)).toBeLessThanOrEqual(1)
     expect(Math.abs(g!.captionRight - g!.wrapperRight)).toBeLessThanOrEqual(1)
-    // The caption reads «all N columns» and no shade is painted.
-    expect(g!.captionText).toBe('all 18 columns')
+    // The caption reads the visible range; the right side hides columns.
+    expect(g!.captionText).toMatch(/^columns 1–\d+ of 18$/)
+    const shades = await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      return {
+        left: wrapper.classList.contains('ag-table-cue-left'),
+        right: wrapper.classList.contains('ag-table-cue-right')
+      }
+    })
+    expect(shades.left).toBe(false)
+    expect(shades.right).toBe(true)
+
+    // Scrolling the wrapper right reveals the last columns (the wrapper is
+    // the single horizontal owner in Auto — corner-8).
+    const revealed = await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
+      const last = document.querySelector("figure[data-role='TABLE'] thead th:last-child") as HTMLElement
+      const wrapperRect = wrapper.getBoundingClientRect()
+      const lastRect = last.getBoundingClientRect()
+      return { scrollLeft: wrapper.scrollLeft, lastRight: lastRect.right, wrapperRight: wrapperRect.right }
+    })
+    expect(revealed.scrollLeft).toBeGreaterThan(100)
+    expect(Math.abs(revealed.lastRight - revealed.wrapperRight)).toBeLessThanOrEqual(400)
+  })
+
+  test('Full width escapes the column: gutter from the editor\'s left edge, the editor scrolls, the honest degradation badge (T-007)', async ({ page }) => {
+    await openDoc(page, WIDE_18COL_MD)
+    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(false)
+
+    // The mode is chosen explicitly now (nothing auto-expands).
+    await clickMode(page, 'full')
+    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
+    await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('full')
+
+    // The table is wider than the window canvas even after the honest
+    // distribution: the minimal columns cannot fit, so the mode degrades —
+    // the badge states the exact px and the EDITOR scroller owns the
+    // scrollbar (the wrapper stops clipping).
+    const g = await geometry(page)
+    expect(g!.tableLeft - g!.scrollerLeft).toBeLessThanOrEqual(26)
+    expect(g!.scrollerScrollWidth).toBeGreaterThan(g!.scrollerClientWidth + 100)
+    expect(g!.computedOverflowX).toBe('visible')
+    expect(g!.captionText).toMatch(/^Does not fit by \d+ px — column scrolling instead of hiding data$/)
+    // The toolbar keeps its text-column anchor; the counter belongs to the scroll block.
+    expect(Math.abs(g!.toolbarRight - g!.columnRight)).toBeLessThanOrEqual(1)
+    expect(Math.abs(g!.captionRight - g!.wrapperRight)).toBeLessThanOrEqual(1)
+    // Full width shows no shade: nothing is hidden by the wrapper.
     const shades = await page.evaluate(() => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
       return {
@@ -214,64 +287,36 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(shades.left).toBe(false)
     expect(shades.right).toBe(false)
 
-    // The button flipped to the active «Fit to page» state.
-    const state = await toolbarState(page)
-    expect(state.toggleLabel).toBe('Fit to page')
-    expect(state.toggleTitle).toBe('Fit to page')
-    expect(state.toggleActive).toBe(true)
-
-    // Scrolling the editor right reveals the last columns (the window
-    // scrolls horizontally — corner-8).
-    const revealed = await page.evaluate(() => {
-      const scroller = document.querySelector('.editor-component') as HTMLElement
-      scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth
-      const last = document.querySelector("figure[data-role='TABLE'] thead th:last-child") as HTMLElement
-      const scrollerRect = scroller.getBoundingClientRect()
-      const lastRect = last.getBoundingClientRect()
-      return { scrollLeft: scroller.scrollLeft, lastRight: lastRect.right, scrollerRight: scrollerRect.right }
-    })
-    expect(revealed.scrollLeft).toBeGreaterThan(100)
-    expect(Math.abs(revealed.lastRight - revealed.scrollerRight)).toBeLessThanOrEqual(400)
+    // Back to Auto: one click — the wrapper scroll and the range cue return.
+    await clickMode(page, 'auto')
+    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(false)
+    await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('auto')
+    const back = await geometry(page)
+    expect(back!.computedOverflowX).toBe('auto')
+    expect(back!.wrapperScrollWidth).toBeGreaterThan(back!.wrapperClientWidth + 100)
+    expect(back!.scrollerScrollWidth).toBeLessThanOrEqual(back!.scrollerClientWidth + 1)
+    expect(back!.captionText).toMatch(/^columns 1–\d+ of 18$/)
+    expect(back!.captionText).not.toMatch(/does not fit/i)
   })
 
-  test('Fit to page returns the wrapper scroll and the range caption; Full width again restores the mode', async ({ page }) => {
+  test('the explicit mode choice sticks across re-renders (typing below the table)', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
+    await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('auto')
+
+    await clickMode(page, 'full')
     await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
-
-    const tableBox = await page.locator("figure[data-role='TABLE'] table").first().boundingBox()
-    await page.mouse.move(tableBox!.x + tableBox!.width / 2, tableBox!.y + tableBox!.height / 2)
-    const toggle = page.locator("figure[data-role='TABLE'] button.ag-table-toolbar-toggle")
-
-    // Fit to page.
-    const toggleBox2 = await toggle.boundingBox()
-    await page.mouse.move(toggleBox2!.x + toggleBox2!.width / 2, toggleBox2!.y + toggleBox2!.height / 2)
-    await page.mouse.click(toggleBox2!.x + toggleBox2!.width / 2, toggleBox2!.y + toggleBox2!.height / 2)
-
-    const g = await geometry(page)
-    expect(g!.figureFullWidth).toBe(false)
-    expect(g!.computedOverflowX).toBe('auto')
-    expect(g!.wrapperScrollWidth).toBeGreaterThan(g!.wrapperClientWidth)
-    expect(g!.scrollerScrollWidth).toBeLessThanOrEqual(g!.scrollerClientWidth + 1)
-    expect(g!.captionText).toMatch(/^columns 1–\d+ of 18$/)
-    const state = await toolbarState(page)
-    expect(state.toggleLabel).toBe('Full width')
-    expect(state.toggleActive).toBe(false)
 
     // The choice sticks across re-renders (typing below the table).
     await page.locator('#ag-editor-id p').last().click()
     await page.keyboard.type(' more')
-    expect((await geometry(page))!.figureFullWidth).toBe(false)
-
-    // Full width again — after the partial render the typing made (the
-    // toggle used to lose data-table-toolbar-action there: toHTML wrote
-    // camelCase dataset keys).
-    // Fitted, the table is wider than its clip: hover the visible wrapper.
-    const tableBox3 = await page.locator("figure[data-role='TABLE'] div.ag-table-scroll").first().boundingBox()
-    await page.mouse.move(tableBox3!.x + tableBox3!.width / 2, tableBox3!.y + tableBox3!.height / 2)
-    await expect.poll(async () => (await toolbarState(page)).opacity).toBe('1')
-    const toggleBox3 = await toggle.boundingBox()
-    await page.mouse.click(toggleBox3!.x + toggleBox3!.width / 2, toggleBox3!.y + toggleBox3!.height / 2)
     await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
+
+    // Auto again — after the partial render the typing made (the segment
+    // used to lose data-table-toolbar-action there: toHTML wrote camelCase
+    // dataset keys).
+    await clickMode(page, 'auto')
+    await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(false)
+    await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('auto')
   })
 
   test('Open full screen opens the shared block viewer', async ({ page }) => {
