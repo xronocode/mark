@@ -1443,8 +1443,7 @@
       "fontFamily": "字型系列："
     },
     "info": {
-      "description": "請自訂頁面外觀並點選「匯出」以繼續。",
-      "label": "資訊"
+      "description": "請自訂頁面外觀並點選「匯出」以繼續。"
     },
     "page": {
       "topBottom": "上/下：",
@@ -1454,27 +1453,21 @@
       "leftRight": "左/右：",
       "widthHeight": "寬度/高度（毫米）：",
       "pageSize": "頁面大小：",
-      "pageMargin": "頁面邊距（毫米）："
+      "pageMarginPreset": "頁邊距："
     },
     "theme": {
-      "label": "主題",
-      "description": "您可以透過選擇主題或建立手工製作的主題來變更文件外觀。",
       "theme": "主題"
     },
     "headerFooter": {
-      "footerType": "頁尾類型",
-      "description": "如果定義了頁首和/或頁尾，文字將出現在所有頁面上。",
       "customizeStyle": "自訂樣式",
-      "mainHeaderText": "主頁首文字",
       "fontSize": "字型大小",
       "allowStyled": "允許樣式文字",
-      "rightHeaderText": "右頁首文字",
-      "headerType": "頁首類型",
       "label": "頁首和頁尾",
-      "leftFooterText": "左頁尾文字",
-      "rightFooterText": "右頁尾文字",
-      "mainFooterText": "主頁尾文字",
-      "leftHeaderText": "左頁首文字"
+      "headerText": "頁首",
+      "footerText": "頁尾",
+      "leftSlot": "左",
+      "centerSlot": "中",
+      "rightSlot": "右"
     },
     "autoNumberingHeadings": "自動編號標題",
     "showFrontMatter": "顯示前置資料",
@@ -1483,8 +1476,7 @@
     "toc": {
       "title": "目錄",
       "includeTopHeading": "包含頂層標題",
-      "includeTopHeadingDetail": "包含頂層標題詳細資訊",
-      "label": "目錄"
+      "includeTopHeadingDetail": "包含頂層標題詳細資訊"
     },
     "options": {
       "headerFooterStyles": {
@@ -1510,9 +1502,19 @@
         "academic": "學術",
         "liber": "Liber",
         "default": "GitHub（預設）"
+      },
+      "marginPresets": {
+        "narrow": "窄",
+        "normal": "普通",
+        "wide": "寬",
+        "custom": "自訂"
       }
     },
-    "docxTitle": "匯出為 Word"
+    "docxTitle": "匯出為 Word",
+    "content": {
+      "label": "內容"
+    },
+    "reset": "重設"
   },
   "import": {
     "title": "匯入或開啟",

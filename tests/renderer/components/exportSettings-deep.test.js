@@ -74,8 +74,6 @@ const i18n = createI18n({
 
 const makeStubs = () => ({
   ElDialog: { template: '<div><slot /></div>' },
-  ElTabs: { template: '<div><slot /></div>' },
-  ElTabPane: { template: '<div><slot /></div>' },
   ElInputNumber: true,
   Bool: true,
   CurSelect: true,
@@ -134,37 +132,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       expect(wrapper.vm.exportType).toBe('pdf')
       expect(wrapper.vm.isPrintable).toBe(true)
       expect(bus.emit).toHaveBeenCalledWith('editor-blur')
-    })
-
-    it('opens dialog for styledHtml and resets activeName if needed', () => {
-      const wrapper = mountComponent()
-      wrapper.vm.activeName = 'header'
-
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('styledHtml')
-
-      expect(wrapper.vm.isPrintable).toBe(false)
-      expect(wrapper.vm.activeName).toBe('info')
-    })
-
-    it('resets activeName from page to info for styledHtml', () => {
-      const wrapper = mountComponent()
-      wrapper.vm.activeName = 'page'
-
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('styledHtml')
-
-      expect(wrapper.vm.activeName).toBe('info')
-    })
-
-    it('does not reset activeName for styledHtml when on other tab', () => {
-      const wrapper = mountComponent()
-      wrapper.vm.activeName = 'style'
-
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('styledHtml')
-
-      expect(wrapper.vm.activeName).toBe('style')
     })
 
     it('loads themes from disk on first show', () => {
@@ -259,7 +226,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       const wrapper = mountComponent()
       const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
       showHandler('pdf')
-      wrapper.vm.headerType = 1
       wrapper.vm.headerTextCenter = 'My Header'
 
       bus.emit.mockClear()
@@ -278,7 +244,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       const wrapper = mountComponent()
       const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
       showHandler('pdf')
-      wrapper.vm.footerType = 2
       wrapper.vm.footerTextLeft = 'Left'
       wrapper.vm.footerTextCenter = 'Center'
       wrapper.vm.footerTextRight = 'Right'
@@ -354,11 +319,11 @@ describe('exportSettings/index.vue — deep coverage', () => {
       wrapper.vm.onSelectChange('theme', 'academic')
       expect(wrapper.vm.theme).toBe('academic')
 
-      wrapper.vm.onSelectChange('headerType', 2)
-      expect(wrapper.vm.headerType).toBe(2)
+      wrapper.vm.onSelectChange('headerTextLeft', 'HL')
+      expect(wrapper.vm.headerTextLeft).toBe('HL')
 
-      wrapper.vm.onSelectChange('footerType', 1)
-      expect(wrapper.vm.footerType).toBe(1)
+      wrapper.vm.onSelectChange('footerTextCenter', 'FC')
+      expect(wrapper.vm.footerTextCenter).toBe('FC')
 
       wrapper.vm.onSelectChange('autoNumberingHeadings', true)
       expect(wrapper.vm.autoNumberingHeadings).toBe(true)

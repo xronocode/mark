@@ -121,6 +121,9 @@
         <M-066/>
         <!-- C-UPDATER-STATS: M-071 owns the counting gateway. -->
         <M-071/>
+        <!-- C-EXPORT-SINGLE-PAGE: M-072 owns the export settings dialog
+             (single-page form, hydration, strips, presets). -->
+        <M-072/>
       </Owns>
     </GD-FEATURES>
     <GD-FLOWS>

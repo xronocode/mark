@@ -1435,8 +1435,7 @@
       "fontFamily": "字体系列："
     },
     "info": {
-      "description": "请自定义页面外观并点击\"导出\"继续。",
-      "label": "信息"
+      "description": "请自定义页面外观并点击\"导出\"继续。"
     },
     "page": {
       "topBottom": "上/下：",
@@ -1446,27 +1445,21 @@
       "leftRight": "左/右：",
       "widthHeight": "宽度/高度（毫米）：",
       "pageSize": "页面大小：",
-      "pageMargin": "页面边距（毫米）："
+      "pageMarginPreset": "页边距："
     },
     "theme": {
-      "label": "主题",
-      "description": "您可以通过选择主题或创建手工制作的主题来更改文档外观。",
       "theme": "主题"
     },
     "headerFooter": {
-      "footerType": "页脚类型",
-      "description": "如果定义了页眉和/或页脚，文本将出现在所有页面上。",
-      "mainHeaderText": "主页眉文本",
       "customizeStyle": "自定义样式",
       "fontSize": "字体大小",
       "allowStyled": "允许样式文本",
-      "rightHeaderText": "右页眉文本",
-      "headerType": "页眉类型",
       "label": "页眉和页脚",
-      "leftFooterText": "左页脚文本",
-      "rightFooterText": "右页脚文本",
-      "mainFooterText": "主页脚文本",
-      "leftHeaderText": "左页眉文本"
+      "headerText": "页眉",
+      "footerText": "页脚",
+      "leftSlot": "左",
+      "centerSlot": "中",
+      "rightSlot": "右"
     },
     "autoNumberingHeadings": "自动编号标题",
     "showFrontMatter": "显示前置元数据",
@@ -1475,8 +1468,7 @@
     "toc": {
       "title": "目录",
       "includeTopHeadingDetail": "包含顶级标题详情",
-      "includeTopHeading": "包含顶级标题",
-      "label": "目录"
+      "includeTopHeading": "包含顶级标题"
     },
     "options": {
       "headerFooterStyles": {
@@ -1502,9 +1494,19 @@
         "academic": "学术",
         "liber": "Liber",
         "default": "GitHub (默认)"
+      },
+      "marginPresets": {
+        "narrow": "窄",
+        "normal": "普通",
+        "wide": "宽",
+        "custom": "自定义"
       }
     },
-    "docxTitle": "导出为 Word"
+    "docxTitle": "导出为 Word",
+    "content": {
+      "label": "内容"
+    },
+    "reset": "重置"
   },
   "import": {
     "title": "导入或打开",

@@ -1210,6 +1210,41 @@ describe('store/editor', () => {
       expect(payload.htmlTitle).toBeUndefined()
       expect(window.localStorage.getItem('mark-last-print-options')).toBeTruthy()
     })
+
+    it('getRememberedExportAppearance merges defaults with the remembered payload (C-EXPORT-SINGLE-PAGE R-5, corner-8)', async () => {
+      const editorMod = await import('@/store/editor')
+      editor.REMEMBER_EXPORT_OPTIONS({
+        type: 'pdf',
+        pageSize: 'A5',
+        isLandscape: true,
+        theme: 'academic',
+        pageMarginTop: 8,
+        tocTitle: 'TOC',
+        header: { type: 1, left: '', center: 'H', right: '' },
+        fontSize: 12,
+        lineHeight: 1.4,
+        fontFamily: 'Georgia',
+        headerFooterStyled: true,
+        headerFooterFontSize: 10
+      })
+      const appearance = editorMod.getRememberedExportAppearance()
+      // remembered values win
+      expect(appearance.theme).toBe('academic')
+      expect(appearance.pageMarginTop).toBe(8)
+      expect(appearance.tocTitle).toBe('TOC')
+      expect(appearance.header).toEqual({ type: 1, left: '', center: 'H', right: '' })
+      // optional keys the dialog infers toggles from stay present
+      expect(appearance.fontSize).toBe(12)
+      expect(appearance.headerFooterFontSize).toBe(10)
+      // missing keys fall back to factory defaults
+      expect(appearance.pageMarginRight).toBe(15)
+      expect(appearance.pageMarginBottom).toBe(20)
+      expect(appearance.tocIncludeTopHeading).toBe(true)
+      // per-flow geometry never leaks into the remembered shape
+      expect(appearance.pageSize).toBeUndefined()
+      expect(appearance.isLandscape).toBeUndefined()
+      expect(appearance.htmlTitle).toBeUndefined()
+    })
   })
 
   describe('SHOW_IMAGE_DELETION_URL', () => {

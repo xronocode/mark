@@ -1443,8 +1443,7 @@
       "fontFamily": "Шрифт:"
     },
     "info": {
-      "description": "Настройте внешний вид страницы и нажмите «Экспорт» для продолжения.",
-      "label": "Информация"
+      "description": "Настройте внешний вид страницы и нажмите «Экспорт» для продолжения."
     },
     "page": {
       "topBottom": "Сверху/Снизу:",
@@ -1454,27 +1453,21 @@
       "leftRight": "Слева/Справа:",
       "widthHeight": "Ширина/Высота (мм):",
       "pageSize": "Размер страницы:",
-      "pageMargin": "Поля страницы (мм):"
+      "pageMarginPreset": "Поля:"
     },
     "theme": {
-      "label": "Тема",
-      "description": "Внешний вид документа можно изменить, выбрав тему или создав свою.",
       "theme": "Тема"
     },
     "headerFooter": {
-      "footerType": "Тип колонтитула снизу",
-      "description": "Текст отображается на всех страницах, если задан верхний и/или нижний колонтитул.",
       "customizeStyle": "Настроить стиль",
-      "mainHeaderText": "Основной текст верхнего колонтитула",
       "fontSize": "Размер шрифта",
       "allowStyled": "Разрешить стилизованный текст",
-      "rightHeaderText": "Правый текст верхнего колонтитула",
-      "headerType": "Тип колонтитула сверху",
       "label": "Колонтитулы",
-      "leftFooterText": "Левый текст нижнего колонтитула",
-      "rightFooterText": "Правый текст нижнего колонтитула",
-      "mainFooterText": "Основной текст нижнего колонтитула",
-      "leftHeaderText": "Левый текст верхнего колонтитула"
+      "headerText": "Верхний колонтитул",
+      "footerText": "Нижний колонтитул",
+      "leftSlot": "Слева",
+      "centerSlot": "По центру",
+      "rightSlot": "Справа"
     },
     "autoNumberingHeadings": "Автоматическая нумерация заголовков",
     "showFrontMatter": "Показать front matter",
@@ -1483,8 +1476,7 @@
     "toc": {
       "title": "Оглавление",
       "includeTopHeading": "Включить заголовок верхнего уровня",
-      "includeTopHeadingDetail": "Включить подробности заголовка верхнего уровня",
-      "label": "Оглавление"
+      "includeTopHeadingDetail": "Включить подробности заголовка верхнего уровня"
     },
     "options": {
       "headerFooterStyles": {
@@ -1510,9 +1502,19 @@
         "academic": "Academic",
         "liber": "Liber",
         "default": "GitHub (По умолчанию)"
+      },
+      "marginPresets": {
+        "narrow": "Узкие",
+        "normal": "Обычные",
+        "wide": "Широкие",
+        "custom": "Свои"
       }
     },
-    "docxTitle": "Экспорт в Word"
+    "docxTitle": "Экспорт в Word",
+    "content": {
+      "label": "Содержимое"
+    },
+    "reset": "Сбросить"
   },
   "import": {
     "title": "Импорт или открытие",

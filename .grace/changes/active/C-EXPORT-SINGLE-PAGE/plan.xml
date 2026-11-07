@@ -1,0 +1,209 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved by owner instruction 2026-11-07 ("го, с 2 чистыми проходами") over the owner-approved spec; Pass-1 findings applied, Pass-2 and Pass-3 clean. -->
+<C-EXPORT-SINGLE-PAGE>
+  <ChangeRef>C-EXPORT-SINGLE-PAGE</ChangeRef>
+  <Created>2026-11-07</Created>
+  <IntentSummary>Export settings dialog on one page: el-tabs removed in favour of one scrollable column with semantic sections (Page / Style / Content / Header &amp; Footer; Info sentence demoted to a subtitle line), theme regrouped into Style, numbering/front-matter/TOC regrouped into Content, header/footer type selects replaced by slot strips with payload-identical derivation, margin presets in front of the four margin inputs, dialog hydration from the remembered appearance options (mark-last-print-options), Reset button, ten locales, new dialog unit suite, graph M-072 + verification V-M-072. The bus 'export' payload, the print (⌘P) and Word export flows, and the e2e selector contracts are unchanged.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/exportSettings/index.vue</File>
+      <Text>el-tabs</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/store/editor.js</File>
+      <Text>mark-last-print-options</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>M-072</Module>
+    </MustVerify>
+    <MustContain>
+      <File>.grace/graph/features.xml</File>
+      <Text>M-072</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/features.xml</File>
+      <Text>V-M-072</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command budgetSeconds="900">npx vitest run</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command budgetSeconds="900">npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-072 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-072 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/exportSettings/index.vue</File>
+    <File>src/renderer/src/components/exportSettings/exportOptions.js</File>
+    <File>src/renderer/src/components/exportSettings/headerFooterStrip.vue</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <Glob>static/locales/*.json</Glob>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id="corner-1"><Situation>PDF flavor reopened after an export that used a custom theme, wide margins and a TOC</Situation><Expected>dialog shows exactly those remembered values (theme select, margin preset or Custom with values, TOC on with title); geometry (A4/portrait) stays per-open default</Expected></Corner>
+    <Corner id="corner-2"><Situation>Header/footer strip combinations: center-only text; left+right text; all three; all empty; text typed then cleared again</Situation><Expected>payload: center-only → header/footer object type 1; any side slot non-empty → type 2; all empty (or cleared back to empty) → key omitted; strings passed through verbatim</Expected></Corner>
+    <Corner id="corner-3"><Situation>Margins: current values match no preset; user picks Wide then switches back to Custom</Situation><Expected>select shows Custom when values match nothing; picking a preset applies its four values; returning to Custom reveals the four inputs without losing the values that were there before the preset detour</Expected></Corner>
+    <Corner id="corner-4"><Situation>styledHtml flavor</Situation><Expected>page-title field at top plus Style and Content sections only; no Page-geometry and no Header &amp; Footer section; payload carries htmlTitle as today</Expected></Corner>
+    <Corner id="corner-5"><Situation>E2e contracts after the rewrite</Situation><Expected>print-export.spec.ts and export-office.spec.ts pass unchanged: .el-dialog with h3 'Export to PDF', .button-controlls .button-primary click → save dialog → mt_export_pdf, never mt_print_webview; Word export opens no dialog</Expected></Corner>
+    <Corner id="corner-6"><Situation>Reset pressed, then Export; Reset pressed, then Cancel</Situation><Expected>Reset restores factory defaults in the form (A4 portrait, 20/15/20/15, no font override, default theme, empty strips, TOC on with empty title); remembered storage changes only on Export — a Reset+Cancel leaves localStorage untouched</Expected></Corner>
+    <Corner id="corner-7"><Situation>Locales: ten files after the key churn</Situation><Expected>locale-keys parity green: every new key (section headers, presets, Custom, Reset, slot placeholders) present in all ten locales; dead tab-label keys removed everywhere; no orphans</Expected></Corner>
+    <Corner id="corner-8"><Situation>Pre-change localStorage payload (nested header/footer objects, font keys only when overwrite was on, stored by the tabbed dialog)</Situation><Expected>hydration reads it without errors; font-override and customize toggles inferred from key presence; missing keys fall back to defaults</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Foundation: remembered-options accessor in store/editor.js + pure helpers in exportOptions.js (margin presets, header/footer slot derivation) with unit tests</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>store/editor.js exports a read-only getRememberedExportAppearance() returning {...DEFAULT_PRINT_OPTIONS(), ..._lastPrintOptions} (no action behavior change); exportOptions.js gains MARGIN_PRESETS (narrow/normal/wide with the four mm values, labels via t()), matchMarginPreset(values) → narrow|normal|wide|custom, deriveHeaderFooterType({left,center,right}) → 0|1|2; unit tests cover preset matching both directions, derivation corners (empty, center-only, any-side) and the accessor merge with a stale/missing storage fixture.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/exportSettings tests/renderer/store/editor.test.ts</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          Delivered: store/editor.js getRememberedExportAppearance (defaults merge, map entry added), exportOptions MARGIN_PRESETS/matchMarginPreset/deriveHeaderFooterType; helper pins merged into the existing tests/renderer/components/exportOptions.test.js (nested duplicate file removed same day). Command green: 121 tests across options+editor suites.
+        </Note>
+      </Evidence>
+</T-001>
+    <T-002>
+      <Title>Dialog rewrite, part 1: single-page layout — sections (Page pdf-only / Style incl. theme / Content / Header &amp; Footer pdf-only), subtitle Info line, styledHtml flavor, hydration on open, Reset button; component unit tests</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>index.vue renders no el-tabs/el-tab-pane node; one scrollable column with the four section headers in spec order; Info sentence is a secondary line under the h3; styledHtml shows the page-title field at top and hides both PDF-only sections; on open every appearance field hydrates from getRememberedExportAppearance() with toggle inference (font keys present → overwrite on; headerFooterFontSize present → customize on) and the theme null ↔ 'default' sentinel mapped both ways; Reset restores factory defaults in-form without touching localStorage; corners 1, 4, 6, 8; payload builder unchanged apart from consuming the new state.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/exportSettings</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          Delivered in index.vue v2.0.0 with file-local MODULE_CONTRACT: no el-tabs node, sections Page/Style/Content/Header&amp;Footer in order, subtitle Info line, styledHtml flavor (page-title field, no PDF sections), hydration with toggle inference + theme null mapping, Reset in-form (storage untouched). 24 new-behaviour tests in exportSettings-fn.test.js v2.0.0.
+        </Note>
+      </Evidence>
+</T-002>
+    <T-003>
+      <Title>Dialog rewrite, part 2: margin preset select in front of the four inputs (Custom reveals them, values preserved) and headerFooterStrip.vue slot strips replacing the two type selects + six conditional text boxes; payload via deriveHeaderFooterType</Title>
+      <DependsOn>T-001, T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>margin select shows the matching preset or Custom; preset choice applies its values; Custom re-reveals the previous explicit values; strips (new headerFooterStrip.vue, left/center/right slots as real focusable text inputs with tab order left→center→right, empty = absent) replace the selects and conditional boxes; emitted payload identical to the tabbed dialog for none/single/three-cells cases (type derived, same strings); customizeStyle block (styled + font size) stays under the strips; corners 2, 3; the four dead headerFooter text refs collapse into strip state; a remembered three-cells header with empty side strings normalizes to single-cell on re-export (visually equivalent, recorded as conscious normalization).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/exportSettings</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          Delivered: marginPresetChoice/customMarginsStash select (Custom restores pre-detour values — corner-3 pinned), headerFooterStrip.vue (3 focusable slots, tab order L→C→R) with deriveHeaderFooterType payload (centre-only→1, any side→2, empty→omitted, three-cells-empty-sides normalizes to 1 — pinned).
+        </Note>
+      </Evidence>
+</T-003>
+    <T-004>
+      <Title>Locales: ten files — new keys (section headers, margin presets incl. Custom, Reset, slot placeholders) added, dead tab-label keys removed; line surgery per file</Title>
+      <DependsOn>T-002, T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>all ten locale files carry identical key sets for exportSettings (new keys translated, tab-label keys removed); corner 7; no wholesale file rewrites, no orphan keys.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/i18n/locale-keys.test.js</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          All ten locales edited via byte-identical roundtrip guard (no reformat): +content.label, +pageMarginPreset, +options.marginPresets.*, +reset, +headerText/footerText/leftSlot/centerSlot/rightSlot; dead keys removed (info/theme/toc labels+descriptions, headerFooter type selects + 6 field labels, pageMargin). locale-keys parity 4/4 green, key count 55.
+        </Note>
+      </Evidence>
+</T-004>
+    <T-005>
+      <Title>Regression proof: e2e print-export + export-office specs unchanged and green on chromium and webkit; full unit suite green</Title>
+      <DependsOn>T-002, T-003, T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>both e2e specs pass byte-unchanged (no selector or expectation edits); corner 5; npx vitest run whole-suite green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          Dialog suites: exportSettings-fn 24 + exportSettings-deep 20 (rewritten: tab tests removed, strip-text assertions) + exportOptions 17 + editor accessor — all green. e2e chromium: print-export + export-office 6/6 BYTE-UNCHANGED (plan command corrected: no plain webkit lane exists for these specs; repo canon is chromium e2e). Full npx vitest run: 5116 passed, 1 failed = table-layout-store.test.js expects EMPTY_STORE version 1 while a PARALLEL SESSION has an uncommitted version-2 bump in src/renderer/src/util/tableLayoutStore.js (foreign in-flight work, untouched by this change) — the only red in the final gate.
+        </Note>
+      </Evidence>
+</T-005>
+    <T-006>
+      <Title>Graph and verification: register M-072 ExportSettingsDialog in .grace/graph/features.xml and V-M-072 in .grace/verification/features.xml pointing at the new unit suite; MODULE_CONTRACT header block in index.vue; final grace gates</Title>
+      <DependsOn>T-005</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>M-072 entry (Purpose/Inputs/Outputs/Errors contract for the dialog surface, ChangeRefs C-61 + C-EXPORT-SINGLE-PAGE, VerificationRef V-M-072) and V-M-072 entry (commands: the exportSettings unit suite, the two e2e specs) added; M-052/M-065/M-066 untouched; index.vue carries its file-local MODULE_CONTRACT; grace lint --change C-EXPORT-SINGLE-PAGE --assertions target clean.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --change C-EXPORT-SINGLE-PAGE --assertions target</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          M-072 ExportSettingsDialog + V-M-072 registered (features.xml entries, index anchors); index.vue carries MODULE_CONTRACT/MAP/CHANGE_SUMMARY from T-002; store/editor.js map updated for the new export. Target lint clean for the bundle; final gate green except the foreign vitest failure above.
+        </Note>
+      </Evidence>
+</T-006>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Pass-1>
+      <Date>2026-11-07</Date>
+      <Correctness>
+        <Verdict>findings</Verdict>
+        <Note>F1: hydration must map the stored theme null to the select's 'default' sentinel and back — otherwise the theme select shows a stale label after reopen. Disposition: explicit criterion in T-002. F2: a remembered three-cells header/footer with empty side strings (legal output of the tabbed dialog) re-derives as single-cell — payload differs from the last export in the type integer while rendering equivalently. Disposition: recorded as conscious normalization in T-003's criterion. F3: updateTranslations must refresh the margin-preset labels on language change like the other option lists. Disposition: covered by T-001 helper shape (labels via t(), refreshed alongside pageSizeList in updateTranslations).</Note>
+      </Correctness>
+      <Security>
+        <Verdict>clean</Verdict>
+        <Note>No new IPC, fs, or network surface: one localStorage read of the app's own key, pure helpers, and in-dialog text inputs whose output flows through the existing print-container rendering unchanged.</Note>
+      </Security>
+      <UX>
+        <Verdict>findings</Verdict>
+        <Note>F4: slot strips must be real focusable text inputs with a sane tab order, not click-only widgets — otherwise keyboard-only users lose the header/footer path the old text boxes gave them. Disposition: criterion in T-003.</Note>
+      </UX>
+      <Performance>
+        <Verdict>clean</Verdict>
+        <Note>Dialog mounts once; hydration is a single storage read; type derivation recomputes per keystroke at trivial cost; no render-pipeline or list-loading changes.</Note>
+      </Performance>
+    </Pass-1>
+    <Pass-2>
+      <Date>2026-11-07</Date>
+      <Correctness>
+        <Verdict>clean</Verdict>
+        <Note>F1-F3 dispositions verified in the amended criteria (T-002 theme mapping, T-003 normalization, T-001 t()-based preset labels); budgets re-checked against recent whole-suite timings (vitest ≲ 400 s, two e2e specs ≲ 300 s on this host) — 900 s holds.</Note>
+      </Correctness>
+      <Security>
+        <Verdict>clean</Verdict>
+      </Security>
+      <UX>
+        <Verdict>clean</Verdict>
+        <Note>F4 disposition verified in T-003 (slots as focusable inputs with left→center→right tab order).</Note>
+      </UX>
+      <Performance>
+        <Verdict>clean</Verdict>
+      </Performance>
+    </Pass-2>
+    <Pass-3>
+      <Date>2026-11-07</Date>
+      <Correctness>
+        <Verdict>clean</Verdict>
+        <Note>Re-read of the final draft: task graph acyclic (T-001 → T-002 → T-003 → T-004/T-005 → T-006), every ObservedWriteScope entry consumed by a task, every corner mapped to a task criterion (1,4,6,8 → T-002; 2,3 → T-003; 7 → T-004; 5 → T-005).</Note>
+      </Correctness>
+      <Security>
+        <Verdict>clean</Verdict>
+      </Security>
+      <UX>
+        <Verdict>clean</Verdict>
+      </UX>
+      <Performance>
+        <Verdict>clean</Verdict>
+      </Performance>
+    </Pass-3>
+  </ReviewLog>
+</C-EXPORT-SINGLE-PAGE>
+</GraceChangePlan>

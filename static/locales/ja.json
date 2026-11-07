@@ -1435,8 +1435,7 @@
       "fontFamily": "フォントファミリー:"
     },
     "info": {
-      "description": "ページレイアウトを調整して、'エクスポート'をクリックして続行してください。",
-      "label": "情報"
+      "description": "ページレイアウトを調整して、'エクスポート'をクリックして続行してください。"
     },
     "page": {
       "topBottom": "上/下:",
@@ -1446,27 +1445,21 @@
       "leftRight": "左/右:",
       "widthHeight": "幅/高さ (mm):",
       "pageSize": "ページサイズ:",
-      "pageMargin": "ページ余白 (mm):"
+      "pageMarginPreset": "余白:"
     },
     "theme": {
-      "label": "テーマ",
-      "description": "テーマを選択するか、カスタムテーマを作成して文書の外観を変更できます。",
       "theme": "テーマ"
     },
     "headerFooter": {
-      "footerType": "フッタータイプ",
-      "description": "ヘッダーやフッターが定義されている場合、テキストはすべてのページに表示されます。",
       "customizeStyle": "スタイルをカスタマイズ",
-      "mainHeaderText": "メインヘッダーテキスト",
       "fontSize": "フォントサイズ",
       "allowStyled": "スタイル付きテキストを許可",
-      "rightHeaderText": "右ヘッダーテキスト",
-      "headerType": "ヘッダータイプ",
       "label": "ヘッダーとフッター",
-      "leftFooterText": "左フッターテキスト",
-      "rightFooterText": "右フッターテキスト",
-      "mainFooterText": "メインフッターテキスト",
-      "leftHeaderText": "左ヘッダーテキスト"
+      "headerText": "ヘッダー",
+      "footerText": "フッター",
+      "leftSlot": "左",
+      "centerSlot": "中央",
+      "rightSlot": "右"
     },
     "autoNumberingHeadings": "見出しの自動番号付け",
     "showFrontMatter": "フロントマターを表示",
@@ -1475,8 +1468,7 @@
     "toc": {
       "title": "目次",
       "includeTopHeading": "最上位見出しを含める",
-      "includeTopHeadingDetail": "最上位見出しの詳細を含める",
-      "label": "目次"
+      "includeTopHeadingDetail": "最上位見出しの詳細を含める"
     },
     "options": {
       "headerFooterStyles": {
@@ -1502,9 +1494,19 @@
         "academic": "アカデミック",
         "liber": "リベル",
         "default": "GitHub (デフォルト)"
+      },
+      "marginPresets": {
+        "narrow": "狭い",
+        "normal": "普通",
+        "wide": "広い",
+        "custom": "カスタム"
       }
     },
-    "docxTitle": "Word に書き出す"
+    "docxTitle": "Word に書き出す",
+    "content": {
+      "label": "内容"
+    },
+    "reset": "リセット"
   },
   "import": {
     "title": "インポートまたは開く",
