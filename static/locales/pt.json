@@ -1432,8 +1432,7 @@
       "fontFamily": "Família da fonte:"
     },
     "info": {
-      "description": "Por favor, personalize a aparência da página e clique em \"exportar\" para continuar.",
-      "label": "Informações"
+      "description": "Por favor, personalize a aparência da página e clique em \"exportar\" para continuar."
     },
     "page": {
       "topBottom": "Superior/Inferior:",
@@ -1443,27 +1442,21 @@
       "leftRight": "Esquerda/Direita:",
       "widthHeight": "Largura/Altura em mm:",
       "pageSize": "Tamanho da página:",
-      "pageMargin": "Margem da página em mm:"
+      "pageMarginPreset": "Margens:"
     },
     "theme": {
-      "label": "Tema",
-      "description": "Você pode alterar a aparência do documento escolhendo um tema ou criando um personalizado.",
       "theme": "Tema"
     },
     "headerFooter": {
-      "footerType": "Tipo de rodapé",
-      "description": "O texto aparece em todas as páginas se cabeçalho e/ou rodapé estiver definido.",
       "customizeStyle": "Personalizar estilo",
-      "mainHeaderText": "Texto principal do cabeçalho",
       "fontSize": "Tamanho da fonte",
       "allowStyled": "Permitir texto estilizado",
-      "rightHeaderText": "Texto do cabeçalho direito",
-      "headerType": "Tipo de cabeçalho",
       "label": "Cabeçalho e Rodapé",
-      "leftFooterText": "Texto do rodapé esquerdo",
-      "rightFooterText": "Texto do rodapé direito",
-      "mainFooterText": "Texto principal do rodapé",
-      "leftHeaderText": "Texto do cabeçalho esquerdo"
+      "headerText": "Cabeçalho",
+      "footerText": "Rodapé",
+      "leftSlot": "Esquerda",
+      "centerSlot": "Centro",
+      "rightSlot": "Direita"
     },
     "autoNumberingHeadings": "Numeração automática de cabeçalhos",
     "showFrontMatter": "Mostrar front matter",
@@ -1472,8 +1465,7 @@
     "toc": {
       "title": "Índice",
       "includeTopHeading": "Incluir cabeçalho superior",
-      "includeTopHeadingDetail": "Incluir detalhe do cabeçalho superior",
-      "label": "Índice"
+      "includeTopHeadingDetail": "Incluir detalhe do cabeçalho superior"
     },
     "options": {
       "headerFooterStyles": {
@@ -1499,9 +1491,19 @@
         "academic": "Acadêmico",
         "liber": "Liber",
         "default": "GitHub (Padrão)"
+      },
+      "marginPresets": {
+        "narrow": "Estreitas",
+        "normal": "Normais",
+        "wide": "Amplas",
+        "custom": "Personalizadas"
       }
     },
-    "docxTitle": "Exportar para Word"
+    "docxTitle": "Exportar para Word",
+    "content": {
+      "label": "Conteúdo"
+    },
+    "reset": "Redefinir"
   },
   "import": {
     "title": "Importar ou Abrir",

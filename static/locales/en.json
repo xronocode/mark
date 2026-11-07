@@ -1447,8 +1447,7 @@
       "fontFamily": "Font family:"
     },
     "info": {
-      "description": "Please customize the page appearance and click on \"export\" to continue.",
-      "label": "Info"
+      "description": "Please customize the page appearance and click on \"export\" to continue."
     },
     "page": {
       "topBottom": "Top/Bottom:",
@@ -1458,27 +1457,21 @@
       "leftRight": "Left/Right:",
       "widthHeight": "Width/Height in mm:",
       "pageSize": "Page size:",
-      "pageMargin": "Page margin in mm:"
+      "pageMarginPreset": "Margins:"
     },
     "theme": {
-      "label": "Theme",
-      "description": "You can change the document appearance by choosing a theme or create a handcrafted one.",
       "theme": "Theme"
     },
     "headerFooter": {
-      "footerType": "Footer type",
-      "description": "The text appear on all pages if header and/or footer is defined.",
       "customizeStyle": "Customize style",
-      "mainHeaderText": "Main header text",
       "fontSize": "Font size",
       "allowStyled": "Allow styled text",
-      "rightHeaderText": "Right header text",
-      "headerType": "Header type",
       "label": "Header & Footer",
-      "leftFooterText": "Left footer text",
-      "rightFooterText": "Right footer text",
-      "mainFooterText": "Main footer text",
-      "leftHeaderText": "Left header text"
+      "headerText": "Header",
+      "footerText": "Footer",
+      "leftSlot": "Left",
+      "centerSlot": "Center",
+      "rightSlot": "Right"
     },
     "autoNumberingHeadings": "Auto numbering headings",
     "showFrontMatter": "Show front matter",
@@ -1487,8 +1480,7 @@
     "toc": {
       "title": "Table of Contents",
       "includeTopHeading": "Include top heading",
-      "includeTopHeadingDetail": "Include top heading detail",
-      "label": "Table of Contents"
+      "includeTopHeadingDetail": "Include top heading detail"
     },
     "options": {
       "headerFooterStyles": {
@@ -1514,9 +1506,19 @@
         "academic": "Academic",
         "liber": "Liber",
         "default": "GitHub (Default)"
+      },
+      "marginPresets": {
+        "narrow": "Narrow",
+        "normal": "Normal",
+        "wide": "Wide",
+        "custom": "Custom"
       }
     },
-    "docxTitle": "Export to Word"
+    "docxTitle": "Export to Word",
+    "content": {
+      "label": "Content"
+    },
+    "reset": "Reset"
   },
   "import": {
     "title": "Import or Open",

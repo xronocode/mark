@@ -1432,8 +1432,7 @@
       "fontFamily": "Famille de police :"
     },
     "info": {
-      "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer.",
-      "label": "Informations"
+      "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer."
     },
     "page": {
       "topBottom": "Haut/Bas :",
@@ -1443,27 +1442,21 @@
       "leftRight": "Gauche/Droite :",
       "widthHeight": "Largeur/Hauteur (mm) :",
       "pageSize": "Taille de la page :",
-      "pageMargin": "Marge de page (mm) :"
+      "pageMarginPreset": "Marges :"
     },
     "theme": {
-      "label": "Thème",
-      "description": "Vous pouvez changer l'apparence du document en sélectionnant un thème ou en créant un thème personnalisé.",
       "theme": "Thème"
     },
     "headerFooter": {
-      "footerType": "Type de pied de page",
-      "description": "Si un en-tête et/ou un pied de page est défini, le texte apparaîtra sur toutes les pages.",
       "customizeStyle": "Personnaliser le style",
-      "mainHeaderText": "Texte de l'en-tête principal",
       "fontSize": "Taille de police",
       "allowStyled": "Autoriser le texte stylé",
-      "rightHeaderText": "Texte de l'en-tête droit",
-      "headerType": "Type d'en-tête",
       "label": "En-tête et pied de page",
-      "leftFooterText": "Texte du pied de page gauche",
-      "rightFooterText": "Texte du pied de page droit",
-      "mainFooterText": "Texte du pied de page principal",
-      "leftHeaderText": "Texte de l'en-tête gauche"
+      "headerText": "En-tête",
+      "footerText": "Pied de page",
+      "leftSlot": "Gauche",
+      "centerSlot": "Centre",
+      "rightSlot": "Droite"
     },
     "autoNumberingHeadings": "Numérotation automatique des titres",
     "showFrontMatter": "Afficher les métadonnées",
@@ -1472,8 +1465,7 @@
     "toc": {
       "title": "Table des matières",
       "includeTopHeading": "Inclure le titre de niveau supérieur",
-      "includeTopHeadingDetail": "Inclure les détails du titre de niveau supérieur",
-      "label": "Table des matières"
+      "includeTopHeadingDetail": "Inclure les détails du titre de niveau supérieur"
     },
     "options": {
       "headerFooterStyles": {
@@ -1499,9 +1491,19 @@
         "academic": "Académique",
         "liber": "Liber",
         "default": "GitHub (par défaut)"
+      },
+      "marginPresets": {
+        "narrow": "Étroites",
+        "normal": "Normales",
+        "wide": "Larges",
+        "custom": "Personnalisées"
       }
     },
-    "docxTitle": "Exporter vers Word"
+    "docxTitle": "Exporter vers Word",
+    "content": {
+      "label": "Contenu"
+    },
+    "reset": "Réinitialiser"
   },
   "import": {
     "title": "Importer ou ouvrir",
