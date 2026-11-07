@@ -2807,6 +2807,7 @@ export const useEditorStore = defineStore('editor', {
 // START_MODULE_MAP
 //   useEditorStore - Pinia store: tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS).
 //   __resetBootPhase - test hook that re-arms the boot-phase guard.
+//   getRememberedExportAppearance - C-EXPORT-SINGLE-PAGE R-5 read-only defaults+remembered appearance view for the export dialog.
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
