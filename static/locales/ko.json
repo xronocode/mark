@@ -337,7 +337,12 @@
       "toggleTabbar": "탭바 토글",
       "reloadImages": "이미지 새로고침",
       "notificationsHistory": "알림: 최근 항목 표시",
-      "standardView": "표준 보기로 돌아가고 작성 모드를 끕니다"
+      "standardView": "표준 보기로 돌아가고 작성 모드를 끕니다",
+      "pageWidthCompact": "페이지 너비를 컴팩트 60 ch로 설정",
+      "pageWidthStandard": "페이지 너비를 표준 80 ch로 설정",
+      "pageWidthWide": "페이지 너비를 넓게 110 ch로 설정",
+      "pageWidthFull": "페이지 너비를 전체 창으로 설정",
+      "pageWidthCustom": "빠른 설정의 페이지 탭 열기"
     },
     "utils": {
       "noUpdateResourceFile": "업데이트 리소스 파일 없음",
@@ -533,7 +538,7 @@
         "title": "텍스트",
         "font": "텍스트 글꼴",
         "lineHeight": "줄 간격",
-        "lineWidthHelp": "전체 너비를 사용하려면 비워 두세요. 또는 px, % 또는 ch 단위의 숫자를 입력하세요 — 예: 720px.",
+        "lineWidthHelp": "테마 기본 너비를 사용하려면 비워 두세요. 또는 px, % 또는 ch 단위의 숫자를 입력하세요 — 예: 720px.",
         "fontSize": "텍스트 크기",
         "unlimited": "제한 없음",
         "lineWidth": "편집 영역 너비"
@@ -1603,9 +1608,11 @@
   },
   "tableToolbar": {
     "allColumns": "전체 {total}개 열",
+    "modeAuto": "자동",
     "fitToPage": "페이지 폭에 맞추기",
     "fullWidth": "전체 폭으로 보기",
-    "columnsRange": "열 {start}–{end} / {total}"
+    "columnsRange": "열 {start}–{end} / {total}",
+    "doesNotFitBy": "{px} px가 부족합니다 — 데이터를 숨기지 않고 열 스크롤로 표시합니다"
   },
   "statusBar": {
     "title": "문서 통계",
@@ -1704,5 +1711,64 @@
     "body": "설정이 업데이트 전 스냅샷으로 돌아갑니다. 업데이트 이후의 변경 사항은 사라집니다. 더 새 버전이 나올 때까지 Mark {current}는 건너뜁니다.",
     "confirm": "되돌리기",
     "cancel": "취소"
+  },
+  "quickSettings": {
+    "title": "빠른 설정",
+    "openSettings": "설정 열기…",
+    "tabs": {
+      "page": "페이지",
+      "view": "보기",
+      "tables": "표"
+    },
+    "page": {
+      "widthGroup": "페이지 너비",
+      "preset": "프리셋",
+      "fullWindow": "전체 창",
+      "width": "너비",
+      "widthHelpCh": "현재 글꼴 기준 약 {px} px — ch는 글꼴 크기에 따라 조정됩니다",
+      "widthHelpPx": "고정 픽셀, 글꼴에 영향을 받지 않습니다",
+      "widthHelpPercent": "편집기 영역의 비율 — 창과 사이드바를 실시간으로 따라갑니다",
+      "widthHelpFull": "편집기 영역 전체. 사이드바를 따라갑니다",
+      "unit": "단위",
+      "unitHelp": "ch — 글꼴에 따라 조정 · px — 고정 · % — 편집기 영역의 비율",
+      "exportNote": "PDF 내보내기와 인쇄는 같은 열을 사용합니다. 용지 크기와 여백은 인쇄 대화상자에서 정합니다.",
+      "sourceDocument": "적용됨: 이 문서",
+      "sourceGlobal": "적용됨: 모든 문서",
+      "textGroup": "텍스트",
+      "fontSize": "텍스트 크기",
+      "fontSizeHelp": "⌘+ 및 ⌘−와 같은 값",
+      "lineHeight": "줄 간격",
+      "lineHeightHelp": "설정과 같은 줄 간격 · 1.2–2.0",
+      "scope": "모든 문서에 적용",
+      "scopeHelpOn": "켬 — 이 너비가 모든 파일의 기본 너비가 됩니다. 끔 — 이 파일에만.",
+      "scopeHelpOff": "끔 — 너비가 이 파일에만 저장됩니다.",
+      "scopeHelpUntitled": "제목 없는 문서는 항상 전역 기본값을 씁니다",
+      "reset": "초기화",
+      "usualWidth": "기본 너비: {width}"
+    },
+    "view": {
+      "themeGroup": "테마",
+      "mode": "화면 모드",
+      "modeHelp": "자동 — 시스템 따름 · 라이트/다크 — 패밀리의 밝은 쪽 또는 어두운 쪽",
+      "modeAuto": "자동",
+      "modeLight": "라이트",
+      "modeDark": "다크",
+      "override": "이 파일 전용 테마",
+      "overrideHelpOn": "켬 — 전역 전환을 바꿔도 이 파일은 자기 테마를 유지합니다.",
+      "overrideHelpOff": "끔 — 파일이 전역 테마를 따릅니다.",
+      "overrideHelpUntitled": "제목 없는 문서는 전용 테마를 가질 수 없습니다",
+      "sourcePinned": "{family} — 이 파일",
+      "sourceGlobal": "{family} · 모든 문서"
+    },
+    "tables": {
+      "group": "표",
+      "defaultMode": "기본 모드",
+      "defaultModeHelp": "새 표에 적용 · 자동은 내용 크기를 유지하고, 맞춤은 본문 열에 고정하며, 전체는 편집기 영역을 꽉 채웁니다",
+      "modeAuto": "자동",
+      "modeFit": "맞춤",
+      "modeFull": "전체",
+      "rememberSizes": "열 크기 기억",
+      "rememberSizesHelp": "열 크기는 파일별로 저장되며 너비가 바뀌면 비율에 맞춰 다시 적용됩니다"
+    }
   }
 }

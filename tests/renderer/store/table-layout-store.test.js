@@ -1,7 +1,7 @@
 // FILE: tests/renderer/store/table-layout-store.test.js
-// VERSION: 1.1.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-65 T-001 per-file table layout profile store — sanitize/normalize, the file-entries set/replace/delete transform, the bounded size cap, the missing-file prune (stat false / stat throws / no stat capability), the rename move, and the three IO flows (load prunes+caps+writes back, save replaces one file, move follows a rename) with an injected fake prefs IO.
+//   PURPOSE: Pin the per-file table layout profile store (C-65 T-001 + C-PAGE-WIDTH-TABLES T-008) — the schema-v2 sanitize/normalize (ratios + tableWidth + mode; the legacy fullWidth/fit booleans migrate one-way), the file-entries set/replace/delete transform, the bounded size cap, the missing-file prune (stat false / stat throws / no stat capability), the rename move, and the three IO flows with an injected fake prefs IO.
 //   SCOPE: src/renderer/src/util/tableLayoutStore.js (pure transforms + IO flows with defaultIo swapped by injection).
 //   DEPENDS: Vitest, a fake { get, set } IO recording writes.
 //   LINKS: .grace/changes/archive/C-65 R-1/R-2 (T-001); .grace/verification/runtime.xml V-M-012 scenario-66; the muya twin tests/renderer/muya/table-layout-persistence.test.js; the host wiring in editor.vue (BLOCK_TABLE_LAYOUTS_HOST) and store/editor.js RENAME/RENAME_IF_NEEDED.
@@ -12,11 +12,17 @@
 // START_MODULE_MAP
 //   makeIo - injected prefs IO with read/write recording; compared with default IO and failed-write behavior.
 //   ENTRY - one valid persisted entry fixture.
-//   entryFor - a widths+manual entry fixture builder.
+//   entryFor - a schema-v2 widths+manual entry fixture builder.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-65 R-7 coverage completion:
+//   LAST_CHANGE: v2.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-008: the
+//   entry pins move to schema v2 — sanitize drops the legacy booleans in
+//   favour of mode (a stored fit:true reads back as the honest Fit page),
+//   normalizeStore reports version 2 over v1 or v2 inputs, and the
+//   save→load roundtrip carries mode through; the cap/prune/move rules
+//   are unchanged and still green over the new shape.
+//   PREV: v1.1.0 - 2026-10-19 C-65 R-7 coverage completion:
 //   manual-flag derivation from the kept widths, the no-widths
 //   fullWidth-only entry, all-husk file normalization, the missing
 //   updatedAt cap tie-break by path, the absent/throwing stat capability
@@ -51,7 +57,8 @@ import {
 } from '@/util/tableLayoutStore'
 import { ipcPrefs } from '@/ipc/runtime'
 
-const entryFor = (widths, manual, fullWidth = false, fit = false) => ({ widths, manual, fullWidth, fit })
+// Schema-v2 entries: px widths + manual flags (mode/ratios/tableWidth optional).
+const entryFor = (widths, manual) => ({ widths, manual })
 
 const makeIo = (initial = null) => {
   const backing = { [TABLE_LAYOUTS_PREFS_KEY]: initial }
@@ -72,46 +79,51 @@ const ENTRY = entryFor([120, 80], [true, false])
 describe('pure store transforms (C-65 T-001)', () => {
   it('sanitizes entries: positive finite widths kept, invalid dropped, fullWidth-only kept', () => {
     expect(sanitizeEntry(ENTRY)).toEqual(ENTRY)
+    // Schema v2: the legacy booleans never come back — a plain drag entry
+    // is { widths, manual }, a legacy Full width flag reads back as mode.
     expect(sanitizeEntry({ widths: [120.4, -5], manual: [true], fullWidth: false })).toEqual({
-      widths: [120], manual: [true], fullWidth: false, fit: false
+      widths: [120], manual: [true]
     })
     expect(sanitizeEntry({ widths: [], manual: [], fullWidth: false })).toBeNull()
     expect(sanitizeEntry({ widths: [], manual: [], fullWidth: true })).toEqual({
-      widths: [], manual: [], fullWidth: true, fit: false
+      widths: [], manual: [], mode: 'full'
     })
     expect(sanitizeEntry(null)).toBeNull()
     expect(sanitizeEntry([1, 2])).toBeNull()
   })
 
-  it('keeps an explicit fit choice through sanitize (C-TABLE-FIT-PERSISTENCE)', () => {
-    // The Muya fit flag survives the host sanitizer: an explicit «Fit to
-    // page» choice must persist even with no dragged widths.
+  it('migrates a legacy fit choice into the v2 mode (T-007, one-way)', () => {
+    // The retired fake-fit flag reads back as the honest Fit page mode
+    // (R-8 migration); Full width wins a contradictory pair.
     expect(sanitizeEntry({ widths: [], manual: [], fullWidth: false, fit: true })).toEqual({
-      widths: [], manual: [], fullWidth: false, fit: true
+      widths: [], manual: [], mode: 'fit'
     })
-    expect(sanitizeEntry({ widths: [90], manual: [true], fullWidth: false, fit: true })).toEqual({
-      widths: [90], manual: [true], fullWidth: false, fit: true
+    expect(sanitizeEntry({ widths: [90], manual: [true], fit: true })).toEqual({
+      widths: [90], manual: [true], mode: 'fit'
     })
-    // Full width wins a contradictory entry (the Muya rule).
-    expect(sanitizeEntry({ widths: [], manual: [], fullWidth: true, fit: true }).fit).toBe(false)
+    expect(sanitizeEntry({ widths: [], manual: [], fullWidth: true, fit: true }).mode).toBe('full')
   })
 
-  it('a fit entry survives the save → load roundtrip (C-TABLE-FIT-PERSISTENCE)', async () => {
+  it('a stored mode survives the save → load roundtrip (T-008)', async () => {
     const io = makeIo({})
-    const entries = { '0#2:x': { widths: [], manual: [], fullWidth: false, fit: true } }
+    const entries = { '0#2:x': { widths: [], manual: [], mode: 'fit' } }
     await saveTableLayoutsFor('/doc.md', entries, io)
     const restored = await loadTableLayoutsFor('/doc.md', io)
-    expect(restored['0#2:x']).toEqual({ widths: [], manual: [], fullWidth: false, fit: true })
+    expect(restored['0#2:x']).toEqual({ widths: [], manual: [], mode: 'fit' })
   })
 
-  it('derives the manual flags from the kept widths when the raw entry has none', () => {
-    // No manual array: one auto flag per kept width.
-    expect(sanitizeEntry({ widths: [90, 70] })).toEqual({
-      widths: [90, 70], manual: [false, false], fullWidth: false, fit: false
+  it('derives the manual flags from the kept widths; husks drop (v2 rules)', () => {
+    // No manual array: one auto flag per kept width — but widths with no
+    // dragged column and no mode/ratio/width fact are the default layout
+    // (the muya serialize rule) and drop.
+    expect(sanitizeEntry({ widths: [90, 70] })).toBeNull()
+    expect(sanitizeEntry({ widths: [90, 70], manual: [true, false] })).toEqual({
+      widths: [90, 70], manual: [true, false]
     })
-    // No widths array at all: an empty-but-valid fullWidth-only entry.
+    // No widths array at all: a legacy Full width entry still carries the
+    // migrated mode.
     expect(sanitizeEntry({ fullWidth: true })).toEqual({
-      widths: [], manual: [], fullWidth: true, fit: false
+      widths: [], manual: [], mode: 'full'
     })
   })
 
@@ -126,8 +138,9 @@ describe('pure store transforms (C-65 T-001)', () => {
       }
     })
     expect(Object.keys(store.files)).toEqual(['/a.md'])
-    expect(store.files['/a.md']['0#2:x']).toEqual(ENTRY)
-    expect(store.version).toBe(1)
+    expect(store.files['/a.md']['0#2:x']).toEqual({ widths: [120, 80], manual: [true, false] })
+    // v1 inputs normalize UP to the version-2 shape (T-008).
+    expect(store.version).toBe(2)
   })
 
   it('normalization drops file entries whose every table entry sanitizes away', () => {

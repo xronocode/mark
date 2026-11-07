@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.11.0
+// VERSION: 1.12.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling), the C-65 T-003 overflow cue of the same wrapper, and the real-pointer Full width/Fit transition, sibling viewer availability, reverse action, and persistence across sidebar visibility changes.
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, lib/tableResize/tableCue.js, C-TABLE-FIT-PERSISTENCE's pointer/sidebar/reopen boundary, and C-TABLE-NATIVE-TOOLBAR-DELIVERY's sidebar-hidden/sidebar-visible action matrix.
@@ -21,6 +21,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 1.12.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the mode default and the fit-persistence case move to the honest three-mode model (T-007): Auto is the in-column wrapper-scroll mode, the toolbar carries the three-button segment, and the stored choice persists as the schema-v2 mode field.
 //   LAST_CHANGE: v1.11.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY:
 //   reproduce the native stale-adoption path by persisting Full width,
 //   reopening so that entry is adopted, and only then clicking Fit; the
@@ -186,20 +187,21 @@ test.describe('table layout (C-39 T-001)', () => {
     return wrapper
   }
 
-  // C-65 2026-10-19: a wide table opens in Full width; the C-39 cases pin
-  // the in-column wrapper scroll, i.e. the «Fit to page» mode — choose it.
-  async function fitToPage(page: Page) {
-    await page.waitForFunction(() =>
-      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
-    , undefined, { timeout: 5_000 })
+  // C-PAGE-WIDTH-TABLES T-007: Auto IS the C-39 in-column wrapper-scroll
+  // mode (content-sized, GitHub model). The C-39/C-65 cue cases pin it
+  // defensively through the toolbar segment (the fake-fit default that
+  // used to require a mode switch here is retired).
+  async function stayInAuto(page: Page) {
     await page.evaluate(() => {
-      for (const figure of document.querySelectorAll("figure[data-role='TABLE'].ag-table-full-width")) {
-        (figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement).click()
+      for (const button of document.querySelectorAll(
+        "figure[data-role='TABLE'] button.ag-table-toolbar-mode[data-table-mode='auto']"
+      )) {
+        if (!(button as HTMLElement).classList.contains('ag-table-toolbar-active')) {
+          (button as HTMLElement).click()
+        }
       }
     })
-    await page.waitForFunction(() =>
-      !document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
-    , undefined, { timeout: 5_000 })
+    await page.waitForTimeout(300)
   }
 
   const measureTable = (page: Page) => page.evaluate(() => {
@@ -251,45 +253,46 @@ test.describe('table layout (C-39 T-001)', () => {
     }
   })
 
-  test('a wide table opens in Full width by default; a narrow one stays in the column (C-65)', async ({ page }) => {
+  test('a wide table opens content-sized in Auto and scrolls its wrapper; a narrow table just fits (T-007)', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
-    await page.waitForFunction(() =>
-      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
-    , undefined, { timeout: 5_000 })
     const wide = await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      const toggle = document.querySelector("figure[data-role='TABLE'] button.ag-table-toolbar-toggle") as HTMLElement
-      return { overflowX: window.getComputedStyle(wrapper).overflowX, label: toggle.title }
+      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+      const wrapper = figure.querySelector('div.ag-table-scroll') as HTMLElement
+      return {
+        fullWidth: figure.classList.contains('ag-table-full-width'),
+        overflowX: window.getComputedStyle(wrapper).overflowX,
+        scrolling: wrapper.scrollWidth > wrapper.clientWidth
+      }
     })
-    expect(wide.overflowX).toBe('visible')
-    expect(wide.label).toBe('Fit to page')
+    expect(wide.fullWidth).toBe(false)
+    expect(wide.overflowX).toBe('auto')
+    expect(wide.scrolling).toBe(true)
 
     await bootstrapWithMarkdown(page, NARROW_2X2_MD)
     await waitForTable(page)
-    await page.waitForTimeout(300)
-    const narrowFull = await page.evaluate(() =>
-      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
-    )
-    expect(narrowFull).toBe(false)
+    const narrow = await page.evaluate(() => {
+      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      return window.getComputedStyle(wrapper).overflowX === 'auto' &&
+        wrapper.scrollWidth <= wrapper.clientWidth + 1
+    })
+    expect(narrow).toBe(true)
   })
 
-  // C-TABLE-FIT-PERSISTENCE (2026-10-20): the native owner review showed
-  // an explicit «Fit to page» choice not surviving — the host sanitizer
-  // dropped muya's fit flag, so a wide table reverted to Full width after
-  // reload. The transition must flip the mode and the label immediately,
-  // and the choice must persist through save → reopen (in-memory prefs
-  // backing stands in for the profile).
-  test('Full width → Fit to page flips mode and label immediately and survives reopen (C-TABLE-FIT-PERSISTENCE)', async ({ page }) => {
+  // C-TABLE-FIT-PERSISTENCE evolved (C-PAGE-WIDTH-TABLES T-007): the
+  // explicit mode choice lives in the schema-v2 entry (mode: 'fit' |
+  // 'full'), the segment's active state flips in the same tick, and the
+  // choice survives reopen through the same load hook. The stale-adoption
+  // discipline (persist() must never re-adopt the pre-action snapshot)
+  // is pinned along the way.
+  test('the mode segment flips immediately and the choice survives reopen (C-TABLE-FIT-PERSISTENCE, T-007)', async ({ page }) => {
     await page.addInitScript(() => {
       const backing = Object.create(null)
       const w = window as any
       w.__mockInvoke = {
         ...(w.__mockInvoke || {}),
-        // The load path prunes entries whose file no longer exists, and
-        // open-new-tab auto-diffs a file with a `.before` sidecar — the
-        // stat mock is path-aware so the document exists but no sidecar
-        // does.
+        // The stat mock is path-aware so the document exists but no
+        // `.before` diff sidecar does.
         mt_fs_stat: (args: any) => ({
           isFile: args?.path === '/tmp/mark-e2e/fit-persist.md',
           isDirectory: false
@@ -305,109 +308,90 @@ test.describe('table layout (C-39 T-001)', () => {
     await bootstrapWithMarkdown(page, '')
     await openFileTab(page, '/tmp/mark-e2e/fit-persist.md', WIDE_15COL_MD)
     await waitForTable(page)
-    await page.waitForFunction(() =>
-      !!document.querySelector("figure[data-role='TABLE'].ag-table-full-width")
-    , undefined, { timeout: 5_000 })
 
-    // The transition: click the «Fit to page» toggle — the class leaves and
-    // the label flips to «Full width» in the same tick (no re-render lag).
     const figure = page.locator("figure[data-role='TABLE']").first()
-    const widthToggle = figure.locator('button.ag-table-toolbar-toggle')
+    const fitButton = figure.locator("button.ag-table-toolbar-mode[data-table-mode='fit']")
+    const fullButton = figure.locator("button.ag-table-toolbar-mode[data-table-mode='full']")
+    const autoButton = figure.locator("button.ag-table-toolbar-mode[data-table-mode='auto']")
     const viewerButton = figure.locator('button.ag-table-toolbar-expand')
-    await expect(widthToggle).toHaveAttribute('title', 'Fit to page')
+
+    // The wide table opens in Auto (content-sized) — no fake-fit default.
+    await expect(autoButton).toHaveClass(/ag-table-toolbar-active/)
+    await expect(figure).not.toHaveClass(/ag-table-full-width/)
+
+    // The viewer action keeps working from the pill.
     await expect(viewerButton).toBeVisible()
     await viewerButton.hover()
-    await expect(viewerButton.locator('span.ag-block-toolbar-label')).toBeVisible()
     await viewerButton.click()
     const viewer = page.locator('.ag-block-viewer')
     await expect(viewer).toHaveClass(/ag-block-viewer-open/)
     await expect(viewer.locator('.ag-block-viewer-title')).toHaveText('Table')
     await viewer.locator('.ag-block-viewer-close-btn').click()
     await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
-    await widthToggle.click()
-    const afterClick = await figure.evaluate((node) => {
-      const toggle = node.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
-      return {
-        full: node.classList.contains('ag-table-full-width'),
-        label: toggle.title
-      }
-    })
-    expect(afterClick.full).toBe(false)
-    expect(afterClick.label).toBe('Full width')
 
-    // The owner found the native failure while changing sidebar state.
-    // Keep the fitted mode and its reverse action available when the
-    // editor viewport shrinks, and persist/reopen from that geometry.
+    // Fit page: the class leaves Auto and the segment flips in the same
+    // tick (no re-render lag).
+    await fitButton.click()
+    await expect(fitButton).toHaveClass(/ag-table-toolbar-active/)
+    await expect(figure).not.toHaveClass(/ag-table-full-width/)
+
+    // Sidebar show: the fit choice stays; the segment keeps its actions.
     const sidebarToggle = page.locator('.titlebar-nav-btn[title="Toggle Sidebar"]')
     await sidebarToggle.click()
     await expect(page.locator('.side-bar')).toBeVisible()
     await expect(figure).not.toHaveClass(/ag-table-full-width/)
-    await expect(widthToggle).toBeVisible()
-    await expect(widthToggle).toHaveAttribute('title', 'Full width')
-    await expect(viewerButton).toBeVisible()
+    await expect(fitButton).toHaveClass(/ag-table-toolbar-active/)
 
-    // Reverse while the sidebar is visible, then REOPEN with the saved
-    // Full width entry before selecting Fit. That adopted entry is the
-    // exact native regression: persist() used to re-adopt its stale value
-    // during the Fit click and instantly restore Full width.
-    await widthToggle.click()
+    // Full width, saved, then reopened: the stale-adoption regression —
+    // persist() must never re-adopt the pre-action snapshot mid-click.
+    await fullButton.click()
     await expect(figure).toHaveClass(/ag-table-full-width/)
-    await expect(widthToggle).toHaveAttribute('title', 'Fit to page')
 
-    const savedFullWidth = await page.evaluate(() => {
+    const savedFull = await page.evaluate(() => {
       const store = (window as any).__lastTableLayouts
       const entries = store?.files?.['/tmp/mark-e2e/fit-persist.md'] || {}
-      return Object.values(entries).filter((e: any) => e && e.fullWidth === true).length
+      return Object.values(entries).filter((e: any) => e && e.mode === 'full').length
     })
-    expect(savedFullWidth).toBeGreaterThanOrEqual(1)
+    expect(savedFull).toBeGreaterThanOrEqual(1)
 
     await openFileTab(page, '/tmp/mark-e2e/fit-persist.md', WIDE_15COL_MD)
     await waitForTable(page)
     await expect(figure).toHaveClass(/ag-table-full-width/)
-    await expect(widthToggle).toHaveAttribute('title', 'Fit to page')
+    await expect(fullButton).toHaveClass(/ag-table-toolbar-active/)
 
-    await widthToggle.click()
+    // Back to Fit: one click, persisted as the v2 mode (never the legacy
+    // fit/fullWidth booleans).
+    await fitButton.click()
     await expect(figure).not.toHaveClass(/ag-table-full-width/)
-    await expect(widthToggle).toHaveAttribute('title', 'Full width')
 
-    // The choice was saved with the fit flag (the host sanitizer keeps it).
     const saved = await page.evaluate(() => {
       const store = (window as any).__lastTableLayouts
       const entries = store?.files?.['/tmp/mark-e2e/fit-persist.md'] || {}
-      const fits = Object.values(entries).filter((e: any) => e && e.fit === true)
-      return { fitCount: fits.length }
-    })
-    expect(saved.fitCount).toBeGreaterThanOrEqual(1)
-
-    // Reopen the document: open-new-tab dedupes to the existing tab and
-    // re-activates it, which reruns the C-65 load hook
-    // (applyStoredTableLayouts) — the wide table must NOT return to Full
-    // width; the label stays «Full width».
-    await openFileTab(page, '/tmp/mark-e2e/fit-persist.md', WIDE_15COL_MD)
-    await waitForTable(page)
-    const reopened = await page.evaluate(() => {
-      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
-      const toggle = figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
+      const values = Object.values(entries) as any[]
       return {
-        full: figure.classList.contains('ag-table-full-width'),
-        label: toggle ? toggle.title : null
+        fits: values.filter((e) => e && e.mode === 'fit').length,
+        legacyFlags: values.some((e) => e && (e.fit === true || e.fullWidth === true))
       }
     })
-    expect(reopened.full).toBe(false)
-    expect(reopened.label).toBe('Full width')
+    expect(saved.fits).toBeGreaterThanOrEqual(1)
+    expect(saved.legacyFlags).toBe(false)
+
+    // Reopen (the tab dedupes and re-runs the load hook): the table must
+    // NOT return to Full width — the stored mode is Fit.
+    await openFileTab(page, '/tmp/mark-e2e/fit-persist.md', WIDE_15COL_MD)
+    await waitForTable(page)
+    await expect(figure).not.toHaveClass(/ag-table-full-width/)
+    await expect(fitButton).toHaveClass(/ag-table-toolbar-active/)
 
     await sidebarToggle.click()
     await expect(page.locator('.side-bar')).not.toBeVisible()
     await expect(figure).not.toHaveClass(/ag-table-full-width/)
-    await expect(widthToggle).toBeVisible()
-    await expect(widthToggle).toHaveAttribute('title', 'Full width')
-    await expect(viewerButton).toBeVisible()
   })
 
   test('a 15-column table scrolls horizontally inside the text column', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
-    await fitToPage(page)
+    await stayInAuto(page)
 
     const m = await measureTable(page)
     expect(m).not.toBeNull()
@@ -447,7 +431,7 @@ test.describe('table layout (C-39 T-001)', () => {
   test('the C-65 cue: caption below the table on the column edge, live on scroll', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
-    await fitToPage(page)
+    await stayInAuto(page)
 
     // Start: columns 1..N visible from the first column, only the right
     // side hides columns.
@@ -561,7 +545,7 @@ test.describe('table layout (C-39 T-001)', () => {
   test('clicking a cell after scrolling right places the caret in that cell', async ({ page }) => {
     await bootstrapWithMarkdown(page, EDIT_AFTER_SCROLL_MD)
     await waitForTable(page)
-    await fitToPage(page)
+    await stayInAuto(page)
 
     // Scroll the wrapper fully to the right, outside of Playwright's
     // actionability scrolling (mouse.click at coordinates never scrolls).
@@ -587,7 +571,7 @@ test.describe('table layout (C-39 T-001)', () => {
   test('typing in a scrolled table keeps the horizontal scroll position', async ({ page }) => {
     await bootstrapWithMarkdown(page, EDIT_AFTER_SCROLL_MD)
     await waitForTable(page)
-    await fitToPage(page)
+    await stayInAuto(page)
 
     // Scroll so a middle column is in view, then edit a cell in that column.
     const before = await page.evaluate(() => {

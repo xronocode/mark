@@ -202,13 +202,16 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     await expect(menu(page)).toBeVisible()
 
     // The chip icon must render at the neighbouring theme button's size
-    // (the T-004 deferral): compare the drawn svg boxes.
+    // (the T-004 deferral): compare the drawn svg boxes. The theme button
+    // is addressed explicitly — since C-PAGE-WIDTH-TABLES T-003 the
+    // quick-settings button (its own 15px approved mock glyph) sits in the
+    // right cluster before it, so "first nav-btn" is no longer the theme.
     const chipIcon = await page
       .locator('[data-testid="mode-chips"] button svg')
       .first()
       .boundingBox()
     const themeIcon = await page
-      .locator('.titlebar-right .titlebar-nav-btn svg')
+      .locator('.titlebar-right .titlebar-nav-btn:not(.quick-settings-btn) svg')
       .first()
       .boundingBox()
     expect(chipIcon?.width).toBe(themeIcon?.width)

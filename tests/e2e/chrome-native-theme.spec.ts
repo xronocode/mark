@@ -12,9 +12,12 @@
  *       --chromeAccent / --chromeAccentSoft variables (compared against
  *       probe elements resolving the same variables), and document
  *       links keep the theme colour;
- *   (d) no iconfont sprite `use` refs remain anywhere in the DOM, and
- *       every svg in the chrome containers is a drawn ChromeIcon
- *       (chrome-icon class, 1.4 stroke).
+ *   (d) no iconfont sprite `use` refs remain anywhere in the DOM, every
+ *       svg in the chrome containers is a drawn icon — ChromeIcon
+ *       members keep the chrome-icon class and the 1.4 stroke; other
+ *       drawn glyphs (since C-PAGE-WIDTH-TABLES T-003: the title bar
+ *       quick-settings button's approved mock svg) are accepted without
+ *       sprite refs.
  */
 
 import { test, expect, type Page } from '@playwright/test'
@@ -158,7 +161,7 @@ test.describe('chrome native theme (C-38 T-006)', () => {
     const accentColor = await resolvedVar(page, 'color', 'var(--chromeAccent)')
     expect(docLink).not.toBe(accentColor)
 
-    // ── (d) no sprite refs; every chrome svg is a drawn ChromeIcon ────
+    // ── (d) no sprite refs; every chrome svg is a drawn icon ──────────
     const spriteRefs = await page.evaluate(() => {
       const uses = Array.from(document.querySelectorAll('use'))
       return uses.filter((u) => {
@@ -168,22 +171,37 @@ test.describe('chrome native theme (C-38 T-006)', () => {
     })
     expect(spriteRefs).toBe(0)
 
+    // C-PAGE-WIDTH-TABLES T-003: the title bar's quick-settings button
+    // (chevrons-left-right, the approved mock glyph) is a DRAWN inline
+    // svg that is not a ChromeIcon component (24-grid, 1.7 stroke per the
+    // approved mock metrics). The audit's enemy was the iconfont sprite,
+    // not hand-drawn icons: ChromeIcon members must keep the 1.4 stroke,
+    // other svgs are acceptable as long as they draw (no sprite refs —
+    // asserted above), and the ChromeIcon family stays present.
     const iconAudit = await page.evaluate(() => {
       const scopes = ['.title-bar', '.editor-tabs', '.side-bar', '.search-bar']
       const offenders: string[] = []
+      let drawnOthers = 0
       for (const scope of scopes) {
         for (const svg of Array.from(document.querySelectorAll(`${scope} svg`))) {
           const computed = getComputedStyle(svg)
-          if (!svg.classList.contains('chrome-icon')) offenders.push(`${scope}: not a chrome-icon`)
-          if (computed.strokeWidth !== '1.4px' && computed.strokeWidth !== '1.4') {
-            offenders.push(`${scope}: stroke ${computed.strokeWidth}`)
+          if (svg.classList.contains('chrome-icon')) {
+            if (computed.strokeWidth !== '1.4px' && computed.strokeWidth !== '1.4') {
+              offenders.push(`${scope}: stroke ${computed.strokeWidth}`)
+            }
+          } else {
+            // A drawn glyph: stroke-based paths, no `use` sprite inside.
+            const uses = Array.from(svg.querySelectorAll('use'))
+            if (uses.length > 0) offenders.push(`${scope}: svg carries sprite refs`)
+            else drawnOthers += 1
           }
         }
       }
-      return { offenders, total: document.querySelectorAll('.chrome-icon').length }
+      return { offenders, total: document.querySelectorAll('.chrome-icon').length, drawnOthers }
     })
     expect(iconAudit.offenders).toEqual([])
     expect(iconAudit.total).toBeGreaterThan(5)
+    expect(iconAudit.drawnOthers, 'the quick-settings drawn glyph stays in the title bar').toBeGreaterThanOrEqual(1)
   })
 
   test('find-bar toggle glyphs render drawn chrome icons with aria', async ({ page }) => {

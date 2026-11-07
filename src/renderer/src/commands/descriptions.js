@@ -215,6 +215,13 @@ const COMMAND_KEY_MAP = {
   'view.zoom-in': 'commands.view.zoomIn',
   'view.zoom-out': 'commands.view.zoomOut',
 
+  // 页面宽度 (C-PAGE-WIDTH-TABLES T-010: View › Page Width presets)
+  'view.page-width.compact': 'commands.view.pageWidthCompact',
+  'view.page-width.standard': 'commands.view.pageWidthStandard',
+  'view.page-width.wide': 'commands.view.pageWidthWide',
+  'view.page-width.full': 'commands.view.pageWidthFull',
+  'view.page-width.custom': 'commands.view.pageWidthCustom',
+
   // ============================================
   // # 标签页管理命令 (Tab Management)
   // ============================================

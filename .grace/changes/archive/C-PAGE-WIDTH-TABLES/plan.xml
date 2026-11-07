@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved by owner instruction 2026-10-27 (plan review accepted as-is) over the owner-approved spec; two consecutive clean four-corner passes (Pass-3, Pass-4) recorded below. Execution still waits on the C-50 theme-scope sequencing and a freshly re-run parallel preflight. -->
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved by owner instruction 2026-10-27 (plan review accepted as-is) over the owner-approved spec; two consecutive clean four-corner passes (Pass-3, Pass-4) recorded below. Execution still waits on the C-50 theme-scope sequencing and a freshly re-run parallel preflight. -->
   <C-PAGE-WIDTH-TABLES>
     <ChangeRef>C-PAGE-WIDTH-TABLES</ChangeRef>
     <Created>2026-10-27</Created>
@@ -93,6 +93,8 @@
       <File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File>
       <File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File>
       <File>src/renderer/src/components/titleBar/quickSettings/tablesTab.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/store/editor.js</File>
       <File>src/renderer/src/prefComponents/common/segmented.vue</File>
       <File>src/renderer/src/prefComponents/common/range.vue</File>
       <File>src/renderer/src/store/preferences.js</File>
@@ -106,6 +108,8 @@
       <File>tests/renderer/util/table-layout-ratios.test.js</File>
       <File>tests/renderer/muya/table-fit.test.js</File>
       <File>tests/renderer/components/quick-settings.test.js</File>
+      <File>tests/renderer/store/editor-page-width.test.js</File>
+      <File>tests/renderer/components/editor-page-width-host.test.js</File>
       <File>tests/e2e/page-width-panel.spec.ts</File>
       <File>tests/e2e/table-modes.spec.ts</File>
       <Glob>static/locales/*.json</Glob>

@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/util/tableLayoutStore.js
-// VERSION: 1.1.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-65 T-001 the per-file table layout profile store — one prefs key (tableLayouts) holding per-file entries of persisted table column widths and the per-table Full width mode, with sanitize/normalize, missing-file pruning, a bounded size cap and the rename move.
-//   SCOPE: Pure store transforms (normalizeStore, storeWithFileEntries, capStoreFiles, moveFileEntry, sanitizeEntry) plus the IO-bound high-level flows (loadTableLayoutsFor = read + prune missing files + cap + write-back when changed; saveTableLayoutsFor = write one file's entries, deleting the file entry when empty; moveTableLayoutsEntry = the Mark-rename move). The persistent table identities (ordinal#headerSignature strings) are opaque to this module — muya's TableResize mints and consumes them.
-//   DEPENDS: @/ipc/runtime ipcPrefs (mt::prefs::get / mt::prefs::set — the existing loose-typed prefs IPC; the renderer holds the schema, so no backend change); window.fileUtils.stat for the prune (absent stat → pruning is skipped, entries kept).
-//   LINKS: .grace/changes/archive/C-65 R-1/R-2 (T-001); .grace/graph/runtime.xml M-012 fn-tableResize (muya counterpart) and M-011 (editor.vue host wiring BLOCK_TABLE_LAYOUTS_HOST); .grace/verification/runtime.xml V-M-012 scenario-66; store/editor.js RENAME + RENAME_IF_NEEDED (the rename move hooks); components/editorWithTabs/editor.vue (load/save host).
+//   PURPOSE: The per-file table layout profile store — one prefs key (tableLayouts) holding per-file entries of persisted table column widths, the stored ratios + explicit table width (schema v2, C-PAGE-WIDTH-TABLES T-008) and the per-table mode ('fit' | 'full'; absent = Auto), with sanitize/normalize, the one-way idempotent v1→v2 migration of the legacy fullWidth/fit booleans, missing-file pruning, a bounded size cap and the rename move.
+//   SCOPE: Pure store transforms (normalizeStore, storeWithFileEntries, capStoreFiles, moveFileEntry, sanitizeEntry over util/tableLayoutRatios.migrateTableEntry) plus the IO-bound high-level flows (loadTableLayoutsFor = read + prune + cap + write-back when changed; saveTableLayoutsFor = write one file's entries, deleting the file entry when empty; moveTableLayoutsEntry = the Mark-rename move). The persistent table identities (ordinal#headerSignature strings) are opaque to this module — muya's TableResize mints and consumes them. Reads of version-1 stores normalize to version 2 (the write-back on the next save/load re-shapes the persisted data; the legacy fake-fit flags never come back).
+//   DEPENDS: @/ipc/runtime ipcPrefs (mt::prefs::get / mt::prefs::set — the existing loose-typed prefs IPC; the renderer holds the schema, so no backend change); util/tableLayoutRatios (migrateTableEntry, the schema v2 entry rules); window.fileUtils.stat for the prune (absent stat → pruning is skipped, entries kept).
+//   LINKS: .grace/changes/archive/C-65 R-1/R-2 (T-001); .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-008, spec R-8/R-10, corners C-8/C-9; graph/performance.xml M-061); .grace/graph/runtime.xml M-012 fn-tableResize (muya counterpart) and M-011 (editor.vue host wiring BLOCK_TABLE_LAYOUTS_HOST); .grace/verification/runtime.xml V-M-012 scenario-66 and verification/performance.xml V-M-061; util/tableLayoutRatios.js (the entry/migration maths); store/editor.js RENAME + RENAME_IF_NEEDED (the rename move hooks); components/editorWithTabs/editor.vue (load/save host).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -12,9 +12,9 @@
 // START_MODULE_MAP
 //   TABLE_LAYOUTS_PREFS_KEY - the single prefs key holding the whole store ("tableLayouts").
 //   MAX_TABLE_LAYOUT_FILES - cap on remembered files (30, newest by updatedAt kept).
-//   EMPTY_STORE - the canonical empty store shape ({ version: 1, files: {} }).
-//   sanitizeEntry - pure: coerce one raw entry into { widths, manual, fullWidth, fit } or null (Full width wins a contradictory fit).
-//   normalizeStore - pure: any raw prefs value → a valid store (invalid shapes collapse to EMPTY_STORE).
+//   EMPTY_STORE - the canonical empty store shape ({ version: 2, files: {} }).
+//   sanitizeEntry - pure: one raw entry through the schema-v2 rules (util/tableLayoutRatios migrateTableEntry): { widths, manual, mode?, ratios?, tableWidth? } or null; the legacy fullWidth/fit booleans migrate one-way.
+//   normalizeStore - pure: any raw prefs value (v1 or v2) → a valid version-2 store (invalid shapes collapse to EMPTY_STORE).
 //   storeWithFileEntries - pure: set/replace/delete one file's entries (empty entries delete the file entry) with an updatedAt stamp.
 //   capStoreFiles - pure: keep at most max files, newest updatedAt first (ties by path for determinism).
 //   moveFileEntry - pure: move one file's entry from one path to another (absent source → unchanged store; destination clobbered).
@@ -28,55 +28,44 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-20 C-TABLE-FIT-PERSISTENCE: the
+//   LAST_CHANGE: v2.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-008: schema
+//   v2. Entries carry ratios (fractions of the table width) and an
+//   optional explicit tableWidth next to the px widths, and the mode
+//   field ('fit' | 'full') replaces the legacy fullWidth/fit booleans —
+//   stored fit:true (the retired fake fit) migrates one-way to the honest
+//   Fit page and re-running the migration changes nothing (corner C-8).
+//   The header-signature identity rules, the 30-file cap and the
+//   sanitize-what-is-invalid posture are unchanged.
+//   PREV: v1.1.0 - 2026-10-20 C-TABLE-FIT-PERSISTENCE: the
 //   sanitizer keeps muya's fit flag, so an explicit «Fit to page» choice
 //   survives the host save/load path (the native owner review showed the
 //   flag was silently dropped here and a wide table reverted to Full
 //   width after reload; muya's own sanitizer always kept it). Full width
 //   still wins a contradictory entry.
 //   PREV: v1.0.0 - 2026-10-18 C-65 T-001: new module. Widths and
-//   the per-table Full width mode persist per FILE in the Mark profile
-//   (option 2 of the 2026-10-18 user review) — never written into the
-//   Markdown. One prefs key holds { version, files: { path: {
-//   ordinal#signature: { widths, manual, fullWidth } } } }. Loads prune
-//   entries whose file no longer exists (corner-3) and cap the store at
-//   30 files; saves only touch the active file's entries; renames through
-//   Mark (title bar + sidebar) move the entry (R-2). The identity strings
-//   are muya's — this module stays schema-only and pure apart from the
-//   three IO flows, so every rule is unit-pinnable with a fake IO.
+//   the per-table Full width mode persist per FILE in the Mark profile —
+//   never written into the Markdown. Loads prune missing files and cap
+//   the store at 30; renames through Mark move the entry (R-2).
 // END_CHANGE_SUMMARY
 
 import { ipcPrefs } from '@/ipc/runtime'
+import { migrateTableEntry } from './tableLayoutRatios'
 
 export const TABLE_LAYOUTS_PREFS_KEY = 'tableLayouts'
 export const MAX_TABLE_LAYOUT_FILES = 30
 
-export const EMPTY_STORE = { version: 1, files: {} }
+export const EMPTY_STORE = { version: 2, files: {} }
 
 // START_BLOCK_STORE_TRANSFORMS
 // Pure store maths — every rule below is unit-pinned with plain objects.
-export const sanitizeEntry = (raw) => {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
-  const widths = Array.isArray(raw.widths)
-    ? raw.widths
-      .filter(w => Number.isFinite(w) && w > 0)
-      .map(w => Math.round(w))
-    : []
-  const manual = Array.isArray(raw.manual)
-    ? raw.manual.map(m => !!m)
-    : widths.map(() => false)
-  const fullWidth = !!raw.fullWidth
-  // C-TABLE-FIT-PERSISTENCE: an explicit «Fit to page» choice (muya's fit
-  // flag) must survive the host save/load path; Full width wins a
-  // contradictory entry — the same rule muya's sanitizer applies.
-  const fit = !fullWidth && !!raw.fit
-  if (widths.length === 0 && !fullWidth && !fit) return null
-  return { widths, manual, fullWidth, fit }
-}
+// The entry rules (widths clamping, the legacy boolean → mode migration,
+// ratios/tableWidth validation, husk dropping) live in util/tableLayoutRatios
+// so muya's sanitizer and this store share one normative description.
+export const sanitizeEntry = (raw) => migrateTableEntry(raw)
 
 export const normalizeStore = (raw) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || !raw.files || typeof raw.files !== 'object') {
-    return { version: 1, files: {} }
+    return { version: 2, files: {} }
   }
   const files = {}
   for (const pathname of Object.keys(raw.files)) {
@@ -96,7 +85,7 @@ export const normalizeStore = (raw) => {
         : clean
     }
   }
-  return { version: 1, files }
+  return { version: 2, files }
 }
 
 export const storeWithFileEntries = (store, pathname, entries, now = Date.now()) => {
@@ -116,7 +105,7 @@ export const storeWithFileEntries = (store, pathname, entries, now = Date.now())
   } else {
     delete files[pathname]
   }
-  return { version: 1, files }
+  return { version: 2, files }
 }
 
 export const capStoreFiles = (store, max = MAX_TABLE_LAYOUT_FILES) => {

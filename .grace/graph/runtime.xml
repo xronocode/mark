@@ -3091,6 +3091,14 @@
         M-060 depends on this module's renderer ownership boundary and owns
         instrumentation only — no product behavior, no content writes and no
         production timing markers land here (V-M-060).
+        C-PAGE-WIDTH-TABLES (2026-11-02): the renderer shell hosts the
+        per-document page width module (M-061, graph/performance.xml) — the
+        quick-settings button and panel mount in the titlebar right cluster
+        between the mode chips and the theme button, and the host seam
+        (editor.vue applyHostPageState plus the store/editor.js
+        rename/move/flush flows) applies the resolved width as one inline
+        custom property on the editor root, re-applies on sidebar and window
+        changes and moves the stored entry on rename (V-M-061).
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -4282,6 +4290,18 @@
         the setMarkdown entry (progressive/ plus instance-scoped
         StateRender region entries) with the legacy full mount kept as the
         untouched default and the fail-safe fallback (V-M-063).
+        C-PAGE-WIDTH-TABLES (2026-11-02): the table mode model inside this
+        engine's tableResize is reworked as the honest three-mode model —
+        Auto stays content-sized, Fit page pins the frame to the text
+        column, Full width spans the window canvas (src/muya/lib/tableResize/
+        tableFit.js distribution with ratios-preserving re-application, the
+        honest minimal-size scroll degradation and the drag affordances; the
+        legacy fake-fit flag is gone and a stored fit:true entry opens in
+        Fit page after an idempotent schema-v2 migration). The per-document
+        page width store, the width-resolution pipeline and the titlebar
+        quick-settings panel boundary are owned by M-061
+        (graph/performance.xml); this engine consumes the resolved width and
+        the tableFullWidthDefault option the Tables tab writes (V-M-061).
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>

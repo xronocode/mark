@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-footer.spec.ts
-// VERSION: 1.2.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce the owner's table/counter/scrollbar spacing report and pin a compact constant-height reserved footer.
 //   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, continuous shade paint through the noneditable caption, sticky counter visibility, fitting-table width-control gating including restored Full width, bottom drag-handle hit testing and unchanged Markdown.
@@ -16,6 +16,12 @@
 //   shadePaintDelta - screenshot pixels at the same shade x coordinate inside the caption and its lower gap; detects an opaque noneditable caption patch.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 1.4.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the two
+//   toggle-based pins move to the honest model — a fitting table keeps
+//   Copy, has no expand action and carries the always-available mode
+//   segment on Auto (the need-gated toggle is retired), and the restored
+//   legacy fullWidth entry pins the migrated v2 mode on the segment.
+//   LAST_CHANGE: 1.3.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the width-mode preamble moves from the retired fake-fit toggle to the T-007 mode segment (Full width chosen explicitly; Auto carries the in-column overflow state).
 //   LAST_CHANGE: v1.2.0 - 2026-10-20 C-TABLE-FOOTER owner review: screenshot pixels catch the noneditable caption background lightening the edge shade.
 //   PREV: v1.1.0 - 2026-10-20 C-TABLE-FOOTER owner review: no width toggle or stray counter on fitting tables, including a restored Full width choice.
 //   PREV: v1.0.0 - 2026-10-20 C-TABLE-FOOTER: counter inside the scroll block above its scrollbar, with compact stable invisible space when fitting.
@@ -102,11 +108,10 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('reserved footer keeps the counter inside and 2px above the scrollbar while scrolling', async ({ page }, testInfo) => {
+  // T-007: the wide table opens in Auto — already the in-column
+  // wrapper-scroll mode the footer was pinned against (the fake-fit
+  // default this test used to switch away from is retired).
   const figure = page.locator("figure[data-role='TABLE']").first()
-  await expect(figure).toHaveClass(/ag-table-full-width/)
-  await figure.hover()
-  await figure.locator('.ag-table-toolbar-toggle').click()
-  await expect(figure).not.toHaveClass(/ag-table-full-width/)
   const beforeDocument = await documentState(page)
   const geometry = await footer(figure)
   expect(geometry.inside).toBe(true)
@@ -137,6 +142,10 @@ test('reserved footer keeps the counter inside and 2px above the scrollbar while
 test('reserved footer is equally tall and invisible when narrow or expanded tables fit', async ({ page }) => {
   const wide = page.locator("figure[data-role='TABLE']").first()
   const narrow = page.locator("figure[data-role='TABLE']").nth(1)
+  // T-007: the expanded state is the Full width mode (the wide table
+  // opens in Auto — where its caption legitimately shows the visible
+  // range, so the mode is chosen explicitly first).
+  await wide.locator("button.ag-table-toolbar-mode[data-table-mode='full']").click()
   await expect.poll(async () => (await footer(wide)).captionVisible).toBe('hidden')
   const expanded = await footer(wide)
   const fitting = await footer(narrow)
@@ -145,25 +154,31 @@ test('reserved footer is equally tall and invisible when narrow or expanded tabl
   expect(fitting.captionText).toBe('')
   expect(fitting.scrollWidth).toBeLessThanOrEqual(fitting.clientWidth + 1)
   expect(Math.abs(fitting.footerSpace - expanded.footerSpace)).toBeLessThanOrEqual(1)
-  await wide.hover()
-  await wide.locator('.ag-table-toolbar-toggle').click()
+  // Back to Auto: the wide table overflows its column again — the caption
+  // carries the visible range, over the same reserved footer space.
+  await wide.locator("button.ag-table-toolbar-mode[data-table-mode='auto']").click()
   await expect.poll(async () => (await footer(wide)).captionVisible).toBe('visible')
   const overflowing = await footer(wide)
   expect(Math.abs(overflowing.footerSpace - expanded.footerSpace)).toBeLessThanOrEqual(1)
 })
 
-test('a fitting table has no width toggle while copy as image remains reachable', async ({ page }) => {
+test('a fitting table keeps copy reachable, no expand action, and its always-available mode segment on Auto', async ({ page }) => {
   const narrow = page.locator("figure[data-role='TABLE']").nth(1)
   const before = await documentState(page)
   await narrow.hover()
-  await expect(narrow.locator('.ag-table-toolbar-toggle')).not.toBeVisible()
   await expect(narrow.locator('.ag-table-toolbar-copy')).toBeVisible()
   await expect(narrow.locator('.ag-table-toolbar-expand')).not.toBeVisible()
+  // T-007: the width control is the three-button mode segment now —
+  // present on every table (R-8: Auto is one click from any mode), not a
+  // need-gated toggle; a fitting table sits on Auto and shows no cue.
+  const modes = narrow.locator('button.ag-table-toolbar-mode')
+  await expect(modes).toHaveCount(3)
+  await expect(narrow.locator("button.ag-table-toolbar-mode[data-table-mode='auto']")).toHaveClass(/ag-table-toolbar-active/)
   expect((await footer(narrow)).captionText).toBe('')
   expect(await documentState(page)).toEqual(before)
 })
 
-test('a restored narrow Full width table has no toggle or stray column counter', async ({ page }) => {
+test('a restored narrow legacy-fullWidth table sits on the full mode with no stray column counter', async ({ page }) => {
   await page.addInitScript(profile => {
     const w = window as any
     w.__mockInvoke = { ...w.__mockInvoke,
@@ -176,9 +191,10 @@ test('a restored narrow Full width table has no toggle or stray column counter',
   await openFileTab(page, '/tmp/mark-e2e/table-footer.md', TABLES)
   const narrow = page.locator("figure[data-role='TABLE']").nth(1)
   await expect(narrow).toHaveClass(/ag-table-full-width/)
+  // The legacy fullWidth boolean migrates one-way to the v2 mode: the
+  // segment marks Full width active on the restored narrow table.
+  await expect(narrow.locator("button.ag-table-toolbar-mode[data-table-mode='full']")).toHaveClass(/ag-table-toolbar-active/)
   const before = await documentState(page)
-  await narrow.hover()
-  await expect(narrow.locator('.ag-table-toolbar-toggle')).not.toBeVisible()
   const geometry = await footer(narrow)
   expect(geometry.captionText).toBe('')
   expect(geometry.captionVisible).toBe('hidden')
@@ -188,7 +204,7 @@ test('a restored narrow Full width table has no toggle or stray column counter',
 test('the selected column drag handle remains reachable over the reserved footer', async ({ page }) => {
   const figure = page.locator("figure[data-role='TABLE']").first()
   await figure.hover()
-  await figure.locator('.ag-table-toolbar-toggle').click()
+  await figure.locator("button.ag-table-toolbar-mode[data-table-mode='full']").click()
   // Select the second column: its bottom handle can share the caption's
   // horizontal range, so moving the caption must not intercept its input.
   await figure.locator('tbody td').nth(1).click({ position: { x: 80, y: 15 } })

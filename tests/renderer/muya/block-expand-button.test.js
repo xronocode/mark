@@ -323,11 +323,14 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     // (The table front icon may still precede it; Tab order is what matters.)
     const toolbar = children[toolbarIndex]
     const buttons = (toolbar.children || []).filter((c) => c.sel.includes('ag-table-toolbar-btn'))
-    // C-70: toggle, Copy as image, Open full screen.
-    expect(buttons.length).toBe(3)
-    expect(buttons[1].sel).toContain('ag-table-toolbar-copy')
-    expect(buttons[2].sel).toContain('ag-block-expand')
-    expect(buttons[2].sel).toContain('ag-block-toolbar-expand')
+    // T-007 three-mode segment (Auto/Fit/Full), then C-70 Copy as image and
+    // Open full screen.
+    expect(buttons.length).toBe(5)
+    expect(buttons[0].data.dataset.tableMode).toBe('auto')
+    expect(buttons[2].data.dataset.tableMode).toBe('full')
+    expect(buttons[3].sel).toContain('ag-table-toolbar-copy')
+    expect(buttons[4].sel).toContain('ag-block-expand')
+    expect(buttons[4].sel).toContain('ag-block-toolbar-expand')
     // Not nested inside the wrapper: table clicks/drag stay first-class.
     expect(findVnode(children[wrapperIndex], (v) => v.sel === 'button.ag-block-expand')).toBeNull()
   })

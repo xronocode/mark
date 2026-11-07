@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.8.0
+// VERSION: 3.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2), the C-51 T-006/T-010 expand affordances (since C-56 T-005: the corner pill on mermaid/vega-lite figures and the standalone glyph on flowchart/sequence/plantuml; since C-65 T-002: the TABLE toolbar on tables — its expand action is the pill-family need-gated button) and the T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd/click, Esc close with focus restore; the T-010 need rules (hidden expand actions on small blocks — no Tab stop; wide/tall blocks get them), the C-56 T-005 pill look (variant C: opacity 0 → 1 on figure hover / :focus-within, never the caret; themed surface pill, label reveal, muted → fg hover), the C-65 table toolbar placement above the table clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -16,19 +16,31 @@
 //   TINY_DIAGRAM_MD - a 2-node graph TD whose natural size is far below the viewer stage (T-014 fit-up case).
 //   EDIT_FLOW_MD - a mermaid diagram and a math block, each followed by a heading (T-014 in-flow edit preview).
 //   WIDE_TABLE_MD - a 12-column table that overflows the column (expand button; resize-handle drag).
-//   MIXED_MD - every viewable block type: small ones keep their expand actions hidden (the mermaid/vega figures retain Edit/Copy; fitting tables retain Copy with no width toggle), the wide mermaid/flowchart and the wide/tall tables get the expand affordance, plus fence/paragraph negatives.
+//   MIXED_MD - every viewable block type: small ones keep their expand actions hidden (the mermaid/vega figures retain Edit/Copy; fitting tables retain Copy plus the always-available three-mode segment), the wide mermaid/flowchart and the wide/tall tables get the expand affordance, plus fence/paragraph negatives.
 //   bootstrapWithMarkdown - tauri-shim + preferences + mt::bootstrap-editor document load (mirrors pele-render.spec.ts); extraPrefs override individual preference defaults.
 //   canvasScale - parses the panzoom `scale(s) translate(x,y)` transform of the viewer canvas.
 //   nodeFillIn - computed fill of the first pele node shape (g.pele-node rect/polygon) inside a root element (live figure or viewer clone).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.8.0 - 2026-10-20 C-FIX-008-VIEWER-PAN-CUES: the FIX-008
+//   LAST_CHANGE: v3.9.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   table toolbar's two-state toggle became the honest three-button mode
+//   segment (Auto / Fit to page / Full width), so the MIXED coverage
+//   counts 27 family buttons (the two mermaid + vega pill figures carry
+//   THREE family buttons each, flowchart/sequence/plantuml carry the
+//   standalone glyph, each of the three tables carries the mode segment
+//   trio + copy + expand), the fitting table keeps its mode segment (the
+//   width control is no longer a need-gated toggle — R-8 keeps Auto one
+//   click from any mode) while its expand action stays gated, the Tab
+//   walk gains the three mode stops of the wide table, and the toolbar
+//   geometry/resize cases measure the 5-button pill and the Auto-only
+//   wrapper scroll.
+//   PREV: v3.8.0 - 2026-10-20 C-FIX-008-VIEWER-PAN-CUES: the FIX-008
 //   case is rewritten to the pan-only contract — no horizontal track at any
 //   zoom, drag reveals the last column, the edge clip shadows track the
 //   left/middle/right pan positions and clear at Fit.
 //   PREV: v3.7.0 - 2026-10-20 C-TABLE-FOOTER owner review: fitting tables have no width-toggle Tab stop; Copy as image remains reachable.
-//   PREV: v3.6.0 - 2026-10-19 Full width default: the wide table's toggle reads «Fit to page», the narrow ones «Full width»; the last-column drag scrolls the editor (the Full width scroller) as well as the wrapper.
+//   PREV: v3.6.0 - 2026-10-19 Full width default: the wide table's toggle reads «Fit to page», the narrow ones «Full width»; the last-column drag scrolls the editor (the Full width scroller) as well as the wrapper. (Both retired with v3.9.0 — the honest model opens every table in Auto and the wrapper is the single scroll owner.)
 //   v3.5.0 - 2026-10-18 C-65 T-002: tables render the TABLE
 //   TOOLBAR instead of the standalone glyph — every table selector moved
 //   from `figure > button.ag-block-expand` to the toolbar's need-gated
@@ -789,12 +801,12 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       .waitFor({ state: 'visible', timeout: 20_000 })
 
     // The ag-block-expand family VNODE renders on every viewable figure —
-    // C-56 T-005 + C-65 T-002: 18 buttons (the two mermaid + vega pill
-    // figures carry THREE family buttons each, flowchart/sequence/plantuml
-    // carry the standalone glyph, each of the three tables carries the
-    // toolbar's toggle + copy (C-70) + expand trio) — visibility is the
-    // need gate.
-    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(21)
+    // C-56 T-005 + C-65 T-002 + C-PAGE-WIDTH-TABLES T-007: 27 buttons (the
+    // two mermaid + vega pill figures carry THREE family buttons each,
+    // flowchart/sequence/plantuml carry the standalone glyph, each of the
+    // three tables carries the mode segment trio + copy + expand) —
+    // visibility is the need gate.
+    await expect(page.locator('.editor-with-tabs button.ag-block-expand')).toHaveCount(27)
 
     // Exactly the four benefiting figures carry the need class.
     const needs = await page.evaluate(() =>
@@ -804,9 +816,9 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(needs).toEqual(['FLOWCHART', 'MERMAID', 'TABLE', 'TABLE'])
     // ...and every family button (hidden ones included) carries its
     // localized label: 'Expand' for the three standalone glyphs, the
-    // blockToolbar.* strings for the nine pill buttons, the
-    // tableToolbar.* string for the three table toggles and 'Open full
-    // screen' for their need-gated expand actions.
+    // blockToolbar.* strings for the nine pill buttons, the three
+    // tableToolbar.* mode strings per table for the nine mode buttons and
+    // 'Open full screen' for their need-gated expand actions.
     const labeled = await page.evaluate(() =>
       Array.from(document.querySelectorAll('button.ag-block-expand')).map((b) => ({
         pill: b.classList.contains('ag-block-toolbar-btn'),
@@ -814,15 +826,15 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
           ? 'edit'
           : b.classList.contains('ag-block-toolbar-copy')
             ? 'copy'
-            : b.classList.contains('ag-table-toolbar-toggle')
-              ? 'toggle'
+            : b.classList.contains('ag-table-toolbar-mode')
+              ? 'mode'
               : b.classList.contains('ag-block-toolbar-expand')
                 ? 'expand'
                 : 'standalone',
         label: b.getAttribute('aria-label')
       }))
     )
-    expect(labeled).toHaveLength(21)
+    expect(labeled).toHaveLength(27)
     const tally: Record<string, number> = {}
     for (const b of labeled) {
       tally[`${b.pill ? 'pill:' : ''}${b.action}`] = (tally[`${b.pill ? 'pill:' : ''}${b.action}`] || 0) + 1
@@ -832,16 +844,21 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       'pill:edit': 3,
       'pill:copy': 6,
       'pill:expand': 6,
-      'pill:toggle': 3
+      'pill:mode': 9
     })
     expect(labeled.filter((b) => b.action === 'standalone').every((b) => b.label === 'Expand')).toBe(true)
     expect(labeled.filter((b) => b.action === 'edit').every((b) => b.label === 'Edit source')).toBe(true)
     expect(labeled.filter((b) => b.action === 'copy').every((b) => b.label === 'Copy as image')).toBe(true)
     expect(labeled.filter((b) => b.action === 'expand').every((b) => b.label === 'Open full screen')).toBe(true)
-    // C-65 2026-10-19: the wide table opens in Full width (its toggle
-    // offers «Fit to page»); the small and the tall-narrow ones do not.
-    const toggles = labeled.filter((b) => b.action === 'toggle').map((b) => b.label).sort()
-    expect(toggles).toEqual(['Fit to page', 'Full width', 'Full width'])
+    // T-007: every table carries the honest three-mode segment in the
+    // fixed Auto / Fit to page / Full width order (the retired fake-fit
+    // toggle — a need-gated two-state button — is gone; R-8 keeps the
+    // mode reachable on every table, so no per-table visibility split).
+    const modes = labeled.filter((b) => b.action === 'mode').map((b) => b.label)
+    expect(modes).toHaveLength(9)
+    for (let i = 0; i < 3; i++) {
+      expect(modes.slice(i * 3, i * 3 + 3)).toEqual(['Auto', 'Fit to page', 'Full width'])
+    }
 
     // Small table: the toolbar's expand action is display:none — hidden,
     // unrendered and NOT focusable (focus() is a no-op, so no Tab stop),
@@ -867,16 +884,26 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       expect(state!.offsetParent, `${expandSel} must not be laid out`).toBeNull()
       expect(state!.focused, `${expandSel} must not take focus`).toBe(false)
     }
-    // A fitting table has no width action or Tab stop. Its useful Copy
-    // as image action remains reachable for keyboard users.
-    const smallTableToggle = await page.evaluate(() => {
+    // A fitting table has no need-gated expand action, but its mode
+    // segment stays reachable (T-007: the width control is no longer a
+    // need-gated toggle — Auto is one click from any mode). Its useful
+    // Copy as image action remains reachable for keyboard users.
+    const smallTableModes = await page.evaluate(() => {
       const figure = document.querySelector("figure[data-role='TABLE']:not(.ag-expand-needed)") as HTMLElement
-      const toggle = figure.querySelector('button.ag-table-toolbar-toggle') as HTMLElement
-      toggle.focus()
-      return { focused: document.activeElement === toggle, display: getComputedStyle(toggle).display }
+      const modes = Array.from(figure.querySelectorAll('button.ag-table-toolbar-mode')) as HTMLElement[]
+      const auto = modes.find((b) => (b as HTMLElement).dataset.tableMode === 'auto') as HTMLElement
+      auto.focus()
+      return {
+        count: modes.length,
+        autoFocused: document.activeElement === auto,
+        autoDisplay: getComputedStyle(auto).display,
+        copy: !!figure.querySelector('button.ag-table-toolbar-copy')
+      }
     })
-    expect(smallTableToggle.focused).toBe(false)
-    expect(smallTableToggle.display).toBe('none')
+    expect(smallTableModes.count).toBe(3)
+    expect(smallTableModes.autoFocused, 'the mode segment stays a Tab stop on a fitting table').toBe(true)
+    expect(smallTableModes.autoDisplay).not.toBe('none')
+    expect(smallTableModes.copy).toBe(true)
     const smallTableCopy = page.locator("figure[data-role='TABLE']:not(.ag-expand-needed)").first().locator('.ag-table-toolbar-copy')
     await smallTableCopy.focus()
     await expect(smallTableCopy).toBeFocused()
@@ -943,8 +970,10 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })
     expect(tableGeometry.aboveTable, 'the toolbar must sit fully above the table').toBeLessThanOrEqual(1)
     expect(tableGeometry.nearRight, 'the toolbar\'s right edge is flush with the column edge').toBeLessThanOrEqual(1)
-    expect(tableGeometry.w).toBeGreaterThan(40)
-    expect(tableGeometry.w).toBeLessThanOrEqual(170)
+    // T-007: five buttons now (three-mode segment + copy + expand) —
+    // measured 174 px in chromium; the compact single-row pill bound.
+    expect(tableGeometry.w).toBeGreaterThan(100)
+    expect(tableGeometry.w).toBeLessThanOrEqual(200)
     expect(tableGeometry.h).toBeGreaterThan(16)
     expect(tableGeometry.h).toBeLessThanOrEqual(36)
     expect(tableGeometry.overlapsLastTh, 'the toolbar must not cover the last header cell').toBe(false)
@@ -1103,12 +1132,12 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       .waitFor({ state: 'visible', timeout: 20_000 })
 
     // Pill Edit/Copy actions remain Tab stops. Fitting tables keep Copy
-    // while skipping the unnecessary width toggle, and every hidden
+    // and their always-available mode segment, and every hidden
     // expand action (small mermaid/vega pills, the small
     // sequence/plantuml glyphs and the small table's toolbar expand) is
     // display:none and skipped. Walk: wide mermaid's pill expand →
     // flowchart standalone → vega edit → vega copy → small table copy →
-    // wide table toggle → wide table copy → wide table expand.
+    // wide table mode Auto → Fit → Full → copy → expand.
     // Without the muya keydown guard the editor's tabHandler would
     // preventDefault and trap focus on the first pill button.
     const mermaidButton = page.locator("figure[data-role='MERMAID'].ag-expand-needed div.ag-block-toolbar button.ag-block-toolbar-expand")
@@ -1149,16 +1178,30 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='VEGA-LITE'] button.ag-block-toolbar-copy"), 'Tab must reach the vega pill Copy').toBe(true)
 
-    // Skip Vega's hidden expand and the fitting table's width toggle.
-    // The useful Copy as image action remains reachable on every table.
+    // Skip Vega's hidden expand. The small table's always-available mode
+    // segment follows (T-007: Auto / Fit / Full are Tab stops on every
+    // table), then its Copy — the useful action that remains reachable on
+    // every table.
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-mode[data-table-mode='auto']"), 'Tab must reach the small table Auto mode').toBe(true)
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-mode[data-table-mode='fit']"), 'Tab must reach the small table Fit mode').toBe(true)
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-mode[data-table-mode='full']"), 'Tab must reach the small table Full width mode').toBe(true)
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-copy"), 'Tab must reach the small table copy').toBe(true)
+    // T-007: the wide table's three-mode segment follows (Auto / Fit /
+    // Full), then the need-gated copy and expand actions.
     await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-toggle"), 'Tab must reach the wide table toggle').toBe(true)
+    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-mode[data-table-mode='auto']"), 'Tab must reach the wide table Auto mode').toBe(true)
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-mode[data-table-mode='fit']"), 'Tab must reach the wide table Fit mode').toBe(true)
+    await page.keyboard.press('Tab')
+    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-mode[data-table-mode='full']"), 'Tab must reach the wide table Full width mode').toBe(true)
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-copy"), 'Tab must reach the wide table copy').toBe(true)
     await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-expand"), 'Tab must reach the wide table expand').toBe(true)
+    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-block-toolbar-expand"), 'Tab must reach the wide table expand').toBe(true)
 
     // Shift+Tab walks back through the wide table's copy.
     await page.keyboard.press('Shift+Tab')
@@ -1195,13 +1238,11 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     // The last column of the overflowing table is scrolled out of the
     // clip rect: scroll the wrapper fully right first (outside of
     // Playwright's actionability scrolling, like table-layout.spec.ts).
-    // A wide table opens in Full width (C-65 default), where the EDITOR
-    // scroller owns the horizontal scroll — scroll both.
+    // T-007: the table opens in Auto, where the WRAPPER owns the
+    // horizontal scroll (the C-65 Full-width editor scroller is gone).
     await page.evaluate(() => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
       wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
-      const scroller = document.querySelector('.editor-component') as HTMLElement | null
-      if (scroller) scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth
     })
     const widthsBefore = await page.evaluate(() => {
       const table = document.querySelector("figure[data-role='TABLE'] table") as HTMLTableElement

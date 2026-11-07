@@ -5,9 +5,20 @@
 //            CSS injection plus the inline CSS-variable mirror consumed by
 //            WKWebView-native surfaces such as the transparent title bar.
 //            Exports the themeMap registry for verification (C-41 T-002).
-//   DEPENDS: themeColor factories, config style ids, DOM style tags.
+//            C-PAGE-WIDTH-TABLES T-002: addThemeStyle ends by re-applying
+//            the resolved page width (util/pageWidth.js
+//            reapplyLastEditorWidth) — every theme stylesheet re-declares
+//            --editorAreaWidth, so the width pipeline's inline value must
+//            be re-written after theme application or a theme switch
+//            would silently reset the column (review finding F1).
+//   DEPENDS: themeColor factories, config style ids, DOM style tags;
+//            util/pageWidth.js (the width re-apply hook, no-op until the
+//            pipeline has applied a width).
 //   LINKS:   .grace/verification/runtime.xml V-M-011 scenario-4 and
-//            scenario-48 (C-41 T-002); .grace/graph/runtime.xml M-011.
+//            scenario-48 (C-41 T-002); .grace/graph/runtime.xml M-011;
+//            .grace/graph/performance.xml M-061 (C-PAGE-WIDTH-TABLES);
+//            util/pageWidth.js (the resolution pipeline this module
+//            cooperates with).
 //   STATUS:  Raw theme CSS injection preserved; `@media not print` wrapper
 //            removed to reduce WKWebView stylesheet parsing fragility.
 //   ROLE: RUNTIME
@@ -15,7 +26,14 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.1.0 - 2026-10-17 C-55: addThemeStyle derives the pele
+//   LAST_CHANGE: v2.2.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-002: theme
+//   switches re-apply the resolved page width. addThemeStyle ends with
+//   reapplyLastEditorWidth() (util/pageWidth.js): the theme's own
+//   --editorAreaWidth mirror lands mid-switch, and the width pipeline's
+//   last effective value must be re-written inline after it, so a theme
+//   change never resets the column. No-op until the pipeline has applied
+//   a width — setEditorWidth and the raw-preference path are untouched.
+//   PREV: v2.1.0 - 2026-10-17 C-55: addThemeStyle derives the pele
 //   diagram variables (buildPeleVariables from muya diagramTheme.js) from
 //   the just-applied theme and sets them on the document root right after
 //   the dark classification — pele SVGs recolor through the CSS cascade on
@@ -114,6 +132,11 @@ import {
 } from '../../../muya/lib/parser/render/diagramTheme'
 import { isLinux } from './index'
 import { syncNativeWindowTheme } from './nativeWindowTheme'
+// C-PAGE-WIDTH-TABLES T-002: the width pipeline's re-apply hook — theme
+// stylesheets re-declare --editorAreaWidth, so the resolved width must be
+// re-written inline after every theme application (no-op until the
+// pipeline has applied one).
+import { reapplyLastEditorWidth } from './pageWidth'
 
 // C-41 T-002: registered themes only — retired ids are absent by design
 // (migrated on load); the six C-41 T-003 members join with that task.
@@ -248,6 +271,13 @@ export const addThemeStyle = (theme) => {
       cm.classList.add('cm-s-default')
     }
   }
+
+  // C-PAGE-WIDTH-TABLES T-002 (finding F1): the theme CSS (and its inline
+  // mirror above) re-declared --editorAreaWidth, so the width pipeline's
+  // last effective value must be re-written inline afterwards — both
+  // switch orders (theme then width, width then theme) settle on the
+  // effective value. No-op until the pipeline has applied a width.
+  reapplyLastEditorWidth()
 }
 
 export const setWrapCodeBlocks = (value) => {

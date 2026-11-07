@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m009_menu.rs
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-009 mt-menu. Native macOS application menu + command-id
 //            taxonomy for the renderer's command palette / sidebar /
@@ -53,6 +53,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: View › Page Width submenu
+//     (spec R-13) — Compact 60 ch / Standard 80 ch / Wide 110 ch /
+//     Full window / Custom… between the zoom trio and Theme. The four
+//     presets are CheckMenuItems whose checkmarks follow the EFFECTIVE
+//     width (document entry > global setting) through the
+//     mt_menu_set_checked allow-list (now eight ids) + util/menuChecks.js;
+//     Custom… dispatches view.page-width.custom, which opens the
+//     quick-settings panel. All five rows id-dispatched, no accelerator;
+//     English labels per the m009 convention (localized copy ships as the
+//     commands.view.pageWidth* palette descriptions).
 //   - 2026-10-30 FIX-021: View › Standard View — the one-click full reset
 //                mirroring the titlebar chip menu's Standard row (owner
 //                amendment of 2026-10-27), now reachable from the native
@@ -782,6 +792,56 @@ pub fn standard_menu() -> Vec<MenuItem> {
                     accelerator: Some("CmdOrCtrl+0".to_string()),
                     items: None,
                 },
+                // C-PAGE-WIDTH-TABLES T-010 (spec R-13): View › Page Width —
+                // the width surfacing beyond the titlebar panel. Four preset
+                // rows carry the checkmarks (renderer-synced through
+                // mt_menu_set_checked, following the EFFECTIVE value —
+                // document entry > global setting); Custom… opens the
+                // panel. All five ids dispatch to the renderer commands of
+                // the same ids — id-dispatched only, no accelerator.
+                MenuItem {
+                    id: "view.page-width".to_string(),
+                    label: "Page Width".to_string(),
+                    command: None,
+                    accelerator: None,
+                    items: Some(vec![
+                        MenuItem {
+                            id: "view.page-width.compact".to_string(),
+                            label: "Compact 60 ch".to_string(),
+                            command: None,
+                            accelerator: None,
+                            items: None,
+                        },
+                        MenuItem {
+                            id: "view.page-width.standard".to_string(),
+                            label: "Standard 80 ch".to_string(),
+                            command: None,
+                            accelerator: None,
+                            items: None,
+                        },
+                        MenuItem {
+                            id: "view.page-width.wide".to_string(),
+                            label: "Wide 110 ch".to_string(),
+                            command: None,
+                            accelerator: None,
+                            items: None,
+                        },
+                        MenuItem {
+                            id: "view.page-width.full".to_string(),
+                            label: "Full window".to_string(),
+                            command: None,
+                            accelerator: None,
+                            items: None,
+                        },
+                        MenuItem {
+                            id: "view.page-width.custom".to_string(),
+                            label: "Custom…".to_string(),
+                            command: None,
+                            accelerator: None,
+                            items: None,
+                        },
+                    ]),
+                },
                 MenuItem {
                     id: "view.theme".to_string(),
                     label: "Theme".to_string(),
@@ -1179,6 +1239,41 @@ pub fn build_native_menu<R: tauri::Runtime>(
         ])
         .build()?;
 
+    // C-PAGE-WIDTH-TABLES T-010: View › Page Width — four preset
+    // CheckMenuItems (built unchecked; the renderer pushes the effective
+    // value through mt_menu_set_checked / util/menuChecks.js at boot and
+    // on every later width change) plus the plain Custom… item that opens
+    // the quick-settings panel. English labels per the m009 convention.
+    let page_width_submenu = SubmenuBuilder::new(handle, "Page Width")
+        .items(&[
+            &tauri::menu::CheckMenuItemBuilder::with_id(
+                "view.page-width.compact",
+                "Compact 60 ch",
+            )
+            .checked(false)
+            .build(handle)?,
+            &tauri::menu::CheckMenuItemBuilder::with_id(
+                "view.page-width.standard",
+                "Standard 80 ch",
+            )
+            .checked(false)
+            .build(handle)?,
+            &tauri::menu::CheckMenuItemBuilder::with_id(
+                "view.page-width.wide",
+                "Wide 110 ch",
+            )
+            .checked(false)
+            .build(handle)?,
+            &tauri::menu::CheckMenuItemBuilder::with_id(
+                "view.page-width.full",
+                "Full window",
+            )
+            .checked(false)
+            .build(handle)?,
+            &MenuItemBuilder::with_id("view.page-width.custom", "Custom…").build(handle)?,
+        ])
+        .build()?;
+
     let view_submenu = SubmenuBuilder::new(handle, "View")
         .item(
             &tauri::menu::CheckMenuItemBuilder::with_id("view.toggle-sidebar", "Toggle Sidebar")
@@ -1289,6 +1384,11 @@ pub fn build_native_menu<R: tauri::Runtime>(
                 .build(handle)?,
         )
         .separator()
+        // C-PAGE-WIDTH-TABLES T-010: the Page Width presets ride the same
+        // renderer dispatch as the zoom trio (menu-bridge → renderer
+        // commands view.page-width.*); the checkmarks follow the effective
+        // value through mt_menu_set_checked.
+        .item(&page_width_submenu)
         .item(&theme_submenu)
         .build()?;
 
@@ -1595,16 +1695,25 @@ pub async fn mt_update_line_ending_menu(
 
 // START_BLOCK_MENU_CHECK_ALLOW_LIST
 /// The only CheckMenuItem ids the renderer may re-sync through
-/// mt_menu_set_checked. All four live in the View submenu and mirror
-/// renderer state (layout store sidebar/tab bar, outlineRailVisible,
-/// statusBarVisibility preferences). The allow-list keeps the recursive
-/// walker from becoming a general-purpose remote control for arbitrary
-/// native items (the LF/CRLF pair, future check items).
+/// mt_menu_set_checked. The four original view ids live in the View
+/// submenu and mirror renderer state (layout store sidebar/tab bar,
+/// outlineRailVisible, statusBarVisibility preferences). The four
+/// C-PAGE-WIDTH-TABLES T-010 page-width preset ids (View › Page Width)
+/// mirror the effective document width — exactly one of them is checked
+/// at a time; the Custom… row is a plain item and never syncable. The
+/// allow-list keeps the recursive walker from becoming a general-purpose
+/// remote control for arbitrary native items (the LF/CRLF pair, future
+/// check items).
 const SYNCABLE_CHECK_IDS: &[&str] = &[
     "view.toggle-sidebar",
     "view.toggle-tabbar",
     "view.outline",
     "view.status-bar",
+    // C-PAGE-WIDTH-TABLES T-010: the effective-width presets.
+    "view.page-width.compact",
+    "view.page-width.standard",
+    "view.page-width.wide",
+    "view.page-width.full",
 ];
 
 fn is_syncable_check_id(id: &str) -> bool {
@@ -1796,6 +1905,10 @@ mod tests {
             // the same names — id-dispatched only.
             // FIX-021: View › Standard View dispatches its id to the
             // renderer view.standard-mode command — id-dispatched only.
+            // C-PAGE-WIDTH-TABLES T-010: the View › Page Width submenu —
+            // the four preset check rows and Custom… dispatch their ids
+            // to the renderer view.page-width.* commands (Custom… opens
+            // the quick-settings panel) — id-dispatched only.
             let id_dispatched_only = matches!(
                 item.id.as_str(),
                 "tabs.cycleForward"
@@ -1815,6 +1928,11 @@ mod tests {
                     | "file.add-folder"
                     | "file.replace-workspace"
                     | "view.standard-mode"
+                    | "view.page-width.compact"
+                    | "view.page-width.standard"
+                    | "view.page-width.wide"
+                    | "view.page-width.full"
+                    | "view.page-width.custom"
             );
             if !has_static_children && !dynamic_submenu && !id_dispatched_only {
                 assert!(
@@ -1887,6 +2005,55 @@ mod tests {
         assert!(item.command.is_none(), "view.lock-document must be id-dispatched only");
         assert!(item.accelerator.is_none(), "view.lock-document has no accelerator");
     }
+
+    // START_BLOCK_C_PAGE_WIDTH_T010_MENU_TEST
+    #[test]
+    fn view_menu_page_width_submenu_is_id_dispatched_check_rows() {
+        // C-PAGE-WIDTH-TABLES T-010 (spec R-13): View › Page Width — the
+        // four preset rows (Compact 60 ch / Standard 80 ch / Wide 110 ch /
+        // Full window) carry renderer-synced checkmarks (SYNCABLE_CHECK_IDS
+        // + util/menuChecks.js) and Custom… opens the quick-settings panel.
+        // All five are id-dispatched only, no accelerator (the zoom trio
+        // keeps its chords).
+        let menu = standard_menu();
+        let flat = flatten(&menu);
+        let submenu = flat
+            .iter()
+            .find(|i| i.id == "view.page-width")
+            .unwrap_or_else(|| panic!("menu missing view.page-width"));
+        assert_eq!(submenu.label, "Page Width");
+        assert!(submenu.command.is_none(), "the parent submenu dispatches nothing itself");
+        let children = submenu
+            .items
+            .as_ref()
+            .unwrap_or_else(|| panic!("view.page-width must be a static submenu"));
+        let expected = [
+            ("view.page-width.compact", "Compact 60 ch"),
+            ("view.page-width.standard", "Standard 80 ch"),
+            ("view.page-width.wide", "Wide 110 ch"),
+            ("view.page-width.full", "Full window"),
+            ("view.page-width.custom", "Custom…"),
+        ];
+        assert_eq!(children.len(), expected.len(), "exactly the five R-13 rows");
+        for (item, (id, label)) in children.iter().zip(expected.iter()) {
+            assert_eq!(item.id, *id, "row order and id");
+            assert_eq!(item.label, *label, "row label");
+            assert!(item.command.is_none(), "{id} must be id-dispatched only");
+            assert!(item.accelerator.is_none(), "{id} has no accelerator");
+        }
+        // The four presets (not Custom… — a plain row) are check-syncable.
+        for (id, _) in expected.iter().take(4) {
+            assert!(
+                is_syncable_check_id(id),
+                "{id} must be renderer-syncable through mt_menu_set_checked"
+            );
+        }
+        assert!(
+            !is_syncable_check_id("view.page-width.custom"),
+            "Custom… is a plain item — nothing to sync"
+        );
+    }
+    // END_BLOCK_C_PAGE_WIDTH_T010_MENU_TEST
     // END_BLOCK_C40_T004_MENU_TESTS
 
     #[test]
@@ -2331,13 +2498,20 @@ mod tests {
     // with the shipped taxonomy; the walker is kept deliberately thin
     // (START_BLOCK_FIND_CHECK_ITEM_RECURSIVE) around that policy.
     #[test]
-    fn syncable_check_ids_are_exactly_the_four_view_items() {
-        assert_eq!(SYNCABLE_CHECK_IDS.len(), 4, "the allow-list must stay closed");
+    fn syncable_check_ids_are_exactly_the_view_and_page_width_items() {
+        // C-PAGE-WIDTH-TABLES T-010: the closed allow-list is the four
+        // C-40 T-005 view toggles plus the four View › Page Width preset
+        // rows (Custom… is a plain item and stays out).
+        assert_eq!(SYNCABLE_CHECK_IDS.len(), 8, "the allow-list must stay closed");
         for id in [
             "view.toggle-sidebar",
             "view.toggle-tabbar",
             "view.outline",
             "view.status-bar",
+            "view.page-width.compact",
+            "view.page-width.standard",
+            "view.page-width.wide",
+            "view.page-width.full",
         ] {
             assert!(is_syncable_check_id(id), "{id} must be syncable");
         }
@@ -2376,16 +2550,18 @@ mod tests {
     }
 
     #[test]
-    fn view_menu_builds_all_four_syncable_ids_as_check_items() {
+    fn view_menu_builds_all_syncable_ids_as_check_items() {
         // Parity with build_native_menu: each allow-listed id must be
         // constructed as a CheckMenuItemBuilder (a plain
         // MenuItemBuilder with the same id would make set_app_menu_check
-        // silently return Ok(false) forever).
+        // silently return Ok(false) forever). Whitespace-insensitive so
+        // the builder's argument wrapping stays free.
         let source = include_str!("m009_menu.rs");
+        let compact = source.split_whitespace().collect::<Vec<_>>().join("");
         for id in SYNCABLE_CHECK_IDS {
             let pattern = format!("CheckMenuItemBuilder::with_id(\"{id}\"");
             assert!(
-                source.contains(&pattern),
+                compact.contains(&pattern),
                 "build_native_menu must build {id} via CheckMenuItemBuilder"
             );
         }

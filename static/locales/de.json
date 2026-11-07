@@ -337,7 +337,12 @@
       "toggleTabbar": "Tab-Leiste umschalten",
       "reloadImages": "Bilder neu laden",
       "notificationsHistory": "Benachrichtigungen: letzte anzeigen",
-      "standardView": "Zurück zur Standardansicht und Schreibmodi aus"
+      "standardView": "Zurück zur Standardansicht und Schreibmodi aus",
+      "pageWidthCompact": "Seitenbreite auf Kompakt 60 ch setzen",
+      "pageWidthStandard": "Seitenbreite auf Standard 80 ch setzen",
+      "pageWidthWide": "Seitenbreite auf Breit 110 ch setzen",
+      "pageWidthFull": "Seitenbreite auf Gesamtes Fenster setzen",
+      "pageWidthCustom": "Page-Reiter der Schnelleinstellungen öffnen"
     },
     "utils": {
       "noUpdateResourceFile": "Keine Update-Ressourcendatei",
@@ -533,7 +538,7 @@
         "title": "Text",
         "font": "Textschrift",
         "lineHeight": "Zeilenabstand",
-        "lineWidthHelp": "Leer lassen für volle Breite oder eine Zahl mit px, % oder ch eingeben — z. B. 720px.",
+        "lineWidthHelp": "Leer lassen für die Standardbreite des Themes, oder eine Zahl mit px, % oder ch eingeben — z. B. 720px.",
         "fontSize": "Textgröße",
         "unlimited": "Unbegrenzt",
         "lineWidth": "Breite des Schreibbereichs"
@@ -1605,9 +1610,11 @@
   },
   "tableToolbar": {
     "allColumns": "alle {total} Spalten",
+    "modeAuto": "Auto",
     "fitToPage": "Auf Seite einpassen",
     "fullWidth": "Volle Breite",
-    "columnsRange": "Spalten {start}–{end} von {total}"
+    "columnsRange": "Spalten {start}–{end} von {total}",
+    "doesNotFitBy": "Passt um {px} px nicht – Spalten-Scrolling statt versteckter Daten"
   },
   "statusBar": {
     "title": "Dokumentstatistik",
@@ -1709,5 +1716,64 @@
     "body": "Die Einstellungen kehren zum Stand vor dem Update zurück — nach dem Update gemachte Änderungen werden verworfen. Mark {current} wird übersprungen, bis ein neueres Update erscheint.",
     "confirm": "Zurücksetzen",
     "cancel": "Abbrechen"
+  },
+  "quickSettings": {
+    "title": "Schnelleinstellungen",
+    "openSettings": "Einstellungen öffnen…",
+    "tabs": {
+      "page": "Seite",
+      "view": "Ansicht",
+      "tables": "Tabellen"
+    },
+    "page": {
+      "widthGroup": "Seitenbreite",
+      "preset": "Voreinstellung",
+      "fullWindow": "Ganzes Fenster",
+      "width": "Breite",
+      "widthHelpCh": "≈ {px} px bei der aktuellen Schrift — ch skaliert mit der Schriftgröße",
+      "widthHelpPx": "feste Pixel, unabhängig von der Schrift",
+      "widthHelpPercent": "ein Anteil des Editorbereichs — folgt Fenster und Seitenleiste live",
+      "widthHelpFull": "der gesamte Editorbereich; folgt der Seitenleiste live",
+      "unit": "Einheit",
+      "unitHelp": "ch — skaliert mit der Schrift · px — fest · % — Anteil des Editorbereichs",
+      "exportNote": "PDF-Export und Druck geben dieselbe Spalte aus; Papierformat und Ränder finden Sie im Druckdialog.",
+      "sourceDocument": "aktiv: dieses Dokument",
+      "sourceGlobal": "aktiv: alle Dokumente",
+      "textGroup": "Text",
+      "fontSize": "Textgröße",
+      "fontSizeHelp": "derselbe Wert wie ⌘+ und ⌘−",
+      "lineHeight": "Zeilenabstand",
+      "lineHeightHelp": "derselbe Zeilenabstand wie in den Einstellungen · 1.2–2.0",
+      "scope": "Für alle Dokumente",
+      "scopeHelpOn": "Ein — diese Breite wird die übliche Breite für alle Dateien. Aus — nur für diese Datei.",
+      "scopeHelpOff": "Aus — die Breite wird nur für diese Datei gespeichert.",
+      "scopeHelpUntitled": "ein unbenanntes Dokument schreibt immer den globalen Standard",
+      "reset": "Zurücksetzen",
+      "usualWidth": "Übliche Breite: {width}"
+    },
+    "view": {
+      "themeGroup": "Design",
+      "mode": "Erscheinungsbild",
+      "modeHelp": "Auto — wie das System · Hell/Dunkel — die helle oder dunkle Seite der Familie",
+      "modeAuto": "Auto",
+      "modeLight": "Hell",
+      "modeDark": "Dunkel",
+      "override": "Eigenes Design für diese Datei",
+      "overrideHelpOn": "Ein — diese Datei behält ihr Design, während der globale Zyklus wechselt.",
+      "overrideHelpOff": "Aus — die Datei folgt dem globalen Design.",
+      "overrideHelpUntitled": "ein unbenanntes Dokument kann kein eigenes Design tragen",
+      "sourcePinned": "{family} — diese Datei",
+      "sourceGlobal": "{family} · alle Dokumente"
+    },
+    "tables": {
+      "group": "Tabellen",
+      "defaultMode": "Standardmodus",
+      "defaultModeHelp": "für neue Tabellen · Auto behält die Inhaltsgröße, Fix heftet den Rahmen an die Textspalte, Voll umfasst den gesamten Editorbereich",
+      "modeAuto": "Auto",
+      "modeFit": "Fix",
+      "modeFull": "Voll",
+      "rememberSizes": "Spaltengrößen merken",
+      "rememberSizesHelp": "Spaltengrößen werden pro Datei gespeichert und bei Breitenänderungen proportional neu angewendet"
+    }
   }
 }

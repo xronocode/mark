@@ -337,7 +337,12 @@
       "toggleTabbar": "切换标签栏",
       "reloadImages": "重新加载图片",
       "notificationsHistory": "通知：显示最近记录",
-      "standardView": "返回标准视图并关闭写作模式"
+      "standardView": "返回标准视图并关闭写作模式",
+      "pageWidthCompact": "页面宽度设为紧凑 60 ch",
+      "pageWidthStandard": "页面宽度设为标准 80 ch",
+      "pageWidthWide": "页面宽度设为宽 110 ch",
+      "pageWidthFull": "页面宽度设为整个窗口",
+      "pageWidthCustom": "打开快速设置的页面标签页"
     },
     "utils": {
       "noUpdateResourceFile": "没有更新资源文件",
@@ -533,7 +538,7 @@
         "title": "文本",
         "font": "正文字体",
         "lineHeight": "行间距",
-        "lineWidthHelp": "留空表示全宽，或输入带 px、% 或 ch 单位的数值——例如 720px。",
+        "lineWidthHelp": "留空表示使用主题默认宽度，或输入带 px、% 或 ch 单位的数值——例如 720px。",
         "fontSize": "正文大小",
         "unlimited": "不限",
         "lineWidth": "书写区域宽度"
@@ -1603,9 +1608,11 @@
   },
   "tableToolbar": {
     "allColumns": "全部 {total} 列",
+    "modeAuto": "自动",
     "fitToPage": "适应页面",
     "fullWidth": "全宽显示",
-    "columnsRange": "第 {start}–{end} 列，共 {total} 列"
+    "columnsRange": "第 {start}–{end} 列，共 {total} 列",
+    "doesNotFitBy": "还差 {px} 像素 — 改用列滚动，不隐藏任何数据"
   },
   "statusBar": {
     "title": "文档统计",
@@ -1704,5 +1711,64 @@
     "body": "设置将恢复到更新前的快照——更新后所做的更改会丢失。在更新的版本发布之前，将跳过 Mark {current}。",
     "confirm": "回退",
     "cancel": "取消"
+  },
+  "quickSettings": {
+    "title": "快速设置",
+    "openSettings": "打开设置…",
+    "tabs": {
+      "page": "页面",
+      "view": "视图",
+      "tables": "表格"
+    },
+    "page": {
+      "widthGroup": "页面宽度",
+      "preset": "预设",
+      "fullWindow": "整个窗口",
+      "width": "宽度",
+      "widthHelpCh": "当前字体下约 {px} px — ch 随字号缩放",
+      "widthHelpPx": "固定像素，与字体无关",
+      "widthHelpPercent": "编辑区域的百分比 — 实时跟随窗口与侧栏",
+      "widthHelpFull": "整个编辑区域；实时跟随侧栏",
+      "unit": "单位",
+      "unitHelp": "ch — 随字体缩放 · px — 固定 · % — 编辑区域的百分比",
+      "exportNote": "导出 PDF 与打印使用同一栏；纸张大小和页边距在打印对话框中设置。",
+      "sourceDocument": "生效范围：本文档",
+      "sourceGlobal": "生效范围：所有文档",
+      "textGroup": "文本",
+      "fontSize": "正文大小",
+      "fontSizeHelp": "与 ⌘+ 和 ⌘− 相同的值",
+      "lineHeight": "行间距",
+      "lineHeightHelp": "与设置中的行间距相同 · 1.2–2.0",
+      "scope": "应用于所有文档",
+      "scopeHelpOn": "开 — 此宽度将成为所有文件的常用宽度。关 — 仅用于此文件。",
+      "scopeHelpOff": "关 — 宽度仅保存在此文件。",
+      "scopeHelpUntitled": "未命名文档始终写入全局默认值",
+      "reset": "重置",
+      "usualWidth": "常用宽度：{width}"
+    },
+    "view": {
+      "themeGroup": "主题",
+      "mode": "外观",
+      "modeHelp": "自动 — 跟随系统 · 浅色/深色 — 主题家族的浅色或深色一面",
+      "modeAuto": "自动",
+      "modeLight": "浅色",
+      "modeDark": "深色",
+      "override": "此文件使用独立主题",
+      "overrideHelpOn": "开 — 全局切换变化时，此文件保持自己的主题。",
+      "overrideHelpOff": "关 — 文件跟随全局主题。",
+      "overrideHelpUntitled": "未命名文档不能携带独立主题",
+      "sourcePinned": "{family} — 此文件",
+      "sourceGlobal": "{family} · 所有文档"
+    },
+    "tables": {
+      "group": "表格",
+      "defaultMode": "默认模式",
+      "defaultModeHelp": "用于新表格 · 自动保持内容尺寸，适应将边框收进正文栏，整个占满编辑区域",
+      "modeAuto": "自动",
+      "modeFit": "适应",
+      "modeFull": "整个",
+      "rememberSizes": "记住列尺寸",
+      "rememberSizesHelp": "列尺寸按文件保存，宽度变化时按比例重新应用"
+    }
   }
 }
