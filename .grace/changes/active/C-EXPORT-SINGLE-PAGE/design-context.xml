@@ -1,0 +1,23 @@
+<GraceChangeDesignContext graceVersion="4.0">
+  <Change>C-EXPORT-SINGLE-PAGE</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    <Section name="point">Design review 2026-11-07 (owner + agent). The tabbed dialog asks the user to pay a click for access to every group while three of six tabs hold 0-2 controls, and the content area still scrolls — navigation cost exceeds scanning cost for a ~12-control form. Tabs also encode a wrong information architecture: "Style" mixes typography with content transformations, "Theme" isolates one select, "TOC" isolates two fields, "Info" is filler.</Section>
+    <Section name="point">The chosen direction is the owner's pick between two offered stages: stage 1 (single-page sections, this change) and stage 2 (live page preview, deferred). Stage 1 is a re-layout of one component with payload-compatible behavior; stage 2 would need a render-preview pipeline and its own spec.</Section>
+    <Section name="point">Section order mirrors the document mental model — page box first, then how it looks, then what extra content goes in, then running head/foot — instead of the current historical order.</Section>
+    <Section name="point">Header/footer strips: the none/single-cell/three-cells select model forces the user to translate a UI metaphor into slots. Direct slot editing (type where you want text, leave empty what you do not want) removes two selects and six conditional fields and needs no explanation. The type integer stays an internal encoding derived from slot contents, so the export pipeline is untouched.</Section>
+    <Section name="point">Margin presets follow the Word/Google Docs convention (Narrow/Normal/Wide/Custom) because most users want a named intent, not four bare millimetres; the four inputs remain for the minority case and preserve exact current values.</Section>
+    <Section name="point">Hydration fixes a real state disagreement, not just cosmetics: ⌘P and Export-to-Word render from mark-last-print-options while the dialog form always showed hardcoded defaults, so the visible form could lie about what the next export would use. A Reset button restores the factory baseline that previously did not exist.</Section>
+  </Rationale>
+  <Alternatives>
+    <Rejected>Keep tabs but rebalance their contents — still pays navigation for a small form and keeps the tangled grouping.</Rejected>
+    <Rejected>Live preview now (stage 2) — highest product value but needs a debounced render pipeline; owner chose to defer.</Rejected>
+    <Rejected>Collapse the dialog into a modeless panel or export immediately with remembered settings (the DOCX precedent) — a bigger interaction change than the owner asked for; the dialog stays modal and explicit.</Rejected>
+    <Rejected>Margin-presets as persisted named profiles — out of scale for 12 controls; revisit on user demand.</Rejected>
+  </Alternatives>
+  <Scenarios>
+    <Scenario>Recurring PDF export: open dialog → the last-used theme/margins/TOC are already shown → adjust one thing → Export. One surface, no tab hunting, no re-entering lost settings.</Scenario>
+    <Scenario>First-time styled HTML export: the dialog is short (page title + Style + Content), no PDF-only noise.</Scenario>
+    <Scenario>Header/footer: click the center slot of the top strip, type the document title, export — payload identical to the old "single cell" path; a left page number plus right date exercises the "three cells" encoding without ever seeing the words.</Scenario>
+  </Scenarios>
+</GraceChangeDesignContext>

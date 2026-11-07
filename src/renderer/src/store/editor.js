@@ -86,6 +86,18 @@ const loadLastPrintOptions = () => {
 // Module-scoped so Pinia never proxies it (same convention as
 // autoSaveTimers / _bootPhase above).
 let _lastPrintOptions = loadLastPrintOptions()
+
+// C-EXPORT-SINGLE-PAGE R-5: read-only view of the remembered appearance
+// options for the export settings dialog (defaults on first use). The
+// dialog hydrates its form from this on open; page geometry and
+// htmlTitle are per-flow and never part of the remembered shape.
+// Optional keys (header/footer, font overrides, headerFooter style
+// keys) are present only when the last export carried them — the dialog
+// infers its toggles from that presence.
+export const getRememberedExportAppearance = () => ({
+  ...DEFAULT_PRINT_OPTIONS(),
+  ...(_lastPrintOptions || {})
+})
 // END_BLOCK_LAST_PRINT_OPTIONS
 
 let _bootPhase = true
