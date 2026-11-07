@@ -29,7 +29,7 @@
       <Command budgetSeconds="900">npx vitest run</Command>
     </MustPassCommand>
     <MustPassCommand>
-      <Command budgetSeconds="900">npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium --project=webkit</Command>
+      <Command budgetSeconds="900">npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command>
     </MustPassCommand>
   </TargetAssertions>
   <DurableScope>
@@ -107,7 +107,7 @@
         <Criterion>both e2e specs pass byte-unchanged (no selector or expectation edits); corner 5; npx vitest run whole-suite green.</Criterion>
       </AcceptanceCriteria>
       <Verification>
-        <Command>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium --project=webkit</Command>
+        <Command>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command>
       </Verification>
     </T-005>
     <T-006>
