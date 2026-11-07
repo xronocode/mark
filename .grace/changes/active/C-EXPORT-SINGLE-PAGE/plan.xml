@@ -69,7 +69,12 @@
       <Verification>
         <Command>npx vitest run tests/renderer/components/exportSettings tests/renderer/store/editor.test.ts</Command>
       </Verification>
-    </T-001>
+      <Evidence>
+        <Note>
+          Delivered: store/editor.js getRememberedExportAppearance (defaults merge, map entry added), exportOptions MARGIN_PRESETS/matchMarginPreset/deriveHeaderFooterType; helper pins merged into the existing tests/renderer/components/exportOptions.test.js (nested duplicate file removed same day). Command green: 121 tests across options+editor suites.
+        </Note>
+      </Evidence>
+</T-001>
     <T-002>
       <Title>Dialog rewrite, part 1: single-page layout — sections (Page pdf-only / Style incl. theme / Content / Header &amp; Footer pdf-only), subtitle Info line, styledHtml flavor, hydration on open, Reset button; component unit tests</Title>
       <DependsOn>T-001</DependsOn>
@@ -79,7 +84,12 @@
       <Verification>
         <Command>npx vitest run tests/renderer/components/exportSettings</Command>
       </Verification>
-    </T-002>
+      <Evidence>
+        <Note>
+          Delivered in index.vue v2.0.0 with file-local MODULE_CONTRACT: no el-tabs node, sections Page/Style/Content/Header&amp;Footer in order, subtitle Info line, styledHtml flavor (page-title field, no PDF sections), hydration with toggle inference + theme null mapping, Reset in-form (storage untouched). 24 new-behaviour tests in exportSettings-fn.test.js v2.0.0.
+        </Note>
+      </Evidence>
+</T-002>
     <T-003>
       <Title>Dialog rewrite, part 2: margin preset select in front of the four inputs (Custom reveals them, values preserved) and headerFooterStrip.vue slot strips replacing the two type selects + six conditional text boxes; payload via deriveHeaderFooterType</Title>
       <DependsOn>T-001, T-002</DependsOn>
@@ -89,7 +99,12 @@
       <Verification>
         <Command>npx vitest run tests/renderer/components/exportSettings</Command>
       </Verification>
-    </T-003>
+      <Evidence>
+        <Note>
+          Delivered: marginPresetChoice/customMarginsStash select (Custom restores pre-detour values — corner-3 pinned), headerFooterStrip.vue (3 focusable slots, tab order L→C→R) with deriveHeaderFooterType payload (centre-only→1, any side→2, empty→omitted, three-cells-empty-sides normalizes to 1 — pinned).
+        </Note>
+      </Evidence>
+</T-003>
     <T-004>
       <Title>Locales: ten files — new keys (section headers, margin presets incl. Custom, Reset, slot placeholders) added, dead tab-label keys removed; line surgery per file</Title>
       <DependsOn>T-002, T-003</DependsOn>
@@ -99,7 +114,12 @@
       <Verification>
         <Command>npx vitest run tests/renderer/i18n/locale-keys.test.js</Command>
       </Verification>
-    </T-004>
+      <Evidence>
+        <Note>
+          All ten locales edited via byte-identical roundtrip guard (no reformat): +content.label, +pageMarginPreset, +options.marginPresets.*, +reset, +headerText/footerText/leftSlot/centerSlot/rightSlot; dead keys removed (info/theme/toc labels+descriptions, headerFooter type selects + 6 field labels, pageMargin). locale-keys parity 4/4 green, key count 55.
+        </Note>
+      </Evidence>
+</T-004>
     <T-005>
       <Title>Regression proof: e2e print-export + export-office specs unchanged and green on chromium and webkit; full unit suite green</Title>
       <DependsOn>T-002, T-003, T-004</DependsOn>
@@ -109,7 +129,12 @@
       <Verification>
         <Command>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command>
       </Verification>
-    </T-005>
+      <Evidence>
+        <Note>
+          Dialog suites: exportSettings-fn 24 + exportSettings-deep 20 (rewritten: tab tests removed, strip-text assertions) + exportOptions 17 + editor accessor — all green. e2e chromium: print-export + export-office 6/6 BYTE-UNCHANGED (plan command corrected: no plain webkit lane exists for these specs; repo canon is chromium e2e). Full npx vitest run: 5116 passed, 1 failed = table-layout-store.test.js expects EMPTY_STORE version 1 while a PARALLEL SESSION has an uncommitted version-2 bump in src/renderer/src/util/tableLayoutStore.js (foreign in-flight work, untouched by this change) — the only red in the final gate.
+        </Note>
+      </Evidence>
+</T-005>
     <T-006>
       <Title>Graph and verification: register M-072 ExportSettingsDialog in .grace/graph/features.xml and V-M-072 in .grace/verification/features.xml pointing at the new unit suite; MODULE_CONTRACT header block in index.vue; final grace gates</Title>
       <DependsOn>T-005</DependsOn>
@@ -119,7 +144,12 @@
       <Verification>
         <Command>grace lint --path . --change C-EXPORT-SINGLE-PAGE --assertions target</Command>
       </Verification>
-    </T-006>
+      <Evidence>
+        <Note>
+          M-072 ExportSettingsDialog + V-M-072 registered (features.xml entries, index anchors); index.vue carries MODULE_CONTRACT/MAP/CHANGE_SUMMARY from T-002; store/editor.js map updated for the new export. Target lint clean for the bundle; final gate green except the foreign vitest failure above.
+        </Note>
+      </Evidence>
+</T-006>
   </ImplementationPlan>
   <ReviewLog>
     <Pass-1>
