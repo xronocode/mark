@@ -122,6 +122,8 @@
         <V-M-068/>
         <!-- C-UPDATER-STATS: V-M-071 owns the gateway verification. -->
         <V-M-071/>
+        <!-- C-EXPORT-SINGLE-PAGE: V-M-072 owns the dialog verification. -->
+        <V-M-072/>
       </Owns>
     </VD-FEATURES>
   </VerificationDocuments>

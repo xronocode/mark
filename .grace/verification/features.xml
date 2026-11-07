@@ -2779,5 +2779,16 @@
       <Markers><Marker>[StatsGateway][feed][BLOCK_STATS_FEED]</Marker><Marker>[StatsGateway][pkg][BLOCK_STATS_PKG]</Marker></Markers>
       <TraceAssertions><TraceAssertion>The worker's own log lines carry only route, tables and versions — no IPs, no identifiers, nothing reflected from input.</TraceAssertion></TraceAssertions>
     </V-M-071>
+    <V-M-072>
+      <Priority>medium</Priority><Commands><Command>npx vitest run tests/renderer/components/exportSettings-fn.test.js tests/renderer/components/exportSettings-deep.test.js tests/renderer/components/exportOptions.test.js tests/renderer/store/editor.test.ts</Command><Command>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command></Commands>
+      <Scenarios>
+        <Scenario>Single page (T-002): the mounted dialog renders no el-tabs/el-tab node; the four section headers appear in Page→Style→Content→Header&amp;Footer order for pdf; the styledHtml flavor shows the page-title field and no PDF-only sections; the Info sentence renders as the subtitle line.</Scenario>
+        <Scenario>Hydration and Reset (T-002/R-5/R-6, corners 1/6/8): a remembered fixture fills every appearance field with toggle inference and theme null→'default'; empty or legacy-shaped storage falls back to defaults; geometry and htmlTitle reset per open; Reset restores factory values in-form while mark-last-print-options stays byte-unchanged.</Scenario>
+        <Scenario>Presets and strips (T-003/R-3/R-4, corners 2/3): factory margins derive 'normal'; any deviation derives 'custom'; picking a preset applies its values and Custom restores the pre-detour stash; slot patches address exactly one text; centre-only emits header type 1, any side emits type 2 with verbatim strings, all-empty omits the keys; a remembered three-cells shape with empty sides re-exports as single-cell.</Scenario>
+        <Scenario>Regression (T-005, corner 5): the C-61 print-export spec and the C-NATIVE-DOCX-RTF-EXPORT export-office spec pass byte-unchanged — the pdf flow dialog→save→mt_export_pdf never touches the print panel, Word export never mounts the dialog; the locale key-parity suite stays green across the ten locales after the key churn (T-004, corner 7).</Scenario>
+      </Scenarios>
+      <Markers></Markers>
+      <TraceAssertions><TraceAssertion>The dialog emits only the bus 'export' payload — no direct invoke, no fs access; slot text passes through verbatim into header/footer strings, trimmed never.</TraceAssertion></TraceAssertions>
+    </V-M-072>
   </VD-FEATURES>
 </GraceVerificationDocument>
