@@ -140,7 +140,8 @@
       "lines": "行数",
       "edited": "编辑于 {time}",
       "reading": "阅读",
-      "characters": "字符"
+      "characters": "字符",
+      "exportWord": "导出为 Word"
     },
     "documentInfo": "文稿信息",
     "themeMode": {

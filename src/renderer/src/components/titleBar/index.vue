@@ -182,6 +182,34 @@
             <b>{{ readingLabel }}</b><span>{{ t('titleBar.popover.reading') }}</span>
           </div>
         </div>
+        <!-- C-DOC-POPOVER-EXPORT-HUB R-2: quick-export row — the same
+             commands as File › Export; PDF/HTML open the single-page
+             settings dialog, Word saves directly (pathname-gated like
+             the tab-menu export group). -->
+        <div class="doc-info-actions doc-info-export">
+          <button
+            type="button"
+            class="doc-info-action"
+            @click.stop="handleExportPdfClick"
+          >
+            {{ t('menu.file.exportPdf') }}
+          </button>
+          <button
+            v-if="pathname"
+            type="button"
+            class="doc-info-action"
+            @click.stop="handleExportWordClick"
+          >
+            {{ t('titleBar.popover.exportWord') }}
+          </button>
+          <button
+            type="button"
+            class="doc-info-action"
+            @click.stop="handleExportHtmlClick"
+          >
+            {{ t('menu.file.exportHtml') }}
+          </button>
+        </div>
         <div class="doc-info-actions">
           <button
             type="button"
@@ -214,9 +242,9 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover, native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it).
+//   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover (C-DOC-POPOVER-EXPORT-HUB: HIG-tightened, quick-export row PDF/Word/HTML on the File-menu commands), native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it).
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks.
 //   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, util/docStats, components/icons/chromeIcons.
 //   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons), M-062 (mode chips); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT.
@@ -244,12 +272,17 @@
 //   statWords/statCharacters/statLines/readingLabel - Popover statistics; lines and reading minutes via the shared util/docStats (words/230 rounded up, min 1; C-40 T-002, shared since C-40 T-004).
 //   docInfoMeta - "folder · size · edited <relative>" meta line; untitled documents render none (C-40 T-002).
 //   handleRenameClick - Popover Rename… → editorStore.RESPONSE_FOR_RENAME (the old click-to-rename path).
+//   handleExportPdfClick/handleExportHtmlClick - popover quick-export → bus showExportDialog (File › Export commands verbatim).
+//   handleExportWordClick - popover Word export → editorStore.EXPORT_DOCX_DOCUMENT, pathname-gated like the tab-menu group.
 //   handleRevealClick - Popover reveal → window.electron.shell.showItemInFolder.
 //   handleCopyPathClick - Popover Copy path → native clipboard plugin write (WKWebView-safe).
 //   onDocMouseDown/onDocKeydown - Outside-click (window capture phase, ahead of Tauri drag.js) and Escape closers for the popover.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-07 v2.4.0 - C-DOC-POPOVER-EXPORT-HUB: HIG proportions
+//     pass + quick-export row (PDF/Word/HTML) wired to the existing
+//     export commands.
 //   - 2026-10-27 v2.3.0 C-TITLEBAR-MODE-CHIPS T-004: the mode-chips
 //     cluster mounts first in the right cluster (left of the theme button
 //     on macOS, before the caption cluster on Win/Linux); it emits the
@@ -563,6 +596,25 @@ const handleRevealClick = () => {
   closePopover()
   window.electron.shell.showItemInFolder(props.pathname)
   console.debug('[TitleBar][handleRevealClick][BLOCK_REVEAL_IN_FOLDER] revealed=true')
+}
+
+// C-DOC-POPOVER-EXPORT-HUB R-3: pure command reuse — the File › Export
+// entries verbatim; C-EXPORT-SETTINGS-SECTION later flips the commands
+// themselves to one-click without touching this popover again.
+const handleExportPdfClick = () => {
+  closePopover()
+  bus.emit('showExportDialog', 'pdf')
+}
+
+const handleExportWordClick = () => {
+  if (!props.pathname) return
+  closePopover()
+  editorStore.EXPORT_DOCX_DOCUMENT()
+}
+
+const handleExportHtmlClick = () => {
+  closePopover()
+  bus.emit('showExportDialog', 'styledHtml')
 }
 
 const handleCopyPathClick = async () => {
@@ -978,7 +1030,8 @@ img {
   -webkit-app-region: no-drag;
 }
 
-/* C-40 T-002: document info popover (canvas pop/stat/popBtn metrics). */
+/* C-40 T-002: document info popover; C-DOC-POPOVER-EXPORT-HUB T-001
+   tightened the rhythm to menu-scale HIG proportions. */
 .doc-info-popover {
   position: absolute;
   top: calc(100% + 6px);
@@ -987,7 +1040,7 @@ img {
   width: 420px;
   max-width: calc(100vw - 32px);
   box-sizing: border-box;
-  padding: 16px;
+  padding: 12px;
   border-radius: 12px;
   background: var(--floatBgColor, #ffffff);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22),
@@ -1016,14 +1069,14 @@ img {
 .doc-info-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin: 14px 0;
+  gap: 6px;
+  margin: 10px 0;
 }
 .doc-info-stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
+  gap: 1px;
+  padding: 4px 8px;
   border-radius: 8px;
   background: var(--floatHoverColor, rgba(0, 0, 0, 0.04));
   font-size: 11px;
@@ -1031,7 +1084,7 @@ img {
   min-width: 0;
 }
 .doc-info-stat b {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--editorColor);
   font-variant-numeric: tabular-nums;
@@ -1045,6 +1098,9 @@ img {
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
+}
+.doc-info-export {
+  margin-bottom: 8px;
 }
 .doc-info-action {
   min-width: 0;

@@ -1,0 +1,47 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-DOC-POPOVER-EXPORT-HUB>
+  <Name>Titlebar document popover as the file hub: HIG proportions pass plus a one-row quick-export group (PDF / Word / HTML) wired to the existing export commands</Name>
+  <Created>2026-11-07</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>next</RoadmapPhase>
+  <Complexity>S</Complexity>
+  <Summary>Owner review 2026-11-07: the document info popover opened by clicking the file name in the title bar (C-40 T-002) feels large and unusable — it mixes a stats card with file actions and offers no export entry. This change gives it an Apple-HIG proportions pass (the same medicine the backlog records for the recently-closed popover) and adds a quick-export row: PDF, Word, HTML. The buttons invoke the existing export commands unchanged — PDF/HTML open the single-page settings dialog (C-EXPORT-SINGLE-PAGE), Word exports directly — so the later "Export without the settings modal" change (C-EXPORT-SETTINGS-SECTION) turns the same buttons into true one-click exports without touching the popover again. No new export behavior ships in this change.</Summary>
+  <Problem><Description>The popover renders name, a meta line, four stat tiles and up to three text buttons with generous paddings; on a typical document it is taller than a macOS menu and reads as a wall of mixed-purpose blocks. Export — the most frequent file-level intent after rename — is absent, so the file's hub misses its main action.</Description></Problem>
+  <Goals>
+    <R-1>HIG proportions pass over the popover shell: compact vertical rhythm (header + one-line meta + stats + actions within roughly the height of a standard macOS menu), consistent 12-13px type, tightened paddings; untitled documents keep the reduced layout (stats + Rename only).</R-1>
+    <R-2>Quick-export row: one row of three buttons — PDF, Word, HTML — placed as the primary action group under the stats; labels reuse the File › Export item names; Word is hidden exactly where the tab-menu export group is hidden today (no pathname); PDF and HTML follow their current gating.</R-2>
+    <R-3>Wiring is command reuse only: PDF → showExportDialog('pdf'), HTML → showExportDialog('styledHtml'), Word → editorStore.EXPORT_DOCX_DOCUMENT — identical to the File-menu items; the popover closes on click like every other popover action; no payload, pipeline or settings changes.</R-3>
+    <R-4>Tests and locales: titlebar unit suite covers the new row (labels, gating, dispatch, popover close); e2e print/export specs stay green unchanged; ten locales reuse existing export label keys where possible and gain at most one popover-section key.</R-4>
+  </Goals>
+  <Constraints>
+    <Item>No new IPC, capabilities or export behavior; the popover stays pure renderer UI inside components/titleBar.</Item>
+    <Item>The design must survive C-EXPORT-SETTINGS-SECTION unchanged visually: buttons keep their identity when the commands beneath flip to one-click export.</Item>
+    <Item>Popover a11y contract (role=dialog, aria-label) and the existing stats/meta behavior are preserved.</Item>
+    <Item>Baseline grace lint current = 0 before editing; final assertions with commands.</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>One-click (modal-less) PDF/HTML export — that is C-EXPORT-SETTINGS-SECTION; this change only mounts the buttons.</Item>
+    <Item>Moving settings into the popover, print entry, share-sheet changes, or restyling the recently-closed (↺) popover — separate backlog item.</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>src/renderer/src/components/titleBar/index.vue (popover template/styles, export row, close-on-action)</Item>
+    <Item>static/locales/*.json (ten locales, at most one new key; reuse File › Export labels)</Item>
+    <Item>tests/renderer/components/ (titlebar suite extension), tests/e2e/print-export.spec.ts + export-office.spec.ts (regression, unchanged)</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-4 done; titlebar unit suite green; the two export e2e specs green unchanged; full vitest run green; grace lint 0 at close.</Criterion>
+    <Criterion>Live check on macOS (owner): clicking the file name opens a visibly tighter popover; the export row shows three buttons; PDF opens the single-page settings dialog, HTML likewise, Word saves directly; on an untitled document only Rename remains as today.</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>npx vitest run tests/renderer/components</ExpectedCommand>
+    <ExpectedCommand>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --change C-DOC-POPOVER-EXPORT-HUB --assertions final --run-commands</ExpectedCommand>
+    <ExpectedEvidence>Unit: export-row rendering, gating and dispatch assertions plus popover-close; e2e: the C-61/C-NATIVE-DOCX-RTF-EXPORT invoke-order traces unchanged; owner visual smoke of the tightened popover.</ExpectedEvidence>
+  </VerificationIntent>
+  <Assumptions>
+    <Assumption>The popover stays the C-40 component inside titleBar/index.vue (no extraction needed at this size); extraction remains an option for the plan if the template grows past the stats+actions+export shape.</Assumption>
+    <Assumption>File › Export label keys in the ten locales are suitable for the row (short enough); if a locale overflows, one shared popover key is added instead.</Assumption>
+  </Assumptions>
+</C-DOC-POPOVER-EXPORT-HUB>
+</GraceChangeSpec>

@@ -140,7 +140,8 @@
       "lines": "줄",
       "edited": "편집됨 {time}",
       "reading": "읽기 시간",
-      "characters": "문자"
+      "characters": "문자",
+      "exportWord": "Word로 내보내기"
     },
     "documentInfo": "문서 정보",
     "themeMode": {

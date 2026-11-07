@@ -140,7 +140,8 @@
       "lines": "行",
       "edited": "最終編集: {time}",
       "reading": "読了時間",
-      "characters": "文字"
+      "characters": "文字",
+      "exportWord": "Word に書き出す"
     },
     "documentInfo": "書類の情報",
     "themeMode": {

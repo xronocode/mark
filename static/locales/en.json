@@ -141,7 +141,8 @@
       "lines": "lines",
       "edited": "edited {time}",
       "reading": "reading",
-      "characters": "characters"
+      "characters": "characters",
+      "exportWord": "Export to Word"
     },
     "documentInfo": "Document info",
     "themeMode": {

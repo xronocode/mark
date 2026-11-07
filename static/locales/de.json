@@ -140,7 +140,8 @@
       "lines": "Zeilen",
       "edited": "bearbeitet {time}",
       "reading": "Lesezeit",
-      "characters": "Zeichen"
+      "characters": "Zeichen",
+      "exportWord": "Nach Word exportieren"
     },
     "documentInfo": "Dokumentinfo",
     "themeMode": {

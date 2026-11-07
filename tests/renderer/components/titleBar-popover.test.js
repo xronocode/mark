@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-popover.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the C-40 T-002 title-bar trim and document info popover — exact Linux button set, «?» guide entry, popover contents (name, ~-folder, size, edited-relative, stats), actions (Rename / reveal / copy path), untitled gating, and Esc/outside-click close.
 //   SCOPE: Vue/jsdom component tests with mocked platform (linux), bus, clipboard plugin, and the setup.ts window.fileUtils/window.electron doubles.
@@ -19,6 +19,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-07 v1.2.0 C-DOC-POPOVER-EXPORT-HUB: quick-export row pins
+//     (PDF/HTML dialog commands, Word store action, untitled gating) and
+//     the Rename press now finds its button by label.
+
 //   - 2026-10-21 v2.x C-WINDOWS-TITLEBAR-ALIGNMENT: cluster selector
 //     updates for the amendment-5 bar (no «?»; Linux svg caption
 //     fallback assertions).
@@ -68,7 +72,11 @@ const i18n = createI18n({
   locale: 'en',
   messages: {
     en: {
-      menu: { view: { toggleSidebar: 'Toggle Sidebar' }, counter: { words: 'Words' } },
+      menu: {
+        view: { toggleSidebar: 'Toggle Sidebar' },
+        counter: { words: 'Words' },
+        file: { exportPdf: 'Export as PDF', exportHtml: 'Export as HTML' }
+      },
       sideBar: { icons: { files: 'Files', toc: 'TOC', settings: 'Settings' } },
       titleBar: {
         share: 'Share',
@@ -82,7 +90,8 @@ const i18n = createI18n({
           reading: 'reading',
           minutes: '{count} min',
           rename: 'Rename…',
-          edited: 'edited {time}'
+          edited: 'edited {time}',
+          exportWord: 'Export to Word'
         }
       },
       recent: {
@@ -269,9 +278,13 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       const wrapper = mountBar({ filename: 'Untitled-1', pathname: '', markdown: '' })
       await openPopover(wrapper)
       expect(wrapper.find('.doc-info-meta').exists()).toBe(false)
+      // C-DOC-POPOVER-EXPORT-HUB: PDF/HTML stay available (their
+      // File-menu gating is none); Word hides without a pathname.
+      const exports = wrapper.findAll('.doc-info-export .doc-info-action')
+      expect(exports.map((a) => a.text())).toEqual(['Export as PDF', 'Export as HTML'])
       const actions = wrapper.findAll('.doc-info-action')
-      expect(actions.length).toBe(1)
-      expect(actions[0].text()).toBe('Rename…')
+      expect(actions.length).toBe(3)
+      expect(actions[2].text()).toBe('Rename…')
       // No stat call for a pathname-less tab.
       expect(window.fileUtils.stat).not.toHaveBeenCalled()
     })
@@ -288,7 +301,8 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       const editorStore = useEditorStore()
       editorStore.RESPONSE_FOR_RENAME = vi.fn()
       await openPopover(wrapper)
-      await wrapper.findAll('.doc-info-action')[0].trigger('click')
+      const rename = wrapper.findAll('.doc-info-action').find((a) => a.text() === 'Rename…')
+      await rename.trigger('click')
       expect(editorStore.RESPONSE_FOR_RENAME).toHaveBeenCalled()
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
     })
@@ -300,6 +314,38 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       expect(reveal).toBeTruthy()
       await reveal.trigger('click')
       expect(window.electron.shell.showItemInFolder).toHaveBeenCalledWith('/tmp/home/<fixture>/Notes/notes.md')
+      expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
+    })
+
+    it('quick-export PDF and HTML open the settings dialog and close the popover (C-DOC-POPOVER-EXPORT-HUB)', async () => {
+      const wrapper = mountBar()
+      const bus = (await import('@/bus')).default
+      bus.emit.mockClear()
+      await openPopover(wrapper)
+      const pdf = wrapper.findAll('.doc-info-action').find((a) => a.text() === 'Export as PDF')
+      expect(pdf).toBeTruthy()
+      await pdf.trigger('click')
+      expect(bus.emit).toHaveBeenCalledWith('showExportDialog', 'pdf')
+      expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
+
+      await openPopover(wrapper)
+      const html = wrapper.findAll('.doc-info-action').find((a) => a.text() === 'Export as HTML')
+      expect(html).toBeTruthy()
+      await html.trigger('click')
+      expect(bus.emit).toHaveBeenCalledWith('showExportDialog', 'styledHtml')
+      expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
+    })
+
+    it('quick-export Word rides EXPORT_DOCX_DOCUMENT and closes the popover', async () => {
+      const wrapper = mountBar()
+      const { useEditorStore } = await import('@/store/editor')
+      const editorStore = useEditorStore()
+      editorStore.EXPORT_DOCX_DOCUMENT = vi.fn()
+      await openPopover(wrapper)
+      const word = wrapper.findAll('.doc-info-action').find((a) => a.text() === 'Export to Word')
+      expect(word).toBeTruthy()
+      await word.trigger('click')
+      expect(editorStore.EXPORT_DOCX_DOCUMENT).toHaveBeenCalled()
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
     })
 

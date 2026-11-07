@@ -140,7 +140,8 @@
       "lines": "lignes",
       "edited": "modifié {time}",
       "reading": "lecture",
-      "characters": "caractères"
+      "characters": "caractères",
+      "exportWord": "Exporter vers Word"
     },
     "documentInfo": "Infos du document",
     "themeMode": {

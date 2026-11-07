@@ -142,7 +142,8 @@
       "lines": "строк",
       "edited": "изменено {time}",
       "reading": "чтение",
-      "characters": "знаков"
+      "characters": "знаков",
+      "exportWord": "Экспорт в Word"
     },
     "documentInfo": "Сведения о документе",
     "themeMode": {

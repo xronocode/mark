@@ -140,7 +140,8 @@
       "lines": "行數",
       "edited": "編輯於 {time}",
       "reading": "閱讀",
-      "characters": "字元"
+      "characters": "字元",
+      "exportWord": "匯出為 Word"
     },
     "documentInfo": "文件資訊",
     "themeMode": {
