@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-DOC-POPOVER-EXPORT-HUB>
   <Name>Titlebar document popover as the file hub: HIG proportions pass plus a one-row quick-export group (PDF / Word / HTML) wired to the existing export commands</Name>
   <Created>2026-11-07</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>applied</Status>
   <RoadmapPhase>next</RoadmapPhase>
   <Complexity>S</Complexity>
   <Summary>Owner review 2026-11-07: the document info popover opened by clicking the file name in the title bar (C-40 T-002) feels large and unusable — it mixes a stats card with file actions and offers no export entry. This change gives it an Apple-HIG proportions pass (the same medicine the backlog records for the recently-closed popover) and adds a quick-export row: PDF, Word, HTML. The buttons invoke the existing export commands unchanged — PDF/HTML open the single-page settings dialog (C-EXPORT-SINGLE-PAGE), Word exports directly — so the later "Export without the settings modal" change (C-EXPORT-SETTINGS-SECTION) turns the same buttons into true one-click exports without touching the popover again. No new export behavior ships in this change.</Summary>

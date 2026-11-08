@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved by owner instruction 2026-11-07 ("го, с 2 чистыми проходами") over the owner-approved spec; Pass-1 findings applied, Pass-2 and Pass-3 clean. -->
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved by owner instruction 2026-11-07 ("го, с 2 чистыми проходами") over the owner-approved spec; Pass-1 findings applied, Pass-2 and Pass-3 clean. -->
 <C-EXPORT-SINGLE-PAGE>
   <ChangeRef>C-EXPORT-SINGLE-PAGE</ChangeRef>
   <Created>2026-11-07</Created>

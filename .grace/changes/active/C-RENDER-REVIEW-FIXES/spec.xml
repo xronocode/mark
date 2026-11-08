@@ -1,0 +1,40 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-RENDER-REVIEW-FIXES>
+    <Summary>Four renderer-surface defects from the 2026-11-02 smart review of the 2.9.x-next train (findings 11-14), deferred from C-UPDATER-REVIEW-FIXES by the owner's explicit scope choice, plus the localization debts that change recorded before archiving (its new English user-visible strings and the silent GUI post-swap preferences skip). One change because all four live in the notification and rollback-feedback surfaces, share the ten-locale rule, and are verified by the same renderer suites.</Summary>
+    <Problem>(11) The notification card fires action payloads without awaiting: notificationCard/index.vue:158 calls the payload/handler fire-and-forget, and the Reveal action's showItemInFolder (store/editor.js:2241, with a second identical reveal-payload call site at 2371) returns the Tauri opener promise whose rejection stays unhandled — a failed Reveal gives the user no feedback at all and logs an unhandled rejection. (12) The rollback confirmation can swallow failures: rollbackConfirm/index.vue:51 discards the CONFIRM_ROLLBACK promise, and store/autoUpdates.js:325 performs the dynamic import before the try block — an import rejection hides the card with no notification. (13) False copy confirmation: services/notification/index.js:61 returns true for non-empty text even when the Clipboard API is absent or writeText rejects, and notificationCard/index.vue:115 runs the green pulse anyway. (14) English-only rollback failure surface: autoUpdates.js:335 shows the hardcoded title "Rollback failed" and the raw Rust error string, although the archived C-UPDATER-ROLLBACK R-8 ten-locale rule covers notices; the same debt covers the new English strings C-UPDATER-REVIEW-FIXES introduced (swap and preferences error texts, the restored_norelaunch guidance) and the GUI post-swap preferences skip that today reaches only the stderr marker (m068 prefs_skipped).</Problem>
+    <Goals>
+      <Goal>Make every notification action report its async outcome: payloads return their promise, the card awaits it, and a failing Reveal (showItemInFolder rejection) produces honest visible feedback with zero unhandled rejections.</Goal>
+      <Goal>Make the rollback confirmation unable to fail silently: the dynamic import moves inside the try, and any failure either keeps the card or raises an error notification.</Goal>
+      <Goal>Make copy feedback truthful: the green pulse fires only after a successful clipboard write; an absent Clipboard API or a rejected write produces no success feedback (a silent failure stays acceptable per the accepted quiet-developer-feature voice of M-067).</Goal>
+      <Goal>Localize the rollback-feedback surface across all ten shipped locales per R-8: the failure title and message (technical Rust detail stays in logs), the strings C-UPDATER-REVIEW-FIXES added, and a visible in-app notice when a completed rollback skipped restoring preferences (today stderr-only — the Rust side may expose only the structured fact the renderer needs).</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>The ten-locale rule of the archived C-UPDATER-ROLLBACK R-8 governs every new or changed user-visible string; the locale completeness gate must stay green.</Constraint>
+      <Constraint>No behavior changes beyond the four defects and the recorded localization debts; the Rust rollback core (m068) may only expose the structured data the renderer needs for the prefs-skip notice, never reorder its restore logic.</Constraint>
+      <Constraint>Clipboard failure UX follows the accepted house voice: no toast required, but never a false success pulse.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>The four pre-existing rollback-integrity defects tracked separately in .grace/context/deployment.xml (lockless GUI start, delegation ack before the dialog, Windows pending-window serialization, the silent GUI app.restart() failure) — a different follow-up.</NonGoal>
+      <NonGoal>Wave A progressive-mount findings; any redesign of the notification stack or the rollback flow itself.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>An injected failing showItemInFolder produces honest visible feedback and zero unhandled rejections, proven by a renderer test.</Criterion>
+      <Criterion>An injected dynamic-import failure in the rollback confirmation never ends silent — the card stays or an error notification appears, proven by a renderer test.</Criterion>
+      <Criterion>The green copy pulse fires only after a successful write; a missing Clipboard API and a rejected writeText both produce no pulse, proven by tests for both cases.</Criterion>
+      <Criterion>Every new or changed user-visible string exists in all ten shipped locales (the locale completeness gate covers them); the rollback failure title and message are localized, with the raw technical error kept to logs.</Criterion>
+      <Criterion>A completed rollback whose preferences restore was skipped surfaces a visible notice in the restored session, with the Rust side exposing only the structured fact (no restore-logic changes), proven by a renderer test.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-067 />
+      <M-068 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run tests/renderer (notifications and updater suites); the locale completeness gate; npx playwright test tests/e2e/notifications-system.spec.ts; grace lint --path . --change C-RENDER-REVIEW-FIXES --assertions target during implementation and --assertions final --run-commands before archiving</ExpectedCommand>
+      <ExpectedEvidence>New renderer tests for each of the four defects green; locale gate green across ten locales; existing renderer suites stay green; grace lint zero errors attributable to this change's files.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>Line references come from the 2026-11-02 review report (base v2.8.2 3b6d49e4, head f3d88851) and were re-verified 2026-11-03 against the current tree (main c8def4cb; the checked-out stats commit touches no renderer files): every site is intact with line drift of at most four lines (editor.js 2241 plus the second reveal payload at 2371, rollbackConfirm 51, autoUpdates 325, notification service 61), and the notification files were not touched by C-UPDATER-REVIEW-FIXES (its no-renderer-changes constraint held).</Assumption>
+      <Assumption>The affected module set is provisional (M-067 notifications, M-068 rollback feedback surfaces); the authoring session confirms the updater-store module id from the graph before freezing AffectedAreas.</Assumption>
+    </Assumptions>
+  </C-RENDER-REVIEW-FIXES>
+</GraceChangeSpec>
