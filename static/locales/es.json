@@ -140,7 +140,8 @@
       "lines": "líneas",
       "edited": "editado {time}",
       "reading": "lectura",
-      "characters": "caracteres"
+      "characters": "caracteres",
+      "exportWord": "Exportar a Word"
     },
     "documentInfo": "Información del documento",
     "themeMode": {
@@ -1436,8 +1437,7 @@
       "fontFamily": "Familia de fuente:"
     },
     "info": {
-      "description": "Por favor personalice la apariencia de la página y haga clic en \"exportar\" para continuar.",
-      "label": "Información"
+      "description": "Por favor personalice la apariencia de la página y haga clic en \"exportar\" para continuar."
     },
     "page": {
       "topBottom": "Superior/Inferior:",
@@ -1447,27 +1447,21 @@
       "leftRight": "Izquierda/Derecha:",
       "widthHeight": "Ancho/Alto en mm:",
       "pageSize": "Tamaño de página:",
-      "pageMargin": "Margen de página en mm:"
+      "pageMarginPreset": "Márgenes:"
     },
     "theme": {
-      "label": "Tema",
-      "description": "Puede cambiar la apariencia del documento eligiendo un tema o creando uno personalizado.",
       "theme": "Tema"
     },
     "headerFooter": {
-      "footerType": "Tipo de pie de página",
-      "description": "El texto aparece en todas las páginas si se define encabezado y/o pie de página.",
       "customizeStyle": "Personalizar estilo",
-      "mainHeaderText": "Texto del encabezado principal",
       "fontSize": "Tamaño de fuente",
       "allowStyled": "Permitir texto con estilo",
-      "rightHeaderText": "Texto del encabezado derecho",
-      "headerType": "Tipo de encabezado",
       "label": "Encabezado y Pie de Página",
-      "leftFooterText": "Texto del pie izquierdo",
-      "rightFooterText": "Texto del pie derecho",
-      "mainFooterText": "Texto del pie principal",
-      "leftHeaderText": "Texto del encabezado izquierdo"
+      "headerText": "Encabezado",
+      "footerText": "Pie de página",
+      "leftSlot": "Izquierda",
+      "centerSlot": "Centro",
+      "rightSlot": "Derecha"
     },
     "autoNumberingHeadings": "Numeración automática de encabezados",
     "showFrontMatter": "Mostrar metadatos",
@@ -1476,8 +1470,7 @@
     "toc": {
       "title": "Tabla de Contenidos",
       "includeTopHeading": "Incluir encabezado superior",
-      "includeTopHeadingDetail": "Incluir detalle del encabezado superior",
-      "label": "Tabla de Contenidos"
+      "includeTopHeadingDetail": "Incluir detalle del encabezado superior"
     },
     "options": {
       "headerFooterStyles": {
@@ -1503,9 +1496,19 @@
         "academic": "Académico",
         "liber": "Liber",
         "default": "GitHub (Predeterminado)"
+      },
+      "marginPresets": {
+        "narrow": "Estrechos",
+        "normal": "Normales",
+        "wide": "Amplios",
+        "custom": "Personalizados"
       }
     },
-    "docxTitle": "Exportar a Word"
+    "docxTitle": "Exportar a Word",
+    "content": {
+      "label": "Contenido"
+    },
+    "reset": "Restablecer"
   },
   "import": {
     "title": "Importar o Abrir",

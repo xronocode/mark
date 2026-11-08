@@ -1,0 +1,58 @@
+<GraceChangeSpec graceVersion='4.0' status='approved'>
+<C-EXPORT-SINGLE-PAGE>
+  <Name>Export settings dialog on one page: tabs become one scrollable column with semantic sections (Page / Style / Content / Header &amp; Footer), header/footer slot strips, margin presets, hydration from remembered options, Reset button</Name>
+  <Created>2026-11-07</Created>
+  <Priority>medium</Priority>
+  <Status>approved</Status>
+  <RoadmapPhase>next</RoadmapPhase>
+  <Complexity>M</Complexity>
+  <Summary>Owner design review 2026-11-07: the export settings dialog (components/exportSettings/index.vue) spreads ~12 controls over six tabs — three tabs carry 0-2 controls, the Info tab holds a single sentence, and the dialog always opens with hardcoded defaults even though the app remembers the last-used appearance options for Print and Word export (mark-last-print-options). This change removes tabs entirely and regroups the same controls into one scrollable column with four semantic sections, replaces the two header/footer "cell type" selects plus six conditional text fields with two visual slot strips, adds margin presets (Narrow/Normal/Wide/Custom) in front of the four margin inputs, hydrates the dialog from the remembered options on open, and adds a Reset button. No export pipeline, payload or native changes.</Summary>
+  <Problem><Description>The dialog pays double navigation for a small form: the user clicks a tab and then still scrolls inside its 350px content area. The grouping is semantically tangled: "Style" mixes a font override with content transformations (heading numbering, front matter), "Theme" is a whole tab for one select that belongs with style, "TOC" is two fields, and "Info" is one sentence. The header/footer model (two none/single/three-cells selects, six conditional text boxes, two style toggles) is the densest part of the dialog and explains itself worst. Finally, the dialog opens with hardcoded defaults and never shows what ⌘P and Export-to-Word actually use, so the remembered state and the visible form disagree; there is no way back to factory defaults.</Description></Problem>
+  <Goals>
+    <R-1>Single page: el-tabs is removed; the dialog body is one scrollable column with section headers in the fixed order Page (pdf only) → Style → Content → Header &amp; Footer (pdf only). The Info sentence becomes one secondary line under the h3 title. The styledHtml flavor shows the page-title field at the top and hides both PDF-only sections. No in-dialog navigation remains; the e2e selector contracts (.el-dialog custom-class, h3 title text, .button-controlls .button-primary) are preserved.</R-1>
+    <R-2>Semantic regrouping: the theme select (with its "more themes" link and disk-loaded entries) moves into Style next to the font override; autoNumberingHeadings, showFrontMatter and the TOC toggle + TOC title form Content. Every control from the tabbed dialog appears exactly once in the new layout; none is dropped or added except the controls named in R-3/R-4/R-6.</R-2>
+    <R-3>Margin presets: the four margin inputs are preceded by a preset select — Narrow / Normal / Wide / Custom. Normal = current defaults (top/bottom 20, left/right 15); choosing Custom reveals the four numeric inputs (values preserved); when the current four values match a preset the select shows it, otherwise Custom.</R-3>
+    <R-4>Header/footer slot strips: the two headerFooterTypes selects and six conditional text boxes are replaced by two visual strips (top = header, bottom = footer), each with left/center/right click-to-type slots; empty slots are allowed and mean absence. The emitted payload is unchanged: strip fully empty → the header (or footer) key is omitted; only center non-empty → type 1; any side slot non-empty → type 2, with the same left/center/right strings. The customizeStyle block (styled toggle + font size) stays as fields under the strips.</R-4>
+    <R-5>Hydration: on open the dialog shows the remembered appearance options (the mark-last-print-options source the store reads; DEFAULT_PRINT_OPTIONS on first use) instead of hardcoded refs — margins, theme, font override (toggle inferred from presence of the font keys), heading numbering, front matter, TOC, header/footer slot texts and headerFooter style keys. Page geometry (size, custom dimensions, orientation) and htmlTitle keep per-open defaults as today.</R-5>
+    <R-6>Reset: a secondary "Reset" button next to Export restores the form to factory defaults (DEFAULT_PRINT_OPTIONS + geometry defaults). Remembered storage still refreshes only on Export, exactly as today.</R-6>
+    <R-7>Tests and locales: a new unit suite for the dialog (rendered tree contains no el-tabs; hydration equals a remembered-options fixture; slot→type derivation corner cases; preset↔values mapping in both directions; Reset restores defaults); tests/e2e/print-export.spec.ts and tests/e2e/export-office.spec.ts pass unchanged. All ten locales gain the new strings (section headers, margin presets, Reset, slot placeholders) and drop the dead tab-label keys; locale files are edited by line surgery per file.</R-7>
+    <R-8>Graph and verification: the export-settings dialog surface is registered as a new graph module M-072 ExportSettingsDialog with verification entry V-M-072 pointing at the new unit suite — its first routed ownership (today the component is unrouted). M-052, M-065 and M-066 contracts are untouched.</R-8>
+  </Goals>
+  <Constraints>
+    <Item>The bus 'export' payload shape is byte-compatible: editor.vue handleExport, REMEMBER_EXPORT_OPTIONS, PRINT_DOCUMENT and EXPORT_DOCX_DOCUMENT are not modified by this change.</Item>
+    <Item>Element Plus plus the existing prefComponents common controls only; no new dependencies; no Rust/native changes; no new capabilities.</Item>
+    <Item>E2e contracts preserved: dialog custom-class, h3 title text ('Export to PDF' / 'Export Options'), .button-controlls .button-primary click path.</Item>
+    <Item>Locale edits are surgical per file across all ten locales; no orphan keys, no wholesale file rewrites.</Item>
+    <Item>Baseline grace lint --assertions current is taken before implementation; final assertions run with commands; grace lint 0 at close.</Item>
+  </Constraints>
+  <NonGoals>
+    <Item>Live page preview in the dialog (owner-deferred 2026-11-07; separate change if taken).</Item>
+    <Item>Export profiles or persisted presets beyond the margin presets; persisting page geometry across sessions.</Item>
+    <Item>New export formats; any change to the modal-less Word export flow or the ⌘P print pipeline.</Item>
+    <Item>Theme discovery changes (loadThemesFromDisk and the export theme directory contract stay as-is).</Item>
+  </NonGoals>
+  <AffectedAreas>
+    <Item>src/renderer/src/components/exportSettings/index.vue (single-page layout rewrite), exportSettings/exportOptions.js (margin presets, slot→type helpers), optional slot-strip subcomponent in the same folder</Item>
+    <Item>src/renderer/src/store/editor.js (read-only getter exposing the remembered appearance options to the dialog; no behavior change to existing actions)</Item>
+    <Item>static/locales/*.json (ten locales)</Item>
+    <Item>tests/renderer/components/exportSettings/ (new unit suite), tests/e2e/print-export.spec.ts + tests/e2e/export-office.spec.ts (regression, expectations unchanged)</Item>
+    <Item>.grace/graph/features.xml (new M-072), .grace/verification/features.xml (new V-M-072)</Item>
+  </AffectedAreas>
+  <AcceptanceCriteria>
+    <Criterion>R-1..R-8 done; npx vitest run green (full suite); Playwright print-export + export-office specs green on chromium and webkit unchanged; grace lint --assertions current = 0 after archiving.</Criterion>
+    <Criterion>Live check on macOS (owner): Export to PDF opens a tab-free single-page dialog showing the previously used appearance settings; changing margins/theme/TOC, exporting, reopening shows them back; slot strips produce the same header/footer output as before for the none/single/three-cells cases; styledHtml flavor shows the page-title field and no PDF-only sections; Reset returns factory values; an exported PDF is byte-comparable in structure to a pre-change export with the same options (same page box, header/footer, TOC behavior).</Criterion>
+  </AcceptanceCriteria>
+  <VerificationIntent>
+    <ExpectedCommand>npx vitest run tests/renderer/components/exportSettings</ExpectedCommand>
+    <ExpectedCommand>npx vitest run</ExpectedCommand>
+    <ExpectedCommand>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium --project=webkit</ExpectedCommand>
+    <ExpectedCommand>grace lint --path . --change C-EXPORT-SINGLE-PAGE --assertions final --run-commands</ExpectedCommand>
+    <ExpectedEvidence>Unit: rendered-tree assertion (no el-tabs node), hydration fixture equality, slot→type derivation table (none/single/three-cells corners), preset↔values mapping both directions, Reset defaults. E2e: invoke-order traces unchanged (pdf: dialog → save → mt_export_pdf, never mt_print_webview; docx: no dialog). Owner visual smoke on macOS for both dialog flavors.</ExpectedEvidence>
+  </VerificationIntent>
+  <Assumptions>
+    <Assumption>The remembered-options shape (appearance keys only; header/footer nested objects; font keys present only when the overwrite toggle was on) is sufficient to hydrate every dialog field except geometry and htmlTitle; the overwrite toggle is inferred from presence of the font keys.</Assumption>
+    <Assumption>The export-settings dialog is currently unrouted in the graph (verified 2026-11-07: no exportSettings reference in .grace/graph/*.xml), so M-072 registration is the whole graph delta.</Assumption>
+    <Assumption>Nothing outside components/exportSettings consumes the tab names or the dialog's internal state (verified: app.vue only mounts the component; store uses locale keys only).</Assumption>
+  </Assumptions>
+</C-EXPORT-SINGLE-PAGE>
+</GraceChangeSpec>

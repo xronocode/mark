@@ -140,7 +140,8 @@
       "lines": "줄",
       "edited": "편집됨 {time}",
       "reading": "읽기 시간",
-      "characters": "문자"
+      "characters": "문자",
+      "exportWord": "Word로 내보내기"
     },
     "documentInfo": "문서 정보",
     "themeMode": {
@@ -1435,8 +1436,7 @@
       "fontFamily": "글꼴 패밀리:"
     },
     "info": {
-      "description": "페이지 모양을 사용자 정의하고 \"내보내기\"를 클릭하여 계속하세요.",
-      "label": "정보"
+      "description": "페이지 모양을 사용자 정의하고 \"내보내기\"를 클릭하여 계속하세요."
     },
     "page": {
       "topBottom": "위/아래:",
@@ -1446,27 +1446,21 @@
       "leftRight": "왼쪽/오른쪽:",
       "widthHeight": "너비/높이(mm):",
       "pageSize": "페이지 크기:",
-      "pageMargin": "페이지 여백(mm):"
+      "pageMarginPreset": "여백:"
     },
     "theme": {
-      "label": "테마",
-      "description": "테마를 선택하거나 직접 만들어 문서 모양을 변경할 수 있습니다.",
       "theme": "테마"
     },
     "headerFooter": {
-      "footerType": "바닥글 유형",
-      "description": "머리글 및/또는 바닥글이 정의된 경우 모든 페이지에 텍스트가 나타납니다.",
       "customizeStyle": "스타일 사용자 정의",
-      "mainHeaderText": "주 머리글 텍스트",
       "fontSize": "글꼴 크기",
       "allowStyled": "스타일 텍스트 허용",
-      "rightHeaderText": "오른쪽 머리글 텍스트",
-      "headerType": "머리글 유형",
       "label": "머리글 및 바닥글",
-      "leftFooterText": "왼쪽 바닥글 텍스트",
-      "rightFooterText": "오른쪽 바닥글 텍스트",
-      "mainFooterText": "주 바닥글 텍스트",
-      "leftHeaderText": "왼쪽 머리글 텍스트"
+      "headerText": "머리글",
+      "footerText": "바닥글",
+      "leftSlot": "왼쪽",
+      "centerSlot": "가운데",
+      "rightSlot": "오른쪽"
     },
     "autoNumberingHeadings": "제목 자동 번호 매기기",
     "showFrontMatter": "프론트 매터 보기",
@@ -1475,8 +1469,7 @@
     "toc": {
       "title": "목차",
       "includeTopHeading": "최상위 제목 포함",
-      "includeTopHeadingDetail": "최상위 제목 세부 정보 포함",
-      "label": "목차"
+      "includeTopHeadingDetail": "최상위 제목 세부 정보 포함"
     },
     "options": {
       "headerFooterStyles": {
@@ -1502,9 +1495,19 @@
         "academic": "학술",
         "liber": "Liber",
         "default": "GitHub (기본값)"
+      },
+      "marginPresets": {
+        "narrow": "좁게",
+        "normal": "보통",
+        "wide": "넓게",
+        "custom": "사용자 지정"
       }
     },
-    "docxTitle": "Word로 내보내기"
+    "docxTitle": "Word로 내보내기",
+    "content": {
+      "label": "콘텐츠"
+    },
+    "reset": "재설정"
   },
   "import": {
     "title": "가져오기 또는 열기",

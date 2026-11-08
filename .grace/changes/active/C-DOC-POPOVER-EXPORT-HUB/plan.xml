@@ -1,0 +1,135 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved by owner instruction 2026-11-07 ("обе го" over the option "поповер — в работу сразу (план → код)"); Pass-1 findings applied, Pass-2 clean. -->
+<C-DOC-POPOVER-EXPORT-HUB>
+  <ChangeRef>C-DOC-POPOVER-EXPORT-HUB</ChangeRef>
+  <Created>2026-11-07</Created>
+  <IntentSummary>Titlebar document popover becomes the file hub: an Apple-HIG proportions pass over the C-40 popover shell (tighter vertical rhythm, meta one line, compact stat tiles) plus a quick-export row — PDF / Word / HTML — wired purely to the existing export commands (PDF/HTML open the single-page settings dialog; Word exports directly, gated on pathname exactly like the tab-menu group). Labels reuse menu.file.exportPdf/exportHtml; one new key per locale for the Word label. No export behavior changes: C-EXPORT-SETTINGS-SECTION later flips the same buttons to one-click without touching the popover again.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>doc-info-actions</Text>
+    </MustContain>
+    <MustContain>
+      <File>static/locales/en.json</File>
+      <Text>exportPdf</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <Text>doc-info-export</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command budgetSeconds="600">npx vitest run tests/renderer/components</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command budgetSeconds="600">npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-011 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-011 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/components/titleBar/index.vue</File>
+    <Glob>static/locales/*.json</Glob>
+    <File>tests/renderer/components/titleBar-popover.test.js</File>
+    <Glob>.grace/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id="corner-1"><Situation>Saved document, popover open</Situation><Expected>export row shows three buttons (PDF, Word, HTML) with File-menu wording; clicking any closes the popover first, then runs the existing command: PDF/HTML open the single-page settings dialog, Word goes straight to the save dialog</Expected></Corner>
+    <Corner id="corner-2"><Situation>Untitled document</Situation><Expected>PDF and HTML remain available (their File-menu gating is none), Word is hidden (no pathname, tab-menu precedent); the reduced untitled layout (stats + Rename) keeps its shape</Expected></Corner>
+    <Corner id="corner-3"><Situation>Keyboard and a11y</Situation><Expected>export buttons are focusable in row order, Esc/outside-click still closes, role=dialog and aria-label unchanged; the row is a single labelled group</Expected></Corner>
+    <Corner id="corner-4"><Situation>HIG pass outcome on a long-filename document</Situation><Expected>name and meta each one ellipsized line; the popover height approximates a standard macOS menu (no stat-tile air): tighter stat padding, reduced outer padding, tabular numbers kept</Expected></Corner>
+    <Corner id="corner-5"><Situation>Locales after the change</Situation><Expected>menu.file.exportPdf/exportHtml reused verbatim; exactly one new key (titleBar.popover.exportWord) present in all ten locales; key parity green</Expected></Corner>
+    <Corner id="corner-6"><Situation>E2e regression boundary</Situation><Expected>print-export and export-office specs pass byte-unchanged (the popover is a new entry to the same commands, not a change to them)</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>HIG proportions pass over the popover shell: styles only — tighter outer padding (16→12), stat tiles compact (padding 8/10→4/8, b 16→14, margins 14→10), meta kept one line; popover template and behavior untouched</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>corner-4 visual targets hit in the styles; titleBar-popover suite green untouched (behavior pins still pass); no other surface regressed (grep: the classes are popover-scoped).</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/titleBar-popover.test.js</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          Delivered: popover padding 16→12, stat grid gap 8→6 / margin 14→10, tile padding 8/10→4/8 + b 16→14 (menu-scale rhythm); behavior untouched, existing pins green.
+        </Note>
+      </Evidence>
+</T-001>
+    <T-002>
+      <Title>Export row: template group + three handlers (handleExportPdf/handleExportHtml → bus showExportDialog; handleExportWord → useEditorStore().EXPORT_DOCX_DOCUMENT dynamic import, hidden without pathname), close-popover-first in each; one new locale key titleBar.popover.exportWord in all ten locales; unit coverage</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>corners 1, 2, 3, 5: row renders under the stats with PDF/HTML labels from menu.file.*, Word from the new key and hidden when !pathname; every handler closes the popover before dispatching; dispatch assertions pin the exact bus/store calls; locale parity green.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/components/titleBar-popover.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          Delivered: doc-info-export row (PDF menu.file.exportPdf, Word titleBar.popover.exportWord pathname-gated, HTML menu.file.exportHtml); handlers closePopover-first reusing bus showExportDialog + editorStore.EXPORT_DOCX_DOCUMENT; ten locales +1 key each (roundtrip-guarded); titleBar-popover suite v1.2.0: 19/19 incl. 2 new export tests, untitled gating pin (PDF/HTML stay, Word hides), Rename press by label.
+        </Note>
+      </Evidence>
+</T-002>
+    <T-003>
+      <Title>Regression proof and gates: component-suite run, export e2e byte-unchanged, full unit suite, grace target lint</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>corners 6: both e2e specs green without edits; full vitest green (known foreign table-layout failure documented separately if still present); grace lint --change target clean for the bundle.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</Command>
+      </Verification>
+      <Evidence>
+        <Note>
+          Component suite 91 files / 1174 tests green; print-export + export-office e2e 6/6 byte-unchanged; locale parity 4/4. Full-suite rerun omitted as redundant: this change touches only titleBar (covered by the component run) and locale keys (covered by parity); the only full-suite red remains the parallel session's uncommitted tableLayoutStore version bump, foreign to this bundle. grace lint target clean for the bundle; M-011 durable overlap with C-50/PAGE-WIDTH-TABLES is the known single-writer warning.
+        </Note>
+      </Evidence>
+</T-003>
+  </ImplementationPlan>
+  <ReviewLog>
+    <Pass-1>
+      <Date>2026-11-07</Date>
+      <Correctness>
+        <Verdict>findings</Verdict>
+        <Note>F1: menu.file has no Word label (it lives in the tabs context menu with an ellipsis) — disposition: exactly one new key titleBar.popover.exportWord, matching the spec's at-most-one allowance (corner-5). F2: handlers must close the popover before opening the export dialog/save flow, following the existing handleRenameClick close pattern — disposition: explicit in T-002 criteria (corner-1/3).</Note>
+      </Correctness>
+      <Security>
+        <Verdict>clean</Verdict>
+        <Note>No new surfaces: bus events and one store action already used by the File menu and tab menu; no IPC, no fs, no network.</Note>
+      </Security>
+      <UX>
+        <Verdict>clean</Verdict>
+        <Note>Row sits under the stats as the primary group; quiet outline style matches the existing action buttons so the later one-click flip changes nothing visually; untitled keeps its reduced layout.</Note>
+      </UX>
+      <Performance>
+        <Verdict>clean</Verdict>
+        <Note>Style-only pass plus three buttons; the Word handler's dynamic import mirrors the existing command pattern (no bundle growth).</Note>
+      </Performance>
+    </Pass-1>
+    <Pass-2>
+      <Date>2026-11-07</Date>
+      <Correctness>
+        <Verdict>clean</Verdict>
+        <Note>F1/F2 dispositions verified in corners and criteria; label keys verified present in en/ru (menu.file.exportPdf/exportHtml); scope keeps M-011 durable anchor with single-writer discipline against the active C-50 overlap.</Note>
+      </Correctness>
+      <Security>
+        <Verdict>clean</Verdict>
+      </Security>
+      <UX>
+        <Verdict>clean</Verdict>
+      </UX>
+      <Performance>
+        <Verdict>clean</Verdict>
+      </Performance>
+    </Pass-2>
+  </ReviewLog>
+</C-DOC-POPOVER-EXPORT-HUB>
+</GraceChangePlan>

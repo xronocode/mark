@@ -140,7 +140,8 @@
       "lines": "Zeilen",
       "edited": "bearbeitet {time}",
       "reading": "Lesezeit",
-      "characters": "Zeichen"
+      "characters": "Zeichen",
+      "exportWord": "Nach Word exportieren"
     },
     "documentInfo": "Dokumentinfo",
     "themeMode": {
@@ -1436,8 +1437,7 @@
       "fontFamily": "Schriftfamilie:"
     },
     "info": {
-      "description": "Bitte passen Sie das Seitenlayout an und klicken Sie auf 'Exportieren', um fortzufahren.",
-      "label": "Information"
+      "description": "Bitte passen Sie das Seitenlayout an und klicken Sie auf 'Exportieren', um fortzufahren."
     },
     "page": {
       "topBottom": "Oben/Unten:",
@@ -1447,27 +1447,21 @@
       "leftRight": "Links/Rechts:",
       "widthHeight": "Breite/Höhe (mm):",
       "pageSize": "Seitengröße:",
-      "pageMargin": "Seitenrand (mm):"
+      "pageMarginPreset": "Ränder:"
     },
     "theme": {
-      "label": "Design",
-      "description": "Sie können das Aussehen des Dokuments ändern, indem Sie ein Design auswählen oder ein benutzerdefiniertes Design erstellen.",
       "theme": "Design"
     },
     "headerFooter": {
-      "footerType": "Fußzeilentyp",
-      "description": "Wenn eine Kopf- und/oder Fußzeile definiert ist, wird der Text auf allen Seiten angezeigt.",
       "customizeStyle": "Stil anpassen",
-      "mainHeaderText": "Haupt-Kopfzeilentext",
       "fontSize": "Schriftgröße",
       "allowStyled": "Gestylten Text erlauben",
-      "rightHeaderText": "Rechter Kopfzeilentext",
-      "headerType": "Kopfzeilentyp",
       "label": "Kopf- und Fußzeile",
-      "leftFooterText": "Linker Fußzeilentext",
-      "rightFooterText": "Rechter Fußzeilentext",
-      "mainFooterText": "Haupt-Fußzeilentext",
-      "leftHeaderText": "Linker Kopfzeilentext"
+      "headerText": "Kopfzeile",
+      "footerText": "Fußzeile",
+      "leftSlot": "Links",
+      "centerSlot": "Mitte",
+      "rightSlot": "Rechts"
     },
     "autoNumberingHeadings": "Automatische Nummerierung der Überschriften",
     "showFrontMatter": "Front Matter anzeigen",
@@ -1476,8 +1470,7 @@
     "toc": {
       "title": "Inhaltsverzeichnis",
       "includeTopHeading": "Oberste Überschrift einschließen",
-      "includeTopHeadingDetail": "Details der obersten Überschrift einschließen",
-      "label": "Inhaltsverzeichnis"
+      "includeTopHeadingDetail": "Details der obersten Überschrift einschließen"
     },
     "options": {
       "headerFooterStyles": {
@@ -1503,9 +1496,19 @@
         "academic": "Akademisch",
         "liber": "Liber",
         "default": "GitHub (Standard)"
+      },
+      "marginPresets": {
+        "narrow": "Schmal",
+        "normal": "Normal",
+        "wide": "Breit",
+        "custom": "Benutzerdefiniert"
       }
     },
-    "docxTitle": "Nach Word exportieren"
+    "docxTitle": "Nach Word exportieren",
+    "content": {
+      "label": "Inhalt"
+    },
+    "reset": "Zurücksetzen"
   },
   "import": {
     "title": "Importieren oder öffnen",
