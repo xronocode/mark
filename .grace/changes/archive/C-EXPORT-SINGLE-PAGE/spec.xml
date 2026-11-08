@@ -1,9 +1,9 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
 <C-EXPORT-SINGLE-PAGE>
   <Name>Export settings dialog on one page: tabs become one scrollable column with semantic sections (Page / Style / Content / Header &amp; Footer), header/footer slot strips, margin presets, hydration from remembered options, Reset button</Name>
   <Created>2026-11-07</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>applied</Status>
   <RoadmapPhase>next</RoadmapPhase>
   <Complexity>M</Complexity>
   <Summary>Owner design review 2026-11-07: the export settings dialog (components/exportSettings/index.vue) spreads ~12 controls over six tabs — three tabs carry 0-2 controls, the Info tab holds a single sentence, and the dialog always opens with hardcoded defaults even though the app remembers the last-used appearance options for Print and Word export (mark-last-print-options). This change removes tabs entirely and regroups the same controls into one scrollable column with four semantic sections, replaces the two header/footer "cell type" selects plus six conditional text fields with two visual slot strips, adds margin presets (Narrow/Normal/Wide/Custom) in front of the four margin inputs, hydrates the dialog from the remembered options on open, and adds a Reset button. No export pipeline, payload or native changes.</Summary>

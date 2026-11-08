@@ -1,0 +1,343 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-RENDER-REVIEW-FIXES>
+    <IntentSummary>Fix the four renderer-surface defects of the approved C-RENDER-REVIEW-FIXES spec (findings 11-14 of the 2026-11-02 smart review) plus its recorded localization debts in one wave: honest async outcomes for every notification action (the card awaits handler/payload, a failing Reveal raises a localized warning notice, zero unhandled rejections — both editor.js reveal payloads at 2241 and 2371 return their promise), a rollback confirmation that cannot fail silently (the dynamic import moves inside the try, the component awaits the store action, any failure raises a localized error notice with the raw Rust detail kept to the console), a truthful copy pulse (copySelectionText reports the real clipboard outcome; the green pulse fires only after a successful write; failures stay silent per the accepted M-067 quiet-developer voice), and a fully localized rollback-feedback surface (rollback.restoreFailedTitle/Body replace the hardcoded English title and the raw Rust error string) including the visible GUI notice when a completed rollback skipped restoring preferences — fed by a new structured Rust fact: the restore path writes a minimal restore-outcome.json marker in the rollback data root at the shared logged-and-skipped site (stale copies removed at restore start), and a new read-and-clear command mt_rollback_restore_outcome lets the restored session's RUN_LAUNCH_CHECK show rollback.prefsSkippedTitle/Body exactly once. The Rust rollback core changes ONLY by that additive fact channel — no restore-logic reorder; the CLI stderr human lines stay English (a recorded decision: the CLI is a developer surface, every GUI-visible string goes through the ten-locale store). Execution discipline: single-writer serial arcs where files are shared — notificationCard/index.vue (T-003 then T-005) and store/autoUpdates.js (T-004 then T-006) as direct DAG arcs, with m068_rollback.rs serialized transitively (T-001 ≺ T-006 ≺ T-007); every other shared file is serialized by T-007's direct dependencies on T-003/T-004/T-005/T-006. Sequencing: the graph and verification deltas (T-007) share .grace/graph/features.xml and .grace/verification/features.xml with the in-flight C-STATS-READOUT T-007 — this change executes on a dedicated branch off fork/main and lands strictly after C-STATS-READOUT's graph deltas (rebase before T-007; the parallel-preflict overlap on those two files is the plan's conscious serial-ordering design, recorded here). Execution mode mirrors the archived C-UPDATER-REVIEW-FIXES wave: branch fix/render-review-fixes off fork/main, PR under the strict ruleset with the squash retry cycle, governance label release:user-facing with close/reopen, train admission as a separate chore(train) commit per train rule 3. The plan's own review gate (four corners, two consecutive clean passes over spec and plan together) runs on this draft before approval is requested. Round-1 sharpening recorded: registering the command is the four-site chain (m001_validate.rs REGISTERED_COMMANDS, main.rs generate_handler!, src/renderer/src/ipc/contract/types.ts CommandMap + channel union, and the test/fixtures/ipc-channels/tauri.v2.json fixture regenerated via tools/gen-tauri-v2-fixture.mjs — the boot parity gate exits 1 on drift in either direction); the marker lives at rollback_root() itself, never inside the live/ set the restore consumes; the editor banner's copy pulse joins T-005 (the spec's Goal 3 is surface-general); the restore-failure notice carries severity error (the spec's literal "error notification") while the prefs-skip notice is a sticky warning (the sibling boot-surface pattern); and notifications.source.rollback becomes the seventh locale key (the rollback card's source chip today renders a raw key). Spec approval basis: the owner's «апрув» of 2026-11-03 (interactive-menu follow-up in the render-review session) on the corrected draft whose line references were re-verified against the current tree the same day. Plan approval basis: the owner's «Го — approve план» of 2026-11-03 (interactive menu), given after the gate closed with rounds 6-7 clean; the post-closure advisory polish of rounds 6-7 is applied and recorded with round 7.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m068_rollback.rs</Value>
+        <Value>src-tauri/src/m001_validate.rs</Value>
+        <Value>src/renderer/src/components/notificationCard/index.vue</Value>
+        <Value>src/renderer/src/components/rollbackConfirm/index.vue</Value>
+        <Value>src/renderer/src/store/editor.js</Value>
+        <Value>src/renderer/src/store/autoUpdates.js</Value>
+        <Value>src/renderer/src/services/notification/index.js</Value>
+        <Value>static/locales/en.json</Value>
+        <Value>static/locales/ru.json</Value>
+        <Value>tests/renderer/components/notificationCard.test.js</Value>
+        <Value>tests/renderer/components/rollbackConfirm.test.js</Value>
+        <Value>tests/renderer/store/autoUpdates.test.js</Value>
+        <Value>tests/renderer/services/notification.test.js</Value>
+        <Value>tests/renderer/i18n/locale-keys.test.js</Value>
+        <Value>src/renderer/src/components/editorWithTabs/notifications.vue</Value>
+        <Value>tests/renderer/components/editorWithTabs/notifications.test.js</Value>
+        <Value>src-tauri/src/main.rs</Value>
+        <Value>src/renderer/src/ipc/contract/types.ts</Value>
+        <Value>test/fixtures/ipc-channels/tauri.v2.json</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>title: 'Rollback failed'</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/notificationCard/index.vue</File><Text>action.handler()</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>window.electron.shell.showItemInFolder(filePath)</Text></MustContain>
+      <MustContain><File>src/renderer/src/services/notification/index.js</File><Text>result.catch(() => {})</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/rollbackConfirm/index.vue</File><Text>store.CONFIRM_ROLLBACK()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>prefs_skipped_human_line</Text></MustContain>
+      <MustContain><File>src-tauri/src/m001_validate.rs</File><Text>mt_rollback_restore</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>&lt;M-067</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>&lt;M-068</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>&lt;V-M-067</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>&lt;V-M-068</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>Roll back to Mark {version}</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/notifications.vue</File><Text>applyCopyPulse(sel.getRangeAt(0))</Text></MustContain>
+      <MustContain><File>test/fixtures/ipc-channels/tauri.v2.json</File><Text>mt::rollback::restore</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-067</Module>
+        <Module>M-068</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npm test</Command>
+      </MustPassCommand>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>mt_rollback_restore_outcome</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>restore-outcome.json</Text></MustContain>
+      <MustContain><File>src-tauri/src/m001_validate.rs</File><Text>mt_rollback_restore_outcome</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>mt_rollback_restore_outcome</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>rollback.restoreFailedTitle</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>rollback.prefsSkippedTitle</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/store/autoUpdates.js</File><Text>title: 'Rollback failed'</Text></MustNotContain>
+      <MustContain><File>src/renderer/src/components/notificationCard/index.vue</File><Text>const runAction = async (action) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/notificationCard/index.vue</File><Text>notifications.actionFailedTitle</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/notificationCard/index.vue</File><Text>.then((ok) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>return window.electron.shell.showItemInFolder(filePath)</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/rollbackConfirm/index.vue</File><Text>await store.CONFIRM_ROLLBACK()</Text></MustContain>
+      <MustContain><File>src/renderer/src/services/notification/index.js</File><Text>.then(() =&gt; true, () =&gt; false)</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>restoreFailedTitle</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>prefsSkippedTitle</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>actionFailedTitle</Text></MustContain>
+      <MustContain><File>static/locales/ru.json</File><Text>restoreFailedTitle</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-RENDER-REVIEW-FIXES</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>C-RENDER-REVIEW-FIXES</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>.grace/changes/active/C-RENDER-REVIEW-FIXES</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>.grace/changes/active/C-RENDER-REVIEW-FIXES</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>mt_rollback_restore_outcome</Text></MustContain>
+      <MustContain><File>src/renderer/src/ipc/contract/types.ts</File><Text>restore_outcome</Text></MustContain>
+      <MustContain><File>test/fixtures/ipc-channels/tauri.v2.json</File><Text>mt::rollback::restore_outcome</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/notifications.vue</File><Text>.then((ok) =&gt; {</Text></MustContain>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-067 />
+        <M-068 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-067 />
+        <V-M-068 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m068_rollback.rs</File>
+      <File>src-tauri/src/m001_validate.rs</File>
+      <File>src/renderer/src/components/notificationCard/index.vue</File>
+      <File>src/renderer/src/components/rollbackConfirm/index.vue</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src/renderer/src/store/autoUpdates.js</File>
+      <File>src/renderer/src/services/notification/index.js</File>
+      <File>src/renderer/src/components/editorWithTabs/notifications.vue</File>
+      <File>src-tauri/src/main.rs</File>
+      <File>src/renderer/src/ipc/contract/types.ts</File>
+      <File>test/fixtures/ipc-channels/tauri.v2.json</File>
+      <Glob>static/locales/*.json</Glob>
+      <File>tests/renderer/components/notificationCard.test.js</File>
+      <File>tests/renderer/components/rollbackConfirm.test.js</File>
+      <File>tests/renderer/store/autoUpdates.test.js</File>
+      <File>tests/renderer/services/notification.test.js</File>
+      <File>tests/renderer/services/notification-deep.test.js</File>
+      <File>tests/renderer/components/editorWithTabs/notifications.test.js</File>
+      <File>tests/renderer/i18n/locale-keys.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Rust structured restore-outcome fact and the read-and-clear command</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The GUI-shared restore path writes a minimal structured marker restore-outcome.json at the rollback root itself — rollback_root()/restore-outcome.json (inside gui_restore_verified derived from the live-set base via base.parent(), the established live/-sibling derivation, so the root-override test seam drives a temp root and never the real data root) — NEVER inside the live/ set the restore consumes (the skip site sits beside remove_dir_all(base) at m068_rollback.rs:1182, and boot finalization removes live/ again at :810; the root already hosts loose files — instance.lock, delegate.request, delegate.ack — so a root-level marker is layout-consistent and survives both removals) — written exactly at the existing logged-and-skipped preferences site (the macOS-only gui_restore_verified — the sole logged-and-skipped site; the Windows restore hard-aborts on a prefs failure and surfaces through the localized restore-failure notice instead), with content bounded to {"prefs":"skipped","error":"&lt;free-form diagnostics truncated to 200 chars on char boundaries — multi-byte-safe; a byte-slice would panic on localized OS error text&gt;","at":"&lt;unix-seconds write time&gt;"} — no dedicated path/digest/secret fields (a genuine io error may name a file in its Display text; the cap is the bound), asserted by test so the schema survives error-chain changes; the marker write itself is best-effort and non-fatal — a failed write logs a stderr marker and never alters the restore outcome or its exit code (the fact channel must not become a false-failure channel); every restore entry (gui_restore_core and restore_inner — the CLI and Windows-dialog entry) removes any stale marker first, and the prepare entry (update-install snapshot creation) clears an unconsumed marker by calling the same root-explicit removal helper — the helper takes the root explicitly and is tested directly on a TempDir (prepare_inner itself has no root seam and keeps its signature, per the file's own recorded test practice), its call site pinned by the removal-helper call appearing inside prepare_inner's own body — the fact's audience is the restored session's boots before the next update begins — and the at timestamp bounds the fact absolutely: the renderer suppresses anything older than 48 h with a console marker only, which is what closes the transition era (a restored pre-feature binary's own prepare cannot know the marker; the next new binary's first boot age-checks it instead of inheriting a weeks-old skip); a restore whose preferences succeed writes nothing (the CLI stderr human line and every restore step are otherwise byte-unchanged — the diff shows an additive fact channel only).</Criterion>
+          <Criterion>A new command mt_rollback_restore_outcome returns the parsed marker (or null when absent) and removes the file in the same call — one read-and-clear, idempotent on absent files; registration completes the four-site chain (the boot parity gate enforces the fixture↔allowlist pair in both directions — drift exits 1 at boot; the generate_handler! site is hand-synced per the m001 MODULE_CONTRACT, the ipc-contract site is covered transitively — the fixture is generated from the CommandMap by the gen tool — and both are enforced here by the TargetAssertions pins and the C-5 inspection): the name joins REGISTERED_COMMANDS beside mt_rollback_restore/mt_rollback_status, joins the generate_handler! list in main.rs (the M-068 cluster), joins src/renderer/src/ipc/contract/types.ts (CommandMap and the command-name union), and the fixture test/fixtures/ipc-channels/tauri.v2.json gains mt::rollback::restore_outcome beside its siblings — regenerated via node tools/gen-tauri-v2-fixture.mjs; the command also gains the app-store stub variant (the hand-written stub pattern of the m068 cluster), keeping cargo build --features app-store compilable — the stub returns Ok(null) (the status-stub pattern), so an app-store build's boot stays quiet instead of logging the fallback error; the read side enforces the same bounds as the write — an unparsable marker, or one whose error field exceeds the 200-char write-side cap, is treated as null and cleared; a schema-valid marker missing the at field is unparsable by the same strict-schema rule; header conventions honored — m001_validate.rs gains its CHANGE_SUMMARY line per the C-UPDATER-ROLLBACK precedent.</Criterion>
+          <Criterion>Rust unit tests (the existing #[cfg(test)] seams of m068_rollback.rs, in the style of prefs_skipped_line_is_human_and_truthful) prove: the skip path writes the marker with the truncated error string (the cap asserted with a long injected reason); the success path leaves no marker; a stale marker is removed when a new restore starts (both restore entries); the removal helper clears an unconsumed marker on a TempDir root (the prepare call site textually pinned — prepare_inner itself is not refactored); a failed marker write leaves the restore outcome unchanged (the best-effort pin); the written marker carries the at timestamp; an unparsable marker, one missing the at field, and one with an over-200-char error field read as null and clear — the cap test using a long multi-byte non-ASCII reason so truncation is proven char-boundary-safe; the marker SURVIVES the live-consuming step of a full gui_restore_verified run (the round-1 finding that motivated the root-level pin); the read-and-clear returns the record once and null thereafter.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">sh -c "cargo test --manifest-path src-tauri/Cargo.toml --bin mark m068 &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml --bin mark m001_validate"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>The seven feedback keys across all ten locales, gated</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The existing rollback locale family gains restoreFailedTitle and restoreFailedBody (honest rollback-failure copy: the previous version could not be restored, details in the log — never a promise to retry) and prefsSkippedTitle and prefsSkippedBody (the rollback itself completed, the saved settings could not be brought back, some settings may be back at their defaults); the existing notifications family gains actionFailedTitle and actionFailedBody (a quiet generic action-failure copy, not reveal-specific) and the source chip key notifications.source.rollback (the rollback card injects source: 'rollback' and every locale table lacks the key today, so the chip renders raw key text uppercased) — seven keys in all, each landing with non-empty native copy in all ten shipped locales (static/locales/*.json).</Criterion>
+          <Criterion>tests/renderer/i18n/locale-keys.test.js gains the rollback-feedback pin: the seven keys present and non-empty in all ten locale tables, in the C-TITLEBAR-MODE-CHIPS R-4 pattern; the existing modeChips and inventory guards stay untouched and green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="180">npx vitest run tests/renderer/i18n</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Honest notification actions: the card awaits, a failing Reveal speaks</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>runAction becomes async (const runAction = async (action) =&gt; {) and awaits both action.handler() and action.payload(); a rejection is caught — console.error marker plus a warning notice titled/formed from notifications.actionFailedTitle/Body, its source carried from the failing action's own card (props.entry.source — honest provenance, not the SYSTEM default) — so no action rejection escapes as unhandled; the success paths are behavior-identical (same handlers, same dismissal semantics).</Criterion>
+          <Criterion>Both editor.js reveal payloads (2241 and 2371) return window.electron.shell.showItemInFolder(filePath) instead of discarding it, so the awaited card path observes the Tauri opener promise.</Criterion>
+          <Criterion>Renderer tests prove: an injected showItemInFolder rejection (per call site) surfaces the localized warning notice — its message equal to the localized notifications.actionFailedBody and containing none of the injected raw error string, its source the action's own card source — and produces zero unhandled promise rejections (vitest unhandledrejection capture); a resolving payload shows no notice; the handler branch still runs plain sync handlers.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="180">npx vitest run tests/renderer/components/notificationCard.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Rollback confirmation that cannot fail silently</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The dynamic @tauri-apps/api/core import moves inside the try of CONFIRM_ROLLBACK (the import rejection joins the invoke failure path); the catch keeps console.error with the raw error for logs and raises an error-severity notice (the spec's literal "error notification"; the store's own severity rule makes error notices sticky — a confirmed-but-failed rollback must not vanish; source: 'rollback', so the chip reads the new localized source key) titled/formed from rollback.restoreFailedTitle/Body — the raw Rust error string no longer reaches the GUI (title: 'Rollback failed' and message: String(e) are gone from the notice).</Criterion>
+          <Criterion>The rollbackConfirm component awaits store.CONFIRM_ROLLBACK() (await store.CONFIRM_ROLLBACK()) with its own catch reduced to a console marker — the store owns user feedback, the component owns rejection hygiene; the card-hiding order is unchanged (visible = false before the restore attempt remains the accepted UX: failure raises the notice instead of resurrecting the card).</Criterion>
+          <Criterion>Renderer tests prove: an injected dynamic-import failure raises the localized notice and leaves zero unhandled rejections (the finding-12 hole); an injected invoke rejection raises the same localized notice (title from the key, not the hardcoded English; severity error pinned by the test; the message equals the localized rollback.restoreFailedBody and contains none of the injected raw error string — the last line of defense for finding 14); the happy path restores exactly as today.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/components/rollbackConfirm.test.js tests/renderer/store/autoUpdates.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Truthful copy: the pulse only follows a real clipboard write</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>copySelectionText reports the real outcome as a promise on EVERY path — Promise.resolve(false) for empty input and for a missing Clipboard API, writeText(text).then(() =&gt; true, () =&gt; false) for the write — so callers can chain unconditionally (chaining .then on a plain boolean false throws, and the vitest jsdom environment ships no navigator.clipboard, making the missing-API path the default test reality); the silent-failure contract of the M-067 quiet-developer voice stays (no toast, no notice), but the function never claims success it did not observe — including the synchronous-throw corner of writeText inside the try, whose catch path resolves false like every other failure (the whole body is wrapped: every path, thrown or not, returns a promise); the module-contract comments (corner C-4 block) are updated to say exactly that.</Criterion>
+          <Criterion>Both copy-on-select surfaces — the notificationCard and the editor banner (components/editorWithTabs/notifications.vue, the same copy-then-pulse shape the spec's surface-general Goal 3 covers) — pulse only on a resolved successful write, with the Range/Element captured synchronously in the release handler BEFORE the chain (inside the existing try, guarded by sel.rangeCount &gt; 0 — a deferred getRangeAt can throw IndexSizeError past the handler's catch or pulse the wrong node after the selection collapses) and passed into the callback: copySelectionText(sel.toString()).then((ok) =&gt; { if (ok) applyCopyPulse(range) }).catch(() =&gt; {}) — a missing Clipboard API and a rejected writeText both produce no pulse; a successful write pulses exactly once; the reduced-motion and multi-node-range degradations are unchanged; the notificationsHistory caller keeps ignoring the return value (no behavior change there).</Criterion>
+          <Criterion>Renderer tests prove all three clipboard cases (absent API / rejected write / success) for the resolved value and for the pulse on BOTH surfaces (card and banner), plus the selection-collapsed-before-resolution case (no throw, no unhandled rejection — a captured Range is a frozen snapshot that survives the collapse, so on a successful write the pulse still lands on the captured node, which is honest feedback for a copy that did happen, and on an absent or rejected write there is no pulse) and the unchanged history-copy behavior; the card's copy-kind action call site (index.vue:164) keeps discarding the return value — unchanged, no pulse; the existing boolean pins in tests/renderer/services/notification-deep.test.js migrate to the promise contract (awaited, toBe on resolved values for the success/empty/rejecting/missing-API cases) with its applyCopyPulse and reduced-motion coverage untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/services/notification.test.js tests/renderer/services/notification-deep.test.js tests/renderer/components/notificationCard.test.js tests/renderer/components/editorWithTabs/notifications.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>The prefs-skip boot notice in the restored session</Title>
+        <DependsOn>T-001, T-002, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The mt_rollback_restore_outcome query runs at the very start of RUN_LAUNCH_CHECK — BEFORE the updater gate's early return (autoUpdates.js:184-187) and every check path, on its own injectable option (outcomeInvokeFn) with the dynamic-import fallback — the shared invokeFn option stays exclusive to mt_updater_check, so the five existing invoke-count pins of autoUpdates.test.js (lines 249, 270, 356, 370, 385) stand untouched (the outcome query rides its own seam, so the injected invokeFn mock is never called by it — the dynamic-import fallback rejects quietly under jsdom), and the new tests inject outcomeInvokeFn directly — because the gate skips exactly the boots the notice targets (throttled &lt;24 h after the install-time check stamp, whats-new-deferred, auto-check off); when the structured fact is present it raises a sticky warning notice (sticky: true, the sibling boot-surface pattern — an unpinned warning auto-dismisses in 10 s and the read-and-clear fact can never resurface; dedupKey: 'rollback-prefs-skipped' — the rollbackConfirm singleton pattern, so a future multi-window boot cannot stack the notice; source: 'rollback', so the chip reads the new localized source key) titled/formed from rollback.prefsSkippedTitle/Body; the notice copy is static locale text — the marker's error field is developer diagnostics (console marker only) and is never interpolated into the GUI; the read-and-clear semantics make the notice one-shot — the next boot sees null and stays silent; a record whose at timestamp is older than 48 h is suppressed and cleared with a console marker only — the timestamp bound is what closes the transition era, where the restored pre-feature binary's own prepare cannot remove the marker; a null outcome changes nothing on the boot path.</Criterion>
+          <Criterion>Renderer tests prove: a stubbed invoke returning the skip record shows exactly the localized sticky notice (once, key-formed title, the marker's error field absent from the GUI) even when the updater gate returns check:false (the gated-off boot case — e.g. autoCheckUpdates off via the facade stub); a null outcome shows nothing; a stale record (at older than 48 h) is suppressed and cleared — no notice, console marker only; the query failure path stays quiet (a boot notice must not be born from a broken fact channel — console marker only).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/store/autoUpdates.test.js</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Graph, verification and LINKS deltas</Title>
+        <DependsOn>T-003, T-004, T-005, T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>M-067's features.xml entry records the honest-async action contract, the truthful copy pulse and the action-failure notice; M-068's entry records the structured restore-outcome fact channel (marker + mt_rollback_restore_outcome) and the localized rollback-feedback surface; V-M-067/V-M-068 in verification/features.xml gain the new evidence (the exact test names this wave adds, in the living-tracker pattern); both amendments reference C-RENDER-REVIEW-FIXES; the edits land strictly after (or rebased on) C-STATS-READOUT's own deltas in the same two files — no entry of any other change is touched.</Criterion>
+          <Criterion>The LINKS headers of the seven governed source files (notificationCard, rollbackConfirm, editor.js, autoUpdates.js, services/notification, m068_rollback.rs, editorWithTabs/notifications.vue) gain .grace/changes/active/C-RENDER-REVIEW-FIXES alongside their existing references; the MODULE_MAP blocks of edited files are updated where the new locals/exports change them (the locale gate and the lint module-map checks stay green).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">sh -c "grep -q 'C-RENDER-REVIEW-FIXES' .grace/graph/features.xml &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' .grace/verification/features.xml &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' src/renderer/src/store/autoUpdates.js &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' src-tauri/src/m068_rollback.rs &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' src/renderer/src/components/editorWithTabs/notifications.vue &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' src/renderer/src/components/notificationCard/index.vue &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' src/renderer/src/components/rollbackConfirm/index.vue &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' src/renderer/src/store/editor.js &amp;&amp; grep -q 'C-RENDER-REVIEW-FIXES' src/renderer/src/services/notification/index.js"</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Closing sweep: rebase truth, whole-suite gates, measured evidence</Title>
+        <DependsOn>T-001, T-002, T-003, T-004, T-005, T-006, T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Against the landed baseline (rebased on fork/main after C-STATS-READOUT's graph deltas): every baseline pin of this plan still described the pre-edit truth at execution start, and every target pin holds in the final tree (grace lint target/final run externally by the execution flow); npm test is green whole-suite with the measured time recorded against the 900 s budget; the e2e notifications-system spec is green (acceptance tier — browser-startup-dominated, not a task gate); the ten-locale completeness gate is green; the secrets-name-only sweep over every touched file in its final state (locales included) finds nothing secret-shaped — the new strings are human copy, the marker schema is bounded.</Criterion>
+          <Criterion>The four deferred rollback-integrity defects (deployment.xml F-* tracker) remain untouched — verified by the diff touching none of their sites; no notification-stack or rollback-flow redesign crept in.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npm test</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <!-- Execution-phase corners: the spec's findings re-baselined against the implementation, plus the process checks. They double as the reviewer checklists for the four-corner gate. -->
+      <C-1>
+        <Situation>An injected showItemInFolder rejection through each of the two editor.js reveal payloads (2241, 2371), in vitest with unhandledrejection capture on.</Situation>
+        <Expected>The card's awaited runAction catches it; a warning notice formed from notifications.actionFailedTitle/Body appears, carrying the action's own card source; zero unhandled promise rejections; the raw error is in the console marker only and never in the notice message.</Expected>
+      </C-1>
+      <C-2>
+        <Situation>An injected dynamic-import failure (and, separately, an mt_rollback_restore invoke rejection) inside CONFIRM_ROLLBACK; the rollbackConfirm component path observed.</Situation>
+        <Expected>Both failures raise the localized rollback.restoreFailedTitle/Body error-severity notice (sticky by the store's error rule); the component's awaited promise leaves nothing unhandled; the card stays hidden (the accepted UX); the raw Rust string never reaches the GUI.</Expected>
+      </C-2>
+      <C-3>
+        <Situation>The three clipboard cases at both copy-on-select surfaces (notification card and editor banner): navigator.clipboard absent; writeText rejecting; writeText resolving.</Situation>
+        <Expected>Absent → copySelectionText resolves false, no pulse; rejecting → resolves false, no pulse, no notice (silent quiet-developer voice); resolving → resolves true and exactly one green pulse; the Range is captured synchronously before the chain, so collapse-before-resolution can neither throw, nor leave an unhandled rejection, nor pulse a node other than the captured one (a successful write still pulses the captured region — honest; an absent or rejected write does not pulse at all); reduced-motion and multi-node ranges degrade exactly as before; the history copy call site is unchanged.</Expected>
+      </C-3>
+      <C-4>
+        <Situation>A restored macOS session booting after a rollback whose preferences restore was skipped (marker present — the skip site is macOS-only; a Windows prefs failure hard-aborts the restore and surfaces through the localized restore-failure notice), then booting again.</Situation>
+        <Expected>First boot: exactly one sticky warning notice from rollback.prefsSkippedTitle/Body via the outcome query — shown even when the updater gate would skip the boot check (the query precedes the gate); second boot: silent (read-and-clear returned null); prepare-entry removal keeps same-era markers from ever reaching a later update, and in the transition era (a pre-feature restored binary whose prepare cannot know the marker) a fresh &lt;48 h marker may surface the one-shot notice on the next post-feature boot — honest, the skipped preferences were never restored — while anything older than 48 h is suppressed regardless of era (the at-timestamp bound); a query failure stays quiet with a console marker; the marker's error field never reaches the GUI; the CLI stderr human line is unchanged English.</Expected>
+      </C-4>
+      <C-5>
+        <Situation>The Rust fact channel inspected: marker content, write sites, command surface, allowlist.</Situation>
+        <Expected>restore-outcome.json lives at rollback_root() itself (outside the consumed live/ set — it survives the restore's remove_dir_all and the boot finalization) and holds only {"prefs":"skipped","error":"&lt;free-form diagnostics capped at 200 chars&gt;","at":"&lt;unix-seconds&gt;"} — no dedicated path/digest/secret fields; written only at the shared macOS skip site, best-effort (a failed write never alters the restore outcome); stale copies removed at every restore entry and unconsumed copies at the prepare entry via the root-explicit removal helper (prepare_inner keeps its signature), with the at timestamp (48 h consumer window) bounding the fact across eras; mt_rollback_restore_outcome is read-and-clear — the read side enforcing the same bounds (an unparsable or over-long marker reads as null and clears) — and completes the four-site registration chain plus the app-store stub variant (the boot parity gate enforces the fixture↔allowlist pair in both directions; the hand-synced and transitively-covered sites are pinned by this plan's TargetAssertions); the restore algorithm itself is byte-unchanged beyond the additive channel.</Expected>
+      </C-5>
+      <C-6>
+        <Situation>Notification interaction latency and boot cost after the wave (awaits on action paths, one extra invoke on the boot path).</Situation>
+        <Expected>No synchronous blocking added (awaits are microtask-level; the pulse resolves within a frame of the write); the boot outcome query rides the existing awaited RUN_LAUNCH_CHECK path and a null answer costs one rejected-free invoke; no new timers or watchers.</Expected>
+      </C-6>
+      <C-7>
+        <Situation>The localization surface: seven keys (the six feedback keys plus notifications.source.rollback), ten locale tables, completeness gate, every GUI-visible rollback string.</Situation>
+        <Expected>All seven keys non-empty native copy in all ten locales; locale-keys gate green; no hardcoded English remains on the rollback-feedback surface (title, bodies, prefs-skip notice); the locale family shape matches the existing rollback/notifications namespaces.</Expected>
+      </C-7>
+      <C-8>
+        <Situation>Process truth: LINKS headers, graph and verification deltas, scope discipline, serial arcs.</Situation>
+        <Expected>Seven governed headers carry the change reference; M-067/M-068/V-M-067/V-M-068 deltas reference C-RENDER-REVIEW-FIXES and the new tests by name; the four deferred rollback-integrity defects untouched; single-writer arcs honored (T-003→T-005, T-004→T-006, and m068_rollback.rs serialized transitively T-001 ≺ T-006 ≺ T-007); graph-file deltas sequenced after C-STATS-READOUT's.</Expected>
+      </C-8>
+    </CornerMatrix>
+    <ReviewLog>
+      <!-- The plan's own four-corner gate: two consecutive clean passes required before the execution proposal. Rounds appended below. -->
+      <Review number="1" verdict="red" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-7fa66a28-98fa-4c68-af9a-21796b733174 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>0/4 corners clean; 5 blocking, 12 important, 6 note findings; reviewers ran live probes against the current tree (a cargo --no-run target check, a vue-i18n t() probe with the repo's own build options, locale-table parses).</Result>
+        <Applied>
+          <Fix>Blocking (CORR-F-1): the T-001 cargo command fixed to the binary crate — the package has no lib target, a reviewer's --lib --no-run probe exited 101 — now --bin mark, and extended with a second filtered run of the m001 fixture-parity test so the registration chain has its own gate.</Fix>
+          <Fix>Blocking (CORR-F-2 + SECU-F-1 + SECU-F-2, one defect): registration expanded to the four-site chain — REGISTERED_COMMANDS, main.rs generate_handler!, src/renderer/src/ipc/contract/types.ts, and the tauri.v2.json fixture regenerated by the repo's gen tool — with the three files added to ObservedWriteScope and pinned in Baseline/TargetAssertions; the boot parity gate exits 1 on drift in either direction, so the plan's own gates now see the chain.</Fix>
+          <Fix>Blocking (UX-F-1 + PERF-F-1 + CORR-F-6, one defect): the editor banner's identical false-success pulse joins T-005 (the spec's Goal 3 is surface-general) — synchronous Range capture, outcome-conditional pulse, its test file added to scope and verification.</Fix>
+          <Fix>Important (CORR-F-3 + PERF-F-3): copySelectionText pinned to a promise on every path (Promise.resolve(false) branches), so the unconditional .then chain cannot throw in the missing-API case (jsdom ships no navigator.clipboard — the default test reality).</Fix>
+          <Fix>Important (PERF-F-2): the Range/Element captured synchronously before the chain and passed into the callback, with a .catch on the chain and the collapsed-selection test case — the deferred path also owes zero unhandled rejections.</Fix>
+          <Fix>Important (CORR-F-4 + UX-F-2 + PERF-F-4): the outcome query pinned to the start of RUN_LAUNCH_CHECK, before the updater gate's early return (the gate skips exactly the boots the notice targets — throttled, whats-new-deferred, auto-check off), with the gated-off boot test case.</Fix>
+          <Fix>Important (CORR-F-5 + UX-F-6 + SECU-F-5): the marker path pinned to rollback_root() itself, outside the consumed live/ set, with a survival test; stale removal pinned for both restore entries (gui_restore_core and the CLI restore_inner).</Fix>
+          <Fix>Important (UX-F-3): notifications.source.rollback added as the seventh locale key — the rollback card's source chip today renders raw key text uppercased in every locale (the reviewer's vue-i18n probe proved the t() passthrough).</Fix>
+          <Fix>Important (UX-F-5): restore-failure notice severity pinned to error — the spec's literal "error notification", sticky by the store's own rule; no spec rewording needed.</Fix>
+          <Fix>Notes (SECU-F-3 + SECU-F-4) applied: the marker's error field truncated to 200 chars (test-asserted so the bound survives error-chain changes) and pinned never-rendered (the notice copy is static locale text; the field is console-only diagnostics).</Fix>
+          <Fix>Notes (CORR-F-7 + PERF-F-5) accepted as recorded: the budgets rest on the sibling's recorded measurements (suite 119-306 s) plus this wave's jsdom-case arithmetic — plausibility-checked, not re-measured; the e2e acceptance-tier placement follows the C-UPDATER-STATS/C-UPDATER-ROLLBACK convention (tests/e2e is outside the vitest include set; the spec's e2e stubs writeText to a resolving promise, so the deferred pulse keeps it green); the timers/watchers sweep found none.</Fix>
+        </Applied>
+        <Deferred>None — every round-1 finding is addressed or consciously recorded above.</Deferred>
+      </Review>
+      <Review number="2" verdict="red" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-78d3b66c-98a8-4747-a5a4-2be3f0e9c3ea (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>1/4 corners clean (Security, notes only); 0 blocking, 5 important, 7 note findings; a reviewer ran a live jsdom probe proving a synchronously captured Range survives selection collapse and still pulses — the round-1 sync-capture fix had over-promised "no pulse" for that case.</Result>
+        <Applied>
+          <Fix>Important (CORR-F-1): C-8's "Six governed headers" corrected to seven — the round-1 banner addition had missed the corner text.</Fix>
+          <Fix>Important (CORR-F-2 + SECU-F-1, one defect): the gate-coverage wording corrected everywhere — the boot parity gate enforces only the fixture↔allowlist pair (both directions); the generate_handler! and ipc-contract sites are hand-synced per the m001 MODULE_CONTRACT and enforced here by the TargetAssertions pins and the C-5 inspection (the suggested extra Rust handler-list test consciously not adopted: the textual pins already cover both sites).</Fix>
+          <Fix>Important (UX-F-1 + PERF-F-1, one defect, jsdom-proven): the collapsed-selection expectation reworded — with the synchronous capture the pulse lands on the captured node (honest feedback for a copy that did happen); the case now pins "no throw, no unhandled rejection; a successful write pulses the captured node, an absent or rejected write does not pulse" — criteria 2 and 3 now describe one behavior.</Fix>
+          <Fix>Important (UX-F-2): freshness bound — the prepare entry (update-install snapshot creation) removes an unconsumed marker, so the fact's audience is strictly the restored session's boots before the next update begins; a later update's first boot can never inherit a weeks-old skip (the transition era, when the restored binary predates the notice consumer, is exactly the case the prepare-removal closes); test case added.</Fix>
+          <Fix>Notes (CORR-F-3): marker-content claim reworded to "no dedicated path/digest/secret fields; free-form diagnostics capped at 200 chars" — a genuine io error may name a file in its Display text, and the old wording would fail a correct implementation at C-5.</Fix>
+          <Fix>Notes (CORR-F-4): the IntentSummary's serial-arc sentence now names the transitive m068_rollback.rs serialization (T-001 ≺ T-006 ≺ T-007).</Fix>
+          <Fix>Notes (SECU-F-2): the marker write pinned best-effort and non-fatal — a failed write logs a stderr marker and never alters the restore outcome or its exit code; test case added.</Fix>
+          <Fix>Notes (UX-F-3): the T-004 test now pins the notice message too — the localized restoreFailedBody with none of the injected raw error string (the last line of defense for finding 14).</Fix>
+          <Fix>Notes (UX-F-4 + PERF-F-2) recorded: OPEN_ROLLBACK_CONFIRM's pre-existing silent status-failure (autoUpdates.js:309-312) joins the deferred feedback-hygiene candidates — out of scope per the spec's NonGoals; the 900 s budget basis verified against the sibling's recorded measurements, the execution flow's command timeout stays ≥ 420 s.</Fix>
+        </Applied>
+        <Deferred>None — every round-2 finding is addressed or consciously recorded.</Deferred>
+      </Review>
+      <Review number="3" verdict="red" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-ccb3f887-175a-4063-8643-03b6a5a20df3 (four fresh GLM-5.3-Flash reviewers, one per corner; the run survived a 37-minute provider network stall on retries)</Run>
+        <Result>1/4 corners clean (Security, notes only); 1 blocking, 3 important, 7 note findings; the blocking finding proved deterministically that the round-2 promise contract breaks the existing boolean pins of tests/renderer/services/notification-deep.test.js (toBe on a Promise is never true), and a UX finding overturned round-2's transition-era claim (the era's prepare runs inside the pre-feature binary, which cannot remove the marker).</Result>
+        <Applied>
+          <Fix>Blocking (PERF-F-1): tests/renderer/services/notification-deep.test.js added to ObservedWriteScope and T-005 — its copySelectionText boolean pins migrate to the promise contract (awaited, toBe on resolved values), its pulse/reduced-motion coverage untouched, and the file joins T-005's verification command so the task gate sees it, not only the T-008 whole-suite run.</Fix>
+          <Fix>Important (UX-F-1): the transition-era hole closed with an absolute bound — the marker schema gains an at unix-seconds field, and the renderer consumer suppresses anything older than 48 h (console marker only, still cleared); prepare-entry removal stays as same-era cleanliness. Round-2's "can never inherit" absolute claim is replaced by the timestamp-bound truth; T-001, T-006, C-4, C-5 and the design context all updated, with stale-record test cases added.</Fix>
+          <Fix>Important (CORR-F-1 + UX-F-2, one defect): the key-count drift finally swept everywhere — T-002 retitled to seven keys and C-7's Situation/Expected renumbered with notifications.source.rollback named explicitly (the same correction round 2 applied to C-8).</Fix>
+          <Fix>Notes (CORR-F-2 + UX-F-4): the macOS-only scope of the skip site recorded in T-001, C-4 and C-5 (the Windows restore hard-aborts on a prefs failure and surfaces through the localized restore-failure notice instead).</Fix>
+          <Fix>Notes (CORR-F-3): provenance corrected — generate_handler! is hand-synced per the m001 MODULE_CONTRACT; the ipc-contract site is covered transitively (the fixture is generated from the CommandMap), not hand-synced.</Fix>
+          <Fix>Notes (SECU-F-1): the command also gains the app-store stub variant (the m068 cluster's hand-written stub pattern), keeping cargo build --features app-store compilable.</Fix>
+          <Fix>Notes (SECU-F-2): read-side bounds pinned — an unparsable or over-long marker reads as null and clears; test case added.</Fix>
+          <Fix>Notes (UX-F-3): the card's copy-kind action call site (index.vue:164) pinned unchanged — return value ignored, no pulse.</Fix>
+          <Fix>Notes (PERF-F-2) recorded for the execution proposal: the flow's npm-test command timeout must be set to the full 900 s budget, not the 420 s floor, so the runner's kill switch and the plan's budget agree.</Fix>
+        </Applied>
+        <Deferred>None — every round-3 finding is addressed or consciously recorded.</Deferred>
+      </Review>
+      <Review number="4" verdict="red" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-2a2b1188-fe2e-4ac2-ae66-f7490cae6942 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>3/4 corners clean; 0 blocking, 1 important, 8 note findings — the single important was a seam ambiguity in T-006 that would deterministically break five existing invoke-count pins of autoUpdates.test.js under the shared-seam reading.</Result>
+        <Applied>
+          <Fix>Important (CORR-F-1): the T-006 outcome query pinned to its own injectable option (outcomeInvokeFn) with the dynamic-import fallback — the shared invokeFn stays exclusive to mt_updater_check, the five existing pins of autoUpdates.test.js (249, 270, 356, 370, 385) stand untouched per the reviewer's setup-mock analysis, and the new tests inject outcomeInvokeFn directly.</Fix>
+          <Fix>Notes (CORR-F-2): the IntentSummary's independence sentence reworded — every other shared file is serialized by T-007's direct dependencies (the reviewer verified the DAG itself passes).</Fix>
+          <Fix>Notes (CORR-F-3): T-007's grep chain extended to all seven governed headers (was 3 of 7), matching C-8's expectation.</Fix>
+          <Fix>Notes (SECU-F-1): the marker root inside gui_restore_verified pinned to the base.parent() derivation, so the root-override test seam drives a temp root and never the real data root.</Fix>
+          <Fix>Notes (SECU-F-2): the app-store stub return pinned to Ok(null) — the status-stub pattern — so an app-store build's boot stays quiet.</Fix>
+          <Fix>Notes (SECU-F-3): the read-side bound given its numeric threshold (an error field over the 200-char write-side cap reads as null and clears), with the test case reworded to match.</Fix>
+          <Fix>Notes (UX-F-1): both new notices pinned source: 'rollback', so their chips read the new localized source key instead of defaulting to SYSTEM — provenance consistent with the confirmation card on the same surface.</Fix>
+          <Fix>Notes (PERF-F-1 + PERF-F-2) accepted as recorded: the e2e pulse comment becomes cosmetically stale but its retrying assertion stays green — the wave does not touch the e2e spec for a comment; the 900 s budget re-verified against the sibling's recorded measurements (≥3x headroom, no new test files), and the execution proposal must set the flow's npm-test timeout to the full 900 s.</Fix>
+        </Applied>
+        <Deferred>None — every round-4 finding is addressed or consciously recorded.</Deferred>
+      </Review>
+      <Review number="5" verdict="red" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-07bf14ff-2827-49cb-9645-9607fd61da4b (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>2/4 corners clean (Correctness, Performance — notes only); 0 blocking, 2 important, 6 note findings; both importants were implementability/wording truths: the prepare-entry test as written had no seam to run on, and C-4 still carried round-3's absolute claim the transition era disproves.</Result>
+        <Applied>
+          <Fix>Important (SECU-F-1): the prepare-entry removal re-based on a root-explicit removal helper — tested directly on a TempDir, prepare_inner keeps its signature (the file's own recorded practice forbids driving it on the real data root), and the call site is textually pinned by the marker filename inside prepare_inner's body; T-001 criteria and C-5 updated.</Fix>
+          <Fix>Important (UX-F-1): C-4's Expected rewritten to the bound-based truth — prepare-entry removal keeps same-era markers from reaching a later update; in the transition era a fresh &lt;48 h marker may surface the one-shot notice on the next post-feature boot (honest — the skipped preferences were never restored); anything older is suppressed regardless of era.</Fix>
+          <Fix>Notes (SECU-F-2): the T-003 test now pins the action-failure notice message too — the localized actionFailedBody with none of the injected raw error string — making the finding-14 defense test-enforced on all three GUI ingests.</Fix>
+          <Fix>Notes (UX-F-2): the action-failure notice carries the failing action's own card source (props.entry.source) instead of defaulting to SYSTEM — honest provenance on the notice whose point is honesty; T-003 and C-1 updated.</Fix>
+          <Fix>Notes (UX-F-3) consciously not adopted: the {version} interpolation for restoreFailedTitle — static copy accepted (the confirm card names the version before the failure; adding interpolation buys little and costs key complexity).</Fix>
+          <Fix>Notes (PERF-F-N-1): round-4's "≥3x headroom" corrected arithmetically — 900/306 is ~2.9x; the binding budget is unaffected. CORR-F-1 and PERF-F-N-2 recorded as the round's static-validation disclosures (commands and budgets verified by reading, not running — the plan's own gates execute them).</Fix>
+        </Applied>
+        <Deferred>None — every round-5 finding is addressed or consciously recorded.</Deferred>
+      </Review>
+      <Review number="6" verdict="clean" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-6688111a-2c05-497a-a597-a03955727b68 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>4/4 corners clean — the first clean round; 0 blocking, 0 important, 9 note findings (advisory polish, queued for post-closure).</Result>
+        <Applied><Fix>None at round time — the artifacts stay untouched between the two clean passes; the notes joined the post-closure polish recorded with round 7.</Fix></Applied>
+        <Deferred>None.</Deferred>
+      </Review>
+      <Review number="7" verdict="clean" task="two-clean-passes">
+        <Date>2026-11-03</Date>
+        <Run>dwfrun-df52aa05-9b74-4831-aa2b-153632330dbd (four fresh GLM-5.3-Flash reviewers, one per corner; the confirmation pass over unchanged artifacts)</Run>
+        <Result>4/4 corners clean — the second consecutive clean round; THE GATE IS CLOSED. 0 blocking, 0 important, 9 note findings (advisory and disclosures).</Result>
+        <Applied>
+          <Fix>Post-closure advisory polish (rounds 6-7 notes, applied after closure per the C-UPDATER-REVIEW-FIXES precedent): the copySelectionText catch path pinned to resolve false — the synchronous-throw corner of writeText can no longer fall through to a success return; the cap test gains a multi-byte non-ASCII reason with char-boundary truncation (a byte-slice would panic on localized OS error text); a missing-at marker case added to the read-as-null enumeration; the T-006 notice gains dedupKey 'rollback-prefs-skipped' (the singleton pattern — future multi-window safety); the call-site pin reworded to the removal-helper call inside prepare_inner (survives the file's one-const-per-name practice); the T-006 seam rationale corrected (the injected invokeFn mock is never called by the query; the fallback rejects quietly under jsdom); restore_inner named precisely (the CLI and Windows-dialog entry); the m001_validate.rs CHANGE_SUMMARY line noted per the C-UPDATER-ROLLBACK precedent; the drifted gate reference refreshed to autoUpdates.js:184-187.</Fix>
+          <Fix>Consciously not adopted from the notes: the {version} interpolation (round 5, already recorded); the e2e comment refresh (the spec stays untouched, round-4 record); per-notice dedup beyond the prefs-skip singleton (T-003's action-failure notice keeps the stack's current per-raise behavior — same as today, and the 10 s auto-dismiss window makes stacking marginal).</Fix>
+        </Applied>
+        <Deferred>None — the gate is closed with rounds 6-7 clean; the plan is ready for the owner's approval.</Deferred>
+      </Review>
+    </ReviewLog>
+  </C-RENDER-REVIEW-FIXES>
+</GraceChangePlan>
