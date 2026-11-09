@@ -181,7 +181,6 @@ test.describe('chrome native theme (C-38 T-006)', () => {
     const iconAudit = await page.evaluate(() => {
       const scopes = ['.title-bar', '.editor-tabs', '.side-bar', '.search-bar']
       const offenders: string[] = []
-      let drawnOthers = 0
       for (const scope of scopes) {
         for (const svg of Array.from(document.querySelectorAll(`${scope} svg`))) {
           const computed = getComputedStyle(svg)
@@ -190,18 +189,23 @@ test.describe('chrome native theme (C-38 T-006)', () => {
               offenders.push(`${scope}: stroke ${computed.strokeWidth}`)
             }
           } else {
-            // A drawn glyph: stroke-based paths, no `use` sprite inside.
+            // A drawn glyph must carry no `use` sprite inside.
             const uses = Array.from(svg.querySelectorAll('use'))
             if (uses.length > 0) offenders.push(`${scope}: svg carries sprite refs`)
-            else drawnOthers += 1
           }
         }
       }
-      return { offenders, total: document.querySelectorAll('.chrome-icon').length, drawnOthers }
+      return { offenders, total: document.querySelectorAll('.chrome-icon').length }
     })
     expect(iconAudit.offenders).toEqual([])
     expect(iconAudit.total).toBeGreaterThan(5)
-    expect(iconAudit.drawnOthers, 'the quick-settings drawn glyph stays in the title bar').toBeGreaterThanOrEqual(1)
+    // Since the 2026-11-09 owner rework the quick-settings button carries
+    // the «Aa» TEXT glyph (a span, no svg) — assert it directly.
+    const qsAa = await page.evaluate(() => {
+      const span = document.querySelector('.quick-settings-btn .qs-aa')
+      return span ? span.textContent : null
+    })
+    expect(qsAa).toBe('Aa')
   })
 
   test('find-bar toggle glyphs render drawn chrome icons with aria', async ({ page }) => {
