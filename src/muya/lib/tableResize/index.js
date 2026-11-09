@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 3.4.1
+// VERSION: 3.4.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Table sizing and resize affordances in Auto (content-sized), Fit page (text frame) and Full width (window canvas). All modes wrap or squeeze rather than internally scroll; explicit Auto reset drops fixed widths. Fit/Full external edges are pinned, Auto alone exposes external walls, and internal borders remain draggable at full table height.
-//   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, proportional fitting and bounded manual drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
+//   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, fixed-geometry wrapping through Auto reconciliation, proportional fitting and bounded manual drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
 //   DEPENDS: muya.eventCenter (capture- and bubble-phase DOM events on muya.container), window pointer events during a drag, ResizeObserver (jsdom degrades to render-time evaluation only), DOM colgroup/th measuring; ./tableFit (measureColumnExtents, planTableFit, distributeIntoFrame, applyRatiosToWidth, ratiosFromWidths); ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS + the degradation badge formatting); ../parser/render/renderBlock/renderTableToolbar (the mode segment for the live active-state swap).
 //   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007/T-008/T-009, spec R-8/R-9/R-10/R-11, corners C-7/C-8/C-9/C-10); .grace/graph/performance.xml M-061 and runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21/scenario-66 and verification/performance.xml V-M-061; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js (schema v2) + tableLayoutRatios.js (the store-side ratio maths) + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side); store/preferences.js tableFullWidthDefault/rememberTableColumnSizes (the Tables-tab keys this module consumes).
 //   ROLE: RUNTIME
@@ -38,6 +38,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: Auto restores wrap
+//   chrome for fixed/session entries across reconciliation, including narrow
+//   columns whose border box fits but whose content minimum does not. Natural
+//   Auto and explicit reset remain unwrapped while content fits.
 //   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
 //   PREV: v3.4.1 - 2026-11-09 owner audit: sumWidths is honest
 //   rounding (re-flooring squeezed columns to the drag minimum
@@ -1175,7 +1179,11 @@ class TableResize {
       // hiding overflow or allowing word breaks leaves max-content tables
       // wide and conceals their final columns.
       if (!entry && table.querySelector('colgroup')) this.stripWidths(table)
-      table.classList.remove('ag-table-wrap-anywhere')
+      // Fixed widths still need wrapping even when their border box fits:
+      // a 48px column must not retain the cell-content 4em minimum. Vnodes
+      // carry the fixed class/colgroup, so restore this after every render.
+      // Natural Auto/reset has no entry and keeps content sizing.
+      table.classList.toggle('ag-table-wrap-anywhere', !!entry)
       const frame = this.frameWidthFor(figure, 'fit')
       if (entry && entry.tableWidth) {
         this.applyExplicitTableWidth(key, figure, table, entry)

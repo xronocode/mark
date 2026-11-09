@@ -17,6 +17,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: preserve fixed Auto
+//   wrapping through render/refit/tab reconciliation; require explicit frame
+//   clamp and slack-growth preconditions with settled pointer geometry.
 //   LAST_CHANGE: v1.1.0 - 2026-10-19 C-65 R-7 coverage completion: finder
 //   null/text-node/non-element guards, unmeasurable header rows, colgroup
 //   trimming of surplus cols, the missing-container guards of
@@ -160,6 +163,46 @@ describe('session width store (C-39 T-002)', () => {
 })
 
 describe('post-render reconciliation (C-39 T-002)', () => {
+  it.each([{ manual: [true, false, false] }, { manual: [false, false, false] }])('retains fixed Auto wrapping through repeated render/refit reconciliation ($manual)', ({ manual }) => {
+    const muya = makeFakeMuya()
+    const resize = muya.tableResize
+    const figure = document.createElement('figure')
+    figure.dataset.role = 'TABLE'
+    const wrapper = document.createElement('div')
+    wrapper.className = 'ag-table-scroll'
+    const table = buildTable('fixed-auto', 3)
+    wrapper.appendChild(table)
+    figure.appendChild(wrapper)
+    muya.container.appendChild(figure)
+    resize.setTableWidths(table.id, [660, 48, 48], manual)
+    const initial = JSON.stringify(resize.widths.get(table.id))
+    stubCellWidths(table, [660, 48, 48])
+    table.getBoundingClientRect = () => ({ width: table.style.width ? 756 : 200, height: 100, left: 0, right: 756, top: 0, bottom: 100 })
+    vi.spyOn(resize, 'frameWidthFor').mockReturnValue(768)
+    resize.applyWidths(table, resize.widths.get(table.id))
+    for (let pass = 0; pass < 3; pass++) {
+      // A vnode can carry fixed cols without post-layout wrap chrome.
+      table.classList.remove('ag-table-wrap-anywhere')
+      resize.reconcileAfterRender()
+      resize.refitNow()
+      expect(table.classList.contains('ag-table-wrap-anywhere')).toBe(true)
+      expect(table.style.width).toBe('756px')
+      expect(JSON.stringify(resize.widths.get(table.id))).toBe(initial)
+    }
+    // Explicit Auto reset must still discard the fixed geometry and let
+    // a natural narrow table return to content sizing without wrap chrome.
+    const auto = document.createElement('button')
+    auto.dataset.tableMode = 'auto'
+    figure.appendChild(auto)
+    resize.setModeFromElement(auto)
+    resize.reconcileAfterRender()
+    expect(resize.getWidths(table.id)).toBeUndefined()
+    expect(table.querySelector('colgroup')).toBeNull()
+    expect(table.classList.contains(TABLE_FIXED_CLASS)).toBe(false)
+    expect(table.classList.contains('ag-table-wrap-anywhere')).toBe(false)
+    expect(table.style.width).toBe('')
+  })
+
   it('reconciles stored widths when the column count changed (added column measured)', () => {
     const muya = makeFakeMuya()
     const table = buildTable('t1', 3)

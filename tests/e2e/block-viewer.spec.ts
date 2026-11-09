@@ -23,6 +23,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: preserve fixed Auto
+//   wrapping through render/refit/tab reconciliation; require explicit frame
+//   clamp and slack-growth preconditions with settled pointer geometry.
 //   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
 //   fitting/icon-only controls together with natural-size viewer access, real
 //   pointer/keyboard interactions and preserved document/dirty semantics.
@@ -1219,6 +1222,10 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.locator("figure[data-role='TABLE'] table").first()
       .waitFor({ state: 'visible', timeout: 15_000 })
 
+    await page.evaluate(async () => {
+      await document.fonts.ready
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    })
     const documentState = () => page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
       return { markdown: file.markdown, isSaved: file.isSaved }
@@ -1274,16 +1281,32 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(after.fixed).toBe(true)
     expect(after.colgroup).toBe(true)
     expect(Math.abs(after.widths[11] - Math.max(48, widthsBefore[11] - 40)), 'shrink obeys the 48px column floor').toBeLessThanOrEqual(2)
-    // A second real gesture verifies non-clamped resizing too.
+    // The separate three-column case proves unconstrained growth. This
+    // wide table instead pins the frame clamp with a deliberately larger
+    // drag: the fixed column must leave the other eleven at their floor.
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+    const frame = await page.locator("figure[data-role='TABLE']").first().evaluate(el => {
+      const padding = getComputedStyle(el.querySelector('.ag-table-scroll')!)
+      return el.clientWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight) - 1
+    })
+    const floor = Math.min(48, Math.floor(frame / after.widths.length))
+    const maxColumn = Math.floor(frame) - (after.widths.length - 1) * floor
+    const delta = 200
     const grownBox = await lastTh.boundingBox()
+    expect(grownBox!.width + delta, 'fixture must reach the frame clamp').toBeGreaterThan(maxColumn)
     const gx = grownBox!.x + grownBox!.width - 2
     const gy = grownBox!.y + grownBox!.height / 2
     await page.mouse.move(gx, gy)
     await page.mouse.down()
-    await page.mouse.move(gx + 40, gy, { steps: 8 })
+    await page.mouse.move(gx + delta, gy, { steps: 8 })
     await page.mouse.up()
-    const grown = await lastTh.evaluate(el => el.getBoundingClientRect().width)
-    expect(grown - after.widths[11], 'last-border growth remains operable').toBeGreaterThanOrEqual(36)
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+    const settled = await page.locator("figure[data-role='TABLE'] thead th").evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width))
+    const grown = settled[11]
+    expect(Math.abs(grown - maxColumn), 'last-border growth respects the exact frame clamp').toBeLessThanOrEqual(2)
+    expect(grown).toBeGreaterThan(after.widths[11])
+    expect(settled.slice(0, -1).every(width => Math.abs(width - floor) <= 1), 'the remaining columns keep their frame floor').toBe(true)
+    expect(settled.reduce((sum, width) => sum + width, 0)).toBeLessThanOrEqual(frame + 1)
     const liveWidths = await page.locator("figure[data-role='TABLE'] table col").evaluateAll(cols => cols.map(col => (col as HTMLElement).style.width))
     await page.locator("figure[data-role='TABLE'] button.ag-block-toolbar-expand").click()
     const viewer = page.locator('.ag-block-viewer-open')

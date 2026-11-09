@@ -17,6 +17,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: preserve fixed Auto
+//   wrapping through render/refit/tab reconciliation; require explicit frame
+//   clamp and slack-growth preconditions with settled pointer geometry.
 //   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted no-scroll Auto geometry and live body-border coordinates.
 //   PREV: v1.4.0 - 2026-11-05 owner-smoke fix pin: widening a
 //   column must carry the side walls to the table's new edges (a wall
@@ -65,6 +68,10 @@ test.describe('table column resize (C-39 T-002)', () => {
     await wrapper.waitFor({ state: 'visible', timeout: 15_000 })
     await page.locator("figure[data-role='TABLE'] table").first()
       .waitFor({ state: 'visible', timeout: 10_000 })
+    await page.evaluate(async () => {
+      await document.fonts.ready
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    })
     return wrapper
   }
 
@@ -117,6 +124,7 @@ test.describe('table column resize (C-39 T-002)', () => {
     await page.mouse.down()
     await page.mouse.move(x + delta, y, { steps: 10 })
     await page.mouse.up()
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
   }
 
   test('dragging a border resizes that column live; the others are unchanged', async ({ page }) => {
@@ -133,6 +141,13 @@ test.describe('table column resize (C-39 T-002)', () => {
     const before = await columnWidths(page)
     expect(before).not.toBeNull()
     expect(before!.length).toBe(3)
+
+    const frame = await page.locator("figure[data-role='TABLE']").first().evaluate(el => {
+      const wrapper = el.querySelector('.ag-table-scroll')!
+      const padding = getComputedStyle(wrapper)
+      return el.clientWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight) - 1
+    })
+    expect(before!.reduce((sum, width) => sum + width, 0) + 120, 'this fixture has real room for un-clamped growth').toBeLessThan(frame)
 
     await dragBorder(page, 0, 120)
 
@@ -258,34 +273,54 @@ test.describe('table column resize (C-39 T-002)', () => {
     expect(state!.colgroup).toBe(false)
   })
 
-  test('a wide Auto drag fits all columns without wrapper or page scrolling', async ({ page }) => {
-    await openResizeTab(page)
-
+  test('a wide Auto drag preserves wrapped fixed cells through tab reconciliation without scrolling', async ({ page }) => {
+    const markdown = TABLE_MD.replace('Beta column', 'UnbreakableBetaColumnToken').replace('Gamma', 'UnbreakableGammaColumnToken')
+    await bootEditor(page)
+    await openFileTab(page, RESIZE_PATH, markdown)
+    await waitForTable(page)
+    const beforeMarkdown = await currentMarkdown(page)
+    const beforeSaved = await currentIsSaved(page)
     await dragBorder(page, 0, 600)
-    // T-007: Auto IS the in-column wrapper-scroll mode — the widened table
-    // stays content-sized and nothing auto-expands (the C-65 default this
-    // test used to escape with two toggle clicks is retired).
     const figure = page.locator("figure[data-role='TABLE']").first()
     await expect(figure).not.toHaveClass(/ag-table-full-width/)
 
-    const m = await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      const editorScroller = document.querySelector('.editor-component') as HTMLElement
-      return {
-        tableWidth: wrapper.querySelector('table').getBoundingClientRect().width,
-        columnWidths: Array.from(wrapper.querySelectorAll('thead th')).map(cell => cell.getBoundingClientRect().width),
-        columnStyles: Array.from(wrapper.querySelectorAll('col')).map(cell => cell.getAttribute('style')),
-        wrapClass: wrapper.querySelector('table').className,
-        cellPadding: getComputedStyle(wrapper.querySelector('thead th')).padding,
-        overflowing: Array.from(wrapper.querySelectorAll('*')).map(el => ({ tag: el.tagName, cls: el.className, right: el.getBoundingClientRect().right, sw: el.scrollWidth, cw: el.clientWidth })).filter(el => el.right > wrapper.getBoundingClientRect().right + 1 || el.sw > el.cw + 8),
-        scrollWidth: wrapper.scrollWidth,
-        clientWidth: wrapper.clientWidth,
-        pageScrollWidth: editorScroller.scrollWidth,
-        pageClientWidth: editorScroller.clientWidth
+    const assertWrappedGeometry = async () => {
+      await expect(figure.locator('table')).toHaveClass(/ag-table-wrap-anywhere/)
+      const m = await figure.evaluate(el => {
+        const wrapper = el.querySelector('.ag-table-scroll') as HTMLElement
+        const table = wrapper.querySelector('table')!
+        const page = document.querySelector('.editor-component')!
+        return { columns: Array.from(table.querySelectorAll('thead th')).map(cell => cell.getBoundingClientRect().width),
+          cells: Array.from(table.querySelectorAll('th,td')).map(cell => {
+            const rect = cell.getBoundingClientRect()
+            const content = cell.querySelector('.ag-cell-content')!
+            const cr = content.getBoundingClientRect()
+            return { text: cell.textContent, width: rect.width, scrollWidth: content.scrollWidth, clientWidth: content.clientWidth,
+              contentInside: cr.left >= rect.left - 1 && cr.right <= rect.right + 1 }
+          }), scrollWidth: wrapper.scrollWidth, clientWidth: wrapper.clientWidth,
+          pageScrollWidth: page.scrollWidth, pageClientWidth: page.clientWidth }
+      })
+      expect(m.columns).toHaveLength(3)
+      expect(m.columns.slice(1).every(width => Math.abs(width - 48) <= 1)).toBe(true)
+      for (const cell of m.cells) {
+        expect(cell.width, cell.text || 'cell').toBeGreaterThan(0)
+        expect(cell.contentInside, cell.text || 'cell content inside').toBe(true)
+        expect(cell.scrollWidth, cell.text || 'no editable content overflow').toBeLessThanOrEqual(cell.clientWidth + 1)
       }
-    })
-    expect(m.scrollWidth, `the widened table must fit without hidden columns: ${JSON.stringify(m)}`).toBeLessThanOrEqual(m.clientWidth + 8)
-    expect(m.pageScrollWidth, 'the page must not gain horizontal overflow').toBeLessThanOrEqual(m.pageClientWidth + 1)
+      expect(m.scrollWidth, JSON.stringify(m)).toBeLessThanOrEqual(m.clientWidth + 1)
+      expect(m.pageScrollWidth).toBeLessThanOrEqual(m.pageClientWidth + 1)
+      expect(await currentMarkdown(page)).toBe(beforeMarkdown)
+      expect(await currentIsSaved(page)).toBe(beforeSaved)
+    }
+    await assertWrappedGeometry()
+    const widths = await columnWidths(page)
+    // A real tab round-trip re-parses/adopts stored manual widths and runs
+    // post-render reconciliation; a one-frame class check cannot pass it.
+    await openFileTab(page, PLAIN_PATH, PLAIN_MD)
+    await page.locator('.tabs-container li', { hasText: 'column-resize.md' }).click()
+    await waitForTable(page)
+    await expect.poll(() => columnWidths(page)).toEqual(widths)
+    await assertWrappedGeometry()
   })
 
   test('clicking inside a cell 10 px left of a border still places the caret in that cell', async ({ page }) => {

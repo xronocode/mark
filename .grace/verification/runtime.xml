@@ -6411,8 +6411,14 @@
           webkit-tables project: drag delta lands on that column only,
           markdown byte-identical + tab stays saved, typing re-applies
           widths, double-click resets, tab switch and back, close + reopen
-          restores auto layout, widened table scrolls in the wrapper with
-          no page overflow, caret next to a border).
+          restores auto layout, wide Auto drag keeps every cell and its editable text inside the wrapper without internal or page
+          overflow, including unbreakable headers after a real tab re-adoption; repeated
+          render/refit reconciliation preserves fixed wrapping and exact width/manual entries;
+          natural Auto and explicit reset remove fixed chrome; the separate three-column fixture
+          proves full growth only after checking available frame slack, while the twelve-column
+          fixture deliberately reaches and asserts the exact frame-minus-other-column-floors clamp
+          after real animation-frame completion, retaining actual transform-normalized manual viewer
+          geometry and unchanged Markdown/saved state, caret next to a border).
         </Scenario>
         <Scenario>
           scenario-22: Diagrams follow the active app theme through CSS
