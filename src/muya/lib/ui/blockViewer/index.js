@@ -1,9 +1,9 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.7.0
+// VERSION: 3.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
 //   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
-//   DEPENDS: @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR — role gate only, no transports inside muya), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render); renderBlock/renderDiagramAppearance, muya.diagramAppearance.
+//   DEPENDS: tableResize/tableFit.measureColumnExtents (natural automatic table snapshot); @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR — role gate only, no transports inside muya), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render); renderBlock/renderDiagramAppearance, muya.diagramAppearance.
 //   LINKS: .grace/changes/archive/C-34 T-002; .grace/changes/archive/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/archive/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/changes/archive/C-56 (picture export, scenario-63); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -15,7 +15,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.7.0 - 2026-10-20 FIX-008 reopen (pan cues): the table
+//   LAST_CHANGE: 2026-11-10 C-STABILIZE-TABLE-E2E: automatically fitted table
+//   clones recover natural content widths; explicit column/wall widths remain
+//   unchanged. Temporary measurements never alter the live table or profile.
+//   Close restoration yields to subsequent keyboard/pointer intent, including
+//   pending timer callbacks, while preserving unsolicited editor-focus repair.
+//   PREV: v3.7.0 - 2026-10-20 FIX-008 reopen (pan cues): the table
 //   canvas never paints a native horizontal scrollbar at any zoom —
 //   drag/pan is the single horizontal-navigation model; subtle left/right
 //   gradient shadows (tableClipShadows over the live canvas/stage rects)
@@ -131,6 +136,7 @@ import { createAppearanceButton, updateAppearanceButton } from '../../parser/ren
 // C-56: role gate for the export toolbar — which figure data-roles may
 // leave Mark as a picture. No transport code: muya only dispatches.
 import { EXPORTABLE_FIGURE_SELECTOR } from '../../utils/diagramExport'
+import { measureColumnExtents } from '../../tableResize/tableFit'
 import './index.css'
 
 // C-56 T-005: the live expand button of a figure for focus restore —
@@ -178,8 +184,30 @@ export const tableClipShadows = (contentLeft, contentRight, stageLeft, stageRigh
 // The viewer table is a read-only snapshot: drop the editing affordances
 // (drag bars, table tools, contenteditable, duplicate DOM ids) so nothing
 // in the overlay can mutate the document or collide with live block ids.
-const sanitizeTableClone = (table) => {
+const sanitizeTableClone = (table, entry) => {
   const clone = table.cloneNode(true)
+  // Automatic frame-fitting is editor presentation, not a user width.
+  // Recover its natural content width for meaningful 1:1 viewing/panning.
+  // Explicit column/wall widths remain the user's read-only snapshot.
+  if (!entry?.manual?.some(Boolean) && !entry?.tableWidth) {
+    const extents = measureColumnExtents(table)
+    if (extents) {
+      const widths = extents.maxContent
+      let colgroup = clone.querySelector('colgroup')
+      if (!colgroup) {
+        colgroup = document.createElement('colgroup')
+        clone.prepend(colgroup)
+      }
+      colgroup.innerHTML = ''
+      for (const width of widths) {
+        const col = document.createElement('col')
+        col.style.width = `${width}px`
+        colgroup.appendChild(col)
+      }
+      clone.style.width = `${widths.reduce((sum, width) => sum + width, 0)}px`
+      clone.style.maxWidth = 'none'
+    }
+  }
   // C-39 T-002: the column-resizer handles go with the drag bars — the
   // viewer is read-only (the session colgroup itself stays: the viewer
   // shows the table at the user's session widths).
@@ -489,7 +517,7 @@ class BlockViewer {
     this.canvas.innerHTML = ''
     if (kind === 'table') {
       this.canvas.classList.add('ag-block-viewer-scrollable')
-      this.canvas.appendChild(sanitizeTableClone(source))
+      this.canvas.appendChild(sanitizeTableClone(source, this.muya.tableResize?.widths.get(source.id)))
     } else {
       this.canvas.appendChild(cloneDiagramPreview(source))
     }
@@ -848,12 +876,14 @@ class BlockViewer {
     if (restoreFocus && el && typeof el.focus === 'function') {
       el.focus()
       if (figureId) {
+        let restoring = true
         // The re-asserts resolve the LIVE button from the figure id: a
         // re-render while the window is open (e.g. the closing key's
         // keyup triggering a partial render) replaces the figure's DOM,
         // and the captured el would be detached — focus() on it a silent
         // no-op while the container kept the focus (C-51 T-010).
         const reassert = () => {
+          if (!restoring || this.isOpen || this.destroyed) return
           let live = el
           if (figureId) {
             const fig = document.getElementById(figureId)
@@ -869,19 +899,24 @@ class BlockViewer {
         // C-51 T-010: muya can re-focus its container later than 50 ms
         // (the Escape keydown's own follow-up). For a short window a focus
         // that lands in the editor goes back to the button — until the
-        // user points or taps somewhere, which ends the window at once.
+        // user points, taps or uses the keyboard, which ends the window
+        // AND cancels pending re-asserts. Otherwise a quick Tab after Esc
+        // is stolen back from the next toolbar action.
         const container = this.muya && this.muya.container
         if (container) {
           const stop = () => {
+            restoring = false
             container.removeEventListener('focusin', onFocusIn)
             document.removeEventListener('pointerdown', stop, true)
+            document.removeEventListener('keydown', stop, true)
           }
           const onFocusIn = () => {
-            stop()
+            container.removeEventListener('focusin', onFocusIn)
             reassert()
           }
           container.addEventListener('focusin', onFocusIn)
           document.addEventListener('pointerdown', stop, true)
+          document.addEventListener('keydown', stop, true)
           setTimeout(stop, 400)
         }
       }
@@ -958,7 +993,7 @@ class BlockViewer {
     this.sourceFigureEl = figure || null
     this.lastClonedToken = this.sourceToken(source)
     const clone = this.kind === 'table'
-      ? sanitizeTableClone(source)
+      ? sanitizeTableClone(source, this.muya.tableResize?.widths.get(source.id))
       : cloneDiagramPreview(source)
     this.canvas.innerHTML = ''
     this.canvas.appendChild(clone)

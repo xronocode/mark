@@ -4346,7 +4346,13 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       </Contract>
       <Interface>
         <fn-updateTableOverflow>
-          <Purpose>FIX-008 fullscreen table viewer scrollport: per-axis native scrollbars exist only when the scaled content actually overflows the stage, removing the phantom horizontal track at Fit while keeping sticky-header scrolling at >=100%.</Purpose>
+          <Purpose>Fullscreen table navigation is pan-only horizontally at every scale: no native horizontal track;
+          non-interactive edge shadows reflect live canvas/stage clipping. Native vertical scrolling
+          is enabled only when scaled content exceeds the stage, retaining sticky headers. Automatic
+          fitted table snapshots recover natural content widths; explicit user column/wall widths
+          remain unchanged. Close restores the live expand button across unsolicited editor
+          re-focus, while the next keyboard or pointer action cancels pending restoration so Tab can
+          continue to Copy.</Purpose>
           <File>src/muya/lib/ui/blockViewer/index.js</File>
           <VerificationRef>V-M-012</VerificationRef>
         </fn-updateTableOverflow>
@@ -4581,20 +4587,15 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
             <Attribute>
               <Name>PURPOSE</Name>
               <Value>
-                parser/render/renderBlock/expandNeed.js (C-51 T-010,
-                user decision D-7): the expand-need gate for the expand
-                button — pure rules (a diagram drawn ≥ 2 px narrower than
-                its natural size or taller than 600 px; a table whose
-                C-39 wrapper overflows by &gt; 1 px or which is taller
-                than 600 px), DOM gathering (SVG viewBox / px width
-                attribute, percentages rejected; img naturalWidth),
-                the ag-expand-needed class toggle with the
-                [Muya][expandNeed][BLOCK_EXPAND_NEED] log anchor, and ONE
-                shared ResizeObserver across muya instances (observe new
-                figures, unobserve removed ones, release on destroy; no
-                observer — jsdom — degrades to render-time evaluation).
-                Without the class button.ag-block-expand is display:none
-                (no Tab stop).
+                parser/render/renderBlock/expandNeed.js: need-gated expand visibility. A diagram needs the viewer
+                when drawn more than 2px below its natural width or taller than 600px. A table needs
+                it when intrinsic max-content column widths exceed its rendered width by more than
+                2px, its wrapper overflows by more than 1px, or its height exceeds 600px. Bounded
+                temporary automatic-layout measurement discards editor frame fitting without
+                mutating the live table, document, history or profile; unmeasurable widths produce
+                no natural-width verdict. Small fitting blocks remain display:none and are not Tab
+                stops. Existing post-render/diagram-insert/shared ResizeObserver funnels, teardown
+                and content-free BLOCK_EXPAND_NEED logging remain unchanged.
               </Value>
             </Attribute>
           </LegacyAttributes>

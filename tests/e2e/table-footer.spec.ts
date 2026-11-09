@@ -13,9 +13,11 @@
 //   LEGACY_NARROW_LAYOUT - saved Full width choice for the second table's stable ordinal/header identity.
 //   footer - actual table, caption and native scrollbar geometry for one figure.
 //   documentState - normalized Markdown and saved state for non-editing interactions.
-//   shadePaintDelta - screenshot pixels at the same shade x coordinate inside the caption and its lower gap; detects an opaque noneditable caption patch.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
+//   fitting/icon-only controls together with natural-size viewer access, real
+//   pointer/keyboard interactions and preserved document/dirty semantics.
 //   LAST_CHANGE: 1.4.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the two
 //   toggle-based pins move to the honest model — a fitting table keeps
 //   Copy, has no expand action and carries the always-available mode
@@ -82,24 +84,6 @@ const documentState = (page: Page) => page.evaluate(() => {
   return { markdown: file.markdown, isSaved: file.isSaved }
 })
 
-const shadePaintDelta = async (page: Page, geometry: Awaited<ReturnType<typeof footer>>) => {
-  const png = (await page.screenshot()).toString('base64')
-  return page.evaluate(async ({ png, x, upperY, lowerY }) => {
-    const image = new Image()
-    image.src = `data:image/png;base64,${png}`
-    await image.decode()
-    const canvas = document.createElement('canvas')
-    canvas.width = image.width
-    canvas.height = image.height
-    const context = canvas.getContext('2d')!
-    context.drawImage(image, 0, 0)
-    const pixel = (y: number) => Array.from(context.getImageData(Math.floor(x * devicePixelRatio), Math.floor(y * devicePixelRatio), 1, 1).data)
-    const upper = pixel(upperY)
-    const lower = pixel(lowerY)
-    return Math.max(...upper.slice(0, 3).map((value, i) => Math.abs(value - lower[i])))
-  }, { png, x: geometry.wrapperRight - 3, upperY: geometry.captionTop + 4, lowerY: geometry.captionBottom + 1 })
-}
-
 test.beforeEach(async ({ page }) => {
   await installTauriShim(page)
   await page.setViewportSize({ width: 1400, height: 900 })
@@ -107,10 +91,7 @@ test.beforeEach(async ({ page }) => {
   await openFileTab(page, '/tmp/mark-e2e/table-footer.md', TABLES)
 })
 
-test('reserved footer keeps the counter inside and 2px above the scrollbar while scrolling', async ({ page }, testInfo) => {
-  // T-007: the wide table opens in Auto — already the in-column
-  // wrapper-scroll mode the footer was pinned against (the fake-fit
-  // default this test used to switch away from is retired).
+test('reserved footer stays compact and clear when fitted tables no longer need a scrolling counter', async ({ page }, testInfo) => {
   const figure = page.locator("figure[data-role='TABLE']").first()
   const beforeDocument = await documentState(page)
   const geometry = await footer(figure)
@@ -120,46 +101,45 @@ test('reserved footer keeps the counter inside and 2px above the scrollbar while
   expect(geometry.scrollbarTop - geometry.captionBottom).toBeLessThanOrEqual(3)
   expect(geometry.footerSpace).toBeGreaterThanOrEqual(26)
   expect(geometry.footerSpace).toBeLessThanOrEqual(30)
-  expect(geometry.captionVisible).toBe('visible')
-  expect(geometry.captionText).toMatch(/^columns /)
-  expect(await shadePaintDelta(page, geometry), 'the caption must not lighten the continuous edge shade').toBeLessThanOrEqual(2)
-  // The edge shade is 14px wide; leave another 4px of clear space.
-  expect(geometry.wrapperRight - geometry.captionTextRight).toBeGreaterThanOrEqual(17)
-  expect(geometry.wrapperRight - geometry.captionTextRight).toBeLessThanOrEqual(19)
-  for (const fraction of [0.5, 1, 0]) {
-    await figure.locator('.ag-table-scroll').evaluate((el, fraction) => {
-      el.scrollLeft = (el.scrollWidth - el.clientWidth) * fraction
-    }, fraction)
-    await expect.poll(async () => Math.abs((await footer(figure)).captionRight - geometry.captionRight)).toBeLessThanOrEqual(1)
-    const scrolled = await footer(figure)
-    expect(scrolled.captionRight).toBeLessThanOrEqual(scrolled.wrapperRight + 1)
-    expect(scrolled.footerSpace).toBeCloseTo(geometry.footerSpace, 0)
-  }
+  expect(geometry.captionVisible).toBe('hidden')
+  expect(geometry.captionText).toBe('')
+  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1)
+  // A real horizontal gesture cannot hide columns or move the footer.
+  await figure.locator('.ag-table-scroll').hover()
+  await page.mouse.wheel(500, 0)
+  const after = await footer(figure)
+  expect(after.captionRight).toBeCloseTo(geometry.captionRight, 0)
+  expect(after.footerSpace).toBeCloseTo(geometry.footerSpace, 0)
+  expect(await figure.locator('.ag-table-scroll').evaluate(el => el.scrollLeft)).toBe(0)
+  const cells = await figure.locator('th,td').evaluateAll(els => els.map(el => {
+    const r = el.getBoundingClientRect()
+    const wr = el.closest('.ag-table-scroll')!.getBoundingClientRect()
+    return { text: el.textContent, visible: r.width > 0 && r.left >= wr.left - 1 && r.right <= wr.right + 1 }
+  }))
+  expect(cells).toHaveLength(6)
+  expect(cells.every(cell => !!cell.text && cell.visible)).toBe(true)
   expect(await documentState(page)).toEqual(beforeDocument)
   await page.screenshot({ path: testInfo.outputPath('compact-table-footer.png') })
 })
 
-test('reserved footer is equally tall and invisible when narrow or expanded tables fit', async ({ page }) => {
+test('reserved footer is equally tall and invisible across Auto, Fit, Full and narrow tables', async ({ page }) => {
   const wide = page.locator("figure[data-role='TABLE']").first()
   const narrow = page.locator("figure[data-role='TABLE']").nth(1)
-  // T-007: the expanded state is the Full width mode (the wide table
-  // opens in Auto — where its caption legitimately shows the visible
-  // range, so the mode is chosen explicitly first).
-  await wide.locator("button.ag-table-toolbar-mode[data-table-mode='full']").click()
-  await expect.poll(async () => (await footer(wide)).captionVisible).toBe('hidden')
-  const expanded = await footer(wide)
+  const before = await documentState(page)
   const fitting = await footer(narrow)
   expect(fitting.inside).toBe(true)
   expect(fitting.captionVisible).toBe('hidden')
   expect(fitting.captionText).toBe('')
-  expect(fitting.scrollWidth).toBeLessThanOrEqual(fitting.clientWidth + 1)
-  expect(Math.abs(fitting.footerSpace - expanded.footerSpace)).toBeLessThanOrEqual(1)
-  // Back to Auto: the wide table overflows its column again — the caption
-  // carries the visible range, over the same reserved footer space.
-  await wide.locator("button.ag-table-toolbar-mode[data-table-mode='auto']").click()
-  await expect.poll(async () => (await footer(wide)).captionVisible).toBe('visible')
-  const overflowing = await footer(wide)
-  expect(Math.abs(overflowing.footerSpace - expanded.footerSpace)).toBeLessThanOrEqual(1)
+  for (const mode of ['auto', 'fit', 'full', 'auto']) {
+    await wide.locator(`button.ag-table-toolbar-mode[data-table-mode='${mode}']`).click()
+    const fitted = await footer(wide)
+    expect(fitted.captionVisible).toBe('hidden')
+    expect(fitted.captionText).toBe('')
+    expect(fitted.scrollWidth).toBeLessThanOrEqual(fitted.clientWidth + 1)
+    expect(Math.abs(fitting.footerSpace - fitted.footerSpace)).toBeLessThanOrEqual(1)
+    await expect(wide.locator('.ag-table-toolbar-expand')).toBeVisible()
+  }
+  expect(await documentState(page)).toEqual(before)
 })
 
 test('a fitting table keeps copy reachable, no expand action, and its always-available mode segment on Auto', async ({ page }) => {

@@ -23,6 +23,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
+//   fitting/icon-only controls together with natural-size viewer access, real
+//   pointer/keyboard interactions and preserved document/dirty semantics.
 //   LAST_CHANGE: v3.9.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
 //   table toolbar's two-state toggle became the honest three-button mode
 //   segment (Auto / Fit to page / Full width), so the MIXED coverage
@@ -588,7 +591,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     const table = page.locator('table.ag-paragraph').first()
     await table.waitFor({ state: 'visible', timeout: 15_000 })
 
-    // T-010: the 12-column table overflows its column, so the figure
+    // T-010: the 12-column table is fitted below its natural width, so it
     // needs the viewer and the toolbar's expand action is laid out
     // (C-65 T-002: the toolbar replaced the standalone glyph).
     const expand = page.locator('figure[data-role="TABLE"] div.ag-table-toolbar button.ag-block-toolbar-expand').first()
@@ -694,7 +697,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await page.waitForTimeout(150)
     const actual = await viewerState()
     expect(actual.overflowX).toBe('hidden')
-    expect(actual.boxWiderThanStage).toBe(true)
+    expect(actual.boxWiderThanStage, JSON.stringify(actual)).toBe(true)
     expect(actual.clipLeft).toBe(true)
     expect(actual.clipRight).toBe(true)
 
@@ -985,7 +988,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
   // on FIGURE hover (150 ms; never the caret), themed surface pill,
   // --pele-muted icons going --pele-fg on the 10% tint, label span
   // revealed by the button's own hover, need-gated third button.
-  test('the corner pill look: opacity 0 at rest → 1 on figure hover, themed surface, label reveal, muted → fg hover', async ({ page }) => {
+  test('the icon-only corner pill: hover and focus reveal, fixed geometry, accessible names and theme', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_DIAGRAM_MD, 'paper')
     const figure = page.locator('figure[data-role="MERMAID"]').first()
     const expand = page.locator('figure[data-role="MERMAID"] div.ag-block-toolbar button.ag-block-toolbar-expand').first()
@@ -996,7 +999,6 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     const looks = await page.evaluate(() => {
       const pill = document.querySelector("figure[data-role='MERMAID'] div.ag-block-toolbar") as HTMLElement
       const el = pill.querySelector('button.ag-block-toolbar-expand') as HTMLElement
-      const span = el.querySelector('span') as HTMLElement
       const cs = getComputedStyle(pill)
       const btn = getComputedStyle(el)
       const b = pill.getBoundingClientRect()
@@ -1007,7 +1009,8 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
         radius: cs.borderRadius,
         padding: cs.padding,
         borderWidth: cs.borderTopWidth,
-        labelDisplay: getComputedStyle(span).display,
+        labels: pill.querySelectorAll('button span').length,
+        accessible: Array.from(pill.querySelectorAll('button')).every(b => !!b.title && b.getAttribute('aria-label') === b.title),
         btnColor: btn.color,
         btnRadius: btn.borderRadius,
         width: b.width,
@@ -1017,14 +1020,14 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       }
     })
     // The mockup variant-C pill: absolute at the 8 px inset, radius 8,
-    // 2 px padding + 1 px border, resting invisible; the label span is
-    // hidden until the button's own hover.
+    // 2 px padding + 1 px border, resting invisible; controls stay icon-only.
     expect(looks.opacity).toBe('0')
     expect(looks.position).toBe('absolute')
     expect(looks.radius).toBe('8px')
     expect(looks.padding).toBe('2px')
     expect(looks.borderWidth).toBe('1px')
-    expect(looks.labelDisplay).toBe('none')
+    expect(looks.labels).toBe(0)
+    expect(looks.accessible).toBe(true)
     expect(looks.btnColor).not.toBe('')
     expect(looks.insetTop).toBeGreaterThan(4)
     expect(looks.insetTop).toBeLessThanOrEqual(12)
@@ -1050,7 +1053,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     expect(caretLooks).toBe('0')
 
     // The button's own hover: --pele-fg over the 10% fg tint and the
-    // localized label slides in next to the icon.
+    // accessible name remains available without changing button width.
     await edit.hover()
     await page.waitForTimeout(300)
     const ownHover = await page.evaluate(() => {
@@ -1059,11 +1062,13 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       return {
         color: cs.color,
         background: cs.backgroundColor,
-        label: getComputedStyle(el.querySelector('span') as HTMLElement).display
+        labels: el.querySelectorAll('span').length,
+        width: el.closest('.ag-block-toolbar')!.getBoundingClientRect().width
       }
     })
-    // flex items are blockified: any visible display counts as revealed.
-    expect(ownHover.label).not.toBe('none')
+    // Accepted icon-only controls keep geometry stable on hover.
+    expect(ownHover.labels).toBe(0)
+    expect(ownHover.width).toBeCloseTo(looks.width, 0)
     // A tinted hover background resolves to a non-transparent colour.
     expect(ownHover.background).not.toBe('rgba(0, 0, 0, 0)')
 
@@ -1190,28 +1195,35 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-mode[data-table-mode='full']"), 'Tab must reach the small table Full width mode').toBe(true)
     await page.keyboard.press('Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE']:not(.ag-expand-needed) button.ag-table-toolbar-copy"), 'Tab must reach the small table copy').toBe(true)
-    // T-007: the wide table's three-mode segment follows (Auto / Fit /
-    // Full), then the need-gated copy and expand actions.
+    // Accepted order: Auto / Fit / Full / Expand / Copy. All five are
+    // real Tab stops; opening and closing preserves the focused action.
+    for (const mode of ['auto', 'fit', 'full']) {
+      await page.keyboard.press('Tab')
+      await expect.poll(() => stopIs(`figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-mode[data-table-mode='${mode}']`)).toBe(true)
+    }
+    const wideExpand = page.locator("figure[data-role='TABLE'].ag-expand-needed button.ag-block-toolbar-expand").first()
     await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-mode[data-table-mode='auto']"), 'Tab must reach the wide table Auto mode').toBe(true)
+    await expect(wideExpand).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.ag-block-viewer')).toHaveClass(/ag-block-viewer-open/)
+    await page.keyboard.press('Escape')
+    await expect(wideExpand).toBeFocused()
     await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-mode[data-table-mode='fit']"), 'Tab must reach the wide table Fit mode').toBe(true)
-    await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-mode[data-table-mode='full']"), 'Tab must reach the wide table Full width mode').toBe(true)
-    await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-copy"), 'Tab must reach the wide table copy').toBe(true)
-    await page.keyboard.press('Tab')
-    await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-block-toolbar-expand"), 'Tab must reach the wide table expand').toBe(true)
-
-    // Shift+Tab walks back through the wide table's copy.
-    await page.keyboard.press('Shift+Tab')
     await expect.poll(() => stopIs("figure[data-role='TABLE'].ag-expand-needed button.ag-table-toolbar-copy")).toBe(true)
+    await page.keyboard.press('Shift+Tab')
+    await expect(wideExpand).toBeFocused()
   })
 
   test('table: the toolbar never covers the header text or the last column resize handle and resizing still works', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_TABLE_MD)
     await page.locator("figure[data-role='TABLE'] table").first()
       .waitFor({ state: 'visible', timeout: 15_000 })
+
+    const documentState = () => page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return { markdown: file.markdown, isSaved: file.isSaved }
+    })
+    const beforeDocument = await documentState()
 
     // Geometry: the C-65 toolbar lives in the band ABOVE the table (the
     // figure's existing top margin), so it cannot intersect the header
@@ -1235,15 +1247,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
 
     // Behaviour: drag the LAST column border — the column resizes, the
     // colgroup/fixed layout engages (C-39 T-002 unchanged by the button).
-    // The last column of the overflowing table is scrolled out of the
-    // clip rect: scroll the wrapper fully right first (outside of
-    // Playwright's actionability scrolling, like table-layout.spec.ts).
-    // T-007: the table opens in Auto, where the WRAPPER owns the
-    // horizontal scroll (the C-65 Full-width editor scroller is gone).
-    await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
-    })
+    // All columns are already visible: no scroll or forced click is needed.
     const widthsBefore = await page.evaluate(() => {
       const table = document.querySelector("figure[data-role='TABLE'] table") as HTMLTableElement
       return Array.from(table.tHead!.rows[0].cells).map(c => Math.round(c.getBoundingClientRect().width))
@@ -1269,7 +1273,32 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     })
     expect(after.fixed).toBe(true)
     expect(after.colgroup).toBe(true)
-    expect(after.widths[11], 'the last column must shrink by ~the drag delta').toBeLessThanOrEqual(widthsBefore[11] - 36)
+    expect(Math.abs(after.widths[11] - Math.max(48, widthsBefore[11] - 40)), 'shrink obeys the 48px column floor').toBeLessThanOrEqual(2)
+    // A second real gesture verifies non-clamped resizing too.
+    const grownBox = await lastTh.boundingBox()
+    const gx = grownBox!.x + grownBox!.width - 2
+    const gy = grownBox!.y + grownBox!.height / 2
+    await page.mouse.move(gx, gy)
+    await page.mouse.down()
+    await page.mouse.move(gx + 40, gy, { steps: 8 })
+    await page.mouse.up()
+    const grown = await lastTh.evaluate(el => el.getBoundingClientRect().width)
+    expect(grown - after.widths[11], 'last-border growth remains operable').toBeGreaterThanOrEqual(36)
+    const liveWidths = await page.locator("figure[data-role='TABLE'] table col").evaluateAll(cols => cols.map(col => (col as HTMLElement).style.width))
+    await page.locator("figure[data-role='TABLE'] button.ag-block-toolbar-expand").click()
+    const viewer = page.locator('.ag-block-viewer-open')
+    await viewer.locator('.ag-block-viewer-actual-size').click()
+    expect(await viewer.locator('table col').evaluateAll(cols => cols.map(col => (col as HTMLElement).style.width))).toEqual(liveWidths)
+    // Normalize the canvas transform: column geometry must match the live
+    // manual widths independently of the initial deferred fit pass.
+    const manualGeometry = await viewer.locator('thead th').last().evaluate(el => {
+      const canvas = el.closest('.ag-block-viewer-canvas')!
+      return { width: el.getBoundingClientRect().width, scale: new DOMMatrix(getComputedStyle(canvas).transform).a, layout: getComputedStyle(el.closest('table')!).tableLayout }
+    })
+    expect(Math.abs(manualGeometry.width / manualGeometry.scale - grown), JSON.stringify({ grown, ...manualGeometry })).toBeLessThanOrEqual(2)
+    await page.keyboard.press('Escape')
+    expect(await documentState()).toEqual(beforeDocument)
+
   })
 
   test('resizing the viewport re-evaluates: an unscaled diagram becomes scaled and gains the button', async ({ page }) => {

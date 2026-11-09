@@ -1,7 +1,7 @@
 // FILE: tests/e2e/table-layout.spec.ts
 // VERSION: 1.12.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables scroll inside the text column, narrow tables keep content width, long URLs are capped at ~40ch, editing works after horizontal scrolling), the C-65 T-003 overflow cue of the same wrapper, and the real-pointer Full width/Fit transition, sibling viewer availability, reverse action, and persistence across sidebar visibility changes.
+//   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables fit every column without internal scrolling, narrow tables keep content width, long URLs wrap, fitted cells remain editable), the absence of obsolete clipped-column cues, and the real-pointer Full width/Fit transition, sibling viewer availability, reverse action, and persistence across sidebar visibility changes.
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, lib/tableResize/tableCue.js, C-TABLE-FIT-PERSISTENCE's pointer/sidebar/reopen boundary, and C-TABLE-NATIVE-TOOLBAR-DELIVERY's sidebar-hidden/sidebar-visible action matrix.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, the built renderer served by `npm run preview`.
 //   LINKS: .grace/changes/active/C-39 T-001; .grace/changes/active/C-65 T-003; .grace/verification/runtime.xml V-M-012 scenario-18 and scenario-66; unit structure twin tests/renderer/muya/table-scroll-wrapper.test.js + table-cue.test.js.
@@ -16,11 +16,14 @@
 //   NARROW_2X2_MD - 2x2 table fixture.
 //   LONG_URL - a 200-character URL.
 //   LONG_URL_MD - table fixture with LONG_URL in a body cell.
-//   EDIT_AFTER_SCROLL_MD - wide table used for the editing-after-scroll cases.
+//   EDIT_AFTER_SCROLL_MD - wide table used for fitted-cell editing.
 //   C-TABLE-FIT-PERSISTENCE/C-TABLE-NATIVE-TOOLBAR-DELIVERY scenario - real pointer activation, sibling viewer reveal, reverse action, live sidebar on/off, persisted fit payload and reopen.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
+//   fitting/icon-only controls together with natural-size viewer access, real
+//   pointer/keyboard interactions and preserved document/dirty semantics.
 //   LAST_CHANGE: 1.12.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the mode default and the fit-persistence case move to the honest three-mode model (T-007): Auto is the in-column wrapper-scroll mode, the toolbar carries the three-button segment, and the stored choice persists as the schema-v2 mode field.
 //   LAST_CHANGE: v1.11.0 - 2026-10-20 C-TABLE-NATIVE-TOOLBAR-DELIVERY:
 //   reproduce the native stale-adoption path by persisting Full width,
@@ -187,10 +190,7 @@ test.describe('table layout (C-39 T-001)', () => {
     return wrapper
   }
 
-  // C-PAGE-WIDTH-TABLES T-007: Auto IS the C-39 in-column wrapper-scroll
-  // mode (content-sized, GitHub model). The C-39/C-65 cue cases pin it
-  // defensively through the toolbar segment (the fake-fit default that
-  // used to require a mode switch here is retired).
+  // Auto retains content sizing for narrow tables and fits wide content.
   async function stayInAuto(page: Page) {
     await page.evaluate(() => {
       for (const button of document.querySelectorAll(
@@ -202,6 +202,24 @@ test.describe('table layout (C-39 T-001)', () => {
       }
     })
     await page.waitForTimeout(300)
+  }
+
+  async function expectAllColumnsVisible(page: Page, columns: number) {
+    const geometry = await page.locator("figure[data-role='TABLE'] div.ag-table-scroll").first().evaluate(el => {
+      const bounds = el.getBoundingClientRect()
+      const table = el.querySelector('table')!
+      return { columns: table.querySelectorAll('thead th').length,
+        cells: Array.from(table.querySelectorAll('th,td')).map(cell => {
+          const r = cell.getBoundingClientRect()
+          return { text: cell.textContent, width: r.width, inside: r.left >= bounds.left - 1 && r.right <= bounds.right + 1 }
+        }) }
+    })
+    expect(geometry.columns).toBe(columns)
+    expect(geometry.cells.length).toBeGreaterThanOrEqual(columns * 2)
+    for (const cell of geometry.cells) {
+      expect(cell.width, cell.text || 'cell width').toBeGreaterThan(0)
+      expect(cell.inside, cell.text || 'cell visible').toBe(true)
+    }
   }
 
   const measureTable = (page: Page) => page.evaluate(() => {
@@ -239,6 +257,8 @@ test.describe('table layout (C-39 T-001)', () => {
     const editorRect = editor.getBoundingClientRect()
     const capRect = caption.getBoundingClientRect()
     return {
+      scrollWidth: wrapper.scrollWidth,
+      clientWidth: wrapper.clientWidth,
       captionText: caption.textContent || '',
       captionOn: caption.classList.contains('ag-table-caption-on'),
       captionDisplay: window.getComputedStyle(caption).display,
@@ -253,38 +273,25 @@ test.describe('table layout (C-39 T-001)', () => {
     }
   })
 
-  test('a wide table opens content-sized in Auto and scrolls its wrapper; a narrow table just fits (T-007)', async ({ page }) => {
+  test('Auto fits wide tables without scrolling and retains narrow content sizing', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
-    const wide = await page.evaluate(() => {
-      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
-      const wrapper = figure.querySelector('div.ag-table-scroll') as HTMLElement
-      return {
-        fullWidth: figure.classList.contains('ag-table-full-width'),
-        overflowX: window.getComputedStyle(wrapper).overflowX,
-        scrolling: wrapper.scrollWidth > wrapper.clientWidth
-      }
-    })
-    expect(wide.fullWidth).toBe(false)
-    expect(wide.overflowX).toBe('auto')
-    expect(wide.scrolling).toBe(true)
+    const wide = await measureTable(page)
+    expect(wide!.overflowX).toBe('hidden')
+    expect(wide!.scrollWidth).toBeLessThanOrEqual(wide!.clientWidth + 1)
+    expect(wide!.tableRight).toBeLessThanOrEqual(wide!.wrapperRight + 1)
+    await expect(page.locator("button.ag-table-toolbar-mode[data-table-mode='auto']")).toHaveClass(/ag-table-toolbar-active/)
+    await expectAllColumnsVisible(page, 15)
 
     await bootstrapWithMarkdown(page, NARROW_2X2_MD)
     await waitForTable(page)
-    const narrow = await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      return window.getComputedStyle(wrapper).overflowX === 'auto' &&
-        wrapper.scrollWidth <= wrapper.clientWidth + 1
-    })
-    expect(narrow).toBe(true)
+    const narrow = await measureTable(page)
+    expect(narrow!.overflowX).toBe('hidden')
+    expect(narrow!.scrollWidth).toBeLessThanOrEqual(narrow!.clientWidth + 1)
+    expect(narrow!.tableWidth).toBeLessThan(narrow!.columnWidth - 200)
+    await expectAllColumnsVisible(page, 2)
   })
 
-  // C-TABLE-FIT-PERSISTENCE evolved (C-PAGE-WIDTH-TABLES T-007): the
-  // explicit mode choice lives in the schema-v2 entry (mode: 'fit' |
-  // 'full'), the segment's active state flips in the same tick, and the
-  // choice survives reopen through the same load hook. The stale-adoption
-  // discipline (persist() must never re-adopt the pre-action snapshot)
-  // is pinned along the way.
   test('the mode segment flips immediately and the choice survives reopen (C-TABLE-FIT-PERSISTENCE, T-007)', async ({ page }) => {
     await page.addInitScript(() => {
       const backing = Object.create(null)
@@ -388,94 +395,50 @@ test.describe('table layout (C-39 T-001)', () => {
     await expect(figure).not.toHaveClass(/ag-table-full-width/)
   })
 
-  test('a 15-column table scrolls horizontally inside the text column', async ({ page }) => {
+  test('all 15 columns remain visible without internal or page horizontal scrolling', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
     await stayInAuto(page)
-
+    await expectAllColumnsVisible(page, 15)
+    const before = await page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return { markdown: file.markdown, isSaved: file.isSaved }
+    })
+    const wrapper = page.locator("figure[data-role='TABLE'] div.ag-table-scroll").first()
+    await wrapper.hover()
+    await page.mouse.wheel(600, 0)
     const m = await measureTable(page)
-    expect(m).not.toBeNull()
-
-    // The wrapper is the scroll container.
-    expect(m!.overflowX).toBe('auto')
-    // The natural table width exceeds the wrapper viewport.
-    expect(m!.scrollWidth, 'wide table must overflow its scroll wrapper').toBeGreaterThan(m!.clientWidth)
-    // ... but the visible surface stays inside the text column.
-    expect(m!.wrapperRight, 'wrapper right edge must not exceed the editor column').toBeLessThanOrEqual(m!.columnRight + 1)
-    // No horizontal scrollbar at the page level (pre-C-39 the table
-    // overflowed the editor column visibly).
+    expect(m!.overflowX).toBe('hidden')
+    expect(m!.scrollWidth).toBeLessThanOrEqual(m!.clientWidth + 1)
     expect(m!.pageScrollWidth).toBeLessThanOrEqual(m!.pageClientWidth + 1)
-    // C-65: at the start the right side hides columns — the class-gated
-    // shade shows there, never on the resting left side.
-    const cue = await cueState(page)
-    expect(cue!.shadeRight).toBe(true)
-    expect(cue!.shadeLeft).toBe(false)
-    // The horizontal scrollbar stays thin (WebKit draws a 15px classic bar
-    // without the ::-webkit-scrollbar height rule).
-    const scrollbar = await page.evaluate(() => {
-      const w = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      return w.offsetHeight - w.clientHeight
+    expect(m!.wrapperRight).toBeLessThanOrEqual(m!.columnRight + 1)
+    expect(await wrapper.evaluate(el => el.scrollLeft)).toBe(0)
+    await expectAllColumnsVisible(page, 15)
+    expect(await page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return { markdown: file.markdown, isSaved: file.isSaved }
+    })).toEqual(before)
+    const overlap = await wrapper.evaluate(el => {
+      const next = el.closest('figure')!.nextElementSibling
+      return next ? el.getBoundingClientRect().bottom - next.getBoundingClientRect().top : -1
     })
-    expect(scrollbar, 'horizontal scrollbar must be thin').toBeLessThanOrEqual(8)
-    // The scroll container (and so its scrollbar) ends above the next
-    // block: a negative bottom margin used to paint the bar 30 px below the
-    // table, over the following heading (2026-10-18).
-    const overlap = await page.evaluate(() => {
-      const w = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      const next = w.closest('figure')!.nextElementSibling as HTMLElement | null
-      return next ? w.getBoundingClientRect().bottom - next.getBoundingClientRect().top : -1
-    })
-    expect(overlap, 'table scrollbar must not reach into the next block').toBeLessThanOrEqual(0)
+    expect(overlap, 'table footer stays clear of the next block').toBeLessThanOrEqual(0)
   })
 
-  test('the C-65 cue: caption below the table on the column edge, live on scroll', async ({ page }) => {
+  test('no clipped-column cue or hidden cells across Auto, Fit and Full transitions', async ({ page }) => {
     await bootstrapWithMarkdown(page, WIDE_15COL_MD)
     await waitForTable(page)
-    await stayInAuto(page)
-
-    // Start: columns 1..N visible from the first column, only the right
-    // side hides columns.
-    const start = await cueState(page)
-    expect(start!.captionOn).toBe(true)
-    expect(start!.captionDisplay).toBe('block')
-    expect(start!.captionText).toMatch(/^columns 1–\d+ of 15$/)
-    expect(start!.shadeLeft).toBe(false)
-    expect(start!.shadeRight).toBe(true)
-    // The caption is inside the wrapper, above its scrollbar zone.
-    expect(start!.captionInside).toBe(true)
-    expect(start!.captionBottomVsWrapper).toBeGreaterThanOrEqual(0)
-    expect(Math.abs(start!.captionRight - start!.wrapperRight)).toBeLessThanOrEqual(1)
-
-    // Scroll to the middle: both sides hide columns, the range moves.
-    await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      wrapper.scrollLeft = (wrapper.scrollWidth - wrapper.clientWidth) / 2
-    })
-    // The scroll event (and so the cue sync) lands a frame later — poll.
-    await expect.poll(async () => (await cueState(page))!.shadeLeft).toBe(true)
-    const middle = await cueState(page)
-    expect(middle!.shadeLeft).toBe(true)
-    expect(middle!.shadeRight).toBe(true)
-    const middleRange = /^columns (\d+)–(\d+) of 15$/.exec(middle!.captionText)
-    expect(middleRange, `caption must read «columns X–Y of 15»: "${middle!.captionText}"`).toBeTruthy()
-    expect(parseInt(middleRange![1], 10)).toBeGreaterThan(1)
-    expect(parseInt(middleRange![2], 10)).toBeLessThan(15)
-    expect(middle!.captionText).not.toBe(start!.captionText)
-
-    // Scroll to the end: only the left side hides columns, the range ends
-    // at the last column.
-    await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
-    })
-    await expect.poll(async () => (await cueState(page))!.shadeRight).toBe(false)
-    const end = await cueState(page)
-    expect(end!.shadeLeft).toBe(true)
-    expect(end!.shadeRight).toBe(false)
-    const endRange = /^columns (\d+)–(\d+) of 15$/.exec(end!.captionText)
-    expect(endRange, `caption must read «columns X–Y of 15»: "${end!.captionText}"`).toBeTruthy()
-    expect(parseInt(endRange![1], 10)).toBeGreaterThan(1)
-    expect(parseInt(endRange![2], 10)).toBe(15)
+    for (const mode of ['auto', 'fit', 'full', 'auto']) {
+      await page.locator(`button.ag-table-toolbar-mode[data-table-mode='${mode}']`).click()
+      await expectAllColumnsVisible(page, 15)
+      const cue = await cueState(page)
+      expect(cue!.captionVisibility).toBe('hidden')
+      expect(cue!.captionText).toBe('')
+      expect(cue!.shadeLeft).toBe(false)
+      expect(cue!.shadeRight).toBe(false)
+      expect(cue!.scrollWidth).toBeLessThanOrEqual(cue!.clientWidth + 1)
+      await expect(page.locator('button.ag-block-toolbar-expand').first()).toBeVisible()
+    }
   })
 
   test('a 2x2 table keeps content width, shows no cue, and does not scroll', async ({ page }) => {
@@ -542,17 +505,12 @@ test.describe('table layout (C-39 T-001)', () => {
     expect(m!.tableRight).toBeLessThanOrEqual(m!.columnRight + 1)
   })
 
-  test('clicking a cell after scrolling right places the caret in that cell', async ({ page }) => {
+  test('the last fitted column is directly reachable for pointer editing', async ({ page }) => {
     await bootstrapWithMarkdown(page, EDIT_AFTER_SCROLL_MD)
     await waitForTable(page)
     await stayInAuto(page)
 
-    // Scroll the wrapper fully to the right, outside of Playwright's
-    // actionability scrolling (mouse.click at coordinates never scrolls).
-    await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      wrapper.scrollLeft = wrapper.scrollWidth - wrapper.clientWidth
-    })
+    await expectAllColumnsVisible(page, 15)
 
     const lastCell = page.locator("figure[data-role='TABLE'] tbody tr td:last-child").first()
     const box = await lastCell.boundingBox()
@@ -565,32 +523,23 @@ test.describe('table layout (C-39 T-001)', () => {
       const td = document.querySelector("figure[data-role='TABLE'] tbody tr td:last-child") as HTMLElement | null
       return td ? td.textContent : null
     })
-    expect(cellText, 'typing must land inside the scrolled-to cell').toContain('Z')
+    expect(cellText, 'typing must land inside the last fitted cell').toContain('Z')
   })
 
-  test('typing in a scrolled table keeps the horizontal scroll position', async ({ page }) => {
+  test('typing in a fitted middle column retains every column and never starts horizontal scrolling', async ({ page }) => {
     await bootstrapWithMarkdown(page, EDIT_AFTER_SCROLL_MD)
     await waitForTable(page)
     await stayInAuto(page)
-
-    // Scroll so a middle column is in view, then edit a cell in that column.
-    const before = await page.evaluate(() => {
-      const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
-      const cell = document.querySelector("figure[data-role='TABLE'] tbody tr td:nth-child(8)") as HTMLElement
-      wrapper.scrollLeft = cell.offsetLeft - 40
-      return wrapper.scrollLeft
-    })
-    expect(before).toBeGreaterThan(100)
-
+    await expectAllColumnsVisible(page, 15)
     const cell = page.locator("figure[data-role='TABLE'] tbody tr td:nth-child(8)").first()
-    const box = await cell.boundingBox()
-    expect(box).not.toBeNull()
-    await page.mouse.click(box!.x + 10, box!.y + box!.height / 2)
+    await cell.click({ position: { x: 10, y: 10 } })
     await page.keyboard.type('abc')
-
-    const after = await page.evaluate(() =>
-      (document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement).scrollLeft
-    )
-    expect(Math.abs(after - before), 'the table must not jump back to its first column while typing').toBeLessThan(20)
+    await expect(cell).toContainText('abc')
+    await expectAllColumnsVisible(page, 15)
+    expect(await page.locator('.ag-table-scroll').first().evaluate(el => el.scrollLeft)).toBe(0)
+    expect(await page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return { markdown: file.markdown, isSaved: file.isSaved }
+    })).toEqual({ markdown: expect.stringContaining('abc'), isSaved: false })
   })
 })

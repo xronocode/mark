@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/tableResize/tableFit.js
-// VERSION: 1.2.0
+// VERSION: 1.2.1
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-007 (M-061) the honest table fit algorithm shared by the Fit page and Full width modes — per-column minContent/maxContent measurement over the header plus the first 50 rows, the slack-proportional distribution capped at maxContent with the even leftover split, the overflow-wrap-anywhere re-measure fallback under space pressure, and proportional squeeze when wrapped minima cannot fit. Pure maths are separated from the DOM measurement so every distribution rule is unit-pinnable without a layout engine.
 //   SCOPE: FIT_MEASURE_ROW_LIMIT / FIT_MIN_COLUMN_WIDTH constants; measureColumnExtents (the three-phase DOM measurement — max-content, min-content, wrap-anywhere min — run on an offscreen clone inside the table's own scroll wrapper so the theme CSS chain still styles it; zero geometry degrades to null exactly like the rest of muya's measuring); planTableFit (the R-9 decision: distribute, or wrap first, or squeeze proportionally — the scroll degradation is retired, owner 2026-11-07); distributeIntoFrame (slack-proportional water-filling capped at maxContent, the leftover after all caps split evenly — the CSS auto-layout / Word AutoFit Window behaviour); snapWidthsToInt (largest-remainder rounding so a plan's widths sum to its frame); applyRatiosToWidth and ratiosFromWidths (the T-008 ratio re-application maths mirrored by the renderer util tableLayoutRatios.js — muya stays self-contained, no renderer imports).
@@ -22,6 +22,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: all intrinsic measurement
+//   phases explicitly use automatic layout even when the source is fitted.
+//   Cloned fixed-layout classes cannot turn content measurements into frame widths.
 //   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
 //   PREV: v1.2.0 - 2026-11-09 owner audit: the squeeze reserves
 //   4px per column for the collapsed borders WebKit paints over the
@@ -98,6 +101,10 @@ export const measureColumnExtents = (table, { rowLimit = FIT_MEASURE_ROW_LIMIT }
   style.top = '0'
   style.visibility = 'hidden'
   style.maxWidth = 'none'
+  // A fitted source carries ag-column-widths-fixed. Its inherited fixed
+  // layout measures the frame again, not intrinsic content. All three
+  // phases need the browser's automatic table sizing, without live cols.
+  style.tableLayout = 'auto'
   host.appendChild(measurer)
   try {
     const measurePhase = (tableWidth, cellOverrides) => {

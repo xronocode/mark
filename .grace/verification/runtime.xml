@@ -6180,75 +6180,38 @@
           end-to-end in tests/e2e/pele-render.spec.ts.
         </Scenario>
         <Scenario>
-          scenario-18: Default table rendering (C-39 T-001,
-          renderContainerBlock.js START_BLOCK_TABLE_SCROLL_WRAPPER + the
-          C-39 CSS section in muya lib/assets/styles/index.css): the table
-          element renders inside div.ag-table-scroll between the table
-          figure and the table, so the tools bar (top:-22px) and front icon
-          (left:-35px) stay unclipped children of the figure while the
-          wrapper (border-box, max-width:100%, padding 0 0 30px 11px /
-          margin 0 0 -30px -11px to keep the left:-11px row bar and
-          bottom:-15px column bar inside the clip rect) scrolls a
-          width:max-content table that is never stretched or squeezed; pure
-          CSS edge shadows (two local-attached cover gradients in
-          --editorBgColor + two scroll-attached shadow gradients) mark the
-          side(s) with hidden columns and follow scroll/resize with no
-          listeners; th cells cap at 40ch with overflow-wrap:break-word,
-          td cells at 40ch with overflow-wrap:anywhere; exportHtml.js and
-          printService.css cap tables at 100% with overflow-wrap:anywhere
-          so every column is visible in PDF (no scroll container in
-          export). All table mouse handlers resolve targets with
-          closest(&apos;th&apos;|&apos;td&apos;|&apos;tr&apos;|&apos;table&apos;) from inside the table, so
-          drag bars, cell selection, table tools and caret placement keep
-          working. Unit-pinned in
-          tests/renderer/muya/table-scroll-wrapper.test.js (wrapper
-          structure, toolbar/icon siblings, bars inside cells — fails
-          against the pre-C-39 render); laid out end-to-end in
-          tests/e2e/table-layout.spec.ts (15-column scroll + column
-          containment + no page-level horizontal scroll, 2x2 content
-          width and centred in the column (equal side gaps), 200-char URL capped near 40ch and wrapped, caret lands in
-          a scrolled-to cell and accepts typing).
+          scenario-18: Tables stay inside the resolved frame without internal horizontal scrolling in Auto,
+          Fit and Full. Auto keeps narrow content sizing; wide content distributes, wraps and
+          proportionally squeezes so every header/body cell remains visible with positive width. No
+          hidden columns, clipping substitution, obsolete range caption or edge shade is acceptable.
+          The compact noneditable footer remains inside its wrapper, clear of the next block and
+          equally tall across modes. Long URLs wrap near the existing 40ch cap. Real horizontal
+          gestures cannot scroll columns out of view. Pointer editing reaches both the last and a
+          middle fitted column, updates the intended cell/Markdown and marks the file dirty;
+          view-only gestures and layout actions preserve Markdown and saved state. Export/print
+          keeps every column visible. tests/e2e/table-layout.spec.ts and table-footer.spec.ts assert
+          per-cell bounds, narrow centering, no page-level overflow, mode persistence/sidebar/reopen
+          boundaries and real pointer input; wrapper/cue units remain structural controls.
         </Scenario>
         <Scenario>
-          scenario-19: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2,
-          ui/blockViewer/index.js START_BLOCK_VIEWER_*): one overlay serves
-          the five diagram kinds (clone of the current preview incl. the
-          hoisted &lt;style&gt;, no re-render) and read-only clones of
-          rendered tables (contenteditable, drag handlers, tool bars and
-          duplicate ids stripped; sticky thead); pan/zoom via
-          @panzoom/panzoom 4.6.2 —
-          pinch / Cmd+Ctrl+wheel zoom (zoomWithWheel), drag pan, plain wheel
-          pans diagrams and natively scrolls capped tables VERTICALLY so the
-          sticky header works, keys + = − _ 0 (fit) 1 (100%) zoom, Esc closes,
-          close button and backdrop click close; FIX-008 reopen
-          (C-FIX-008-VIEWER-PAN-CUES): a table canvas never paints a native
-          horizontal scrollbar or bottom track at any zoom — drag/pan is the
-          single horizontal-navigation model — and the clipped sides are
-          marked by subtle non-interactive gradient shadows
-          (tableClipShadows over the live canvas/stage rects, 1px
-          tolerance): left bound only the right shadow, middle both, right
-          bound only the left, centered 1:1 both when both sides clip, Fit
-          neither; the vertical axis keeps native auto exactly when the
-          scaled content is taller than the stage; focus is trapped inside
-          while open (Tab cycling) and restored on close to the element
-          that had it at open — the C-51 expand button when it opened the
-          viewer (close() re-asserts re-resolve the LIVE button from
-          returnFocusFigureId so a re-render inside the window cannot
-          detach the restore target; the Esc keyup itself is left to the
-          button by the keyboard.js keyup guard, see scenario-60);
-          entry points are the C-51 T-006/T-010 need-gated expand button
-          (scenario-60) and Cmd/Ctrl+click on a diagram preview, which
-          opens the viewer (clickEvent.js
-          START_BLOCK_CONTAINER_VIEWER_CLICK) while a plain click still
-          opens the source; the panzoom instance is
-          destroyed and listeners removed on close and plugin destroy;
-          strings in all ten locale files (.json).
-          Unit-pinned in tests/renderer/muya/block-viewer.test.js (jsdom,
-          @panzoom/panzoom mocked) and
-          tests/renderer/muya/block-viewer-pan-cues.test.js (the pure
-          tableClipShadows bound maths and the overlay wiring);
-          open/zoom/Esc and Cmd+click vs plain
-          click end-to-end in tests/e2e/block-viewer.spec.ts.
+          scenario-19: One fullscreen block viewer serves the five diagram kinds and read-only table
+          snapshots; editing affordances, contenteditable and duplicate ids are removed, and table
+          headers remain sticky. Automatic frame-fit widths are replaced only in the clone by
+          bounded intrinsic max-content measurements; manual column widths and explicit wall widths
+          remain the user snapshot. The live table, layout map/profile, Markdown and saved state do
+          not change on opening, zooming, panning or closing. Fit centers the complete clone; 1:1
+          exposes real wide-table pan range. Pinch/Cmd+Ctrl+wheel, drag, diagram wheel pan, vertical
+          native table scrolling, +/−/0/1 and existing zoom buttons remain operable. Horizontal
+          table navigation is pan-only at every scale, with no native scrollbar/track; live edge
+          shadows show the clipped side(s), including both at centered wide 1:1 and neither at Fit.
+          Focus is trapped while open. Esc/close/backdrop restore the live expand action across
+          unsolicited editor re-focus and replacement DOM, but subsequent keyboard/pointer intent
+          cancels pending restore timers; Tab continues Expand→Copy and Shift+Tab reverses without
+          focus theft. Export still receives the live source, not a transformed crop. Existing role
+          gates, plain-click editing, listener teardown and ten-locale names remain unchanged.
+          block-viewer.test.js, block-viewer-pan-cues.test.js and Chromium/WebKit
+          block-viewer.spec.ts verify these behaviors; table-ui-regressions.spec.ts verifies natural
+          clone content and narrow-window zoom controls.
         </Scenario>
         <Scenario>
           scenario-60: Expand button (C-51 T-006 R-4 + the T-010 D-7
@@ -6272,9 +6235,10 @@
           diagrams when the rendered SVG/img is drawn ≥ 2 px narrower
           than its natural size (SVG viewBox / px width attribute —
           percentages are the CSS stretch, not a size — or the img's
-          naturalWidth) or the preview is taller than 600 px; tables when
-          the C-39 scroll wrapper overflows (scrollWidth &gt; clientWidth
-          + 1) or the table is taller than 600 px. Without the class the
+          naturalWidth) or the preview is taller than 600 px; tables when bounded intrinsic content measurement exceeds rendered width by more than 2px, the
+          wrapper overflows by more than 1px, or the table is taller than 600px. Measurement
+          explicitly uses automatic layout even if the source carries a fixed-layout class; its
+          temporary clone is removed and source state stays unchanged. Without the class the
           button is display:none — invisible and NOT a Tab stop (focus()
           is a no-op). Re-evaluated after every StateRender render path
           (render/partialRender/singleRender run syncExpandNeed), after
@@ -6738,9 +6702,9 @@
           keyboard.js key guard leaves Tab/Enter/arrows and keyups to the
           button; clickEvent.js routes by data-block-toolbar-action
           BEFORE the generic expand branch. blockViewer close() restores
-          focus to the pill's expand button (expandButtonOf). Labels are
-          localized blockToolbar.editSource/copyImage/openFullScreen in
-          all ten locales. Unit-pinned in
+          focus to the pill's expand button (expandButtonOf). Controls remain icon-only with stable geometry on hover/focus; title/aria names use localized
+          blockToolbar.editSource/copyImage/openFullScreen in all ten locales. No expanding label
+          spans are rendered. Unit-pinned in
           tests/renderer/muya/block-toolbar.test.js (pill vnode + exact
           mockup glyphs + labels + family class, scope negatives, click
           routing incl. the disabled guard, syncBlockToolbarState +
@@ -6834,15 +6798,13 @@
           capture phase inside lib/tableResize (toggle / muya-block-viewer);
           its Open-full-screen button keeps the expandNeed.js D-7 gate
           (corner-6: hidden on narrow tables) and every button carries
-          the ag-block-expand keyboard-guard family class. The OVERFLOW
-          CUE is edge shades only + a caption BELOW the table inside
-          the scroll wrapper (C-TABLE-FOOTER), aligned inside its visible
-          scrollport: «columns X–Y of N»
-          (tableToolbar.columnsRange in all ten locales), live on scroll (capture-phase listener), render and
-          figure resize (expandNeed funnel) and drag; the sides are the
-          class-gated ag-table-cue-left/right gradients (the C-39
-          cover-gradient layers are gone — one fact drives caption and
-          shades); a table that fits shows neither (corner-6). FULL
+          the ag-block-expand keyboard-guard family class. Fitted tables show no clipped-column caption or edge shade: all columns stay inside the resolved
+          frame without internal scrolling in Auto, Fit and Full. The compact footer stays reserved
+          and invisible. The icon-only table toolbar order is Auto, Fit, Full, Expand, Copy, with
+          accessible tooltip/aria names; small fitting tables omit only the need-gated Expand Tab
+          stop. Wide content retains natural-size viewer access despite no wrapper overflow.
+          Existing profile identities, pruning/rename/reset and dirty-state protections remain
+          unchanged. FULL
           WIDTH (R-6, per table): the figure keeps the column width
           (toolbar stays anchored; caption follows the wrapper) while the wrapper breaks out
           with a measured inline margin (applyFullWidthGeometry — theme

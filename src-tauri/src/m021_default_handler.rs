@@ -20,6 +20,7 @@
 //            S-05, F-01, F-03, I-01, RC-01.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-STABILIZE-RELEASE-WARNING: canonical identity fixture is test-only; production continues using the configured namespace accessor.
 //   - 2026-11-09 C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: get/set/unset target only the configured bundle identity; injected QA tests preserve release entries.
 //   - 2026-05-09 B4-pre-alpha-add: initial module.
 //   - 2026-09-28 C-15 T-W2: commands are macOS-only — non-macOS desktop
@@ -36,7 +37,8 @@ use serde::Serialize;
 use std::process::Command;
 use std::time::Instant;
 
-/// macOS bundle identifier — must match `identifier` in tauri.conf.json.
+/// Canonical release identity used by injected compatibility fixtures.
+#[cfg(test)]
 pub const MARK_BUNDLE_ID: &str = "com.xronocode.mark";
 
 /// UTIs we register against. Both are emitted by macOS for `.md` files
