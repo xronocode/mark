@@ -1,0 +1,47 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-TEST-POOL>
+    <ChangeRef>C-STABILIZE-TEST-POOL</ChangeRef>
+    <Created>2026-11-09</Created>
+    <IntentSummary>Migrate the obsolete concurrency option, preserving existing test semantics and coverage floors.</IntentSummary>
+    <ApprovalBasis>Owner-approved stabilization and delegated choices, 2026-11-09.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>vitest.config.ts</File>
+        <Text>poolOptions: { forks: { maxForks: 2 } }</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>vitest.config.ts</File>
+        <Text>maxWorkers: 2</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>vitest.config.ts</File>
+        <Text>poolOptions:</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">npx vitest run tests/renderer/components/projectSearch/index.test.js tests/renderer/components/sideBar/tree.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>vitest.config.ts</File>
+      <Glob>.grace/changes/active/C-STABILIZE-TEST-POOL/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Restore the intended two-worker cap and verify renderer tests</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Component suites and whole coverage suite pass with unchanged timeouts, isolation and coverage floors.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run test:coverage</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+    <ExecutionEvidence>2026-11-09: selected final assertions pass; both first-import suites pass with unchanged default test timeout. Full renderer coverage run exits 0: statements 92.05%, branches 85.10%, functions 87.46%, lines 93.34%; existing thresholds and isolation unchanged. Hosted exact-candidate CI remains required.</ExecutionEvidence>
+  </C-STABILIZE-TEST-POOL>
+</GraceChangePlan>

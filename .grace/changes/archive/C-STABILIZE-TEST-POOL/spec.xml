@@ -1,0 +1,37 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-TEST-POOL>
+    <Name>Restore the renderer test concurrency cap</Name>
+    <Created>2026-11-09</Created>
+    <Summary>Replace the removed Vitest poolOptions setting with supported maxWorkers so the intended two-process limit applies.</Summary>
+    <ApprovalBasis>The owner approved stabilization through clean green main and delegated recommended implementation choices on 2026-11-09.</ApprovalBasis>
+    <Goals>
+      <Goal>Retain the intended two-worker fork pool with current Vitest.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Keep test isolation, default test timeouts, coverage thresholds and assertions unchanged.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No test deletion, retry policy, timeout increase or runtime behavior change.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>The supported two-worker option is used and the removed option is absent.</Criterion>
+      <Criterion>The two first-import component suites pass with unchanged assertions; the full renderer coverage suite satisfies existing thresholds.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Area>vitest.config.ts and renderer verification execution.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <Command>npx vitest run tests/renderer/components/projectSearch/index.test.js tests/renderer/components/sideBar/tree.test.js</Command>
+      <Command>npm run test:coverage</Command>
+      <ExpectedEvidence>Existing component checks and full coverage results without lowered requirements.</ExpectedEvidence>
+    </VerificationIntent>
+    <Decisions>
+      <D-STAB-POOL-01>
+        <Choice>Use maxWorkers=2, preserving fork isolation.</Choice>
+        <Reason>The full run emitted the removed-poolOptions warning and first-import timeouts; Vitest's official migration guidance maps maxForks to maxWorkers.</Reason>
+        <Reference>https://v4.vitest.dev/guide/migration.html#pool-rework</Reference>
+      </D-STAB-POOL-01>
+    </Decisions>
+    <ExecutionEvidence>2026-11-09: selected final assertions pass; both first-import suites pass with unchanged default test timeout. Full renderer coverage run exits 0: statements 92.05%, branches 85.10%, functions 87.46%, lines 93.34%; existing thresholds and isolation unchanged. Hosted exact-candidate CI remains required.</ExecutionEvidence>
+  </C-STABILIZE-TEST-POOL>
+</GraceChangeSpec>
