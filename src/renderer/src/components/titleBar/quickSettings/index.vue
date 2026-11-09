@@ -11,28 +11,15 @@
     @click.stop="toggle"
     @keydown.enter.prevent="toggle"
   >
-    <!-- The «Aa» glyph redrawn on the shared chrome 16-grid (1.4 stroke,
-         16px render — the chromeIcons family every neighbor uses; lucide
-         24-grid paths at 15px/1.7 rendered visibly thinner and were
-         rejected by the owner 2026-11-09). «Aa» follows the
-         Notion/Bear page-settings precedent for a typography+width
-         panel; chevrons read as "code view" beside the source chip. -->
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.4"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M1.9 12.5 4.65 3.7 7.4 12.5" />
-      <path d="M3.15 9.8h3" />
-      <circle cx="11.8" cy="10.15" r="2.35" />
-      <path d="M14.05 12.5V7.9" />
-    </svg>
+    <!-- The «Aa» affordance is a SYSTEM-FONT text glyph, not a drawn
+         icon: letterforms hand-drawn on the icon grid failed twice
+         (2026-11-09 — lucide 24-grid paths rendered thinner than the
+         chrome family; a 16-grid redraw had bad letter proportions).
+         «Aa» set in the bar's own font reads as typography next to the
+         icon glyphs — the Notion/Bear page-settings precedent. It
+         replaces chevrons-left-right, which read as "code view" beside
+         the source-mode chip. -->
+    <span class="qs-aa" aria-hidden="true">Aa</span>
   </div>
   <!-- END_BLOCK_QUICK_SETTINGS_BUTTON -->
 
@@ -77,9 +64,9 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/quickSettings/index.vue
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: C-PAGE-WIDTH-TABLES T-003 (M-061) the titlebar quick-settings shell — the «Aa» button (the shared chrome 16-grid family) beside the theme button and the popover panel (Page / View / Tables live tabs) built exclusively from the C-38 component set in the neutral settings palette. The panel is NOT tinted by the editor theme: it follows the theme mode light/dark member (data-darkmode attribute over the verbatim --pref* palette) and every inner interaction keeps it open — only an outside click or Escape closes it; the footer opens the real Settings window.
+//   PURPOSE: C-PAGE-WIDTH-TABLES T-003 (M-061) the titlebar quick-settings shell — the «Aa» button (a system-font text glyph) beside the theme button and the popover panel (Page / View / Tables live tabs) built exclusively from the C-38 component set in the neutral settings palette. The panel is NOT tinted by the editor theme: it follows the theme mode light/dark member (data-darkmode attribute over the verbatim --pref* palette) and every inner interaction keeps it open — only an outside click or Escape closes it; the footer opens the real Settings window.
 //   SCOPE: Shell only — open/close (window capture-phase mousedown closer, the doc-info-popover precedent; T-010 adds the quick-settings:open bus entry point the View › Page Width › Custom… menu row and its palette command use), tab switching, dark-member parity, palette/row-anatomy CSS for its subtree and the Settings hand-off. The tab bodies (quickSettings/pageTab.vue, viewTab.vue, tablesTab.vue) own their domain state; this file holds no width or theme logic of its own. The dark active-segment contrast fix lives in the shared segmented component, never here.
 //   DEPENDS: vue, vue-i18n, @/bus (the quick-settings:open entry point), @/store/preferences (theme member for the data-darkmode parity), @/store/project (OPEN_SETTING_WINDOW — the same Settings entry the gear and palette use), the three tab components.
 //   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-003, corner C-4; plan T-010 — the Custom… bus entry); .grace/graph/performance.xml M-061; components/titleBar/index.vue (the mount point beside the theme button); prefComponents/common/* (the C-38 controls); pages/preference.vue (the palette source these verbatim values mirror); the approved real-app mock artifacts (boot.js section 1 glyph, approved.html structure, approved.css metrics).
@@ -100,21 +87,22 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-11-09 owner glyph rework (two passes the
-//   same day): chevrons-left-right became «Aa» — first lucide
-//   a-large-small paths (24-grid, 15px, 1.7), rejected live as visibly
-//   thinner than the neighbors, then redrawn on the shared chrome
-//   16-grid (16px render, 1.4 stroke — the chromeIcons family).
-//   «‹ ›» read as "code view" beside the source-mode chip (mode-source
-//   draws the same chevrons). No behavior, palette or geometry change
-//   beyond the glyph.
+//   LAST_CHANGE: v1.3.0 - 2026-11-09 owner glyph rework, third pass:
+//   «Aa» becomes a system-font text glyph (span.qs-aa, 12.5px semibold)
+//   after both drawn attempts failed live review — lucide a-large-small
+//   (24-grid, 15px, 1.7) rendered thinner than the chrome family, and a
+//   chrome 16-grid redraw (1.4 stroke) had bad letter proportions.
+//   Letters come from the bar's own font, the Notion/Bear page-settings
+//   precedent; chevrons-left-right read as "code view" beside the
+//   source-mode chip (mode-source draws the same chevrons). No behavior,
+//   palette or panel change.
 //   PREV: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the
 //   quick-settings:open bus entry point — View › Page Width › Custom…
 //   (view.page-width.custom) opens the panel on the requested tab; the
 //   open path is extracted into openPanel(tab) and the listener leaves
-//   with the component. No width or theme logic moved. The v1.0.0 shell
-//   (T-003, M-061) shipped the chevrons-left-right button of the
-//   approved mock; the glyph is history since v1.2.0.
+//   with the component. The v1.0.0 shell (T-003, M-061) shipped the
+//   chevrons-left-right button of the approved mock; the glyph is
+//   history since the 2026-11-09 rework.
 // END_CHANGE_SUMMARY
 
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
@@ -460,4 +448,21 @@ onBeforeUnmount(() => {
   opacity: 0.55;
 }
 /* END_BLOCK_QUICK_ROW_ANATOMY */
+
+/* START_BLOCK_QS_AA_GLYPH */
+/* The button's «Aa»: a text glyph in the inherited bar font — the icon
+   svg attempts (lucide 24-grid, then a chrome 16-grid redraw) failed
+   typographic quality at this size; the system font's letters are the
+   reference. 12.5px semibold optically matches the 16px icon family
+   (cap height ≈ 9px against the icons' ~12.4px box with their natural
+   whitespace); -0.2px tracking keeps the pair tight. */
+.quick-settings-btn .qs-aa {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.2px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* END_BLOCK_QS_AA_GLYPH */
 </style>
