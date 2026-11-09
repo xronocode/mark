@@ -4,7 +4,8 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
 
 /**
  * C-PAGE-WIDTH-TABLES T-003..T-006: the titlebar quick-settings panel —
- * the chevrons-left-right button, the C-38 Page/View/Tables tabs in the
+ * the quick-settings button (a-large-small «Aa» since the 2026-11-09
+ * owner rework), the C-38 Page/View/Tables tabs in the
  * neutral palette, the Page tab's per-document width pipeline (per-unit
  * presets, unit conversion with the 10% snap, the scope switch tiers,
  * the live footer), the View tab's 17-family grid and R-4 override pin,

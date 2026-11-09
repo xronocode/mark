@@ -139,14 +139,15 @@ describe('quick settings shell (T-003, corner C-4)', () => {
     savePageWidth.mockReset().mockResolvedValue(true)
   })
 
-  it('mounts the chevrons-left-right button and opens the panel on click', async () => {
+  it('mounts the a-large-small «Aa» button and opens the panel on click', async () => {
     const wrapper = await mountShell()
     const btn = wrapper.find('.quick-settings-btn')
     expect(btn.exists()).toBe(true)
     expect(btn.classes()).toContain('titlebar-nav-btn')
-    // The approved glyph: the two chevron paths of boot.js section 1.
-    expect(btn.html()).toContain('m10 17-5-5 5-5')
-    expect(btn.html()).toContain('m14 7 5 5-5 5')
+    // The owner's 2026-11-09 glyph: the lucide a-large-small paths (the
+    // big-A and small-a stems; chevrons-left-right read as "code view").
+    expect(btn.html()).toContain('m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16')
+    expect(btn.html()).toContain('m15 16 2.536-7.328a1.02 1.02 0 0 1 1.928 0L22 16')
 
     expect(wrapper.find('.quick-settings-popover').exists()).toBe(false)
     await btn.trigger('click')
