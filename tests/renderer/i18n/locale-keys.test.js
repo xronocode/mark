@@ -1,16 +1,20 @@
 // FILE: tests/renderer/i18n/locale-keys.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-TITLEBAR-MODE-CHIPS T-003 pin — the titleBar.modeChips
 //            namespace carries exactly fifteen families in all ten
 //            locales, each value is non-empty native copy; and the
 //            C-LOCALE-MIN-TWIN-REMOVAL guard — static/locales ships
 //            exactly the ten full locale tables and no .min.json twin
-//            (the retired byte-parity law's inverted successor).
+//            (the retired byte-parity law's inverted successor); and
+//            the C-RENDER-REVIEW-FIXES rollback-feedback pin — the
+//            seven rollback/notification feedback keys present and
+//            non-empty in all ten locales.
 //   SCOPE: static/locales/*.json (per-locale tables and the directory
 //          inventory guard); no runtime.
 //   DEPENDS: vitest, node:fs.
-//   LINKS: .grace/changes/archive/C-TITLEBAR-MODE-CHIPS/spec.xml R-4.
+//   LINKS: .grace/changes/archive/C-TITLEBAR-MODE-CHIPS/spec.xml R-4;
+//          .grace/changes/active/C-RENDER-REVIEW-FIXES plan T-002.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -19,11 +23,18 @@
 //   ROOT - repository root resolved from process.cwd().
 //   LOCALES - the ten shipped locale codes.
 //   FAMILIES - the fifteen modeChips keys R-4 inventories.
+//   FEEDBACK_KEYS - the seven rollback-feedback dotted key paths.
 //   readTable - parse one locale file.
+//   readKey - resolve one dotted key path inside a locale table.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-28 C-LOCALE-MIN-TWIN-REMOVAL: the
+//   LAST_CHANGE: v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES: the
+//   rollback-feedback pin — rollback.restoreFailedTitle/Body,
+//   rollback.prefsSkippedTitle/Body, notifications.actionFailedTitle/
+//   Body and notifications.source.rollback present and non-empty in
+//   all ten locale tables.
+//   v1.1.0 - 2026-10-28 C-LOCALE-MIN-TWIN-REMOVAL: the
 //   min-twin byte-parity law retired with the twins themselves; the
 //   directory guard (ten full tables, no .min.json) takes its place;
 //   the stale seventeen-family header count corrected to fifteen.
@@ -44,9 +55,18 @@ const FAMILIES = [
   'hintTypewriter', 'hintFocus',
   'viewGroup', 'writingGroup', 'narrowNote'
 ]
+const FEEDBACK_KEYS = [
+  'rollback.restoreFailedTitle', 'rollback.restoreFailedBody',
+  'rollback.prefsSkippedTitle', 'rollback.prefsSkippedBody',
+  'notifications.actionFailedTitle', 'notifications.actionFailedBody',
+  'notifications.source.rollback'
+]
 
 const readTable = (locale) =>
   JSON.parse(readFileSync(join(ROOT, 'static/locales', `${locale}.json`), 'utf8'))
+
+const readKey = (table, dotted) =>
+  dotted.split('.').reduce((node, segment) => (node == null ? node : node[segment]), table)
 
 describe('titleBar.modeChips locale families (C-TITLEBAR-MODE-CHIPS T-003)', () => {
   it('ships exactly the fifteen families in every locale', () => {
@@ -81,5 +101,25 @@ describe('titleBar.modeChips locale families (C-TITLEBAR-MODE-CHIPS T-003)', () 
     expect(files, 'static/locales inventory').toEqual([...LOCALES].map((locale) => `${locale}.json`).sort())
     const twins = files.filter((file) => file.endsWith('.min.json'))
     expect(twins, 'min twins were removed by C-LOCALE-MIN-TWIN-REMOVAL; regenerate nothing, edit the full table').toEqual([])
+  })
+})
+
+describe('rollback feedback locale keys (C-RENDER-REVIEW-FIXES T-002)', () => {
+  it('carries the seven feedback keys in every locale', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of FEEDBACK_KEYS) {
+        expect(readKey(table, key), `${locale}.${key}`).toBeTypeOf('string')
+      }
+    }
+  })
+
+  it('writes non-empty native copy everywhere', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of FEEDBACK_KEYS) {
+        expect(readKey(table, key).trim().length, `${locale}.${key}`).toBeGreaterThan(0)
+      }
+    }
   })
 })

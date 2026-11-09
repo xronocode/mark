@@ -538,7 +538,7 @@
         "title": "텍스트",
         "font": "텍스트 글꼴",
         "lineHeight": "줄 간격",
-        "lineWidthHelp": "테마 기본 너비를 사용하려면 비워 두세요. 또는 px, % 또는 ch 단위의 숫자를 입력하세요 — 예: 720px.",
+        "lineWidthHelp": "전체 너비를 사용하려면 비워 두세요. 또는 px, % 또는 ch 단위의 숫자를 입력하세요 — 예: 720px.",
         "fontSize": "텍스트 크기",
         "unlimited": "제한 없음",
         "lineWidth": "편집 영역 너비"
@@ -1274,7 +1274,8 @@
       "project": "프로젝트",
       "update": "업데이트",
       "agent": "에이전트",
-      "system": "시스템"
+      "system": "시스템",
+      "rollback": "되돌리기"
     },
     "actions": {
       "copy": "복사",
@@ -1286,7 +1287,9 @@
       "title": "알림",
       "empty": "이 세션에는 알림이 없습니다",
       "copy": "복사"
-    }
+    },
+    "actionFailedTitle": "작업에 실패했습니다",
+    "actionFailedBody": "자세한 내용은 로그를 확인하세요."
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1436,7 +1439,8 @@
       "fontFamily": "글꼴 패밀리:"
     },
     "info": {
-      "description": "페이지 모양을 사용자 정의하고 \"내보내기\"를 클릭하여 계속하세요."
+      "description": "페이지 모양을 사용자 정의하고 \"내보내기\"를 클릭하여 계속하세요.",
+      "label": "정보"
     },
     "page": {
       "topBottom": "위/아래:",
@@ -1446,10 +1450,13 @@
       "leftRight": "왼쪽/오른쪽:",
       "widthHeight": "너비/높이(mm):",
       "pageSize": "페이지 크기:",
-      "pageMarginPreset": "여백:"
+      "pageMarginPreset": "여백:",
+      "pageMargin": "페이지 여백(mm):"
     },
     "theme": {
-      "theme": "테마"
+      "theme": "테마",
+      "label": "테마",
+      "description": "테마를 선택하거나 직접 만들어 문서 모양을 변경할 수 있습니다."
     },
     "headerFooter": {
       "customizeStyle": "스타일 사용자 정의",
@@ -1460,7 +1467,16 @@
       "footerText": "바닥글",
       "leftSlot": "왼쪽",
       "centerSlot": "가운데",
-      "rightSlot": "오른쪽"
+      "rightSlot": "오른쪽",
+      "footerType": "바닥글 유형",
+      "description": "머리글 및/또는 바닥글이 정의된 경우 모든 페이지에 텍스트가 나타납니다.",
+      "mainHeaderText": "주 머리글 텍스트",
+      "rightHeaderText": "오른쪽 머리글 텍스트",
+      "headerType": "머리글 유형",
+      "leftFooterText": "왼쪽 바닥글 텍스트",
+      "rightFooterText": "오른쪽 바닥글 텍스트",
+      "mainFooterText": "주 바닥글 텍스트",
+      "leftHeaderText": "왼쪽 머리글 텍스트"
     },
     "autoNumberingHeadings": "제목 자동 번호 매기기",
     "showFrontMatter": "프론트 매터 보기",
@@ -1469,7 +1485,8 @@
     "toc": {
       "title": "목차",
       "includeTopHeading": "최상위 제목 포함",
-      "includeTopHeadingDetail": "최상위 제목 세부 정보 포함"
+      "includeTopHeadingDetail": "최상위 제목 세부 정보 포함",
+      "label": "목차"
     },
     "options": {
       "headerFooterStyles": {
@@ -1710,7 +1727,11 @@
     "title": "Mark {version}으로 되돌리기",
     "body": "설정이 업데이트 전 스냅샷으로 돌아갑니다. 업데이트 이후의 변경 사항은 사라집니다. 더 새 버전이 나올 때까지 Mark {current}는 건너뜁니다.",
     "confirm": "되돌리기",
-    "cancel": "취소"
+    "cancel": "취소",
+    "restoreFailedTitle": "되돌리기 실패",
+    "restoreFailedBody": "이전 버전을 복원할 수 없습니다. 자세한 내용은 로그를 확인하세요.",
+    "prefsSkippedTitle": "되돌리기 완료",
+    "prefsSkippedBody": "이전 버전은 복원되었지만 저장된 설정을 가져오지 못했습니다. 일부 설정은 기본값으로 되돌아갔을 수 있습니다."
   },
   "quickSettings": {
     "title": "빠른 설정",

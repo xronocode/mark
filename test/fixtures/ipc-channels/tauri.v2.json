@@ -5,9 +5,9 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-10-28T17:33:46.831Z",
+  "generated_at": "2026-11-03T17:53:32.234Z",
   "counts": {
-    "commands": 50,
+    "commands": 51,
     "error_codes": 4
   },
   "error_codes": [
@@ -275,6 +275,14 @@
     },
     {
       "name": "mt::rollback::restore",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::rollback::restore_outcome",
       "direction": "renderer->main",
       "transport": "invoke",
       "layer": "M-013-A",

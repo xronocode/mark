@@ -2261,7 +2261,7 @@ export const useEditorStore = defineStore('editor', {
             {
               kind: 'reveal',
               payload: () => {
-                window.electron.shell.showItemInFolder(filePath)
+                return window.electron.shell.showItemInFolder(filePath)
               }
             },
             {
@@ -2391,7 +2391,7 @@ export const useEditorStore = defineStore('editor', {
           {
             kind: 'reveal',
             payload: () => {
-              window.electron.shell.showItemInFolder(filePath)
+              return window.electron.shell.showItemInFolder(filePath)
             }
           }
         ]
@@ -2810,7 +2810,7 @@ export const useEditorStore = defineStore('editor', {
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry).
+//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/active/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

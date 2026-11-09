@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/store/autoUpdates.js
-// VERSION: 1.0.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-66 launch-time update check — the once-per-24 h gate
 //            (What's New deferral, App Store gate, autoCheckUpdates
@@ -21,7 +21,8 @@
 //          the What's New gate + FETCH_BUILD_MODE);
 //          components/updateNotice (renders this.notice);
 //          src-tauri/src/m016_updater.rs mt_updater_check;
-//          .grace/graph/runtime.xml M-016 / M-011.
+//          .grace/graph/runtime.xml M-016 / M-011;
+//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-004/T-006).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -31,13 +32,36 @@
 //   LAST_UPDATE_CHECK_AT_KEY - prefs key with the ISO time of the last COMPLETED automatic check (drives the 24 h throttle).
 //   SKIPPED_UPDATE_VERSION_KEY - prefs key with the version hidden by «Skip this version».
 //   CHECK_INTERVAL_MS - 24 h minimum spacing between automatic checks.
+//   ROLLBACK_OUTCOME_MAX_AGE_MS - 48 h freshness bound on the restore-outcome marker (older records suppressed, console marker only).
 //   evaluateAutoUpdateGate - pure gate: { check, reason } from build mode, What's New deferral, switch state and the 24 h clock.
 //   evaluateUpdateNotice - pure decision: { show, version, reason } for an mt_updater_check status against the skipped version.
-//   useAutoUpdatesStore - Pinia store: RUN_LAUNCH_CHECK (boot init), DISMISS_NOTICE (Later), SKIP_VERSION, INSTALL_UPDATE (shared signed install flow), OPEN/CLOSE_ROLLBACK_CONFIRM + CONFIRM_ROLLBACK (C-UPDATER-ROLLBACK confirmation card).
+//   useAutoUpdatesStore - Pinia store: RUN_LAUNCH_CHECK (boot init + the rollback prefs-skip boot notice), DISMISS_NOTICE (Later), SKIP_VERSION, INSTALL_UPDATE (shared signed install flow), OPEN/CLOSE_ROLLBACK_CONFIRM + CONFIRM_ROLLBACK (C-UPDATER-ROLLBACK confirmation card).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-28 C-UPDATER-ROLLBACK T-005: rollback
+//   LAST_CHANGE: v1.3.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-006: the
+//   prefs-skip boot notice — RUN_LAUNCH_CHECK queries
+//   mt_rollback_restore_outcome at the very start, BEFORE the updater
+//   gate's early return (the gate skips exactly the boots the notice
+//   targets: throttled, whats-new-deferred, auto-check off) on its own
+//   injectable seam (outcomeInvokeFn with the dynamic-import fallback;
+//   the shared invokeFn stays exclusive to mt_updater_check). A fresh
+//   (<48 h) skip record raises exactly one sticky warning notice
+//   rollback.prefsSkippedTitle/Body (dedupKey 'rollback-prefs-skipped',
+//   source 'rollback'); the marker's error field stays console-only and
+//   never reaches the GUI. A stale record is suppressed with a console
+//   marker (the command's read-and-clear has already consumed the file);
+//   a null outcome and a failing query both leave the boot path
+//   untouched — a boot notice must not be born from a broken fact
+//   channel.
+//   v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: the
+//   CONFIRM_ROLLBACK failure path can no longer fail silently — the
+//   @tauri-apps/api/core import moved inside the try (an import
+//   rejection joins the invoke-failure path) and the catch raises the
+//   localized error notice rollback.restoreFailedTitle/Body
+//   (source 'rollback', sticky by the store's error-severity rule);
+//   the raw Rust error stays console-only and never reaches the GUI.
+//   v1.1.0 - 2026-10-28 C-UPDATER-ROLLBACK T-005: rollback
 //   confirmation state (rollback: { visible, previousVersion,
 //   currentVersion }) plus OPEN_ROLLBACK_CONFIRM / CLOSE_ROLLBACK_CONFIRM
 //   / CONFIRM_ROLLBACK actions — OPEN gates on a fresh mt_rollback_status
@@ -58,6 +82,7 @@
 // END_CHANGE_SUMMARY
 
 import { defineStore } from 'pinia'
+import { t } from '../i18n'
 import { normalizeVersion } from '../util/version'
 
 export const AUTO_CHECK_UPDATES_KEY = 'autoCheckUpdates'
@@ -66,6 +91,13 @@ export const SKIPPED_UPDATE_VERSION_KEY = 'skippedUpdateVersion'
 
 // R-1: at most one automatic check per 24 h.
 export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+// C-RENDER-REVIEW-FIXES T-006: freshness bound on the restore-outcome
+// marker ({"prefs":"skipped","error","at"} at the rollback root). A record
+// older than 48 h is suppressed with a console marker only — the
+// timestamp bound is what closes the transition era, where a restored
+// pre-feature binary's own prepare cannot remove the marker.
+export const ROLLBACK_OUTCOME_MAX_AGE_MS = 48 * 60 * 60 * 1000
 
 // START_BLOCK_EVALUATE_AUTO_UPDATE_GATE
 // Pure gate, fake-clock friendly (all time flows in via `now`). Order is
@@ -151,13 +183,63 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
     // (corner-2). Only a completed, note-free check advances the clock —
     // including one whose update is skipped (the check succeeded; the
     // notice alone stays hidden).
+    //
+    // C-RENDER-REVIEW-FIXES T-006: before the gate, the restore-outcome
+    // fact (mt_rollback_restore_outcome — read-and-clear, T-001) is
+    // queried on its own injectable seam (outcomeInvokeFn with the
+    // dynamic-import fallback; invokeFn stays exclusive to
+    // mt_updater_check). The query precedes the gate's early return
+    // because the gate skips exactly the boots this notice targets
+    // (throttled, whats-new-deferred, auto-check off). A fresh (<48 h)
+    // skip record raises exactly one sticky warning notice
+    // (rollback.prefsSkippedTitle/Body, dedupKey 'rollback-prefs-skipped',
+    // source 'rollback'; the marker's error field is console-only and
+    // never interpolated into the GUI). A stale record is suppressed with
+    // a console marker; a null outcome changes nothing; a failing query
+    // is quiet (console marker only — a boot notice must not be born
+    // from a broken fact channel).
     async RUN_LAUNCH_CHECK({
       ipc = null,
       invokeFn = null,
+      outcomeInvokeFn = null,
       now = new Date(),
       whatsNewShown = false,
       isDesktopBuild = null
     } = {}) {
+      try {
+        let outcomeInvoke = outcomeInvokeFn
+        if (!outcomeInvoke) {
+          outcomeInvoke = (await import('@tauri-apps/api/core')).invoke
+        }
+        const outcome = await outcomeInvoke('mt_rollback_restore_outcome')
+        if (outcome && typeof outcome === 'object') {
+          const atMs = Number(outcome.at) * 1000
+          const parsedNow = now instanceof Date ? now.getTime() : Date.parse(String(now))
+          const clockMs = Number.isFinite(parsedNow) ? parsedNow : Date.now()
+          if (Number.isFinite(atMs) && clockMs - atMs <= ROLLBACK_OUTCOME_MAX_AGE_MS) {
+            console.warn(
+              `[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_PREFS_SKIPPED error=${String(outcome.error || '')}]`
+            )
+            const notice = (await import('../services/notification')).default
+            // Static locale copy (finding-14): the marker's error field is
+            // the console diagnostics above, never interpolated into the
+            // GUI. The read-and-clear makes this one-shot per boot.
+            notice.notify({
+              title: t('rollback.prefsSkippedTitle'),
+              message: t('rollback.prefsSkippedBody'),
+              type: 'warning',
+              sticky: true,
+              dedupKey: 'rollback-prefs-skipped',
+              source: 'rollback'
+            })
+          } else {
+            console.log('[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_OUTCOME_STALE]')
+          }
+        }
+      } catch (e) {
+        console.error('[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_OUTCOME_QUERY_FAILED]', e)
+      }
+
       const facade = ipc || (await import('../ipc/runtime')).ipcPrefs
 
       let autoCheckUpdates = true
@@ -285,7 +367,12 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
     // mutex (m005 PrefsState serializes the snapshot overwrite with any
     // in-flight prefs write) and invokes mt_rollback_restore, which
     // re-validates everything before touching the system; CANCEL is a
-    // strict no-op (nothing invoked, nothing persisted).
+    // strict no-op (nothing invoked, nothing persisted). A failed
+    // restore — invoke rejection or @tauri-apps/api/core import
+    // failure, both inside the try — keeps the raw error to the console
+    // marker and raises the localized error notice
+    // rollback.restoreFailedTitle/Body (source 'rollback'; the card
+    // stays hidden — the notice replaces it, it is not resurrected).
     async OPEN_ROLLBACK_CONFIRM({ invokeFn = null } = {}) {
       let invoke = invokeFn
       if (!invoke) {
@@ -321,20 +408,26 @@ export const useAutoUpdatesStore = defineStore('autoUpdates', {
       this.rollback.visible = false
       if (!previousVersion) return
       let invoke = invokeFn
-      if (!invoke) {
-        invoke = (await import('@tauri-apps/api/core')).invoke
-      }
       try {
-        // On macOS this restarts into the restored version; on Windows
-        // the Rust side spawns the verified installer and exits.
+        // The import shares the try with the invoke (finding-12): a
+        // failed facade load is a failed restore attempt, not an
+        // unhandled rejection. On macOS this restarts into the restored
+        // version; on Windows the Rust side spawns the verified
+        // installer and exits.
+        if (!invoke) {
+          invoke = (await import('@tauri-apps/api/core')).invoke
+        }
         await invoke('mt_rollback_restore')
       } catch (e) {
+        // Raw error for the logs only (finding-14): the GUI gets the
+        // localized copy, never String(e).
         console.error('[autoUpdates][CONFIRM_ROLLBACK][BLOCK_RESTORE_FAILED]', e)
         const notice = (await import('../services/notification')).default
         notice.notify({
-          title: 'Rollback failed',
-          message: String(e),
-          type: 'warning'
+          title: t('rollback.restoreFailedTitle'),
+          message: t('rollback.restoreFailedBody'),
+          type: 'error',
+          source: 'rollback'
         })
       }
     }

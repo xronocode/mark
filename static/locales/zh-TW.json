@@ -538,7 +538,7 @@
         "title": "文字",
         "font": "正文字型",
         "lineHeight": "行距",
-        "lineWidthHelp": "留空表示使用主題預設寬度，或輸入帶 px、% 或 ch 單位的數值——例如 720px。",
+        "lineWidthHelp": "留空表示全寬，或輸入帶 px、% 或 ch 單位的數值——例如 720px。",
         "fontSize": "文字大小",
         "unlimited": "不受限",
         "lineWidth": "書寫區域寬度"
@@ -1274,7 +1274,8 @@
       "project": "專案",
       "update": "更新",
       "agent": "智慧代理",
-      "system": "系統"
+      "system": "系統",
+      "rollback": "回退"
     },
     "actions": {
       "copy": "複製",
@@ -1286,7 +1287,9 @@
       "title": "通知",
       "empty": "本次作業階段沒有通知",
       "copy": "複製"
-    }
+    },
+    "actionFailedTitle": "操作失敗",
+    "actionFailedBody": "詳細資訊請查看日誌。"
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1444,7 +1447,8 @@
       "fontFamily": "字型系列："
     },
     "info": {
-      "description": "請自訂頁面外觀並點選「匯出」以繼續。"
+      "description": "請自訂頁面外觀並點選「匯出」以繼續。",
+      "label": "資訊"
     },
     "page": {
       "topBottom": "上/下：",
@@ -1454,10 +1458,13 @@
       "leftRight": "左/右：",
       "widthHeight": "寬度/高度（毫米）：",
       "pageSize": "頁面大小：",
-      "pageMarginPreset": "頁邊距："
+      "pageMarginPreset": "頁邊距：",
+      "pageMargin": "頁面邊距（毫米）："
     },
     "theme": {
-      "theme": "主題"
+      "theme": "主題",
+      "label": "主題",
+      "description": "您可以透過選擇主題或建立手工製作的主題來變更文件外觀。"
     },
     "headerFooter": {
       "customizeStyle": "自訂樣式",
@@ -1468,7 +1475,16 @@
       "footerText": "頁尾",
       "leftSlot": "左",
       "centerSlot": "中",
-      "rightSlot": "右"
+      "rightSlot": "右",
+      "footerType": "頁尾類型",
+      "description": "如果定義了頁首和/或頁尾，文字將出現在所有頁面上。",
+      "mainHeaderText": "主頁首文字",
+      "rightHeaderText": "右頁首文字",
+      "headerType": "頁首類型",
+      "leftFooterText": "左頁尾文字",
+      "rightFooterText": "右頁尾文字",
+      "mainFooterText": "主頁尾文字",
+      "leftHeaderText": "左頁首文字"
     },
     "autoNumberingHeadings": "自動編號標題",
     "showFrontMatter": "顯示前置資料",
@@ -1477,7 +1493,8 @@
     "toc": {
       "title": "目錄",
       "includeTopHeading": "包含頂層標題",
-      "includeTopHeadingDetail": "包含頂層標題詳細資訊"
+      "includeTopHeadingDetail": "包含頂層標題詳細資訊",
+      "label": "目錄"
     },
     "options": {
       "headerFooterStyles": {
@@ -1718,7 +1735,11 @@
     "title": "回退到 Mark {version}",
     "body": "設定將恢復到更新前的快照——更新後所做的變更會遺失。在較新版本發布之前，將跳過 Mark {current}。",
     "confirm": "回退",
-    "cancel": "取消"
+    "cancel": "取消",
+    "restoreFailedTitle": "回退失敗",
+    "restoreFailedBody": "無法還原上一個版本。詳細資訊請查看日誌。",
+    "prefsSkippedTitle": "回退完成",
+    "prefsSkippedBody": "上一個版本已還原，但已儲存的設定未能還原——部分設定可能已重設為預設值。"
   },
   "quickSettings": {
     "title": "快速設定",

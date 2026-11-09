@@ -9,13 +9,18 @@
  *     style values.
  *   - Copy-on-select works on the banner message (spec R-3/R-8): release
  *     with a selection copies; user-select none is gone.
+ *   - The truthful copy pulse (C-RENDER-REVIEW-FIXES T-005): the pulse only
+ *     follows a resolved successful clipboard write — a missing API and a
+ *     rejected write never pulse; a selection collapsed before the write
+ *     resolves still pulses the captured Range snapshot (no throw, no
+ *     unhandled rejection).
  *
  * Store strategy: the real editor store pulls the whole theme/config
  * graph into jsdom, so this suite stubs the two consumed stores with real
  * defineStore shapes (storeToRefs-compatible).
  */
 
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { setupTestPinia } from '../../pinia'
 
 vi.mock('@/i18n', () => ({
@@ -111,5 +116,104 @@ describe('editor banner (C-NOTIFICATION-SYSTEM T-006)', () => {
     await wrapper.trigger('mouseup')
     expect(writeText).toHaveBeenCalledWith('the file changed on disk')
     expect(msg.element.textContent).toBe('the file changed on disk')
+  })
+
+  // C-RENDER-REVIEW-FIXES T-005: truthful copy on the banner surface — the
+  // pulse only follows a resolved successful clipboard write; the Range is
+  // captured synchronously at release, so a selection that collapses before
+  // the write resolves can neither throw, nor leave an unhandled rejection,
+  // nor pulse a node other than the captured snapshot.
+  describe('truthful copy pulse (C-RENDER-REVIEW-FIXES T-005)', () => {
+    let unhandled
+    let onUnhandled
+
+    beforeEach(() => {
+      unhandled = []
+      onUnhandled = (reason) => { unhandled.push(reason) }
+      process.on('unhandledRejection', onUnhandled)
+    })
+
+    afterEach(() => {
+      process.off('unhandledRejection', onUnhandled)
+      expect(unhandled).toEqual([])
+    })
+
+    const selectBanner = (wrapper) => {
+      const msg = wrapper.get('.msg')
+      const range = document.createRange()
+      range.selectNodeContents(msg.element)
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+      return sel
+    }
+
+    const mountWithSelection = () => {
+      const wrapper = mountBanner([{ msg: 'the file changed on disk', style: 'warn' }])
+      selectBanner(wrapper)
+      return wrapper
+    }
+
+    const pulseSpans = (wrapper) => wrapper.findAll('.msg .notify-copied-pulse')
+
+    it('a resolving write pulses exactly once on the copied range', async () => {
+      const wrapper = mountWithSelection()
+      await wrapper.trigger('mouseup')
+      await flushPromises()
+      expect(pulseSpans(wrapper)).toHaveLength(1)
+      expect(wrapper.get('.msg .notify-copied-pulse').text()).toBe('the file changed on disk')
+    })
+
+    it('a missing clipboard API produces no pulse and no throw', async () => {
+      Object.defineProperty(window, 'navigator', { value: {}, configurable: true })
+      const wrapper = mountWithSelection()
+      await wrapper.trigger('mouseup')
+      await flushPromises()
+      expect(writeText).not.toHaveBeenCalled()
+      expect(pulseSpans(wrapper)).toHaveLength(0)
+    })
+
+    it('a rejecting clipboard write stays silent and produces no pulse', async () => {
+      writeText.mockImplementationOnce(() => Promise.reject(new Error('denied')))
+      const wrapper = mountWithSelection()
+      await wrapper.trigger('mouseup')
+      await flushPromises()
+      expect(pulseSpans(wrapper)).toHaveLength(0)
+    })
+
+    it('the selection collapses before resolution: a real write still pulses the captured snapshot', async () => {
+      let resolveWrite
+      writeText.mockImplementationOnce(() => new Promise((resolve) => { resolveWrite = resolve }))
+      const wrapper = mountWithSelection()
+      await wrapper.trigger('mouseup')
+      // The selection collapses while the write is still pending.
+      window.getSelection().removeAllRanges()
+      resolveWrite()
+      await flushPromises()
+      // The captured Range is a frozen snapshot — honest feedback for a
+      // copy that did happen lands on the captured node.
+      expect(pulseSpans(wrapper)).toHaveLength(1)
+      expect(wrapper.get('.msg .notify-copied-pulse').text()).toBe('the file changed on disk')
+    })
+
+    it('the selection collapses before resolution: an absent API never pulses', async () => {
+      Object.defineProperty(window, 'navigator', { value: {}, configurable: true })
+      const wrapper = mountWithSelection()
+      await wrapper.trigger('mouseup')
+      window.getSelection().removeAllRanges()
+      await flushPromises()
+      expect(pulseSpans(wrapper)).toHaveLength(0)
+    })
+
+    it('the selection collapses before resolution: a rejected write never pulses', async () => {
+      let rejectWrite
+      writeText.mockImplementationOnce(() => new Promise((resolve, reject) => { rejectWrite = reject }))
+      const wrapper = mountWithSelection()
+      await wrapper.trigger('mouseup')
+      window.getSelection().removeAllRanges()
+      rejectWrite(new Error('denied'))
+      await flushPromises()
+      expect(pulseSpans(wrapper)).toHaveLength(0)
+    })
   })
 })

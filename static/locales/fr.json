@@ -538,7 +538,7 @@
         "title": "Texte",
         "font": "Police du texte",
         "lineHeight": "Interligne",
-        "lineWidthHelp": "Laissez vide pour utiliser la largeur du thème, ou saisissez un nombre suivi de px, % ou ch — par exemple 720px.",
+        "lineWidthHelp": "Laissez vide pour utiliser toute la largeur, ou saisissez un nombre suivi de px, % ou ch — par exemple 720px.",
         "fontSize": "Taille du texte",
         "unlimited": "Illimitée",
         "lineWidth": "Largeur de la zone d'écriture"
@@ -1276,7 +1276,8 @@
       "project": "Projet",
       "update": "Mise à jour",
       "agent": "Agent",
-      "system": "Système"
+      "system": "Système",
+      "rollback": "Retour arrière"
     },
     "actions": {
       "copy": "Copier",
@@ -1288,7 +1289,9 @@
       "title": "Notifications",
       "empty": "Aucune notification pendant cette session",
       "copy": "Copier"
-    }
+    },
+    "actionFailedTitle": "Échec de l’action",
+    "actionFailedBody": "Les détails sont dans le journal."
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1438,7 +1441,8 @@
       "fontFamily": "Famille de police :"
     },
     "info": {
-      "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer."
+      "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer.",
+      "label": "Informations"
     },
     "page": {
       "topBottom": "Haut/Bas :",
@@ -1448,10 +1452,13 @@
       "leftRight": "Gauche/Droite :",
       "widthHeight": "Largeur/Hauteur (mm) :",
       "pageSize": "Taille de la page :",
-      "pageMarginPreset": "Marges :"
+      "pageMarginPreset": "Marges :",
+      "pageMargin": "Marge de page (mm) :"
     },
     "theme": {
-      "theme": "Thème"
+      "theme": "Thème",
+      "label": "Thème",
+      "description": "Vous pouvez changer l'apparence du document en sélectionnant un thème ou en créant un thème personnalisé."
     },
     "headerFooter": {
       "customizeStyle": "Personnaliser le style",
@@ -1462,7 +1469,16 @@
       "footerText": "Pied de page",
       "leftSlot": "Gauche",
       "centerSlot": "Centre",
-      "rightSlot": "Droite"
+      "rightSlot": "Droite",
+      "footerType": "Type de pied de page",
+      "description": "Si un en-tête et/ou un pied de page est défini, le texte apparaîtra sur toutes les pages.",
+      "mainHeaderText": "Texte de l'en-tête principal",
+      "rightHeaderText": "Texte de l'en-tête droit",
+      "headerType": "Type d'en-tête",
+      "leftFooterText": "Texte du pied de page gauche",
+      "rightFooterText": "Texte du pied de page droit",
+      "mainFooterText": "Texte du pied de page principal",
+      "leftHeaderText": "Texte de l'en-tête gauche"
     },
     "autoNumberingHeadings": "Numérotation automatique des titres",
     "showFrontMatter": "Afficher les métadonnées",
@@ -1471,7 +1487,8 @@
     "toc": {
       "title": "Table des matières",
       "includeTopHeading": "Inclure le titre de niveau supérieur",
-      "includeTopHeadingDetail": "Inclure les détails du titre de niveau supérieur"
+      "includeTopHeadingDetail": "Inclure les détails du titre de niveau supérieur",
+      "label": "Table des matières"
     },
     "options": {
       "headerFooterStyles": {
@@ -1719,7 +1736,11 @@
     "title": "Revenir à Mark {version}",
     "body": "Les réglages reviennent à l’instantané pris avant la mise à jour — les modifications faites après sont annulées. Mark {current} sera ignoré jusqu’à une version plus récente.",
     "confirm": "Revenir",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "restoreFailedTitle": "Échec du retour arrière",
+    "restoreFailedBody": "La version précédente n’a pas pu être restaurée. Les détails sont dans le journal.",
+    "prefsSkippedTitle": "Retour arrière terminé",
+    "prefsSkippedBody": "La version précédente a été restaurée, mais les réglages enregistrés n’ont pas pu être récupérés — certains réglages ont peut-être été rétablis à leurs valeurs par défaut."
   },
   "quickSettings": {
     "title": "Réglages rapides",

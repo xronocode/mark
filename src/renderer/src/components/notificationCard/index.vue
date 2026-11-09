@@ -16,7 +16,8 @@
 //   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-1/R-3/R-4;
 //          components/notificationStack (mounts it);
 //          components/updateNotice (actions + onDismiss injection);
-//          components/editorWithTabs/notifications (same visual family).
+//          components/editorWithTabs/notifications (same visual family);
+//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-003/T-005).
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT
@@ -106,15 +107,25 @@ const sourceLabel = computed(() => {
 // START_BLOCK_COPY_ON_SELECT
 // Spec R-3: releasing a selection inside the card copies exactly the
 // selection and never dismisses (corner C-3); the double green pulse is the
-// only confirmation; reduced motion copies silently (corner C-10).
+// only confirmation and fires only after a resolved successful write
+// (C-RENDER-REVIEW-FIXES T-005: no pulse for a missing API or a failed
+// write); reduced motion copies silently (corner C-10).
 const onSelectionRelease = () => {
   const sel = window.getSelection && window.getSelection()
   if (sel && !sel.isCollapsed && root.value && root.value.contains(sel.anchorNode)) {
-    copySelectionText(sel.toString())
     try {
-      applyCopyPulse(sel.getRangeAt(0))
+      // C-RENDER-REVIEW-FIXES T-005: capture the Range synchronously, before
+      // the chain — a deferred getRangeAt can throw IndexSizeError past this
+      // catch or pulse the wrong node once the selection collapses; the
+      // captured Range is a frozen snapshot that survives the collapse.
+      if (sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0)
+        copySelectionText(sel.toString()).then((ok) => {
+          if (ok) applyCopyPulse(range)
+        }).catch(() => {})
+      }
     } catch {
-      /* non-range selection: the copy already happened */
+      /* non-range selection: nothing to pulse */
     }
   }
 }
@@ -143,8 +154,11 @@ const onHover = (hovering) => {
 // START_BLOCK_ACTIONS
 // Corner C-7 contract: fire-and-forget. Built-in kinds (copy/retry/open/
 // reveal) carry a payload — copy writes it to the clipboard, the others are
-// caller-supplied functions. Custom entries carry label + handler. Nothing
-// resolves, nothing awaits an answer.
+// caller-supplied functions. Custom entries carry label + handler.
+// C-RENDER-REVIEW-FIXES T-003: the card awaits handler/payload — a rejection
+// is logged ([notificationCard][ACTION_FAILED]) and speaks once through a
+// localized warning notice carrying the entry's own source; success paths
+// keep the same handlers and the dismissal-free semantics.
 const actionLabel = (action) => {
   if (action.kind && !action.label) return t('notifications.actions.' + action.kind)
   return action.label || ''
@@ -155,15 +169,26 @@ const actionStyle = (action) => {
   return 'normal'
 }
 
-const runAction = (action) => {
-  if (typeof action.handler === 'function') {
-    action.handler()
-    return
-  }
-  if (action.kind === 'copy' && action.payload !== undefined) {
-    copySelectionText(String(action.payload))
-  } else if (typeof action.payload === 'function') {
-    action.payload()
+const runAction = async (action) => {
+  try {
+    if (typeof action.handler === 'function') {
+      await action.handler()
+      return
+    }
+    if (action.kind === 'copy' && action.payload !== undefined) {
+      copySelectionText(String(action.payload))
+    } else if (typeof action.payload === 'function') {
+      await action.payload()
+    }
+  } catch (e) {
+    console.error('[notificationCard][ACTION_FAILED]', e)
+    const notice = (await import('@/services/notification')).default
+    notice.notify({
+      title: t('notifications.actionFailedTitle'),
+      message: t('notifications.actionFailedBody'),
+      type: 'warning',
+      source: props.entry.source
+    })
   }
 }
 // END_BLOCK_ACTIONS
