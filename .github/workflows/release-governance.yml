@@ -1,9 +1,9 @@
 # FILE: .github/workflows/release-governance.yml
-# VERSION: 1.3.0
+# VERSION: 1.4.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Expose the stable release/governance required check for ordinary pull requests and main without demanding a frozen release train.
-#   SCOPE: Read-only Conventional title/admission, repository governance, schema, and focused regression validation; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
-#   DEPENDS: M-046 release-governance and Project-sync tools; Node 22; locked npm dependencies; PROJECT_MIRROR_AUTH for the optional push-main mirror only.
+#   PURPOSE: Expose the stable release/governance and docs-security required checks for ordinary pull requests and main without demanding a frozen release train.
+#   SCOPE: Read-only Conventional title/admission, repository governance, schema, focused regression validation and the committed-range leak scan; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
+#   DEPENDS: M-046 release-governance and Project-sync tools; tools/security_gate.py scan-diff with the Gitleaks binary; Node 22; locked npm dependencies; PROJECT_MIRROR_AUTH for the optional push-main mirror only.
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
@@ -12,10 +12,12 @@
 # START_MODULE_MAP
 #   governance - Read-only stable aggregate check used by the main ruleset.
 #   readiness - Repository-only train/material identity check recorded on each candidate payload for later strict tag admission.
+#   docs-security - Always-on committed-range leak scan (security_gate.py scan-diff) over the pull-request diff — the same deterministic rules as the local gate, so docs-only lanes keep leak protection.
 #   project-mirror - Non-required push-main reconciliation isolated to its dedicated Project token.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-09 v1.4.0: add the always-on docs-security job (owner instruction) — tools/security_gate.py scan-diff over origin/main..HEAD with a pinned Gitleaks binary, applying the local gate's exposure and secret rules to every pull-request diff so the docs-only CI lane cannot bypass leak review.
 #   - 2026-10-20 v1.3.0: fetch full history for the governance job so the release-boundary normalization regression can inspect its pinned bootstrap commit in CI.
 #   - 2026-10-20 v1.2.0: state the optional Project mirror's dedicated-secret boundary explicitly instead of describing the whole workflow as token-free.
 #   - 2026-10-20 v1.1.0: record a repository-only release/readiness check on candidate payload commits and cover the public Project mirror.
@@ -37,6 +39,31 @@ permissions:
   contents: read
 
 jobs:
+  docs-security:
+    name: docs-security
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: fetch base main
+        run: git fetch --no-tags origin main
+
+      - name: install pinned Gitleaks
+        run: |
+          set -euo pipefail
+          # Pinned to the owner's local gate version so CI and the local gate
+          # apply the same rule set; bump together with the local install.
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      - name: committed-range exposure and secret scan
+        run: python3 tools/security_gate.py scan-diff origin/main
+
   governance:
     name: release/governance
     runs-on: ubuntu-latest

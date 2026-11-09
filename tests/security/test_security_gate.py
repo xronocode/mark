@@ -1,8 +1,8 @@
 # FILE: tests/security/test_security_gate.py
-# VERSION: 2.3.0
+# VERSION: 2.4.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Verify that publication safety fails closed on leaks, private paths, unavailable or unsafe reviewers, unsupported payloads and candidate changes.
-#   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the single-reviewer receipt with the offload state, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites, the candidate and executor lane locks and candidate-scoped evidence; no fixture commits in the project repository.
+#   SCOPE: Reserved private paths, private-companion and owner-workspace references, retained fixture examples, manifest-bound reviewed README screenshots, Git indexes, Gitleaks, reviewer configuration and verdicts, the single-reviewer receipt with the offload state, the explicit override, outgoing history, push-endpoint/current-main-bound desktop PR rebases and exact-manifest message-only main rewrites, the candidate and executor lane locks, candidate-scoped evidence and committed-range scan-diff candidates; no fixture commits in the project repository.
 #   DEPENDS: unittest, Python stdlib, tools/security_gate.py, local Gitleaks for its integration case.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064.
 #   ROLE: TEST
@@ -12,9 +12,11 @@
 #   spec - import description for the repository safety gate.
 #   gate - imported safety gate under test.
 #   SafetyGateTests - exposure, private-reference, exact-index, executor-resolution, single-reviewer receipt, override, per-executor lane concurrency, candidate-scoped evidence, outgoing-history, non-main rebase, merged-branch deletion, AI-name ban and raw-object history-rewrite scenarios.
+#   DiffScanTests - committed-range scan-diff scenarios: clean additions pass, private-host and CGNAT additions fail closed, removed private lines are not new exposure.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.3.0 - 2026-10-31 C-SAFETY-LOCAL-FIRST-REVIEW: prove the local-first single-pass review — the executor-resolution matrix (unconfigured, unreachable or busy offload selects local; a healthy offload executes there; a public or redirecting offload endpoint fails closed), the single-reviewer receipt with the offload state and checks=4 marker, per-executor lane use and the unchanged override and fail-closed verdict semantics.
+#   LAST_CHANGE: 2.4.0 - 2026-11-09 docs-security lane: prove the scan-diff mode — clean committed additions pass the deterministic scan, a private ts.net host or CGNAT address in added lines fails closed, and a diff that only removes a private line passes (removals are not new exposure).
+#   PREV: 2.3.0 - 2026-10-31 C-SAFETY-LOCAL-FIRST-REVIEW: prove the local-first single-pass review — the executor-resolution matrix (unconfigured, unreachable or busy offload selects local; a healthy offload executes there; a public or redirecting offload endpoint fails closed), the single-reviewer receipt with the offload state and checks=4 marker, per-executor lane use and the unchanged override and fail-closed verdict semantics.
 #   PREV: 2.1.1 - 2026-10-27: name the sanitized done_reason and answering model in the incomplete-payload rejection and raise the reviewer answer budget to 2048 output tokens.
 #   PREV: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and treat a bare secret or variable name as an identifier.
 #   PREV: 2.0.0 - 2026-10-27 C-SAFETY-GATE-MODEL-REVIEW: prove private-companion and owner-workspace references fail, synthetic examples pass, both reviewers run with the expected pass counts, unsafe/missing reviewers fail closed and the explicit override writes an identity-bound receipt.
@@ -1041,6 +1043,55 @@ class SafetyGateTests(unittest.TestCase):
                 )
             self.assertFalse(list(Path(private).glob("history-rewrite-*.json")))
     # END_BLOCK_MESSAGE_ONLY_HISTORY_REWRITE_TESTS
+
+
+class DiffScanTests(unittest.TestCase):
+    # START_BLOCK_SCAN_DIFF_TESTS
+    def _repository(self):
+        holder = tempfile.TemporaryDirectory()
+        self.addCleanup(holder.cleanup)
+        root = Path(holder.name)
+        subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
+        subprocess.run(
+            ["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@example.com",
+             "commit", "-q", "--allow-empty", "-m", "base"],
+            check=True,
+        )
+        return root
+
+    def _commit(self, root, name, text, message):
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
+        subprocess.run(["git", "-C", str(root), "add", name], check=True)
+        subprocess.run(
+            ["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@example.com",
+             "commit", "-q", "-m", message],
+            check=True,
+        )
+
+    def test_scan_diff_accepts_clean_additions(self):
+        root = self._repository()
+        self._commit(root, "docs/release-notes.md", "public documentation text\n", "docs: notes")
+        gate.scan(gate.diff_candidate(root, "HEAD~1"))
+
+    def test_scan_diff_rejects_private_host_addition(self):
+        root = self._repository()
+        self._commit(root, "docs/ops.md", "deploy host." + "tail123abc" + ".ts.net endpoint\n", "docs: ops")
+        with self.assertRaises(gate.GateError):
+            gate.scan(gate.diff_candidate(root, "HEAD~1"))
+
+    def test_scan_diff_rejects_cgnat_addition(self):
+        root = self._repository()
+        self._commit(root, "docs/net.md", "peer " + ".".join(["100", "102", "145", "59"]) + "\n", "docs: net")
+        with self.assertRaises(gate.GateError):
+            gate.scan(gate.diff_candidate(root, "HEAD~1"))
+
+    def test_scan_diff_ignores_removed_private_lines(self):
+        root = self._repository()
+        self._commit(root, "docs/net.md", "peer " + ".".join(["100", "102", "145", "59"]) + "\n", "docs: net")
+        self._commit(root, "docs/net.md", "public documentation text\n", "docs: scrub")
+        gate.scan(gate.diff_candidate(root, "HEAD~1"))
+    # END_BLOCK_SCAN_DIFF_TESTS
 
 
 if __name__ == "__main__":
