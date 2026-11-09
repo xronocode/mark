@@ -149,6 +149,15 @@ describe('quick settings shell (T-003, corner C-4)', () => {
     // failed typographic quality; chevrons-left-right read as "code
     // view" beside the source chip.
     expect(btn.find('.qs-aa').text()).toBe('Aa')
+    // The alien-button guard: the parent's scoped .titlebar-nav-btn
+    // styles never reach this fragment-rooted component, so the chrome
+    // (sizing + hover) must live in this component's own style block
+    // (asserted on the SFC source — style blocks are not mounted).
+    const shellSource = readFileSync(
+      resolve('src/renderer/src/components/titleBar/quickSettings/index.vue'),
+      'utf8'
+    )
+    expect(shellSource).toContain('.quick-settings-btn:hover')
 
     expect(wrapper.find('.quick-settings-popover').exists()).toBe(false)
     await btn.trigger('click')
