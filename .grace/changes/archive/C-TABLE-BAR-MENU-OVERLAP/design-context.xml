@@ -1,0 +1,66 @@
+<GraceChangeDesignContext graceVersion="4.0">
+  <C-TABLE-BAR-MENU-OVERLAP>
+    <Diagnosis>
+      <Evidence date="2026-11-09" harness="playwright chromium + tauri-shim, ru locale">
+        Measured live with a temporary probe spec (deleted after the run;
+        screenshots preserved at the change Evidence step): menu container
+        150px wide, content box 134px after the li 0 8px padding. In ru,
+        «Вставить строку выше», «Вставить строку ниже», «Вставить столбец
+        слева» and «Вставить столбец справа» each wrap to two lines
+        (Range.getClientRects().length == 2; li scrollHeight 50 vs
+        clientHeight 25). Because li has no overflow control and the ul
+        stacks fixed-height items, each wrapped second line is painted
+        exactly over the next item's first line — the reported «накладки».
+        «Удалить строку/столбец» and all en labels fit on one line at 13px,
+        which is why the defect is invisible in en and CJK locales. The CSS
+        is unchanged since the B1 muya v1.2.3 import (day-one geometry); the
+        ru UI exposed it.
+      </Evidence>
+    </Diagnosis>
+    <FixRationale>
+      white-space: nowrap on li.item plus a content-driven menu width
+      (width: max-content with min-width: 150px) is the smallest change
+      that guarantees the Goal in every locale, including future ones: the
+      menu can never wrap again, and the 150px floor keeps the en geometry
+      identical. This mirrors the established muya pattern — blockViewer
+      rows already combine white-space: nowrap with width: max-content, and
+      BaseFloat's element-resize-detector re-measures the container and
+      calls popper.update() when it grows, so positioning adapts with zero
+      JS changes. Note .ag-table-bar-tools is applied to both the floatBox
+      wrapper and the inner container; the wrapper's inline width set by
+      the resize detector wins, so the class-level width only bootstraps
+      the container measurement.
+    </FixRationale>
+    <Alternatives>
+      <Alternative rejected="fixed wider width (e.g. 200px)">
+        Still breaks for the longest shipped labels (fr
+        «Insérer une colonne à droite», es «Insertar columna a la
+        izquierda») and every future locale; wasteful whitespace in en/CJK.
+      </Alternative>
+      <Alternative rejected="auto-height wrapping items">
+        Keeps 150px but lets items grow downward. Produces two-line menu
+        rows (unusual for a context menu), breaks the remove-divider
+        geometry designed against 25px items, and needs the same
+        resize-detector height pass anyway.
+      </Alternative>
+      <Alternative rejected="shorter ru labels">
+        Locale strings are correct as written; mutating copy to fit a
+        layout bug inverts the dependency.
+      </Alternative>
+    </Alternatives>
+    <Risks>
+      <Risk>
+        WebKit (the engine the macOS build ships) text metrics differ from
+        Chromium's; mitigated by routing the new spec through the
+        webkit-tables project, which exists precisely because table UI is
+        engine-sensitive.
+      </Risk>
+      <Risk>
+        Sibling muya float menus (frontMenu 190px, imageToolbar) may carry
+        the same fixed-height wrap trap for long locales; the plan measures
+        them as evidence, and any real finding becomes a follow-up change
+        (per Constraints), not a scope creep here.
+      </Risk>
+    </Risks>
+  </C-TABLE-BAR-MENU-OVERLAP>
+</GraceChangeDesignContext>

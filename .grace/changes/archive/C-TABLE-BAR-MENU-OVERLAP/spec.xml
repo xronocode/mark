@@ -1,0 +1,133 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-TABLE-BAR-MENU-OVERLAP>
+    <Summary>
+      Fix the table drag-pill context menus (TableBarTools: row menu from the
+      left pill, column menu from the bottom pill) so every item renders as a
+      single non-overlapping line in every supported locale. Today the menu
+      fixes its width at 150px and each item height at 25px; labels longer
+      than the 134px content box wrap to a second line that paints on top of
+      the next item (owner-visible in the ru locale: «Вставить строку выше»,
+      «Вставить столбец слева/справа»).
+    </Summary>
+    <Problem>
+      src/muya/lib/ui/tableTools/index.css pins .ag-table-bar-tools to
+      width: 150px and li.item to height: 25px / line-height: 25px with no
+      white-space control. In locales whose labels exceed the 134px content
+      box (measured live in ru: two-line wrap, li scrollHeight 50 vs
+      clientHeight 25) the wrapped second line is drawn exactly over the
+      following item's text, so both the row and the column menus show
+      superimposed, unreadable items. The geometry was sized for en/CJK
+      labels; ru/de/fr/es/pt overflow it.
+    </Problem>
+    <Goals>
+      <Goal>
+        Every TableBarTools menu item renders its full label on exactly one
+        text line, never overlapping a neighbouring item, in all ten shipped
+        locales (ru included).
+      </Goal>
+      <Goal>
+        The menu grows to fit its longest label (width driven by content,
+        floor at the current 150px so the en geometry does not regress).
+      </Goal>
+      <Goal>
+        The fix stays inside muya's tableTools UI module CSS; no JS logic,
+        locale string, or BaseFloat behaviour changes.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Fix pattern follows the established muya house style —
+        white-space: nowrap plus content-driven width, the same combination
+        blockViewer already uses — so the BaseFloat element-resize-detector
+        keeps the popper positioned as the menu widens.
+      </Constraint>
+      <Constraint>
+        The remove-item divider (li[data-label=remove]::before at top: -5px
+        with margin-top: 10px) keeps its designed geometry against
+        single-line 25px items.
+      </Constraint>
+      <Constraint>
+        Both placement surfaces keep working: the row pill menu
+        (placement right-start of .ag-drag-handler.left) and the column pill
+        menu (right-start of .ag-drag-handler.bottom), including the
+        table-scroll sticky-footer layer where the bottom pill lives
+        (z-index interplay is untouched).
+      </Constraint>
+      <Constraint>
+        Sibling muya float menus (frontMenu and others) are re-measured for
+        the same wrap trap as evidence only; any fix beyond tableTools goes
+        to a separate change.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        No redesign of the drag pills themselves (size, opacity, position),
+        of the menu placement/offset, or of the insert/remove action set.
+      </NonGoal>
+      <NonGoal>
+        No locale string edits — the labels are correct; only the menu
+        geometry is wrong.
+      </NonGoal>
+      <NonGoal>
+        No BaseFloat/popper changes and no new menu behaviour (keyboard
+        navigation, theming) beyond what the overlap fix requires.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>
+        In the ru locale, opening both pill menus shows three readable
+        single-line items each; DOM measurement asserts for every li.item:
+        scrollHeight equals clientHeight (no wrapped overflow) and the label
+        text range produces exactly one client rect.
+      </Criterion>
+      <Criterion>
+        Measured menu width is at least 150px in en (no shrink) and grows
+        past 150px in ru to fit the longest label in one line.
+      </Criterion>
+      <Criterion>
+        The en locale menus are byte-for-byte unchanged visually (single
+        line items, same divider, same placement).
+      </Criterion>
+      <Criterion>
+        Existing table e2e families stay green: table-layout and
+        table-column-resize in chromium and the webkit-tables project (the
+        WKWebView engine parity), plus the full unit gate.
+      </Criterion>
+      <Criterion>
+        grace lint reports no new findings for this change (delta clean
+        against the recorded pre-existing baseline).
+      </Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Item>src/muya/lib/ui/tableTools/index.css — the only production file expected to change: menu width strategy (content-driven, min-width floor) and li.item white-space.</Item>
+      <Item>tests/e2e/table-bar-menu.spec.ts (new) — locale-geometry spec asserting single-line items and width floor/growth in ru and en; runs in the chromium project and, per the table-*.spec.ts match, the webkit-tables project.</Item>
+      <Item>Evidence-only: a one-off probe screenshot set (ru/en, both menus) recorded in the change Evidence; no module contract, graph module, or locale file changes.</Item>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>
+        npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium &amp;&amp; npx playwright test tests/e2e/table-bar-menu.spec.ts --project=webkit-tables &amp;&amp; npm test &amp;&amp; grace lint --path . --change C-TABLE-BAR-MENU-OVERLAP --assertions final --run-commands
+      </ExpectedCommand>
+      <ExpectedEvidence>
+        The new e2e spec's per-item geometry assertions (scrollHeight ==
+        clientHeight, one text client rect per item, width floor/growth)
+        passing in both engines; before/after probe screenshots of both
+        menus in ru and en attached as owner-visible acceptance; the full
+        npm test gate green; grace lint delta clean against the recorded
+        pre-existing baseline (the sideBar/tree-treefiles and worktree
+        findings predate this change).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        The BaseFloat resize-detector path (container offsetWidth changes →
+        floatBox inline width + popper.update) is already exercised by other
+        content-sized muya floats and needs no change for a wider menu.
+      </Assumption>
+      <Assumption>
+        The wrap trap is confined to tableTools among locales shipped today;
+        the sibling-menu re-measure in the plan confirms or files the
+        follow-up.
+      </Assumption>
+    </Assumptions>
+  </C-TABLE-BAR-MENU-OVERLAP>
+</GraceChangeSpec>

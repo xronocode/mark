@@ -3776,7 +3776,14 @@
       <Status>partial</Status>
       <Layer>0</Layer>
       <Summary>
-        C-COMMONMARK-EMPHASIS (2026-10-27, merged PR #87; routed 2026-10-28):
+C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
+        context menus (ui/tableTools) are locale-safe — the menu now sizes
+        to its longest label (width: max-content, min-width 150px floor)
+        with white-space: nowrap items, so long-locale labels (ru/de/fr/
+        es/pt) never wrap into the fixed-height 25px rows and paint over
+        a neighbour; the en/CJK geometry is unchanged. CSS-only; pinned by
+        tests/e2e/table-bar-menu.spec.ts in chromium and webkit-tables.
+                C-COMMONMARK-EMPHASIS (2026-10-27, merged PR #87; routed 2026-10-28):
         strong/em delimiters pair the CommonMark way in both inline code
         paths. parser/emphasisPairing.js (M-012 territory, shared module)
         scans * / _ delimiter runs with CommonMark flanking (escapes and code
