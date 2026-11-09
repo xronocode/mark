@@ -1,0 +1,28 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-CI-CD-AUDIT-FIXES>
+    <Name>Close six confirmed CI/CD audit gaps</Name>
+    <Created>2026-11-09</Created>
+    <Summary>Make unsigned QA builds usable and fail closed, restore the broken docs-only classification, gate IPC types before integration, pin CI executables, remove duplicate WebKit work, and bind rare owner-run gateway deploys to a checked main commit.</Summary>
+    <ApprovalBasis>The owner supplied the six-finding audit and instructed the agent to decide the approach and do the work on 2026-11-09.</ApprovalBasis>
+    <Goals>
+      <Goal>Unsigned manual builds run without production signing secrets and stop at the first failed verification command on both supported platforms.</Goal>
+      <Goal>The required PR status includes IPC type checking and each WebKit project executes once.</Goal>
+      <Goal>Documentation-only classification has a checkout and read permission, and never skips tests for mixed code/documentation changes.</Goal>
+      <Goal>Local work, CI, dry-run and production packaging select one exact Rust version and executable Actions references are immutable.</Goal>
+      <Goal>Owner-run gateway deploys require a clean, checked exact main SHA and record deployment identity and route checks.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Preserve release owner approvals, tag-only production signing, required status names, and the owner-executed Worker deployment model.</Constraint>
+      <Constraint>Keep production signing credentials out of the manual QA job.</Constraint>
+      <Constraint>Repair the pre-existing module-map mismatch that blocks baseline GRACE lint, without changing its test behavior.</Constraint>
+    </Constraints>
+    <NonGoals><NonGoal>No release version, tag, publication, live Worker deploy, mobile delivery, or dependency lockfile change.</NonGoal></NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Workflow structure and focused tests prove unsigned QA packaging, fail-fast checks, accurate docs-only classification, IPC gating, immutable Actions references and no duplicate WebKit projects.</Criterion>
+      <Criterion>Worker deploy preflight refuses dirty, non-main and unverified candidates before invoking Wrangler, and the runbook records SHA, Worker version and post-deploy route checks.</Criterion>
+      <Criterion>GRACE final assertions and current-state lint pass after the change is archived.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas><Area>M-046 release and CI workflows, M-071 gateway deployment procedure, V-M-046 and V-M-071 verification, and one unrelated baseline test map repair.</Area></AffectedAreas>
+    <VerificationIntent><Command>npm run typecheck:ipc</Command><Command>npx vitest run tests/renderer/release-github-controls.test.js tests/tools/stats-gateway-deploy.test.mjs</Command><Command>go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=</Command><ExpectedEvidence>Focused local command results, structural workflow assertions, preflight refusal tests and GRACE target/final/current results; hosted macOS and Windows QA builds remain external follow-up evidence.</ExpectedEvidence></VerificationIntent>
+  </C-CI-CD-AUDIT-FIXES>
+</GraceChangeSpec>

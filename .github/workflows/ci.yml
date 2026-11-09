@@ -3,6 +3,7 @@ name: CI
 # confined to docs/**, .grace/changes/** or top-level *.md skip this cargo
 # job — the test workflow's aggregate "status check" stays required and goes
 # green over the skipped jobs. Push events always run everything.
+# The filter checks for any non-doc file, so mixed PRs keep the full gate.
 on:
   push:
     branches: [main]
@@ -10,31 +11,38 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  pull-requests: read
 jobs:
   changes:
     name: change classification
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      docs_only: ${{ steps.filter.outputs.docs_only }}
+      docs_only: ${{ steps.filter.outputs.non_docs == 'false' }}
     steps:
+      - name: checkout for change classification
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: docs-only lane filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
         id: filter
         with:
+          predicate-quantifier: every
           filters: |
-            docs_only:
-              - 'docs/**'
-              - '.grace/changes/**'
-              - '*.md'
+            non_docs:
+              - '**'
+              - '!docs/**'
+              - '!.grace/changes/**'
+              - '!*.md'
   test:
     needs: [changes]
     if: github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true'
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Rust cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: src-tauri
       - name: Cargo test

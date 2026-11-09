@@ -87,7 +87,8 @@ export default defineConfig({
       'src/renderer/src/ipc/runtime/runtime.test.ts'
     ],
     pool: 'forks',
-    poolOptions: { forks: { maxForks: 2 } },
+    // Keep component compilation within the intended two-process budget.
+    maxWorkers: 2,
     execArgv,
     coverage: {
       provider: 'v8',

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/sideBar/tree-treefiles.test.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: C-51 T-001 unit tests for tree.vue's root view (Markdown-only filter, empty-root placeholder on visible lists, folder-switcher row) and treeFile.vue's context-menu pin options.
 //   SCOPE: shallowMount of tree.vue with Folder/File/OpenedFile/FileSections stubbed; mount of treeFile.vue with the context menu mocked.
@@ -14,10 +14,12 @@
 //   i18n - test fixture / helper.
 //   makeFile - test fixture / helper.
 //   makeRoot - test fixture / helper.
+//   showContextMenuMock - Context-menu spy used by the tree-file tests.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-001/T-002: initial tests.
+//   LAST_CHANGE: v1.0.1 - 2026-11-09 C-CI-CD-AUDIT-FIXES: reconcile the pre-existing module map with the test fixture.
+//   PREV: v1.0.0 - 2026-10-16 C-51 T-001/T-002: initial tests.
 // END_CHANGE_SUMMARY
 
 import { setupTestPinia } from '../../pinia'

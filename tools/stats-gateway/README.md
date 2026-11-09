@@ -175,13 +175,39 @@ change, documented here only so the route's behavior is not a mystery.
 
 ### Deploying the worker (narrow token, no broad OAuth)
 
-Deploys are rare and owner-executed:
+Deploys are rare and owner-executed. Use a clean checkout of the current
+`main` commit. The checked wrapper refuses a dirty tree, a different
+commit, or any missing or unsuccessful required GitHub Actions check
+(`status check`, `release/governance`, `release/readiness`) on that exact
+SHA. It then invokes Wrangler from this directory and writes the SHA,
+Worker version ID and UTC time to the owner-local
+`~/.local/state/mark/stats-gateway-deployments.jsonl` receipt. Never run
+Wrangler directly for a production deploy. The wrapper pins Wrangler
+4.159.0 so a repeated command does not silently change its CLI.
 
 ```sh
+git switch main
+git pull --ff-only fork main
+node tools/stats-gateway/deploy-checked.mjs --check-only
 export CLOUDFLARE_API_TOKEN=…   # narrow deploy token, not a broad OAuth grant
 export CLOUDFLARE_ACCOUNT_ID=…  # the account ID from the dashboard account home
-cd tools/stats-gateway && npx wrangler deploy
+node tools/stats-gateway/deploy-checked.mjs
 ```
+
+After deployment, use the currently published release version in the
+package URL and verify both routes return `302` with the expected GitHub
+manifest or release asset in `Location`. These are GET requests; `HEAD`
+is intentionally rejected.
+
+```sh
+curl --max-time 15 -sS -D - -o /dev/null 'https://updates.mark.xronocode.com/feed?from=2.8.2&os=darwin'
+curl --max-time 15 -sS -D - -o /dev/null 'https://updates.mark.xronocode.com/pkg/darwin-aarch64/2.8.2'
+```
+
+Keep the private receipt with the deploy record. If Wrangler succeeds
+but does not print a version ID, the wrapper fails to write a receipt;
+record the version from the Cloudflare dashboard against the printed
+commit SHA before another deployment.
 
 The deploy token: **My Profile → API Tokens → Create Token** — either
 the prebuilt **Edit Cloudflare Workers** template or a minimal Custom

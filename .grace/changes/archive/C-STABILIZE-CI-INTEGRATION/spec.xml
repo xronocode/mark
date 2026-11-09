@@ -1,0 +1,43 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-CI-INTEGRATION>
+    <Name>Integrate the verified CI recovery candidate</Name>
+    <Created>2026-11-09</Created>
+    <Summary>Integrate the completed C-CI-CD-AUDIT-FIXES implementation into the stabilization baseline, restoring change classification and its required checks without changing release versions or publishing.</Summary>
+    <ApprovalBasis>The owner approved the stabilization recovery plan on 2026-11-09, requested final implementation through a clean green main, and delegated implementation choices to the agent's recommendations.</ApprovalBasis>
+    <Goals>
+      <Goal>Verify and integrate the existing CI repair rather than reimplement it.</Goal>
+      <Goal>Retain mandatory safety checks, signed-release approvals and platform coverage.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No release version changes, tags, deployment or publication.</Constraint>
+      <Constraint>Preserve archived implementation evidence unchanged.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No new product behavior, runtime dependency upgrade, live deployment or release authorization.</NonGoal>
+    </NonGoals>
+    <AffectedAreas>
+      <Area>M-046 CI and release workflows; M-071 checked gateway deploy; one baseline test map correction.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <Command>npm run typecheck:ipc</Command>
+      <Command>npx vitest run tests/renderer/release-github-controls.test.js tests/tools/stats-gateway-deploy.test.mjs tests/renderer/components/sideBar/tree-treefiles.test.js</Command>
+      <Command>go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=</Command>
+      <ExpectedEvidence>Fresh local command results and hosted candidate-specific required checks before main integration.</ExpectedEvidence>
+    </VerificationIntent>
+    <AcceptanceCriteria>
+      <Criterion>The imported workflow and gateway tests, IPC types, actionlint and GRACE assertions pass on the integration tree.</Criterion>
+      <Criterion>The exact outgoing candidate passes commit and push safety checks and hosted required CI before integration into main.</Criterion>
+    </AcceptanceCriteria>
+    <Decisions>
+      <D-STAB-CI-01>
+        <Choice>Reuse the existing completed CI repair, including the pre-existing test module-map correction.</Choice>
+        <Reason>The current main failure is change classification and the archived repair directly addresses the missing checkout and filter semantics.</Reason>
+      </D-STAB-CI-01>
+      <D-STAB-CI-02>
+        <Choice>Sequential integration with one bounded review per exact candidate.</Choice>
+        <Reason>Changes share CI and release surfaces; no repeated full-context clean-streak review is needed to verify this integration.</Reason>
+      </D-STAB-CI-02>
+    </Decisions>
+    <ExecutionEvidence>2026-11-09: focused tests 38/38, IPC typecheck and actionlint pass. Final assertions ran all three required leaf commands with zero lint errors. Applied denotes the local implementation; exact-candidate safety and hosted CI remain mandatory before main integration. No version, tag or publication changed.</ExecutionEvidence>
+  </C-STABILIZE-CI-INTEGRATION>
+</GraceChangeSpec>

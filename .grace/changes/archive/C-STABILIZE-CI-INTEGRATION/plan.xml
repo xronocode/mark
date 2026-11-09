@@ -1,0 +1,73 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-CI-INTEGRATION>
+    <ChangeRef>C-STABILIZE-CI-INTEGRATION</ChangeRef>
+    <Created>2026-11-09</Created>
+    <IntentSummary>Validate the staged completed CI implementation, record recovery choices, then integrate its exact candidate through ordinary safety and hosted CI gates.</IntentSummary>
+    <ApprovalBasis>Owner-approved recovery with delegated implementation choices, 2026-11-09.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-CI-CD-AUDIT-FIXES/spec.xml</File>
+        <Text>status="applied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>checkout for change classification</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>rust-toolchain.toml</File>
+        <Text>1.99.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>npm run typecheck:ipc</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">npx vitest run tests/renderer/release-github-controls.test.js tests/tools/stats-gateway-deploy.test.mjs tests/renderer/components/sideBar/tree-treefiles.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">npm run typecheck:ipc</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/ci.yml</File>
+      <File>.github/workflows/lane.yml</File>
+      <File>.github/workflows/release-tauri.yml</File>
+      <File>.github/workflows/release.yml</File>
+      <File>.github/workflows/test.yml</File>
+      <File>.grace/changes/archive/C-CI-CD-AUDIT-FIXES/plan.xml</File>
+      <File>.grace/changes/archive/C-CI-CD-AUDIT-FIXES/spec.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>CONTRIBUTING.md</File>
+      <File>docs/superpowers/plans/2026-11-09-ci-cd-audit-fixes.md</File>
+      <File>rust-toolchain.toml</File>
+      <File>tests/renderer/components/sideBar/tree-treefiles.test.js</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+      <File>tests/tools/stats-gateway-deploy.test.mjs</File>
+      <File>tools/stats-gateway/README.md</File>
+      <File>tools/stats-gateway/deploy-checked.mjs</File>
+      <Glob>.grace/changes/active/C-STABILIZE-CI-INTEGRATION/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Reconcile the completed implementation and verify the integration candidate</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Focused tests, types, workflow lint and final assertions pass without modifying archived evidence.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run typecheck:ipc</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+    <ExecutionEvidence>2026-11-09: focused tests 38/38, IPC typecheck and actionlint pass. Final assertions ran all three required leaf commands with zero lint errors. Applied denotes the local implementation; exact-candidate safety and hosted CI remain mandatory before main integration. No version, tag or publication changed.</ExecutionEvidence>
+  </C-STABILIZE-CI-INTEGRATION>
+</GraceChangePlan>

@@ -1,9 +1,9 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
-//   DEPENDS: Vitest; yaml; tools/release-github-controls.mjs; .github/workflows/promote-release.yml; .github/workflows/release.yml; .github/release-governance.json.
+//   DEPENDS: Vitest; yaml; tools/release-github-controls.mjs; .github/workflows/*.yml; .github/release-governance.json.
 //   LINKS: .grace/verification/features.xml V-M-046.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -16,6 +16,8 @@
 //   promoteSource - Raw promotion-workflow source for command-boundary assertions.
 //   release - Parsed release-workflow fixture.
 //   promote - Parsed promotion-workflow fixture.
+//   testWorkflow - Parsed required test-workflow fixture.
+//   ciWorkflow - Parsed companion CI workflow fixture.
 //   governance - Source-controlled GitHub control contract fixture.
 //   identities - Deterministic owner, Actions, and release-bot API identities.
 //   desiredControls - Normalized desired control plane used by fake-client tests.
@@ -25,6 +27,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 v2.3.0 C-CI-CD-AUDIT-FIXES: guard unsigned QA, IPC gating, WebKit de-duplication and immutable CI inputs.
 //   - 2026-10-26 v2.2.0: C-RELEASE-MANUAL-PUBLISH — publication regains the synchronous release-Environment gate (owner reviewer) and loses the veto-window job; governance swaps release-notify back to release with no TG secret boundary; the unknown-policy simulation targets release again.
 //   - 2026-10-24 v2.1.0: C-RELEASE-CONVEYOR — promotion triggers on any train ledger and binds to a seal that is on main (not main's exact tip); the close-release-please job is gone and publication itself proves the latest-release feed advanced.
 //   - 2026-10-24 v2.0.0: C-RELEASE-TIMING — publication loses the synchronous release Environment gate and needs the parallel veto-window job; governance swaps release for release-notify with TG notify secret boundaries; the build-lane de-duplication is pinned against the status-check aggregate.
@@ -40,7 +43,7 @@
 //   - 2026-10-20 v1.0.0: add event/mode, bot tag, Environment, permission, action-pin, and draft-first publication regressions.
 // END_CHANGE_SUMMARY
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { parse } from 'yaml'
@@ -63,6 +66,8 @@ const releaseSource = read('.github/workflows/release.yml')
 const promoteSource = read('.github/workflows/promote-release.yml')
 const release = parseWorkflow('.github/workflows/release.yml')
 const promote = parseWorkflow('.github/workflows/promote-release.yml')
+const testWorkflow = parseWorkflow('.github/workflows/test.yml')
+const ciWorkflow = parseWorkflow('.github/workflows/ci.yml')
 const governance = JSON.parse(read('.github/release-governance.json'))
 const identities = {
   users: { xronocode: 101 },
@@ -178,6 +183,55 @@ describe('release GitHub trust boundaries', () => {
     expect(release.jobs.build.environment).toBe('release-signing')
   })
 
+  it('makes each manual QA verification fail the job before unsigned packaging', () => {
+    const steps = release.jobs['manual-build'].steps
+    const commands = ['npm ci', 'npm run release:governance', 'npm run typecheck:ipc',
+      'npm test', 'npm run build', 'cargo test --bin mark --manifest-path src-tauri/Cargo.toml']
+    const positions = commands.map((command) => steps.findIndex((step) => step.run === command))
+    expect(positions.every((position) => position >= 0)).toBe(true)
+    expect(positions).toEqual([...positions].sort((a, b) => a - b))
+    const packageStep = steps.find((step) => step.name === 'package unsigned QA build')
+    expect(steps.indexOf(packageStep)).toBeGreaterThan(positions.at(-1))
+    expect(packageStep.shell).toBe('bash')
+    expect(packageStep.run).toContain('set -euo pipefail')
+    expect(packageStep.run).toContain('node ./node_modules/@tauri-apps/cli/tauri.js build')
+    expect(packageStep.run).toContain('"createUpdaterArtifacts":false')
+    expect(JSON.stringify(steps)).not.toMatch(/TAURI_SIGNING_PRIVATE_KEY|APPLE_CERTIFICATE/)
+  })
+
+  it('gates IPC types in the required status and runs each WebKit project once', () => {
+    const unitSteps = testWorkflow.jobs['renderer-unit'].steps
+    const install = unitSteps.findIndex((step) => step.run === 'npm ci')
+    const typecheck = unitSteps.findIndex((step) => step.run === 'npm run typecheck:ipc')
+    const coverage = unitSteps.findIndex((step) => step.run === 'npm run test:coverage')
+    expect(install).toBeLessThan(typecheck)
+    expect(typecheck).toBeLessThan(coverage)
+    expect(testWorkflow.jobs['status-check'].needs).toContain('renderer-unit')
+    const e2eSteps = testWorkflow.jobs['renderer-e2e'].steps
+    for (const project of ['webkit-pele-theme', 'webkit-tree']) {
+      expect(e2eSteps.filter((step) => step.run?.includes(`--project ${project}`))).toHaveLength(1)
+    }
+    expect(e2eSteps.some((step) => step.name === 'upload pele theme screenshots' && step.if === 'always()')).toBe(true)
+  })
+
+  it('classifies only pure documentation PRs as docs-only without failing on an absent checkout', () => {
+    for (const workflow of [testWorkflow, ciWorkflow]) {
+      expect(workflow.permissions['pull-requests']).toBe('read')
+      const changeJob = workflow.jobs.changes
+      const steps = changeJob.steps
+      const checkout = steps.findIndex((step) => step.name === 'checkout for change classification')
+      const filter = steps.findIndex((step) => step.name === 'docs-only lane filter')
+      expect(checkout).toBeGreaterThanOrEqual(0)
+      expect(filter).toBeGreaterThan(checkout)
+      expect(steps[checkout].with['persist-credentials']).toBe(false)
+      expect(steps[filter].with['predicate-quantifier']).toBe('every')
+      expect(parse(steps[filter].with.filters).non_docs).toEqual([
+        '**', '!docs/**', '!.grace/changes/**', '!*.md'
+      ])
+      expect(changeJob.outputs.docs_only).toContain("outputs.non_docs == 'false'")
+    }
+  })
+
   it('rejects out-of-band or lightweight tags before any signing job', () => {
     const admission = commands(release.jobs['authorize-tag'])
     expect(JSON.stringify(release.jobs['authorize-tag'])).toContain('xronocode-release-bot[bot]')
@@ -284,15 +338,28 @@ describe('release GitHub trust boundaries', () => {
     // cargo build cache survives any Rust source change.
     expect(build).toContain('command -v cargo-bundle-licenses')
     expect(build).toContain('command -v cargo-cyclonedx')
-    expect(releaseSource).toContain('cargo-tools-macos-bundle-licenses-4.2.0-cyclonedx-0.5.9')
+    expect(releaseSource).toContain("cargo-tools-macos-${{ hashFiles('rust-toolchain.toml') }}-bundle-licenses-4.2.0-cyclonedx-0.5.9")
     expect(releaseSource).not.toContain("hashFiles('src-tauri/src/**/*.rs')")
   })
 
   it('pins every third-party action to an immutable commit SHA', () => {
-    const refs = [...actionRefs(release), ...actionRefs(promote)]
+    const refs = readdirSync('.github/workflows')
+      .filter((name) => name.endsWith('.yml'))
+      .flatMap((name) => actionRefs(parseWorkflow(`.github/workflows/${name}`)))
     expect(refs.length).toBeGreaterThan(10)
     for (const ref of refs) {
       expect(ref).toMatch(/@[0-9a-f]{40}$/)
+    }
+  })
+
+  it('selects the same exact Rust toolchain in local work and CI packaging', () => {
+    expect(read('rust-toolchain.toml')).toContain('channel = "1.99.0"')
+    for (const name of ['test.yml', 'release-tauri.yml', 'release.yml']) {
+      const workflow = parseWorkflow(`.github/workflows/${name}`)
+      const rustSteps = Object.values(workflow.jobs).flatMap((job) => job.steps ?? [])
+        .filter((step) => step.uses?.startsWith('dtolnay/rust-toolchain@'))
+      expect(rustSteps.length).toBeGreaterThan(0)
+      for (const step of rustSteps) expect(step.with.toolchain).toBe('1.99.0')
     }
   })
 
