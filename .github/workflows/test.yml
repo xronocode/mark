@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.7.0
+# VERSION: 1.8.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,7 +11,8 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.7.0 - 2026-10-30: the tech-debt lane (integ/techdebt) runs the full suite on push and on pull requests into it, so lane admissions carry the same evidence as main.
+#   LAST_CHANGE: v1.8.0 - 2026-11-09: the docs-only lane (owner instruction) — pull requests whose diff is confined to docs/**, .grace/changes/** and top-level *.md skip renderer-unit/backend-unit/renderer-e2e (job-level skips satisfy the strict ruleset); status-check aggregates the skipped lane green; push events always run the full suite.
+#   PREV: v1.7.0 - 2026-10-30: the tech-debt lane (integ/techdebt) runs the full suite on push and on pull requests into it, so lane admissions carry the same evidence as main.
 #   PREV: v1.6.0 - 2026-10-31: move every macOS lane to the macos-15 runner image ahead of the macos-14 retirement (matrix jobs, e2e job name and Playwright cache keys).
 #   PREV: v1.5.0 - 2026-10-27: bound, IPv4-pinned and retried the Linux Tauri sysdeps install so a stalled apt fetch fails fast inside the job budget instead of cancelling the run and blocking the aggregate status check.
 #   PREV: v1.4.0 - 2026-10-20: fetch full history for renderer-unit so release-boundary normalization tests can inspect their pinned bootstrap commit.
@@ -64,8 +65,27 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: change classification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - name: docs-only lane filter
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            docs_only:
+              - 'docs/**'
+              - '.grace/changes/**'
+              - '*.md'
+
   renderer-unit:
     name: renderer unit (${{ matrix.os }})
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -95,6 +115,8 @@ jobs:
 
   backend-unit:
     name: backend unit (${{ matrix.os }})
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -175,6 +197,8 @@ jobs:
 
   renderer-e2e:
     name: renderer e2e playwright (macos-15)
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true'
     runs-on: macos-15
     # C-LARGE-DOC-STAGE-0: raised from 25 — the webkit-perf characterization
     # oracles add ~5 minutes of WebKit suites; the first full green run took
@@ -262,16 +286,27 @@ jobs:
 
   status-check:
     name: status check
-    needs: [renderer-unit, backend-unit, renderer-e2e]
+    needs: [changes, renderer-unit, backend-unit, renderer-e2e]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: aggregate
         run: |
           set -euo pipefail
+          echo "docs_only:     ${{ needs.changes.outputs.docs_only }}"
           echo "renderer-unit: ${{ needs.renderer-unit.result }}"
           echo "backend-unit:  ${{ needs.backend-unit.result }}"
           echo "renderer-e2e:  ${{ needs.renderer-e2e.result }}"
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ needs.changes.outputs.docs_only }}" = "true" ]; then
+            for r in "${{ needs.renderer-unit.result }}" "${{ needs.backend-unit.result }}" "${{ needs.renderer-e2e.result }}"; do
+              if [ "$r" != "skipped" ] && [ "$r" != "success" ]; then
+                echo "::error::docs-only lane: expected the heavy jobs to be skipped or green, got '$r'"
+                exit 1
+              fi
+            done
+            echo "docs-only lane: heavy jobs skipped, aggregate green"
+            exit 0
+          fi
           if [ "${{ needs.renderer-unit.result }}" != "success" ] \
              || [ "${{ needs.backend-unit.result }}" != "success" ] \
              || [ "${{ needs.renderer-e2e.result }}" != "success" ]; then

@@ -1,4 +1,8 @@
 name: CI
+# Docs-only lane (owner instruction 2026-11-09): pull requests whose diff is
+# confined to docs/**, .grace/changes/** or top-level *.md skip this cargo
+# job — the test workflow's aggregate "status check" stays required and goes
+# green over the skipped jobs. Push events always run everything.
 on:
   push:
     branches: [main]
@@ -7,7 +11,25 @@ on:
 permissions:
   contents: read
 jobs:
+  changes:
+    name: change classification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - name: docs-only lane filter
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            docs_only:
+              - 'docs/**'
+              - '.grace/changes/**'
+              - '*.md'
   test:
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.docs_only != 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
