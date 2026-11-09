@@ -11,23 +11,15 @@
     @click.stop="toggle"
     @keydown.enter.prevent="toggle"
   >
-    <!-- C-PAGE-WIDTH-TABLES T-003: the chevrons-left-right glyph from the
-         approved real-app mock (boot.js section 1) — the owner chose it
-         for its double reading (stretch arrows / code). -->
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.7"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m10 17-5-5 5-5" />
-      <path d="m14 7 5 5-5 5" />
-    </svg>
+    <!-- The «Aa» affordance is a SYSTEM-FONT text glyph, not a drawn
+         icon: letterforms hand-drawn on the icon grid failed twice
+         (2026-11-09 — lucide 24-grid paths rendered thinner than the
+         chrome family; a 16-grid redraw had bad letter proportions).
+         «Aa» set in the bar's own font reads as typography next to the
+         icon glyphs — the Notion/Bear page-settings precedent. It
+         replaces chevrons-left-right, which read as "code view" beside
+         the source-mode chip. -->
+    <span class="qs-aa" aria-hidden="true">Aa</span>
   </div>
   <!-- END_BLOCK_QUICK_SETTINGS_BUTTON -->
 
@@ -72,12 +64,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/quickSettings/index.vue
-// VERSION: 1.1.0
+// VERSION: 1.3.1
 // START_MODULE_CONTRACT
-//   PURPOSE: C-PAGE-WIDTH-TABLES T-003 (M-061) the titlebar quick-settings shell — the chevrons-left-right button beside the theme button and the popover panel (Page / View / Tables live tabs) built exclusively from the C-38 component set in the neutral settings palette. The panel is NOT tinted by the editor theme: it follows the theme mode light/dark member (data-darkmode attribute over the verbatim --pref* palette) and every inner interaction keeps it open — only an outside click or Escape closes it; the footer opens the real Settings window.
+//   PURPOSE: C-PAGE-WIDTH-TABLES T-003 (M-061) the titlebar quick-settings shell — the «Aa» button (a system-font text glyph) beside the theme button and the popover panel (Page / View / Tables live tabs) built exclusively from the C-38 component set in the neutral settings palette. The panel is NOT tinted by the editor theme: it follows the theme mode light/dark member (data-darkmode attribute over the verbatim --pref* palette) and every inner interaction keeps it open — only an outside click or Escape closes it; the footer opens the real Settings window.
 //   SCOPE: Shell only — open/close (window capture-phase mousedown closer, the doc-info-popover precedent; T-010 adds the quick-settings:open bus entry point the View › Page Width › Custom… menu row and its palette command use), tab switching, dark-member parity, palette/row-anatomy CSS for its subtree and the Settings hand-off. The tab bodies (quickSettings/pageTab.vue, viewTab.vue, tablesTab.vue) own their domain state; this file holds no width or theme logic of its own. The dark active-segment contrast fix lives in the shared segmented component, never here.
 //   DEPENDS: vue, vue-i18n, @/bus (the quick-settings:open entry point), @/store/preferences (theme member for the data-darkmode parity), @/store/project (OPEN_SETTING_WINDOW — the same Settings entry the gear and palette use), the three tab components.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-003, corner C-4; plan T-010 — the Custom… bus entry); .grace/graph/performance.xml M-061; components/titleBar/index.vue (the mount point beside the theme button); prefComponents/common/* (the C-38 controls); pages/preference.vue (the palette source these verbatim values mirror); the approved real-app mock artifacts (boot.js section 1 glyph, approved.html structure, approved.css metrics).
+//   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-003, corner C-4; plan T-010 — the Custom… bus entry); .grace/graph/performance.xml M-061; components/titleBar/index.vue (the mount point beside the theme button); prefComponents/common/* (the C-38 controls); pages/preference.vue (the palette source these verbatim values mirror); the approved real-app mock artifacts (boot.js section 1 glyph, approved.html structure, approved.css metrics).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -95,21 +87,27 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
+//   PREV: v1.3.1 - 2026-11-09 the alien-button fix: the parent's
+//   scoped .titlebar-nav-btn styles never reach this fragment-rooted
+//   component, so the button's own chrome (28×28, radius, hover) is
+//   restated locally — discovered by the parallel owner-smoke session
+//   2026-11-04 (same fix in its tree), live again in the glyph-rework
+//   review. Glyph: v1.3.0 — «Aa» as a system-font text glyph (span.qs-aa,
+//   12.5px semibold) after both drawn attempts failed live review —
+//   lucide a-large-small (24-grid, 15px, 1.7) rendered thinner than the
+//   chrome family, and a chrome 16-grid redraw (1.4 stroke) had bad
+//   letter proportions. Letters come from the bar's own font, the
+//   Notion/Bear page-settings precedent; chevrons-left-right read as
+//   "code view" beside the source-mode chip (mode-source draws the same
+//   chevrons). No behavior, palette or panel change.
+//   PREV: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the
 //   quick-settings:open bus entry point — View › Page Width › Custom…
 //   (view.page-width.custom) opens the panel on the requested tab; the
 //   open path is extracted into openPanel(tab) and the listener leaves
-//   with the component. No width or theme logic moved.
-//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-003 (M-061):
-//   new component. The titlebar quick-settings shell: chevrons-left-right
-//   button (the approved mock glyph) beside the theme button; a 428px
-//   popover carrying the three live tabs and the "Open Settings…"
-//   footer; palette and row anatomy copied verbatim from the C-38 shell
-//   (pages/preference.vue) and the approved mock metrics, keyed dark
-//   parity off the data-darkmode attribute the theme member drives; the
-//   outside-click closer runs on the window capture phase like the
-//   doc-info popover so a click on the drag-region title bar still
-//   closes it.
+//   with the component. The v1.0.0 shell (T-003, M-061) shipped the
+//   chevrons-left-right button of the approved mock; the glyph is
+//   history since the 2026-11-09 rework.
 // END_CHANGE_SUMMARY
 
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
@@ -455,4 +453,46 @@ onBeforeUnmount(() => {
   opacity: 0.55;
 }
 /* END_BLOCK_QUICK_ROW_ANATOMY */
+
+/* START_BLOCK_QS_AA_GLYPH */
+/* The button chrome is RESTATED here verbatim from the titlebar's own
+   .titlebar-nav-btn rules: the parent's <style scoped> never reaches a
+   fragment-rooted child component (this component has two root nodes —
+   button + popover), so without this block the button renders unsized
+   and hover-less beside the native theme/share buttons (the "alien
+   button" acceptance finding, owner smoke 2026-11-04; live again on the
+   2026-11-09 rework review). */
+.quick-settings-btn {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: default;
+  color: var(--editorColor80);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.quick-settings-btn:hover {
+  background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+}
+
+/* The «Aa» affordance: a text glyph in the inherited bar font — the
+   icon svg attempts (lucide 24-grid, then a chrome 16-grid redraw)
+   failed typographic quality at this size; the system font's letters
+   are the reference. 12.5px semibold optically matches the 16px icon
+   family (cap height ≈ 9px against the icons' ~12.4px box with their
+   natural whitespace); -0.2px tracking keeps the pair tight. */
+.quick-settings-btn .qs-aa {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.2px;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* END_BLOCK_QS_AA_GLYPH */
 </style>

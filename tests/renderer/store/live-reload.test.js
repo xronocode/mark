@@ -8,7 +8,7 @@
  *   2. APPLY_FILE_CHANGE reads file via ipcFs when change.data is missing
  *   3. Hash-skip: same content doesn't trigger loadChange
  *   4. liveReload preference off skips reload for clean tabs
- *   5. Dirty tabs are not auto-reloaded (unless previewMode)
+ *   5. Dirty tabs are never auto-reloaded, including preview/watch tabs
  *   6. previewMode tabs always auto-reload (M-033 integration)
  *   7. C-2 follow-up: the file-changed reload carries contentReloaded: true
  *      so editor.vue clamps the preserved scrollTop into the new range
@@ -187,6 +187,93 @@ describe('store/editor — M-032 live-reload', () => {
     editor.updateTabIdToIndex()
     return tab
   }
+
+  function dataChange(markdown) {
+    return { pathname: '/tmp/test.md', data: { ...makeTab(), markdown } }
+  }
+
+  describe('APPLY_FILE_CHANGE — async ownership and duplicate events', () => {
+    it('skips identical direct-data events without a reload emit', () => {
+      seedTab({ markdown: '# same' })
+      bus.emit.mockClear()
+      editor.APPLY_FILE_CHANGE('change', dataChange('# same'))
+      expect(bus.emit).not.toHaveBeenCalledWith('file-changed', expect.anything())
+    })
+
+    it('keeps the newer event when an older disk read resolves last', async () => {
+      seedTab()
+      let finishOldRead
+      __ipcFsMock.read.mockImplementationOnce(() => new Promise((resolve) => { finishOldRead = resolve }))
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      await vi.advanceTimersByTimeAsync(100)
+      editor.APPLY_FILE_CHANGE('change', dataChange('# newer event'))
+      finishOldRead('# stale event')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(editor.tabs[0].markdown).toBe('# newer event')
+    })
+
+    it('does not overwrite a reopened tab when the generation number is reused', async () => {
+      seedTab()
+      let finishOldRead
+      __ipcFsMock.read.mockImplementationOnce(() => new Promise((resolve) => { finishOldRead = resolve }))
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      await vi.advanceTimersByTimeAsync(100)
+      editor.tabs = []
+      editor.currentFile = {}
+      editor._unsubscribeFileWatch('/tmp/test.md')
+      seedTab({ id: 'replacement', markdown: '# reopened' })
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      finishOldRead('# stale closed tab')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(editor.tabs[0].markdown).toBe('# reopened')
+      await vi.advanceTimersByTimeAsync(100)
+      expect(editor.tabs[0].markdown).toBe('new disk content')
+    })
+
+    it.each(['data', 'disk'])('consumes an explicit reload choice only once (%s)', async (source) => {
+      seedTab({ isSaved: false, markdown: '# local' })
+      editor.APPLY_FILE_CHANGE('change', source === 'data'
+        ? dataChange('# external') : { pathname: '/tmp/test.md' })
+      const action = editor.tabs[0].notifications[0].action
+      action(true)
+      await vi.advanceTimersByTimeAsync(150)
+      editor.tabs[0].markdown = '# edited after reload'
+      editor.tabs[0].isSaved = false
+      action(true)
+      await vi.advanceTimersByTimeAsync(150)
+      expect(editor.tabs[0].markdown).toBe('# edited after reload')
+    })
+
+    it('rereads after a local edit and save while the old read is pending', async () => {
+      seedTab()
+      let finishOldRead
+      __ipcFsMock.read.mockImplementationOnce(() => new Promise((resolve) => { finishOldRead = resolve }))
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      await vi.advanceTimersByTimeAsync(100)
+      editor.tabs[0].markdown = '# newly saved'
+      editor.tabs[0].contentRevision = 1
+      editor.tabs[0].isSaved = true
+      __ipcFsMock.read.mockResolvedValue('# newly saved')
+      finishOldRead('# disk before save')
+      await vi.advanceTimersByTimeAsync(150)
+      expect(editor.tabs[0].markdown).toBe('# newly saved')
+      expect(editor.tabs[0].isSaved).toBe(true)
+      expect(editor.tabs[0].notifications).toHaveLength(0)
+    })
+
+    it('coalesces repeated dirty events into one current conflict choice', () => {
+      seedTab({ isSaved: false, markdown: '# local' })
+      editor.APPLY_FILE_CHANGE('change', dataChange('# external one'))
+      const oldAction = editor.tabs[0].notifications[0]?.action
+      editor.APPLY_FILE_CHANGE('change', dataChange('# external two'))
+      expect(editor.tabs[0].markdown).toBe('# local')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+      oldAction(true)
+      expect(editor.tabs[0].markdown).toBe('# local')
+      editor.tabs[0].notifications[0].action(true)
+      expect(editor.tabs[0].markdown).toBe('# external two')
+    })
+  })
 
   // ─── loadChange: cursor/scrollTop preservation ───────────────────
 
@@ -462,17 +549,71 @@ describe('store/editor — M-032 live-reload', () => {
       expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
     })
 
-    it('dirty tab with liveReload=true still reloads (liveReload forces reload)', async () => {
-      __preferencesStub.liveReload = true
-      __preferencesStub.autoSave = false
+    it.each(['data', 'disk'])('preserves dirty content with liveReload enabled (%s)', async (source) => {
       seedTab({ isSaved: false, markdown: '# dirty' })
-      __ipcFsMock.read.mockResolvedValue('# from disk')
-
-      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      editor.APPLY_FILE_CHANGE('change', source === 'data'
+        ? dataChange('# external') : { pathname: '/tmp/test.md' })
       await vi.advanceTimersByTimeAsync(150)
 
-      // liveReload=true forces reload regardless of isSaved.
-      expect(editor.tabs[0].markdown).toBe('# from disk')
+      expect(editor.tabs[0].markdown).toBe('# dirty')
+      expect(editor.tabs[0].isSaved).toBe(false)
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+      expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
+      expect(__ipcFsMock.read).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      { previewMode: true },
+      { previewMode: true, locked: true },
+      { watchMode: true }
+    ])('preserves dirty content under read-only/watch flags %j', async (flags) => {
+      seedTab({ ...flags, isSaved: false, markdown: '# unsaved' })
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      await vi.advanceTimersByTimeAsync(150)
+      expect(editor.tabs[0].markdown).toBe('# unsaved')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+    })
+
+    it('preserves edits made during the settle delay', async () => {
+      seedTab()
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      editor.tabs[0].markdown = '# typed during settle'
+      editor.tabs[0].isSaved = false
+      await vi.advanceTimersByTimeAsync(150)
+      expect(editor.tabs[0].markdown).toBe('# typed during settle')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+    })
+
+    it('preserves edits made while the disk read is in flight', async () => {
+      seedTab()
+      let finishRead
+      __ipcFsMock.read.mockImplementationOnce(() => new Promise((resolve) => { finishRead = resolve }))
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      await vi.advanceTimersByTimeAsync(100)
+      editor.tabs[0].markdown = '# typed during read'
+      editor.tabs[0].isSaved = false
+      finishRead('# stale disk read')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(editor.tabs[0].markdown).toBe('# typed during read')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+    })
+
+    it('requires a fresh choice for edits made after confirming a delayed reload', async () => {
+      __preferencesStub.liveReload = false
+      seedTab({ isSaved: false, markdown: '# confirmed old edits' })
+      let finishRead
+      __ipcFsMock.read.mockImplementationOnce(() => new Promise((resolve) => { finishRead = resolve }))
+      editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
+      const oldAction = editor.tabs[0].notifications[0].action
+      oldAction(true)
+      await vi.advanceTimersByTimeAsync(100)
+      editor.tabs[0].markdown = '# newer local edits'
+      editor.tabs[0].contentRevision = 1
+      finishRead('# external')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(editor.tabs[0].markdown).toBe('# newer local edits')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+      expect(editor.tabs[0].notifications[0].action).not.toBe(oldAction)
     })
 
     it('dirty tab with autoSave=true but isSaved=false skips reload unless liveReload', () => {
@@ -602,8 +743,7 @@ describe('store/editor — M-032 live-reload', () => {
     // Review-1 finding: pin the liveReloadGenerations cleanup behavior.
     // When the last tab for a pathname closes, the generation entry is
     // dropped, so clicking confirm on the stale dialog must not reach
-    // loadChange — no "cannot find tab" error toast. (The disk read
-    // itself happens before the guard, mirroring the auto-reload path.)
+    // loadChange — no "cannot find tab" error toast or stale disk read.
     it('confirm after the last tab closed is a no-op (generation dropped)', async () => {
       __preferencesStub.liveReload = false
       __preferencesStub.autoSave = false
@@ -676,17 +816,14 @@ describe('store/editor — M-032 live-reload', () => {
       expect(editor.tabs[0].notifications).toHaveLength(0)
     })
 
-    it('dirty preview-mode tab still auto-reloads (bypass dirty check)', async () => {
+    it('clean watch-mode tab auto-reloads with preferences off', async () => {
       __preferencesStub.liveReload = false
       __preferencesStub.autoSave = false
-      seedTab({ isSaved: false, previewMode: true, markdown: '# dirty' })
-      __ipcFsMock.read.mockResolvedValue('# preview override')
-
+      seedTab({ isSaved: true, watchMode: true, markdown: '# old' })
+      __ipcFsMock.read.mockResolvedValue('# watched update')
       editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/test.md' })
       await vi.advanceTimersByTimeAsync(150)
-
-      // previewMode bypasses both liveReload and isSaved checks.
-      expect(editor.tabs[0].markdown).toBe('# preview override')
+      expect(editor.tabs[0].markdown).toBe('# watched update')
       expect(editor.tabs[0].notifications).toHaveLength(0)
     })
   })

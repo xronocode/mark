@@ -1,0 +1,62 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-STABILIZE-29>
+    <Name>Reconcile outstanding repairs into a clean checked main</Name>
+    <Created>2026-11-09</Created>
+    <Summary>Coordinate the approved stabilization recovery: preserve existing work, integrate the CI baseline and accepted product repairs, complete split and six-finding security work, close demonstrated data-safety defects, and verify the exact resulting main without publishing a release.</Summary>
+    <ApprovalBasis>The owner approved the stabilization recovery plan on 2026-11-09, requested final implementation through clean green main, delegated fork decisions to the recommended choices, and required those choices to be recorded in GRACE.</ApprovalBasis>
+    <Goals>
+      <Goal>Every retained work item has completion evidence or an explicit preserved disposition; no unfinished implementation is called complete from a session status.</Goal>
+      <Goal>Integrate accepted table/titlebar repairs, implemented split reading/gestures and completion of approved split dual editing while preserving current main behavior.</Goal>
+      <Goal>Complete all six existing security findings and demonstrated dirty-buffer and checkbox safety checks, and isolate the acceptance build's profile.</Goal>
+      <Goal>Required exact-head PR checks and post-integration main checks pass, current integrity is clean, and the final worktree is clean.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Use subordinate approved change scopes and their actual target/final commands; centrally reconcile shared current graph and verification anchors.</Constraint>
+      <Constraint>Retain staged/outgoing deterministic/Gitleaks/model checks, required CI, content-loss safeguards and coverage floors.</Constraint>
+      <Constraint>Record historical evidence separately from fresh candidate results. Repeat broad checks after relevant changes or failures, without restarting clean-streak review loops.</Constraint>
+      <Constraint>Keep private preserved patches, worktree paths, session records and diagnostic captures outside public Git history.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No version decision, tag, freeze, deployment or publication; final state is checked main, with release dispatch separately owner-controlled.</NonGoal>
+      <NonGoal>No automatic expansion into unscheduled themes, hooks, export redesign or major build-tool upgrades; preserve their established approvals/deferred state and explicit remaining work.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>All stabilization implementation waves have named source commits, fresh relevant tests, applied child bundles and accurate current contracts.</Criterion>
+      <Criterion>No known content-loss defect remains in included editing, external reload, checkbox, save or split flows.</Criterion>
+      <Criterion>All six security findings have negative and preserved-legitimate-path proofs; a partial wave never closes the whole security bundle.</Criterion>
+      <Criterion>The exact current remote main has passing required hosted checks and the local final tree matches it without uncommitted product work. Outstanding unrelated future work stays identified rather than falsely archived as implemented.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Area>Coordination of CI, renderer, split editor, security, state namespaces and their child change bundles.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <Command>npm run test:coverage</Command>
+      <Command>npm run typecheck:ipc</Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark</Command>
+      <ExpectedEvidence>Child target/final logs, exact candidate builds and affected browser/native evidence, complete required PR/main check readback, current integrity/status and clean Git status. These are measured execution evidence, not inferred from approval.</ExpectedEvidence>
+    </VerificationIntent>
+    <Decisions>
+      <D-STAB-29-01>
+        <Choice>Integrate the already completed CI repair first through PR 198, then reconcile product/security waves on that checked baseline.</Choice>
+        <Reason>The current-main classification failure blocks useful platform evidence for every other repair.</Reason>
+      </D-STAB-29-01>
+      <D-STAB-29-02>
+        <Choice>Retire the obsolete freeze PR 187 as superseded, retaining its branch and preserved work.</Choice>
+        <Reason>The train is Collecting; the old freeze conflicts, targets an obsolete payload and has failed checks. Accepted unpublished product hunks are recovered separately; no freeze is authorized by this recovery.</Reason>
+      </D-STAB-29-02>
+      <D-STAB-29-03>
+        <Choice>Keep PR 152 and unscheduled feature work separate with their open or deferred status.</Choice>
+        <Reason>Stabilization must not turn historical ideas or a major build-system update into unstated release prerequisites. Implemented repairs and real data-safety defects remain in scope.</Reason>
+      </D-STAB-29-03>
+      <D-STAB-29-04>
+        <Choice>Use one integration writer and independent isolated implementation trees; validate an exact candidate and a finite blocker list.</Choice>
+        <Reason>This prevents shared-tree overwrites and an unbounded reviewer-reset cycle while retaining required verification.</Reason>
+      </D-STAB-29-04>
+      <D-STAB-29-05>
+        <Choice>Treat historical module-health linking/retired-marker diagnostics as separately recorded reconciliation work; do not equate them with absent runtime implementation.</Choice>
+        <Reason>Installed navigation requires comma-separated bare IDs in LINKS, while existing contracts mostly use path-plus-ID prose. Current lint and module-health are distinct evidence; normalize touched live contracts and report remaining diagnostic debt accurately.</Reason>
+      </D-STAB-29-05>
+    </Decisions>
+    <ExecutionEvidence>2026-11-09: obsolete freeze PR 187 closed as superseded without merge; its branch and preserved unpublished changes remain intact. CI repair PR 198 opened at faab503cc8a154561f7f11394a835edf702021e4 after passing local coverage and exact outgoing safety checks; hosted checks still pending.</ExecutionEvidence>
+  </C-STABILIZE-29>
+</GraceChangeSpec>

@@ -1504,8 +1504,8 @@ describe('store/editor', () => {
       expect(editor.tabs[0].markdown).toBe('disk content from watcher')
     })
 
-    // (c) liveReload=true + tab is dirty -> still reloads
-    it('liveReload=true + dirty tab (isSaved=false) still reloads via async read', async () => {
+    // (c) liveReload=true never authorizes overwriting unsaved edits
+    it('liveReload=true + dirty tab preserves edits and offers the conflict choice', async () => {
       vi.useFakeTimers()
       stubs.preferences.autoSave = false
       stubs.preferences.liveReload = true
@@ -1527,8 +1527,10 @@ describe('store/editor', () => {
       vi.advanceTimersByTime(100)
       await vi.runAllTimersAsync()
 
-      expect(stubs.ipcFs.read).toHaveBeenCalledWith('/tmp/x.md')
-      expect(editor.tabs[0].markdown).toBe('live reload content')
+      expect(stubs.ipcFs.read).not.toHaveBeenCalled()
+      expect(editor.tabs[0].markdown).toBe('unsaved edits')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+      expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
     })
 
     // (d) Hash-skip: content unchanged -> no reload

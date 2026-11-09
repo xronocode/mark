@@ -823,6 +823,8 @@
       <Status>implemented</Status>
       <PhaseRef>C-PAGE-WIDTH-TABLES</PhaseRef>
       <Summary>
+        C-STABILIZE-PRODUCT-REPAIRS: the panel entry uses the final Aa text glyph with local 28px button chrome; its titlebar stacks above table walls. Table no-scroll/Auto reset rules are owned by M-012, and the width pipeline remains unchanged. C-STABILIZE-TABLE-AUTO-PERSISTENCE keeps an explicit Auto reset distinct from an absent default override and removes stale widths during profile normalization.
+
         C-PAGE-WIDTH-TABLES (2026-11-02): page width as a first-class,
         per-document property, owned by the renderer seam that M-011 hosts.
         util/pageWidthStore.js is the document-scoped store — one prefs key

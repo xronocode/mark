@@ -1,0 +1,186 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-DUAL-EDIT>
+    <Name>Complete and integrate C-SPLIT-DUAL-EDIT</Name>
+    <Created>2026-11-09</Created>
+    <ApprovalBasis>Owner approved RECOVERY final implementation on 2026-11-09 and delegated recommended decisions. This bundle supersedes the earlier execution plan, preserves its complete behavior and archived evidence, and authorizes finite candidate-specific implementation and verification without a new repeated review-agent loop.</ApprovalBasis>
+    <Lineage>C-SPLIT-DUAL-EDIT; source commits 9f37b81e2397135eaf97f00ce793b133dc2a1bb3 and 0db3508a50c20634cf3fe1a5af1d2b6c5eba9fc7; current source base faab503cc8a154561f7f11394a835edf702021e4</Lineage>
+    <Summary>
+    The second Split View pane has been a read-only mirror since C-29
+    (NonGoal: "Simultaneous editing in both panes (mirror is read-only)"),
+    which the owner reads as "editing does not work". The owner now
+    directs full-quality dual editing and explicitly rejects the
+    per-surface-undo compromise proposed in the retired draft
+    C-SPLIT-VIEW-SYNC-EDIT (chat, 2026-10-27, translated: "Point 2 must be
+    done fully and properly, so that editing works and everything works —
+    otherwise it's crap"). This change makes both panes fully editable in
+    split against the single store document, with one undo/redo history
+    for the document regardless of which pane an edit was made in,
+    per-surface carets that survive the other pane's commits, and every
+    editor command working from the focused pane. The C-29 NonGoal is
+    superseded by the owner decision of 2026-10-27; the archived spec
+    stays byte-for-byte and this bundle records the supersession.
+  </Summary>
+    <Goals>
+      <R-1>Both panes fully editable in split: typing, selections, clipboard
+    (copy/cut/paste), drag-drop of text, IME composition, and image/text
+    paste paths work in whichever pane has focus. The store remains the
+    single document truth: a pane's own user edits commit through the
+    existing paths (muya change listener; CodeMirror cursorActivity /
+    LISTEN_FOR_CONTENT_CHANGE); the other pane re-renders render-only at
+    the existing debounce (150 ms; muya's adaptive extension for heavy
+    documents unchanged) under a rendering guard that generalizes the
+    C-29 mirror guard from a static prop to a per-render state.</R-1>
+      <R-2>One document history — unified undo/redo. Cmd+Z in either pane
+    reverts the document's last committed edit regardless of which pane
+    made it; Cmd+Shift+Z / Cmd+Y redo mirrors it. Undo granularity
+    follows commit coalescing (typing bursts coalesce as today). After
+    every undo/redo step: both panes re-render from the store, the focused
+    pane's caret and selection restore to the corresponding position in
+    the reverted text (clamped), and the unfocused pane's remembered caret
+    re-maps the same way. The undo stack is per tab, survives pane focus
+    switches and mode toggles, and is cleared exactly when the document
+    history is cleared today (tab switch, external reload).</R-2>
+      <R-3>Per-surface caret memory: each pane keeps its own caret and
+    selection across the other pane's commits — positions translate and
+    clamp into the updated text instead of jumping to the start; focus
+    switching between panes never loses or moves the caret of the pane
+    being entered. IME composition in the focused pane is never
+    interrupted by the other pane's re-render (composition state fences
+    re-renders of the composing surface only; the other pane still
+    updates).</R-3>
+      <R-4>Command completeness — everything works from the focused pane:
+    every editor command available in the current single-pane mode must
+    work in split from whichever pane holds focus, and none may be
+    silently a no-op. This includes at minimum: character and paragraph
+    formatting (in the source pane they apply as equivalent text
+    transforms), find &amp; replace (match navigation and replacement target
+    the focused surface), word count and document statistics, dirty
+    state / autosave / problems panel, copy-as-structured-text, link and
+    image insertion flows, and table/format-document operations. The plan
+    ships a command-corner matrix enumerating every command id against
+    both panes with verbatim expected behavior; a command that cannot
+    meaningfully apply to a surface is explicitly listed as disabled with
+    its visible reason, never silently dead.</R-4>
+      <R-5>Integrity invariants under two writers: exactly one dirty-flag
+    move per user edit (no echo loops — the rendering guard is the
+    boundary); muya normalization never rewrites source-pane edits (`*`
+    bullets stay `*`); locked tabs (View › Lock Document) and
+    Finder-preview read-only tabs keep BOTH panes read-only with
+    selection/copy available; front-matter and encoding paths behave as
+    today; word counting counts once.</R-5>
+      <R-6>Supersession bookkeeping: C-29's NonGoal "Simultaneous editing
+    in both panes" is superseded by the owner decision of 2026-10-27,
+    recorded here; the archived C-29 bundle is not edited. tests/e2e/
+    split-view.spec.ts mirror-read-only corners are rewritten into
+    dual-edit corners (the `* item` normalization corner and the
+    never-writes-back guard — now the rendering guard — keep
+    passing).</R-6>
+      <R-7>Governance: history/caret/translation helpers are pure and
+    unit-tested; the muya touch (if the approved architecture extends
+    muya's commit path) is minimal, contract-updated, and enumerated in
+    the plan; module/V-M anchors (new or M-011/V-M-011 extensions) are
+    fixed by the plan after grace lint --parallel-preflight; graph and
+    verification deltas route in the same bundle as the code.</R-7>
+    </Goals>
+    <AcceptanceCriteria>
+      <Criterion>Dual editing: typing in the rich pane updates the source
+    pane within 300 ms and typing in the source pane updates the rich pane
+    within 300 ms; both panes accept a caret, text selection, clipboard
+    operations and IME input while split is on; edits from either pane
+    mark the tab dirty, feed word count and autosave exactly once per
+    edit.</Criterion>
+      <Criterion>Unified undo: with edits interleaved across panes (rich
+    edit A, source edit B, rich edit C), Cmd+Z reverts C then B then A in
+    document order regardless of which pane holds focus at undo time;
+    redo replays them in order; after each step both panes show the
+    reverted text and the focused pane's caret sits at the corresponding
+    position; the stack survives pane focus switches and is cleared on
+    tab switch/external reload as today.</Criterion>
+      <Criterion>Caret memory: typing in the source pane while the rich
+    pane's caret sits mid-document does not move the rich caret's
+    remembered position (re-mapped and clamped into the updated text);
+    alt-tabbing focus between panes restores each surface's own caret;
+    IME composition in a pane is never broken by the other pane's
+    updates.</Criterion>
+      <Criterion>Command matrix: every enumerated command id works from the
+    focused pane (formatting, find/replace, insertion flows, statistics,
+    copy-as-structured-text) or is explicitly disabled with a visible
+    reason; the plan's matrix is fully covered by tests.</Criterion>
+      <Criterion>Integrity: the store keeps source-typed `* item` exactly
+    after muya re-renders (normalization corner green); a locked tab
+    leaves both panes read-only with copy available; no echo loops
+    observable over sustained alternating edits.</Criterion>
+      <Criterion>Governance: pure helper unit suites (history routing,
+    caret translation/clamping, guard state machine); rewritten and new
+    e2e corners; MODULE_CONTRACT/MAP/CHANGE_SUMMARY updated in touched
+    files including any muya file; graph and verification deltas routed
+    with content-free markers; grace lint shows no new errors beyond the
+    recorded pre-existing baseline.</Criterion>
+    </AcceptanceCriteria>
+    <NonGoals>
+      <NonGoal>Cross-pane caret/selection visualization (seeing the other
+    pane's caret); word-level diff or merge semantics between panes.</NonGoal>
+      <NonGoal>Collaborative editing, conflict resolution between
+    simultaneous IME streams, or multi-document coupling.</NonGoal>
+      <NonGoal>Changing what full-window Source Code mode or WYSIWYG mode
+    means without split (their single-surface behavior is unchanged;
+    only the split combination becomes dual-editable).</NonGoal>
+      <NonGoal>Mobile/tablet split surfaces; split in Diff Mode; split below
+    the 800px collapse.</NonGoal>
+      <NonGoal>Line-exact scroll mapping (C-SPLIT-SCROLL-SYNC owns
+    proportional sync).</NonGoal>
+    </NonGoals>
+    <IntegrationConstraint>Transplant product hunks only, retaining current page-width, progressive-mount, export and renderer behavior. Root applies all routed projections centrally; this worker changes no versions, release artifacts, commits or pushed refs.</IntegrationConstraint>
+    <Decision>D-SPLIT-RECOVERY-02: delegated recovery representation accepted on 2026-11-09. For unified entries, store exactly one raw Markdown payload INSTEAD OF the existing block-tree clone, plus constant-size rich/source endpoint positions and focused-surface metadata. Do not store both document representations or selected text. Native pre-split content entries remain undoable; adjacent caret-only native entries collapse once at activation. Ordinary never-unified history and its public shape remain unchanged. Pending typing coalesces, and focus/command/tab boundaries commit it. Bounded storage and exact source replay are executable assertions.</Decision>
+    <Decision>D-SPLIT-RECOVERY-01: choose the stronger R-2/design-context/corner-10 behavior. A tab that entered unified split retains its muya-owned history and both translated carets/selections across tab switches and source/rich/split mode transitions. External content reload clears that unified state. The ambiguous original clear-on-tab-switch wording is superseded; ordinary never-unified single-pane semantics stay unchanged. Source native history is disabled and every undo entry point routes to the single muya history owner.</Decision>
+    <Constraints>
+      <Item>One history owner is chosen at plan time from the architectures
+    in design-context.xml (recommendation: muya's snapshot history becomes
+    the document history, source-pane commits enter through a history-
+    aware path, CodeMirror's built-in history is disabled while the
+    unified history is active). Whichever is chosen, R-2's behavior is the
+    acceptance bar.</Item>
+      <Item>Muya core changes, if any, are limited to the commit/history
+    path the plan enumerates, carry MODULE_CONTRACT/CHANGE_SUMMARY updates
+    in the same bundle, and keep single-pane WYSIWYG undo byte-identical
+    in behavior (existing muya undo e2e corners stay green).</Item>
+      <Item>Existing gates stay green and unweakened: npm test, renderer
+    suites, e2e; the rewritten split-view.spec.ts corners must be at
+    least as strict as before.</Item>
+      <Item>The working tree carries parallel active changes
+    (C-FILE-POSITION-MEMORY cursor plumbing in editor.vue, theme work in
+    the same components); the plan runs grace lint
+    --parallel-preflight before any write and reconciles observed-write
+    overlaps instead of assuming them.</Item>
+      <Item>Scroll behavior on pane updates is owned by C-SPLIT-SCROLL-SYNC
+    and is expected to land first; this change must not regress it.</Item>
+      <Item>No release or train admission follows from approval; version
+    bumps and tags stay behind their separate owner instruction. English
+    only in all committed artifacts. No new user-facing strings by design
+    (pane-role hints, if the plan's UX corner demands them, ship as
+    native copy in all ten locales).</Item>
+    </Constraints>
+    <AffectedAreas>
+      <Item>src/renderer/src/components/editorWithTabs/ — index.vue (slot
+    and mount wiring: editable source pane in split), editor.vue
+    (rendering guard generalizing the mirror prop, history routing, caret
+    memory), sourceCode.vue (editable split pane, rendering guard, caret
+    translation), splitView.vue (only if controller wiring requires).</Item>
+      <Item>src/muya/lib/contentState/history.js (and the commit path the
+    plan picks) — only under the recommended architecture, minimal and
+    enumerated.</Item>
+      <Item>New helpers module (history routing / caret translation) with
+    pure functions, placement fixed by the plan.</Item>
+      <Item>tests/e2e/split-view.spec.ts (corner rewrites) + new dual-edit
+    and undo e2e suites; tests/renderer unit suites for the helpers and
+    the command matrix.</Item>
+      <Item>.grace/graph/* and .grace/verification/* — routing deltas in
+    the same bundle as the code.</Item>
+      <Item>Explicitly out of write scope: src-tauri, static/locales
+    (unless the plan adds strings), CI workflows.</Item>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedEvidence>Fresh affected units, exact-source renderer build and actual browser regressions against the owned preview on port 4197; full requirements and eleven dual-edit corners retained. Root centrally applies projections and combined gates.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-STABILIZE-SPLIT-DUAL-EDIT>
+</GraceChangeSpec>

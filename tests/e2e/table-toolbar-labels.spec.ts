@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-toolbar-labels.spec.ts
-// VERSION: 1.1.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce shrinking corner panels when moving between table/diagram buttons and pin cumulative label reveal until whole-panel exit.
 //   SCOPE: Real pointer traversal over table, Mermaid and Vega-Lite inline toolbars in Chromium/WebKit; label visibility, nonshrinking button/panel widths, panel anchoring, exit reset and unchanged document state.
@@ -13,7 +13,15 @@
 //   documentState - normalized Markdown and saved state, excluding view-only selection.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   LAST_CHANGE: v2.0.0 - 2026-11-05 owner review: the expanding pill
+//   labels are RETIRED everywhere (tables AND diagrams) — every button
+//   renders icon-only, the names live in tooltips, the pill never
+//   auto-sizes. The visited-label walk is replaced by an icon-only pin.
+//   PREV: v1.2.0 - 2026-11-05 owner review: the table pill's mode
+//   segment renders icon-only (no expanding labels); the visited-label
+//   walk covers the label-carrying buttons and the mode buttons pin the
+//   no-span/no-grow behaviour.
+//   PREV: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
 //   preamble click on the retired two-state width toggle is gone — the
 //   table pill now carries the always-visible three-button mode segment
 //   (Auto / Fit to page / Full width), so the traversal walks five real
@@ -54,7 +62,7 @@ const documentState = (page: Page) => page.evaluate(() => {
 })
 
 for (const role of ['TABLE', 'MERMAID', 'VEGA-LITE']) {
-  test(`${role} keeps visited labels open until leaving the whole panel`, async ({ page }) => {
+  test(`${role} keeps every action icon-only without growing labels`, async ({ page }) => {
     await installTauriShim(page)
     await page.setViewportSize({ width: 1400, height: 1000 })
     await bootEditor(page)
@@ -70,28 +78,24 @@ for (const role of ['TABLE', 'MERMAID', 'VEGA-LITE']) {
     const buttons = panel.locator('button.ag-block-toolbar-btn:visible')
     const count = await buttons.count()
     expect(count).toBeGreaterThanOrEqual(2)
+    // Owner 2026-11-05: every pill button renders ICON-ONLY (the expanding
+    // text labels are retired — a visited label turned the clicked button
+    // into a wide "big button"). Hovering never reveals a label and never
+    // widens the pill; the names live in the title/aria tooltips.
     const beforeDocument = await documentState(page)
     const anchor = await panel.boundingBox()
-    let previousPanelWidth = anchor!.width
-    const visited: { index: number; width: number }[] = []
-    for (let index = count - 1; index >= 0; index--) {
+    const width0 = anchor!.width
+    for (let index = 0; index < count; index++) {
       const button = buttons.nth(index)
       await button.hover()
-      await expect(button.locator('span')).toBeVisible()
-      for (const previous of visited) {
-        const earlier = buttons.nth(previous.index)
-        await expect(earlier.locator('span')).toBeVisible()
-        expect((await earlier.boundingBox())!.width).toBeGreaterThanOrEqual(previous.width - 1)
-      }
+      await expect(button.locator('span.ag-block-toolbar-label')).toHaveCount(0)
       const rect = await panel.boundingBox()
-      expect(rect!.width).toBeGreaterThanOrEqual(previousPanelWidth - 1)
-      expect(Math.abs(rect!.x + rect!.width - anchor!.x - anchor!.width)).toBeLessThanOrEqual(1)
-      previousPanelWidth = rect!.width
-      visited.push({ index, width: (await button.boundingBox())!.width })
+      expect(Math.abs(rect!.width - width0), 'the pill must never auto-size').toBeLessThanOrEqual(1)
+      const title = await button.getAttribute('title')
+      expect(title, 'every button keeps its tooltip').toBeTruthy()
     }
     await page.mouse.move(10, 10)
-    for (let index = 0; index < count; index++) await expect(buttons.nth(index).locator('span')).not.toBeVisible()
-    expect((await panel.boundingBox())!.width).toBeLessThan(previousPanelWidth)
+    expect((await panel.boundingBox())!.width).toBeLessThanOrEqual(width0 + 1)
     expect(await documentState(page)).toEqual(beforeDocument)
   })
 }

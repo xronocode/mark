@@ -1,10 +1,10 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.5.0
+# VERSION: 3.6.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
-#   DEPENDS: M-046 release readiness/materials/preflight, Node 22, Rust 1.99.0, tauri-action, tag-restricted release-signing secrets, GitHub OIDC, release environment (owner reviewer).
-#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
+#   DEPENDS: M-046 release readiness/materials/preflight, Node 22, lockfile-installed attribution/SBOM tools, Rust 1.99.0, tauri-action, tag-restricted release-signing secrets, GitHub OIDC, release environment (owner reviewer).
+#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; .grace/changes/archive/C-SEC-AUDIT-FIXES.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
 # END_MODULE_CONTRACT
@@ -19,6 +19,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-09 v3.6.0 C-SEC-AUDIT-FIXES T-001: generate Node supply-chain evidence with lockfile-installed local binaries.
 #   - 2026-11-09 v3.5.0 C-CI-CD-AUDIT-FIXES: split manual QA checks into fail-fast steps, disable updater artifacts only in unsigned packaging, and pin Rust and its cache keys.
 #   - 2026-10-30 C-UPDATER-STATS T-005: the latest.json platform url
 #     fields route through the counting gateway (updates.mark.xronocode.com/pkg/...)
@@ -495,7 +496,7 @@ jobs:
           set -euo pipefail
           mkdir -p sbom
           # Node side: production deps only
-          npx --yes --package @cyclonedx/cyclonedx-npm@6.0.1 -- cyclonedx-npm \
+          ./node_modules/.bin/cyclonedx-npm \
             --output-format JSON \
             --output-file sbom/sbom-node.cdx.json \
             --omit dev \

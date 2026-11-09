@@ -121,7 +121,11 @@
         }
       }
     },
-    "sequence-start": "sequence start"
+    "sequence-start": "sequence start",
+    "tableExport": {
+      "title": "Table",
+      "copied": "Table copied to the clipboard as an image"
+    }
   },
   "outlineRail": {
     "title": "On this page"
@@ -1647,7 +1651,8 @@
     "fitToPage": "Fit to page",
     "fullWidth": "Full width",
     "columnsRange": "columns {start}–{end} of {total}",
-    "doesNotFitBy": "Does not fit by {px} px — column scrolling instead of hiding data"
+    "doesNotFitBy": "Does not fit by {px} px — column scrolling instead of hiding data",
+    "columnWallHint": "Drag to resize · double-click to fit content"
   },
   "statusBar": {
     "title": "Document statistics",
@@ -1815,5 +1820,8 @@
       "rememberSizes": "Remember column sizes",
       "rememberSizesHelp": "column sizes are stored per file and re-applied proportionally when the width changes"
     }
+  },
+  "extensions": {
+    "disableFailed": "The extension is disabled, but access revocation could not be verified. Try again."
   }
 }

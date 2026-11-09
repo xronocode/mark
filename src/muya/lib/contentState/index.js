@@ -14,6 +14,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Suppress native caret/block history only for unified sessions and restore the per-tab owner without changing legacy history shape.
 //   LAST_CHANGE: v1.2.0 - 2026-10-20 FIX-012: skip DOM selection restoration for incomplete cursor state and keep null-cursor render ranges safe.
 //   PREV: v1.1.0 - 2026-10-20 FIX-012: stop active-block ancestry at a missing parent so render selectors never receive undefined blocks.
 // END_CHANGE_SUMMARY
@@ -174,7 +175,7 @@ class ContentState {
       }
     }
 
-    if (!cursor.noHistory) {
+    if (!cursor.noHistory && !this.history.unified && !this.history.renderOnly) {
       if (cursor.isEdit) {
         // WORKAROUND: The current engine doesn't support a smart history and we
         // need to store the whole state. Therefore, we push history only when the
@@ -214,12 +215,13 @@ class ContentState {
   }
 
   getHistory() {
-    const { stack, index, lastEditIndex } = this.history
-    return { stack, index, lastEditIndex }
+    const { stack, index, lastEditIndex, unified } = this.history
+    return { stack, index, lastEditIndex, ...(unified ? { unified: true } : {}) }
   }
 
-  setHistory({ stack, index, lastEditIndex }) {
-    Object.assign(this.history, { stack, index, pendingIndex: -1 })
+  setHistory({ stack, index, lastEditIndex, unified = false }) {
+    if (this.historyTimer) clearTimeout(this.historyTimer)
+    Object.assign(this.history, { stack, index, unified, pendingIndex: -1, id: Math.max(-1, ...stack.map(s => s.id)) })
     if (
       typeof lastEditIndex === 'number' &&
       lastEditIndex >= -1 &&

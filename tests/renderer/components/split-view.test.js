@@ -20,6 +20,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-29 v1.1.0: C-SPLIT-DBLCLICK-TOGGLE — divider dblclick
+//     requests the toggle via cmd::execute (no swap), Alt+dblclick swaps,
+//     the right-edge strip gates on width/diff/split-state and enables.
+//   - 2026-10-29 v1.2.0: C-SPLIT-DUAL-EDIT — both panes editable in split
+//     (splitEdit companion: render-only follow + unified undo keys +
+//     unmount commit); the read-only mirror corners are retired.
 //   - 2026-10-13 v1.0.0: C-29 initial coverage.
 // END_CHANGE_SUMMARY
 
@@ -35,11 +41,19 @@ const cmInstance = vi.hoisted(() => ({
   on: vi.fn(),
   getValue: vi.fn(),
   setValue: vi.fn(),
+  setOption: vi.fn(),
+  getOption: vi.fn(),
+  getSelection: vi.fn(() => ''),
+  getScrollInfo: vi.fn(() => ({ left: 0, top: 0 })),
+  scrollTo: vi.fn(),
   getCursor: vi.fn(() => ({ line: 0, ch: 0 })),
   getLine: vi.fn(() => ''),
   setSelection: vi.fn(),
   execCommand: vi.fn(),
-  invalidateImageCache: vi.fn()
+  invalidateImageCache: vi.fn(),
+  clearHistory: vi.fn(),
+  setCursor: vi.fn(),
+  getInputField: vi.fn(() => document.createElement('textarea'))
 }))
 const codeMirrorMock = vi.hoisted(() => vi.fn(() => cmInstance))
 
@@ -96,13 +110,13 @@ describe('C-29 Split View', () => {
 
   // ─── splitView.vue ───────────────────────────────────────────
 
-  const mountSplit = async (enabled) => {
+  const mountSplit = async (enabled, extraProps = {}) => {
     const SplitView = (await import('@/components/editorWithTabs/splitView.vue')).default
     const host = document.createElement('div')
     document.body.appendChild(host)
     const wrapper = mount(SplitView, {
       attachTo: host,
-      props: { enabled },
+      props: { enabled, ...extraProps },
       global: { plugins: [pinia] },
       slots: {
         rich: ({ active }) => h('div', { class: 'probe-rich', 'data-active': String(active) }),
@@ -114,11 +128,12 @@ describe('C-29 Split View', () => {
   }
 
   describe('container', () => {
-    it('is inert while disabled: no divider, no split class, slots told inactive', async () => {
+    it('is inert while disabled: no divider, no split class, slots told inactive (C-SPLIT-DBLCLICK-TOGGLE: the enable strip IS present)', async () => {
       const wrapper = await mountSplit(false)
       expect(wrapper.find('.split-divider').exists()).toBe(false)
       expect(wrapper.classes()).not.toContain('is-split')
       expect(wrapper.find('.probe-rich').attributes('data-active')).toBe('false')
+      expect(wrapper.find('.split-edge-strip').exists()).toBe(true)
     })
 
     it('splits when enabled on a wide container and places the left pane at the saved ratio', async () => {
@@ -181,12 +196,43 @@ describe('C-29 Split View', () => {
       expect(preferences.SET_SINGLE_PREFERENCE).toHaveBeenCalledWith({ type: 'splitViewSwapped', value: true })
     })
 
-    it('R-4: double-click on the divider swaps sides and persists it', async () => {
+    it('C-SPLIT-DBLCLICK-TOGGLE: plain divider double-click requests the split toggle, never a swap', async () => {
       const wrapper = await mountSplit(true)
       await wrapper.find('.split-divider').trigger('dblclick')
+      expect(busMock.emit).toHaveBeenCalledWith('cmd::execute', 'view.split-view')
+      expect(preferences.SET_SINGLE_PREFERENCE).not.toHaveBeenCalledWith({ type: 'splitViewSwapped', value: true })
+      expect(wrapper.classes()).not.toContain('is-swapped')
+    })
+
+    it('C-SPLIT-DBLCLICK-TOGGLE: Alt+double-click on the divider swaps sides and persists it', async () => {
+      const wrapper = await mountSplit(true)
+      await wrapper.find('.split-divider').trigger('dblclick', { altKey: true })
       expect(preferences.SET_SINGLE_PREFERENCE).toHaveBeenCalledWith({ type: 'splitViewSwapped', value: true })
       await nextTick()
       expect(wrapper.classes()).toContain('is-swapped')
+    })
+
+    it('C-SPLIT-DBLCLICK-TOGGLE R-2: the right-edge strip gates on width and diff, and enables split on double-click', async () => {
+      const wrapper = await mountSplit(false)
+      const strip = wrapper.find('.split-edge-strip')
+      expect(strip.exists()).toBe(true)
+      expect(strip.attributes('data-action')).toBe('toggle-split')
+      await strip.trigger('dblclick')
+      expect(busMock.emit).toHaveBeenCalledWith('cmd::execute', 'view.split-view')
+
+      // Narrow container: the split cannot open, so no strip.
+      await setWidth(700)
+      expect(wrapper.find('.split-edge-strip').exists()).toBe(false)
+      await setWidth(1000)
+      expect(wrapper.find('.split-edge-strip').exists()).toBe(true)
+
+      // Split on: the strip is gone (the divider owns toggling now).
+      const on = await mountSplit(true)
+      expect(on.find('.split-edge-strip').exists()).toBe(false)
+
+      // Diff mode replaces the surface: no strip even while split is off.
+      const diff = await mountSplit(false, { diffMode: true })
+      expect(diff.find('.split-edge-strip').exists()).toBe(false)
     })
   })
 
@@ -222,24 +268,27 @@ describe('C-29 Split View', () => {
     // 20 s: this first pane-roles test pays the cold import of
     // editorWithTabs/index.vue (muya, CodeMirror, the outline rail), which
     // exceeds the 5 s default under a loaded full-suite run (C-40 review).
-    it('split off: muya only, never a mirror', async () => {
+    it('split off: muya only, no source companion', async () => {
       const wrapper = await mountTabs({ splitView: false })
       expect(sources(wrapper)).toHaveLength(0)
-      expect(wrapper.findComponent({ name: 'editor' }).props('mirror')).toBe(false)
+      expect(wrapper.findComponent({ name: 'editor' }).props('mirror')).toBeFalsy()
     }, 20_000)
 
-    it('split on in WYSIWYG mode: muya editable, CodeMirror is the read-only mirror', async () => {
+    it('C-SPLIT-DUAL-EDIT: split on in WYSIWYG mode — BOTH panes editable, source is the split companion', async () => {
       const wrapper = await mountTabs({ splitView: true })
-      expect(wrapper.findComponent({ name: 'editor' }).props('mirror')).toBe(false)
+      expect(wrapper.findComponent({ name: 'editor' }).props('mirror')).toBeFalsy()
       const [source] = sources(wrapper)
-      expect(source.props('mirror')).toBe(true)
+      expect(source.props('mirror')).toBeFalsy()
+      expect(source.props('splitEdit')).toBe(true)
     })
 
-    it('corner-2: split on in source mode swaps roles — CodeMirror editable, muya mirror', async () => {
+    it('C-SPLIT-DUAL-EDIT corner-2: split on in source mode — one editable source instance, muya follows the store', async () => {
       const wrapper = await mountTabs({ splitView: true, sourceCode: true })
-      expect(wrapper.findComponent({ name: 'editor' }).props('mirror')).toBe(true)
+      expect(wrapper.findComponent({ name: 'editor' }).props('mirror')).toBeFalsy()
       const [source] = sources(wrapper)
-      expect(source.props('mirror')).toBe(false)
+      expect(source.props('mirror')).toBeFalsy()
+      // Source mode owns the document: the pane is the editor, not the companion.
+      expect(source.props('splitEdit')).toBe(false)
     })
 
     it('diff mode suppresses the split', async () => {
@@ -270,43 +319,38 @@ describe('C-29 Split View', () => {
     return { wrapper, editorStore }
   }
 
-  describe('source mirror', () => {
-    it('mounts read-only without focus, bus listeners or tab-state resets', async () => {
-      const { editorStore } = await mountSource({ mirror: true })
+  describe('split companion (C-SPLIT-DUAL-EDIT)', () => {
+    it('mounts editable with bus listeners and no tab-state resets', async () => {
+      const { editorStore } = await mountSource({ splitEdit: true })
       const config = codeMirrorMock.mock.calls[0][1]
-      expect(config.readOnly).toBe(true)
-      expect(config.autofocus).toBe(false)
-      expect(busMock.on).not.toHaveBeenCalled()
-      expect(cmInstance.on).not.toHaveBeenCalled()
+      expect(config.readOnly).toBeUndefined()
+      expect(busMock.on).toHaveBeenCalledWith('file-changed', expect.any(Function))
+      // The unified muya history owns undo: the undo/redo keys route to bus.
+      expect(config.extraKeys['Cmd-Z']).toBeTypeOf('function')
       expect(editorStore.currentFile.scrollTop).toBe(42)
       expect(editorStore.currentFile.blocks).toEqual(['b'])
     })
 
-    it('follows the markdown 150 ms after changes and never commits', async () => {
+    it('follows the markdown 150 ms after changes render-only and never commits', async () => {
       vi.useFakeTimers()
-      const { wrapper, editorStore } = await mountSource({ mirror: true })
+      const { wrapper, editorStore } = await mountSource({ splitEdit: true })
       cmInstance.getValue.mockReturnValue('# One')
       await wrapper.setProps({ markdown: '# One!' })
+      editorStore.currentFile.markdown = '# One!!'
       await wrapper.setProps({ markdown: '# One!!' })
       vi.advanceTimersByTime(149)
       expect(cmInstance.setValue).not.toHaveBeenCalled()
       vi.advanceTimersByTime(1)
       expect(cmInstance.setValue).toHaveBeenCalledTimes(1)
       expect(cmInstance.setValue).toHaveBeenCalledWith('# One!!')
+      // The unified history owns undo: CodeMirror's own stack is cleared.
+      expect(cmInstance.clearHistory).toHaveBeenCalled()
       expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).not.toHaveBeenCalled()
     })
 
-    it('unmounting the mirror emits nothing (no file-changed overwrite of muya)', async () => {
-      const { wrapper } = await mountSource({ mirror: true })
-      wrapper.unmount()
-      expect(busMock.emit).not.toHaveBeenCalled()
-    })
-
-    it('the editable pane keeps its existing behaviour (listeners + unmount commit)', async () => {
+    it('unmounting the companion commits its content through file-changed (the pane owns the tab text)', async () => {
       cmInstance.getValue.mockReturnValue('# One')
-      const { wrapper } = await mountSource({ mirror: false })
-      expect(codeMirrorMock.mock.calls[0][1].readOnly).toBeUndefined()
-      expect(busMock.on).toHaveBeenCalledWith('file-changed', expect.any(Function))
+      const { wrapper } = await mountSource({ splitEdit: true })
       wrapper.unmount()
       expect(busMock.emit).toHaveBeenCalledWith('file-changed', expect.objectContaining({ id: 'tab-1' }))
     })

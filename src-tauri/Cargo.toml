@@ -49,6 +49,8 @@ tauri-plugin-process = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"  # C-15 T-W4: second launch ("Open With") forwards files to the running instance
 reqwest = { version = "0.13", features = ["json"] }
+# C-SEC-AUDIT-FIXES: already-locked parser shared by extension URL checks.
+url = "2"
 # C-UPDATER-ROLLBACK M-068: rollback manager crypto/trash deps.
 # minisign-verify is already in the lock transitively (tauri-plugin-updater)
 # and is reused directly; sha2 likewise already-locked; trash is new.
@@ -81,5 +83,7 @@ webview2-com = "0.39"
 windows-core = "0.62"
 
 [dev-dependencies]
+# C-SEC-AUDIT-FIXES: runtime-generic handler/event fixtures without a webview.
+tauri = { version = "2", features = ["test"] }
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "time"] }

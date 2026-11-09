@@ -125,19 +125,33 @@ describe('planTableFit — the R-9 decision order (corners C-7/C-8)', () => {
     expect(sum(plan.widths)).toBe(500)
   })
 
-  it('degradation reports minimal sizes and the exact overflow px', () => {
-    // wrappedMinima (300+300) still exceed the 500px frame → scroll.
+  it('the retired scroll degradation: even unwrappable minima squeeze into the frame (owner 2026-11-07)', () => {
+    // wrappedMinima (300+300) exceed the 500px frame — the old plan
+    // scrolled; the owner's mandate is NO table scrolling ever, so the
+    // minima squeeze proportionally (both keep their 50% share).
     const plan = planTableFit(extents([300, 300], [400, 400], [300, 300]), 500)
-    expect(plan.kind).toBe('scroll')
-    expect(plan.widths).toEqual([300, 300])
-    expect(plan.overflowPx).toBe(100)
+    expect(plan.kind).toBe('wrap')
+    // 4px/column reserved for the collapsed borders WebKit paints over
+    // the colgroup (owner 2026-11-09): the plan sums to frame − 8.
+    expect(sum(plan.widths)).toBe(492)
+    expect(plan.widths).toEqual([246, 246])
+    expect(plan.overflowPx).toBeUndefined()
   })
 
-  it('degradation prefers the wrapped minima when they are smaller', () => {
+  it('squeezing prefers the smaller wrapped minima as the share base', () => {
     const plan = planTableFit(extents([400, 400], [400, 400], [260, 260]), 500)
-    expect(plan.kind).toBe('scroll')
-    expect(plan.widths).toEqual([260, 260])
-    expect(plan.overflowPx).toBe(20)
+    expect(plan.kind).toBe('wrap')
+    expect(sum(plan.widths)).toBe(492)
+    expect(plan.widths).toEqual([246, 246])
+    expect(plan.overflowPx).toBeUndefined()
+  })
+
+  it('keeps a many-column plan inside a fractional narrow frame without dropping columns', () => {
+    const plan = planTableFit(extents(Array(30).fill(120), Array(30).fill(180), Array(30).fill(80)), 400.5)
+    expect(plan.kind).toBe('wrap')
+    expect(plan.widths).toHaveLength(30)
+    expect(plan.widths.every(width => width > 0)).toBe(true)
+    expect(sum(plan.widths)).toBeLessThanOrEqual(400)
   })
 
   it('refuses zero/negative frames and missing extents', () => {

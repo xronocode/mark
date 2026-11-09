@@ -120,7 +120,11 @@
         }
       }
     },
-    "sequence-start": "時序圖 開始"
+    "sequence-start": "時序圖 開始",
+    "tableExport": {
+      "title": "表格",
+      "copied": "表格已作為影像複製到剪貼簿"
+    }
   },
   "outlineRail": {
     "title": "本頁內容"
@@ -1637,7 +1641,8 @@
     "fitToPage": "符合頁面",
     "fullWidth": "全寬顯示",
     "columnsRange": "第 {start}–{end} 欄，共 {total} 欄",
-    "doesNotFitBy": "還差 {px} 像素 — 改用欄捲動，不隱藏任何資料"
+    "doesNotFitBy": "還差 {px} 像素 — 改用欄捲動，不隱藏任何資料",
+    "columnWallHint": "Drag to resize · double-click to fit content"
   },
   "statusBar": {
     "title": "文件統計",
@@ -1799,5 +1804,8 @@
       "rememberSizes": "記住欄尺寸",
       "rememberSizesHelp": "欄尺寸按檔案儲存，寬度變化時按比例重新套用"
     }
+  },
+  "extensions": {
+    "disableFailed": "擴充功能已停用，但無法確認存取權限已撤銷。請再試一次。"
   }
 }

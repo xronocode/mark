@@ -17,7 +17,8 @@
 //            m013b::state::SecurityCtx (active sandbox),
 //            m013b::error::IpcError (typed error envelope),
 //            stdlib std::fs.
-//   LINKS:   .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-2;
+//   LINKS:   .grace/changes/archive/C-SEC-AUDIT-FIXES T-007;
+//            .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-2;
 //            .grace/verification/runtime.xml V-M-002 (5 scenarios + 12
 //            adversarial edge cases — this commit covers ~6 of them
 //            backend-side).
@@ -27,6 +28,9 @@
 //            filesystem boundaries.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-007: real writer regressions pin
+//     outward-parent and dangling-leaf denial, inward/plain writes and
+//     existing outside-target preservation through the shared M-010 guard.
 //   - 2026-04-28 B2-step-2: replace B1 stubs with real read/write/stat/
 //     readdir/unlink wired through SecurityCtx + M-010 check_path.
 //   - 2026-04-28 B1-step-6: initial stub returning Err(MT_NOT_IMPLEMENTED).
@@ -486,6 +490,55 @@ mod tests {
     use crate::m013b::error::{MT_FS_NOT_FOUND, MT_FS_PATH_DENIED};
     use std::fs::write;
     use tempfile::TempDir;
+
+    #[cfg(unix)]
+    #[test]
+    fn ancestor_inward_ok() {
+        let dir = TempDir::new().unwrap();
+        let inside = dir.path().join("inside");
+        fs::create_dir(&inside).unwrap();
+        let link = dir.path().join("inward");
+        std::os::unix::fs::symlink(&inside, &link).unwrap();
+        for base in [&link, &inside] {
+            fs_write_inner(base.join("new/note.md").to_str().unwrap(), "text", dir.path()).unwrap();
+            fs_write_binary_inner(base.join("new/image.png").to_str().unwrap(), &[0, 255], dir.path()).unwrap();
+            fs_mkdir_inner(base.join("new/dir").to_str().unwrap(), dir.path()).unwrap();
+        }
+        assert_eq!(fs::read_to_string(inside.join("new/note.md")).unwrap(), "text");
+        assert_eq!(fs::read(inside.join("new/image.png")).unwrap(), [0, 255]);
+        assert!(inside.join("new/dir").is_dir());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ancestor_existing_outside_regression() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let target = outside.path().join("existing.md");
+        fs::write(&target, b"untouched").unwrap();
+        let link = dir.path().join("existing.md");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let text_error = fs_write_inner(link.to_str().unwrap(), "overwrite", dir.path()).unwrap_err();
+        let binary_error = fs_write_binary_inner(link.to_str().unwrap(), b"overwrite", dir.path()).unwrap_err();
+        assert_eq!(text_error.code, MT_FS_PATH_DENIED);
+        assert_eq!(binary_error.code, MT_FS_PATH_DENIED);
+        assert_eq!(fs::read(&target).unwrap(), b"untouched");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ancestor_dangling_leaf_refused() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let target = outside.path().join("not-created.md");
+        let link = dir.path().join("dangling.md");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        assert_eq!(fs_write_inner(link.to_str().unwrap(), "text", dir.path()).unwrap_err().code, MT_FS_PATH_DENIED);
+        assert!(!target.exists());
+        assert_eq!(fs_write_binary_inner(link.to_str().unwrap(), b"binary", dir.path()).unwrap_err().code, MT_FS_PATH_DENIED);
+        assert!(!target.exists());
+        assert!(fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+    }
 
     fn ctx_for(sandbox: &Path) -> SecurityCtx {
         let c = SecurityCtx::default();

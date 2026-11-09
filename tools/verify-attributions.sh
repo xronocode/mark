@@ -1,4 +1,26 @@
 #!/usr/bin/env bash
+# FILE: tools/verify-attributions.sh
+# VERSION: 1.1.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Verify committed Node and Rust dependency attributions against installed release tools.
+#   SCOPE: Read local dependency metadata and compare generated notices, with an explicit refresh mode.
+#   DEPENDS: Lockfile-installed license-checker, Node, pinned cargo-bundle-licenses, notice generators.
+#   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; .grace/changes/archive/C-SEC-AUDIT-FIXES.
+#   ROLE: SCRIPT
+#   MAP_MODE: LOCALS
+# END_MODULE_CONTRACT
+# START_MODULE_MAP
+#   REFRESH - Select explicit notice refresh instead of comparison.
+#   ROOT - Repository directory containing the installed attribution binary.
+#   NODE_OUT - Committed Node notice path.
+#   RUST_OUT - Committed Rust notice path.
+#   NODE_TMP - Temporary generated Node notice path.
+#   RUST_TMP - Temporary generated Rust notice path.
+#   RUST_JSON_TMP - Temporary Rust attribution metadata path.
+# END_MODULE_MAP
+# START_CHANGE_SUMMARY
+#   - 2026-11-09 v1.1.0 C-SEC-AUDIT-FIXES T-001: use the lockfile-installed local attribution tool.
+# END_CHANGE_SUMMARY
 # Phase-B4 step-9 verify-attributions.sh — CI gate for NOTICES freshness.
 #
 # Re-runs the NOTICES generators and diffs against committed files.
@@ -28,7 +50,7 @@ trap 'rm -f "$NODE_TMP" "$RUST_TMP"' EXIT
 
 # ── Node side ────────────────────────────────────────────────────────
 echo "[verify-attributions] generating node deps notice..."
-npx --yes --package license-checker -- license-checker --production --json \
+./node_modules/.bin/license-checker --production --json \
   > "$NODE_TMP.json" 2>/dev/null
 node tools/build-notices-node.mjs "$NODE_TMP.json" > "$NODE_TMP"
 

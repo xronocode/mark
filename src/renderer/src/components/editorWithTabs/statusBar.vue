@@ -49,6 +49,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Read source selection counts from the unified focused pane and release its bus subscription on unmount.
 //   - 2026-10-15 v1.0.0: C-40 T-004 — initial status bar (canvas style:
 //     24 px, 0.14 padding, 11.5 px muted tabular numerals, 0.45-opacity
 //     dot separators, hairline top border). Lines/reading minutes share
@@ -56,6 +57,7 @@
 //     muya's wordCount tokenizer scoped to the editor column.
 // END_CHANGE_SUMMARY
 
+import bus from '@/bus'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
@@ -146,6 +148,11 @@ const refreshSelection = () => {
     selectionText.value = ''
     return
   }
+  const session = currentFile.value?.splitSession
+  if (session?.unified && session.focused === 'source') {
+    selectionText.value = session.selectedSourceText || ''
+    return
+  }
   let selection = null
   try {
     selection = document.getSelection ? document.getSelection() : null
@@ -167,10 +174,12 @@ const refreshSelection = () => {
 
 onMounted(() => {
   document.addEventListener('selectionchange', refreshSelection)
+  bus.on('split:selection-changed', refreshSelection)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('selectionchange', refreshSelection)
+  bus.off('split:selection-changed', refreshSelection)
 })
 
 // A stale selection must not survive a tab switch or a hide of the bar.

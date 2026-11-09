@@ -6,8 +6,10 @@
 //            at least one capability.
 //   SCOPE:   Parse + validate only. No filesystem I/O — callers
 //            (discovery) supply the raw JSON string.
-//   DEPENDS: serde, serde_json.
-//   LINKS:   .grace/graph/features.xml M-045;
+//   DEPENDS: serde, serde_json, already-locked url parser. Parsed recipients
+//            must be loopback, contain no userinfo and retain the base origin.
+//   LINKS:   .grace/changes/archive/C-SEC-AUDIT-FIXES;
+//            .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
 //   STATUS:  Phase-B2b initial.
 //   ROLE: RUNTIME
@@ -18,7 +20,12 @@
 //   Coverage: GRACE 4 synchronized surface for M-045.
 // END_MODULE_MAP
 
+// START_CHANGE_SUMMARY
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-005: parsed loopback recipients and no redirect/proxy escape.
+// END_CHANGE_SUMMARY
+
 use serde::{Deserialize, Serialize};
+use url::{Host, Url};
 
 // START_BLOCK_SCHEMA_VERSION
 /// The only schema version accepted in v1.
@@ -157,43 +164,43 @@ pub fn validate_manifest(m: &ExtensionManifest) -> Result<(), ManifestError> {
         });
     }
 
-    // Security: base_url must point to loopback (127.0.0.1 or localhost).
-    // A malicious extension.json with an external base_url would cause
-    // Mark to send the Bearer auth token to an attacker-controlled server
-    // during invoke_extension.
-    {
-        let base = &m.discovery.base_url;
-        // Strip scheme (http:// or https://) to isolate the host:port portion.
-        let after_scheme = base
-            .strip_prefix("http://")
-            .or_else(|| base.strip_prefix("https://"))
-            .ok_or_else(|| ManifestError {
-                message: format!(
-                    "discovery.base_url must start with http:// or https://, got '{}'",
-                    base
-                ),
-            })?;
-        // Extract host (before any port or path).
-        let host = after_scheme
-            .split(':')
-            .next()
-            .unwrap_or("")
-            .split('/')
-            .next()
-            .unwrap_or("");
-        match host {
-            "127.0.0.1" | "localhost" | "::1" | "[::1]" => {}
-            _ => {
-                return Err(ManifestError {
-                    message: format!(
-                        "discovery.base_url host must be 127.0.0.1 or localhost, got '{}'",
-                        host
-                    ),
-                });
-            }
-        }
-    }
+    validate_loopback_url(&m.discovery.base_url)?;
 
     Ok(())
 }
+
+/// Parse the actual recipient, rejecting userinfo and every non-loopback host.
+/// Url normalizes empty userinfo away, so also reject its explicit authority
+/// marker. Host and port decisions always use the parsed representation.
+pub fn validate_loopback_url(raw: &str) -> Result<Url, ManifestError> {
+    let invalid = |message: &str| ManifestError { message: message.to_string() };
+    let parsed = Url::parse(raw).map_err(|_| invalid("invalid extension URL; expected http:// or https://"))?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return Err(invalid("extension URL must start with http:// or https://"));
+    }
+    let authority = raw.split_once("://").map(|(_, rest)| {
+        rest.split(['/', '\\', '?', '#']).next().unwrap_or("")
+    }).ok_or_else(|| invalid("extension URL must contain an HTTP authority"))?;
+    if !parsed.username().is_empty() || parsed.password().is_some() || authority.contains('@') {
+        return Err(invalid("extension URL must not contain userinfo"));
+    }
+    match parsed.host() {
+        Some(Host::Domain("localhost")) => {},
+        Some(Host::Ipv4(ip)) if ip == std::net::Ipv4Addr::LOCALHOST => {},
+        Some(Host::Ipv6(ip)) if ip == std::net::Ipv6Addr::LOCALHOST => {},
+        _ => return Err(invalid("extension URL host must be 127.0.0.1 or localhost or [::1]")),
+    }
+    Ok(parsed)
+}
+
+/// Preserve the protocol's concatenation while proving it cannot change origin.
+pub fn extension_endpoint(base_url: &str, path: &str) -> Result<Url, ManifestError> {
+    let base = validate_loopback_url(base_url)?;
+    let endpoint = validate_loopback_url(&format!("{}{}", base_url.trim_end_matches('/'), path))?;
+    if endpoint.origin() != base.origin() {
+        return Err(ManifestError { message: "extension endpoint must preserve its base origin".to_string() });
+    }
+    Ok(endpoint)
+}
+
 // END_BLOCK_VALIDATION

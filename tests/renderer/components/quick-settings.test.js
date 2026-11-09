@@ -139,14 +139,25 @@ describe('quick settings shell (T-003, corner C-4)', () => {
     savePageWidth.mockReset().mockResolvedValue(true)
   })
 
-  it('mounts the chevrons-left-right button and opens the panel on click', async () => {
+  it('mounts the «Aa» text-glyph button and opens the panel on click', async () => {
     const wrapper = await mountShell()
     const btn = wrapper.find('.quick-settings-btn')
     expect(btn.exists()).toBe(true)
     expect(btn.classes()).toContain('titlebar-nav-btn')
-    // The approved glyph: the two chevron paths of boot.js section 1.
-    expect(btn.html()).toContain('m10 17-5-5 5-5')
-    expect(btn.html()).toContain('m14 7 5 5-5 5')
+    // The owner's 2026-11-09 glyph (third pass): «Aa» as a system-font
+    // text glyph — drawn svg attempts (lucide 24-grid, chrome 16-grid)
+    // failed typographic quality; chevrons-left-right read as "code
+    // view" beside the source chip.
+    expect(btn.find('.qs-aa').text()).toBe('Aa')
+    // The alien-button guard: the parent's scoped .titlebar-nav-btn
+    // styles never reach this fragment-rooted component, so the chrome
+    // (sizing + hover) must live in this component's own style block
+    // (asserted on the SFC source — style blocks are not mounted).
+    const shellSource = readFileSync(
+      resolve('src/renderer/src/components/titleBar/quickSettings/index.vue'),
+      'utf8'
+    )
+    expect(shellSource).toContain('.quick-settings-btn:hover')
 
     expect(wrapper.find('.quick-settings-popover').exists()).toBe(false)
     await btn.trigger('click')

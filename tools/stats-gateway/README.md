@@ -217,8 +217,8 @@ does not). The prebuilt template is broader than its name — it carries
 several extra permissions beyond Workers Scripts — so the minimal
 custom token is the narrow alternative. The token string is shown once at creation — miss it and
 the token must be recreated. After any deploy that authenticated broadly (the 2026-11-02 one did),
-retire the grant: `npx wrangler logout` on the deploying machine, and
-the dashboard-side revocation path if it is listed. Treat this as a
+retire the grant through the dashboard-side revocation path if it is
+listed. Treat this as a
 post-deploy checklist line, not a one-time fact.
 
 The three credential families, so they are not confused at setup:

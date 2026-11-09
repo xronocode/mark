@@ -2925,6 +2925,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "trash",
+ "url",
  "webview2-com",
  "windows-core",
  "windows-version 0.100.0",

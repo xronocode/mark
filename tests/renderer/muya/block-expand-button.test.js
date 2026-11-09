@@ -328,9 +328,10 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     expect(buttons.length).toBe(5)
     expect(buttons[0].data.dataset.tableMode).toBe('auto')
     expect(buttons[2].data.dataset.tableMode).toBe('full')
-    expect(buttons[3].sel).toContain('ag-table-toolbar-copy')
-    expect(buttons[4].sel).toContain('ag-block-expand')
-    expect(buttons[4].sel).toContain('ag-block-toolbar-expand')
+    // Owner 2026-11-07: expand sits at index 3 (beside the modes), copy at 4.
+    expect(buttons[3].sel).toContain('ag-block-expand')
+    expect(buttons[4].sel).toContain('ag-table-toolbar-copy')
+    expect(buttons[3].sel).toContain('ag-block-toolbar-expand')
     // Not nested inside the wrapper: table clicks/drag stay first-class.
     expect(findVnode(children[wrapperIndex], (v) => v.sel === 'button.ag-block-expand')).toBeNull()
   })

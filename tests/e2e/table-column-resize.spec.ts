@@ -1,7 +1,7 @@
 // FILE: tests/e2e/table-column-resize.spec.ts
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin C-39 T-002 session-only table column resize in the built renderer: dragging a header border resizes that column live and only that column, the markdown stays byte-identical with the tab still saved, widths survive re-renders (typing) and tab switches, closing+reopening the file restores auto layout, double-click resets the column, a table dragged wider than the text column scrolls in the C-39 T-001 wrapper without page overflow, and caret placement still works next to a border.
+//   PURPOSE: Pin C-39 T-002 session-only table column resize in the built renderer: dragging a header border resizes that column live and only that column, the markdown stays byte-identical with the tab still saved, widths survive re-renders (typing) and tab switches, closing+reopening the file restores auto layout, double-click resets the column, wide Auto drags fit the frame without hiding columns or causing internal/page overflow, and caret placement still works next to a border.
 //   SCOPE: muya.tableResize (src/muya/lib/tableResize/index.js) + START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js + the C-39 T-002 CSS section.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, ./fixtures/helpers (bootEditor/openFileTab), the built renderer served by `npm run preview`; runs in the chromium project and the webkit-tables project (WKWebView engine).
 //   LINKS: .grace/changes/active/C-39 T-002; .grace/verification/runtime.xml V-M-012 scenario-21; unit twin tests/renderer/muya/table-column-resize.test.js; wrapper behaviour tests/e2e/table-layout.spec.ts (C-39 T-001).
@@ -10,14 +10,20 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   TABLE_MD - 3-column table fixture with distinct column widths; the overflow case explicitly selects Fit to page after widening.
+//   TABLE_MD - 3-column fixture with distinct widths and a wide Auto-drag fitting case.
 //   PLAIN_MD - plain document used as the second tab.
 //   RESIZE_PATH - fake pathname of the table tab.
 //   PLAIN_PATH - fake pathname of the second tab.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted no-scroll Auto geometry and live body-border coordinates.
+//   PREV: v1.4.0 - 2026-11-05 owner-smoke fix pin: widening a
+//   column must carry the side walls to the table's new edges (a wall
+//   left at the old edge read as an extra accent "fixed border" inside
+//   the table; tableResize v3.0.3 repositions the walls on every
+//   width-mutating path).
+//   PREV: v1.3.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
 //   overflow case drops the double toggle dance — Auto IS the in-column
 //   wrapper-scroll mode now (the C-65 auto-expansion default and the
 //   fake-fit pin it switched between are both retired), so a table dragged
@@ -252,7 +258,7 @@ test.describe('table column resize (C-39 T-002)', () => {
     expect(state!.colgroup).toBe(false)
   })
 
-  test('a table dragged wider than the text column scrolls in the wrapper, not the page', async ({ page }) => {
+  test('a wide Auto drag fits all columns without wrapper or page scrolling', async ({ page }) => {
     await openResizeTab(page)
 
     await dragBorder(page, 0, 600)
@@ -266,13 +272,19 @@ test.describe('table column resize (C-39 T-002)', () => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
       const editorScroller = document.querySelector('.editor-component') as HTMLElement
       return {
+        tableWidth: wrapper.querySelector('table').getBoundingClientRect().width,
+        columnWidths: Array.from(wrapper.querySelectorAll('thead th')).map(cell => cell.getBoundingClientRect().width),
+        columnStyles: Array.from(wrapper.querySelectorAll('col')).map(cell => cell.getAttribute('style')),
+        wrapClass: wrapper.querySelector('table').className,
+        cellPadding: getComputedStyle(wrapper.querySelector('thead th')).padding,
+        overflowing: Array.from(wrapper.querySelectorAll('*')).map(el => ({ tag: el.tagName, cls: el.className, right: el.getBoundingClientRect().right, sw: el.scrollWidth, cw: el.clientWidth })).filter(el => el.right > wrapper.getBoundingClientRect().right + 1 || el.sw > el.cw + 8),
         scrollWidth: wrapper.scrollWidth,
         clientWidth: wrapper.clientWidth,
         pageScrollWidth: editorScroller.scrollWidth,
         pageClientWidth: editorScroller.clientWidth
       }
     })
-    expect(m.scrollWidth, 'the widened table must overflow the wrapper').toBeGreaterThan(m.clientWidth + 100)
+    expect(m.scrollWidth, `the widened table must fit without hidden columns: ${JSON.stringify(m)}`).toBeLessThanOrEqual(m.clientWidth + 8)
     expect(m.pageScrollWidth, 'the page must not gain horizontal overflow').toBeLessThanOrEqual(m.pageClientWidth + 1)
   })
 
@@ -293,5 +305,112 @@ test.describe('table column resize (C-39 T-002)', () => {
       return th ? th.textContent : null
     })
     expect(headerText, 'the caret must land in the cell left of the border').toContain('Q')
+  })
+
+  // Owner 2026-11-05: the column border must be draggable along the WHOLE
+  // table height (like the side walls), not only inside the header row.
+  test('dragging a border from the table BODY resizes the column (full-height walls)', async ({ page }) => {
+    await openResizeTab(page)
+
+    const wallsInfo = () => page.evaluate(() => {
+      const wrap = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+      const host = wrap?.querySelector('.ag-column-walls')
+      const table = wrap?.querySelector('table') as HTMLTableElement | null
+      if (!host || !table) return null
+      const wrapRect = wrap.getBoundingClientRect()
+      return {
+        count: host.children.length,
+        walls: Array.from(host.children).map((w) => ({
+          index: (w as HTMLElement).dataset.columnWallIndex,
+          left: (w as HTMLElement).style.left,
+          rectH: Math.round((w as HTMLElement).getBoundingClientRect().height)
+        })),
+        tableH: Math.round(table.getBoundingClientRect().height),
+        // First internal border (Alpha|Beta) in viewport coordinates.
+        borderX: Math.round(table.tHead.rows[0].cells[0].getBoundingClientRect().right)
+      }
+    })
+
+    // Zones appear after the first fixed-width application.
+    await dragBorder(page, 0, 40)
+    let info = await wallsInfo()
+    expect(info).not.toBeNull()
+    expect(info!.count, 'N-1 full-height walls').toBe(2)
+    // Zones cover the actual table height, beyond the header.
+    for (const w of info!.walls) {
+      expect(w.rectH).toBeGreaterThanOrEqual(info!.tableH - 2)
+    }
+
+    // Drag from the body at the Alpha|Beta border.
+    const before = await columnWidths(page)
+    const cell = page.locator("figure[data-role='TABLE'] tbody tr td").nth(0)
+    const box = await cell.boundingBox()
+    expect(box).not.toBeNull()
+    const bodyMidY = box!.y + box!.height // Second body row, below the header.
+    const tableBox = await page.locator("figure[data-role='TABLE'] table").first().boundingBox()
+    const thBox = await page.locator("figure[data-role='TABLE'] thead th").nth(0).boundingBox()
+    const borderX = thBox!.x + thBox!.width
+    const y = Math.min(tableBox!.y + tableBox!.height - 8, bodyMidY + 20)
+    await page.mouse.move(borderX, y)
+    await page.mouse.down()
+    await page.mouse.move(borderX + 60, y, { steps: 8 })
+    await page.mouse.up()
+    await page.waitForTimeout(300)
+
+    const after = await columnWidths(page)
+    expect(Math.abs(after![0] - (before![0] + 60)), 'body-level drag must resize the column').toBeLessThanOrEqual(2)
+
+    // Double-clicking the body border fits the column to its content
+    // (owner decision 2026-11-05: retain and document this behavior).
+    const widened = await columnWidths(page)
+    const resetBorder = await page.locator("figure[data-role='TABLE'] thead th").first().boundingBox()
+    await page.mouse.dblclick(resetBorder.x + resetBorder.width, y)
+    await page.waitForTimeout(300)
+    const reset = await columnWidths(page)
+    expect(reset).not.toBeNull()
+    expect(reset![0]).toBeLessThan(widened![0])
+  })
+
+  // Owner smoke 2026-11-05: widening columns left the right side-wall at
+  // the OLD table edge — an extra accent "fixed border" inside the table.
+  // The walls must ride the table's edges through every width change.
+  test('a widened table carries its side walls to the new edges', async ({ page }) => {
+    await openResizeTab(page)
+
+    const wallVsEdges = () => page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+      const table = figure?.querySelector('table') as HTMLTableElement | null
+      if (!figure || !table) return null
+      const fr = figure.getBoundingClientRect()
+      const tr = table.getBoundingClientRect()
+      const walls = Array.from(figure.querySelectorAll('.ag-table-wall')).map((w) => ({
+        side: (w as HTMLElement).dataset.tableWallSide,
+        left: parseFloat((w as HTMLElement).style.left)
+      }))
+      return {
+        tableLeft: Math.round(tr.left - fr.left),
+        tableRight: Math.round(tr.right - fr.left),
+        walls
+      }
+    })
+
+    // In Auto the walls sit on the content-sized table's edges.
+    const before = await wallVsEdges()
+    expect(before).not.toBeNull()
+    expect(before!.walls.length).toBe(2)
+
+    await dragBorder(page, 1, 120)
+    await page.waitForTimeout(300)
+
+    const after = await wallVsEdges()
+    expect(after).not.toBeNull()
+    const leftWall = after!.walls.find((w) => w.side === 'left')
+    const rightWall = after!.walls.find((w) => w.side === 'right')
+    expect(leftWall, 'the left wall must exist').toBeTruthy()
+    expect(rightWall, 'the right wall must exist').toBeTruthy()
+    expect(Math.abs(leftWall!.left - after!.tableLeft),
+      'the left wall must sit on the table edge after the drag').toBeLessThanOrEqual(2)
+    expect(Math.abs(rightWall!.left - after!.tableRight),
+      'the right wall must follow the widened table edge (not stay at the old one)').toBeLessThanOrEqual(2)
   })
 })

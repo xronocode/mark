@@ -51,21 +51,23 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     await installTauriShim(page)
   })
 
-  test('1. standard state renders no chip wrapper at all', async ({ page }) => {
+  test('1. standard state retains one icon-only Standard entry', async ({ page }) => {
     await bootEditor(page)
     await openFileTab(page, '/tmp/ctb/standard.md', DOC)
     await expect(page.locator('.ag-paragraph').first()).toBeVisible()
-    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(1)
+    await expect(chips(page).first()).toHaveAttribute('aria-label', 'Standard')
+    await expect(chips(page).first()).toHaveText('')
     await page.screenshot({ path: '.artifacts/ctb-smoke/01-standard.png' })
   })
 
-  test('2. split shows the labelled view chip, typewriter adds a compact chip', async ({ page }) => {
+  test('2. split shows the icon-only named view chip, typewriter adds a compact chip', async ({ page }) => {
     await bootEditor(page)
     await openFileTab(page, '/tmp/ctb/split.md', DOC)
 
     await invokeCommand(page, 'view.split-view')
     await expect(chips(page)).toHaveCount(1)
-    await expect(chips(page).first()).toContainText('Split')
+    await expect(chips(page).first()).toHaveAttribute('aria-label', 'Split')
     await expect(chips(page).first()).toHaveAttribute('title', /source and rendered side by side/)
 
     await invokeCommand(page, 'view.typewriter-mode')
@@ -89,7 +91,7 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
 
     await page.locator('.tabs-container li', { hasText: 'one.md' }).click()
     await expect(chips(page)).toHaveCount(2)
-    await expect(chips(page).first()).toContainText('Split')
+    await expect(chips(page).first()).toHaveAttribute('aria-label', 'Split')
   })
 
   test('4. one click on Standard leaves split view', async ({ page }) => {
@@ -101,7 +103,10 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     await openMenu(page)
     await viewRows(page).nth(0).click()
 
-    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(0)
+    // Owner 2026-11-07: the standard state keeps ONE entry chip (icon-only,
+    // owner 2026-11-08) — the cluster never vanishes.
+    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(1)
+    await expect(page.locator('[data-testid="mode-chips"] button')).toHaveCount(1)
     await expect(page.locator('.split-view.is-split')).toHaveCount(0)
     const state = await editorState(page)
     expect(state.splitView).toBe(false)
@@ -115,11 +120,11 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     await invokeCommand(page, 'view.split-view')
     await invokeCommand(page, 'view.diff-mode')
     await expect(chips(page)).toHaveCount(1)
-    await expect(chips(page).first()).toContainText('Changes')
+    await expect(chips(page).first()).toHaveAttribute('aria-label', 'Changes')
 
     await openMenu(page)
     await viewRows(page).nth(0).click()
-    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(1)
     const state = await editorState(page)
     expect(state.splitView).toBe(false)
     expect(state.diffMode).toBe(false)
@@ -135,13 +140,13 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     await invokeCommand(page, 'view.source-code-mode')
     await invokeCommand(page, 'view.typewriter-mode')
     await invokeCommand(page, 'view.focus-mode')
-    await expect(chips(page).first()).toContainText('Changes')
+    await expect(chips(page).first()).toHaveAttribute('aria-label', 'Changes')
 
     // The native menu row dispatches view.standard-mode through the same
     // mt::menu-invoked route the m009 item rides.
     await invokeCommand(page, 'view.standard-mode')
 
-    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(1)
     const state = await editorState(page)
     expect(state.splitView).toBe(false)
     expect(state.diffMode).toBe(false)
@@ -161,7 +166,7 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
 
     await expect(menu(page)).toBeVisible()
     await expect(viewRows(page).nth(0)).toHaveAttribute('aria-checked', 'true')
-    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(1)
   })
 
   test('7. a collapsed split keeps the chip and explains the narrow window', async ({ page }) => {
@@ -172,7 +177,7 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
 
     await expect(page.locator('.split-view.is-split')).toHaveCount(0)
     await expect(chips(page)).toHaveCount(1)
-    await expect(chips(page).first()).toContainText('Split')
+    await expect(chips(page).first()).toHaveAttribute('aria-label', 'Split')
     await expect(chips(page).first()).toHaveAttribute('title', narrowNote)
   })
 

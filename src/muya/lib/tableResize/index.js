@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 3.0.2
+// VERSION: 3.4.1
 // START_MODULE_CONTRACT
-//   PURPOSE: Table column resize and the honest three-mode table model (C-PAGE-WIDTH-TABLES T-007/T-008/T-009 over the C-39 session widths and the C-65 persistent identities): Auto (content-sized, GitHub model), Fit page (the frame IS the text column — columns distributed by the shared tableFit algorithm with the wrap-anywhere fallback and, only when even the minimal sizes cannot fit, an honest minimal-size horizontal-scroll degradation with the «does not fit by N px» badge) and Full width (the whole window canvas — window minus sidebar — same algorithm, same degradation). The legacy fake-fit machinery (the auto-expansion default and the pinned-frame-with-scrolling-content «fit» flag) is retired; stored fit:true entries open in the new Fit page through an idempotent schema-v2 migration. Column sizes persist as px plus ratios plus an optional explicit table width; drags write both; window/zoom/page-width changes and Fit↔Full switches re-apply the ratios to the new frame. Drag affordances: the C-39 col-resize border handles (kept for parity), live %·px chips above every column during a drag, and side-wall handles outside Fit that set an explicit table width (double-click resets; a wall drag in Full switches the table to Auto with that width); walls clamp inside the visible scroll area so they stay hittable while the table overflows.
-//   SCOPE: The width store keyed by table block key (widths + manual + ratios + tableWidth), MIN_COLUMN_WIDTH clamping, column-count reconciliation (a new column takes a content-proportional share and the ratios renormalise), the persistent identity map (document ordinal + header signature), the schema-v2 sanitize/adoption rules with the idempotent fit:true migration (R-8) and the rememberTableColumnSizes guard over the persistence bridge, the mode map (fit/full; absent = auto) over the tri-state tableFullWidthDefault option ('auto' default per owner gate №5; legacy booleans map to auto — the fake-fit expansion default is gone), the tableFit consumption funnel (cached extents per identity/structure/font revision, re-fit debounced ~200 ms + rAF on container/figure resize), the degradation badge dataset + the caption sync, DOM application (colgroup + table-layout fixed; the Full width breakout geometry), the three-button toolbar mode segment DOM, the drag interaction (column drag in Fit/Full fixes that column and re-fits the remainder — the table never leaves its frame), the side-wall drag/auto-switch/reset, the %·px chips, capture-phase pointer/dblclick/scroll guards, a normal bubble-phase toolbar action route, caption isolation, and the ResizeObserver lifecycle (destroy() detaches; a disconnected container self-cleans).
+//   PURPOSE: Table sizing and resize affordances in Auto (content-sized), Fit page (text frame) and Full width (window canvas). All modes wrap or squeeze rather than internally scroll; explicit Auto reset drops fixed widths. Fit/Full external edges are pinned, Auto alone exposes external walls, and internal borders remain draggable at full table height.
+//   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, proportional fitting and bounded manual drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
 //   DEPENDS: muya.eventCenter (capture- and bubble-phase DOM events on muya.container), window pointer events during a drag, ResizeObserver (jsdom degrades to render-time evaluation only), DOM colgroup/th measuring; ./tableFit (measureColumnExtents, planTableFit, distributeIntoFrame, applyRatiosToWidth, ratiosFromWidths); ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS + the degradation badge formatting); ../parser/render/renderBlock/renderTableToolbar (the mode segment for the live active-state swap).
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007/T-008/T-009, spec R-8/R-9/R-10/R-11, corners C-7/C-8/C-9/C-10); .grace/graph/performance.xml M-061 and runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21/scenario-66 and verification/performance.xml V-M-061; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js (schema v2) + tableLayoutRatios.js (the store-side ratio maths) + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side); store/preferences.js tableFullWidthDefault/rememberTableColumnSizes (the Tables-tab keys this module consumes).
+//   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007/T-008/T-009, spec R-8/R-9/R-10/R-11, corners C-7/C-8/C-9/C-10); .grace/graph/performance.xml M-061 and runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21/scenario-66 and verification/performance.xml V-M-061; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js (schema v2) + tableLayoutRatios.js (the store-side ratio maths) + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side); store/preferences.js tableFullWidthDefault/rememberTableColumnSizes (the Tables-tab keys this module consumes).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -19,7 +19,9 @@
 //   RESIZING_TABLE_CLASS - class on the table while a drag is in progress (no text selection).
 //   RESIZING_HANDLE_CLASS - class on the active handle while dragging (accent hairline).
 //   RESIZER_CLASS - class of the invisible header-border drag handle rendered into each th.
-//   TABLE_WALL_CLASS - class of the side-wall drag handles (left/right spans the DOM pass appends to each figure outside Fit).
+//   TABLE_WALL_CLASS - class of the Auto-only side-wall drag handles.
+//   TABLE_COLUMN_WALL_CLASS - full-height internal-border hit zone class.
+//   TABLE_COLUMN_WALLS_CLASS - transparent host for internal-border hit zones.
 //   TABLE_SIZE_CHIPS_CLASS - class of the %·px chips overlay above the columns during a drag.
 //   TABLE_MODES - the honest mode set ('auto' | 'fit' | 'full').
 //   TABLE_FULL_WIDTH_CLASS - re-export of the tableCue figure class for the renderContainerBlock vnode ("ag-table-full-width").
@@ -36,7 +38,87 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v3.0.2 - 2026-11-02 fix: the wall/border overlap split.
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
+//   PREV: v3.4.1 - 2026-11-09 owner audit: sumWidths is honest
+//   rounding (re-flooring squeezed columns to the drag minimum
+//   re-inflated a 30-column table back out of the frame); the Auto reset
+//   REBUILDS the walls (the switch into Fit/Full removed them); a window
+//   resize listener refreshes walls/zones (WebKit's observer missed
+//   them — the owner's stale outer handles).
+//   PREV: v3.4.0 - 2026-11-09 owner convention: outer edges are
+//   PINNED in Fit (text column) and Full (window canvas) — side walls
+//   exist in AUTO only, and the last header handle (the outer edge) is
+//   gated off in Fit/Full; only INTERNAL column borders stay draggable
+//   there. The one-way ghost clip (v3.3.2) keeps the retired scroll dead.
+//   PREV: v3.3.2 - 2026-11-09 owner repro: the ghost-tail clip is
+//   ONE-WAY — a mid-transition pass over the stale Full-width layout
+//   wrote the scroll back on and left the final 1px tail swipeable
+//   (the live tail meter caught tail=1 with the clip erased). The clip
+//   only ever turns on; real overflow no longer exists by mandate.
+//   PREV: v3.3.1 - 2026-11-08 owner smoke: the ghost-scrollbar tail
+//   clips up to 8px (border-collapse + fractional widths still left 1-2px
+//   that a trackpad swipe surfaced as the system overlay scrollbar) and
+//   the clip re-runs on every mode switch.
+//   PREV: v3.3.0 - 2026-11-08 owner smoke: the left side wall
+//   clamps to the WRAPPER's box (not the figure's) — the Full-width
+//   breakout extends the table left of the figure, and the old clamp
+//   pinned that wall inside the column, off the real edge. Plus, with
+//   tableFit v1.1.0, the scrollable degradation is retired everywhere:
+//   unwrappable minima squeeze proportionally (mid-token breaks), Auto
+//   folds wide content with wrap-anywhere instead of scrolling.
+//   PREV: v3.2.3 - 2026-11-07 owner smoke: the zones' host
+//   coordinates drop the wrapper-padding compensation — since the
+//   wrapper became the positioned anchor (v3.2.1) that compensation
+//   shifted the body-level zones a padding-width off the borders in
+//   Auto (the header handles stayed true).
+//   PREV: v3.2.2 - 2026-11-07 owner smoke: a NULL column-extents
+//   verdict is never cached — one mid-transition measurement failure
+//   froze every later Fit/Full plan for that table (Fit kept the
+//   auto-wide layout and scrolled the last column out of view).
+//   PREV: v3.2.1 - 2026-11-07 owner smoke (Full width): the
+//   scroll wrapper is position:relative (index.css) so the column zones'
+//   host anchors to the wrapper — the zones sat one breakout-margin right
+//   of the real borders and the host poked 2px past the viewport opening
+//   the phantom scrollbar; the zones are also recomputed right after the
+//   breakout geometry lands.
+//   PREV: v3.2.0 - 2026-11-07 owner smoke: (1) choosing Auto
+//   RESETS the table to its content width — the session's fixed widths
+//   and the explicit table width drop with the mode, and a stored Auto
+//   layout re-adopts no widths; (2) Full width always fits the canvas —
+//   stored ratios that do not fit the frame fall through to the honest
+//   wrapping plan, and the zones host is clamped to the wrapper so it
+//   cannot open the editor's phantom scrollbar; (3) with renderTableToolbar
+//   v2.3.0, Open full screen rides beside the mode segment, left of Copy.
+//   PREV: v3.1.2 - 2026-11-05 live-smoke fix: every applied
+//   width change repaints the wrapper's compositing layer — WKWebView
+//   kept STALE border-coloured table outlines painted at the old
+//   position after a persisted-layout shift (the stray line above the
+//   table; Chromium never shows it). Plus: every added layer declares
+//   background: transparent (generic span/[contenteditable] rules paint
+//   unknown elements, which turned the walls host into a solid block
+//   over the table).
+//   PREV: v3.1.1 - 2026-11-05 live-smoke fixes: (a) the column
+//   walls' stylesheet is injected by ensureColumnWalls itself — the first
+//   Fit-page layout created the spans before any wall path injected the
+//   styles, leaving them in-flow and breaking the figure; (b) the tail
+//   scrollbar clip never touches Full width (its overflow is CSS-owned
+//   visible — an inline 'hidden' clipped the breakout table); (c) the
+//   side walls clamp to the wrapper's visible box only — clamping to the
+//   narrow figure pulled them over the Full-width table.
+//   PREV: v3.1.0 - 2026-11-05 owner review: full-height column
+//   walls — every internal column border is now draggable (and
+//   double-click resettable) along the WHOLE table height, not only in
+//   the header row: one 6px span per boundary inside a host overlaying
+//   the table, positioned in the wrapper's content coordinates so it
+//   scrolls with the table. The header handles stay (hover parity); the
+//   outer edges stay the side walls' business (R-11).
+//   PREV: v3.0.3 - 2026-11-05 fix: walls follow every width
+//   change. Column drags, wall drags and the three double-click reset
+//   paths applied new widths without repositioning the side walls, so a
+//   widened table kept its right wall painted at the OLD edge — an extra
+//   "fixed border" inside the table (owner smoke 2026-11-05). Every
+//   width-mutating path now calls positionTableWalls after applying.
+//   PREV: v3.0.2 - 2026-11-02 fix: the wall/border overlap split.
 //   The right wall is centered on the table's outer edge, which is also
 //   the last column's C-39 border — the wall swallowed the border drag
 //   there (a scrolled-to-end table could no longer resize its last
@@ -124,7 +206,8 @@ import {
   planTableFit,
   distributeIntoFrame,
   applyRatiosToWidth,
-  ratiosFromWidths
+  ratiosFromWidths,
+  snapWidthsToInt
 } from './tableFit'
 
 export { TABLE_FULL_WIDTH_CLASS }
@@ -141,6 +224,10 @@ export const RESIZING_HANDLE_CLASS = 'ag-resizing'
 // T-009 affordances (the styles are injected once by ensureAffordanceStyles —
 // the muya stylesheet is outside this change's observed write scope).
 export const TABLE_WALL_CLASS = 'ag-table-wall'
+// Owner 2026-11-05: full-height column border hit zones (one per internal
+// boundary) and their host inside the scroll wrapper.
+export const TABLE_COLUMN_WALL_CLASS = 'ag-column-wall'
+export const TABLE_COLUMN_WALLS_CLASS = 'ag-column-walls'
 export const TABLE_SIZE_CHIPS_CLASS = 'ag-table-size-chips'
 export const TABLE_MODES = ['auto', 'fit', 'full']
 // R-9: re-fit is debounced ~200 ms + rAF on window resize, zoom,
@@ -153,7 +240,12 @@ export const CHIPS_FADE_MS = 700
 // Pure width maths, kept free of DOM so tests can pin the policy.
 export const clampWidth = width => Math.max(MIN_COLUMN_WIDTH, Math.round(width))
 
-export const sumWidths = widths => widths.reduce((total, w) => total + clampWidth(w), 0)
+// Owner mandate 2026-11-07 (no table scrolling) needs plans that squeeze
+// columns below the drag minimum (a 30-column table in a narrow page):
+// the SUM is honest rounding, never re-floored to MIN_COLUMN_WIDTH —
+// re-flooring here re-inflated a squeezed plan back out of the frame
+// (owner 2026-11-09: 26px columns summed as 48px ones = 1440px).
+export const sumWidths = widths => widths.reduce((total, w) => total + Math.max(1, Math.round(w)), 0)
 
 // Column added/removed (muya's editTable mutates the SAME table block, so
 // the key survives): keep stored widths for columns that still exist BY
@@ -223,7 +315,7 @@ export const sanitizePersistedEntries = (raw) => {
     const manual = widths.map((_, i) => !!rawManual[i])
     // Schema v2 mode. Full width wins a contradictory legacy pair.
     let mode
-    if (value.mode === 'fit' || value.mode === 'full') mode = value.mode
+    if (TABLE_MODES.includes(value.mode)) mode = value.mode
     else if (value.fullWidth) mode = 'full'
     else if (value.fit) mode = 'fit'
     // T-008: stored proportions (fractions of the table width) and the
@@ -270,6 +362,13 @@ export const ensureAffordanceStyles = () => {
 .ag-table-wrap-anywhere th {
   overflow-wrap: anywhere;
 }
+/* The editor's ordinary 4em cell-content minimum must yield with the
+   squeezed column. Otherwise the table box fits while its text still
+   paints and scrolls beyond the last column. */
+.ag-table-wrap-anywhere .ag-cell-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .${TABLE_WALL_CLASS} {
   position: absolute;
   top: 0;
@@ -277,6 +376,7 @@ export const ensureAffordanceStyles = () => {
   margin-left: -6px;
   cursor: ew-resize;
   z-index: 3;
+  background: transparent;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -292,6 +392,45 @@ export const ensureAffordanceStyles = () => {
 .${TABLE_WALL_CLASS}:hover::before,
 .${TABLE_WALL_CLASS}.ag-resizing::before {
   background: var(--chromeAccent, var(--themeColor));
+}
+.${TABLE_COLUMN_WALLS_CLASS} {
+  position: absolute;
+  pointer-events: none;
+  /* The editor's generic span/[contenteditable] rules paint backgrounds on
+     unknown elements — every layer we add must opt out explicitly, or it
+     renders as a solid block over the table (owner live smoke 2026-11-05). */
+  background: transparent;
+}
+.${TABLE_COLUMN_WALL_CLASS} {
+  position: absolute;
+  width: 6px;
+  margin-left: -3px;
+  cursor: col-resize;
+  z-index: 2;
+  pointer-events: auto;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.${TABLE_COLUMN_WALL_CLASS}::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2.5px;
+  width: 1px;
+  background: transparent;
+}
+.${TABLE_COLUMN_WALL_CLASS}:hover::before,
+.${TABLE_COLUMN_WALL_CLASS}.ag-resizing::before {
+  background: var(--chromeAccent, var(--themeColor));
+}
+/* Owner convention 2026-11-09: the LAST header handle IS the table's
+   outer edge — in Fit/Full the outer edges are pinned to the page/window
+   and must not invite a drag. Auto keeps it (content-sized table). */
+figure.ag-table-fit div.ag-table-scroll table th:last-child .ag-column-resizer,
+figure.ag-table-full-width div.ag-table-scroll table th:last-child .ag-column-resizer {
+  display: none;
 }
 .${TABLE_SIZE_CHIPS_CLASS} {
   position: absolute;
@@ -327,6 +466,29 @@ export const ensureAffordanceStyles = () => {
 class TableResize {
   constructor(muya) {
     this.muya = muya
+    this.destroyed = false
+    this.layoutGeneration = 0
+    this.adoptionFrame = 0
+    this.repaintFrames = new Map()
+    // WebKit's container ResizeObserver does not always re-run the wall/
+    // zone geometry on a WINDOW resize (Chromium does); the owner saw the
+    // outer handles sit stale after resizing (2026-11-09). A plain window
+    // resize listener refreshes them directly.
+    this.handleWindowResize = () => {
+      if (!this.muya.container || !this.muya.container.querySelectorAll) return
+      const tables = this.muya.container.querySelectorAll('table.ag-paragraph')
+      for (const table of tables) {
+        if (!table.id) continue
+        const figure = table.closest('figure')
+        if (!figure) continue
+        this.positionTableWalls(figure, table)
+        this.ensureColumnWalls(table)
+        this.clipTailScrollbar(table)
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this.handleWindowResize)
+    }
     // tableKey -> { widths: number[], manual: boolean[], ratios?: number[],
     // tableWidth?: number }. `manual` marks the columns the USER dragged;
     // `ratios` are the stored proportions (T-008) and `tableWidth` the
@@ -390,6 +552,18 @@ class TableResize {
   // detached tree alive, so destroy() must be called by muya teardown or
   // the first callback after the container leaves the DOM self-cleans.
   destroy() {
+    this.destroyed = true
+    this.layoutGeneration++
+    if (this.adoptionFrame) cancelAnimationFrame(this.adoptionFrame)
+    this.adoptionFrame = 0
+    for (const [table, paint] of this.repaintFrames) {
+      cancelAnimationFrame(paint.frame)
+      if (table.style.transform === paint.applied) table.style.transform = paint.previous
+    }
+    this.repaintFrames.clear()
+    if (typeof window !== 'undefined' && this.handleWindowResize) {
+      window.removeEventListener('resize', this.handleWindowResize)
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
       this.resizeObserver = null
@@ -532,7 +706,7 @@ class TableResize {
   }
 
   // The effective mode of one table: the explicit session choice wins,
-  // then the preference default. Auto needs no map entry.
+  // then the preference default. Explicit Auto overrides a non-Auto default.
   modeOf(key) {
     return this.modes.get(key) || this.defaultMode()
   }
@@ -560,12 +734,18 @@ class TableResize {
       const padding = getComputedStyle(wrapper)
       frame -= (parseFloat(padding.paddingLeft) || 0) + (parseFloat(padding.paddingRight) || 0)
     }
+    // A border-collapse table OCCUPIES one pixel beyond its style width —
+    // the final column's collapsed border paints outside the fixed-layout
+    // box, so a frame-filling table always showed a 1px overflow and the
+    // phantom mini-scrollbar (owner smoke 2026-11-05). Reserve it here.
+    frame -= 1
     return frame
   }
 
   // Column extents with the F7 cache: invalidated by identity, structure
-  // (rows × columns) or the measured font size (zoom). Null extents are
-  // cached too — an unmeasurable table must not re-measure per tick.
+  // (rows × columns) or the measured font size (zoom). A null verdict is never
+  // cached (owner 2026-11-07) — a mid-transition null froze every later
+  // plan; the next call re-measures.
   extentsFor(table) {
     if (!table || !table.id) return null
     const row = table.tHead && table.tHead.rows[0]
@@ -578,7 +758,13 @@ class TableResize {
     const cached = this.fitCache.get(table.id)
     if (cached && cached.pid === pid && cached.shape === shape) return cached.extents
     const extents = measureColumnExtents(table)
-    this.fitCache.set(table.id, { pid, shape, extents })
+    // A NULL verdict is NOT cached: nulls come from moments the layout
+    // could not be measured yet (a mode switch mid-transition, a hidden
+    // pane) — caching one froze every later fit/full plan for that table
+    // (owner 2026-11-07: switching to Fit kept the auto-wide table and
+    // pushed the last column into the wrapper scroll). The next call
+    // re-measures; successful measurements still cache normally.
+    if (extents) this.fitCache.set(table.id, { pid, shape, extents })
     return extents
   }
 
@@ -594,7 +780,14 @@ class TableResize {
         entry.ratios.length === (table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells.length : 0)) {
       const minima = this.degradeMinima(extents) || []
       const widths = applyRatiosToWidth(entry.ratios, frame, minima)
-      if (widths) return { kind: 'ratios', widths, frame }
+      // Owner 2026-11-07: stored ratios may NOT fit the frame (the ratio
+      // floors are the plain minima; a narrow canvas leaves their sum
+      // above it). A table that overflows its mode's frame scrolls the
+      // page — Full width must fall through to the honest plan, which
+      // wraps anywhere and only then degrades.
+      if (widths && sumWidths(widths) <= frame + 1) {
+        return { kind: 'ratios', widths, frame }
+      }
     }
     if (!extents) return null
     const plan = planTableFit(extents, frame)
@@ -643,8 +836,59 @@ class TableResize {
     for (let i = 0; i < entry.widths.length; i++) {
       colgroup.children[i].style.width = `${entry.widths[i]}px`
     }
-    table.classList.add(TABLE_FIXED_CLASS)
+    table.classList.add(TABLE_FIXED_CLASS, 'ag-table-wrap-anywhere')
     table.style.width = `${sumWidths(entry.widths)}px`
+    this.clipTailScrollbar(table)
+    this.ensureColumnWalls(table)
+    this.repaintTableLayer(table)
+  }
+
+  // WKWebView keeps STALE TABLE BORDERS painted when the colgroup widths
+  // move a fixed-layout table after its first paint (the owner's stray
+  // horizontal line above the table — border-coloured ghosts of the old
+  // position; Chromium never shows them). Toggling a compositing layer
+  // repaints the table cleanly.
+  repaintTableLayer(table) {
+    if (!table || typeof table.getBoundingClientRect !== 'function') return
+    const tr = table.getBoundingClientRect()
+    if (!(tr.width > 0)) return
+    // Preserve a caller's transform across repeated repaint requests and
+    // teardown. An obsolete frame must not clear a newer layer or style.
+    if (this.destroyed) return
+    const pending = this.repaintFrames.get(table)
+    if (pending) cancelAnimationFrame(pending.frame)
+    const previous = pending && table.style.transform === pending.applied
+      ? pending.previous
+      : table.style.transform
+    const applied = previous ? `${previous} translateZ(0)` : 'translateZ(0)'
+    table.style.transform = applied
+    const paint = { previous, applied, frame: 0 }
+    paint.frame = requestAnimationFrame(() => {
+      if (this.repaintFrames.get(table) !== paint) return
+      if (table.style.transform === applied) table.style.transform = previous
+      this.repaintFrames.delete(table)
+    })
+    this.repaintFrames.set(table, paint)
+  }
+
+  // Collapsed-border/fractional geometry can leave a small empty tail.
+  // The accepted ghost-tail clip is one-way; fitting and drag planning
+  // must keep real cell content inside the frame before clipping it.
+  clipTailScrollbar(table) {
+    const wrapper = table.closest ? table.closest('div.ag-table-scroll') : null
+    if (!wrapper) return
+    // Full width owns its overflow in CSS (visible — the editor scrolls);
+    // an inline 'hidden' here CLIPPED the breakout table at the wrapper's
+    // edge (owner smoke 2026-11-05: "cut by invisible page borders").
+    // Owner 2026-11-08: a tail up to 8px is ghost geometry (the collapsed
+    // border + fractional widths), never real content — a trackpad swipe
+    // still surfaced the system overlay scrollbar over it. The clip is
+    // ONE-WAY (owner 2026-11-09): a mid-transition clip pass measured the
+    // stale Full-width layout (tail > 8), wrote '' back and left the final
+    // 1px tail scrollable. Real overflow no longer exists by mandate, so
+    // the clip only ever turns ON.
+    const tail = wrapper.scrollWidth - wrapper.clientWidth
+    if (tail <= 8) wrapper.style.overflowX = 'hidden'
   }
 
   stripWidths(table) {
@@ -652,6 +896,8 @@ class TableResize {
     if (colgroup) colgroup.remove()
     table.classList.remove(TABLE_FIXED_CLASS)
     table.style.width = ''
+    // The ghost-tail clip stays (one-way — see clipTailScrollbar).
+    this.ensureColumnWalls(table)
   }
 
   // ---- Persistent identities + adoption (C-65 R-1, T-007 migration) ----
@@ -700,7 +946,11 @@ class TableResize {
       const stored = adoptPersisted && this.persisted ? this.persisted[pid] : null
       if (stored) {
         const columnCount = row.cells.length
-        if (!this.widths.has(key) &&
+        // Owner 2026-11-07: a stored Auto layout carries NO widths — Auto
+        // IS the content-sized state; re-adopting stale widths resurrected
+        // the fixed layout the owner just reset away.
+        const storedMode = stored.mode || null
+        if (storedMode !== 'auto' && !this.widths.has(key) &&
             Array.isArray(stored.widths) && stored.widths.length === columnCount) {
           const entry = { widths: stored.widths.slice(), manual: stored.manual.slice() }
           if (stored.ratios) entry.ratios = stored.ratios.slice()
@@ -740,6 +990,14 @@ class TableResize {
   // back — adoption is not a user action. With «Remember column sizes»
   // off, stored entries are not adopted (nothing is remembered).
   applyPersistedLayouts(rawEntries) {
+    const generation = ++this.layoutGeneration
+    if (this.adoptionFrame) cancelAnimationFrame(this.adoptionFrame)
+    this.adoptionFrame = 0
+    if (this.destroyed) return
+    const container = this.muya.container
+    const tables = Array.from(container.querySelectorAll('table.ag-paragraph'))
+    const isCurrent = () => !this.destroyed && generation === this.layoutGeneration &&
+      this.muya.container === container && tables.every(table => container.contains(table))
     if (!this.rememberingSizes()) {
       this.persisted = null
       this.syncIdentities({ adoptPersisted: false })
@@ -750,11 +1008,30 @@ class TableResize {
       return
     }
     this.persisted = sanitizePersistedEntries(rawEntries)
-    const adopted = this.syncIdentities()
-    this.refitAll({ immediate: true })
-    console.debug(
-      `[Muya][tableResize][BLOCK_TABLE_LAYOUTS_APPLIED persisted=${this.persisted ? Object.keys(this.persisted).length : 0} adopted=${adopted}]`
-    )
+    const adopted = this.syncIdentities({ adoptPersisted: false })
+    // Adoption happens AFTER the browser has painted the document once
+    // (double rAF): applying stored widths before the first paint left
+    // WKWebView painting the table's collapsed borders at BOTH the old
+    // and the new position — the owner's stray line above the table.
+    const apply = () => {
+      if (!isCurrent()) return
+      this.adoptionFrame = 0
+      this.syncIdentities()
+      this.refitAll({ immediate: true })
+      this.refreshTableSurfaces()
+      console.debug(
+        `[Muya][tableResize][BLOCK_TABLE_LAYOUTS_APPLIED persisted=${this.persisted ? Object.keys(this.persisted).length : 0} adopted=${adopted}]`
+      )
+    }
+    if (typeof requestAnimationFrame === 'function') {
+      this.adoptionFrame = requestAnimationFrame(() => {
+        if (!isCurrent()) return
+        this.adoptionFrame = requestAnimationFrame(apply)
+      })
+    } else {
+      apply()
+    }
+    return
   }
 
   // Serialize the tables that carry a user layout (dragged columns, ratios,
@@ -774,7 +1051,7 @@ class TableResize {
         widths: entry ? entry.widths.slice() : [],
         manual: entry ? entry.manual.slice() : []
       }
-      if (mode === 'fit' || mode === 'full') serialized.mode = mode
+      if (TABLE_MODES.includes(mode)) serialized.mode = mode
       if (ratios) serialized.ratios = entry.ratios.slice()
       if (tableWidth) serialized.tableWidth = tableWidth
       entries[pid] = serialized
@@ -810,6 +1087,10 @@ class TableResize {
     if (!figure) return
     const on = mode === 'full'
     figure.classList.toggle(TABLE_FULL_WIDTH_CLASS, on)
+    // Mode marker for CSS affordance gates (the LAST header handle is the
+    // table's outer edge — inactive in Fit/Full by the owner convention
+    // 2026-11-09: outer edges are pinned to the page/window there).
+    figure.classList.toggle('ag-table-fit', mode === 'fit')
     const wrapper = figure.querySelector('div.ag-table-scroll')
     if (wrapper) {
       if (on) {
@@ -820,6 +1101,10 @@ class TableResize {
       }
     }
     this.updateToolbarModeDom(figure, mode)
+    if (wrapper) {
+      const tbl = wrapper.querySelector('table')
+      if (tbl) this.clipTailScrollbar(tbl)
+    }
     syncTableCue(figure, this.muya.options && this.muya.options.t)
   }
 
@@ -849,8 +1134,15 @@ class TableResize {
     const available = container.clientWidth || containerRect.width
     const target = FULL_WIDTH_GUTTER_PX
     wrapper.style.width = `${Math.max(0, available - FULL_WIDTH_GUTTER_PX * 2)}px`
-    if (Math.round(offset) === target) return
-    wrapper.style.marginLeft = `${currentMargin - offset + target}px`
+    if (Math.round(offset) !== target) {
+      wrapper.style.marginLeft = `${currentMargin - offset + target}px`
+    }
+    // The breakout margin moves the wrapper's padding box — the column
+    // zones (absolute children of the wrapper) must be recomputed AFTER
+    // it lands, or they sit one margin-width right of the real borders
+    // (owner 2026-11-07: the blue hover line off the column boundary).
+    const tbl = wrapper.querySelector('table')
+    if (tbl) this.ensureColumnWalls(tbl)
   }
 
   // Sync the three-button mode segment's active states (the vnode renders
@@ -878,9 +1170,22 @@ class TableResize {
     if (mode === 'auto') {
       this.degrade.delete(key)
       delete figure.dataset.degradeOverflow
+      // Natural Auto tables keep their content width while it fits. A
+      // wide natural/manual layout needs an actual fitting plan: merely
+      // hiding overflow or allowing word breaks leaves max-content tables
+      // wide and conceals their final columns.
+      if (!entry && table.querySelector('colgroup')) this.stripWidths(table)
       table.classList.remove('ag-table-wrap-anywhere')
+      const frame = this.frameWidthFor(figure, 'fit')
       if (entry && entry.tableWidth) {
         this.applyExplicitTableWidth(key, figure, table, entry)
+      } else if (frame > 0 && table.getBoundingClientRect().width > frame + 1) {
+        const plan = planTableFit(this.extentsFor(table), frame)
+        if (plan) {
+          table.classList.add('ag-table-wrap-anywhere')
+          if (entry) entry.widths = plan.widths
+          this.applyWidths(table, entry || { widths: plan.widths })
+        }
       }
       this.positionTableWalls(figure, table)
       // The badge fact was deleted after applyModeDom's caption sync —
@@ -896,18 +1201,14 @@ class TableResize {
       this.positionTableWalls(figure, table)
       return
     }
-    const overflowing = plan.kind === 'scroll'
     // The wrap plan assumes the cells may break anywhere (R-9) — the body
     // cells already do via the shipped CSS; the class lets the header join
     // so a wrap-fittable table never scrolls over a stubborn header token.
+    // Owner 2026-11-07: every plan fits — the scrollable degradation is
+    // retired and the degradeOverflow badge never arms.
     table.classList.toggle('ag-table-wrap-anywhere', plan.kind === 'wrap')
-    if (overflowing) {
-      this.degrade.set(key, plan.overflowPx)
-      figure.dataset.degradeOverflow = String(Math.max(1, Math.round(plan.overflowPx)))
-    } else {
-      this.degrade.delete(key)
-      delete figure.dataset.degradeOverflow
-    }
+    this.degrade.delete(key)
+    delete figure.dataset.degradeOverflow
     const next = {
       widths: plan.widths,
       // Fitted widths are the algorithm's, not the user's drag — the
@@ -933,26 +1234,28 @@ class TableResize {
     const columnCount = entry.widths.length
     const minima = this.degradeMinima(this.fitCache.get(table.id)?.extents || null) ||
       new Array(columnCount).fill(MIN_COLUMN_WIDTH)
+    const frame = this.frameWidthFor(figure, 'fit')
+    const target = frame > 0 ? Math.min(entry.tableWidth, frame) : entry.tableWidth
     let widths = null
     if (Array.isArray(entry.ratios) && entry.ratios.length === columnCount) {
-      widths = applyRatiosToWidth(entry.ratios, entry.tableWidth, minima)
+      widths = applyRatiosToWidth(entry.ratios, target, minima)
+      if (widths && sumWidths(widths) > target) widths = null
     }
     if (!widths) {
       const extents = this.extentsFor(table)
       if (extents) {
-        const plan = planTableFit(extents, entry.tableWidth)
+        const plan = planTableFit(extents, target)
         widths = plan ? plan.widths : null
       }
     }
     if (!widths) {
-      // No measurable extents (jsdom): scale the current widths to the
-      // explicit width so the wall still does something honest.
       const current = sumWidths(entry.widths)
       widths = current > 0
-        ? entry.widths.map(w => Math.max(MIN_COLUMN_WIDTH, Math.round(w * entry.tableWidth / current)))
+        ? snapWidthsToInt(entry.widths.map(width => width * target / current), target)
         : entry.widths.slice()
     }
     entry.widths = widths
+    table.classList.add('ag-table-wrap-anywhere')
     this.applyWidths(table, entry)
   }
 
@@ -1025,7 +1328,8 @@ class TableResize {
       // The walls ride every surface pass: a plain Auto document never
       // enters the apply funnel (nothing to fit), but the handles must
       // exist and stay clamped to the visible area anyway.
-      if (table && mode !== 'fit') this.positionTableWalls(figure, table)
+      if (table) this.positionTableWalls(figure, table)
+      if (table) this.ensureColumnWalls(table)
       syncTableCue(figure, t)
     }
   }
@@ -1065,7 +1369,6 @@ class TableResize {
       const mode = this.modeOf(key)
       // Auto tables without an explicit width re-flow natively; only the
       // framed modes (and the wall width) need the re-fit.
-      if (mode === 'auto' && !(this.widths.get(key) || {}).tableWidth) continue
       this.applyTableLayout(key, figure, table)
     }
     // The surfaces keep the walls clamped to the visible area on every
@@ -1132,9 +1435,31 @@ class TableResize {
     const table = figure.querySelector('table')
     const key = table && table.id
     if (!key) return
-    if (mode === 'auto') this.modes.delete(key)
-    else this.modes.set(key, mode)
-    this.applyTableLayout(key, figure, table)
+    if (mode === 'auto') {
+      if (this.defaultMode() === 'auto') this.modes.delete(key)
+      else this.modes.set(key, 'auto')
+      // Owner 2026-11-07: choosing Auto RETURNS the table to its content
+      // width — the session's fixed column widths (and any explicit table
+      // width) are dropped with the mode, not silently kept (the old
+      // behaviour needed a double-click on every border to truly reset).
+      this.resetTable(key)
+      this.stripWidths(table)
+      const changedFigure = table.closest ? table.closest('figure') : null
+      if (changedFigure) {
+        delete changedFigure.dataset.degradeOverflow
+        this.applyModeDom(changedFigure, 'auto')
+      }
+      table.classList.remove('ag-table-wrap-anywhere')
+      this.applyTableLayout(key, figure, table)
+      // Auto is the walls' one home (owner convention) — the reset must
+      // REBUILD them: the mode switch removed them in Fit/Full.
+      this.positionTableWalls(figure, table)
+      this.ensureColumnWalls(table)
+      syncTableCue(figure, this.muya.options && this.muya.options.t)
+    } else {
+      this.modes.set(key, mode)
+      this.applyTableLayout(key, figure, table)
+    }
     console.debug(
       `[Muya][tableResize][BLOCK_TABLE_MODE table=${key} mode=${this.modeOf(key)}]`
     )
@@ -1174,12 +1499,104 @@ class TableResize {
 
   // ---- T-009: side walls ----
 
+  // Owner 2026-11-05: full-height column walls — the column border must be
+  // draggable along the WHOLE table height (like the side walls), not only
+  // inside the header row. One 6px span per INTERNAL column boundary,
+  // positioned in the wrapper's CONTENT coordinates (it scrolls with the
+  // table; no scroll-time recompute), carrying the same drag and
+  // double-click reset the header handle has. The outer edges stay the
+  // side walls' business (R-11).
+  findColumnWall(target) {
+    if (!target || !target.closest) return null
+    const wall = target.closest(`.${TABLE_COLUMN_WALL_CLASS}`)
+    return wall || null
+  }
+
+  ensureColumnWalls(table) {
+    if (!table || !this.enabled()) return
+    // The walls' styles (absolute host, 6px zones) live in the injected
+    // affordance stylesheet — without this call the first Fit-page layout
+    // created the spans BEFORE any wall path injected the styles, leaving
+    // them in-flow and wrecking the figure layout (owner smoke 2026-11-05).
+    ensureAffordanceStyles()
+    const wrapper = table.closest('div.ag-table-scroll')
+    if (!wrapper || typeof table.getBoundingClientRect !== 'function') return
+    const row = table.tHead && table.tHead.rows[0]
+    if (!row || row.cells.length < 2) return
+    const wrapRect = wrapper.getBoundingClientRect()
+    const scrollX = wrapper.scrollLeft
+    const tableRect = table.getBoundingClientRect()
+    if (!(tableRect.width > 0) || !(tableRect.height > 0)) return
+    // The host overlays the TABLE itself: its left/top is the table's
+    // origin in the WRAPPER's box (the wrapper is position:relative, so
+    // absolutes anchor to it; its padding does NOT shift that origin —
+    // subtracting it put the zones a padding-width LEFT of the borders in
+    // Auto, owner 2026-11-07). Every wall inside is placed RELATIVE to the
+    // same origin, so the collapse ghost pixel cancels in one pass.
+    const hostLeft = tableRect.left - wrapRect.left + scrollX
+    const hostTop = tableRect.top - wrapRect.top + wrapper.scrollTop
+    let host = wrapper.querySelector(`.${TABLE_COLUMN_WALLS_CLASS}`)
+    if (!host) {
+      host = document.createElement('div')
+      host.className = TABLE_COLUMN_WALLS_CLASS
+      host.setAttribute('contenteditable', 'false')
+      host.setAttribute('aria-hidden', 'true')
+      wrapper.appendChild(host)
+    }
+    host.style.left = `${Math.round(hostLeft)}px`
+    host.style.top = `${Math.round(hostTop)}px`
+    // Never wider than the wrapper's visible box: a host sized from a
+    // stale table rect poked past the container in Full width and opened
+    // the editor's phantom horizontal scrollbar (owner 2026-11-07). The
+    // zones inside sit on the table's own borders, so the clamp is free.
+    const hostWidth = Math.min(tableRect.width, (wrapper.clientWidth || tableRect.width) - hostLeft)
+    host.style.width = `${Math.max(0, Math.round(hostWidth))}px`
+    host.style.height = `${Math.round(tableRect.height)}px`
+    let index = 0
+    for (let i = 0; i < row.cells.length - 1; i++) {
+      const cell = row.cells[i]
+      const rect = cell.getBoundingClientRect()
+      if (!(rect.width > 0)) continue
+      const left = Math.round(rect.right - tableRect.left)
+      let wall = host.children[index]
+      if (!wall) {
+        wall = document.createElement('span')
+        wall.className = TABLE_COLUMN_WALL_CLASS
+        wall.setAttribute('contenteditable', 'false')
+        wall.setAttribute('aria-hidden', 'true')
+        host.appendChild(wall)
+      }
+      ;(wall).dataset.columnWallIndex = String(i)
+      ;(wall).style.left = `${left}px`
+      ;(wall).style.top = '0'
+      ;(wall).style.height = '100%'
+      // The living documentation for the affordance (owner 2026-11-05):
+      // the drag AND the Excel-style double-click fit live in the tooltip.
+      const hint = this.muya.options && this.muya.options.t
+        ? this.muya.options.t('tableToolbar.columnWallHint')
+        : null
+      if (hint && wall.getAttribute('title') !== hint) wall.setAttribute('title', hint)
+      index++
+    }
+    while (host.children.length > index) host.removeChild(host.lastChild)
+  }
+
+  removeColumnWalls(table) {
+    const wrapper = table && table.closest ? table.closest('div.ag-table-scroll') : null
+    const host = wrapper && wrapper.querySelector(`.${TABLE_COLUMN_WALLS_CLASS}`)
+    if (host) host.remove()
+  }
+
   // Ensure + position the wall handles on one figure. Walls are active
   // OUTSIDE Fit only; both walls clamp inside the wrapper's visible box
   // so a table that overflows keeps them hittable (R-11).
+  // Owner convention 2026-11-09: side walls exist in AUTO only — in Fit
+  // the outer edges are pinned to the text column, in Full to the window
+  // canvas; dragging a pinned edge is meaningless, and the walls' resize
+  // behaviour there was the "strange outer borders" the owner saw.
   positionTableWalls(figure, table) {
     if (!figure || !table) return
-    if (this.modeOf(table.id || '') === 'fit' || !this.enabled()) {
+    if (this.modeOf(table.id || '') !== 'auto' || !this.enabled()) {
       this.removeTableWalls(figure)
       return
     }
@@ -1191,8 +1608,16 @@ class TableResize {
     const wrapperRect = wrapper.getBoundingClientRect()
     const tableRect = table.getBoundingClientRect()
     if (!(figureRect.width > 0) || !(wrapperRect.width > 0) || !(tableRect.width > 0)) return
-    const visibleLeft = Math.max(wrapperRect.left, figureRect.left)
-    const visibleRight = Math.min(wrapperRect.left + wrapper.clientWidth, figureRect.right)
+    // Clamp to the WRAPPER's box only — the Full-width breakout extends
+    // the table LEFT of the figure, and clamping to figureRect.left there
+    // pinned the left wall inside the column, off the table's edge
+    // (owner 2026-11-08: the wall read broken after a window resize).
+    const visibleLeft = wrapperRect.left
+    // Clamp to the WRAPPER's visible box only. In Full width the figure
+    // stays column-narrow while the wrapper breaks out — clamping to
+    // figure.right pulled both walls INSIDE the text column where they
+    // sat painted over the wide table (owner smoke 2026-11-05).
+    const visibleRight = wrapperRect.left + wrapper.clientWidth
     const clampVisible = (x) => Math.min(Math.max(x, visibleLeft), visibleRight)
     const leftX = clampVisible(tableRect.left) - figureRect.left
     const rightX = clampVisible(tableRect.right) - figureRect.left
@@ -1294,7 +1719,12 @@ class TableResize {
       return
     }
     const handle = overlappedResizer || this.findHandle(event.target)
-    if (!handle) return
+    // Owner 2026-11-05: a full-height column wall (the border hit zone
+    // outside the header) starts the SAME column drag the header handle
+    // does — the wall is a child of the wrapper, so the table/th lookup
+    // rides the wall's data attribute instead.
+    const columnWall = this.findColumnWall(event.target)
+    if (!handle && !columnWall) return
     if (event.button !== undefined && event.button !== 0) return
     if (!this.enabled()) {
       event.preventDefault()
@@ -1303,12 +1733,15 @@ class TableResize {
     }
     event.preventDefault()
     event.stopPropagation()
-    const th = handle.closest('th,td')
-    const table = handle.closest('table')
-    if (!th || !table || !table.id) return
+    const table = columnWall
+      ? columnWall.closest('div.ag-table-scroll').querySelector('table')
+      : handle.closest('table')
+    if (!table || !table.id) return
     const key = table.id
-    const columnIndex = th.cellIndex
-    if (columnIndex < 0) return
+    const columnIndex = columnWall
+      ? Number(columnWall.dataset.columnWallIndex)
+      : handle.closest('th,td').cellIndex
+    if (!(columnIndex >= 0)) return
     let entry = this.widths.get(key)
     const createdThisDrag = !entry
     if (!entry) {
@@ -1331,15 +1764,16 @@ class TableResize {
       createdThisDrag,
       startX: event.clientX,
       startWidth: entry.widths[columnIndex],
-      handle
+      handle: columnWall || handle
     }
-    handle.classList.add(RESIZING_HANDLE_CLASS)
+    const grip = columnWall || handle
+    grip.classList.add(RESIZING_HANDLE_CLASS)
     table.classList.add(RESIZING_TABLE_CLASS)
     this.ensureSizeChips(key, entry.widths.length)
     this.updateSizeChips()
-    if (typeof handle.setPointerCapture === 'function' && event.pointerId !== undefined) {
+    if (typeof grip.setPointerCapture === 'function' && event.pointerId !== undefined) {
       try {
-        handle.setPointerCapture(event.pointerId)
+        grip.setPointerCapture(event.pointerId)
       } catch (err) {
         // Capture is an optimisation; the window listeners below keep
         // receiving the gesture either way.
@@ -1359,8 +1793,8 @@ class TableResize {
       if (next === drag.startWidth) return
       drag.nextWidth = next
       const entry = drag.entry
-      // R-11: a wall drag in Full width switches the table to Auto with
-      // that width; in Auto it just sets the explicit width.
+      // Walls live in Auto only (owner convention 2026-11-09); this path
+      // sets the explicit table width.
       if (this.modes.get(drag.key) === 'full') {
         this.modes.set(drag.key, 'auto')
         this.applyModeDom(drag.figure, 'auto')
@@ -1374,6 +1808,10 @@ class TableResize {
         entry.tableWidth = next
       }
       this.applyExplicitTableWidth(drag.key, drag.figure, drag.table, drag.entry)
+      // A wall drag moves BOTH edges (the far wall follows the new width);
+      // without this the far wall stays painted at the old edge — the
+      // "extra fixed border" owner smoke 2026-11-05.
+      this.positionTableWalls(drag.figure, drag.table)
       this.updateWallChip(drag)
       return
     }
@@ -1385,8 +1823,9 @@ class TableResize {
     // the table never leaves its frame. Auto keeps the C-39 freeze
     // behaviour (the table is content-sized).
     const mode = this.modeOf(drag0.key)
-    if (mode !== 'auto') {
-      const frame = this.frameWidthFor(drag0.figure, mode)
+    const dragFrame = this.frameWidthFor(drag0.figure, mode === 'auto' ? 'fit' : mode)
+    if (mode !== 'auto' || sumWidths(drag0.entry.widths) > dragFrame) {
+      const frame = dragFrame
       if (Number.isFinite(frame) && frame > 0) {
         const extents = this.extentsFor(drag0.table)
         const minima = this.degradeMinima(extents)
@@ -1394,45 +1833,42 @@ class TableResize {
           ? extents.maxContent
           : null
         this.refitRemainder(drag0.entry, drag0.columnIndex, frame, minima, maxima)
+        drag0.table.classList.add('ag-table-wrap-anywhere')
       }
     }
     // T-008: the drag writes both — px and the stored proportions.
     const ratios = ratiosFromWidths(drag0.entry.widths)
     if (ratios) drag0.entry.ratios = ratios
     this.applyWidths(drag0.table, drag0.entry)
+    // A column drag that changes the table width must carry the walls to
+    // the new edges — a wall left at the old edge reads as an extra fixed
+    // table border (owner smoke 2026-11-05).
+    if (drag0.figure) this.positionTableWalls(drag0.figure, drag0.table)
     this.updateSizeChips()
   }
 
-  // Re-distribute every column but `fixedIndex` into frame − fixedWidth,
-  // honouring the measured minima/maxima (R-9). Under degradation pressure
-  // the remainder keeps its minimal sizes.
+  // A manual drag fixes one column and re-fits the rest. Content minima
+  // may yield under pressure: retaining them would hide real cells behind
+  // the ghost-tail clip even though the scrollbar is absent.
   refitRemainder(entry, fixedIndex, frame, minima, maxima) {
-    const count = entry.widths.length
-    const fixed = entry.widths[fixedIndex]
-    const others = []
-    for (let i = 0; i < count; i++) {
-      if (i !== fixedIndex) others.push(i)
+    const others = entry.widths.map((_, i) => i).filter(i => i !== fixedIndex)
+    if (!others.length) {
+      entry.widths[fixedIndex] = Math.max(1, Math.floor(frame))
+      return
     }
-    const free = frame - fixed
-    const othersMin = minima
-      ? others.map(i => minima[i])
-      : others.map(() => MIN_COLUMN_WIDTH)
-    const othersMax = maxima
-      ? others.map(i => Math.max(maxima[i], othersMin[others.indexOf(i)]))
-      : others.map(i => Math.max(entry.widths[i], othersMin[others.indexOf(i)]))
-    const need = othersMin.reduce((total, w) => total + w, 0)
-    let distributed
-    if (free >= need) {
-      distributed = distributeIntoFrame(othersMin, othersMax, free)
-    } else {
-      // Degradation: minimal sizes (the table then overflows by the
-      // reported px — the badge states it).
-      distributed = othersMin
-    }
+    const remainderFloor = Math.min(MIN_COLUMN_WIDTH, Math.floor(frame / entry.widths.length))
+    const fixed = Math.min(entry.widths[fixedIndex], Math.max(1, Math.floor(frame) - others.length * remainderFloor))
+    entry.widths[fixedIndex] = fixed
+    const free = Math.max(others.length, Math.floor(frame) - fixed)
+    const othersMin = others.map(i => Math.max(1, minima ? minima[i] : MIN_COLUMN_WIDTH))
+    const othersMax = others.map((i, n) => Math.max(othersMin[n], maxima ? maxima[i] : entry.widths[i]))
+    const need = othersMin.reduce((total, width) => total + width, 0)
+    const distributed = free >= need
+      ? distributeIntoFrame(othersMin, othersMax, free)
+      : othersMin.map(width => width * free / need)
     if (!distributed) return
-    others.forEach((index, position) => {
-      entry.widths[index] = Math.max(MIN_COLUMN_WIDTH, Math.round(distributed[position]))
-    })
+    const widths = snapWidthsToInt(distributed, free)
+    others.forEach((index, position) => { entry.widths[index] = widths[position] })
   }
 
   handlePointerUp = () => {
@@ -1462,6 +1898,9 @@ class TableResize {
     drag.handle.classList.remove(RESIZING_HANDLE_CLASS)
     drag.table.classList.remove(RESIZING_TABLE_CLASS)
     const figure = drag.table.closest ? drag.table.closest('figure') : null
+    // The final settle: whatever the drag did to the table width, the
+    // walls sit on the edges the pointer actually left the table with.
+    if (figure) this.positionTableWalls(figure, drag.table)
     const moved = Math.abs(drag.entry.widths[drag.columnIndex] - drag.startWidth) >= 1
     if (moved) {
       drag.entry.manual[drag.columnIndex] = true
@@ -1511,6 +1950,8 @@ class TableResize {
         // Back to plain content sizing.
         this.resetTable(key)
         this.stripWidths(table)
+        // The reset table's edges moved — carry the walls to them.
+        this.positionTableWalls(figure, table)
       } else {
         this.applyTableLayout(key, figure, table)
       }
@@ -1520,15 +1961,21 @@ class TableResize {
       return
     }
     const handle = overlappedResizer || this.findHandle(event.target)
-    if (!handle) return
+    // Owner 2026-11-05: a full-height column wall carries the same
+    // double-click reset the header handle has.
+    const columnWall = this.findColumnWall(event.target)
+    if (!handle && !columnWall) return
     event.preventDefault()
     event.stopPropagation()
     if (!this.enabled()) return
-    const th = handle.closest('th,td')
-    const table = handle.closest('table')
-    if (!th || !table || !table.id) return
+    const table = columnWall
+      ? columnWall.closest('div.ag-table-scroll').querySelector('table')
+      : handle.closest('table')
+    if (!table || !table.id) return
     const key = table.id
-    const columnIndex = th.cellIndex
+    const columnIndex = columnWall
+      ? Number(columnWall.dataset.columnWallIndex)
+      : handle.closest('th,td').cellIndex
     const entry = this.widths.get(key)
     if (!entry) return // already auto — nothing to reset
     const figure = table.closest('figure')
@@ -1539,6 +1986,10 @@ class TableResize {
       // T-007: in Fit/Full the reset falls back to the mode's own layout.
       if (figure && this.modeOf(key) !== 'auto') {
         this.applyTableLayout(key, figure, table)
+      } else if (figure) {
+        // Auto reset re-flows the table to content width — the walls
+        // follow the new edges (no stale border).
+        this.positionTableWalls(figure, table)
       }
       console.debug(`[Muya][tableResize][BLOCK_COLUMN_RESET table=${key} col=${columnIndex} mode=auto]`)
       if (figure) syncTableCue(figure, this.muya.options && this.muya.options.t)
@@ -1555,6 +2006,10 @@ class TableResize {
     const ratios = ratiosFromWidths(entry.widths)
     if (ratios) entry.ratios = ratios
     this.applyWidths(table, entry)
+    // The measured reset width may change the table's edges — the walls
+    // ride along (owner smoke 2026-11-05: the wall left behind reads as
+    // an extra fixed table border).
+    if (figure) this.positionTableWalls(figure, table)
     console.debug(
       `[Muya][tableResize][BLOCK_COLUMN_RESET table=${key} col=${columnIndex} width=${entry.widths[columnIndex]}]`
     )

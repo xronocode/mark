@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/main.rs
-// VERSION: 2.5.0
+// VERSION: 2.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-001 entry point. Strict boot order:
 //              (1) m001_panic::install_panic_hook  — first, so any later
@@ -20,7 +20,7 @@
 //             retired by C-13; the live m005_prefs store stays.
 //   DEPENDS:  dialog, m001_panic, m001_pdf, m001_security,
 //             m001_validate, m013b, mt_paths.
-//   LINKS:    .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-7..11 + step-B-pre2;
+//   LINKS:    M-001, .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-7..11 + step-B-pre2;
 //             .grace/graph/runtime.xml M-001;
 //             .grace/verification/runtime.xml V-M-001;
 //             docs/gate-phase-b1-closure.md (Gate-Phase-B1 verdict).
@@ -39,6 +39,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-PROFILE-ISOLATION: bind the generated application namespace before pre-boot state access and reuse the same Context for Tauri build.
 //   - 2026-10-30 M-069: setup applies m069_dev_badge::apply_dev_badge after
 //     the Mica hook; the tauri devtools feature became an opt-in cargo
 //     feature instead of being on in every build.
@@ -279,6 +280,12 @@ fn main() {
         println!("mark {}", env!("CARGO_PKG_VERSION"));
         std::process::exit(0);
     }
+
+    // C-STABILIZE-PROFILE-ISOLATION: bind the exact generated configuration
+    // before rollback, reconciliation, panic logging or preferences touch state.
+    let context = tauri::generate_context!();
+    mt_paths::initialize_application_identifier(&context.config().identifier)
+        .expect("invalid application profile identifier");
 
     // C-UPDATER-ROLLBACK T-004: --rollback runs strictly pre-boot, so a
     // version whose UI cannot start is still recoverable. Store builds
@@ -956,7 +963,7 @@ fn main() {
             // capability commands.
             m059_clipboard::mt_read_clipboard_paths,
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building tauri application")
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { api, .. } = &event {

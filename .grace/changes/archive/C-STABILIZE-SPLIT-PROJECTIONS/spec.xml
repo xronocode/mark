@@ -1,0 +1,28 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-PROJECTIONS>
+    <Summary>Adopt the approved split implementations into current graph/verification ownership and align the checkbox readonly regression with the now-editable split surface. Runtime behavior remains governed by the three approved split recovery bundles.</Summary>
+    <ApprovalBasis>Owner-approved stabilization recovery and delegated implementation choices, 2026-11-09. The integration writer adopts shared current projections centrally.</ApprovalBasis>
+    <Goals>
+      <Goal>Record actual M-009/M-011/M-012 source ownership, unified history, scroll/gesture behavior and command coverage while preserving unrelated current records.</Goal>
+      <Goal>Keep checkbox readonly and dirty/undo assertions strict by explicitly locking both split surfaces.</Goal>
+    </Goals>
+    <AcceptanceCriteria>
+      <Criterion>Current projections describe the implemented full split scope and route all new tests/commands without rewriting historical bundles.</Criterion>
+      <Criterion>The two-engine checkbox/lock/close suite passes on the fresh combined build with both split surfaces explicitly readonly in its locked case.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-009 />
+      <M-011 />
+      <M-012 />
+    </AffectedAreas>
+    <Constraints>
+      <Item>Preserve existing source behavior, coverage floors, immutable approved split assertions, unrelated current records and historical archives.</Item>
+    </Constraints>
+    <NonGoals>
+      <Item>No new runtime feature, protocol, version, release dispatch or owner acceptance is introduced by projection adoption.</Item>
+    </NonGoals>
+    <VerificationIntent>
+      <ExpectedEvidence>Run the exact locked-checkbox browser gate after the fresh split build, then current semantic integrity after related child archival.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-STABILIZE-SPLIT-PROJECTIONS>
+</GraceChangeSpec>

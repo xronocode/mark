@@ -2,7 +2,7 @@
   <div
     class="editor-wrapper"
     :class="[
-      { typewriter: typewriter, focus: focus, source: sourceCode && !mirror },
+      { typewriter: typewriter, focus: focus, source: sourceCode && !splitActive && !mirror },
       { 'is-preview': isPreviewMode, 'is-mirror': mirror },
       // C-LARGE-DOC-WAVE-A T-004: reserved-space indication while a
       // progressive tail is pending (see the .ag-tail-pending style).
@@ -18,9 +18,9 @@
       :dir="textDirection"
       @mousedown.capture="handlePreviewMousedown"
       @keydown.capture="handleEditorSurfaceKeydown"
-      @click.capture="handleMirrorGuard"
-      @paste.capture="handleMirrorGuard"
-      @drop.capture="handleMirrorGuard"
+      @click.capture="guardReadOnlyClick"
+      @paste.capture="guardReadOnlyMutation"
+      @drop.capture="guardReadOnlyMutation"
   >
     <div
       ref="editorRef"
@@ -84,9 +84,9 @@
 // VERSION: 1.34.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
-//   SCOPE: Renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
+//   SCOPE: Unified split document history, focused-pane commands, per-surface caret/IME coordination and render-only synchronization; renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
 //   DEPENDS: Muya, muya/lib BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE markers (C-LARGE-DOC-WAVE-A T-003), Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence), util/pageWidth + util/pageWidthStore (C-PAGE-WIDTH-TABLES — the width resolution pipeline and the per-document store this host applies), util/autoTheme (the Auto-aware global theme restore behind a pinned surface theme).
-//   LINKS: .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004); .grace/changes/active/C-PAGE-WIDTH-TABLES (the page-width host wiring).
+//   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004); .grace/changes/active/C-PAGE-WIDTH-TABLES (the page-width host wiring).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -118,8 +118,15 @@
 //   handleEditorSurfaceKeydown - FIX-005/FIX-006 wrapper keydown entry: runs the paragraph shortcut wave, then the preview Cmd+\ chord.
 //   handleParagraphShortcutKeys - FIX-005/FIX-006: physical-code chords inside the WYSIWYG surface — ⇧⌘D duplicate, ⇧⌘N new paragraph, ⇧⌘⌫ delete paragraph, ⌘1–6 heading levels (visual-regression-plan 13C; ⇧⌘P stays reserved for UC-025 Command Palette).
 //   handlePreviewKeydown - Cmd+\ preview-aware sidebar toggle (V-M-022 E-05 keeps other keys from exiting preview).
-//   syncMirrorFromSource - C-29 Split View: debounced read-only re-render of the muya pane from the source pane; never writes to the store.
-//   handleMirrorGuard - C-29: blocks checkbox clicks, paste and drop on the read-only mirror pane.
+//   renderFromStore - Debounced, IME-fenced render-only follow; no history, dirty or autosave echo.
+//   ensureUnified - Activate the single Muya history once per tab using one raw payload per entry.
+//   handleSourceEdit - Commit one source operation to Muya-owned history and the owning tab.
+//   flushSplit - Complete a pending owner transaction at focus, command and tab boundaries.
+//   focusSplit - Preserve each surface selection while changing focused command ownership.
+//   routeSource - Send source-owned commands to the mounted CodeMirror surface.
+//   handleSplitBeforeTab - Save the outgoing unified tab history and caret metadata before activation.
+//   scheduleDocumentDiagnostics - Debounce source and rich raw snapshots through the existing problems/link pipeline.
+//   reanchorSplit - C-SPLIT-SCROLL-SYNC: on split layout transitions keeps the reading anchor (caret block, else last stable fraction) centered in this pane and aligns the other pane to the same fraction; a ResizeObserver re-anchors through divider drags.
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, the C-56 Copy as Image / Save as PNG… / Save as SVG… items (diagram/chart blocks only), Share (C-10/C-11/C-12/C-32/C-56).
 //   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them. C-PAGE-WIDTH-TABLES T-007: the options also carry the Tables-tab preferences under the names muya's table model consumes — tableFullWidthDefault (tri-state 'auto'|'fit'|'full') and rememberTableColumnSizes — with watchers forwarding changes (the mode default re-renders, the gate does not).
 //   handleTableLayoutsChange - C-65 T-001: muya-table-layouts dispatches (fired by muya only after a real resize / reset / Full width toggle) are saved under the active tab's pathname through util/tableLayoutStore; the mirror never persists and untitled tabs never persist.
@@ -132,7 +139,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.34.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
+//   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Own unified raw-Markdown history, rich/source focused commands, adaptive render-only follows, both caret snapshots and rich IME fencing; retain page-width/progressive/export paths.
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
+//   PREV: v1.34.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
 //   Tables-tab preferences reach muya — the Muya options carry the
 //   tri-state tableFullWidthDefault ('auto' | 'fit' | 'full') and the
 //   rememberTableColumnSizes gate over the tableLayouts bridge, and two
@@ -178,6 +187,13 @@
 //     refreshes tab.muyaIndexCursor on demand for the close/quit flush —
 //     pure arrow-key navigation persists its caret too; unregistered on
 //     unmount with the other bus handlers.
+//   LAST_CHANGE: v1.32.0 - 2026-10-27 C-SPLIT-SCROLL-SYNC: the muya surface
+//   joins the splitScrollSync pair ('rich') and re-anchors on every split
+//   layout transition (splitActive watch + container ResizeObserver): the
+//   caret block — else the last stable scroll fraction — centers in the
+//   pane typewriter-style and the source pane aligns to the same reading
+//   fraction; the scroll listener stashes that fraction for the no-caret
+//   fallback.
 //   PREV: v1.31.0 - 2026-10-22 C-SELF-CONTAINED-HTML-EXPORT: the
 //   styledHtml export runs embedLocalImages (M-065) over the generated
 //   HTML before saving — local images become base64 data-URLs so the
@@ -287,6 +303,7 @@
 //   - 2026-10-15 v1.20.0: C-38 T-005 — wrapCodeBlocks and codeFontSize watchers call muya.refreshCodeBlockLineNumbers(): both are pure CSS changes that re-render nothing, so the line-number gutters must be re-measured (or reset to natural heights when wrapping turns off) explicitly.
 // END_CHANGE_SUMMARY
 
+import { createCompositionFence, translateAndClamp, preserveSourceSyntax } from '@/util/splitDualEdit'
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import log from 'electron-log'
 // import ViewImage from 'view-image'
@@ -298,6 +315,13 @@ import { BLOCK_MOUNT_SERVED, BLOCK_SYNC_REGION_DONE, BLOCK_TAIL_MOUNT_DONE } fro
 import { formatMarkdown } from '@/util/markdownFormat'
 import { checkMarkdownLinks } from '@/util/linkCheck'
 import { htmlToStructuredText, structuredMarkedOptions } from '@/util/structuredText'
+import {
+  splitScrollSync,
+  scrollFraction,
+  setScrollFraction,
+  computeAnchorTarget,
+  contentOffsetOfRect
+} from '@/util/splitScrollSync'
 import TablePicker from 'muya/lib/ui/tablePicker'
 import QuickInsert from 'muya/lib/ui/quickInsert'
 import CodePicker from 'muya/lib/ui/codePicker'
@@ -394,6 +418,12 @@ const props = defineProps({
   // C-29: Split View with source mode on — this muya pane is the read-only
   // mirror of the CodeMirror pane and must never write to the store.
   mirror: {
+    type: Boolean,
+    default: false
+  },
+  // C-SPLIT-SCROLL-SYNC: Split View is active (both panes visible) — drives
+  // anchor re-centering on layout transitions and scroll pairing.
+  splitActive: {
     type: Boolean,
     default: false
   }
@@ -495,7 +525,7 @@ let imageViewer = null
 // the .is-preview class flips reactively when APPLY_PREVIEW_MODE /
 // EXIT_PREVIEW_MODE mutate currentFile.previewMode.
 const isPreviewMode = computed(() => !!currentFile.value?.previewMode)
-const isReadOnlySurface = computed(() => isPreviewMode.value || props.mirror)
+const isReadOnlySurface = computed(() => isPreviewMode.value || !!currentFile.value?.locked || props.mirror)
 
 // START_CONTRACT: syncPreviewSurface
 //   PURPOSE: Keep previewMode synchronized with Muya's actual replacement container and restore an editable caret immediately on preview exit.
@@ -593,6 +623,13 @@ const handlePreviewKeydown = (event) => {
 // Wrapper keydown entry: the paragraph shortcut wave runs first, then
 // the preview Cmd+\ chord. FIX-005/FIX-006.
 const handleEditorSurfaceKeydown = (event) => {
+  if (unified() && !event.isComposing && (isOsx ? event.metaKey : event.ctrlKey) && !event.altKey && (event.code === 'KeyZ' || event.code === 'KeyY')) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.shiftKey || event.code === 'KeyY') handleRedo()
+    else handleUndo()
+    return
+  }
   handleParagraphShortcutKeys(event)
   handlePreviewKeydown(event)
 }
@@ -646,78 +683,260 @@ const handleParagraphShortcutKeys = (event) => {
 }
 // END_BLOCK_PARAGRAPH_SHORTCUTS
 
-// START_CONTRACT: syncMirrorFromSource
-//   PURPOSE: C-29 — while this muya pane mirrors the CodeMirror pane, re-render it from the tab markdown (debounced: 150 ms, or twice the last render time up to 2 s on heavy documents) without taking focus.
-//   INPUTS: { props.mirror: Boolean, props.markdown: String }
+// START_CONTRACT: renderFromStore
+//   PURPOSE: C-SPLIT-DUAL-EDIT — while Split View is on (either mode) or the full-window source mode owns the document, re-render this muya pane from the tab markdown (debounced: 150 ms, or twice the last render time up to 2 s on heavy documents) as a render-only update under the isRenderingFromStore guard; the external change enters muya's history as exactly one undoable entry (noHistory cursor + commitExternal).
+//   INPUTS: { props.splitActive: Boolean, props.markdown: String, sourceCode preference }
 //   OUTPUTS: { void }
-//   SIDE_EFFECTS: muya setMarkdown (render-only; the change event it dispatches is dropped by the mirror guard in the change listener).
-//   LINKS: .grace/changes/archive/C-29 T-222; splitView.vue.
-// END_CONTRACT: syncMirrorFromSource
-// START_BLOCK_SPLIT_MIRROR_SYNC
-const MIRROR_SYNC_DELAY_MS = 150
-const MIRROR_SYNC_MAX_DELAY_MS = 2000
-let mirrorSyncTimer = null
-let mirroredMarkdown = null
+//   SIDE_EFFECTS: muya setMarkdown (render-only; the change event it dispatches is dropped by the guard in the change listener), history flushPendingExternal + commitExternal.
+//   LINKS: .grace/changes/active/C-SPLIT-DUAL-EDIT; .grace/changes/archive/C-29 T-222 (superseded mirror); splitView.vue.
+// END_CONTRACT: renderFromStore
+// START_BLOCK_SPLIT_FOLLOW_SYNC
+const FOLLOW_SYNC_DELAY_MS = 150
+const FOLLOW_SYNC_MAX_DELAY_MS = 2000
+let followSyncTimer = null
+let followedMarkdown = null
 // Heavy documents: wait at least twice the last render so a typing pause
 // shorter than one render never lands in the middle of a stall.
-let lastMirrorRenderMs = 0
-const mirrorSyncDelay = () =>
-  Math.min(MIRROR_SYNC_MAX_DELAY_MS, Math.max(MIRROR_SYNC_DELAY_MS, lastMirrorRenderMs * 2))
+let lastFollowRenderMs = 0
+// True while a store-driven re-render is in flight: muya's own change and
+// selection events under it are render-only echoes and never reach the
+// store (the C-29 static mirror guard, generalized per surface state).
+let isRenderingFromStore = false
+const followSyncDelay = () =>
+  Math.min(FOLLOW_SYNC_MAX_DELAY_MS, Math.max(FOLLOW_SYNC_DELAY_MS, lastFollowRenderMs * 2))
 
-const renderMirror = () => {
-  mirrorSyncTimer = null
-  if (!props.mirror || !editor.value) return
-  const markdown = props.markdown
-  if (typeof markdown !== 'string' || markdown === mirroredMarkdown) return
-  const surface = editor.value.container
-  const scrollTop = surface ? surface.scrollTop : 0
-  const started = performance.now()
-  editor.value.setMarkdown(markdown, null, false)
-  renderedTabId = currentFile.value?.id || null
-  mirroredMarkdown = markdown
-  if (surface) surface.scrollTop = scrollTop
-  lastMirrorRenderMs = performance.now() - started
-  console.debug(
-    `[Editor][syncMirrorFromSource][BLOCK_SPLIT_MIRROR_SYNC] chars=${markdown.length} ms=${Math.round(lastMirrorRenderMs)}`
-  )
+const followsStore = () => props.mirror || props.splitActive || !!sourceCode.value
+
+// START_BLOCK_SPLIT_DOCUMENT_HISTORY
+const richComposition = createCompositionFence()
+let richSerialization = null
+const splitSession = () => currentFile.value?.splitSession
+const unified = () => !!splitSession()?.unified
+const sourceFocused = () => unified() && splitSession().focused === 'source'
+const ensureUnified = () => {
+  const file = currentFile.value
+  const muya = editor.value
+  if (!file || !muya || renderedTabId !== file.id || (!props.splitActive && !file.splitSession?.unified)) return
+  if (muya.contentState.history.unified) return
+  file.splitSession ||= { unified: true, focused: sourceCode.value ? 'source' : 'rich', rich: file.muyaIndexCursor || muya.contentState.getMuyaIndexCursor(), source: null }
+  muya.contentState.history.enableUnified(file.markdown, file.splitSession)
+  file.history = muya.getHistory()
+  richSerialization = muya.getMarkdown()
 }
+const flushSplit = () => {
+  if (!unified() || !editor.value) return
+  editor.value.contentState.history.commitPending()
+  if (followSyncTimer) clearTimeout(followSyncTimer)
+  followSyncTimer = null
+  renderFromStore()
+  currentFile.value.history = editor.value.getHistory()
+}
+const focusSplit = (surface) => {
+  if (!unified()) return
+  if (splitSession().focused !== surface) {
+    if (splitSession().focused === 'rich') splitSession().rich = editor.value.contentState.getMuyaIndexCursor()
+    editor.value.contentState.history.commitDocument(currentFile.value.markdown, splitSession())
+    flushSplit()
+  }
+  splitSession().focused = surface
+  bus.emit('split:selection-changed')
+}
+const handleSplitAsset = async ({ image, alt, id, complete }) => {
+  if (id !== currentFile.value?.id || isReadOnlySurface.value) return
+  try { complete(await imageAction(image, null, alt)) } catch (error) {
+    notice.notify({ title: 'Image', message: String(error), type: 'warning' })
+  }
+}
+const handleSourceEdit = ({ id, markdown, selection, cursor, wordCount }) => {
+  if (id !== currentFile.value?.id || isReadOnlySurface.value) return
+  ensureUnified()
+  if (!unified()) return
+  const session = splitSession()
+  session.source = selection
+  session.focused = 'source'
+  editor.value.contentState.history.commitDocument(markdown, session, true)
+  editorStore.LISTEN_FOR_CONTENT_CHANGE({ id, markdown, muyaIndexCursor: cursor, wordCount, history: editor.value.getHistory() })
+  scheduleDocumentDiagnostics(id, markdown)
+}
+const renderFromStore = () => {
+  followSyncTimer = null
+  const muya = editor.value
+  if (!muya || (!followsStore() && !unified())) return
+  const markdown = props.mirror ? props.markdown : currentFile.value?.markdown
+  if (typeof markdown !== 'string' || markdown === followedMarkdown) return
+  if (richComposition.markDeferred()) return
+  const surface = muya.container
+  const scrollTop = surface?.scrollTop || 0
+  const started = performance.now()
+  isRenderingFromStore = true
+  const session = splitSession()
+  let caret = session?.rich
+  if (caret && followedMarkdown != null) {
+    caret = { anchor: translateAndClamp(caret.anchor, followedMarkdown, markdown), focus: translateAndClamp(caret.focus, followedMarkdown, markdown) }
+    session.rich = caret
+  }
+  if (props.mirror) muya.setMarkdown(markdown, null, false)
+  else muya.setMarkdown(markdown, null, false, caret, undefined, { renderOnly: true })
+  if (unified()) {
+    richSerialization = muya.getMarkdown()
+    editorStore.UPDATE_SPLIT_OUTLINE({ id: currentFile.value.id, toc: muya.getTOC() })
+  }
+  renderedTabId = currentFile.value?.id || null
+  followedMarkdown = markdown
+  if (surface) surface.scrollTop = scrollTop
+  lastFollowRenderMs = performance.now() - started
+  isRenderingFromStore = false
+}
+const handleSplitBeforeTab = () => {
+  if (!unified()) return
+  flushSplit()
+  const session = splitSession()
+  if (session.focused === 'rich') {
+    session.rich = editor.value.contentState.getMuyaIndexCursor()
+  }
+  currentFile.value.history = editor.value.getHistory()
+}
+const handleSplitCommand = (request) => {
+  if (!unified()) return
+  request.handled = true
+  flushSplit()
+  focusEditor()
+  request.execute()
+}
+const guardReadOnlyMutation = event => {
+  if (isReadOnlySurface.value) { event.preventDefault(); event.stopPropagation() }
+}
+const guardReadOnlyClick = event => {
+  if (isReadOnlySurface.value && event.target?.closest?.('input[type=checkbox]')) guardReadOnlyMutation(event)
+}
+const handleRichFocus = () => focusSplit('rich')
+const handleRichCompositionStart = () => richComposition.arm()
+const handleRichCompositionEnd = () => { if (richComposition.release()) scheduleFollowSync(true) }
+const routeSource = (command, payload) => {
+  if (!sourceFocused()) return false
+  bus.emit('split:source-command', { command, payload })
+  return true
+}
+const focusedCopyData = () => {
+  if (!sourceFocused()) return editor.value.getCopyData()
+  const request = { text: '' }
+  bus.emit('split:source-selection', request)
+  return request
+}
+// END_BLOCK_SPLIT_DOCUMENT_HISTORY
 
-const scheduleMirrorSync = (immediate = false) => {
-  if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
-  mirrorSyncTimer = null
-  if (!props.mirror) return
+const scheduleFollowSync = (immediate = false) => {
+  if (followSyncTimer) clearTimeout(followSyncTimer)
+  followSyncTimer = null
+  if (!followsStore() && !unified()) return
   if (immediate) {
-    renderMirror()
+    renderFromStore()
   } else {
-    mirrorSyncTimer = setTimeout(renderMirror, mirrorSyncDelay())
+    followSyncTimer = setTimeout(renderFromStore, followSyncDelay())
   }
 }
 
+watch(() => props.mirror, () => { followedMarkdown = null; scheduleFollowSync(true) })
+
 watch(
-  () => props.mirror,
-  (value) => {
-    mirroredMarkdown = null
-    lastMirrorRenderMs = 0
-    scheduleMirrorSync(value)
+  () => [props.splitActive, sourceCode.value],
+  () => {
+    ensureUnified()
+    if (unified() && !props.splitActive) splitSession().focused = sourceCode.value ? 'source' : 'rich'
+    lastFollowRenderMs = 0
+    scheduleFollowSync(true)
   }
 )
 
 watch(
   () => props.markdown,
-  () => scheduleMirrorSync(false)
+  () => scheduleFollowSync(false)
 )
+// END_BLOCK_SPLIT_FOLLOW_SYNC
 
-// The mirror is read-only: checkbox toggles, pastes and drops must not
-// edit the muya copy (it would drift from the source pane).
-const handleMirrorGuard = (event) => {
-  if (!props.mirror) return
-  const target = event.target
-  const isCheckbox = target && target.tagName === 'INPUT'
-  if (event.type === 'click' && !isCheckbox) return
-  event.preventDefault()
-  event.stopPropagation()
+// START_CONTRACT: reanchorSplit
+//   PURPOSE: C-SPLIT-SCROLL-SYNC — on split layout transitions (toggle on/off, width re-activation, divider drag) keep the reading anchor centered in this pane: the caret block when one exists, else the last stable scroll fraction; then align the other pane to the same reading fraction.
+//   INPUTS: { props.splitActive: Boolean, props.mirror: Boolean, fallbackFraction: Number|null }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: writes scrollTop on the muya container and, via splitScrollSync.align, on the source pane scroller; both writes are echo-guarded by the controller.
+//   LINKS: .grace/changes/archive/C-SPLIT-SCROLL-SYNC T-302; util/splitScrollSync.js; the muya scroll listener that stashes lastSurfaceFraction.
+// END_CONTRACT: reanchorSplit
+// START_BLOCK_SPLIT_ANCHOR_SYNC
+let anchorWidthObserver = null
+// Last fraction seen on a real scroll of this surface — the pre-transition
+// reading position for the no-caret fallback. Reading it from the scroll
+// listener (not from the watcher) guarantees it reflects the OLD layout.
+let lastSurfaceFraction = null
+
+const afterSplitLayout = (fn) => {
+  // Two frames: the re-wrap from the flex change settles before we measure.
+  nextTick(() => requestAnimationFrame(() => requestAnimationFrame(fn)))
 }
-// END_BLOCK_SPLIT_MIRROR_SYNC
+
+const caretContentOffset = (surface) => {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return null
+  const range = sel.getRangeAt(0)
+  if (!range.startContainer || !surface.contains(range.startContainer)) return null
+  const rect = range.getBoundingClientRect()
+  let top = rect && Number.isFinite(rect.top) ? rect.top : NaN
+  if (!Number.isFinite(top)) {
+    const rects = range.getClientRects()
+    if (rects && rects.length > 0) top = rects[0].top
+  }
+  if (!Number.isFinite(top)) return null
+  // Only a caret inside (or near) the viewport anchors the transition —
+  // an out-of-view caret (e.g. parked at the document start while the
+  // reader is mid-document) must not teleport the reading position.
+  const topInSurface = top - surface.getBoundingClientRect().top
+  if (topInSurface < -64 || topInSurface > surface.clientHeight + 64) return null
+  return contentOffsetOfRect(surface, { top })
+}
+
+const reanchorSplit = (fallbackFraction = null) => {
+  const surface = editor.value?.container
+  if (!surface) return
+  if (props.mirror) {
+    // Source-mode split: the editable CodeMirror pane owns the anchor; this
+    // mirror surface only follows its reading fraction.
+    splitScrollSync.align('rich', splitScrollSync.fractionOf('source') ?? 0)
+    return
+  }
+  const caretOffset = caretContentOffset(surface)
+  if (caretOffset !== null) {
+    surface.scrollTop = computeAnchorTarget({
+      anchorOffset: caretOffset,
+      viewportHeight: surface.clientHeight,
+      scrollHeight: surface.scrollHeight
+    })
+  } else if (fallbackFraction !== null) {
+    setScrollFraction(surface, fallbackFraction)
+  }
+  splitScrollSync.align('source', scrollFraction(surface))
+}
+
+const observeAnchorWidth = () => {
+  const surface = editor.value?.container
+  if (!surface || typeof ResizeObserver !== 'function') return
+  let lastWidth = surface.clientWidth
+  anchorWidthObserver = new ResizeObserver(() => {
+    const width = surface.clientWidth
+    if (width === lastWidth) return
+    lastWidth = width
+    if (!props.splitActive) return
+    // Divider drag / pane re-wrap: keep the anchor visible continuously.
+    reanchorSplit(scrollFraction(surface))
+  })
+  anchorWidthObserver.observe(surface)
+}
+
+watch(
+  () => props.splitActive,
+  () => {
+    afterSplitLayout(() => reanchorSplit(lastSurfaceFraction))
+  }
+)
+// END_BLOCK_SPLIT_ANCHOR_SYNC
 
 // Watchers
 watch(typewriter, (value) => {
@@ -1198,21 +1417,36 @@ const replaceMisspelling = ({ word, replacement }) => {
 }
 
 const handleUndo = () => {
-  if (props.mirror) return
+  if (props.mirror || isReadOnlySurface.value) return
+  flushSplit()
   if (editor.value) {
     editor.value.undo()
+    if (unified()) {
+      const meta = editor.value.contentState.history.stack[editor.value.contentState.history.index]?.meta
+      if (meta) Object.assign(splitSession(), { rich: meta.rich, source: meta.source })
+      bus.emit('split:history-restored', meta)
+      if (!sourceFocused()) editor.value.focus()
+    }
   }
 }
 
 const handleRedo = () => {
-  if (props.mirror) return
+  if (props.mirror || isReadOnlySurface.value) return
+  flushSplit()
   if (editor.value) {
     editor.value.redo()
+    if (unified()) {
+      const meta = editor.value.contentState.history.stack[editor.value.contentState.history.index]?.meta
+      if (meta) Object.assign(splitSession(), { rich: meta.rich, source: meta.source })
+      bus.emit('split:history-restored', meta)
+      if (!sourceFocused()) editor.value.focus()
+    }
   }
 }
 
 const handleSelectAll = () => {
-  if (sourceCode.value) {
+  if (routeSource('selectAll')) return
+  if (sourceCode.value && !props.splitActive) {
     return
   }
 
@@ -1232,6 +1466,10 @@ const handleSelectAll = () => {
 
 // Custom copyAsRich copyAsHtml pasteAsPlainText
 const handleCopyPaste = (type) => {
+  if (sourceFocused()) {
+    if (type === 'pasteAsPlainText') { bus.emit('split:source-command', { command: 'pasteAsPlainText' }); return }
+    return handleCopyAsHtml()
+  }
   if (editor.value) {
     editor.value[type]()
   }
@@ -1251,7 +1489,7 @@ const handleCopyAsHtml = async () => {
   // Markdown text of whatever is selected — DOM range, table cells,
   // or image (muya getCopyData mirrors the copy handlers' special
   // cases). Falls back to the whole document when nothing is selected.
-  const selectionData = ed.getCopyData()
+  const selectionData = focusedCopyData()
   const hasSelection = !!(selectionData && selectionData.text)
   const text = hasSelection ? selectionData.text : ed.getMarkdown()
   if (!text) return
@@ -1294,7 +1532,7 @@ const handleCopyAsHtml = async () => {
 const copyRenderedAsPlainText = async (convert, marker, markedOptions = null) => {
   const ed = editor.value
   if (!ed) return
-  const selectionData = ed.getCopyData()
+  const selectionData = focusedCopyData()
   const text = selectionData && selectionData.text ? selectionData.text : ed.getMarkdown()
   if (!text) return
   try {
@@ -1361,7 +1599,7 @@ const handleCopyAsStructuredText = () =>
 const handleCopyAsMarkdown = async () => {
   const ed = editor.value
   if (!ed) return
-  const selectionData = ed.getCopyData()
+  const selectionData = focusedCopyData()
   const text = selectionData && selectionData.text ? selectionData.text : ed.getMarkdown()
   if (!text) return
   try {
@@ -1444,9 +1682,12 @@ const handleDiagramExportAction = async ({ action, element } = {}) => {
       const { bytes, width, height } = await rasterizeSvg(standalone, { scale: 2 })
       const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager')
       await writeImage(bytes)
+      // A table rides the same export path; the notice must not call it a
+      // diagram (owner live smoke 2026-11-05).
+      const fromTable = figure && figure.dataset && figure.dataset.role === 'TABLE'
       notice.notify({
-        title: t('editor.diagramExport.title'),
-        message: t('editor.diagramExport.copied')
+        title: t(fromTable ? 'editor.tableExport.title' : 'editor.diagramExport.title'),
+        message: t(fromTable ? 'editor.tableExport.copied' : 'editor.diagramExport.copied')
       })
       console.debug(`${DIAGRAM_EXPORT_MARKER} copied png`, { width, height })
     } catch (e) {
@@ -1696,11 +1937,11 @@ const handleEditorContextMenu = async (event) => {
     return
   }
   if (clickedId === 'undo') {
-    ed.undo()
+    handleUndo()
   } else if (clickedId === 'redo') {
-    ed.redo()
+    handleRedo()
   } else if (clickedId === 'selectAll') {
-    ed.selectAll()
+    handleSelectAll()
   } else if (clickedId === 'copyAsHtml') {
     await handleCopyAsHtml()
   } else if (clickedId === 'copyAsPlainText') {
@@ -1733,7 +1974,8 @@ const handleEditorContextMenu = async (event) => {
 // END_BLOCK_EDITOR_CONTEXT_MENU
 
 const insertImage = (src) => {
-  if (!sourceCode.value) {
+  if (routeSource('insert', `![](${src})`)) return
+  if (!sourceCode.value || props.splitActive) {
     editor.value && editor.value.insertImage({ src })
   }
 }
@@ -1746,7 +1988,13 @@ const insertImage = (src) => {
 let offDropImage = null
 const handleDropImage = async (_event, payload) => {
   const imagePath = payload && payload.path
-  if (!imagePath || sourceCode.value || !editor.value) return
+  if (!imagePath || !editor.value || isReadOnlySurface.value) return
+  if (sourceFocused()) {
+    const alt = window.path.basename(imagePath).replace(/\.[^/.]+$/, '').replace(/[[\]\\]/g, '\\$&')
+    routeSource('insertAsset', { image: imagePath, alt })
+    return
+  }
+  if (sourceCode.value && !props.splitActive) return
   const name = window.path.basename(imagePath)
   // Brackets in a file name would end the alt text early.
   const alt = name.replace(/\.[^/.]+$/, '').replace(/[[\]\\]/g, '\\$&')
@@ -1760,12 +2008,14 @@ const handleDropImage = async (_event, payload) => {
 // END_BLOCK_DROP_IMAGE
 
 const handleSearch = ({ value, opt }) => {
+  if (routeSource('search', { value, opt })) return
   const searchMatches = editor.value.search(value, opt)
   editorStore.SEARCH(searchMatches)
   scrollToHighlight()
 }
 
 const handReplace = ({ value, opt }) => {
+  if (routeSource('replace', { value, opt })) return
   const searchMatches = editor.value.replace(value, opt)
   editorStore.SEARCH(searchMatches)
 }
@@ -1905,12 +2155,14 @@ const scrollToElement = (selector) => {
 }
 
 const handleFindAction = (action) => {
+  if (routeSource('find', action)) return
   const searchMatches = editor.value.find(action)
   editorStore.SEARCH(searchMatches)
   scrollToHighlight()
 }
 
 const handleExport = async (options) => {
+  flushSplit()
   const { type, header, footer, headerFooterStyled, htmlTitle } = options
 
   if (!/^pdf|print|styledHtml|docx$/.test(type)) {
@@ -2095,6 +2347,7 @@ const handlePrintServiceClearup = () => {
 }
 
 const handleEditParagraph = (type) => {
+  if (type !== 'table' && routeSource('paragraph', type)) return
   if (props.mirror) return
   if (type === 'table') {
     tableChecker.rows = 4
@@ -2110,6 +2363,7 @@ const handleEditParagraph = (type) => {
 
 // handle `duplicate`, `delete`, `create paragraph below`
 const handleParagraph = (type) => {
+  if (routeSource(type)) return
   if (editor.value) {
     switch (type) {
       case 'duplicate': {
@@ -2128,12 +2382,14 @@ const handleParagraph = (type) => {
 }
 
 const handleInlineFormat = (type) => {
+  if (routeSource('format', type)) return
   if (props.mirror) return
   editor.value && editor.value.format(type)
 }
 
 const handleDialogTableConfirm = () => {
   dialogTableVisible.value = false
+  if (routeSource('table', { ...tableChecker })) return
   editor.value && editor.value.createTable(tableChecker)
 }
 
@@ -2600,7 +2856,7 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
     }
     // C-29: the mirror already shows this document; skip the debounced re-render.
     renderedTabId = currentFile.value?.id || null
-    if (props.mirror) mirroredMarkdown = newMarkdown
+    followedMarkdown = newMarkdown
     // C-65: adopt the stored table layouts of the newly opened document.
     applyStoredTableLayouts()
     if (!isReadOnlySurface.value) {
@@ -2672,13 +2928,21 @@ const handleFileChange = ({
       ) {
         mountDocumentProgressively(newMarkdown)
       } else {
-        editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
+        if (history?.unified) editor.value.setMarkdown(newMarkdown, null, renderCursor, activeFile.splitSession?.rich, undefined, { renderOnly: true })
+        else editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
         // A legacy content load cancels any pending progressive tail
         // (T-003 setMarkdown wiring) — drop the indication right away.
         refreshProgressiveTailPending()
       }
       renderedTabId = activeFile?.id || null
-      if (props.mirror) mirroredMarkdown = newMarkdown
+      followedMarkdown = newMarkdown
+      if (unified()) richSerialization = editor.value.getMarkdown()
+      ensureUnified()
+      if (unified()) nextTick(() => {
+        if (!props.splitActive) splitSession().focused = sourceCode.value ? 'source' : 'rich'
+        if (sourceFocused()) routeSource('focus')
+        else editor.value?.container?.focus({ preventScroll: true })
+      })
       // FIX-002: phase-3 mark — first paint after the Muya render of a
       // sidebar-clicked file. UPDATE_CURRENT_FILE routes the render
       // through this handler (the parallel file-loaded event then skips
@@ -2735,6 +2999,7 @@ const handleFileChange = ({
       // chase a target computed against a still-growing layout).
       if (!progressiveTailPending.value) scrollToCursor(0)
     }
+    lastSurfaceFraction = scrollFraction(container)
   }
 }
 
@@ -2792,6 +3057,7 @@ watch(() => currentFile.value?.id, reconcileActiveDocument, { flush: 'post' })
 // END_BLOCK_ACTIVE_DOCUMENT_RECONCILED
 
 const handleInsertParagraph = (location) => {
+  if (routeSource('insertParagraph', location)) return
   editor.value && editor.value.insertParagraph(location)
 }
 
@@ -2807,6 +3073,7 @@ const handleInsertParagraph = (location) => {
  * inserts a block after the currently focused block.
  */
 const handleExtTextInsert = ({ text }) => {
+  if (routeSource('insert', text)) return
   if (!editor.value || typeof text !== 'string') return
   try {
     editor.value.insertParagraph('after', text, true)
@@ -2827,6 +3094,7 @@ const handleExtTextInsert = ({ text }) => {
  * substitute the selected text. If nothing is selected, insert at cursor.
  */
 const handleExtTextTransform = ({ text }) => {
+  if (typeof text === 'string' && routeSource('transform', text)) return
   if (!editor.value || typeof text !== 'string') return
   try {
     const selection = editor.value.getSelection()
@@ -2856,7 +3124,7 @@ const handleExtTextTransform = ({ text }) => {
 const handleExtUndo = ({ extensionId }) => {
   if (!editor.value) return
   try {
-    editor.value.contentState.undo()
+    handleUndo()
     // eslint-disable-next-line no-console
     console.log(`[Editor][BLOCK_EXT_UNDO_OK ext=${extensionId}]`)
   } catch (err) {
@@ -2867,6 +3135,16 @@ const handleExtUndo = ({ extensionId }) => {
 
 let docLintTimer = null
 let tocActiveTimer = null
+const scheduleDocumentDiagnostics = (id, markdown) => {
+  const lintSnapshot = { id, markdown, pathname: currentFile.value.pathname }
+  if (docLintTimer) clearTimeout(docLintTimer)
+  if (tocActiveTimer) clearTimeout(tocActiveTimer)
+  tocActiveTimer = setTimeout(emitActiveHeading, 200)
+  docLintTimer = setTimeout(() => {
+    bus.emit('doc-markdown-changed', lintSnapshot)
+    runLinkCheck(lintSnapshot)
+  }, 500)
+}
 
 // START_BLOCK_TOC_ACTIVE_HEADING
 // Find the last heading whose top is at/above the viewport's upper
@@ -2931,6 +3209,8 @@ const runLinkCheck = async ({ markdown, pathname }) => {
 // END_CONTRACT: handleFormatDocument
 // START_BLOCK_FORMAT_DOCUMENT_COMMAND
 const handleFormatDocument = () => {
+  if (routeSource('formatDocument')) return
+  flushSplit()
   if (!editor.value) return
   const markdown = editor.value.getMarkdown()
   const formatted = formatMarkdown(markdown)
@@ -2955,15 +3235,17 @@ const handleFormatDocument = () => {
 const handleExtContextRequest = async ({ requestId }) => {
   if (!editor.value || !requestId) return
   try {
-    const markdown = editor.value.getMarkdown?.() || ''
+    flushSplit()
+    const markdown = unified() ? currentFile.value.markdown : editor.value.getMarkdown?.() || ''
     const selectionData = editor.value.getSelection?.() || {}
     const filePath = currentFile.value?.pathname || null
 
-    const cursor = selectionData.cursorCoords
+    const cursor = sourceFocused() ? splitSession().source?.head : selectionData.cursorCoords
       ? { line: selectionData.cursorCoords.y || 0, ch: 0 }
       : null
 
-    const selection = selectionData.selectedText
+    const sourceSelection = sourceFocused() ? focusedCopyData() : null
+    const selection = sourceSelection?.selected ? { text: sourceSelection.selected, start: splitSession().source.anchor, end: splitSession().source.head } : selectionData.selectedText
       ? { text: selectionData.selectedText, start: null, end: null }
       : null
 
@@ -2988,11 +3270,14 @@ const blurEditor = () => {
 }
 
 const focusEditor = () => {
+  if (routeSource('focus')) return
   if (props.mirror) return
+  flushSplit()
   editor.value.focus()
 }
 
 const handleScreenShot = () => {
+  if (sourceFocused()) { bus.emit('split:source-command', { command: 'focus' }); document.execCommand('paste'); return }
   if (editor.value) {
     document.execCommand('paste')
   }
@@ -3027,7 +3312,7 @@ const resizeObserverForEditor = new ResizeObserver(handleResetPaddingBottom)
 // START_BLOCK_DIFF_EDIT_GUARD
 const isDiffMode = computed(() => !!currentFile.value?.diffMode)
 const guardDiff = (name, handler) => (...args) => {
-  if (isDiffMode.value) {
+  if (isDiffMode.value || isReadOnlySurface.value) {
     console.warn(`[Editor][diffGuarded][BLOCK_DIFF_EDIT_BLOCKED] ${name} ignored while the diff view is open`)
     return
   }
@@ -3142,6 +3427,22 @@ onMounted(() => {
 
   const { container } = editor.value
 
+  // C-SPLIT-SCROLL-SYNC: pair this surface with the source pane scroller
+  // and re-anchor on pane-width changes (split toggle, divider drag).
+  splitScrollSync.attach('rich', container)
+  container.addEventListener('focusin', handleRichFocus)
+  container.addEventListener('mousedown', handleRichFocus, true)
+  container.addEventListener('compositionstart', handleRichCompositionStart)
+  container.addEventListener('compositionend', handleRichCompositionEnd)
+  bus.on('split:execute-command', handleSplitCommand)
+  bus.on('split:insert-asset', handleSplitAsset)
+  bus.on('split:source-edit', handleSourceEdit)
+  bus.on('split:focus', focusSplit)
+  bus.on('split:flush', flushSplit)
+  bus.on('split:before-tab-change', handleSplitBeforeTab)
+  bus.on('split:contextmenu', handleEditorContextMenu)
+  observeAnchorWidth()
+
   // Listen for language changes and update Muya's translation function
   bus.on('language-changed', () => {
     if (editor.value) {
@@ -3219,35 +3520,54 @@ onMounted(() => {
   hydrateMountedDocument()
 
   editor.value.on('change', (changes) => {
-    // C-29: the split mirror renders from the store; never write it back
-    // (muya normalizes markdown and would rewrite the source).
-    if (props.mirror) return
+    // C-SPLIT-DUAL-EDIT: store-driven renders are inert (muya normalizes
+    // markdown and an echo would rewrite the source pane); own edits flow.
+    if (props.mirror || isRenderingFromStore) return
     // A selected tab may not have reached the Muya buffer yet. Never attach
     // the previous surface's text/blocks/history to that new document.
     const id = renderedTabId
     if (id && id === currentFile.value?.id) {
+      if (unified()) {
+        const history = editor.value.contentState.history
+        const replay = changes.historyRestore === true
+        const serialized = replay ? editor.value.getMarkdown() : changes.markdown
+        if (!replay) {
+          changes.markdown = preserveSourceSyntax(currentFile.value.markdown, richSerialization ?? serialized, changes.markdown)
+          splitSession().rich = changes.muyaIndexCursor
+          history.commitDocument(changes.markdown, splitSession(), true)
+        }
+        richSerialization = serialized
+        changes.history = editor.value.getHistory()
+      }
+      if (unified() && changes.markdown === currentFile.value.markdown && !changes.historyRestore) {
+        // Muya may dispatch a caret-only change after mouse/keyboard
+        // navigation. Update metadata without a dirty revision/autosave.
+        currentFile.value.history = changes.history
+        if (changes.cursor) currentFile.value.cursor = changes.cursor
+        if (changes.muyaIndexCursor) currentFile.value.muyaIndexCursor = changes.muyaIndexCursor
+        return
+      }
       editorStore.LISTEN_FOR_CONTENT_CHANGE(
-        Object.assign(changes, { id, blocks: editor.value.contentState.getBlocks() })
+        Object.assign(changes, { id, blocks: unified() ? undefined : editor.value.contentState.getBlocks() })
       )
+      // The store now holds muya's own serialization; the follow watcher
+      // must not echo it back through a render.
+      if (typeof changes.markdown === 'string' && !richComposition.isArmed()) followedMarkdown = changes.markdown
       // C-17: feed the problems panel (debounced — typing must not lint
       // on every keystroke). Snapshot {id, markdown} at event time so the
       // timer can never emit another tab's document.
-      const lintSnapshot = { id, markdown: changes.markdown, pathname: currentFile.value.pathname }
-      if (docLintTimer) clearTimeout(docLintTimer)
-      // C-19: edits can move headings without scrolling — re-arm the
-      // scrollspy so the TOC highlight follows editing too.
-      if (tocActiveTimer) clearTimeout(tocActiveTimer)
-      tocActiveTimer = setTimeout(emitActiveHeading, 200)
-      docLintTimer = setTimeout(() => {
-        bus.emit('doc-markdown-changed', lintSnapshot)
-        // C-21: async dead-link check rides the same debounce; only the
-        // active tab's snapshot is checked (stale results dropped by seq).
-        runLinkCheck(lintSnapshot)
-      }, 500)
+      scheduleDocumentDiagnostics(id, changes.markdown)
     }
   })
 
   editor.value.on('scroll', (scrollEvent) => {
+    // C-SPLIT-SCROLL-SYNC: stash the reading fraction for the no-caret
+    // re-anchor fallback (captured from real scrolls only, so it always
+    // reflects the pre-transition layout; the mirror never contributes).
+    if (!props.mirror) {
+      const anchorSurface = editor.value?.container
+      if (anchorSurface) lastSurfaceFraction = scrollFraction(anchorSurface)
+    }
     // C-29: the source pane owns the tab's scroll offset while muya mirrors it.
     if (props.mirror || !renderedTabId || renderedTabId !== currentFile.value?.id) return
     editorStore.updateScrollPosition(renderedTabId, scrollEvent.scrollTop)
@@ -3368,8 +3688,25 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
-  mirrorSyncTimer = null
+  if (followSyncTimer) clearTimeout(followSyncTimer)
+  followSyncTimer = null
+  bus.off('split:execute-command', handleSplitCommand)
+  bus.off('split:insert-asset', handleSplitAsset)
+  bus.off('split:source-edit', handleSourceEdit)
+  bus.off('split:focus', focusSplit)
+  bus.off('split:flush', flushSplit)
+  bus.off('split:before-tab-change', handleSplitBeforeTab)
+  bus.off('split:contextmenu', handleEditorContextMenu)
+  editor.value?.container?.removeEventListener('focusin', handleRichFocus)
+  editor.value?.container?.removeEventListener('mousedown', handleRichFocus, true)
+  editor.value?.container?.removeEventListener('compositionstart', handleRichCompositionStart)
+  editor.value?.container?.removeEventListener('compositionend', handleRichCompositionEnd)
+  // C-SPLIT-SCROLL-SYNC: leave the scroll pair cleanly.
+  splitScrollSync.detach('rich')
+  if (anchorWidthObserver) {
+    anchorWidthObserver.disconnect()
+    anchorWidthObserver = null
+  }
   bus.off('mt::collect-position', handleCollectPosition)
   bus.off('file-loaded', setMarkdownToEditor)
   bus.off('invalidate-image-cache', handleInvalidateImageCache)

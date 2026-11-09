@@ -13,11 +13,14 @@
           src-tauri/Cargo.toml -- -D warnings
         </Command>
         <Command>./target/debug/mark (5s, real $HOME=&lt;HOME&gt;, SIGTERM)</Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: App starts, main window is created, menu is registered.</Scenario>
         <Scenario>scenario-2: Window close via Cmd+W hides window (macOS behavior).</Scenario>
         <Scenario>scenario-3: Second-instance launch is blocked and focuses existing window.</Scenario>
+        <Scenario>C-STABILIZE-PROFILE-ISOLATION: main binds the exact generated Context identifier after help/version exits and before pre-boot rollback, reconciliation and profile consumers, then passes that same Context to Tauri build.</Scenario>
+      <scenario-security-stabilization-001>C-SEC-AUDIT-FIXES: The registered compatibility link command is fenced before opener access; link_click_refuses_bare_command, link_click_refuses_prefixed_command, link_click_opens_document_sibling, link_click_refuses_escape_from_document_dir and link_click_http_unchanged exercise the real validation seam in m_v1_compat.rs.</scenario-security-stabilization-001>
       </Scenarios>
       <Markers>
         <Marker>[TauriShell][main][BLOCK_BUILD_APP]</Marker>
@@ -462,6 +465,7 @@
           cd src-tauri &amp;&amp; cargo test --manifest-path
           src-tauri/Cargo.toml commands::fs
         </Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m013b</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: read/write UTF-8 roundtrip preserves bytes.</Scenario>
@@ -469,6 +473,7 @@
         <Scenario>scenario-3: Symlinks resolved but honor sandbox rules from M-010.</Scenario>
         <Scenario>scenario-4: Permission-denied path returns stable error code MT_FS_PERM_DENIED.</Scenario>
         <Scenario>scenario-5: Attempt to read outside workspace sandbox is rejected by M-010.</Scenario>
+      <scenario-security-stabilization-002>C-SEC-AUDIT-FIXES: m013b tests ancestor_inward_ok, ancestor_existing_outside_regression and ancestor_dangling_leaf_refused exercise actual filesystem writes, including no outside creation through dangling leaves and preservation of ordinary/inward writes.</scenario-security-stabilization-002>
       </Scenarios>
       <Markers>
         <Marker>[FsCmd][read][BLOCK_VALIDATE_PATH]</Marker>
@@ -2359,6 +2364,7 @@
         <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
         <Command>npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js</Command>
         <Command>npx vitest run tests/renderer/commands/index.test.js tests/renderer/commands/paragraph-shortcuts.test.js tests/renderer/pages/app-deep.test.js</Command>
+      <Command>npx --no-install vitest run tests/renderer/util/split-commands.test.js tests/renderer/commands/index.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -2513,6 +2519,7 @@
           app-deep and Playwright cases pin one dispatch plus visible populated
           palette open/close behavior.
         </Scenario>
+      <scenario-split-command-owner>C-STABILIZE-SPLIT-PROJECTIONS: Registry parity pins all 51 IDs against COMMAND-MATRIX.md and splitCommands.js; split-commands.test.js plus commands/index.test.js and actual browser source-command cases prove remembered focused-pane routing without changing ordinary fallback.</scenario-split-command-owner>
       </Scenarios>
       <Markers>
         <Marker>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</Marker>
@@ -2890,6 +2897,7 @@
       <Priority>critical</Priority>
       <Commands>
         <Command>cargo test --manifest-path src-tauri/Cargo.toml security</Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m010</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -2918,7 +2926,8 @@
           detected.
         </Scenario>
       
-        <Scenario>C-WINDOWS-SAVE-PIPELINE scenario-win-sandbox (2026-11-01): cargo test m010_security 29/29 incl. the Windows fixture matrix (permissive root admits DOS absolutes, UNC↔DOS prefix equivalence, cross-drive denial at the compare layer, drive-root non-permissive, traversal above root); cargo test m001_save_close 16/16; polygon proof — real Ctrl+S on the rebuilt NSIS writes a scratch document under D:\polygon (mtime moves, content round-trips, isSaved true).</Scenario></Scenarios>
+        <Scenario>C-WINDOWS-SAVE-PIPELINE scenario-win-sandbox (2026-11-01): cargo test m010_security 29/29 incl. the Windows fixture matrix (permissive root admits DOS absolutes, UNC↔DOS prefix equivalence, cross-drive denial at the compare layer, drive-root non-permissive, traversal above root); cargo test m001_save_close 16/16; polygon proof — real Ctrl+S on the rebuilt NSIS writes a scratch document under D:\polygon (mtime moves, content round-trips, isSaved true).</Scenario><scenario-security-stabilization-010>C-SEC-AUDIT-FIXES: m010 tests ancestor_escape_text_new, ancestor_escape_binary_new and ancestor_escape_mkdir reject new destinations through outward parents; nearest-existing-entry errors and dangling links fail closed. Existing root/device-prefix regressions remain in the same module suite.</scenario-security-stabilization-010>
+      </Scenarios>
       <Markers>
         <Marker>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]</Marker>
         <Marker>[Security][shellOpen][BLOCK_CONFIRM_PROMPT]</Marker>
@@ -2933,6 +2942,7 @@
         <Marker>[Security][shellOpen][BLOCK_EXECUTABLE_EXT]</Marker>
         <Marker>[Security][bootstrap][FAIL_CLOSED_NO_DOMPURIFY]</Marker>
         <Marker>[Security][sanitize][DEPTH_CAP_HIT]</Marker>
+      <Marker>[Security][path][BLOCK_PATH_RESOLUTION_FAILED</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>
@@ -3498,6 +3508,9 @@
         <Command>npx playwright test tests/e2e/diff-opened-baseline.spec.ts --project=chromium --project=webkit-diff</Command>
         <Command>npx vitest run tests/renderer/pages/app-deep.test.js tests/renderer/store/editor-coverage.test.js tests/renderer/store/editor.test.ts</Command>
         <Command>npm run build &amp;&amp; npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</Command>
+      <Command>npx --no-install vitest run tests/renderer/components/split-dual-edit.test.js tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-scroll-sync.test.js tests/renderer/components/split-anchor.test.js</Command>
+      <Command>npx --no-install playwright test tests/e2e/split-dual-edit.spec.ts tests/e2e/split-view.spec.ts tests/e2e/split-view-scroll-sync.spec.ts --config playwright.split-recovery.config.ts</Command>
+        <Command>npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-75 (FIX-009 current-run recovery, C-FIX-009-RECENTLY-CLOSED, plus the cold-start half C-FIX-009-SESSION-COLD-START): closing a saved-file tab records it in the session-scoped recently-closed history (dedup by pathname to the newest close, bound 25, memory-only so a cold launch starts empty); untitled drafts never enter. The tab strip renders a count-badged reopen button left of the + whose teleported popover reopens one entry or Reopen all N in ascending recorded strip order with the entry that was active at its close time re-selected; missing files drop with localized notices and Reopen all continues. Every open path funnels through the mt::open-new-tab arrival, which consumes the matching entry. When the last tab closes, the welcome screen shows the same recovery (primary reopen-newest with the chord hint, older rows, Reopen all). File › Reopen Closed Tab (Shift+Cmd/Ctrl+T, id file.reopen-closed-tab, quiet no-op on empty history) reopens newest-to-oldest. The welcome "Last session" row reflects only the editor store's boot-time cold-start snapshot (offered when restoreSessionOnLaunch skipped auto-restore with a non-empty snapshot) — never the live autosaved preference — and an explicit restore that opens nothing raises a visible notice. Pinned by tests/renderer/store/recently-closed.test.js, tests/renderer/store/editor-session-coldstart.test.js, tests/renderer/components/tabs-recently-closed.test.js, the FIX-009 recovery block in tests/renderer/components/recent.test.js, and tests/e2e/recently-closed.spec.ts.</Scenario>
@@ -5207,7 +5220,12 @@
           remains automated and publication requires a separate instruction.
         </Scenario>
               <Scenario>scenario-titlebar-chips (C-TITLEBAR-MODE-CHIPS): the titlebar right cluster mounts the chips cluster first (chips → theme → Share → captions), renders one flag-truth view chip and compact writing chips only when a document is open, swaps the view chip per tab, appends the narrow note on the Split tooltip below 800 px, and logs BLOCK_CHIPS_RENDERED / BLOCK_MENU_ACTION without content.</Scenario>
-</Scenarios>
+<scenario-stabilize-titlebar-feedback>C-STABILIZE-PRODUCT-REPAIRS: titleBar/quick-settings units and page-width-panel/chrome-native-theme e2e prove the final Aa entry, local button chrome and stacking above walls. editor-coverage.test.js C-70 picture export transport verifies table-specific success notices and unchanged diagram feedback.</scenario-stabilize-titlebar-feedback>
+      <scenario-split-reading-recovery>C-STABILIZE-SPLIT-PROJECTIONS: split-scroll-sync.test.js, split-anchor.test.js and split-view-scroll-sync.spec.ts prove fraction clamping, caret/fraction anchors, divider transitions, bidirectional scrolling and cleanup.</scenario-split-reading-recovery>
+      <scenario-split-gestures-recovery>C-STABILIZE-SPLIT-PROJECTIONS: split-view unit/browser cases prove divider double-click disables split, wide non-diff edge-strip enables it, Alt-double-click/Enter swaps sides, and ratio/selection state persists.</scenario-split-gestures-recovery>
+      <scenario-split-dual-recovery>C-STABILIZE-SPLIT-PROJECTIONS: split-dual component/helper/command tests plus all three split e2e files prove two editable surfaces, reversed selections, rich/source IME fencing including stale composition echoes, exact one-step interleaved native/context undo, per-tab history/caret restoration and reload clearing, exact raw list syntax, one dirty revision, locked/preview protection, focused table/find/replace/copy/format/source-asset commands and bounded large-document following. Explicitly locked checkbox fixtures retain Markdown/revision/dirty/checked-state assertions for both surfaces.</scenario-split-dual-recovery>
+        <scenario-checkbox-dirty>C-STABILIZE-CHECKBOX-DIRTY: saved checkbox-only edits with Auto Save off update Markdown, contentRevision exactly once and isSaved=false; the real file.close-tab command opens unsaved protection, Cancel keeps the edit, undo returns to the saved baseline and redo restores it. The suspected dirty-loss path was already green before the routing repair.</scenario-checkbox-dirty>
+      </Scenarios>
       <Markers>
         <Marker>[Editor][handleFileChange][BLOCK_RENDER_OWNER_MISMATCH]</Marker>
         <Marker>[Editor][reconcileActiveDocument][BLOCK_ACTIVE_DOCUMENT_RECONCILED]</Marker>
@@ -5978,7 +5996,8 @@
         <Command>npx vitest run tests/renderer/muya/content-state-cursor-restore.test.js</Command>
               <Command>npx vitest run tests/renderer/muya/copy-cut-stale-selection.test.js</Command>
               <Command>npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables</Command>
-</Commands>
+<Command>npx --no-install vitest run tests/renderer/muya/history-external-commit.test.js tests/renderer/muya/footnote-options.test.js</Command>
+      </Commands>
       <Scenarios>
 
 
@@ -6925,17 +6944,7 @@
           invalid column descriptors, missing surfaces, pointer capture,
           reset persistence and C-70 copy-image capture routing.
         </Scenario>
-        <scenario-toolbar-label-visits>
-          C-TOOLBAR-LABELS: real pointer traversal over table, Mermaid and
-          Vega-Lite panels retains every earlier visited inline label.
-          Prior button widths and total panel width never shrink while
-          traversing; the right anchor stays fixed. Whole-panel exit resets
-          all visited labels, and panels do not share visit state. DOM
-          event tests cover icon descendants, disabled buttons, intra-panel
-          focus moves and external/null focus exits. No Markdown or saved
-          state changes. Tests: table-toolbar-labels.spec.ts in Chromium
-          and the existing webkit-tables project; block-toolbar.test.js.
-        </scenario-toolbar-label-visits>
+        <scenario-toolbar-label-visits>C-STABILIZE-PRODUCT-REPAIRS: table/Mermaid/Vega-Lite controls remain icon-only without growth during hover/focus traversal. Accessible names and actions remain; table order is Auto/Fit/Full/Expand/Copy. Verified by table-toolbar-labels.spec.ts and block-toolbar/table-cue/table-export units.</scenario-toolbar-label-visits>
         <scenario-table-footer>
           C-TABLE-FOOTER: the noneditable counter
           follows the table inside its scroll block, before the native
@@ -7152,7 +7161,10 @@
           docCopyHandler and cut through deleteSelectedTableCells
           (tests/renderer/muya/copy-cut-stale-selection.test.js).
         </Scenario>
-</Scenarios>
+<scenario-stabilize-product-boundaries>C-STABILIZE-PRODUCT-REPAIRS: table-layout-persistence.test.js checks obsolete/replaced/destroyed document adoption, transform-preserving repeated repaint and teardown, and manual-drag squeeze below content minima. table-fit.test.js covers many columns in a fractional narrow frame; table-column-resize.test.js retries null measurements. table-modes/table-column-resize e2e prove transparent border alignment, pinned Fit/Full edges and Auto reset in Chromium/WebKit. editor-coverage.test.js C-70 picture export transport distinguishes table/diagram copy notices.</scenario-stabilize-product-boundaries>
+      <scenario-split-history-recovery>C-STABILIZE-SPLIT-PROJECTIONS: history-external-commit.test.js proves raw/block exclusive representation, constant-size metadata without selected text, bounded/coalesced entries, pre-split content retention, exact raw replay and unchanged legacy footnote history. Actual native keyboard/context undo is covered by split-dual-edit.spec.ts.</scenario-split-history-recovery>
+        <scenario-checkbox-dirty>C-STABILIZE-CHECKBOX-DIRTY: checkbox-dirty.test.js pins exclusive routing and readonly cancellation without synthetic dispatch. Built checkbox-dirty.spec.ts proves single/cascaded toggles undo and redo in one semantic action; locked rich and locked split-companion clicks leave Markdown/revision/dirty/checked state unchanged. The existing keyboard click listener emits the single semantic store change; actual content-change deliveries and revision deltas are both one.</scenario-checkbox-dirty>
+      </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
         <Marker>
@@ -7232,6 +7244,7 @@
           [Muya][tableResize][BLOCK_COLUMN_COUNT_RECONCILED table=&lt;key&gt;
           columns=&lt;n&gt;]
         </Marker>
+      <Marker>[Muya][ClickEvent][BLOCK_READONLY_TASK_CHECKBOX]</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>
@@ -10987,6 +11000,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-native-profile-namespace>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: profile_namespace_ pure/injected tests distinguish canonical and configured QA identity, endpoint and discovery roots; existing M021 fake-runner tests preserve canonical behavior and QA set/get/unset never target the release identity. M019 and M045 credential entry creation uses the same configured accessor; CSEC tests keep their injected backend and no host credential access. No native application launch is claimed.</scenario-native-profile-namespace>
         <Scenario>
           scenario-0: COVERAGE NOTE — src-tauri/src/m019_datacenter.rs currently
           contains no module-local tests; the command above selects zero tests
@@ -11631,6 +11645,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-native-profile-namespace>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: cargo test --manifest-path src-tauri/Cargo.toml --bin mark m021_default_handler exercises the shipped compatibility module with injected runners. Configured QA query/set/unset preserve canonical release entries. The M-021 filename/reference predates the current planned fs_core graph identity; these tests do not close the FUTURE fs_core scenarios retained below and perform no LaunchServices mutation.</scenario-native-profile-namespace>
         <Scenario>
           scenario-0: FUTURE — M-021 fs_core is planned and unimplemented; the
           commands above are explicitly future and non-executable until
@@ -11852,30 +11867,21 @@
     <V-M-022>
       <Priority>high</Priority>
       <Commands>
-        <Command>cargo test --manifest-path src-tauri/Cargo.toml mt_paths</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark mt_paths</Command>
         <Command>
           rg
           &quot;cache_root|app_support_root|logs_root|BLOCK_RESOLVE_CACHE_ROOT&quot; src-tauri/src/mt_paths.rs
         </Command>
       </Commands>
       <Scenarios>
-        <Scenario>
-          scenario-1: macOS cache_root resolves to ~/Library/Caches/Mark or the
-          project-approved bundle-specific cache root.
-        </Scenario>
-        <Scenario>
-          scenario-2: Linux cache_root respects XDG_CACHE_HOME and falls back to
-          ~/.cache/Mark.
-        </Scenario>
-        <Scenario>
-          scenario-3: Windows cache_root resolves under %LOCALAPPDATA% and never
-          under roaming AppData.
-        </Scenario>
+        <scenario-native-profile-namespace>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: profile_namespace_ pure/injected tests distinguish canonical and configured QA identity, endpoint and discovery roots; existing M021 fake-runner tests preserve canonical behavior and QA set/get/unset never target the release identity. M019 and M045 credential entry creation uses the same configured accessor; CSEC tests keep their injected backend and no host credential access. No native application launch is claimed.</scenario-native-profile-namespace>
+        <Scenario>Configured release and acceptance identifiers produce disjoint cache and data roots using synthetic environment lookups; the canonical release identifier preserves all prior paths.</Scenario>
+        <Scenario>macOS uses Library/Caches and Library/Application Support; Linux honors XDG cache/data bases with existing HOME fallbacks; Windows uses LOCALAPPDATA/Cache and APPDATA/Data respectively.</Scenario>
+        <Scenario>Empty, malformed, path-containing and conflicting identifier initialization is rejected; repeating the same valid namespace is idempotent.</Scenario>
       </Scenarios>
-      <Markers>
-        <Marker>[Paths][cache_root][BLOCK_RESOLVE_CACHE_ROOT]</Marker>
-      </Markers>
+      <Markers />
       <TraceAssertions>
+        <TraceAssertion>Pure namespace tests prove disjoint configured cache/data roots, canonical release compatibility and rejection of malformed or conflicting initialization; the path helper performs no I/O or logging.</TraceAssertion>
         <TraceAssertion>Negative assertion: MUST NOT use ~/.cache on macOS or Windows.</TraceAssertion>
         <TraceAssertion>
           Negative assertion: MUST NOT write under protected legacy Application
@@ -13012,6 +13018,7 @@
         <Scenario>scenario-1 (rule): DEVTOOLS_ENABLED is true under cargo test (debug assertions) and dev_icon returns a badged icon; the tauri dependency line never lists devtools, Cargo.toml declares devtools = ["tauri/devtools"], and the default feature set never includes it.</Scenario>
         <Scenario>scenario-2 (release lanes): .github/workflows/release.yml, .github/workflows/release-tauri.yml and tools/build-mas.sh never enable devtools.</Scenario>
         <Scenario>scenario-3 (painter): on the shipped 512×512 icon the band fills the badge colour below the chevron edge, the area above the chevron and the transparent corners are untouched, the first cell of D is white and the gap after it is badge-coloured; a short buffer is left unchanged.</Scenario>
+      <scenario-security-stabilization-069>C-SEC-AUDIT-FIXES: Existing dev-badge release/default-feature and settings-window behavior remains unchanged by the shared compatibility file and direct URL/test dependency additions.</scenario-security-stabilization-069>
       </Scenarios>
       <Markers>
         <Marker>[DevBadge][apply][BLOCK_DEV_BADGE_APPLIED devtools=on]</Marker>
@@ -13069,7 +13076,7 @@
         <Command>npx playwright test tests/e2e/titlebar-mode-chips.spec.ts --project=chromium --project=webkit-titlebar</Command>
       </Commands>
       <Scenarios>
-        <Scenario>scenario-chips-render (C-TITLEBAR-MODE-CHIPS T-004): flag truth diff &gt; split &gt; source; one labelled view chip plus compact writing chips (three maximum); no wrapper in the standard state and with no document; the view chip swaps on tab switch while writing chips persist; aria-label from the short label and the hint as tooltip; the Split tooltip appends narrowNote below the 800 px floor.</Scenario>
+        <Scenario>scenario-chips-render (C-STABILIZE-PRODUCT-REPAIRS): icon-only view/writing chips follow diff/split/source truth; Standard retains one entry with a document, no document renders none; title/aria names preserve keyboard/menu reachability and narrow Split hint.</Scenario>
         <Scenario>scenario-menu-normalization (T-005): the two-group menu marks the visible winner, shows the shipped shortcuts and hints, and normalizes in one action — Standard clears splitView + diffMode + sourceCode, Split clears diffMode and keeps sourceCode, Source clears splitView and diffMode, Changes clears splitView; writing toggles are independent; Reset returns Standard with both writing modes off; the menu stays live while a mode toggles from another surface and closes only on outside click or Escape.</Scenario>
         <Scenario>scenario-locale-parity (T-003): the fifteen titleBar.modeChips families exist in all ten locales; the retired min-twin byte-parity law was replaced by the directory guard in tests/renderer/i18n/locale-keys.test.js (C-LOCALE-MIN-TWIN-REMOVAL).</Scenario>
       </Scenarios>

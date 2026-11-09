@@ -1,0 +1,65 @@
+<GraceChangeDesignContext graceVersion='4.0'>
+  <Change>C-SPLIT-SCROLL-SYNC</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+
+  <Rationale>
+    Why proportional sync is the right primitive. The two panes are
+    different projections of one markdown string: muya renders blocks with
+    wildly different heights than the source lines (a one-line image vs a
+    hundred-line code fence), so no cheap bijection exists between their
+    scroll offsets. Proportional mapping (scrollTop fraction x target
+    scrollHeight) is what Typora-class split editors ship; it drifts on
+    height-skewed documents but never lies about direction, costs one
+    division per rAF, and degrades to "roughly the same region" instead of
+    "wrong end of the document" (today's state).
+  </Rationale>
+
+  <Alternatives>
+    <Alternative>Line-exact sync via a block-to-source-line anchor map
+    (muya blocks carry start positions; CodeMirror has lineHeight). Better
+    fidelity on code-heavy documents, but the map breaks on every list
+    renumber, front-matter shift and paste; rejected for v1 (NonGoal),
+    revisit only if owners report the drift as pain.</Alternative>
+    <Alternative>One-way sync (editable pane drives, never back). Simpler
+    and loop-free, but reading either pane is the owner's actual use case
+    ("when viewing"), and with dual editing coming (C-SPLIT-DUAL-EDIT)
+    both panes will be drivers; the guard is unavoidable, so
+    bidirectional comes almost free.</Alternative>
+    <Alternative>Scroll-position sync through the tab store (reuse
+    updateScrollPosition). Rejected: the store offset is a single integer
+    per tab for restore-on-open; two panes need a live channel, and
+    polluting the persisted field with split-time chatter risks regressing
+    C-FILE-POSITION-MEMORY restore semantics.</Alternative>
+  </Alternatives>
+
+  <DeferredDecisions>
+    <Decision>Sync controller placement: splitView.vue-local composable vs
+    a new util module with its own graph anchor. The plan decides after
+    --parallel-preflight; the helpers are written pure either way so the
+    choice cannot change behavior.</Decision>
+    <Decision>Whether divider drag re-anchors continuously or only on
+    drag-end (R-1 says "keeps the anchor visible"; continuous is the
+    recommendation, drag-end the fallback if reflow cost shows up on huge
+    documents).</Decision>
+  </DeferredDecisions>
+
+  <Scenarios>
+    <Scenario>Long document, caret in section 60 of 120, split toggled on:
+    rich pane centers the caret block; source pane opens at the matching
+    fraction (~0.5), not at 0; one reflow is expected, the anchor must
+    survive it with no visible jump afterwards.</Scenario>
+    <Scenario>Reading without any caret (restored tab, never focused):
+    anchor falls back to the saved cursor of C-FILE-POSITION-MEMORY, else
+    the top visible block fraction; the two panes still land in the same
+    region.</Scenario>
+    <Scenario>Wheel over the rich pane, then immediately over the source
+    pane: mastership follows the pointer; the guard swallows the
+    programmatic echo so no ping-pong is observable.</Scenario>
+    <Scenario>Locked tab + split (once C-SPLIT-DUAL-EDIT lands): both
+    panes read-only, scroll sync still works — viewing a locked document
+    is exactly the reading case the owner described.</Scenario>
+    <Scenario>Tab switch while split is on: the incoming tab's panes
+    align to its saved position (C-FILE-POSITION-MEMORY restore), not to
+    the outgoing tab's offsets.</Scenario>
+  </Scenarios>
+</GraceChangeDesignContext>

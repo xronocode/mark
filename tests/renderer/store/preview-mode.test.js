@@ -4,7 +4,7 @@
  * Covers the key M-033 renderer behaviors:
  *   1. APPLY_PREVIEW_MODE sets tab.previewMode = true
  *   2. EXIT_PREVIEW_MODE sets tab.previewMode = false
- *   3. Preview tabs bypass dirty check in APPLY_FILE_CHANGE (always reload)
+ *   3. Clean preview tabs auto-reload; dirty preview tabs require a conflict choice
  *   4. Preview tab isSaved behavior
  *
  * These tests complement the existing editor.preview.test.ts (M-022) by
@@ -263,10 +263,10 @@ describe('store/editor — M-033 preview-mode renderer', () => {
     })
   })
 
-  // ─── Preview tabs bypass dirty check in APPLY_FILE_CHANGE ────────
+  // ─── Dirty preview tabs retain unsaved content in APPLY_FILE_CHANGE ────────
 
-  describe('APPLY_FILE_CHANGE — preview tab bypass', () => {
-    it('preview tab always auto-reloads even when dirty and liveReload=false', async () => {
+  describe('APPLY_FILE_CHANGE — preview tab safety', () => {
+    it('dirty preview tab preserves edits even when liveReload=false', async () => {
       __preferencesStub.liveReload = false
       __preferencesStub.autoSave = false
       const dbg = vi.spyOn(console, 'debug').mockImplementation(() => {})
@@ -275,15 +275,17 @@ describe('store/editor — M-033 preview-mode renderer', () => {
       expect(editor.tabs[0].previewMode).toBe(true)
       dbg.mockRestore()
 
-      // Mark dirty to test that preview bypasses dirty check.
+      // A read-only surface can still carry edits from before preview entry.
       editor.tabs[0].isSaved = false
       __ipcFsMock.read.mockResolvedValue('# reloaded preview')
 
       editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/preview.md' })
       await vi.advanceTimersByTimeAsync(150)
 
-      expect(editor.tabs[0].markdown).toBe('# reloaded preview')
-      expect(editor.tabs[0].notifications).toHaveLength(0)
+      expect(editor.tabs[0].markdown).toBe('# preview content')
+      expect(editor.tabs[0].notifications).toHaveLength(1)
+      expect(editor.tabs[0].notifications[0].showConfirm).toBe(true)
+      expect(__ipcFsMock.read).not.toHaveBeenCalled()
     })
 
     it('non-preview dirty tab with liveReload=false shows notification instead', () => {

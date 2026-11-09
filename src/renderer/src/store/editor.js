@@ -307,7 +307,7 @@ export const useEditorStore = defineStore('editor', {
       const oldId = tab.id
       const oldNotifications = tab.notifications
       let oldHistory = null
-      if (tab.history.index >= 0 && tab.history.stack.length >= 1) {
+      if (!tab.splitSession?.unified && tab.history.index >= 0 && tab.history.stack.length >= 1) {
         // Allow to restore the old document.
         oldHistory = {
           stack: [tab.history.stack[tab.history.index]],
@@ -326,6 +326,7 @@ export const useEditorStore = defineStore('editor', {
 
       // Update file content and restore some entries.
       Object.assign(tab, newFileState)
+      delete tab.splitSession
       tab.id = oldId
       tab.notifications = oldNotifications
 
@@ -1180,6 +1181,7 @@ export const useEditorStore = defineStore('editor', {
     UPDATE_CURRENT_FILE(currentFile) {
       const oldCurrentFile = this.currentFile
       if (!oldCurrentFile.id || oldCurrentFile.id !== currentFile.id) {
+        if (oldCurrentFile.splitSession?.unified) bus.emit('split:before-tab-change')
         const { id, markdown, cursor, history, pathname, scrollTop, blocks, muyaIndexCursor, contentReloaded } =
           currentFile
         window.DIRNAME = pathname ? window.path.dirname(pathname) : ''
@@ -2007,6 +2009,15 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
+    // A render-only split follow refreshes the parsed outline without a
+    // content event, dirty revision, word-count pass or autosave echo.
+    UPDATE_SPLIT_OUTLINE({ id, toc }) {
+      if (id === this.currentFile.id && toc && !equal(toc, this.listToc)) {
+        this.listToc = toc
+        this.toc = listToTree(toc)
+      }
+    },
+
     // Content change from realtime preview editor and source code editor
     // There is a chance that this event is fired AFTER the tab is switched.
     LISTEN_FOR_CONTENT_CHANGE({
@@ -2457,6 +2468,14 @@ export const useEditorStore = defineStore('editor', {
       }
       const generation = (liveReloadGenerations.get(pathname) || 0) + 1
       liveReloadGenerations.set(pathname, generation)
+      // A generation can be reused after close/reopen; also bind the
+      // original tab object and path so an old read cannot target its successor.
+      const isCurrentReload = () => liveReloadGenerations.get(pathname) === generation &&
+        this.tabs.includes(tab) && tab.pathname === pathname
+      const reloadMarkdown = tab.markdown
+      const reloadRevision = tab.contentRevision || 0
+      const localContentChanged = () => tab.markdown !== reloadMarkdown ||
+        (tab.contentRevision || 0) !== reloadRevision
       switch (type) {
         case 'unlink':
           tab.isSaved = false
@@ -2470,24 +2489,22 @@ export const useEditorStore = defineStore('editor', {
           break
         case 'add':
         case 'change': {
-          // B7-M-032: integrate liveReload preference alongside autoSave.
-          // B7-M-033: preview-mode tabs always auto-reload (read-only, no dirty conflict).
-          // C-40 T-004: a tab locked WITH unsaved edits is read-only but
-          // dirty — it takes the normal conflict path instead of silently
-          // replacing the user's edits. Finder previews keep the M-033
-          // always-reload bypass.
+          // C-STABILIZE-DIRTY-RELOAD: preferences and read-only/watch
+          // flags select clean-tab reload behavior; none authorizes losing
+          // unsaved edits. Dirty tabs use the existing explicit conflict choice.
           const { autoSave, liveReload } = preferencesStore
-          const readOnlyReload = tab.previewMode && (isSaved || !tab.locked)
+          const readOnlyReload = tab.previewMode
           if (autoSave || liveReload || readOnlyReload || tab.watchMode) {
             if (autoSaveTimers.has(id)) {
               clearTimeout(autoSaveTimers.get(id))
               autoSaveTimers.delete(id)
             }
-            if (isSaved || liveReload || readOnlyReload || tab.watchMode) {
+            if (isSaved) {
               // If change already has data (legacy path), use it directly.
               // Otherwise read from disk (watcher path: project.js sends only {pathname}).
               if (change.data) {
-                if (liveReloadGenerations.get(pathname) !== generation) return
+                if (!isCurrentReload()) return
+                if (change.data.markdown === tab.markdown) return
                 console.log(`[editor][live_reload][BLOCK_LIVE_RELOAD path=${filename} source=data]`)
                 // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DATA
                 // C-43: keep what the tab had just before the external
@@ -2502,8 +2519,19 @@ export const useEditorStore = defineStore('editor', {
                 // Settle delay: let the disk write finish flushing
                 setTimeout(async () => {
                   try {
+                    if (!isCurrentReload()) return
+                    if (!tab.isSaved || localContentChanged()) {
+                      this.APPLY_FILE_CHANGE(type, change)
+                      return
+                    }
                     const markdown = await ipcFs.read(pathname)
-                    if (liveReloadGenerations.get(pathname) !== generation) return
+                    if (!isCurrentReload()) return
+                    if (!tab.isSaved || localContentChanged()) {
+                      // Resolve the current local state through the same
+                      // conflict flow, invalidating this old read generation.
+                      this.APPLY_FILE_CHANGE(type, change)
+                      return
+                    }
                     // Hash-skip: don't reload if content matches current tab
                     if (markdown === tab.markdown) {
                       console.log(`[editor][live_reload][BLOCK_RELOAD_SKIPPED path=${filename} reason=hash-match]`)
@@ -2538,6 +2566,7 @@ export const useEditorStore = defineStore('editor', {
           }
           console.log(`[editor][live_reload][BLOCK_RELOAD_CONFLICT path=${filename} reason=dirty-tab]`)
           tab.isSaved = false
+          let reloadConfirmed = false
           this.pushTabNotification({
             tabId: id,
             msg: i18n.global.t('store.editor.fileChangedOnDisk', { name: filename }),
@@ -2550,9 +2579,9 @@ export const useEditorStore = defineStore('editor', {
             // the dialog was open). Previously this crashed with a
             // TypeError destructure of `data` on every confirm click.
             action: (status) => {
-              if (!status) return
+              if (!status || reloadConfirmed || !isCurrentReload()) return
+              reloadConfirmed = true
               if (change.data) {
-                if (liveReloadGenerations.get(pathname) !== generation) return
                 // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DATA
                 if (tab.pathname && tab.markdown !== change.data.markdown) {
                   recordSnapshot(id, tab.markdown)
@@ -2561,10 +2590,20 @@ export const useEditorStore = defineStore('editor', {
                 this.loadChange(change)
                 return
               }
+              const confirmedMarkdown = tab.markdown
+              const confirmedRevision = tab.contentRevision || 0
               setTimeout(async () => {
                 try {
+                  if (!isCurrentReload()) return
                   const markdown = await ipcFs.read(pathname)
-                  if (liveReloadGenerations.get(pathname) !== generation) return
+                  if (!isCurrentReload()) return
+                  if (tab.markdown !== confirmedMarkdown ||
+                    (tab.contentRevision || 0) !== confirmedRevision) {
+                    // Confirmation covers only the local content the user
+                    // chose to replace, not edits made while the read waited.
+                    this.APPLY_FILE_CHANGE(type, change)
+                    return
+                  }
                   const data = {
                     markdown,
                     filename: tab.filename,
@@ -2808,9 +2847,9 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
+//   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots.
-//   LINKS: .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/active/C-RENDER-REVIEW-FIXES (honest async notification actions).
+//   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/active/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -2822,6 +2861,11 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-09 C-STABILIZE-DIRTY-RELOAD: automatic reload requires a
+//     clean tab regardless of liveReload/preview/watch flags; recheck local
+//     content, revision, generation and tab ownership across delayed reads.
+//     A confirmed reload cannot discard edits made after its confirmation.
+//   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: flush the outgoing unified tab before activation, clear unified history/carets on disk reload, and refresh parsed split outlines without dirty or autosave echoes.
 //   - 2026-11-03 C-PAGE-WIDTH-TABLES (host wiring wave): RENAME and
 //     RENAME_IF_NEEDED also move the file's pageWidths entry through
 //     util/pageWidthStore.movePageWidthEntry (fire-and-forget with the

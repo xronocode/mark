@@ -4,9 +4,11 @@
 //            extension capabilities over localhost. IPC is HTTP POST,
 //            not WebSocket (Decision D1).
 //   SCOPE:   Build request, send with timeout + 1 retry on 503,
-//            return JSON response. No streaming (v1 scope).
+//            return JSON response. Validate the final loopback URL before
+//            attaching credentials; never use proxies or follow redirects.
 //   DEPENDS: reqwest (HTTP client), manifest::ExtensionManifest.
-//   LINKS:   .grace/graph/features.xml M-045;
+//   LINKS:   .grace/changes/archive/C-SEC-AUDIT-FIXES;
+//            .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b);
 //            ROADMAP.md Decision D1 (IPC is HTTP POST).
 //   STATUS:  Phase-B2b initial.
@@ -17,6 +19,10 @@
 // START_MODULE_MAP
 //   Coverage: GRACE 4 synchronized surface for M-045.
 // END_MODULE_MAP
+
+// START_CHANGE_SUMMARY
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-005: parsed loopback recipients and no redirect/proxy escape.
+// END_CHANGE_SUMMARY
 
 use crate::m045_ext::manifest::ExtensionManifest;
 use serde::{Deserialize, Serialize};
@@ -84,14 +90,16 @@ pub async fn invoke_extension(
         });
     }
 
-    let url = format!(
-        "{}{}",
-        manifest.discovery.base_url.trim_end_matches('/'),
-        manifest.invoke.invoke_path
-    );
+    let url = super::manifest::extension_endpoint(&manifest.discovery.base_url, &manifest.invoke.invoke_path)
+        .map_err(|e| {
+            safe_eprintln!("[ExtHost][invoke][BLOCK_URL_REFUSED id={} reason={e}]", manifest.id);
+            InvokeError { kind: InvokeErrorKind::RequestFailed, message: e.to_string() }
+        })?;
 
     let timeout = Duration::from_secs(manifest.invoke.timeout_secs);
     let client = reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
         .timeout(timeout)
         .build()
         .map_err(|e| {
@@ -112,7 +120,7 @@ pub async fn invoke_extension(
 
     // First attempt + one retry on 503.
     for attempt in 0..2u8 {
-        let mut req = client.post(&url).json(&body);
+        let mut req = client.post(url.clone()).json(&body);
         if let Some(token) = auth_token {
             req = req.bearer_auth(token);
         }

@@ -1,0 +1,105 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-GESTURES>
+    <Name>Complete and integrate C-SPLIT-DBLCLICK-TOGGLE</Name>
+    <Created>2026-11-09</Created>
+    <ApprovalBasis>Owner approved RECOVERY final implementation on 2026-11-09 and delegated recommended decisions. This bundle supersedes the earlier execution plan, preserves its complete behavior and archived evidence, and authorizes finite candidate-specific implementation and verification without a new repeated review-agent loop.</ApprovalBasis>
+    <Lineage>C-SPLIT-DBLCLICK-TOGGLE; source commits 9f37b81e2397135eaf97f00ce793b133dc2a1bb3 and 0db3508a50c20634cf3fe1a5af1d2b6c5eba9fc7; current source base faab503cc8a154561f7f11394a835edf702021e4</Lineage>
+    <Summary>
+    Split View is reachable only through the View menu, Cmd+\ and the
+    command palette, and the divider's double-click spends itself on side
+    swapping. Per the owner's direction of 2026-10-27, double-click
+    becomes the mode's pointer toggle: double-clicking the divider turns
+    split off for the current tab; double-clicking a narrow hit strip at
+    the right border of the editing surface (present only while split is
+    off, about 8 px wide, ew-resize cursor hint on hover) turns it on.
+    Side swapping moves off the plain double-click: it stays on the
+    divider's Enter key (existing) and gains Alt/Option+double-click. The
+    menu item and shortcut keep their semantics.
+  </Summary>
+    <Goals>
+      <R-1>Divider double-click turns split off for the current tab (same
+    state flip as view.split-view; the toggle-off re-anchoring of the
+    remaining pane belongs to C-SPLIT-SCROLL-SYNC R-1 and ships with it —
+    before that change lands, toggle-off keeps today's scroll
+    behavior).</R-1>
+      <R-2>Right-edge enable strip: a hit strip along the right border of
+    the editing surface, about 8 px wide, present only while split is off
+    and the container is wide enough for split (800px rule), with an
+    ew-resize cursor hint on hover; double-clicking it turns split on. The
+    strip must not interfere with text selection, clicks or the vertical
+    scrollbar of the editing surface — the plan verifies the layering and
+    hit-testing corners (strip above or beside the scrollbar, not stealing
+    its drags). The strip is hidden in Diff Mode.</R-2>
+      <R-3>Swap relocation: side swapping stays on Enter when the divider
+    is focused (existing) and gains Alt/Option+double-click; the swap
+    preference persistence (splitViewSwapped) is unchanged. Arrow-key
+    ratio steps on the divider are unchanged.</R-3>
+      <R-4>The View › Split View menu item, Cmd+\ and the per-tab toggle
+    semantics are unchanged; all three entry points flip the same
+    tab.splitView state.</R-4>
+    </Goals>
+    <AcceptanceCriteria>
+      <Criterion>Divider double-click with split on turns it off for the
+    current tab (state, dirty flag and content untouched — the C-29
+    corner-1 guarantees hold for the new gesture).</Criterion>
+      <Criterion>Right-edge strip: present only while split is off and the
+    container is wide enough; ew-resize hover hint; double-click turns
+    split on; text selection, scrollbar drags and clicks near the right
+    edge of the surface are not stolen; hidden in Diff Mode.</Criterion>
+      <Criterion>Swap: Enter on the focused divider and Alt+double-click
+    both swap sides and persist splitViewSwapped; plain double-click never
+    swaps.</Criterion>
+      <Criterion>Menu, Cmd+\ and command palette keep toggling the same
+    per-tab state; the narrow-collapse rule is unchanged.</Criterion>
+      <Criterion>Governance: e2e rewritten/added as above;
+    MODULE_CONTRACT/MAP/CHANGE_SUMMARY updated in touched files; graph and
+    verification deltas routed in the same bundle as the code; grace lint
+    shows no new errors beyond the recorded pre-existing baseline.</Criterion>
+    </AcceptanceCriteria>
+    <NonGoals>
+      <NonGoal>Dragging the right-edge strip to open split at a chosen
+    ratio, or any resize semantics on it — it is a double-click toggle
+    only.</NonGoal>
+      <NonGoal>Anything about scroll behavior on toggle (C-SPLIT-SCROLL-SYNC
+    owns anchoring) or pane editability (C-SPLIT-DUAL-EDIT owns it).</NonGoal>
+      <NonGoal>Split below the 800px container collapse or in Diff
+    Mode.</NonGoal>
+      <NonGoal>Changing the divider's drag mechanics, ratio bounds or
+    persistence.</NonGoal>
+    </NonGoals>
+    <IntegrationConstraint>Transplant product hunks only, retaining current page-width, progressive-mount, export and renderer behavior. Root applies all routed projections centrally; this worker changes no versions, release artifacts, commits or pushed refs.</IntegrationConstraint>
+    <Constraints>
+      <Item>Pointer-only affordance: no new keyboard shortcuts, no menu
+    changes, no new user-facing strings by design (if the plan's UX corner
+    finds the bare gesture undiscoverable and adds a tooltip, it ships as
+    native copy in all ten locales with the locale presence tests — the
+    Discoverability-over-minimalism mandate is respected either way
+    because the menu and shortcut remain).</Item>
+      <Item>Existing gates stay green: tests/e2e/split-view.spec.ts
+    'double-click on the divider swaps sides' is rewritten — dblclick now
+    toggles off, swap is asserted via Enter and Alt+dblclick; every other
+    corner (per-tab state, ratio persistence and clamp, narrow collapse,
+    dark-theme probe) keeps passing.</Item>
+      <Item>The working tree carries parallel active changes; the plan runs
+    grace lint --parallel-preflight before any write.</Item>
+      <Item>No release or train admission follows from approval; English
+    only in committed artifacts.</Item>
+    </Constraints>
+    <AffectedAreas>
+      <Item>src/renderer/src/components/editorWithTabs/splitView.vue —
+    divider dblclick semantics, the right-edge strip element and its
+    gating.</Item>
+      <Item>src/renderer/src/components/editorWithTabs/index.vue — strip
+    placement/layering if it cannot live inside splitView.vue.</Item>
+      <Item>tests/e2e/split-view.spec.ts — corner rewrite + new affordance
+    assertions.</Item>
+      <Item>.grace/graph/* and .grace/verification/* — routing deltas in
+    the same bundle as the code.</Item>
+      <Item>Explicitly out of write scope: src-tauri, src/muya,
+    static/locales (unless the tooltip decision flips), CI workflows.</Item>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedEvidence>Fresh affected units, exact-source renderer build and actual browser regressions against the owned preview on port 4197; full requirements and eleven dual-edit corners retained. Root centrally applies projections and combined gates.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-STABILIZE-SPLIT-GESTURES>
+</GraceChangeSpec>

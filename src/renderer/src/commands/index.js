@@ -43,6 +43,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Preserve the remembered focused split pane through a synchronous owner request; ordinary command timers stay unchanged.
 //   - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the View › Page Width
 //     commands (view.page-width.compact/standard/wide/full/custom) — the
 //     R-13 menu surfacing. The four presets ride setPageWidthPreset (the
@@ -203,6 +204,9 @@ export class RootCommand {
 }
 
 const focusEditorAndExecute = (fn) => {
+  const request = { handled: false, execute: fn }
+  bus.emit('split:execute-command', request)
+  if (request.handled) return
   setTimeout(() => bus.emit('editor-focus'), 10)
   setTimeout(() => fn(), 150)
 }

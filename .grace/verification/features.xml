@@ -646,9 +646,11 @@
     <V-M-032>
       <Priority>high</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js tests/renderer/store/editor-lock.test.js tests/renderer/store/editor.preview.test.ts tests/renderer/store/editor.test.ts tests/renderer/store/preview-mode.test.js</Command>
         <Command>npx vitest run tests/renderer/store/editor-deep2.test.js</Command>
       </Commands>
       <Scenarios>
+        <Scenario>scenario-stabilize-dirty-reload: direct-data and disk events preserve dirty markdown with liveReload enabled, including preview/locked/watch flags. Local edits during settle/read or after an explicit reload confirmation require a fresh conflict choice. Repeated dirty events retain one latest choice; stale generations and closed/reopened tab callbacks cannot replace current content. Clean preview/watch reload with preferences off and identical-content skipping remain supported (live-reload.test.js).</Scenario>
         <Scenario>
           scenario-c4-rename-follow: Sidebar rename of an open file (C-4). RENAME_IF_NEEDED moves every tab of the renamed file to the new path (pathname, filename, DIRNAME for the current tab), leaves other tabs alone, is a no-op when no tab has the file open, drops the old per-file watcher and subscribes the new path; a modify event for the new path live-reloads, one for the old path does not (editor-deep2.test.js RENAME_IF_NEEDED). It never emits bus 'rename', which opens the rename dialog. Every add/change echo for the new path inside the 2 s rename window is ignored — on macOS the echo is a repeated modify → 'change' — so a dirty renamed tab keeps its edits with liveReload on; after the window changes reload normally (live smoke 2026-10-13).
         </Scenario>
@@ -1061,9 +1063,9 @@
     </V-M-032>
     <V-M-033>
       <Priority>high</Priority>
-      <Commands/>
-      <Scenarios/>
-      <Markers/>
+      <Commands><Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command></Commands>
+      <Scenarios><scenario-security-stabilization-033>C-SEC-AUDIT-FIXES: The five pinned link_click_ guards plus canonical-directory and symlink-executable companions cover requested/canonical executable denial, sibling documents and unchanged HTTP(S) handling without invoking the OS opener.</scenario-security-stabilization-033></Scenarios>
+      <Markers><Marker>[v1_compat][link][BLOCK_LINK_TARGET_DENIED]</Marker></Markers>
       <TraceAssertions/>
       <LegacyBase>
         <Source>docs/verification-plan.xml</Source>
@@ -1968,8 +1970,10 @@
         <Command>
           rg "BLOCK_EXT_CONTEXT_REQUEST|BLOCK_EXT_APPLY_OK" src-tauri/src/m045_ext
         </Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m045</Command>
       </Commands>
       <Scenarios>
+        <scenario-native-profile-namespace>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: profile_namespace_ pure/injected tests distinguish canonical and configured QA identity, endpoint and discovery roots; existing M021 fake-runner tests preserve canonical behavior and QA set/get/unset never target the release identity. M019 and M045 credential entry creation uses the same configured accessor; CSEC tests keep their injected backend and no host credential access. No native application launch is claimed.</scenario-native-profile-namespace>
         <Scenario>
           scenario-1: manifest-parse — valid and minimal extension manifests
           parse with defaults; wrong schema, empty id, empty name, missing
@@ -2007,6 +2011,7 @@
           manually via cargo test load_smoke -- --ignored (tests.rs
           test_b5b_load_smoke_30min_synthetic).
         </Scenario>
+      <scenario-security-stabilization-045>C-SEC-AUDIT-FIXES: m045 tests text_insert_refuses_no_token, text_insert_refuses_wrong_token, text_insert_refuses_disabled_extension, text_insert_refuses_missing_capability and text_insert_authorized_emits_with_requester_identity exercise actual handlers/events. disable_revokes_and_verifies_absence and disable_surfaces_revoke_failure prove honest credential absence, denied replay and fresh pairing via an injected backend. manifest_rejects_non_loopback_host_without_userinfo and parsed URL fixtures reject userinfo/non-loopback hosts. invoke_honest_loopback_ok and probe_health_honest_loopback_ok prove success; independent two-listener redirect tests and a dummy proxy prove no redirect/proxy contact. All named tests remain pinned in tests.rs. Gallery locale/interaction tests prove visible retained disable failure.</scenario-security-stabilization-045>
       </Scenarios>
       <Markers>
         <Marker>[ExtHost][live_server][BLOCK_EXT_CONTEXT_REQUEST]</Marker>
@@ -2414,8 +2419,11 @@
         <Command>npx vitest run tests/renderer/publication-privacy.test.js</Command>
         <Command>npx vitest run tests/renderer/localstorage-webstorage-compat.test.js</Command>
         <Command>test -f docs/release-process.md &amp;&amp; rg &quot;release-process.md&quot; AGENTS.md docs/release-trains/README.md tests/e2e/readme-shots.spec.ts</Command>
+      <Command>npx --no-install vitest run tests/tools/release-fresh-npx.test.mjs</Command>
       </Commands>
       <Scenarios>
+        <Scenario>C-ATTRIBUTION-NOTICE-REFRESH: actual checker25.0.1 output with NOFILE4096 covers every installed production identity and all direct dependencies; excluded-root counts and local commands are fixture-tested. Complete cargo-bundle-licenses4.2.0 metadata and exact full attribution comparison pass offline. Node optional packages reflect the installed OS/CPU, so another platform may produce a different notice inventory.</Scenario>
+        <scenario-train-admission-testing-protocol>C-STABILIZE-TRAIN-ADMISSION: release-readiness fixture tests first reproduce complete-protocol early admission failing on owner fields. Red-to-green cases cover pending/no owner in Collecting/Preparing/Frozen, incomplete protocol rejection including manual build and unexplained omissions, legacy acceptance compatibility, complete accepted Ready/Released, and missing/pending/rejected/needs-recheck rejection at strict manifest and direct strict repository boundaries. Existing exact seal/tag/check/authorization fixtures and the read-only current-train CLI remain green; no actual train admission or owner verdict is generated.</scenario-train-admission-testing-protocol>
         <Scenario>C-CI-CD-AUDIT-FIXES: the docs-only classifier checks out the tree, has PR read permission and identifies any non-documentation file so mixed PRs get the full gate; the required status check includes renderer-unit IPC type checking, every WebKit theme/tree project runs once with screenshot upload retained, and manual QA builds omit updater signing while each verification step fails the job independently. Local, CI and release packaging select Rust 1.99.0; executable Actions references are immutable.</Scenario>
         <Scenario>scenario-16: renderer-e2e runs webkit-session after browser installation, including remaining editor content and edit ownership after active-tab close.</Scenario>
         <Scenario>scenario-19 (C-RELEASE-PIPELINE-AUTOMATION): the checked-in train JSON is the gate authority; exact membership, owner acceptance, commit accounting, payload-to-seal allowlist, fresh screenshot digests and live payload check name/App/SHA/conclusion are independently fail-closed.</Scenario>
@@ -2498,6 +2506,7 @@
           tests/renderer/{release-normalize,release-materials}.test.js and
           tests/renderer/whatsNew/content.test.js.
         </Scenario>
+      <scenario-security-stabilization-046>C-SEC-AUDIT-FIXES: tests/tools/release-fresh-npx.test.mjs rejects fresh-resolving npx variants in release.yml and verify-attributions.sh. Gateway deploy and release controls regressions preserve checked deployment and owner release gates. Exact locked attribution/SBOM commands require network-denied execution evidence.</scenario-security-stabilization-046>
       </Scenarios>
       <Markers>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
@@ -2651,6 +2660,7 @@
         <Command>npx vitest run tests/renderer/muya/htmlTagBr.test.js tests/renderer/pages/app-deep.test.js tests/renderer/i18n/index.test.js tests/renderer/i18n/index-deep.test.js tests/renderer/store/preferences.test.ts</Command>
         <Command>cargo test -q --manifest-path src-tauri/Cargo.toml m048</Command>
         <Command>cargo test -q --manifest-path src-tauri/Cargo.toml search</Command>
+      <Command>npx --no-install vitest run tests/tools/release-fresh-npx.test.mjs</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1 (T-101): the renderer platform shim derives platform from the build-time Vite define — no 'darwin' hardcode; isOsx/isWindows/isLinux follow window.electron.process.platform; Windows path separators are exposed on win32 builds.</Scenario>
@@ -2664,6 +2674,7 @@
         <Scenario>scenario-9 (Phase W QA): Ctrl+wheel and Ctrl/Cmd+=/-/0 adjust the editor fontSize preference (12–36, debounced persistence) instead of the --content-zoom surface; the wheel listener is capture-phase so muya's wheel stopPropagation cannot leak WebView2 native browser zoom — app-deep.test.js. C-5: the persist-debounce assertion runs on fake timers (149 ms no write, 150 ms one write); the old pinch-zoom flake did not reproduce in 20 runs under parallel suite load.</Scenario>
         <Scenario>scenario-10 (Phase W QA): theme survives the boot hydration race (boot-dirty keys are dropped from the mt_prefs_get_all payload), locale loads await the dynamic translation payload, and win32 builds use the path-win32 shim implementation — preferences/i18n/platform-truth tests.</Scenario>
         <Scenario>scenario-11 (Phase W QA round 2): core:window:default is read-only in Tauri 2.11 — every mutating window call the renderer makes (maximize/unmaximize/minimize/unminimize/close/setFullscreen/setSize/setAlwaysOnTop + setZoom) is explicitly granted in capabilities/default.json and pinned by tauri-capabilities.test.js (root cause of "main-window min/max buttons dead while native-chrome Preferences buttons work"); the titlebar Share button hides behind the m048 `share` capability (m032 NSSharingServicePicker is macOS-only).</Scenario>
+      <scenario-security-stabilization-054>C-SEC-AUDIT-FIXES: Shared release workflow tests retain Windows packaging controls while enforcing local attribution/SBOM tools; platform-specific backend tests remain in hosted Windows CI.</scenario-security-stabilization-054>
       </Scenarios>
       <Markers>
         <Marker>[main][single_instance][BLOCK_FORWARDED]</Marker>
@@ -2765,7 +2776,8 @@
       <TraceAssertions><TraceAssertion>Machine-readable MARK_ROLLBACK lines carry no paths — event tokens and version identifiers only, matched whole-token never by substring (event=restored_norelaunch is not event=restored). Human-readable error and guidance lines may name filesystem paths — the bundle path, the aside path, the restored application path (failure messages printed such paths before this delta; the rule states that, it does not introduce it). Structured BLOCK markers that name paths form the third explicitly named class — e.g. BLOCK_ROLLBACK_VERIFY snapshot_invalid path=… for the data-root snapshot, kept for support cases. No user data.</TraceAssertion></TraceAssertions>
     </V-M-068>
       <V-M-071>
-      <Priority>high</Priority><Commands><Command>npx vitest run tests/tools/stats-gateway.test.mjs tests/renderer/release-preflight.test.js</Command><Command>npx vitest run tests/tools/stats-gateway-deploy.test.mjs</Command><Command>node tools/stats-gateway/query.mjs --dry</Command></Commands>
+      <Priority>high</Priority><Commands><Command>npx vitest run tests/tools/stats-gateway.test.mjs tests/renderer/release-preflight.test.js</Command><Command>npx vitest run tests/tools/stats-gateway-deploy.test.mjs</Command><Command>node tools/stats-gateway/query.mjs --dry</Command><Command>npx --no-install vitest run tests/tools/stats-gateway-deploy.test.mjs tests/tools/release-fresh-npx.test.mjs</Command>
+      </Commands>
       <Scenarios>
         <Scenario>C-CI-CD-AUDIT-FIXES: owner-run deploy admission rejects a dirty checkout, a SHA different from current remote main, missing or failed exact-SHA required checks, and a check from another App before Wrangler; a successful deploy records the SHA and Worker version privately and the owner checks /feed and /pkg redirects afterward.</Scenario>
         <Scenario>Derivation table: both platforms map to the exact deterministic GitHub asset URLs; unknown platforms and non-strict versions return null; the OS table ({{target}} values) stays strictly apart from the platform table.</Scenario>
@@ -2781,6 +2793,7 @@
         <Scenario>/stats readout pins (C-STATS-READOUT, mirroring the suite's pin set): auth fail-closed — a missing x-read-key header, a wrong key, a wrong-LENGTH key, an unset and an empty-string STATS_READ_KEY secret are each a bodyless 401 with Cache-Control: no-store and zero upstream fetches (denial costs zero subrequests; the entire auth step, digest comparison included, maps to the same 401), and a wrong key against a warm cache still 401s, never a cached 200; the authorized answer is 200 application/json no-store whose body equals the shared tables.mjs renderTables output over the stubbed upstream rows, the upstream call built from the secrets alone (STATS_ACCOUNT_ID in the SQL API endpoint, STATS_API_TOKEN as the Bearer) posting the exact shared SQL text; the failure mapping — an upstream non-2XX, a network rejection, an injected 10-second abort (fake-timer-advanced, the stub honoring the AbortSignal) and an unparseable body are each the fixed {"error":"stats-upstream"} 502 with no upstream text, token or account id in any response, while a 2XX valid-JSON answer without a data array renders 200 with empty tables; cache behavior — a second authorized request inside the 60-second window costs zero additional upstream fetches (module re-import resets the cache between cases), a failed upstream attempt is not cached (fail-then-retry), and absent or empty upstream secrets yield the fixed 502 even with a warm cache; zero writeDataPoint on every /stats path against the recorded-datapoint fixture; the route-shape edges (query string, /stats/, /STATS, non-GET) 404 with no-store only on handler-made responses; no Access-Control-* headers on any readout response; the remote-mode stub pins (the happy path printing the tables, the named missing/empty STATS_READ_KEY error, a non-fixed non-2XX body withheld — never-echo-more — and a 2XX invalid-JSON body failing with the fixed error and a nonzero exit); the no-logging scan slicing the worker source between the begin/end readout-branch comment markers (located in raw source, comments stripped only inside the slice) proves the slice carries no console token — the marker decision is zero — with a companion assertion that tables.mjs carries none either; and the secrets-name-only shape scan (32-hex, 64-hex and 40-plus separator-free alphanumeric bans) over every touched file plus the change bundle, resolved archive-stably across its active and archive paths.</Scenario>
         <Scenario>Owner-executed after deployment (pending evidence, mirroring the C-UPDATER-ROLLBACK pattern): one live check and one live pkg fetch appear in the query output.</Scenario>
         <Scenario>Owner-executed after the readout deployment (pending evidence, per the C-UPDATER-STATS acceptance pattern): the live /stats matrix — 200 with the tables for a correct X-Read-Key, a bodyless 401 without or with a wrong key, and the fixed 502 while an upstream secret is broken — recorded as post-deploy evidence.</Scenario>
+      <scenario-security-stabilization-071>C-SEC-AUDIT-FIXES: Gateway deployment and fresh-npx guards retain the checked deployment wrapper, pinned Wrangler and no residual unpinned logout instruction.</scenario-security-stabilization-071>
       </Scenarios>
       <Markers><Marker>[StatsGateway][feed][BLOCK_STATS_FEED]</Marker><Marker>[StatsGateway][pkg][BLOCK_STATS_PKG]</Marker></Markers>
       <TraceAssertions><TraceAssertion>The worker's own log lines carry only route, tables and versions — no IPs, no identifiers, nothing reflected from input.</TraceAssertion></TraceAssertions>

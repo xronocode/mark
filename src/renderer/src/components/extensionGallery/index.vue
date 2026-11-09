@@ -155,17 +155,21 @@ const refresh = async () => {
  */
 const toggleExtension = async (ext) => {
   const action = ext.enabled ? 'mt_ext_disable' : 'mt_ext_enable'
+  let toggleFailure = ''
   toggling.value[ext.id] = true
   try {
     await invoke(action, { id: ext.id })
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_TOGGLE_OK id=${ext.id} action=${action}]`)
   } catch (err) {
-    error.value = String(err)
+    toggleFailure = action === 'mt_ext_disable' && String(err) === 'ext_disable_revoke_failed'
+      ? t('extensions.disableFailed', 'The extension is disabled, but access revocation could not be verified. Try again.')
+      : String(err)
     // eslint-disable-next-line no-console
     console.error(`[ExtGallery][BLOCK_TOGGLE_FAILED id=${ext.id}]`, err)
   }
   await fetchExtensions()
+  if (toggleFailure) error.value = toggleFailure
   toggling.value[ext.id] = false
 }
 

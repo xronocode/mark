@@ -1,11 +1,11 @@
 # NOTICES — Node.js production dependencies
 
-Generated from `license-checker --production` over **386 packages**.
+Generated from `license-checker --production` over **371 packages**.
 
-Each entry lists the package name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
+Each entry lists the package name, version, declared or detected license, and upstream repository when available. Re-generate with:
 
 ```sh
-npx --package license-checker -- license-checker --production --json | \
+./node_modules/.bin/license-checker --production --json | \
   node tools/build-notices-node.mjs > NOTICES-node.md
 ```
 
@@ -13,14 +13,12 @@ npx --package license-checker -- license-checker --production --json | \
 
 | License | Package count |
 |---|---:|
-| MIT | 285 |
+| MIT | 275 |
 | BSD-3-Clause | 40 |
-| ISC | 37 |
+| ISC | 35 |
 | Apache-2.0 | 7 |
 | MIT OR Apache-2.0 | 5 |
 | BSD-2-Clause | 2 |
-| (MIT AND Zlib) | 1 |
-| (MIT OR GPL-3.0-or-later) | 1 |
 | (MPL-2.0 OR Apache-2.0) | 1 |
 | 0BSD | 1 |
 | Apache-2.0 OR MIT | 1 |
@@ -29,7 +27,7 @@ npx --package license-checker -- license-checker --production --json | \
 | UNLICENSED | 1 |
 | WTFPL | 1 |
 
-## MIT (285)
+## MIT (275)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -41,12 +39,12 @@ npx --package license-checker -- license-checker --production --json | \
 | @babel/parser | 8.0.8 | https://github.com/babel/babel |
 | @babel/types | 7.29.8 | https://github.com/babel/babel |
 | @babel/types | 8.0.8 | https://github.com/babel/babel |
-| @ctrl/tinycolor | 4.2.0 | https://github.com/scttcper/tinycolor |
+| @ctrl/tinycolor | 4.2.2 | https://github.com/scttcper/tinycolor |
 | @element-plus/icons-vue | 2.3.2 | https://github.com/element-plus/element-plus-icons |
 | @esbuild/darwin-arm64 | 0.28.2 | https://github.com/evanw/esbuild |
-| @floating-ui/core | 1.7.5 | https://github.com/floating-ui/floating-ui |
-| @floating-ui/dom | 1.7.6 | https://github.com/floating-ui/floating-ui |
-| @floating-ui/utils | 0.2.11 | https://github.com/floating-ui/floating-ui |
+| @floating-ui/core | 1.8.0 | https://github.com/floating-ui/floating-ui |
+| @floating-ui/dom | 1.8.0 | https://github.com/floating-ui/floating-ui |
+| @floating-ui/utils | 0.2.12 | https://github.com/floating-ui/floating-ui |
 | @intlify/core-base | 11.4.16 | https://github.com/intlify/vue-i18n |
 | @intlify/devtools-types | 11.4.16 | https://github.com/intlify/vue-i18n |
 | @intlify/message-compiler | 11.4.16 | https://github.com/intlify/vue-i18n |
@@ -78,7 +76,7 @@ npx --package license-checker -- license-checker --production --json | \
 | @types/lodash-es | 4.17.12 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/node | 26.6.5 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @types/trusted-types | 2.0.7 | https://github.com/DefinitelyTyped/DefinitelyTyped |
-| @types/web-bluetooth | 0.0.20 | https://github.com/DefinitelyTyped/DefinitelyTyped |
+| @types/web-bluetooth | 0.0.21 | https://github.com/DefinitelyTyped/DefinitelyTyped |
 | @vue-macros/common | 3.1.4 | https://github.com/vue-macros/vue-macros |
 | @vue/compiler-core | 3.5.44 | https://github.com/vuejs/core |
 | @vue/compiler-dom | 3.5.44 | https://github.com/vuejs/core |
@@ -96,14 +94,14 @@ npx --package license-checker -- license-checker --production --json | \
 | @vue/runtime-dom | 3.5.44 | https://github.com/vuejs/core |
 | @vue/server-renderer | 3.5.44 | https://github.com/vuejs/core |
 | @vue/shared | 3.5.44 | https://github.com/vuejs/core |
-| @vueuse/core | 12.0.0 | https://github.com/vueuse/vueuse |
-| @vueuse/metadata | 12.0.0 | https://github.com/vueuse/vueuse |
-| @vueuse/shared | 12.0.0 | https://github.com/vueuse/vueuse |
+| @vueuse/core | 15.0.0 | https://github.com/vueuse/vueuse |
+| @vueuse/metadata | 15.0.0 | https://github.com/vueuse/vueuse |
+| @vueuse/shared | 15.0.0 | https://github.com/vueuse/vueuse |
 | @xmldom/xmldom | 0.9.12 | https://github.com/xmldom/xmldom |
 | acorn | 8.19.0 | https://github.com/acornjs/acorn |
 | agent-base | 6.0.2 | https://github.com/TooTallNate/node-agent-base |
 | animation-frame-polyfill | 1.1.0 | https://github.com/webdeveric/animation-frame-polyfill |
-| ansi-regex | 6.2.2 | https://github.com/chalk/ansi-regex |
+| ansi-regex | 6.6.0 | https://github.com/chalk/ansi-regex |
 | ansi-styles | 6.2.3 | https://github.com/chalk/ansi-styles |
 | array-buffer-byte-length | 1.0.2 | https://github.com/inspect-js/array-buffer-byte-length |
 | array-from | 2.1.1 | https://github.com/studio-b12/array-from |
@@ -114,7 +112,7 @@ npx --package license-checker -- license-checker --production --json | \
 | asynckit | 0.4.0 | https://github.com/alexindigo/asynckit |
 | atoa | 1.0.0 | https://github.com/bevacqua/atoa |
 | available-typed-arrays | 1.0.7 | https://github.com/inspect-js/available-typed-arrays |
-| axios | 1.20.0 | https://github.com/axios/axios |
+| axios | 1.21.0 | https://github.com/axios/axios |
 | base64-js | 1.5.1 | https://github.com/beatgammit/base64-js |
 | batch-processor | 1.0.0 | https://github.com/wnr/batch-processor |
 | birpc | 2.9.0 | https://github.com/antfu-collective/birpc |
@@ -134,7 +132,6 @@ npx --package license-checker -- license-checker --production --json | \
 | confbox | 0.3.1 | https://github.com/unjs/confbox |
 | contra | 1.9.4 | https://github.com/bevacqua/contra |
 | copy-anything | 4.0.5 | https://github.com/mesqueeb/copy-anything |
-| core-util-is | 1.0.3 | https://github.com/isaacs/core-util-is |
 | create-point-cb | 1.2.0 |  |
 | crossvent | 1.5.5 | https://github.com/bevacqua/crossvent |
 | csstype | 3.2.3 | https://github.com/frenic/csstype |
@@ -145,13 +142,13 @@ npx --package license-checker -- license-checker --production --json | \
 | define-data-property | 1.1.4 | https://github.com/ljharb/define-data-property |
 | define-properties | 1.2.1 | https://github.com/ljharb/define-properties |
 | delayed-stream | 1.0.0 | https://github.com/felixge/node-delayed-stream |
-| docx | 9.14.0 | https://github.com/dolanmiu/docx |
+| docx | 9.15.0 | https://github.com/dolanmiu/docx |
 | dom-autoscroller | 2.3.4 | https://github.com/hollowdoor/dom_autoscroller |
 | dom-mousemove-dispatcher | 1.0.1 | https://github.com/hollowdoor/dom_mousemove_dispatcher |
 | dom-plane | 1.0.2 |  |
 | dragula | 3.7.3 | https://github.com/bevacqua/dragula |
 | dunder-proto | 1.0.1 | https://github.com/es-shims/dunder-proto |
-| element-plus | 2.13.7 | https://github.com/element-plus/element-plus |
+| element-plus | 2.14.7 | https://github.com/element-plus/element-plus |
 | element-resize-detector | 1.2.4 | https://github.com/wnr/element-resize-detector |
 | emoji-regex | 10.6.0 | https://github.com/mathiasbynens/emoji-regex |
 | es-define-property | 1.0.1 | https://github.com/ljharb/es-define-property |
@@ -168,9 +165,10 @@ npx --package license-checker -- license-checker --production --json | \
 | fast-content-type-parse | 3.0.0 | https://github.com/fastify/fast-content-type-parse |
 | fast-json-patch | 3.1.1 | https://github.com/Starcounter-Jack/JSON-Patch |
 | fdir | 6.5.0 | https://github.com/thecodrr/fdir |
+| fflate | 0.8.3 | https://github.com/101arrowz/fflate |
 | fill-range | 7.1.1 | https://github.com/jonschlinkert/fill-range |
 | flowchart.js | 1.18.1 | https://github.com/adrai/flowchart.js |
-| follow-redirects | 1.16.1 | https://github.com/follow-redirects/follow-redirects |
+| follow-redirects | 1.16.3 | https://github.com/follow-redirects/follow-redirects |
 | for-each | 0.3.5 | https://github.com/Raynos/for-each |
 | form-data | 4.0.6 | https://github.com/form-data/form-data |
 | fsevents | 2.3.3 | https://github.com/fsevents/fsevents |
@@ -186,13 +184,11 @@ npx --package license-checker -- license-checker --production --json | \
 | has-property-descriptors | 1.0.2 | https://github.com/inspect-js/has-property-descriptors |
 | has-symbols | 1.1.0 | https://github.com/inspect-js/has-symbols |
 | has-tostringtag | 1.0.2 | https://github.com/inspect-js/has-tostringtag |
-| hash.js | 1.1.7 | https://github.com/indutny/hash.js |
 | hasown | 2.0.4 | https://github.com/inspect-js/hasOwn |
 | hookable | 5.5.3 | https://github.com/unjs/hookable |
 | html-tags | 5.1.0 | https://github.com/sindresorhus/html-tags |
 | https-proxy-agent | 5.0.1 | https://github.com/TooTallNate/node-https-proxy-agent |
 | iconv-lite | 0.6.3 | https://github.com/ashtuchkin/iconv-lite |
-| immediate | 3.0.6 | https://github.com/calvinmetcalf/immediate |
 | internal-slot | 1.1.0 | https://github.com/ljharb/internal-slot |
 | is-arguments | 1.2.0 | https://github.com/inspect-js/is-arguments |
 | is-array | 1.0.1 | https://github.com/retrofox/is-array |
@@ -213,15 +209,13 @@ npx --package license-checker -- license-checker --production --json | \
 | is-weakmap | 2.0.2 | https://github.com/inspect-js/is-weakmap |
 | is-weakset | 2.0.4 | https://github.com/inspect-js/is-weakset |
 | is-what | 5.5.0 | https://github.com/mesqueeb/is-what |
-| isarray | 1.0.0 | https://github.com/juliangruber/isarray |
 | isarray | 2.0.5 | https://github.com/juliangruber/isarray |
 | iselement | 1.1.4 | https://github.com/fczbkk/iselement |
 | iso-639-1 | 3.1.6 | https://github.com/meikidd/iso-639-1 |
 | joplin-turndown-plugin-gfm | 1.0.12 | https://github.com/laurent22/joplin-turndown-plugin-gfm |
 | json-stringify-pretty-compact | 4.0.0 | https://github.com/lydell/json-stringify-pretty-compact |
 | json-with-bigint | 3.5.8 | https://github.com/Ivan-Korolenko/json-with-bigint |
-| katex | 0.18.10 | https://github.com/KaTeX/KaTeX |
-| lie | 3.3.0 | https://github.com/calvinmetcalf/lie |
+| katex | 0.19.1 | https://github.com/KaTeX/KaTeX |
 | local-pkg | 1.2.1 | https://github.com/antfu-collective/local-pkg |
 | lodash | 4.18.1 | https://github.com/lodash/lodash |
 | lodash-es | 4.18.1 | https://github.com/lodash/lodash |
@@ -267,22 +261,18 @@ npx --package license-checker -- license-checker --production --json | \
 | possible-typed-array-names | 1.1.0 | https://github.com/ljharb/possible-typed-array-names |
 | postcss | 8.5.31 | https://github.com/postcss/postcss |
 | prismjs | 1.30.0 | https://github.com/PrismJS/prism |
-| process-nextick-args | 2.0.1 | https://github.com/calvinmetcalf/process-nextick-args |
 | proxy-from-env | 2.1.0 | https://github.com/Rob--W/proxy-from-env |
 | quansync | 0.2.11 | https://github.com/quansync-dev/quansync |
 | raphael | 2.3.0 | https://github.com/DmitryBaranovskiy/raphael |
-| readable-stream | 2.3.8 | https://github.com/nodejs/readable-stream |
 | readdirp | 5.1.1 | https://github.com/paulmillr/readdirp |
 | regexp.prototype.flags | 1.5.4 | https://github.com/es-shims/RegExp.prototype.flags |
 | rfdc | 1.4.1 | https://github.com/davidmarkclements/rfdc |
 | rollup | 4.60.2 | https://github.com/rollup/rollup |
-| safe-buffer | 5.1.2 | https://github.com/feross/safe-buffer |
 | safe-regex-test | 1.1.0 | https://github.com/ljharb/safe-regex-test |
 | safer-buffer | 2.1.2 | https://github.com/ChALkeR/safer-buffer |
 | scule | 1.3.0 | https://github.com/unjs/scule |
 | set-function-length | 1.2.2 | https://github.com/ljharb/set-function-length |
 | set-function-name | 2.0.2 | https://github.com/ljharb/set-function-name |
-| setimmediate | 1.0.5 | https://github.com/YuzuJS/setImmediate |
 | side-channel | 1.1.0 | https://github.com/ljharb/side-channel |
 | side-channel-list | 1.0.1 | https://github.com/ljharb/side-channel-list |
 | side-channel-map | 1.0.1 | https://github.com/ljharb/side-channel-map |
@@ -291,7 +281,6 @@ npx --package license-checker -- license-checker --production --json | \
 | snabbdom-to-html | 7.1.0 | https://github.com/acstll/snabbdom-to-html |
 | snapsvg-cjs | 0.0.6 | https://github.com/geelen/Snap.svg-cjs |
 | stop-iteration-iterator | 1.1.0 | https://github.com/ljharb/stop-iteration-iterator |
-| string_decoder | 1.1.1 | https://github.com/nodejs/string_decoder |
 | string-width | 7.2.0 | https://github.com/sindresorhus/string-width |
 | strip-ansi | 7.2.0 | https://github.com/chalk/strip-ansi |
 | superjson | 2.2.6 | https://github.com/blitz-js/superjson |
@@ -305,10 +294,9 @@ npx --package license-checker -- license-checker --production --json | \
 | undici-types | 8.9.0 | https://github.com/nodejs/undici |
 | unplugin | 3.4.0 | https://github.com/unjs/unplugin |
 | unplugin-utils | 0.3.2 | https://github.com/sxzz/unplugin-utils |
-| util-deprecate | 1.0.2 | https://github.com/TooTallNate/util-deprecate |
 | vite | 7.3.7 | https://github.com/vitejs/vite |
 | vue | 3.5.44 | https://github.com/vuejs/core |
-| vue-component-type-helpers | 3.2.7 | https://github.com/vuejs/language-tools |
+| vue-component-type-helpers | 3.3.13 | https://github.com/vuejs/language-tools |
 | vue-i18n | 11.4.16 | https://github.com/intlify/vue-i18n |
 | vue-router | 5.4.0 | https://github.com/vuejs/router |
 | webpack-virtual-modules | 0.6.2 | https://github.com/sysgears/webpack-virtual-modules |
@@ -331,7 +319,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-canvas | 2.0.0 | https://github.com/vega/vega |
 | vega-crossfilter | 5.1.0 | https://github.com/vega/vega |
 | vega-dataflow | 6.1.0 | https://github.com/vega/vega |
-| vega-embed | 7.1.0 | git+http://github.com/vega/vega-embed |
+| vega-embed | 7.3.0 | git+http://github.com/vega/vega-embed |
 | vega-encode | 5.1.0 | https://github.com/vega/vega |
 | vega-event-selector | 4.0.0 | https://github.com/vega/vega |
 | vega-expression | 6.1.0 | https://github.com/vega/vega |
@@ -355,7 +343,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-statistics | 2.0.0 | https://github.com/vega/vega |
 | vega-themes | 3.0.0 | https://github.com/vega/vega-themes |
 | vega-time | 3.1.0 | https://github.com/vega/vega |
-| vega-tooltip | 1.0.0 | https://github.com/vega/vega-tooltip |
+| vega-tooltip | 1.1.0 | https://github.com/vega/vega-tooltip |
 | vega-transforms | 5.1.0 | https://github.com/vega/vega |
 | vega-typings | 2.1.0 | https://github.com/vega/vega |
 | vega-util | 2.1.3 | https://github.com/vega/vega |
@@ -364,7 +352,7 @@ npx --package license-checker -- license-checker --production --json | \
 | vega-voronoi | 5.1.0 | https://github.com/vega/vega |
 | vega-wordcloud | 5.1.0 | https://github.com/vega/vega |
 
-## ISC (37)
+## ISC (35)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -391,19 +379,17 @@ npx --package license-checker -- license-checker --production --json | \
 | d3-timer | 3.0.1 | https://github.com/d3/d3-timer |
 | delaunator | 5.1.0 | https://github.com/mapbox/delaunator |
 | get-caller-file | 2.0.5 | https://github.com/stefanpenner/get-caller-file |
-| inherits | 2.0.4 | https://github.com/isaacs/inherits |
 | internmap | 2.0.3 | https://github.com/mbostock/internmap |
 | lru-cache | 5.1.1 | https://github.com/isaacs/node-lru-cache |
 | mapped-disposable | 1.0.3 | https://github.com/file-icons/mapped-disposable |
-| minimalistic-assert | 1.0.1 | https://github.com/calvinmetcalf/minimalistic-assert |
 | path-win32 | 1.0.1 | https://github.com/stefanpenner/node-path-posix |
 | picocolors | 1.1.1 | https://github.com/alexeyraspopov/picocolors |
-| semver | 7.7.4 | https://github.com/npm/node-semver |
+| semver | 7.8.5 | https://github.com/npm/node-semver |
 | topojson-client | 3.1.0 | https://github.com/topojson/topojson-client |
 | universal-user-agent | 7.0.3 | https://github.com/gr2m/universal-user-agent |
 | y18n | 5.0.8 | https://github.com/yargs/y18n |
 | yallist | 3.1.1 | https://github.com/isaacs/yallist |
-| yaml | 2.8.3 | https://github.com/eemeli/yaml |
+| yaml | 2.9.1 | https://github.com/eemeli/yaml |
 | yargs-parser | 22.0.0 | https://github.com/yargs/yargs-parser |
 
 ## Apache-2.0 (7)
@@ -434,18 +420,6 @@ npx --package license-checker -- license-checker --production --json | \
 |---|---|---|
 | @mixmark-io/domino | 2.2.0 | https://github.com/mixmark-io/domino |
 | entities | 7.0.1 | https://github.com/fb55/entities |
-
-## (MIT AND Zlib) (1)
-
-| Package | Version | Repository |
-|---|---|---|
-| pako | 1.0.11 | https://github.com/nodeca/pako |
-
-## (MIT OR GPL-3.0-or-later) (1)
-
-| Package | Version | Repository |
-|---|---|---|
-| jszip | 3.10.2 | https://github.com/Stuk/jszip |
 
 ## (MPL-2.0 OR Apache-2.0) (1)
 

@@ -172,6 +172,24 @@ describe('the store over schema v2', () => {
     expect(EMPTY_STORE).toEqual({ version: 2, files: {} })
   })
 
+  it('explicit Auto reset survives save and reload without stale widths; missing mode stays inherited', async () => {
+    const backing = {}
+    const io = { get: async key => backing[key], set: async (key, value) => { backing[key] = value } }
+    const entries = {
+      '0#2:auto': { mode: 'auto', widths: [300, 400], manual: [true, true], ratios: [0.4, 0.6], tableWidth: 700 },
+      '1#1:inherited': { widths: [90], manual: [true] },
+      '2#1:fit': { mode: 'fit', widths: [120], manual: [true] },
+      '3#1:full': { mode: 'full', widths: [150], manual: [true] }
+    }
+    await saveTableLayoutsFor('/auto-reset.md', entries, io)
+    const restored = await loadTableLayoutsFor('/auto-reset.md', io)
+    expect(restored['0#2:auto']).toEqual({ mode: 'auto', widths: [], manual: [] })
+    expect(restored['1#1:inherited']).toEqual({ widths: [90], manual: [true] })
+    expect(restored['2#1:fit']).toEqual(entries['2#1:fit'])
+    expect(restored['3#1:full']).toEqual(entries['3#1:full'])
+    expect(migrateTableEntry(restored['0#2:auto'])).toEqual(restored['0#2:auto'])
+  })
+
   it('a v2 entry round-trips save → load with ratios and mode intact', async () => {
     const backing = {}
     const io = {

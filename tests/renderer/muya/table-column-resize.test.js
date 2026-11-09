@@ -97,7 +97,9 @@ describe('table column resize maths (C-39 T-002)', () => {
   })
 
   it('sums clamped widths for the fixed table width', () => {
-    expect(sumWidths([100, 20, 180.6])).toBe(100 + MIN_COLUMN_WIDTH + 181)
+    // Owner 2026-11-09: the sum is honest rounding (a squeeze plan may sit
+    // below the drag minimum); re-flooring re-inflated squeezed tables.
+    expect(sumWidths([100, 20, 180.6])).toBe(100 + 20 + 181)
   })
 
   it('keeps surviving widths by index and measures new columns when a column is added', () => {
@@ -470,5 +472,26 @@ describe('guard paths over unusable surfaces (C-39/C-65 R-7)', () => {
     idless.appendChild(buildTable(undefined, 1))
     muya.container.append(childless, idless)
     expect(() => muya.tableResize.refreshTableSurfaces()).not.toThrow()
+  })
+})
+
+
+// Owner 2026-11-07: a NULL extents verdict (a measurement that ran in a
+// mid-transition moment) must never be cached — one null froze every
+// later Fit/Full plan for that table and Fit kept the auto-wide layout.
+describe('extentsFor never caches a null verdict', () => {
+  it('re-measures on the next call after a null', async () => {
+    const muya = makeFakeMuya()
+    const table = buildTable('nz-1', 2)
+    document.body.appendChild(table)
+    // First call in jsdom measures null (no offscreen geometry): the
+    // verdict must NOT stick — a second call re-measures (still null in
+    // jsdom, but the cache entry must stay absent).
+    const first = muya.tableResize.extentsFor(table)
+    expect(first).toBeNull()
+    expect(muya.tableResize.fitCache.has(table.id)).toBe(false)
+    const second = muya.tableResize.extentsFor(table)
+    expect(second).toBeNull()
+    expect(muya.tableResize.fitCache.has(table.id)).toBe(false)
   })
 })

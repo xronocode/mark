@@ -1,0 +1,35 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-CHECKBOX-DIRTY>
+    <Summary>Preserve the already working one-revision checkbox dirty/close path while repairing one-step task undo and blocked readonly checkbox edits. Route editable checkbox clicks exactly once to their dedicated content-state handler; do not then add a generic click cursor/history snapshot. Cancel checkbox default actions on explicit readonly Muya surfaces.</Summary>
+    <ApprovalBasis>Owner-approved RECOVERY and delegated recommended safety decisions, 2026-11-09. The coordinator explicitly requested actual built-renderer proof before repairing checkbox-only edits, one semantic revision/cascade, unsaved close protection, undo/redo and readonly/mirror safety; approved compact C-STABILIZE-CHECKBOX-DIRTY if a defect was confirmed. This bounded repair addresses proven history and readonly failures, not an invented missing change notification. No release or publication authorization.</ApprovalBasis>
+    <BaselineEvidence>On clean faab503, built-renderer Chromium and WebKit both confirmed saved task clicks update Markdown, isSaved=false and contentRevision exactly once and open the real unsaved-close dialog. Both engines failed one-step undo for single and autoCheck-cascaded tasks and allowed a locked checkbox to mutate Markdown. No dispatchChange addition is justified: native input already supplies the single dirty event.</BaselineEvidence>
+    <Goals>
+      <Goal>One task click or nested autoCheck cascade remains one semantic dirty revision and is undone/redone in one document-history operation.</Goal>
+      <Goal>Locked/readonly and mirror checkbox clicks do not mutate Markdown, dirty/revision state or checkbox DOM.</Goal>
+      <Goal>Actual close-command cancellation preserves the checkbox edit; existing native input notification is retained exactly once.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Keep source changes in clickEvent.js checkbox routing; preserve clickCtrl/history/renderer store behavior and all unrelated pointer actions.</Constraint>
+      <Constraint>Use synthetic saved files and Auto Save off; no real user document, dependency install, commit/push, product-tree edit or release operation.</Constraint>
+      <Constraint>Use port 4187 and two workers in a dedicated portable test config; reuse no foreign preview; preserve timeout and assertion strictness.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No global undo redesign, extra dispatchChange, split integration, profile/lock architecture rewrite, security or release changes.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Built Chromium and WebKit tests prove single/cascade checkbox Markdown + one revision + dirty marking, actual unsaved close protection, one undo and redo.</Criterion>
+      <Criterion>Readonly/locked and existing read-only mirror clicks leave content/revision/dirty and checked state unchanged.</Criterion>
+      <Criterion>Focused routing unit controls preserve editable single routing, native input once, readonly cancellation and noncheckbox generic routing; existing keyboard undo, close and lock suites remain green.</Criterion>
+      <Criterion>Current graph/verification and local contracts describe the routing boundary; final command gates and post-archive integrity/status are recorded.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Area>M-012 checkbox/native click routing and history ownership; M-011 renderer dirty/close boundary verified without implementation change.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/muya/checkbox-dirty.test.js tests/renderer/muya/keyboard-undo.test.js</ExpectedCommand>
+      <ExpectedCommand>npm run build &amp;&amp; CI=1 npx --no-install playwright test --config tests/e2e/checkbox.playwright.config.ts</ExpectedCommand>
+      <ExpectedEvidence>Red-to-green real browser cases from faab503; report that the suspected dirty-loss path already passed instead of claiming it was fixed. Verify the actual confirmed undo and readonly defects. Preserve a portable public config and private raw receipts.</ExpectedEvidence>
+    </VerificationIntent>
+    <FactualCorrection>2026-11-09, coordinator-confirmed finite evidence correction: earlier explanatory prose attributed the existing change notification to native input. Actual built Chromium/WebKit task clicks reach the existing keyboard.dispatchEditorState click listener and its scheduled dispatchChange; no DOM input event is observed at the measured editor boundary. The user invariant remains one semantic store change/revision per single or nested cascade, correct close protection and undo/redo, and readonly safety. The browser diagnostic now counts actual LISTEN_FOR_CONTENT_CHANGE deliveries plus contentRevision (both exactly one), preserving all original user requirements, source scopes, assertion targets, tasks and command gates. The failed invented input-count receipt remains privately retained as checkbox-grace-final.log; this is a factual correction, not a new product requirement or lifecycle successor.</FactualCorrection>
+  </C-STABILIZE-CHECKBOX-DIRTY>
+</GraceChangeSpec>

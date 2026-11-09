@@ -1,0 +1,45 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-VERIFICATION>
+    <ChangeRef>C-STABILIZE-SPLIT-VERIFICATION</ChangeRef>
+    <IntentSummary>Add missing requirement-driven integration and boundary tests for the existing split implementation.</IntentSummary>
+    <ApprovalBasis>Owner-approved recovery with delegated routine implementation decisions.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/components/editorWithTabs/sourceCode.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/splitCommands.js</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command budgetSeconds="180">npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/renderer/components/split-rich-history.test.js</File>
+      <File>tests/renderer/components/split-source-commands.test.js</File>
+      <File>tests/renderer/util/split-commands.test.js</File>
+      <File>tests/renderer/util/split-dual-edit.test.js</File>
+      <Glob>.grace/changes/active/C-STABILIZE-SPLIT-VERIFICATION/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Verify rich owner, source commands and transform boundaries in independent test files</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>All new tests assert specified observable effects and preserve runtime/input hashes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-STABILIZE-SPLIT-VERIFICATION>
+</GraceChangePlan>

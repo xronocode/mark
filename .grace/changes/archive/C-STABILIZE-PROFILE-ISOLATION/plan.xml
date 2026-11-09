@@ -1,0 +1,71 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-PROFILE-ISOLATION>
+    <ChangeRef>C-STABILIZE-PROFILE-ISOLATION</ChangeRef>
+    <Created>2026-11-09</Created>
+    <IntentSummary>Parameterize pure root resolution, bind a validated immutable application namespace before state access, and preserve release path compatibility.</IntentSummary>
+    <ApprovalBasis>Owner-approved recovery and delegated recommended choices, 2026-11-09.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src-tauri/src/mt_paths.rs</File>
+        <Text>pub const APP_BUNDLE_ID</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>.build(tauri::generate_context!())</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>src-tauri/src/mt_paths.rs</File>
+        <Text>initialize_application_identifier</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>.build(context)</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">mkdir -p target &amp;&amp; rustc --test src-tauri/src/mt_paths.rs -o target/mt-paths-tests &amp;&amp; target/mt-paths-tests</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-001 />
+        <M-022 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-001 />
+        <V-M-022 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/main.rs</File>
+      <File>src-tauri/src/mt_paths.rs</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <Glob>.grace/changes/active/C-STABILIZE-PROFILE-ISOLATION/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Separate configured namespaces without changing release paths</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Tests reproduce namespace collision before the fix and prove cache/data separation and canonical release compatibility afterward; main binds the exact Tauri Context before state consumers.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>mkdir -p target &amp;&amp; rustc --test src-tauri/src/mt_paths.rs -o target/mt-paths-tests &amp;&amp; target/mt-paths-tests</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Synchronize routed contracts and verify compiled startup</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Current M-001/M-022 and verification describe configured namespaces; Rust compilation and final selected assertions pass before integration.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo check --manifest-path src-tauri/Cargo.toml --bin mark</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <ExecutionEvidence>2026-11-09: the namespace-collision regression failed against the former hardcoded joins, then seven pure path/validation tests passed. Full offline Rust cargo check --bin mark passed with no errors. Selected final assertions passed. The acceptance application has not been launched; its configured identifier and profile roots must be recorded with the final artifact. No existing owner profile was migrated or modified.</ExecutionEvidence>
+  </C-STABILIZE-PROFILE-ISOLATION>
+</GraceChangePlan>

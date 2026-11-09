@@ -1578,22 +1578,10 @@
           override pins the document against the global cycle with the
           source line naming the pinned family and mode.
         </Scenario>
-        <Scenario>
-          Table modes are honest: Fit page keeps a wide table inside the
-          text column (cells wrap anywhere before any scroll), Full width
-          spans the whole window canvas, the degradation badge reads the
-          exact overflow in px and appears only when even the minima exceed
-          the frame; ratios survive a Fit/Full round-trip, a window resize,
-          a zoom change and a page-width change; an inserted column
-          renormalises; the legacy fake-fit flag is gone and a stored
-          fit:true table opens in Fit page after an idempotent schema-v2
-          migration (a second run changes nothing); drags show % and px
-          chips above the columns and the side walls set, clamp and reset an
-          explicit table width.
-        </Scenario>
+        <Scenario>C-STABILIZE-PRODUCT-REPAIRS: Auto resets fixed widths, Fit/Full fit resolved frames without internal scrolling through wrap/squeeze. Internal full-height border zones track actual cells; outer walls exist only in Auto. No hidden-column clipping is allowed; geometry and lifecycle boundaries are checked by scoped table suites. C-STABILIZE-TABLE-AUTO-PERSISTENCE uses table-layout-ratios/store units and the parent Muya lifecycle case to prove explicit Auto survives a global Fit default without stale widths; absent mode and Fit/Full remain compatible. The quick-settings Aa entry retains Page/View/Tables behavior and paints above table walls; page-width-panel and chrome-native-theme e2e cover it.</Scenario>
         <Scenario>
           Locale and menu truth: all ten locales carry native copy for the
-          new strings with regenerated .min derivatives (drift gate green),
+          new strings as source tables only (retired .min twins remain absent),
           the help text states the real empty-field behaviour, user-facing
           strings say "column sizes", the View &gt; Page Width checkmarks
           follow the effective value and Custom… opens the panel; the

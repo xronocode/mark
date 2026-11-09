@@ -158,6 +158,13 @@
       <Status>done</Status>
       <PhaseRef>B7-step-1</PhaseRef>
       <Summary>
+        C-STABILIZE-DIRTY-RELOAD (2026-11-09): automatic reload requires a
+        clean tab even under liveReload, preview or watch flags. Revalidate
+        tab-object/path ownership, generation and local content/revision across
+        settle and read boundaries; dirty or newly edited buffers use the
+        existing explicit conflict choice. Confirmation cannot discard edits
+        made after the choice while its read is pending. Clean read-only/watch
+        reload, hash skipping, position and pre-reload snapshots remain.
         Live-reload on external file change: fixed APPLY_FILE_CHANGE async read
         path (latent bug: project.js sends {pathname} without data); fixed
         loadChange cursor/scrollTop preservation; added liveReload preference +
@@ -174,8 +181,10 @@
       <VerificationRef>V-M-032</VerificationRef>
       <Contract>
         <Purpose>
-          No explicit legacy module contract; use Summary and
-          LegacyKnowledgeDetail until the module is next changed.
+          Apply external file changes to clean owned tabs, preserving reading
+          position and snapshots; require the existing conflict choice before
+          replacing unsaved content. Async work must revalidate generation,
+          tab lifetime and local edits before applying.
         </Purpose>
         <Inputs/>
         <Outputs/>
@@ -282,6 +291,7 @@
         --diff file.md` opens diff view. Flags threaded through PendingOpens
         AtomicBool fields to emit_open_new_tab_ext → bootstrap-ipc.js tab flags.
         Apple Events keep hardcoded preview=true.
+        C-SEC-AUDIT-FIXES: mt_format_link_click keeps empty href and lowercase HTTP(S) routing; every local target is joined to the canonical document directory and passes M-010 check_path and requested/canonical executable-extension guards before OS opener access. The fence is document-local, independent of a global workspace.
       </Summary>
       <PlannedPath>
         src-tauri/src/m020_cli.rs, src-tauri/src/main.rs,
@@ -1718,6 +1728,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-044; docs/development-plan.xml: M-044</LegacySource>
     </M-044>
     <M-045>
+      <SummaryDelta>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured immutable application identity routes native credential services, default-handler targeting and extension endpoint/discovery. Canonical release identity and macOS profile paths remain unchanged; only the canonical identifier retains the legacy extension scan. Focused pure/injected namespace tests exercise release and QA separation without host credentials or LaunchServices mutation.</SummaryDelta>
       <Name>ExtensionHost</Name>
       <DisplayName>ExtensionHost</DisplayName>
       <Type>CORE_LOGIC</Type>
@@ -1733,6 +1744,7 @@
         C-15 T-103: live_endpoint is_pid_alive has a Windows tasklist arm
         (was assume-stale) and platform labels windows-x86_64/aarch64;
         discovery scans %APPDATA% on Windows.
+        C-SEC-AUDIT-FIXES: the three existing incoming data routes require bearer authentication for an enabled extension; text-insert additionally requires text.insert and emits the authenticated requester identity. Candidate capabilities are snapshotted before credential lookup outside the registry lock and off the async executor. Successful disable first fences enabled state, then revokes and verifies absence in persistent and memory stores; failures remain visible and fresh pairing restores access. Both outgoing clients parse and revalidate loopback URLs with no userinfo, refuse redirects and bypass proxy environment settings. Pair bootstrap, stream sessions and listener surface remain unchanged.
       </Summary>
       <Path>src-tauri/src/m045_ext/mod.rs</Path>
       <Dependencies>
@@ -2350,6 +2362,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-045; docs/development-plan.xml: M-045</LegacySource>
     </M-045>
     <M-046>
+      <SummaryDelta>C-STABILIZE-TRAIN-ADMISSION: Collecting/Preparing/Frozen user-facing membership may carry pending or absent owner acceptance only with complete explicit testingProtocol automatic/manual/intentionallyUnverified sections. Empty performed-check sections require an explicit corresponding unverified reason; actual manual entries identify result/date/build/evidence. Legacy complete owner acceptance remains compatible. Ready/Released and every strict entry point require complete owner acceptance and reject pending/rejected/needs-recheck; accounting, identity, check, seal and authorization gates remain unchanged.</SummaryDelta>
       <Name>ReleasePreflight</Name>
       <DisplayName>ReleasePreflight</DisplayName>
       <Type>UTILITY</Type>
@@ -2357,6 +2370,7 @@
       <Layer>TOOLING</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
       <Summary>
+        C-ATTRIBUTION-NOTICE-REFRESH: the Node notice formatter counts third-party rows after root exclusion and documents the exact installed checker command; Node and Rust notices are regenerated from complete pinned offline tool outputs, without a custom collector or dependency changes.
         C-RELEASE-PIPELINE-AUTOMATION (2026-10-20): M-046 now owns the
         repository release train authority, release preparation and
         atomic JSON/Markdown train-ledger plus version normalization, exact
@@ -2485,6 +2499,7 @@
         duplicated C-NATIVE-DOCX-RTF-EXPORT on 2026-10-26), and it fails
         closed with MT_RELEASE_PROJECT_READBACK_LAG when the row never
         becomes visible.
+        C-SEC-AUDIT-FIXES: Node attribution and SBOM generation use exact lockfile-installed license-checker 25.0.1 and @cyclonedx/cyclonedx-npm 6.0.1 binaries. The release-fresh-npx guard rejects fresh resolution in the workflow and attribution script; pinned Cargo tools and owner promotion gates remain unchanged.
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
@@ -2793,6 +2808,7 @@
         tauri.windows.conf.json overlay (decorations:false, NSIS target).
         Release assets are staged behind the WINDOWS_RELEASE repo variable
         until manual QA passes.
+        C-SEC-AUDIT-FIXES: the shared release workflow uses the same lockfile-installed attribution and SBOM binaries for Windows artifacts; no Windows publication or version-policy change.
       </Summary>
       <PlannedPath>
         .github/workflows/release.yml, .github/workflows/test.yml,
@@ -3089,6 +3105,7 @@
         to a clean exact current-main SHA with its required successful checks
         before Wrangler runs and records the resulting Worker version in an
         owner-local receipt.
+        C-SEC-AUDIT-FIXES: deployment documentation retains the checked gateway deployment wrapper and pinned Wrangler identity; the residual unpinned logout command is removed. Gateway runtime and deployment authorization remain unchanged.
       </Summary>
       <Path>tools/stats-gateway/worker.mjs</Path><PlannedPath>tools/stats-gateway/worker.mjs, tools/stats-gateway/wrangler.toml, tools/stats-gateway/query.mjs, tools/stats-gateway/tables.mjs, tools/stats-gateway/deploy-checked.mjs, tools/stats-gateway/README.md, tests/tools/stats-gateway.test.mjs, tests/tools/stats-gateway-deploy.test.mjs</PlannedPath>
       <Dependencies>Workers runtime (fetch/waitUntil, env.STATS Analytics Engine binding, dataset mark_update_funnel); consumers: tauri.conf.json updater endpoints (gateway first, GitHub fallback), release.yml latest.json platform fragments (pkg routes); NO client code, NO renderer egress; the C-UPDATER-ROLLBACK restore fetches stay direct-GitHub by design</Dependencies><VerificationRef>V-M-071</VerificationRef>

@@ -1,0 +1,79 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-PROJECTIONS>
+    <ChangeRef>C-STABILIZE-SPLIT-PROJECTIONS</ChangeRef>
+    <IntentSummary>Centrally reconcile current split ownership and the dependent explicit-lock browser fixture without changing approved runtime scope.</IntentSummary>
+    <ApprovalBasis>Delegated recovery; shared current projections are applied centrally after worker-source verification.</ApprovalBasis>
+    <ObservedInput>All three split source candidates passed their isolated final gates; central source merge preserved the independent table notice and dirty-buffer reload repair. The readonly fixture is an observed integration adjustment, not a new runtime behavior.</ObservedInput>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>&lt;M-009&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>&lt;M-011&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>&lt;M-012&gt;</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-STABILIZE-SPLIT-PROJECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/index.xml</File>
+        <Text>C-STABILIZE-SPLIT-PROJECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>C-STABILIZE-SPLIT-PROJECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/index.xml</File>
+        <Text>C-STABILIZE-SPLIT-PROJECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/checkbox-dirty.spec.ts</File>
+        <Text>locked rich and locked split checkbox clicks cannot mutate the document</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="180">npx --no-install playwright test -c tests/e2e/checkbox.playwright.config.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-009 />
+        <M-011 />
+        <M-012 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-009 />
+        <V-M-011 />
+        <V-M-012 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/index.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/index.xml</File>
+      <File>tests/e2e/checkbox-dirty.spec.ts</File>
+      <Glob>.grace/changes/active/C-STABILIZE-SPLIT-PROJECTIONS/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Reconcile current split ownership and readonly regression evidence</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>All projection and locked-fixture target assertions hold; the recorded browser command passes after the fresh combined split build.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="180">npx --no-install playwright test -c tests/e2e/checkbox.playwright.config.ts</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-STABILIZE-SPLIT-PROJECTIONS>
+</GraceChangePlan>

@@ -120,7 +120,11 @@
         }
       }
     },
-    "sequence-start": "inicio de secuencia"
+    "sequence-start": "inicio de secuencia",
+    "tableExport": {
+      "title": "Tabla",
+      "copied": "Tabla copiada al portapapeles como imagen"
+    }
   },
   "outlineRail": {
     "title": "En esta página"
@@ -1632,7 +1636,8 @@
     "fitToPage": "Ajustar a la página",
     "fullWidth": "Ancho total",
     "columnsRange": "columnas {start}–{end} de {total}",
-    "doesNotFitBy": "No cabe por {px} px — desplazamiento de columnas en vez de ocultar datos"
+    "doesNotFitBy": "No cabe por {px} px — desplazamiento de columnas en vez de ocultar datos",
+    "columnWallHint": "Drag to resize · double-click to fit content"
   },
   "statusBar": {
     "title": "Estadísticas del documento",
@@ -1799,5 +1804,8 @@
       "rememberSizes": "Recordar tamaños de columna",
       "rememberSizesHelp": "los tamaños de columna se guardan por archivo y se reaplican proporcionalmente al cambiar el ancho"
     }
+  },
+  "extensions": {
+    "disableFailed": "La extensión está desactivada, pero no se pudo verificar la revocación del acceso. Inténtalo de nuevo."
   }
 }

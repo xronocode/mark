@@ -1,14 +1,18 @@
 <!-- MODULE_CONTRACT
   PURPOSE: C-29 Split View container: lays the rich (muya) and source (CodeMirror) panes side by side with a draggable divider.
-  SCOPE: Pane layout, divider drag and arrow keys (ratio clamped 0.1–0.9) and double-click/Enter side swap persisted to preferences, collapse below 800px container width. Owns no document state: which pane is the read-only mirror is decided by the parent from the `active` slot prop.
-  DEPENDS: preferences store (splitViewRatio, splitViewSwapped).
-  LINKS: .grace/changes/archive/C-29; M-011 editorWithTabs.
+  SCOPE: Pane layout, divider drag and arrow keys (ratio clamped 0.1–0.9) and Enter/Alt+double-click side swap persisted to preferences, collapse below 800px container width. C-SPLIT-DBLCLICK-TOGGLE: plain divider double-click and right-edge-strip double-click toggle split through the view.split-view command (bus cmd::execute); the strip renders only while split is off, the container is wide enough and the diff view is not replacing the surface. Owns no document state: which pane is the read-only mirror is decided by the parent from the `active` slot prop.
+  DEPENDS: preferences store (splitViewRatio, splitViewSwapped), bus (cmd::execute).
+  LINKS: .grace/changes/archive/C-29; .grace/changes/active/C-SPLIT-DBLCLICK-TOGGLE; M-011 editorWithTabs.
   ROLE: RUNTIME
   MAP_MODE: EXPORTS
 END_MODULE_CONTRACT
 MODULE_MAP:
-  default - SplitView component; props { enabled }, slots rich/source receive { active }.
-CHANGE_SUMMARY: 2026-10-13 C-29 initial split container.
+  default - SplitView component; props { enabled, diffMode }, slots rich/source receive { active }.
+  requestToggleSplit - bus cmd::execute dispatch of view.split-view (the one state-flip path shared with the menu and Cmd+\).
+  handleDividerDblClick - Alt+dblclick swaps sides; plain dblclick requests the toggle.
+  split-edge-strip - right-border enable strip (split off, wide container, no diff).
+CHANGE_SUMMARY: 2026-10-29 C-SPLIT-DBLCLICK-TOGGLE: divider dblclick = toggle off via cmd::execute (swap moves to Alt+dblclick; Enter unchanged); right-edge strip (~8px, ew-resize hint) = toggle on, gated by width/diff.
+  2026-10-13 C-29 initial split container.
 -->
 <template>
   <div
@@ -32,13 +36,25 @@ CHANGE_SUMMARY: 2026-10-13 C-29 initial split container.
       aria-valuemin="10"
       aria-valuemax="90"
       tabindex="0"
+      data-action="toggle-split"
       @keydown="handleDividerKey"
       @pointerdown="startDrag"
-      @dblclick="swapSides"
+      @dblclick="handleDividerDblClick"
     ></div>
     <div class="split-pane split-pane-source">
       <slot name="source" :active="active"></slot>
     </div>
+    <!-- C-SPLIT-DBLCLICK-TOGGLE: while split is off (and the container is
+         wide enough to host it, and the diff view is not replacing the
+         surface), a narrow hit strip along the right border double-click
+         toggle-split enables the mode. -->
+    <div
+      v-if="!active && !diffMode && containerWidth >= MIN_SPLIT_WIDTH"
+      class="split-edge-strip"
+      data-action="toggle-split"
+      aria-hidden="true"
+      @dblclick="requestToggleSplit"
+    ></div>
   </div>
 </template>
 
@@ -46,9 +62,16 @@ CHANGE_SUMMARY: 2026-10-13 C-29 initial split container.
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePreferencesStore } from '@/store/preferences'
+import bus from '@/bus'
 
 const props = defineProps({
   enabled: {
+    type: Boolean,
+    default: false
+  },
+  // C-SPLIT-DBLCLICK-TOGGLE: the diff view replaces the editing surface —
+  // the enable strip must not exist there.
+  diffMode: {
     type: Boolean,
     default: false
   }
@@ -132,6 +155,20 @@ const handleDividerKey = (event) => {
 
 const swapSides = () => {
   preferencesStore.SET_SINGLE_PREFERENCE({ type: 'splitViewSwapped', value: !swapped.value })
+}
+
+// C-SPLIT-DBLCLICK-TOGGLE: the pointer toggle rides the exact command the
+// menu and Cmd+\ use, so every entry point flips the same per-tab state.
+const requestToggleSplit = () => {
+  bus.emit('cmd::execute', 'view.split-view')
+}
+
+const handleDividerDblClick = (event) => {
+  if (event.altKey) {
+    swapSides()
+    return
+  }
+  requestToggleSplit()
 }
 // END_BLOCK_SPLIT_DIVIDER_DRAG
 
@@ -225,5 +262,25 @@ defineExpose({ active, ratio, swapped })
 
 .split-view.is-split .source-code {
   height: 100%;
+}
+
+/* C-SPLIT-DBLCLICK-TOGGLE: enable strip along the right border of the
+   editing surface, only while split is off. The split-view root is
+   display:contents in that state, so the strip positions against the
+   nearest positioned ancestor (the .container). 8 px keeps it inside the
+   overlay-scrollbar zone on macOS; engines with classic scrollbars keep
+   the outer half of their gutter grabbable (recorded in the plan). */
+.split-edge-strip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 6;
+}
+
+.split-edge-strip:hover {
+  background: var(--floatHoverColor, rgba(128, 128, 128, 0.15));
 }
 </style>

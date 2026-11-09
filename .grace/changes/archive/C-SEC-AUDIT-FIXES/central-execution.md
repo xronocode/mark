@@ -1,0 +1,13 @@
+# Central security closeout
+
+The owner-approved recovery integrates all six existing findings without a new review-streak gate. The original approved assertions, scopes, tasks and historical reviews remain unchanged.
+
+- The selected baseline passed before central security writes. Path/link and extension source payloads were hash-verified, current owning graph/verification entries reconciled, and the later configured-identity closeout preserved the hardened behavior.
+- The exact central outer final passed with its intact `npm test && cargo test --manifest-path src-tauri/Cargo.toml --bin mark` command and zero errors. The existing Python heuristic warnings and dormant C-50 projection overlap warning were reported separately.
+- The combined native suite passed 573 tests, zero failures, one pre-existing ignored long synthetic smoke. Fresh confined extension proof passed 66 tests, zero failures, the same ignored smoke, with no dummy proxy contact. All 30 required new named security guards remain in real executed module suites.
+- Security negative-case proof retains read-only source/toolchain, scratch writes and network denial except parent-reserved loopback fixtures. The ordinary whole-suite compatibility run uses disposable HOME/TMPDIR and injected test credentials in the native host context needed by the existing CF security-scoped bookmark test. Its earlier confined-context failure is retained privately; no test was removed or weakened. The ordinary run does not claim OS-enforced network/file confinement.
+- Actual pinned license-checker25.0.1 and CycloneDX6.0.1 run offline after locked installation. At a faithful file-descriptor budget, the checker covers all installed production identities (372 records including the root, 371 third-party packages); the earlier incomplete inventory diagnosis was caused by an artificially low fixture limit and is retracted. No custom collector is shipped.
+- C-ATTRIBUTION-NOTICE-REFRESH updates actual stale Node and Rust notices; the exact full attribution script passes offline with 371 Node rows and 638 Rust crates. CycloneDX emits its existing production-only341-component catalog. The release workflow runs these attribution/SBOM steps on macOS; cross-platform installed optional-package inventories are not falsely claimed identical.
+- Paired-client support is bounded by the retained exact-revision disposition. The authenticated Mark v1 body and real handler/event path are proven; no deployed-client success, native keychain latency, descriptor-level TOCTOU protection or release publication is claimed.
+
+The implementation is applied and archived after the fresh final receipt. Exact-candidate safety, hosted integration checks and final-main reconciliation remain coordinator responsibilities.

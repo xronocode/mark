@@ -4,7 +4,8 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
 
 /**
  * C-PAGE-WIDTH-TABLES T-003..T-006: the titlebar quick-settings panel —
- * the chevrons-left-right button, the C-38 Page/View/Tables tabs in the
+ * the quick-settings button (the «Aa» text glyph since the
+ * 2026-11-09 owner rework), the C-38 Page/View/Tables tabs in the
  * neutral palette, the Page tab's per-document width pipeline (per-unit
  * presets, unit conversion with the 10% snap, the scope switch tiers,
  * the live footer), the View tab's 17-family grid and R-4 override pin,
@@ -287,5 +288,33 @@ test.describe('page width quick-settings panel (C-PAGE-WIDTH-TABLES)', () => {
     expect(sizeWrites.some((w) => w.value === false)).toBe(true)
     // The owner terminology: "column sizes", never "column widths".
     await expect(tablesTabPanel.locator('.pref-row-label', { hasText: 'Remember column sizes' })).toBeVisible()
+  })
+
+  // 2026-11-09 wall-pierce guard (live owner report): muya's table
+  // side-wall handles (.ag-table-wall, injected z-index 3) escape to the
+  // root stacking context and painted THROUGH this panel while the bar
+  // sat at z-index 2. The bar (and every popover it owns) must stack
+  // above the walls; the panel itself lives inside the bar's context.
+  test('paints the panel above the table side-wall handles (bar z > wall z)', async ({
+    page
+  }) => {
+    await bootEditor(page)
+    await openFileTab(page, DOC_PATH, '# T\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n')
+
+    // Auto-mode tables carry the side-wall width handles.
+    await expect(page.locator('.ag-table-wall').first()).toBeAttached({ timeout: 10_000 })
+
+    const panel = await openPanel(page)
+    await expect(panel).toBeVisible()
+
+    const z = await page.evaluate(() => {
+      const bar = document.querySelector('.title-bar')
+      const wall = document.querySelector('.ag-table-wall')
+      return {
+        bar: bar ? getComputedStyle(bar).zIndex : 'none',
+        wall: wall ? getComputedStyle(wall).zIndex : 'none'
+      }
+    })
+    expect(Number(z.bar)).toBeGreaterThan(Number(z.wall))
   })
 })

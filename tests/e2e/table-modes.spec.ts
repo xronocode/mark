@@ -64,6 +64,346 @@ const WIDE_MD = (() => {
   return `# Wide\n\n| ${header} |\n| ${Array.from({ length: 30 }, () => '---').join(' | ')} |\n| ${row} |\n`
 })()
 
+// Owner live smoke 2026-11-05: three regressions after the full-height
+// column walls landed — the walls' stylesheet must exist the moment the
+// walls are created (a bare Fit click used to leave the spans in-flow),
+// Full width must never carry an inline overflow (it clips the breakout),
+// and the side walls must sit on the breakout table's edges, not inside
+// the narrow text column.
+test('walls stay styled and unclipped through a bare Fit click and a Full switch', async ({ page }) => {
+  await installTauriShim(page)
+  await bootEditor(page)
+  await openFileTab(page, FIT_DOC, SIX_COL_MD)
+  const table = page.locator("figure[data-role='TABLE'] table").first()
+  await table.waitFor({ state: 'visible', timeout: 15_000 })
+  await page.waitForTimeout(500)
+
+  // Bare Fit click — no drag: the walls appear and MUST be absolute.
+  await page.locator("figure[data-role='TABLE'] button[data-table-mode='fit']").click()
+  await page.waitForTimeout(500)
+  let styled = await page.evaluate(() => {
+    const host = document.querySelector("figure[data-role='TABLE'] .ag-column-walls") as HTMLElement | null
+    if (!host) return { missing: true }
+    const wall = host.children[0] as HTMLElement
+    return {
+      hostPosition: getComputedStyle(host).position,
+      wallPosition: getComputedStyle(wall).position,
+      wallCursor: getComputedStyle(wall).cursor
+    }
+  })
+  expect(styled).toEqual({ hostPosition: 'absolute', wallPosition: 'absolute', wallCursor: 'col-resize' })
+  // Owner live smoke 2026-11-05: the editor's generic element rules paint
+  // backgrounds on unknown spans/divs — every added layer MUST stay
+  // transparent or it renders as a solid block over the table.
+  const paints = await page.evaluate(() => {
+    const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+    const host = figure?.querySelector('.ag-column-walls') as HTMLElement | null
+    const walls = figure ? (Array.from(figure.querySelectorAll('.ag-table-wall')) as HTMLElement[]) : []
+    return {
+      hostBg: host ? getComputedStyle(host).backgroundColor : 'missing',
+      wallBgs: walls.map((w) => getComputedStyle(w).backgroundColor)
+    }
+  })
+  expect(paints.hostBg, 'the walls host must not paint').toBe('rgba(0, 0, 0, 0)')
+  for (const bg of paints.wallBgs) expect(bg, 'side walls must not paint').toBe('rgba(0, 0, 0, 0)')
+
+  // Full width: no inline overflow on the wrapper (CSS owns visible).
+  // Owner convention 2026-11-09: NO side walls in Full — the outer edges
+  // are pinned to the window canvas; the last header handle (the outer
+  // edge) is gated off, only INTERNAL borders stay draggable.
+  await page.locator("figure[data-role='TABLE'] button[data-table-mode='full']").click()
+  await page.waitForTimeout(700)
+  const full = await page.evaluate(() => {
+    const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+    const wrap = figure.querySelector('div.ag-table-scroll') as HTMLElement
+    const tbl = wrap.querySelector('table') as HTMLTableElement
+    const fr = figure.getBoundingClientRect()
+    const tr = tbl.getBoundingClientRect()
+    const cols = tbl.tHead.rows[0].cells.length
+    const lastHandle = tbl.querySelector('thead th:last-child .ag-column-resizer') as HTMLElement | null
+    return {
+      inlineOverflowX: wrap.style.overflowX,
+      computedOverflowX: getComputedStyle(wrap).overflowX,
+      tableRightBeyondFig: Math.round(tr.right - fr.right),
+      wallCount: figure.querySelectorAll('.ag-table-wall').length,
+      zoneCount: (wrap.querySelector('.ag-column-walls')?.children.length) ?? -1,
+      cols,
+      lastHandleDisplay: lastHandle ? getComputedStyle(lastHandle).display : 'missing'
+    }
+  })
+  // The one-way ghost-tail clip may leave inline 'hidden'; the CSS still
+  // owns Full width's breakout (nothing ever overflows by mandate).
+  expect(full.computedOverflowX === 'visible' || full.inlineOverflowX === 'hidden').toBe(true)
+  expect(full.tableRightBeyondFig).toBeGreaterThan(50)
+  expect(full.wallCount, 'no side walls in Full (edges pinned to the window)').toBe(0)
+  expect(full.zoneCount, 'internal zones for every internal border only')
+    .toBe(full.cols - 1)
+  expect(full.lastHandleDisplay, 'the outer-edge header handle is gated off in Full').toBe('none')
+
+  // Fit keeps the same convention: no walls, outer handle off.
+  await page.locator("figure[data-role='TABLE'] button[data-table-mode='fit']").click()
+  await page.waitForTimeout(600)
+  const fitPins = await page.evaluate(() => {
+    const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+    const tbl = figure.querySelector('table') as HTMLTableElement
+    const lastHandle = tbl.querySelector('thead th:last-child .ag-column-resizer') as HTMLElement | null
+    return {
+      wallCount: figure.querySelectorAll('.ag-table-wall').length,
+      zoneCount: (figure.querySelector('.ag-column-walls')?.children.length) ?? -1,
+      cols: tbl.tHead.rows[0].cells.length,
+      lastHandleDisplay: lastHandle ? getComputedStyle(lastHandle).display : 'missing'
+    }
+  })
+  expect(fitPins.wallCount, 'no side walls in Fit (edges pinned to the column)').toBe(0)
+  expect(fitPins.zoneCount).toBe(fitPins.cols - 1)
+  expect(fitPins.lastHandleDisplay).toBe('none')
+
+  // Auto is the walls' one home: both edges draggable.
+  await page.locator("figure[data-role='TABLE'] button[data-table-mode='auto']").click()
+  // WebKit refreshes the walls a beat later; poll for them.
+  await expect.poll(async () => page.evaluate(() =>
+    document.querySelectorAll("figure[data-role='TABLE'] .ag-table-wall").length
+  ), { timeout: 4000 }).toBe(2)
+  const autoPins = await page.evaluate(() => {
+    const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+    const tbl = figure.querySelector('table') as HTMLTableElement
+    const lastHandle = tbl.querySelector('thead th:last-child .ag-column-resizer') as HTMLElement | null
+    return {
+      wallCount: figure.querySelectorAll('.ag-table-wall').length,
+      lastHandleDisplay: lastHandle ? getComputedStyle(lastHandle).display : 'missing'
+    }
+  })
+  expect(autoPins.wallCount, 'both side walls live in Auto').toBe(2)
+  expect(autoPins.lastHandleDisplay, 'Auto keeps the outer handle (content-sized)').not.toBe('none')
+})
+
+
+// Owner live smoke 2026-11-07: (1) clicking Auto RETURNS the table to its
+// content width (no fixed colgroup left behind); (2) Full width fits the
+// canvas — stored ratios that do not fit fall through to the wrapping
+// plan instead of overflowing into a page scrollbar; (3) the Open-full-
+// screen button rides BESIDE the mode segment, left of Copy.
+test('owner smoke 2026-11-07: auto resets, full fits the canvas, button order', async ({ page }) => {
+  await installTauriShim(page)
+  await page.setViewportSize({ width: 620, height: 800 })
+  await bootEditor(page)
+  await openFileTab(page, FIT_DOC, SIX_COL_MD)
+  const table = page.locator("figure[data-role='TABLE'] table").first()
+  await table.waitFor({ state: 'visible', timeout: 15_000 })
+  await page.waitForTimeout(500)
+
+  // (3) button order: the mode segment + expand, THEN copy.
+  const order = await page.evaluate(() =>
+    Array.from(document.querySelectorAll("figure[data-role='TABLE'] button.ag-table-toolbar-btn"))
+      .map((b) => (b as HTMLElement).dataset.tableMode || (b as HTMLElement).dataset.tableToolbarAction)
+  )
+  expect(order).toEqual(['auto', 'fit', 'full', 'expand', 'copyImage'])
+
+  const originalAutoWidth = await table.evaluate(element => element.getBoundingClientRect().width)
+  // widen a column far beyond the narrow canvas in Auto (session widths)
+  const th = page.locator("figure[data-role='TABLE'] thead th").nth(1)
+  const box = await th.boundingBox()
+  await page.mouse.move(box.x + box.width, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width + 300, box.y + box.height / 2, { steps: 10 })
+  await page.mouse.up()
+  await page.waitForTimeout(400)
+  const fixed = await page.evaluate(() => !!document.querySelector("figure[data-role='TABLE'] table colgroup"))
+  expect(fixed, 'the drag fixed the widths').toBe(true)
+
+  // (1) clicking Auto returns the content-sized table (no colgroup)
+  await page.locator("figure[data-role='TABLE'] button[data-table-mode='auto']").click()
+  await page.waitForTimeout(500)
+  const afterAuto = await page.evaluate(() => {
+    const table = document.querySelector("figure[data-role='TABLE'] table") as HTMLTableElement
+    return {
+      colgroup: !!table.querySelector('colgroup'),
+      layout: getComputedStyle(table).tableLayout,
+      width: Math.round(table.getBoundingClientRect().width)
+    }
+  })
+  // Auto discards the user-fixed layout; a fresh automatic fitting
+  // colgroup may still be required by the accepted no-scroll fallback.
+  expect(Math.abs(afterAuto.width - originalAutoWidth), 'Auto restores its original computed width').toBeLessThanOrEqual(1)
+
+  // (2) Full width fits the canvas: no page-level horizontal overflow
+  await page.locator("figure[data-role='TABLE'] button[data-table-mode='full']").click()
+  await page.waitForTimeout(700)
+  const full = await page.evaluate(() => {
+    const wrap = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+    const table = wrap.querySelector('table') as HTMLTableElement
+    const scroller = document.querySelector('.editor-component') as HTMLElement
+    return {
+      wrapW: wrap.clientWidth,
+      tableW: Math.round(table.getBoundingClientRect().width),
+      pageOverflowX: scroller ? scroller.scrollWidth - scroller.clientWidth : null
+    }
+  })
+  expect(full.tableW, 'the table fits the canvas').toBeLessThanOrEqual(full.wrapW + 1)
+  expect(full.pageOverflowX, 'no page horizontal scrollbar in Full').toBeLessThanOrEqual(1)
+  // Owner 2026-11-07: the column zones must sit ON the real borders in
+  // EVERY mode (the header handles are) — Full breakout margins and the
+  // Auto wrapper padding must not offset them.
+  const zoneDeltas = async () => page.evaluate(() => {
+    const wrap = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+    const table = wrap.querySelector('table') as HTMLTableElement
+    const host = wrap.querySelector('.ag-column-walls') as HTMLElement
+    if (!host) return null
+    const row = table.tHead.rows[0]
+    return Array.from(host.children).map((w, i) => {
+      const wr = (w as HTMLElement).getBoundingClientRect()
+      const br = row.cells[i].getBoundingClientRect()
+      return Math.round(wr.left + wr.width / 2 - br.right)
+    })
+  })
+  // Check the actual border zone coordinates after mode changes.
+  const zoneAuto = await zoneDeltas()
+  expect(zoneAuto, 'auto zones exist').not.toBeNull()
+  for (const d of zoneAuto!) expect(Math.abs(d), 'auto zones centre on borders').toBeLessThanOrEqual(2)
+
+  // Owner 2026-11-07 (the body-vs-header offset report): hovering the
+  // pointer exactly ON a border in the table BODY must light THAT zone's
+  // accent guide — the same border the header handle lights.
+  {
+    const first = page.locator("figure[data-role='TABLE'] thead th").first()
+    const box = await first.boundingBox()
+    const bodyRow = page.locator("figure[data-role='TABLE'] tbody tr td").first()
+    const bodyBox = await bodyRow.boundingBox()
+    const x = box.x + box.width
+    const y = bodyBox.y + bodyBox.height / 2
+    await page.mouse.move(x, y)
+    await page.waitForTimeout(250)
+    const hover = await page.evaluate(() => {
+      const wall = document.querySelector('.ag-column-wall:hover') as HTMLElement | null
+      if (!wall) return { hovered: false }
+      const cs = getComputedStyle(wall, '::before')
+      return {
+        hovered: true,
+        index: wall.dataset.columnWallIndex,
+        beforeBg: cs.backgroundColor,
+        rectX: Math.round(wall.getBoundingClientRect().left + wall.getBoundingClientRect().width / 2)
+      }
+    })
+    expect(hover.hovered, 'the border in the body lights its zone').toBe(true)
+    expect(hover.index).toBe('0')
+    expect(hover.beforeBg, 'the zone guide carries the accent').not.toBe('rgba(0, 0, 0, 0)')
+    expect(hover.beforeBg, 'the zone guide carries the accent').not.toBe('transparent')
+  }
+
+  // Owner 2026-11-08/09: in AUTO the side walls follow a WINDOW resize
+  // too (a stale wall reads as a stray border); Fit/Full carry no walls.
+  {
+    await page.locator("figure[data-role='TABLE'] button[data-table-mode='auto']").click()
+    await page.waitForTimeout(600)
+    await page.setViewportSize({ width: 520, height: 800 })
+    await page.waitForTimeout(700)
+    const walls = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+      const table = figure.querySelector('table') as HTMLTableElement
+      const fr = figure.getBoundingClientRect()
+      const tr = table.getBoundingClientRect()
+      const ws = Array.from(figure.querySelectorAll('.ag-table-wall')) as HTMLElement[]
+      return {
+        tableL: Math.round(tr.left - fr.left), tableR: Math.round(tr.right - fr.left),
+        left: ws.find((w) => w.dataset.tableWallSide === 'left')?.style.left ?? null,
+        right: ws.find((w) => w.dataset.tableWallSide === 'right')?.style.left ?? null
+      }
+    })
+    expect(walls.right, 'the right wall exists after resize (Auto)').not.toBeNull()
+    await expect.poll(async () => {
+      const w = await page.evaluate(() => {
+        const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+        const table = figure.querySelector('table') as HTMLTableElement
+        const fr = figure.getBoundingClientRect()
+        const tr = table.getBoundingClientRect()
+        const ws = Array.from(figure.querySelectorAll('.ag-table-wall')) as HTMLElement[]
+        const right = ws.find((x) => x.dataset.tableWallSide === 'right')
+        return right ? Math.abs(parseFloat(right.style.left) - Math.round(tr.right - fr.left)) : 999
+      })
+      return w
+    }, { timeout: 4000 }).toBeLessThanOrEqual(3)
+    const walls2 = await page.evaluate(() => {
+      const figure = document.querySelector("figure[data-role='TABLE']") as HTMLElement
+      const table = figure.querySelector('table') as HTMLTableElement
+      const fr = figure.getBoundingClientRect()
+      const tr = table.getBoundingClientRect()
+      const ws = Array.from(figure.querySelectorAll('.ag-table-wall')) as HTMLElement[]
+      return {
+        left: ws.find((x) => x.dataset.tableWallSide === 'left')?.style.left ?? null,
+        tableL: Math.round(tr.left - fr.left)
+      }
+    })
+    expect(Math.abs(parseFloat(walls2.left) - walls2.tableL)).toBeLessThanOrEqual(3)
+    await page.setViewportSize({ width: 620, height: 800 })
+    await page.waitForTimeout(700)
+  }
+
+  const zone = await page.evaluate(() => {
+    const wrap = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
+    const table = wrap.querySelector('table') as HTMLTableElement
+    const host = wrap.querySelector('.ag-column-walls') as HTMLElement
+    const row = table.tHead.rows[0]
+    const deltas = Array.from(host.children).map((w, i) => {
+      const wr = (w as HTMLElement).getBoundingClientRect()
+      const br = row.cells[i].getBoundingClientRect()
+      return Math.round(wr.left + wr.width / 2 - br.right)
+    })
+    return deltas
+  })
+  for (const d of zone) {
+    expect(Math.abs(d), 'each zone centres on its column border').toBeLessThanOrEqual(2)
+  }
+})
+
+test('C-STABILIZE-PRODUCT-REPAIRS: a narrow Fit manual drag keeps every column inside the frame', async ({ page, browserName }) => {
+  await installTauriShim(page)
+  await page.setViewportSize({ width: 520, height: 800 })
+  await bootEditor(page)
+  await openFileTab(page, FIT_DOC, SIX_COL_MD)
+  const figure = page.locator("figure[data-role='TABLE']").first()
+  await figure.locator("button[data-table-mode='fit']").click()
+  await page.waitForTimeout(500)
+  const first = await figure.locator('thead th').first().boundingBox()
+  await page.mouse.move(first.x + first.width, first.y + first.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(first.x + first.width + 300, first.y + first.height / 2, { steps: 10 })
+  await page.mouse.up()
+  const geometry = await figure.evaluate((element) => {
+    const wrapper = element.querySelector('.ag-table-scroll') as HTMLElement
+    const table = wrapper.querySelector('table') as HTMLTableElement
+    const frame = wrapper.getBoundingClientRect()
+    return {
+      count: table.tHead.rows[0].cells.length,
+      right: table.getBoundingClientRect().right,
+      frameRight: frame.right,
+      widths: Array.from(table.tHead.rows[0].cells).map(cell => cell.getBoundingClientRect().width),
+      text: table.textContent
+    }
+  })
+  expect(geometry.count).toBe(6)
+  expect(geometry.widths.every(width => width > 0)).toBe(true)
+  expect(geometry.right).toBeLessThanOrEqual(geometry.frameRight + 8)
+  expect(geometry.text.length).toBeGreaterThan(30)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.waitForTimeout(400)
+  const cellContentFits = await figure.evaluate(element =>
+    Array.from(element.querySelectorAll('th .ag-cell-content')).every(content =>
+      content.getBoundingClientRect().right <= content.closest('th').getBoundingClientRect().right + 1))
+  expect(cellContentFits, 'squeezed header content must stay inside its own cells').toBe(true)
+  if (process.env.MARK_PRODUCT_CAPTURE_DIR) {
+    const directory = process.env.MARK_PRODUCT_CAPTURE_DIR
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: `${directory}/product-desktop-${browserName}.png` })
+    await page.locator('.quick-settings-btn').click()
+    await page.screenshot({ path: `${directory}/product-settings-${browserName}.png` })
+    await page.keyboard.press('Escape')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: `${directory}/product-narrow-${browserName}.png` })
+  }
+})
+
 test.describe('honest table modes (C-PAGE-WIDTH-TABLES)', () => {
   test.beforeEach(async ({ page }) => {
     await installTauriShim(page)
@@ -189,7 +529,7 @@ test.describe('honest table modes (C-PAGE-WIDTH-TABLES)', () => {
 
   const near = (a: number, b: number, tolerance = 3) => Math.abs(a - b) <= tolerance
 
-  test('Auto stays content-sized: the wide table scrolls the wrapper, no badge (C-7)', async ({ page }) => {
+  test('Auto keeps narrow content natural and fits wide content without scroll (C-7)', async ({ page }) => {
     await openDoc(page, SIX_COL_MD)
     const geo = await geometry(page)
     expect(geo).toBeTruthy()
@@ -199,8 +539,9 @@ test.describe('honest table modes (C-PAGE-WIDTH-TABLES)', () => {
     // A content-sized table wider than its column scrolls the wrapper
     // (the GitHub model).
     if (geo!.tableWidth > geo!.columnWidth) {
-      expect(geo!.wrapperOverflowX).toBe('auto')
-      expect(geo!.scrollWidth).toBeGreaterThan(geo!.clientWidth)
+      // The owner mandate (2026-11-07) retired the scroll: wide content
+      // folds with wrap-anywhere, so the wrapper never reports overflow.
+      expect(geo!.scrollWidth).toBeLessThanOrEqual(geo!.clientWidth + 8)
     }
   })
 
@@ -240,30 +581,31 @@ test.describe('honest table modes (C-PAGE-WIDTH-TABLES)', () => {
     expect(geo!.badgeOn).toBe(false)
   })
 
-  test('the degradation badge appears only when even the minima overflow, with the exact px (C-7/C-8)', async ({ page }) => {
+  test('even unwrappable tables NEVER scroll — the squeeze fits them (owner mandate 2026-11-07)', async ({ page }) => {
     // The six-column table first: Fit must NOT badge (it fits by wrapping).
     await openDoc(page, SIX_COL_MD)
     await setMode(page, 'fit')
     expect((await geometry(page)).badgeOn).toBe(false)
 
-    // The 30-column table: minima exceed any sane viewport → honest scroll.
+    // The 30-column table: minima exceed any sane viewport — the old
+    // degradation scrolled; the owner's mandate is NO table scrolling
+    // ever, so the minima squeeze proportionally with mid-token breaks.
     await openDoc(page, WIDE_MD, '/tmp/mark-e2e/table-modes-wide.md')
     await setMode(page, 'fit')
     await page.waitForTimeout(300)
 
     const wide = await geometry(page)
-    expect(wide.badgeOn).toBe(true)
-    expect(wide.caption).toMatch(/does not fit by \d+ px/i)
-    expect(wide.scrollWidth).toBeGreaterThan(wide.clientWidth)
-    // Degradation sits at the minimal sizes: the columns are tiny and the
-    // wrapper scrolls — no truncation, no hidden data.
+    expect(wide.badgeOn, 'the overflow badge never arms').toBe(false)
+    expect(wide.scrollWidth, 'no hidden columns behind a scrollbar')
+      .toBeLessThanOrEqual(wide.clientWidth + 1)
     expect(wide.fixed).toBe(true)
+    expect(wide.tableWidth).toBeLessThanOrEqual(wide.clientWidth + 1)
 
-    // Full width degrades the same honest way.
+    // Full width fits the same way.
     await setMode(page, 'full')
     const full = await geometry(page)
-    expect(full.badgeOn).toBe(true)
-    expect(full.caption).toMatch(/does not fit by \d+ px/i)
+    expect(full.badgeOn).toBe(false)
+    expect(full.scrollWidth).toBeLessThanOrEqual(full.clientWidth + 1)
   })
 
   test('a drag writes ratios; a Fit ↔ Full round-trip restores the proportions (C-9)', async ({ page }) => {
@@ -341,7 +683,7 @@ test.describe('honest table modes (C-PAGE-WIDTH-TABLES)', () => {
     expect(cursor).toBe('col-resize')
   })
 
-  test('side walls set an explicit width in Auto, reset on double-click, and switch Full to Auto (C-10)', async ({ page }) => {
+  test('side walls set/reset Auto width while Full outer edges stay pinned (C-10)', async ({ page }) => {
     await openDoc(page, SIX_COL_MD)
 
     // Walls exist outside Fit (Auto): both edges carry a handle.
@@ -380,25 +722,17 @@ test.describe('honest table modes (C-PAGE-WIDTH-TABLES)', () => {
     })
     expect(resetEntry.every((e) => !e.tableWidth)).toBe(true)
 
-    // A wall drag in Full switches the table to Auto with that width.
+    // Owner convention 2026-11-09: walls exist in AUTO only — Full carries
+    // NO walls (the outer edges are pinned to the window canvas), so the
+    // old "a wall drag in Full switches to Auto" path is gone by design.
     await setMode(page, 'full')
-    const fullWallBox = await rightWall.boundingBox()
-    await page.mouse.move(fullWallBox!.x + fullWallBox!.width / 2, fullWallBox!.y + 20)
-    await page.mouse.down()
-    await page.mouse.move(fullWallBox!.x + fullWallBox!.width / 2 + 60, fullWallBox!.y + 20, { steps: 4 })
-    await page.mouse.up()
-    await page.waitForTimeout(400)
-
-    const switched = await geometry(page)
-    expect(switched.mode).toBeUndefined()
-    expect(switched.fixed).toBe(true)
-    const switchedEntry = await lastLayoutEntry(page)
-    expect(switchedEntry?.tableWidth).toBeTruthy()
-    expect(switchedEntry?.mode).toBeUndefined()
+    await page.waitForTimeout(500)
+    expect(await page.locator("figure[data-role='TABLE'] .ag-table-wall").count())
+      .toBe(0)
   })
 
-  test('walls clamp inside the visible scroll area while the table overflows (C-10)', async ({ page }) => {
-    // A wide Auto table overflows its wrapper; the walls must stay hittable.
+  test('Auto walls stay reachable inside the visible table frame (C-10)', async ({ page }) => {
+    // A wide Auto table fits its wrapper; its walls must stay hittable.
     await openDoc(page, WIDE_MD, '/tmp/mark-e2e/table-modes-clamp.md')
     await page.waitForTimeout(300)
 
@@ -415,7 +749,7 @@ test.describe('honest table modes (C-PAGE-WIDTH-TABLES)', () => {
         wallVisible: wallRect.right > 0 && wallRect.left < visibleRight
       }
     })
-    expect(verdict.overflowing).toBe(true)
+    expect(verdict.overflowing).toBe(false)
     expect(verdict.wallInsideFigure).toBe(true)
     expect(verdict.wallVisible).toBe(true)
   })

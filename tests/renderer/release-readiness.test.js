@@ -1,10 +1,10 @@
 // FILE: tests/renderer/release-readiness.test.js
 // VERSION: 2.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Prove release-train lifecycle, membership, owner-acceptance, exclusion, commit-accounting, and identity failures remain independently detectable.
+//   PURPOSE: Prove protocol-backed early train admission, strict owner-acceptance, lifecycle, exclusion, accounting and identity gates remain independently detectable.
 //   SCOPE: Deterministic unit fixtures for the repository-only release-readiness validator; no GitHub API or publication behavior.
 //   DEPENDS: Vitest; tools/release-readiness.mjs; tools/release-train.mjs; docs/release-trains/current.json.
-//   LINKS: .grace/verification/features.xml V-M-046.
+//   LINKS: M-046
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -16,6 +16,8 @@
 //   SHA_B - Deterministic bootstrap/seal commit fixture.
 //   SHA_C - Deterministic payload commit fixture.
 //   fixture - Minimal valid train authority for mutation-focused cases.
+//   testingProtocol - Explicit actual evidence and unverified manual scope for an admission fixture.
+//   admissionFixture - Valid lifecycle fixture with pending owner acceptance and complete admission evidence.
 //   STRICT_CHECKS - Immutable strict check policy fixture.
 //   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag; the seal span can be several bookkeeping commits, a merge commit, or carry a reverted product change.
 //   strictOptions - Default strict identity options for one strict repository.
@@ -28,6 +30,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-TRAIN-ADMISSION: protocol-backed early admission, missing evidence rejection, legacy acceptance compatibility and strict/Ready/Released negative-verdict gates.
 //   - 2026-10-31 v2.3.0: the empty-lane-discovery test moves from the live checkout to a temp workspace — after the first lane departure main legitimately carries td-N documents, so the live tree must not be asserted lane-free.
 //   - 2026-10-30 v2.2.0: lane trains — prove lane lifecycle, base/head accounting, premature departure, carrier admission of every lane commit, the always-complete lane ledger and the per-run validation of every td-N document.
 //   - 2026-10-27 v2.1.0: current-train bookkeeping drift — prove a missing admitted-item heading, commit, or history bullet fails, terminal ledgers stay header-only, and the pointer/README/Project-schema trio must agree.
@@ -130,6 +133,29 @@ const fixture = () => ({
     { state: 'Frozen', date: '2026-10-20' }
   ]
 })
+
+const testingProtocol = () => ({
+  automatic: [{
+    command: 'vitest run focused.test.js', result: '7 passed', date: '2026-11-09',
+    evidence: 'CI run fixture/7', build: `source ${SHA_C}`
+  }],
+  manual: [],
+  intentionallyUnverified: [{
+    section: 'manual', scenario: 'Owner acceptance on the dispatch build',
+    reason: 'Not run before admission; dispatch artifact and owner verdict are pending.'
+  }]
+})
+
+const admissionFixture = (state = 'Collecting') => {
+  const manifest = fixture()
+  const states = ['Collecting', 'Preparing', 'Frozen', 'Ready', 'Released']
+  manifest.state = state
+  manifest.transitions = states.slice(0, states.indexOf(state) + 1)
+    .map(value => ({ state: value, date: '2026-11-09' }))
+  manifest.items.userFacing[0].acceptance = { status: 'pending' }
+  manifest.items.userFacing[0].testingProtocol = testingProtocol()
+  return manifest
+}
 
 const rejectedWith = (manifest, code, options = {}) => {
   expect(() =>
@@ -268,9 +294,8 @@ describe('release train authority', () => {
       state: manifest.state,
       version: manifest.computedVersion
     })
-    // Admission items arrive with owner acceptance, not with the train:
-    // the count must mirror the checked-in manifest exactly (empty right
-    // after a roll; four after the PR 16 acceptance).
+    // Legacy acceptance and protocol-backed admissions both contribute to
+    // the checked-in membership count; neither infers owner acceptance.
     expect(result.itemCounts.userFacing).toBe(manifest.items.userFacing.length)
     expect(
       validateTrainLedger(
@@ -318,8 +343,10 @@ describe('release train authority', () => {
     rejectedWith(manifest, 'MT_RELEASE_MEMBERSHIP_AMBIGUOUS')
   })
 
-  it('rejects included user-facing behavior without owner acceptance', () => {
+  it('rejects Ready user-facing behavior without owner acceptance', () => {
     const manifest = fixture()
+    manifest.state = 'Ready'
+    manifest.transitions.push({ state: 'Ready', date: '2026-11-09' })
     manifest.items.userFacing[0].acceptance = null
     rejectedWith(manifest, 'MT_RELEASE_ACCEPTANCE_MISSING')
   })
@@ -423,6 +450,95 @@ describe('release train authority', () => {
 // END_BLOCK_RELEASE_READINESS_TESTS
 
 // START_BLOCK_STRICT_RELEASE_IDENTITY_TESTS
+describe('testing-protocol admission versus owner release acceptance', () => {
+  it.each(['Collecting', 'Preparing', 'Frozen'])('admits %s with pending acceptance and complete protocol', state => {
+    expect(validateTrainManifest(admissionFixture(state))).toMatchObject({ state })
+  })
+
+  it.each(['Collecting', 'Preparing', 'Frozen'])('admits %s with no owner record and complete protocol', state => {
+    const manifest = admissionFixture(state)
+    delete manifest.items.userFacing[0].acceptance
+    expect(validateTrainManifest(manifest)).toMatchObject({ state })
+  })
+
+  it.each(['Collecting', 'Preparing', 'Frozen'])('rejects %s pending admission without a protocol', state => {
+    const manifest = admissionFixture(state)
+    delete manifest.items.userFacing[0].testingProtocol
+    rejectedWith(manifest, 'MT_RELEASE_TESTING_PROTOCOL_INVALID')
+  })
+
+  it.each([
+    ['missing automatic section', protocol => { delete protocol.automatic }],
+    ['missing manual section', protocol => { delete protocol.manual }],
+    ['missing unverified section', protocol => { delete protocol.intentionallyUnverified }],
+    ['automatic result absent', protocol => { delete protocol.automatic[0].result }],
+    ['automatic evidence absent', protocol => { delete protocol.automatic[0].evidence }],
+    ['automatic date absent', protocol => { delete protocol.automatic[0].date }],
+    ['automatic entry malformed', protocol => { protocol.automatic[0] = null }],
+    ['unverified reason absent', protocol => { delete protocol.intentionallyUnverified[0].reason }],
+    ['empty manual unexplained', protocol => { protocol.intentionallyUnverified = [] }],
+    ['manual build absent', protocol => {
+      protocol.manual = [{ scenario: 'Native checkbox', result: 'passed', date: '2026-11-09', evidence: 'operator fixture' }]
+    }]
+  ])('rejects incomplete testing protocol: %s', (_name, mutate) => {
+    const manifest = admissionFixture()
+    mutate(manifest.items.userFacing[0].testingProtocol)
+    rejectedWith(manifest, 'MT_RELEASE_TESTING_PROTOCOL_INVALID')
+  })
+
+  it('accepts actual manual evidence without converting it into owner acceptance', () => {
+    const manifest = admissionFixture()
+    manifest.items.userFacing[0].testingProtocol.manual = [{
+      scenario: 'Native checkbox', result: 'passed', date: '2026-11-09',
+      build: 'QA binary sha256 fixture', evidence: 'operator fixture screenshot'
+    }]
+    manifest.items.userFacing[0].testingProtocol.intentionallyUnverified = []
+    expect(validateTrainManifest(manifest)).toMatchObject({ state: 'Collecting' })
+    expect(manifest.items.userFacing[0].acceptance).toEqual({ status: 'pending' })
+  })
+
+  it('preserves complete legacy acceptance without requiring a new protocol', () => {
+    expect(validateTrainManifest(fixture())).toMatchObject({ state: 'Frozen' })
+  })
+
+  it.each(['Ready', 'Released'])('accepts complete declared owner acceptance in %s', state => {
+    const manifest = admissionFixture(state)
+    manifest.items.userFacing[0].acceptance = { ...fixture().items.userFacing[0].acceptance, status: 'accepted' }
+    expect(validateTrainManifest(manifest)).toMatchObject({ state })
+  })
+
+  it.each(['Ready', 'Released'])('rejects %s without owner evidence despite a complete protocol', state => {
+    const manifest = admissionFixture(state)
+    delete manifest.items.userFacing[0].acceptance
+    rejectedWith(manifest, 'MT_RELEASE_ACCEPTANCE_MISSING')
+  })
+
+  it.each(['Collecting', 'Preparing', 'Frozen'])('strict mode rejects %s pending owner acceptance', state => {
+    rejectedWith(admissionFixture(state), 'MT_RELEASE_ACCEPTANCE_INVALID', { mode: 'strict' })
+  })
+
+  it.each(['pending', 'rejected', 'needs-recheck'])('cannot publish %s even if legacy owner fields are filled', status => {
+    const manifest = admissionFixture('Ready')
+    manifest.items.userFacing[0].acceptance = { ...fixture().items.userFacing[0].acceptance, status }
+    rejectedWith(manifest, 'MT_RELEASE_ACCEPTANCE_INVALID')
+    expect(() => validateStrictRepositoryState(process.cwd(), manifest)).toThrow(
+      expect.objectContaining({ code: 'MT_RELEASE_ACCEPTANCE_INVALID' })
+    )
+  })
+
+  it.each(['rejected', 'needs-recheck'])('rejects explicitly %s early evidence rather than treating it as accepted', verdict => {
+    const manifest = admissionFixture()
+    manifest.items.userFacing[0].acceptance = { ...fixture().items.userFacing[0].acceptance, verdict }
+    rejectedWith(manifest, 'MT_RELEASE_ACCEPTANCE_INVALID')
+  })
+
+  it('does not treat an explicit accepted label with missing owner fields as legacy acceptance', () => {
+    const manifest = admissionFixture()
+    manifest.items.userFacing[0].acceptance = { status: 'accepted' }
+    rejectedWith(manifest, 'MT_RELEASE_ACCEPTANCE_MISSING')
+  })
+})
+
 describe('strict release identity', () => {
   it('accepts one classified payload, one metadata-only seal, exact tag/HEAD, fresh screenshots, and matching checks', () => {
     const state = strictRepository()
