@@ -1,5 +1,9 @@
+/* C-TABLE-BAR-MENU-OVERLAP: the menu sizes to its longest label so
+   long-locale items (ru/de/fr/es/pt) never wrap into the fixed-height
+   25px items; the 150px floor keeps the en/CJK geometry unchanged. */
 .ag-table-bar-tools {
-  width: 150px;
+  width: max-content;
+  min-width: 150px;
 }
 .ag-table-bar-tools ul,
 .ag-table-bar-tools li {
@@ -19,6 +23,7 @@
   cursor: pointer;
   position: relative;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .ag-table-bar-tools li.item[data-label=remove] {
