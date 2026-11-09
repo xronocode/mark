@@ -1,0 +1,42 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-PROFILE-ISOLATION>
+    <Name>Isolate cache and durable state by the configured application identifier</Name>
+    <Created>2026-11-09</Created>
+    <Summary>Bind path helpers to the compiled Tauri configuration identifier before rollback and startup consumers, so a separately identified acceptance build cannot share release preferences or durable application data.</Summary>
+    <ApprovalBasis>Owner-approved stabilization recovery on 2026-11-09 delegates recommended implementation choices and requires one attributable, isolated acceptance build.</ApprovalBasis>
+    <Goals>
+      <Goal>Use the configured identifier for cache and data roots on macOS, Linux and Windows.</Goal>
+      <Goal>Keep canonical release paths unchanged and preserve headless rollback namespace consistency.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>CLI help and version exit without profile access; bind the identifier before pre-boot rollback, reconciliation or panic-path consumers.</Constraint>
+      <Constraint>Do not change HOME or migrate, read, clean or write the owner's existing profile.</Constraint>
+      <Constraint>Keep path calculation pure and testable using synthetic environment lookups.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No release identifier/version change, profile migration, credential-store policy change or installed-app replacement.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Different valid configured identifiers produce disjoint cache/data roots; the release identifier produces byte-identical existing paths.</Criterion>
+      <Criterion>Initialization rejects malformed identifiers rather than falling back into the release namespace.</Criterion>
+      <Criterion>The configured Context used for namespace selection is the same Context passed to Tauri build, and selection precedes rollback paths.</Criterion>
+      <Criterion>Pure path tests and full Rust compilation pass; the acceptance build records its identifier and profile roots before launch.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-001 />
+      <M-022 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <Command>mkdir -p target &amp;&amp; rustc --test src-tauri/src/mt_paths.rs -o target/mt-paths-tests &amp;&amp; target/mt-paths-tests</Command>
+      <Command>cargo check --manifest-path src-tauri/Cargo.toml --bin mark</Command>
+      <ExpectedEvidence>Synthetic path tests on the reference host, platform CI for other OS branches, compilation of startup wiring and explicit configured acceptance-build namespace.</ExpectedEvidence>
+    </VerificationIntent>
+    <Decisions>
+      <D-STAB-PROFILE-01>
+        <Choice>Initialize an immutable process namespace from the generated Tauri Context before pre-boot state access; keep the release constant as the default for pure/non-app callers.</Choice>
+        <Reason>Path helpers currently hardcode the release identifier; changing the bundle name alone leaves test and release state shared. Runtime configuration binds overrides without duplicating build-script config parsing.</Reason>
+      </D-STAB-PROFILE-01>
+    </Decisions>
+    <ExecutionEvidence>2026-11-09: the namespace-collision regression failed against the former hardcoded joins, then seven pure path/validation tests passed. Full offline Rust cargo check --bin mark passed with no errors. Selected final assertions passed. The acceptance application has not been launched; its configured identifier and profile roots must be recorded with the final artifact. No existing owner profile was migrated or modified.</ExecutionEvidence>
+  </C-STABILIZE-PROFILE-ISOLATION>
+</GraceChangeSpec>

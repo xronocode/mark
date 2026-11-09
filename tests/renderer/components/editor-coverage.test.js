@@ -2803,7 +2803,9 @@ describe('editor.vue — coverage', () => {
       expect(pictureExportMock.buildStandaloneSvg).not.toHaveBeenCalled()
       expect(pictureExportMock.rasterizeSvg).toHaveBeenCalledWith('<svg>table</svg>', { scale: 2 })
       expect(writeImageMock).toHaveBeenCalledWith(new Uint8Array([1]))
-      expect(noticeMock.notify).toHaveBeenCalledWith(expect.not.objectContaining({ type: 'warning' }))
+      expect(noticeMock.notify).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'editor.tableExport.title', message: 'editor.tableExport.copied'
+      }))
     })
 
     it('saves a table PNG named after its 1-based index among the tables', async () => {
@@ -2839,6 +2841,21 @@ describe('editor.vue — coverage', () => {
       expect(warn.mock.calls[0][0]).toContain('[Editor][handleDiagramExportAction][BLOCK_DIAGRAM_EXPORT] no rendered svg')
       expect(writeImageMock).not.toHaveBeenCalled()
       warn.mockRestore()
+    })
+
+    it('keeps diagram-specific feedback when copying a diagram', async () => {
+      await mountEditor()
+      const figure = document.createElement('figure')
+      figure.dataset.role = 'MERMAID'
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      figure.appendChild(svg)
+      document.body.appendChild(figure)
+      pictureExportMock.diagramExportSvg.mockReturnValue(svg)
+      pictureExportMock.buildStandaloneSvg.mockReturnValue('<svg>diagram</svg>')
+      await exportHandler()({ action: 'copyImage', element: svg })
+      expect(noticeMock.notify).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'editor.diagramExport.title', message: 'editor.diagramExport.copied'
+      }))
     })
 
     it('saves a diagram SVG through buildStandaloneSvg with the diagram noun', async () => {

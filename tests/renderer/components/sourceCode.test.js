@@ -12,6 +12,7 @@ vi.mock('@/codeMirror', () => {
     off: vi.fn(),
     getValue: vi.fn(() => ''),
     setValue: vi.fn(),
+    setOption: vi.fn(),
     getCursor: vi.fn(() => ({ line: 0, ch: 0 })),
     getLine: vi.fn(() => ''),
     setSelection: vi.fn(),

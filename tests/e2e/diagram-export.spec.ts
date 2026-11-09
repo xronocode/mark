@@ -26,6 +26,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
+//   fitting/icon-only controls together with natural-size viewer access, real
+//   pointer/keyboard interactions and preserved document/dirty semantics.
 //   LAST_CHANGE: v1.4.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.4.0 - 2026-10-19 C-65: tables open full screen from
 //   their own toolbar and carry no standalone glyph or diagram pill.
@@ -363,7 +366,7 @@ test.describe('diagram export (C-56)', () => {
 
     for (const negative of [
       '#ag-editor-id p',
-      "figure[data-role='TABLE'] table",
+      "figure[data-role='TABLE'] tbody td:first-child",
       "figure[data-role='FLOWCHART'] div.ag-container-preview"
     ]) {
       const items = await openContextMenuOn(page, negative)
@@ -586,7 +589,15 @@ ${Array.from({ length: 12 }, (_, i) => `| value ${i + 1}`).join('')} |
     }))
     expect(saved.defaultPath).toBe('table-only.svg')
     expect(saved.svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"')).toBe(true)
-    expect(saved.svg).toContain('>Column number 1</text>')
+    // Fitted cells wrap into several SVG text runs. Verify every header
+    // survives the vector export rather than requiring a single text node.
+    const headerText = await page.evaluate(svg => {
+      const doc = new DOMParser().parseFromString(svg, 'image/svg+xml')
+      return Array.from(doc.querySelectorAll('text')).map(el => el.textContent).join('').replace(/\s/g, '')
+    }, saved.svg)
+    for (let column = 1; column <= 12; column++) {
+      expect(headerText).toContain(`Columnnumber${column}`)
+    }
     expect(saved.svg).not.toContain('foreignObject')
   })
 

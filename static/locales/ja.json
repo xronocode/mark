@@ -120,7 +120,11 @@
         }
       }
     },
-    "sequence-start": "シーケンス開始"
+    "sequence-start": "シーケンス開始",
+    "tableExport": {
+      "title": "表",
+      "copied": "表を画像としてクリップボードにコピーしました"
+    }
   },
   "outlineRail": {
     "title": "このページの内容"
@@ -1629,7 +1633,8 @@
     "fitToPage": "ページ幅に合わせる",
     "fullWidth": "フル幅で表示",
     "columnsRange": "列 {start}～{end}／{total}",
-    "doesNotFitBy": "{px} px だけ入りません — データを隠さず列スクロールで表示します"
+    "doesNotFitBy": "{px} px だけ入りません — データを隠さず列スクロールで表示します",
+    "columnWallHint": "Drag to resize · double-click to fit content"
   },
   "statusBar": {
     "title": "ドキュメント統計",
@@ -1791,5 +1796,8 @@
       "rememberSizes": "列のサイズを記憶",
       "rememberSizesHelp": "列のサイズはファイルごとに保存され、幅が変わると比例して再適用されます"
     }
+  },
+  "extensions": {
+    "disableFailed": "拡張機能は無効になっていますが、アクセス権の取り消しを確認できませんでした。もう一度お試しください。"
   }
 }

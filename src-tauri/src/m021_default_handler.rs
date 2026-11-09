@@ -4,7 +4,7 @@
 //            .md / .markdown files. Targets both
 //            `net.daringfireball.markdown` (legacy popular UTI) and
 //            `public.markdown` (newer system UTI). Bundle id is
-//            `com.xronocode.mark` (matches tauri.conf.json identifier).
+//            the immutable configured application identifier (canonical release: com.xronocode.mark).
 //   SCOPE:   3 Tauri commands invoked from the Settings UI:
 //              - mt_set_default_md_handler
 //              - mt_get_default_md_handler
@@ -14,14 +14,14 @@
 //   DEPENDS: stdlib std::process::Command (production runner only),
 //            std::time (lsregister duration timer),
 //            serde (DefaultHandlerInfo serialization).
-//   LINKS:   .grace/graph/runtime.xml M-001 (PhaseRef Phase-B4-pre-alpha-add) M-021;
-//            .grace/verification/runtime.xml V-M-021;
-//            .grace/graph/runtime.xml M-021.
+//   LINKS: M-021, M-022
 //   STATUS:  Phase-B4-pre-alpha-add: shipped 2026-05-09 with the 8
 //            module-local tests covering V-M-021 S-01, S-02, S-04,
 //            S-05, F-01, F-03, I-01, RC-01.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-STABILIZE-RELEASE-WARNING: canonical identity fixture is test-only; production continues using the configured namespace accessor.
+//   - 2026-11-09 C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: get/set/unset target only the configured bundle identity; injected QA tests preserve release entries.
 //   - 2026-05-09 B4-pre-alpha-add: initial module.
 //   - 2026-09-28 C-15 T-W2: commands are macOS-only — non-macOS desktop
 //     returns MT_DEFAULT_HANDLER_MACOS_ONLY / neutral get instead of
@@ -37,7 +37,8 @@ use serde::Serialize;
 use std::process::Command;
 use std::time::Instant;
 
-/// macOS bundle identifier — must match `identifier` in tauri.conf.json.
+/// Canonical release identity used by injected compatibility fixtures.
+#[cfg(test)]
 pub const MARK_BUNDLE_ID: &str = "com.xronocode.mark";
 
 /// UTIs we register against. Both are emitted by macOS for `.md` files
@@ -219,7 +220,7 @@ fn extract_quoted_value(haystack: &str, key: &str) -> Option<String> {
 /// per-uti markers and returns Ok(()) on idempotent-noop OR
 /// successful-write. Caller drives the lsregister reload AFTER all
 /// utis are written.
-fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
+fn set_one_uti(runner: &dyn CommandRunner, uti: &str, identifier: &str) -> Result<(), String> {
     // 1. Read current LSHandlers; if our entry is already there, log
     //    BLOCK_IDEMPOTENT_NOOP and short-circuit.
     let read_out = match runner.run(DEFAULTS_BIN, &["read", LS_DOMAIN, "LSHandlers"]) {
@@ -244,9 +245,9 @@ fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
         String::new()
     };
     if let Some(existing) = parse_handler_for_uti(&plist, uti) {
-        if existing == MARK_BUNDLE_ID {
+        if existing == identifier {
             safe_eprintln!(
-                "[m021][set_handler][BLOCK_IDEMPOTENT_NOOP existing={MARK_BUNDLE_ID} uti={uti}]"
+                "[m021][set_handler][BLOCK_IDEMPOTENT_NOOP existing={identifier} uti={uti}]"
             );
             return Ok(());
         }
@@ -255,7 +256,7 @@ fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
     // 2. defaults write append-array. The value is a plist literal
     //    `{LSHandlerContentType="<uti>";LSHandlerRoleAll="<bundle>";}`
     let value = format!(
-        "{{LSHandlerContentType=\"{uti}\";LSHandlerRoleAll=\"{MARK_BUNDLE_ID}\";}}"
+        "{{LSHandlerContentType=\"{uti}\";LSHandlerRoleAll=\"{identifier}\";}}"
     );
     let write_out = runner.run(
         DEFAULTS_BIN,
@@ -301,7 +302,7 @@ fn set_one_uti(runner: &dyn CommandRunner, uti: &str) -> Result<(), String> {
     }
     safe_eprintln!("[m021][set_handler][BLOCK_DEFAULTS_WRITE_OK domain=user uti={uti}]");
     safe_eprintln!(
-        "[m021][set_handler][BLOCK_REGISTERED uti={uti} bundle={MARK_BUNDLE_ID}]"
+        "[m021][set_handler][BLOCK_REGISTERED uti={uti} bundle={identifier}]"
     );
     Ok(())
 }
@@ -345,8 +346,15 @@ fn lsregister_reload(runner: &dyn CommandRunner, op: &str) -> Result<(), String>
 pub(crate) fn set_default_md_handler_inner(
     runner: &dyn CommandRunner,
 ) -> Result<(), String> {
+    set_default_md_handler_for_identifier(runner, crate::mt_paths::application_identifier())
+}
+
+fn set_default_md_handler_for_identifier(
+    runner: &dyn CommandRunner,
+    identifier: &str,
+) -> Result<(), String> {
     for uti in MD_UTIS {
-        set_one_uti(runner, uti)?;
+        set_one_uti(runner, uti, identifier)?;
     }
     lsregister_reload(runner, "set_handler")?;
     Ok(())
@@ -356,6 +364,13 @@ pub(crate) fn set_default_md_handler_inner(
 /// if not found, walks for whatever IS the current handler.
 pub(crate) fn get_default_md_handler_inner(
     runner: &dyn CommandRunner,
+) -> Result<DefaultHandlerInfo, String> {
+    get_default_md_handler_for_identifier(runner, crate::mt_paths::application_identifier())
+}
+
+fn get_default_md_handler_for_identifier(
+    runner: &dyn CommandRunner,
+    identifier: &str,
 ) -> Result<DefaultHandlerInfo, String> {
     let read_out = match runner.run(DEFAULTS_BIN, &["read", LS_DOMAIN, "LSHandlers"]) {
         Ok(o) => o,
@@ -383,13 +398,13 @@ pub(crate) fn get_default_md_handler_inner(
     let mut other_handler: Option<(String, String)> = None; // (uti, bundle)
     for uti in MD_UTIS {
         if let Some(bundle) = parse_handler_for_uti(&plist, uti) {
-            if bundle == MARK_BUNDLE_ID {
+            if bundle == identifier {
                 safe_eprintln!(
-                    "[m021][get_handler][BLOCK_QUERIED is_default=true current={MARK_BUNDLE_ID} uti={uti}]"
+                    "[m021][get_handler][BLOCK_QUERIED is_default=true current={identifier} uti={uti}]"
                 );
                 return Ok(DefaultHandlerInfo {
                     is_default: true,
-                    current_handler: Some(MARK_BUNDLE_ID.to_string()),
+                    current_handler: Some(identifier.to_string()),
                 });
             } else if other_handler.is_none() {
                 other_handler = Some(((*uti).to_string(), bundle));
@@ -422,10 +437,17 @@ pub(crate) fn get_default_md_handler_inner(
 ///
 /// `defaults` doesn't have an array-remove-by-predicate; we delete
 /// the whole LSHandlers array and append back every entry that DOES
-/// NOT mention MARK_BUNDLE_ID. If no Mark entries exist, this is a
+/// NOT mention identifier. If no Mark entries exist, this is a
 /// no-op (BLOCK_REMOVED existing=none).
 pub(crate) fn unset_default_md_handler_inner(
     runner: &dyn CommandRunner,
+) -> Result<(), String> {
+    unset_default_md_handler_for_identifier(runner, crate::mt_paths::application_identifier())
+}
+
+fn unset_default_md_handler_for_identifier(
+    runner: &dyn CommandRunner,
+    identifier: &str,
 ) -> Result<(), String> {
     let read_out = match runner.run(DEFAULTS_BIN, &["read", LS_DOMAIN, "LSHandlers"]) {
         Ok(o) => o,
@@ -450,7 +472,7 @@ pub(crate) fn unset_default_md_handler_inner(
     let mut had_mark_entry = false;
     for uti in MD_UTIS {
         if let Some(bundle) = parse_handler_for_uti(&plist, uti) {
-            if bundle == MARK_BUNDLE_ID {
+            if bundle == identifier {
                 had_mark_entry = true;
                 break;
             }
@@ -503,8 +525,8 @@ pub(crate) fn unset_default_md_handler_inner(
             continue;
         }
         // Skip Mark entries.
-        let has_mark_role = chunk.contains(&format!("\"{MARK_BUNDLE_ID}\""))
-            || chunk.contains(&format!(" {MARK_BUNDLE_ID};"));
+        let has_mark_role = chunk.contains(&format!("\"{identifier}\""))
+            || chunk.contains(&format!(" {identifier};"));
         if has_mark_role {
             continue;
         }
@@ -529,7 +551,7 @@ pub(crate) fn unset_default_md_handler_inner(
         }
     }
 
-    safe_eprintln!("[m021][unset_handler][BLOCK_REMOVED existing={MARK_BUNDLE_ID}]");
+    safe_eprintln!("[m021][unset_handler][BLOCK_REMOVED existing={identifier}]");
     lsregister_reload(runner, "unset_handler")?;
     Ok(())
 }
@@ -1006,4 +1028,43 @@ mod tests {
             Some("com.example.typora")
         );
     }
+    #[test]
+    fn profile_namespace_query_does_not_claim_release_default() {
+        let runner = MockRunner::new();
+        let plist = format!("( {{ LSHandlerContentType = \"public.markdown\"; LSHandlerRoleAll = \"{MARK_BUNDLE_ID}\"; }} )");
+        runner.always(DEFAULTS_BIN, ok_stdout(&plist));
+        let actual = get_default_md_handler_for_identifier(&runner, "com.xronocode.mark.test.stabilize29").unwrap();
+        assert!(!actual.is_default);
+        assert_eq!(actual.current_handler.as_deref(), Some(MARK_BUNDLE_ID));
+    }
+
+    #[test]
+    fn profile_namespace_set_registers_only_configured_identifier() {
+        let runner = MockRunner::new();
+        runner.always(DEFAULTS_BIN, ok_empty());
+        runner.always(LSREGISTER_BIN, ok_empty());
+        let qa = "com.xronocode.mark.test.stabilize29";
+        set_default_md_handler_for_identifier(&runner, qa).unwrap();
+        let writes: Vec<_> = runner.calls().into_iter().filter(|(_, args)| args.first().map(String::as_str) == Some("write")).collect();
+        assert_eq!(writes.len(), MD_UTIS.len());
+        for (_, args) in writes {
+            assert!(args.last().unwrap().contains(&format!("\"{qa}\"")));
+            assert!(!args.last().unwrap().contains(&format!("\"{MARK_BUNDLE_ID}\"")));
+        }
+    }
+
+    #[test]
+    fn profile_namespace_unset_preserves_canonical_release_entry() {
+        let runner = MockRunner::new();
+        let qa = "com.xronocode.mark.test.stabilize29";
+        let plist = format!("( {{ LSHandlerContentType = \"net.daringfireball.markdown\"; LSHandlerRoleAll = \"{qa}\"; }}, {{ LSHandlerContentType = \"public.markdown\"; LSHandlerRoleAll = \"{MARK_BUNDLE_ID}\"; }} )");
+        runner.always(DEFAULTS_BIN, ok_stdout(&plist));
+        runner.always(LSREGISTER_BIN, ok_empty());
+        unset_default_md_handler_for_identifier(&runner, qa).unwrap();
+        let writes: Vec<_> = runner.calls().into_iter().filter(|(_, args)| args.first().map(String::as_str) == Some("write")).collect();
+        assert_eq!(writes.len(), 1);
+        assert!(writes[0].1.last().unwrap().contains(&format!("\"{MARK_BUNDLE_ID}\"")));
+        assert!(!writes[0].1.last().unwrap().contains(&format!("\"{qa}\"")));
+    }
+
 }

@@ -7,12 +7,11 @@
 //            graceful exit, stale PID detection. No HTTP, no session
 //            state.
 //   DEPENDS: serde/serde_json, std::fs, std::process.
-//   LINKS:   .grace/graph/features.xml M-045;
-//            .grace/graph/features.xml M-045 (PhaseRef Phase-B5a);
-//            ROADMAP.md Decision D1 (HTTP POST IPC).
+//   LINKS: M-045, M-022
 //   STATUS:  Phase-B5a initial — discovery file write/cleanup/stale.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-09 C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: endpoint writes and cleanup use the configured durable data root; canonical macOS path is unchanged.
 //   - 2026-06-08 B5a: initial live_endpoint module creation.
 //   - 2026-09-28 C-15 T-W2: is_pid_alive gains a tasklist-based Windows
 //     arm (was assume-stale); make_endpoint labels windows-x86_64/aarch64
@@ -54,14 +53,15 @@ pub struct LiveEndpoint {
 
 // START_BLOCK_PATH
 
-/// Returns the path to the discovery file:
-/// ~/Library/Application Support/com.xronocode.mark/live-endpoint.json
+/// Resolve the endpoint within the configured profile's durable data root.
+fn endpoint_path_for_data_root(root: Option<PathBuf>) -> Result<PathBuf, String> {
+    root.map(|root| root.join("live-endpoint.json"))
+        .ok_or_else(|| "Application data root unavailable".to_string())
+}
+
 fn endpoint_path() -> Result<PathBuf, String> {
-    let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
-    let dir = PathBuf::from(home)
-        .join("Library")
-        .join("Application Support")
-        .join("com.xronocode.mark");
+    let path = endpoint_path_for_data_root(crate::mt_paths::data_root())?;
+    let dir = path.parent().ok_or_else(|| "Application data root unavailable".to_string())?;
 
     // Ensure directory exists.
     if !dir.exists() {
@@ -74,7 +74,7 @@ fn endpoint_path() -> Result<PathBuf, String> {
         })?;
     }
 
-    Ok(dir.join("live-endpoint.json"))
+    Ok(path)
 }
 
 // END_BLOCK_PATH
@@ -351,3 +351,18 @@ fn is_leap_year(y: u64) -> bool {
 }
 
 // END_BLOCK_HELPERS
+
+#[cfg(test)]
+mod profile_namespace_tests {
+    use super::*;
+
+    #[test]
+    fn profile_namespace_endpoint_stays_with_its_durable_root() {
+        let release = PathBuf::from("/fixture/Library/Application Support/com.xronocode.mark");
+        let qa = PathBuf::from("/fixture/Library/Application Support/com.xronocode.mark.test.stabilize29");
+        assert_eq!(endpoint_path_for_data_root(Some(release.clone())).unwrap(), release.join("live-endpoint.json"));
+        assert_eq!(endpoint_path_for_data_root(Some(qa.clone())).unwrap(), qa.join("live-endpoint.json"));
+        assert_ne!(endpoint_path_for_data_root(Some(release)).unwrap(), endpoint_path_for_data_root(Some(qa)).unwrap());
+        assert!(endpoint_path_for_data_root(None).is_err());
+    }
+}

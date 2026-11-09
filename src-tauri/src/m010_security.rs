@@ -5,7 +5,7 @@
 //            URL scheme allowlist (only http/https/file: + sandboxed
 //            file://), and shell.open executable-extension blocklist.
 //   SCOPE:   pure Rust logic; no Tauri runtime, no I/O beyond
-//            std::fs::canonicalize() for symlink resolution.
+//            std::fs::symlink_metadata()/canonicalize() for entry resolution.
 //            Renderer-side concerns DEFERRED:
 //              - HTML sanitizer (DOMPurify) → Phase-B3
 //              - KaTeX `\href{javascript:...}` filter → Phase-B3
@@ -21,13 +21,18 @@
 //            .grace/verification/runtime.xml V-M-010 (10 scenarios + 9
 //            adversarial edge cases — this module covers ~6 of them
 //            plus the pure-logic subset of the rest);
-//            .grace/graph/runtime.xml M-010.
+//            .grace/graph/runtime.xml M-010;
+//            .grace/changes/archive/C-SEC-AUDIT-FIXES T-007.
 //   STATUS:  Phase-B2 step-1 stub-shipped. NEVER panics — every public
 //            fn returns Result<_, SecurityError>. V-M-010 hard
 //            requirement: rejected paths/URLs/exts MUST reach no
 //            downstream FsCmd or shell-open call.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-STABILIZE-PATH-TEST-PORTABILITY: three positive fixtures assert exact native canonical temporary paths on every platform; runtime guard policy is unchanged.
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-007: missing paths resolve their
+//     nearest existing directory entry before fencing; dangling links and
+//     non-NotFound I/O errors deny, preserving root/Windows prefix semantics.
 //   - 2026-04-28 B2-step-1: initial path/url/extension primitives + 4
 //     stable BLOCK markers + 16 unit tests covering happy path +
 //     adversarial inputs.
@@ -81,8 +86,8 @@ pub enum SecurityError {
     DisallowedUrlScheme { scheme: String },
     /// shell.open() target has a dangerous executable extension.
     DangerousShellOpenExtension { ext: String },
-    /// I/O error during canonicalization (file may not exist; not all
-    /// errors are security violations — caller decides).
+    /// I/O error during directory-entry resolution. Fail closed before any
+    /// filesystem operation; only an absent entry permits ancestor walking.
     IoError { kind: String, message: String },
 }
 
@@ -154,8 +159,8 @@ fn lexical_normalize(p: &Path) -> Option<PathBuf> {
 ///   2. Length check (fail closed > MAX_PATH_BYTES).
 ///   3. Lexical normalize (`..` collapse). If escapes root → reject.
 ///   4. Sandbox-prefix check on the lexical form.
-///   5. If both paths exist on FS, canonicalize and re-check (catches
-///      symlinks pointing outside).
+///   5. Resolve the nearest existing directory entries (including dangling
+///      symlinks) and re-check the canonical fence before any create/open.
 ///
 /// Returns the validated absolute path (canonicalized when possible).
 pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityError> {
@@ -219,41 +224,65 @@ pub fn check_path(sandbox: &Path, requested: &Path) -> Result<PathBuf, SecurityE
         });
     }
 
-    // 5. Symlink resolution. canonicalize() follows symlinks; if the
-    //    resolved target falls outside the sandbox, that's an attack.
-    //    Only run when both paths exist; if `requested` is for a not-
-    //    yet-created file we can't canonicalize it but we already
-    //    proved lexical safety above.
-    // C-WINDOWS-SAVE-PIPELINE: under the permissive root the prefix
-    // denial is vacuous (on Windows canonicalize("/") is the
-    // CURRENT-DRIVE root and would falsely fence cross-drive writes);
-    // the canonicalized request is still returned.
-    if lexical.exists() && sandbox_lex.exists() {
-        match (std::fs::canonicalize(&lexical), std::fs::canonicalize(&sandbox_lex)) {
-            (Ok(req_canon), Ok(box_canon)) => {
-                if !permissive && !req_canon.starts_with(&box_canon) {
-                    safe_eprintln!(
-                        "[Security][path][BLOCK_SYMLINK_ESCAPES resolved={} sandbox={}]",
-                        req_canon.display(),
-                        box_canon.display()
-                    );
-                    return Err(SecurityError::SymlinkEscapesSandbox {
-                        resolved: req_canon.display().to_string(),
-                        sandbox: box_canon.display().to_string(),
-                    });
-                }
-                return Ok(req_canon);
-            }
-            (Err(e), _) | (_, Err(e)) => {
-                return Err(SecurityError::IoError {
-                    kind: format!("{:?}", e.kind()),
-                    message: e.to_string(),
-                });
-            }
+    // 5. Missing leaves still have a real directory-entry ancestor. Resolve
+    // it before appending the missing suffix; exists() would hide dangling
+    // symlinks and skip the fence for writes through an outward parent link.
+    let req_canon = canonicalize_nearest_ancestor(&lexical)?;
+    if !permissive {
+        let box_canon = canonicalize_nearest_ancestor(&sandbox_lex)?;
+        if !strip_device_prefix(&req_canon).starts_with(&strip_device_prefix(&box_canon)) {
+            safe_eprintln!(
+                "[Security][path][BLOCK_SYMLINK_ESCAPES resolved={} sandbox={}]",
+                req_canon.display(),
+                box_canon.display()
+            );
+            return Err(SecurityError::SymlinkEscapesSandbox {
+                resolved: req_canon.display().to_string(),
+                sandbox: box_canon.display().to_string(),
+            });
         }
     }
+    Ok(req_canon)
+}
 
-    Ok(lexical)
+fn path_resolution_error(error: std::io::Error) -> SecurityError {
+    safe_eprintln!("[Security][path][BLOCK_PATH_RESOLUTION_FAILED kind={:?}]", error.kind());
+    SecurityError::IoError {
+        kind: format!("{:?}", error.kind()),
+        message: error.to_string(),
+    }
+}
+
+/// A dangling symlink is an existing directory entry, not a missing path.
+/// Only NotFound may advance; permission, loop and NotADirectory errors deny.
+fn nearest_existing_ancestor(path: &Path) -> Result<Option<PathBuf>, SecurityError> {
+    for candidate in path.ancestors() {
+        match std::fs::symlink_metadata(candidate) {
+            Ok(_) => return Ok(Some(candidate.to_path_buf())),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(path_resolution_error(error)),
+        }
+    }
+    Ok(None)
+}
+
+fn canonicalize_nearest_ancestor(path: &Path) -> Result<PathBuf, SecurityError> {
+    let Some(ancestor) = nearest_existing_ancestor(path)? else {
+        // No existing entry before an entirely missing relative sandbox root.
+        // The lexical fence already pins the path to that sandbox. This also
+        // preserves the platform-independent Windows-prefix fixture forms.
+        return Ok(path.to_path_buf());
+    };
+    // In particular, do not walk above an unresolved dangling link: fail closed.
+    let canonical = std::fs::canonicalize(&ancestor).map_err(path_resolution_error)?;
+    let suffix = path.strip_prefix(&ancestor).map_err(|error| {
+        path_resolution_error(std::io::Error::new(std::io::ErrorKind::InvalidInput, error))
+    })?;
+    if suffix.as_os_str().is_empty() {
+        Ok(canonical)
+    } else {
+        Ok(canonical.join(suffix))
+    }
 }
 
 /// C-WINDOWS-SAVE-PIPELINE: true when the sandbox is only a root with
@@ -350,6 +379,68 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
+    #[cfg(unix)]
+    fn ancestor_escape_fixture() -> (TempDir, TempDir, PathBuf) {
+        let sandbox = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let link = sandbox.path().join("outside-link");
+        std::os::unix::fs::symlink(outside.path(), &link).unwrap();
+        (sandbox, outside, link)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ancestor_escape_text_new() {
+        let (sandbox, outside, link) = ancestor_escape_fixture();
+        let requested = link.join("new/deep/note.md");
+        assert!(matches!(check_path(sandbox.path(), &requested), Err(SecurityError::SymlinkEscapesSandbox { .. })));
+        let error = crate::m013b::fs::fs_write_inner(requested.to_str().unwrap(), "fixture", sandbox.path()).unwrap_err();
+        assert!(error.message.contains("symlink escape"));
+        assert!(!outside.path().join("new").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ancestor_escape_binary_new() {
+        let (sandbox, outside, link) = ancestor_escape_fixture();
+        let requested = link.join("new/deep/image.png");
+        assert!(matches!(check_path(sandbox.path(), &requested), Err(SecurityError::SymlinkEscapesSandbox { .. })));
+        let error = crate::m013b::fs::fs_write_binary_inner(requested.to_str().unwrap(), &[0, 1, 255], sandbox.path()).unwrap_err();
+        assert!(error.message.contains("symlink escape"));
+        assert!(!outside.path().join("new").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ancestor_escape_mkdir() {
+        let (sandbox, outside, link) = ancestor_escape_fixture();
+        let requested = link.join("new/deep");
+        assert!(matches!(check_path(sandbox.path(), &requested), Err(SecurityError::SymlinkEscapesSandbox { .. })));
+        let error = crate::m013b::fs::fs_mkdir_inner(requested.to_str().unwrap(), sandbox.path()).unwrap_err();
+        assert!(error.message.contains("symlink escape"));
+        assert!(!outside.path().join("new").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ancestor_io_error_refused() {
+        let sandbox = TempDir::new().unwrap();
+        let not_a_directory = sandbox.path().join("file.md");
+        fs::write(&not_a_directory, b"fixture").unwrap();
+        let result = check_path(sandbox.path(), &not_a_directory.join("child.md"));
+        assert!(matches!(result, Err(SecurityError::IoError { .. })), "{result:?}");
+    }
+
+    #[test]
+    fn ancestor_nonexistent_sandbox_is_pinned() {
+        let root = TempDir::new().unwrap();
+        let sandbox = root.path().join("missing/workspace");
+        let requested = sandbox.join("nested/new.md");
+        let validated = check_path(&sandbox, &requested).unwrap();
+        assert_eq!(validated, root.path().canonicalize().unwrap().join("missing/workspace/nested/new.md"));
+        assert!(!sandbox.exists());
+    }
+
     // ─── path sandbox ──────────────────────────────────────────────
     // C-WINDOWS-SAVE-PIPELINE: the Windows fixture matrix. Fixtures are
     // plain PathBuf strings so the suite runs on every host — the
@@ -435,24 +526,26 @@ mod tests {
 
     #[test]
     fn happy_path_inside_sandbox() {
-        let sandbox = Path::new("/workspace");
-        let ok = check_path(sandbox, Path::new("/workspace/foo/bar.md")).unwrap();
-        assert!(ok.starts_with(sandbox));
+        let root = tempfile::tempdir().unwrap();
+        let sandbox = root.path();
+        let ok = check_path(sandbox, &sandbox.join("foo/bar.md")).unwrap();
+        assert_eq!(ok, sandbox.canonicalize().unwrap().join("foo/bar.md"));
     }
 
     #[test]
     fn dotdot_inside_sandbox_collapses() {
-        let sandbox = Path::new("/workspace");
-        let ok = check_path(sandbox, Path::new("/workspace/foo/../bar.md")).unwrap();
-        // After collapse: /workspace/bar.md — still inside sandbox.
-        assert_eq!(ok, PathBuf::from("/workspace/bar.md"));
+        let root = tempfile::tempdir().unwrap();
+        let sandbox = root.path();
+        let ok = check_path(sandbox, &sandbox.join("foo/../bar.md")).unwrap();
+        assert_eq!(ok, sandbox.canonicalize().unwrap().join("bar.md"));
     }
 
     #[test]
     fn relative_request_resolves_under_sandbox() {
-        let sandbox = Path::new("/workspace");
+        let root = tempfile::tempdir().unwrap();
+        let sandbox = root.path();
         let ok = check_path(sandbox, Path::new("notes/today.md")).unwrap();
-        assert_eq!(ok, PathBuf::from("/workspace/notes/today.md"));
+        assert_eq!(ok, sandbox.canonicalize().unwrap().join("notes/today.md"));
     }
 
     // C-15 T-W2: std::os::unix::fs::symlink does not exist on Windows —

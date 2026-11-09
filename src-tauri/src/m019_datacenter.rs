@@ -3,24 +3,23 @@
 //            Keychain / Windows Credential Manager / Linux Secret Service)
 //            using the `keyring` crate. v1.2.3 stored image-uploader API
 //            keys + GitHub PATs under serviceName="marktext"; v2 uses
-//            "com.xronocode.mark" — F-DC-MIGRATE-V1-KEYCHAIN handles
+//            the configured application identifier (release: "com.xronocode.mark"); F-DC-MIGRATE-V1-KEYCHAIN handles
 //            the rename when migration ships.
 //   SCOPE:   set / get / delete keyring secrets. Image-uploader runtime
 //            (PicGo / aliyun / qiniu / smms etc.) deferred to F-DC-IMAGE-
 //            UPLOAD; that's a substantial feature that integrates with
 //            the renderer image-paste flow.
-//   DEPENDS: keyring 3 — cross-platform OS-secret-store binding.
-//   LINKS:   .grace/graph/runtime.xml M-019 (PhaseRef Phase-B3) step-7.
+//   DEPENDS: keyring 4 — cross-platform OS-secret-store binding; mt_paths configured identity.
+//   LINKS: M-019, M-022
 //   STATUS:  Phase-B3 step-7 lite — keyring CRUD only.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-09 C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: use the configured application identifier as the credential service; canonical release identity is unchanged.
 //   - 2026-04-29 B3-step-7: initial keyring set/get/delete.
-
-const SERVICE_NAME: &str = "com.xronocode.mark";
 
 #[tauri::command]
 pub async fn mt_secret_set(key: String, value: String) -> Result<(), String> {
-    let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| e.to_string())?;
+    let entry = keyring::Entry::new(crate::mt_paths::application_identifier(), &key).map_err(|e| e.to_string())?;
     entry.set_password(&value).map_err(|e| {
         safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_SET_FAILED reason={e}]");
         e.to_string()
@@ -31,7 +30,7 @@ pub async fn mt_secret_set(key: String, value: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn mt_secret_get(key: String) -> Result<Option<String>, String> {
-    let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| e.to_string())?;
+    let entry = keyring::Entry::new(crate::mt_paths::application_identifier(), &key).map_err(|e| e.to_string())?;
     match entry.get_password() {
         Ok(p) => {
             safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_GET_HIT key={key}]");
@@ -50,7 +49,7 @@ pub async fn mt_secret_get(key: String) -> Result<Option<String>, String> {
 
 #[tauri::command]
 pub async fn mt_secret_delete(key: String) -> Result<(), String> {
-    let entry = keyring::Entry::new(SERVICE_NAME, &key).map_err(|e| e.to_string())?;
+    let entry = keyring::Entry::new(crate::mt_paths::application_identifier(), &key).map_err(|e| e.to_string())?;
     match entry.delete_credential() {
         Ok(_) | Err(keyring::Error::NoEntry) => {
             safe_eprintln!("[DataCenter][secret][BLOCK_KEYRING_DELETE key={key}]");

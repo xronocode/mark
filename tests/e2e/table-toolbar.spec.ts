@@ -101,6 +101,11 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
       toolbarTop: toolbarRect.top,
       tableTop: tableRect.top,
       tableLeft: tableRect.left,
+      wrapperLeft: wrapper.getBoundingClientRect().left,
+      tableBorder: getComputedStyle(table).borderLeftWidth,
+      tableMargin: getComputedStyle(table).marginLeft,
+      wrapperPadding: getComputedStyle(wrapper).paddingLeft,
+      wrapperBorder: getComputedStyle(wrapper).borderLeftWidth,
       captionRight: caption.getBoundingClientRect().right,
       wrapperRight: wrapper.getBoundingClientRect().right,
       captionText: caption.textContent || '',
@@ -157,7 +162,7 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(rest.modeLabels).toEqual(['Auto', 'Fit to page', 'Full width'])
 
     // Hover over the table reveals the pill.
-    await page.locator("figure[data-role='TABLE'] table").first().hover()
+    await page.locator("figure[data-role='TABLE'] thead th").first().hover({ position: { x: 15, y: 15 } })
     // The reveal is a 150 ms opacity transition — poll, never sample once.
     await expect.poll(async () => (await toolbarState(page)).opacity).toBe('1')
 
@@ -208,29 +213,30 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     // A caret in a cell is normal table work: the toolbar is not removed
     // (diagrams hide theirs while the source is edited) and the hover over
     // the table shows it, so the mode segment is never locked away.
-    await page.locator("figure[data-role='TABLE'] table").first().hover()
+    await page.locator("figure[data-role='TABLE'] thead th").first().hover({ position: { x: 15, y: 15 } })
     await expect.poll(async () => {
       const st = await toolbarState(page)
       return { active: st.figureActive, display: st.display, opacity: st.opacity }
     }).toEqual({ active: true, display: 'flex', opacity: '1' })
   })
 
-  test('a wide table opens in Auto: the wrapper owns the scroll, the cue reads the visible range (T-007)', async ({ page }) => {
+  test('a wide Auto table shows every column without scroll or hidden-range cues', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
 
     // No click: the honest default keeps a wide table content-sized in its
     // column — the wrapper scrolls (the GitHub model, R-8).
     const g = await geometry(page)
     expect(g!.figureFullWidth).toBe(false)
-    expect(g!.computedOverflowX).toBe('auto')
-    expect(g!.wrapperScrollWidth).toBeGreaterThan(g!.wrapperClientWidth + 100)
+    // Owner mandate 2026-11-07: even wide content folds instead of
+    // scrolling — no overflow anywhere.
+    expect(g!.wrapperScrollWidth).toBeLessThanOrEqual(g!.wrapperClientWidth + 8)
     // The page never gains horizontal overflow.
     expect(g!.scrollerScrollWidth).toBeLessThanOrEqual(g!.scrollerClientWidth + 1)
     // The toolbar keeps its text-column anchor; the counter belongs to the scroll block.
     expect(Math.abs(g!.toolbarRight - g!.columnRight)).toBeLessThanOrEqual(1)
     expect(Math.abs(g!.captionRight - g!.wrapperRight)).toBeLessThanOrEqual(1)
     // The caption reads the visible range; the right side hides columns.
-    expect(g!.captionText).toMatch(/^columns 1–\d+ of 18$/)
+    expect(g!.captionText).not.toMatch(/columns|does not fit/i)
     const shades = await page.evaluate(() => {
       const wrapper = document.querySelector("figure[data-role='TABLE'] div.ag-table-scroll") as HTMLElement
       return {
@@ -239,7 +245,7 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
       }
     })
     expect(shades.left).toBe(false)
-    expect(shades.right).toBe(true)
+    expect(shades.right).toBe(false)
 
     // Scrolling the wrapper right reveals the last columns (the wrapper is
     // the single horizontal owner in Auto — corner-8).
@@ -251,11 +257,11 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
       const lastRect = last.getBoundingClientRect()
       return { scrollLeft: wrapper.scrollLeft, lastRight: lastRect.right, wrapperRight: wrapperRect.right }
     })
-    expect(revealed.scrollLeft).toBeGreaterThan(100)
-    expect(Math.abs(revealed.lastRight - revealed.wrapperRight)).toBeLessThanOrEqual(400)
+    expect(revealed.scrollLeft).toBeLessThanOrEqual(8)
+    expect(revealed.lastRight, 'last column remains inside the visible frame').toBeLessThanOrEqual(revealed.wrapperRight + 1)
   })
 
-  test('Full width escapes the column: gutter from the editor\'s left edge, the editor scrolls, the honest degradation badge (T-007)', async ({ page }) => {
+  test('Full width escapes the column: gutter from the editor\'s left edge; the squeeze keeps every table inside its frame (owner mandate 2026-11-07)', async ({ page }) => {
     await openDoc(page, WIDE_18COL_MD)
     await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(false)
 
@@ -264,15 +270,18 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(true)
     await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('full')
 
-    // The table is wider than the window canvas even after the honest
-    // distribution: the minimal columns cannot fit, so the mode degrades —
-    // the badge states the exact px and the EDITOR scroller owns the
-    // scrollbar (the wrapper stops clipping).
+    // Owner mandate 2026-11-07: a table NEVER scrolls out of its frame —
+    // the unwrappable minima squeeze proportionally with mid-token breaks
+    // (the old badge-and-scroll degradation is retired).
+    await expect.poll(async () => {
+      const current = await geometry(page)
+      return current!.tableLeft - current!.scrollerLeft
+    }).toBeLessThanOrEqual(26)
     const g = await geometry(page)
-    expect(g!.tableLeft - g!.scrollerLeft).toBeLessThanOrEqual(26)
-    expect(g!.scrollerScrollWidth).toBeGreaterThan(g!.scrollerClientWidth + 100)
-    expect(g!.computedOverflowX).toBe('visible')
-    expect(g!.captionText).toMatch(/^Does not fit by \d+ px — column scrolling instead of hiding data$/)
+    expect(g!.tableLeft - g!.scrollerLeft, JSON.stringify(g)).toBeLessThanOrEqual(26)
+    expect(g!.wrapperScrollWidth, 'no columns hidden behind a scrollbar')
+      .toBeLessThanOrEqual(g!.wrapperClientWidth + 1)
+    expect(g!.captionText).not.toMatch(/does not fit/i)
     // The toolbar keeps its text-column anchor; the counter belongs to the scroll block.
     expect(Math.abs(g!.toolbarRight - g!.columnRight)).toBeLessThanOrEqual(1)
     expect(Math.abs(g!.captionRight - g!.wrapperRight)).toBeLessThanOrEqual(1)
@@ -287,15 +296,14 @@ test.describe('table toolbar + full width (C-65 T-002/T-004)', () => {
     expect(shades.left).toBe(false)
     expect(shades.right).toBe(false)
 
-    // Back to Auto: one click — the wrapper scroll and the range cue return.
+    // Back to Auto: one click — content-sized again, and STILL no scroll:
+    // the unwrappable content folds into the page (mid-token breaks).
     await clickMode(page, 'auto')
     await expect.poll(async () => (await geometry(page))!.figureFullWidth).toBe(false)
     await expect.poll(async () => (await toolbarState(page)).activeMode).toBe('auto')
     const back = await geometry(page)
-    expect(back!.computedOverflowX).toBe('auto')
-    expect(back!.wrapperScrollWidth).toBeGreaterThan(back!.wrapperClientWidth + 100)
-    expect(back!.scrollerScrollWidth).toBeLessThanOrEqual(back!.scrollerClientWidth + 1)
-    expect(back!.captionText).toMatch(/^columns 1–\d+ of 18$/)
+    expect(back!.wrapperScrollWidth, 'auto never scrolls either')
+      .toBeLessThanOrEqual(back!.wrapperClientWidth + 8)
     expect(back!.captionText).not.toMatch(/does not fit/i)
   })
 

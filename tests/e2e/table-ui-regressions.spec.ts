@@ -17,6 +17,9 @@
 //   chooseFullWidth - evaluate-click helper: explicitly chooses the honest Full width mode through the toolbar segment (T-007 — nothing auto-expands anymore).
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
+//   fitting/icon-only controls together with natural-size viewer access, real
+//   pointer/keyboard interactions and preserved document/dirty semantics.
 //   LAST_CHANGE: v1.4.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
 //   expanded-state cases choose Full width explicitly through the mode
 //   segment (nothing auto-expands in the honest model), and the
@@ -235,6 +238,7 @@ test('table viewer zoom buttons remain visible, operable and fitted on a narrow 
   await page.setViewportSize({ width: 600, height: 700 })
   await bootEditor(page)
   await openFileTab(page, '/tmp/mark-e2e/table-zoom.md', MEDIUM_TABLE)
+  const before = await documentState(page)
   const figure = page.locator("figure[data-role='TABLE']").first()
   await figure.hover()
   await figure.locator('button.ag-block-toolbar-expand').click()
@@ -252,6 +256,12 @@ test('table viewer zoom buttons remain visible, operable and fitted on a narrow 
   // Wait until both initial fitting passes have settled by selecting 1:1.
   await viewer.locator('.ag-block-viewer-actual-size').click()
   await expect.poll(scale).toBeCloseTo(1, 2)
+  const natural = await viewer.locator('.ag-block-viewer-canvas table').evaluate(el => ({ width: el.getBoundingClientRect().width, text: el.textContent }))
+  const fitted = await figure.locator('table').evaluate(el => ({ width: el.getBoundingClientRect().width, text: el.textContent }))
+  expect(natural.width).toBeGreaterThan(fitted.width + 2)
+  expect(natural.text).toBe(fitted.text)
+  expect(await documentState(page)).toEqual(before)
+
   await viewer.locator('.ag-block-viewer-zoom-in').click()
   await expect.poll(scale).toBeGreaterThan(1.1)
   await viewer.locator('.ag-block-viewer-zoom-out').click()

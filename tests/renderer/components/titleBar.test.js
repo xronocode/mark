@@ -1,4 +1,6 @@
 import { shallowMount } from '@vue/test-utils'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 
@@ -198,5 +200,21 @@ describe('titleBar/index.vue', () => {
     await vi.dynamicImportSettled()
     const { invoke } = await import('@tauri-apps/api/core')
     expect(invoke).toHaveBeenCalledWith('mt_share_file', { path: '/tmp/test.md' })
+  })
+
+  // 2026-11-09 wall-pierce guard: muya's table side-wall handles inject
+  // z-index 3 into the ROOT stacking context (no ancestor of the editor
+  // creates one), so at the bar's old z-index 2 they painted through
+  // the quick-settings and doc-info popovers the bar owns. The bar must
+  // stay above the walls (6) yet below the image-viewer overlay (11).
+  // Style blocks are not mounted, so the guard reads the SFC source.
+  it('keeps the bar stacked above the table wall handles (z 6 > 3)', () => {
+    const src = readFileSync(
+      resolve('src/renderer/src/components/titleBar/index.vue'),
+      'utf8'
+    )
+    const bar = src.match(/\.title-bar\s*\{[\s\S]*?\}/)
+    expect(bar).toBeTruthy()
+    expect(bar[0]).toMatch(/z-index:\s*6/)
   })
 })

@@ -1,0 +1,61 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-PRODUCT-REPAIRS>
+    <Name>Integrate accepted table and titlebar product repairs</Name>
+    <Created>2026-11-09</Created>
+    <Summary>Integrate the unpublished owner-accepted table/chips smoke repairs and PR #193 final Aa/stacking fix onto the CI-repaired current main, preserving later renderer fixes and current ownership contracts. Replace the affected live projections with the accepted no-scroll, Auto reset, icon-only and persistent-entry behavior; retain historical source approvals unchanged.</Summary>
+    <ApprovalBasis>Owner approval on 2026-11-09 of RECOVERY and the requested clean green main, with implementation and fork decisions explicitly delegated to the recommended choices and required to be recorded in GRACE. This approved spec and plan select the already accepted table/chips smoke repairs and PR #193 final Aa repair; split work is a separate later bundle. Approval covers this bounded integration and focused boundary fixes, not release, version, tag, publication, unrelated features or approval of old draft bytes.</ApprovalBasis>
+    <DecisionProvenance>
+      <D-OWNER-TABLE-NOSCROLL>Owner instruction, 2026-11-07, translated: the table scrolling mode must not exist. Supersedes C-PAGE-WIDTH-TABLES R-8/R-9 internal scroll degradation in Auto, Fit and Full. New sizing order is distribute, wrap, proportional squeeze; no silent clipping or hidden columns is an acceptable substitute.</D-OWNER-TABLE-NOSCROLL>
+      <D-OWNER-AUTO-RESET>Owner smoke feedback, 2026-11-07: selecting Auto must restore content sizing without per-column double-click resets. Drop the session colgroup/explicit widths and prevent stored Auto widths from resurrecting them. Supersedes the archived parent preservation of unapplied Auto ratios for this reset action.</D-OWNER-AUTO-RESET>
+      <D-OWNER-EDGES>Owner convention, 2026-11-09: Fit and Full outer edges stay fixed to the page/window and have no outer wall or last-header-edge drag handle. Internal borders remain draggable through table height. Auto alone retains both external width walls.</D-OWNER-EDGES>
+      <D-OWNER-TOOLBARS>Owner smoke feedback, 2026-11-05 through 2026-11-07: all table and diagram toolbar buttons stay icon-only with tooltip/aria names, never expanding labels. This supersedes C-TOOLBAR-LABELS inline-label visits. Table order is Auto, Fit, Full, Expand, Copy. Table image-copy success says Table, not Diagram.</D-OWNER-TOOLBARS>
+      <D-OWNER-CHIPS>Owner smoke feedback, 2026-11-07 and 2026-11-08: turning off the last mode must leave one Standard entry chip while a document is open; view chips and the Standard entry are icon-only with accessible names/tooltips. No document still renders no entry. Supersedes the standard-state omission and labelled-view-chip clauses in C-TITLEBAR-MODE-CHIPS.</D-OWNER-CHIPS>
+      <D-OWNER-AA>Owner rework, 2026-11-09, PR #193 commits 4b186476, cec3e23d, e50c89c7, f222ab5c, 012ceb4d, 12c47845: final quick-settings affordance is inherited-font span.qs-aa text Aa. Earlier chevrons and two Aa SVG attempts are superseded. Restate local 28px button chrome; titlebar stacking stays above table walls and below the image viewer.</D-OWNER-AA>
+      <D-OWNER-ACCEPTANCE>Retained owner-session summary mark-tables-owner-smoke-fixes-2026-11-05, source session session_212bf052640ad9e2417482e0f2be05bf, records 2026-11-09 owner acceptance: it works from my side; two clean self-review passes may close the table task, but do not freeze the train. It records both historical passes green. These are historical evidence, not fresh candidate results; do not restart the closed review streak.</D-OWNER-ACCEPTANCE>
+      <D-ENGINEERING-CHOICES>The 4px-per-column WebKit reserve, honest sumWidths rounding, null-measurement retry, one-way ghost-tail clip, resize listener and delayed adoption/repaint are existing engineering implementations of accepted behavior. Reuse them, repairing a focused boundary failure if proven; acceptance does not predetermine those algorithms or claim their boundaries already pass.</D-ENGINEERING-CHOICES>
+    </DecisionProvenance>
+    <Goals>
+      <Goal>Integrate the final six-file PR #193 product diff and only attributable smoke-repair hunks, keeping current main changes outside this scope intact.</Goal>
+      <Goal>Keep all cells visible in Auto, Fit and Full without internal horizontal scrolling, preserve content through drag/reset/mode transitions and make walls track the actual table geometry.</Goal>
+      <Goal>Keep mode/settings entry points reachable and named accessibly, with icon-only stable toolbar geometry and correct table-copy feedback.</Goal>
+      <Goal>Synchronize current M-011/M-012/M-061/M-062 graph, verification and file-local contracts with the implemented decisions and exact-candidate evidence.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Use current main 296dc5f0 plus the separately integrated C-STABILIZE-CI-INTEGRATION candidate as pre-edit baseline. Recheck selected baseline assertions if the integration tree changes.</Constraint>
+      <Constraint>Read file-local contracts and routed ownership before editing. Import local pagewidth-exec dirty hunks relative to 4ba177fe; use PR #193 final net product behavior. Never copy complete old editor/graph files over current main.</Constraint>
+      <Constraint>Preserve existing progressive-mount, page-width, renderer notification/export, table-bar locale-safe menus and CI repairs. Existing M-012 owns table/toolbar behavior; M-061 owns the quick-settings boundary; M-062 owns chips; M-011 hosts titlebar and notification routing.</Constraint>
+      <Constraint>Keep archived C-PAGE-WIDTH-TABLES, C-TITLEBAR-MODE-CHIPS, C-TOOLBAR-LABELS and other applied evidence unchanged; supersede their named current-behavior clauses here and in current projections only. Old pagewidth revision drafts are provenance, not approval authority.</Constraint>
+      <Constraint>Use one integration writer and one bounded candidate verification. Repeat affected checks only after changes or failures; no fresh review agents or restarted full-context review loops.</Constraint>
+      <Constraint>Keep all ten locale additions limited to editor.tableExport and tableToolbar.columnWallHint. Do not import old What's New locale hunks.</Constraint>
+      <Constraint>Use existing dependencies and installed browsers. Build the exact candidate before focused e2e. CI=1 disables foreign-preview reuse; a busy fixed port is a setup failure, not permission to trust another checkout.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Split scroll synchronization, divider gestures and dual editing; security remediation; C-50/C-47 feature work; dependency upgrades.</NonGoal>
+      <NonGoal>Versions, locks, release materials/train state, What's New data or layout, release acceptance/publication, tags, installed-app replacement or freeze.</NonGoal>
+      <NonGoal>Temporary main.js diagnostics, table-debug specs, broad tableCue/dead-locale cleanup and policy amendments.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Quick-settings shows the final Aa text glyph with local 28px chrome; opens normally; titlebar/popovers paint above table handles and below the existing image-viewer layer. Standard retains one named chip with a document, view chips have no label text, and no-document state remains empty.</Criterion>
+      <Criterion>Auto drops user-fixed widths/colgroup on explicit reset; reopening stored Auto does not reapply stale widths. Fit/Full remain within their resolved frames, retain all cell content and internal-border resize behavior, and do not expose internal horizontal scrolling on a real gesture.</Criterion>
+      <Criterion>Internal wall hit zones are transparent, positioned on actual header/body borders and stay aligned through Auto/Fit/Full, drag, double-click reset, fractional sizes and window resize. Fit/Full have no external walls or last-edge header handle; Auto has two external walls.</Criterion>
+      <Criterion>Focused geometry coverage includes many columns and a very narrow frame, proportional squeeze and rounding, manual-drag remainder overflow, hidden/unmeasurable-to-visible measurement retry and Auto-to-Fit-to-Full-to-Auto transitions. Absence of a scrollbar alone is not evidence that columns remain visible.</Criterion>
+      <Criterion>A pending adoption/repaint rAF cannot mutate a different active document or destroyed surface after a tab switch/teardown; repeated repaint does not erase a preexisting transform or leave a permanent layer. Implement a generation/lifecycle guard or equivalent only if needed to satisfy this invariant. These boundary checks are pending, not reported green.</Criterion>
+      <Criterion>Table and diagram toolbar controls never grow expanding labels and retain title/aria names; table Expand precedes Copy. Successful table image copy uses table-specific translated feedback; diagram feedback remains correct.</Criterion>
+      <Criterion>All ten locales have the two approved string families; no release/What's New content changes. Current graph and verification indexes, routed contracts, module maps and change summaries describe the accepted behavior without rewriting archives.</Criterion>
+      <Criterion>The listed focused leaf unit and freshly built Chromium/WebKit e2e gates pass for the integrated bytes; then outer final/current assertions and exact-candidate commit/push/hosted CI gates complete before claiming green main. No product pass or fresh owner acceptance is inferred from historical logs.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-011 />
+      <M-012 />
+      <M-061 />
+      <M-062 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/components/quick-settings.test.js tests/renderer/components/titleBar.test.js tests/renderer/components/titleBar-mode-chips.test.js tests/renderer/i18n/locale-keys.test.js</ExpectedCommand>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/muya/table-column-resize.test.js tests/renderer/muya/table-fit.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-cue.test.js tests/renderer/muya/table-export.test.js tests/renderer/muya/block-toolbar.test.js tests/renderer/muya/block-expand-button.test.js</ExpectedCommand>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/components/editor-coverage.test.js -t 'C-70 picture export transport'</ExpectedCommand>
+      <ExpectedCommand>npm run build &amp;&amp; CI=1 npx --no-install playwright test tests/e2e/page-width-panel.spec.ts tests/e2e/chrome-native-theme.spec.ts tests/e2e/titlebar-mode-chips.spec.ts tests/e2e/table-column-resize.spec.ts tests/e2e/table-modes.spec.ts tests/e2e/table-toolbar-labels.spec.ts tests/e2e/table-toolbar.spec.ts tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables --project=webkit-chrome --project=webkit-titlebar</ExpectedCommand>
+      <ExpectedEvidence>Record source commits/hunk attribution, supersession decisions, exact candidate identity and command outcomes. Geometry, lifecycle and repaint checks above must have meaningful assertions in the scoped suites. Reference-host command durations were not measured during preparation; no timing success is claimed. Lifecycle commands remain outer executor gates, never nested leaf commands.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-STABILIZE-PRODUCT-REPAIRS>
+</GraceChangeSpec>

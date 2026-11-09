@@ -2,9 +2,9 @@
 // VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Route clicks inside the muya container — tools, drag bars, images, math, container previews, callouts, footnotes, checkboxes, the C-51 expand button, the C-56 T-005 corner-pill actions — to contentState actions or eventCenter events.
-//   SCOPE: clickBinding and contextClickBinding only.
+//   SCOPE: clickBinding and contextClickBinding; task checkboxes own their cursor/history update and readonly checkbox default actions are cancelled before mutation.
 //   DEPENDS: muya/lib/utils (domManipulate, getImageInfo), muya/lib/config, muya/lib/selection, contentState handlers.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19, scenario-60 and scenario-64; .grace/changes/archive/C-34 T-002 (BLOCK_CONTAINER_VIEWER_CLICK); C-51 T-006 (BLOCK_EXPAND_BUTTON_CLICK) and T-010; C-56 T-005 (BLOCK_TOOLBAR_CLICK).
+//   LINKS: M-012
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.4.0 - 2026-10-18 C-56 T-005: the corner pill on
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-CHECKBOX-DIRTY: exclusive task routing avoids a duplicate post-edit cursor snapshot; readonly checkbox default actions are cancelled. The existing keyboard click notification remains the one semantic change.
+//   PREV: v1.4.0 - 2026-10-18 C-56 T-005: the corner pill on
 //   mermaid/vega-lite figures routes its three actions — editSource →
 //   contentState.handleContainerBlockClick (the pencil's action),
 //   copyImage → the muya-diagram-export event (the T-002 host transport),
@@ -113,6 +114,19 @@ class ClickEvent {
     const { container, eventCenter, contentState } = this.muya
     const handler = (event) => {
       const { target } = event
+      const taskCheckbox = target.tagName === 'INPUT' &&
+        target.classList.contains(CLASS_OR_ID.AG_TASK_LIST_ITEM_CHECKBOX)
+      // START_BLOCK_READONLY_TASK_CHECKBOX
+      // contenteditable=false does not disable native form controls. Cancel
+      // before changing the model; the browser restores the checked state
+      // and emits no input event for this prevented default action.
+      if (taskCheckbox && container.getAttribute('contenteditable') === 'false') {
+        event.preventDefault()
+        event.stopPropagation()
+        console.debug('[Muya][ClickEvent][BLOCK_READONLY_TASK_CHECKBOX] ignored readonly task toggle')
+        return
+      }
+      // END_BLOCK_READONLY_TASK_CHECKBOX
       // handler table click
       const toolItem = getToolItem(target)
       contentState.selectedImage = null
@@ -375,11 +389,11 @@ class ClickEvent {
       }
 
       // handler to-do checkbox click
-      if (
-        target.tagName === 'INPUT' &&
-        target.classList.contains(CLASS_OR_ID.AG_TASK_LIST_ITEM_CHECKBOX)
-      ) {
-        contentState.listItemCheckBoxClick(target)
+      if (taskCheckbox) {
+        // The task handler already sets an edit cursor for the whole
+        // cascade. Generic click handling would append another snapshot
+        // of the checked state, making the first undo a content no-op.
+        return contentState.listItemCheckBoxClick(target)
       }
       contentState.clickHandler(event)
     }

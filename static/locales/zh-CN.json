@@ -120,7 +120,11 @@
         }
       }
     },
-    "sequence-start": "时序图 开始"
+    "sequence-start": "时序图 开始",
+    "tableExport": {
+      "title": "表格",
+      "copied": "表格已作为图像复制到剪贴板"
+    }
   },
   "outlineRail": {
     "title": "本页内容"
@@ -1629,7 +1633,8 @@
     "fitToPage": "适应页面",
     "fullWidth": "全宽显示",
     "columnsRange": "第 {start}–{end} 列，共 {total} 列",
-    "doesNotFitBy": "还差 {px} 像素 — 改用列滚动，不隐藏任何数据"
+    "doesNotFitBy": "还差 {px} 像素 — 改用列滚动，不隐藏任何数据",
+    "columnWallHint": "Drag to resize · double-click to fit content"
   },
   "statusBar": {
     "title": "文档统计",
@@ -1791,5 +1796,8 @@
       "rememberSizes": "记住列尺寸",
       "rememberSizesHelp": "列尺寸按文件保存，宽度变化时按比例重新应用"
     }
+  },
+  "extensions": {
+    "disableFailed": "扩展已禁用，但无法确认访问权限已撤销。请重试。"
   }
 }

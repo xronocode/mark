@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/tableResize/tableFit.js
-// VERSION: 1.0.0
+// VERSION: 1.2.1
 // START_MODULE_CONTRACT
-//   PURPOSE: C-PAGE-WIDTH-TABLES T-007 (M-061) the honest table fit algorithm shared by the Fit page and Full width modes — per-column minContent/maxContent measurement over the header plus the first 50 rows, the slack-proportional distribution capped at maxContent with the even leftover split, the overflow-wrap-anywhere re-measure fallback under space pressure, and the honest minimal-size scroll degradation with its «does not fit by N px» overflow figure. Pure maths are separated from the DOM measurement so every distribution rule is unit-pinnable without a layout engine.
-//   SCOPE: FIT_MEASURE_ROW_LIMIT / FIT_MIN_COLUMN_WIDTH constants; measureColumnExtents (the three-phase DOM measurement — max-content, min-content, wrap-anywhere min — run on an offscreen clone inside the table's own scroll wrapper so the theme CSS chain still styles it; zero geometry degrades to null exactly like the rest of muya's measuring); planTableFit (the R-9 decision: distribute, or wrap first, or degrade with the overflow px); distributeIntoFrame (slack-proportional water-filling capped at maxContent, the leftover after all caps split evenly — the CSS auto-layout / Word AutoFit Window behaviour); snapWidthsToInt (largest-remainder rounding so a plan's widths sum to its frame); applyRatiosToWidth and ratiosFromWidths (the T-008 ratio re-application maths mirrored by the renderer util tableLayoutRatios.js — muya stays self-contained, no renderer imports).
+//   PURPOSE: C-PAGE-WIDTH-TABLES T-007 (M-061) the honest table fit algorithm shared by the Fit page and Full width modes — per-column minContent/maxContent measurement over the header plus the first 50 rows, the slack-proportional distribution capped at maxContent with the even leftover split, the overflow-wrap-anywhere re-measure fallback under space pressure, and proportional squeeze when wrapped minima cannot fit. Pure maths are separated from the DOM measurement so every distribution rule is unit-pinnable without a layout engine.
+//   SCOPE: FIT_MEASURE_ROW_LIMIT / FIT_MIN_COLUMN_WIDTH constants; measureColumnExtents (the three-phase DOM measurement — max-content, min-content, wrap-anywhere min — run on an offscreen clone inside the table's own scroll wrapper so the theme CSS chain still styles it; zero geometry degrades to null exactly like the rest of muya's measuring); planTableFit (the R-9 decision: distribute, or wrap first, or squeeze proportionally — the scroll degradation is retired, owner 2026-11-07); distributeIntoFrame (slack-proportional water-filling capped at maxContent, the leftover after all caps split evenly — the CSS auto-layout / Word AutoFit Window behaviour); snapWidthsToInt (largest-remainder rounding so a plan's widths sum to its frame); applyRatiosToWidth and ratiosFromWidths (the T-008 ratio re-application maths mirrored by the renderer util tableLayoutRatios.js — muya stays self-contained, no renderer imports).
 //   DEPENDS: live DOM measurement (getBoundingClientRect; jsdom/hidden panes measure zero widths → null, callers skip), no muya state.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007/T-008, spec R-8/R-9/R-10, corners C-7/C-8/C-9); .grace/graph/performance.xml M-061; lib/tableResize/index.js (the mode model consuming this module); renderer util tableLayoutRatios.js (the store-side twin of the ratio maths); printService.css / exportHtml.js (the print-path overflow-wrap precedent, read-only reference).
+//   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007/T-008, spec R-8/R-9/R-10, corners C-7/C-8/C-9); .grace/graph/performance.xml M-061; lib/tableResize/index.js (the mode model consuming this module); renderer util tableLayoutRatios.js (the store-side twin of the ratio maths); printService.css / exportHtml.js (the print-path overflow-wrap precedent, read-only reference).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,15 +14,27 @@
 //   FIT_MIN_COLUMN_WIDTH - sanity floor for the distributed/degraded minima (px; the same 48px the drag clamp uses).
 //   MEASURE_TABLE_CLASS - class of the offscreen measurer clone (also the hook the unit tests stub geometry on).
 //   measureColumnExtents - DOM: { minContent, maxContent, wrappedMin } per column over header + first rows; null when nothing is measurable.
-//   planTableFit - pure: extents + frame → { kind: 'distribute' | 'wrap' | 'scroll', widths, overflowPx? } (R-9 decision order).
+//   planTableFit - pure: extents + frame → { kind: 'distribute' | 'wrap', widths } — distribute, wrap, then proportional squeeze; never a scrollbar (owner 2026-11-07).
 //   distributeIntoFrame - pure: minima + maxima + frame → widths (slack-proportional, capped, even leftover).
-//   snapWidthsToInt - pure: float widths + frame → integer widths summing to round(frame) (largest remainder).
+//   snapWidthsToInt - pure: float widths + frame → integer widths summing to floor(frame) (largest remainder).
 //   applyRatiosToWidth - pure: ratios + frame + minima → integer widths re-applying the stored proportions (floored at minima).
 //   ratiosFromWidths - pure: widths → fractions of the table width (null when the sum collapses).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: new
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: all intrinsic measurement
+//   phases explicitly use automatic layout even when the source is fitted.
+//   Cloned fixed-layout classes cannot turn content measurements into frame widths.
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
+//   PREV: v1.2.0 - 2026-11-09 owner audit: the squeeze reserves
+//   4px per column for the collapsed borders WebKit paints over the
+//   colgroup (Chromium folds them in) — without the reserve the REAL
+//   table ran past the frame in WebKit and reopened the retired scroll.
+//   PREV: v1.1.0 - 2026-11-07 owner mandate: the scrollable
+//   degradation is RETIRED — when even the wrap-anywhere minima cannot
+//   fit, the columns squeeze PROPORTIONALLY into the frame (mid-token
+//   breaks instead of hidden-behind-a-scrollbar data).
+//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: new
 //   module. The legacy fake-fit default (a pinned frame with scrolling
 //   content) is retired; Fit page and Full width both distribute real
 //   columns into their frame with this algorithm, wrapping anywhere under
@@ -89,6 +101,10 @@ export const measureColumnExtents = (table, { rowLimit = FIT_MEASURE_ROW_LIMIT }
   style.top = '0'
   style.visibility = 'hidden'
   style.maxWidth = 'none'
+  // A fitted source carries ag-column-widths-fixed. Its inherited fixed
+  // layout measures the frame again, not intrinsic content. All three
+  // phases need the browser's automatic table sizing, without live cols.
+  style.tableLayout = 'auto'
   host.appendChild(measurer)
   try {
     const measurePhase = (tableWidth, cellOverrides) => {
@@ -192,13 +208,16 @@ export const distributeIntoFrame = (minima, maxima, frameWidth) => {
 // END_BLOCK_DISTRIBUTE_INTO_FRAME
 
 // START_BLOCK_SNAP_WIDTHS
-// Integer widths whose sum is exactly round(frameWidth) — the largest
+// Integer widths whose sum is exactly floor(frameWidth) — the largest
 // remainder carries the rounding residue so a fitted table never leaves
 // its frame by a stray pixel (the fixed-layout colgroup sums to the
-// table's inline width).
+// table's inline width). FLOOR, not round: the frame is clientWidth minus
+// a possibly fractional padding, and rounding a 756.5px frame up to 757
+// paints a 1px overflow + the phantom mini-scrollbar (owner smoke
+// 2026-11-05); the dropped sub-pixel never scrolls.
 export const snapWidthsToInt = (widths, frameWidth) => {
   const rounded = widths.map(w => Math.max(0, Math.round(w)))
-  let residual = Math.round(frameWidth) - rounded.reduce((total, w) => total + w, 0)
+  let residual = Math.floor(frameWidth) - rounded.reduce((total, w) => total + w, 0)
   while (residual !== 0) {
     // Move one pixel at a time on the widest (residual < 0) or narrowest
     // (residual > 0) column that keeps its floor.
@@ -224,9 +243,8 @@ export const snapWidthsToInt = (widths, frameWidth) => {
 //      overflow-wrap: anywhere via the degrade class — the widths here
 //      already assume it) and re-plan with the wrapped minima; if they
 //      fit, distribute on top of them (kind 'wrap').
-//   3. Otherwise degrade honestly: fix the columns at their minimal
-//      sizes, report the exact overflow in px — the caller scrolls and
-//      shows the «does not fit by N px» badge. Data is never hidden.
+//   3. Otherwise squeeze proportionally into the frame; the owner retired
+//      internal scrolling and the overflow badge.
 // Minima carry the FIT_MIN_COLUMN_WIDTH sanity floor; the wrapped minima
 // do not (a wrap-anywhere column may legitimately be narrower).
 export const planTableFit = (extents, frameWidth, { minColumnWidth = FIT_MIN_COLUMN_WIDTH } = {}) => {
@@ -248,12 +266,19 @@ export const planTableFit = (extents, frameWidth, { minColumnWidth = FIT_MIN_COL
     if (!widths) return null
     return { kind: 'wrap', widths: snapWidthsToInt(widths, frameWidth) }
   }
-  const degradedMinima = wrappedMinima && sum(wrappedMinima) < sum(minima) ? wrappedMinima : minima
-  return {
-    kind: 'scroll',
-    widths: snapWidthsToInt(degradedMinima, sum(degradedMinima)),
-    overflowPx: Math.ceil(sum(degradedMinima) - frameWidth)
-  }
+  // Owner 2026-11-07: the horizontal-scroll degradation is RETIRED — a
+  // table must never scroll its columns out of the page. When even the
+  // wrap-anywhere minima cannot fit, they are squeezed PROPORTIONALLY
+  // into the frame: every column keeps its share of the width and breaks
+  // mid-token instead of hiding data behind a scrollbar.
+  const squeezeBase = wrappedMinima && sum(wrappedMinima) > 0 ? wrappedMinima : minima
+  // Reserve 4px per column for the collapsed borders WebKit paints over
+  // the colgroup widths (~3px/column measured; Chromium folds them in);
+  // without the reserve the real table ran past the frame in WebKit.
+  const usable = Math.max(1, frameWidth - squeezeBase.length * 4)
+  const factor = usable / sum(squeezeBase)
+  const squeezed = squeezeBase.map(w => Math.max(1, Math.round(w * factor)))
+  return { kind: 'wrap', widths: snapWidthsToInt(squeezed, usable) }
 }
 // END_BLOCK_PLAN_TABLE_FIT
 

@@ -2,9 +2,9 @@
 // VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the reviewed four-mode diagram appearance flow in Chromium and WebKit.
-//   SCOPE: Computed colors, source persistence/undo, global theme/cache independence, read-only and mirror behavior, keyboard/menu bounds and fullscreen zoom/focus.
+//   SCOPE: Computed colors, source persistence/undo, global theme/cache independence, editable split-companion and locked view-only behavior, keyboard/menu bounds and fullscreen zoom/focus.
 //   DEPENDS: Playwright, tauri-shim, bootEditor/openFileTab.
-//   LINKS: .grace/changes/archive/C-62 T-003; .grace/verification/runtime.xml V-M-012.
+//   LINKS: M-011, M-012
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -16,9 +16,13 @@
 //   choose - open a real appearance button and choose a menu mode.
 //   fill - computed fill of the unstyled flowchart node B.
 //   theme - real preference broadcast to change the document theme.
+//   sourceText - Read the mounted editable CodeMirror document.
+//   openSourceSplit - Enter both editable panes through the real menu commands.
+//   focusSource - Focus the mounted source surface, flushing the shared owner boundary.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-10-18 flake fix: the viewer pan/zoom check
+//   LAST_CHANGE: 2026-11-10 C-STABILIZE-SPLIT-E2E: writable source-side companion choices persist one shared edit; locked split choices remain view-only.
+//   PREV: v1.2.0 - 2026-10-18 flake fix: the viewer pan/zoom check
 //   waits for the zoom animation to settle before capturing the transform.
 //   v1.1.0 - 2026-10-18 C-56 T-007: the control is the corner pill's leading item; the clearance check became hover-reveal + right-edge anchor.
 //   v1.0.0 - 2026-10-18 C-62: cross-engine appearance, persistence and viewer regression gate.
@@ -45,6 +49,22 @@ async function fill(page: Page, selector = FIGURE) {
 }
 async function theme(page: Page, name: string) {
   await page.evaluate(theme => (window as any).__emitFakeEvent('mt::user-preference', { theme }), name)
+}
+
+async function sourceText(page: Page): Promise<string> {
+  return page.locator('.split-pane-source .CodeMirror').evaluate(element => (element as any).CodeMirror.getValue())
+}
+async function focusSource(page: Page) {
+  await page.locator('.split-pane-source .CodeMirror').evaluate(element => (element as any).CodeMirror.focus())
+}
+async function openSourceSplit(page: Page) {
+  await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.split-view'))
+  await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.source-code-mode'))
+  await expect(page.locator('.split-view.is-split')).toBeVisible()
+  await expect(page.locator('.split-pane-rich .editor-component')).toHaveAttribute('contenteditable', 'true')
+  await expect(page.locator('.split-pane-source .CodeMirror')).toBeVisible()
+  expect(await page.locator('.split-pane-source .CodeMirror').evaluate(element => (element as any).CodeMirror.getOption('readOnly'))).toBe(false)
+  await focusSource(page)
 }
 
 test.describe('per-diagram appearance (C-62)', () => {
@@ -128,15 +148,63 @@ test.describe('per-diagram appearance (C-62)', () => {
     await expect.poll(async () => (await state(page)).markdown).toContain('Unlocked')
   })
 
-  test('source-side Split View mirror choices never write back into the source', async ({ page }) => {
-    await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.split-view'))
-    await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.source-code-mode'))
-    const mirror = page.locator('.editor-wrapper.is-mirror')
-    await expect(mirror).toBeVisible()
+  test('source-side editable Split View choices persist one shared metadata edit and undo/redo from source', async ({ page }) => {
+    await openSourceSplit(page)
+    const rich = page.locator('.split-pane-rich')
     const before = await state(page)
-    await choose(page, 'dark', mirror.locator(BUTTON).first())
+    const originalFill = await fill(page)
+    expect(await sourceText(page)).toBe(before.markdown)
+    expect(before.isSaved).toBe(true)
+    await choose(page, 'dark', rich.locator(BUTTON).first())
+    await expect.poll(async () => (await state(page)).markdown).toContain('%% mark:appearance dark %%')
+    const edited = await state(page)
+    await expect.poll(() => sourceText(page)).toBe(edited.markdown)
+    expect(edited.markdown.replace('%% mark:appearance dark %%\n', '')).toBe(before.markdown)
+    expect(edited.isSaved).toBe(false)
+    expect(edited.revision).toBe(before.revision + 1)
+    expect(edited.index).toBe(before.index + 1)
+    expect(edited.length).toBe(before.length + 1)
+    await expect.poll(() => fill(page)).toBe('rgb(48, 61, 85)')
+    await expect(rich.locator('.ag-pele-preview').nth(1)).toHaveAttribute('data-diagram-appearance', 'auto')
+    await focusSource(page)
+    await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'edit.undo'))
+    await expect.poll(async () => (await state(page)).markdown).toBe(before.markdown)
+    await expect.poll(() => sourceText(page)).toBe(before.markdown)
+    await expect.poll(() => fill(page)).toBe(originalFill)
+    expect((await state(page)).index).toBe(before.index)
+    expect((await state(page)).isSaved).toBe(true)
+    await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'edit.redo'))
+    await expect.poll(async () => (await state(page)).markdown).toBe(edited.markdown)
+    await expect.poll(() => sourceText(page)).toBe(edited.markdown)
+    expect((await state(page)).index).toBe(edited.index)
+    expect((await state(page)).length).toBe(edited.length)
+    expect((await state(page)).isSaved).toBe(false)
+    await expect.poll(() => fill(page)).toBe('rgb(48, 61, 85)')
+    const sameMode = await state(page)
+    await choose(page, 'dark', rich.locator(BUTTON).first())
+    expect(await state(page)).toEqual(sameMode)
+    expect(await sourceText(page)).toBe(edited.markdown)
+  })
+
+  test('locked source-side Split View choices remain view-only without source or history mutations', async ({ page }) => {
+    await openSourceSplit(page)
+    await page.evaluate(() => (window as any).__bus.emit('cmd::execute', 'view.lock-document'))
+    const rich = page.locator('.split-pane-rich')
+    await expect(rich.locator('.editor-component')).toHaveAttribute('aria-readonly', 'true')
+    expect(await page.locator('.split-pane-source .CodeMirror').evaluate(element => (element as any).CodeMirror.getOption('readOnly'))).toBe(true)
+    const before = await state(page)
+    const source = await sourceText(page)
+    await rich.locator(BUTTON).first().click()
+    await expect(page.locator('.ag-diagram-appearance-readonly')).toContainText('For this view only')
+    await page.locator('[data-mode="dark"].ag-diagram-appearance-option').click()
+    await expect(rich.locator('.ag-pele-preview').first()).toHaveAttribute('data-diagram-appearance', 'dark')
+    await expect.poll(() => fill(page)).toBe('rgb(48, 61, 85)')
     expect(await state(page)).toEqual(before)
-    await expect(mirror.locator('.ag-pele-preview').first()).toHaveAttribute('data-diagram-appearance', 'dark')
+    expect(await sourceText(page)).toBe(source)
+    await page.evaluate(() => (window as any).__bus.emit('cmd::execute', 'view.lock-document'))
+    await expect(rich.locator('.ag-pele-preview').first()).toHaveAttribute('data-diagram-appearance', 'auto')
+    expect(await state(page)).toEqual(before)
+    expect(await sourceText(page)).toBe(source)
   })
 
   test('keyboard skips unavailable Custom and the menu stays within a narrow viewport', async ({ page }) => {

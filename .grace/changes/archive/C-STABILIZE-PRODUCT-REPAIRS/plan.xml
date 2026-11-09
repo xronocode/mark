@@ -1,0 +1,309 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-PRODUCT-REPAIRS>
+    <ChangeRef>C-STABILIZE-PRODUCT-REPAIRS</ChangeRef>
+    <Created>2026-11-09</Created>
+    <IntentSummary>Transplant accepted table/titlebar product hunks onto the CI-repaired integration tree, strengthen only the identified geometry/lifecycle boundaries, synchronize current projections, and verify one exact candidate with focused commands. Execute with a single writer; tasks with no semantic dependency need not be artificially chained.</IntentSummary>
+    <ApprovalBasis>Owner approval on 2026-11-09 of RECOVERY and the requested clean green main, with implementation and fork decisions explicitly delegated to the recommended choices and required to be recorded in GRACE. This approved spec and plan select the already accepted table/chips smoke repairs and PR #193 final Aa repair; split work is a separate later bundle. Approval covers this bounded integration and focused boundary fixes, not release, version, tag, publication, unrelated features or approval of old draft bytes.</ApprovalBasis>
+    <BaselineEvidence>Preparation readback: HEAD 296dc5f0 with staged CI integration; grace lint --path . --assertions current returned 0 errors and 4 preexisting Python heuristic warnings on 2026-11-09. Product source still contains the original chevrons, titlebar z-index 2, labelled chips and scroll-degradation branch. No product tests were run during preparation.</BaselineEvidence>
+    <BaselineAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-STABILIZE-CI-INTEGRATION/spec.xml</File>
+        <Text>status="applied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>checkout for change classification</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/sideBar/tree-treefiles.test.js</File>
+        <Text>showContextMenuMock -</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File>
+        <Text>m10 17-5-5 5-5</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/index.vue</File>
+        <Text>z-index: 2</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/modeChips.vue</File>
+        <Text>label: shortLabel(id)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/tableFit.js</File>
+        <Text>kind: 'scroll'</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/parser/render/renderBlock/renderTableToolbar.js</File>
+        <Text>h('span.ag-block-toolbar-label', label)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/ui/tableTools/index.css</File>
+        <Text>white-space: nowrap</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File>
+        <Text>qs-aa</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/index.vue</File>
+        <Text>z-index: 6</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/modeChips.vue</File>
+        <Text>view-standard</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>TABLE_COLUMN_WALL_CLASS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>handleWindowResize</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/tableFit.js</File>
+        <Text>Math.floor(frameWidth)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>'editor.tableExport.title'</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-STABILIZE-PRODUCT-REPAIRS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/performance.xml</File>
+        <Text>C-STABILIZE-PRODUCT-REPAIRS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>C-STABILIZE-PRODUCT-REPAIRS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/performance.xml</File>
+        <Text>C-STABILIZE-PRODUCT-REPAIRS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/ui/tableTools/index.css</File>
+        <Text>white-space: nowrap</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/muya/lib/tableResize/tableFit.js</File>
+        <Text>kind: 'scroll'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js</File>
+        <Text>h('span.ag-block-toolbar-label', label)</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>static/locales/de.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/de.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/es.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/es.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/fr.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/fr.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/ja.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/ja.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/ko.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/ko.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/pt.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/pt.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/ru.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/ru.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/zh-CN.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/zh-CN.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/zh-TW.json</File>
+        <Text>"tableExport"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/zh-TW.json</File>
+        <Text>"columnWallHint"</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>npx --no-install vitest run tests/renderer/components/quick-settings.test.js tests/renderer/components/titleBar.test.js tests/renderer/components/titleBar-mode-chips.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>npx --no-install vitest run tests/renderer/muya/table-column-resize.test.js tests/renderer/muya/table-fit.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-cue.test.js tests/renderer/muya/table-export.test.js tests/renderer/muya/block-toolbar.test.js tests/renderer/muya/block-expand-button.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>npx --no-install vitest run tests/renderer/components/editor-coverage.test.js -t 'C-70 picture export transport'</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>npm run build &amp;&amp; CI=1 npx --no-install playwright test tests/e2e/page-width-panel.spec.ts tests/e2e/chrome-native-theme.spec.ts tests/e2e/titlebar-mode-chips.spec.ts tests/e2e/table-column-resize.spec.ts tests/e2e/table-modes.spec.ts tests/e2e/table-toolbar-labels.spec.ts tests/e2e/table-toolbar.spec.ts tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables --project=webkit-chrome --project=webkit-titlebar</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+        <M-012 />
+        <M-061 />
+        <M-062 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-011 />
+        <V-M-012 />
+        <V-M-061 />
+        <V-M-062 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/muya/lib/assets/styles/index.css</File>
+      <File>src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js</File>
+      <File>src/muya/lib/parser/render/renderBlock/renderTableToolbar.js</File>
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>src/muya/lib/tableResize/tableFit.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <File>src/renderer/src/components/titleBar/modeChips.vue</File>
+      <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>tests/renderer/components/quick-settings.test.js</File>
+      <File>tests/renderer/components/titleBar.test.js</File>
+      <File>tests/renderer/components/titleBar-mode-chips.test.js</File>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>tests/renderer/muya/table-column-resize.test.js</File>
+      <File>tests/renderer/muya/table-fit.test.js</File>
+      <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+      <File>tests/renderer/muya/table-cue.test.js</File>
+      <File>tests/renderer/muya/table-export.test.js</File>
+      <File>tests/renderer/muya/block-toolbar.test.js</File>
+      <File>tests/renderer/muya/block-expand-button.test.js</File>
+      <File>tests/e2e/page-width-panel.spec.ts</File>
+      <File>tests/e2e/chrome-native-theme.spec.ts</File>
+      <File>tests/e2e/titlebar-mode-chips.spec.ts</File>
+      <File>tests/e2e/table-column-resize.spec.ts</File>
+      <File>tests/e2e/table-modes.spec.ts</File>
+      <File>tests/e2e/table-toolbar-labels.spec.ts</File>
+      <File>tests/e2e/table-toolbar.spec.ts</File>
+      <File>.grace/graph/index.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/verification/index.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-PRODUCT-REPAIRS/spec.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-PRODUCT-REPAIRS/plan.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-PRODUCT-REPAIRS/evidence/execution-report.md</File>
+    </ObservedWriteScope>
+    <ScopeNotes>Each locale file is limited to editor.tableExport and tableToolbar.columnWallHint. editor.vue is limited to table-copy feedback and required contract/map summaries; no split/editor ownership rewrite. table-bar-menu.spec.ts and locale-keys.test.js are read-only regression inputs, not planned writes. Preserve src/muya/lib/ui/tableTools/index.css and all archives. No context writes, dependencies or release artifacts. Only active evidence may be added under the listed path.</ScopeNotes>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Integrate final Aa chrome, stacking and persistent icon-only mode entry</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Use the final PR #193 six-file product delta, keeping Aa text and local button chrome; do not import rejected SVG attempts or branch-wide train/CI changes. Add pagewidth-exec modeChips hunks with corresponding UI tests. Preserve no-document and existing command normalization semantics.</Criterion>
+          <Criterion>Keep titlebar z 6 above table walls and below the viewer; accessible tooltip/aria names remain.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/components/quick-settings.test.js tests/renderer/components/titleBar.test.js tests/renderer/components/titleBar-mode-chips.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Integrate table sizing and wall geometry with lifecycle boundaries</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Import only CSS/tableResize/tableFit dirty hunks from pagewidth-exec. Implement accepted no-scroll, Auto reset and Auto-only outer walls with honest rounding, null-measurement retry and internal full-height border hit zones.</Criterion>
+          <Criterion>Add meaningful narrow/many-column, manual-drag overflow, tab-switch-during-delayed-adoption, teardown and transform-repaint assertions in the listed table unit/e2e suites. Repair focused failures without broad cleanup; do not claim historical test results prove these new cases.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/muya/table-column-resize.test.js tests/renderer/muya/table-fit.test.js tests/renderer/muya/table-layout-persistence.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Integrate stable icon-only toolbars and truthful table-copy feedback</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Import renderBlockToolbar/renderTableToolbar icon-only and ordering hunks, associated tests, editor.vue table-notice branch and only the two new locale families in all ten source tables.</Criterion>
+          <Criterion>Extend the existing C-70 picture-export tests with table/diagram success-message assertions; preserve actual copy transport and unrelated renderer behavior.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/muya/table-cue.test.js tests/renderer/muya/table-export.test.js tests/renderer/muya/block-toolbar.test.js tests/renderer/muya/block-expand-button.test.js</Command>
+          <Command>npx --no-install vitest run tests/renderer/components/editor-coverage.test.js -t 'C-70 picture export transport'</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Synchronize current projections and verify the exact integrated candidate</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Update M-011/M-012/M-062 in runtime and M-061 in performance plus matching verification anchors and content-free index routing comments. Replace active descriptions of expanding labels, absent Standard entry, chevrons and scroll degradation; retain archived evidence and unrelated graph entities.</Criterion>
+          <Criterion>Update file-local contracts/maps/summaries in touched modules. Record exact hunk sources, approval/supersession decisions, pending-to-result boundary checks and fresh command outcomes in the listed active execution report.</Criterion>
+          <Criterion>Build once for the focused multi-project e2e invocation; CI=1 must prevent foreign-preview reuse. Gate only the affected suites listed here, then outer final assertions, current integrity/status and exact-candidate repository safety/hosted CI. Do not bump versions, freeze or publish.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run build &amp;&amp; CI=1 npx --no-install playwright test tests/e2e/page-width-panel.spec.ts tests/e2e/chrome-native-theme.spec.ts tests/e2e/titlebar-mode-chips.spec.ts tests/e2e/table-column-resize.spec.ts tests/e2e/table-modes.spec.ts tests/e2e/table-toolbar-labels.spec.ts tests/e2e/table-toolbar.spec.ts tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables --project=webkit-chrome --project=webkit-titlebar</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <ExecutionRules>Prepared only: no implementation or product tests have run. Run current and selected baseline as outer pre-edit gates; run selected target during edits and final with leaf commands before archival, then current/status externally. Never nest GRACE commands in task or target commands. Command timings are unmeasured in preparation; no fabricated per-command budget is declared, and the executor must select a sufficient explicit outer timeout from reference-host observations. A failed scenario permits affected fixes and rechecks, not a new full-review clean-streak loop.</ExecutionRules>
+  </C-STABILIZE-PRODUCT-REPAIRS>
+</GraceChangePlan>

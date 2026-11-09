@@ -1,0 +1,96 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-STABILIZE-29>
+    <ChangeRef>C-STABILIZE-29</ChangeRef>
+    <Created>2026-11-09</Created>
+    <IntentSummary>Coordinate exact-scope child implementations, preserve explicit dispositions, and close only after remote main and local state have been verified.</IntentSummary>
+    <ApprovalBasis>Owner-approved recovery and delegated decisions, 2026-11-09.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>docs/release-trains/2.9.x-next.json</File>
+        <Text>"state": "Collecting"</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "2.8.2"</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>.grace/changes/archive/C-STABILIZE-TEST-POOL/spec.xml</File>
+        <Text>status="applied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS/spec.xml</File>
+        <Text>status="applied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-STABILIZE-DIRTY-RELOAD/spec.xml</File>
+        <Text>status="applied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-STABILIZE-PROFILE-ISOLATION/spec.xml</File>
+        <Text>status="applied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/archive/C-SEC-AUDIT-FIXES/spec.xml</File>
+        <Text>status="applied"</Text>
+      </MustContain>
+      <MustExist>
+        <Value>src/renderer/src/util/splitScrollSync.js</Value>
+        <Value>src/renderer/src/util/splitDualEdit.js</Value>
+      </MustExist>
+      <MustContain>
+        <File>docs/release-trains/2.9.x-next.json</File>
+        <Text>"state": "Collecting"</Text>
+      </MustContain>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <Glob>.grace/changes/active/C-STABILIZE-29/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Preserve work, record dispositions and integrate the CI baseline</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Preservation verified, obsolete freeze retired without deleting source work, and CI baseline verified through ordinary PR/main checks.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run typecheck:ipc</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Complete accepted product and split repairs through child scopes</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Accepted table/titlebar behavior and approved split features, including dual editing, have fresh relevant tests and final implementation evidence.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run test:coverage</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Complete security and state-preservation repairs through child scopes</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>All six security findings, dirty reload safety, checkbox safety verification and configured profile separation are proven; no partial security completion is substituted.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Verify and reconcile the exact final main</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Exact-head hosted checks and final main checks pass; current-state integrity/status and clean matching local Git state are recorded. Release remains separately authorized.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git status --porcelain</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-STABILIZE-29>
+</GraceChangePlan>

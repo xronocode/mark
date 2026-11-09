@@ -1,0 +1,469 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-AUDIT-FIXES>
+    <IntentSummary>Execute the approved C-SEC-AUDIT-FIXES spec, preserving all six findings and the three-wave packaging. Wave 1 replaces fresh release-package resolution with exact devDependencies, lockfile installation and direct local binaries, then removes the residual unpinned logout instruction while preserving the checked gateway deployment wrapper. Wave 2 hardens the three existing extension data routes: bearer and enabled-extension checks for text-insert/context/apply, text.insert capability only for text-insert, strict secret revocation on disable, parsed loopback-only final URLs and no redirects for invoke and health probe. The existing /ext/pair bootstrap and /stream/* session semantics stay unchanged. Wave 3 validates every local link target through existing m010 checks and closes new-path and dangling-leaf symlink escapes using directory-entry-aware ancestor resolution, preserving Windows permissive-root behavior. Shared source arcs remain serial: T-003 then T-004 for live_server.rs; T-003 then T-004 then T-005 for tests.rs. The baseline is main 296dc5f0 with the imported f81a98fe CI repair and C-STABILIZE-CI-INTEGRATION records; the stats and renderer prerequisites are archived and already satisfied. Preserve the CI workflow/toolchain/cache and checked deployment changes. Execute in the isolated stabilization candidate through ordinary exact-candidate safety and required hosted CI, with separate train admission if applicable. Plan approval and its bounded review-stop supersession follow the recorded delegated 2026-11-09 recovery decision below; the historical review log is retained unchanged and grants no implementation verdict.</IntentSummary>
+    <ApprovalBasis>The owner approved the stabilization recovery on 2026-11-09, explicitly requested final implementation through clean green main, and delegated implementation choices to the agent recommendations. The delegated decision approves this reconciled plan for the existing six-finding scope. It does not authorize versions, tags, deployment or publication.</ApprovalBasis>
+    <Decisions>
+      <D-SEC-RECOVERY-20261109>
+        <Date>2026-11-09</Date>
+        <Choice>Approve the rebased plan and replace its plan-specific two-consecutive-clean-four-corner-rounds prerequisite with one bounded evidence-driven closure gate on an exact candidate.</Choice>
+        <Supersedes>The plan-specific clean-streak prerequisite in the original draft IntentSummary and ReviewLog introductory comment is superseded. Historical review entries 1 through 16 remain provenance; review 16 corrections are requirements, not executed fixes. The approved spec and all six acceptance criteria remain unchanged.</Supersedes>
+        <StopRule>Freeze exact candidate bytes; track the finite blockers below; fix each, execute its negative and preserved-legitimate-path proofs and affected checks, and record results. Reopen only a demonstrated correctness/security blocker or failed required check. Record cosmetic suggestions separately. Repeat broad review only when a substantial candidate change invalidates its conclusions. Do not launch another four-reviewer clean-streak reset loop.</StopRule>
+        <UnchangedGates>Current/baseline, target and final GRACE integrity; named-test anti-vacuity guards; exact staged/outgoing safety checks; required hosted CI; acceptance evidence; separate owner-controlled release authorization.</UnchangedGates>
+      </D-SEC-RECOVERY-20261109>
+    </Decisions>
+    <ExecutionPrerequisites>
+      <SourceBaseline>Main 296dc5f0f965a906b61ea655b2b570c847f3f276; imported CI candidate f81a98feb3ba7eb8be1bdca5281f4ca93c51b14a; integration index patch SHA-256 566b26d66cec39baf4aafb8182f71654c625c5dc22888ffed80898d38ad7ac6c. The patch hash includes C-STABILIZE-CI-INTEGRATION records. No main-merge or hosted-CI success is inferred from this local import.</SourceBaseline>
+      <Satisfied>At the main baseline, C-STATS-READOUT is archived applied via PR 182, C-STATS-DASH-PUSH via PR 184, and C-RENDER-REVIEW-FIXES via PR 190 with train admission via PR 192. Their spec sequencing constraints are satisfied; do not reopen or rewrite their archives.</Satisfied>
+      <Preflight>2026-11-09: grace lint --path . --assertions current on the CI-imported integration tree checked 924 files and reported zero errors and four existing Python heuristic warnings. The security bundle was not imported during private preparation; selected baseline and parallel-preflight checks must run after import and before observed source writes.</Preflight>
+      <RemainingBlockers>Implement and prove all six findings; identify the supported paired caller or record an explicit inspected-revision/no-supported-live-caller disposition; prove strict credential-store error handling and absence; prove real dangling-leaf text/binary writes cannot create the outside target; prove release attribution/SBOM uses only installed binaries without fresh resolution; update current contracts/graph/verification; execute whole suites, final assertions and exact-candidate required checks.</RemainingBlockers>
+      <ExecutionSafety>Negative security fixtures use dummy credentials and isolated scratch, never the host keychain or deployed services. Establish no-external-network, empty allowlisted environment, read-only source/toolchain, scratch-only writes and bounded resources for target-controlled security validation; permit isolated loopback only for local HTTP fixtures. If confinement or a decisive external fact is unavailable, retain the exact needs-validation gap rather than claiming closure.</ExecutionSafety>
+    </ExecutionPrerequisites>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>.github/workflows/release.yml</Value>
+        <Value>tools/verify-attributions.sh</Value>
+        <Value>tools/stats-gateway/README.md</Value>
+        <Value>tools/stats-gateway/deploy-checked.mjs</Value>
+        <Value>tests/tools/stats-gateway-deploy.test.mjs</Value>
+        <Value>tests/renderer/release-github-controls.test.js</Value>
+        <Value>rust-toolchain.toml</Value>
+        <Value>.grace/changes/archive/C-CI-CD-AUDIT-FIXES/spec.xml</Value>
+        <Value>.grace/changes/archive/C-STATS-READOUT/spec.xml</Value>
+        <Value>.grace/changes/archive/C-STATS-DASH-PUSH/spec.xml</Value>
+        <Value>.grace/changes/archive/C-RENDER-REVIEW-FIXES/spec.xml</Value>
+        <Value>package.json</Value>
+        <Value>package-lock.json</Value>
+        <Value>Cargo.lock</Value>
+        <Value>src-tauri/Cargo.toml</Value>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/manifest.rs</Value>
+        <Value>src-tauri/src/m045_ext/invoke.rs</Value>
+        <Value>src-tauri/src/m045_ext/discovery.rs</Value>
+        <Value>src-tauri/src/m045_ext/registry.rs</Value>
+        <Value>src-tauri/src/m045_ext/mod.rs</Value>
+        <Value>src-tauri/src/m045_ext/auth.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>src-tauri/src/m_v1_compat.rs</Value>
+        <Value>src-tauri/src/m010_security.rs</Value>
+        <Value>src-tauri/src/m013b/fs.rs</Value>
+        <Value>tests/tools/stats-gateway.test.mjs</Value>
+        <Value>vitest.config.ts</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustContain><File>tools/verify-attributions.sh</File><Text>npx --yes --package license-checker</Text></MustContain>
+      <MustContain><File>.github/workflows/release.yml</File><Text>npx --yes --package @cyclonedx/cyclonedx-npm@6.0.1</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/README.md</File><Text>npx wrangler logout</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/README.md</File><Text>node tools/stats-gateway/deploy-checked.mjs</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/deploy-checked.mjs</File><Text>wrangler@4.159.0</Text></MustContain>
+      <MustContain><File>rust-toolchain.toml</File><Text>1.99.0</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/live_server.rs</File><Text>No auth required</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/live_server.rs</File><Text>com.tokmo.voice</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/manifest.rs</File><Text>split(':')</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/invoke.rs</File><Text>reqwest::Client::builder()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m010_security.rs</File><Text>if lexical.exists() &amp;&amp; sandbox_lex.exists()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>open_path(url, None::&lt;&amp;str&gt;)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>mt_format_link_click</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-001</Module>
+        <Module>M-010</Module>
+        <Module>M-045</Module>
+        <Module>M-033</Module>
+        <Module>M-069</Module>
+        <Module>M-002</Module>
+        <Module>M-046</Module>
+        <Module>M-054</Module>
+        <Module>M-071</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="1800">sh -c "npm test &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml --bin mark"</Command>
+      </MustPassCommand>
+      <MustNotContain><File>tools/stats-gateway/README.md</File><Text>npx wrangler logout</Text></MustNotContain>
+      <MustContain><File>tools/stats-gateway/README.md</File><Text>node tools/stats-gateway/deploy-checked.mjs</Text></MustContain>
+      <MustNotContain><File>tools/verify-attributions.sh</File><Text>npx --yes</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/release.yml</File><Text>npx --yes --package</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m045_ext/live_server.rs</File><Text>No auth required</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m045_ext/live_server.rs</File><Text>com.tokmo.voice</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m045_ext/manifest.rs</File><Text>split(':')</Text></MustNotContain>
+      <MustContain><File>package.json</File><Text>license-checker</Text></MustContain>
+      <MustContain><File>package.json</File><Text>@cyclonedx/cyclonedx-npm</Text></MustContain>
+      <MustContain><File>tests/tools/release-fresh-npx.test.mjs</File><Text>npx --yes</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/live_server.rs</File><Text>text.insert</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/mod.rs</File><Text>revoke_secret</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/manifest.rs</File><Text>Url::parse</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/invoke.rs</File><Text>Policy::none()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/discovery.rs</File><Text>Policy::none()</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>disableFailed</Text></MustContain>
+      <MustContain><File>static/locales/ru.json</File><Text>disableFailed</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/extensionGallery/index.vue</File><Text>ext_disable_revoke_failed</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/extensionGallery/index.vue</File><Text>extensions.disableFailed</Text></MustContain>
+      <MustContain><File>src-tauri/src/m010_security.rs</File><Text>nearest_existing_ancestor</Text></MustContain>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>check_shell_open_extension</Text></MustContain>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>check_path</Text></MustContain>
+      <MustContain><File>src-tauri/src/m010_security.rs</File><Text>.grace/changes/active/C-SEC-AUDIT-FIXES</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/live_server.rs</File><Text>.grace/changes/active/C-SEC-AUDIT-FIXES</Text></MustContain>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>.grace/changes/active/C-SEC-AUDIT-FIXES</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-SEC-AUDIT-FIXES</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-SEC-AUDIT-FIXES</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>C-SEC-AUDIT-FIXES</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>C-SEC-AUDIT-FIXES</Text></MustContain>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-001 />
+        <M-010 />
+        <M-045 />
+        <M-033 />
+        <M-069 />
+        <M-002 />
+        <M-046 />
+        <M-054 />
+        <M-071 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-001 />
+        <V-M-010 />
+        <V-M-045 />
+        <V-M-033 />
+        <V-M-069 />
+        <V-M-002 />
+        <V-M-046 />
+        <V-M-054 />
+        <V-M-071 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/release.yml</File>
+      <File>tools/verify-attributions.sh</File>
+      <File>package.json</File>
+      <File>package-lock.json</File>
+      <File>tools/stats-gateway/README.md</File>
+      <File>tests/tools/release-fresh-npx.test.mjs</File>
+      <File>src/renderer/src/components/extensionGallery/index.vue</File>
+      <File>tests/renderer/i18n/locale-keys.test.js</File>
+      <Glob>static/locales/*.json</Glob>
+      <File>src-tauri/Cargo.toml</File>
+      <File>Cargo.lock</File>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/live_bridge.rs</File>
+      <File>src-tauri/src/m045_ext/manifest.rs</File>
+      <File>src-tauri/src/m045_ext/invoke.rs</File>
+      <File>src-tauri/src/m045_ext/discovery.rs</File>
+      <File>src-tauri/src/m045_ext/registry.rs</File>
+      <File>src-tauri/src/m045_ext/mod.rs</File>
+      <File>src-tauri/src/m045_ext/auth.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>src-tauri/src/m_v1_compat.rs</File>
+      <File>src-tauri/src/m010_security.rs</File>
+      <File>src-tauri/src/m013b/fs.rs</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Wave 1 — lockfile-pinned release tools and the fresh-npx guard</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>license-checker and @cyclonedx/cyclonedx-npm are added to devDependencies with exact versions (npm install --save-exact; the lockfile pins the full transitive tree) so the release job's existing npm ci installs them; tools/verify-attributions.sh line 31 and the release.yml SBOM step invoke the lockfile-installed binaries directly (node_modules/.bin/license-checker and node_modules/.bin/cyclonedx-npm). The release steps perform zero fresh registry resolution after npm ci, and the workflow keeps the cargo-tool pinning pattern untouched.</Criterion>
+          <Criterion>A new vitest guard tests/tools/release-fresh-npx.test.mjs (the tests/tools location is inside the vitest include set, proven by stats-gateway.test.mjs) reads .github/workflows/release.yml and tools/verify-attributions.sh and rejects npx and npm exec/x tokens in the two release source files and names the file and line. The deliberately strict guard has no exception based on a substring such as --no-install, which can be forwarded to the invoked package rather than interpreted by npx. Pin negative fixtures for npx --yes, npx -y, bare npx, a misleading trailing --no-install, and npm exec/x. A direct invocation of the installed binaries passes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="180">npx vitest run tests/tools/release-fresh-npx.test.mjs tests/tools/stats-gateway.test.mjs tests/tools/stats-gateway-deploy.test.mjs tests/renderer/release-github-controls.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Wave 1 — remove the residual unpinned logout instruction, preserving checked deploy</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The C-STATS-DASH-PUSH and C-STATS-READOUT archival prerequisite is satisfied on the rebased main baseline. Preserve the f81a98fe checked deployment wrapper and its README command, exact Wrangler 4.159.0 pin and deployment gates. Remove the residual unpinned npx wrangler logout instruction from the historical broad-grant retirement paragraph, retaining the dashboard-side grant-revocation instruction. The README contains no unpinned npm package executor instruction. Do not restore direct production deployment or remove the checked deployment section. The release-source guard remains limited to release.yml and verify-attributions.sh; the existing pinned gateway wrapper is outside its scope.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">sh -c "! grep -nE '(^|[^[:alnum:]_])(npx|npm[[:space:]]+(exec|x))([[:space:]]|$)' tools/stats-gateway/README.md"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Wave 2 — /ext/text-insert requires bearer, enabled extension and the text.insert capability</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Keep Mark's v1 TextInsertRequest body {text, source} without adding an extension_id field. Resolve the identity from the bearer token. Snapshot only enabled text.insert candidates using the registry's existing capability filter and release the registry lock before validating their credentials off the async request executor. The body fixture proves Mark's server contract. TokMo origin/main af97d7f2's IpcSink sends a {cap, payload} envelope and LocalIpcTransport attaches Authorization only when configured with a token. The checkout has no production IpcSink construction found, so neither deployed usage nor compatibility can be inferred from that source or the body fixture. Before Wave 2 acceptance, identify the supported live caller and exercise its actual JSON, pairing and bearer delivery against hardened Mark. If the supported release has no live caller, document the inspected revision and that support disposition; the paired Mark harness remains mandatory. If that caller needs a coordinated client update, record the compatible client version and verified hand-off before shipping. Do not add an unauthenticated compatibility path; handle_text_insert authenticates through this shared incoming gate (bearer validity, the resolved extension enabled in ExtRegistry, the resolved extension holding text.insert) — the "No auth required" comment and the hardcoded com.tokmo.voice identity are gone; an unauthorized request returns 401/403 BEFORE the mt::text::op event is emitted (the emit site stays reachable only through the gate); the authorized paired flow (enabled extension holding text.insert) still inserts text with Mark's current server body ({text, source}, no id field), and the log markers keep the BLOCK_ convention with an AUTH_FAILED-style marker on refusal.</Criterion>
+          <Criterion>The live-server tests are buildable as promised: src-tauri/Cargo.toml [dev-dependencies] gains tauri = { version = "2", features = ["test"] } (dev-only — the release and app-store feature sets are untouched, and Cargo.toml is already in the observed scope). LiveServerState, the axum handlers' State&lt;Arc&lt;LiveServerState&lt;R&gt;&gt;&gt; and start_live_server are genericized over R: tauri::Runtime with Wry as the default type parameter — the construction site in main.rs stays byte-untouched (bare tauri::AppHandle keeps meaning AppHandle&lt;Wry&gt; per tauri's #[default_runtime(crate::Wry, wry)], app.rs:385), emit/listen go through the runtime-generic methods, and the whole refactor stays inside live_server.rs + live_bridge.rs (its five emit functions — emit_live_update, emit_doc_open, emit_doc_patch, emit_doc_close, emit_context_request — genericize over R with app: &amp;AppHandle&lt;R&gt;; they are typed with the bare &amp;AppHandle today and live_server.rs calls them at :615/:768/:839/:993/:1178, so without them the mock-runtime harness does not compile — round 15) + mod.rs re-exports + tests.rs, all in the observed scope (live_bridge.rs joins it). The round-2 harness text was a type error, caught by round 6: the struct's bare tauri::AppHandle field (live_server.rs:73) is AppHandle&lt;Wry&gt;, while tauri::test::mock_app() (test/mod.rs:185) hands over AppHandle&lt;MockRuntime&gt; — only the generic accepts both. The tests construct the state on the mock runtime, manage an ExtRegistry on the mock app (the gate reads it via app_handle.state — today managed only at main.rs:838), register a listener on mt::text::op to assert emission or its absence, and call the async handlers directly; paired-extension fixtures use the auth module's in-memory secret-store seam. m045_ext/tests.rs gains these live-server tests, EACH NAMED so the task command's grep guards select them (the m045 filter alone matches the 45 pre-existing tests and stays green even if none of these land — round 9): text_insert_refuses_no_token, text_insert_refuses_wrong_token, text_insert_refuses_disabled_extension, text_insert_refuses_missing_capability, text_insert_authorized_emits_with_requester_identity, text_insert_authorized_old_shape_body_emits (the wire-compatibility companion: a literal JSON body matching Mark's current TextInsertRequest — {text, source} with no id field — is deserialized by the actual request schema and passes the gate and inserts. Supported client compatibility is proved separately against the actual paired request) — proving no-token → 401 and no event emitted; wrong-token → 401; valid token but extension disabled → refused; valid token, enabled, capability absent → refused; the full authorized path → event emitted with the requester's extension_id (not a constant); the gate is one helper used by text-insert (context/apply adoption is T-004's arc, not duplicated here).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">sh -c "cargo test --manifest-path src-tauri/Cargo.toml --bin mark m045 &amp;&amp; grep -q 'fn text_insert_refuses_no_token' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn text_insert_refuses_wrong_token' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn text_insert_refuses_disabled_extension' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn text_insert_refuses_missing_capability' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn text_insert_authorized_emits_with_requester_identity' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn text_insert_authorized_old_shape_body_emits' src-tauri/src/m045_ext/tests.rs"</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Wave 2 — disable revokes the secret and gates every incoming route</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>mt_ext_disable calls auth::revoke_secret for the extension (besides registry.disable) and enforces the revocation CONTRACT, not just the call: revoke_secret becomes Result-honest — a keychain delete_credential error propagates (today it is logged as BLOCK_REVOKE_FAILED and swallowed, auth.rs:127-134, while get_secret reads the keychain FIRST, auth.rs:93-97, so a failed delete keeps the old token authenticating behind an apparently successful disable; only a confirmed NoEntry may count as absence. Entry creation, credential-store access, delete, read-back and in-memory store errors must remain distinguishable from confirmed absence) — and disable verifies absence after the revoke: a strict revocation read-back must prove absence from both the persistent store and the memory fallback before disable reports success. The current best-effort get_secret can return None on a backend error and cannot supply that proof. A failed revocation must remain observable as a failure and the disabled extension must stay fenced for that attempt; when the revoke errors or the secret provably survives, mt_ext_disable surfaces the failure instead of claiming success — as a stable short code (ext_disable_revoke_failed) whose free-form detail goes ONLY to the BLOCK_ log marker, mapped by the gallery to ONE new localized key extensions.disableFailed landing in all ten shipped locales (the spec's ten-locale rule for the one refusal notice this wave makes user-visible; static/locales/*.json joins the observed scope and the locale completeness gate stays green) — so previously issued tokens stop authenticating the moment a SUCCESSFUL disable returns; re-enabling does not resurrect the old secret — the extension re-pairs; the shared incoming gate from T-003 is adopted by handle_ext_context and handle_ext_apply for its token-validity and ExtRegistry.enabled steps only — no capability is invented for them (the spec's Goal grants context/apply the enabled check alone; the protocol vocabulary has no context/apply capability today), so an enabled paired extension of ANY declared capability keeps /ext/context and /ext/apply access exactly as today; the text.insert capability enforcement stays exclusive to text-insert (the gate helper takes the required capability as an Option); /stream/* routes keep their session-auth semantics unchanged.</Criterion>
+          <Criterion>m045_ext/tests.rs proves, every leg NAMED and selected by the task command's grep legs: disable_revokes_and_verifies_absence, disable_surfaces_revoke_failure, disable_refuses_unverified_revocation, enabled_extension_passes_all_three_routes, fresh_pairing_restores_access. After mt_ext_disable the OLD token is refused on /ext/context, /ext/apply and /ext/text-insert (401), and the stored secret is gone — the strict read-back used by disable proves absence, and the ordinary get_secret also yields None; a revoke failure injected through a seam the Result-honest refactor itself introduces — an injectable credential backend for entry creation, delete and strict read-back (a #[cfg(test)]-visible hook or narrow trait, declared new by this plan: auth.rs has NO seam today, round 12 — the MEM_STORE entry is removed unconditionally before keyring is ever touched, and keyring's set_default_credential_builder mock is process-global and NOT the declared seam) — leaves disable reporting failure (the stable code), never a silent success. The unverified-revocation test covers both entry creation failure and read-back access failure after a reported delete, with the memory fallback empty. A confirmed NoEntry is the successful absence case; a fresh pairing after successful disable restores access on all three routes; an enabled extension of ANY declared capability still passes context/apply (the legit-path companion the TokMo EditAgent flows live on — handler-level context/apply tests do not exist today) — the audit's disabled-extension replay scenario is closed end-to-end, including the keychain-first mode the in-memory seam alone never observes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">sh -c "cargo test --manifest-path src-tauri/Cargo.toml --bin mark m045 &amp;&amp; grep -q 'fn disable_revokes_and_verifies_absence' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn disable_surfaces_revoke_failure' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn disable_refuses_unverified_revocation' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn enabled_extension_passes_all_three_routes' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn fresh_pairing_restores_access' src-tauri/src/m045_ext/tests.rs &amp;&amp; ! grep -L disableFailed static/locales/*.json | grep -q . &amp;&amp; grep -q 'ext_disable_revoke_failed' src/renderer/src/components/extensionGallery/index.vue &amp;&amp; grep -q 'extensions.disableFailed' src/renderer/src/components/extensionGallery/index.vue &amp;&amp; npx vitest run tests/renderer/i18n"</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Wave 2 — real URL parsing for base_url, final-URL revalidation, no redirects</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/Cargo.toml gains url = "2" as a direct dependency (2.5.8 already in the lockfile transitively — no new vendor code); validate_manifest parses discovery.base_url with Url::parse and validates the PARSED host against the loopback set (typed Url::host() comparison against 127.0.0.1, localhost and ::1, with the string split(':') removed): userinfo of any form is rejected (username/password present → error), non-http(s) schemes rejected as today, and a parsed host that only LOOKS loopback before parsing (http://localhost:1@evil.example/) now fails because the parsed host is evil.example; IPv6 forms validate through the parser's canonical host — the bracketed [::1] is accepted; the BARE ::1 spelling is refused exactly as today (round-13 probe: the current split parser already yields an empty host for it, so the match-arm's bare spelling is dead code — the Url::parse rewrite preserves the refusal rather than tightening it; no honest manifest uses it).</Criterion>
+          <Criterion>invoke_extension re-validates the FINAL URL (base_url trimmed + invoke_path joined, parsed again) with the same loopback+no-userinfo rule before any request is built, and the reqwest client is built with redirect Policy::none() (the locked reqwest implementation strips Authorization on cross-origin hops but can still follow the redirect and, for body-preserving redirects, replay the extension payload); a redirect response surfaces as an invoke error, never a followed request. The same treatment covers the second outgoing client round 4 found still on the default policy: probe_health (discovery.rs:122 — base_url+health_path joined, reqwest builder without a redirect policy) gets the same final-URL revalidation and the same Policy::none(), so NO reqwest client in m045_ext follows redirects and no probe request can be carried off-loopback by a 30xx (the probe carries no bearer today — the closed leak is telemetry: machine IP and the fact of the extension's presence).</Criterion>
+          <Criterion>Every promised leg of T-005's test set carries a NAME, and the task command's grep legs select them (round 10 swept the whole set after rounds 8-9 caught unnamed legs one by one): manifest_rejects_userinfo_url (http://localhost:1@evil.example/ rejected at validate_manifest); invoke_rejects_userinfo_final_url (the same URL rejected again at the invoke-side final-URL revalidation); manifest_accepts_loopback_hosts (valid loopback manifests still validate — 127.0.0.1, localhost, and the bracketed [::1], with ports and paths, closing the canonicalization hazard of the current two-spelling match arm and covering hosts the single pre-existing 127.0.0.1 fixture never did; the bare ::1 spelling is refused exactly as today — the current split parser already rejects it, and the match-arm's bare spelling is dead code (round-13 probe)); manifest_rejects_non_loopback_host_without_userinfo (http://evil.example/ rejected by the parsed-host loopback rule itself, with the IPv4-mapped form [::ffff:127.0.0.1] — canonicalized non-loopback per the round-5 probe — rejected too, so a broken loopback comparison cannot hide behind the userinfo rejections; round 8: every earlier manifest negative carried userinfo and died before the host check); invoke_rejects_host_changing_path (exercise both a loopback base with an explicit port and the same base with a path prefix. The absolute-URL suffix can produce a parse error for the port-only base, or remain literal path data on the loopback host when the base has a path. The scheme-relative suffix also remains path data with the current concatenation. Assert that none produces a request to a different recipient, and explicitly assert the resulting host for parseable variants); invoke_redirect_response_not_followed (a redirect-bearing response surfaces as an error, never a followed request — the client builder's policy asserted by test for BOTH clients, invoke and probe_health); invoke_honest_loopback_ok (against a local 127.0.0.1 TcpListener serving a one-shot 200 JSON response — binding loopback only, so the no-network rule of the parser's negative tests is not stretched to external hosts: an honest loopback manifest with a non-redirect response invokes successfully, the payload is received, and the refusal-all-redirects policy never rejects an honest response); probe_health_honest_loopback_ok (the same local-listener pattern: an honest loopback manifest's health probe still returns healthy=true — without it, a revalidation bug rejecting every URL would flip the whole gallery offline while every pinned test stayed green). Both validation sites share one loopback+no-userinfo helper, making the manifest-side negatives cover the invoke side alike.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">sh -c "cargo test --manifest-path src-tauri/Cargo.toml --bin mark m045 &amp;&amp; grep -q 'fn manifest_rejects_userinfo_url' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn invoke_rejects_userinfo_final_url' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn manifest_rejects_non_loopback_host_without_userinfo' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn manifest_accepts_loopback_hosts' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn invoke_rejects_host_changing_path' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn invoke_redirect_response_not_followed' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn invoke_honest_loopback_ok' src-tauri/src/m045_ext/tests.rs &amp;&amp; grep -q 'fn probe_health_honest_loopback_ok' src-tauri/src/m045_ext/tests.rs"</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Wave 3 — mt_format_link_click validates local targets before the opener</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>EVERYTHING that reaches the opener's open_path is validated, regardless of href prefix: http(s) URLs are unchanged; any other final target — '/…', './…', or a bare relative name (the audit's own [run](run.cmd.command) form, which today falls through the unvalidated else-branch of m_v1_compat.rs:886-888 straight into open_path) — resolves against the document dirname when it is relative (bare names join dirname exactly like the './' form) and then passes m010 check_path with the DOCUMENT WORKSPACE — the canonicalized document dirname, already the join base — as the sandbox (the spec's Goal wording; round 8 proved the plan's earlier global-SecurityCtx variant would break every legitimate sibling link of a document opened outside a fenced workspace — a real production state, since fences are set at main.rs:358/376 while documents open from anywhere) plus check_shell_open_extension refusing DANGEROUS_SHELL_OPEN_EXTENSIONS targets (.command, .app and kin) with a BLOCK_-style log marker — before anything is passed to open_path; no SecurityCtx state is injected — the dirname the renderer already supplies for the join is the sandbox, so a document's own siblings always open regardless of any fenced workspace (today's behavior preserved exactly), while a target escaping the document's directory (../…) is refused; the empty-href early return is unchanged.</Criterion>
+          <Criterion>Rust tests (a #[cfg(test)] seam for the validation logic) carry a pinned link_click_ name prefix — link_click_refuses_bare_command, link_click_refuses_prefixed_command, link_click_opens_document_sibling, link_click_refuses_escape_from_document_dir, link_click_http_unchanged — so the task command and its grep guard select them (cargo exits 0 on a filter matching zero tests; the pinned naming is the anti-vacuity contract, mirroring T-007's ancestor_ discipline). The seam proves: a relative .command/.app target is refused and the opener path is never reached (asserted on the validation result and marker, not on the OS) — in BOTH forms, './run.cmd.command' and the bare 'run.cmd.command' (the audit scenario verbatim, closing the round-1 DOMPurify-proven hole), the executable refused by check_shell_open_extension regardless of any sandbox state; a sibling .md/.png of the document passes validation — the companion case in its production form: the document may live OUTSIDE any fenced workspace (fences set, document opened from recent files) and its siblings still open exactly as today, because the document's own directory is the fence; an http(s) href bypasses the local checks entirely; a relative target escaping the document's directory (../…) is refused by check_path.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">sh -c "cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_ &amp;&amp; grep -q 'fn link_click_refuses_bare_command' src-tauri/src/m_v1_compat.rs &amp;&amp; grep -q 'fn link_click_refuses_prefixed_command' src-tauri/src/m_v1_compat.rs &amp;&amp; grep -q 'fn link_click_opens_document_sibling' src-tauri/src/m_v1_compat.rs &amp;&amp; grep -q 'fn link_click_refuses_escape_from_document_dir' src-tauri/src/m_v1_compat.rs &amp;&amp; grep -q 'fn link_click_http_unchanged' src-tauri/src/m_v1_compat.rs"</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Wave 3 — check_path resolves the nearest existing ancestor for new paths</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>When the requested target is missing, check_path walks the requested path and its parents by directory entry (nearest_existing_ancestor uses symlink_metadata). Only NotFound advances the walk. A dangling link is an existing entry; canonicalize it and reject if the destination cannot be resolved, before a caller can open or create through that entry. Reject other filesystem errors. Compare the canonical existing entry against the canonical sandbox, preserving the existing permissive-root prefix exemption and Windows prefix handling; canonicalization and sandbox fencing for existing targets are preserved (symlinked existing files still canonicalize and fence as today — the outside-overwrite regression stays covered); the not-exists walk handles a fully non-existing tree by pinning the check to the sandbox when no ancestor exists before the sandbox root, and Windows drive-prefix/UNC behavior (C-WINDOWS-SAVE-PIPELINE strip_device_prefix semantics) is preserved in the ancestor comparison.</Criterion>
+          <Criterion>m010/m013b tests prove: a new text file, a new binary write and a create_dir_all through a parent symlink pointing OUTSIDE the sandbox are all rejected (SymlinkEscapesSandbox error, BLOCK_ marker); the same symlink pointing INWARD still works; overwrite of an existing outside file via symlink stays rejected (regression); a plain new path with an existing in-sandbox parent writes as before. A dangling final-component symlink whose missing target has an existing writable parent outside the sandbox is refused before creation; exercise the real text and binary write seams and assert the outside target remains absent. The permissive-root suite stays green. The new tests carry a shared ancestor_ name prefix (ancestor_escape_text_new, ancestor_escape_binary_new, ancestor_escape_mkdir in the m010 seam; ancestor_inward_ok, ancestor_existing_outside_regression and ancestor_dangling_leaf_refused in the m013b/fs seam) — the naming is pinned because cargo exits 0 on a filter matching zero tests, so unnamed filters can pass vacuously. Because every write path (fs_write_inner, binary write, mkdir) funnels through check_path, fixing the helper closes all three audit variants with one change.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">sh -c "cargo test --manifest-path src-tauri/Cargo.toml --bin mark m010 &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml --bin mark m013b &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml --bin mark ancestor_ &amp;&amp; grep -q 'fn ancestor_escape_text_new' src-tauri/src/m010_security.rs &amp;&amp; grep -q 'fn ancestor_escape_binary_new' src-tauri/src/m010_security.rs &amp;&amp; grep -q 'fn ancestor_escape_mkdir' src-tauri/src/m010_security.rs &amp;&amp; grep -q 'fn ancestor_inward_ok' src-tauri/src/m013b/fs.rs &amp;&amp; grep -q 'fn ancestor_existing_outside_regression' src-tauri/src/m013b/fs.rs &amp;&amp; grep -q 'fn ancestor_dangling_leaf_refused' src-tauri/src/m013b/fs.rs"</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Graph, verification and LINKS deltas on the integrated predecessor state</Title>
+        <DependsOn>T-001, T-002, T-003, T-004, T-005, T-006, T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>M-045's features.xml entry records the authenticated-incoming-gate contract (bearer and enabled checks on the three existing data routes, plus text.insert capability on /ext/text-insert only. The existing /ext/pair bootstrap keeps its release confirmation and debug behavior, disable-revokes-secret, parsed-URL loopback validation, redirect Policy::none); M-010's runtime.xml entry records the nearest-existing-ancestor rule and the link-click adoption of check_path/check_shell_open_extension; M-033 records the mt_format_link_click hardening; M-046/M-054 record the lockfile-pinned release tools and the fresh-npx guard; M-071 records the README deploy-doc pinning-or-removal; M-069/M-002 entries gain the reference where their paths are touched (dev-badge/path-coincidence and the provisional fs-command ownership — the plan settles M-002 as the routing owner for m013b/fs.rs per the spec's Assumption); M-001's runtime.xml records for the hardened command are amended — the fn-mt_format_link_click entry and the m_v1_compat sub-module record (runtime.xml:455-467, whose stale PURPOSE still says "opens URL/file via macOS open command") gain the hardened-truth description (local targets validated through m010 check_path and check_shell_open_extension before the opener plugin call), so the graph no longer carries a contradictory record beside the hardening contracts; M-001/V-M-001 are declared in this plan's durable scope accordingly (the spec's Assumption 3 delegates routing confirmation to the plan); the matching V-M-* entries in .grace/verification/* gain the new evidence (the exact test names this wave adds, in the living-tracker pattern); every amendment references C-SEC-AUDIT-FIXES; the predecessor renderer/stats changes are already archived and the CI changes are imported. Apply these deltas to their current entries in the same four files, preserving every predecessor contract and unrelated entry; no archived bundle is rewritten.</Criterion>
+          <Criterion>The LINKS headers of the governed source files touched by the waves (m045_ext/live_server.rs, m045_ext/manifest.rs, m045_ext/invoke.rs, m045_ext/mod.rs, m010_security.rs, m_v1_compat.rs) gain .grace/changes/active/C-SEC-AUDIT-FIXES alongside their existing references; MODULE_MAP blocks of edited files are updated where new locals/exports change them (the lint module-map checks stay green on our files).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">sh -c "grep -q 'C-SEC-AUDIT-FIXES' .grace/graph/features.xml &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' .grace/graph/runtime.xml &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' .grace/verification/features.xml &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' .grace/verification/runtime.xml &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' src-tauri/src/m010_security.rs &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' src-tauri/src/m045_ext/live_server.rs &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' src-tauri/src/m_v1_compat.rs &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' src-tauri/src/m045_ext/manifest.rs &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' src-tauri/src/m045_ext/invoke.rs &amp;&amp; grep -q 'C-SEC-AUDIT-FIXES' src-tauri/src/m045_ext/mod.rs"</Command>
+        </Verification>
+      </T-008>
+      <T-009>
+        <Title>Closing sweep: rebase truth, whole-suite gates, measured evidence</Title>
+        <DependsOn>T-008</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Against the recorded CI-imported stabilization baseline, containing the already archived renderer/stats deltas: every baseline pin of this plan still described the pre-edit truth at execution start, and every target pin holds in the final tree (grace lint target/final run externally by the execution flow); npm test is green whole-suite (the fresh-npx guard and the stats suite included) and cargo test --bin mark is green whole-suite (the m045, link_click, m010 and check_path filters all land inside it), with both measured times recorded against the 1800 s combined budget; the secrets-name-only sweep over every touched file in its final state finds nothing secret-shaped (the pinned tool versions and URL-validation strings are not secrets).</Criterion>
+          <Criterion>The spec's NonGoals hold in the diff: no pairing-UX redesign, no confirm dialog for executable link targets (hard block only), no descriptor-based write rework, no muya sanitizer change, no live-server listener-surface change (still 127.0.0.1, OS-assigned port, MAS no-listener) — verified by the diff touching none of those designs.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="1800">sh -c "npm test &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml --bin mark"</Command>
+        </Verification>
+      </T-009>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <C-1>
+        <Situation>The release job's attribution and SBOM steps executed with the npm registry unreachable (offline runner simulation), plus a hostile edit reintroducing npx --yes into release.yml.</Situation>
+        <Expected>Both steps run to completion from lockfile-installed binaries (npm ci already installed them; no registry contact); the guard test fails the hostile edit naming file and line; cargo-tool pinning untouched; the README leg shows no unpinned wrangler instruction.</Expected>
+      </C-1>
+      <C-2>
+        <Situation>A local process POSTs /ext/text-insert with no token, a wrong token, a valid token of a disabled extension, and a valid token of an enabled extension lacking text.insert; then the full authorized path.</Situation>
+        <Expected>The first four are refused 401/403 with an AUTH-style BLOCK_ marker and mt::text::op is never emitted; the authorized request inserts text carrying the requester's real extension_id. The Mark body fixture preserves the server schema and the actual supported paired client supplies separate interoperability evidence.</Expected>
+      </C-2>
+      <C-3>
+        <Situation>An extension is paired, then disabled in the gallery; its held token replays /ext/context, /ext/apply and /ext/text-insert; it re-pairs after re-enabling.</Situation>
+        <Expected>Every replay after successful disable is refused and persistent and memory credential absence was verified. An unavailable credential backend fails the disable operation visibly. A fresh pairing after successful disable restores full access; /stream/* session semantics unchanged.</Expected>
+      </C-3>
+      <C-4>
+        <Situation>A manifest with base_url http://localhost:1@evil.example/ (and IPv6/absolute-invoke_path variants); a loopback manifest answering 302 to an external recipient; an honest loopback manifest.</Situation>
+        <Expected>The userinfo manifest fails validation (parsed host is evil.example); the final-URL validation rejects any recipient outside the allowlist and tests the actual parsed host for path-prefixed base URLs; the 302 is never followed (Policy::none(), both outgoing clients) and surfaces as an invoke error; honest loopback manifests (127.0.0.1/localhost/[::1], ports, paths) validate and a non-redirect invoke succeeds exactly as before — proven by the pinned invoke_honest_loopback_ok companion against a local 127.0.0.1 listener (the zero-network rule covers the parser's negative tests; the companion binds loopback only); refusing ALL redirects is the recorded tightening over the spec's different-recipient minimum, and refusing the bare ::1 spelling matches today's behavior (the current parser already rejects it — round-13 probe); the health probe carries the same policy, with no bearer ever attached to a probe request.</Expected>
+      </C-4>
+      <C-5>
+        <Situation>Ctrl/Cmd+click on a relative link to a sibling .command (and .app); a relative link to a sibling notes.md inside a fenced workspace and outside it; an http(s) link.</Situation>
+        <Expected>Executable targets are refused with a log marker before the opener is called (check_shell_open_extension, sandbox-independent); sibling document/image links of ANY document open as today — the document's own directory is the fence, so a document opened outside a fenced workspace (the production state round 8 pinned) keeps opening its siblings; http(s) handling is byte-identical; a relative target escaping the document's directory is refused by check_path.</Expected>
+      </C-5>
+      <C-6>
+        <Situation>A workspace contains a symlinked folder pointing to a writable location outside the sandbox; a new text file, a new binary/image write and a mkdir are directed through it; the same symlink points inward in a second workspace; an existing outside file is targeted through a symlink; a Windows drive-root sandbox exercises the permissive-root path.</Situation>
+        <Expected>All three outward creations are rejected via the nearest-existing-ancestor canonicalization (one check_path change covers fs_write_inner, binary writes and create_dir_all); the inward symlink still works; the existing-file outside-overwrite stays rejected and a dangling final link cannot create its outside target; permissive-root and drive-prefix semantics are preserved.</Expected>
+      </C-6>
+      <C-7>
+        <Situation>Runtime and CI cost of the wave: URL parse at manifest load and per invoke; registry lookup plus token check on every incoming /ext/* request; ancestor walk on every new-file save; two more devDependencies in npm ci; the release job's SBOM/attribution steps on local binaries.</Situation>
+        <Expected>No measurable interactive-path regression: the ancestor walk is a bounded parent walk ending at an existing directory (one canonicalize per save of a new file), the URL parse is microseconds and off the editing path, the registry candidate snapshot is in memory but bearer validation can access the OS keychain. Limit text-insert checks to enabled capability candidates, keep native lookups off the async request executor, and record the lookup count and latency against the current client flow before claiming no regression; release attribution/SBOM steps run the same tools from local binaries with no wall-clock regression; budgets (1800 s combined whole-suite, 600 s filtered) rest on recorded numbers only: the sibling C-RENDER-REVIEW-FIXES plan record (suite 119-306 s), the archived full-suite log t005-npm-test-unit.log (133.72 s), and CI job walls 167-461 s (renderer unit with setup and coverage) — npm ci grows by the two direct devDependencies' transitive closure (~230 packages, one-time install, cache-warm afterwards); plausibility-checked at plan time, re-measured at T-009.</Expected>
+      </C-7>
+      <C-8>
+        <Situation>Process truth: LINKS headers, graph and verification deltas, serial shared-file arcs, satisfied archival prerequisites, and drift from the recorded imported CI baseline.</Situation>
+        <Expected>Six governed headers carry the change reference; the nine M-/V-M- anchors' deltas (including M-001's amended command records) reference C-SEC-AUDIT-FIXES and the new tests by name; live_server.rs serialized T-003 ≺ T-004 and tests.rs T-003 ≺ T-004 ≺ T-005; the archived renderer/stats prerequisites are satisfied and current CI-imported graph entries are preserved; the security candidate must retain zero current-state integrity errors. The old nested-worktree/missing-spec errors are absent from the isolated baseline, and the imported CI repair fixes the tree-treefiles map; do not carry them as present product defects. The four existing Python heuristic warnings are not new failures.</Expected>
+      </C-8>
+    </CornerMatrix>
+    <ReviewLog>
+      <!-- The plan's own four-corner gate: two consecutive clean rounds (4/4 corners) required before the approval request. Rounds appended below. -->
+      <Review number="1" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-7c257484-31f5-4f76-9602-e9deac49a880 (four fresh GLM-5.3-Flash reviewers, one per corner; the run survived an early provider-quota stop and was resumed)</Run>
+        <Result>0/4 corners clean; 8 blocking/important findings (two duplicate pairs across corners) plus corner notes; reviewers ran live probes — a DOMPurify bare-href probe on the repo's own node_modules, vitest-config and CI-job-wall checks, and a grep sweep of .grace proving the budget-basis quote uncitable.</Result>
+        <Applied>
+          <Fix>Blocking/important (CORR-F-1 + UX-F-1, one defect): the m_v1_compat.rs baseline pin corrected to the literal turbofish call text open_path(url, None::&lt;&amp;str&gt;) — the pin as written matched nothing and would have failed the plan's own baseline gate.</Fix>
+          <Fix>Important (SECU-F-1): T-006 extended from the '/…'-or-'./…' branch to EVERYTHING that reaches open_path — a bare relative href (the audit's own [run](run.cmd.command), proven by the reviewer's DOMPurify probe to render and pass through verbatim today) joins dirname and passes the same check_path + check_shell_open_extension validation; a bare-form negative test pinned.</Fix>
+          <Fix>Important (SECU-F-2 + UX-F-2, one defect): T-002 broadened from the deploy snippet to EVERY unpinned npx instruction in the README (npx wrangler logout at :194 was invisible to the old verification while the spec's AC says "no unpinned npx instruction"); verification is now a negative grep over npx wrangler/--yes in the README.</Fix>
+          <Fix>Important (SECU-F-3): T-004 resynchronized with the spec's Goal — context/apply adopt the shared gate for token-validity and enabled only; the text.insert capability stays exclusive to text-insert (the helper takes the capability as an Option); no capability is invented, so enabled paired extensions of any declared capability keep context/apply access.</Fix>
+          <Fix>Important (CORR-F-2): T-007 verification can no longer pass vacuously — the new tests carry a pinned ancestor_ name prefix, the command gains a structural m013b leg and an ancestor_ filter leg, and grep guards prove the named test functions exist (cargo exits 0 on a filter matching zero tests; the old check_path filter matched none today).</Fix>
+          <Fix>Important (PERF-F-1): the C-7 budget basis replaced with recorded numbers only (sibling record 119-306 s, archived log 133.72 s, CI walls 167-461 s) — the uncitable "npm test 374 s" quote removed; the npm-ci note (~230-package transitive closure of the two direct devDependencies) folded into C-7; the 1800/600 s conclusion unchanged.</Fix>
+        </Applied>
+        <Deferred>None — every round-1 blocking/important finding is addressed above; corner notes without a blocking/important pair are folded into the fixes or recorded in the gate report card.</Deferred>
+      </Review>
+      <Review number="2" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-f3105076-8d76-4329-92a0-28c7bc03f8e2 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>1/4 corners clean (Performance — notes only); 4 blocking/important findings after dedup (one CORR/SECU pair) plus corner notes; every corner verified all six round-1 fixes applied, and the budget basis was re-probed against fresh CI runs (renderer unit 173-463 s, n=74; backend unit 132-392 s, n=75).</Result>
+        <Applied>
+          <Fix>Important (CORR-F-1 + SECU-F-1, one defect): the anti-vacuity discipline round 1 gave T-007 is mirrored onto T-006 — the link-click tests carry a pinned link_click_ name prefix (five named functions), and the T-006 command gains a link_click_ filter leg plus grep guards (the bare link_click filter matched zero tests today and cargo exits 0 on an empty filter).</Fix>
+          <Fix>Important (UX-F-1): T-006 gains the permissive-root companion leg C-5 already promised — under SecurityCtx::default (the audit's dominant scenario: a received document outside any fenced workspace) the executable relative link is still refused by check_shell_open_extension while a relative .md/.png passes; both sandbox regimes are now named test cases.</Fix>
+          <Fix>Important (UX-F-2): T-003 declares the harness the promised live-server tests need — tauri { version = "2", features = ["test"] } as a dev-dependency (dev-only, no release/app-store effect) and LiveServerState built on the mock runtime with an mt::text::op listener; without the declaration the tests were unbuildable (the struct demands a concrete tauri::AppHandle, live_server.rs:71-78, and no mock exists in the tree today).</Fix>
+        </Applied>
+        <Deferred>None — the remaining items are corner notes: PERF's observation that round-1's exact 167/461 s endpoints were not reconstructible is recorded here (round-2's own fresh probes, on which the clean PERF verdict rests, bracket the same range).</Deferred>
+      </Review>
+      <Review number="3" verdict="clean" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-e19bc78f-ddd8-4e0f-a565-a14a72e04ec3, round 1 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>4/4 corners clean — the first clean round; notes only. Every corner verified all round-1/2 fixes applied; the CORR reviewer cold-compiled the test binary and listed filters empirically (m045=45, m010=31, m013b=81 — none vacuous; the pre-fix vacuity premises reproduced), and the UX reviewer ran the stats vitest suite live (54/54).</Result>
+        <Applied><Fix>None at round time — the artifacts stay untouched between clean rounds; the round-2 findings below landed after this clean round, resetting the streak per the gate's canon.</Fix></Applied>
+        <Deferred>None.</Deferred>
+      </Review>
+      <Review number="4" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-e19bc78f-ddd8-4e0f-a565-a14a72e04ec3, round 2 (the confirmation pass over unchanged artifacts)</Run>
+        <Result>0/4... 3 blocking/important findings (1/4 corners had them; the streak from round 3 is reset); corner notes besides.</Result>
+        <Applied>
+          <Fix>Important (CORR-F-1): the graph's only runtime record of mt_format_link_click — fn-mt_format_link_click under M-001 (runtime.xml:455-467, stale PURPOSE "opens URL/file via macOS open command") — is now inside the change: T-008 amends that record and the m_v1_compat sub-module entry to the hardened truth, and M-001/V-M-001 join the plan's DurableScope, GraphAnchors, VerificationAnchors and MustVerify (the spec's Assumption 3 delegates routing confirmation to the plan); C-8 counts nine anchors.</Fix>
+          <Fix>Important (SECU-F-1): the second outgoing reqwest client — probe_health (discovery.rs:122, manifest-joined URL, default policy following 10 redirects) — joins T-005: same final-URL revalidation and the same redirect Policy::none(), discovery.rs enters the observed scope and the target pins; the closed leak is telemetry (machine IP, extension presence) since the probe never carries a bearer — the plan's "no exceptions" policy claim is now literally true of both clients.</Fix>
+          <Fix>Important (UX-F-1): T-005 gains the pinned invoke-success companion invoke_honest_loopback_ok against a local 127.0.0.1 TcpListener (one-shot 200 JSON; loopback-only, so the parser's zero-network rule is not stretched) and a builder-policy assertion for BOTH clients; C-4's "invoke exactly as before" is reworded to the provable form — non-redirect invoke succeeds, ALL redirects refused is the recorded tightening over the spec's different-recipient minimum.</Fix>
+        </Applied>
+        <Deferred>None — every round-4 blocking/important finding is addressed above; remaining corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="5" verdict="clean" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-25bd3033-b787-482e-ac6d-28dee2f14cca, round 1 (four fresh GLM-5.3-Flash reviewers, one per corner)</Run>
+        <Result>4/4 corners clean; notes only. All thirteen round-1/2/4 fixes verified in text and code; live probes: the stats vitest suite (54/54), test-attribute counts (m045=45, m010=29, m013b-fs=34 — filters non-vacuous), and a WHATWG URL-parse probe confirming the F-005 premises (userinfo host flips to evil.example; joined '@evil.com/x' flips host; IPv4-mapped [::ffff:127.0.0.1] canonicalizes non-loopback and fails closed).</Result>
+        <Applied><Fix>None at round time — the artifacts stay untouched between clean rounds; the round-6 finding below landed on the confirmation pass, resetting the streak.</Fix></Applied>
+        <Deferred>None.</Deferred>
+      </Review>
+      <Review number="6" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-25bd3033-b787-482e-ac6d-28dee2f14cca, round 2 (the confirmation pass over unchanged artifacts)</Run>
+        <Result>3/4 corners clean; 1 blocking finding (high) — the round-2 mock-runtime harness does not compile.</Result>
+        <Applied>
+          <Fix>Blocking (CORR-F-1): the harness declaration corrected from "mock handle into the concrete-AppHandle struct" to a generic refactor — LiveServerState, the handlers' State and start_live_server become generic over R: tauri::Runtime with Wry as the default type parameter (main.rs's construction site stays byte-untouched; bare AppHandle is AppHandle&lt;Wry&gt; per tauri's #[default_runtime], while mock_app() returns AppHandle&lt;MockRuntime&gt; — only the generic accepts both, proven from the vendored tauri 2.12.5 sources app.rs:385 and test/mod.rs:185); the tests manage an ExtRegistry on the mock app (today managed only at main.rs:838); the whole refactor stays inside live_server.rs + mod.rs + tests.rs, already in scope.</Fix>
+        </Applied>
+        <Deferred>None.</Deferred>
+      </Review>
+      <Review number="7" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-4cdf4b6c-c645-4314-8c1f-56e85a9276c7, round 1 (four fresh GLM-5.3-Flash reviewers; 2/4 corners clean — CORR and PERF)</Run>
+        <Result>3 blocking/important findings (SECU 2, UX 1); the PERF reviewer measured the exact transitive closure of the two pinned tools (231 packages — C-7's ~230 confirmed) and re-validated budgets against six fresh CI runs; CORR verified all eighteen graph anchors exist and the budgetSeconds mechanism in the grace-cli source.</Result>
+        <Applied>
+          <Fix>Important (SECU-F-1): the revocation CONTRACT replaces the bare call in T-004 — revoke_secret becomes Result-honest (a keychain delete_credential error propagates; today it is logged and swallowed at auth.rs:127-134 while get_secret reads the keychain first, so a failed delete kept the old token authenticating behind a successful-looking disable), disable verifies get_secret yields None before reporting success and surfaces failure otherwise; named tests disable_revokes_and_verifies_absence and disable_surfaces_revoke_failure (the failure injected through the auth test seam) close the keychain-first mode the in-memory seam never observes.</Fix>
+          <Fix>Important (SECU-F-2): the fresh-npx guard contract made exhaustive — every line containing npx in release.yml or verify-attributions.sh must carry --no-install; this catches npx --yes, the short alias npx -y, npx --package, and the bare npx pkg form (npm treats it as --yes on CI/non-TTY runners, per npm help exec), none of which the old two-pattern contract caught; T-002's verification grep broadened to any npx line without --no-install.</Fix>
+          <Fix>Important (UX-F-1): the probe leg gains its own pinned companion probe_health_honest_loopback_ok (local one-shot 200 listener, healthy=true asserted) — without it a revalidation bug rejecting every URL would flip the whole extension gallery offline (offline badges and install prompts render on !ext.healthy) while all pinned tests stayed green.</Fix>
+        </Applied>
+        <Deferred>None — every round-7 blocking/important finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="8" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-ebb422e1-9edc-4e6a-9a76-8a503275dac6, round 1 (four fresh GLM-5.3-Flash reviewers; 2/4 corners clean — CORR and PERF)</Run>
+        <Result>2 blocking/important findings (SECU 1, UX 1); the CORR reviewer cold-listed all 530 tests of the binary (filters m045=49, m010=31, m013b=81 non-vacuous; link_click_/ancestor_ at 0 today as the plan itself records) and the PERF reviewer measured the transitive closure again (231 packages) plus seven fresh CI runs bracketing every budget.</Result>
+        <Applied>
+          <Fix>Important (UX-F-1, a plan-spec divergence): T-006's sandbox corrected from the global SecurityCtx to the DOCUMENT WORKSPACE — the spec's Goal says "against the document workspace", and the plan's global variant would have broken every legitimate sibling link of a document opened outside a fenced workspace (a real production state: fences set at main.rs:358/376 while documents open from anywhere); the document dirname — already the join base — is the check_path sandbox, no SecurityCtx injection, siblings always open (today's behavior), ../… escapes refused; the test names follow (link_click_opens_document_sibling, link_click_refuses_escape_from_document_dir) and C-5 is synchronized.</Fix>
+          <Fix>Important (SECU-F-1): T-005 gains the manifest-level non-loopback negative without userinfo — manifest_rejects_non_loopback_host_without_userinfo (http://evil.example/ plus the IPv4-mapped [::ffff:127.0.0.1] form), asserting the parsed-host loopback rule itself; every earlier manifest negative carried userinfo and died before the host check, so a broken loopback comparison was invisible to the pins; one shared loopback+no-userinfo helper covers both validation sites.</Fix>
+        </Applied>
+        <Deferred>None — every round-8 blocking/important finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="9" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-4f681efa-e893-4424-b20f-b9115c79e2d3, round 1 (four fresh GLM-5.3-Flash reviewers; 3/4 corners clean — CORR, UX, PERF; the run survived a provider-quota stop and completed on retries)</Run>
+        <Result>1 blocking/important finding (SECU); the smallest round yet.</Result>
+        <Applied>
+          <Fix>Important (SECU-F-1): the anti-vacuity discipline of T-006/T-007 extended to the whole of wave 2 — the bare m045 filter matched the 45 pre-existing tests and stayed green even if none of the ~15 named negative tests landed; T-003's five tests are now named (text_insert_refuses_no_token, text_insert_refuses_wrong_token, text_insert_refuses_disabled_extension, text_insert_refuses_missing_capability, text_insert_authorized_emits_with_requester_identity) and the T-003/T-004/T-005 verification commands each gained grep legs proving the named functions exist in m045_ext/tests.rs, exactly like the link_click_/ancestor_ guards.</Fix>
+        </Applied>
+        <Deferred>None — every round-9 blocking/important finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="10" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-bd40a9d2-52ad-4ca6-b106-8e6c705ac223, round 1 (four fresh GLM-5.3-Flash reviewers; 3/4 corners clean — CORR, SECU, PERF)</Run>
+        <Result>3 blocking/important findings (all UX — the naming discipline had been applied to the negatives while some promised positives stayed unnamed, plus one locale-rule gap).</Result>
+        <Applied>
+          <Fix>Important (UX-F-1): T-004's legit-path legs named and pinned — enabled_extension_passes_all_three_routes and fresh_pairing_restores_access join the grep legs (handler-level context/apply tests do not exist today; the TokMo EditAgent flows live on these routes).</Fix>
+          <Fix>Important (UX-F-2): T-005's whole test set swept into one named enumeration — manifest_rejects_userinfo_url, invoke_rejects_userinfo_final_url, manifest_accepts_loopback_hosts (both ::1 spellings, ports, paths — the pre-existing fixture covered 127.0.0.1 only), manifest_rejects_non_loopback_host_without_userinfo, invoke_rejects_host_changing_path, invoke_redirect_response_not_followed, invoke_honest_loopback_ok, probe_health_honest_loopback_ok — with the grep legs extended; invoke_extension never calls validate_manifest, so the honest-loopback companions alone never exercised manifest validation.</Fix>
+          <Fix>Important (UX-F-3): the disable-failure surfacing localized per the spec's ten-locale rule — mt_ext_disable returns the stable short code ext_disable_revoke_failed (free-form detail only to the BLOCK_ marker) and the gallery maps it to one new key extensions.disableFailed in all ten locales (static/locales/*.json joins the observed scope, pinned in TargetAssertions for en and ru, the locale completeness gate runs in T-004's verification) — today the gallery renders raw String(err) with no t() wrapper, so the plan's error string would have been the wave's first untranslated user-visible text.</Fix>
+        </Applied>
+        <Deferred>None — every round-10 blocking/important finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="11" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-32c849e4-e56c-4639-980d-b30d6edbe136, round 1 (four fresh GLM-5.3-Flash reviewers; 2/4 corners clean — CORR, PERF)</Run>
+        <Result>6 blocking/important findings (SECU 3, UX 3, one dedup pair each side); the largest round since round 1 — the naming discipline exposed its own incompleteness, and the round-10 locale fix proved unexecutable in the declared write scope.</Result>
+        <Applied>
+          <Fix>Important (SECU-F-1): the IPv6 contradiction resolved for the parser's reality — manifest_accepts_loopback_hosts covers 127.0.0.1, localhost and the bracketed [::1]; the BARE ::1 spelling is refused as a recorded tightening (today's two-spelling match arm accepted it, but the WHATWG parser throws on http://::1/ — the round-11 node probe; C-4 and criterion 1 synchronized).</Fix>
+          <Fix>Important (SECU-F-2 + UX-F-3, one defect): grep legs completed to FULL pinning of every named fn — 22 of 22 (T-003 five, T-004 four + locale legs, T-005 eight, T-006 five); the unpinned set had included the audit's headline F-005 negative manifest_rejects_userinfo_url and the F-001 companion link_click_http_unchanged.</Fix>
+          <Fix>Important+blocking (UX-F-1 + SECU-F-3, one defect): the round-10 locale mapping made executable — src/renderer/src/components/extensionGallery/index.vue (the sole renderer of mt_ext_disable's error) and tests/renderer/i18n/locale-keys.test.js join the observed scope, the gallery mapping is pinned in TargetAssertions (ext_disable_revoke_failed → extensions.disableFailed), and T-004's verification mechanically loops all ten locale files for the key (the locale-keys gate alone was vacuous for it — 71/71 green on a tree where the key does not exist, round-11 probe).</Fix>
+        </Applied>
+        <Deferred>None — every round-11 blocking/important finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="12" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-4a601081-527f-4aad-9bf3-e989aaac6e16, round 1 (four fresh GLM-5.3-Flash reviewers; 2/4 corners clean — UX clean for the first time, plus PERF)</Run>
+        <Result>4 blocking/important findings (CORR 3, SECU 1; one dedup pair) — all authoring debts of the pinning doctrine itself.</Result>
+        <Applied>
+          <Fix>Important (CORR-F-1): the scheme-relative premise corrected — under the plan's own string-concatenation join the '//evil.example/x' invoke_path form degrades to path segments on the unchanged loopback host (round-12 WHATWG probe: parse-ok, host unchanged), so no rejection mechanism exists and none is owed; invoke_rejects_host_changing_path now pins the ABSOLUTE-URL form (the parse rejects the concatenated result outright) and records the scheme-relative neutralization as concatenation behavior asserted in the same test.</Fix>
+          <Fix>Important (CORR-F-2 + SECU-F-1, one defect): round 11's "22 of 22" full-pinning count had silently excluded T-007's five tests (5+4+8+5=22 of 27); the T-007 command gains the three missing grep legs (ancestor_escape_binary_new, ancestor_escape_mkdir in m010_security.rs; ancestor_existing_outside_regression in m013b/fs.rs) — the pinning is now 27 of 27 across all five test-bearing tasks, and the F-006 audit checkboxes (binary write, mkdir, existing-outside regression) are no longer the unpinned tail.</Fix>
+          <Fix>Important (CORR-F-3): the revoke-failure injection seam declared — the Result-honest refactor of revoke_secret introduces an injectable delete backend (a #[cfg(test)]-visible hook or narrow trait, new in this plan); auth.rs has no seam today (MEM_STORE is removed unconditionally before keyring, NoEntry counts as success), and keyring's process-global mock builder is explicitly NOT the declared seam.</Fix>
+        </Applied>
+        <Deferred>None — every round-12 blocking/important finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="13" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-3e0d9fe5-e74f-4f6b-91b8-221728d4c75a, round 1 (four fresh GLM-5.3-Flash reviewers; 3/4 corners clean — CORR, SECU, PERF)</Run>
+        <Result>1 blocking/important finding (UX); the smallest unique round yet, and the deepest catch: a wire-contract break hidden inside a promised companion.</Result>
+        <Applied>
+          <Fix>Important (UX-F-1): the text-insert wire contract is PRESERVED — TextInsertRequest keeps its {text, source} shape (the sole caller is the external TokMo voice client, not updatable in lockstep from this repo; a required extension_id field would have 422-rejected every existing legitimate client before the gate while all pinned tests stayed green, since they would send the new field); the gate resolves the extension's identity FROM the bearer token itself (scan enabled registry extensions, validate_token against each — the token is the identity, nothing client-declared to spoof); the named companion text_insert_authorized_old_shape_body_emits pins the old body shape, taking the pinning count to 28/28.</Fix>
+          <Fix>Note-level correction (SECU round-13 probe, folded in): the round-11 "recorded tightening" for the bare ::1 spelling rested on a false premise — the current split parser ALREADY rejects the bare spelling (empty host; the match-arm's ::1 entries are dead code), so the Url::parse rewrite preserves today's refusal rather than tightening it; criterion 1, the loopback leg and C-4 reworded accordingly.</Fix>
+        </Applied>
+        <Deferred>None — every round-13 blocking/important finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="14" verdict="clean" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-21fcf99d-1c21-478b-bd42-82465618bd32, round 1 (four fresh GLM-5.3-Flash reviewers)</Run>
+        <Result>4/4 corners clean — the third clean round; notes only. The wire-preservation fix of round 13 verified by every corner; the WHATWG probes re-confirmed both the scheme-relative neutralization and the dead match-arm ::1 spellings.</Result>
+        <Applied><Fix>None at round time — the artifacts stay untouched between clean rounds; the round-15 findings below landed on the confirmation pass, resetting the streak.</Fix></Applied>
+        <Deferred>None.</Deferred>
+      </Review>
+      <Review number="15" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>dwfrun-21fcf99d-1c21-478b-bd42-82465618bd32, round 2 (the confirmation pass over unchanged artifacts)</Run>
+        <Result>2 blocking findings, both CORR, both mechanical truths of the execution environment.</Result>
+        <Applied>
+          <Fix>Blocking (CORR-F-1): the T-004 locale loop replaced with a variable-free form — grace executes plan commands via the OUTER $SHELL -lc (grace4/command-runner.ts:465), which expanded $f to an empty string before the inner sh -c ever saw the loop, so grep read redirected stdin, exited 1, and the command failed even with the key present in all ten locales (the reviewer replicated the exact two-layer mechanism); the loop is now "! grep -L disableFailed static/locales/*.json | grep -q ." — grep -L names any file lacking the key, so the leg fails exactly when a locale is missing it and needs no shell variable.</Fix>
+          <Fix>Blocking (CORR-F-2): the generic-refactor boundary extended to the files it actually touches — live_bridge.rs joins the observed scope and T-003 declares its five emit functions generic over R (app: &amp;AppHandle&lt;R&gt;; bare &amp;AppHandle today, called from live_server.rs at :615/:768/:839/:993/:1178), without which the mock-runtime harness does not compile for R = MockRuntime.</Fix>
+        </Applied>
+        <Deferred>None — every round-15 blocking finding is addressed above; corner notes live in the gate report card.</Deferred>
+      </Review>
+      <Review number="16" verdict="red" task="two-clean-rounds">
+        <Date>2026-11-09</Date>
+        <Run>Bounded manual four-corner review in Codex, main 296dc5f0, after the owner stopped dwfrun-5badb083. No automated review resumed.</Run>
+        <Result>Five material issues confirmed by repository sources, locked dependency source, or a local probe. This pass grants no independent clean verdict.</Result>
+        <Applied>
+          <Fix>F-006: an exists()-based walk skips a dangling leaf. A Rust probe followed the planned logic, then File::create created its missing target outside a temporary sandbox. An entry-aware walk using symlink_metadata rejected the same case and preserved ordinary in-sandbox creation. T-007 now pins an end-to-end dangling-leaf write test.</Fix>
+          <Fix>F-002: the Mark-shaped request proves Mark's server schema only. TokMo origin/main af97d7f2 sends a cap/payload envelope from IpcSink, and its transport's bearer is optional. No production constructor was found in that revision. T-003 now requires evidence from the supported paired client and records any coordinated rollout dependency without opening an unauthenticated path. Candidate filtering and the keychain cost are recorded.</Fix>
+          <Fix>F-003: treating unavailable storage as absent could let an old keychain token survive an apparently successful disable. auth.rs's get_secret falls back to None on backend errors. T-004 now requires strict absence and an explicit test for entry and read-back failure.</Fix>
+          <Fix>F-004: a token named --no-install after a positional npx argument can be passed to the program. T-001 now uses direct local binaries and forbids npm package executors in the two release source files.</Fix>
+          <Fix>F-005: a base URL with a path can parse an absolute-looking suffix as path data on the same host. The verification now proves recipient containment for both base shapes and uses typed parsed hosts. The redirect rationale reflects reqwest 0.13.5 stripping cross-origin Authorization while still potentially forwarding the payload.</Fix>
+        </Applied>
+        <Deferred>Implementation and live client verification remain pending plan approval. The existing release pairing confirmation stays within the approved non-goal. Wave 1 must reconcile the shared release workflow with C-CI-CD-AUDIT-FIXES before editing it.</Deferred>
+      </Review>
+    </ReviewLog>
+  </C-SEC-AUDIT-FIXES>
+</GraceChangePlan>

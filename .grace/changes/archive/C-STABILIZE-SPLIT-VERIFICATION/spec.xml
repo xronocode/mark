@@ -1,0 +1,24 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-VERIFICATION>
+    <Summary>Close missing unit-level verification of the approved split document owner, focused source commands and pure transform/caret boundaries exposed by the first complete combined coverage gate.</Summary>
+    <ApprovalBasis>Delegated stabilization recovery; maintain existing coverage floors and verify already-approved behavior, without a new runtime feature.</ApprovalBasis>
+    <Goals>
+      <Goal>Exercise actual component event/bus and document-history boundaries, including single commits, replay, per-tab/IME/readonly behavior and command/search/clipboard/asset effects.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No source changes, threshold/timeouts reduction, test removals, coverage exclusions or assertions derived from implementation output. Preserve existing behavior checks.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No runtime redesign, new product scope or review-streak gate.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Focused behavior tests pass; the complete combined coverage gate meets every unchanged floor.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Area>Tests of M-011/M-012 split behavior.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</ExpectedCommand>
+    </VerificationIntent>
+  </C-STABILIZE-SPLIT-VERIFICATION>
+</GraceChangeSpec>

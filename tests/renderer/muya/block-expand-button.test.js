@@ -27,6 +27,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: fitted-wide natural-size
+//   need/clone regressions preserve the live table and explicit user widths.
 //   LAST_CHANGE: v1.8.0 - 2026-10-20 C-TABLE-FOOTER: disabled table surfaces retain the caption inside the scroll block.
 //   v1.7.0 - 2026-10-19 C-70: the table toolbar carries three buttons (toggle, Copy as image, Open full screen).
 //   PREV: v1.6.0 - 2026-10-18 C-65 T-002: tables left the standalone
@@ -81,6 +83,7 @@
 // END_CHANGE_SUMMARY
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { figureNeedsExpand, tableNeedRule } from 'muya/lib/parser/render/renderBlock/expandNeed'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
@@ -194,6 +197,35 @@ const cleanups = []
 afterEach(() => {
   while (cleanups.length > 0) cleanups.pop()()
   document.body.innerHTML = ''
+})
+
+describe('fitted table viewer access (C-STABILIZE-TABLE-E2E)', () => {
+  it('needs the viewer when content was squeezed, despite having no horizontal scroll', () => {
+    expect(tableNeedRule({ scrollWidth: 400, clientWidth: 400, tableHeight: 100, naturalWidth: 900, renderedWidth: 400 })).toBe(true)
+    expect(tableNeedRule({ scrollWidth: 400, clientWidth: 400, tableHeight: 100, naturalWidth: 400, renderedWidth: 400 })).toBe(false)
+    expect(tableNeedRule({ scrollWidth: 400, clientWidth: 400, tableHeight: 601 })).toBe(true)
+  })
+
+  it('measures unconstrained content without changing the live fitted table', () => {
+    const figure = document.createElement('figure')
+    figure.dataset.role = 'TABLE'
+    figure.innerHTML = '<div class="ag-table-scroll"><table style="width:400px"><colgroup><col style="width:200px"><col style="width:200px"></colgroup><thead><tr><th>Long first heading</th><th>Long second heading</th></tr></thead><tbody><tr><td>first</td><td>second</td></tr></tbody></table></div>'
+    document.body.appendChild(figure)
+    const wrapper = figure.firstElementChild
+    Object.defineProperties(wrapper, { scrollWidth: { value: 400 }, clientWidth: { value: 400 } })
+    const original = figure.innerHTML
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      const measurer = this.closest('.ag-table-fit-measure')
+      return { width: measurer ? (measurer.style.tableLayout === 'auto' ? 500 : 200) : 400, height: 100 }
+    })
+    try {
+      expect(figureNeedsExpand(figure)).toBe(true)
+      expect(figure.innerHTML).toBe(original)
+      expect(figure.querySelector('.ag-table-fit-measure')).toBeNull()
+    } finally {
+      rect.mockRestore()
+    }
+  })
 })
 
 const createClickHarness = () => {
@@ -328,9 +360,10 @@ describe('expand button render + routing (C-51 T-006/T-010)', () => {
     expect(buttons.length).toBe(5)
     expect(buttons[0].data.dataset.tableMode).toBe('auto')
     expect(buttons[2].data.dataset.tableMode).toBe('full')
-    expect(buttons[3].sel).toContain('ag-table-toolbar-copy')
-    expect(buttons[4].sel).toContain('ag-block-expand')
-    expect(buttons[4].sel).toContain('ag-block-toolbar-expand')
+    // Owner 2026-11-07: expand sits at index 3 (beside the modes), copy at 4.
+    expect(buttons[3].sel).toContain('ag-block-expand')
+    expect(buttons[4].sel).toContain('ag-table-toolbar-copy')
+    expect(buttons[3].sel).toContain('ag-block-toolbar-expand')
     // Not nested inside the wrapper: table clicks/drag stay first-class.
     expect(findVnode(children[wrapperIndex], (v) => v.sel === 'button.ag-block-expand')).toBeNull()
   })

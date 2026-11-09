@@ -1,0 +1,5 @@
+# Split browser compatibility evidence
+
+The retired readonly-mirror selectors reproduced four failures across Chromium and WebKit. The approved two-editable-surface contract is now exercised through real menu commands and source keyboard input. Diagram choices make exactly one metadata-only shared-history edit, support source Undo/Redo and remain view-only under document lock. Footnote broadcasts invalidate a populated background cache and reparse the visible companion without mutating either tab Markdown, saved state, revision or history; undo/redo uses the current grammar. Split mode is enabled per selected tab through the public command.
+
+Central final reran the renderer build and both complete browser specifications:22passed,0failed in Chromium and WebKit. Final integrity returned0errors and4inherited Python heuristic warnings; the disposable-profile runner observed no external dummy-proxy contact. Only the two existing E2E files changed. No runtime edit, force click, skip, timeout change or weakened invariant was introduced. Native GUI and owner acceptance remain pending.

@@ -1,0 +1,50 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-SOURCE-TEST-ADAPTER>
+    <ChangeRef>C-STABILIZE-SOURCE-TEST-ADAPTER</ChangeRef>
+    <IntentSummary>Repair incomplete CodeMirror test doubles discovered by the first full combined coverage run; the real browser adapter already supplies setOption.</IntentSummary>
+    <ApprovalBasis>Owner-approved recovery and delegated routine implementation decisions.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>tests/renderer/components/sourceCode-coverage.test.js</File>
+        <Text>getValue: vi.fn</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/sourceCode.test.js</File>
+        <Text>getValue: vi.fn</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>tests/renderer/components/sourceCode-coverage.test.js</File>
+        <Text>setOption: vi.fn()</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/sourceCode.test.js</File>
+        <Text>setOption: vi.fn()</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">npx --no-install vitest run tests/renderer/components/sourceCode-coverage.test.js tests/renderer/components/sourceCode.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/renderer/components/sourceCode-coverage.test.js</File>
+      <File>tests/renderer/components/sourceCode.test.js</File>
+      <Glob>.grace/changes/active/C-STABILIZE-SOURCE-TEST-ADAPTER/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Supply the existing public adapter API in both legacy test doubles</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>The two unchanged regression suites pass; no assertion, production branch or runtime adapter is weakened.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/components/sourceCode-coverage.test.js tests/renderer/components/sourceCode.test.js</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-STABILIZE-SOURCE-TEST-ADAPTER>
+</GraceChangePlan>

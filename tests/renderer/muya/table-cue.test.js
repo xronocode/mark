@@ -443,7 +443,7 @@ describe('table toolbar vnode (C-PAGE-WIDTH-TABLES T-007 three-mode segment)', (
     const buttons = buttonsOf(vnode)
     // Auto / Fit page / Full width, Copy as image, Open full screen.
     expect(buttons.length).toBe(5)
-    const [autoBtn, fitBtn, fullBtn, copy, expand] = buttons
+    const [autoBtn, fitBtn, fullBtn, expand, copy] = buttons
     expect(copy.sel).toBe('button.ag-block-expand.ag-block-toolbar-btn.ag-table-toolbar-btn.ag-block-toolbar-copy.ag-table-toolbar-copy')
     for (const modeButton of [autoBtn, fitBtn, fullBtn]) {
       expect(modeButton.sel).toContain('ag-table-toolbar-mode')
@@ -460,9 +460,11 @@ describe('table toolbar vnode (C-PAGE-WIDTH-TABLES T-007 three-mode segment)', (
     expect(expand.data.attrs.title).toBe('Open full screen')
     expect(fitBtn.data.attrs.tabindex).toBe('0')
     expect(expand.data.attrs.contenteditable).toBe('false')
-    // Hidden hover-reveal label spans carry the same text.
-    const span = (fitBtn.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')
-    expect(span.text).toBe('Fit to page')
+    // Owner 2026-11-05: the mode segment renders ICON-ONLY — no expanding
+    // label span, the names live in the title/aria tooltips alone.
+    for (const btn of [autoBtn, fitBtn, fullBtn]) {
+      expect((btn.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')).toBeUndefined()
+    }
     // The drawn 16-grid glyphs, all distinct.
     const pathOf = (button) => ((button.children || []).find((c) => c.sel === 'svg').children || [])[0]
     expect(pathOf(autoBtn).data.attrs.d).toBe(TOOLBAR_TABLE_AUTO_ICON_PATH)
@@ -535,7 +537,7 @@ describe('table cue + toolbar CSS (C-65, mockup variant E)', () => {
     expect(wrapper).toContain('max-width: none')
     expect(wrapper).toContain('padding-left: 0')
     const table = css.split('figure.ag-table-full-width > div.ag-table-scroll > table {')[1].split('}')[0]
-    expect(table).toContain('margin-inline: auto')
+    expect(table).toContain('margin-inline: 0')
     expect(css).toContain('figure.ag-table-full-width > div.ag-table-scroll.ag-table-cue-left,')
   })
 })

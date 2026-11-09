@@ -1,20 +1,59 @@
-// MODULE_CONTRACT
+// START_MODULE_CONTRACT
 //   PURPOSE: Tauri-side shims for v1.2.3 IPC channels that the renderer
 //            (ported as-is per variant-(a)) calls. Mostly stubs returning
 //            sensible defaults; mt_close_project_root is a real
 //            implementation since C-2 (WatchRegistry unwatch).
-//   SCOPE:   thin compatibility shims plus the C-2 close-project unwatch.
+//   SCOPE:   thin compatibility shims, validated document-local link opening,
+//            plus the C-2 close-project unwatch.
 //            Every remaining stub has a corresponding F-* followup
 //            pointing at the proper module that should own it long-term.
 //   DEPENDS: tauri (WebviewWindow for window-state queries, State),
-//            m013b::WatchRegistry (mt_close_project_root unwatch).
-//   LINKS:   docs/development-plan.xml F-V1-IPC-COMPAT-STUBS;
+//            m013b::WatchRegistry (mt_close_project_root unwatch),
+//            m010_security (document-local path and executable guards).
+//   LINKS:   .grace/changes/archive/C-SEC-AUDIT-FIXES T-006;
+//            .grace/graph/features.xml M-033;
+//            docs/development-plan.xml F-V1-IPC-COMPAT-STUBS;
 //            .grace/changes/archive/C-2 (close_project_root);
 //            install-window-globals.js electron.ipcRenderer.invoke
 //            translates 'mt::xxx-yyy' → 'mt_xxx_yyy' before dispatch.
 //   STATUS:  shipped 2026-04-29 with F-MAIN-ENTRY-DISABLED runtime close.
 //
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   mt_request_keybindings - Emit renderer bootstrap preferences after its ready signal.
+//   mt_pick_folder - Pick a folder and retain sandbox access.
+//   mt_grant_folder_access - Grant explicit access to a document assets folder.
+//   mt_walk_project - Walk and emit project entries for sidebar loading.
+//   mt_app_quit - Dispatch the guarded application quit route.
+//   mt_close_project_root - Unregister every watcher for a closed project root.
+//   mt_cmd_open_folder - Pick a folder through the native File command.
+//   is_markdown - Classify supported Markdown filenames.
+//   mt_open_file - Open a file from the renderer compatibility payload.
+//   mt_cmd_open_file - Pick and open a file through the native File command.
+//   build_open_new_tab_payload - Read a file into the legacy document payload.
+//   emit_open_new_tab - Emit a default-mode document-open event.
+//   emit_open_new_tab_ext - Emit a document-open event carrying preview/watch/diff flags.
+//   merge_user_preference_inner - Persist compatibility preference updates.
+//   mt_set_user_preference - Apply renderer preference changes through the shared store.
+//   mt_set_user_data - Persist compatibility user-data keys.
+//   extract_view_state - Parse a renderer layout-state payload.
+//   persist_view_state_inner - Write parsed layout preference keys.
+//   mt_view_layout_changed - Persist a renderer layout update.
+//   mt_update_sidebar_menu - Synchronize the allowlisted sidebar menu check.
+//   mt_request_window_content_size - Retain the no-op legacy size request sink.
+//   mt_open_setting_window - Open the native settings shell.
+//   mt_format_link_click - Open web links or validated document-local paths.
+//   parse_open_file_args - Normalize supported compatibility file-open argument shapes.
+// END_MODULE_MAP
+//
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-STABILIZE-LINK-ALIASES: rebase absolute document-directory aliases before the unchanged canonical fence; preserve requested/resolved executable guards.
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-006: all local link forms join the
+//     canonical document directory and pass path/extension guards before the
+//     opener; web links retain their existing route. No global fence injection.
 //   - 2026-10-30 M-069: mt_open_setting_window badges the settings
 //     window icon through m069_dev_badge::apply_window_badge (no-op
 //     without developer tools; macOS uses the Dock icon).
@@ -862,6 +901,48 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
     Ok(())
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum LinkClickTarget {
+    Web(String),
+    Local(String),
+}
+
+// Kept separate from the OS opener so validation has a no-side-effect test seam.
+fn validate_link_click_target(href: &str, dirname: &str) -> Result<LinkClickTarget, String> {
+    if href.starts_with("http://") || href.starts_with("https://") {
+        return Ok(LinkClickTarget::Web(href.to_string()));
+    }
+    let denied = |error: String| {
+        safe_eprintln!("[v1_compat][link][BLOCK_LINK_TARGET_DENIED]");
+        format!("BLOCK_LINK_TARGET_DENIED: {error}")
+    };
+    // The document's own directory is the fence, including for documents
+    // opened outside the currently selected workspace. Bare names join it too.
+    let sandbox = std::fs::canonicalize(dirname).map_err(|e| denied(e.to_string()))?;
+    let requested = sandbox.join(href);
+    // An absolute href can use the document's supplied directory alias
+    // (for example macOS /var rather than canonical /private/var). Rebase
+    // only that exact prefix; the ordinary lexical and canonical fences
+    // still reject traversal and outward links. Keep the clicked name below.
+    let fence_request = if std::path::Path::new(href).is_absolute() {
+        std::path::Path::new(href).strip_prefix(std::path::Path::new(dirname))
+            .map(|relative| sandbox.join(relative))
+            .unwrap_or_else(|_| requested.clone())
+    } else {
+        requested.clone()
+    };
+    let validated = crate::m010_security::check_path(&sandbox, &fence_request)
+        .map_err(|e| denied(e.to_string()))?;
+    // Check both the clicked name and the resolved target: an innocuous alias
+    // must not hide an executable bundle, nor may a dangerous name bypass policy.
+    crate::m010_security::check_shell_open_extension(&requested)
+        .map_err(|e| denied(e.to_string()))?;
+    crate::m010_security::check_shell_open_extension(&validated)
+        .map_err(|e| denied(e.to_string()))?;
+    let target = validated.to_str().ok_or_else(|| denied("non-UTF-8 link target".to_string()))?;
+    Ok(LinkClickTarget::Local(target.to_string()))
+}
+
 /// Opens a clicked link in the system browser.
 /// Renderer calls this via `ipcRenderer.send('mt::format-link-click', { data, dirname })`.
 #[tauri::command]
@@ -877,27 +958,21 @@ pub async fn mt_format_link_click(
     if href.is_empty() {
         return Ok(());
     }
-    let url = if href.starts_with("http://") || href.starts_with("https://") {
-        href.to_string()
-    } else if href.starts_with('/') || href.starts_with('.') {
-        let dir = dirname.as_str().unwrap_or(".");
-        let path = std::path::Path::new(dir).join(href);
-        path.to_string_lossy().to_string()
-    } else {
-        href.to_string()
-    };
-    safe_eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
-    // C-15 T-W2: the opener plugin routes through the OS default handler
-    // on every desktop platform — replaces the macOS-only `open` shellout.
+    let target = validate_link_click_target(href, dirname.as_str().unwrap_or("."))?;
+    // Only the validated local variant may reach open_path. No OS opener is
+    // involved in the validation seam exercised by link_click_ regressions.
     use tauri_plugin_opener::OpenerExt;
-    if url.starts_with("http://") || url.starts_with("https://") {
-        app.opener()
-            .open_url(url, None::<&str>)
-            .map_err(|e| format!("Failed to open URL: {e}"))?;
-    } else {
-        app.opener()
-            .open_path(url, None::<&str>)
-            .map_err(|e| format!("Failed to open path: {e}"))?;
+    match target {
+        LinkClickTarget::Web(url) => {
+            safe_eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
+            app.opener().open_url(url, None::<&str>)
+                .map_err(|e| format!("Failed to open URL: {e}"))?;
+        }
+        LinkClickTarget::Local(path) => {
+            safe_eprintln!("[v1_compat][link][BLOCK_OPEN_LOCAL_PATH]");
+            app.opener().open_path(path, None::<&str>)
+                .map_err(|e| format!("Failed to open path: {e}"))?;
+        }
     }
     Ok(())
 }
@@ -960,6 +1035,109 @@ mod tests {
     use super::*;
     use serde_json::json;
     use tempfile::TempDir;
+
+    #[test]
+    fn link_click_refuses_bare_command() {
+        let dir = TempDir::new().unwrap();
+        for href in ["run.cmd.command", "Unsafe.app", "run.SCPT"] {
+            let error = validate_link_click_target(href, dir.path().to_str().unwrap()).unwrap_err();
+            assert!(error.contains("BLOCK_LINK_TARGET_DENIED"), "{error}");
+            assert!(error.contains("shell-open extension"), "{error}");
+        }
+    }
+
+    #[test]
+    fn link_click_refuses_prefixed_command() {
+        let dir = TempDir::new().unwrap();
+        for href in ["./run.cmd.command", "./Unsafe.app"] {
+            let error = validate_link_click_target(href, dir.path().to_str().unwrap()).unwrap_err();
+            assert!(error.contains("BLOCK_LINK_TARGET_DENIED"), "{error}");
+            assert!(error.contains("shell-open extension"), "{error}");
+        }
+    }
+
+    #[test]
+    fn link_click_opens_document_sibling() {
+        let fenced_workspace = TempDir::new().unwrap();
+        let document_dir = TempDir::new().unwrap();
+        assert!(!document_dir.path().starts_with(fenced_workspace.path()));
+        for name in ["sibling.md", "image.png"] {
+            let sibling = document_dir.path().join(name);
+            std::fs::write(&sibling, b"fixture").unwrap();
+            for href in [name.to_string(), format!("./{name}"), sibling.to_string_lossy().into_owned()] {
+                assert_eq!(
+                    validate_link_click_target(&href, document_dir.path().to_str().unwrap()).unwrap(),
+                    LinkClickTarget::Local(sibling.canonicalize().unwrap().to_string_lossy().into_owned())
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn link_click_refuses_escape_from_document_dir() {
+        let dir = TempDir::new().unwrap();
+        let document_dir = dir.path().join("docs");
+        std::fs::create_dir(&document_dir).unwrap();
+        std::fs::write(dir.path().join("outside.md"), b"fixture").unwrap();
+        for href in ["../outside.md".to_string(), dir.path().join("outside.md").to_string_lossy().into_owned()] {
+            let error = validate_link_click_target(&href, document_dir.to_str().unwrap()).unwrap_err();
+            assert!(error.contains("BLOCK_LINK_TARGET_DENIED"), "{error}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn link_click_refuses_symlink_to_executable() {
+        let dir = TempDir::new().unwrap();
+        let executable = dir.path().join("Unsafe.app");
+        std::fs::create_dir(&executable).unwrap();
+        std::os::unix::fs::symlink(&executable, dir.path().join("safe.md")).unwrap();
+        let error = validate_link_click_target("safe.md", dir.path().to_str().unwrap()).unwrap_err();
+        assert!(error.contains("BLOCK_LINK_TARGET_DENIED"), "{error}");
+        assert!(error.contains("shell-open extension"), "{error}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn link_click_canonical_document_directory() {
+        let root = TempDir::new().unwrap();
+        let actual = root.path().join("actual");
+        std::fs::create_dir(&actual).unwrap();
+        std::fs::write(actual.join("note.md"), b"fixture").unwrap();
+        let alias = root.path().join("alias");
+        std::os::unix::fs::symlink(&actual, &alias).unwrap();
+        assert_eq!(validate_link_click_target("note.md", alias.to_str().unwrap()).unwrap(), LinkClickTarget::Local(actual.join("note.md").canonicalize().unwrap().to_string_lossy().into_owned()));
+    }
+
+    #[test]
+    fn link_click_http_unchanged() {
+        for href in ["http://example.invalid/a", "https://example.invalid/a?q=x#fragment"] {
+            assert_eq!(validate_link_click_target(href, "/missing/document-directory").unwrap(), LinkClickTarget::Web(href.to_string()));
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn link_click_absolute_directory_alias_preserves_fence() {
+        let root = TempDir::new().unwrap();
+        let actual = root.path().join("document");
+        std::fs::create_dir(&actual).unwrap();
+        let sibling = actual.join("note.md");
+        std::fs::write(&sibling, b"fixture").unwrap();
+        let alias = root.path().join("document-alias");
+        std::os::unix::fs::symlink(&actual, &alias).unwrap();
+        let expected = LinkClickTarget::Local(sibling.canonicalize().unwrap().to_string_lossy().into_owned());
+        for href in [alias.join("note.md"), sibling.canonicalize().unwrap()] {
+            assert_eq!(validate_link_click_target(href.to_str().unwrap(), alias.to_str().unwrap()).unwrap(), expected);
+        }
+        let outside = root.path().join("outside.md");
+        std::fs::write(&outside, b"outside").unwrap();
+        std::os::unix::fs::symlink(&outside, actual.join("escape.md")).unwrap();
+        std::os::unix::fs::symlink(&sibling, actual.join("unsafe.command")).unwrap();
+        for href in [alias.join("../outside.md"), alias.join("escape.md"), alias.join("unsafe.command")] {
+            assert!(validate_link_click_target(href.to_str().unwrap(), alias.to_str().unwrap()).unwrap_err().contains("BLOCK_LINK_TARGET_DENIED"));
+        }
+    }
 
     fn fresh_prefs() -> (TempDir, PrefsState) {
         let dir = TempDir::new().unwrap();

@@ -1,0 +1,134 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-READING>
+    <Name>Complete and integrate C-SPLIT-SCROLL-SYNC</Name>
+    <Created>2026-11-09</Created>
+    <ApprovalBasis>Owner approved RECOVERY final implementation on 2026-11-09 and delegated recommended decisions. This bundle supersedes the earlier execution plan, preserves its complete behavior and archived evidence, and authorizes finite candidate-specific implementation and verification without a new repeated review-agent loop.</ApprovalBasis>
+    <Lineage>C-SPLIT-SCROLL-SYNC; source commits 9f37b81e2397135eaf97f00ce793b133dc2a1bb3 and 0db3508a50c20634cf3fe1a5af1d2b6c5eba9fc7; current source base faab503cc8a154561f7f11394a835edf702021e4</Lineage>
+    <Summary>
+    Split View synchronizes content (150 ms debounce, C-29) but never
+    scrolling: when split turns on, the second pane opens at the document
+    top while the rich pane keeps a numeric scrollTop through the re-wrap —
+    so the reading position "flies away somewhere" (owner quote 2026-10-27)
+    — and scrolling either pane never moves the other (probe 2026-10-27:
+    rich pane scrollTop 10339 of 11071, source pane 0 of 10856, same
+    document). This change ships three behaviors: (1) typewriter-style
+    anchor stability — every split layout transition (toggle on, toggle
+    off, divider drag, width re-activation) centers the caret block — or,
+    without a caret, the top visible block — in the pane instead of
+    preserving a meaningless numeric offset; (2) initial alignment — the
+    second pane opens at the editable pane's scroll fraction, never at the
+    top by accident; (3) live bidirectional proportional scroll sync with
+    an input-driven master and a re-entrancy guard, so reading either pane
+    keeps the other in the same region of the document.
+  </Summary>
+    <Goals>
+      <R-1>Anchor stability on split transitions: when split turns on (or the
+    container crosses the 800px activation width), the editable pane keeps
+    the reading anchor instead of a numeric scrollTop. The anchor is the
+    caret block when the tab has one (live caret, or the saved cursor from
+    C-FILE-POSITION-MEMORY), otherwise the top visible block; the pane
+    centers that anchor vertically (typewriter-style, the existing
+    scrollToCursor/cursorCoords mechanics, target = pane middle), clamped
+    at document edges. Toggle-off applies the same re-anchoring to the
+    remaining single pane. Divider drags keep the anchor visible under the
+    same rule.</R-1>
+      <R-2>Initial alignment of the second pane: when it mounts — split
+    toggled on, tab switched while split is on, split re-activated after a
+    width collapse — it opens aligned to the editable pane's current scroll
+    fraction (scrollTop = fraction x scrollHeight, clamped), never at the
+    document top by accident.</R-2>
+      <R-3>Live scroll sync: while split is active, scrolling either pane
+    scrolls the other proportionally. The pane the user scrolls (wheel,
+    touch, scrollbar, keyboard scroll) is the master and drives the other;
+    programmatic sync echoes are dropped by a re-entrancy guard so the two
+    panes never fight. Scroll movements that the editing surface itself
+    produces (caret scroll-into-view, animatedScrollTo) sync like any
+    other scroll, so the second pane follows where the edit landed. Sync
+    stops cleanly on toggle-off, tab switch and unmount — no leaked
+    listeners, no stale timers.</R-3>
+      <R-4>A sync controller owns anchor computation, fraction mapping,
+    clamping and the re-entrancy guard, with pure unit-testable helpers
+    (placement — a new util module vs splitView.vue-local, and the
+    module/V-M anchors, new or M-011/V-M-011 extensions — are fixed by the
+    plan after grace lint --parallel-preflight against the active changes
+    in the tree). MODULE_CONTRACT / MODULE_MAP / CHANGE_SUMMARY update in
+    every touched file; graph and verification route in the same bundle as
+    the code.</R-4>
+    </Goals>
+    <AcceptanceCriteria>
+      <Criterion>Toggle-on anchoring: a long document scrolled to its middle
+    with a caret placed mid-document, on split enable, shows the caret's
+    block vertically centered in the rich pane and the source pane aligned
+    to the same reading fraction (offsets within the pane height; scrollTop
+    0 only when the anchor itself is the document top); the no-caret
+    variant anchors on the top visible block. Toggle-off re-anchors the
+    remaining pane the same way.</Criterion>
+      <Criterion>Initial alignment: tab switch while split is on, and split
+    re-activation after a width collapse, both land the second pane at the
+    editable pane's fraction, not the top.</Criterion>
+      <Criterion>Live sync: scrolling the rich pane moves the source pane
+    proportionally and vice versa, for wheel and scrollbar input; a
+    programmatic echo does not re-trigger sync (no feedback loop
+    observable across alternating scrolls); sync stops on toggle-off and
+    tab switch with no stale listeners.</Criterion>
+      <Criterion>Governance: sync controller helpers unit-tested (fraction
+    mapping, clamping, guard state machine); e2e suites above added;
+    MODULE_CONTRACT/MAP/CHANGE_SUMMARY updated in touched files; graph and
+    verification deltas routed with content-free markers; grace lint shows
+    no new errors beyond the recorded pre-existing baseline.</Criterion>
+    </AcceptanceCriteria>
+    <NonGoals>
+      <NonGoal>Anything about pane editability (C-SPLIT-DUAL-EDIT owns it)
+    or the dblclick toggle affordance (C-SPLIT-DBLCLICK-TOGGLE owns
+    it).</NonGoal>
+      <NonGoal>Line-exact block-to-source anchor mapping: sync is
+    proportional v1; the drift on height-skewed documents (code fences vs
+    paragraphs) is accepted and recorded.</NonGoal>
+      <NonGoal>Cross-pane caret/selection mirroring or highlight sync.</NonGoal>
+      <NonGoal>Split below the 800px container collapse, split in Diff Mode,
+    mobile/tablet split surfaces.</NonGoal>
+      <NonGoal>Changing the split keyboard shortcut, the menu item, the
+    ratio persistence model, or the activation threshold.</NonGoal>
+    </NonGoals>
+    <IntegrationConstraint>Transplant product hunks only, retaining current page-width, progressive-mount, export and renderer behavior. Root applies all routed projections centrally; this worker changes no versions, release artifacts, commits or pushed refs.</IntegrationConstraint>
+    <Constraints>
+      <Item>No muya core changes: anchoring uses the exposed surface
+    (getSelection().cursorCoords, container scrolling) the way scrollToCursor
+    already does; CodeMirror uses its public scroll API. The work lives in
+    the editorWithTabs layer and one new util at most.</Item>
+      <Item>Existing gates stay green and unweakened: npm test, renderer
+    suites, e2e. This change rewrites no existing contracts — the
+    C-29 corners (per-tab state, ratio persistence, narrow collapse, swap,
+    `* item` normalization, mirror read-only) keep passing; new suites are
+    added alongside.</Item>
+      <Item>Performance honesty on huge documents: sync reads are
+    rAF-throttled and off the per-scroll-event hot path (no synchronous
+    layout thrash); the adaptive mirror re-render debounce (2x last render
+    time, cap 2 s) is unchanged.</Item>
+      <Item>The working tree carries parallel active changes
+    (C-FILE-POSITION-MEMORY wiring, theme work); the plan runs
+    grace lint --parallel-preflight before any write and reconciles
+    observed-write overlaps instead of assuming them.</Item>
+      <Item>No new user-facing strings. No release or train admission
+    follows from approval; version bumps and tags stay behind their
+    separate owner instruction. English only in all committed artifacts.</Item>
+    </Constraints>
+    <AffectedAreas>
+      <Item>src/renderer/src/components/editorWithTabs/ — splitView.vue
+    (controller wiring), editor.vue (anchor re-centering, sync hooks),
+    sourceCode.vue (initial alignment, live sync), index.vue (wiring only
+    if the controller placement requires it).</Item>
+      <Item>New sync controller (util module or splitView-local, fixed by
+    the plan) with pure helpers.</Item>
+      <Item>tests/ — new e2e suites for anchoring and sync; new renderer
+    unit suites for the controller helpers.</Item>
+      <Item>.grace/graph/* and .grace/verification/* — routing deltas for
+    the touched modules and scenarios, in the same bundle as the code.</Item>
+      <Item>Explicitly out of write scope: src-tauri, src/muya internals,
+    static/locales, CI workflows.</Item>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedEvidence>Fresh affected units, exact-source renderer build and actual browser regressions against the owned preview on port 4197; full requirements and eleven dual-edit corners retained. Root centrally applies projections and combined gates.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-STABILIZE-SPLIT-READING>
+</GraceChangeSpec>

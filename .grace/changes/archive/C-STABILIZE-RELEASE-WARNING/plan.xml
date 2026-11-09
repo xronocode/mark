@@ -1,0 +1,15 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-RELEASE-WARNING>
+    <ChangeRef>C-STABILIZE-RELEASE-WARNING</ChangeRef>
+    <IntentSummary>Restrict the unused production constant to its remaining test consumers and rerun the real packaging warning gate.</IntentSummary>
+    <ApprovalBasis>Delegated fix of the exact PR199 warning artifact.</ApprovalBasis>
+    <BaselineAssertions><MustContain><File>src-tauri/src/m021_default_handler.rs</File><Text>pub const MARK_BUNDLE_ID:</Text></MustContain></BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand><Command budgetSeconds="600">cargo build --release --manifest-path src-tauri/Cargo.toml --bin mark --message-format=json &gt; target/stabilize-release-warnings.json &amp;&amp; node tools/check-warnings-allowlist.mjs target/stabilize-release-warnings.json docs/ci-warnings-allowlist.md</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="180">cargo test --manifest-path src-tauri/Cargo.toml --bin mark m021_default_handler</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><None /></DurableScope>
+    <ObservedWriteScope><File>src-tauri/src/m021_default_handler.rs</File><Glob>.grace/changes/active/C-STABILIZE-RELEASE-WARNING/**</Glob></ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Keep the canonical identity literal test-only</Title><DependsOn /><AcceptanceCriteria><Criterion>The literal is compiled only for tests; configured production consumers, test assertions and warning rules are unchanged.</Criterion></AcceptanceCriteria><Verification><Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m021_default_handler</Command></Verification></T-001></ImplementationPlan>
+  </C-STABILIZE-RELEASE-WARNING>
+</GraceChangePlan>

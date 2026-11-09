@@ -13,11 +13,15 @@
           src-tauri/Cargo.toml -- -D warnings
         </Command>
         <Command>./target/debug/mark (5s, real $HOME=&lt;HOME&gt;, SIGTERM)</Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
+        <scenario-local-link-directory-alias>C-STABILIZE-LINK-ALIASES: a real Unix directory-symlink fixture reproduces absolute sibling denial before repair, then accepts alias/canonical siblings while rejecting traversal, outward links and dangerous clicked names. Existing link_click_ tests retain HTTP, bare/prefixed executable, canonical-directory and outside-document cases.</scenario-local-link-directory-alias>
         <Scenario>scenario-1: App starts, main window is created, menu is registered.</Scenario>
         <Scenario>scenario-2: Window close via Cmd+W hides window (macOS behavior).</Scenario>
         <Scenario>scenario-3: Second-instance launch is blocked and focuses existing window.</Scenario>
+        <Scenario>C-STABILIZE-PROFILE-ISOLATION: main binds the exact generated Context identifier after help/version exits and before pre-boot rollback, reconciliation and profile consumers, then passes that same Context to Tauri build.</Scenario>
+      <scenario-security-stabilization-001>C-SEC-AUDIT-FIXES: The registered compatibility link command is fenced before opener access; link_click_refuses_bare_command, link_click_refuses_prefixed_command, link_click_opens_document_sibling, link_click_refuses_escape_from_document_dir and link_click_http_unchanged exercise the real validation seam in m_v1_compat.rs.</scenario-security-stabilization-001>
       </Scenarios>
       <Markers>
         <Marker>[TauriShell][main][BLOCK_BUILD_APP]</Marker>
@@ -462,6 +466,7 @@
           cd src-tauri &amp;&amp; cargo test --manifest-path
           src-tauri/Cargo.toml commands::fs
         </Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m013b</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: read/write UTF-8 roundtrip preserves bytes.</Scenario>
@@ -469,6 +474,7 @@
         <Scenario>scenario-3: Symlinks resolved but honor sandbox rules from M-010.</Scenario>
         <Scenario>scenario-4: Permission-denied path returns stable error code MT_FS_PERM_DENIED.</Scenario>
         <Scenario>scenario-5: Attempt to read outside workspace sandbox is rejected by M-010.</Scenario>
+      <scenario-security-stabilization-002>C-SEC-AUDIT-FIXES: m013b tests ancestor_inward_ok, ancestor_existing_outside_regression and ancestor_dangling_leaf_refused exercise actual filesystem writes, including no outside creation through dangling leaves and preservation of ordinary/inward writes.</scenario-security-stabilization-002>
       </Scenarios>
       <Markers>
         <Marker>[FsCmd][read][BLOCK_VALIDATE_PATH]</Marker>
@@ -2359,6 +2365,7 @@
         <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
         <Command>npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js</Command>
         <Command>npx vitest run tests/renderer/commands/index.test.js tests/renderer/commands/paragraph-shortcuts.test.js tests/renderer/pages/app-deep.test.js</Command>
+      <Command>npx --no-install vitest run tests/renderer/util/split-commands.test.js tests/renderer/commands/index.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -2513,6 +2520,7 @@
           app-deep and Playwright cases pin one dispatch plus visible populated
           palette open/close behavior.
         </Scenario>
+      <scenario-split-command-owner>C-STABILIZE-SPLIT-PROJECTIONS: Registry parity pins all 51 IDs against COMMAND-MATRIX.md and splitCommands.js; split-commands.test.js plus commands/index.test.js and actual browser source-command cases prove remembered focused-pane routing without changing ordinary fallback.</scenario-split-command-owner>
       </Scenarios>
       <Markers>
         <Marker>[Menu][onInvoke][BLOCK_DISPATCH] { menu_id }</Marker>
@@ -2890,6 +2898,7 @@
       <Priority>critical</Priority>
       <Commands>
         <Command>cargo test --manifest-path src-tauri/Cargo.toml security</Command>
+      <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m010</Command>
       </Commands>
       <Scenarios>
         <Scenario>
@@ -2918,7 +2927,8 @@
           detected.
         </Scenario>
       
-        <Scenario>C-WINDOWS-SAVE-PIPELINE scenario-win-sandbox (2026-11-01): cargo test m010_security 29/29 incl. the Windows fixture matrix (permissive root admits DOS absolutes, UNC↔DOS prefix equivalence, cross-drive denial at the compare layer, drive-root non-permissive, traversal above root); cargo test m001_save_close 16/16; polygon proof — real Ctrl+S on the rebuilt NSIS writes a scratch document under D:\polygon (mtime moves, content round-trips, isSaved true).</Scenario></Scenarios>
+        <Scenario>C-WINDOWS-SAVE-PIPELINE scenario-win-sandbox (2026-11-01): cargo test m010_security 29/29 incl. the Windows fixture matrix (permissive root admits DOS absolutes, UNC↔DOS prefix equivalence, cross-drive denial at the compare layer, drive-root non-permissive, traversal above root); cargo test m001_save_close 16/16; polygon proof — real Ctrl+S on the rebuilt NSIS writes a scratch document under D:\polygon (mtime moves, content round-trips, isSaved true).</Scenario><scenario-security-stabilization-010>C-SEC-AUDIT-FIXES: m010 tests ancestor_escape_text_new, ancestor_escape_binary_new and ancestor_escape_mkdir reject new destinations through outward parents; nearest-existing-entry errors and dangling links fail closed. Existing root/device-prefix regressions remain in the same module suite.</scenario-security-stabilization-010>
+      </Scenarios>
       <Markers>
         <Marker>[Security][sanitize][BLOCK_STRIP_DANGEROUS_NODES]</Marker>
         <Marker>[Security][shellOpen][BLOCK_CONFIRM_PROMPT]</Marker>
@@ -2933,6 +2943,7 @@
         <Marker>[Security][shellOpen][BLOCK_EXECUTABLE_EXT]</Marker>
         <Marker>[Security][bootstrap][FAIL_CLOSED_NO_DOMPURIFY]</Marker>
         <Marker>[Security][sanitize][DEPTH_CAP_HIT]</Marker>
+      <Marker>[Security][path][BLOCK_PATH_RESOLUTION_FAILED</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>
@@ -3498,6 +3509,9 @@
         <Command>npx playwright test tests/e2e/diff-opened-baseline.spec.ts --project=chromium --project=webkit-diff</Command>
         <Command>npx vitest run tests/renderer/pages/app-deep.test.js tests/renderer/store/editor-coverage.test.js tests/renderer/store/editor.test.ts</Command>
         <Command>npm run build &amp;&amp; npx playwright test tests/e2e/affordance-audit.spec.ts --project=chromium</Command>
+      <Command>npx --no-install vitest run tests/renderer/components/split-dual-edit.test.js tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-scroll-sync.test.js tests/renderer/components/split-anchor.test.js</Command>
+      <Command>npx --no-install playwright test tests/e2e/split-dual-edit.spec.ts tests/e2e/split-view.spec.ts tests/e2e/split-view-scroll-sync.spec.ts --config playwright.split-recovery.config.ts</Command>
+        <Command>npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-75 (FIX-009 current-run recovery, C-FIX-009-RECENTLY-CLOSED, plus the cold-start half C-FIX-009-SESSION-COLD-START): closing a saved-file tab records it in the session-scoped recently-closed history (dedup by pathname to the newest close, bound 25, memory-only so a cold launch starts empty); untitled drafts never enter. The tab strip renders a count-badged reopen button left of the + whose teleported popover reopens one entry or Reopen all N in ascending recorded strip order with the entry that was active at its close time re-selected; missing files drop with localized notices and Reopen all continues. Every open path funnels through the mt::open-new-tab arrival, which consumes the matching entry. When the last tab closes, the welcome screen shows the same recovery (primary reopen-newest with the chord hint, older rows, Reopen all). File › Reopen Closed Tab (Shift+Cmd/Ctrl+T, id file.reopen-closed-tab, quiet no-op on empty history) reopens newest-to-oldest. The welcome "Last session" row reflects only the editor store's boot-time cold-start snapshot (offered when restoreSessionOnLaunch skipped auto-restore with a non-empty snapshot) — never the live autosaved preference — and an explicit restore that opens nothing raises a visible notice. Pinned by tests/renderer/store/recently-closed.test.js, tests/renderer/store/editor-session-coldstart.test.js, tests/renderer/components/tabs-recently-closed.test.js, the FIX-009 recovery block in tests/renderer/components/recent.test.js, and tests/e2e/recently-closed.spec.ts.</Scenario>
@@ -5207,7 +5221,12 @@
           remains automated and publication requires a separate instruction.
         </Scenario>
               <Scenario>scenario-titlebar-chips (C-TITLEBAR-MODE-CHIPS): the titlebar right cluster mounts the chips cluster first (chips → theme → Share → captions), renders one flag-truth view chip and compact writing chips only when a document is open, swaps the view chip per tab, appends the narrow note on the Split tooltip below 800 px, and logs BLOCK_CHIPS_RENDERED / BLOCK_MENU_ACTION without content.</Scenario>
-</Scenarios>
+<scenario-stabilize-titlebar-feedback>C-STABILIZE-PRODUCT-REPAIRS: titleBar/quick-settings units and page-width-panel/chrome-native-theme e2e prove the final Aa entry, local button chrome and stacking above walls. editor-coverage.test.js C-70 picture export transport verifies table-specific success notices and unchanged diagram feedback.</scenario-stabilize-titlebar-feedback>
+      <scenario-split-reading-recovery>C-STABILIZE-SPLIT-PROJECTIONS: split-scroll-sync.test.js, split-anchor.test.js and split-view-scroll-sync.spec.ts prove fraction clamping, caret/fraction anchors, divider transitions, bidirectional scrolling and cleanup.</scenario-split-reading-recovery>
+      <scenario-split-gestures-recovery>C-STABILIZE-SPLIT-PROJECTIONS: split-view unit/browser cases prove divider double-click disables split, wide non-diff edge-strip enables it, Alt-double-click/Enter swaps sides, and ratio/selection state persists.</scenario-split-gestures-recovery>
+      <scenario-split-dual-recovery>C-STABILIZE-SPLIT-PROJECTIONS: split-dual component/helper/command tests plus all three split e2e files prove two editable surfaces, reversed selections, rich/source IME fencing including stale composition echoes, exact one-step interleaved native/context undo, per-tab history/caret restoration and reload clearing, exact raw list syntax, one dirty revision, locked/preview protection, focused table/find/replace/copy/format/source-asset commands and bounded large-document following. Explicitly locked checkbox fixtures retain Markdown/revision/dirty/checked-state assertions for both surfaces.</scenario-split-dual-recovery>
+        <scenario-checkbox-dirty>C-STABILIZE-CHECKBOX-DIRTY: saved checkbox-only edits with Auto Save off update Markdown, contentRevision exactly once and isSaved=false; the real file.close-tab command opens unsaved protection, Cancel keeps the edit, undo returns to the saved baseline and redo restores it. The suspected dirty-loss path was already green before the routing repair.</scenario-checkbox-dirty>
+      </Scenarios>
       <Markers>
         <Marker>[Editor][handleFileChange][BLOCK_RENDER_OWNER_MISMATCH]</Marker>
         <Marker>[Editor][reconcileActiveDocument][BLOCK_ACTIVE_DOCUMENT_RECONCILED]</Marker>
@@ -5978,7 +5997,8 @@
         <Command>npx vitest run tests/renderer/muya/content-state-cursor-restore.test.js</Command>
               <Command>npx vitest run tests/renderer/muya/copy-cut-stale-selection.test.js</Command>
               <Command>npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables</Command>
-</Commands>
+<Command>npx --no-install vitest run tests/renderer/muya/history-external-commit.test.js tests/renderer/muya/footnote-options.test.js</Command>
+      </Commands>
       <Scenarios>
 
 
@@ -6160,75 +6180,38 @@
           end-to-end in tests/e2e/pele-render.spec.ts.
         </Scenario>
         <Scenario>
-          scenario-18: Default table rendering (C-39 T-001,
-          renderContainerBlock.js START_BLOCK_TABLE_SCROLL_WRAPPER + the
-          C-39 CSS section in muya lib/assets/styles/index.css): the table
-          element renders inside div.ag-table-scroll between the table
-          figure and the table, so the tools bar (top:-22px) and front icon
-          (left:-35px) stay unclipped children of the figure while the
-          wrapper (border-box, max-width:100%, padding 0 0 30px 11px /
-          margin 0 0 -30px -11px to keep the left:-11px row bar and
-          bottom:-15px column bar inside the clip rect) scrolls a
-          width:max-content table that is never stretched or squeezed; pure
-          CSS edge shadows (two local-attached cover gradients in
-          --editorBgColor + two scroll-attached shadow gradients) mark the
-          side(s) with hidden columns and follow scroll/resize with no
-          listeners; th cells cap at 40ch with overflow-wrap:break-word,
-          td cells at 40ch with overflow-wrap:anywhere; exportHtml.js and
-          printService.css cap tables at 100% with overflow-wrap:anywhere
-          so every column is visible in PDF (no scroll container in
-          export). All table mouse handlers resolve targets with
-          closest(&apos;th&apos;|&apos;td&apos;|&apos;tr&apos;|&apos;table&apos;) from inside the table, so
-          drag bars, cell selection, table tools and caret placement keep
-          working. Unit-pinned in
-          tests/renderer/muya/table-scroll-wrapper.test.js (wrapper
-          structure, toolbar/icon siblings, bars inside cells — fails
-          against the pre-C-39 render); laid out end-to-end in
-          tests/e2e/table-layout.spec.ts (15-column scroll + column
-          containment + no page-level horizontal scroll, 2x2 content
-          width and centred in the column (equal side gaps), 200-char URL capped near 40ch and wrapped, caret lands in
-          a scrolled-to cell and accepts typing).
+          scenario-18: Tables stay inside the resolved frame without internal horizontal scrolling in Auto,
+          Fit and Full. Auto keeps narrow content sizing; wide content distributes, wraps and
+          proportionally squeezes so every header/body cell remains visible with positive width. No
+          hidden columns, clipping substitution, obsolete range caption or edge shade is acceptable.
+          The compact noneditable footer remains inside its wrapper, clear of the next block and
+          equally tall across modes. Long URLs wrap near the existing 40ch cap. Real horizontal
+          gestures cannot scroll columns out of view. Pointer editing reaches both the last and a
+          middle fitted column, updates the intended cell/Markdown and marks the file dirty;
+          view-only gestures and layout actions preserve Markdown and saved state. Export/print
+          keeps every column visible. tests/e2e/table-layout.spec.ts and table-footer.spec.ts assert
+          per-cell bounds, narrow centering, no page-level overflow, mode persistence/sidebar/reopen
+          boundaries and real pointer input; wrapper/cue units remain structural controls.
         </Scenario>
         <Scenario>
-          scenario-19: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2,
-          ui/blockViewer/index.js START_BLOCK_VIEWER_*): one overlay serves
-          the five diagram kinds (clone of the current preview incl. the
-          hoisted &lt;style&gt;, no re-render) and read-only clones of
-          rendered tables (contenteditable, drag handlers, tool bars and
-          duplicate ids stripped; sticky thead); pan/zoom via
-          @panzoom/panzoom 4.6.2 —
-          pinch / Cmd+Ctrl+wheel zoom (zoomWithWheel), drag pan, plain wheel
-          pans diagrams and natively scrolls capped tables VERTICALLY so the
-          sticky header works, keys + = − _ 0 (fit) 1 (100%) zoom, Esc closes,
-          close button and backdrop click close; FIX-008 reopen
-          (C-FIX-008-VIEWER-PAN-CUES): a table canvas never paints a native
-          horizontal scrollbar or bottom track at any zoom — drag/pan is the
-          single horizontal-navigation model — and the clipped sides are
-          marked by subtle non-interactive gradient shadows
-          (tableClipShadows over the live canvas/stage rects, 1px
-          tolerance): left bound only the right shadow, middle both, right
-          bound only the left, centered 1:1 both when both sides clip, Fit
-          neither; the vertical axis keeps native auto exactly when the
-          scaled content is taller than the stage; focus is trapped inside
-          while open (Tab cycling) and restored on close to the element
-          that had it at open — the C-51 expand button when it opened the
-          viewer (close() re-asserts re-resolve the LIVE button from
-          returnFocusFigureId so a re-render inside the window cannot
-          detach the restore target; the Esc keyup itself is left to the
-          button by the keyboard.js keyup guard, see scenario-60);
-          entry points are the C-51 T-006/T-010 need-gated expand button
-          (scenario-60) and Cmd/Ctrl+click on a diagram preview, which
-          opens the viewer (clickEvent.js
-          START_BLOCK_CONTAINER_VIEWER_CLICK) while a plain click still
-          opens the source; the panzoom instance is
-          destroyed and listeners removed on close and plugin destroy;
-          strings in all ten locale files (.json).
-          Unit-pinned in tests/renderer/muya/block-viewer.test.js (jsdom,
-          @panzoom/panzoom mocked) and
-          tests/renderer/muya/block-viewer-pan-cues.test.js (the pure
-          tableClipShadows bound maths and the overlay wiring);
-          open/zoom/Esc and Cmd+click vs plain
-          click end-to-end in tests/e2e/block-viewer.spec.ts.
+          scenario-19: One fullscreen block viewer serves the five diagram kinds and read-only table
+          snapshots; editing affordances, contenteditable and duplicate ids are removed, and table
+          headers remain sticky. Automatic frame-fit widths are replaced only in the clone by
+          bounded intrinsic max-content measurements; manual column widths and explicit wall widths
+          remain the user snapshot. The live table, layout map/profile, Markdown and saved state do
+          not change on opening, zooming, panning or closing. Fit centers the complete clone; 1:1
+          exposes real wide-table pan range. Pinch/Cmd+Ctrl+wheel, drag, diagram wheel pan, vertical
+          native table scrolling, +/−/0/1 and existing zoom buttons remain operable. Horizontal
+          table navigation is pan-only at every scale, with no native scrollbar/track; live edge
+          shadows show the clipped side(s), including both at centered wide 1:1 and neither at Fit.
+          Focus is trapped while open. Esc/close/backdrop restore the live expand action across
+          unsolicited editor re-focus and replacement DOM, but subsequent keyboard/pointer intent
+          cancels pending restore timers; Tab continues Expand→Copy and Shift+Tab reverses without
+          focus theft. Export still receives the live source, not a transformed crop. Existing role
+          gates, plain-click editing, listener teardown and ten-locale names remain unchanged.
+          block-viewer.test.js, block-viewer-pan-cues.test.js and Chromium/WebKit
+          block-viewer.spec.ts verify these behaviors; table-ui-regressions.spec.ts verifies natural
+          clone content and narrow-window zoom controls.
         </Scenario>
         <Scenario>
           scenario-60: Expand button (C-51 T-006 R-4 + the T-010 D-7
@@ -6252,9 +6235,10 @@
           diagrams when the rendered SVG/img is drawn ≥ 2 px narrower
           than its natural size (SVG viewBox / px width attribute —
           percentages are the CSS stretch, not a size — or the img's
-          naturalWidth) or the preview is taller than 600 px; tables when
-          the C-39 scroll wrapper overflows (scrollWidth &gt; clientWidth
-          + 1) or the table is taller than 600 px. Without the class the
+          naturalWidth) or the preview is taller than 600 px; tables when bounded intrinsic content measurement exceeds rendered width by more than 2px, the
+          wrapper overflows by more than 1px, or the table is taller than 600px. Measurement
+          explicitly uses automatic layout even if the source carries a fixed-layout class; its
+          temporary clone is removed and source state stays unchanged. Without the class the
           button is display:none — invisible and NOT a Tab stop (focus()
           is a no-op). Re-evaluated after every StateRender render path
           (render/partialRender/singleRender run syncExpandNeed), after
@@ -6427,8 +6411,14 @@
           webkit-tables project: drag delta lands on that column only,
           markdown byte-identical + tab stays saved, typing re-applies
           widths, double-click resets, tab switch and back, close + reopen
-          restores auto layout, widened table scrolls in the wrapper with
-          no page overflow, caret next to a border).
+          restores auto layout, wide Auto drag keeps every cell and its editable text inside the wrapper without internal or page
+          overflow, including unbreakable headers after a real tab re-adoption; repeated
+          render/refit reconciliation preserves fixed wrapping and exact width/manual entries;
+          natural Auto and explicit reset remove fixed chrome; the separate three-column fixture
+          proves full growth only after checking available frame slack, while the twelve-column
+          fixture deliberately reaches and asserts the exact frame-minus-other-column-floors clamp
+          after real animation-frame completion, retaining actual transform-normalized manual viewer
+          geometry and unchanged Markdown/saved state, caret next to a border).
         </Scenario>
         <Scenario>
           scenario-22: Diagrams follow the active app theme through CSS
@@ -6718,9 +6708,9 @@
           keyboard.js key guard leaves Tab/Enter/arrows and keyups to the
           button; clickEvent.js routes by data-block-toolbar-action
           BEFORE the generic expand branch. blockViewer close() restores
-          focus to the pill's expand button (expandButtonOf). Labels are
-          localized blockToolbar.editSource/copyImage/openFullScreen in
-          all ten locales. Unit-pinned in
+          focus to the pill's expand button (expandButtonOf). Controls remain icon-only with stable geometry on hover/focus; title/aria names use localized
+          blockToolbar.editSource/copyImage/openFullScreen in all ten locales. No expanding label
+          spans are rendered. Unit-pinned in
           tests/renderer/muya/block-toolbar.test.js (pill vnode + exact
           mockup glyphs + labels + family class, scope negatives, click
           routing incl. the disabled guard, syncBlockToolbarState +
@@ -6814,15 +6804,13 @@
           capture phase inside lib/tableResize (toggle / muya-block-viewer);
           its Open-full-screen button keeps the expandNeed.js D-7 gate
           (corner-6: hidden on narrow tables) and every button carries
-          the ag-block-expand keyboard-guard family class. The OVERFLOW
-          CUE is edge shades only + a caption BELOW the table inside
-          the scroll wrapper (C-TABLE-FOOTER), aligned inside its visible
-          scrollport: «columns X–Y of N»
-          (tableToolbar.columnsRange in all ten locales), live on scroll (capture-phase listener), render and
-          figure resize (expandNeed funnel) and drag; the sides are the
-          class-gated ag-table-cue-left/right gradients (the C-39
-          cover-gradient layers are gone — one fact drives caption and
-          shades); a table that fits shows neither (corner-6). FULL
+          the ag-block-expand keyboard-guard family class. Fitted tables show no clipped-column caption or edge shade: all columns stay inside the resolved
+          frame without internal scrolling in Auto, Fit and Full. The compact footer stays reserved
+          and invisible. The icon-only table toolbar order is Auto, Fit, Full, Expand, Copy, with
+          accessible tooltip/aria names; small fitting tables omit only the need-gated Expand Tab
+          stop. Wide content retains natural-size viewer access despite no wrapper overflow.
+          Existing profile identities, pruning/rename/reset and dirty-state protections remain
+          unchanged. FULL
           WIDTH (R-6, per table): the figure keeps the column width
           (toolbar stays anchored; caption follows the wrapper) while the wrapper breaks out
           with a measured inline margin (applyFullWidthGeometry — theme
@@ -6925,17 +6913,7 @@
           invalid column descriptors, missing surfaces, pointer capture,
           reset persistence and C-70 copy-image capture routing.
         </Scenario>
-        <scenario-toolbar-label-visits>
-          C-TOOLBAR-LABELS: real pointer traversal over table, Mermaid and
-          Vega-Lite panels retains every earlier visited inline label.
-          Prior button widths and total panel width never shrink while
-          traversing; the right anchor stays fixed. Whole-panel exit resets
-          all visited labels, and panels do not share visit state. DOM
-          event tests cover icon descendants, disabled buttons, intra-panel
-          focus moves and external/null focus exits. No Markdown or saved
-          state changes. Tests: table-toolbar-labels.spec.ts in Chromium
-          and the existing webkit-tables project; block-toolbar.test.js.
-        </scenario-toolbar-label-visits>
+        <scenario-toolbar-label-visits>C-STABILIZE-PRODUCT-REPAIRS: table/Mermaid/Vega-Lite controls remain icon-only without growth during hover/focus traversal. Accessible names and actions remain; table order is Auto/Fit/Full/Expand/Copy. Verified by table-toolbar-labels.spec.ts and block-toolbar/table-cue/table-export units.</scenario-toolbar-label-visits>
         <scenario-table-footer>
           C-TABLE-FOOTER: the noneditable counter
           follows the table inside its scroll block, before the native
@@ -7152,7 +7130,10 @@
           docCopyHandler and cut through deleteSelectedTableCells
           (tests/renderer/muya/copy-cut-stale-selection.test.js).
         </Scenario>
-</Scenarios>
+<scenario-stabilize-product-boundaries>C-STABILIZE-PRODUCT-REPAIRS: table-layout-persistence.test.js checks obsolete/replaced/destroyed document adoption, transform-preserving repeated repaint and teardown, and manual-drag squeeze below content minima. table-fit.test.js covers many columns in a fractional narrow frame; table-column-resize.test.js retries null measurements. table-modes/table-column-resize e2e prove transparent border alignment, pinned Fit/Full edges and Auto reset in Chromium/WebKit. editor-coverage.test.js C-70 picture export transport distinguishes table/diagram copy notices.</scenario-stabilize-product-boundaries>
+      <scenario-split-history-recovery>C-STABILIZE-SPLIT-PROJECTIONS: history-external-commit.test.js proves raw/block exclusive representation, constant-size metadata without selected text, bounded/coalesced entries, pre-split content retention, exact raw replay and unchanged legacy footnote history. Actual native keyboard/context undo is covered by split-dual-edit.spec.ts.</scenario-split-history-recovery>
+        <scenario-checkbox-dirty>C-STABILIZE-CHECKBOX-DIRTY: checkbox-dirty.test.js pins exclusive routing and readonly cancellation without synthetic dispatch. Built checkbox-dirty.spec.ts proves single/cascaded toggles undo and redo in one semantic action; locked rich and locked split-companion clicks leave Markdown/revision/dirty/checked state unchanged. The existing keyboard click listener emits the single semantic store change; actual content-change deliveries and revision deltas are both one.</scenario-checkbox-dirty>
+      </Scenarios>
       <Markers>
         <Marker>[Muya][parse][BLOCK_TOKENIZE]</Marker>
         <Marker>
@@ -7232,6 +7213,7 @@
           [Muya][tableResize][BLOCK_COLUMN_COUNT_RECONCILED table=&lt;key&gt;
           columns=&lt;n&gt;]
         </Marker>
+      <Marker>[Muya][ClickEvent][BLOCK_READONLY_TASK_CHECKBOX]</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>
@@ -10987,6 +10969,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-native-profile-namespace>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: profile_namespace_ pure/injected tests distinguish canonical and configured QA identity, endpoint and discovery roots; existing M021 fake-runner tests preserve canonical behavior and QA set/get/unset never target the release identity. M019 and M045 credential entry creation uses the same configured accessor; CSEC tests keep their injected backend and no host credential access. No native application launch is claimed.</scenario-native-profile-namespace>
         <Scenario>
           scenario-0: COVERAGE NOTE — src-tauri/src/m019_datacenter.rs currently
           contains no module-local tests; the command above selects zero tests
@@ -11631,6 +11614,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-native-profile-namespace>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: cargo test --manifest-path src-tauri/Cargo.toml --bin mark m021_default_handler exercises the shipped compatibility module with injected runners. Configured QA query/set/unset preserve canonical release entries. The M-021 filename/reference predates the current planned fs_core graph identity; these tests do not close the FUTURE fs_core scenarios retained below and perform no LaunchServices mutation.</scenario-native-profile-namespace>
         <Scenario>
           scenario-0: FUTURE — M-021 fs_core is planned and unimplemented; the
           commands above are explicitly future and non-executable until
@@ -11852,30 +11836,21 @@
     <V-M-022>
       <Priority>high</Priority>
       <Commands>
-        <Command>cargo test --manifest-path src-tauri/Cargo.toml mt_paths</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark mt_paths</Command>
         <Command>
           rg
           &quot;cache_root|app_support_root|logs_root|BLOCK_RESOLVE_CACHE_ROOT&quot; src-tauri/src/mt_paths.rs
         </Command>
       </Commands>
       <Scenarios>
-        <Scenario>
-          scenario-1: macOS cache_root resolves to ~/Library/Caches/Mark or the
-          project-approved bundle-specific cache root.
-        </Scenario>
-        <Scenario>
-          scenario-2: Linux cache_root respects XDG_CACHE_HOME and falls back to
-          ~/.cache/Mark.
-        </Scenario>
-        <Scenario>
-          scenario-3: Windows cache_root resolves under %LOCALAPPDATA% and never
-          under roaming AppData.
-        </Scenario>
+        <scenario-native-profile-namespace>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: profile_namespace_ pure/injected tests distinguish canonical and configured QA identity, endpoint and discovery roots; existing M021 fake-runner tests preserve canonical behavior and QA set/get/unset never target the release identity. M019 and M045 credential entry creation uses the same configured accessor; CSEC tests keep their injected backend and no host credential access. No native application launch is claimed.</scenario-native-profile-namespace>
+        <Scenario>Configured release and acceptance identifiers produce disjoint cache and data roots using synthetic environment lookups; the canonical release identifier preserves all prior paths.</Scenario>
+        <Scenario>macOS uses Library/Caches and Library/Application Support; Linux honors XDG cache/data bases with existing HOME fallbacks; Windows uses LOCALAPPDATA/Cache and APPDATA/Data respectively.</Scenario>
+        <Scenario>Empty, malformed, path-containing and conflicting identifier initialization is rejected; repeating the same valid namespace is idempotent.</Scenario>
       </Scenarios>
-      <Markers>
-        <Marker>[Paths][cache_root][BLOCK_RESOLVE_CACHE_ROOT]</Marker>
-      </Markers>
+      <Markers />
       <TraceAssertions>
+        <TraceAssertion>Pure namespace tests prove disjoint configured cache/data roots, canonical release compatibility and rejection of malformed or conflicting initialization; the path helper performs no I/O or logging.</TraceAssertion>
         <TraceAssertion>Negative assertion: MUST NOT use ~/.cache on macOS or Windows.</TraceAssertion>
         <TraceAssertion>
           Negative assertion: MUST NOT write under protected legacy Application
@@ -13012,6 +12987,7 @@
         <Scenario>scenario-1 (rule): DEVTOOLS_ENABLED is true under cargo test (debug assertions) and dev_icon returns a badged icon; the tauri dependency line never lists devtools, Cargo.toml declares devtools = ["tauri/devtools"], and the default feature set never includes it.</Scenario>
         <Scenario>scenario-2 (release lanes): .github/workflows/release.yml, .github/workflows/release-tauri.yml and tools/build-mas.sh never enable devtools.</Scenario>
         <Scenario>scenario-3 (painter): on the shipped 512×512 icon the band fills the badge colour below the chevron edge, the area above the chevron and the transparent corners are untouched, the first cell of D is white and the gap after it is badge-coloured; a short buffer is left unchanged.</Scenario>
+      <scenario-security-stabilization-069>C-SEC-AUDIT-FIXES: Existing dev-badge release/default-feature and settings-window behavior remains unchanged by the shared compatibility file and direct URL/test dependency additions.</scenario-security-stabilization-069>
       </Scenarios>
       <Markers>
         <Marker>[DevBadge][apply][BLOCK_DEV_BADGE_APPLIED devtools=on]</Marker>
@@ -13069,7 +13045,7 @@
         <Command>npx playwright test tests/e2e/titlebar-mode-chips.spec.ts --project=chromium --project=webkit-titlebar</Command>
       </Commands>
       <Scenarios>
-        <Scenario>scenario-chips-render (C-TITLEBAR-MODE-CHIPS T-004): flag truth diff &gt; split &gt; source; one labelled view chip plus compact writing chips (three maximum); no wrapper in the standard state and with no document; the view chip swaps on tab switch while writing chips persist; aria-label from the short label and the hint as tooltip; the Split tooltip appends narrowNote below the 800 px floor.</Scenario>
+        <Scenario>scenario-chips-render (C-STABILIZE-PRODUCT-REPAIRS): icon-only view/writing chips follow diff/split/source truth; Standard retains one entry with a document, no document renders none; title/aria names preserve keyboard/menu reachability and narrow Split hint.</Scenario>
         <Scenario>scenario-menu-normalization (T-005): the two-group menu marks the visible winner, shows the shipped shortcuts and hints, and normalizes in one action — Standard clears splitView + diffMode + sourceCode, Split clears diffMode and keeps sourceCode, Source clears splitView and diffMode, Changes clears splitView; writing toggles are independent; Reset returns Standard with both writing modes off; the menu stays live while a mode toggles from another surface and closes only on outside click or Escape.</Scenario>
         <Scenario>scenario-locale-parity (T-003): the fifteen titleBar.modeChips families exist in all ten locales; the retired min-twin byte-parity law was replaced by the directory guard in tests/renderer/i18n/locale-keys.test.js (C-LOCALE-MIN-TWIN-REMOVAL).</Scenario>
       </Scenarios>

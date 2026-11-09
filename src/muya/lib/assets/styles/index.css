@@ -1652,6 +1652,12 @@ i.ag-footnote-backlink {
 figure div.ag-table-scroll {
   box-sizing: border-box;
   max-width: 100%;
+  /* positioned on purpose: the column zones' host (and the caption's
+     sticky coordinates) must anchor to THIS box, never to whichever
+     ancestor happens to be positioned — in Full width the breakout
+     margin otherwise offsets the zones off the real borders and pokes
+     the host past the viewport (owner 2026-11-07). */
+  position: relative;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0 0 max(2px, calc(8px - var(--ag-table-scrollbar-height, 0px))) 11px;
@@ -1659,10 +1665,9 @@ figure div.ag-table-scroll {
 }
 
 /*
- * Natural width, never stretched (R-2) and never squeezed (R-1):
- * wider than the column means the wrapper scrolls, narrower means the
- * table keeps its content width like GitHub. Cell max-width bounds the
- * max-content contribution, so the scroll range stays finite.
+ * Auto keeps natural content width while it fits. C-STABILIZE-PRODUCT-REPAIRS
+ * applies a real fixed-layout fitting plan when natural content exceeds
+ * the frame; internal scrolling and hidden columns are retired.
  */
 figure div.ag-table-scroll > table {
   width: max-content;
@@ -1927,7 +1932,9 @@ figure.ag-table-full-width > div.ag-table-scroll::-webkit-scrollbar {
 }
 
 figure.ag-table-full-width > div.ag-table-scroll > table {
-  margin-inline: auto;
+  /* The Full frame is pinned to the window gutter; squeeze reserves may
+     leave slack inside it, which must not shift the leading edge. */
+  margin-inline: 0;
 }
 
 /* Full width shows no shade: nothing is hidden by the wrapper (the

@@ -120,7 +120,11 @@
         }
       }
     },
-    "sequence-start": "시퀀스 시작"
+    "sequence-start": "시퀀스 시작",
+    "tableExport": {
+      "title": "표",
+      "copied": "표가 이미지로 클립보드에 복사되었습니다"
+    }
   },
   "outlineRail": {
     "title": "이 페이지에서"
@@ -1629,7 +1633,8 @@
     "fitToPage": "페이지 폭에 맞추기",
     "fullWidth": "전체 폭으로 보기",
     "columnsRange": "열 {start}–{end} / {total}",
-    "doesNotFitBy": "{px} px가 부족합니다 — 데이터를 숨기지 않고 열 스크롤로 표시합니다"
+    "doesNotFitBy": "{px} px가 부족합니다 — 데이터를 숨기지 않고 열 스크롤로 표시합니다",
+    "columnWallHint": "Drag to resize · double-click to fit content"
   },
   "statusBar": {
     "title": "문서 통계",
@@ -1791,5 +1796,8 @@
       "rememberSizes": "열 크기 기억",
       "rememberSizesHelp": "열 크기는 파일별로 저장되며 너비가 바뀌면 비율에 맞춰 다시 적용됩니다"
     }
+  },
+  "extensions": {
+    "disableFailed": "확장 기능은 비활성화되었지만 접근 권한 취소를 확인하지 못했습니다. 다시 시도하세요."
   }
 }

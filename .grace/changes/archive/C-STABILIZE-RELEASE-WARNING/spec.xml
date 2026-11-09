@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-RELEASE-WARNING>
+    <Summary>Compile the canonical default-handler fixture constant only in tests after production identity consumers moved to the configured namespace.</Summary>
+    <ApprovalBasis>Owner-delegated stabilization recovery; PR199 packaging produced one unallowlisted warning for MARK_BUNDLE_ID, whose remaining uses are tests.</ApprovalBasis>
+    <Goals><Goal>Pass the existing production warning gate without expanding its allowlist or changing configured runtime identity behavior.</Goal></Goals>
+    <Constraints><Item>Keep all warning rules, canonical fixture values and default-handler assertions unchanged; no lint suppression or external handler mutation.</Item></Constraints>
+    <NonGoals><Item>No app behavior, dependency, version, signing or release change.</Item></NonGoals>
+    <AffectedAreas><Area>Shipped m021_default_handler compatibility module; future graph M-021 fs_core remains deferred.</Area></AffectedAreas>
+    <AcceptanceCriteria><Criterion>The actual release warning checker reports zero unallowlisted/forbidden warnings, and injected default-handler tests pass.</Criterion></AcceptanceCriteria>
+    <VerificationIntent><ExpectedEvidence>Production Cargo JSON through the unchanged checker, plus targeted fake-runner tests.</ExpectedEvidence></VerificationIntent>
+  </C-STABILIZE-RELEASE-WARNING>
+</GraceChangeSpec>

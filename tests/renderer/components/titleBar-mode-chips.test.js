@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/titleBar-mode-chips.test.js
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: C-TITLEBAR-MODE-CHIPS T-004 — the chips render matrix:
 //            flag-truth view selection, compact writing chips, the empty
@@ -85,10 +85,11 @@ describe('titleBar mode chips (C-TITLEBAR-MODE-CHIPS T-004)', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders nothing in the standard state', async () => {
-    const { wrapper } = await mountChips()
-    expect(wrapper.find('[data-testid="mode-chips"]').exists()).toBe(false)
-    expect(wrapper.findAll('button')).toHaveLength(0)
+  it('renders the single Standard entry chip in the standard state (owner 2026-11-07)', async () => {
+    const { wrapper } = await mountChips({ prefs: { focus: false, typewriter: false } })
+    const buttons = wrapper.findAll('button')
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0].attributes('aria-label')).toBe('Standard')
   })
 
   it('renders nothing with no document open, even with writing modes on', async () => {
@@ -99,28 +100,30 @@ describe('titleBar mode chips (C-TITLEBAR-MODE-CHIPS T-004)', () => {
     expect(wrapper.find('[data-testid="mode-chips"]').exists()).toBe(false)
   })
 
-  it('shows the Split chip with its short label and hint tooltip', async () => {
+  it('shows the Split chip icon-only with its hint tooltip (owner 2026-11-08)', async () => {
     const { wrapper } = await mountChips({ tab: { id: 'tab-1', splitView: true } })
     const buttons = wrapper.findAll('button')
     expect(buttons).toHaveLength(1)
-    expect(buttons[0].text()).toBe('Split')
+    expect(buttons[0].text(), 'no titlebar text — the name lives in the tooltip').toBe('')
     expect(buttons[0].attributes('aria-label')).toBe('Split')
     expect(buttons[0].attributes('title')).toBe(CHIPS.hintSplit)
     expect(buttons[0].attributes('aria-haspopup')).toBe('menu')
   })
 
-  it('lets diff mode outrank a stale split flag', async () => {
+  it('lets diff mode outrank a stale split flag (icon-only, aria carries the name)', async () => {
     const { wrapper } = await mountChips({
       tab: { id: 'tab-1', splitView: true, diffMode: true }
     })
     expect(wrapper.findAll('button')).toHaveLength(1)
-    expect(wrapper.find('button').text()).toBe('Changes')
+    expect(wrapper.find('button').text(), 'icon-only').toBe('')
+    expect(wrapper.find('button').attributes('aria-label')).toBe('Changes')
     expect(wrapper.find('button').attributes('title')).toBe(CHIPS.hintChanges)
   })
 
   it('falls back to the source-code view when no tab view flag is set', async () => {
     const { wrapper } = await mountChips({ prefs: { sourceCode: true } })
-    expect(wrapper.find('button').text()).toBe('Source')
+    expect(wrapper.find('button').text(), 'icon-only').toBe('')
+    expect(wrapper.find('button').attributes('aria-label')).toBe('Source')
   })
 
   it('adds compact icon chips for the active writing modes, at most three total', async () => {

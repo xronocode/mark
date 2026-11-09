@@ -1,0 +1,174 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-DUAL-EDIT>
+    <ChangeRef>C-STABILIZE-SPLIT-DUAL-EDIT</ChangeRef>
+    <Created>2026-11-09</Created>
+    <ApprovalBasis>Delegated owner recovery implementation; full original approved requirements retained. Execute sequentially: reading, gestures, full dual-edit; literal scopes below supersede prose paths and include command sources.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/muya/lib/contentState/history.js</File>
+        <Text>undo()</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npm run build</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx playwright test tests/e2e/split-dual-edit.spec.ts tests/e2e/split-view.spec.ts tests/e2e/split-view-scroll-sync.spec.ts --config playwright.split-recovery.config.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/sourceCode.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/index.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/splitView.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/statusBar.vue</File>
+      <File>src/renderer/src/commands/index.js</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src/renderer/src/util/splitDualEdit.js</File>
+      <File>src/renderer/src/util/splitCommands.js</File>
+      <File>src/muya/lib/contentState/history.js</File>
+      <File>src/muya/lib/contentState/index.js</File>
+      <File>src/muya/lib/index.js</File>
+      <File>tests/renderer/util/split-dual-edit.test.js</File>
+      <File>tests/renderer/util/split-commands.test.js</File>
+      <File>tests/renderer/muya/history-external-commit.test.js</File>
+      <File>tests/renderer/components/split-dual-edit.test.js</File>
+      <File>tests/renderer/components/split-anchor.test.js</File>
+      <File>tests/renderer/components/split-view.test.js</File>
+      <File>tests/renderer/commands/index.test.js</File>
+      <File>tests/e2e/split-dual-edit.spec.ts</File>
+      <File>tests/e2e/split-view.spec.ts</File>
+      <File>tests/e2e/split-view-scroll-sync.spec.ts</File>
+      <File>playwright.split-recovery.config.ts</File>
+      <Glob>.grace/changes/active/C-STABILIZE-SPLIT-DUAL-EDIT/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-321>
+        <Title>Rendering guard replaces the static mirror prop for store-driven renders</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>editor.vue and sourceCode.vue wrap every store-driven re-render (muya setMarkdown from the markdown prop watcher; CodeMirror setValue from the mirror watcher) in an isRenderingFromStore flag whose window makes the surface's own change/cursorActivity events inert; the flag is cleared after the render settles; user edits never run under the flag; the C-29 mirror guards (checkbox/paste/drop inert during render-only updates) keep their behavior for read-only surfaces (locked tabs, source-mode mirror).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-321>
+      <T-322>
+        <Title>Editable source pane in split</Title>
+        <DependsOn>T-321</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>index.vue mounts ONE editable source-code instance in split (the source-mirror branch is retired); the CodeMirror pane accepts a caret, typing, selections, clipboard and IME whenever the tab is not locked; readOnly follows the tab's locked state only; commits flow through LISTEN_FOR_CONTENT_CHANGE exactly once per edit; the 150 ms cross-render debounce (adaptive on huge documents) is unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-322>
+      <T-323>
+        <Title>Muya history-aware external commit path</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>src/muya/lib/contentState/history.js gains commitExternal({ markdown, meta }) which flushes any pending edit, pushes the current state onto the history stack (with entry metadata: source surface, cm cursor, muya selection), applies the markdown, and dispatches the change event; bounded-stack and pending semantics of the existing history are preserved; single-pane WYSIWYG undo/redo behavior is byte-identical (existing muya undo corners stay green); MODULE_CONTRACT/CHANGE_SUMMARY updated in the same task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-323>
+      <T-324>
+        <Title>Unified undo routing and caret restoration</Title>
+        <DependsOn>T-322, T-323</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>While split is on, Cmd+Z / Cmd+Shift+Z / Cmd+Y route to the document history (muya undo/redo) regardless of which pane holds focus; CodeMirror's built-in undo is disabled in split (no native undo path can desync); each undo/redo re-renders both panes render-only and restores carets from the entry metadata (focused pane to the edit's position, other pane to its re-mapped remembered position); the stack is per tab, survives pane focus switches, and clears on tab switch/external reload exactly when the document history clears today; exiting split keeps the unified entries (single-pane undo continues the same document history — recorded as designed).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-324>
+      <T-325>
+        <Title>Per-surface caret memory + IME fencing</Title>
+        <DependsOn>T-322</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/util/splitDualEdit.js provides translateAndClamp(position, oldText, newText) and a composition fence: while a pane is inside an IME composition, store-driven re-renders of THAT pane are deferred until compositionend (the other pane still updates); each pane's caret and selection survive the other pane's commits (translated, clamped, never reset to document start); focus switching between panes never moves the entered pane's caret.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-325>
+      <T-326>
+        <Title>Command matrix: every command works from the focused pane</Title>
+        <DependsOn>T-322</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The plan's command audit (formatting, find &amp; replace, insertion flows, statistics, copy-as-structured-text, table/format-document, context menus) is enumerated in the verification doc with per-pane expected behavior; formatting commands apply as text transforms when the source pane holds focus; find &amp; replace targets the focused surface; commands that cannot meaningfully apply to a surface are explicitly disabled with a visible reason; no command is silently dead on either pane.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-326>
+      <T-327>
+        <Title>E2E suites + governance</Title>
+        <DependsOn>T-324, T-325, T-326</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/split-dual-edit.spec.ts covers: dual-pane commit within 300 ms both directions, the interleaved unified undo/redo chain with caret restoration, caret memory under the other pane's commits, IME safety, formatting from the source pane, the command matrix entries, locked-tab read-only, `* item` preservation, and no echo loops over sustained alternating edits; split-view.spec.ts mirror-read-only corners rewritten as dual-edit corners with at least the old strictness; M-011/M-012 and V-M-011/V-M-012 routing deltas land in the same bundle with content-free markers; MODULE_CONTRACT/MAP/CHANGE_SUMMARY updated in every touched file including the muya file.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-dual-edit.test.js tests/renderer/util/split-commands.test.js tests/renderer/muya/history-external-commit.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/commands/index.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-progressive-mount.test.js tests/renderer/components/status-bar.test.js tests/renderer/store/live-reload.test.js tests/renderer/muya/footnote-options.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-327>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <Corner id="corner-1">
+        <Situation>Interleaved edits: "alpha" typed in rich, "beta" in source, "gamma" in rich; Cmd+Z three times with focus in the rich pane</Situation>
+        <Expected>gamma, then beta, then alpha are reverted in document order; both panes converge after each step; redo replays them in order</Expected>
+      </Corner>
+      <Corner id="corner-2">
+        <Situation>Undo invoked from the pane that did NOT make the last edit (focus in rich, last edit in source)</Situation>
+        <Expected>the source edit is still the one reverted; the focused pane's caret lands at the corresponding position in the reverted text</Expected>
+      </Corner>
+      <Corner id="corner-3">
+        <Situation>CodeMirror's native undo paths while split is on (context-menu Undo, any residual keymap)</Situation>
+        <Expected>no CodeMirror-local undo executes (disabled); no desync between panes is reachable through any undo entry point</Expected>
+      </Corner>
+      <Corner id="corner-4">
+        <Situation>Split turned off after source-pane edits, then Cmd+Z in single-pane WYSIWYG</Situation>
+        <Expected>the source-pane edits are undone by the same document history (unified by design); single-pane WYSIWYG undo of muya-made edits is byte-identical to today</Expected>
+      </Corner>
+      <Corner id="corner-5">
+        <Situation>Rich-pane caret parked mid-document while typing proceeds in the source pane</Situation>
+        <Expected>the rich caret's remembered position translates and clamps into each updated text; on returning focus it is where the reader left it, never the document start</Expected>
+      </Corner>
+      <Corner id="corner-6">
+        <Situation>IME composition active in the source pane while the rich pane re-renders mid-composition</Situation>
+        <Expected>the composing pane is not re-rendered until compositionend (fence); the other pane still updates; after commit both panes converge</Expected>
+      </Corner>
+      <Corner id="corner-7">
+        <Situation>`* star bullet` typed in the source pane, muya re-renders it</Situation>
+        <Expected>the store keeps `* star bullet` exactly (rendering guard holds; muya normalization writes nothing back); dirty flag moves exactly once</Expected>
+      </Corner>
+      <Corner id="corner-8">
+        <Situation>Locked tab (View › Lock Document) or Finder-preview read-only tab with split on</Situation>
+        <Expected>both panes read-only with selection/copy available; unified undo inert (no commits exist); scroll sync (C-SPLIT-SCROLL-SYNC) unaffected</Expected>
+      </Corner>
+      <Corner id="corner-9">
+        <Situation>10k-line document, 30-character bursts typed in the source pane</Situation>
+        <Expected>muya re-renders coalesce per the adaptive debounce (2 or fewer per burst); keystroke latency in the typing pane unchanged (no main-thread stall beyond 16 ms)</Expected>
+      </Corner>
+      <Corner id="corner-10">
+        <Situation>Tab switch away and back during a dual-edit session</Situation>
+        <Expected>the undo history and both panes' carets restore per tab; C-FILE-POSITION-MEMORY restore is not double-applied; no cross-tab leakage</Expected>
+      </Corner>
+      <Corner id="corner-11">
+        <Situation>Cmd+B (formatting) with the caret in the source pane; find &amp; replace opened from either pane</Situation>
+        <Expected>Cmd+B wraps/unwraps the selection as a text transform and the rich pane re-renders bold; find &amp; replace navigates and replaces in the focused surface; every matrix entry behaves as enumerated or is visibly disabled with its reason</Expected>
+      </Corner>
+    </CornerMatrix>
+    <Decision>D-SPLIT-RECOVERY-02: delegated recovery representation accepted on 2026-11-09. For unified entries, store exactly one raw Markdown payload INSTEAD OF the existing block-tree clone, plus constant-size rich/source endpoint positions and focused-surface metadata. Do not store both document representations or selected text. Native pre-split content entries remain undoable; adjacent caret-only native entries collapse once at activation. Ordinary never-unified history and its public shape remain unchanged. Pending typing coalesces, and focus/command/tab boundaries commit it. Bounded storage and exact source replay are executable assertions.</Decision>
+    <Decision>Finite stop: reproduce missing behavior, implement all declared tasks/corners, run affected units plus actual browsers against the uniquely controlled freshly built preview; fix concrete failures and recheck affected gates. No full-context review reset loop. Original archives remain byte-identical. Corner 10 per-tab history/caret retention governs over the older contradictory clear-on-switch clause; external reload clears unified state.</Decision>
+    <IntentSummary>Sequential stabilization integration of C-SPLIT-DUAL-EDIT with full original behavior, literal file scopes and finite exact-candidate leaf checks.</IntentSummary>
+  </C-STABILIZE-SPLIT-DUAL-EDIT>
+</GraceChangePlan>

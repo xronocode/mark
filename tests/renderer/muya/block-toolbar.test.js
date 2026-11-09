@@ -300,10 +300,10 @@ describe('corner toolbar render (C-56 T-005)', () => {
       expect(btn.data.attrs['aria-label']).toBe(label)
       expect(btn.data.attrs.contenteditable).toBe('false')
       expect(btn.data.attrs.tabindex).toBe('0')
-      // The localized label span rides every button (CSS reveals it on
-      // the button's own hover — variant C).
-      const span = (btn.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')
-      expect(span && span.text).toBe(label)
+      // Owner 2026-11-05: the buttons render ICON-ONLY — no label span
+      // (a visited label turned the clicked button into a wide "big
+      // button"); the name lives in the title/aria tooltip alone.
+      expect((btn.children || []).find((c) => c.sel === 'span.ag-block-toolbar-label')).toBeUndefined()
     }
     expect(edit.data.dataset.blockToolbarAction).toBe('editSource')
     expect(copy.data.dataset.blockToolbarAction).toBe('copyImage')

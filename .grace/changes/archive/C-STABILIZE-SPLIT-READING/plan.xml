@@ -1,0 +1,122 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-READING>
+    <ChangeRef>C-STABILIZE-SPLIT-READING</ChangeRef>
+    <Created>2026-11-09</Created>
+    <ApprovalBasis>Delegated owner recovery implementation; full original approved requirements retained. Execute sequentially: reading, gestures, full dual-edit; literal scopes below supersede prose paths and include command sources.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/muya/lib/contentState/history.js</File>
+        <Text>undo()</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx vitest run tests/renderer/util/split-scroll-sync.test.js tests/renderer/components/split-anchor.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx playwright test tests/e2e/split-view-scroll-sync.spec.ts --config playwright.split-recovery.config.ts --project=chromium</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/sourceCode.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/index.vue</File>
+      <File>src/renderer/src/util/splitScrollSync.js</File>
+      <File>tests/renderer/util/split-scroll-sync.test.js</File>
+      <File>tests/renderer/components/split-anchor.test.js</File>
+      <File>tests/e2e/split-view-scroll-sync.spec.ts</File>
+      <File>playwright.split-recovery.config.ts</File>
+      <Glob>.grace/changes/active/C-STABILIZE-SPLIT-READING/**</Glob>
+      <Glob>.grace/changes/archive/C-SPLIT-SCROLL-SYNC/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-301>
+        <Title>Sync controller util with pure helpers</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/util/splitScrollSync.js exports pure helpers — scrollFraction(el), setScrollFraction(el, fraction), clampFraction(fraction), computeAnchorTarget({ anchorOffset, viewportHeight, scrollHeight }) — plus createScrollPair({ getA, getB }) returning a controller whose userScroll(pane) applies the fraction to the other pane on the next animation frame, whose internal echoes are swallowed by the guard flag, and whose dispose() removes all listeners and cancels pending frames; no DOM reads outside rAF callbacks.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-scroll-sync.test.js tests/renderer/components/split-anchor.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-301>
+      <T-302>
+        <Title>Anchor re-centering on split transitions (editor.vue)</Title>
+        <DependsOn>T-301</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>On split toggle-on, toggle-off, width re-activation above 800px, and divider drag, the muya pane computes the anchor (live caret block; else the saved cursor of C-FILE-POSITION-MEMORY; else top visible block) and centers it typewriter-style via the scrollToCursor mechanics (target = pane middle, clamped to document edges); the numeric scrollTop alone never survives a re-wrap; one reflow is expected and the anchor stays visible through it.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-scroll-sync.test.js tests/renderer/components/split-anchor.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-302>
+      <T-303>
+        <Title>Initial alignment + live bidirectional sync wiring</Title>
+        <DependsOn>T-301</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The second pane (CodeMirror in WYSIWYG split; muya in source-mode split) mounts aligned to the editable pane's scroll fraction (alignToFraction on mount and on tab-switch mount); while split is active, wheel/scrollbar/keyboard scrolls of either pane drive the other through the controller; programmatic scrolls (caret scroll-into-view, animatedScrollTo, renderMirror restore) are indistinguishable from user scrolls to the controller (they sync) while the controller's own echoes do not re-trigger; toggle-off, tab switch and unmount dispose the controller with no leaked listeners or stale timers.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-scroll-sync.test.js tests/renderer/components/split-anchor.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-303>
+      <T-304>
+        <Title>E2E suite + governance</Title>
+        <DependsOn>T-302, T-303</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/split-view-scroll-sync.spec.ts covers: caret-centered toggle-on (offsets asserted, never top-jump), no-caret fallback, toggle-off re-anchor, tab-switch alignment, bidirectional live sync, alternating-scroll guard; the existing split-view.spec.ts corners stay green unchanged; M-011/V-M-011 routing deltas land in the same bundle with content-free markers; MODULE_CONTRACT/MAP/CHANGE_SUMMARY updated in every touched file.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/split-scroll-sync.test.js tests/renderer/components/split-anchor.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-304>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <Corner id="corner-1">
+        <Situation>120-section document scrolled to the middle, caret in section 60, split toggled on</Situation>
+        <Expected>caret block vertically centered in the rich pane; source pane opens at the matching fraction (never scrollTop 0 unless the anchor is the top); no visible jump after the re-wrap settles</Expected>
+      </Corner>
+      <Corner id="corner-2">
+        <Situation>Restored tab never focused (no live caret), split toggled on</Situation>
+        <Expected>anchor falls back to the saved cursor of C-FILE-POSITION-MEMORY, else the top visible block; both panes land in the same region</Expected>
+      </Corner>
+      <Corner id="corner-3">
+        <Situation>Split toggled off after reading mid-document</Situation>
+        <Expected>remaining single pane re-anchors on the same anchor rule; never jumps to the document start</Expected>
+      </Corner>
+      <Corner id="corner-4">
+        <Situation>Divider dragged (continuous re-wrap of both panes)</Situation>
+        <Expected>anchor block stays visible in the pane being read throughout the drag (continuous re-anchoring; drag-end-only fallback allowed only if reflow cost on huge documents forces it, recorded in ReviewLog)</Expected>
+      </Corner>
+      <Corner id="corner-5">
+        <Situation>Tab switch while split is on (tab A split at 40%, tab B split at 70% and different scroll)</Situation>
+        <Expected>incoming tab's panes align to ITS saved position; no leakage of the outgoing tab's offsets; per-tab split state unchanged from C-29</Expected>
+      </Corner>
+      <Corner id="corner-6">
+        <Situation>Container collapses below 800px then re-expands</Situation>
+        <Expected>split re-activates with both panes aligned per the anchor rule; ratio persistence unchanged from C-29</Expected>
+      </Corner>
+      <Corner id="corner-7">
+        <Situation>Wheel scroll over the rich pane, then immediately over the source pane</Situation>
+        <Expected>mastership follows the pointer each time; each pane drives the other proportionally; the programmatic echo is swallowed (no ping-pong observable)</Expected>
+      </Corner>
+      <Corner id="corner-8">
+        <Situation>Programmatic scrolls: caret scroll-into-view while typing, animatedScrollTo, mirror re-render restore</Situation>
+        <Expected>all sync like user scrolls (the other pane follows where the edit landed); the controller's own writes never re-enter the controller</Expected>
+      </Corner>
+      <Corner id="corner-9">
+        <Situation>10k-line document, sustained scrolling alternating between panes for 30 seconds</Situation>
+        <Expected>no feedback loop, no accumulating drift-lock, no main-thread stall beyond 16 ms per scroll frame (rAF-throttled reads); mirror re-render debounce rules unchanged</Expected>
+      </Corner>
+      <Corner id="corner-10">
+        <Situation>Locked / Finder-preview read-only tab with split on</Situation>
+        <Expected>scroll sync fully active (this is the pure reading case); no edit path implied or enabled; C-SPLIT-DBLCLICK-TOGGLE and C-SPLIT-DUAL-EDIT behaviors unaffected</Expected>
+      </Corner>
+    </CornerMatrix>
+    <Decision>Finite stop: reproduce missing behavior, implement all declared tasks/corners, run affected units plus actual browsers against the uniquely controlled freshly built preview; fix concrete failures and recheck affected gates. No full-context review reset loop. Original archives remain byte-identical. </Decision>
+    <IntentSummary>Sequential stabilization integration of C-SPLIT-SCROLL-SYNC with full original behavior, literal file scopes and finite exact-candidate leaf checks.</IntentSummary>
+  </C-STABILIZE-SPLIT-READING>
+</GraceChangePlan>

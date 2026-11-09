@@ -23,6 +23,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Add render-only document import and one-shot exact unified-history replay while preserving ordinary and progressive load paths.
 //   LAST_CHANGE: v1.11.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-003:
 //                progressive mount entry points (progressiveMount — parse
 //                whole, mount the sync region, schedule the tail;
@@ -238,14 +239,17 @@ class Muya {
 
   dispatchChange = () => {
     const { eventCenter } = this
-    const markdown = (this.markdown = this.getMarkdown())
+    const markdown = (this.markdown = this.contentState.history?.replayMarkdown ?? this.getMarkdown())
+    if (this.contentState.history) delete this.contentState.history.replayMarkdown
     const wordCount = this.getWordCount(markdown)
     const cursor = this.getCursor()
     const muyaIndexCursor = this.contentState.getMuyaIndexCursor()
     const history = this.getHistory()
     const toc = this.getTOC()
+    const historyRestore = !!this.contentState.history?.replaying
+    if (this.contentState.history) delete this.contentState.history.replaying
 
-    eventCenter.dispatch('change', { markdown, wordCount, cursor, muyaIndexCursor, history, toc })
+    eventCenter.dispatch('change', { markdown, wordCount, cursor, muyaIndexCursor, history, toc, ...(historyRestore ? { historyRestore: true } : {}) })
   }
 
   dispatchSelectionChange = (cursor) => {
@@ -308,7 +312,8 @@ class Muya {
     cursor,
     isRenderCursor = true,
     muyaIndexCursor = undefined,
-    blocks = undefined
+    blocks = undefined,
+    { renderOnly = false } = {}
   ) {
     let finalCursor = null
 
@@ -352,8 +357,13 @@ class Muya {
     this.contentState.selectedTableCells = null
     this.contentState.selectedImage = null
 
-    this.contentState.importCursor(finalCursor)
-    this.contentState.render(isRenderCursor)
+    if (this.contentState.history) this.contentState.history.renderOnly = renderOnly
+    try {
+      this.contentState.importCursor(finalCursor)
+      this.contentState.render(isRenderCursor)
+    } finally {
+      if (this.contentState.history) this.contentState.history.renderOnly = false
+    }
     // C-LARGE-DOC-WAVE-A T-003 (corner-2): plain content loads (no cursor
     // restore, no block restore, non-empty text — tab switch, format, mirror
     // sync, document open) record the serving path. The legacy mount served
@@ -365,7 +375,7 @@ class Muya {
       // the marker is telemetry, never a load-bearing call.
       this.eventCenter.dispatch(BLOCK_MOUNT_SERVED, { served: 'legacy' })
     }
-    setTimeout(() => {
+    if (!renderOnly) setTimeout(() => {
       this.dispatchChange()
     }, 0)
   }

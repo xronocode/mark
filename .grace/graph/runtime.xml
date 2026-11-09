@@ -6,6 +6,7 @@
       <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
     </ProjectMetadata>
     <M-001>
+      <SummaryDelta>C-STABILIZE-LINK-ALIASES: absolute local links using the supplied document-directory alias rebase onto its canonical directory before existing lexical/canonical document fencing. Requested and resolved executable guards remain; global M-010 policy and HTTP routing are unchanged.</SummaryDelta>
       <Name>mt-tauri-shell</Name>
       <DisplayName>mt-tauri-shell</DisplayName>
       <Type>ENTRY_POINT</Type>
@@ -17,6 +18,8 @@
         lifecycle. Phase-B1 delivered 5 sub-modules covering boot-time guards,
         validation, security audit, panic recovery, lifecycle primitives, and
         the PDF-export contract surface.
+       C-STABILIZE-PROFILE-ISOLATION: after read-only CLI exits, bind the application namespace from the exact generated Tauri Context before pre-boot rollback and other state consumers; reuse that Context for Tauri build.
+        C-SEC-AUDIT-FIXES: mt_format_link_click delegates local targets to canonical document-directory validation and m010 path/executable guards before the cross-platform opener; HTTP(S) preserves its existing route.
       </Summary>
       <Path>src-tauri/src/main.rs</Path>
       <Dependencies>
@@ -235,7 +238,7 @@
                   mt_walk_project. mt_walk_project extracted from mt_pick_folder
                   to decouple folder-pick from walk — frontend calls walk AFTER
                   ADD_PROJECT creates the tree root, fixing DROPPED_NO_ROOT
-                  race.
+                  race. C-SEC-AUDIT-FIXES hardens local link targets with the document-directory fence and m010 executable guards before the cross-platform opener.
                 </Value>
               </Attribute>
               <Attribute>
@@ -456,9 +459,10 @@
                 <Name>PURPOSE</Name>
                 <Value>
                   m_v1_compat command: extracts href from data payload, resolves
-                  relative paths against dirname, opens URL/file via macOS open
-                  command. Handles mt::format-link-click IPC from linkTools jump
-                  action.
+                  relative paths against the canonical document directory, validates
+                  local targets via m010 check_path and check_shell_open_extension
+                  before the opener plugin, and preserves HTTP(S) routing
+                  (C-SEC-AUDIT-FIXES). Handles mt::format-link-click IPC.
                 </Value>
               </Attribute>
             </LegacyAttributes>
@@ -631,8 +635,9 @@
       <Summary>
         Filesystem IPC commands (read, write, stat, rename, delete) with sandbox
         guard from M-010.
+        C-SEC-AUDIT-FIXES: src-tauri/src/m013b/fs.rs is the live filesystem command seam owned here. New text, binary and directory writes use M-010 nearest-existing-entry fencing; outward parents and dangling leaves are denied before creation, while inward links and ordinary parents remain valid.
       </Summary>
-      <PlannedPath>src-tauri/src/commands/fs.rs</PlannedPath>
+      <Path>src-tauri/src/m013b/fs.rs</Path>
       <Dependencies>
         <M-010/>
         <M-014/>
@@ -1985,7 +1990,9 @@
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>Release-Readiness-2026-08-07</PhaseRef>
-      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. FIX-010 (2026-10-20): on macOS, View › Command Palette… owns id view.command-palette and accelerator Cmd+Shift+P, matching the renderer registry and app-level physical-key route; Windows/Linux remain excluded from this addition. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059. C-57: Help › Support Mark… (help.support, no accelerator, desktop builds only — cfg(not(app-store)) plus the m048 `support` capability) opens ko-fi.com/xronocode through the id-dispatched renderer command; store builds ship no donation surface. C-MULTI-SOURCE-WORKSPACE: the overloaded File › «Open Folder…» row is retired and replaced by the explicit pair File › «Add Folder…» (file.add-folder, CmdOrCtrl+Shift+O, appends a workspace root) and File › «Replace Workspace…» (file.replace-workspace, no accelerator, replaces the root set) — both id-dispatched-only to the renderer commands of the same ids, directly before «Open from Clipboard».</Summary>
+      <Summary>Native menu bar and context menus; dispatches command IDs to renderer. FIX-010 (2026-10-20): on macOS, View › Command Palette… owns id view.command-palette and accelerator Cmd+Shift+P, matching the renderer registry and app-level physical-key route; Windows/Linux remain excluded from this addition. C-15 T-102: on Windows/Linux the menu stays registered on the app (hamburger popup via mt_window_popup_app_menu) but the native menu BAR is hidden to avoid double chrome under the custom titlebar. C-40 T-003: View › Outline check item (id view.outline, no accelerator — ⌘T stays Go to Heading) toggles the «On this page» outline rail through the id-dispatched view.outline renderer command. C-40 T-005: mt_menu_set_checked re-syncs the four View CheckMenuItems (sidebar, tab bar, outline, status bar) from the renderer through a recursive allow-listed walker — tauri 2&apos;s Menu::get is top-level-only, which is why the old mt_update_sidebar_menu lookup never found the View-submenu item; the v1 shim reuses the same walker. C-52 T-001: File › «Open from Clipboard» (id file.open-from-clipboard, accelerator Alt+CmdOrCtrl+V, directly after Open Folder in the taxonomy and the native menu) dispatches to the renderer command that resolves the clipboard through M-059. C-57: Help › Support Mark… (help.support, no accelerator, desktop builds only — cfg(not(app-store)) plus the m048 `support` capability) opens ko-fi.com/xronocode through the id-dispatched renderer command; store builds ship no donation surface. C-MULTI-SOURCE-WORKSPACE: the overloaded File › «Open Folder…» row is retired and replaced by the explicit pair File › «Add Folder…» (file.add-folder, CmdOrCtrl+Shift+O, appends a workspace root) and File › «Replace Workspace…» (file.replace-workspace, no accelerator, replaces the root set) — both id-dispatched-only to the renderer commands of the same ids, directly before «Open from Clipboard».
+        C-STABILIZE-SPLIT-PROJECTIONS: Dispatch registered editing commands through the synchronous split:execute-command owner request so the remembered focused pane receives the action. All 51 edit/paragraph/format IDs are mapped; ordinary fallback timing remains unchanged.
+      </Summary>
       <Path>src-tauri/src/m009_menu.rs</Path>
       <Dependencies>
         <M-005/>
@@ -2235,7 +2242,9 @@
         (canonicalize-stored sandboxes are UNC, requests are DOS form),
         and the symlink step skips its prefix denial under the
         permissive root (canonicalize("/") on Windows is the
-        current-drive root). All other denials unchanged.</Summary>
+        current-drive root). All other denials unchanged.
+        C-SEC-AUDIT-FIXES: check_path resolves the nearest existing directory entry with symlink_metadata; only NotFound advances to a parent. Canonical entry plus missing suffix must remain inside the canonical sandbox, with existing permissive-root and Windows device-prefix rules retained. Dangling links and other I/O errors fail closed. Document-local link opening reuses this fence and check_shell_open_extension on requested and canonical targets.
+      </Summary>
       <Path>src-tauri/src/m010_security.rs</Path>
       <Dependencies/>
       <VerificationRef>V-M-010</VerificationRef>
@@ -2603,6 +2612,8 @@
     <M-011>
       <Name>mt-renderer</Name>
         <SummaryDelta>
+        C-STABILIZE-PRODUCT-REPAIRS: owner-accepted no-scroll table fitting, explicit Auto width reset, Auto-only outer walls, full-height internal border zones, icon-only toolbars, final Aa settings glyph and persistent Standard entry. Delayed table adoption is generation/document guarded; repaint preserves transforms and cleans up on teardown.
+
         C-TITLEBAR-MODE-CHIPS (2026-10-27): the titlebar right cluster
         hosts the mode-chips cluster first (modeChips.vue, M-062) — one
         document-view chip for the current tab's exclusive view state plus
@@ -2718,9 +2729,7 @@
         editorWithTabs/splitView.vue lays muya and CodeMirror side by side for
         the current tab (tab.splitView; view.split-view, CmdOrCtrl+Alt+Backslash;
         ratio/side in preferences splitViewRatio/splitViewSwapped; collapses
-        below 800 px). The non-editable pane is a read-only mirror
-        (editor.vue / sourceCode.vue `mirror` prop) that renders from the tab
-        markdown and never writes to the store. C-41 T-001: brand themes
+        below 800 px). C-29 originally supplied a read-only companion. C-STABILIZE-SPLIT-DUAL-EDIT supersedes that split-only ownership with two editable surfaces; explicit readonly/mirror compatibility guards still protect locked tabs and render-only updates. C-41 T-001: brand themes
         Paper (light, assets/themes/paper.theme.css + prismjs companion) and
         Ink (dark, ink.theme.css, railscasts classification) registered in
         themeMap and every theme list; new profiles default to Auto
@@ -3099,6 +3108,7 @@
         rename/move/flush flows) applies the resolved width as one inline
         custom property on the editor root, re-applies on sidebar and window
         changes and moves the stored entry on rename (V-M-061).
+        C-STABILIZE-SPLIT-PROJECTIONS: Both split surfaces edit one tab. Store-driven rendering uses guarded adaptive follows, translated selections and per-surface IME fences. The sole document history and both carets survive tab/layout/mode transitions for unified tabs and clear on disk reload; never-unified tabs retain legacy behavior. Focused commands/search/clipboard/assets/statistics use the active pane, dirty/autosave notification occurs once, and locked/preview surfaces stay protected. Scroll/gesture recovery keeps proportional bidirectional sync, transition anchors, persisted ratio, narrow/diff collapse and cleanup.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -3502,10 +3512,14 @@
             </Attribute>
           </LegacyAttributes>
         </fn-menuChecks>
+      <fn-splitDocumentHistory><Purpose>C-STABILIZE-SPLIT-PROJECTIONS: Both split surfaces edit one tab. Store-driven rendering uses guarded adaptive follows, translated selections and per-surface IME fences. The sole document history and both carets survive tab/layout/mode transitions for unified tabs and clear on disk reload; never-unified tabs retain legacy behavior. Focused commands/search/clipboard/assets/statistics use the active pane, dirty/autosave notification occurs once, and locked/preview surfaces stay protected. Scroll/gesture recovery keeps proportional bidirectional sync, transition anchors, persisted ratio, narrow/diff collapse and cleanup.</Purpose><Source>src/renderer/src/components/editorWithTabs/editor.vue</Source><Anchor>START_BLOCK_SPLIT_DOCUMENT_HISTORY</Anchor></fn-splitDocumentHistory>
+      <fn-splitFollowSync><Purpose>C-STABILIZE-SPLIT-PROJECTIONS: Both split surfaces edit one tab. Store-driven rendering uses guarded adaptive follows, translated selections and per-surface IME fences. The sole document history and both carets survive tab/layout/mode transitions for unified tabs and clear on disk reload; never-unified tabs retain legacy behavior. Focused commands/search/clipboard/assets/statistics use the active pane, dirty/autosave notification occurs once, and locked/preview surfaces stay protected. Scroll/gesture recovery keeps proportional bidirectional sync, transition anchors, persisted ratio, narrow/diff collapse and cleanup.</Purpose><Source>src/renderer/src/components/editorWithTabs/editor.vue</Source><Anchor>START_BLOCK_SPLIT_FOLLOW_SYNC</Anchor></fn-splitFollowSync>
+      <fn-splitAnchorSync><Purpose>C-STABILIZE-SPLIT-PROJECTIONS: Both split surfaces edit one tab. Store-driven rendering uses guarded adaptive follows, translated selections and per-surface IME fences. The sole document history and both carets survive tab/layout/mode transitions for unified tabs and clear on disk reload; never-unified tabs retain legacy behavior. Focused commands/search/clipboard/assets/statistics use the active pane, dirty/autosave notification occurs once, and locked/preview surfaces stay protected. Scroll/gesture recovery keeps proportional bidirectional sync, transition anchors, persisted ratio, narrow/diff collapse and cleanup.</Purpose><Source>src/renderer/src/components/editorWithTabs/editor.vue</Source><Anchor>START_BLOCK_SPLIT_ANCHOR_SYNC</Anchor></fn-splitAnchorSync>
+      <fn-splitFocusedCommands><Purpose>C-STABILIZE-SPLIT-PROJECTIONS: Both split surfaces edit one tab. Store-driven rendering uses guarded adaptive follows, translated selections and per-surface IME fences. The sole document history and both carets survive tab/layout/mode transitions for unified tabs and clear on disk reload; never-unified tabs retain legacy behavior. Focused commands/search/clipboard/assets/statistics use the active pane, dirty/autosave notification occurs once, and locked/preview surfaces stay protected. Scroll/gesture recovery keeps proportional bidirectional sync, transition anchors, persisted ratio, narrow/diff collapse and cleanup.</Purpose><Source>src/renderer/src/util/splitCommands.js</Source><Anchor>SPLIT_COMMAND_MATRIX, applySourceCommand, sourceSearch</Anchor></fn-splitFocusedCommands>
       </Interface>
       <Sources>
         <Source>src/renderer/</Source>
-        <KnowledgeGraphPath>src/renderer/</KnowledgeGraphPath>
+        <KnowledgeGraphPath>src/renderer/, src/renderer/src/util/splitScrollSync.js, src/renderer/src/util/splitDualEdit.js, src/renderer/src/util/splitCommands.js</KnowledgeGraphPath>
         <Tests>test/unit/renderer/**.spec.js + test/e2e/renderer.spec.ts + tests/renderer/whatsNew/content.test.js + tests/renderer/whatsNew/gate.test.js</Tests>
       </Sources>
       <Observability>
@@ -3775,6 +3789,7 @@
       <Type>CORE_LOGIC</Type>
       <Status>partial</Status>
       <Layer>0</Layer>
+      <SummaryDelta>C-STABILIZE-CHECKBOX-DIRTY: ClickEvent routes task toggles exclusively to listItemCheckBoxClick, whose single edit cursor owns the cascade history. The existing keyboard click listener remains the single renderer change notification. Explicit readonly containers cancel native checkbox default actions before model/input mutation; ordinary click routes remain unchanged.</SummaryDelta>
       <Summary>
 C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         context menus (ui/tableTools) are locale-safe — the menu now sizes
@@ -4297,18 +4312,8 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         the setMarkdown entry (progressive/ plus instance-scoped
         StateRender region entries) with the legacy full mount kept as the
         untouched default and the fail-safe fallback (V-M-063).
-        C-PAGE-WIDTH-TABLES (2026-11-02): the table mode model inside this
-        engine's tableResize is reworked as the honest three-mode model —
-        Auto stays content-sized, Fit page pins the frame to the text
-        column, Full width spans the window canvas (src/muya/lib/tableResize/
-        tableFit.js distribution with ratios-preserving re-application, the
-        honest minimal-size scroll degradation and the drag affordances; the
-        legacy fake-fit flag is gone and a stored fit:true entry opens in
-        Fit page after an idempotent schema-v2 migration). The per-document
-        page width store, the width-resolution pipeline and the titlebar
-        quick-settings panel boundary are owned by M-061
-        (graph/performance.xml); this engine consumes the resolved width and
-        the tableFullWidthDefault option the Tables tab writes (V-M-061).
+        C-STABILIZE-PRODUCT-REPAIRS: owner-accepted no-scroll table fitting, explicit Auto width reset, Auto-only outer walls, full-height internal border zones, icon-only toolbars, final Aa settings glyph and persistent Standard entry. Delayed table adoption is generation/document guarded; repaint preserves transforms and cleans up on teardown. M-012 owns table sizing/toolbars; M-061 owns the panel boundary; verification remains V-M-012 and V-M-061.
+        C-STABILIZE-SPLIT-PROJECTIONS: History owns the bounded document timeline. Unified entries replace block snapshots with one exact raw Markdown payload and constant-size rich/source selection metadata; pending typing coalesces and surface/command/tab boundaries commit. Activation preserves pre-split content history while collapsing adjacent native navigation entries. Render-only setMarkdown imports suppress history/change echoes; undo/redo replay carries exact raw source through one genuine change. Legacy progressive/footnote behavior remains.
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -4341,7 +4346,13 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       </Contract>
       <Interface>
         <fn-updateTableOverflow>
-          <Purpose>FIX-008 fullscreen table viewer scrollport: per-axis native scrollbars exist only when the scaled content actually overflows the stage, removing the phantom horizontal track at Fit while keeping sticky-header scrolling at >=100%.</Purpose>
+          <Purpose>Fullscreen table navigation is pan-only horizontally at every scale: no native horizontal track;
+          non-interactive edge shadows reflect live canvas/stage clipping. Native vertical scrolling
+          is enabled only when scaled content exceeds the stage, retaining sticky headers. Automatic
+          fitted table snapshots recover natural content widths; explicit user column/wall widths
+          remain unchanged. Close restores the live expand button across unsolicited editor
+          re-focus, while the next keyboard or pointer action cancels pending restoration so Tab can
+          continue to Copy.</Purpose>
           <File>src/muya/lib/ui/blockViewer/index.js</File>
           <VerificationRef>V-M-012</VerificationRef>
         </fn-updateTableOverflow>
@@ -4458,8 +4469,9 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
                 keeps in-memory column widths per TABLE BLOCK KEY
                 (renderContainerBlock renders them as a colgroup on
                 table.ag-column-widths-fixed so every re-render re-applies
-                them by construction; reconcileAfterRender next to the
-                T-001 scroll restore fixes column-count changes), an
+                them by construction; reconcileAfterRender fixes column-count changes and restores wrap-anywhere chrome for fixed/session
+                Auto geometry even when its border box fits; natural Auto without an entry retains
+                content sizing, and explicit Auto reset removes fixed geometry), an
                 invisible span.ag-column-resizer hit zone per th
                 (capture-phase pointer interaction, 48px minimum,
                 double-click reset, accent hairline). C-65: every table
@@ -4576,20 +4588,15 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
             <Attribute>
               <Name>PURPOSE</Name>
               <Value>
-                parser/render/renderBlock/expandNeed.js (C-51 T-010,
-                user decision D-7): the expand-need gate for the expand
-                button — pure rules (a diagram drawn ≥ 2 px narrower than
-                its natural size or taller than 600 px; a table whose
-                C-39 wrapper overflows by &gt; 1 px or which is taller
-                than 600 px), DOM gathering (SVG viewBox / px width
-                attribute, percentages rejected; img naturalWidth),
-                the ag-expand-needed class toggle with the
-                [Muya][expandNeed][BLOCK_EXPAND_NEED] log anchor, and ONE
-                shared ResizeObserver across muya instances (observe new
-                figures, unobserve removed ones, release on destroy; no
-                observer — jsdom — degrades to render-time evaluation).
-                Without the class button.ag-block-expand is display:none
-                (no Tab stop).
+                parser/render/renderBlock/expandNeed.js: need-gated expand visibility. A diagram needs the viewer
+                when drawn more than 2px below its natural width or taller than 600px. A table needs
+                it when intrinsic max-content column widths exceed its rendered width by more than
+                2px, its wrapper overflows by more than 1px, or its height exceeds 600px. Bounded
+                temporary automatic-layout measurement discards editor frame fitting without
+                mutating the live table, document, history or profile; unmeasurable widths produce
+                no natural-width verdict. Small fitting blocks remain display:none and are not Tab
+                stops. Existing post-render/diagram-insert/shared ResizeObserver funnels, teardown
+                and content-free BLOCK_EXPAND_NEED logging remain unchanged.
               </Value>
             </Attribute>
           </LegacyAttributes>
@@ -4678,7 +4685,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         </fn-renderBlockToolbar>
         <fn-toolbarLabelVisits>
           <Path>src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js; src/muya/lib/parser/render/renderBlock/renderTableToolbar.js</Path>
-          <Purpose>Keep visited inline labels open within each live table/Mermaid/Vega-Lite corner panel; reset its button classes only on whole-panel pointer or focus exit. Preserve disabled controls and existing keyboard/action routing.</Purpose>
+          <Purpose>Render icon-only table/Mermaid/Vega-Lite toolbar actions with stable widths and tooltip/aria names; preserve disabled controls and keyboard/action routing. Expanding label visits are superseded by C-STABILIZE-PRODUCT-REPAIRS.</Purpose>
           <Exports>toolbarLabelEvents</Exports>
           <VerificationRef>V-M-012 scenario-toolbar-label-visits</VerificationRef>
         </fn-toolbarLabelVisits>
@@ -6653,6 +6660,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-018; docs/development-plan.xml: M-018</LegacySource>
     </M-018>
     <M-019>
+      <SummaryDelta>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured immutable application identity routes native credential services, default-handler targeting and extension endpoint/discovery. Canonical release identity and macOS profile paths remain unchanged; only the canonical identifier retains the legacy extension scan. Focused pure/injected namespace tests exercise release and QA separation without host credentials or LaunchServices mutation.</SummaryDelta>
       <Name>mt-datacenter</Name>
       <DisplayName>mt-datacenter</DisplayName>
       <Type>DATA_LAYER</Type>
@@ -7031,6 +7039,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-020; docs/development-plan.xml: M-020</LegacySource>
     </M-020>
     <M-021>
+      <SummaryDelta>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: the shipped src-tauri/src/m021_default_handler.rs compatibility module uses configured identity for default-handler query/set/unset. Its historical M-021 filename/reference collides with this graph entry's planned fs_core identity. Namespace tests cover the shipped default-handler file only; they do not implement or verify the future fs_core contract retained below. Broader historical routing reconciliation remains separate.</SummaryDelta>
       <Name>mt-fs-core</Name>
       <DisplayName>mt-fs-core</DisplayName>
       <Type>CORE_LOGIC</Type>
@@ -7279,23 +7288,18 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-021; docs/development-plan.xml: M-021</LegacySource>
     </M-021>
     <M-022>
+      <SummaryDelta>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured immutable application identity routes native credential services, default-handler targeting and extension endpoint/discovery. Canonical release identity and macOS profile paths remain unchanged; only the canonical identifier retains the legacy extension scan. Focused pure/injected namespace tests exercise release and QA separation without host credentials or LaunchServices mutation.</SummaryDelta>
       <Name>mt-paths</Name>
       <DisplayName>mt-paths</DisplayName>
       <Type>UTILITY</Type>
       <Status>shipped</Status>
       <Layer>0</Layer>
-      <Summary>Cross-platform path helper for cache, app support, and logs roots.</Summary>
+      <Summary>Pure OS-native cache and durable data roots under an immutable configured application identifier; canonical release paths remain unchanged.</Summary>
       <PlannedPath>src-tauri/src/mt_paths.rs</PlannedPath>
       <Dependencies/>
       <VerificationRef>V-M-022</VerificationRef>
       <Contract>
-        <Purpose>
-          Cross-platform path helper. Returns
-          dirs::cache_dir().join(&quot;Mark&quot;) for cache_root,
-          dirs::data_local_dir().join(&quot;com.xronocode.mark&quot;) for
-          app_support, etc. Used by C2-3, C2-10, OG-iter2-002 for
-          sessions.jsonl/migration_declined.lock/crash logs.
-        </Purpose>
+        <Purpose>Resolve cache_root and data_root from the OS environment under the configured application namespace. M-001 initializes the identifier from the same generated Tauri Context used for build before rollback, reconciliation, panic logging or preferences access. The canonical release identifier remains the default for non-app callers; invalid or conflicting namespace initialization fails closed.</Purpose>
         <Inputs/>
         <Outputs>
           <Output>
@@ -7306,33 +7310,9 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         <Errors/>
       </Contract>
       <Interface>
-        <fn-cache_root>
-          <LegacyAttributes>
-            <Attribute>
-              <Name>PURPOSE</Name>
-              <Value>
-                macOS→~/Library/Caches/Mark; Linux→$XDG_CACHE_HOME/Mark or
-                ~/.cache/Mark; Windows→%LOCALAPPDATA%\Mark\Cache
-              </Value>
-            </Attribute>
-          </LegacyAttributes>
-        </fn-cache_root>
-        <fn-app_support_root>
-          <LegacyAttributes>
-            <Attribute>
-              <Name>PURPOSE</Name>
-              <Value>canonical com.xronocode.mark application support root per OS</Value>
-            </Attribute>
-          </LegacyAttributes>
-        </fn-app_support_root>
-        <fn-logs_root>
-          <LegacyAttributes>
-            <Attribute>
-              <Name>PURPOSE</Name>
-              <Value>canonical Mark logs dir per OS</Value>
-            </Attribute>
-          </LegacyAttributes>
-        </fn-logs_root>
+        <fn-cache_root><Purpose>Resolve the configured namespace under the OS cache base.</Purpose></fn-cache_root>
+        <fn-data_root><Purpose>Resolve the configured namespace under the OS durable data base.</Purpose></fn-data_root>
+        <fn-initialize_application_identifier><Purpose>Bind a validated immutable namespace before application state consumers.</Purpose></fn-initialize_application_identifier>
       </Interface>
       <Sources>
         <Source>src-tauri/src/mt_paths.rs</Source>
@@ -7823,6 +7803,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         forces devtools, that the default features never include it, and
         that the release workflows and the App Store build script never
         enable it.
+        C-SEC-AUDIT-FIXES: compatibility link hardening shares src-tauri/src/m_v1_compat.rs without changing DEV icon rules, build feature defaults or settings-window badging.
       </Summary>
       <PlannedPath>src-tauri/src/m069_dev_badge.rs, src-tauri/Cargo.toml, src-tauri/src/main.rs, src-tauri/src/m_v1_compat.rs</PlannedPath>
       <Dependencies>
@@ -8017,23 +7998,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <Status>shipped</Status>
       <Layer>2</Layer>
       <PhaseRef>C-TITLEBAR-MODE-CHIPS-T-004</PhaseRef>
-      <Summary>
-        C-TITLEBAR-MODE-CHIPS: the titlebar chips cluster and its two-group
-        switch menu (modeChips.vue), mounted first in the right titlebar
-        cluster. Flag truth diffMode &gt; splitView &gt; sourceCode selects one
-        document-view chip with icon and short label; the writing modes add
-        compact icon chips (typewriter, focus; at most three chips). The
-        standard state and the no-document state render no wrapper at all.
-        Each chip's tooltip is its menu hint; the Split tooltip appends the
-        narrow-window note below the 800 px editor floor. The menu groups
-        DOCUMENT VIEW (Standard/Split/Source/Changes — exclusive, checkmark
-        on the visible winner, shipped shortcuts and hint lines) and WRITING
-        MODES (independent toggles) plus the Reset footer; actions dispatch
-        the five existing command ids and normalize the view in one step.
-        The menu is live (toggles from any old surface update rows and
-        chips) and closes on outside click or Escape only. Log markers are
-        content-free.
-      </Summary>
+      <Summary>C-STABILIZE-PRODUCT-REPAIRS: icon-only view/writing chips expose the existing two-group mode menu. While a document is open Standard retains one entry; no document renders no wrapper. Visible-state precedence remains diff, split, source, then Standard. Tooltip/aria names and narrow Split note remain; Standard performs the full view/writing reset without a separate Reset footer.</Summary>
       <PlannedPath>src/renderer/src/components/titleBar/modeChips.vue</PlannedPath>
       <Dependencies>
         <M-011/>

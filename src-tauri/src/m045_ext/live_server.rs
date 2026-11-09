@@ -4,17 +4,20 @@
 //            stream.document messages from external apps (e.g. TokMo
 //            meeting mode) over HTTP POST on 127.0.0.1. Validates
 //            Bearer auth, session lifecycle, and sequence idempotency.
-//   SCOPE:   axum HTTP server with /ext/pair and /stream/* endpoints.
+//   SCOPE:   axum HTTP server with /ext/pair, /stream/*, and authenticated
+//            text-insert/context/apply data routes; runtime-generic events.
 //            Session state: open/patch/close/heartbeat lifecycle.
 //            Heartbeat timeout (15s) auto-closes stale sessions.
 //   DEPENDS: axum 0.8, tokio (net, rt, time, sync), serde/serde_json,
 //            super::auth (validate_token, generate_secret, store_secret).
 //   LINKS:   .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B5a);
-//            ROADMAP.md Decision D1 (HTTP POST IPC).
+//            ROADMAP.md Decision D1 (HTTP POST IPC);
+//            .grace/changes/archive/C-SEC-AUDIT-FIXES.
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: authenticate text insertion by enabled capability and bearer identity; runtime-generic fixtures.
 //   - 2026-08-14 live-doc v2: DocPatchRequest gained `op` (append|replace,
 //     default replace; replace_section synonym). LiveSession.sections is now
 //     an ordered Vec (was HashMap) set at /stream/open from an ordered
@@ -45,7 +48,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use tauri::{Emitter, Listener};
+use tauri::{Emitter, Listener, Manager};
 use tokio::sync::Mutex;
 
 // START_BLOCK_TYPES
@@ -68,9 +71,9 @@ pub struct LiveSession {
 
 /// Shared state for the live server. Thread-safe via tokio::sync::Mutex
 /// (async-aware, no blocking across await points).
-pub struct LiveServerState {
+pub struct LiveServerState<R: tauri::Runtime = tauri::Wry> {
     pub session: Mutex<Option<LiveSession>>,
-    pub app_handle: tauri::AppHandle,
+    pub app_handle: tauri::AppHandle<R>,
     /// Pending /ext/context requests awaiting frontend response.
     /// Uses std::sync::Mutex (not tokio) because the lock is held
     /// only briefly for insert/remove — never across await points.
@@ -374,9 +377,9 @@ fn extract_bearer(headers: &HeaderMap) -> Result<String, (StatusCode, String)> {
 }
 
 /// Validate a bearer token against the extension's stored secret.
-async fn validate_bearer(
+async fn validate_bearer<R: tauri::Runtime>(
     headers: &HeaderMap,
-    state: &LiveServerState,
+    state: &LiveServerState<R>,
 ) -> Result<String, (StatusCode, String)> {
     let token = extract_bearer(headers)?;
 
@@ -401,21 +404,35 @@ async fn validate_bearer(
     Ok(ext_id)
 }
 
-/// Validate bearer token against a specific extension's stored secret.
-/// Unlike validate_bearer(), this does NOT require an active LiveSession —
-/// used by /ext/context and /ext/apply which work with the normal editor.
-async fn validate_bearer_extension(
+/// Authenticate an incoming data request without holding the registry lock during
+/// native credential access. An identity-less request can select only enabled
+/// extensions advertising its required capability; no client-declared identity
+/// is accepted for text insertion.
+async fn authenticate_incoming<R: tauri::Runtime>(
+    state: &LiveServerState<R>,
     headers: &HeaderMap,
-    extension_id: &str,
-) -> Result<(), (StatusCode, String)> {
+    requested_id: Option<&str>,
+    capability: Option<&str>,
+) -> Result<String, (StatusCode, String)> {
     let token = extract_bearer(headers)?;
-    if !super::auth::validate_token(extension_id, &token) {
-        safe_eprintln!(
-            "[ExtHost][live_server][BLOCK_AUTH_FAILED_EXT ext_id={extension_id}]"
-        );
-        return Err((StatusCode::UNAUTHORIZED, "invalid token".to_string()));
+    let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+    let candidates = match requested_id {
+        Some(id) => registry.get_manifest(id).map(|m| vec![m]).unwrap_or_default(),
+        None => capability.map(|cap| registry.get_enabled(cap)).unwrap_or_default(),
+    };
+    let identity = tokio::task::spawn_blocking(move || {
+        candidates.into_iter().find(|manifest| super::auth::validate_token(&manifest.id, &token))
+            .map(|manifest| manifest.id)
+    }).await.ok().flatten();
+    if let Some(id) = identity {
+        if let Ok(manifest) = registry.get_manifest(&id) {
+            if capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap)) {
+                return Ok(id);
+            }
+        }
     }
-    Ok(())
+    safe_eprintln!("[ExtHost][live_server][BLOCK_AUTH_FAILED_INCOMING]");
+    Err((StatusCode::UNAUTHORIZED, "invalid token or disabled extension".to_string()))
 }
 
 // END_BLOCK_AUTH_EXTRACT
@@ -427,8 +444,8 @@ async fn validate_bearer_extension(
 /// caller. In production this would show a native dialog for user
 /// approval; for now auto-approves (TODO: wire native dialog via
 /// app_handle).
-async fn handle_pair(
-    State(_state): State<Arc<LiveServerState>>,
+pub(super) async fn handle_pair<R: tauri::Runtime>(
+    State(_state): State<Arc<LiveServerState<R>>>,
     Json(req): Json<PairRequest>,
 ) -> impl IntoResponse {
     safe_eprintln!(
@@ -518,8 +535,8 @@ async fn handle_pair(
 }
 
 /// POST /stream/open — start a live document session.
-async fn handle_doc_open(
-    State(state): State<Arc<LiveServerState>>,
+async fn handle_doc_open<R: tauri::Runtime>(
+    State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<DocOpenRequest>,
 ) -> impl IntoResponse {
@@ -638,8 +655,8 @@ async fn handle_doc_open(
 }
 
 /// POST /stream/patch — incremental document update.
-async fn handle_doc_patch(
-    State(state): State<Arc<LiveServerState>>,
+async fn handle_doc_patch<R: tauri::Runtime>(
+    State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<DocPatchRequest>,
 ) -> impl IntoResponse {
@@ -797,8 +814,8 @@ async fn handle_doc_patch(
 }
 
 /// POST /stream/close — end the live session.
-async fn handle_doc_close(
-    State(state): State<Arc<LiveServerState>>,
+async fn handle_doc_close<R: tauri::Runtime>(
+    State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<DocCloseRequest>,
 ) -> impl IntoResponse {
@@ -863,8 +880,8 @@ async fn handle_doc_close(
 }
 
 /// POST /stream/heartbeat — keepalive signal.
-async fn handle_heartbeat(
-    State(state): State<Arc<LiveServerState>>,
+async fn handle_heartbeat<R: tauri::Runtime>(
+    State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<HeartbeatRequest>,
 ) -> impl IntoResponse {
@@ -915,13 +932,18 @@ async fn handle_heartbeat(
 }
 
 /// POST /ext/text-insert — insert text at cursor from an external app.
-/// No auth required (pairing auth is for stream.document only in v1).
+/// Requires a paired, enabled extension with the text.insert capability.
 /// Emits `mt::text::op` in the same format that text_ops.rs uses so the
 /// frontend textOps.js listener handles it identically.
-async fn handle_text_insert(
-    State(state): State<Arc<LiveServerState>>,
+pub(super) async fn handle_text_insert<R: tauri::Runtime>(
+    State(state): State<Arc<LiveServerState<R>>>,
+    headers: HeaderMap,
     Json(req): Json<TextInsertRequest>,
 ) -> impl IntoResponse {
+    let extension_id = match authenticate_incoming(&state, &headers, None, Some("text.insert")).await {
+        Ok(id) => id,
+        Err((status, message)) => return (status, Json(serde_json::json!({"error": message}))),
+    };
     safe_eprintln!(
         "[ExtHost][live_server][BLOCK_TEXT_INSERT len={} source={:?}]",
         req.text.len(),
@@ -936,7 +958,7 @@ async fn handle_text_insert(
     let event = super::text_ops::TextOpEvent {
         op_type: "insert".to_string(),
         payload,
-        extension_id: "com.tokmo.voice".to_string(),
+        extension_id,
     };
 
     if let Err(e) = state.app_handle.emit("mt::text::op", &event) {
@@ -964,12 +986,12 @@ async fn handle_text_insert(
 /// E1a: used by TokMo EditAgent to fetch document context before LLM call.
 /// Emits a Tauri event to the frontend, which gathers the Muya editor state
 /// and emits a response event back. Uses a oneshot channel with 5s timeout.
-async fn handle_ext_context(
-    State(state): State<Arc<LiveServerState>>,
+pub(super) async fn handle_ext_context<R: tauri::Runtime>(
+    State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<ExtContextRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = validate_bearer_extension(&headers, &req.extension_id).await {
+    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), None).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
     }
 
@@ -1042,12 +1064,12 @@ async fn handle_ext_context(
 /// E1a: used by TokMo EditAgent to apply LLM-generated edits.
 /// Emits mt::text::op events for each operation; Muya's 1500ms debounce
 /// groups rapid operations as a single undo step.
-async fn handle_ext_apply(
-    State(state): State<Arc<LiveServerState>>,
+pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
+    State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<ExtApplyRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = validate_bearer_extension(&headers, &req.extension_id).await {
+    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), None).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
     }
 
@@ -1150,7 +1172,7 @@ const HEARTBEAT_TIMEOUT_SECS: u64 = 15;
 
 /// Background task: polls session state every 5 seconds and auto-closes
 /// the session if no heartbeat has been received within HEARTBEAT_TIMEOUT_SECS.
-async fn heartbeat_monitor(state: Arc<LiveServerState>) {
+async fn heartbeat_monitor<R: tauri::Runtime>(state: Arc<LiveServerState<R>>) {
     loop {
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
@@ -1207,18 +1229,18 @@ async fn heartbeat_monitor(state: Arc<LiveServerState>) {
 /// });
 /// let port = m045_ext::live_server::start_live_server(live_state).await?;
 /// ```
-pub async fn start_live_server(state: Arc<LiveServerState>) -> Result<u16, String> {
+pub async fn start_live_server<R: tauri::Runtime>(state: Arc<LiveServerState<R>>) -> Result<u16, String> {
     let heartbeat_state = Arc::clone(&state);
 
     let app = Router::new()
-        .route("/ext/pair", post(handle_pair))
-        .route("/ext/text-insert", post(handle_text_insert))
-        .route("/ext/context", post(handle_ext_context))
-        .route("/ext/apply", post(handle_ext_apply))
-        .route("/stream/open", post(handle_doc_open))
-        .route("/stream/patch", post(handle_doc_patch))
-        .route("/stream/close", post(handle_doc_close))
-        .route("/stream/heartbeat", post(handle_heartbeat));
+        .route("/ext/pair", post(handle_pair::<R>))
+        .route("/ext/text-insert", post(handle_text_insert::<R>))
+        .route("/ext/context", post(handle_ext_context::<R>))
+        .route("/ext/apply", post(handle_ext_apply::<R>))
+        .route("/stream/open", post(handle_doc_open::<R>))
+        .route("/stream/patch", post(handle_doc_patch::<R>))
+        .route("/stream/close", post(handle_doc_close::<R>))
+        .route("/stream/heartbeat", post(handle_heartbeat::<R>));
 
     #[cfg(debug_assertions)]
     let app = app.route("/debug/auth", axum::routing::get(handle_debug_auth));

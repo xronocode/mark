@@ -1,0 +1,26 @@
+<GraceChangeDesignContext graceVersion="4.0">
+  <Change>C-SEC-AUDIT-FIXES</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>The owner chose a single spec with three waves over per-finding bundles or an immediate hotfix PR (decision recorded 2026-11-09). Wave order follows cost and leverage: wave 1 (F-004) is release-pipeline-only, needs no product code and follows the in-repo cargo-tool pinning pattern, so it lands fastest where blast radius of a compromise is largest; wave 2 (F-002/F-003/F-005) hardens one module family (m045_ext) that ships live in every desktop build today — the live server starts unconditionally in non-MAS builds on 127.0.0.1 with an OS-assigned port; wave 3 (F-001/F-006) touches the security core (m010) shared by all file operations and therefore carries the widest regression surface, so it goes last with the Windows permissive-root suite as its guard. All six fixes share one verification shape — an isolated negative-case proof plus a preserved-legitimate-path companion — which is why they ride one bundle and one verification pass.</Rationale>
+  <Alternatives>
+    <Alternative>Six per-finding change bundles — rejected: six spec/plan/archive cycles for findings that share files (m010 serves F-001 and F-006; m045 serves three) and share test suites.</Alternative>
+    <Alternative>A standalone small chore PR for F-004 ahead of the spec — rejected by the owner's packaging choice on 2026-11-09; wave 1 of this change achieves the same pinning inside the governed flow.</Alternative>
+    <Alternative>A runtime confirmation dialog for executable link targets instead of a hard block — deferred: m010's own comment (check_shell_open_extension, "deferred to runtime confirm prompt in B3") envisioned a confirm prompt; this change ships the block first because it reuses the existing policy verbatim, and the dialog can layer on later without protocol change.</Alternative>
+    <Alternative>A hand-rolled strict URL parser for base_url instead of the url crate — rejected: url 2.5.8 is already in the lockfile, and hand-rolled parsing is exactly how F-005 was born.</Alternative>
+    <Alternative>Descriptor-based (openat-style) writes relative to a verified directory fd for F-006 — deferred: robust against races but a large rework of m013b/m021 write paths; nearest-existing-ancestor resolution closes the demonstrated escape with a local change.</Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>Whether a runtime confirmation dialog should ever allow opening executable link targets (hard block is this change's contract).</Decision>
+    <Decision>Whether mt_ext_disable should also tear down the extension's active LiveSessions beyond revoking the stored secret (the spec requires revocation; session teardown detail belongs to the plan).</Decision>
+    <Decision>Whether the stats-gateway README keeps a pinned wrangler deploy instruction or is reduced to the dash-collect route that replaced the cancelled CF-token flow.</Decision>
+    <Decision>Graph ownership of m013b/fs.rs (no graph path; M-002 provisional) and the routing owner of m_v1_compat.rs between the co-declared M-033 (semantic v1-IPC owner) and M-069 (shared path) — the plan session settles or reroutes both before freeze; corrected after gate pass 1 of 2026-11-09.</Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>Misuse, F-001: a received document sits next to an attacker-provided run.cmd.command; the document contains [run](run.cmd.command); the user Ctrl/Cmd+clicks; today the OS handler receives the executable path — after wave 3 the click is refused with a log marker and the opener is never called.</Scenario>
+    <Scenario>Misuse, F-002: any local process reads the discovery file (or scans loopback ports), POSTs /ext/text-insert unauthenticated and rewrites unsaved editor content — after wave 2 the request needs a bearer for an enabled extension with the text-insert capability.</Scenario>
+    <Scenario>Misuse, F-003: a previously paired extension is switched off in the gallery but keeps its token and continues reading and editing the active document — after wave 2 disable revokes the secret and the old token authenticates nothing.</Scenario>
+    <Scenario>Misuse, F-005: a planted manifest declares base_url http://localhost:1@evil.example and receives the bearer secret plus document text — after wave 2 the parser rejects userinfo outright, before any HTTP call.</Scenario>
+    <Scenario>Misuse, F-006: a workspace contains a symlinked folder pointing to a user-writable location outside the workspace; saving a new document or image through it escapes the sandbox — after wave 3 the nearest existing ancestor resolves outside and the write is rejected.</Scenario>
+    <Scenario>Preserved: a relative link to a sibling notes.md or image.png opens as before; an enabled paired voice extension inserts text as before; an inward-pointing symlink saves as before; loopback manifests (127.0.0.1, localhost, ::1) validate as before.</Scenario>
+  </Scenarios>
+</GraceChangeDesignContext>

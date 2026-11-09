@@ -1,0 +1,31 @@
+<GraceChangeSpec graceVersion="4.0" status="superseded">
+  <C-STABILIZE-TABLE-AUTO-PERSISTENCE>
+    <Summary>Preserve an explicit per-table Auto reset through the renderer profile sanitizer and save/reload, complementing the parent-owned Muya session/serialization fix. A missing override must still inherit the configured default; Fit/Full data remains compatible.</Summary>
+    <ApprovalBasis>Owner-approved recovery on 2026-11-09 delegates recommended implementation choices. The coordinating agent explicitly selected this small approved successor after a red reproduction showed an explicit Auto reset falling back to a global Fit default. Execute sequentially with the same writer; keep C-STABILIZE-PRODUCT-REPAIRS approved bytes unchanged. No new owner question or reviewer loop is required.</ApprovalBasis>
+    <Goals>
+      <Goal>Keep explicit Auto distinct from an absent override in schema-v2 persistence.</Goal>
+      <Goal>Discard stale widths, manual flags, ratios and explicit width from an Auto reset.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Only the renderer sanitizer and existing sanitizer/store tests are changed by this successor; parent owns tableResize and current graph/verification descriptions.</Constraint>
+      <Constraint>Preserve schema version, file identities, pruning, caps, rename behavior and Fit/Full migration. Do not edit the parent approved spec/plan or archives.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No split, security, release, dependency, broad persistence rewrite or new review loop.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>With global default Fit, an explicit Auto reset saves and reloads as Auto and cannot resurrect old column widths.</Criterion>
+      <Criterion>Absent mode remains absent and inherits the default; explicit Fit/Full and legacy migrations remain idempotent and keep their data.</Criterion>
+      <Criterion>Focused sanitizer/store tests pass; parent runs its affected product gates and central final lifecycle assertions.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Area>M-061 schema-v2 table layout sanitizer, consumed by M-012; existing parent-owned projections record the companion change.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js</ExpectedCommand>
+      <ExpectedEvidence>Red-to-green explicit-Auto sanitizer/save-load case plus unchanged inheritance and Fit/Full round trips. Parent-owned Muya test proves the global Fit default boundary. No fresh result is inferred from approval.</ExpectedEvidence>
+    </VerificationIntent>
+    <ReplacementChange>C-STABILIZE-TABLE-AUTO-PERSISTENCE-CLOSEOUT</ReplacementChange>
+    <SupersessionReason>Finite post-write recovery for a related active-baseline collision: the parent product wave and this companion sanitizer were executed sequentially under delegated recovery approval. The completed sanitizer cannot satisfy its original pre-edit baseline while the parent final gate evaluates unrelated approved baselines. Original assertions, scopes, tasks and acceptance remain preserved; the replacement baseline records observed completed bytes and retains the same target tests.</SupersessionReason>
+  </C-STABILIZE-TABLE-AUTO-PERSISTENCE>
+</GraceChangeSpec>

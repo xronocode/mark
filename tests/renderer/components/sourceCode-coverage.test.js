@@ -26,6 +26,7 @@ const cmMockInstance = vi.hoisted(() => ({
   off: vi.fn(),
   getValue: vi.fn(() => '# Hello\n\nWorld'),
   setValue: vi.fn(),
+  setOption: vi.fn(),
   getCursor: vi.fn((type) => ({ line: 0, ch: 0 })),
   getLine: vi.fn((lineNum) => {
     const lines = ['# Hello', '', 'World']

@@ -120,7 +120,11 @@
         }
       }
     },
-    "sequence-start": "Sequenz Start"
+    "sequence-start": "Sequenz Start",
+    "tableExport": {
+      "title": "Tabelle",
+      "copied": "Tabelle als Bild in die Zwischenablage kopiert"
+    }
   },
   "outlineRail": {
     "title": "Auf dieser Seite"
@@ -1631,7 +1635,8 @@
     "fitToPage": "Auf Seite einpassen",
     "fullWidth": "Volle Breite",
     "columnsRange": "Spalten {start}–{end} von {total}",
-    "doesNotFitBy": "Passt um {px} px nicht – Spalten-Scrolling statt versteckter Daten"
+    "doesNotFitBy": "Passt um {px} px nicht – Spalten-Scrolling statt versteckter Daten",
+    "columnWallHint": "Drag to resize · double-click to fit content"
   },
   "statusBar": {
     "title": "Dokumentstatistik",
@@ -1796,5 +1801,8 @@
       "rememberSizes": "Spaltengrößen merken",
       "rememberSizesHelp": "Spaltengrößen werden pro Datei gespeichert und bei Breitenänderungen proportional neu angewendet"
     }
+  },
+  "extensions": {
+    "disableFailed": "Die Erweiterung ist deaktiviert, aber der Entzug des Zugriffs konnte nicht bestätigt werden. Versuchen Sie es erneut."
   }
 }

@@ -9,12 +9,14 @@
 //            HTTP handling, no session state, no Muya logic. Pure glue
 //            between Rust backend and Vue frontend.
 //   DEPENDS: tauri (AppHandle, Emitter), serde/serde_json.
-//   LINKS:   .grace/graph/features.xml M-045;
+//   LINKS:   .grace/changes/archive/C-SEC-AUDIT-FIXES;
+//            .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B5b);
 //            ROADMAP.md Decision D1 (HTTP POST IPC).
 //   STATUS:  Phase-B5b initial — bridge emit helpers.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: share event emission across production and mock runtimes.
 //   - 2026-06-09 E1a: add emit_context_request helper for /ext/context.
 //   - 2026-06-08 B5b: initial live_bridge module creation.
 //   ROLE: RUNTIME
@@ -53,7 +55,7 @@ pub struct LiveUpdate {
 /// The event name `mt::live::update` follows the project convention
 /// established in bootstrap-ipc.js (all Tauri events use `mt::` prefix).
 /// Returns Ok(()) on success or a stringified error.
-pub fn emit_live_update(app: &AppHandle, update: LiveUpdate) -> Result<(), String> {
+pub fn emit_live_update<R: tauri::Runtime>(app: &AppHandle<R>, update: LiveUpdate) -> Result<(), String> {
     safe_eprintln!(
         "[ExtHost][live_bridge][BLOCK_EMIT update_type={}]",
         update.update_type,
@@ -74,8 +76,8 @@ pub fn emit_live_update(app: &AppHandle, update: LiveUpdate) -> Result<(), Strin
 // START_BLOCK_HELPERS
 
 /// Convenience: emit a doc_open event.
-pub fn emit_doc_open(
-    app: &AppHandle,
+pub fn emit_doc_open<R: tauri::Runtime>(
+    app: &AppHandle<R>,
     session_id: &str,
     title: &str,
     content: &str,
@@ -91,8 +93,8 @@ pub fn emit_doc_open(
 }
 
 /// Convenience: emit a doc_patch event with the full rebuilt document.
-pub fn emit_doc_patch(
-    app: &AppHandle,
+pub fn emit_doc_patch<R: tauri::Runtime>(
+    app: &AppHandle<R>,
     full_content: &str,
     section: &str,
     revision: u64,
@@ -108,8 +110,8 @@ pub fn emit_doc_patch(
 }
 
 /// Convenience: emit a doc_close event.
-pub fn emit_doc_close(
-    app: &AppHandle,
+pub fn emit_doc_close<R: tauri::Runtime>(
+    app: &AppHandle<R>,
     session_id: &str,
     final_revision: u64,
 ) -> Result<(), String> {
@@ -125,8 +127,8 @@ pub fn emit_doc_close(
 /// E1a: emit a context request event to the frontend.
 /// The frontend gathers the Muya editor state and emits
 /// `mt::ext::context_response` back with the result.
-pub fn emit_context_request(
-    app: &AppHandle,
+pub fn emit_context_request<R: tauri::Runtime>(
+    app: &AppHandle<R>,
     request_id: &str,
 ) -> Result<(), String> {
     safe_eprintln!(

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the persistent table layout behaviour (C-65 T-001/T-004 + C-PAGE-WIDTH-TABLES T-007/T-008/T-009) — the persistent identity (ordinal + header signature), the schema-v2 adoption (widths + ratios + tableWidth + mode, with the idempotent legacy fit:true/fullWidth migration), the rememberTableColumnSizes gate, the identity-change drops (corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the honest three-mode defaults and the toolbar mode-segment routing, the degradation badge caption, the walls and the reset/wall-double-click persist paths.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities load versus write modes, applyPersistedLayouts, serializeTableLayouts, persist snapshot refresh, toggle/openViewer, handleToolbarAction/Click/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -11,6 +11,7 @@
 //
 // START_MODULE_MAP
 //   CLEANUP - teardown callbacks run after each test.
+//   flushAdoption - flush the post-paint adoption frames.
 //   makeFakeMuya - fake muya {container, options, eventCenter with REAL addEventListener-backed attachDOMEvent, dispatch spy} with a real TableResize.
 //   buildTableFigure - jsdom table/caption scroll block with header texts, ids and stubbed cell rects.
 //   buildToolbarDom - the three-button mode segment DOM (Auto/Fit/Full + the expand action) the vnode builds in the real editor.
@@ -22,7 +23,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007/T-008/T-009:
+//   LAST_CHANGE: v2.1.0 - 2026-11-05: adoption runs after the
+//   first paint (double rAF — the WKWebView stale-border fix), so the
+//   tests flush those frames before reading the adopted state.
+//   PREV: v2.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007/T-008/T-009:
 //   the suite moves to the honest three-mode model — v2 sanitize pins
 //   (mode/ratios/tableWidth, the idempotent legacy migration), the retired
 //   fake-fit default replaced by the mode-default/legacy-migration cases,
@@ -186,7 +190,7 @@ const addHandles = (row) => {
 
 // START_BLOCK_IDENTITY_ASSERTIONS
 describe('persistent identity (C-65 R-1)', () => {
-  it('hashes header texts deterministically; the signature counts the columns', () => {
+  it('hashes header texts deterministically; the signature counts the columns', async () => {
     expect(hashHeaderText('abc')).toBe(hashHeaderText('abc'))
     expect(hashHeaderText('abc')).not.toBe(hashHeaderText('abd'))
     const rowOf = (texts) => {
@@ -208,7 +212,7 @@ describe('persistent identity (C-65 R-1)', () => {
     expect(tableSignature(document.createElement('table').createTHead().insertRow(0))).toBeNull()
   })
 
-  it('sanitizes persisted entries (schema v2): widths clamped, modes kept, husks dropped', () => {
+  it('sanitizes persisted entries (schema v2): widths clamped, modes kept, husks dropped', async () => {
     const entries = sanitizePersistedEntries({
       '0#2:x': { widths: [120, 20], manual: [true] },
       '1#1:y': { widths: [], manual: [], mode: 'full' },
@@ -229,7 +233,7 @@ describe('persistent identity (C-65 R-1)', () => {
     expect(sanitizePersistedEntries('x')).toBeNull()
   })
 
-  it('the legacy fake-fit flags migrate one-way to the v2 mode (idempotent, corner C-8)', () => {
+  it('the legacy fake-fit flags migrate one-way to the v2 mode (idempotent, corner C-8)', async () => {
     const entries = sanitizePersistedEntries({
       'a': { widths: [], manual: [], fit: true },
       'b': { widths: [], manual: [], fullWidth: true, fit: true }
@@ -246,8 +250,17 @@ describe('persistent identity (C-65 R-1)', () => {
   })
 })
 
+
+// The live app adopts persisted layouts AFTER the first paint (double
+// rAF — the WKWebView stale-border fix); tests flush those frames.
+const flushAdoption = async (muya) => {
+  await new Promise((r) => requestAnimationFrame(() => r()))
+  await new Promise((r) => requestAnimationFrame(() => r()))
+  await new Promise((r) => setTimeout(r, 0))
+}
+
 describe('adoption and drops (C-65 R-1, corners 1/2/3/5)', () => {
-  it('adopts stored widths + manual flags and the full-width mode into fresh block keys', () => {
+  it('adopts stored widths + manual flags and the full-width mode into fresh block keys', async () => {
     const muya = makeFakeMuya()
     const { figure, wrapper, table } = buildTableFigure('t1', ['Alpha', 'Beta'])
     muya.container.appendChild(figure)
@@ -256,6 +269,7 @@ describe('adoption and drops (C-65 R-1, corners 1/2/3/5)', () => {
     muya.tableResize.applyPersistedLayouts({
       [pid]: { widths: [120, 80], manual: [true, false], fullWidth: true }
     })
+    await flushAdoption(muya)
 
     expect(muya.tableResize.getWidths('t1')).toEqual([120, 80])
     expect(table.classList.contains('ag-column-widths-fixed')).toBe(true)
@@ -266,7 +280,7 @@ describe('adoption and drops (C-65 R-1, corners 1/2/3/5)', () => {
     expect(muya.eventCenter.dispatch).not.toHaveBeenCalledWith('muya-table-layouts', expect.anything())
   })
 
-  it('a stored column-count mismatch adopts no widths (the identity includes the count)', () => {
+  it('a stored column-count mismatch adopts no widths (the identity includes the count)', async () => {
     const muya = makeFakeMuya()
     const { figure, table } = buildTableFigure('t1', ['Alpha', 'Beta'])
     muya.container.appendChild(figure)
@@ -302,7 +316,7 @@ describe('adoption and drops (C-65 R-1, corners 1/2/3/5)', () => {
     expect(second.table.classList.contains('ag-column-widths-fixed')).toBe(true)
   })
 
-  it('a column-count change drops the widths through the same identity rule', () => {
+  it('a column-count change drops the widths through the same identity rule', async () => {
     const muya = makeFakeMuya()
     const { figure, row } = buildTableFigure('t1', ['Alpha', 'Beta'])
     muya.container.appendChild(figure)
@@ -318,7 +332,7 @@ describe('adoption and drops (C-65 R-1, corners 1/2/3/5)', () => {
     expect(muya.tableResize.getWidths('t1')).toBeUndefined()
   })
 
-  it('persisted entries whose identity disappeared are dropped from the live store', () => {
+  it('persisted entries whose identity disappeared are dropped from the live store', async () => {
     const muya = makeFakeMuya()
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -330,12 +344,13 @@ describe('adoption and drops (C-65 R-1, corners 1/2/3/5)', () => {
     expect(Object.keys(muya.tableResize.persisted)).toEqual([pid])
   })
 
-  it('a table whose identity changed also loses its stored mode (T-007)', () => {
+  it('a table whose identity changed also loses its stored mode (T-007)', async () => {
     const muya = makeFakeMuya()
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
     const pid = pidOf(0, ['Alpha'])
     muya.tableResize.applyPersistedLayouts({ [pid]: { widths: [], manual: [], mode: 'full' } })
+    await flushAdoption(muya)
     expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(true)
 
     figure.querySelector('th').textContent = 'Changed'
@@ -349,7 +364,7 @@ describe('adoption and drops (C-65 R-1, corners 1/2/3/5)', () => {
 
 // START_BLOCK_PERSIST_ASSERTIONS
 describe('serialize + persist (C-65 R-1 + T-007/T-008 shapes)', () => {
-  it('serializes only tables with a dragged column, ratios, a wall width or a mode', () => {
+  it('serializes only tables with a dragged column, ratios, a wall width or a mode', async () => {
     const muya = makeFakeMuya()
     const first = buildTableFigure('t1', ['Alpha', 'Beta'])
     const second = buildTableFigure('t2', ['One'])
@@ -366,7 +381,7 @@ describe('serialize + persist (C-65 R-1 + T-007/T-008 shapes)', () => {
     expect(entries[pidOf(2, ['X', 'Y'])]).toEqual({ widths: [], manual: [], mode: 'full' })
   })
 
-  it('persist dispatches muya-table-layouts with ratios written by the drag (T-008)', () => {
+  it('persist dispatches muya-table-layouts with ratios written by the drag (T-008)', async () => {
     const muya = makeFakeMuya()
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -378,7 +393,7 @@ describe('serialize + persist (C-65 R-1 + T-007/T-008 shapes)', () => {
     })
   })
 
-  it('rememberTableColumnSizes=false gates the persistence bridge (T-008)', () => {
+  it('rememberTableColumnSizes=false gates the persistence bridge (T-008)', async () => {
     const muya = makeFakeMuya({ rememberTableColumnSizes: false })
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -389,6 +404,7 @@ describe('serialize + persist (C-65 R-1 + T-007/T-008 shapes)', () => {
     // Adoption is skipped the same way (a fresh key proves it — the
     // session entry above must stay untouched by the load path).
     muya.tableResize.applyPersistedLayouts({ [pidOf(1, ['Fresh'])]: { widths: [90], manual: [true] } })
+    await flushAdoption(muya)
     expect(muya.tableResize.persisted).toBeNull()
     expect(muya.tableResize.widths.has('t1')).toBe(true)
   })
@@ -397,7 +413,7 @@ describe('serialize + persist (C-65 R-1 + T-007/T-008 shapes)', () => {
 
 // START_BLOCK_MODE_DEFAULT_ASSERTIONS
 describe('the honest mode defaults (T-007, R-8 — the fake-fit default is retired)', () => {
-  it('defaultMode maps the tri-state option; legacy booleans resolve to Auto', () => {
+  it('defaultMode maps the tri-state option; legacy booleans resolve to Auto', async () => {
     for (const [option, expected] of [
       ['auto', 'auto'], ['fit', 'fit'], ['full', 'full'],
       [undefined, 'auto'], [true, 'auto'], [false, 'auto']
@@ -407,7 +423,7 @@ describe('the honest mode defaults (T-007, R-8 — the fake-fit default is retir
     }
   })
 
-  it('a wide table stays Auto — no auto-expansion, nothing written', () => {
+  it('a wide table stays Auto — no auto-expansion, nothing written', async () => {
     const muya = makeFakeMuya()
     const wide = buildTableFigure('t1', ['Alpha', 'Beta'])
     muya.container.appendChild(wide.figure)
@@ -420,7 +436,7 @@ describe('the honest mode defaults (T-007, R-8 — the fake-fit default is retir
     expect(muya.tableResize.serializeTableLayouts()).toEqual({})
   })
 
-  it('the default mode puts every undecided table into fit or full when configured', () => {
+  it('the default mode puts every undecided table into fit or full when configured', async () => {
     for (const [option, klass] of [['fit', 'fit'], ['full', 'full']]) {
       const muya = makeFakeMuya({ tableFullWidthDefault: option })
       const { figure } = buildTableFigure('t1', ['Alpha'])
@@ -434,7 +450,7 @@ describe('the honest mode defaults (T-007, R-8 — the fake-fit default is retir
     }
   })
 
-  it('a stored mode opens that mode after a reload; a second load changes nothing', () => {
+  it('a stored mode opens that mode after a reload; a second load changes nothing', async () => {
     const build = () => {
       const instance = makeFakeMuya()
       const built = buildTableFigure('t1', ['Alpha'])
@@ -445,6 +461,7 @@ describe('the honest mode defaults (T-007, R-8 — the fake-fit default is retir
     first.tableResize.applyPersistedLayouts({
       [pidOf(0, ['Alpha'])]: { widths: [], manual: [], mode: 'fit' }
     })
+    await flushAdoption(first)
     expect(first.tableResize.modeOf('t1')).toBe('fit')
     // The adopted state serializes honestly (the v2 mode, no legacy flags).
     expect(first.tableResize.serializeTableLayouts()).toEqual({
@@ -456,19 +473,21 @@ describe('the honest mode defaults (T-007, R-8 — the fake-fit default is retir
     second.tableResize.applyPersistedLayouts({
       [pidOf(0, ['Alpha'])]: { widths: [], manual: [], mode: 'fit' }
     })
+    await flushAdoption(second)
     expect(second.tableResize.modeOf('t1')).toBe('fit')
     expect(second.tableResize.serializeTableLayouts()).toEqual({
       [pidOf(0, ['Alpha'])]: { widths: [], manual: [], mode: 'fit' }
     })
   })
 
-  it('a legacy fit:true profile entry opens in the honest Fit page (R-8 migration)', () => {
+  it('a legacy fit:true profile entry opens in the honest Fit page (R-8 migration)', async () => {
     const muya = makeFakeMuya()
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
     muya.tableResize.applyPersistedLayouts({
       [pidOf(0, ['Alpha'])]: { widths: [], manual: [], fit: true }
     })
+    await flushAdoption(muya)
     expect(muya.tableResize.modeOf('t1')).toBe('fit')
     expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(false)
     // The migration never writes the legacy flag back — only the v2 mode.
@@ -481,7 +500,7 @@ describe('the honest mode defaults (T-007, R-8 — the fake-fit default is retir
 
 // START_BLOCK_MODE_SEGMENT_ASSERTIONS
 describe('the mode segment routing (T-007) + toolbar/caption capture paths', () => {
-  it('the bubble route applies the chosen mode exactly once before generic Muya click handling', () => {
+  it('the bubble route applies the chosen mode exactly once before generic Muya click handling', async () => {
     const muya = makeFakeMuya()
     const { figure, wrapper } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -509,7 +528,7 @@ describe('the mode segment routing (T-007) + toolbar/caption capture paths', () 
     expect(muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', { entries: {} })
   })
 
-  it('the mode replaces an adopted entry instead of re-adopting stale persisted state', () => {
+  it('the mode replaces an adopted entry instead of re-adopting stale persisted state', async () => {
     const muya = makeFakeMuya()
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -518,6 +537,7 @@ describe('the mode segment routing (T-007) + toolbar/caption capture paths', () 
 
     // The file opens with an explicit Full width profile entry.
     muya.tableResize.applyPersistedLayouts({ [pid]: { widths: [], manual: [], mode: 'full' } })
+    await flushAdoption(muya)
     expect(figure.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(true)
     expect(full.classList.contains('ag-table-toolbar-active')).toBe(true)
 
@@ -791,7 +811,7 @@ describe('finder + capture routing guards (C-65 R-7)', () => {
     expect(muya.tableResize.findHandle(handle)).toBe(handle)
   })
 
-  it('mousedown on a resizer handle is eaten before muya can place the caret', () => {
+  it('mousedown on a resizer handle is eaten before muya can place the caret', async () => {
     const muya = makeFakeMuya()
     const { figure, row } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -806,7 +826,7 @@ describe('finder + capture routing guards (C-65 R-7)', () => {
     expect(bubbled).not.toHaveBeenCalled()
   })
 
-  it('mousedown outside the toolbar buttons evaluates the caption branch; a null target is inert', () => {
+  it('mousedown outside the toolbar buttons evaluates the caption branch; a null target is inert', async () => {
     const muya = makeFakeMuya()
     const { figure, caption } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -827,7 +847,7 @@ describe('finder + capture routing guards (C-65 R-7)', () => {
     })).not.toThrow()
   })
 
-  it('the scroll capture ignores plain elements, stray wrappers and non-element targets', () => {
+  it('the scroll capture ignores plain elements, stray wrappers and non-element targets', async () => {
     const muya = makeFakeMuya()
     const plain = document.createElement('div')
     muya.container.appendChild(plain)
@@ -846,7 +866,7 @@ describe('finder + capture routing guards (C-65 R-7)', () => {
     })).not.toThrow()
   })
 
-  it('the mode segment and the viewer ignore non-figures and figures without a usable table', () => {
+  it('the mode segment and the viewer ignore non-figures and figures without a usable table', async () => {
     const muya = makeFakeMuya()
     const foreign = document.createElement('button')
     foreign.dataset.tableToolbarAction = 'setMode'
@@ -880,13 +900,13 @@ describe('finder + capture routing guards (C-65 R-7)', () => {
 })
 
 describe('full-width DOM guards (C-65 R-6/R-7)', () => {
-  it('applyPersistedLayouts(null) keeps a null persisted store', () => {
+  it('applyPersistedLayouts(null) keeps a null persisted store', async () => {
     const muya = makeFakeMuya()
     muya.tableResize.applyPersistedLayouts(null)
     expect(muya.tableResize.persisted).toBeNull()
   })
 
-  it('applyModeDom tolerates a null figure and a figure without a wrapper', () => {
+  it('applyModeDom tolerates a null figure and a figure without a wrapper', async () => {
     const muya = makeFakeMuya()
     expect(() => muya.tableResize.applyModeDom(null, 'full')).not.toThrow()
     const bare = document.createElement('figure')
@@ -894,7 +914,7 @@ describe('full-width DOM guards (C-65 R-6/R-7)', () => {
     expect(bare.classList.contains(TABLE_FULL_WIDTH_CLASS)).toBe(true)
   })
 
-  it('the breakout geometry refuses unusable anchors: no wrapper, no editor, no container, unparseable margin', () => {
+  it('the breakout geometry refuses unusable anchors: no wrapper, no editor, no container, unparseable margin', async () => {
     const muya = makeFakeMuya()
     // No wrapper at all.
     expect(() => muya.tableResize.applyFullWidthGeometry(document.createElement('figure'))).not.toThrow()
@@ -930,7 +950,7 @@ describe('full-width DOM guards (C-65 R-6/R-7)', () => {
     expect(third.wrapper.style.marginLeft).toBe('')
   })
 
-  it('updateToolbarModeDom only toggles classes — it never needs the translator', () => {
+  it('updateToolbarModeDom only toggles classes — it never needs the translator', async () => {
     const muya = makeFakeMuya({ t: null })
     const { figure } = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(figure)
@@ -941,7 +961,7 @@ describe('full-width DOM guards (C-65 R-6/R-7)', () => {
 })
 
 describe('identity edge cases (C-65 R-1/R-7)', () => {
-  it('tables without an id or without header cells never mint an identity', () => {
+  it('tables without an id or without header cells never mint an identity', async () => {
     const muya = makeFakeMuya()
     const noId = buildBareTable('', ['A'])
     const emptyRow = buildBareTable('t2', [])
@@ -955,7 +975,7 @@ describe('identity edge cases (C-65 R-1/R-7)', () => {
     expect(muya.tableResize.identities.has('t1')).toBe(true)
   })
 
-  it('an identity change on a bare table (no figure) still drops widths and the mode', () => {
+  it('an identity change on a bare table (no figure) still drops widths and the mode', async () => {
     const muya = makeFakeMuya()
     const built = buildBareTable('t1', ['Alpha', 'Beta'])
     muya.container.appendChild(built.table)
@@ -971,13 +991,14 @@ describe('identity edge cases (C-65 R-1/R-7)', () => {
     expect(built.table.classList.contains('ag-column-widths-fixed')).toBe(false)
   })
 
-  it('a stored mode adopts onto a bare table without a figure', () => {
+  it('a stored mode adopts onto a bare table without a figure', async () => {
     const muya = makeFakeMuya()
     const built = buildBareTable('t1', ['Alpha'])
     muya.container.appendChild(built.table)
     const pid = pidOf(0, ['Alpha'])
 
     muya.tableResize.applyPersistedLayouts({ [pid]: { widths: [], manual: [], mode: 'full' } })
+    await flushAdoption(muya)
 
     expect(muya.tableResize.modeOf('t1')).toBe('full')
     expect(Object.keys(muya.tableResize.persisted)).toEqual([pid])
@@ -1127,7 +1148,7 @@ describe('pointer + double-click guard paths (C-65 R-3/R-7)', () => {
     muya.tableResize.handlePointerUp()
   })
 
-  it('a pointerup on a table without a figure ancestor persists without a cue sync', () => {
+  it('a pointerup on a table without a figure ancestor persists without a cue sync', async () => {
     const muya = makeFakeMuya()
     const built = buildBareTable('t1', ['Alpha'])
     muya.container.appendChild(built.table)
@@ -1144,7 +1165,7 @@ describe('pointer + double-click guard paths (C-65 R-3/R-7)', () => {
     })
   })
 
-  it('double-clicks off the handle, on disabled surfaces or without a table do nothing', () => {
+  it('double-clicks off the handle, on disabled surfaces or without a table do nothing', async () => {
     const muya = makeFakeMuya()
     const off = mkEvent(document.createElement('span'))
     muya.tableResize.handleDoubleClick(off)
@@ -1168,7 +1189,7 @@ describe('pointer + double-click guard paths (C-65 R-3/R-7)', () => {
     expect(disabled.tableResize.getWidths('t2')).toEqual([120])
   })
 
-  it('a double-click on a table without stored widths is a no-op (already auto)', () => {
+  it('a double-click on a table without stored widths is a no-op (already auto)', async () => {
     const muya = makeFakeMuya()
     const built = buildTableFigure('t1', ['Alpha'])
     muya.container.appendChild(built.figure)
@@ -1179,7 +1200,7 @@ describe('pointer + double-click guard paths (C-65 R-3/R-7)', () => {
     expect(muya.eventCenter.dispatch).not.toHaveBeenCalled()
   })
 
-  it('the full reset on a bare table (no figure) persists the removal', () => {
+  it('the full reset on a bare table (no figure) persists the removal', async () => {
     const muya = makeFakeMuya()
     const built = buildBareTable('t1', ['Alpha'])
     muya.container.appendChild(built.table)
@@ -1193,7 +1214,7 @@ describe('pointer + double-click guard paths (C-65 R-3/R-7)', () => {
     expect(muya.eventCenter.dispatch).toHaveBeenCalledWith('muya-table-layouts', { entries: {} })
   })
 
-  it('the partial reset on a thead-less table keeps the stored width and persists', () => {
+  it('the partial reset on a thead-less table keeps the stored width and persists', async () => {
     const muya = makeFakeMuya()
     const built = buildBareTable('t1', ['Alpha', 'Beta'], { inTbody: true })
     muya.container.appendChild(built.table)
@@ -1214,12 +1235,13 @@ describe('pointer + double-click guard paths (C-65 R-3/R-7)', () => {
 // END_BLOCK_GUARD_ASSERTIONS
 
 describe('table viewport and export regression paths (C-71)', () => {
-  it('drops modes of vanished keys and adopts a legacy fit flag on a bare table', () => {
+  it('drops modes of vanished keys and adopts a legacy fit flag on a bare table', async () => {
     const muya = makeFakeMuya()
     const { table } = buildTableFigure('bare', ['Alpha'])
     muya.container.appendChild(table)
     muya.tableResize.modes.set('removed', 'full')
     muya.tableResize.applyPersistedLayouts({ [pidOf(0, ['Alpha'])]: { fit: true } })
+    await flushAdoption(muya)
     expect(muya.tableResize.modes.has('removed')).toBe(false)
     expect(muya.tableResize.modeOf('bare')).toBe('fit')
   })
@@ -1296,3 +1318,91 @@ describe('table viewport and export regression paths (C-71)', () => {
     expect(wrapper.style.marginLeft).toBe('-26px')
   })
 })
+
+// START_BLOCK_STABILIZE_LIFECYCLE_ASSERTIONS
+describe('C-STABILIZE-PRODUCT-REPAIRS lifecycle and drag boundaries', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('keeps an explicit Auto reset across reload when the global default is Fit', async () => {
+    const muya = makeFakeMuya({ tableFullWidthDefault: 'fit' })
+    const built = buildTableFigure('auto-choice', ['A', 'B'])
+    muya.container.appendChild(built.figure)
+    const { auto } = buildToolbarDom(built.figure)
+    muya.tableResize.syncIdentities()
+    expect(muya.tableResize.modeOf('auto-choice')).toBe('fit')
+    auto.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(muya.tableResize.modeOf('auto-choice')).toBe('auto')
+    const stored = muya.tableResize.serializeTableLayouts()
+    expect(stored[pidOf(0, ['A', 'B'])].mode).toBe('auto')
+    const reopened = makeFakeMuya({ tableFullWidthDefault: 'fit' })
+    reopened.container.appendChild(buildTableFigure('reopened-auto', ['A', 'B']).figure)
+    reopened.tableResize.applyPersistedLayouts(stored)
+    await flushAdoption(reopened)
+    expect(reopened.tableResize.modeOf('reopened-auto')).toBe('auto')
+    muya.tableResize.destroy()
+    reopened.tableResize.destroy()
+  })
+
+  it('does not adopt an old document after its table was replaced during the paint delay', () => {
+    const frames = []
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => { frames.push(cb); return frames.length })
+    const muya = makeFakeMuya()
+    const old = buildTableFigure('old-document', ['A', 'B'])
+    muya.container.appendChild(old.figure)
+    muya.tableResize.applyPersistedLayouts({ [pidOf(0, ['A', 'B'])]: { widths: [90, 80], manual: [true, false] } })
+    const refit = vi.spyOn(muya.tableResize, 'refitAll')
+    muya.container.replaceChildren(buildTableFigure('new-document', ['A', 'B']).figure)
+    while (frames.length) frames.shift()()
+    expect(refit).not.toHaveBeenCalled()
+    expect(muya.tableResize.getWidths('new-document')).toBeUndefined()
+    muya.tableResize.destroy()
+  })
+
+  it('makes only the latest pending adoption effective and cancels it on destroy', () => {
+    const frames = []
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => { frames.push(cb); return frames.length })
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+    const muya = makeFakeMuya()
+    const built = buildTableFigure('latest', ['A', 'B'])
+    muya.container.appendChild(built.figure)
+    const refit = vi.spyOn(muya.tableResize, 'refitAll')
+    muya.tableResize.applyPersistedLayouts({})
+    muya.tableResize.applyPersistedLayouts({})
+    while (frames.length) frames.shift()()
+    expect(refit).toHaveBeenCalledTimes(1)
+    refit.mockClear()
+    muya.tableResize.applyPersistedLayouts({})
+    muya.tableResize.destroy()
+    while (frames.length) frames.shift()()
+    expect(refit).not.toHaveBeenCalled()
+  })
+
+  it('restores an existing table transform after repeated repaint and teardown', () => {
+    const frames = []
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => { frames.push(cb); return frames.length })
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+    const muya = makeFakeMuya()
+    const { table } = buildTableFigure('paint', ['A', 'B'])
+    table.getBoundingClientRect = () => ({ width: 200 })
+    table.style.transform = 'scale(0.9)'
+    muya.tableResize.repaintTableLayer(table)
+    muya.tableResize.repaintTableLayer(table)
+    while (frames.length) frames.shift()()
+    expect(table.style.transform).toBe('scale(0.9)')
+    muya.tableResize.repaintTableLayer(table)
+    muya.tableResize.destroy()
+    while (frames.length) frames.shift()()
+    expect(table.style.transform).toBe('scale(0.9)')
+  })
+
+  it('keeps manual-drag remainder columns within a narrow frame even below content minima', () => {
+    const muya = makeFakeMuya()
+    const entry = { widths: [120, 120, 120], manual: [true, false, false] }
+    muya.tableResize.refitRemainder(entry, 0, 180, [120, 120, 120], [200, 200, 200])
+    expect(entry.widths).toEqual([84, 48, 48])
+    expect(entry.widths.every(w => w > 0)).toBe(true)
+    expect(entry.widths.reduce((sum, width) => sum + width, 0)).toBe(180)
+    muya.tableResize.destroy()
+  })
+})
+// END_BLOCK_STABILIZE_LIFECYCLE_ASSERTIONS

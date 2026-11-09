@@ -178,10 +178,12 @@ describe('table toolbar Copy as image (C-70 R-2)', () => {
     // The T-007 three-mode segment (Auto/Fit/Full) precedes Copy as image
     // and Open full screen.
     expect(buttons).toHaveLength(5)
-    const copy = buttons[3]
+    // Owner 2026-11-07: [modes..., expand, copy] — expand rides beside the
+    // mode segment, Copy closes the row.
+    const copy = buttons[4]
     expect(copy.sel).toContain('ag-table-toolbar-copy')
     expect(copy.data.dataset.tableToolbarAction).toBe('copyImage')
     expect(copy.data.attrs['aria-label']).toBe('blockToolbar.copyImage')
-    expect(buttons[4].data.dataset.tableToolbarAction).toBe('expand')
+    expect(buttons[3].data.dataset.tableToolbarAction).toBe('expand')
   })
 })

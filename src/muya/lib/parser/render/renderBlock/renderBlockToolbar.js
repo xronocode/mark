@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/parser/render/renderBlock/renderBlockToolbar.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The C-56 T-005 diagram corner toolbar — one hover pill (user choice 2026-10-18, approved mockup variant C) with three same-family icon actions (Edit source, Copy as image, Open full screen) rendered as a direct child of Pele diagram (```mermaid) and Vega-Lite chart figures, replacing the old PNG edit pencil and the standalone expand glyph on those two roles only.
-//   SCOPE: the pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label), panel-local cumulative inline label reveal shared with tables, and syncBlockToolbarState — the post-render pass that keeps the Copy as image button DISABLED while the figure's preview carries no rendered SVG (corner-4; a keep-last-good stale SVG counts as rendered and exports). Visited labels stay open across adjacent buttons and reset on whole-panel pointer/focus exit. Placement lives in renderContainerBlock.js START_BLOCK_TOOLBAR_RENDER; looks in the C-56 T-005 section of lib/assets/styles/index.css; click routing in eventHandler/clickEvent.js START_BLOCK_TOOLBAR_CLICK; the Open-full-screen action keeps the expandNeed.js gate through the figure's ag-expand-needed class.
+//   SCOPE: the pill vnode factory (16-grid 1.5-stroke icons, localized labels + title/aria-label), icon-only stable button geometry with tooltip/aria names, and syncBlockToolbarState — the post-render pass that keeps the Copy as image button DISABLED while the figure's preview carries no rendered SVG (corner-4; a keep-last-good stale SVG counts as rendered and exports). Expanding labels are retired by the owner decision. Placement lives in renderContainerBlock.js START_BLOCK_TOOLBAR_RENDER; looks in the C-56 T-005 section of lib/assets/styles/index.css; click routing in eventHandler/clickEvent.js START_BLOCK_TOOLBAR_CLICK; the Open-full-screen action keeps the expandNeed.js gate through the figure's ag-expand-needed class.
 //   DEPENDS: muya snabbdom h; muya options.t (blockToolbar.editSource / copyImage / openFullScreen — localized in the 10 locales).
-//   LINKS: .grace/changes/archive/C-TOOLBAR-LABELS; .grace/changes/archive/C-56 T-005; .grace/graph/runtime.xml M-012 fn-toolbarLabelVisits; .grace/verification/runtime.xml V-M-012 scenario-toolbar-label-visits and scenario-64; renderExpandButton.js (standalone flowchart/sequence/plantuml controls); expandNeed.js (copy state); clickEvent.js (action routing); keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON (button key ownership).
+//   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/archive/C-TOOLBAR-LABELS; .grace/changes/archive/C-56 T-005; .grace/graph/runtime.xml M-012 fn-toolbarLabelVisits; .grace/verification/runtime.xml V-M-012 scenario-toolbar-label-visits and scenario-64; renderExpandButton.js (standalone flowchart/sequence/plantuml controls); expandNeed.js (copy state); clickEvent.js (action routing); keyboard.js BLOCK_KEYBOARD_EXPAND_BUTTON (button key ownership).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -22,7 +22,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-10-20 C-TOOLBAR-LABELS: visited labels stay open while traversing a table/diagram panel, then reset on leaving it.
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
+//   PREV: v1.4.0 - 2026-11-05 owner review: the pill
+//   buttons render icon-only — the expanding text labels are retired
+//   (a visited label turned the clicked button into a wide "big
+//   button"); names live in the tooltips.
+//   PREV: v1.3.0 - 2026-10-20 C-TOOLBAR-LABELS: visited labels stay open while traversing a table/diagram panel, then reset on leaving it.
 //   PREV: v1.2.0 - 2026-10-19 C-70: syncBlockToolbarState keeps a table figure's Copy as image enabled (tables have no preview SVG).
 //   PREV: v1.1.0 - 2026-10-18 C-56 T-007: optional `leading`
 //   vnodes render before Edit source, so the C-62 appearance control
@@ -138,9 +143,10 @@ const renderToolbarButton = (action, className, label, iconChildren) =>
     },
     dataset: { blockToolbarAction: action }
   }, [
-    renderIcon(iconChildren),
-    // Visited labels remain visible until the pointer leaves this panel.
-    h('span.ag-block-toolbar-label', label)
+    renderIcon(iconChildren)
+    // Owner 2026-11-05: the pill buttons render icon-only — the expanding
+    // text labels are retired everywhere (a visited label turned the
+    // clicked button into a wide "big button"); names live in tooltips.
   ])
 
 const renderBlockToolbar = (t, leading = []) => h(BLOCK_TOOLBAR_SELECTOR, {

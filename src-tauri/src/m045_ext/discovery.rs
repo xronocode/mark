@@ -1,12 +1,27 @@
-// MODULE_CONTRACT
+// FILE: src-tauri/src/m045_ext/discovery.rs
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
 //   PURPOSE: M-045 extension discovery. Scans known directories for
 //            extension.json manifests and health-probes each one.
 //   SCOPE:   Filesystem scan + HTTP health probe. Does NOT register
 //            extensions — that's registry.rs.
 //   DEPENDS: manifest (parse), reqwest (health probe), mt_paths.
-//   LINKS:   .grace/graph/features.xml M-045;
-//            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
+//   LINKS: M-045, M-022
 //   STATUS:  Phase-B2b initial.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   DiscoveredExtension - Manifest and health status discovered on disk.
+//   extension_dirs - Locate platform-specific extension scan directories.
+//   discover_extensions - Scan local manifests and probe accepted recipients.
+//   probe_health - Probe a validated local URL without proxies or redirects.
+// END_MODULE_MAP
+
+// START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured data-root scan; canonical release alone retains legacy extension scan.
+//   - 2026-11-09 C-SEC-AUDIT-FIXES T-005: parsed loopback recipients and no redirect/proxy escape.
+// END_CHANGE_SUMMARY
 
 use crate::m045_ext::manifest::{parse_manifest, ExtensionManifest};
 use std::path::PathBuf;
@@ -25,29 +40,29 @@ pub struct DiscoveredExtension {
 // START_BLOCK_EXTENSION_DIRS
 /// Returns the list of directories to scan for extension.json files.
 pub(super) fn extension_dirs() -> Vec<PathBuf> {
+    extension_dirs_for_profile(
+        crate::mt_paths::application_identifier(),
+        std::env::var_os("HOME").map(PathBuf::from),
+        crate::mt_paths::data_root(),
+    )
+}
+
+fn extension_dirs_for_profile(identifier: &str, home: Option<PathBuf>, data: Option<PathBuf>) -> Vec<PathBuf> {
     let mut dirs = Vec::new();
-
-    if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
-        // ~/.config/mark/extensions/
-        dirs.push(home.join(".config").join("mark").join("extensions"));
-
-        // macOS: ~/Library/Application Support/com.xronocode.mark/extensions/
-        #[cfg(target_os = "macos")]
-        dirs.push(
-            home.join("Library")
-                .join("Application Support")
-                .join("com.xronocode.mark")
-                .join("extensions"),
-        );
+    // Historical release installs retain their legacy scan, in the same order.
+    // Alternate app profiles must never discover the release's extensions.
+    if identifier == crate::mt_paths::APP_BUNDLE_ID {
+        if let Some(home) = home {
+            dirs.push(home.join(".config").join("mark").join("extensions"));
+        }
     }
-
-    // Windows (C-15 T-W2): %APPDATA%\com.xronocode.mark\extensions\
-    // (Roaming — matches mt_paths data_root conventions).
-    #[cfg(target_os = "windows")]
-    if let Some(appdata) = std::env::var_os("APPDATA").map(PathBuf::from) {
-        dirs.push(appdata.join("com.xronocode.mark").join("extensions"));
+    // Canonical Linux releases historically scan only the legacy directory.
+    // Preserve that release behavior; alternate profiles use their native root.
+    if identifier != crate::mt_paths::APP_BUNDLE_ID || cfg!(any(target_os = "macos", target_os = "windows")) {
+        if let Some(data) = data {
+            dirs.push(data.join("extensions"));
+        }
     }
-
     dirs
 }
 // END_BLOCK_EXTENSION_DIRS
@@ -113,13 +128,17 @@ fn scan_manifests() -> Vec<(ExtensionManifest, PathBuf)> {
 /// Health-probe a single extension. GET {base_url}{health_path} with
 /// a 5-second timeout. Returns true if status 200.
 pub async fn probe_health(manifest: &ExtensionManifest) -> bool {
-    let url = format!(
-        "{}{}",
-        manifest.discovery.base_url.trim_end_matches('/'),
-        manifest.discovery.health_path
-    );
+    let url = match super::manifest::extension_endpoint(&manifest.discovery.base_url, &manifest.discovery.health_path) {
+        Ok(url) => url,
+        Err(e) => {
+            safe_eprintln!("[ExtHost][discovery][BLOCK_HEALTH_URL_REFUSED id={} reason={e}]", manifest.id);
+            return false;
+        }
+    };
 
     let client = match reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
         .timeout(Duration::from_secs(5))
         .build()
     {
@@ -133,7 +152,7 @@ pub async fn probe_health(manifest: &ExtensionManifest) -> bool {
         }
     };
 
-    match client.get(&url).send().await {
+    match client.get(url.clone()).send().await {
         Ok(resp) if resp.status().is_success() => {
             safe_eprintln!(
                 "[ExtHost][discovery][BLOCK_HEALTH_OK id={} url={url}]",
@@ -178,3 +197,28 @@ pub async fn discover_extensions() -> Vec<DiscoveredExtension> {
     results
 }
 // END_BLOCK_DISCOVER
+
+#[cfg(test)]
+mod profile_namespace_tests {
+    use super::*;
+
+    #[test]
+    fn profile_namespace_discovery_preserves_release_legacy_order() {
+        let home = PathBuf::from("/fixture");
+        let data = home.join("Library/Application Support/com.xronocode.mark");
+        let mut expected = vec![home.join(".config/mark/extensions")];
+        if cfg!(any(target_os = "macos", target_os = "windows")) {
+            expected.push(data.join("extensions"));
+        }
+        assert_eq!(extension_dirs_for_profile(crate::mt_paths::APP_BUNDLE_ID, Some(home.clone()), Some(data)), expected);
+    }
+
+    #[test]
+    fn profile_namespace_discovery_excludes_release_and_legacy_roots() {
+        let home = PathBuf::from("/fixture");
+        let data = home.join("Library/Application Support/com.xronocode.mark.test.stabilize29");
+        assert_eq!(extension_dirs_for_profile("com.xronocode.mark.test.stabilize29", Some(home), Some(data.clone())),
+            vec![data.join("extensions")]);
+        assert!(extension_dirs_for_profile("com.xronocode.mark.test.stabilize29", None, None).is_empty());
+    }
+}

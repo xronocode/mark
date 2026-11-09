@@ -1,21 +1,25 @@
 <!-- MODULE_CONTRACT
-  PURPOSE: Host CodeMirror Source Code mode and commit edits to the active tab; with `mirror` (C-29 Split View) host a read-only CodeMirror copy of the tab instead.
-  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, and file event handling. Mirror mode: readOnly, no store writes, no bus listeners, no tab-state resets, debounced re-render from the markdown prop.
-  DEPENDS: editor/preferences stores, bus, CodeMirror adapter.
+  PURPOSE: Host the editable Markdown source surface and commit user changes to its owning tab; unified split sessions use the same Muya-owned document history in all modes.
+  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, and file event handling. Split companion (splitEdit, C-SPLIT-DUAL-EDIT): editable, follows the tab markdown render-only (isRenderingFromStore guard, 150 ms debounce, scroll kept, remembered caret translated/clamped, IME fenced), CodeMirror history kept empty (unified muya history owns undo via bus undo/redo), locked tabs read-only; the C-29 read-only mirror branch is retired. C-SPLIT-SCROLL-SYNC: the pane pairs its scroller with the muya container ('source' side of splitScrollSync), align to the rich pane's fraction on mount/split activation, and the editable pane re-anchors on its caret line through pane-width changes.
+  DEPENDS: editor/preferences stores, bus, CodeMirror adapter, util/splitScrollSync.js.
   ROLE: RUNTIME
 END_MODULE_CONTRACT
-CHANGE_SUMMARY: 2026-08-10 v2.1.7 rebinds tab identity after file-loaded events and guards null unmount commits.
+CHANGE_SUMMARY: 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: preserve never-unified source cursor/tab commits and reject stale outgoing unified events.
+  2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: one content operation per change, Muya-owned raw history in unified sessions, source commands/search/assets, translated reversed selections, composition fences, post-Vue tab reconciliation and complete cleanup.
+  2026-10-29 C-SPLIT-DUAL-EDIT: splitEdit prop; render-only store-follow (guard + clearHistory + translateAndClamp caret + IME fence); unified undo extraKeys (bus undo/redo); lock covers the companion; mountMirror retired — one editable instance.
+  2026-10-27 C-SPLIT-SCROLL-SYNC: splitActive prop; both instances attach to splitScrollSync ('source'), mount/split-on aligns to the rich fraction (alignToFraction), the editable pane centers its caret line on transitions and width changes (reanchorSourcePane), unmount detaches.
+  2026-08-10 v2.1.7 rebinds tab identity after file-loaded events and guards null unmount commits.
   2026-10-15 C-40 T-004: a locked tab (View › Lock Document) is read-only in the source pane too (CodeMirror setOption readOnly on mount + on lock changes; selection/copy stay available). Finder previewMode is intentionally not applied here.
   2026-10-13 C-29: `mirror` prop — read-only Split View pane; renders from props.markdown 150 ms after changes and never commits, emits or resets tab state.
   2026-10-13 C-29 live-smoke fix: CodeMirror instance held in shallowRef. Method calls through the deep ref's Proxy (setValue on file-changed, refresh) left proxied line handles in the display, so the next click or arrow key threw `info.map` in WKWebView and the caret jumped or ignored the click.
   2026-10-13 C-29 live-smoke fix: container ResizeObserver calls cm.refresh(). With lineWrapping CodeMirror re-measures only on window resize, so dragging the split divider left the caret drawn at the pre-wrap line position.
 -->
 <template>
-  <div ref="sourceCodeContainer" class="source-code"></div>
+  <div ref="sourceCodeContainer" class="source-code"><editor-search v-if="sourceCode && unified" /></div>
 </template>
 
 <script setup>
-import { ref, shallowRef, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, shallowRef, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/store/editor'
 import { usePreferencesStore } from '@/store/preferences'
@@ -25,6 +29,18 @@ import { debounce, wordCount as getWordCount } from 'muya/lib/utils'
 import { adjustCursor } from '../../util'
 import bus from '../../bus'
 import { oneDarkThemes, railscastsThemes } from '@/config'
+import {
+  splitScrollSync,
+  scrollFraction,
+  computeAnchorTarget,
+  contentOffsetOfRect
+} from '@/util/splitScrollSync'
+import { createCompositionFence, translateAndClamp, preserveSourceSyntax } from '@/util/splitDualEdit'
+import { nextTick } from 'vue'
+import EditorSearch from '../search/index.vue'
+import { applySourceCommand, sourceSearch } from '@/util/splitCommands'
+import notice from '@/services/notification'
+import { formatMarkdown } from '@/util/markdownFormat'
 
 const props = defineProps({
   markdown: String,
@@ -34,6 +50,18 @@ const props = defineProps({
     required: true
   },
   mirror: {
+    type: Boolean,
+    default: false
+  },
+  // C-SPLIT-SCROLL-SYNC: Split View is active (both panes visible) — this
+  // pane pairs its scroller and aligns/re-anchors with the rich pane.
+  splitActive: {
+    type: Boolean,
+    default: false
+  },
+  // C-SPLIT-DUAL-EDIT: this pane is the split companion in WYSIWYG mode —
+  // editable, following the store render-only, undo unified with muya.
+  splitEdit: {
     type: Boolean,
     default: false
   }
@@ -54,19 +82,32 @@ const tabId = ref(null)
 
 const { theme, sourceCode } = storeToRefs(preferencesStore)
 const { currentFile: currentTab } = storeToRefs(editorStore)
+const unified = computed(() => !!currentTab.value?.splitSession?.unified)
+const sourceFocused = () => unified.value && currentTab.value.splitSession.focused === 'source'
+const currentSelection = () => ({ anchor: editor.value.getCursor('anchor'), head: editor.value.getCursor('head') })
+const rememberSelection = () => {
+  if (unified.value && editor.value && !isRenderingFromStore) {
+    currentTab.value.splitSession.source = currentSelection()
+    currentTab.value.splitSession.selectedSourceText = editor.value.getSelection()
+    bus.emit('split:selection-changed')
+  }
+}
+const handleSourceFocus = () => { if (unified.value) bus.emit('split:focus', 'source') }
 
 // START_BLOCK_LOCKED_READ_ONLY
 // C-40 T-004: while the active tab is locked (View › Lock Document) the
 // source pane is read-only too — the lock is a document state, not a
 // WYSIWYG-surface state (readOnly keeps selection/copy working).
-// Finder-opened reading mode (previewMode) is deliberately NOT applied
-// here; that path keeps its existing WYSIWYG-only semantics.
+// Unified sessions apply the Finder preview state to both panes; ordinary
+// never-unified source mode retains its existing semantics.
 const applyLockedReadOnly = () => {
-  if (props.mirror || !editor.value) return
-  editor.value.setOption('readOnly', currentTab.value?.locked ? true : false)
+  if (!editor.value) return
+  // The lock is a document state: both split panes stay read-only in
+  // dual editing (selection/copy keep working through readOnly).
+  editor.value.setOption('readOnly', (currentTab.value?.locked || (unified.value && currentTab.value?.previewMode)) ? true : false)
 }
 
-watch(() => !!currentTab.value?.locked, applyLockedReadOnly)
+watch(() => [currentTab.value?.locked, currentTab.value?.previewMode, unified.value], applyLockedReadOnly)
 // END_BLOCK_LOCKED_READ_ONLY
 
 watch(
@@ -109,6 +150,12 @@ const getMarkdownAndCursor = (cm) => {
  */
 const prepareTabSwitch = () => {
   if (commitTimer.value) clearTimeout(commitTimer.value)
+  const owner = editorStore.tabs.find(tab => tab.id === tabId.value)
+  if (owner?.splitSession?.unified) {
+    // The store flushes an outgoing unified owner before changing tabs.
+    if (tabId.value === currentTab.value?.id) { rememberSelection(); bus.emit('split:flush') }
+    return
+  }
   if (tabId.value) {
     const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
     editorStore.LISTEN_FOR_CONTENT_CHANGE({
@@ -129,30 +176,36 @@ const scrollToCords = (y) => {
   })
 }
 
-const handleFileChange = ({ id, markdown: newMarkdown, muyaIndexCursor, scrollTop }) => {
-  if (!editor.value) return
-
-  if (id && currentTab.value?.id && currentTab.value.id !== id) prepareTabSwitch()
+const handleFileChange = ({ id, markdown: newMarkdown, muyaIndexCursor, scrollTop, contentReloaded }) => {
+  const owner = editorStore.tabs.find(tab => tab.id === tabId.value)
+  if (!editor.value || ((unified.value || owner?.splitSession?.unified) && id && id !== currentTab.value?.id)) return
+  // Never-unified source mode retains its outgoing content/caret commit.
+  if (id && id !== tabId.value) prepareTabSwitch()
+  if (followSyncTimer) clearTimeout(followSyncTimer)
+  followSyncTimer = null
+  if (id && id !== tabId.value) compositionFence.release()
   if (id) tabId.value = id
-
-  if (typeof newMarkdown === 'string') {
-    editor.value.setValue(newMarkdown)
-  }
-
-  // t('editor.sourceCode.cursorNullComment')
-
-  if (muyaIndexCursor) {
-    const { anchor, focus } = muyaIndexCursor
-
-    editor.value.setSelection(anchor, focus, { scroll: true }) // Scroll the focus into view.
-  } else {
-    setCursorAtFirstLine(editor.value)
-  }
-
-  if (typeof scrollTop === 'number') {
-    scrollToCords(scrollTop)
-  }
+  isRenderingFromStore = true
+  if (typeof newMarkdown === 'string' && newMarkdown !== editor.value.getValue()) editor.value.setValue(newMarkdown)
+  const selection = currentTab.value?.splitSession?.source
+  if (selection?.anchor && selection?.head) editor.value.setSelection(selection.anchor, selection.head, { scroll: false })
+  else if (muyaIndexCursor?.anchor && muyaIndexCursor?.focus) editor.value.setSelection(muyaIndexCursor.anchor, muyaIndexCursor.focus, { scroll: false })
+  else if (unified.value) editor.value.setCursor({ line: 0, ch: 0 })
+  else setCursorAtFirstLine(editor.value)
+  if (unified.value || contentReloaded) editor.value.clearHistory()
+  isRenderingFromStore = false
+  if (unified.value && props.splitActive) {
+    alignToFraction()
+    afterSplitLayout(alignToFraction)
+  } else if (typeof scrollTop === 'number') scrollToCords(currentTab.value?.splitSession?.sourceScrollTop ?? scrollTop)
 }
+
+// The synchronous activation event can precede the component's updated
+// tab ref/layout. Reconcile once after Vue selects the owner, as Muya does.
+watch(() => currentTab.value?.id, () => {
+  const tab = currentTab.value
+  if (editor.value && tab?.id && (tabId.value !== tab.id || editor.value.getValue() !== tab.markdown)) handleFileChange(tab)
+}, { flush: 'post' })
 
 const handleInvalidateImageCache = () => {
   if (editor.value) {
@@ -161,7 +214,7 @@ const handleInvalidateImageCache = () => {
 }
 
 const handleSelectAll = () => {
-  if (!sourceCode.value) {
+  if (!sourceCode.value || unified.value) {
     return
   }
 
@@ -228,31 +281,55 @@ const handleImageAction = ({ id, result, alt }) => {
   }
 }
 
-// START_BLOCK_SOURCE_MIRROR_SYNC
-// C-29: the read-only Split View copy follows the tab markdown with the same
-// 150 ms debounce as the muya mirror; scroll position is kept across updates.
-const MIRROR_SYNC_DELAY_MS = 150
-let mirrorSyncTimer = null
-
-const renderMirror = () => {
-  mirrorSyncTimer = null
+// START_BLOCK_SOURCE_FOLLOW_SYNC
+// C-SPLIT-DUAL-EDIT: while this pane is the split companion (splitEdit), it
+// follows the tab markdown with the same 150 ms debounce as the muya side;
+// the update is render-only (cursorActivity inert under the guard), the
+// scroll position is kept, CodeMirror's own history is cleared (the unified
+// muya history owns undo), and the remembered caret is translated and
+// clamped into the new text instead of resetting to the document start.
+const FOLLOW_SYNC_DELAY_MS = 150
+let followSyncTimer = null
+let isRenderingFromStore = false
+const compositionFence = createCompositionFence()
+const renderFromStore = () => {
+  followSyncTimer = null
   const cm = editor.value
-  const markdown = props.markdown
-  if (!cm || typeof markdown !== 'string' || cm.getValue() === markdown) return
-  const scrollTop = sourceCodeContainer.value ? sourceCodeContainer.value.scrollTop : 0
+  const markdown = currentTab.value?.markdown
+  if (!cm || tabId.value !== currentTab.value?.id || typeof markdown !== 'string' || cm.getValue() === markdown) return
+  if (compositionFence.markDeferred()) return
+  const old = cm.getValue()
+  const selection = currentTab.value?.splitSession?.source || currentSelection()
+  const next = { anchor: translateAndClamp(selection.anchor, old, markdown), head: translateAndClamp(selection.head, old, markdown) }
+  const scroll = cm.getScrollInfo()
+  isRenderingFromStore = true
   cm.setValue(markdown)
-  if (sourceCodeContainer.value) sourceCodeContainer.value.scrollTop = scrollTop
+  cm.clearHistory()
+  cm.setSelection(next.anchor, next.head, { scroll: false })
+  cm.scrollTo(scroll.left, scroll.top)
+  if (unified.value) currentTab.value.splitSession.source = next
+  isRenderingFromStore = false
+  rememberSelection()
 }
-
-watch(
-  () => props.markdown,
-  () => {
-    if (!props.mirror) return
-    if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
-    mirrorSyncTimer = setTimeout(renderMirror, MIRROR_SYNC_DELAY_MS)
+watch(() => props.markdown, () => {
+  if (!unified.value && !props.splitEdit) return
+  if (followSyncTimer) clearTimeout(followSyncTimer)
+  followSyncTimer = setTimeout(renderFromStore, FOLLOW_SYNC_DELAY_MS)
+})
+const handleHistoryRestored = (meta) => {
+  renderFromStore()
+  const selection = meta?.source
+  if (selection && editor.value) {
+    isRenderingFromStore = true
+    editor.value.setSelection(selection.anchor, selection.head, { scroll: false })
+    isRenderingFromStore = false
+    rememberSelection()
   }
-)
-// END_BLOCK_SOURCE_MIRROR_SYNC
+}
+let compositionText = null
+const handleCompositionStart = () => { compositionText = editor.value?.getValue(); compositionFence.arm() }
+const handleCompositionEnd = () => { if (compositionFence.release()) renderFromStore() }
+// END_BLOCK_SOURCE_FOLLOW_SYNC
 
 // START_BLOCK_SOURCE_RESIZE_REFRESH
 // CodeMirror re-measures wrapped lines only on window resize; the Split View
@@ -271,7 +348,15 @@ const observeContainerWidth = () => {
     if (refreshFrame) cancelAnimationFrame(refreshFrame)
     refreshFrame = requestAnimationFrame(() => {
       refreshFrame = 0
-      if (editor.value && !viewDestroyed.value) editor.value.refresh()
+      if (editor.value && !viewDestroyed.value) {
+        editor.value.refresh()
+        // C-SPLIT-SCROLL-SYNC: divider drags re-wrap this pane too; keep
+        // the caret anchor centered and the rich pane aligned.
+        if (props.splitActive && !props.mirror) {
+          if (sourceFocused()) reanchorSourcePane()
+          else alignToFraction()
+        }
+      }
     })
   })
   resizeObserver.observe(container)
@@ -285,27 +370,184 @@ const stopObservingContainer = () => {
 }
 // END_BLOCK_SOURCE_RESIZE_REFRESH
 
+// START_CONTRACT: alignSourcePane
+//   PURPOSE: C-SPLIT-SCROLL-SYNC — pair this pane's scroller with the rich pane ('source' side): on mount and on split activation align to the rich pane's reading fraction; in source-mode split (editable CodeMirror) re-anchor on the caret line typewriter-style and align the rich mirror.
+//   INPUTS: { props.mirror: Boolean, props.splitActive: Boolean }
+//   OUTPUTS: { void }
+//   SIDE_EFFECTS: writes scrollTop on this container and, via splitScrollSync.align, on the rich pane scroller (echo-guarded).
+//   LINKS: .grace/changes/archive/C-SPLIT-SCROLL-SYNC T-303; util/splitScrollSync.js.
+// END_CONTRACT: alignSourcePane
+// START_BLOCK_SPLIT_ALIGN_SYNC
+const afterSplitLayout = (fn) => {
+  // Two frames: the re-wrap from the flex change settles before we measure.
+  nextTick(() => requestAnimationFrame(() => requestAnimationFrame(fn)))
+}
+
+const alignToFraction = () => {
+  splitScrollSync.align('source', splitScrollSync.fractionOf('rich') ?? 0)
+}
+
+const reanchorSourcePane = () => {
+  const el = sourceCodeContainer.value
+  const cm = editor.value
+  if (!el) return
+  if (!cm) {
+    alignToFraction()
+    return
+  }
+  const coords = cm.cursorCoords(null, 'window')
+  if (coords && Number.isFinite(coords.top)) {
+    const offset = contentOffsetOfRect(el, { top: coords.top })
+    if (Number.isFinite(offset)) {
+      el.scrollTop = computeAnchorTarget({
+        anchorOffset: offset,
+        viewportHeight: el.clientHeight,
+        scrollHeight: el.scrollHeight
+      })
+    }
+  }
+  splitScrollSync.align('rich', scrollFraction(el))
+}
+
+watch(
+  () => props.splitActive,
+  (active) => {
+    if (!active) return
+    afterSplitLayout(() => {
+      if (sourceFocused() || (!unified.value && sourceCode.value)) reanchorSourcePane()
+      else alignToFraction()
+    })
+  }
+)
+// END_BLOCK_SPLIT_ALIGN_SYNC
+
+const insertAsset = (image, alt = '') => {
+  const cm = editor.value
+  if (!cm || cm.getOption('readOnly')) return
+  const id = tabId.value
+  const target = cm.setBookmark(cm.getCursor('head'))
+  bus.emit('split:insert-asset', { image, alt, id, complete: result => {
+    const position = target.find()
+    target.clear()
+    if (!viewDestroyed.value && id === tabId.value && id === currentTab.value?.id && position && result && !cm.getOption('readOnly')) {
+      cm.replaceRange(`![${alt}](${result})`, position, position, '+input')
+    }
+  } })
+}
+const handleAssetInput = (cm, event) => {
+  if (!unified.value) return
+  if (cm.getOption('readOnly')) { event.preventDefault(); event.stopPropagation(); return }
+  const data = event.clipboardData || event.dataTransfer
+  const images = Array.from(data?.files || []).filter(file => /^image\//.test(file.type))
+  if (!images.length) return
+  event.preventDefault()
+  event.stopPropagation()
+  handleSourceFocus()
+  images.forEach(image => insertAsset(image, image.name?.replace(/\.[^.]+$/, '') || ''))
+}
 const listenChange = () => {
-  editor.value.on('cursorActivity', (cm) => {
-    const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(cm)
-    // Attention: the cursor may be `{focus: null, anchor: null}` when press `backspace`
-    const wordCount = getWordCount(newMarkdown)
-    // See "beforeDestroy" note
-    if (!viewDestroyed.value) {
-      if (tabId.value) {
-        editorStore.LISTEN_FOR_CONTENT_CHANGE({
-          id: tabId.value,
-          markdown: newMarkdown,
-          wordCount,
-          muyaIndexCursor: cursor
-        })
-      } else {
-        // This may occur during tab switching but should not occur otherwise.
-        console.warn('LISTEN_FOR_CONTENT_CHANGE: Cannot commit changes because not tab id was set!')
-      }
+  const cm = editor.value
+  cm.on('cursorActivity', () => {
+    if (unified.value) { rememberSelection(); return }
+    if (isRenderingFromStore || viewDestroyed.value || !tabId.value) return
+    const { cursor, markdown } = getMarkdownAndCursor(cm)
+    editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: tabId.value, markdown, wordCount: getWordCount(markdown), muyaIndexCursor: cursor })
+  })
+  cm.on('focus', handleSourceFocus)
+  cm.on('paste', handleAssetInput)
+  cm.on('drop', handleAssetInput)
+  cm.on('beforeChange', (instance, change) => {
+    if (unified.value && /^(undo|redo)$/.test(change.origin)) {
+      change.cancel()
+      queueMicrotask(() => bus.emit(change.origin))
     }
   })
+  cm.on('changes', () => {
+    if (!unified.value || isRenderingFromStore || viewDestroyed.value || tabId.value !== currentTab.value?.id) return
+    const { cursor, markdown: nativeMarkdown } = getMarkdownAndCursor(cm)
+    const markdown = compositionFence.isArmed() ? preserveSourceSyntax(currentTab.value.markdown, compositionText ?? nativeMarkdown, nativeMarkdown) : nativeMarkdown
+    compositionText = nativeMarkdown
+    if (markdown === currentTab.value.markdown) return
+    const wordCount = getWordCount(markdown)
+    bus.emit('split:source-edit', { id: tabId.value, markdown, cursor, selection: currentSelection(), wordCount })
+    cm.clearHistory()
+  })
 }
+let searchState = { value: '', matches: [], index: -1, opt: {} }
+let searchMarks = []
+const runSearch = (value = searchState.value, opt = searchState.opt) => {
+  searchMarks.forEach(mark => mark.clear())
+  searchState = { ...sourceSearch(editor.value.getValue(), value, opt), opt }
+  searchMarks = searchState.matches.map(match => editor.value.markText(match.start, match.end, { className: 'ag-highlight' }))
+  editorStore.SEARCH(searchState)
+  return searchState
+}
+const handleSourceCommand = async ({ command, payload }) => {
+  const cm = editor.value
+  if (!cm || !sourceFocused()) return
+  if (command === 'focus') {
+    cm.getInputField().focus({ preventScroll: true })
+    return
+  }
+  if (command === 'selectAll') { cm.execCommand('selectAll'); return }
+  if (command === 'search') { runSearch(payload.value, payload.opt); return }
+  if (command === 'find') {
+    if (!searchState.matches.length) return
+    searchState.index = (searchState.index + (payload === 'prev' ? -1 : 1) + searchState.matches.length) % searchState.matches.length
+    const match = searchState.matches[searchState.index]
+    cm.setSelection(match.start, match.end)
+    cm.scrollIntoView(match.start)
+    editorStore.SEARCH(searchState)
+    return
+  }
+  if (cm.getOption('readOnly')) return
+  bus.emit('split:flush')
+  if (command === 'insertAsset') { insertAsset(payload.image, payload.alt); return }
+  if (command === 'pasteAsPlainText') {
+    const { readText } = await import('@tauri-apps/plugin-clipboard-manager')
+    const id = tabId.value
+    const text = await readText()
+    if (id === tabId.value && !cm.getOption('readOnly') && text) cm.replaceSelection(text, 'end', '+input')
+    return
+  }
+  if (command === 'replace') {
+    const matches = searchState.matches
+    const selected = payload.opt.isSingle ? [matches[Math.max(0, searchState.index)]].filter(Boolean) : matches
+    cm.operation(() => selected.slice().reverse().forEach(match => cm.replaceRange(payload.value, match.start, match.end, '+input')))
+    runSearch()
+    return
+  }
+  if (command === 'transform') {
+    if (cm.somethingSelected()) cm.replaceSelection(payload, 'end', '+input')
+    else cm.replaceRange(payload, { line: 0, ch: 0 }, cm.posFromIndex(cm.getValue().length), '+input')
+    return
+  }
+  if (command === 'formatDocument') {
+    const formatted = formatMarkdown(cm.getValue())
+    if (formatted !== null) cm.replaceRange(formatted, { line: 0, ch: 0 }, cm.posFromIndex(cm.getValue().length), '+input')
+    return
+  }
+  const result = applySourceCommand(cm.getValue(), currentSelection(), command, payload)
+  if (!result) return
+  if (result.reason) { notice.notify({ title: 'Markdown source', message: result.reason, type: 'info' }); return }
+  cm.operation(() => {
+    cm.replaceRange(result.text, cm.posFromIndex(result.from), cm.posFromIndex(result.to), '+input')
+    cm.setSelection(cm.posFromIndex(result.anchor), cm.posFromIndex(result.head))
+  })
+}
+const handleSourceSelection = (request) => {
+  if (sourceFocused() && editor.value) {
+    request.selected = editor.value.getSelection()
+    request.text = request.selected || editor.value.getValue()
+  }
+}
+const applyUnifiedKeys = () => {
+  const cm = editor.value
+  if (!cm) return
+  cm.setOption('undoDepth', unified.value ? 0 : 200)
+  if (unified.value) cm.clearHistory()
+}
+watch(unified, applyUnifiedKeys)
 
 // One config for both panes so theme and gutter never drift apart; the
 // read-only mirror differs only in focus, readOnly and the active line.
@@ -313,7 +555,10 @@ const buildCodeMirrorConfig = ({ value, textDirection, readOnly }) => {
   const config = {
     value,
     lineNumbers: true,
-    autofocus: !readOnly,
+    // C-SPLIT-DUAL-EDIT: the split companion must not steal focus from
+    // the rich pane at mount (the anchor re-centering reads muya's caret);
+    // the full-window source editor keeps its autofocus.
+    autofocus: !readOnly && !props.splitEdit,
     lineWrapping: true,
     styleActiveLine: !readOnly,
     direction: textDirection,
@@ -327,6 +572,37 @@ const buildCodeMirrorConfig = ({ value, textDirection, readOnly }) => {
     }
   }
   if (readOnly) config.readOnly = true
+  // C-SPLIT-DUAL-EDIT: while the unified muya history owns the document,
+  // undo/redo from this pane route to it (CodeMirror's own stack is kept
+  // empty; extraKeys take precedence over the default keymap).
+  {
+    const historyCommand = (name) => cm => { if (unified.value) bus.emit(name); else cm.execCommand(name) }
+    config.extraKeys = {
+      ...config.extraKeys,
+      'Cmd-Z': historyCommand('undo'),
+      'Ctrl-Z': historyCommand('undo'),
+      'Shift-Cmd-Z': historyCommand('redo'),
+      'Cmd-Y': historyCommand('redo'),
+      'Ctrl-Y': historyCommand('redo'),
+      'Ctrl-Shift-Z': historyCommand('redo')
+    }
+  }
+  const sourceShortcut = (command, payload) => cm => {
+    if (!unified.value) return codeMirror.Pass
+    handleSourceFocus()
+    handleSourceCommand({ command, payload })
+  }
+  Object.assign(config.extraKeys, {
+    'Cmd-B': sourceShortcut('format', 'strong'), 'Ctrl-B': sourceShortcut('format', 'strong'),
+    'Cmd-I': sourceShortcut('format', 'em'), 'Ctrl-I': sourceShortcut('format', 'em'),
+    'Shift-Cmd-D': sourceShortcut('duplicate'), 'Shift-Ctrl-D': sourceShortcut('duplicate'),
+    'Shift-Cmd-N': sourceShortcut('createParagraph'), 'Shift-Ctrl-N': sourceShortcut('createParagraph'),
+    'Shift-Cmd-Backspace': sourceShortcut('deleteParagraph'), 'Shift-Ctrl-Backspace': sourceShortcut('deleteParagraph')
+  })
+  for (let level = 1; level <= 6; level++) {
+    config.extraKeys[`Cmd-${level}`] = sourceShortcut('paragraph', `heading ${level}`)
+    config.extraKeys[`Ctrl-${level}`] = sourceShortcut('paragraph', `heading ${level}`)
+  }
   if (railscastsThemes.includes(theme.value)) {
     config.theme = 'railscasts'
   } else if (oneDarkThemes.includes(theme.value)) {
@@ -335,27 +611,19 @@ const buildCodeMirrorConfig = ({ value, textDirection, readOnly }) => {
   return config
 }
 
-const mountMirror = () => {
-  const { markdown, textDirection } = props
-  const codeMirrorConfig = buildCodeMirrorConfig({ value: markdown || '', textDirection, readOnly: true })
-  const codeMirrorInstance = codeMirror(sourceCodeContainer.value, codeMirrorConfig)
-  setMode(codeMirrorInstance, 'markdown')
-  editor.value = codeMirrorInstance
-}
-
 onMounted(() => {
-  if (props.mirror) {
-    mountMirror()
-    observeContainerWidth()
-    return
-  }
   const { id } = currentTab.value
   // reset currentTab scrollTop position because the codeMirror scroll position is completely different from the muya scroll position
   // reset blocks as well because the blocks are only valid in muya
   // reset cursor because this is a direct "key-cursor", not a muyaIndexCursor, which is {focus: number, anchor: number}
-  currentTab.value.scrollTop = undefined
-  currentTab.value.blocks = undefined
-  currentTab.value.cursor = undefined
+  // The document editor (source mode) owns and resets the tab's muya-side
+  // state; the split companion (C-SPLIT-DUAL-EDIT) must not clear the rich
+  // pane's saved scroll/cursor.
+  if (!props.splitEdit && !unified.value) {
+    currentTab.value.scrollTop = undefined
+    currentTab.value.blocks = undefined
+    currentTab.value.cursor = undefined
+  }
 
   const { markdown, muyaIndexCursor, textDirection } = props
   const container = sourceCodeContainer.value
@@ -367,6 +635,9 @@ onMounted(() => {
   bus.on('file-changed', handleFileChange)
   bus.on('selectAll', handleSelectAll)
   bus.on('image-action', handleImageAction)
+  bus.on('split:source-command', handleSourceCommand)
+  bus.on('split:source-selection', handleSourceSelection)
+  bus.on('split:history-restored', handleHistoryRestored)
 
   // For some reason, code mirror does not seem to play well with Vue's refs if we reference editor.value directly.
   // See https://github.com/codemirror/codemirror5/issues/6886 - hence, we need to use a local variable first.
@@ -377,13 +648,19 @@ onMounted(() => {
   codeMirrorInstance.on('contextmenu', (cm, event) => {
     event.preventDefault()
     event.stopPropagation()
+    handleSourceFocus()
+    bus.emit('split:contextmenu', event)
   })
 
-  if (muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus) {
+  const savedSelection = currentTab.value?.splitSession?.source
+  if (savedSelection) {
+    codeMirrorInstance.setSelection(savedSelection.anchor, savedSelection.head, { scroll: false })
+  } else if (muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus) {
     const { anchor, focus } = muyaIndexCursor
-    codeMirrorInstance.setSelection(anchor, focus, { scroll: true })
+    codeMirrorInstance.setSelection(anchor, focus, { scroll: !unified.value })
   } else {
-    setCursorAtFirstLine(codeMirrorInstance)
+    if (unified.value) codeMirrorInstance.setCursor({ line: 0, ch: 0 })
+    else setCursorAtFirstLine(codeMirrorInstance)
   }
 
   editor.value = codeMirrorInstance
@@ -392,27 +669,51 @@ onMounted(() => {
   // C-40 T-004: a tab already locked when the source pane mounts (source
   // mode toggled while locked) starts read-only. Unlocked mounts keep
   // CodeMirror's default and never touch the option.
-  if (currentTab.value?.locked) applyLockedReadOnly()
+  applyLockedReadOnly()
+  applyUnifiedKeys()
 
   listenChange()
   observeContainerWidth()
+
+  // C-SPLIT-SCROLL-SYNC: pair the editable pane too; when split is already
+  // on (source mode + split), align it to the rich pane's fraction.
+  splitScrollSync.attach('source', sourceCodeContainer.value)
+  if (props.splitActive) { alignToFraction(); afterSplitLayout(alignToFraction) }
+
+  // C-SPLIT-DUAL-EDIT: the IME fence listens on CodeMirror's input field;
+  // a composition in THIS pane defers its store-driven re-renders.
+  const inputField = editor.value?.getInputField?.()
+  if (inputField) {
+    inputField.addEventListener('compositionstart', handleCompositionStart)
+    inputField.addEventListener('compositionend', handleCompositionEnd)
+  }
 })
 
 onBeforeUnmount(() => {
+  rememberSelection()
+  if (unified.value) bus.emit('split:flush')
+  const input = editor.value?.getInputField?.()
+  input?.removeEventListener('compositionstart', handleCompositionStart)
+  input?.removeEventListener('compositionend', handleCompositionEnd)
   viewDestroyed.value = true
   if (commitTimer.value) clearTimeout(commitTimer.value)
-  if (mirrorSyncTimer) clearTimeout(mirrorSyncTimer)
-  mirrorSyncTimer = null
+  if (followSyncTimer) clearTimeout(followSyncTimer)
+  followSyncTimer = null
   stopObservingContainer()
-  if (props.mirror) return
+  // C-SPLIT-SCROLL-SYNC: leave the scroll pair cleanly.
+  splitScrollSync.detach('source')
 
   bus.off('file-loaded', handleFileChange)
   bus.off('invalidate-image-cache', handleInvalidateImageCache)
   bus.off('file-changed', handleFileChange)
   bus.off('selectAll', handleSelectAll)
   bus.off('image-action', handleImageAction)
+  bus.off('split:source-command', handleSourceCommand)
+  bus.off('split:source-selection', handleSourceSelection)
+  bus.off('split:history-restored', handleHistoryRestored)
+  searchMarks.forEach(mark => mark.clear())
 
-  if (tabId.value && editor.value) {
+  if (tabId.value && editor.value && !unified.value) {
     const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
     bus.emit('file-changed', {
       id: tabId.value,
@@ -429,7 +730,9 @@ const handleScroll = debounce(() => {
   if (!tabId.value || !sourceCodeContainer.value) {
     return
   }
-  editorStore.updateScrollPosition(tabId.value, sourceCodeContainer.value.scrollTop)
+  if (tabId.value !== currentTab.value?.id) return
+  if (unified.value) currentTab.value.splitSession.sourceScrollTop = sourceCodeContainer.value.scrollTop
+  else editorStore.updateScrollPosition(tabId.value, sourceCodeContainer.value.scrollTop)
 }, 100)
 </script>
 

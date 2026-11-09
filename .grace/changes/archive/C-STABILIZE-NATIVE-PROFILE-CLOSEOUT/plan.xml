@@ -1,0 +1,58 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-NATIVE-PROFILE-CLOSEOUT>
+    <ChangeRef>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT</ChangeRef>
+    <IntentSummary>Sequential native profile closeout on the verified 90-file current-native snapshot; preserve the applied parent and all release defaults while routing remaining consumers through the initialized identifier.</IntentSummary>
+    <ApprovalBasis>Owner-approved RECOVERY and delegated recommended recovery choices, 2026-11-09. Coordinator explicitly approved configured-namespace endpoint/discovery/credential/default-handler replacements, canonical release behavior and legacy scans only for the canonical identifier, using the hash-validated 90-file native snapshot on 7e1bd10a. This child closes the proven native isolation boundary left by applied C-STABILIZE-PROFILE-ISOLATION. No QA launch, release, signing or publication authorization.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain><File>src-tauri/src/mt_paths.rs</File><Text>fn application_identifier()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m019_datacenter.rs</File><Text>const SERVICE_NAME: &amp;str = "com.xronocode.mark";</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/auth.rs</File><Text>const SERVICE_NAME: &amp;str = "com.xronocode.mark";</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/live_endpoint.rs</File><Text>.join("com.xronocode.mark")</Text></MustContain>
+      <MustContain><File>src-tauri/src/m021_default_handler.rs</File><Text>pub const MARK_BUNDLE_ID: &amp;str = "com.xronocode.mark";</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>src-tauri/src/mt_paths.rs</File><Text>pub(crate) fn application_identifier()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m019_datacenter.rs</File><Text>crate::mt_paths::application_identifier()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/auth.rs</File><Text>crate::mt_paths::application_identifier()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/discovery.rs</File><Text>profile_namespace_</Text></MustContain>
+      <MustContain><File>src-tauri/src/m045_ext/live_endpoint.rs</File><Text>crate::mt_paths::data_root()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m021_default_handler.rs</File><Text>profile_namespace_</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT</Text></MustContain>
+      <MustPassCommand><Command>cargo test --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2 profile_namespace_ -- --test-threads=2</Command></MustPassCommand>
+      <MustPassCommand><Command>cargo test --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2 m021_default_handler::tests -- --test-threads=2</Command></MustPassCommand>
+      <MustPassCommand><Command>cargo test --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2 m045_ext::tests -- --test-threads=2</Command></MustPassCommand>
+      <MustPassCommand><Command>cargo check --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-019/><M-021/><M-022/><M-045/></GraphAnchors><VerificationAnchors><V-M-019/><V-M-021/><V-M-022/><V-M-045/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/mt_paths.rs</File>
+      <File>src-tauri/src/m019_datacenter.rs</File>
+      <File>src-tauri/src/m021_default_handler.rs</File>
+      <File>src-tauri/src/m045_ext/auth.rs</File>
+      <File>src-tauri/src/m045_ext/discovery.rs</File>
+      <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/graph/index.xml</File>
+      <File>.grace/verification/index.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-NATIVE-PROFILE-CLOSEOUT/spec.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-NATIVE-PROFILE-CLOSEOUT/plan.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-NATIVE-PROFILE-CLOSEOUT/evidence/execution-report.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Route native namespace consumers and prove canonical/QA separation</Title><DependsOn/>
+        <AcceptanceCriteria><Criterion>Expose the configured identifier read accessor, scope endpoint/discovery/credentials and get/set/unset default-handler algorithms to that identifier, preserve canonical legacy discovery and existing release algorithms, add pure/injected namespace tests, and leave CSEC auth behavior unchanged beyond service selection.</Criterion></AcceptanceCriteria>
+        <Verification><Command>cargo test --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2 profile_namespace_ -- --test-threads=2</Command><Command>cargo test --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2 m021_default_handler::tests -- --test-threads=2</Command><Command>cargo test --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2 m045_ext::tests -- --test-threads=2</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Synchronize projections and verify confined exact candidate</Title><DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>Update only scoped current/local contracts, run offline native check and outer final with confined copied-cache command receipts, archive applied only after success, and report current integrity separately from inherited derived module health. Handoff only deltas against frozen input; do not export unrelated native code.</Criterion></AcceptanceCriteria>
+        <Verification><Command>cargo check --offline --locked --manifest-path src-tauri/Cargo.toml --bin mark -j 2</Command></Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-STABILIZE-NATIVE-PROFILE-CLOSEOUT>
+</GraceChangePlan>

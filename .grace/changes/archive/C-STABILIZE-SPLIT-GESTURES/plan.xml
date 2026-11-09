@@ -1,0 +1,107 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-SPLIT-GESTURES>
+    <ChangeRef>C-STABILIZE-SPLIT-GESTURES</ChangeRef>
+    <Created>2026-11-09</Created>
+    <ApprovalBasis>Delegated owner recovery implementation; full original approved requirements retained. Execute sequentially: reading, gestures, full dual-edit; literal scopes below supersede prose paths and include command sources.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/muya/lib/contentState/history.js</File>
+        <Text>undo()</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx vitest run tests/renderer/components/split-view.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx playwright test tests/e2e/split-view.spec.ts --config playwright.split-recovery.config.ts --project=chromium</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/editorWithTabs/index.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/splitView.vue</File>
+      <File>tests/renderer/components/split-view.test.js</File>
+      <File>tests/e2e/split-view.spec.ts</File>
+      <Glob>.grace/changes/active/C-STABILIZE-SPLIT-GESTURES/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-311>
+        <Title>Divider double-click becomes the split toggle; swap relocates</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Plain dblclick on the divider flips tab.splitView off through the same path as view.split-view (content, dirty state and per-tab guarantees of C-29 corner-1 hold); Alt/Option+dblclick swaps sides and persists splitViewSwapped; Enter on the focused divider still swaps; arrow-key ratio stepping unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/components/split-view.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-311>
+      <T-312>
+        <Title>Right-edge enable strip</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>A hit strip (~8px) along the right border of the editing surface renders only while split is off and the container is at least 800px wide, shows an ew-resize cursor on hover, and turns split on for the current tab on double-click; it never steals text selection, plain clicks or vertical-scrollbar drags (layering verified against the surface's scrollbar), and it is hidden while Diff Mode is on.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/components/split-view.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-312>
+      <T-313>
+        <Title>E2E corner rewrite + governance</Title>
+        <DependsOn>T-311, T-312</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/split-view.spec.ts: the double-click corner asserts toggle-off (with content/dirty guarantees) and swap via Enter and Alt+dblclick; new assertions cover the strip's presence gating, hover hint, non-interference with selection and scrollbar, and hidden-in-diff; every other C-29 corner stays green; M-011/V-M-011 routing deltas land in the same bundle; MODULE_CONTRACT/MAP/CHANGE_SUMMARY updated in touched files.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/components/split-view.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-313>
+    </ImplementationPlan>
+    <CornerMatrix>
+      <Corner id="corner-1">
+        <Situation>Divider double-click on a tab with unsaved changes</Situation>
+        <Expected>split turns off; content preserved bit-identical; dirty state untouched; no autosave trigger</Expected>
+      </Corner>
+      <Corner id="corner-2">
+        <Situation>Alt/Option+double-click on the divider</Situation>
+        <Expected>sides swap; splitViewSwapped persists across restart; plain dblclick never swaps</Expected>
+      </Corner>
+      <Corner id="corner-3">
+        <Situation>Divider focused via keyboard, Enter pressed</Situation>
+        <Expected>sides swap (unchanged from C-29); arrow keys still step the ratio by 5% with clamping</Expected>
+      </Corner>
+      <Corner id="corner-4">
+        <Situation>Double-click on the right-edge strip while split is off, container 1280px</Situation>
+        <Expected>split turns on for the current tab only; other tabs keep their own state; same state flip as the menu item</Expected>
+      </Corner>
+      <Corner id="corner-5">
+        <Situation>Text selection ending near the right edge of the surface (drag through the strip zone)</Situation>
+        <Expected>selection completes normally; the strip does not swallow pointer events needed for selection or clicks</Expected>
+      </Corner>
+      <Corner id="corner-6">
+        <Situation>Vertical scrollbar drag at the right edge</Situation>
+        <Expected>scrollbar drags work; the strip never overlays the scrollbar's interactive area</Expected>
+      </Corner>
+      <Corner id="corner-7">
+        <Situation>Diff Mode active (mark --diff or menu)</Situation>
+        <Expected>strip hidden; split hidden; no interaction between the affordance and the diff surface</Expected>
+      </Corner>
+      <Corner id="corner-8">
+        <Situation>Container narrower than 800px, split off</Situation>
+        <Expected>strip inert or hidden; double-click does nothing; widening past 800px restores it</Expected>
+      </Corner>
+      <Corner id="corner-9">
+        <Situation>Strip double-click with C-SPLIT-SCROLL-SYNC landed</Situation>
+        <Expected>toggle-on lands cursor-centered per that change's anchoring; without it, today's scroll behavior (recorded honest dependency)</Expected>
+      </Corner>
+      <Corner id="corner-10">
+        <Situation>Menu View item, Cmd+\ and command palette after the new gestures</Situation>
+        <Expected>all three still toggle the same per-tab state; no double-flip when a gesture and a shortcut race (single state flip per user action)</Expected>
+      </Corner>
+    </CornerMatrix>
+    <Decision>Finite stop: reproduce missing behavior, implement all declared tasks/corners, run affected units plus actual browsers against the uniquely controlled freshly built preview; fix concrete failures and recheck affected gates. No full-context review reset loop. Original archives remain byte-identical. </Decision>
+    <IntentSummary>Sequential stabilization integration of C-SPLIT-DBLCLICK-TOGGLE with full original behavior, literal file scopes and finite exact-candidate leaf checks.</IntentSummary>
+  </C-STABILIZE-SPLIT-GESTURES>
+</GraceChangePlan>

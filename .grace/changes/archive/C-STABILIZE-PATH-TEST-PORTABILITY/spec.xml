@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-PATH-TEST-PORTABILITY>
+    <Summary>Use real portable sandbox roots in three path-guard tests whose POSIX-only expected strings fail on Windows canonical paths.</Summary>
+    <ApprovalBasis>Owner-delegated stabilization recovery; PR 199 Windows evidence shows canonical drive/device-prefix outputs compared with literal POSIX fixture strings.</ApprovalBasis>
+    <Goals><Goal>Retain exact successful-path assertions for nested, collapsed and relative requests on all host filesystems.</Goal></Goals>
+    <Constraints><Item>Change only these three test fixtures and their change summary; runtime policy, rejection tests, assertions and platform coverage remain intact.</Item></Constraints>
+    <NonGoals><Item>No guard relaxation, platform skip, dependency, version or release change.</Item></NonGoals>
+    <AffectedAreas><M-010 /></AffectedAreas>
+    <AcceptanceCriteria><Criterion>Use TempDir roots and their actual canonical paths for exact expected results; the complete M-010 suite passes.</Criterion></AcceptanceCriteria>
+    <VerificationIntent><ExpectedEvidence>Focused local path tests followed by real Windows CI on the exact candidate.</ExpectedEvidence></VerificationIntent>
+  </C-STABILIZE-PATH-TEST-PORTABILITY>
+</GraceChangeSpec>

@@ -1,0 +1,93 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-DIRTY-RELOAD>
+    <ChangeRef>C-STABILIZE-DIRTY-RELOAD</ChangeRef>
+    <Created>2026-11-09</Created>
+    <IntentSummary>Reproduce the unsafe reload using the real store with mocked filesystem transport, repair only its eligibility/lifetime boundary, and synchronize the actual M-032 contract and verification.</IntentSummary>
+    <ApprovalBasis>Owner-approved recovery implementation and delegated bounded decisions, 2026-11-09. No new review-agent or repeated clean-streak workflow is required for this exact repair.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>APPLY_FILE_CHANGE(type, change)</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>isCurrentReload</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/live-reload.test.js</File>
+        <Text>preserves dirty content with liveReload enabled</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="180">npx vitest run tests/renderer/store --silent --reporter=dot</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">npm run typecheck:ipc</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-032 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-032 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>tests/renderer/store/live-reload.test.js</File>
+      <File>tests/renderer/store/editor.test.ts</File>
+      <File>tests/renderer/store/preview-mode.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <Glob>.grace/changes/active/C-STABILIZE-DIRTY-RELOAD/**</Glob>
+    </ObservedWriteScope>
+    <CornerMatrix>
+      <Corner>
+        <Situation>Dirty direct-data or disk event with any preference/read-only flags</Situation>
+        <Expected>Local markdown remains unchanged and one existing conflict notification offers explicit reload.</Expected>
+      </Corner>
+      <Corner>
+        <Situation>Local edits occur during settle or an in-flight read</Situation>
+        <Expected>Read completion preserves those edits and routes to the conflict flow.</Expected>
+      </Corner>
+      <Corner>
+        <Situation>Tab closes/reopens or a newer external event supersedes a pending read</Situation>
+        <Expected>Old callbacks cannot overwrite the replacement tab or newer external content.</Expected>
+      </Corner>
+      <Corner>
+        <Situation>Clean preview/watch or ordinary liveReload tab</Situation>
+        <Expected>Supported automatic reload remains, snapshots and cursor survive, identical content does not emit a duplicate reload.</Expected>
+      </Corner>
+      <Corner>
+        <Situation>User confirms reload then edits before read completes</Situation>
+        <Expected>New edits require a fresh conflict choice; the earlier confirmation does not discard them.</Expected>
+      </Corner>
+    </CornerMatrix>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Write and run failing preservation and delayed-read regressions</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Old source demonstrably overwrites dirty content; no host data or app interaction.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/store/live-reload.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Guard automatic and confirmed reload lifetimes and synchronize M-032 evidence</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>All specified boundaries and affected suites pass with current/target/final GRACE integrity.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run typecheck:ipc</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <ExecutionEvidence>2026-11-09: baseline current lint 0 errors/4 existing heuristic warnings. New focused regressions failed on the unmodified source for dirty direct/disk reloads and delayed local edits; the first repaired focused wave passed 147/147. The full store sweep exposed two old expectations explicitly requiring forced dirty reload; those now assert preservation. Final assertions ran both leaf commands successfully: 989/989 tests in 53 store files and IPC typecheck. Current lint remains 0 errors/4 existing warnings; status integrityErrors=0. Local implementation is complete but intentionally remains uncommitted and active for central integration, exact-candidate safety, hosted CI and archival. No live app, host documents, release changes, commits or push.</ExecutionEvidence>
+    <CentralIntegrationEvidence>2026-11-09: exact implementation imported onto the stabilization candidate; selected final reran the full store suite and IPC types with both commands passing and zero GRACE errors. Configured-profile path tests also pass on this combined tree. Exact-candidate hosted verification remains mandatory before main integration.</CentralIntegrationEvidence>
+  </C-STABILIZE-DIRTY-RELOAD>
+</GraceChangePlan>

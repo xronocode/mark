@@ -25,6 +25,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: fitted-wide natural-size
+//   need/clone regressions preserve the live table and explicit user widths.
 //   LAST_CHANGE: v2.4.0 - 2026-10-18 C-56 T-005: new case — on a corner-
 //   pill figure (all three pill buttons share the ag-block-expand family
 //   class) the Esc focus restore prefers the pill's Open-full-screen
@@ -344,6 +346,27 @@ describe('block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006)', () => {
     expect(document.activeElement).toBe(replacement)
   })
 
+  it.each(['Tab', 'pointer'])('Esc restoration yields to the next user %s action', (action) => {
+    const { viewer: v, container } = createHarness()
+    viewer = v
+    const { figure } = createMermaidFigure(container)
+    figure.id = 'focus-restore-owner'
+    const expand = document.createElement('button')
+    expand.className = 'ag-block-expand ag-block-toolbar-expand'
+    const copy = document.createElement('button')
+    copy.className = 'ag-table-toolbar-copy'
+    figure.append(expand, copy)
+    expand.focus()
+    v.openFromElement(figure)
+    keydown(v.stage, { key: 'Escape' })
+    expect(document.activeElement).toBe(expand)
+    if (action === 'Tab') keydown(expand, { key: 'Tab' })
+    else copy.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    copy.focus()
+    vi.advanceTimersByTime(500)
+    expect(document.activeElement).toBe(copy)
+  })
+
   it('C-56 T-005: on a pill figure the restore prefers the pill\u2019s Open-full-screen button over its Edit-source sibling', () => {
     const { viewer: v, container } = createHarness()
     viewer = v
@@ -394,6 +417,51 @@ describe('block viewer (C-34 R2.2 + C-39 T2 + C-51 T-006)', () => {
     // Cell text survives the sanitization.
     expect(clone.textContent).toContain('Header')
     expect(clone.textContent).toContain('cell')
+  })
+
+  it('restores natural widths in an automatically fitted snapshot without changing the editor or user widths', () => {
+    const { viewer: v, container, muya } = createHarness()
+    viewer = v
+    const { table } = createTable(container)
+    table.style.width = '200px'
+    table.classList.add('ag-column-widths-fixed', 'ag-table-wrap-anywhere')
+    const cols = document.createElement('colgroup')
+    cols.innerHTML = '<col style="width:200px">'
+    table.prepend(cols)
+    const entry = { widths: [200], manual: [false] }
+    muya.tableResize = { widths: new Map([[table.id, entry]]) }
+    const original = table.outerHTML
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      return { width: this.closest('.ag-table-fit-measure') ? 900 : 200, height: 100, top: 0, left: 0, right: 200, bottom: 100 }
+    })
+    try {
+      v.openFromElement(table)
+      expect(v.canvas.querySelector('table').style.width).toBe('900px')
+      expect(v.canvas.querySelector('col').style.width).toBe('900px')
+      expect(v.canvas.querySelector('.ag-column-resizer')).toBeNull()
+      expect(table.outerHTML).toBe(original)
+      expect(entry).toEqual({ widths: [200], manual: [false] })
+      v.close({ restoreFocus: false })
+      // Auto frame fitting does not create a session entry at all.
+      muya.tableResize.widths.delete(table.id)
+      v.openFromElement(table)
+      expect(v.canvas.querySelector('table').style.width).toBe('900px')
+      v.close({ restoreFocus: false })
+      muya.tableResize.widths.set(table.id, entry)
+      entry.manual[0] = true
+      v.openFromElement(table)
+      expect(v.canvas.querySelector('table').style.width).toBe('200px')
+      expect(v.canvas.querySelector('col').style.width).toBe('200px')
+      expect(table.outerHTML).toBe(original)
+      v.close({ restoreFocus: false })
+      entry.manual[0] = false
+      entry.tableWidth = 200
+      v.openFromElement(table)
+      expect(v.canvas.querySelector('table').style.width).toBe('200px')
+      expect(table.outerHTML).toBe(original)
+    } finally {
+      rect.mockRestore()
+    }
   })
 
   it('bounds the table scrollport at >=100% and lifts the cap below 100%', () => {

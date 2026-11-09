@@ -8,30 +8,29 @@
       <!-- M-031: the diff view replaces the editing surface. Without the
            v-show it rendered below the full-height editor and was clipped by
            .container (overflow: hidden), so `mark --diff` showed no diff. -->
-      <split-view v-show="!diffMode" :enabled="splitView && !diffMode">
+      <split-view v-show="!diffMode" :enabled="splitView && !diffMode" :diff-mode="diffMode">
         <template #rich="{ active }">
           <editor
             :markdown="markdown"
             :cursor="cursor"
             :text-direction="textDirection"
             :platform="platform"
-            :mirror="active && sourceCode"
+            :split-active="active"
           ></editor>
         </template>
         <template #source="{ active }">
+          <!-- C-SPLIT-DUAL-EDIT: ONE editable source-code instance serves
+               both full-window source mode and the split companion — in
+               split both panes are editable against the single store
+               document (the C-29 read-only mirror branch is retired). -->
           <source-code
-            v-if="sourceCode"
+            v-if="sourceCode || active"
             key="source-edit"
             :markdown="markdown"
             :muyaIndexCursor="muyaIndexCursor"
             :text-direction="textDirection"
-          ></source-code>
-          <source-code
-            v-else-if="active"
-            key="source-mirror"
-            mirror
-            :markdown="markdown"
-            :text-direction="textDirection"
+            :split-active="active"
+            :split-edit="active && !sourceCode"
           ></source-code>
         </template>
       </split-view>
@@ -68,6 +67,17 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-10-29 v1.5.0: C-SPLIT-DUAL-EDIT — one editable source-code
+//     instance for both source mode and the split companion (:split-edit);
+//     the :mirror mirror branch is retired (both panes edit the single
+//     store document in split).
+//   - 2026-10-29 v1.4.0: C-SPLIT-DBLCLICK-TOGGLE — pass :diff-mode to the
+//     split container so the right-edge enable strip never renders while
+//     the diff view replaces the editing surface.
+//   - 2026-10-27 v1.3.0: C-SPLIT-SCROLL-SYNC — pass the split `active`
+//     slot prop down as :split-active to editor and both source-code
+//     instances so each surface knows when Split View drives anchoring
+//     and scroll pairing.
 //   - 2026-10-15 v1.2.0: C-40 T-004 — mount the optional status bar as
 //     the last child of the editor column (bottom of the editor area,
 //     below tab notifications; statusBarVisibility preference gate,

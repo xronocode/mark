@@ -1,0 +1,49 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-TABLE-AUTO-PERSISTENCE-CLOSEOUT>
+    <ChangeRef>C-STABILIZE-TABLE-AUTO-PERSISTENCE-CLOSEOUT</ChangeRef>
+    <IntentSummary>Target-already-satisfied post-write recovery: retain the same scoped sanitizer acceptance, source/test scope and target commands, with a true baseline against the completed implementation. No product code changes are authorized or needed by this closeout. Parent product final/archive precedes this closeout final/archive.</IntentSummary>
+    <ApprovalBasis>Owner-approved recovery on 2026-11-09 delegates recommended implementation choices. The coordinating agent explicitly selected this small approved successor after a red reproduction showed an explicit Auto reset falling back to a global Fit default. Execute sequentially with the same writer; keep C-STABILIZE-PRODUCT-REPAIRS approved bytes unchanged. No new owner question or reviewer loop is required.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/renderer/src/util/tableLayoutRatios.js</File>
+        <Text>['auto', 'fit', 'full'].includes(raw.mode)</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>src/renderer/src/util/tableLayoutRatios.js</File>
+        <Text>['auto', 'fit', 'full'].includes(raw.mode)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/table-layout-ratios.test.js</File>
+        <Text>explicit Auto reset survives save and reload</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>npx --no-install vitest run tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/util/tableLayoutRatios.js</File>
+      <File>tests/renderer/util/table-layout-ratios.test.js</File>
+      <File>.grace/changes/active/C-STABILIZE-TABLE-AUTO-PERSISTENCE-CLOSEOUT/spec.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-TABLE-AUTO-PERSISTENCE-CLOSEOUT/plan.xml</File>
+      <File>.grace/changes/active/C-STABILIZE-TABLE-AUTO-PERSISTENCE-CLOSEOUT/evidence/execution-report.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Preserve explicit Auto without stale user layout data</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Add a red-first save/load sanitizer regression for Auto and absence/inheritance controls, then keep Auto as an explicit mode while removing stale layout payload. Preserve all existing Fit/Full and store tests; parent records current projections centrally.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+    <RecoveryBasis>Coordinator instruction 2026-11-09 under owner-approved delegated recovery: supersede only the original Auto companion; preserve the parent approved plan unchanged. Current bytes already implement the sanitizer and all focused commands have passed. The original companion final exposed four parent pre-edit baseline failures, not a sanitizer defect. Execute selected baseline against observed bytes, parent final/archive, then this closeout final/archive. Do not start another review or alter original assertions.</RecoveryBasis>
+  </C-STABILIZE-TABLE-AUTO-PERSISTENCE-CLOSEOUT>
+</GraceChangePlan>

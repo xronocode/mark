@@ -1,8 +1,15 @@
 <GraceVerificationIndex graceVersion='4.0'>
+<!-- C-STABILIZE-TRAIN-ADMISSION: M-046/V-M-046 record protocol-backed admission and strict owner acceptance boundaries. -->
+<!-- C-STABILIZE-AUTO-RESIZE-WRAP: V-M-012 proves fixed-cell text containment, tab re-adoption and explicit slack/frame-clamp pointer preconditions. -->
+<!-- C-STABILIZE-DIRTY-CHARACTERIZATION: V-M-060 preserves dirty state and exact seeded reproducibility at completed external-event boundaries. -->
+<!-- C-STABILIZE-TABLE-E2E: V-M-012 verifies no-scroll tables, intrinsic/manual viewer geometry, icon names and post-Escape Tab behavior. -->
+<!-- C-STABILIZE-SPLIT-PROJECTIONS: current M-009/M-011/M-012 split source, command and document-history ownership. -->
+<!-- C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured native namespace boundary is recorded in current runtime/features projections. -->
   <VerificationDocuments>
     <!-- V-M-012 scenario-70 covers Shift-arrow selection across overlapping passive hover/action panels. -->
     <!-- C-63: V-M-046 scenario-13 enforces the footnotes and appearance WebKit projects. -->
     <VD-RUNTIME>
+      <!-- C-STABILIZE-CHECKBOX-DIRTY: M-012/V-M-012 own exclusive task routing and readonly native-control safety; V-M-011 proves dirty/close propagation. -->
       <Path>verification/runtime.xml</Path>
       <!-- FIX-010 Command Palette shortcut: V-M-009/V-M-011/V-M-012 verify the macOS-only native, registry, app and real-key route. -->
       <!-- FIX-012 tab-cycle render integrity: V-M-011/V-M-012 verify Guide replacement, null-safe active ancestry and a warning-clean full registry walk. -->
@@ -11,7 +18,8 @@
       <!-- FIX-012 cursor restore guard: V-M-012 verifies incomplete-cursor selection handoff, null-cursor render range and the complete warning-clean registry walk. -->
       <!-- FIX-015 table export integrity: V-M-012 verifies pipe parity, ragged-grid padding, extra-cell retention and stable regular output. -->
       <!-- FIX-016 Auto Save disable race: V-M-011 verifies disable-during-debounce and a later save after re-enable. -->
-      <!-- C-TOOLBAR-LABELS: V-M-012 scenario-toolbar-label-visits verifies cumulative inline labels and whole-panel exit reset for table/Mermaid/Vega-Lite toolbars. -->
+      <!-- C-STABILIZE-PRODUCT-REPAIRS: expanding label behavior below is superseded by icon-only stable controls. -->
+      <!-- Historical C-TOOLBAR-LABELS: V-M-012 scenario-toolbar-label-visits verifies cumulative inline labels and whole-panel exit reset for table/Mermaid/Vega-Lite toolbars. -->
       <!-- C-TABLE-FOOTER: V-M-012 scenario-table-footer verifies compact caption/bar order, stable invisible space and fitting/restored-table controls in both engines. Owner partially accepted the native visual scope on bae95a97; Fit to page transition/persistence remains open in docs/release-trains/2.5.x-next.md#c-table-footer. -->
       <!-- C-71 owner acceptance on f17b070e is queued in 2.5.x-next; table-footer spacing is a separate pending change. -->
       <!-- FIX-003..FIX-007 owner acceptance on isolated bae95a97 is queued in 2.5.x-next; docs/release-trains/2.5.x-next-followups.md coordinates rejected FIX-008 first and release-blocker FIX-011 second, without admitting either to release. -->

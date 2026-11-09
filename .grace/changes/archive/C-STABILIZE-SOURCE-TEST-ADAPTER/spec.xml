@@ -1,0 +1,24 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-SOURCE-TEST-ADAPTER>
+    <Summary>Update the existing source component test doubles to implement the real CodeMirror setOption API exercised by the approved split integration.</Summary>
+    <ApprovalBasis>Delegated stabilization recovery; necessary compatibility maintenance for the existing unchanged regression assertions.</ApprovalBasis>
+    <Goals>
+      <Goal>Restore the existing 37 source component cases without altering production behavior or assertions.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Keep every existing behavior assertion, coverage threshold and timeout unchanged; model the real adapter API instead of adding production guards for incomplete mocks.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No new runtime functionality or release operation.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Both existing suites pass after the missing mock method is supplied.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Area>Existing sourceCode component regression doubles under M-011.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/components/sourceCode-coverage.test.js tests/renderer/components/sourceCode.test.js</ExpectedCommand>
+    </VerificationIntent>
+  </C-STABILIZE-SOURCE-TEST-ADAPTER>
+</GraceChangeSpec>

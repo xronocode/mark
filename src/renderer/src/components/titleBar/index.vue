@@ -76,9 +76,10 @@
              macOS and before the caption cluster on Win/Linux. -->
         <mode-chips @open-menu="handleModeMenuOpen"></mode-chips>
         <!-- C-PAGE-WIDTH-TABLES T-003: the quick-settings button (the
-             chevrons-left-right glyph) opens the Page/View/Tables panel;
-             it sits beside the theme button on macOS and before Share on
-             Win/Linux (where the theme rides the caption row). -->
+             «Aa» text glyph since 2026-11-09) opens the
+             Page/View/Tables panel; it sits beside the theme button on
+             macOS and before Share on Win/Linux (where the theme rides
+             the caption row). -->
         <quick-settings :pathname="pathname"></quick-settings>
         <div
           v-if="isOsx"
@@ -247,12 +248,12 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.5.0
+// VERSION: 2.5.2
 // START_MODULE_CONTRACT
-//   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover (C-DOC-POPOVER-EXPORT-HUB: HIG-tightened, quick-export row PDF/Word/HTML on the File-menu commands), native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it). C-PAGE-WIDTH-TABLES T-003: the quick-settings button (chevrons-left-right, quickSettings/index.vue — M-061) mounts in the right cluster between the mode chips and the theme button.
+//   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover (C-DOC-POPOVER-EXPORT-HUB: HIG-tightened, quick-export row PDF/Word/HTML on the File-menu commands), native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it). C-PAGE-WIDTH-TABLES T-003: the quick-settings button («Aa» text glyph, quickSettings/index.vue — M-061) mounts in the right cluster between the mode chips and the theme button.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path + quick-export row), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks. The quick-settings panel is a self-contained child component (open/close, tabs, palette) — this file only mounts it and hands over the active pathname.
 //   DEPENDS: preferences/layout/project/editor stores, bus, i18n, window.electron/fileUtils IPC facade, @tauri-apps/api/window, @tauri-apps/api/path, @tauri-apps/plugin-clipboard-manager, util/relativeTime, util/docStats, components/icons/chromeIcons, components/titleBar/quickSettings (M-061).
-//   LINKS: .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons), M-062 (mode chips), .grace/graph/performance.xml M-061 (quick settings); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT; .grace/changes/active/C-PAGE-WIDTH-TABLES.
+//   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/graph/runtime.xml M-011 (renderer), M-057 (chromeIcons), M-062 (mode chips), .grace/graph/performance.xml M-061 (quick settings); .grace/verification/runtime.xml V-M-011 scenarios 14, 37, 38, 53, 74; .grace/changes/active/C-WINDOWS-TITLEBAR-ALIGNMENT; .grace/changes/active/C-PAGE-WIDTH-TABLES.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -285,6 +286,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 v2.5.2: the bar's z-index rises 2 → 6 — muya's table
+//     side-wall handles (injected z-index 3) escaped to the root
+//     stacking context and pierced the quick-settings popover (owner
+//     live report); 6 keeps the image-viewer overlay (11) above the bar
+//     unchanged. Plus the comment-only wording follow of the «Aa» glyph
+//     rework (quickSettings/index.vue v1.2.0).
+//   - 2026-11-09 v2.5.1: comment-only — the quick-settings button's
+//     glyph wording follows quickSettings/index.vue v1.2.0 (the owner's
+//     a-large-small «Aa» rework of the chevrons-left-right glyph).
 //   - 2026-11-07 v2.5.0 - C-DOC-POPOVER-EXPORT-HUB: HIG proportions
 //     pass + quick-export row (PDF/Word/HTML) wired to the existing
 //     export commands.
@@ -889,7 +899,13 @@ onBeforeUnmount(() => {
   left: 0;
   top: 0;
   right: 0;
-  z-index: 2;
+  /* 2026-11-09: 6, not 2 — the bar (and both popovers it owns, capped
+     by this z) must paint above muya's in-editor affordances that
+     escape to the root stacking context (the table side-wall handles
+     inject z-index 3 and pierced the quick-settings popover live).
+     6 stays below the image-viewer overlay (z 11), which still dims
+     the bar as before; nothing else in the root context sits at 3–5. */
+  z-index: 6;
   transition: color 0.4s ease-in-out;
   cursor: default;
   /* C-40 T-002: the bar is a flex row (canvas geometry) — left cluster,

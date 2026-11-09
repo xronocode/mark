@@ -1,12 +1,13 @@
 // FILE: src-tauri/src/m045_ext/tests.rs
 // START_MODULE_CONTRACT
 //   PURPOSE: M-045 unit tests for manifest parsing, registry operations,
-//            and auth helpers.
-//   SCOPE:   In-process tests only. No real keychain or HTTP (those
-//            require integration tests). Discovery path resolution is
-//            tested by asserting known patterns.
+//            auth helpers, incoming route events and parsed loopback URL policy.
+//   SCOPE:   In-process mock-runtime handlers, per-extension dummy credential
+//            stores and owned loopback HTTP fixtures. No host keychain or
+//            external services. Discovery paths use a synthetic home.
 //   DEPENDS: super::*.
-//   LINKS:   .grace/verification/features.xml V-M-045.
+//   LINKS:   .grace/verification/features.xml V-M-045;
+//            .grace/changes/archive/C-SEC-AUDIT-FIXES.
 //   STATUS:  Phase-B2b initial.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -15,6 +16,10 @@
 // START_MODULE_MAP
 //   Coverage: GRACE 4 synchronized surface for M-045.
 // END_MODULE_MAP
+
+// START_CHANGE_SUMMARY
+//   - 2026-11-09 C-SEC-AUDIT-FIXES: named handler, revocation and recipient/redirect regressions.
+// END_CHANGE_SUMMARY
 
 use super::manifest::*;
 use super::registry::*;
@@ -904,3 +909,441 @@ fn extension_dirs_include_config() {
     }
 }
 // END_BLOCK_DISCOVERY_PATH_TESTS
+
+// START_BLOCK_INCOMING_DATA_TESTS
+use axum::{extract::State, http::{HeaderMap, StatusCode}, response::IntoResponse, Json};
+use std::sync::{Arc, Mutex};
+use tauri::{Listener, Manager};
+
+struct IncomingFixture {
+    app: tauri::App<tauri::test::MockRuntime>,
+    state: Arc<super::live_server::LiveServerState<tauri::test::MockRuntime>>,
+    events: Arc<Mutex<Vec<serde_json::Value>>>,
+    id: String,
+    token: String,
+    credential: Arc<DummyCredential>,
+}
+
+fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let id = format!("fixture-ext-{}", NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
+    let token = format!("dummy-token-{id}");
+    let app = tauri::test::mock_app();
+    app.manage(ExtRegistry::new());
+    let registry = app.state::<ExtRegistry>();
+    let mut manifest = test_manifest(&id);
+    manifest.capabilities = vec![Capability { name: capability.to_string(), version: 1 }];
+    registry.register(manifest, true).unwrap();
+    if enabled { registry.enable(&id).unwrap(); }
+    super::auth::inject_test_secret(&id, &token);
+    let credential = Arc::new(DummyCredential::default());
+    *credential.persistent.lock().unwrap() = Some(token.clone());
+    super::auth::inject_test_backend(&id, Ok(credential.clone()));
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let seen = events.clone();
+    app.listen("mt::text::op", move |event| {
+        seen.lock().unwrap().push(serde_json::from_str(event.payload()).unwrap());
+    });
+    let state = Arc::new(super::live_server::LiveServerState {
+        session: tokio::sync::Mutex::new(None),
+        app_handle: app.handle().clone(),
+        pending_context: Mutex::new(std::collections::HashMap::new()),
+    });
+    let weak_state = Arc::downgrade(&state);
+    app.listen("mt::ext::context_request", move |event| {
+        let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
+        let state = weak_state.upgrade().unwrap();
+        let tx = state.pending_context.lock().unwrap().remove(payload["request_id"].as_str().unwrap());
+        if let Some(tx) = tx {
+            tx.send(super::live_server::ExtContextResponse {
+                markdown: "dummy context".to_string(), cursor: None, selection: None, file_path: None,
+            }).unwrap();
+        }
+    });
+    IncomingFixture { app, state, events, id, token, credential }
+}
+
+fn bearer_headers(token: Option<&str>) -> HeaderMap {
+    let mut headers = HeaderMap::new();
+    if let Some(token) = token {
+        headers.insert("authorization", format!("Bearer {token}").parse().unwrap());
+    }
+    headers
+}
+
+async fn insert_fixture(fixture: &IncomingFixture, token: Option<&str>) -> StatusCode {
+    let req = serde_json::from_value(serde_json::json!({"text": "fixture text", "source": "fixture"})).unwrap();
+    super::live_server::handle_text_insert(State(fixture.state.clone()), bearer_headers(token), Json(req))
+        .await.into_response().status()
+}
+
+#[tokio::test]
+async fn text_insert_refuses_no_token() {
+    let f = incoming_fixture(true, "text.insert");
+    assert_eq!(insert_fixture(&f, None).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn text_insert_refuses_wrong_token() {
+    let f = incoming_fixture(true, "text.insert");
+    assert_eq!(insert_fixture(&f, Some("dummy-wrong-token")).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn text_insert_refuses_disabled_extension() {
+    let f = incoming_fixture(false, "text.insert");
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
+async fn text_insert_refuses_missing_capability() {
+    let f = incoming_fixture(true, "stream.document");
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
+async fn text_insert_authorized_emits_with_requester_identity() {
+    let f = incoming_fixture(true, "text.insert");
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
+    let events = f.events.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["extension_id"], f.id);
+    assert_eq!(events[0]["payload"]["text"], "fixture text");
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 1);
+}
+
+#[tokio::test]
+async fn text_insert_authorized_old_shape_body_emits() {
+    let f = incoming_fixture(true, "text.insert");
+    // The actual server schema deserializes the v1 body without an id field.
+    let req: super::live_server::TextInsertRequest = serde_json::from_str(r#"{"text":"old body","source":"paired fixture"}"#).unwrap();
+    let status = super::live_server::handle_text_insert(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(req))
+        .await.into_response().status();
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap()[0]["payload"]["text"], "old body");
+}
+// END_BLOCK_INCOMING_DATA_TESTS
+
+impl Drop for IncomingFixture {
+    fn drop(&mut self) { super::auth::clear_test_secret(&self.id); }
+}
+
+// START_BLOCK_DISABLE_AUTH_TESTS
+#[derive(Default)]
+struct DummyCredential {
+    persistent: Mutex<Option<String>>,
+    fail_delete: std::sync::atomic::AtomicBool,
+    fail_read: std::sync::atomic::AtomicBool,
+    keep_after_delete: std::sync::atomic::AtomicBool,
+    reads: std::sync::atomic::AtomicUsize,
+}
+
+impl super::auth::Credential for DummyCredential {
+    fn read(&self) -> Result<Option<String>, String> {
+        self.reads.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if self.fail_read.load(std::sync::atomic::Ordering::Relaxed) {
+            Err("dummy credential read access failed".to_string())
+        } else { Ok(self.persistent.lock().unwrap().clone()) }
+    }
+    fn write(&self, secret: &str) -> Result<(), String> {
+        *self.persistent.lock().unwrap() = Some(secret.to_string());
+        Ok(())
+    }
+    fn delete(&self) -> Result<(), String> {
+        if self.fail_delete.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("dummy credential delete failed".to_string());
+        }
+        if !self.keep_after_delete.load(std::sync::atomic::Ordering::Relaxed) {
+            *self.persistent.lock().unwrap() = None;
+        }
+        Ok(())
+    }
+}
+
+async fn context_fixture(f: &IncomingFixture, token: &str) -> StatusCode {
+    super::live_server::handle_ext_context(State(f.state.clone()), bearer_headers(Some(token)),
+        Json(super::live_server::ExtContextRequest { extension_id: f.id.clone() }))
+        .await.into_response().status()
+}
+
+async fn apply_fixture(f: &IncomingFixture, token: &str) -> StatusCode {
+    super::live_server::handle_ext_apply(State(f.state.clone()), bearer_headers(Some(token)),
+        Json(super::live_server::ExtApplyRequest {
+            extension_id: f.id.clone(), undo_label: None,
+            operations: vec![super::live_server::EditOperation { op_type: "insert_at_cursor".to_string(), content: Some("fixture edit".to_string()) }],
+        })).await.into_response().status()
+}
+
+async fn assert_old_token_fenced(f: &IncomingFixture) {
+    assert_eq!(context_fixture(f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn disable_revokes_and_verifies_absence() {
+    let f = incoming_fixture(true, "text.insert");
+    // Persistent NoEntry alone cannot prove absence while memory still holds a token.
+    *f.credential.persistent.lock().unwrap() = None;
+    assert!(super::auth::verify_secret_absent(&f.id).is_err());
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()));
+    *f.credential.persistent.lock().unwrap() = Some(f.token.clone());
+    super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap();
+    super::auth::verify_secret_absent(&f.id).unwrap();
+    assert!(super::auth::get_secret(&f.id).unwrap().is_none());
+    assert!(f.credential.persistent.lock().unwrap().is_none());
+    assert!(!super::auth::validate_token(&f.id, &f.token));
+    assert_old_token_fenced(&f).await;
+    // Confirmed missing credentials remain a successful, idempotent disable.
+    super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap();
+}
+
+#[tokio::test]
+async fn disable_surfaces_revoke_failure() {
+    let f = incoming_fixture(true, "text.insert");
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err());
+    assert_eq!(f.credential.persistent.lock().unwrap().as_deref(), Some(f.token.as_str()));
+    assert!(super::auth::validate_token(&f.id, &f.token), "the enabled-state gate must fence a still-valid persistent token");
+    assert_old_token_fenced(&f).await;
+}
+
+#[tokio::test]
+async fn disable_refuses_unverified_revocation() {
+    for mode in ["entry", "read", "survives"] {
+        let f = incoming_fixture(true, "text.insert");
+        match mode {
+            "entry" => super::auth::inject_test_backend(&f.id, Err("dummy credential entry creation failed".to_string())),
+            "read" => f.credential.fail_read.store(true, std::sync::atomic::Ordering::Relaxed),
+            _ => f.credential.keep_after_delete.store(true, std::sync::atomic::Ordering::Relaxed),
+        }
+        assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_disable_revoke_failed", "{mode}");
+        assert!(super::auth::verify_secret_absent(&f.id).is_err(), "{mode}");
+        assert_old_token_fenced(&f).await;
+        if mode != "survives" {
+            // The best-effort read can be None on backend failure; it cannot
+            // supply the strict absence proof needed by successful disable.
+            assert!(super::auth::get_secret(&f.id).unwrap().is_none());
+        }
+    }
+}
+
+#[tokio::test]
+async fn enabled_extension_passes_all_three_routes() {
+    let f = incoming_fixture(true, "text.insert");
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::OK);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 2);
+    let other = incoming_fixture(true, "stream.document");
+    assert_eq!(context_fixture(&other, &other.token).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::OK);
+    assert_eq!(insert_fixture(&other, Some(&other.token)).await, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn fresh_pairing_restores_access() {
+    let f = incoming_fixture(true, "text.insert");
+    super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_old_token_fenced(&f).await;
+    // Enabling never makes the old token usable; a real fresh pair supplies it.
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    let response = super::live_server::handle_pair(State(f.state.clone()), Json(super::live_server::PairRequest {
+        extension_id: f.id.clone(), extension_name: "Dummy paired fixture".to_string(), protocol_version: 1,
+    })).await.into_response();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let paired: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let fresh = paired["shared_secret"].as_str().unwrap();
+    assert_ne!(fresh, f.token);
+    assert_eq!(context_fixture(&f, fresh).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&f, fresh).await, StatusCode::OK);
+    assert_eq!(insert_fixture(&f, Some(fresh)).await, StatusCode::OK);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+}
+// END_BLOCK_DISABLE_AUTH_TESTS
+
+// START_BLOCK_LOOPBACK_URL_TESTS
+#[test]
+fn manifest_rejects_userinfo_url() {
+    for url in ["http://localhost:1@evil.example/", "http://user@127.0.0.1/", "http://:pass@localhost/", "http://@localhost/"] {
+        let mut manifest = test_manifest("userinfo-fixture");
+        manifest.discovery.base_url = url.to_string();
+        assert!(validate_manifest(&manifest).is_err(), "{url}");
+    }
+}
+
+#[tokio::test]
+async fn invoke_rejects_userinfo_final_url() {
+    let mut manifest = test_manifest("invoke-userinfo-fixture");
+    manifest.discovery.base_url = "http://localhost:1@evil.example/".to_string();
+    let error = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy"}), Some("dummy-bearer"))
+        .await.unwrap_err();
+    // A network failure cannot satisfy this test: rejection must happen in validation.
+    assert!(error.message.contains("userinfo"), "{}", error.message);
+    manifest.discovery.base_url = "http://localhost".to_string();
+    manifest.invoke.invoke_path = ":1@evil.example/".to_string();
+    let error = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({}), Some("dummy-bearer"))
+        .await.unwrap_err();
+    assert!(error.message.contains("userinfo"), "{}", error.message);
+}
+
+#[test]
+fn manifest_rejects_non_loopback_host_without_userinfo() {
+    for url in ["http://evil.example/", "http://[::ffff:127.0.0.1]/", "https://192.0.2.1/", "file:///tmp/fixture", "ftp://localhost/"] {
+        let mut manifest = test_manifest("host-fixture");
+        manifest.discovery.base_url = url.to_string();
+        assert!(validate_manifest(&manifest).is_err(), "{url}");
+    }
+}
+
+#[test]
+fn manifest_accepts_loopback_hosts() {
+    for url in ["http://127.0.0.1:9100/base", "https://localhost:9100/base", "http://[::1]:9100/base"] {
+        let mut manifest = test_manifest("loopback-fixture");
+        manifest.discovery.base_url = url.to_string();
+        validate_manifest(&manifest).unwrap();
+    }
+    assert!(validate_loopback_url("http://::1/").is_err());
+}
+
+#[test]
+fn invoke_rejects_host_changing_path() {
+    for base in ["http://127.0.0.1:9100", "http://127.0.0.1:9100/prefix"] {
+        for path in ["http://evil.example/invoke", "//evil.example/invoke"] {
+            if let Ok(endpoint) = extension_endpoint(base, path) {
+                let base = validate_loopback_url(base).unwrap();
+                assert_eq!(endpoint.host(), base.host());
+                assert_eq!(endpoint.origin(), base.origin());
+            }
+        }
+    }
+    assert!(extension_endpoint("http://localhost", ".evil.example/invoke").is_err());
+    assert!(extension_endpoint("http://localhost", ":9101/invoke").is_err());
+}
+
+/// The confined launcher can pass listeners bound to exclusive fixture ports.
+/// Normal CI uses ephemeral loopback sockets. Each tag is consumed once per run.
+fn fixture_listener(tag: &str) -> std::net::TcpListener {
+    #[cfg(unix)]
+    if let Ok(raw) = std::env::var(format!("MARK_TEST_FD_{tag}")) {
+        use std::os::fd::FromRawFd;
+        let listener = unsafe { std::net::TcpListener::from_raw_fd(raw.parse().unwrap()) };
+        assert_eq!(listener.local_addr().unwrap().ip(), std::net::Ipv4Addr::LOCALHOST);
+        return listener;
+    }
+    std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap()
+}
+
+/// Serve a single small synthetic HTTP response, returning the observed request.
+fn serve_fixture(
+    listener: std::net::TcpListener,
+    status: &str,
+    headers: String,
+    body: &str,
+    wait_ms: u64,
+) -> std::thread::JoinHandle<Option<String>> {
+    use std::io::{Read, Write};
+    let response = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n{headers}\r\n{body}", body.len());
+    listener.set_nonblocking(true).unwrap();
+    std::thread::spawn(move || {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(wait_ms);
+        let mut stream = loop {
+            match listener.accept() {
+                Ok((stream, _)) => break stream,
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    if std::time::Instant::now() >= deadline { return None; }
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                },
+                Err(e) => panic!("fixture accept failed: {e}"),
+            }
+        };
+        stream.set_nonblocking(false).unwrap();
+        stream.set_read_timeout(Some(std::time::Duration::from_secs(2))).unwrap();
+        let mut request = Vec::new();
+        loop {
+            let mut bytes = [0u8; 4096];
+            let len = stream.read(&mut bytes).unwrap();
+            if len == 0 { break; }
+            request.extend_from_slice(&bytes[..len]);
+            assert!(request.len() < 16384, "fixture request bound");
+            if let Some(end) = request.windows(4).position(|part| part == b"\r\n\r\n") {
+                let text = String::from_utf8_lossy(&request[..end]);
+                let content_length = text.lines().find_map(|line| {
+                    let (name, value) = line.split_once(':')?;
+                    name.eq_ignore_ascii_case("content-length").then(|| value.trim().parse::<usize>().unwrap())
+                }).unwrap_or(0);
+                if request.len() >= end + 4 + content_length { break; }
+            }
+        }
+        stream.write_all(response.as_bytes()).unwrap();
+        Some(String::from_utf8(request).unwrap())
+    })
+}
+
+#[tokio::test]
+async fn invoke_honest_loopback_ok() {
+    let listener = fixture_listener("INVOKE_OK");
+    let mut manifest = test_manifest("honest-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 2;
+    let server = serve_fixture(listener, "200 OK", String::new(), r#"{"fixture":"ok"}"#, 2000);
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap();
+    assert_eq!(result["fixture"], "ok");
+    let request = server.join().unwrap().unwrap();
+    assert!(request.starts_with("POST /invoke "));
+    assert!(request.to_ascii_lowercase().contains("authorization: bearer dummy-fixture-bearer"));
+    assert!(request.contains("dummy body"));
+}
+
+#[tokio::test]
+async fn probe_health_honest_loopback_ok() {
+    let listener = fixture_listener("PROBE_OK");
+    let mut manifest = test_manifest("honest-probe-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    let server = serve_fixture(listener, "200 OK", String::new(), "healthy", 2000);
+    assert!(super::discovery::probe_health(&manifest).await);
+    let request = server.join().unwrap().unwrap();
+    assert!(request.starts_with("GET /health "));
+    assert!(!request.to_ascii_lowercase().contains("authorization:"));
+}
+
+#[tokio::test]
+async fn invoke_redirect_response_not_followed() {
+    let origin = fixture_listener("INVOKE_REDIRECT_ORIGIN");
+    let target = fixture_listener("INVOKE_REDIRECT_TARGET");
+    let target_addr = target.local_addr().unwrap();
+    let mut manifest = test_manifest("redirect-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", origin.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 2;
+    let origin_server = serve_fixture(origin, "307 Temporary Redirect", format!("Location: http://{target_addr}/other\r\n"), "redirect", 2000);
+    let target_server = serve_fixture(target, "200 OK", String::new(), r#"{"unexpected":true}"#, 700);
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-bearer"))
+        .await;
+    let origin_request = origin_server.join().unwrap().unwrap();
+    let target_request = target_server.join().unwrap();
+    assert!(matches!(result.unwrap_err().kind, super::invoke::InvokeErrorKind::BadStatus));
+    assert!(origin_request.contains("dummy body"));
+    assert!(target_request.is_none(), "redirect target received a request");
+
+    let origin = fixture_listener("PROBE_REDIRECT_ORIGIN");
+    let target = fixture_listener("PROBE_REDIRECT_TARGET");
+    let target_addr = target.local_addr().unwrap();
+    manifest.discovery.base_url = format!("http://{}", origin.local_addr().unwrap());
+    let origin_server = serve_fixture(origin, "307 Temporary Redirect", format!("Location: http://{target_addr}/other\r\n"), "redirect", 2000);
+    let target_server = serve_fixture(target, "200 OK", String::new(), "unexpected", 700);
+    assert!(!super::discovery::probe_health(&manifest).await);
+    assert!(origin_server.join().unwrap().is_some());
+    assert!(target_server.join().unwrap().is_none(), "health probe followed its redirect");
+}
+// END_BLOCK_LOOPBACK_URL_TESTS

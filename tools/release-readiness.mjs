@@ -1,10 +1,10 @@
 // FILE: tools/release-readiness.mjs
 // VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Validate the checked-in release-train authority and fail closed when lifecycle, membership, acceptance, ledger/pointer projection, Project schema coverage, or requested release identity is inconsistent.
+//   PURPOSE: Validate the release-train authority, separating protocol-backed early admission from complete owner acceptance required by Ready/Released and strict release checks; fail closed on lifecycle, membership, accounting, ledger or identity drift.
 //   SCOPE: Read one public train JSON document and every lane train, validate their deterministic repository-only invariants, prove the current train's human ledger and README pointer carry the admitted items, and prove the checked-in Project schema covers every train file; online check-run proof and publication remain workflow concerns.
 //   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json; .github/release-governance.json.
-//   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
+//   LINKS: M-046
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -25,6 +25,7 @@
 //   RELEASE_STATES - Complete release lifecycle state set.
 //   TRANSITIONS - Allowed forward and recovery lifecycle transitions.
 //   STRICT_STATES - Lifecycle states that require repository identity proof.
+//   ADMISSION_STATES - Early lifecycle states permitting protocol-backed pending owner acceptance.
 //   LANE_STATES - Complete lane-train lifecycle state set.
 //   LANE_TRANSITIONS - Allowed lane-train lifecycle transitions.
 //   LANE_STRICT_STATES - Lane states that require complete commit accounting through the lane head.
@@ -42,7 +43,10 @@
 //   requireSha - Require one full Git commit identity.
 //   normalizeItems - Flatten admitted user-facing and operational train members.
 //   validateTransitions - Validate current lifecycle state and permitted history.
-//   validateMembership - Validate admitted, excluded, and acceptance evidence.
+//   validateTestingProtocol - Validate actual automatic/manual evidence and explicitly unverified scopes.
+//   hasCompleteOwnerAcceptance - Recognize legacy complete owner evidence without inventing a verdict.
+//   validateOwnerAcceptance - Enforce complete declared owner evidence at the release boundary.
+//   validateMembership - Validate admitted, excluded and phase-appropriate acceptance/protocol evidence.
 //   validateCommitAccounting - Account for every payload-range commit exactly once.
 //   checkIdentity - Serialize one required-check identity without ambiguity.
 //   validateRequiredCheckPolicy - Pin the train check set to non-seal governance configuration.
@@ -55,6 +59,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 C-STABILIZE-TRAIN-ADMISSION: early admission requires explicit testing protocol when owner acceptance is pending; Ready/Released and every strict entry point retain complete owner acceptance and reject negative verdicts.
 //   - 2026-10-30 v2.2.0: lane trains — every td-N document is validated on each run (lane lifecycle Collecting/Frozen/Merged/Aborted, accounting from lane.baseSha through lane.headSha, always-complete ledger covering operational items too); a Merged lane must be carried by its product train as one item holding the merge commit and every lane commit.
 //   - 2026-10-27 v2.1.0: fail closed on bookkeeping drift — the current train's ledger must carry a heading and a commit for every admitted item and at least one dated history bullet per lifecycle transition; current.json and the README "Current train" line must name the same train; the checked-in Project Train field must offer an option for every train document.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — resolve the train through the current-train pointer; accept any metadata-only payload-to-seal span (every commit proven bookkeeping-only) instead of exactly one commit, which merge-commit PRs could never satisfy; replace the hand-grown seal file list with bookkeeping path patterns; drop the Release Please boundary check.
@@ -93,6 +98,7 @@ const TRANSITIONS = new Map([
   ['Aborted', new Set()]
 ])
 const STRICT_STATES = new Set(['Frozen', 'Ready', 'Released'])
+const ADMISSION_STATES = new Set(['Collecting', 'Preparing', 'Frozen'])
 // Lane trains (td-N) collect on an integ/ branch and depart by one merge
 // commit into main, where the carrier product train accounts for them.
 const LANE_STATES = new Set(['Collecting', 'Frozen', 'Merged', 'Aborted'])
@@ -191,7 +197,67 @@ const validateTransitions = (manifest, states = RELEASE_STATES, transitions = TR
   }
 }
 
-const validateMembership = (manifest, workspaceRoot) => {
+// A protocol records evidence before admission; it never supplies an owner verdict.
+// Empty automatic/manual sections require a corresponding explicit unverified reason.
+const validateTestingProtocol = (protocol, id) => {
+  const code = 'MT_RELEASE_TESTING_PROTOCOL_INVALID'
+  if (!protocol || typeof protocol !== 'object' || Array.isArray(protocol)) {
+    fail(code, `${id}.testingProtocol=missing`)
+  }
+  for (const section of ['automatic', 'manual', 'intentionallyUnverified']) {
+    if (!Array.isArray(protocol[section])) fail(code, `${id}.${section}=missing`)
+    for (const [index, entry] of protocol[section].entries()) {
+      const label = `${id}.${section}[${index}]`
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) fail(code, `${label}=invalid`)
+      if (section === 'intentionallyUnverified') {
+        if (!['automatic', 'manual'].includes(entry.section)) fail(code, `${label}.section=invalid`)
+        requireString(entry.scenario, code, `${label}.scenario`)
+        requireString(entry.reason, code, `${label}.reason`)
+      } else {
+        requireString(entry[section === 'automatic' ? 'command' : 'scenario'], code, `${label}.check`)
+        requireString(entry.result, code, `${label}.result`)
+        requireString(entry.date, code, `${label}.date`)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.date) ||
+          !Number.isFinite(Date.parse(entry.date)) ||
+          new Date(entry.date).toISOString().slice(0, 10) !== entry.date) {
+          fail(code, `${label}.date=invalid`)
+        }
+        requireString(entry.evidence, code, `${label}.evidence`)
+        if (section === 'manual' || entry.build !== undefined) requireString(entry.build, code, `${label}.build`)
+      }
+    }
+  }
+  for (const section of ['automatic', 'manual']) {
+    if (protocol[section].length === 0 &&
+      !protocol.intentionallyUnverified.some(entry => entry.section === section)) {
+      fail(code, `${id}.${section}=unexplained`)
+    }
+  }
+}
+
+const hasCompleteOwnerAcceptance = (acceptance) =>
+  ['owner', 'date', 'testedArtifact'].every(field =>
+    typeof acceptance?.[field] === 'string' && acceptance[field].trim().length > 0) &&
+  Array.isArray(acceptance?.scenarios) && acceptance.scenarios.length > 0 &&
+  acceptance.scenarios.every(scenario => typeof scenario === 'string' && scenario.trim().length > 0)
+
+const validateOwnerAcceptance = (acceptance, id, verdicts) => {
+  if (verdicts.some(verdict => verdict !== 'accepted')) {
+    fail('MT_RELEASE_ACCEPTANCE_INVALID', `${id}.verdict=not-accepted`)
+  }
+  requireString(acceptance?.owner, 'MT_RELEASE_ACCEPTANCE_MISSING', `${id}.owner`)
+  requireString(acceptance?.date, 'MT_RELEASE_ACCEPTANCE_MISSING', `${id}.date`)
+  requireString(acceptance?.testedArtifact, 'MT_RELEASE_ACCEPTANCE_MISSING', `${id}.testedArtifact`)
+  if (!hasCompleteOwnerAcceptance(acceptance)) {
+    fail('MT_RELEASE_ACCEPTANCE_MISSING', `${id}.scenarios=missing`)
+  }
+}
+
+const validateMembership = (
+  manifest,
+  workspaceRoot,
+  { requireOwnerAcceptance = !ADMISSION_STATES.has(manifest.state) } = {}
+) => {
   const groups = normalizeItems(manifest)
   const seen = new Set()
   for (const [groupName, entries] of Object.entries(groups)) {
@@ -211,11 +277,22 @@ const validateMembership = (manifest, workspaceRoot) => {
         }
         for (const commit of item.commits) requireSha(commit, 'MT_RELEASE_MEMBERSHIP_INVALID', `${id}.commit`)
         const acceptance = item.acceptance
-        requireString(acceptance?.owner, 'MT_RELEASE_ACCEPTANCE_MISSING', `${id}.owner`)
-        requireString(acceptance?.date, 'MT_RELEASE_ACCEPTANCE_MISSING', `${id}.date`)
-        requireString(acceptance?.testedArtifact, 'MT_RELEASE_ACCEPTANCE_MISSING', `${id}.testedArtifact`)
-        if (!Array.isArray(acceptance?.scenarios) || acceptance.scenarios.length === 0) {
-          fail('MT_RELEASE_ACCEPTANCE_MISSING', `${id}.scenarios=missing`)
+        if (acceptance != null && (typeof acceptance !== 'object' || Array.isArray(acceptance))) {
+          fail('MT_RELEASE_ACCEPTANCE_INVALID', `${id}.acceptance=invalid`)
+        }
+        const verdicts = [acceptance?.status, acceptance?.verdict,
+          ...(['pending', 'rejected', 'needs-recheck'].includes(item.state) ? [item.state] : [])]
+          .filter(verdict => verdict !== undefined)
+        if (verdicts.some(verdict => !['accepted', 'pending'].includes(verdict)) ||
+          (verdicts.includes('accepted') && verdicts.includes('pending'))) {
+          fail('MT_RELEASE_ACCEPTANCE_INVALID', `${id}.verdict=not-accepted`)
+        }
+        const complete = hasCompleteOwnerAcceptance(acceptance) && !verdicts.includes('pending')
+        if (requireOwnerAcceptance || complete || verdicts.includes('accepted')) {
+          validateOwnerAcceptance(acceptance, id, verdicts)
+          if (item.testingProtocol !== undefined) validateTestingProtocol(item.testingProtocol, id)
+        } else {
+          validateTestingProtocol(item.testingProtocol, id)
         }
       }
       if (groupName === 'operational') {
@@ -341,8 +418,8 @@ const validateRequiredCheckPolicy = (manifest, workspaceRoot) => {
 }
 
 // START_CONTRACT: validateTrainManifest
-//   PURPOSE: Enforce deterministic train schema, lifecycle, unique membership, owner acceptance, commit accounting, and optional requested release identity.
-//   INPUTS: { manifest: object - parsed authority, options: object - workspaceRoot and optional tag/payload }
+//   PURPOSE: Enforce train schema, lifecycle, phase-appropriate admission/owner evidence, commit accounting and optional requested release identity; strict mode always requires complete owner acceptance.
+//   INPUTS: { manifest: object - parsed authority, options: object - workspaceRoot and optional tag/payload/mode }
 //   OUTPUTS: { object - normalized train identity and item counts }
 //   SIDE_EFFECTS: May test repository-relative exclusion paths; otherwise none.
 //   LINKS: .grace/verification/features.xml V-M-046 release-train scenarios
@@ -350,7 +427,7 @@ const validateRequiredCheckPolicy = (manifest, workspaceRoot) => {
 // START_BLOCK_VALIDATE_TRAIN_MANIFEST
 export const validateTrainManifest = (
   manifest,
-  { workspaceRoot = process.cwd(), tag, payload } = {}
+  { workspaceRoot = process.cwd(), tag, payload, mode } = {}
 ) => {
   if (manifest?.schemaVersion !== TRAIN_SCHEMA_VERSION) {
     fail('MT_RELEASE_TRAIN_INVALID', `schema=${manifest?.schemaVersion ?? 'missing'}`)
@@ -368,7 +445,9 @@ export const validateTrainManifest = (
   }
 
   validateTransitions(manifest)
-  const groups = validateMembership(manifest, workspaceRoot)
+  const groups = validateMembership(manifest, workspaceRoot, {
+    requireOwnerAcceptance: mode === 'strict' || !ADMISSION_STATES.has(manifest.state)
+  })
   validateCommitAccounting(manifest, groups)
   validateRequiredCheckPolicy(manifest, workspaceRoot)
 
@@ -674,6 +753,8 @@ export const validateStrictRepositoryState = (
   if (!STRICT_STATES.has(manifest.state)) {
     fail('MT_RELEASE_STATE_NOT_READY', `state=${manifest.state}`)
   }
+  // Direct callers must not bypass owner acceptance through repository-only proof.
+  validateMembership(manifest, root, { requireOwnerAcceptance: true })
   if (payload === 'PAYLOAD_SHA') {
     fail('MT_RELEASE_IDENTITY_MISMATCH', 'payload=placeholder')
   }
@@ -805,7 +886,7 @@ export const runReleaseReadiness = (workspaceRoot, options = {}) => {
   const manifest = readTrainManifest(workspaceRoot, options.trainPath)
   const result = validateTrainManifest(
     manifest,
-    { workspaceRoot, tag: options.tag, payload: options.payload }
+    { workspaceRoot, tag: options.tag, payload: options.payload, mode: options.mode }
   )
   const ledgerPath = (options.trainPath ?? resolveCurrentTrain(workspaceRoot).json).replace(
     /\.json$/,

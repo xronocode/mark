@@ -1,12 +1,14 @@
 <!--
   FILE: src/renderer/src/components/titleBar/modeChips.vue
-  VERSION: 1.2.0
+  VERSION: 1.4.0
   START_MODULE_CONTRACT
     PURPOSE: C-TITLEBAR-MODE-CHIPS T-004 — the titlebar chips cluster:
-             one document-view chip (icon + short label) for the current
+             one icon-only document-view chip for the current
              tab's exclusive view state, plus compact icon chips for the
-             active writing modes; nothing renders in the standard state
-             or with no document open.
+             active writing modes; the standard state keeps a single
+             «Standard» entry chip (owner 2026-11-07 — the cluster must
+             never vanish and take the mode menu's entry with it); nothing
+             renders with no document open.
     SCOPE: Projection of mode state (tab.splitView / tab.diffMode,
            preferences.sourceCode / typewriter / focus) into the chips and
            the two-group switch menu; menu actions dispatch the five
@@ -14,7 +16,7 @@
            normalization. Owns no document state and no new command ids.
     DEPENDS: vue, pinia stores (editor, preferences), vue-i18n,
              components/icons/chromeIcons.js.
-    LINKS: .grace/graph/runtime.xml M-062; .grace/verification/runtime.xml
+    LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/graph/runtime.xml M-062; .grace/verification/runtime.xml
            V-M-062; .grace/changes/active/C-TITLEBAR-MODE-CHIPS/spec.xml
            R-1, R-4, R-7.
     ROLE: RUNTIME
@@ -30,7 +32,15 @@
   END_MODULE_MAP
 
   START_CHANGE_SUMMARY
-    LAST_CHANGE: v1.2.0 - 2026-10-27 C-TITLEBAR-MODE-CHIPS owner amendment:
+    LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
+    PREV: v1.4.0 - 2026-11-08 owner review: the view chips render
+    ICON-ONLY — the mode names live in the tooltips, like every other
+    titlebar button.
+    PREV: v1.3.0 - 2026-11-07 owner smoke: the standard state
+    renders a single «Standard» entry chip — switching the last mode
+    off used to drop the whole cluster (and the mode menu's only
+    titlebar entry) until another mode came on.
+    PREV: v1.2.0 - 2026-10-27 C-TITLEBAR-MODE-CHIPS owner amendment:
     Standard is the full reset (view plus both writing modes), replacing the
     separate Reset footer row; the menu keeps two groups and no footer.
     v1.1.0 - 2026-10-27 C-TITLEBAR-MODE-CHIPS T-005: the
@@ -183,7 +193,9 @@ const chips = computed(() => {
       key: `view-${id}`,
       id,
       icon: `mode-${id}`,
-      label: shortLabel(id),
+      // Owner 2026-11-08: the view chip carries the icon only — the mode
+      // name lives in the tooltip, like every other titlebar button.
+      label: '',
       aria: shortLabel(id),
       tooltip
     })
@@ -196,6 +208,19 @@ const chips = computed(() => {
       label: '',
       aria: shortLabel(id),
       tooltip: hint(id)
+    })
+  }
+  // Owner 2026-11-07: the standard state keeps ONE entry chip — turning
+  // the last mode off used to remove the whole cluster and with it the
+  // only titlebar way back into the mode menu.
+  if (out.length === 0 && hasDocument.value) {
+    out.push({
+      key: 'view-standard',
+      id: 'standard',
+      icon: 'mode-standard',
+      label: '',
+      aria: shortLabel('standard'),
+      tooltip: t('titleBar.modeChips.hintStandard')
     })
   }
   return out

@@ -4,7 +4,7 @@
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-008 (M-061) the store-side pure maths of the tableLayouts schema v2 — the ratios (fractions of the table width) that let persisted column sizes survive window resizes, zoom, page-width changes and Fit↔Full switches, plus the one-way migration of the legacy px-only entries (the fullWidth/fit booleans become the v2 mode field; a stored fit:true — the retired fake fit — opens in the honest Fit page). The muya counterpart of the apply/re-apply maths lives in src/muya/lib/tableResize/tableFit.js (muya stays self-contained); this module owns what the persistence layer needs: normalize, derive, apply, migrate.
 //   SCOPE: Pure transforms only — normalizeRatios (sanitize + unit-sum correction), ratiosFromWidths, applyRatios (ratios + frame → px widths floored at minima, summing to the frame), migrateTableEntry (schema v1 → v2: legacy fullWidth/fit booleans → mode, idempotent by construction), MIN_TABLE_COLUMN_PX (the shared 48px floor). No IO, no DOM, no imports — unit-pinnable with plain objects.
 //   DEPENDS: none (framework-free pure functions).
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-008, spec R-8/R-10, corners C-8/C-9); .grace/graph/performance.xml M-061; util/tableLayoutStore.js (the store consuming migrateTableEntry + normalizeRatios); src/muya/lib/tableResize/index.js + tableFit.js (the muya-side sanitize/apply counterparts); store/preferences.js rememberTableColumnSizes (the consumption gate).
+//   LINKS: .grace/changes/archive/C-STABILIZE-TABLE-AUTO-PERSISTENCE;  .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-008, spec R-8/R-10, corners C-8/C-9); .grace/graph/performance.xml M-061; util/tableLayoutStore.js (the store consuming migrateTableEntry + normalizeRatios); src/muya/lib/tableResize/index.js + tableFit.js (the muya-side sanitize/apply counterparts); store/preferences.js rememberTableColumnSizes (the consumption gate).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -18,7 +18,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-008: new
+//   LAST_CHANGE: 2026-11-09 C-STABILIZE-TABLE-AUTO-PERSISTENCE: explicit Auto survives profile round trips and drops stale fixed-layout data.
+//   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-008: new
 //   module. tableLayouts entries gain ratios + an explicit tableWidth and
 //   a mode field replacing the legacy fullWidth/fit booleans; the fake-fit
 //   flag migrates one-way to the honest Fit page (owner gate №4) and the
@@ -102,7 +103,7 @@ export const applyRatios = (ratios, frameWidth, minima = [], minColumnPx = MIN_T
 // START_BLOCK_SCHEMA_V2_MIGRATION
 // Schema v1: { widths, manual, fullWidth, fit } (px-only, the fake-fit
 // flags). Schema v2: { widths, manual, mode?, ratios?, tableWidth? } —
-// the mode is 'fit' | 'full' (absent = Auto), ratios are the stored
+// the mode is 'auto' | 'fit' | 'full' (absent inherits the global default), ratios are the stored
 // proportions, tableWidth the side-wall-set explicit width.
 // The migration is one-way and IDEMPOTENT (corner C-8): a v2 entry reads
 // back as the same v2 entry; the legacy booleans are never written again.
@@ -112,6 +113,9 @@ export const applyRatios = (ratios, frameWidth, minima = [], minColumnPx = MIN_T
 // delivers).
 export const migrateTableEntry = (raw) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  // C-STABILIZE-TABLE-AUTO-PERSISTENCE: Auto is an explicit reset,
+  // distinct from an absent override that inherits the global default.
+  if (raw.mode === 'auto') return { widths: [], manual: [], mode: 'auto' }
   const widths = Array.isArray(raw.widths)
     ? raw.widths.filter(w => Number.isFinite(w) && w > 0).map(w => Math.round(w))
     : []
@@ -119,7 +123,7 @@ export const migrateTableEntry = (raw) => {
     ? widths.map((_, i) => !!raw.manual[i])
     : widths.map(() => false)
   let mode
-  if (raw.mode === 'fit' || raw.mode === 'full') mode = raw.mode
+  if (['auto', 'fit', 'full'].includes(raw.mode)) mode = raw.mode
   else if (raw.fullWidth) mode = 'full'
   else if (raw.fit) mode = 'fit'
   const ratios = normalizeRatios(raw.ratios, widths.length) || undefined

@@ -1,0 +1,34 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-DIRTY-RELOAD>
+    <Name>Preserve unsaved documents during external reload</Name>
+    <Created>2026-11-09</Created>
+    <Summary>External add/change events must never silently replace unsaved local content, including when liveReload defaults on or a read-only/watch flag is present. Reuse the existing per-tab conflict notification and explicit reload choice.</Summary>
+    <ApprovalBasis>The owner approved the stabilization recovery on 2026-11-09, explicitly requested final implementation through clean green main, and delegated recommended implementation decisions. The bounded recovery decision is to repair the confirmed dirty-buffer overwrite independently of future agent visibility and journal features.</ApprovalBasis>
+    <Goals>
+      <Goal>Protect direct-data and delayed disk reloads; re-check tab ownership, generation and local state across asynchronous work.</Goal>
+      <Goal>Keep automatic reload of clean tabs under existing liveReload, autoSave, preview and watch eligibility; preserve cursor, snapshots and same-content skipping.</Goal>
+      <Goal>Only the existing explicit conflict reload choice may discard the local content it confirms; subsequent edits require a fresh choice.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No backend, preference default, dependency, release identity or live-app changes; no commits or push in this task.</Constraint>
+      <Constraint>Dirty preview, locked and watch tabs receive the same protection as editable tabs; clean read-only/watch behavior remains supported.</Constraint>
+      <Constraint>One bounded root-cause regression cycle and affected checks replace a new repeated whole-context review loop under the approved recovery stop rule.</Constraint>
+    </Constraints>
+    <AffectedAreas>
+      <Area>M-032 live-reload implemented by M-011 editor store; focused existing tests and V-M-032.</Area>
+    </AffectedAreas>
+    <NonGoals>
+      <NonGoal>Agent annotations, journal/merge engine, checkbox propagation and test-profile isolation.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Regressions fail on the unmodified implementation and pass after the repair for direct and disk dirty events and local edits during delayed work.</Criterion>
+      <Criterion>Clean reload, explicit conflict choices, snapshots, hash-skip, generation ordering and tab lifetime checks pass.</Criterion>
+    </AcceptanceCriteria>
+    <VerificationIntent>
+      <Command>npx vitest run tests/renderer/store --silent --reporter=dot</Command>
+      <Command>npm run typecheck:ipc</Command>
+    </VerificationIntent>
+    <ExecutionEvidence>2026-11-09: baseline current lint 0 errors/4 existing heuristic warnings. New focused regressions failed on the unmodified source for dirty direct/disk reloads and delayed local edits; the first repaired focused wave passed 147/147. The full store sweep exposed two old expectations explicitly requiring forced dirty reload; those now assert preservation. Final assertions ran both leaf commands successfully: 989/989 tests in 53 store files and IPC typecheck. Current lint remains 0 errors/4 existing warnings; status integrityErrors=0. Local implementation is complete but intentionally remains uncommitted and active for central integration, exact-candidate safety, hosted CI and archival. No live app, host documents, release changes, commits or push.</ExecutionEvidence>
+    <CentralIntegrationEvidence>2026-11-09: exact implementation imported onto the stabilization candidate; selected final reran the full store suite and IPC types with both commands passing and zero GRACE errors. Configured-profile path tests also pass on this combined tree. Exact-candidate hosted verification remains mandatory before main integration.</CentralIntegrationEvidence>
+  </C-STABILIZE-DIRTY-RELOAD>
+</GraceChangeSpec>

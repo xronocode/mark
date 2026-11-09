@@ -1,0 +1,26 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-NATIVE-PROFILE-CLOSEOUT>
+    <Summary>Complete native configured-profile isolation: live endpoint publication and discovery, credential service identity and explicit default-handler commands must follow the same immutable generated application identifier as preferences and durable state.</Summary>
+    <ApprovalBasis>Owner-approved RECOVERY and delegated recommended recovery choices, 2026-11-09. Coordinator explicitly approved configured-namespace endpoint/discovery/credential/default-handler replacements, canonical release behavior and legacy scans only for the canonical identifier, using the hash-validated 90-file native snapshot on 7e1bd10a. This child closes the proven native isolation boundary left by applied C-STABILIZE-PROFILE-ISOLATION. No QA launch, release, signing or publication authorization.</ApprovalBasis>
+    <BaselineEvidence>Exact private profile-closeout-input.json contains 90 verified files from current integration native bytes, base 7e1bd10a31ee5b6345fce87fe18ae82955591bc9. Main already binds generated Context identity before state consumers. M045 still writes its endpoint into the canonical release data directory on every desktop boot; discovery also scans release/legacy roots, M019/M045 credential services hardcode release identity and M021 get/set/unset target the release bundle.</BaselineEvidence>
+    <Goals>
+      <Goal>Every included native consumer follows the configured identifier; QA cannot write/read the release live endpoint, extensions or credential namespace or claim/register/remove the release default handler.</Goal>
+      <Goal>Canonical release credentials, macOS endpoint path, existing default-handler behavior and historical extension scan order remain unchanged; legacy extension scan belongs only to the canonical identifier.</Goal>
+      <Goal>Prove release and alternate namespaces without real host credentials, LaunchServices writes or application launch; retain CSEC logic except the auth service identity.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Keep original applied profile bundle unchanged. Separate sequential writer tree from verified frozen input; do not modify root integration, frozen product or frozen checkbox trees.</Constraint>
+      <Constraint>No versions, locks, feature gates, keychain credential operations, user profile cleanup, certificate signing, dependency installation, commit, push or native launch.</Constraint>
+      <Constraint>Use copied idle warm native caches in private scratch, offline locked Cargo, two workers and confined synthetic-home tests; do not mutate original cache or weaken the unrelated CF bookmark harness.</Constraint>
+    </Constraints>
+    <NonGoals><NonGoal>No credential migration, new extension auth behavior, global default-handler algorithm redesign, native QA launch or release work.</NonGoal></NonGoals>
+    <AffectedAreas><Area>M-019 credential service; M-021 configured default-handler identity; M-022 namespace accessor; M-045 extension discovery, live endpoint and credential service.</Area></AffectedAreas>
+    <VerificationIntent><ExpectedEvidence>Focused offline namespace/default-handler/CSEC extension tests and native check from confined copied caches; exact frozen-input-relative hashes and current/status receipts. No real keychain or LaunchServices writes, no app launch.</ExpectedEvidence></VerificationIntent>
+    <AcceptanceCriteria>
+      <Criterion>Pure/injected tests distinguish canonical and QA credential identity, extension roots and endpoint paths; alternate discovery excludes the legacy and canonical directories while canonical macOS/Windows preserve legacy ordering.</Criterion>
+      <Criterion>Injected M021 tests show QA query does not claim a release default, QA set contains only its configured identifier and QA unset preserves the canonical release entry. Existing M021 tests remain green without real shell commands.</Criterion>
+      <Criterion>Focused native namespace, default-handler and CSEC extension tests plus offline native check pass; graph/verification/local contracts and exact frozen-input-relative output hashes are recorded.</Criterion>
+      <Criterion>Outer final and post-archive integrity/status are recorded. No native artifact launch is performed; private QA runner remains pending final central source freeze.</Criterion>
+    </AcceptanceCriteria>
+  </C-STABILIZE-NATIVE-PROFILE-CLOSEOUT>
+</GraceChangeSpec>
