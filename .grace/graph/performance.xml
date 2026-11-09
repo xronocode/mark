@@ -752,6 +752,11 @@
       <Status>implemented</Status>
       <PhaseRef>C-LARGE-DOC-STAGE-0</PhaseRef>
       <Summary>
+        External-change characterizations distinguish clean reload from dirty
+        conflict preservation and await the actual handled-event boundary.
+        Fixed-seed sessions retain exact final-state reproducibility.
+        Product behavior remains owned by M-011/M-012.
+
         Stage 0 large-document measurement harness: the bench driver with real
         open/typing/scroll phases plus the optional same-run observer-overhead
         control, the deterministic fixture corpus with ASCII generators and

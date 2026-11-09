@@ -4,7 +4,7 @@
 //   PURPOSE: Freeze CURRENT IME-composition behavior at the save/close/session boundaries and run deterministic seeded multi-action sessions for C-LARGE-DOC-STAGE-0 T-008 (spec R-6/R-7), recording every observed defect as observedLegacyBehavior paired with desiredInvariant — never as an accepted oracle.
 //   SCOPE: Renderer-only Playwright WebKit tier (vite preview + tauri shim) against the real Muya composition handlers and the real Pinia editor store. WebKit automation has no native IME driver, so the composition envelope is synthesized: compositionstart/compositionend are bubbling CompositionEvents dispatched on the real contenteditable paragraph while the text itself enters through Playwright's real keyboard editing path (keyboard.type / keyboard.insertText → native input events). Muya's real isComposed gate, inputHandler, getMarkdown and store LISTEN_FOR_CONTENT_CHANGE are the subject; no markdown is written directly to fake an outcome. Native process exit, native pickers and real disk bytes are the only unreachable parts and are asserted at the renderer transport instead (see the boundary coverage note).
 //   DEPENDS: Playwright webkit-perf, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/perf/helpers/experimental (the fixtures/helpers bootEditor/openFileTab pass-throughs, plus the WAVEA_EXPERIMENTAL=1 real-UI progressive-toggle enabling — C-LARGE-DOC-WAVE-A T-006), the real Pinia editor store, tests/e2e/fixtures/large-doc/semantic-edge.md pinned in shape-metadata.json.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0/plan.xml T-008 (spec R-6/R-7); .grace/verification/performance.xml V-M-060; src/muya/lib/eventHandler/keyboard.js recordIsComposed/inputBinding; src/muya/lib/contentState/inputCtrl.js inputHandler; src/renderer/src/store/editor.js FILE_SAVE/FILE_SAVE_AS/ASK_FOR_SAVE_ALL/HANDLE_AUTO_SAVE/APPLY_FILE_CHANGE/UPDATE_CURRENT_FILE/CLOSE_TAB/QUIT_APP.
+//   LINKS: M-060, M-011, M-012
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -70,6 +70,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-DIRTY-CHARACTERIZATION: external-event
+//   observations follow the implemented dirty-buffer preservation contract;
+//   seeded determinism and all timing/performance boundaries remain intact.
 //   LAST_CHANGE: v1.1.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-006: added the
 //   WAVEA_EXPERIMENTAL beforeAll hook — bootEditor/openFileTab now import
 //   through tests/e2e/perf/helpers/experimental so WAVEA_EXPERIMENTAL=1
@@ -1460,17 +1463,60 @@ async function runSeededSession (page: Page, seed: number): Promise<SeededSessio
       }
       case 'external': {
         const external = `# External ${index}\n\nExternal body ${index}.\n`
-        await page.evaluate((markdown: string) => {
+        const before = await readStore(page)
+        const boundaryBefore = await page.evaluate(() => {
           const app = document.querySelector('#app') as any
-          const store = app.__vue_app__.config.globalProperties.$pinia._s.get('editor')
-          store.APPLY_FILE_CHANGE('change', {
-            pathname: store.currentFile.pathname,
-            kind: 'change',
-            data: { markdown, filename: store.currentFile.filename }
-          })
-        }, external)
-        await expect.poll(async () => (await readStore(page)).activeMarkdown, { timeout: 8_000 }).toBe(external)
-        detail = { external }
+          const tab = app.__vue_app__.config.globalProperties.$pinia._s.get('editor').currentFile
+          return {
+            filename: tab.filename,
+            revision: tab.contentRevision,
+            lastSavedHistoryId: tab.lastSavedHistoryId,
+            history: JSON.stringify(tab.history),
+            saves: (window as any).__imeSeedSaveCalls.length
+          }
+        })
+        const markers: string[] = []
+        const captureReload = (message: { text(): string }) => {
+          if (message.text().includes('[editor][live_reload]')) markers.push(message.text())
+        }
+        page.on('console', captureReload)
+        try {
+          await page.evaluate((markdown: string) => {
+            const app = document.querySelector('#app') as any
+            const store = app.__vue_app__.config.globalProperties.$pinia._s.get('editor')
+            store.APPLY_FILE_CHANGE('change', {
+              pathname: store.currentFile.pathname,
+              kind: 'change',
+              data: { markdown, filename: store.currentFile.filename }
+            })
+          }, external)
+          const marker = before.activeSaved
+            ? `BLOCK_LIVE_RELOAD path=${boundaryBefore.filename} source=data`
+            : `BLOCK_RELOAD_CONFLICT path=${boundaryBefore.filename} reason=dirty-tab`
+          // Capture this event's completed branch before comparing unchanged state.
+          await expect.poll(() => markers.some((line) => line.includes(marker)), { timeout: 8_000 }).toBe(true)
+          if (before.activeSaved) {
+            await expect.poll(async () => (await readStore(page)).activeMarkdown, { timeout: 8_000 }).toBe(external)
+            expect((await readStore(page)).activeSaved).toBe(true)
+          } else {
+            await expect.poll(() => page.evaluate(() => {
+              const app = document.querySelector('#app') as any
+              const tab = app.__vue_app__.config.globalProperties.$pinia._s.get('editor').currentFile
+              return tab.notifications.filter((n: any) => n.exclusiveType === 'file_changed' && n.showConfirm).length
+            }), { timeout: 8_000 }).toBe(1)
+            expect(await readStore(page)).toEqual(before)
+            expect(await page.evaluate(() => {
+              const app = document.querySelector('#app') as any
+              const tab = app.__vue_app__.config.globalProperties.$pinia._s.get('editor').currentFile
+              return { revision: tab.contentRevision, lastSavedHistoryId: tab.lastSavedHistoryId, history: JSON.stringify(tab.history) }
+            })).toEqual({ revision: boundaryBefore.revision, lastSavedHistoryId: boundaryBefore.lastSavedHistoryId, history: boundaryBefore.history })
+            expect(markers.some((line) => line.includes('BLOCK_LIVE_RELOAD'))).toBe(false)
+          }
+          expect(await page.evaluate(() => (window as any).__imeSeedSaveCalls.length)).toBe(boundaryBefore.saves)
+        } finally {
+          page.off('console', captureReload)
+        }
+        detail = { external, outcome: before.activeSaved ? 'reloaded-clean' : 'preserved-dirty' }
         break
       }
     }

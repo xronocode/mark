@@ -1,5 +1,6 @@
 <GraceVerificationIndex graceVersion='4.0'>
 <!-- C-STABILIZE-TRAIN-ADMISSION: M-046/V-M-046 record protocol-backed admission and strict owner acceptance boundaries. -->
+<!-- C-STABILIZE-DIRTY-CHARACTERIZATION: V-M-060 preserves dirty state and exact seeded reproducibility at completed external-event boundaries. -->
 <!-- C-STABILIZE-TABLE-E2E: V-M-012 verifies no-scroll tables, intrinsic/manual viewer geometry, icon names and post-Escape Tab behavior. -->
 <!-- C-STABILIZE-SPLIT-PROJECTIONS: current M-009/M-011/M-012 split source, command and document-history ownership. -->
 <!-- C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured native namespace boundary is recorded in current runtime/features projections. -->

@@ -4,7 +4,7 @@
 //   PURPOSE: Freeze the CURRENT metadata / external-change / byte-policy / rename-Move-To / live-reference behavior of the renderer store (C-LARGE-DOC-STAGE-0 R-6/R-7, task T-007) so a later large-document refactor cannot change it invisibly — every known-defect family is recorded as today's fact (observedLegacyBehavior) plus a future gate (desiredInvariant), never as an approved oracle.
 //   SCOPE: Renderer-only harness (vite preview + tauri shim): named tabs opened through the real mt::open-new-tab payload; line-ending/encoding/final-newline metadata changed through the real SET_LINE_ENDING store action and the mt::set-line-ending / mt::set-file-encoding / mt::set-final-newline bus channels; FILE_SAVE / FILE_SAVE_AS / CLOSE_TAB / RENAME / RESPONSE_FOR_RENAME / MOVE_FILE_TO through the real Pinia editor store (the title-bar inline rename dialog reached through the real bus 'rename' path); external changes delivered through the real mt::watch::event {kind, paths} watcher shape and the mt_fs_read disk transport; byte-policy fixtures read from the repository (utf8.md / utf8-bom.md / utf8-crlf.md); live-reference alias matrix (tab identity, history snapshot separation, listToc/toc copies, source-mode mirror); an exported dependency-free cursor/TOC DTO scaffold (future contract, explicitly not wired into the runtime). Only backend transports are mocked (window.__mockInvoke, window.fileUtils.move, the directory picker). No production code, shared fixture or config is touched; the suite freezes observations only.
 //   DEPENDS: Playwright webkit-perf project, tests/e2e/fixtures/tauri-shim.ts, tests/e2e/perf/helpers/experimental (the fixtures/helpers bootEditor pass-through, plus the WAVEA_EXPERIMENTAL=1 real-UI progressive-toggle enabling — C-LARGE-DOC-WAVE-A T-006), src/renderer/src/store/editor.js (SET_LINE_ENDING, FILE_SAVE, FILE_SAVE_AS, APPLY_SAVE_OUTCOME, CLOSE_TAB, RENAME, RESPONSE_FOR_RENAME, MOVE_FILE_TO, APPLY_FILE_CHANGE, loadChange), src/renderer/src/store/diffSnapshots.js, src/renderer/src/store/project.js watcher translation, src/renderer/src/components/rename/index.vue (inline-rename dialog), src/renderer/src/components/titleBar/index.vue (rename entry point), src/renderer/src/util/listToTree.js (TOC tree copies).
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0/plan.xml T-007; .grace/changes/active/C-LARGE-DOC-STAGE-0/spec.xml R-6, R-7; .grace/verification/performance.xml V-M-060; src-tauri/src/m014_encoding.rs (decode-to-String BOM strip mirrored by decodeLikeBackend); src-tauri/src/m_v1_compat.rs build_open_new_tab_payload (hardcoded open metadata mirrored by openTab).
+//   LINKS: M-060, M-011, M-012
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -53,6 +53,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-DIRTY-CHARACTERIZATION: external-event
+//   observations follow the implemented dirty-buffer preservation contract;
+//   seeded determinism and all timing/performance boundaries remain intact.
 //   LAST_CHANGE: v1.2.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-006: added the
 //   WAVEA_EXPERIMENTAL beforeAll hook — bootEditor now imports through
 //   tests/e2e/perf/helpers/experimental so WAVEA_EXPERIMENTAL=1 enables
@@ -938,9 +941,9 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     expect(await saveInvocations(page)).toEqual([])
   })
 
-  test('an external rewrite while the tab is dirty silently replaces the unsaved buffer', async ({ page }) => {
+  test('an external rewrite while the tab is dirty preserves the unsaved buffer pending an explicit choice', async ({ page }) => {
     const observedLegacyBehavior =
-      'With liveReload on by default, a mt::watch::event modify for a DIRTY named tab is applied through the same reload path as for a clean tab: tab.markdown is replaced by the disk content, the local unsaved edit disappears, the C-43 ring records the pre-reload local buffer, contentRevision resets to 1 and the tab is left dirty again (isSaved=false) against the reloaded file. No dialog asks whether to keep the local buffer.'
+      'Before C-STABILIZE-DIRTY-RELOAD, default liveReload silently replaced a dirty buffer. The repaired contract keeps local content, save metadata, revision, cursor and history intact, emits the dirty conflict marker and offers the existing per-tab explicit reload choice without automatically reading, writing or recording a reload snapshot.'
     const desiredInvariant =
       'An external change must never overwrite unsaved local edits without an explicit decision: a dirty tab must prompt (keep local / reload / show both) and the pre-reload local buffer must remain recoverable, not silently replaced.'
     test.info().annotations.push(
@@ -950,34 +953,58 @@ test.describe('metadata / external change / byte policy characterization (T-007)
 
     const local = '# Dirty\n\nlocal paragraph\n'
     const external = '# Dirty\n\nexternal replacement\n'
+    const pathname = `${E2E_ROOT}/dirty-external.md`
 
     await installTauriShim(page)
+    await installInvokeLog(page)
     await bootEditor(page)
-    await openTab(page, `${E2E_ROOT}/dirty-external.md`, local)
+    await openTab(page, pathname, local)
     await expect(page.locator('.editor-with-tabs p').last()).toContainText('local paragraph', { timeout: 5_000 })
     await dirtyThroughEditor(page, ' LOCAL-EDIT')
-    const dirty = tabByPath(await readTabs(page), `${E2E_ROOT}/dirty-external.md`)
+    const dirty = tabByPath(await readTabs(page), pathname)
     expect(dirty.markdown).toContain('local paragraph LOCAL-EDIT')
     expect(dirty.isSaved).toBe(false)
+    const historyBefore = await page.evaluate(() => {
+      const store = (document.querySelector('#app') as any).__vue_app__
+        .config.globalProperties.$pinia._s.get('editor')
+      return JSON.stringify(store.currentFile.history)
+    })
+    const writesBefore = await saveInvocations(page)
     const markers = collectMarkers(page)
 
     await page.evaluate(({ p, md }: { p: string, md: string }) => {
-      ;(window as any).__mockInvoke.mt_fs_read = () => md
-      ;(window as any).__emitFakeEvent('mt::watch::event', { kind: 'modify', paths: [p] })
-    }, { p: `${E2E_ROOT}/dirty-external.md`, md: external })
+      const w = window as any
+      w.__dirtyExternalReads = 0
+      w.__mockInvoke.mt_fs_read = () => {
+        w.__dirtyExternalReads++
+        return md
+      }
+      w.__emitFakeEvent('mt::watch::event', { kind: 'modify', paths: [p] })
+    }, { p: pathname, md: external })
 
-    await page.waitForFunction((md: string) => {
+    // An unchanged buffer alone could pass before the watcher handles the event.
+    // Await the actual dirty guard and its actionable conflict notification.
+    await expectMarker(markers, 'BLOCK_RELOAD_CONFLICT path=dirty-external.md reason=dirty-tab')
+    await page.waitForFunction((p: string) => {
       const store = (document.querySelector('#app') as any).__vue_app__
         .config.globalProperties.$pinia._s.get('editor')
-      return store.currentFile?.markdown === md
-    }, external, { timeout: 5_000 })
-    const after = tabByPath(await readTabs(page), `${E2E_ROOT}/dirty-external.md`)
-    expect(after.markdown).toBe(external)
-    expect(after.markdown).not.toContain('LOCAL-EDIT')
-    expect(after.isSaved).toBe(false)
-    expect(after.contentRevision).toBe(1)
-    await expectMarker(markers, 'BLOCK_SNAPSHOT_RECORDED')
-    await expectMarker(markers, 'BLOCK_LIVE_RELOAD')
+      return store.tabs.find((t: any) => t.pathname === p)?.notifications
+        .some((n: any) => n.exclusiveType === 'file_changed' && n.showConfirm)
+    }, pathname, { timeout: 5_000 })
+    const after = tabByPath(await readTabs(page), pathname)
+    expect({ ...after, notifications: dirty.notifications }).toEqual(dirty)
+    expect(after.markdown).not.toBe(external)
+    expect(after.notifications.filter((n) => n.exclusiveType === 'file_changed')).toHaveLength(1)
+    expect(after.notifications.find((n) => n.exclusiveType === 'file_changed')?.showConfirm).toBe(true)
+    expect(await page.evaluate(() => {
+      const store = (document.querySelector('#app') as any).__vue_app__
+        .config.globalProperties.$pinia._s.get('editor')
+      return JSON.stringify(store.currentFile.history)
+    })).toBe(historyBefore)
+    expect(await page.evaluate(() => (window as any).__dirtyExternalReads)).toBe(0)
+    expect(await saveInvocations(page)).toEqual(writesBefore)
+    expect(markers.some((line) => line.includes('BLOCK_SNAPSHOT_RECORDED'))).toBe(false)
+    expect(markers.some((line) => line.includes('BLOCK_LIVE_RELOAD'))).toBe(false)
     expect(await page.locator('.ag-unsaved-close-dialog').count()).toBe(0)
   })
 })

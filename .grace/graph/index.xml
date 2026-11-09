@@ -1,5 +1,6 @@
 <GraceGraphIndex graceVersion='4.0'>
 <!-- C-STABILIZE-TRAIN-ADMISSION: M-046/V-M-046 record protocol-backed admission and strict owner acceptance boundaries. -->
+<!-- C-STABILIZE-DIRTY-CHARACTERIZATION: M-060 characterizes clean reload and protected dirty external events without owning production behavior. -->
 <!-- C-STABILIZE-TABLE-E2E: M-012 natural-width viewer need, natural automatic snapshots and user-intent focus restoration. -->
 <!-- C-STABILIZE-SPLIT-PROJECTIONS: current M-009/M-011/M-012 split source, command and document-history ownership. -->
 <!-- C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured native namespace boundary is recorded in current runtime/features projections. -->

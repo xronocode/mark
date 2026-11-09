@@ -1488,8 +1488,20 @@
         <Command>npx vitest run tests/renderer/perf</Command>
         <Command>npx playwright test tests/e2e/perf --project=webkit-perf</Command>
         <Command>node src/renderer/bench/run-bench-preview.mjs --fixture tests/e2e/fixtures/large-doc/semantic-edge.md --phases open,typing,overhead,scroll --runs 1</Command>
+        <Command>npx --no-install playwright test --project=webkit-perf</Command>
       </Commands>
       <Scenarios>
+        <scenario-dirty-external-characterization>
+          A dirty external watcher event preserves exact local Markdown, saved
+          metadata, revision, cursor and history while offering one explicit
+          per-tab reload choice; no automatic read, write or reload snapshot
+          occurs. The actual conflict marker and notification complete before
+          unchanged state is asserted. Clean reload and BOM/EOL equality remain
+          covered. Seeded external steps branch on the pre-event saved state;
+          fixed seeds, action multiset and final same-seed comparison remain
+          unchanged. The complete webkit-perf suite retains all existing cases,
+          timeouts, skips and performance budgets.
+        </scenario-dirty-external-characterization>
         <Scenario>
           Tier 1 (unit microbenchmarks): serializer, word count, TOC and history
           snapshot deep-copy are measured in isolation over the byte-pinned
