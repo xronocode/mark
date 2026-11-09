@@ -2416,6 +2416,14 @@
         regressions through the webkit-diff project.
         The test workflow gates native Shift+Up/Down selection with
         the passive format toolbar through the webkit-keyboard project.
+        C-CI-CD-AUDIT-FIXES: the required renderer-unit result includes IPC
+        type checking; the WebKit theme/tree projects run once each while
+        screenshot upload remains. Manual QA runs each check as a separate
+        fail-fast step and disables updater artifacts without release keys.
+        The docs-only classifier checks out the tree, has PR read permission,
+        and treats mixed code/documentation changes as full-test candidates.
+        Local, CI, QA and release packaging use Rust 1.99.0 and immutable
+        Actions revisions, with toolchain-sensitive Rust cache keys.
         C-63: the test workflow explicitly gates the C-60 footnote and
         C-62 diagram-appearance projects in WebKit after browser installation,
         preserving their WKWebView-engine coverage on every test run.
@@ -2481,11 +2489,11 @@
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
         github-controls,normalize,notes,train}.mjs, package.json, package-lock.json,
-        Cargo.toml, Cargo.lock, src-tauri/tauri.conf.json,
-        docs/release-process.md, docs/release-trains/current.json,
+        Cargo.toml, Cargo.lock, rust-toolchain.toml, src-tauri/tauri.conf.json,
+        CONTRIBUTING.md, docs/release-process.md, docs/release-trains/current.json,
         docs/release-trains/*.json,
         docs/assets/readme/*.manifest.json, .github/release-governance.json,
-        .github/workflows/{release,release-tauri,release-governance,
+        .github/workflows/{ci,lane,release,release-tauri,release-governance,
         promote-release,test}.yml
       </PlannedPath>
       <PublicationBoundary>
@@ -3077,12 +3085,15 @@
         path; the dashboard push is the live reading surface); the client side is exactly
         the tauri.conf.json endpoints array (gateway feed URL first, GitHub fallback) and
         the release.yml feed-fragment urls through the pkg routes; release-preflight pins
-        the two-entry array.
+        the two-entry array. C-CI-CD-AUDIT-FIXES binds owner-run deployments
+        to a clean exact current-main SHA with its required successful checks
+        before Wrangler runs and records the resulting Worker version in an
+        owner-local receipt.
       </Summary>
-      <Path>tools/stats-gateway/worker.mjs</Path><PlannedPath>tools/stats-gateway/worker.mjs, tools/stats-gateway/wrangler.toml, tools/stats-gateway/query.mjs, tools/stats-gateway/tables.mjs, tools/stats-gateway/README.md, tests/tools/stats-gateway.test.mjs</PlannedPath>
+      <Path>tools/stats-gateway/worker.mjs</Path><PlannedPath>tools/stats-gateway/worker.mjs, tools/stats-gateway/wrangler.toml, tools/stats-gateway/query.mjs, tools/stats-gateway/tables.mjs, tools/stats-gateway/deploy-checked.mjs, tools/stats-gateway/README.md, tests/tools/stats-gateway.test.mjs, tests/tools/stats-gateway-deploy.test.mjs</PlannedPath>
       <Dependencies>Workers runtime (fetch/waitUntil, env.STATS Analytics Engine binding, dataset mark_update_funnel); consumers: tauri.conf.json updater endpoints (gateway first, GitHub fallback), release.yml latest.json platform fragments (pkg routes); NO client code, NO renderer egress; the C-UPDATER-ROLLBACK restore fetches stay direct-GitHub by design</Dependencies><VerificationRef>V-M-071</VerificationRef>
       <Contract><Purpose>Count the update funnel — checks, Update-button artifact fetches, and (by from-version transition) update successes — as day-level aggregates with no identifiers, mirrored to the owner's own analytics dashboard, while the updater keeps working unchanged whenever the gateway is slow, wrong or gone.</Purpose><Inputs><Input><Name>/feed</Name><Type>GET with exactly from (strict semver) and os (darwin|windows); the Tauri updater's placeholder-substituted check request</Type></Input><Input><Name>/pkg/{platform}/{version}</Name><Type>GET with no query; platform darwin-aarch64|windows-x86_64, version strict x.y.z; the updater's artifact fetch via the release feed's url field</Type></Input><Input><Name>/stats</Name><Type>GET with the X-Read-Key header (exact pathname, no query parameters); the key checked against the STATS_READ_KEY Worker secret, unset or empty failing closed; the reader is query.mjs --remote or a curl consumer</Type></Input></Inputs><Outputs><Output><Name>302</Name><Type>Location: the derived GitHub manifest/asset URL</Type></Output><Output><Name>/stats tables</Name><Type>200 application/json Cache-Control: no-store — { byDay, fromBreakdown } rendered by the shared tables.mjs from one 90-day Analytics Engine SQL read; no-store on every handler-made readout response</Type></Output><Output><Name>datapoint</Name><Type>{indexes: [check|pkg], blobs: [day, os|platform, from|version]} — the Analytics Engine wire form, one per valid counting request — the readout route writes none, UTC day</Type></Output></Outputs><Errors><Error><Code>404</Code><Description>any other method, path, parameter set or value — zero datapoints, zero redirects</Description></Error><Error><Code>binding failure</Code><Description>swallowed inside waitUntil; the redirect always returns (best-effort counting)</Description></Error><Error><Code>401 (readout)</Code><Description>bodyless, Cache-Control: no-store — a missing, wrong or wrong-length X-Read-Key, or any key evaluated against an unset or empty-string STATS_READ_KEY secret; auth precedes the cache and any upstream work, so denial costs zero subrequests and can never serve a cached 200</Description></Error><Error><Code>502 (readout)</Code><Description>the fixed {"error":"stats-upstream"} body (application/json, no-store) — upstream non-2XX, a network error, the 10-second abort, an unparseable body, or absent/empty STATS_API_TOKEN/STATS_ACCOUNT_ID regardless of cache state; no upstream text, token or account id is ever echoed</Description></Error></Errors></Contract>
-      <Sources><Source>tools/stats-gateway/worker.mjs</Source><Source>tools/stats-gateway/query.mjs</Source><Source>tools/stats-gateway/tables.mjs</Source><Tests>tests/tools/stats-gateway.test.mjs</Tests></Sources>
+      <Sources><Source>tools/stats-gateway/worker.mjs</Source><Source>tools/stats-gateway/query.mjs</Source><Source>tools/stats-gateway/tables.mjs</Source><Source>tools/stats-gateway/deploy-checked.mjs</Source><Tests>tests/tools/stats-gateway.test.mjs</Tests><Tests>tests/tools/stats-gateway-deploy.test.mjs</Tests></Sources>
     </M-071>
     <M-072>
       <Name>ExportSettingsDialog</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>

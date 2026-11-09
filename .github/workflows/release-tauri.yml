@@ -1,9 +1,9 @@
 # FILE: .github/workflows/release-tauri.yml
-# VERSION: 1.1.0
+# VERSION: 1.2.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Build and smoke-test unsigned macOS candidate bundles without exposing production signing credentials.
 #   SCOPE: Path-filtered PR/tauri-branch builds, updater-disabled Tauri packaging, ad-hoc app signing, installed-app smoke, size evidence, warning checks, and short-lived artifacts.
-#   DEPENDS: Node 22, Rust stable, Tauri CLI/action, macos-15, M-046 release configuration.
+#   DEPENDS: Node 22, Rust 1.99.0, Tauri CLI/action, macos-15, M-046 release configuration.
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
@@ -14,7 +14,8 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2026-10-31 v1.1.0 - build the macOS dry-run lane on the macos-15 runner image ahead of the macos-14 retirement (matrix os and the platform conditions).
+#   LAST_CHANGE: 2026-11-09 v1.2.0 C-CI-CD-AUDIT-FIXES - pin executable actions and Rust 1.99.0 with a version-sensitive cache.
+#   PREV: 2026-10-31 v1.1.0 - build the macOS dry-run lane on the macos-15 runner image ahead of the macos-14 retirement (matrix os and the platform conditions).
 #   PREV: 2026-10-21 v1.0.0 - disable updater artifact signing in the unprivileged dry-run while retaining .app/DMG packaging and smoke coverage.
 # END_CHANGE_SUMMARY
 #
@@ -87,27 +88,28 @@ jobs:
     steps:
       # ── checkout + tooling ────────────────────────────────────────
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
 
       - name: setup rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
+          toolchain: '1.99.0'
           targets: ${{ matrix.platform.target }}
 
       - name: cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ matrix.platform.target }}-
 
@@ -124,7 +126,7 @@ jobs:
       # ad-hoc codesign instead per Phase-B1.5 step-5.
       - name: tauri build
         id: tauri
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         with:
           # The production config requests signed updater archives. This
           # unprivileged check intentionally overrides only that setting: it
@@ -239,7 +241,7 @@ jobs:
       # ── upload artifacts ─────────────────────────────────────────
       - name: upload dmg
         if: matrix.platform.os == 'macos-15' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mark-${{ matrix.platform.name }}-dmg
           path: target/${{ matrix.platform.target }}/release/bundle/dmg/*.dmg
@@ -248,7 +250,7 @@ jobs:
 
       - name: upload toolchain warnings json
         if: matrix.platform.os == 'macos-15' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: toolchain-warnings-${{ matrix.platform.name }}
           path: /tmp/toolchain-warnings.json

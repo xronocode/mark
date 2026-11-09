@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.8.0
+# VERSION: 1.9.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,7 +11,8 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.8.0 - 2026-11-09: the docs-only lane (owner instruction) — pull requests whose diff is confined to docs/**, .grace/changes/** and top-level *.md skip renderer-unit/backend-unit/renderer-e2e (job-level skips satisfy the strict ruleset); status-check aggregates the skipped lane green; push events always run the full suite.
+#   LAST_CHANGE: v1.9.0 - 2026-11-09 C-CI-CD-AUDIT-FIXES: repair docs-only classification, gate IPC types in renderer-unit, pin executable actions and Rust 1.99.0, and run each WebKit theme/tree project once.
+#   PREV: v1.8.0 - 2026-11-09: the docs-only lane (owner instruction) — pull requests whose diff is confined to docs/**, .grace/changes/** and top-level *.md skip renderer-unit/backend-unit/renderer-e2e (job-level skips satisfy the strict ruleset); status-check aggregates the skipped lane green; push events always run the full suite.
 #   PREV: v1.7.0 - 2026-10-30: the tech-debt lane (integ/techdebt) runs the full suite on push and on pull requests into it, so lane admissions carry the same evidence as main.
 #   PREV: v1.6.0 - 2026-10-31: move every macOS lane to the macos-15 runner image ahead of the macos-14 retirement (matrix jobs, e2e job name and Playwright cache keys).
 #   PREV: v1.5.0 - 2026-10-27: bound, IPv4-pinned and retried the Linux Tauri sysdeps install so a stalled apt fetch fails fast inside the job budget instead of cancelling the run and blocking the aggregate status check.
@@ -36,7 +37,7 @@
 # and untouched by this file.
 #
 # Notes on tooling versions:
-#   - Node 22 + dtolnay/rust-toolchain@stable mirror release.yml so a
+#   - Node 22 + Rust 1.99.0 mirror release.yml so a
 #     green test run is a reliable predictor of a green release build.
 #   - cargo test uses --bin mark because src-tauri/Cargo.toml has no
 #     [lib] target — all 392 unit tests are attached to the binary.
@@ -63,6 +64,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   changes:
@@ -70,17 +72,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      docs_only: ${{ steps.filter.outputs.docs_only }}
+      docs_only: ${{ steps.filter.outputs.non_docs == 'false' }}
     steps:
+      - name: checkout for change classification
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: docs-only lane filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
         id: filter
         with:
+          predicate-quantifier: every
           filters: |
-            docs_only:
-              - 'docs/**'
-              - '.grace/changes/**'
-              - '*.md'
+            non_docs:
+              - '**'
+              - '!docs/**'
+              - '!.grace/changes/**'
+              - '!*.md'
 
   renderer-unit:
     name: renderer unit (${{ matrix.os }})
@@ -97,18 +105,21 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
 
       - name: npm ci
         run: npm ci
+
+      - name: verify IPC types
+        run: npm run typecheck:ipc
 
       - name: vitest run with coverage
         run: npm run test:coverage
@@ -129,19 +140,21 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: setup rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.99.0'
 
       - name: cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: cargo-test-${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-test-${{ matrix.os }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
           restore-keys: |
             cargo-test-${{ matrix.os }}-
 
@@ -213,10 +226,10 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -228,7 +241,7 @@ jobs:
         run: npm run build
 
       - name: cache playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/Library/Caches/ms-playwright
           key: playwright-macos-15-${{ hashFiles('package-lock.json') }}
@@ -260,7 +273,7 @@ jobs:
       # C-51 T-005: the content theming (Vega-Lite/flowchart/sequence/KaTeX)
       # also gates in WebKit; C-51 T-006 adds the expand button + block viewer.
       - name: webkit settings, title bar, outline rail, status bar, lock, chrome theme, Mica, tables, rich Markdown, content theming and block viewer and theme families
-        run: npx playwright test --project webkit-settings --project webkit-titlebar --project webkit-outline --project webkit-statusbar --project webkit-chrome --project webkit-mica --project webkit-tables --project webkit-menu-checks --project webkit-pele-theme --project webkit-tree --project webkit-rich --project webkit-content-theme --project webkit-block-viewer --project webkit-theme-families --project webkit-clipboard
+        run: npx playwright test --project webkit-settings --project webkit-titlebar --project webkit-outline --project webkit-statusbar --project webkit-chrome --project webkit-mica --project webkit-tables --project webkit-menu-checks --project webkit-rich --project webkit-content-theme --project webkit-block-viewer --project webkit-theme-families --project webkit-clipboard
 
       # C-55 (port of C-51 T-003/T-004): the pele theme matrix also runs
       # in WebKit (22 diagram types × light/dark + theme switch); its
@@ -270,7 +283,7 @@ jobs:
 
       - name: upload pele theme screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pele-theme-screenshots
           path: test-results/pele-themes/
@@ -278,7 +291,7 @@ jobs:
 
       - name: upload playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-report
           path: playwright-report/

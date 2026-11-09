@@ -13,7 +13,7 @@ and text a newcomer can read without the backstory.
 
 ## Build
 
-Requirements: Node.js 22, stable Rust (via [rustup](https://rustup.rs)), and on macOS the Xcode command line tools. On Linux, the Tauri system packages listed in [`.github/workflows/test.yml`](.github/workflows/test.yml) (WebKitGTK 4.1 and friends).
+Requirements: Node.js 22, Rust 1.99.0 (selected by the checked-in `rust-toolchain.toml` via [rustup](https://rustup.rs)), and on macOS the Xcode command line tools. On Linux, the Tauri system packages listed in [`.github/workflows/test.yml`](.github/workflows/test.yml) (WebKitGTK 4.1 and friends).
 
 ```sh
 git clone https://github.com/xronocode/mark.git && cd mark

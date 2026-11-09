@@ -2401,6 +2401,8 @@
     <V-M-046>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npm run typecheck:ipc</Command>
+        <Command>npx vitest run tests/renderer/release-github-controls.test.js</Command>
         <Command>npm run release:governance</Command>
         <Command>npm run release:readiness -- --tag "v$(npm run -s release:train -- --field computedVersion)"</Command>
         <Command>npm run release:normalize -- --require-clean</Command>
@@ -2414,6 +2416,7 @@
         <Command>test -f docs/release-process.md &amp;&amp; rg &quot;release-process.md&quot; AGENTS.md docs/release-trains/README.md tests/e2e/readme-shots.spec.ts</Command>
       </Commands>
       <Scenarios>
+        <Scenario>C-CI-CD-AUDIT-FIXES: the docs-only classifier checks out the tree, has PR read permission and identifies any non-documentation file so mixed PRs get the full gate; the required status check includes renderer-unit IPC type checking, every WebKit theme/tree project runs once with screenshot upload retained, and manual QA builds omit updater signing while each verification step fails the job independently. Local, CI and release packaging select Rust 1.99.0; executable Actions references are immutable.</Scenario>
         <Scenario>scenario-16: renderer-e2e runs webkit-session after browser installation, including remaining editor content and edit ownership after active-tab close.</Scenario>
         <Scenario>scenario-19 (C-RELEASE-PIPELINE-AUTOMATION): the checked-in train JSON is the gate authority; exact membership, owner acceptance, commit accounting, payload-to-seal allowlist, fresh screenshot digests and live payload check name/App/SHA/conclusion are independently fail-closed.</Scenario>
         <Scenario>scenario-20 (C-RELEASE-PIPELINE-AUTOMATION): Release Please computes Conventional SemVer and prepares only a PR; trusted normalization updates the other version surfaces idempotently and neither path can tag or publish. Superseded 2026-10-24 by scenario-32 (C-RELEASE-CONVEYOR): Release Please and its lifecycle job are retired.</Scenario>
@@ -2762,8 +2765,9 @@
       <TraceAssertions><TraceAssertion>Machine-readable MARK_ROLLBACK lines carry no paths — event tokens and version identifiers only, matched whole-token never by substring (event=restored_norelaunch is not event=restored). Human-readable error and guidance lines may name filesystem paths — the bundle path, the aside path, the restored application path (failure messages printed such paths before this delta; the rule states that, it does not introduce it). Structured BLOCK markers that name paths form the third explicitly named class — e.g. BLOCK_ROLLBACK_VERIFY snapshot_invalid path=… for the data-root snapshot, kept for support cases. No user data.</TraceAssertion></TraceAssertions>
     </V-M-068>
       <V-M-071>
-      <Priority>high</Priority><Commands><Command>npx vitest run tests/tools/stats-gateway.test.mjs tests/renderer/release-preflight.test.js</Command><Command>node tools/stats-gateway/query.mjs --dry</Command></Commands>
+      <Priority>high</Priority><Commands><Command>npx vitest run tests/tools/stats-gateway.test.mjs tests/renderer/release-preflight.test.js</Command><Command>npx vitest run tests/tools/stats-gateway-deploy.test.mjs</Command><Command>node tools/stats-gateway/query.mjs --dry</Command></Commands>
       <Scenarios>
+        <Scenario>C-CI-CD-AUDIT-FIXES: owner-run deploy admission rejects a dirty checkout, a SHA different from current remote main, missing or failed exact-SHA required checks, and a check from another App before Wrangler; a successful deploy records the SHA and Worker version privately and the owner checks /feed and /pkg redirects afterward.</Scenario>
         <Scenario>Derivation table: both platforms map to the exact deterministic GitHub asset URLs; unknown platforms and non-strict versions return null; the OS table ({{target}} values) stays strictly apart from the platform table.</Scenario>
         <Scenario>/feed: valid from/os records exactly one check datapoint (UTC day, os, from) and 302s to the GitHub manifest; every malformed class (missing/extra/garbage params, wrong tables, non-strict version, case, trailing slash, non-GET) is a 404 with zero datapoints and zero redirects.</Scenario>
         <Scenario>/pkg: valid platform/version records exactly one pkg datapoint and 302s to the derived asset; traversal, queries, case, slash and extra-segment variants 404 without datapoints.</Scenario>

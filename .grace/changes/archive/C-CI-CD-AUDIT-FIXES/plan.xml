@@ -1,0 +1,40 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-CI-CD-AUDIT-FIXES>
+    <ChangeRef>C-CI-CD-AUDIT-FIXES</ChangeRef>
+    <Created>2026-11-09</Created>
+    <IntentSummary>Harden the existing CI, QA and owner-run Worker delivery lanes against the six confirmed audit gaps while preserving the signed release boundary.</IntentSummary>
+    <ApprovalBasis>The owner's 2026-11-09 instruction delegated the approach and execution of the supplied audit fixes.</ApprovalBasis>
+    <BaselineAssertions>
+      <MustContain><File>.github/workflows/release.yml</File><Text>npm run tauri:build -- --target</Text></MustContain>
+      <MustContain><File>.github/workflows/test.yml</File><Text>dtolnay/rust-toolchain@stable</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/README.md</File><Text>npx wrangler deploy</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>.github/workflows/release.yml</File><Text>createUpdaterArtifacts</Text></MustContain>
+      <MustContain><File>.github/workflows/test.yml</File><Text>npm run typecheck:ipc</Text></MustContain>
+      <MustContain><File>.github/workflows/test.yml</File><Text>checkout for change classification</Text></MustContain>
+      <MustContain><File>rust-toolchain.toml</File><Text>1.99.0</Text></MustContain>
+      <MustContain><File>tools/stats-gateway/README.md</File><Text>deploy-checked</Text></MustContain>
+      <MustPassCommand><Command>npx vitest run tests/renderer/release-github-controls.test.js tests/tools/stats-gateway-deploy.test.mjs</Command></MustPassCommand>
+      <MustPassCommand><Command>npm run typecheck:ipc</Command></MustPassCommand>
+      <MustPassCommand><Command>go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-046/><M-071/></GraphAnchors><VerificationAnchors><V-M-046/><V-M-071/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/ci.yml</File><File>.github/workflows/lane.yml</File><File>.github/workflows/test.yml</File><File>.github/workflows/release.yml</File><File>.github/workflows/release-tauri.yml</File>
+      <File>CONTRIBUTING.md</File>
+      <File>rust-toolchain.toml</File><File>tools/stats-gateway/README.md</File><File>tools/stats-gateway/deploy-checked.mjs</File>
+      <File>tests/renderer/release-github-controls.test.js</File><File>tests/tools/stats-gateway-deploy.test.mjs</File><File>tests/renderer/components/sideBar/tree-treefiles.test.js</File>
+      <File>.grace/graph/features.xml</File><File>.grace/verification/features.xml</File>
+      <Glob>.grace/changes/active/C-CI-CD-AUDIT-FIXES/**</Glob>
+      <File>docs/superpowers/plans/2026-11-09-ci-cd-audit-fixes.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001><Title>Repair unsigned QA packaging and Windows command failures</Title><DependsOn/><AcceptanceCriteria><Criterion>QA packaging omits signed updater artifacts and each verification command has its own fail-fast step.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/renderer/release-github-controls.test.js</Command></Verification></T-001>
+      <T-002><Title>Repair docs-only classification, complete PR gating and remove duplicate WebKit execution</Title><DependsOn/><AcceptanceCriteria><Criterion>Classification has a checkout and read permission; mixed code/documentation changes run the full suite, the required aggregate gates IPC types, and the two WebKit projects run once with screenshot upload retained.</Criterion></AcceptanceCriteria><Verification><Command>npm run typecheck:ipc</Command></Verification></T-002>
+      <T-003><Title>Pin Rust and executable Actions inputs</Title><DependsOn/><AcceptanceCriteria><Criterion>All affected CI and packaging jobs select Rust 1.99.0 and immutable action commits with version-sensitive caches.</Criterion></AcceptanceCriteria><Verification><Command>go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=</Command></Verification></T-003>
+      <T-004><Title>Bind Worker deploy to a checked SHA</Title><DependsOn/><AcceptanceCriteria><Criterion>Deploy preflight refuses dirty, stale and unverified candidates and the runbook records deployed identity and route checks.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/tools/stats-gateway-deploy.test.mjs</Command></Verification></T-004>
+      <T-005><Title>Synchronize GRACE and verify candidate</Title><DependsOn>T-001, T-002, T-003, T-004</DependsOn><AcceptanceCriteria><Criterion>Module maps and routed graph and verification evidence match source, GRACE final and current integrity pass, and no release or deploy occurs.</Criterion></AcceptanceCriteria><Verification><Command>npx vitest run tests/renderer/release-github-controls.test.js tests/tools/stats-gateway-deploy.test.mjs</Command></Verification></T-005>
+    </ImplementationPlan>
+  </C-CI-CD-AUDIT-FIXES>
+</GraceChangePlan>
