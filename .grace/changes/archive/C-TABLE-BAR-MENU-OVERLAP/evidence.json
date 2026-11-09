@@ -1,0 +1,137 @@
+[
+ {
+  "change": "C-TABLE-BAR-MENU-OVERLAP",
+  "date": "2026-11-09",
+  "summary": "Table drag-pill context menus made locale-safe (CSS-only) + red-first e2e geometry spec in both engines; M-012/V-M-012 routed; bundle applied and archived.",
+  "executorNote": "Heavy evidence artifacts (PNG screenshots, run logs) live in the local-only evidence/ sibling directory: *.log is gitignored and binary evidence outside docs/assets/readme/ fails the commit-safety gate closed, so they are recorded here by SHA-256 inventory instead of being committed (house pattern: this evidence.json is the committed record).",
+  "runs": [
+   {
+    "step": "T-001 red proof",
+    "command": "npm run build && npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium",
+    "result": "ru row/column FAIL exactly on «Вставить строку выше/столбец слева must not wrap» (scrollHeight 50 vs clientHeight 25, two text rects); en control PASS",
+    "artifact": "evidence/t001-red-run.log"
+   },
+   {
+    "step": "T-002 fix green (chromium)",
+    "command": "npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium",
+    "result": "4/4 passed",
+    "artifact": "evidence/t002-chromium-green.log"
+   },
+   {
+    "step": "T-003 engine parity",
+    "command": "npx playwright test tests/e2e/table-bar-menu.spec.ts --project=webkit-tables",
+    "result": "4/4 passed",
+    "artifact": "evidence/t003-webkit-green.log"
+   },
+   {
+    "step": "T-005 full unit gate",
+    "command": "npm test",
+    "result": "5252 passed, 2 skipped, 3 todo (133.7s)",
+    "artifact": "evidence/t005-npm-test-unit.log"
+   },
+   {
+    "step": "T-005 full e2e gate",
+    "command": "npm run test:e2e",
+    "result": "422 passed, 8 skipped (9.6m)",
+    "artifact": "evidence/t005-full-e2e-chromium.log"
+   },
+   {
+    "step": "Final assertions",
+    "command": "grace lint --path . --change C-TABLE-BAR-MENU-OVERLAP --assertions final --run-commands",
+    "result": "2/2 MustPassCommands passed (31s); project-level errors = recorded pre-existing baseline only (worktrees, tree-treefiles, missing sibling specs)",
+    "artifact": "evidence/final-lint-run-commands.log"
+   },
+   {
+    "step": "Codex review tightening",
+    "command": "npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables",
+    "result": "8/8 passed after adding anti-clipping pins (li scrollWidth == clientWidth) and en floor pins (menuWidth === 150)",
+    "artifact": "evidence/review-fix-both-engines.log"
+   }
+  ],
+  "acceptanceScreenshots": {
+   "before": "evidence/before-row-ru.png, before-col-ru.png — owner-reported overlap (two-line labels painted over the next item), captured 2026-11-09 pre-fix",
+   "after": "evidence/after-row-ru.png, after-col-ru.png, after-row-en.png, after-col-en.png — clean single-line items post-fix",
+   "dividerNote": "The remove-item divider geometry is unchanged per these screenshots (visual evidence; no automated divider pin — V-M-012 scenario states the same)."
+  },
+  "siblingRecheck": {
+   "frontMenu": "Already carries the locale-sizing contract, pinned by the existing tests/e2e/front-menu-locale.spec.ts («Russian rows stay on one line and widen the menu surfaces»). No trap, no follow-up.",
+   "imageToolbar": "Buttons carry localized text as TOOLTIPS, not menu rows; the toolbar renders its own div.tooltip styled width: max-content with overflow-wrap: anywhere and a viewport cap (src/muya/lib/ui/imageToolbar/index.css `.ag-image-toolbar li.item div.tooltip`), so the fixed-height wrap trap does not apply."
+  },
+  "codexReview": {
+   "round1": "VERDICT: FINDINGS — 2 MAJOR (no horizontal-fit proof; evidence gap) + 1 MINOR (divider wording). All addressed.",
+   "round2": "New fix checks verified; findings reduced to commitability of heavy evidence (resolved by this evidence.json inventory pattern) and the imageToolbar wording (corrected above)."
+  },
+  "artifacts": {
+   "NOTES.md": {
+    "sha256": "d30cf1d2fb1a6b0f1035757f48b01d75ce2e56d531601592ddd52d0a878257d0",
+    "bytes": 1909,
+    "committed": false
+   },
+   "after-col-en.png": {
+    "sha256": "b347e32123efc13b763779d8a85d9c5f2d58d432583f488c5e381cfe1788c54e",
+    "bytes": 4719,
+    "committed": false
+   },
+   "after-col-ru.png": {
+    "sha256": "e014385d0bd009a31d943b69bc9184cd09335c4f777b943308e28e169209c58c",
+    "bytes": 5289,
+    "committed": false
+   },
+   "after-row-en.png": {
+    "sha256": "fd78201a5b7142fdd86197f07180707f3f9d54c5e28ac8ab96b5b4cd840a3c7c",
+    "bytes": 5382,
+    "committed": false
+   },
+   "after-row-ru.png": {
+    "sha256": "d681d4d5a399193e000bfa3772c77932c11868a0f79066f138ad180c5609b09d",
+    "bytes": 5009,
+    "committed": false
+   },
+   "before-col-ru.png": {
+    "sha256": "5bf72d4c20eb0de168dc8a97d47c1bed41dc41bfa44b729fcfaac9de69d5cab2",
+    "bytes": 6453,
+    "committed": false
+   },
+   "before-row-ru.png": {
+    "sha256": "925f0b55c470b34bc88f8c0018b18001e83a7f803caca2651c97a22d7b3ed610",
+    "bytes": 7956,
+    "committed": false
+   },
+   "final-lint-run-commands.log": {
+    "sha256": "056b8b6ade58a7f9a1f54676e91a811dc97e356382f0be703f527f01b4b1d728",
+    "bytes": 5298,
+    "committed": false
+   },
+   "review-fix-both-engines.log": {
+    "sha256": "1dd1684750d709299f65b5c9df45e665cbb925502f1359dda9774d2372daa7fd",
+    "bytes": 1861,
+    "committed": false
+   },
+   "t001-red-run.log": {
+    "sha256": "0464d428c3bbc5fa888dee198b73209a170d179cd235357b30aa23dcbe19d48f",
+    "bytes": 3853,
+    "committed": false
+   },
+   "t002-chromium-green.log": {
+    "sha256": "30739202937f888ca21a78e44caf39f04bd08d0e67c4035a04b06739eb151e13",
+    "bytes": 946,
+    "committed": false
+   },
+   "t003-webkit-green.log": {
+    "sha256": "74a97c5fcd4e8d812f568486f11752de984fc67e370eb4cd3b868e674022455f",
+    "bytes": 967,
+    "committed": false
+   },
+   "t005-full-e2e-chromium.log": {
+    "sha256": "815e2fcdd39af080eed761ff29c7d0ef77ef359fc2df9d408c682065a8c750cd",
+    "bytes": 105948,
+    "committed": false
+   },
+   "t005-npm-test-unit.log": {
+    "sha256": "a1f139e14b70dd07d10ca8bc5d6acba942ac833f52ff4ae7f298d91b864ac80e",
+    "bytes": 988477,
+    "committed": false
+   }
+  }
+ }
+]

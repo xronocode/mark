@@ -1,0 +1,110 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved basis: owner reply «апрув» (2026-11-09, chat) to the announced step «approve → сразу пишу план (grace-plan) и исполняю фикс» over the owner-approved spec; same directive-recorded pattern as C-WINDOWS-MENU-ACCELERATORS. --><C-TABLE-BAR-MENU-OVERLAP>
+  <Name>Table drag-pill menu overlap fix — implementation plan</Name>
+  <Created>2026-11-09</Created>
+  <Spec>C-TABLE-BAR-MENU-OVERLAP</Spec>
+  <IntentSummary>
+    Make the TableBarTools context menus single-line-safe in every locale:
+    one CSS edit in src/muya/lib/ui/tableTools/index.css (content-driven
+    width with a 150px floor plus li white-space: nowrap, the blockViewer
+    pattern) proved by a new red-first e2e geometry spec
+    (tests/e2e/table-bar-menu.spec.ts) that opens both pill menus in ru and
+    en, asserts per-item one-client-rect / scrollHeight == clientHeight and
+    the width floor/growth, and runs in the chromium and webkit-tables
+    projects; M-012 / V-M-012 gain the routing lines; acceptance artifacts
+    (before/after screenshots of both menus in both locales) land in the
+    bundle evidence directory; full unit and chromium e2e gates close it.
+  </IntentSummary>
+  <BaselineAssertions>
+    <MustExist><Value>src/muya/lib/ui/tableTools/index.css</Value></MustExist>
+    <MustExist><Value>tests/e2e/fixtures/tauri-shim.ts</Value></MustExist>
+    <MustExist><Value>tests/e2e/fixtures/helpers.ts</Value></MustExist>
+    <MustContain><File>src/muya/lib/ui/tableTools/index.css</File><Text>width: 150px</Text></MustContain>
+    <MustContain><File>src/muya/lib/ui/tableTools/index.css</File><Text>height: 25px</Text></MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustExist><Value>tests/e2e/table-bar-menu.spec.ts</Value></MustExist>
+    <MustContain><File>src/muya/lib/ui/tableTools/index.css</File><Text>max-content</Text></MustContain>
+    <MustContain><File>src/muya/lib/ui/tableTools/index.css</File><Text>min-width: 150px</Text></MustContain>
+    <MustContain><File>src/muya/lib/ui/tableTools/index.css</File><Text>white-space: nowrap</Text></MustContain>
+    <MustContain><File>tests/e2e/table-bar-menu.spec.ts</File><Text>C-TABLE-BAR-MENU-OVERLAP</Text></MustContain>
+    <MustPassCommand><Command>npm run build &amp;&amp; npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium</Command></MustPassCommand>
+    <MustPassCommand><Command>npx playwright test tests/e2e/table-bar-menu.spec.ts --project=webkit-tables</Command></MustPassCommand>
+  </TargetAssertions>
+  <DurableScope><GraphAnchors><M-012/></GraphAnchors><VerificationAnchors><V-M-012/></VerificationAnchors></DurableScope>
+  <ObservedWriteScope>
+    <File>src/muya/lib/ui/tableTools/index.css</File>
+    <File>tests/e2e/table-bar-menu.spec.ts</File>
+    <File>.grace/graph/runtime.xml</File>
+    <File>.grace/verification/runtime.xml</File>
+    <Glob>.grace/changes/active/C-TABLE-BAR-MENU-OVERLAP/**</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <C-1>
+      <Name>One line, always</Name>
+      <Expected>Opening the row-pill and column-pill menus in ru (and en as control) shows every item as one text line: each li.item has scrollHeight equal to clientHeight and its text range produces exactly one client rect; no label is clipped, truncated or painted over a neighbour in either engine.</Expected>
+    </C-1>
+    <C-2>
+      <Name>Growth with a floor, en untouched</Name>
+      <Expected>The measured menu width is at least 150px in en — the en menu geometry (item count, heights, divider, placement) is visually unchanged — and strictly wider than 150px in ru, wide enough for the longest label on one line.</Expected>
+    </C-2>
+    <C-3>
+      <Name>Positioning follows the menu</Name>
+      <Expected>After the menu widens, the popper keeps it anchored beside its pill (right-start, offset unchanged) for both the row pill and the bottom pill inside the table-scroll sticky-footer layer; Escape and outside-click still close it; the remove-item divider keeps its designed geometry against single-line 25px items.</Expected>
+    </C-3>
+    <C-4>
+      <Name>Nothing else changed</Name>
+      <Expected>No JS, locale string, BaseFloat or sibling-menu CSS changes ship; the existing table e2e families, the full unit gate and the full chromium e2e gate stay green; grace lint reports no new findings against the recorded pre-existing baseline.</Expected>
+    </C-4>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>Red-first e2e geometry spec for both pill menus in ru and en</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tests/e2e/table-bar-menu.spec.ts carries the house MODULE_CONTRACT header (PURPOSE/SCOPE/DEPENDS tauri-shim+helpers/LINKS V-M-012/ROLE TEST/MAP_MODE LOCALS) and a C-TABLE-BAR-MENU-OVERLAP marker, and boots the editor twice — ru via the mt_prefs_get_all language override, en as the shim default.</Criterion>
+        <Criterion>For each locale it activates a table (ag-active), clicks .ag-drag-handler.left and .ag-drag-handler.bottom, waits for the .ag-table-bar-tools float, and asserts per item: scrollHeight === clientHeight, the label text range yields exactly one client rect, and the menu offsetWidth is &gt;= 150 (and &gt; 150 for ru after the fix).</Criterion>
+        <Criterion>Against the current CSS the ru cases fail (wrapped two-line items measured — the red proof is recorded in the change Evidence) while the en cases pass, isolating the defect.</Criterion>
+        <Criterion>The spec runs under both the chromium project and, via the table-*.spec.ts match, the webkit-tables project without workflow changes.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm run build &amp;&amp; npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium</Command><BudgetSeconds>600</BudgetSeconds></Verification>
+    </T-001>
+    <T-002>
+      <Title>CSS fix: content-driven width with 150px floor + nowrap items</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>.ag-table-bar-tools drops the hard width: 150px for width: max-content with min-width: 150px, and li.item gains white-space: nowrap; a short comment with the change id records why (long-locale labels must never wrap into the fixed-height items).</Criterion>
+        <Criterion>Nothing else in the file changes: item height/line-height 25px, hover, the remove-item margin-top and ::before divider rules stay byte-identical; no other CSS file is touched.</Criterion>
+        <Criterion>The T-001 spec passes in chromium for both locales (ru items single-line, menu grown past 150px; en unchanged), and the BaseFloat resize-detector repositions the wider menu without JS changes.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium</Command><BudgetSeconds>600</BudgetSeconds></Verification>
+    </T-002>
+    <T-003>
+      <Title>Engine parity and owner acceptance artifacts</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The spec passes in the webkit-tables project (the WKWebView engine the macOS build ships) — the same table-UI engine-sensitivity precedent as the resize families.</Criterion>
+        <Criterion>Before/after screenshots of both menus in ru and en land in .grace/changes/active/C-TABLE-BAR-MENU-OVERLAP/evidence/ (the «before» pair from the 2026-11-09 diagnosis, the «after» pair captured post-fix on the same doc), giving the owner the visible overlap-to-clean pair.</Criterion>
+        <Criterion>Evidence-only sibling re-measure: one probe pass over the front menu (and imageToolbar label surfaces if any text label exists) in ru records whether any sibling float menu carries the same fixed-height wrap trap; a real finding becomes a filed follow-up change, not a scope creep here.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npx playwright test tests/e2e/table-bar-menu.spec.ts --project=webkit-tables</Command><BudgetSeconds>600</BudgetSeconds></Verification>
+    </T-003>
+    <T-004>
+      <Title>Graph and verification routing: M-012 / V-M-012</Title>
+      <DependsOn>T-002</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>.grace/graph/runtime.xml M-012 (muya) gains the C-TABLE-BAR-MENU-OVERLAP routing line (tableTools menu geometry now locale-safe, CSS-only) and .grace/verification/runtime.xml V-M-012 gains the scenario for the new spec (ru/en both pills, one-rect-per-item, width floor/growth, both engines), placed per the existing entry conventions.</Criterion>
+        <Criterion>grace lint --change C-TABLE-BAR-MENU-OVERLAP --assertions target is clean of new findings (the recorded pre-existing baseline — sideBar/tree-treefiles, worktrees, missing C-NOTIFICATION-SYSTEM spec — is unchanged by this bundle).</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>grace lint --path . --change C-TABLE-BAR-MENU-OVERLAP --assertions target</Command><BudgetSeconds>120</BudgetSeconds></Verification>
+    </T-004>
+    <T-005>
+      <Title>Full regression gates and wrap-up</Title>
+      <DependsOn>T-003, T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>npm test (full unit gate) is green; the full chromium e2e gate (npm run test:e2e, which re-runs the new spec alongside the existing table families) is green on a fresh build — no new failures or flakes attributable to the wider menu.</Criterion>
+        <Criterion>The bundle records the Evidence (red proof from T-001, both-engine green runs, screenshot artifacts, sibling re-measure result) ready for the final assertions run and archive.</Criterion>
+      </AcceptanceCriteria>
+      <Verification><Command>npm test</Command><Command>npm run test:e2e</Command><BudgetSeconds>1800</BudgetSeconds></Verification>
+    </T-005>
+  </ImplementationPlan>
+</C-TABLE-BAR-MENU-OVERLAP></GraceChangePlan>

@@ -5977,9 +5977,26 @@
         <Command>npx vitest run tests/renderer/muya/state-render-selector.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/content-state-cursor-restore.test.js</Command>
               <Command>npx vitest run tests/renderer/muya/copy-cut-stale-selection.test.js</Command>
+              <Command>npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables</Command>
 </Commands>
       <Scenarios>
 
+
+        <scenario-table-bar-menu-locale-geometry>
+          C-TABLE-BAR-MENU-OVERLAP: the drag-pill menu geometry pins. In
+          ru (the long-locale representative) and en (control), opening the
+          row-pill and column-pill menus shows every item as one text line:
+          li scrollHeight == clientHeight, one client rect per label, menu
+          offsetWidth >= 150 everywhere, > 150 in ru (content-driven
+          growth) and exactly 150 in en (the pre-fix floor geometry); no
+          horizontal clipping (li scrollWidth == clientWidth under
+          nowrap). Runs in the chromium and webkit-tables projects (the
+          WKWebView engine parity). The remove-item divider geometry is
+          unchanged per the bundle's before/after screenshots (visual
+          evidence — no automated divider pin). Sibling assurance:
+          front-menu-locale.spec.ts already pins the same locale-sizing
+          contract for the front menu.
+        </scenario-table-bar-menu-locale-geometry>
         <scenario-commonmark-emphasis-pairing>
           C-COMMONMARK-EMPHASIS (merged PR #87): emphasis delimiter pairing
           pins. The owner-report paragraph («**Zero-shot **— … **One-shot**»,
