@@ -1,8 +1,8 @@
 // FILE: tests/renderer/release-project-sync.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove the GitHub Project mirror is public-data-only, one-way, duplicate-safe, paginated/retry-capable, non-destructive, and idempotent.
-//   SCOPE: Pure projection/planning plus an in-memory apply adapter and bounded request retry; no live GitHub mutation.
+//   SCOPE: Declared/legacy owner-verdict boundaries, pure projection/planning plus an in-memory apply adapter and bounded request retry; no live GitHub mutation.
 //   DEPENDS: Vitest; tools/release-project-sync.mjs; checked-in train/governance JSON.
 //   LINKS: .grace/verification/features.xml V-M-046.
 //   ROLE: TEST
@@ -17,10 +17,12 @@
 //   governance - Checked-in Project schema and identity fixture.
 //   desired - Checked-in train projected into managed Project rows.
 //   privateHomePath - Builds a synthetic macOS home path without committing a personal absolute-path literal.
+//   mirrorVerdictFixture - Synthetic row projection for declared/legacy acceptance boundaries.
 //   FakeProjectClient - In-memory read/apply adapter used to prove convergence and idempotence.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-10 C-STABILIZE-TRAIN-MIRROR: declared/legacy acceptance boundaries, pending creation, accepted demotion and idempotent field reconciliation without live API operations.
 //   - 2026-10-27 v1.5.0: prove the apply loop waits for a lagging read-back instead of creating the same stable Item ID twice, and fails closed when the created row never appears.
 //   - 2026-10-21 v1.4.0: pin the current draft-item payload field and prove empty optional values are skipped on create and cleared with GitHub's dedicated field-value mutation.
 //   - 2026-10-21 v1.3.1: keep the test module map aligned with the checked-in collecting-train fixture.
@@ -398,3 +400,96 @@ describe('release Project mirror', () => {
   })
 })
 // END_BLOCK_RELEASE_PROJECT_SYNC_TESTS
+
+
+// START_BLOCK_PROJECT_ACCEPTANCE_VERDICT
+const mirrorVerdictFixture = (acceptance, state = 'queued') => {
+  const input = structuredClone(manifest)
+  input.state = 'Collecting'
+  input.items = { userFacing: [{ id: 'C-MIRROR-STATE', summary: 'Synthetic owner-verdict boundary.', state, commits: ['a'.repeat(40)], acceptance }], operational: [], notPresent: [] }
+  return buildProjectProjection(input, governance.project)
+}
+
+describe('Project acceptance truth (C-STABILIZE-TRAIN-MIRROR)', () => {
+  const legacy = { owner: 'fixture-owner', date: '2026-11-10', testedArtifact: 'fixture-build-sha256', scenarios: ['The scoped scenario was accepted.'] }
+
+  it.each(['pending', 'rejected', 'needs-recheck'])('never projects declared %s as accepted, even with filled legacy fields', status => {
+    const projected = mirrorVerdictFixture({ ...legacy, status })
+    const row = projected.rows[1]
+    expect(row.fields['Owner acceptance']).toBe('')
+    expect(row.body).toContain(`Owner acceptance: ${status}`)
+    expect(projected.fields.find(field => field.name === 'Owner acceptance').options).toEqual(['accepted', 'not-required'])
+  })
+
+  it.each(['pending', 'rejected', 'needs-recheck'])('honors a %s verdict override and an item state over complete legacy acceptance', verdict => {
+    expect(mirrorVerdictFixture({ ...legacy, verdict }).rows[1].fields['Owner acceptance']).toBe('')
+    expect(mirrorVerdictFixture(legacy, verdict).rows[1].fields['Owner acceptance']).toBe('')
+    expect(mirrorVerdictFixture({ ...legacy, status: 'accepted', verdict }).rows[1].fields['Owner acceptance']).toBe('')
+  })
+
+  it.each([
+    undefined,
+    { ...legacy, owner: '' },
+    { ...legacy, date: '' },
+    { ...legacy, testedArtifact: '' },
+    { ...legacy, scenarios: [] },
+    { ...legacy, scenarios: [''] }
+  ])('does not invent acceptance for missing/incomplete owner evidence %#', acceptance => {
+    const row = mirrorVerdictFixture(acceptance).rows[1]
+    expect(row.fields['Owner acceptance']).toBe('')
+    expect(row.body).toContain('Owner acceptance: not recorded')
+  })
+
+  it.each([legacy, { ...legacy, status: 'accepted' }, { ...legacy, verdict: 'accepted' }])('keeps legacy and explicit accepted outputs unchanged %#', acceptance => {
+    const row = mirrorVerdictFixture(acceptance).rows[1]
+    expect(row).toEqual({
+      stableId: 'C-MIRROR-STATE', title: 'C-MIRROR-STATE — Synthetic owner-verdict boundary.',
+      body: 'Public release-train mirror for C-MIRROR-STATE.\n\nManaged Item ID: C-MIRROR-STATE',
+      fields: { Train: manifest.trainId, 'Payload SHA': manifest.payloadSha ?? '', 'Release state': 'Collecting', Admission: 'included', 'Owner acceptance': 'accepted', 'Item ID': 'C-MIRROR-STATE', 'Evidence URL': `https://github.com/xronocode/mark/blob/main/docs/release-trains/${manifest.trainId}.md#c-mirror-state` }
+    })
+  })
+
+  it('clears a formerly accepted field through existing reconciliation and converges without touching unowned notes', async () => {
+    const client = new FakeProjectClient()
+    await reconcileProject({ client, desired: mirrorVerdictFixture(legacy), mode: 'apply' })
+    const pending = mirrorVerdictFixture({ status: 'pending' })
+    const operations = planProjectReconciliation(pending, await client.read())
+    expect(operations).toEqual([{ type: 'set-field', itemId: 'ITEM_1', stableId: 'C-MIRROR-STATE', field: 'Owner acceptance', value: '' }])
+    await reconcileProject({ client, desired: pending, mode: 'apply' })
+    expect(client.actual.items[1].fields['Owner acceptance']).toBe('')
+    expect(client.actual.items[1].fields['Unowned notes']).toBe('preserve me')
+    expect(await reconcileProject({ client, desired: pending, mode: 'apply' })).toMatchObject({ operations: [], converged: true })
+    expect(client.applied.filter(type => type === 'create-item')).toHaveLength(2)
+  })
+
+  it('creates a pending item with visible status and no accepted field, then remains idempotent', async () => {
+    const client = new FakeProjectClient()
+    const pending = mirrorVerdictFixture({ status: 'pending' })
+    await reconcileProject({ client, desired: pending, mode: 'apply' })
+    expect(client.actual.items[1].fields['Owner acceptance']).toBe('')
+    expect(client.actual.items[1].body).toContain('Owner acceptance: pending')
+    expect(await reconcileProject({ client, desired: pending, mode: 'apply' })).toMatchObject({ operations: [], converged: true })
+  })
+
+  it('omits the empty owner field on GraphQL create and uses the existing dedicated clear mutation on demotion', async () => {
+    const pending = mirrorVerdictFixture({ status: 'pending' })
+    const requests = []
+    const snapshot = { project: { id: 'PROJECT' }, fields: pending.fields.map((field, index) => ({ ...field, id: `FIELD_${index}`, options: (field.options ?? []).map((name, index) => ({ name, id: `OPTION_${index}` })) })), items: [] }
+    const client = new GraphqlProjectClient({ token: 'x', owner: 'fixture-owner', fetchImpl: async (_url, options) => {
+      const request = JSON.parse(options.body); requests.push(request)
+      const data = request.query.includes('addProjectV2DraftIssue') ? { addProjectV2DraftIssue: { projectItem: { id: 'ITEM' } } } : request.query.includes('clearProjectV2ItemFieldValue') ? { clearProjectV2ItemFieldValue: { projectV2Item: { id: 'ITEM' } } } : { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'ITEM' } } }
+      return { ok: true, json: async () => ({ data }) }
+    } })
+    client.read = async () => structuredClone(snapshot)
+    await client.apply({ type: 'create-item', row: pending.rows[1] }, pending)
+    const ownerField = snapshot.fields.find(field => field.name === 'Owner acceptance').id
+    expect(requests.some(request => request.variables.fieldId === ownerField)).toBe(false)
+    expect(requests[0].variables.body).toContain('Owner acceptance: pending')
+    requests.length = 0
+    await client.apply({ type: 'set-field', itemId: 'ITEM', field: 'Owner acceptance', value: '' }, pending)
+    expect(requests).toHaveLength(1)
+    expect(requests[0].query).toContain('clearProjectV2ItemFieldValue')
+    expect(requests[0].variables.fieldId).toBe(ownerField)
+  })
+})
+// END_BLOCK_PROJECT_ACCEPTANCE_VERDICT
