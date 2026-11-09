@@ -172,10 +172,9 @@ test.describe('chrome native theme (C-38 T-006)', () => {
     expect(spriteRefs).toBe(0)
 
     // C-PAGE-WIDTH-TABLES T-003: the title bar's quick-settings button
-    // (a-large-small «Aa» since the 2026-11-09 owner rework) is a DRAWN
-    // inline svg that is not a ChromeIcon component (24-grid, 1.7 stroke
-    // per the approved mock metrics). The audit's enemy was the iconfont
-    // sprite,
+    // («Aa» since the 2026-11-09 owner rework) is a DRAWN inline svg that
+    // is not a ChromeIcon component (the shared chrome 16-grid, 16px
+    // render, 1.4 stroke). The audit's enemy was the iconfont sprite,
     // not hand-drawn icons: ChromeIcon members must keep the 1.4 stroke,
     // other svgs are acceptable as long as they draw (no sprite refs —
     // asserted above), and the ChromeIcon family stays present.

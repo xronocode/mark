@@ -248,7 +248,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.5.1
+// VERSION: 2.5.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover (C-DOC-POPOVER-EXPORT-HUB: HIG-tightened, quick-export row PDF/Word/HTML on the File-menu commands), native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it). C-PAGE-WIDTH-TABLES T-003: the quick-settings button (a-large-small «Aa», quickSettings/index.vue — M-061) mounts in the right cluster between the mode chips and the theme button.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path + quick-export row), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks. The quick-settings panel is a self-contained child component (open/close, tabs, palette) — this file only mounts it and hands over the active pathname.
@@ -286,6 +286,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-09 v2.5.2: the bar's z-index rises 2 → 6 — muya's table
+//     side-wall handles (injected z-index 3) escaped to the root
+//     stacking context and pierced the quick-settings popover (owner
+//     live report); 6 keeps the image-viewer overlay (11) above the bar
+//     unchanged. Plus the comment-only wording follow of the «Aa» glyph
+//     rework (quickSettings/index.vue v1.2.0).
 //   - 2026-11-09 v2.5.1: comment-only — the quick-settings button's
 //     glyph wording follows quickSettings/index.vue v1.2.0 (the owner's
 //     a-large-small «Aa» rework of the chevrons-left-right glyph).
@@ -893,7 +899,13 @@ onBeforeUnmount(() => {
   left: 0;
   top: 0;
   right: 0;
-  z-index: 2;
+  /* 2026-11-09: 6, not 2 — the bar (and both popovers it owns, capped
+     by this z) must paint above muya's in-editor affordances that
+     escape to the root stacking context (the table side-wall handles
+     inject z-index 3 and pierced the quick-settings popover live).
+     6 stays below the image-viewer overlay (z 11), which still dims
+     the bar as before; nothing else in the root context sits at 3–5. */
+  z-index: 6;
   transition: color 0.4s ease-in-out;
   cursor: default;
   /* C-40 T-002: the bar is a flex row (canvas geometry) — left cluster,

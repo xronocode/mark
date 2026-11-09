@@ -139,15 +139,17 @@ describe('quick settings shell (T-003, corner C-4)', () => {
     savePageWidth.mockReset().mockResolvedValue(true)
   })
 
-  it('mounts the a-large-small «Aa» button and opens the panel on click', async () => {
+  it('mounts the «Aa» button in the chrome 16-grid family and opens the panel on click', async () => {
     const wrapper = await mountShell()
     const btn = wrapper.find('.quick-settings-btn')
     expect(btn.exists()).toBe(true)
     expect(btn.classes()).toContain('titlebar-nav-btn')
-    // The owner's 2026-11-09 glyph: the lucide a-large-small paths (the
-    // big-A and small-a stems; chevrons-left-right read as "code view").
-    expect(btn.html()).toContain('m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16')
-    expect(btn.html()).toContain('m15 16 2.536-7.328a1.02 1.02 0 0 1 1.928 0L22 16')
+    // The owner's 2026-11-09 glyph: «Aa» drawn on the shared chrome
+    // 16-grid (16px render, 1.4 stroke — same family as the neighboring
+    // icons; chevrons-left-right read as "code view").
+    expect(btn.html()).toContain('viewBox="0 0 16 16"')
+    expect(btn.html()).toContain('M1.9 12.5 4.65 3.7 7.4 12.5')
+    expect(btn.html()).toContain('cx="11.8"')
 
     expect(wrapper.find('.quick-settings-popover').exists()).toBe(false)
     await btn.trigger('click')
