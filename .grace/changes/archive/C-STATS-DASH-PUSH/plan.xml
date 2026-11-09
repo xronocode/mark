@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Implemented and merged to main via PR #184 (squash 8c9a6c2e); archived 2026-11-09 during the C-RENDER-REVIEW-FIXES T-008 wave. -->
   <C-STATS-DASH-PUSH>
     <IntentSummary>Implement the approved spec: one best-effort dashboard push per counted gateway event (mark.update_check / mark.update_pkg with props), off by absent DASH_COLLECT_KEY, responses byte-unchanged, counting and /stats untouched.</IntentSummary>
     <BaselineAssertions>
