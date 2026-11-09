@@ -281,7 +281,7 @@ def diff_candidate(root, base):
         blobs.append((path, "\n".join(added).encode()))
         if added:
             additions.append(path + ":\n" + "\n".join(added))
-    messages = git(root, "log", "--format=%s%n%b%n---", merge_base + "..HEAD").decode("utf-8", "strict")
+    messages = git(root, "log", "--no-merges", "--format=%s%n%b%n---", merge_base + "..HEAD").decode("utf-8", "strict")
     scan_text = messages + "\nADDED LINES:\n" + "\n".join(additions)
     if len(scan_text.encode()) > 2_000_000:
         raise GateError("Diff scope exceeds review budget; split the change")
@@ -971,7 +971,12 @@ def scan(candidate):
         env = {k: v for k, v in os.environ.items() if not k.startswith("GITLEAKS_")}
         run = subprocess.run(["gitleaks", "dir", str(payloads), "--config", str(config), "--gitleaks-ignore-path", str(ignored), "--ignore-gitleaks-allow", "--redact", "--no-banner", "--no-color", "--log-level", "error", "--max-decode-depth", "5", "--timeout", "120"], env=env, capture_output=True)
         if run.returncode:
-            raise GateError("Gitleaks rejected the exact payload; inspect locally with full redaction")
+            # --redact already strips matched values; surface the bounded, redacted
+            # findings so CI failures name the rule and payload instead of a blind stop.
+            detail = subprocess.run(["gitleaks", "dir", str(payloads), "--config", str(config), "--gitleaks-ignore-path", str(ignored), "--ignore-gitleaks-allow", "--redact", "--no-banner", "--no-color", "--log-level", "info", "--max-decode-depth", "5", "--timeout", "120"], env=env, capture_output=True)
+            lines = (detail.stdout.decode("utf-8", "replace").splitlines() + detail.stderr.decode("utf-8", "replace").splitlines())[-12:]
+            findings = "\n".join(lines)
+            raise GateError("Gitleaks rejected the exact payload; redacted findings:\n" + findings)
 
 
 def review_view(payload):
