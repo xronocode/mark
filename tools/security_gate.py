@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # FILE: tools/security_gate.py
-# VERSION: 2.3.0
+# VERSION: 2.4.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks plus one local-first model review pass with an optional offload executor.
-#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, one single-pass model review per chunk on the resolved executor under that executor's lane lock — local by default, the owner-configured offload endpoint when a bounded health probe proves it ready — an explicit human model-review override, identity recheck, private receipts and common hooks.
+#   PURPOSE: Fail local commit/push operations closed until their exact payload passes deterministic exposure, lane, identity and Gitleaks checks plus one local-first model review pass with an optional offload executor; expose the same deterministic leak rules to CI as a committed-range diff scan.
+#   SCOPE: Exact staged/message/outgoing snapshots, approved public/private and private-companion path checks, manifest-bound reviewed README screenshots, merged-branch deletion admission, exact-manifest message-only main rewrites, push-endpoint/current-main-bound desktop PR rebases, explicit GPG-signature removal accounting, AI attribution and branch-name bans, one single-pass model review per chunk on the resolved executor under that executor's lane lock — local by default, the owner-configured offload endpoint when a bounded health probe proves it ready — an explicit human model-review override, identity recheck, private receipts, common hooks, and a scan-diff mode building a committed-range candidate (added lines plus commit messages) for CI leak review of pull-request diffs.
 #   DEPENDS: Python stdlib, git, gitleaks, owner-configurable Ollama endpoints for the local reviewer and the optional offload executor.
 #   LINKS: .grace/graph/features.xml M-064; .grace/verification/features.xml V-M-064; C-SAFETY-GATE-MODEL-REVIEW; C-PUBLIC-REPOSITORY-HYGIENE; C-MESSAGE-ONLY-HISTORY-REWRITE-V3.
 #   ROLE: SCRIPT
@@ -28,6 +28,7 @@
 #   review_view - replace removed baseline lines with a placeholder so a cleanup cannot read as new exposure while additions and context stay complete.
 #   validate_lane - keep mobile runtime and desktop release/version writes in their own lanes.
 #   staged_candidate - bind staged blobs, diff and commit message to an index tree.
+#   diff_candidate - build a committed-range candidate (added lines per changed path plus commit messages) for CI leak scanning; removed lines are not new exposure.
 #   AI_NAMES - assistant/vendor names that must not appear in attribution trailers or branch names.
 #   AI_ATTRIBUTION - compiled attribution rule used for commit-message checks.
 #   AI_BRANCH - compiled branch-prefix rule used for ref checks.
@@ -62,7 +63,8 @@
 #   main - dispatch early static checks, full commit/push review, history-rewrite review and installation.
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: 2.3.0 - 2026-10-31 C-SAFETY-LOCAL-FIRST-REVIEW: make the model review local-first and single-pass — one pass per chunk on the resolved executor, with the offload endpoint optional (used when a bounded health probe proves it ready, silent local fallback otherwise); remove the mandatory non-local pass and its configuration error; per-executor lane lock, receipt and marker updated; fail-closed verdict, address-safety and override semantics unchanged.
+#   LAST_CHANGE: 2.4.0 - 2026-11-09 docs-security lane: add the scan-diff mode — a committed-range candidate (added lines per changed path plus the range's commit messages, deletions excluded per the reviewer-view boundary) fed through the existing validate_content rules and the trusted Gitleaks scan, so CI can run the same leak rules over pull-request diffs that the local gate runs over staged payloads; no local hook, lock or model-review behavior changes.
+#   PREV: 2.3.0 - 2026-10-31 C-SAFETY-LOCAL-FIRST-REVIEW: make the model review local-first and single-pass — one pass per chunk on the resolved executor, with the offload endpoint optional (used when a bounded health probe proves it ready, silent local fallback otherwise); remove the mandatory non-local pass and its configuration error; per-executor lane lock, receipt and marker updated; fail-closed verdict, address-safety and override semantics unchanged.
 #   PREV: 2.2.0 - 2026-10-27 C-SAFETY-REVIEW-LANES: replace the single inference.lock with candidate, local and non-local lane locks, so a remote-bound review no longer blocks another operation's local phase; keep each lane single-flight, make per-chunk evidence candidate-scoped and atomic, and preserve the FIX-021 reviewer view plus the 2.1.1 output-budget diagnostics.
 #   PREV: 2.1.1 - 2026-10-27: name the sanitized done_reason and answering model in the incomplete-payload rejection, which could not tell a truncated answer from a model swap, and raise the reviewer answer budget from 600 to 2048 output tokens as headroom.
 #   PREV: 2.1.0 - 2026-10-27 FIX-021: replace removed baseline lines with a placeholder in the reviewer view and state that a bare secret or variable name is an identifier rather than a value, so documented setup text and cleanups stop reading as new exposure.
@@ -242,6 +244,48 @@ def staged_candidate(root, message):
         raise GateError("Staged scope exceeds review budget; split the task")
     identity = hashlib.sha256((tree + "\n" + payload).encode()).hexdigest()
     return {"identity": identity, "payload": payload, "scanText": message + "\n" + publication_lines(patch), "blobs": blobs, "blobGroups": [blobs], "tree": tree}
+
+
+def diff_candidate(root, base):
+    # A committed-range candidate for CI leak review: the added lines of every
+    # changed path plus the commit messages of the range. Removed lines are not
+    # new exposure — the same boundary the reviewer view draws.
+    probe = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", base + "^{commit}"],
+        capture_output=True,
+    )
+    if probe.returncode:
+        raise GateError("Diff base ref not found: " + base)
+    merge_base = git(root, "merge-base", base, "HEAD").decode().strip()
+    if not merge_base:
+        raise GateError("Diff base has no common ancestor with HEAD")
+    names = git(root, "diff", "--name-only", "--diff-filter=ACMRT", "-z", merge_base, "HEAD")
+    blobs = []
+    additions = []
+    for raw in names.split(b"\0"):
+        if not raw:
+            continue
+        path = raw.decode()
+        mode = (git(root, "ls-tree", "HEAD", "--", path).split(b"\t", 1)[0].split() or [b""])[0]
+        if mode in (b"120000", b"160000"):
+            raise GateError("Symlink or submodule requires a separate reviewed scope")
+        try:
+            patch = git(root, "diff", "--no-ext-diff", "--no-textconv", "--unified=0", merge_base, "HEAD", "--", path).decode("utf-8", "strict")
+        except UnicodeDecodeError:
+            patch = None
+        if patch is None or "\nBinary files " in patch:
+            blobs.append((path, git(root, "show", "HEAD:" + path)))
+            additions.append(path + ": [binary]")
+            continue
+        added = [line[1:] for line in patch.splitlines() if line.startswith("+") and not line.startswith("+++")]
+        blobs.append((path, "\n".join(added).encode()))
+        if added:
+            additions.append(path + ":\n" + "\n".join(added))
+    messages = git(root, "log", "--format=%s%n%b%n---", merge_base + "..HEAD").decode("utf-8", "strict")
+    scan_text = messages + "\nADDED LINES:\n" + "\n".join(additions)
+    if len(scan_text.encode()) > 2_000_000:
+        raise GateError("Diff scope exceeds review budget; split the change")
+    return {"payload": scan_text, "scanText": scan_text, "blobs": blobs, "blobGroups": [blobs]}
 
 
 def _push_candidate(root, remote, updates, trusted_bases=None, context=""):
@@ -1332,7 +1376,7 @@ def install(root, common, private):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["static", "commit", "push", "review-staged", "review-history-rewrite", "install"])
+    parser.add_argument("operation", choices=["static", "commit", "push", "review-staged", "review-history-rewrite", "scan-diff", "install"])
     parser.add_argument("arguments", nargs="*")
     parser.add_argument("--message", default="explicit staged review")
     parser.add_argument("--remote")
@@ -1343,6 +1387,10 @@ def main():
     root, common, private = repository()
     if args.operation == "static":
         scan(staged_candidate(root, "early staged scan"))
+    elif args.operation == "scan-diff":
+        if not args.arguments or not args.arguments[0]:
+            raise GateError("scan-diff requires a base ref")
+        scan(diff_candidate(root, args.arguments[0]))
     elif args.operation == "install":
         install(root, common, private)
     elif args.operation == "push":
