@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Implemented and merged to main via PR #182 (squash 3f7d45aa); archived 2026-11-09 during the C-RENDER-REVIEW-FIXES T-008 wave. -->
   <C-STATS-READOUT>
     <IntentSummary>Implement the approved C-STATS-READOUT spec against the post-C-UPDATER-REVIEW-FIXES baseline: the keyed GET /stats readout route on the mark-stats-gateway worker, the shared tables.mjs (renderer, SQL constant, normalization), the query.mjs --remote mode with a main guard, the README "Readout access" section with the full revision sweep, the .gitignore hardening, and the M-071/V-M-071 graph and verification amendments — with the counting routes byte-identical and every gate green. Execution discipline: T-003 and T-004 are logically independent but touch files the same suite spawns (the dry-mode test runs node query.mjs), so the executor runs them serially — single-writer, no interleaving.</IntentSummary>
     <BaselineAssertions>

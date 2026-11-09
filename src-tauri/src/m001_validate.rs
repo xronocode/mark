@@ -28,6 +28,9 @@
 //     fixture regeneration also exposed five fs commands that were
 //     always registered in generate_handler! but missing from this
 //     hand-kept list (the stale fixture masked the gap) — added.
+//   - 2026-11-03 C-RENDER-REVIEW-FIXES T-001: register
+//     mt_rollback_restore_outcome (the read-and-clear restore-outcome
+//     command) beside the M-068 rollback commands.
 
 /// The fixture is embedded at compile time. If the file is missing or
 /// the path drifts, the build fails — which is the right behavior:
@@ -76,6 +79,7 @@ const REGISTERED_COMMANDS: &[&str] = &[
     // C-UPDATER-ROLLBACK M-068 rollback manager surface.
     "mt_rollback_prepare",
     "mt_rollback_restore",
+    "mt_rollback_restore_outcome",
     "mt_rollback_status",
     "mt_screenshot_capture",
     "mt_search_cancel",

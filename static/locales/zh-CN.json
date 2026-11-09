@@ -538,7 +538,7 @@
         "title": "文本",
         "font": "正文字体",
         "lineHeight": "行间距",
-        "lineWidthHelp": "留空表示使用主题默认宽度，或输入带 px、% 或 ch 单位的数值——例如 720px。",
+        "lineWidthHelp": "留空表示全宽，或输入带 px、% 或 ch 单位的数值——例如 720px。",
         "fontSize": "正文大小",
         "unlimited": "不限",
         "lineWidth": "书写区域宽度"
@@ -1274,7 +1274,8 @@
       "project": "项目",
       "update": "更新",
       "agent": "智能体",
-      "system": "系统"
+      "system": "系统",
+      "rollback": "回退"
     },
     "actions": {
       "copy": "复制",
@@ -1286,7 +1287,9 @@
       "title": "通知",
       "empty": "本次会话暂无通知",
       "copy": "复制"
-    }
+    },
+    "actionFailedTitle": "操作失败",
+    "actionFailedBody": "详情请查看日志。"
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1436,7 +1439,8 @@
       "fontFamily": "字体系列："
     },
     "info": {
-      "description": "请自定义页面外观并点击\"导出\"继续。"
+      "description": "请自定义页面外观并点击\"导出\"继续。",
+      "label": "信息"
     },
     "page": {
       "topBottom": "上/下：",
@@ -1446,10 +1450,13 @@
       "leftRight": "左/右：",
       "widthHeight": "宽度/高度（毫米）：",
       "pageSize": "页面大小：",
-      "pageMarginPreset": "页边距："
+      "pageMarginPreset": "页边距：",
+      "pageMargin": "页面边距（毫米）："
     },
     "theme": {
-      "theme": "主题"
+      "theme": "主题",
+      "label": "主题",
+      "description": "您可以通过选择主题或创建手工制作的主题来更改文档外观。"
     },
     "headerFooter": {
       "customizeStyle": "自定义样式",
@@ -1460,7 +1467,16 @@
       "footerText": "页脚",
       "leftSlot": "左",
       "centerSlot": "中",
-      "rightSlot": "右"
+      "rightSlot": "右",
+      "footerType": "页脚类型",
+      "description": "如果定义了页眉和/或页脚，文本将出现在所有页面上。",
+      "mainHeaderText": "主页眉文本",
+      "rightHeaderText": "右页眉文本",
+      "headerType": "页眉类型",
+      "leftFooterText": "左页脚文本",
+      "rightFooterText": "右页脚文本",
+      "mainFooterText": "主页脚文本",
+      "leftHeaderText": "左页眉文本"
     },
     "autoNumberingHeadings": "自动编号标题",
     "showFrontMatter": "显示前置元数据",
@@ -1469,7 +1485,8 @@
     "toc": {
       "title": "目录",
       "includeTopHeadingDetail": "包含顶级标题详情",
-      "includeTopHeading": "包含顶级标题"
+      "includeTopHeading": "包含顶级标题",
+      "label": "目录"
     },
     "options": {
       "headerFooterStyles": {
@@ -1710,7 +1727,11 @@
     "title": "回退到 Mark {version}",
     "body": "设置将恢复到更新前的快照——更新后所做的更改会丢失。在更新的版本发布之前，将跳过 Mark {current}。",
     "confirm": "回退",
-    "cancel": "取消"
+    "cancel": "取消",
+    "restoreFailedTitle": "回退失败",
+    "restoreFailedBody": "无法恢复上一个版本。详情请查看日志。",
+    "prefsSkippedTitle": "回退完成",
+    "prefsSkippedBody": "上一个版本已恢复，但已保存的设置未能恢复——部分设置可能已重置为默认值。"
   },
   "quickSettings": {
     "title": "快速设置",

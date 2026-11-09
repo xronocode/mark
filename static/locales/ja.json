@@ -538,7 +538,7 @@
         "title": "テキスト",
         "font": "テキストのフォント",
         "lineHeight": "行間",
-        "lineWidthHelp": "空欄にするとテーマの既定幅になります。px、%、ch を付けた数値も入力できます（例: 720px）。",
+        "lineWidthHelp": "空欄にすると全幅になります。px、%、ch を付けた数値も入力できます（例: 720px）。",
         "fontSize": "テキストのサイズ",
         "unlimited": "無制限",
         "lineWidth": "執筆エリアの幅"
@@ -1274,7 +1274,8 @@
       "project": "プロジェクト",
       "update": "アップデート",
       "agent": "エージェント",
-      "system": "システム"
+      "system": "システム",
+      "rollback": "ロールバック"
     },
     "actions": {
       "copy": "コピー",
@@ -1286,7 +1287,9 @@
       "title": "通知",
       "empty": "このセッションの通知はありません",
       "copy": "コピー"
-    }
+    },
+    "actionFailedTitle": "アクションに失敗しました",
+    "actionFailedBody": "詳細はログを確認してください。"
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1436,7 +1439,8 @@
       "fontFamily": "フォントファミリー:"
     },
     "info": {
-      "description": "ページレイアウトを調整して、'エクスポート'をクリックして続行してください。"
+      "description": "ページレイアウトを調整して、'エクスポート'をクリックして続行してください。",
+      "label": "情報"
     },
     "page": {
       "topBottom": "上/下:",
@@ -1446,10 +1450,13 @@
       "leftRight": "左/右:",
       "widthHeight": "幅/高さ (mm):",
       "pageSize": "ページサイズ:",
-      "pageMarginPreset": "余白:"
+      "pageMarginPreset": "余白:",
+      "pageMargin": "ページ余白 (mm):"
     },
     "theme": {
-      "theme": "テーマ"
+      "theme": "テーマ",
+      "label": "テーマ",
+      "description": "テーマを選択するか、カスタムテーマを作成して文書の外観を変更できます。"
     },
     "headerFooter": {
       "customizeStyle": "スタイルをカスタマイズ",
@@ -1460,7 +1467,16 @@
       "footerText": "フッター",
       "leftSlot": "左",
       "centerSlot": "中央",
-      "rightSlot": "右"
+      "rightSlot": "右",
+      "footerType": "フッタータイプ",
+      "description": "ヘッダーやフッターが定義されている場合、テキストはすべてのページに表示されます。",
+      "mainHeaderText": "メインヘッダーテキスト",
+      "rightHeaderText": "右ヘッダーテキスト",
+      "headerType": "ヘッダータイプ",
+      "leftFooterText": "左フッターテキスト",
+      "rightFooterText": "右フッターテキスト",
+      "mainFooterText": "メインフッターテキスト",
+      "leftHeaderText": "左ヘッダーテキスト"
     },
     "autoNumberingHeadings": "見出しの自動番号付け",
     "showFrontMatter": "フロントマターを表示",
@@ -1469,7 +1485,8 @@
     "toc": {
       "title": "目次",
       "includeTopHeading": "最上位見出しを含める",
-      "includeTopHeadingDetail": "最上位見出しの詳細を含める"
+      "includeTopHeadingDetail": "最上位見出しの詳細を含める",
+      "label": "目次"
     },
     "options": {
       "headerFooterStyles": {
@@ -1710,7 +1727,11 @@
     "title": "Mark {version} に戻す",
     "body": "設定はアップデート前のスナップショットに戻ります。アップデート後の変更は失われます。新しいバージョンがリリースされるまで Mark {current} はスキップされます。",
     "confirm": "戻す",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "restoreFailedTitle": "ロールバックに失敗しました",
+    "restoreFailedBody": "以前のバージョンを復元できませんでした。詳細はログを確認してください。",
+    "prefsSkippedTitle": "ロールバックが完了しました",
+    "prefsSkippedBody": "以前のバージョンは復元されましたが、保存されていた設定を復元できませんでした。一部の設定はデフォルトに戻っている場合があります。"
   },
   "quickSettings": {
     "title": "クイック設定",

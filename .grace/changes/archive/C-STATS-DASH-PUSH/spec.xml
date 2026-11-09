@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied"><!-- Implemented and merged to main via PR #184 (squash 8c9a6c2e); archived 2026-11-09 during the C-RENDER-REVIEW-FIXES T-008 wave. -->
   <C-STATS-DASH-PUSH>
     <Name>Gateway pushes its funnel events to the owner's own analytics dashboard (dash.xronocode.com) — no Cloudflare read credentials anywhere</Name>
     <Created>2026-11-03</Created>

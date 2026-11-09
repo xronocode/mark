@@ -538,7 +538,7 @@
         "title": "Text",
         "font": "Textschrift",
         "lineHeight": "Zeilenabstand",
-        "lineWidthHelp": "Leer lassen für die Standardbreite des Themes, oder eine Zahl mit px, % oder ch eingeben — z. B. 720px.",
+        "lineWidthHelp": "Leer lassen für volle Breite oder eine Zahl mit px, % oder ch eingeben — z. B. 720px.",
         "fontSize": "Textgröße",
         "unlimited": "Unbegrenzt",
         "lineWidth": "Breite des Schreibbereichs"
@@ -1275,7 +1275,8 @@
       "project": "Projekt",
       "update": "Update",
       "agent": "Agent",
-      "system": "System"
+      "system": "System",
+      "rollback": "Rollback"
     },
     "actions": {
       "copy": "Kopieren",
@@ -1287,7 +1288,9 @@
       "title": "Benachrichtigungen",
       "empty": "Keine Benachrichtigungen in dieser Sitzung",
       "copy": "Kopieren"
-    }
+    },
+    "actionFailedTitle": "Aktion fehlgeschlagen",
+    "actionFailedBody": "Details finden Sie im Protokoll."
   },
   "quickInsert": {
     "vegaliteChart": {
@@ -1437,7 +1440,8 @@
       "fontFamily": "Schriftfamilie:"
     },
     "info": {
-      "description": "Bitte passen Sie das Seitenlayout an und klicken Sie auf 'Exportieren', um fortzufahren."
+      "description": "Bitte passen Sie das Seitenlayout an und klicken Sie auf 'Exportieren', um fortzufahren.",
+      "label": "Information"
     },
     "page": {
       "topBottom": "Oben/Unten:",
@@ -1447,10 +1451,13 @@
       "leftRight": "Links/Rechts:",
       "widthHeight": "Breite/Höhe (mm):",
       "pageSize": "Seitengröße:",
-      "pageMarginPreset": "Ränder:"
+      "pageMarginPreset": "Ränder:",
+      "pageMargin": "Seitenrand (mm):"
     },
     "theme": {
-      "theme": "Design"
+      "theme": "Design",
+      "label": "Design",
+      "description": "Sie können das Aussehen des Dokuments ändern, indem Sie ein Design auswählen oder ein benutzerdefiniertes Design erstellen."
     },
     "headerFooter": {
       "customizeStyle": "Stil anpassen",
@@ -1461,7 +1468,16 @@
       "footerText": "Fußzeile",
       "leftSlot": "Links",
       "centerSlot": "Mitte",
-      "rightSlot": "Rechts"
+      "rightSlot": "Rechts",
+      "footerType": "Fußzeilentyp",
+      "description": "Wenn eine Kopf- und/oder Fußzeile definiert ist, wird der Text auf allen Seiten angezeigt.",
+      "mainHeaderText": "Haupt-Kopfzeilentext",
+      "rightHeaderText": "Rechter Kopfzeilentext",
+      "headerType": "Kopfzeilentyp",
+      "leftFooterText": "Linker Fußzeilentext",
+      "rightFooterText": "Rechter Fußzeilentext",
+      "mainFooterText": "Haupt-Fußzeilentext",
+      "leftHeaderText": "Linker Kopfzeilentext"
     },
     "autoNumberingHeadings": "Automatische Nummerierung der Überschriften",
     "showFrontMatter": "Front Matter anzeigen",
@@ -1470,7 +1486,8 @@
     "toc": {
       "title": "Inhaltsverzeichnis",
       "includeTopHeading": "Oberste Überschrift einschließen",
-      "includeTopHeadingDetail": "Details der obersten Überschrift einschließen"
+      "includeTopHeadingDetail": "Details der obersten Überschrift einschließen",
+      "label": "Inhaltsverzeichnis"
     },
     "options": {
       "headerFooterStyles": {
@@ -1715,7 +1732,11 @@
     "title": "Zurück zu Mark {version}",
     "body": "Die Einstellungen kehren zum Stand vor dem Update zurück — nach dem Update gemachte Änderungen werden verworfen. Mark {current} wird übersprungen, bis ein neueres Update erscheint.",
     "confirm": "Zurücksetzen",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "restoreFailedTitle": "Rollback fehlgeschlagen",
+    "restoreFailedBody": "Die vorherige Version konnte nicht wiederhergestellt werden. Details finden Sie im Protokoll.",
+    "prefsSkippedTitle": "Rollback abgeschlossen",
+    "prefsSkippedBody": "Die vorherige Version wurde wiederhergestellt, aber die gespeicherten Einstellungen konnten nicht übernommen werden — einige Einstellungen wurden möglicherweise auf die Standardwerte zurückgesetzt."
   },
   "quickSettings": {
     "title": "Schnelleinstellungen",

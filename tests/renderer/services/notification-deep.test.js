@@ -5,11 +5,13 @@
  * fluent circle, rePositionNotices, promise click/reject — are gone with
  * the code they pinned).
  *
- * Covers the corner C-3/C-4/C-10 contract: clipboard failures are silent
- * no-ops, exactly the selection string is written, the double green pulse
- * tags the copied range and cleans itself up on animationend, multi-node
- * ranges degrade without throwing, and prefers-reduced-motion skips the
- * animation entirely.
+ * Covers the corner C-3/C-4/C-10 contract: copySelectionText reports the
+ * real clipboard outcome as a promise on every path (C-RENDER-REVIEW-FIXES
+ * T-005 — awaited toBe pins on the resolved values; failures stay silent,
+ * no toast, no notice), exactly the selection string is written, the double
+ * green pulse tags the copied range and cleans itself up on animationend,
+ * multi-node ranges degrade without throwing, and prefers-reduced-motion
+ * skips the animation entirely.
  */
 
 vi.mock('@/i18n', () => ({
@@ -37,27 +39,34 @@ describe('copySelectionText (corner C-4)', () => {
     })
   })
 
-  it('writes exactly the given string and returns true', () => {
-    const result = copySelectionText('~/Documents/notes.md')
+  // C-RENDER-REVIEW-FIXES T-005: the promise contract — every path resolves;
+  // true only for an observed write, false for every failure shape.
+  it('writes exactly the given string and resolves true', async () => {
+    const result = await copySelectionText('~/Documents/notes.md')
     expect(writeText).toHaveBeenCalledTimes(1)
     expect(writeText).toHaveBeenCalledWith('~/Documents/notes.md')
     expect(result).toBe(true)
   })
 
-  it('empty text writes nothing and returns false', () => {
-    expect(copySelectionText('')).toBe(false)
-    expect(copySelectionText(undefined)).toBe(false)
+  it('empty text writes nothing and resolves false', async () => {
+    await expect(copySelectionText('')).resolves.toBe(false)
+    await expect(copySelectionText(undefined)).resolves.toBe(false)
     expect(writeText).not.toHaveBeenCalled()
   })
 
-  it('a rejecting clipboard is a silent no-op', () => {
+  it('a rejecting clipboard resolves false — a silent no-op', async () => {
     writeText.mockImplementationOnce(() => Promise.reject(new Error('denied')))
-    expect(() => copySelectionText('x')).not.toThrow()
+    await expect(copySelectionText('x')).resolves.toBe(false)
   })
 
-  it('a missing clipboard API never throws', () => {
+  it('a synchronously throwing writeText resolves false (the wrapped-body corner)', async () => {
+    writeText.mockImplementationOnce(() => { throw new Error('sync throw') })
+    await expect(copySelectionText('x')).resolves.toBe(false)
+  })
+
+  it('a missing clipboard API resolves false', async () => {
     Object.defineProperty(window, 'navigator', { value: {}, configurable: true })
-    expect(() => copySelectionText('x')).not.toThrow()
+    await expect(copySelectionText('x')).resolves.toBe(false)
   })
 })
 

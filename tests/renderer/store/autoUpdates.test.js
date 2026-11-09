@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/autoUpdates.test.js
-// VERSION: 1.1.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-66 automatic-update gate — the full decision table
 //            (24 h throttle, What's New deferral, App Store gate, switch
@@ -28,7 +28,24 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-19 C-66 R-7 coverage completion: the
+//   LAST_CHANGE: v1.3.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-006: the
+//   prefs-skip boot-notice pins — a fresh mt_rollback_restore_outcome
+//   record raises exactly one sticky localized warning notice
+//   (rollback.prefsSkipped*, dedupKey 'rollback-prefs-skipped', source
+//   'rollback', the marker's error field never in the GUI) even when the
+//   updater gate returns check:false; a null outcome is silent; a stale
+//   (49 h) record is suppressed with a console marker only; a failing
+//   outcome query stays quiet with zero unhandled rejections; the
+//   invokeFn seam stays exclusive to mt_updater_check (the new tests
+//   inject outcomeInvokeFn directly, the five existing invoke-count pins
+//   are untouched).
+//   v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: the
+//   CONFIRM_ROLLBACK failure pins — an injected mt_rollback_restore
+//   rejection and an injected @tauri-apps/api/core import failure both
+//   raise the localized rollback.restoreFailed* error notice (source
+//   'rollback', raw injected error never in the message) with zero
+//   unhandled rejections; the happy path stays silent.
+//   v1.1.0 - 2026-10-19 C-66 R-7 coverage completion: the
 //   ISO-string clock on a COMPLETED check (String(now) stamp) and the
 //   SKIP_VERSION lazy import of the real ipcPrefs facade.
 //   v1.0.0 - 2026-10-19 C-66 T-001: initial pins — the gate
@@ -41,6 +58,14 @@ import { setupTestPinia } from '../pinia'
 
 const { installSignedUpdateMock } = vi.hoisted(() => ({
   installSignedUpdateMock: vi.fn()
+}))
+
+vi.mock('@/util', () => ({
+  getUniqueId: vi.fn(() => 'auto-updates-id'),
+  delay: vi.fn(async () => {}),
+  isOsx: true,
+  isWindows: false,
+  isLinux: false
 }))
 
 vi.mock('@/commands', () => ({
@@ -56,6 +81,8 @@ import {
   SKIPPED_UPDATE_VERSION_KEY,
   CHECK_INTERVAL_MS
 } from '@/store/autoUpdates'
+import { useNotificationsStore } from '@/store/notifications'
+import { t } from '@/i18n'
 
 const NOW = new Date('2026-10-19T09:00:00Z')
 const HOURS = (n) => n * 60 * 60 * 1000
@@ -545,6 +572,236 @@ describe('autoUpdates — notice actions', () => {
     await store.INSTALL_UPDATE()
 
     expect(store.notice.visible).toBe(false)
+    error.mockRestore()
+  })
+})
+
+describe('autoUpdates — rollback confirmation (CONFIRM_ROLLBACK, C-RENDER-REVIEW-FIXES)', () => {
+  beforeEach(() => {
+    setupTestPinia()
+    vi.clearAllMocks()
+  })
+
+  const armRollback = (store) => {
+    store.rollback = { visible: true, previousVersion: '2.9.0', currentVersion: '2.9.1' }
+  }
+
+  it('an mt_rollback_restore rejection raises the localized error notice (source rollback; the raw error never reaches the GUI)', async () => {
+    const store = useAutoUpdatesStore()
+    armRollback(store)
+    const rawError = 'restore failed: prefs copy skipped (os error 13)'
+    const visibleAtInvoke = []
+    const invoke = vi.fn().mockImplementation(async () => {
+      visibleAtInvoke.push(store.rollback.visible)
+      throw new Error(rawError)
+    })
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await store.CONFIRM_ROLLBACK({ invokeFn: invoke })
+
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(invoke).toHaveBeenCalledWith('mt_rollback_restore')
+    // The card hides BEFORE the attempt (unchanged order) and stays hidden.
+    expect(visibleAtInvoke).toEqual([false])
+    expect(store.rollback.visible).toBe(false)
+
+    expect(useNotificationsStore().stack).toHaveLength(1)
+    const notice = useNotificationsStore().stack[0]
+    expect(notice.severity).toBe('error')
+    expect(notice.sticky).toBe(true)
+    expect(notice.source).toBe('rollback')
+    // From the key, not the hardcoded English: compared against the live
+    // i18n lookup, and the injected raw error string is absent.
+    expect(notice.title).toBe(t('rollback.restoreFailedTitle'))
+    expect(notice.message).toBe(t('rollback.restoreFailedBody'))
+    expect(notice.message).not.toContain(rawError)
+    error.mockRestore()
+  })
+
+  it('an @tauri-apps/api/core import failure joins the same failure path (finding-12): localized notice, zero unhandled rejections', async () => {
+    const store = useAutoUpdatesStore()
+    armRollback(store)
+    const rawError = 'injected core import failure'
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const rejections = []
+    const onUnhandled = (reason) => rejections.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    // vi.doMock (not hoisted): the next dynamic import of the module runs
+    // this throwing factory, so the store's import inside the try
+    // rejects. This test is the last core consumer in the file; the
+    // second doMock below restores the standard mock shape anyway.
+    vi.doMock('@tauri-apps/api/core', () => {
+      throw new Error(rawError)
+    })
+
+    await store.CONFIRM_ROLLBACK()
+
+    vi.doMock('@tauri-apps/api/core', () => ({
+      invoke: vi.fn(async () => undefined),
+      convertFileSrc: (path) => path
+    }))
+
+    // Give an unhandled rejection (if one existed) a macrotask to surface.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(rejections).toEqual([])
+    process.off('unhandledRejection', onUnhandled)
+
+    expect(useNotificationsStore().stack).toHaveLength(1)
+    const notice = useNotificationsStore().stack[0]
+    expect(notice.severity).toBe('error')
+    expect(notice.source).toBe('rollback')
+    expect(notice.title).toBe(t('rollback.restoreFailedTitle'))
+    expect(notice.message).toBe(t('rollback.restoreFailedBody'))
+    expect(notice.message).not.toContain(rawError)
+    error.mockRestore()
+  })
+
+  it('the happy path is unchanged: the restore resolves silently with no notice', async () => {
+    const store = useAutoUpdatesStore()
+    armRollback(store)
+    const invoke = vi.fn().mockResolvedValue(undefined)
+
+    await store.CONFIRM_ROLLBACK({ invokeFn: invoke })
+
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(invoke).toHaveBeenCalledWith('mt_rollback_restore')
+    expect(store.rollback.visible).toBe(false)
+    expect(useNotificationsStore().stack).toHaveLength(0)
+  })
+})
+
+describe('autoUpdates — rollback prefs-skip boot notice (RUN_LAUNCH_CHECK, C-RENDER-REVIEW-FIXES)', () => {
+  beforeEach(() => {
+    setupTestPinia()
+    vi.clearAllMocks()
+  })
+
+  // The mt_rollback_restore_outcome record shape (T-001): unix-seconds `at`.
+  const skipRecord = (ageHours) => ({
+    prefs: 'skipped',
+    error: 'disk full',
+    at: Math.floor((NOW.getTime() - HOURS(ageHours)) / 1000)
+  })
+
+  it('a fresh skip record shows exactly the one sticky localized notice even when the updater gate is off (gated boot case)', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockResolvedValue(skipRecord(0))
+    const invoke = vi.fn()
+    // Gate off via the facade stub: the early return this notice must survive.
+    const ipc = makeFakeIpc({ [AUTO_CHECK_UPDATES_KEY]: false })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    // The gate still early-returns (unchanged boot result) — but the notice
+    // was raised before it.
+    expect(out).toEqual({ check: false, reason: 'disabled', checked: false })
+    expect(outcomeInvoke).toHaveBeenCalledTimes(1)
+    expect(outcomeInvoke).toHaveBeenCalledWith('mt_rollback_restore_outcome')
+    // The shared updater seam stays exclusive to mt_updater_check: the gate
+    // is off, so the injected invokeFn mock is never called.
+    expect(invoke).not.toHaveBeenCalled()
+
+    expect(useNotificationsStore().stack).toHaveLength(1)
+    const notice = useNotificationsStore().stack[0]
+    expect(notice.severity).toBe('warning')
+    expect(notice.sticky).toBe(true)
+    expect(notice.dedupKey).toBe('rollback-prefs-skipped')
+    expect(notice.source).toBe('rollback')
+    // From the keys, not interpolated diagnostics: the marker's error field
+    // ('disk full') never reaches the GUI.
+    expect(notice.title).toBe(t('rollback.prefsSkippedTitle'))
+    expect(notice.message).toBe(t('rollback.prefsSkippedBody'))
+    expect(notice.message).not.toContain('disk full')
+    warn.mockRestore()
+    log.mockRestore()
+  })
+
+  it('a null outcome changes nothing on the boot path and never touches the updater seam', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockResolvedValue(null)
+    const ipc = makeFakeIpc()
+    const invoke = vi.fn().mockResolvedValue(statusUpToDate())
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    expect(outcomeInvoke).toHaveBeenCalledTimes(1)
+    expect(outcomeInvoke).toHaveBeenCalledWith('mt_rollback_restore_outcome')
+    // Seam exclusivity on a due boot: exactly one updater invoke, for
+    // mt_updater_check only — the outcome query never rides invokeFn.
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(invoke).toHaveBeenCalledWith('mt_updater_check')
+    expect(out.checked).toBe(true)
+    expect(useNotificationsStore().stack).toHaveLength(0)
+  })
+
+  it('a stale record (at older than 48 h) is suppressed with a console marker only', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockResolvedValue(skipRecord(49))
+    const invoke = vi.fn()
+    const ipc = makeFakeIpc({ [AUTO_CHECK_UPDATES_KEY]: false })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    expect(outcomeInvoke).toHaveBeenCalledTimes(1)
+    expect(out).toEqual({ check: false, reason: 'disabled', checked: false })
+    expect(useNotificationsStore().stack).toHaveLength(0)
+    expect(warn).not.toHaveBeenCalled()
+    expect(log).toHaveBeenCalledWith('[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_OUTCOME_STALE]')
+    warn.mockRestore()
+    log.mockRestore()
+  })
+
+  it('a failing outcome query stays quiet: console marker, no notice, zero unhandled rejections', async () => {
+    const store = useAutoUpdatesStore()
+    const outcomeInvoke = vi.fn().mockRejectedValue(new Error('fact channel down'))
+    const ipc = makeFakeIpc()
+    const invoke = vi.fn().mockResolvedValue(statusUpToDate())
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const rejections = []
+    const onUnhandled = (reason) => rejections.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    const out = await store.RUN_LAUNCH_CHECK({
+      ipc,
+      invokeFn: invoke,
+      outcomeInvokeFn: outcomeInvoke,
+      now: NOW
+    })
+
+    // Give an unhandled rejection (if one existed) a macrotask to surface.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(rejections).toEqual([])
+    process.off('unhandledRejection', onUnhandled)
+
+    expect(error.mock.calls.some((c) => String(c[0]).includes('BLOCK_OUTCOME_QUERY_FAILED'))).toBe(
+      true
+    )
+    expect(useNotificationsStore().stack).toHaveLength(0)
+    // The boot continues past the broken fact channel: the updater check
+    // still runs and completes.
+    expect(out).toMatchObject({ check: true, checked: true })
     error.mockRestore()
   })
 })

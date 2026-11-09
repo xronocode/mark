@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied"><!-- Implemented and merged to main via PR #182 (squash 3f7d45aa); archived 2026-11-09 during the C-RENDER-REVIEW-FIXES T-008 wave. -->
   <C-STATS-READOUT>
     <Name>Update-funnel readout API on the gateway: a keyed /stats route serves the aggregate tables so reading the numbers needs no Cloudflare account token</Name>
     <Created>2026-11-02</Created>

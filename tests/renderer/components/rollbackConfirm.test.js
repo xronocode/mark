@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/rollbackConfirm.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-UPDATER-ROLLBACK confirmation card semantics —
 //            store-driven visibility injects/removes one sticky warning
@@ -7,8 +7,10 @@
 //            a repeated delegation or menu invocation reuses the same
 //            entry instead of stacking), the localized disclosures carry
 //            the target version, the settings revert and the skip of the
-//            departed version, Confirm dispatches CONFIRM_ROLLBACK,
-//            Cancel/dismiss dispatch CLOSE_ROLLBACK_CONFIRM only, and
+//            departed version, Confirm awaits CONFIRM_ROLLBACK (a
+//            rejection inside it is console-marker hygiene only — the
+//            store owns user feedback), Cancel/dismiss dispatch
+//            CLOSE_ROLLBACK_CONFIRM only, and
 //            the mt::rollback-delegate listener opens the card.
 //   SCOPE: src/renderer/src/components/rollbackConfirm/index.vue behaviour
 //          (via store/notifications state) and store/autoUpdates dispatch
@@ -29,6 +31,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-004: the
+//   confirm path awaits CONFIRM_ROLLBACK — a rejected store action is
+//   caught at the component (console marker only) and leaves zero
+//   unhandled rejections.
 //   - 2026-10-29 C-UPDATER-ROLLBACK T-006: initial component pins.
 // END_CHANGE_SUMMARY
 
@@ -121,6 +127,32 @@ describe('components/rollbackConfirm — shared-card confirmation (C-UPDATER-ROL
     confirm.handler()
     await flushPromises()
     expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('a CONFIRM_ROLLBACK rejection is component hygiene: console marker only, zero unhandled rejections', async () => {
+    const rejection = new Error('restore exploded')
+    const spy = vi.spyOn(updates, 'CONFIRM_ROLLBACK').mockRejectedValue(rejection)
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const rejections = []
+    const onUnhandled = (reason) => rejections.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    mountCard()
+    armRollback(updates)
+    await flushPromises()
+    const confirm = entry(notifications).actions[0]
+    confirm.handler()
+    await flushPromises()
+    // Give an unhandled rejection (if one existed) a macrotask to surface.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(spy).toHaveBeenCalledTimes(1)
+    // The component's own catch logged the marker; the rejection never
+    // escaped as unhandled (user feedback is the store's job).
+    expect(error).toHaveBeenCalledWith('[rollbackConfirm][BLOCK_CONFIRM_FAILED]', rejection)
+    expect(rejections).toEqual([])
+    process.off('unhandledRejection', onUnhandled)
+    error.mockRestore()
   })
 
   it('dismiss maps to the Cancel semantics', async () => {

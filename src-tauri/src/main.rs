@@ -901,6 +901,7 @@ fn main() {
             m068_rollback::mt_rollback_prepare,
             m068_rollback::mt_rollback_status,
             m068_rollback::mt_rollback_restore,
+            m068_rollback::mt_rollback_restore_outcome,
             m018_screenshot::mt_screenshot_capture,
             m019_datacenter::mt_secret_set,
             m019_datacenter::mt_secret_get,
