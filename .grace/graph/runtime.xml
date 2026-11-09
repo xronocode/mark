@@ -6,6 +6,7 @@
       <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
     </ProjectMetadata>
     <M-001>
+      <SummaryDelta>C-STABILIZE-LINK-ALIASES: absolute local links using the supplied document-directory alias rebase onto its canonical directory before existing lexical/canonical document fencing. Requested and resolved executable guards remain; global M-010 policy and HTTP routing are unchanged.</SummaryDelta>
       <Name>mt-tauri-shell</Name>
       <DisplayName>mt-tauri-shell</DisplayName>
       <Type>ENTRY_POINT</Type>

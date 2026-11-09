@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-LINK-ALIASES>
+    <Summary>Preserve legitimate absolute local links through a document-directory alias while retaining the canonical document fence and executable guards.</Summary>
+    <ApprovalBasis>Owner-approved stabilization recovery delegates fixes for concrete CI regressions. PR 199 reproduces a sibling-link denial when macOS reports the same directory through /var and /private/var.</ApprovalBasis>
+    <Goals><Goal>Relative, canonical-absolute and document-alias-absolute sibling links resolve to the same validated target.</Goal><Goal>Outward traversal, outward symlinks and dangerous requested/resolved names remain denied.</Goal></Goals>
+    <Constraints><Item>Keep M-010 global path policy, HTTP routing, opener transport, dependencies and prior archived assertions unchanged.</Item></Constraints>
+    <NonGoals><Item>No broad path-policy redesign, release, version or publication.</Item></NonGoals>
+    <AffectedAreas><M-001 /></AffectedAreas>
+    <AcceptanceCriteria><Criterion>A real directory-symlink fixture reproduces the CI class before the repair and passes afterward; existing local-link/security tests and the intact native suite pass.</Criterion></AcceptanceCriteria>
+    <VerificationIntent><ExpectedEvidence>Red/green alias fixture, selected final native command, unchanged rejection guards and fresh hosted checks.</ExpectedEvidence></VerificationIntent>
+  </C-STABILIZE-LINK-ALIASES>
+</GraceChangeSpec>

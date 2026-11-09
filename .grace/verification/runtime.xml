@@ -16,6 +16,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
+        <scenario-local-link-directory-alias>C-STABILIZE-LINK-ALIASES: a real Unix directory-symlink fixture reproduces absolute sibling denial before repair, then accepts alias/canonical siblings while rejecting traversal, outward links and dangerous clicked names. Existing link_click_ tests retain HTTP, bare/prefixed executable, canonical-directory and outside-document cases.</scenario-local-link-directory-alias>
         <Scenario>scenario-1: App starts, main window is created, menu is registered.</Scenario>
         <Scenario>scenario-2: Window close via Cmd+W hides window (macOS behavior).</Scenario>
         <Scenario>scenario-3: Second-instance launch is blocked and focuses existing window.</Scenario>

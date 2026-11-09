@@ -29,6 +29,7 @@
 //            downstream FsCmd or shell-open call.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-STABILIZE-PATH-TEST-PORTABILITY: three positive fixtures assert exact native canonical temporary paths on every platform; runtime guard policy is unchanged.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-007: missing paths resolve their
 //     nearest existing directory entry before fencing; dangling links and
 //     non-NotFound I/O errors deny, preserving root/Windows prefix semantics.
@@ -525,24 +526,26 @@ mod tests {
 
     #[test]
     fn happy_path_inside_sandbox() {
-        let sandbox = Path::new("/workspace");
-        let ok = check_path(sandbox, Path::new("/workspace/foo/bar.md")).unwrap();
-        assert!(ok.starts_with(sandbox));
+        let root = tempfile::tempdir().unwrap();
+        let sandbox = root.path();
+        let ok = check_path(sandbox, &sandbox.join("foo/bar.md")).unwrap();
+        assert_eq!(ok, sandbox.canonicalize().unwrap().join("foo/bar.md"));
     }
 
     #[test]
     fn dotdot_inside_sandbox_collapses() {
-        let sandbox = Path::new("/workspace");
-        let ok = check_path(sandbox, Path::new("/workspace/foo/../bar.md")).unwrap();
-        // After collapse: /workspace/bar.md — still inside sandbox.
-        assert_eq!(ok, PathBuf::from("/workspace/bar.md"));
+        let root = tempfile::tempdir().unwrap();
+        let sandbox = root.path();
+        let ok = check_path(sandbox, &sandbox.join("foo/../bar.md")).unwrap();
+        assert_eq!(ok, sandbox.canonicalize().unwrap().join("bar.md"));
     }
 
     #[test]
     fn relative_request_resolves_under_sandbox() {
-        let sandbox = Path::new("/workspace");
+        let root = tempfile::tempdir().unwrap();
+        let sandbox = root.path();
         let ok = check_path(sandbox, Path::new("notes/today.md")).unwrap();
-        assert_eq!(ok, PathBuf::from("/workspace/notes/today.md"));
+        assert_eq!(ok, sandbox.canonicalize().unwrap().join("notes/today.md"));
     }
 
     // C-15 T-W2: std::os::unix::fs::symlink does not exist on Windows —

@@ -1,0 +1,18 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-LINK-ALIASES>
+    <ChangeRef>C-STABILIZE-LINK-ALIASES</ChangeRef>
+    <IntentSummary>Rebase absolute hrefs expressed through the supplied document-directory alias onto its canonical directory before the existing fenced validation.</IntentSummary>
+    <ApprovalBasis>Delegated recovery; demonstrated macOS CI regression.</ApprovalBasis>
+    <BaselineAssertions><MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>let requested = sandbox.join(href);</Text></MustContain></BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>link_click_absolute_directory_alias_preserves_fence</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>scenario-local-link-directory-alias</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="240">cargo test --manifest-path src-tauri/Cargo.toml --bin mark</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-001 /></GraphAnchors><VerificationAnchors><V-M-001 /></VerificationAnchors></DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m_v1_compat.rs</File><File>.grace/graph/runtime.xml</File><File>.grace/graph/index.xml</File><File>.grace/verification/runtime.xml</File><File>.grace/verification/index.xml</File><Glob>.grace/changes/active/C-STABILIZE-LINK-ALIASES/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Preserve alias sibling links and retain rejection boundaries</Title><DependsOn /><AcceptanceCriteria><Criterion>Alias/canonical positives and traversal/symlink/executable negatives pass without changing the global path validator.</Criterion></AcceptanceCriteria><Verification><Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command></Verification></T-001></ImplementationPlan>
+  </C-STABILIZE-LINK-ALIASES>
+</GraceChangePlan>

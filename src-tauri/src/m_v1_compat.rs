@@ -50,6 +50,7 @@
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-STABILIZE-LINK-ALIASES: rebase absolute document-directory aliases before the unchanged canonical fence; preserve requested/resolved executable guards.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-006: all local link forms join the
 //     canonical document directory and pass path/extension guards before the
 //     opener; web links retain their existing route. No global fence injection.
@@ -919,7 +920,18 @@ fn validate_link_click_target(href: &str, dirname: &str) -> Result<LinkClickTarg
     // opened outside the currently selected workspace. Bare names join it too.
     let sandbox = std::fs::canonicalize(dirname).map_err(|e| denied(e.to_string()))?;
     let requested = sandbox.join(href);
-    let validated = crate::m010_security::check_path(&sandbox, &requested)
+    // An absolute href can use the document's supplied directory alias
+    // (for example macOS /var rather than canonical /private/var). Rebase
+    // only that exact prefix; the ordinary lexical and canonical fences
+    // still reject traversal and outward links. Keep the clicked name below.
+    let fence_request = if std::path::Path::new(href).is_absolute() {
+        std::path::Path::new(href).strip_prefix(std::path::Path::new(dirname))
+            .map(|relative| sandbox.join(relative))
+            .unwrap_or_else(|_| requested.clone())
+    } else {
+        requested.clone()
+    };
+    let validated = crate::m010_security::check_path(&sandbox, &fence_request)
         .map_err(|e| denied(e.to_string()))?;
     // Check both the clicked name and the resolved target: an innocuous alias
     // must not hide an executable bundle, nor may a dangerous name bypass policy.
@@ -1101,6 +1113,29 @@ mod tests {
     fn link_click_http_unchanged() {
         for href in ["http://example.invalid/a", "https://example.invalid/a?q=x#fragment"] {
             assert_eq!(validate_link_click_target(href, "/missing/document-directory").unwrap(), LinkClickTarget::Web(href.to_string()));
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn link_click_absolute_directory_alias_preserves_fence() {
+        let root = TempDir::new().unwrap();
+        let actual = root.path().join("document");
+        std::fs::create_dir(&actual).unwrap();
+        let sibling = actual.join("note.md");
+        std::fs::write(&sibling, b"fixture").unwrap();
+        let alias = root.path().join("document-alias");
+        std::os::unix::fs::symlink(&actual, &alias).unwrap();
+        let expected = LinkClickTarget::Local(sibling.canonicalize().unwrap().to_string_lossy().into_owned());
+        for href in [alias.join("note.md"), sibling.canonicalize().unwrap()] {
+            assert_eq!(validate_link_click_target(href.to_str().unwrap(), alias.to_str().unwrap()).unwrap(), expected);
+        }
+        let outside = root.path().join("outside.md");
+        std::fs::write(&outside, b"outside").unwrap();
+        std::os::unix::fs::symlink(&outside, actual.join("escape.md")).unwrap();
+        std::os::unix::fs::symlink(&sibling, actual.join("unsafe.command")).unwrap();
+        for href in [alias.join("../outside.md"), alias.join("escape.md"), alias.join("unsafe.command")] {
+            assert!(validate_link_click_target(href.to_str().unwrap(), alias.to_str().unwrap()).unwrap_err().contains("BLOCK_LINK_TARGET_DENIED"));
         }
     }
 

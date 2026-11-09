@@ -1,0 +1,12 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-PATH-TEST-PORTABILITY>
+    <ChangeRef>C-STABILIZE-PATH-TEST-PORTABILITY</ChangeRef>
+    <IntentSummary>Replace POSIX-only fixture roots with native temporary directories and exact canonical expected paths.</IntentSummary>
+    <ApprovalBasis>Delegated recovery of concrete Windows CI fixture failures.</ApprovalBasis>
+    <BaselineAssertions><MustContain><File>src-tauri/src/m010_security.rs</File><Text>fn happy_path_inside_sandbox()</Text></MustContain></BaselineAssertions>
+    <TargetAssertions><MustPassCommand><Command budgetSeconds="180">cargo test --manifest-path src-tauri/Cargo.toml --bin mark m010_security</Command></MustPassCommand></TargetAssertions>
+    <DurableScope><None /></DurableScope>
+    <ObservedWriteScope><File>src-tauri/src/m010_security.rs</File><Glob>.grace/changes/active/C-STABILIZE-PATH-TEST-PORTABILITY/**</Glob></ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Retain exact path expectations using portable roots</Title><DependsOn /><AcceptanceCriteria><Criterion>All three positives assert the complete canonical target, and every existing rejection/platform-prefix test remains enabled.</Criterion></AcceptanceCriteria><Verification><Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m010_security</Command></Verification></T-001></ImplementationPlan>
+  </C-STABILIZE-PATH-TEST-PORTABILITY>
+</GraceChangePlan>
