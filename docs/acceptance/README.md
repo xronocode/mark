@@ -81,3 +81,6 @@ reload picks the verdict up):
 | C-TABLE-FITTED-RESET | queued | mark-viewer-test-3d54d2b | accepted 2026-11-10 |
 | C-VIEWER-WINDOW-DRAG | queued | mark-viewer-test-3d54d2b | accepted 2026-11-10 |
 | C-HOSTED-VALIDATION-RECOVERY | owner-verdict | mark-clipboard-test-18a06b37 | accepted 2026-11-10 |
+| C-SAVE-CLOSE-DATA-SAFETY | queued | mark-save-close-fa25b309 | accepted 2026-11-10 |
+| C-MD-LINK-TABS | queued | mark-links-94db8add | accepted 2026-11-10 |
+| FIX-EMOJI-TIMESTAMPS | queued | mark-timestamps-debfe25d | accepted 2026-11-10 |
