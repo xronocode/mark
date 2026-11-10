@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-FIND-OWNER-ACCEPTANCE>
+<Name>Record focused owner acceptance of Find and keyboard clipboard</Name>
+<ApprovalBasis>Owner reported that the latest offered QA looks okay on 2026-11-10, following the focused Find/keyboard clipboard check. Standing integration and acceptance-bookkeeping delegation covers recording this exact scenario; no broader release approval is inferred.</ApprovalBasis>
+<Summary>Append the owner verdict for the existing Find repair and update its current train acceptance/testing record against Mark Clipboard Test source18a06b37 and exact binary digest.</Summary>
+<Goals><Goal>Retain every old event/artifact, bind one accepted scenario to the latest offered artifact, regenerate the survey and retain unrelated train state.</Goal></Goals>
+<Constraints><Item>No product, version, tag, publication, item-count, other acceptance or historical bundle change. The chat verdict is transcribed without editing the owner's unchecked case file. Broader save/close/export/IME and dispatch-build acceptance remain unverified.</Item></Constraints>
+<NonGoals><Item>No product change, new admission, broad acceptance or release action.</Item></NonGoals>
+<AcceptanceCriteria><Criterion>Registry and train agree on the exact scenario, artifact/source/digest, owner and date. Old history and unrelated train entries stay identical. Registry, Collecting readiness, focused metadata fixtures and final/current integrity pass.</Criterion></AcceptanceCriteria>
+<AffectedAreas><Area>M-046 acceptance and train data only.</Area></AffectedAreas>
+<VerificationIntent><ExpectedEvidence>Append-only invariant comparison, generated survey, metadata validators and deterministic fixtures.</ExpectedEvidence></VerificationIntent>
+</C-FIND-OWNER-ACCEPTANCE></GraceChangeSpec>

@@ -1,0 +1,12 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-FIND-OWNER-ACCEPTANCE>
+<ChangeRef>C-FIND-OWNER-ACCEPTANCE</ChangeRef><ApprovalBasis>Owner's latest focused QA verdict and standing sequential acceptance-bookkeeping delegation.</ApprovalBasis>
+<IntentSummary>Append a scoped accepted event to the existing repair, mark its train acceptance accepted, add manual scenario evidence and supersede only the matching native-pending reason. Regenerate the survey and record the dated human-ledger event. Preserve history, other entries, counts, Collecting and version.</IntentSummary>
+<BaselineAssertions><MustExist><Value>docs/acceptance/registry.json</Value><Value>docs/release-trains/2.9.x-next.json</Value></MustExist></BaselineAssertions>
+<TargetAssertions><MustContain><File>docs/acceptance/registry.json</File><Text>Find and keyboard clipboard owner acceptance</Text></MustContain>
+<MustPassCommand><Command budgetSeconds="180">node tools/acceptance-registry.mjs --check</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="180">npm run release:readiness</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="180">npx --no-install vitest run tests/renderer/acceptance-registry.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js tests/renderer/release-governance.test.js</Command></MustPassCommand></TargetAssertions>
+<DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+<ObservedWriteScope><File>docs/acceptance/registry.json</File><File>docs/acceptance/README.md</File><File>docs/release-trains/2.9.x-next.json</File><File>docs/release-trains/2.9.x-next.md</File><Glob>.grace/changes/active/C-FIND-OWNER-ACCEPTANCE/**</Glob></ObservedWriteScope>
+<ImplementationPlan><T-001><Title>Record exact native QA verdict and verify metadata consistency</Title><DependsOn/><AcceptanceCriteria><Criterion>One appended accepted verdict names the latest offered artifact and precise Find/keyboard clipboard scenario; other history and delivery boundaries remain intact.</Criterion></AcceptanceCriteria><Verification><Command>node tools/acceptance-registry.mjs --check</Command></Verification></T-001></ImplementationPlan>
+</C-FIND-OWNER-ACCEPTANCE></GraceChangePlan>

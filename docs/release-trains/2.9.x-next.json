@@ -660,7 +660,13 @@
           "efa9e60955dab59d27d1223d15b8c7f2200014d6"
         ],
         "acceptance": {
-          "status": "pending"
+          "status": "accepted",
+          "owner": "owner",
+          "date": "2026-11-10",
+          "testedArtifact": "Mark Clipboard Test 2.8.2; source 18a06b377b4b42d5f24b4fcd4622e7608231e8e9; binary SHA-256 22d594c00342be7fb8f4231a96c1e7ca5f460a3157a998578f2e27a84c3eba3f; bundle com.xronocode.mark.test.findclipboard",
+          "scenarios": [
+            "With Find open, the query and selection remain usable for keyboard copy/paste; keyboard copy/paste also works after closing Find."
+          ]
         },
         "pullRequest": {
           "number": 211,
@@ -706,13 +712,16 @@
               "evidence": "https://github.com/xronocode/mark/pull/211"
             }
           ],
-          "manual": [],
-          "intentionallyUnverified": [
+          "manual": [
             {
-              "section": "manual",
-              "scenario": "Native Find selection and keyboard clipboard interaction",
-              "reason": "Fresh isolated Mark Clipboard Test offered with source 18a06b377b4b42d5f24b4fcd4622e7608231e8e9 and binary SHA-256 22d594c00342be7fb8f4231a96c1e7ca5f460a3157a998578f2e27a84c3eba3f; owner verdict pending. Automated unit and unchanged browser navigation evidence does not substitute for this verdict."
-            },
+              "scenario": "With Find open, the query and selection remain usable for keyboard copy/paste; keyboard copy/paste also works after closing Find.",
+              "result": "Accepted by owner in the follow-up chat; verdict scoped to this offered case.",
+              "date": "2026-11-10",
+              "build": "Mark Clipboard Test 2.8.2; source 18a06b377b4b42d5f24b4fcd4622e7608231e8e9; binary SHA-256 22d594c00342be7fb8f4231a96c1e7ca5f460a3157a998578f2e27a84c3eba3f; bundle com.xronocode.mark.test.findclipboard",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            }
+          ],
+          "intentionallyUnverified": [
             {
               "section": "manual",
               "scenario": "Broader stabilization and release acceptance",
