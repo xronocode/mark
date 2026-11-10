@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-TABLE-VIEWER-ACCEPTANCE>
+<Name>Record focused table and viewer acceptance and admit the green fixes</Name>
+<ApprovalBasis>Owner accepted sequential resizing, accepted native viewer window movement, and explicitly confirmed the fitted partial-reset scenario on 2026-11-10. Standing delegated stabilization integration covers ordinary green-PR merging and queue bookkeeping.</ApprovalBasis>
+<Summary>Record exact owner-tested artifacts and scoped verdicts for the three existing repair IDs, then admit the merged green PR into the current Collecting train with testing protocols.</Summary>
+<Goals><Goal>Append acceptance history bound to source revisions, isolated identities and binary digests. Add the three existing repair IDs to the train with automatic/manual/unverified evidence and preserve prior records.</Goal></Goals>
+<Constraints><Item>No product, version, tag, publication, train-state, required-check, scope expansion or previous acceptance change. Wait for the exact PR candidate's required and substantive tests before merging. Existing unrelated train items and data-preservation prerequisites remain unchanged.</Item></Constraints>
+<NonGoals><Item>No release preparation or dispatch, broad stabilization acceptance or new product repair.</Item></NonGoals>
+<AcceptanceCriteria><Criterion>The append-only registry and both train authorities agree; all three owner verdicts name their actual scenario and attributable QA artifact. Current-state lint, acceptance validator, Collecting readiness and focused metadata fixtures pass. Main is clean after ordinary integration.</Criterion></AcceptanceCriteria>
+<AffectedAreas><Area>M-046 release/acceptance data only.</Area></AffectedAreas>
+<VerificationIntent><ExpectedEvidence>Exact-head hosted checks, deterministic metadata tests, read-only readiness and registry validation.</ExpectedEvidence></VerificationIntent>
+</C-TABLE-VIEWER-ACCEPTANCE></GraceChangeSpec>

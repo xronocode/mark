@@ -1,0 +1,12 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-RECOVERY-TRAIN-ADMISSION>
+<ChangeRef>C-RECOVERY-TRAIN-ADMISSION</ChangeRef><ApprovalBasis>Standing owner ordinary integration/queue delegation; exact native Find verdict is never inferred.</ApprovalBasis>
+<IntentSummary>After the three prior accepted repairs are recorded and that metadata change is applied, append the separate Find/hosted-dependency item using its real green integration identity and attributable offered QA. Record an explicit fresh owner verdict if supplied; otherwise pending.</IntentSummary>
+<BaselineAssertions><MustExist><Value>docs/acceptance/registry.json</Value><Value>docs/release-trains/2.9.x-next.json</Value></MustExist></BaselineAssertions>
+<TargetAssertions><MustContain><File>docs/acceptance/registry.json</File><Text>C-HOSTED-VALIDATION-RECOVERY</Text></MustContain><MustContain><File>docs/release-trains/2.9.x-next.json</File><Text>C-HOSTED-VALIDATION-RECOVERY</Text></MustContain>
+<MustPassCommand><Command budgetSeconds="180">node tools/acceptance-registry.mjs --check</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="180">npm run release:readiness</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="180">npx --no-install vitest run tests/renderer/acceptance-registry.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js tests/renderer/release-governance.test.js</Command></MustPassCommand></TargetAssertions>
+<DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+<ObservedWriteScope><File>docs/acceptance/registry.json</File><File>docs/acceptance/README.md</File><File>docs/release-trains/2.9.x-next.json</File><File>docs/release-trains/2.9.x-next.md</File><Glob>.grace/changes/active/C-RECOVERY-TRAIN-ADMISSION/**</Glob></ObservedWriteScope>
+<ImplementationPlan><T-001><Title>Append the separate repair, offered artifact and actual verdict status</Title><DependsOn/><AcceptanceCriteria><Criterion>New item has exact source/merge identities, complete automatic/manual/unverified protocol and actual native verdict. Existing history and Collecting release boundary remain unchanged.</Criterion></AcceptanceCriteria><Verification><Command>node tools/acceptance-registry.mjs --check</Command></Verification></T-001></ImplementationPlan>
+</C-RECOVERY-TRAIN-ADMISSION></GraceChangePlan>

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "protocol": "docs/acceptance/README.md",
   "scope": "Delivery items of the 2.6.x-next train onward. Pre-2.6.0 acceptance history is frozen prose in the Released 2.5.x-next record.",
-  "lastSynced": "2026-10-24",
+  "lastSynced": "2026-11-10",
   "artifacts": [
     {
       "id": "mark-test-fix009-7057d645",
@@ -79,6 +79,92 @@
         "FIX-019"
       ],
       "location": "target/debug/bundle/macos (repo build dir; rebuild via the builder)"
+    },
+    {
+      "id": "mark-table-fix-827b138",
+      "source": {
+        "sha": "827b1389c4a71b5ec7cd57b0cdc459f60a8f1933",
+        "branch": "fix/table-sequential-resize",
+        "pullRequest": 211,
+        "mergedAs": "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+      },
+      "platform": "macos-arm64-release-qa",
+      "bundleIdentity": "com.xronocode.mark.test.tablefix",
+      "productName": "Mark Table Fix Test",
+      "binarySha256": "bbe6b2654a18b5f9fb29f25db50b59c6b776b97467ea5dd3eeba38832284f6c9",
+      "productVersion": "2.8.2",
+      "builtAt": "2026-11-10",
+      "builtBy": "Tauri app-only optimized QA build: build --ci --no-sign --bundles app --config qa-overlay.json -- --locked --offline; overlay sets this productName/identifier, updater endpoints empty, createUpdaterArtifacts false, fileAssociations empty and signingIdentity null. Application version unchanged.",
+      "covers": [
+        "C-TABLE-SEQUENTIAL-RESIZE"
+      ],
+      "location": "Owner-retained isolated QA application and attributed archive; identified by bundle identity and binary digest.",
+      "smoke": "Background launch and source/binary attribution observed; owner accepted sequential Fit resizing. No quit smoke recorded."
+    },
+    {
+      "id": "mark-viewer-test-3d54d2b",
+      "source": {
+        "sha": "3d54d2bbeb98116c228a5705c9f4a259e8702c31",
+        "branch": "fix/table-sequential-resize",
+        "pullRequest": 211,
+        "mergedAs": "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+      },
+      "platform": "macos-arm64-release-qa",
+      "bundleIdentity": "com.xronocode.mark.test.viewerdrag",
+      "productName": "Mark Viewer Test",
+      "binarySha256": "b82480d75c1bd620e5b6c99ea587a9c8a76d95355fa64a8f0e642cfe84f97168",
+      "productVersion": "2.8.2",
+      "builtAt": "2026-11-10",
+      "builtBy": "Tauri app-only optimized QA build: build --ci --no-sign --bundles app --config qa-overlay.json -- --locked --offline; overlay sets this productName/identifier, updater endpoints empty, createUpdaterArtifacts false, fileAssociations empty and signingIdentity null. Application version unchanged.",
+      "covers": [
+        "C-TABLE-FITTED-RESET",
+        "C-VIEWER-WINDOW-DRAG"
+      ],
+      "location": "Owner-retained isolated QA application and attributed archive; identified by bundle identity and binary digest.",
+      "smoke": "Background launch and exact source/executable/binary attribution observed; table viewer opened. Owner accepted actual window movement and explicitly confirmed the fitted double-click reset. No quit smoke recorded."
+    },
+    {
+      "id": "mark-find-test-cdf0d3f1",
+      "source": {
+        "sha": "cdf0d3f114f7c6fbe3249099b6154e510e828a37",
+        "branch": "fix/table-sequential-resize",
+        "pullRequest": 211,
+        "mergedAs": "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+      },
+      "platform": "macos-arm64-release-qa",
+      "bundleIdentity": "com.xronocode.mark.test.findfocus",
+      "productName": "Mark Find Test",
+      "binarySha256": "2ca83277d8039dc581d9c54a5497ee01d43b5f23265b36ce56220bbd388ba87e",
+      "productVersion": "2.8.2",
+      "builtAt": "2026-11-10",
+      "builtBy": "Tauri app-only optimized QA build: build --ci --no-sign --bundles app --config qa-overlay.json -- --locked --offline; isolated product/identifier, updater endpoints empty, createUpdaterArtifacts false, fileAssociations empty, signingIdentity null. Version unchanged.",
+      "covers": [
+        "C-HOSTED-VALIDATION-RECOVERY"
+      ],
+      "location": "Owner-retained isolated QA application and attributed archive; identified by bundle identity and binary digest.",
+      "smoke": "Background launch, exact executable/binary attribution and focused document observed. Owner checked the Find-focus case and reported a keyboard copy/paste issue in its comment; no unqualified acceptance is inferred. No quit smoke recorded."
+    },
+    {
+      "id": "mark-clipboard-test-18a06b37",
+      "source": {
+        "sha": "18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+        "branch": "fix/table-sequential-resize",
+        "pullRequest": 211,
+        "mergedAs": "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+      },
+      "platform": "macos-arm64-release-qa",
+      "bundleIdentity": "com.xronocode.mark.test.findclipboard",
+      "productName": "Mark Clipboard Test",
+      "binarySha256": "22d594c00342be7fb8f4231a96c1e7ca5f460a3157a998578f2e27a84c3eba3f",
+      "productVersion": "2.8.2",
+      "builtAt": "2026-11-10",
+      "builtBy": "Tauri app-only optimized QA build: build --ci --no-sign --bundles app --config qa-overlay.json -- --locked --offline; isolated product/identifier, updater endpoints empty, createUpdaterArtifacts false, fileAssociations empty, signingIdentity null. Version unchanged.",
+      "covers": [
+        "C-HOSTED-VALIDATION-RECOVERY",
+        "C-FIND-SELECTION-CLIPBOARD"
+      ],
+      "location": "Owner-retained isolated QA application and attributed archive; identified by bundle identity and binary digest.",
+      "smoke": "Background launch and exact executable/source/binary attribution observed with the disposable Find-focus document. Native owner verdict and quit smoke are not recorded."
     }
   ],
   "items": [
@@ -689,6 +775,183 @@
           "date": "2026-10-31",
           "actor": "agent",
           "detail": "Queued in train 2.9.x-next as the td-1 lane item."
+        }
+      ]
+    },
+    {
+      "id": "C-TABLE-SEQUENTIAL-RESIZE",
+      "summary": "Keep earlier fitted-table column choices during sequential border drags.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "detail": "Keep earlier fitted-table column choices during sequential border drags."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Repair source 827b1389c4a71b5ec7cd57b0cdc459f60a8f1933; PR #211 squash efa9e60955dab59d27d1223d15b8c7f2200014d6."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-table-fix-827b138",
+          "detail": "Isolated optimized QA build offered with a disposable focused Markdown fixture; updater artifacts disabled and installed application unchanged."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-table-fix-827b138",
+          "verdict": "accepted",
+          "scenarios": [
+            "In Fit, narrowing the first column and then the second leaves two narrow columns on the left and a wide third column; the second drag does not expand the first."
+          ],
+          "detail": "Owner explicitly confirmed that the original sequential-resize defect was fixed. Acceptance is limited to this listed scenario."
+        },
+        {
+          "state": "queued",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Admitted to Collecting train 2.9.x-next with PR #211; version and release authorization unchanged."
+        }
+      ]
+    },
+    {
+      "id": "C-TABLE-FITTED-RESET",
+      "summary": "Keep fitted tables inside their frame after double-clicking a resized column border.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "detail": "Keep fitted tables inside their frame after double-clicking a resized column border."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Repair source e03485e68c2c66307d25c42e416ae5705dae50d0; PR #211 squash efa9e60955dab59d27d1223d15b8c7f2200014d6."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-viewer-test-3d54d2b",
+          "detail": "Isolated optimized QA build offered with a disposable focused Markdown fixture; updater artifacts disabled and installed application unchanged."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-viewer-test-3d54d2b",
+          "verdict": "accepted",
+          "scenarios": [
+            "In Fit after resizing, double-clicking the border between the second and third columns does not introduce horizontal table scrolling."
+          ],
+          "detail": "Owner explicitly confirmed this double-click scenario when recording the focused QA acceptance. Acceptance is limited to this listed scenario."
+        },
+        {
+          "state": "queued",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Admitted to Collecting train 2.9.x-next with PR #211; version and release authorization unchanged."
+        }
+      ]
+    },
+    {
+      "id": "C-VIEWER-WINDOW-DRAG",
+      "summary": "Move the Mark window by the viewer header while a table is open.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "detail": "Move the Mark window by the viewer header while a table is open."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Repair source 3d54d2bbeb98116c228a5705c9f4a259e8702c31; PR #211 squash efa9e60955dab59d27d1223d15b8c7f2200014d6."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-viewer-test-3d54d2b",
+          "detail": "Isolated optimized QA build offered with a disposable focused Markdown fixture; updater artifacts disabled and installed application unchanged."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-viewer-test-3d54d2b",
+          "verdict": "accepted",
+          "scenarios": [
+            "With the table viewer open, the Mark window can be moved by its upper strip."
+          ],
+          "detail": "Owner clarified that the issue concerned the Mark window and accepted the repaired native movement on the offered QA build. Acceptance is limited to this listed scenario."
+        },
+        {
+          "state": "queued",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Admitted to Collecting train 2.9.x-next with PR #211; version and release authorization unchanged."
+        }
+      ]
+    },
+    {
+      "id": "C-HOSTED-VALIDATION-RECOVERY",
+      "summary": "Preserve Find queries, editor selections and keyboard copy/paste while searching; use canonical HTTPS Ubuntu sources for hosted dependency setup.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Required WebKit navigation checks reproduced a selection-to-empty-Find debounce that blurs the editor. Linux dependency setup stalled on the Azure HTTP Ubuntu mirror before backend tests."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Caret-only Find preservation and hosted dependency setup were repaired at source cdf0d3f114f7c6fbe3249099b6154e510e828a37."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-find-test-cdf0d3f1",
+          "detail": "Isolated Mark Find Test 2.8.2 offered with a focused Markdown case."
+        },
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-find-test-cdf0d3f1",
+          "detail": "Owner checked the Find case and reported keyboard copy/paste failing while menu copy/paste worked. No unqualified accepted verdict was supplied. The active-Find selection feedback was reproduced before the follow-up repair."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Transient Find visibility preserves the active query/matches during editing selection; selected text still prefills a closed bar. C-FIND-SELECTION-CLIPBOARD extends caret-only protection to keyboard copy/paste. CI rewrites only the known Azure HTTP Ubuntu URI to canonical HTTPS. PR #211 checked head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9; squash efa9e60955dab59d27d1223d15b8c7f2200014d6. All timeouts/retries/assertions remain unchanged."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-clipboard-test-18a06b37",
+          "detail": "Mark Clipboard Test 2.8.2 offered with a focused disposable Markdown case. Previous table/viewer owner verdicts remain scoped to their recorded artifacts; no Find-focus acceptance is inferred."
+        },
+        {
+          "state": "queued",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Admitted to Collecting train 2.9.x-next with complete automated evidence and explicit pending native acceptance."
         }
       ]
     }

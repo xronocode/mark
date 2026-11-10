@@ -423,6 +423,303 @@
             }
           ]
         }
+      },
+      {
+        "id": "C-TABLE-SEQUENTIAL-RESIZE",
+        "summary": "Keep earlier fitted-table column choices during sequential border drags.",
+        "state": "queued",
+        "commits": [
+          "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+        ],
+        "acceptance": {
+          "status": "accepted",
+          "owner": "owner",
+          "date": "2026-11-10",
+          "testedArtifact": "Mark Table Fix Test 2.8.2; source 827b1389c4a71b5ec7cd57b0cdc459f60a8f1933; binary SHA-256 bbe6b2654a18b5f9fb29f25db50b59c6b776b97467ea5dd3eeba38832284f6c9; bundle com.xronocode.mark.test.tablefix",
+          "scenarios": [
+            "In Fit, narrowing the first column and then the second leaves two narrow columns on the left and a wide third column; the second drag does not expand the first."
+          ]
+        },
+        "pullRequest": {
+          "number": 211,
+          "headSha": "18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+          "mergeSha": "efa9e60955dab59d27d1223d15b8c7f2200014d6",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/211/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage",
+              "result": "402 files; 5586 passed, 0 failed, 2 existing skips, 3 todo. Unchanged floors passed: statements 92.08%, branches 85.20%, functions 88.01%, lines 93.48%.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "env CI=1 npx --no-install playwright test tests/e2e/keyboard-selection.spec.ts tests/e2e/table- tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-keyboard --project=webkit-tables --project=webkit-block-viewer",
+              "result": "200 passed, 0 failed, 0 retries (178 table/viewer plus 22 keyboard cases); real-pointer resize/reset and native drag-command routing, exact Markdown/saved state, tab adoption and no-scroll controls.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "npm run build; grace lint --path . --assertions current",
+              "result": "Renderer build passed; final assertions passed with 0 errors and 6 documented warnings; current-state GRACE passed with 0 errors and 4 existing Python heuristic warnings. No threshold, timeout, retry or skip changes.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "GitHub Actions checks for PR #211",
+              "result": "All four required contexts and all substantive platform unit/browser jobs passed on the unchanged head; no failing check at merge. The exact check snapshot is retained.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42772428798"
+            }
+          ],
+          "manual": [
+            {
+              "scenario": "In Fit, narrowing the first column and then the second leaves two narrow columns on the left and a wide third column; the second drag does not expand the first.",
+              "result": "Accepted by owner.",
+              "date": "2026-11-10",
+              "build": "Mark Table Fix Test 2.8.2; source 827b1389c4a71b5ec7cd57b0cdc459f60a8f1933; binary SHA-256 bbe6b2654a18b5f9fb29f25db50b59c6b776b97467ea5dd3eeba38832284f6c9; bundle com.xronocode.mark.test.tablefix",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            }
+          ],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native variants outside the listed owner scenario",
+              "reason": "Full-width mode was covered automatically; no separate native owner verdict for Full is claimed."
+            },
+            {
+              "section": "manual",
+              "scenario": "Broader stabilization and release acceptance",
+              "reason": "This focused verdict does not accept unrelated editing/save/close/export/IME behavior, other train items or release dispatch. No quit smoke or dispatch-build acceptance is claimed."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-TABLE-FITTED-RESET",
+        "summary": "Keep fitted tables inside their frame after double-clicking a resized column border.",
+        "state": "queued",
+        "commits": [
+          "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+        ],
+        "acceptance": {
+          "status": "accepted",
+          "owner": "owner",
+          "date": "2026-11-10",
+          "testedArtifact": "Mark Viewer Test 2.8.2; source 3d54d2bbeb98116c228a5705c9f4a259e8702c31; binary SHA-256 b82480d75c1bd620e5b6c99ea587a9c8a76d95355fa64a8f0e642cfe84f97168; bundle com.xronocode.mark.test.viewerdrag",
+          "scenarios": [
+            "In Fit after resizing, double-clicking the border between the second and third columns does not introduce horizontal table scrolling."
+          ]
+        },
+        "pullRequest": {
+          "number": 211,
+          "headSha": "18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+          "mergeSha": "efa9e60955dab59d27d1223d15b8c7f2200014d6",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/211/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage",
+              "result": "402 files; 5586 passed, 0 failed, 2 existing skips, 3 todo. Unchanged floors passed: statements 92.08%, branches 85.20%, functions 88.01%, lines 93.48%.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "env CI=1 npx --no-install playwright test tests/e2e/keyboard-selection.spec.ts tests/e2e/table- tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-keyboard --project=webkit-tables --project=webkit-block-viewer",
+              "result": "200 passed, 0 failed, 0 retries (178 table/viewer plus 22 keyboard cases); real-pointer resize/reset and native drag-command routing, exact Markdown/saved state, tab adoption and no-scroll controls.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "npm run build; grace lint --path . --assertions current",
+              "result": "Renderer build passed; final assertions passed with 0 errors and 6 documented warnings; current-state GRACE passed with 0 errors and 4 existing Python heuristic warnings. No threshold, timeout, retry or skip changes.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "GitHub Actions checks for PR #211",
+              "result": "All four required contexts and all substantive platform unit/browser jobs passed on the unchanged head; no failing check at merge. The exact check snapshot is retained.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42772428798"
+            }
+          ],
+          "manual": [
+            {
+              "scenario": "In Fit after resizing, double-clicking the border between the second and third columns does not introduce horizontal table scrolling.",
+              "result": "Accepted by owner.",
+              "date": "2026-11-10",
+              "build": "Mark Viewer Test 2.8.2; source 3d54d2bbeb98116c228a5705c9f4a259e8702c31; binary SHA-256 b82480d75c1bd620e5b6c99ea587a9c8a76d95355fa64a8f0e642cfe84f97168; bundle com.xronocode.mark.test.viewerdrag",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            }
+          ],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native variants outside the listed owner scenario",
+              "reason": "Full-width mode and body-border resets were covered automatically; no separate native owner verdict for those variants is claimed."
+            },
+            {
+              "section": "manual",
+              "scenario": "Broader stabilization and release acceptance",
+              "reason": "This focused verdict does not accept unrelated editing/save/close/export/IME behavior, other train items or release dispatch. No quit smoke or dispatch-build acceptance is claimed."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-VIEWER-WINDOW-DRAG",
+        "summary": "Move the Mark window by the viewer header while a table is open.",
+        "state": "queued",
+        "commits": [
+          "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+        ],
+        "acceptance": {
+          "status": "accepted",
+          "owner": "owner",
+          "date": "2026-11-10",
+          "testedArtifact": "Mark Viewer Test 2.8.2; source 3d54d2bbeb98116c228a5705c9f4a259e8702c31; binary SHA-256 b82480d75c1bd620e5b6c99ea587a9c8a76d95355fa64a8f0e642cfe84f97168; bundle com.xronocode.mark.test.viewerdrag",
+          "scenarios": [
+            "With the table viewer open, the Mark window can be moved by its upper strip."
+          ]
+        },
+        "pullRequest": {
+          "number": 211,
+          "headSha": "18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+          "mergeSha": "efa9e60955dab59d27d1223d15b8c7f2200014d6",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/211/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage",
+              "result": "402 files; 5586 passed, 0 failed, 2 existing skips, 3 todo. Unchanged floors passed: statements 92.08%, branches 85.20%, functions 88.01%, lines 93.48%.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "env CI=1 npx --no-install playwright test tests/e2e/keyboard-selection.spec.ts tests/e2e/table- tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-keyboard --project=webkit-tables --project=webkit-block-viewer",
+              "result": "200 passed, 0 failed, 0 retries (178 table/viewer plus 22 keyboard cases); real-pointer resize/reset and native drag-command routing, exact Markdown/saved state, tab adoption and no-scroll controls.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "npm run build; grace lint --path . --assertions current",
+              "result": "Renderer build passed; final assertions passed with 0 errors and 6 documented warnings; current-state GRACE passed with 0 errors and 4 existing Python heuristic warnings. No threshold, timeout, retry or skip changes.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "GitHub Actions checks for PR #211",
+              "result": "All four required contexts and all substantive platform unit/browser jobs passed on the unchanged head; no failing check at merge. The exact check snapshot is retained.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42772428798"
+            }
+          ],
+          "manual": [
+            {
+              "scenario": "With the table viewer open, the Mark window can be moved by its upper strip.",
+              "result": "Accepted by owner.",
+              "date": "2026-11-10",
+              "build": "Mark Viewer Test 2.8.2; source 3d54d2bbeb98116c228a5705c9f4a259e8702c31; binary SHA-256 b82480d75c1bd620e5b6c99ea587a9c8a76d95355fa64a8f0e642cfe84f97168; bundle com.xronocode.mark.test.viewerdrag",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            }
+          ],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native variants outside the listed owner scenario",
+              "reason": "Windows/Linux native movement was not manually checked; no cross-platform native acceptance is claimed."
+            },
+            {
+              "section": "manual",
+              "scenario": "Broader stabilization and release acceptance",
+              "reason": "This focused verdict does not accept unrelated editing/save/close/export/IME behavior, other train items or release dispatch. No quit smoke or dispatch-build acceptance is claimed."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-HOSTED-VALIDATION-RECOVERY",
+        "summary": "Preserve Find queries, editor selections and keyboard copy/paste while searching; use canonical HTTPS Ubuntu sources for hosted dependency setup.",
+        "state": "queued",
+        "commits": [
+          "efa9e60955dab59d27d1223d15b8c7f2200014d6"
+        ],
+        "acceptance": {
+          "status": "pending"
+        },
+        "pullRequest": {
+          "number": 211,
+          "headSha": "18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+          "mergeSha": "efa9e60955dab59d27d1223d15b8c7f2200014d6",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/211/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage",
+              "result": "402 files; 5586 passed, 0 failed, 2 existing skips, 3 todo. Unchanged floors passed: statements 92.08%, branches 85.20%, functions 88.01%, lines 93.48%.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "env CI=1 npx --no-install playwright test tests/e2e/keyboard-selection.spec.ts tests/e2e/table- tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-keyboard --project=webkit-tables --project=webkit-block-viewer",
+              "result": "200 passed, 0 failed, 0 retries (178 table/viewer plus 22 keyboard cases); real-pointer resize/reset and native drag-command routing, exact Markdown/saved state, tab adoption and no-scroll controls.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "npm run build; grace lint --path . --assertions current",
+              "result": "Renderer build passed; final assertions passed with 0 errors and 6 documented warnings; current-state GRACE passed with 0 errors and 4 existing Python heuristic warnings. No threshold, timeout, retry or skip changes.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            },
+            {
+              "command": "GitHub Actions checks for PR #211",
+              "result": "All four required contexts and all substantive platform unit/browser jobs passed on the unchanged head; no failing check at merge. The exact check snapshot is retained.",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42772428798"
+            },
+            {
+              "command": "env CI=1 npx --no-install playwright test --project=webkit-perf",
+              "result": "65 passed, 0 failed, 0 retries (unchanged WebKit-perf; navigation passed first attempt).",
+              "date": "2026-11-10",
+              "build": "PR #211 head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9",
+              "evidence": "https://github.com/xronocode/mark/pull/211"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native Find selection and keyboard clipboard interaction",
+              "reason": "Fresh isolated Mark Clipboard Test offered with source 18a06b377b4b42d5f24b4fcd4622e7608231e8e9 and binary SHA-256 22d594c00342be7fb8f4231a96c1e7ca5f460a3157a998578f2e27a84c3eba3f; owner verdict pending. Automated unit and unchanged browser navigation evidence does not substitute for this verdict."
+            },
+            {
+              "section": "manual",
+              "scenario": "Broader stabilization and release acceptance",
+              "reason": "No acceptance of unrelated editing/save/close/export/IME, other train items, dispatch-build behavior or quit smoke is inferred."
+            }
+          ]
+        }
       }
     ],
     "operational": [
