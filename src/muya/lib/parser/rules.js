@@ -1,5 +1,5 @@
 // FILE: src/muya/lib/parser/rules.js
-// VERSION: 1.1.0
+// VERSION: 1.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Inline and begin-of-line grammar for muya's inline tokenizer.
 //   SCOPE: beginRules, inlineRules, inlineExtensionRules; post-build sticky conversion of ^-anchored rules (same as C-30 did for block rules).
@@ -18,6 +18,7 @@
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream muya, previously ungoverned.)
 //   - 2026-10-13 v1.1.0: C-24 — ^-anchored rules become sticky with a lastIndex-resetting exec. JavaScriptCore did not fail fast at ^ for rules with a lookbehind: footnote_identifier cost 688 ms on a 565 KB document once footnotes became the default (x2 main-thread busy in the WebKit gate). Match set unchanged.
+//   - 2026-11-10 v1.1.1: Keep one/two-digit colon-delimited numbers literal so timestamps do not become invalid emoji warnings; supported numeric aliases 100 and 1234 remain valid.
 // END_CHANGE_SUMMARY
 
 import { escapeCharacters } from './escapeCharacter'
@@ -40,7 +41,7 @@ export const inlineRules = {
   inline_code: /^(`{1,3})([^`]+?|.{2,})\1/,
   image: /^(\!\[)(.*?)(\\*)\]\((.*)(\\*)\)/,
   link: /^(\[)((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*?)(\\*)\]\((.*)(\\*)\)/, // can nest
-  emoji: /^(:)([a-z_\d+-]+?)\1/,
+  emoji: /^(:)(?!\d{1,2}:)([a-z_\d+-]+?)\1/,
   del: /^(~{2})(?=\S)([\s\S]*?\S)(\\*)\1/, // can nest
   auto_link: /^<(?:([a-zA-Z]{1}[a-zA-Z\d\+\.\-]{1,31}:[^ <>]*)|([a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*))>/,
   // (extended www autolink|extended url autolink|extended email autolink) the email regexp is the same as auto_link.

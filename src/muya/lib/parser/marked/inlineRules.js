@@ -125,7 +125,8 @@ export const gfm = Object.assign({}, normal, {
   // ------------------------
   // extra
 
-  emoji: /^(:)([a-z_\d+-]+?)\1/ // not real GFM but put it in here
+  // Match the editor grammar: clock fields are literal, while :100: and :1234: remain emoji.
+  emoji: /^(:)(?!\d{1,2}:)([a-z_\d+-]+?)\1/ // not real GFM but put it in here
 })
 
 gfm.url = edit(gfm.url, 'i')

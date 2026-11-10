@@ -3792,6 +3792,7 @@
       <SummaryDelta>C-MD-LINK-TABS: inline link renderers share source-token metadata across anchors/syntax, container-scoped lookup handles nested labels, and LinkTools cancels stale show/hide work. These view-only changes do not alter canonical Markdown.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: The renderer snapshot adapter consumes the existing complete-model Markdown and shared-history APIs, including progressive unmounted content. Following split panes cannot normalize the active source; Muya internals and canonical serialization contracts remain unchanged.</SummaryDelta>
       <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: the existing keyboard browser verification now checks real copy/paste after a nonempty selection with Find open (matching or absent query) or closed, exact inserted Markdown, retained selection/focus and close/reopen prefill. Muya runtime clipboard/keyboard code is unchanged.</SummaryDelta>
+      <SummaryDelta>2026-11-10 timestamp repair: editor and marked inline emoji grammars keep one/two-digit numeric fields literal; existing numeric aliases 100 and 1234 remain supported. No API, data flow or ownership change. V-M-012 scenario-emoji-timestamps pins tokenizer/export parity and browser rendering.</SummaryDelta>
       <Name>muya</Name>
       <DisplayName>muya</DisplayName>
       <Type>CORE_LOGIC</Type>
