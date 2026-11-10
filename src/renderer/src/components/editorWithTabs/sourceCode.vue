@@ -28,6 +28,7 @@ import codeMirror, { setMode, setCursorAtFirstLine, setTextDirection } from '../
 import { debounce, wordCount as getWordCount } from 'muya/lib/utils'
 import { adjustCursor } from '../../util'
 import bus from '../../bus'
+import { documentOwner, registerDocumentSurface } from '@/util/documentSnapshot'
 import { oneDarkThemes, railscastsThemes } from '@/config'
 import {
   splitScrollSync,
@@ -78,6 +79,7 @@ const sourceCodeContainer = ref(null)
 const editor = shallowRef(null)
 const commitTimer = ref(null)
 const viewDestroyed = ref(false)
+let renderedDocumentOwner = null
 const tabId = ref(null)
 
 const { theme, sourceCode } = storeToRefs(preferencesStore)
@@ -184,7 +186,12 @@ const handleFileChange = ({ id, markdown: newMarkdown, muyaIndexCursor, scrollTo
   if (followSyncTimer) clearTimeout(followSyncTimer)
   followSyncTimer = null
   if (id && id !== tabId.value) compositionFence.release()
-  if (id) tabId.value = id
+  if (id) {
+    compositionText = newMarkdown
+    tabId.value = id
+    const owner = editorStore.tabs.find(tab => tab.id === id)
+    renderedDocumentOwner = owner ? documentOwner(owner) : null
+  }
   isRenderingFromStore = true
   if (typeof newMarkdown === 'string' && newMarkdown !== editor.value.getValue()) editor.value.setValue(newMarkdown)
   const selection = currentTab.value?.splitSession?.source
@@ -328,7 +335,30 @@ const handleHistoryRestored = (meta) => {
 }
 let compositionText = null
 const handleCompositionStart = () => { compositionText = editor.value?.getValue(); compositionFence.arm() }
-const handleCompositionEnd = () => { if (compositionFence.release()) renderFromStore() }
+const captureCommittedSource = () => {
+  const owner = editorStore.tabs.find(tab => tab.id === tabId.value)
+  const cm = editor.value
+  if (!owner || !cm || owner.id !== currentTab.value?.id) return null
+  const { cursor, markdown:nativeMarkdown } = getMarkdownAndCursor(cm)
+  const markdown=unified.value ? preserveSourceSyntax(owner.markdown,compositionText ?? owner.markdown,nativeMarkdown) : nativeMarkdown
+  compositionText=nativeMarkdown
+  if (markdown !== owner.markdown) {
+    if (unified.value) bus.emit('split:source-edit', { id: owner.id, markdown, cursor, selection: currentSelection(), wordCount: getWordCount(markdown) })
+    else editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: owner.id, markdown, muyaIndexCursor: cursor, wordCount: getWordCount(markdown) })
+    owner.isSaved = false
+  }
+  return owner.markdown
+}
+const unregisterSaveSurface = registerDocumentSurface(() => renderedDocumentOwner, {
+  isComposing: () => compositionFence.isArmed(),
+  isAuthoritative: () => !props.mirror && (!unified.value || sourceFocused()),
+  captureCommitted: captureCommittedSource
+})
+const handleCompositionEnd = () => {
+  const deferred = compositionFence.release()
+  captureCommittedSource()
+  if (deferred) renderFromStore()
+}
 // END_BLOCK_SOURCE_FOLLOW_SYNC
 
 // START_BLOCK_SOURCE_RESIZE_REFRESH
@@ -451,7 +481,9 @@ const listenChange = () => {
     if (unified.value) { rememberSelection(); return }
     if (isRenderingFromStore || viewDestroyed.value || !tabId.value) return
     const { cursor, markdown } = getMarkdownAndCursor(cm)
-    editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: tabId.value, markdown, wordCount: getWordCount(markdown), muyaIndexCursor: cursor })
+    const owner=editorStore.tabs.find(tab=>tab.id===tabId.value)
+    if (owner && markdown !== owner.markdown && !compositionFence.isArmed()) captureCommittedSource()
+    else editorStore.updateMuyaIndexCursor(tabId.value, cursor)
   })
   cm.on('focus', handleSourceFocus)
   cm.on('paste', handleAssetInput)
@@ -463,6 +495,10 @@ const listenChange = () => {
     }
   })
   cm.on('changes', () => {
+    if (!unified.value && !isRenderingFromStore && !viewDestroyed.value && tabId.value === currentTab.value?.id) {
+      if (!compositionFence.isArmed()) captureCommittedSource()
+      return
+    }
     if (!unified.value || isRenderingFromStore || viewDestroyed.value || tabId.value !== currentTab.value?.id) return
     const { cursor, markdown: nativeMarkdown } = getMarkdownAndCursor(cm)
     const markdown = compositionFence.isArmed() ? preserveSourceSyntax(currentTab.value.markdown, compositionText ?? nativeMarkdown, nativeMarkdown) : nativeMarkdown
@@ -665,6 +701,8 @@ onMounted(() => {
 
   editor.value = codeMirrorInstance
   tabId.value = id
+  compositionText = markdown
+  renderedDocumentOwner = currentTab.value?.id === id ? documentOwner(currentTab.value) : null
 
   // C-40 T-004: a tab already locked when the source pane mounts (source
   // mode toggled while locked) starts read-only. Unlocked mounts keep
@@ -690,6 +728,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  unregisterSaveSurface()
   rememberSelection()
   if (unified.value) bus.emit('split:flush')
   const input = editor.value?.getInputField?.()

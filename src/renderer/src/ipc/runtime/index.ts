@@ -85,3 +85,5 @@ export const ipc = {
   screenshot: ipcScreenshot,
   secret: ipcSecret
 }
+
+export { ipcDocumentSave } from './documentSave'

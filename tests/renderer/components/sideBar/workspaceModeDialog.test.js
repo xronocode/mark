@@ -16,6 +16,9 @@
  * the project store itself is real so resolution actions run end-to-end.
  */
 import { mount } from '@vue/test-utils'
+import { createDocumentOperations } from '@/util/documentOperations'
+import { captureDocumentSnapshot, inspectDocumentComposition } from '@/util/documentSnapshot'
+import notice from '@/services/notification'
 import { setupTestPinia } from '../../pinia'
 import { createI18n } from 'vue-i18n'
 
@@ -28,6 +31,17 @@ vi.mock('@/bus', () => ({
 }))
 
 const editorStubFactory = () => ({
+  REQUEST_DOCUMENT_OPERATION(request) {
+    return createDocumentOperations({
+      getTabs:()=>this.tabs, capture:owner=>captureDocumentSnapshot(this,owner),inspectComposition:inspectDocumentComposition,
+      chooseTarget:async r=>({...r,pathname:'/tmp/chosen.md'}),
+      writeSnapshot:r=>invoke('mt_document_write_snapshot',{request:r}),
+      confirm:async()=> 'save',notify:outcome=>notice.notify(outcome),prepareCommit:async()=>{}
+    }).run(request)
+  },
+  _documentOperations:()=>({isBusy:()=>false,reservePathChange:()=>()=>{}}),
+  _notifyDocumentOperation:vi.fn(),
+
   tabs: [],
   APPLY_FILE_CHANGE: vi.fn(),
   UPDATE_CURRENT_FILE: vi.fn(),
@@ -118,7 +132,11 @@ describe('sideBar/workspaceModeDialog.vue (C-MULTI-SOURCE-WORKSPACE)', () => {
     invokeMock.mockImplementation(async (cmd, args) => {
       invokeCalls.push([cmd, args])
       if (cmd === 'mt_prefs_get') return []
-      if (cmd === 'mt_response_file_save') {
+      if (cmd === 'mt_document_write_snapshot') {
+        const request=args.request
+        return {...request,pathname:request.targetPath,filename:'saved.md'}
+      }
+      if (cmd === 'unused_legacy_save') {
         return { id: args.id, isSaved: true }
       }
       return null
@@ -221,11 +239,8 @@ describe('sideBar/workspaceModeDialog.vue (C-MULTI-SOURCE-WORKSPACE)', () => {
     await new Promise((r) => setTimeout(r, 0))
 
     expect(store.pendingReplaceConfirm).toBeNull()
-    expect(invokeCalls.find(([cmd]) => cmd === 'mt_response_file_save')).toBeTruthy()
-    expect(editorStubRef.APPLY_SAVE_OUTCOME).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 't1', isSaved: true }),
-      2
-    )
+    expect(invokeCalls.find(([cmd]) => cmd === 'mt_document_write_snapshot')).toBeTruthy()
+    expect(editorStubRef.FORCE_CLOSE_TAB).toHaveBeenCalledWith(expect.objectContaining({isSaved:true}))
     expect(editorStubRef.FORCE_CLOSE_TAB).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }))
     expect(store.projectTrees.map((r) => r.pathname)).toEqual(['/tmp/beta'])
     wrapper.unmount()
@@ -240,7 +255,7 @@ describe('sideBar/workspaceModeDialog.vue (C-MULTI-SOURCE-WORKSPACE)', () => {
     invokeMock.mockImplementation(async (cmd, args) => {
       invokeCalls.push([cmd, args])
       if (cmd === 'mt_prefs_get') return []
-      if (cmd === 'mt_response_file_save') throw new Error('read-only volume')
+      if (cmd === 'mt_document_write_snapshot') throw new Error('read-only volume')
       return null
     })
     store.pendingReplaceConfirm = {

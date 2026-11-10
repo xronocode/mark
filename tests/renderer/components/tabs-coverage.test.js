@@ -67,8 +67,8 @@ describe('tabs.vue — coverage', () => {
 
     // Stub store actions that tabs.vue calls
     editorStore.UPDATE_CURRENT_FILE = vi.fn()
-    editorStore.FORCE_CLOSE_TAB = vi.fn()
-    editorStore.CLOSE_UNSAVED_TAB = vi.fn()
+    editorStore.CLOSE_TAB = vi.fn()
+    editorStore.CLOSE_TAB = vi.fn()
     editorStore.NEW_UNTITLED_TAB = vi.fn()
     editorStore.CLOSE_TAB = vi.fn()
     editorStore.CLOSE_OTHER_TABS = vi.fn()
@@ -110,22 +110,22 @@ describe('tabs.vue — coverage', () => {
   })
 
   /* ── removeFileInTab ───────────────────────────────────────── */
-  it('removeFileInTab calls FORCE_CLOSE_TAB for a saved file', async () => {
+  it('removeFileInTab calls CLOSE_TAB for a saved file', async () => {
     const wrapper = await mountTabs()
     // C-38 T-006: the close glyph is a ChromeIcon (class falls through
     // to the stub root under shallowMount).
     const closeIcons = wrapper.findAll('.close-icon')
     await closeIcons[0].trigger('click')
-    expect(editorStore.FORCE_CLOSE_TAB).toHaveBeenCalledWith(
+    expect(editorStore.CLOSE_TAB).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'tab-1' })
     )
   })
 
-  it('removeFileInTab calls CLOSE_UNSAVED_TAB for an unsaved file', async () => {
+  it('removeFileInTab calls CLOSE_TAB for an unsaved file', async () => {
     const wrapper = await mountTabs()
     const closeIcons = wrapper.findAll('.close-icon')
     await closeIcons[1].trigger('click')
-    expect(editorStore.CLOSE_UNSAVED_TAB).toHaveBeenCalledWith(
+    expect(editorStore.CLOSE_TAB).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'tab-2' })
     )
   })

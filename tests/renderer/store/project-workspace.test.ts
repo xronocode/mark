@@ -22,6 +22,9 @@
  * pinia is active.
  */
 
+import { createDocumentOperations } from '@/util/documentOperations'
+import { captureDocumentSnapshot, inspectDocumentComposition } from '@/util/documentSnapshot'
+import notice from '@/services/notification'
 import { setupTestPinia } from '../pinia'
 
 vi.mock('@/services/notification', () => ({
@@ -49,6 +52,17 @@ type StubTab = {
 }
 
 const editorStubFactory = () => ({
+  REQUEST_DOCUMENT_OPERATION(request) {
+    return createDocumentOperations({
+      getTabs:()=>this.tabs, capture:owner=>captureDocumentSnapshot(this,owner),inspectComposition:inspectDocumentComposition,
+      chooseTarget:async r=>({...r,pathname:'/tmp/chosen.md'}),
+      writeSnapshot:r=>invoke('mt_document_write_snapshot',{request:r}),
+      confirm:async()=> 'save',notify:outcome=>notice.notify(outcome),prepareCommit:async()=>{}
+    }).run(request)
+  },
+  _documentOperations:()=>({isBusy:()=>false,reservePathChange:()=>()=>{}}),
+  _notifyDocumentOperation:vi.fn(),
+
   tabs: [] as StubTab[],
   APPLY_FILE_CHANGE: vi.fn(),
   UPDATE_CURRENT_FILE: vi.fn(),
@@ -125,7 +139,11 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     invokeMock.mockImplementation(async (cmd: string, args?: unknown) => {
       invokeCalls.push([cmd, args])
       if (cmd === 'mt_prefs_get') return []
-      if (cmd === 'mt_response_file_save') {
+      if (cmd === 'mt_document_write_snapshot') {
+        const request=args.request
+        return {...request,pathname:request.targetPath,filename:'saved.md'}
+      }
+      if (cmd === 'unused_legacy_save') {
         return { id: (args as { id: string }).id, isSaved: true }
       }
       return null
@@ -359,15 +377,12 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
 
     await store.RESOLVE_REPLACE_CONFIRM('save-close')
 
-    const save = invokeCalls.find(([cmd]) => cmd === 'mt_response_file_save')
+    const save = invokeCalls.find(([cmd]) => cmd === 'mt_document_write_snapshot')
     expect(save).toEqual([
-      'mt_response_file_save',
-      { id: 't1', filename: 'a.md', pathname: '/tmp/alpha/a.md', markdown: 'draft', defaultPath: null }
+      'mt_document_write_snapshot',
+      {request:expect.objectContaining({id:'t1',targetPath:'/tmp/alpha/a.md',markdown:'draft',revision:3})}
     ])
-    expect(editorStubRef.APPLY_SAVE_OUTCOME).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 't1', isSaved: true }),
-      3
-    )
+    expect(editorStubRef.FORCE_CLOSE_TAB).toHaveBeenCalledWith(expect.objectContaining({isSaved:true}))
     expect(editorStubRef.FORCE_CLOSE_TAB).toHaveBeenCalledWith(
       expect.objectContaining({ id: 't1' })
     )
@@ -383,7 +398,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     invokeMock.mockImplementation(async (cmd: string, args?: unknown) => {
       invokeCalls.push([cmd, args])
       if (cmd === 'mt_prefs_get') return []
-      if (cmd === 'mt_response_file_save') throw new Error('disk full')
+      if (cmd === 'mt_document_write_snapshot') throw new Error('disk full')
       return null
     })
     await store.OPEN_FOLDER('/tmp/beta', { mode: 'replace', origin: 'picker' })

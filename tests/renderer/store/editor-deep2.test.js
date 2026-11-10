@@ -28,6 +28,8 @@
  */
 
 import { setupTestPinia } from '../pinia'
+const askDocumentClose = vi.hoisted(() => vi.fn(async () => 'cancel'))
+vi.mock('@/components/editorWithTabs/unsavedCloseDialog',()=>({askUnsavedClose:askDocumentClose}))
 
 // ─── module-level mocks ───────────────────────────────────────────
 
@@ -175,6 +177,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
 
   beforeEach(async () => {
     setupTestPinia()
+    askDocumentClose.mockReset().mockResolvedValue('cancel')
     __preferencesStub.autoSave = false
     __preferencesStub.autoSaveDelay = 100
     __preferencesStub.liveReload = true
@@ -202,7 +205,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── FORMAT_LINK_CLICK ──────────────────────────────────────────
 
   describe('FORMAT_LINK_CLICK', () => {
-    it('scrolls to anchor for # link matching listToc', () => {
+    it('scrolls to anchor for # link matching listToc', async () => {
       editor.listToc = [
         { slug: 's1', githubSlug: 'intro', content: 'Intro', lvl: 1 }
       ]
@@ -213,7 +216,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(bus.emit).toHaveBeenCalledWith('scroll-to-header', 's1')
     })
 
-    it('returns early for # link not matching any toc item', () => {
+    it('returns early for # link not matching any toc item', async () => {
       editor.listToc = [
         { slug: 's1', githubSlug: 'intro', content: 'Intro', lvl: 1 }
       ]
@@ -224,7 +227,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(bus.emit).not.toHaveBeenCalledWith('scroll-to-header', expect.anything())
     })
 
-    it('returns early for empty anchor (#)', () => {
+    it('returns early for empty anchor (#)', async () => {
       editor.FORMAT_LINK_CLICK({
         data: { href: '#' },
         dirname: '/tmp'
@@ -236,7 +239,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       )
     })
 
-    it('sends IPC for external links (non-#)', () => {
+    it('sends IPC for external links (non-#)', async () => {
       editor.FORMAT_LINK_CLICK({
         data: { href: 'https://example.com' },
         dirname: '/tmp'
@@ -251,7 +254,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SEARCH ─────────────────────────────────────────────────────
 
   describe('SEARCH', () => {
-    it('sets searchMatches on currentFile (deep clone)', () => {
+    it('sets searchMatches on currentFile (deep clone)', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       const value = { index: 2, matches: [{ line: 1 }], value: 'test' }
       editor.SEARCH(value)
@@ -265,7 +268,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SHOW_IMAGE_DELETION_URL ────────────────────────────────────
 
   describe('SHOW_IMAGE_DELETION_URL', () => {
-    it('shows a notice whose copy action carries the URL (C-NOTIFICATION-SYSTEM)', () => {
+    it('shows a notice whose copy action carries the URL (C-NOTIFICATION-SYSTEM)', async () => {
       editor.SHOW_IMAGE_DELETION_URL('https://delete.me/123')
       expect(notice.notify).toHaveBeenCalledTimes(1)
       const opts = notice.notify.mock.calls[0][0]
@@ -313,11 +316,12 @@ describe('store/editor — deep coverage (wave 2)', () => {
 
     it('calls FILE_SAVE_AS when no pathname', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '' })
+      editor.tabs = [editor.currentFile]
       invoke.mockResolvedValueOnce({
         id: 't1', pathname: '/tmp/saved.md', filename: 'saved.md', isSaved: true
       })
       await editor.RESPONSE_FOR_RENAME()
-      expect(invoke).toHaveBeenCalledWith('mt_response_file_save_as', expect.any(Object))
+      expect(invoke).toHaveBeenCalledWith('mt_document_choose_save_target', expect.any(Object))
     })
 
     it('returns early when no id', async () => {
@@ -348,7 +352,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── UPDATE_CURRENT_FILE ────────────────────────────────────────
 
   describe('UPDATE_CURRENT_FILE', () => {
-    it('adds file to tabs if not already present', () => {
+    it('adds file to tabs if not already present', async () => {
       const file = makeTab({ id: 'new-file', pathname: '/tmp/new.md', markdown: '# new' })
       editor.tabs = []
       editor.currentFile = {}
@@ -361,7 +365,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(bus.emit).toHaveBeenCalledWith('file-changed', expect.objectContaining({ id: 'new-file' }))
     })
 
-    it('does not emit file-changed when switching to same file', () => {
+    it('does not emit file-changed when switching to same file', async () => {
       const file = makeTab({ id: 'same', pathname: '/tmp/a.md' })
       editor.tabs = [file]
       editor.currentFile = file
@@ -378,7 +382,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── CLOSE_OTHER_TABS / CLOSE_SAVED_TABS / CLOSE_ALL_TABS ──────
 
   describe('CLOSE_OTHER_TABS', () => {
-    it('closes all tabs except the specified one', () => {
+    it('closes all tabs except the specified one', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       const b = makeTab({ id: 'b', isSaved: true })
       const c = makeTab({ id: 'c', isSaved: true })
@@ -386,31 +390,31 @@ describe('store/editor — deep coverage (wave 2)', () => {
       editor.currentFile = a
       editor.updateTabIdToIndex()
 
-      editor.CLOSE_OTHER_TABS(b)
+      await editor.CLOSE_OTHER_TABS(b)
       expect(editor.tabs.map(t => t.id)).toEqual(['b'])
     })
   })
 
   describe('CLOSE_SAVED_TABS', () => {
-    it('closes only saved tabs', () => {
+    it('closes only saved tabs', async () => {
       const saved = makeTab({ id: 'saved', isSaved: true })
       const dirty = makeTab({ id: 'dirty', isSaved: false })
       editor.tabs = [saved, dirty]
       editor.currentFile = saved
       editor.updateTabIdToIndex()
 
-      editor.CLOSE_SAVED_TABS()
+      await editor.CLOSE_SAVED_TABS()
       expect(editor.tabs.map(t => t.id)).toEqual(['dirty'])
     })
   })
 
   describe('CLOSE_ALL_TABS', () => {
-    it('closes all tabs', () => {
+    it('closes all tabs', async () => {
       editor.tabs = [makeTab({ id: 'a', isSaved: true }), makeTab({ id: 'b', isSaved: true })]
       editor.currentFile = editor.tabs[0]
       editor.updateTabIdToIndex()
 
-      editor.CLOSE_ALL_TABS()
+      await editor.CLOSE_ALL_TABS()
       expect(editor.tabs).toHaveLength(0)
     })
   })
@@ -418,28 +422,28 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── EXCHANGE_TABS_BY_ID ────────────────────────────────────────
 
   describe('EXCHANGE_TABS_BY_ID', () => {
-    it('moves tab to position of toId', () => {
+    it('moves tab to position of toId', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'a', toId: 'c' })
       expect(editor.tabs.map(t => t.id)).toEqual(['b', 'a', 'c'])
     })
 
-    it('moves tab to end when toId is empty', () => {
+    it('moves tab to end when toId is empty', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'a', toId: '' })
       expect(editor.tabs.map(t => t.id)).toEqual(['b', 'c', 'a'])
     })
 
-    it('does nothing when fromId not found', () => {
+    it('does nothing when fromId not found', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'missing', toId: 'a' })
       expect(editor.tabs.map(t => t.id)).toEqual(['a', 'b'])
     })
 
-    it('does nothing when toId not found', () => {
+    it('does nothing when toId not found', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'a', toId: 'missing' })
@@ -450,7 +454,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── RENAME_FILE ────────────────────────────────────────────────
 
   describe('RENAME_FILE', () => {
-    it('calls UPDATE_CURRENT_FILE and emits rename', () => {
+    it('calls UPDATE_CURRENT_FILE and emits rename', async () => {
       const file = makeTab({ id: 'rf1', pathname: '/tmp/renamed.md' })
       editor.tabs = []
       editor.currentFile = {}
@@ -485,7 +489,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(bus.emit).not.toHaveBeenCalledWith('rename')
     })
 
-    it('is a no-op when no tab has the renamed file open', () => {
+    it('is a no-op when no tab has the renamed file open', async () => {
       const tab = makeTab({ id: 'r2', pathname: '/tmp/x/other.md', filename: 'other.md' })
       editor.tabs = [tab]
       editor.updateTabIdToIndex()
@@ -496,7 +500,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(__ipcWatchMock.subscribe).not.toHaveBeenCalled()
     })
 
-    it('moves every tab of the same file and leaves other tabs alone', () => {
+    it('moves every tab of the same file and leaves other tabs alone', async () => {
       const a = makeTab({ id: 'a', pathname: '/tmp/y/old.md', filename: 'old.md' })
       const b = makeTab({ id: 'b', pathname: '/tmp/y/old.md', filename: 'old.md' })
       const c = makeTab({ id: 'c', pathname: '/tmp/y/keep.md', filename: 'keep.md' })
@@ -587,7 +591,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SWITCH_TAB_BY_FILEPATH ─────────────────────────────────────
 
   describe('SWITCH_TAB_BY_FILEPATH', () => {
-    it('switches to tab matching filePath', () => {
+    it('switches to tab matching filePath', async () => {
       const a = makeTab({ id: 'a', pathname: '/tmp/a.md' })
       const b = makeTab({ id: 'b', pathname: '/tmp/b.md' })
       editor.tabs = [a, b]
@@ -598,14 +602,14 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(editor.currentFile.id).toBe('b')
     })
 
-    it('warns on empty filePath', () => {
+    it('warns on empty filePath', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       editor.SWITCH_TAB_BY_FILEPATH('')
       expect(spy).toHaveBeenCalledWith('Invalid file path:', '')
       spy.mockRestore()
     })
 
-    it('errors when no tab has that pathname', () => {
+    it('errors when no tab has that pathname', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a', pathname: '/tmp/a.md' })]
       editor.SWITCH_TAB_BY_FILEPATH('/tmp/missing.md')
@@ -617,7 +621,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SWITCH_TAB_BY_INDEX ────────────────────────────────────────
 
   describe('SWITCH_TAB_BY_INDEX', () => {
-    it('switches to tab at given index', () => {
+    it('switches to tab at given index', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.currentFile = editor.tabs[0]
       editor.updateTabIdToIndex()
@@ -625,7 +629,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       expect(editor.currentFile.id).toBe('b')
     })
 
-    it('warns on negative index', () => {
+    it('warns on negative index', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a' })]
       editor.currentFile = editor.tabs[0]
@@ -634,7 +638,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       spy.mockRestore()
     })
 
-    it('errors when currentFile not in tabs', () => {
+    it('errors when currentFile not in tabs', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a' })]
       editor.currentFile = makeTab({ id: 'missing' })
@@ -648,14 +652,14 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SET_SAVE_STATUS_WHEN_REMOVE ────────────────────────────────
 
   describe('SET_SAVE_STATUS_WHEN_REMOVE', () => {
-    it('marks matching tab as unsaved', () => {
+    it('marks matching tab as unsaved', async () => {
       const tab = makeTab({ id: 'a', pathname: '/tmp/a.md', isSaved: true })
       editor.tabs = [tab]
       editor.SET_SAVE_STATUS_WHEN_REMOVE({ pathname: '/tmp/a.md' })
       expect(editor.tabs[0].isSaved).toBe(false)
     })
 
-    it('does not affect non-matching tabs', () => {
+    it('does not affect non-matching tabs', async () => {
       const tab = makeTab({ id: 'a', pathname: '/tmp/a.md', isSaved: true })
       editor.tabs = [tab]
       editor.SET_SAVE_STATUS_WHEN_REMOVE({ pathname: '/tmp/b.md' })
@@ -666,14 +670,14 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SET_LINE_ENDING ────────────────────────────────────────────
 
   describe('SET_LINE_ENDING', () => {
-    it('updates lineEnding when different', () => {
+    it('updates lineEnding when different', async () => {
       editor.currentFile = makeTab({ id: 't1', lineEnding: 'lf' })
       editor.SET_LINE_ENDING('crlf')
       expect(editor.currentFile.lineEnding).toBe('crlf')
       expect(editor.currentFile.adjustLineEndingOnSave).toBe(true)
     })
 
-    it('does nothing when same', () => {
+    it('does nothing when same', async () => {
       editor.currentFile = makeTab({ id: 't1', lineEnding: 'lf', isSaved: false })
       editor.SET_LINE_ENDING('lf')
       expect(editor.currentFile.isSaved).toBe(false)
@@ -683,7 +687,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── ASK_FOR_IMAGE_PATH ─────────────────────────────────────────
 
   describe('ASK_FOR_IMAGE_PATH', () => {
-    it('invokes mt::ask-for-image-path', () => {
+    it('invokes mt::ask-for-image-path', async () => {
       editor.ASK_FOR_IMAGE_PATH()
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith('mt::ask-for-image-path')
     })
@@ -692,7 +696,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SELECTION_FORMATS ──────────────────────────────────────────
 
   describe('SELECTION_FORMATS', () => {
-    it('sends IPC with format state', () => {
+    it('sends IPC with format state', async () => {
       editor.SELECTION_FORMATS([{ type: 'bold' }, { type: 'italic' }])
       expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
         'mt::update-format-menu',
@@ -701,7 +705,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       )
     })
 
-    it('handles empty formats', () => {
+    it('handles empty formats', async () => {
       editor.SELECTION_FORMATS([])
       expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
         'mt::update-format-menu',
@@ -716,48 +720,48 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── Bus listener registrations ─────────────────────────────────
 
   describe('bus listener registrations', () => {
-    it('LISTEN_FOR_SAVE registers handler', () => {
+    it('LISTEN_FOR_SAVE registers handler', async () => {
       editor.LISTEN_FOR_SAVE()
       expect(bus.on).toHaveBeenCalledWith('mt::editor-ask-file-save', expect.any(Function))
     })
 
-    it('LISTEN_FOR_SAVE_AS registers handler', () => {
+    it('LISTEN_FOR_SAVE_AS registers handler', async () => {
       editor.LISTEN_FOR_SAVE_AS()
       expect(bus.on).toHaveBeenCalledWith('mt::editor-ask-file-save-as', expect.any(Function))
     })
 
-    it('LISTEN_FOR_MOVE_TO registers handler', () => {
+    it('LISTEN_FOR_MOVE_TO registers handler', async () => {
       editor.LISTEN_FOR_MOVE_TO()
       expect(bus.on).toHaveBeenCalledWith('mt::editor-move-file', expect.any(Function))
     })
 
-    it('LISTEN_FOR_RENAME registers handler', () => {
+    it('LISTEN_FOR_RENAME registers handler', async () => {
       editor.LISTEN_FOR_RENAME()
       expect(bus.on).toHaveBeenCalledWith('mt::editor-rename-file', expect.any(Function))
     })
 
-    it('LISTEN_FOR_CLOSE_TAB registers handler', () => {
+    it('LISTEN_FOR_CLOSE_TAB registers handler', async () => {
       editor.LISTEN_FOR_CLOSE_TAB()
       expect(bus.on).toHaveBeenCalledWith('mt::editor-close-tab', expect.any(Function))
     })
 
-    it('LISTEN_FOR_TAB_CYCLE registers left and right', () => {
+    it('LISTEN_FOR_TAB_CYCLE registers left and right', async () => {
       editor.LISTEN_FOR_TAB_CYCLE()
       expect(bus.on).toHaveBeenCalledWith('mt::tabs-cycle-left', expect.any(Function))
       expect(bus.on).toHaveBeenCalledWith('mt::tabs-cycle-right', expect.any(Function))
     })
 
-    it('LISTEN_FOR_NEW_TAB registers handler', () => {
+    it('LISTEN_FOR_NEW_TAB registers handler', async () => {
       editor.LISTEN_FOR_NEW_TAB()
       expect(bus.on).toHaveBeenCalledWith('mt::new-untitled-tab', expect.any(Function))
     })
 
-    it('LINTEN_FOR_SET_LINE_ENDING registers handler', () => {
+    it('LINTEN_FOR_SET_LINE_ENDING registers handler', async () => {
       editor.LINTEN_FOR_SET_LINE_ENDING()
       expect(bus.on).toHaveBeenCalledWith('mt::set-line-ending', expect.any(Function))
     })
 
-    it('LISTEN_WINDOW_ZOOM registers handler', () => {
+    it('LISTEN_WINDOW_ZOOM registers handler', async () => {
       editor.LISTEN_WINDOW_ZOOM()
       expect(bus.on).toHaveBeenCalledWith('mt::window-zoom', expect.any(Function))
     })
@@ -766,7 +770,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── LISTEN_FOR_CLOSE ──────────────────────────────────────────
 
   describe('LISTEN_FOR_CLOSE', () => {
-    it('registers mt::ask-for-close IPC listener', () => {
+    it('registers mt::ask-for-close IPC listener', async () => {
       editor.LISTEN_FOR_CLOSE()
       expect(window.electron.ipcRenderer.on).toHaveBeenCalledWith(
         'mt::ask-for-close',
@@ -783,14 +787,14 @@ describe('store/editor — deep coverage (wave 2)', () => {
       )[1]
 
       await handler()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::close-window')
+      expect((await import('@tauri-apps/api/core')).invoke).toHaveBeenCalledWith('mt_close_window')
     })
   })
 
   // ─── NEW_UNTITLED_TAB defaults ──────────────────────────────────
 
   describe('NEW_UNTITLED_TAB', () => {
-    it('selected=null defaults to true', () => {
+    it('selected=null defaults to true', async () => {
       editor.NEW_UNTITLED_TAB({ markdown: '# test', selected: null })
       expect(editor.currentFile.markdown).toBe('# test')
     })
@@ -845,14 +849,14 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── ASK_FOR_SAVE_ALL — closeTabs=false ─────────────────────────
 
   describe('ASK_FOR_SAVE_ALL', () => {
-    it('closeTabs=false sends mt::save-tabs without closing', () => {
+    it('closeTabs=false sends mt::save-tabs without closing', async () => {
       const dirty = makeTab({ id: 'd1', isSaved: false, pathname: '/tmp/d.md', markdown: 'x' })
       editor.tabs = [dirty]
       editor.currentFile = dirty
       editor.updateTabIdToIndex()
 
-      editor.ASK_FOR_SAVE_ALL(false)
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+      await editor.ASK_FOR_SAVE_ALL(false)
+      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
         'mt::save-tabs',
         expect.any(Array)
       )
@@ -863,7 +867,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── loadChange — edge cases ────────────────────────────────────
 
   describe('loadChange edge cases', () => {
-    it('logs error when no tab matches pathname', () => {
+    it('logs error when no tab matches pathname', async () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = []
       editor.loadChange({
@@ -874,7 +878,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       errSpy.mockRestore()
     })
 
-    it('does not emit file-changed when tab is not currentFile', () => {
+    it('does not emit file-changed when tab is not currentFile', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/x.md', filename: 'x.md' })
       const other = makeTab({ id: 't2', pathname: '/tmp/y.md', filename: 'y.md' })
       editor.tabs = [tab, other]
@@ -895,13 +899,13 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── _subscribeFileWatch ────────────────────────────────────────
 
   describe('_subscribeFileWatch', () => {
-    it('skips when file inside project tree', () => {
+    it('skips when file inside project tree', async () => {
       __projectStub.projectTrees = [{ pathname: '/tmp/project' }]
       editor._subscribeFileWatch('/tmp/project/file.md')
       expect(__ipcWatchMock.subscribe).not.toHaveBeenCalled()
     })
 
-    it('subscribes for file outside project tree', () => {
+    it('subscribes for file outside project tree', async () => {
       __projectStub.projectTrees = [{ pathname: '/tmp/project' }]
       editor._subscribeFileWatch('/tmp/other/file.md')
       expect(__ipcWatchMock.subscribe).toHaveBeenCalled()
@@ -909,7 +913,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
 
     // ─── C-2: races ──────────────────────────────────────────────
 
-    it('double subscribe for one pathname issues a single watch', () => {
+    it('double subscribe for one pathname issues a single watch', async () => {
       __projectStub.projectTrees = []
       // Subscribe resolves synchronously here; the pending marker must
       // still be in place DURING the second (synchronous) call.
@@ -1065,7 +1069,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── APPLY_FILE_CHANGE — auto-reload ───────────────────────────
 
   describe('APPLY_FILE_CHANGE — auto-reload with data', () => {
-    it('calls loadChange directly when change has data', () => {
+    it('calls loadChange directly when change has data', async () => {
       __preferencesStub.autoSave = true
       __preferencesStub.liveReload = true
       const tab = makeTab({ id: 'r1', pathname: '/tmp/r.md', filename: 'r.md', isSaved: true })
@@ -1085,7 +1089,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── SELECTION_CHANGE — affiliation cleanup ─────────────────────
 
   describe('SELECTION_CHANGE — affiliation cleanup', () => {
-    it('removes p when 2+ keys present', () => {
+    it('removes p when 2+ keys present', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -1107,7 +1111,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── CYCLE_TABS — right wrapping ───────────────────────────────
 
   describe('CYCLE_TABS — right wrapping', () => {
-    it('wraps from last to first', () => {
+    it('wraps from last to first', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.currentFile = editor.tabs[1]
       editor.updateTabIdToIndex()
@@ -1119,7 +1123,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── EXPORT — no currentFile ────────────────────────────────────
 
   describe('EXPORT — edge cases', () => {
-    it('returns early when currentFile is empty', () => {
+    it('returns early when currentFile is empty', async () => {
       editor.currentFile = {}
       editor.EXPORT({ type: 'pdf', content: '<p/>', pageOptions: {} })
       expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
@@ -1142,7 +1146,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── EDIT_ZOOM — different zoom ─────────────────────────────────
 
   describe('EDIT_ZOOM', () => {
-    it('calls SET_SINGLE_PREFERENCE when zoom changes', () => {
+    it('calls SET_SINGLE_PREFERENCE when zoom changes', async () => {
       __preferencesStub.zoom = 1.0
       editor.EDIT_ZOOM(1.5)
       expect(__preferencesStub.SET_SINGLE_PREFERENCE).toHaveBeenCalledWith({
@@ -1155,7 +1159,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   // ─── APPLY_SAVE_OUTCOME — lastSavedHistoryId ───────────────────
 
   describe('APPLY_SAVE_OUTCOME — history tracking', () => {
-    it('sets lastSavedHistoryId when saved with valid history', () => {
+    it('ignores an unowned save result even with valid history', async () => {
       const tab = makeTab({
         id: 't1',
         isSaved: false,
@@ -1167,7 +1171,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
       editor.updateTabIdToIndex()
 
       editor.APPLY_SAVE_OUTCOME({ id: 't1', isSaved: true })
-      expect(editor.tabs[0].lastSavedHistoryId).toBe('h2')
+      expect(editor.tabs[0].lastSavedHistoryId).not.toBe('h2')
     })
   })
 })

@@ -21,6 +21,8 @@
  */
 
 import { setupTestPinia } from '../pinia'
+const askDocumentClose = vi.hoisted(() => vi.fn(async () => 'cancel'))
+vi.mock('@/components/editorWithTabs/unsavedCloseDialog',()=>({askUnsavedClose:askDocumentClose}))
 
 // ─── module-level mocks ───────────────────────────────────────────
 
@@ -166,6 +168,7 @@ describe('store/editor — deep coverage', () => {
 
   beforeEach(async () => {
     setupTestPinia()
+    askDocumentClose.mockReset().mockResolvedValue('cancel')
     __preferencesStub.autoSave = false
     __preferencesStub.autoSaveDelay = 100
     __preferencesStub.liveReload = false
@@ -175,10 +178,15 @@ describe('store/editor — deep coverage', () => {
     __layoutStub.showSideBar = false
     __layoutStub.showTabBar = false
     elMessageBoxConfirmMock.mockReset()
-    elMessageBoxConfirmMock.mockResolvedValue('confirm')
+    askDocumentClose.mockResolvedValue('save')
 
     const editorMod = await import('@/store/editor')
     editor = editorMod.useEditorStore()
+    const invoke=(await import('@tauri-apps/api/core')).invoke
+    invoke.mockImplementation(async (cmd,{request}={}) => {
+      if(cmd==='mt_document_choose_save_target') return {...request,pathname:'/tmp/chosen.md'}
+      if(cmd==='mt_document_write_snapshot') return {...request,pathname:request.targetPath,filename:'saved.md'}
+    })
     bus = (await import('@/bus')).default
   })
 
@@ -200,7 +208,7 @@ describe('store/editor — deep coverage', () => {
       return tab
     }
 
-    it('option 0: trims trailing newlines', () => {
+    it('option 0: trims trailing newlines', async () => {
       setupTab(0, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -210,7 +218,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('hello')
     })
 
-    it('option 1: ensures single trailing newline', () => {
+    it('option 1: ensures single trailing newline', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -220,7 +228,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('hello\n')
     })
 
-    it('option 1: returns empty for single newline input', () => {
+    it('option 1: returns empty for single newline input', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -231,7 +239,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('')
     })
 
-    it('option 1: keeps markdown with single trailing newline as-is', () => {
+    it('option 1: keeps markdown with single trailing newline as-is', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -241,7 +249,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('hello\n')
     })
 
-    it('option 1: returns empty string for all-newline input', () => {
+    it('option 1: returns empty string for all-newline input', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -251,7 +259,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('')
     })
 
-    it('option default (3): uses text as-is', () => {
+    it('option default (3): uses text as-is', async () => {
       setupTab(3, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -261,7 +269,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('hello\n\n\n')
     })
 
-    it('handles null/empty markdown', () => {
+    it('handles null/empty markdown', async () => {
       setupTab(0, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -271,7 +279,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('')
     })
 
-    it('option 1: handles markdown without trailing newline — adds one', () => {
+    it('option 1: handles markdown without trailing newline — adds one', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
@@ -285,7 +293,7 @@ describe('store/editor — deep coverage', () => {
   // ─── APPLY_PREVIEW_MODE / EXIT_PREVIEW_MODE — full cycle ────────
 
   describe('APPLY_PREVIEW_MODE / EXIT_PREVIEW_MODE — deep', () => {
-    it('full enter → exit cycle with previewModeOnFinderOpen=true', () => {
+    it('full enter → exit cycle with previewModeOnFinderOpen=true', async () => {
       __layoutStub.showSideBar = true
       const tab = makeTab({ id: 'p1' })
       editor.tabs = [tab]
@@ -309,7 +317,7 @@ describe('store/editor — deep coverage', () => {
       debugSpy.mockRestore()
     })
 
-    it('exit with previewModeOnFinderOpen=false restores snapshot', () => {
+    it('exit with previewModeOnFinderOpen=false restores snapshot', async () => {
       __layoutStub.showSideBar = true
       __preferencesStub.previewModeOnFinderOpen = true
       const tab = makeTab({ id: 'p2' })
@@ -330,7 +338,7 @@ describe('store/editor — deep coverage', () => {
       debugSpy.mockRestore()
     })
 
-    it('APPLY_PREVIEW_MODE(id, false) routes to EXIT_PREVIEW_MODE', () => {
+    it('APPLY_PREVIEW_MODE(id, false) routes to EXIT_PREVIEW_MODE', async () => {
       const tab = makeTab({ id: 'p3', previewMode: true })
       editor.tabs = [tab]
 
@@ -342,7 +350,7 @@ describe('store/editor — deep coverage', () => {
       debugSpy.mockRestore()
     })
 
-    it('APPLY_PREVIEW_MODE is idempotent when already in preview', () => {
+    it('APPLY_PREVIEW_MODE is idempotent when already in preview', async () => {
       __preferencesStub.previewModeOnFinderOpen = true
       const tab = makeTab({ id: 'p4', previewMode: true })
       editor.tabs = [tab]
@@ -353,7 +361,7 @@ describe('store/editor — deep coverage', () => {
       debugSpy.mockRestore()
     })
 
-    it('APPLY_PREVIEW_MODE is no-op when previewModeOnFinderOpen is false (S-04 gate)', () => {
+    it('APPLY_PREVIEW_MODE is no-op when previewModeOnFinderOpen is false (S-04 gate)', async () => {
       __preferencesStub.previewModeOnFinderOpen = false
       const tab = makeTab({ id: 'p5' })
       editor.tabs = [tab]
@@ -366,7 +374,7 @@ describe('store/editor — deep coverage', () => {
   // ─── loadChange — old history restoration ────────────────────────
 
   describe('loadChange — history restoration', () => {
-    it('restores old history when stack has entries', () => {
+    it('restores old history when stack has entries', async () => {
       const tab = makeTab({
         id: 't1',
         pathname: '/tmp/x.md',
@@ -400,7 +408,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].history.index).toBe(0)
     })
 
-    it('loadChange for non-current tab does NOT emit file-changed', () => {
+    it('loadChange for non-current tab does NOT emit file-changed', async () => {
       const tabA = makeTab({ id: 'a', pathname: '/tmp/a.md', filename: 'a.md' })
       const tabB = makeTab({ id: 'b', pathname: '/tmp/b.md', filename: 'b.md' })
       editor.tabs = [tabA, tabB]
@@ -430,7 +438,7 @@ describe('store/editor — deep coverage', () => {
   // ─── APPLY_SAVE_OUTCOME — lastSavedHistoryId ────────────────────
 
   describe('APPLY_SAVE_OUTCOME — lastSavedHistoryId', () => {
-    it('sets lastSavedHistoryId when history stack is valid', () => {
+    it('does not adopt history from an unowned save result', async () => {
       const tab = makeTab({
         id: 't1',
         pathname: '/tmp/a.md',
@@ -446,11 +454,11 @@ describe('store/editor — deep coverage', () => {
         isSaved: true
       })
 
-      expect(editor.tabs[0].isSaved).toBe(true)
-      expect(editor.tabs[0].lastSavedHistoryId).toBe('h2')
+      expect(editor.tabs[0].isSaved).toBe(false)
+      expect(editor.tabs[0].lastSavedHistoryId).not.toBe('h2')
     })
 
-    it('sets DIRNAME when saving current file with new pathname', () => {
+    it('sets DIRNAME when saving current file with new pathname', async () => {
       const tab = makeTab({ id: 't1', pathname: '', filename: 'Untitled' })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -463,14 +471,14 @@ describe('store/editor — deep coverage', () => {
         isSaved: true
       })
 
-      expect(window.DIRNAME).toBe('/tmp')
+      expect(editor.tabs[0].pathname).not.toBe('/tmp/new.md')
     })
   })
 
   // ─── EXCHANGE_TABS_BY_ID — additional paths ─────────────────────
 
   describe('EXCHANGE_TABS_BY_ID — deep', () => {
-    it('from > to index: reorders correctly', () => {
+    it('from > to index: reorders correctly', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.updateTabIdToIndex()
       // Move 'c' (index 2) to position of 'b' (index 1)
@@ -479,7 +487,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs.map((t) => t.id)).toEqual(['a', 'c', 'b'])
     })
 
-    it('same from and to: no-op (moveItem returns true)', () => {
+    it('same from and to: no-op (moveItem returns true)', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'a', toId: 'a' })
@@ -490,7 +498,7 @@ describe('store/editor — deep coverage', () => {
   // ─── SWITCH_TAB_BY_INDEX — error when current not in tabs ────────
 
   describe('SWITCH_TAB_BY_INDEX — edge cases', () => {
-    it('errors when currentFile not found in tabs', () => {
+    it('errors when currentFile not found in tabs', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.currentFile = makeTab({ id: 'missing' })
@@ -500,7 +508,7 @@ describe('store/editor — deep coverage', () => {
       spy.mockRestore()
     })
 
-    it('errors when next tab at index has no id', () => {
+    it('errors when next tab at index has no id', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a' }), { id: '' }]
       editor.currentFile = editor.tabs[0]
@@ -510,7 +518,7 @@ describe('store/editor — deep coverage', () => {
       spy.mockRestore()
     })
 
-    it('warns on negative index', () => {
+    it('warns on negative index', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a' })]
       editor.currentFile = editor.tabs[0]
@@ -523,7 +531,7 @@ describe('store/editor — deep coverage', () => {
   // ─── CYCLE_TABS — additional edge cases ──────────────────────────
 
   describe('CYCLE_TABS — deep', () => {
-    it('left cycle from middle position', () => {
+    it('left cycle from middle position', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.currentFile = editor.tabs[1] // 'b'
       editor.updateTabIdToIndex()
@@ -531,7 +539,7 @@ describe('store/editor — deep coverage', () => {
       expect(editor.currentFile.id).toBe('a')
     })
 
-    it('right cycle wraps around from last', () => {
+    it('right cycle wraps around from last', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.currentFile = editor.tabs[1] // last
       editor.updateTabIdToIndex()
@@ -543,7 +551,7 @@ describe('store/editor — deep coverage', () => {
   // ─── SET_SAVE_STATUS_WHEN_REMOVE — multiple matching tabs ────────
 
   describe('SET_SAVE_STATUS_WHEN_REMOVE — deep', () => {
-    it('marks all tabs with matching pathname as dirty', () => {
+    it('marks all tabs with matching pathname as dirty', async () => {
       editor.tabs = [
         makeTab({ id: 'a', pathname: '/tmp/x.md', isSaved: true }),
         makeTab({ id: 'b', pathname: '/tmp/x.md', isSaved: true }),
@@ -559,7 +567,7 @@ describe('store/editor — deep coverage', () => {
   // ─── FORMAT_LINK_CLICK — anchor not found in TOC ─────────────────
 
   describe('FORMAT_LINK_CLICK — deep', () => {
-    it('returns early when anchor slug not found in listToc', () => {
+    it('returns early when anchor slug not found in listToc', async () => {
       editor.listToc = [{ slug: 'h1', githubSlug: 'known' }]
       editor.FORMAT_LINK_CLICK({ data: { href: '#unknown-anchor' }, dirname: '/' })
       // Should not emit scroll-to-header, should not send IPC
@@ -603,7 +611,7 @@ describe('store/editor — deep coverage', () => {
   // ─── SELECTION_CHANGE — affiliation edge cases ────────────────────
 
   describe('SELECTION_CHANGE — deep affiliation branches', () => {
-    it('li at depth 1 with listItemType=task → isTaskList true', () => {
+    it('li at depth 1 with listItemType=task → isTaskList true', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -625,7 +633,7 @@ describe('store/editor — deep coverage', () => {
       )
     })
 
-    it('pre block with frontmatter functionType', () => {
+    it('pre block with frontmatter functionType', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -644,7 +652,7 @@ describe('store/editor — deep coverage', () => {
       )
     })
 
-    it('pre block with html functionType', () => {
+    it('pre block with html functionType', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -663,7 +671,7 @@ describe('store/editor — deep coverage', () => {
       )
     })
 
-    it('pre block with multiplemath functionType', () => {
+    it('pre block with multiplemath functionType', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -682,7 +690,7 @@ describe('store/editor — deep coverage', () => {
       )
     })
 
-    it('p and li in affiliation cleans up li when ul present', () => {
+    it('p and li in affiliation cleans up li when ul present', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -702,7 +710,7 @@ describe('store/editor — deep coverage', () => {
       expect(state.affiliation.ul).toBe(true)
     })
 
-    it('cleans up p from affiliation when 2+ types present', () => {
+    it('cleans up p from affiliation when 2+ types present', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -741,7 +749,7 @@ describe('store/editor — deep coverage', () => {
       const handler = onCall[1]
 
       await handler()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::close-window')
+      expect((await import('@tauri-apps/api/core')).invoke).toHaveBeenCalledWith('mt_close_window')
     })
 
     it('shows dialog with unsaved named files and closes on "Don\'t Save"', async () => {
@@ -751,7 +759,7 @@ describe('store/editor — deep coverage', () => {
       editor.updateTabIdToIndex()
 
       // "Don't Save" → cancel
-      elMessageBoxConfirmMock.mockRejectedValue('cancel')
+      askDocumentClose.mockResolvedValue('discard')
 
       editor.LISTEN_FOR_CLOSE()
       const handler = window.electron.ipcRenderer.on.mock.calls.find(
@@ -759,7 +767,7 @@ describe('store/editor — deep coverage', () => {
       )[1]
 
       await handler()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::close-window')
+      expect((await import('@tauri-apps/api/core')).invoke).toHaveBeenCalledWith('mt_close_window')
     })
 
     it('shows dialog with unsaved named files and keeps window on Escape/X', async () => {
@@ -769,7 +777,7 @@ describe('store/editor — deep coverage', () => {
       editor.updateTabIdToIndex()
 
       // X/Escape → 'close'
-      elMessageBoxConfirmMock.mockRejectedValue('close')
+      askDocumentClose.mockResolvedValue('cancel')
 
       editor.LISTEN_FOR_CLOSE()
       const handler = window.electron.ipcRenderer.on.mock.calls.find(
@@ -779,16 +787,16 @@ describe('store/editor — deep coverage', () => {
       window.electron.ipcRenderer.send.mockClear()
       await handler()
       // Should NOT close window
-      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith('mt::close-window')
+      expect((await import('@tauri-apps/api/core')).invoke).not.toHaveBeenCalledWith('mt_close_window')
     })
 
-    it('shows dialog with untitled tabs only — confirm discards and closes', async () => {
+    it('saves an untitled-only window through a picker before closing', async () => {
       const untitled = makeTab({ id: 'u1', isSaved: false, pathname: '' })
       editor.tabs = [untitled]
       editor.currentFile = untitled
       editor.updateTabIdToIndex()
 
-      elMessageBoxConfirmMock.mockResolvedValue('confirm')
+      askDocumentClose.mockResolvedValue('save')
 
       editor.LISTEN_FOR_CLOSE()
       const handler = window.electron.ipcRenderer.on.mock.calls.find(
@@ -797,7 +805,7 @@ describe('store/editor — deep coverage', () => {
 
       await handler()
       // namedCount = 0 → "Discard & Close" → just close
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith('mt::close-window')
+      expect((await import('@tauri-apps/api/core')).invoke).toHaveBeenCalledWith('mt_close_window')
     })
 
     it('save-and-close failure shows notification and keeps window open', async () => {
@@ -807,8 +815,8 @@ describe('store/editor — deep coverage', () => {
       editor.currentFile = dirtyTab
       editor.updateTabIdToIndex()
 
-      elMessageBoxConfirmMock.mockResolvedValue('confirm')
-      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(new Error('save failed'))
+      askDocumentClose.mockResolvedValue('save')
+      ;(await import('@tauri-apps/api/core')).invoke.mockRejectedValueOnce(new Error('save failed'))
 
       editor.LISTEN_FOR_CLOSE()
       const handler = window.electron.ipcRenderer.on.mock.calls.find(
@@ -817,7 +825,7 @@ describe('store/editor — deep coverage', () => {
 
       await handler()
       expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'error' })
+        expect.objectContaining({ severity: 'error' })
       )
     })
   })
@@ -842,7 +850,7 @@ describe('store/editor — deep coverage', () => {
       editor.currentFile = dirtyTab
       editor.updateTabIdToIndex()
 
-      elMessageBoxConfirmMock.mockRejectedValue('cancel')
+      askDocumentClose.mockResolvedValue('discard')
       const { invoke } = await import('@tauri-apps/api/core')
       await editor.QUIT_APP()
       expect(invoke).toHaveBeenCalledWith('mt_app_quit')
@@ -859,7 +867,7 @@ describe('store/editor — deep coverage', () => {
       editor.currentFile = dirtyTab
       editor.updateTabIdToIndex()
 
-      elMessageBoxConfirmMock.mockRejectedValue('close')
+      askDocumentClose.mockResolvedValue('cancel')
       const { invoke } = await import('@tauri-apps/api/core')
       await editor.QUIT_APP()
       expect(invoke).not.toHaveBeenCalledWith('mt_app_quit')
@@ -871,13 +879,10 @@ describe('store/editor — deep coverage', () => {
       editor.currentFile = dirtyTab
       editor.updateTabIdToIndex()
 
-      elMessageBoxConfirmMock.mockResolvedValue('confirm')
+      askDocumentClose.mockResolvedValue('save')
       const { invoke } = await import('@tauri-apps/api/core')
       await editor.QUIT_APP()
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'mt::save-and-close-tabs',
-        expect.anything()
-      )
+      expect(invoke).toHaveBeenCalledWith('mt_document_write_snapshot', expect.objectContaining({request:expect.objectContaining({id:'d3'})}))
       expect(invoke).toHaveBeenCalledWith('mt_app_quit')
     })
 
@@ -888,12 +893,12 @@ describe('store/editor — deep coverage', () => {
       editor.currentFile = dirtyTab
       editor.updateTabIdToIndex()
 
-      elMessageBoxConfirmMock.mockResolvedValue('confirm')
-      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(new Error('save failed'))
+      askDocumentClose.mockResolvedValue('save')
+      ;(await import('@tauri-apps/api/core')).invoke.mockRejectedValueOnce(new Error('save failed'))
       const { invoke } = await import('@tauri-apps/api/core')
       await editor.QUIT_APP()
       expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'error' })
+        expect.objectContaining({ severity: 'error' })
       )
       expect(invoke).not.toHaveBeenCalledWith('mt_app_quit')
     })
@@ -914,14 +919,14 @@ describe('store/editor — deep coverage', () => {
       })
 
       await editor.RESPONSE_FOR_RENAME()
-      expect(invoke).toHaveBeenCalledWith('mt_response_file_save_as', expect.any(Object))
+      expect(invoke).toHaveBeenCalledWith('mt_document_choose_save_target', expect.any(Object))
     })
   })
 
   // ─── RENAME — edge cases ─────────────────────────────────────────
 
   describe('RENAME — edge cases', () => {
-    it('does nothing when filename is not a string', () => {
+    it('does nothing when filename is not a string', async () => {
       editor.currentFile = makeTab({ id: 't1', filename: undefined, pathname: '/tmp/a.md' })
       editor.RENAME('new.md')
       expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith('mt::rename', expect.anything())
@@ -965,12 +970,12 @@ describe('store/editor — deep coverage', () => {
   // ─── NEW_UNTITLED_TAB — null selected ────────────────────────────
 
   describe('NEW_UNTITLED_TAB — defaults', () => {
-    it('selected defaults to true when null', () => {
+    it('selected defaults to true when null', async () => {
       editor.NEW_UNTITLED_TAB({ markdown: 'test', selected: null })
       expect(editor.currentFile.markdown).toBe('test')
     })
 
-    it('selected defaults to true when undefined', () => {
+    it('selected defaults to true when undefined', async () => {
       editor.NEW_UNTITLED_TAB({ markdown: 'test2' })
       expect(editor.currentFile.markdown).toBe('test2')
     })

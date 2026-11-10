@@ -475,3 +475,20 @@ describe('mounted rich owner — unified split requirements', () => {
     expect(bus.all.get('split:source-edit')).toHaveLength(0)
   })
 })
+
+// The mounted rich owner must expose the pending whole model before dirty checks.
+it('captures pending rich text and refuses mounted IME without changing the model', async () => {
+  const { documentOwner, captureDocumentSnapshot } = await import('@/util/documentSnapshot')
+  const rich = await mountOwner()
+  const owner = documentOwner(store.currentFile)
+  const revision = store.currentFile.contentRevision
+  expect(captureDocumentSnapshot(store, owner).snapshot.markdown).toBe(DOC)
+  expect(store.currentFile.contentRevision).toBe(revision)
+  rich.text += 'pending tail\n'
+  rich.container.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+  expect(captureDocumentSnapshot(store, owner).status).toBe('composing')
+  expect(store.currentFile.markdown).toBe(DOC)
+  rich.container.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }))
+  expect(captureDocumentSnapshot(store, owner).snapshot.markdown).toContain('pending tail')
+  expect(store.currentFile.isSaved).toBe(false)
+})

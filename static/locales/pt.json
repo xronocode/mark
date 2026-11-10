@@ -1808,5 +1808,24 @@
   },
   "extensions": {
     "disableFailed": "A extensão está desativada, mas não foi possível verificar a revogação do acesso. Tente novamente."
+  },
+  "documentOperations": {
+    "title": "Alterações não guardadas",
+    "message": "{names}\n\nGuardar alterações antes de fechar?",
+    "untitledMessage": "{names}\n\nGuardar antes de fechar? Escolha um local para cada documento sem título.",
+    "saveClose": "Guardar e fechar",
+    "saveQuit": "Guardar e sair",
+    "discard": "Descartar",
+    "cancel": "Cancelar",
+    "composing": "Conclua a introdução de texto e tente novamente. Os documentos continuam abertos: {names}",
+    "busy": "Está a decorrer uma gravação. Aguarde e tente novamente: {names}",
+    "collision": "Outro documento aberto utiliza esse destino. Ambos continuam abertos: {names}",
+    "changed": "Existem novas alterações não guardadas. Os documentos continuam abertos: {names}",
+    "new-dirty": "Um novo documento tem alterações não guardadas. O fecho foi interrompido.",
+    "stale": "O documento foi alterado ou reaberto. Inicie uma nova operação: {names}",
+    "unavailable": "O editor ainda está a mudar de documento. Tente novamente depois: {names}",
+    "failed": "Não foi possível guardar ou fechar. Os documentos continuam abertos: {names}",
+    "retryClose": "Guardar novamente e fechar",
+    "retrySave": "Guardar novamente"
   }
 }

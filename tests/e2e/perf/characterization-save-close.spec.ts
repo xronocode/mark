@@ -238,45 +238,30 @@ async function startSaveAs (page: any) {
   })
 }
 
-async function installSaveMock (page: any) {
+async function installSaveMock(page: any) {
   await page.evaluate(() => {
-    const w = window as any
-    w.__saveCalls = []
-    w.__mockInvoke.mt_response_file_save = (args: any) => {
-      w.__saveCalls.push(args)
-      return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
+    const w=window as any; w.__saveCalls=[]
+    w.__mockInvoke.mt_document_write_snapshot=({request}:any)=>{
+      w.__saveCalls.push({...request,pathname:request.targetPath,filename:request.targetPath.split('/').pop(),defaultPath:null})
+      return {...request,pathname:request.targetPath,filename:request.filename}
     }
   })
 }
-
-async function installPendingSaveMock (page: any) {
-  await page.evaluate(() => {
-    const w = window as any
-    w.__saveCalls = []
-    w.__saveResolve = null
-    w.__mockInvoke.mt_response_file_save = (args: any) => {
-      w.__saveCalls.push(args)
-      return new Promise((resolve) => {
-        w.__saveResolve = resolve
-      })
+async function installPendingSaveMock(page:any) {
+  await page.evaluate(()=>{
+    const w=window as any;w.__saveCalls=[]
+    w.__mockInvoke.mt_document_write_snapshot=({request}:any)=>{
+      w.__saveCalls.push(request)
+      return new Promise(resolve=>{w.__saveResolve=()=>resolve({...request,pathname:request.targetPath,filename:request.filename})})
     }
   })
 }
-
-async function installSaveAsMock (page: any, destination: string) {
-  await page.evaluate((dest: string) => {
-    const w = window as any
-    w.__saveAsCalls = []
-    w.__mockInvoke.mt_response_file_save_as = (args: any) => {
-      w.__saveAsCalls.push(args)
-      return {
-        id: args.id,
-        pathname: dest,
-        filename: dest.split('/').pop(),
-        isSaved: true
-      }
-    }
-  }, destination)
+async function installSaveAsMock(page:any,destination:string) {
+  await page.evaluate(dest=>{
+    const w=window as any;w.__saveAsCalls=[]
+    w.__mockInvoke.mt_document_choose_save_target=({request}:any)=>({...request,pathname:dest})
+    w.__mockInvoke.mt_document_write_snapshot=({request}:any)=>{w.__saveAsCalls.push(request);return {...request,pathname:request.targetPath,filename:dest.split('/').pop()}}
+  },destination)
 }
 
 async function invokeLog (page: any) {
@@ -348,549 +333,56 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
   // ------------------------------------------------------------------
   // 2. Dirty/saved state + revision ownership / stale ack
   // ------------------------------------------------------------------
-  test('contentRevision increments per edit and a stale save ack is blocked while the tab stays dirty', async ({ page }) => {
-    const observedLegacyBehavior =
-      'A save acknowledgement returned for revision N is applied to a tab already at revision N+1 only as a stale guard: APPLY_SAVE_OUTCOME logs [editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED], forces isSaved=false, leaves lastSavedHistoryId unchanged (no later revision becomes clean), and leaves the ignored write unexplained outside the console.'
-    const desiredInvariant =
-      'Every save acknowledgement must be attributed to the exact revision it wrote; a stale ack may never mark newer content saved, must keep the newer edit dirty, and the reconciled save state must be surfaced to the user and the session/journal rather than only logged.'
-    pushDualRecord(observedLegacyBehavior, desiredInvariant)
-
-    await openFixture(page)
-    const beforeEdit = await readTab(page)
-    await editTargetParagraph(page, 'A')
-    const afterFirstEdit = await readTab(page)
-    expect(afterFirstEdit.isSaved).toBe(false)
-    expect(afterFirstEdit.contentRevision).toBeGreaterThan(beforeEdit.contentRevision)
-
-    await installPendingSaveMock(page)
-    const atActionEntry = await startSave(page)
-    await page.waitForFunction(() => (window as any).__saveCalls.length === 1)
-    const revisionAtSave = await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      return store.currentFile.contentRevision
-    })
-    expect(revisionAtSave).toBe(afterFirstEdit.contentRevision)
-    const lastSavedBeforeStaleAck = afterFirstEdit.lastSavedHistoryId
-
-    await editTargetParagraph(page, 'B')
-    const afterSecondEdit = await readTab(page)
-    expect(afterSecondEdit.contentRevision).toBeGreaterThan(revisionAtSave)
-    expect(afterSecondEdit.markdown).toContain('BA' + TARGET_PARAGRAPH_TEXT)
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__warns = []
-      const originalWarn = console.warn.bind(console)
-      console.warn = (...parts: any[]) => {
-        w.__warns.push(parts.map(String).join(' '))
-        originalWarn(...parts)
-      }
-      w.__saveResolve({
-        id: w.__saveCalls[0].id,
-        pathname: w.__saveCalls[0].pathname,
-        filename: w.__saveCalls[0].filename,
-        isSaved: true
-      })
-    })
-    await page.waitForFunction(() =>
-      (window as any).__warns.some((line: string) => line.includes('BLOCK_STALE_SAVE_OUTCOME_IGNORED'))
-    )
-    const staleWarnings = await page.evaluate(() =>
-      (window as any).__warns.filter((line: string) => line.includes('BLOCK_STALE_SAVE_OUTCOME_IGNORED'))
-    )
-    expect(staleWarnings).toHaveLength(1)
-    expect(staleWarnings[0]).toContain(
-      `[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED id=${atActionEntry.id}]`
-    )
-
-    const afterStaleAck = await readTab(page)
-    expect(afterStaleAck.isSaved).toBe(false)
-    expect(afterStaleAck.lastSavedHistoryId).toBe(lastSavedBeforeStaleAck)
-    expect(afterStaleAck.markdown).toBe(afterSecondEdit.markdown)
-    expect(afterStaleAck.contentRevision).toBe(afterSecondEdit.contentRevision)
+  test('a late write acknowledgement keeps newer text dirty with a visible explanation',async({page})=>{
+    pushDualRecord('The old close/save acknowledgement could clean or discard later edits.','C-SAVE-CLOSE-DATA-SAFETY: keep newer text open and dirty; require explicit retry.')
+    await openFixture(page);await editTargetParagraph(page,'A');await installPendingSaveMock(page)
+    await startSave(page);await page.waitForFunction(()=>(window as any).__saveCalls.length===1)
+    await editTargetParagraph(page,'B');const newer=await readTab(page)
+    await page.evaluate(()=>(window as any).__saveResolve())
+    await expect(page.locator('.notification-card').first()).toBeVisible()
+    expect((await readTab(page)).markdown).toBe(newer.markdown);expect((await readTab(page)).isSaved).toBe(false)
   })
-
-  // ------------------------------------------------------------------
-  // 3a. Save As on an untitled tab
-  // ------------------------------------------------------------------
-  test('Save As sends the untitled tab payload and applies the acknowledged pathname/filename', async ({ page }) => {
-    await bootEditor(page)
-    const before = await readTab(page)
-    expect(before.pathname).toBe('')
-    expect(before.filename).toBe('Untitled-1')
-    await typeIntoUntitled(page, 'U')
-    const dirty = await readTab(page)
-    expect(dirty.markdown).toBe('U\n')
-
-    await installSaveAsMock(page, '/tmp/mark-e2e/save-as-dest.md')
-    const atActionEntry = await startSaveAs(page)
-    await page.waitForFunction(() => (window as any).__saveAsCalls.length === 1)
-    const call = await page.evaluate(() => (window as any).__saveAsCalls[0])
-
-    expect(call.id).toBe(atActionEntry.id)
-    expect(call.filename).toBe('Untitled-1')
-    expect(call.markdown).toBe(atActionEntry.markdown)
-    expect('defaultPath' in call).toBe(true)
-    expect(call.defaultPath).toBe(null)
-
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      return store.currentFile.pathname === '/tmp/mark-e2e/save-as-dest.md'
-    })
-    const state = await storeState(page)
-    expect(state.tabCount).toBe(1)
-    const after = state.tab!
-    expect(after.pathname).toBe('/tmp/mark-e2e/save-as-dest.md')
-    expect(after.filename).toBe('save-as-dest.md')
-    expect(after.isSaved).toBe(true)
-    expect(after.markdown).toBe(atActionEntry.markdown)
+  test('Save As adopts only the selected destination and exact current text',async({page})=>{
+    await bootEditor(page);await typeIntoUntitled(page,'Fresh draft');const before=await readTab(page)
+    await installSaveAsMock(page,'/tmp/mark-e2e/fresh.md');await startSaveAs(page)
+    await expect.poll(async()=>(await readTab(page)).pathname).toBe('/tmp/mark-e2e/fresh.md')
+    expect(await page.evaluate(()=>(window as any).__saveAsCalls[0].markdown)).toBe(before.markdown)
+    expect((await readTab(page)).isSaved).toBe(true)
   })
-
-  // ------------------------------------------------------------------
-  // 3b. Save As onto a destination owned by another tab
-  // ------------------------------------------------------------------
-  test('Save As onto a path owned by another tab closes that other tab (observed overwrite semantics)', async ({ page }) => {
-    const observedLegacyBehavior =
-      'Save As onto a pathname already owned by another saved tab calls APPLY_SAVE_OUTCOME, which finds that tab by path and closes it through CLOSE_TAB before rebinding the saving tab; the owner tab and its history disappear silently and the saving tab becomes the only owner of the path.'
-    const desiredInvariant =
-      'Save As must detect a destination owned by another tab before writing, surface an explicit overwrite/choose-another-path decision, and never close the owning tab as a side effect of applying a save acknowledgement; the decision and its outcome must be journaled.'
-    pushDualRecord(observedLegacyBehavior, desiredInvariant)
-
-    await bootEditor(page)
-    await openFileTab(page, '/tmp/mark-e2e/target.md', '# Target\n\nbody\n')
-    await expect(page.locator('.editor-with-tabs h1').first()).toBeVisible({ timeout: 5_000 })
-    const owner = await readTab(page)
-    expect(owner.pathname).toBe('/tmp/mark-e2e/target.md')
-    expect(owner.isSaved).toBe(true)
-
-    await page.evaluate(() => {
-      (window as any).__bus.emit('mt::new-untitled-tab', { selected: true, markdown: '' })
-    })
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      return store.tabs.length === 2 && !store.currentFile.pathname
-    })
-    await typeIntoUntitled(page, 'T')
-    const saving = await readTab(page)
-    expect(saving.id).not.toBe(owner.id)
-
-    await installSaveAsMock(page, '/tmp/mark-e2e/target.md')
-    await startSaveAs(page)
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      return store.tabs.length === 1
-    })
-    const after = await storeState(page)
-    expect(after.tabCount).toBe(1)
-    expect(after.ids).not.toContain(owner.id)
-    expect(after.tab).not.toBe(null)
-    expect(after.tab!.id).toBe(saving.id)
-    expect(after.tab!.pathname).toBe('/tmp/mark-e2e/target.md')
-    expect(after.tab!.filename).toBe('target.md')
-    expect(after.tab!.isSaved).toBe(true)
+  test('Save As cannot evict another open path owner',async({page})=>{
+    await openFixture(page);await openFileTab(page,'/tmp/mark-e2e/second.md','# Second\n\nBody.\n')
+    await installSaveAsMock(page,NAMED_PATH);await startSaveAs(page)
+    await expect(page.locator('.notification-card').first()).toBeVisible()
+    const state=await storeState(page);expect(state.ids).toHaveLength(2)
+    expect(await page.evaluate(()=>(window as any).__saveAsCalls.length)).toBe(0)
   })
-
-  // ------------------------------------------------------------------
-  // 4. Save All (ASK_FOR_SAVE_ALL(false))
-  // ------------------------------------------------------------------
-  test('Save All emits mt_save_tabs with the unsaved payload and applies no save outcome (observed no-op)', async ({ page }) => {
-    const observedLegacyBehavior =
-      'ASK_FOR_SAVE_ALL(false) sends the unsaved tab payload over the fire-and-forget mt::save-tabs channel (mt_save_tabs) and never applies a save outcome: the transport result is discarded, no tab becomes saved, dirty revisions and lastSavedHistoryId stay untouched, and the real backend command is not registered.'
-    const desiredInvariant =
-      'Save All must await one save transaction per targeted tab, apply each acknowledgement to the exact revision it wrote, surface partial failures, and leave no tab dirty that the backend actually saved; the transport must be registered and the outcome observable.'
-    pushDualRecord(observedLegacyBehavior, desiredInvariant)
-
-    await openFixture(page)
-    await editTargetParagraph(page, 'S')
-    const before = await readTab(page)
-    expect(before.isSaved).toBe(false)
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__saveAllCalls = []
-      w.__mockInvoke.mt_save_tabs = (args: any) => {
-        w.__saveAllCalls.push(args)
-        // Even an outcome-shaped reply is ignored: the store uses send().
-        return [{ id: args?.args?.[0]?.id, isSaved: true }]
-      }
-    })
-    await page.evaluate(() => {
-      const w = window as any
-      w.__invokeLog = []
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      store.ASK_FOR_SAVE_ALL(false)
-    })
-    await page.waitForFunction(() => (window as any).__saveAllCalls.length === 1)
-    const log = await invokeLog(page)
-    expect(log).toContain('mt_save_tabs')
-    expect(log).not.toContain('mt_response_file_save')
-
-    const call = await page.evaluate(() => (window as any).__saveAllCalls[0])
-    expect(Array.isArray(call.args)).toBe(true)
-    expect(call.args).toHaveLength(1)
-    const payload = call.args[0]
-    expect(payload.id).toBe(before.id)
-    expect(payload.pathname).toBe(NAMED_PATH)
-    expect(payload.filename).toBe('semantic-edge.md')
-    expect(payload.markdown).toBe(before.markdown)
-    expect(payload.options.lineEnding).toBe('lf')
-    expect(typeof payload.defaultPath).toBe('string')
-
-    // Give the fire-and-forget send a turn to settle before proving it applied
-    // nothing; no state transition exists to wait for.
-    await page.waitForTimeout(100)
-    const after = await readTab(page)
-    expect(after.isSaved).toBe(false)
-    expect(after.contentRevision).toBe(before.contentRevision)
-    expect(after.lastSavedHistoryId).toBe(before.lastSavedHistoryId)
-    expect(after.markdown).toBe(before.markdown)
+  test('Save All writes a dirty document over the registered transport and never closes it',async({page})=>{
+    await openFixture(page);await editTargetParagraph(page,'S');await installSaveMock(page)
+    await page.evaluate(async()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');await store.ASK_FOR_SAVE_ALL(false)})
+    expect(await page.evaluate(()=>(window as any).__saveCalls.length)).toBe(1)
+    expect((await readTab(page)).isSaved).toBe(true);expect((await storeState(page)).ids).toHaveLength(1)
   })
-
-  // ------------------------------------------------------------------
-  // 5a. Save & Close of a dirty named tab, backend ack present
-  // ------------------------------------------------------------------
-  test('Save & Close sends mt_save_and_close_tabs with the tab payload and closes on the backend close ack', async ({ page }) => {
-    const observedLegacyBehavior =
-      'Save & Close for a named dirty tab sends one fire-and-forget mt::save-and-close-tabs payload through ipcRenderer.send and returns without awaiting the result; the tab closes only when the backend mt::force-close-tabs-by-id event arrives, and the renderer does not bind that close to the revision the payload captured.'
-    const desiredInvariant =
-      'Save & Close must be one awaited renderer transaction: write the captured revision, close the tab only on an acknowledgement for that exact revision, and keep the tab open with its edits intact if the acknowledgement is absent, stale or failed.'
-    pushDualRecord(observedLegacyBehavior, desiredInvariant)
-
-    await openFixture(page)
-    await editTargetParagraph(page, 'W')
-    const beforeClose = await readTab(page)
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__saveCloseCalls = []
-      w.__mockInvoke.mt_save_and_close_tabs = (args: any) => {
-        w.__saveCloseCalls.push(args)
-        // Mimic the real backend: save, then emit the force-close ack.
-        return Promise.resolve(null).then(() => {
-          w.__emitFakeEvent('mt::force-close-tabs-by-id', [args.args[0].id])
-        })
-      }
-    })
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      store.CLOSE_TAB()
-    })
-    const dialog = page.locator('.ag-unsaved-close-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5_000 })
-    await page.locator('.ag-unsaved-close-save').click()
-    await expect(dialog).toBeHidden({ timeout: 5_000 })
-    await page.waitForFunction(() => (window as any).__saveCloseCalls.length === 1)
-    const call = await page.evaluate(() => (window as any).__saveCloseCalls[0])
-    expect(Array.isArray(call.args)).toBe(true)
-    expect(call.args).toHaveLength(1)
-    const payload = call.args[0]
-    expect(payload.id).toBe(beforeClose.id)
-    expect(payload.pathname).toBe(NAMED_PATH)
-    expect(payload.filename).toBe('semantic-edge.md')
-    expect(payload.markdown).toBe(beforeClose.markdown)
-    expect(payload.options.lineEnding).toBe('lf')
-
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      return store.tabs.length === 0
-    })
-    const after = await storeState(page)
-    expect(after.tabCount).toBe(0)
+  test('Save and Close waits for a real correlated write and ignores a bare close event',async({page})=>{
+    await openFixture(page);await editTargetParagraph(page,'C');await installPendingSaveMock(page)
+    await page.evaluate(()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');void store.CLOSE_TAB()})
+    await page.locator('.ag-unsaved-close-save').click();await page.waitForFunction(()=>(window as any).__saveCalls.length===1)
+    await page.evaluate(()=>{const w=window as any;w.__emitFakeEvent('mt::force-close-tabs-by-id',[w.__saveCalls[0].id])})
+    expect((await storeState(page)).ids).toHaveLength(1)
+    await page.evaluate(()=>(window as any).__saveResolve())
+    await expect.poll(async()=>(await storeState(page)).ids.length).toBe(0)
   })
-
-  // ------------------------------------------------------------------
-  // 5b. Save & Close, cancelled/absent ack
-  // ------------------------------------------------------------------
-  test('Save & Close with an absent backend ack keeps the tab and its content open', async ({ page }) => {
-    const observedLegacyBehavior =
-      'Save & Close for a named tab resolves the dialog immediately after sending the payload; with no backend acknowledgement the tab remains open and dirty, the content survives, and the user receives no completion or failure signal for the save-and-close request.'
-    const desiredInvariant =
-      'An absent, cancelled or failed save-and-close acknowledgement must be an explicit observable outcome (failure/cancel state), must never be indistinguishable from success, and must keep the tab and its edits open.'
-    pushDualRecord(observedLegacyBehavior, desiredInvariant)
-
-    await openFixture(page)
-    await editTargetParagraph(page, 'X')
-    const beforeClose = await readTab(page)
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__saveCloseCalls = []
-      w.__mockInvoke.mt_save_and_close_tabs = (args: any) => {
-        w.__saveCloseCalls.push(args)
-        return null
-      }
+  for(const action of ['save','discard','cancel']) {
+    test(`untitled Quit has a distinct ${action} decision`,async({page})=>{
+      await bootEditor(page);await typeIntoUntitled(page,'Keep my draft');await installSaveAsMock(page,'/tmp/mark-e2e/quit-draft.md')
+      await page.evaluate(()=>{const w=window as any;w.__quitCalls=0;w.__mockInvoke.mt_app_quit=()=>{w.__quitCalls++;return null};const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');void store.QUIT_APP()})
+      await expect(page.locator('.ag-unsaved-close-dialog')).toBeVisible()
+      await page.locator(`.ag-unsaved-close-${action}`).click()
+      if(action==='cancel'){expect(await page.evaluate(()=>(window as any).__quitCalls)).toBe(0);expect((await readTab(page)).isSaved).toBe(false)}
+      else {await expect.poll(()=>page.evaluate(()=>(window as any).__quitCalls)).toBe(1)}
+      expect(await page.evaluate(()=>(window as any).__saveAsCalls.length)).toBe(action==='save'?1:0)
     })
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      store.CLOSE_TAB()
-    })
-    const dialog = page.locator('.ag-unsaved-close-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5_000 })
-    await page.locator('.ag-unsaved-close-save').click()
-    await expect(dialog).toBeHidden({ timeout: 5_000 })
-    await page.waitForFunction(() => (window as any).__saveCloseCalls.length === 1)
-    // Settle the fire-and-forget send before proving it applied nothing.
-    await page.waitForTimeout(100)
+  }
 
-    const after = await readTab(page)
-    expect(after.id).toBe(beforeClose.id)
-    expect(after.isSaved).toBe(false)
-    expect(after.markdown).toBe(beforeClose.markdown)
-    expect(after.markdown).toContain('X' + TARGET_PARAGRAPH_TEXT)
-    const state = await storeState(page)
-    expect(state.tabCount).toBe(1)
-  })
-
-  // ------------------------------------------------------------------
-  // 6. Edit-after-payload-before-close race
-  // ------------------------------------------------------------------
-  test('an edit typed while save-and-close is pending is absent from the payload and is lost when the backend closes the tab', async ({ page }) => {
-    const observedLegacyBehavior =
-      'The save-and-close payload is snapshotted when the dialog is confirmed. An edit typed while the transport is pending is neither in that payload nor sent by any later transport; when the backend later emits mt::force-close-tabs-by-id the tab closes and the late edit disappears silently, with no payload carrying it.'
-    const desiredInvariant =
-      'A close request must be bound to the revision it captured: any newer edit before the close acknowledgement must abort the close (or trigger a fresh save of the newer revision) and must never be discarded silently; the abort reason must be observable.'
-    pushDualRecord(observedLegacyBehavior, desiredInvariant)
-
-    await openFixture(page)
-    await editTargetParagraph(page, 'R')
-    const beforeClose = await readTab(page)
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__saveCloseCalls = []
-      w.__mockInvoke.mt_save_and_close_tabs = (args: any) => {
-        w.__saveCloseCalls.push(args)
-        return new Promise((resolve) => {
-          w.__saveCloseResolve = () => {
-            resolve(null)
-            w.__emitFakeEvent('mt::force-close-tabs-by-id', [args.args[0].id])
-          }
-        })
-      }
-    })
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      store.CLOSE_TAB()
-    })
-    const dialog = page.locator('.ag-unsaved-close-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5_000 })
-    await page.locator('.ag-unsaved-close-save').click()
-    await expect(dialog).toBeHidden({ timeout: 5_000 })
-    await page.waitForFunction(() => (window as any).__saveCloseCalls.length === 1)
-
-    await editTargetParagraph(page, 'LATE')
-    const duringPending = await readTab(page)
-    expect(duringPending.markdown).toContain('LATE')
-    expect(duringPending.contentRevision).toBeGreaterThan(beforeClose.contentRevision)
-
-    const pendingPayload = await page.evaluate(() => (window as any).__saveCloseCalls[0].args[0])
-    expect(pendingPayload.markdown).toBe(beforeClose.markdown)
-    expect(pendingPayload.markdown).not.toContain('LATE')
-
-    await page.evaluate(() => (window as any).__saveCloseResolve())
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      return store.tabs.length === 0
-    })
-    const after = await storeState(page)
-    expect(after.tabCount).toBe(0)
-    // No transport ever carried the late edit.
-    const everyPayload = await page.evaluate(() =>
-      JSON.stringify((window as any).__saveCloseCalls)
-    )
-    expect(everyPayload).not.toContain('LATE')
-  })
-
-  // ------------------------------------------------------------------
-  // 7a. Quit payload — dirty named tab
-  // ------------------------------------------------------------------
-  test('QUIT_APP with a dirty named tab confirms, sends mt_save_and_close_tabs, then mt_app_quit', async ({ page }) => {
-    await openFixture(page)
-    await editTargetParagraph(page, 'Q')
-    const beforeQuit = await readTab(page)
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__invokeLog = []
-      w.__quitSaveCalls = []
-      w.__quitCalls = 0
-      w.__mockInvoke.mt_save_and_close_tabs = (args: any) => {
-        w.__quitSaveCalls.push(args)
-        return null
-      }
-      w.__mockInvoke.mt_app_quit = () => {
-        w.__quitCalls += 1
-        return null
-      }
-    })
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      void store.QUIT_APP()
-    })
-    const box = page.locator('.el-message-box')
-    await expect(box).toBeVisible({ timeout: 5_000 })
-    expect(await box.locator('.el-message-box__title').innerText()).toBe('Unsaved changes')
-    const buttons = await box.locator('.el-button').allInnerTexts()
-    expect(buttons.map((text: string) => text.trim())).toEqual(["Don't Save", 'Save & Quit'])
-
-    await box.locator('.el-button--primary').click()
-    await page.waitForFunction(() => (window as any).__quitCalls === 1)
-    // Flush the session writes that precede mt_app_quit in the same action.
-    await page.waitForTimeout(100)
-    const log: string[] = await invokeLog(page)
-    expect(log).toContain('mt_save_and_close_tabs')
-    expect(log).toContain('mt_app_quit')
-    expect(log.indexOf('mt_save_and_close_tabs')).toBeLessThan(log.indexOf('mt_app_quit'))
-    // The session snapshot is written between the save-and-close transport and
-    // the quit itself (prefs set through mt::prefs::set -> mt_prefs_set).
-    expect(log.indexOf('mt_prefs_set')).toBeGreaterThan(log.indexOf('mt_save_and_close_tabs'))
-    expect(log.indexOf('mt_prefs_set')).toBeLessThan(log.indexOf('mt_app_quit'))
-
-    const calls = await page.evaluate(() => (window as any).__quitSaveCalls)
-    expect(calls).toHaveLength(1)
-    expect(Array.isArray(calls[0].args)).toBe(true)
-    const payload = calls[0].args[0]
-    expect(payload.id).toBe(beforeQuit.id)
-    expect(payload.pathname).toBe(NAMED_PATH)
-    expect(payload.filename).toBe('semantic-edge.md')
-    expect(payload.markdown).toBe(beforeQuit.markdown)
-    expect(typeof payload.defaultPath).toBe('string')
-    expect(payload.options.lineEnding).toBe('lf')
-  })
-
-  // ------------------------------------------------------------------
-  // 7b. Quit payload — only untitled dirty tabs
-  // ------------------------------------------------------------------
-  test('QUIT_APP with only an untitled dirty tab quits without any save transport', async ({ page }) => {
-    await bootEditor(page)
-    expect((await storeState(page)).tabCount).toBe(1)
-    await typeIntoUntitled(page, 'U')
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__invokeLog = []
-      w.__quitCalls = 0
-      w.__mockInvoke.mt_save_and_close_tabs = () => {
-        w.__untitledSaveCalled = true
-        return null
-      }
-      w.__mockInvoke.mt_save_tabs = () => {
-        w.__untitledBatchSaveCalled = true
-        return null
-      }
-      w.__mockInvoke.mt_app_quit = () => {
-        w.__quitCalls += 1
-        return null
-      }
-    })
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      void store.QUIT_APP()
-    })
-    const box = page.locator('.el-message-box')
-    await expect(box).toBeVisible({ timeout: 5_000 })
-    const buttons = await box.locator('.el-button').allInnerTexts()
-    expect(buttons.map((text: string) => text.trim())).toEqual(["Don't Save", 'Discard & Quit'])
-    expect(await box.locator('.el-message-box__message').innerText()).toContain('untitled')
-
-    await box.locator('.el-button--primary').click()
-    await page.waitForFunction(() => (window as any).__quitCalls === 1)
-    // Flush the session writes that precede mt_app_quit in the same action.
-    await page.waitForTimeout(100)
-    const log: string[] = await invokeLog(page)
-    expect(log).toContain('mt_app_quit')
-    expect(log).not.toContain('mt_save_and_close_tabs')
-    expect(log).not.toContain('mt_save_tabs')
-    expect(await page.evaluate(() => !!(window as any).__untitledSaveCalled)).toBe(false)
-    expect(await page.evaluate(() => !!(window as any).__untitledBatchSaveCalled)).toBe(false)
-  })
-
-  // ------------------------------------------------------------------
-  // 7c. Quit cancel / Escape
-  // ------------------------------------------------------------------
-  test('Escape on the quit confirmation keeps the app open and dispatches no quit', async ({ page }) => {
-    await openFixture(page)
-    await editTargetParagraph(page, 'E')
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__invokeLog = []
-      w.__quitCalls = 0
-      w.__mockInvoke.mt_app_quit = () => {
-        w.__quitCalls += 1
-        return null
-      }
-    })
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      void store.QUIT_APP()
-    })
-    const box = page.locator('.el-message-box')
-    await expect(box).toBeVisible({ timeout: 5_000 })
-    await page.keyboard.press('Escape')
-    await expect(box).toBeHidden({ timeout: 5_000 })
-    await page.waitForTimeout(150)
-
-    expect(await page.evaluate(() => (window as any).__quitCalls)).toBe(0)
-    const log: string[] = await invokeLog(page)
-    expect(log).not.toContain('mt_app_quit')
-    expect(log).not.toContain('mt_save_and_close_tabs')
-    const state = await storeState(page)
-    expect(state.tabCount).toBe(1)
-    expect(state.tab!.isSaved).toBe(false)
-  })
-
-  // ------------------------------------------------------------------
-  // 7d. Quit secondary action — Don't Save
-  // ------------------------------------------------------------------
-  test("Don't Save on the quit dialog quits without any save transport", async ({ page }) => {
-    await openFixture(page)
-    await editTargetParagraph(page, 'D')
-    const beforeQuit = await readTab(page)
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__invokeLog = []
-      w.__quitCalls = 0
-      w.__mockInvoke.mt_save_and_close_tabs = () => {
-        w.__dontSaveTransportCalled = true
-        return null
-      }
-      w.__mockInvoke.mt_save_tabs = () => {
-        w.__dontSaveBatchCalled = true
-        return null
-      }
-      w.__mockInvoke.mt_app_quit = () => {
-        w.__quitCalls += 1
-        return null
-      }
-    })
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      void store.QUIT_APP()
-    })
-    const box = page.locator('.el-message-box')
-    await expect(box).toBeVisible({ timeout: 5_000 })
-    // The secondary button is the documented discard-and-quit action (not a
-    // stay-open cancel); Escape/close is the only stay-open dismissal.
-    await box.locator('.el-button', { hasText: "Don't Save" }).click()
-    await page.waitForFunction(() => (window as any).__quitCalls === 1)
-    // Flush the session writes that precede mt_app_quit in the same action.
-    await page.waitForTimeout(100)
-    const log: string[] = await invokeLog(page)
-    expect(log).toContain('mt_app_quit')
-    expect(log).not.toContain('mt_save_and_close_tabs')
-    expect(log).not.toContain('mt_save_tabs')
-    expect(await page.evaluate(() => !!(window as any).__dontSaveTransportCalled)).toBe(false)
-    expect(await page.evaluate(() => !!(window as any).__dontSaveBatchCalled)).toBe(false)
-    // The dirty content is still in the tab state; the user chose to quit
-    // without committing it (the harness stops the process at mt_app_quit).
-    expect(beforeQuit.isSaved).toBe(false)
-  })
-
-  // ------------------------------------------------------------------
-  // 8. Session boundary
-  // ------------------------------------------------------------------
   test('_saveSessionState writes lastSessionTabs/lastSessionActive/lastSessionFolders through mt_prefs_set', async ({ page }) => {
     await openFixture(page)
     const snapshot = await storeState(page)

@@ -53,6 +53,8 @@ const TAURI_V2_FIXTURE: &str =
 // mt_response_file_save*, mt_save_and_close_tabs) which are wired
 // through SavedTabState rather than M-013-A CommandMap.
 const REGISTERED_COMMANDS: &[&str] = &[
+    "mt_document_choose_save_target",
+    "mt_document_write_snapshot",
     "mt_fonts_list",
     "mt_fs_copy",
     "mt_fs_mkdir",

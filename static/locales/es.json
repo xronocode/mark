@@ -1807,5 +1807,24 @@
   },
   "extensions": {
     "disableFailed": "La extensión está desactivada, pero no se pudo verificar la revocación del acceso. Inténtalo de nuevo."
+  },
+  "documentOperations": {
+    "title": "Cambios sin guardar",
+    "message": "{names}\n\n¿Guardar los cambios antes de cerrar?",
+    "untitledMessage": "{names}\n\n¿Guardar antes de cerrar? Elige una ubicación para cada documento sin título.",
+    "saveClose": "Guardar y cerrar",
+    "saveQuit": "Guardar y salir",
+    "discard": "Descartar",
+    "cancel": "Cancelar",
+    "composing": "Termina de introducir texto y vuelve a intentarlo. Los documentos siguen abiertos: {names}",
+    "busy": "Hay un guardado en curso. Espera a que termine y vuelve a intentarlo: {names}",
+    "collision": "Otro documento abierto usa ese destino. Ambos siguen abiertos: {names}",
+    "changed": "Hay cambios nuevos sin guardar. Los documentos siguen abiertos: {names}",
+    "new-dirty": "Un documento nuevo tiene cambios sin guardar. Se detuvo el cierre.",
+    "stale": "El documento cambió o se volvió a abrir. Inicia una nueva operación: {names}",
+    "unavailable": "El editor aún está cambiando de documento. Inténtalo después: {names}",
+    "failed": "No se pudo guardar o cerrar. Los documentos siguen abiertos: {names}",
+    "retryClose": "Volver a guardar y cerrar",
+    "retrySave": "Volver a guardar"
   }
 }

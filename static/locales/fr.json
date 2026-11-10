@@ -1808,5 +1808,24 @@
   },
   "extensions": {
     "disableFailed": "L’extension est désactivée, mais la révocation de l’accès n’a pas pu être vérifiée. Réessayez."
+  },
+  "documentOperations": {
+    "title": "Modifications non enregistrées",
+    "message": "{names}\n\nEnregistrer les modifications avant de fermer ?",
+    "untitledMessage": "{names}\n\nEnregistrer avant de fermer ? Choisissez un emplacement pour chaque document sans titre.",
+    "saveClose": "Enregistrer et fermer",
+    "saveQuit": "Enregistrer et quitter",
+    "discard": "Ignorer",
+    "cancel": "Annuler",
+    "composing": "Terminez la saisie puis réessayez. Les documents restent ouverts : {names}",
+    "busy": "Un enregistrement est en cours. Attendez sa fin puis réessayez : {names}",
+    "collision": "Un autre document ouvert utilise cet emplacement. Les deux restent ouverts : {names}",
+    "changed": "De nouvelles modifications restent à enregistrer. Les documents restent ouverts : {names}",
+    "new-dirty": "Un nouveau document contient des modifications non enregistrées. La fermeture est arrêtée.",
+    "stale": "Le document a changé ou a été rouvert. Relancez l’action : {names}",
+    "unavailable": "L’éditeur change encore de document. Réessayez ensuite : {names}",
+    "failed": "L’enregistrement ou la fermeture a échoué. Les documents restent ouverts : {names}",
+    "retryClose": "Enregistrer à nouveau et fermer",
+    "retrySave": "Enregistrer à nouveau"
   }
 }

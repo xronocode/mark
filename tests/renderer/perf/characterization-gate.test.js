@@ -34,12 +34,12 @@ const SPECS = [
   'characterization-ime-seeded.spec.ts'
 ]
 const DEFECT_FAMILIES = [
-  { name: 'Save All transport no-op', pattern: /Save All emits mt_save_tabs|Save All .*no save outcome/i },
+  { name: 'Save All transport no-op', pattern: /Save All emits mt_save_tabs|Save All .*no save outcome|Save All writes .*registered transport/i },
   { name: 'liveReload dirty overwrite', pattern: /external rewrite while the tab is dirty|liveReload|silently overwrit|overwrites the unsaved buffer/i },
   { name: 'metadata false-clean', pattern: /metadata change marks a dirty named tab clean|metadata .*false-clean|metadata changes never reach/i },
   { name: 'rename / Move To', pattern: /rename|Move To/i },
   { name: 'overlapping-write reordering', pattern: /pending save acknowledgement|while save-and-close is pending|reorder|reverts the tab to the old pathname/i },
-  { name: 'stale save acknowledgement', pattern: /stale save ack|BLOCK_STALE_SAVE_OUTCOME_IGNORED/i },
+  { name: 'stale save acknowledgement', pattern: /stale save ack|BLOCK_STALE_SAVE_OUTCOME_IGNORED|late write acknowledgement keeps newer text dirty/i },
   { name: 'string-only external equality', pattern: /BOM-only external rewrite compares equal|string-only|hash-match/i },
   { name: 'UTF-8 writeback byte loss', pattern: /save transport carries a JS string|drops the fixture BOM|writeback/i },
   { name: 'close / quit identity', pattern: /Save & Close|quit confirmation|CLOSE_TAB/i },

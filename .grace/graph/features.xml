@@ -697,6 +697,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-035; docs/development-plan.xml: M-035</LegacySource>
     </M-035>
     <M-036>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Workspace replacement captures original document lifetimes and confirmation versions, then awaits the shared structured operation result before its owned tab/root commit. Cancel/failure leaves all original targets open; a later unrelated tab is never swept into the original target set.</SummaryDelta>
       <Name>project-sidebar</Name>
       <DisplayName>project-sidebar</DisplayName>
       <Type>UI_COMPONENT</Type>

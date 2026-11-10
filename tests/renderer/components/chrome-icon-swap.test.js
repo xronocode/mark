@@ -126,7 +126,7 @@ describe('chrome icon swap (C-38 T-006 N4 d)', () => {
       const { useEditorStore } = await import('@/store/editor')
       const editorStore = useEditorStore()
       editorStore.currentFile = { id: 'other', filename: 'other.md' }
-      editorStore.FORCE_CLOSE_TAB = vi.fn()
+      editorStore.CLOSE_TAB = vi.fn()
 
       const OpenedFile = (await import('@/components/sideBar/treeOpenedTab.vue')).default
       const wrapper = mount(OpenedFile, {
@@ -138,7 +138,7 @@ describe('chrome icon swap (C-38 T-006 N4 d)', () => {
       expect(svg.exists()).toBe(true)
       expect(svg.attributes('aria-hidden')).toBe('true')
       await svg.trigger('click')
-      expect(editorStore.FORCE_CLOSE_TAB).toHaveBeenCalledWith(
+      expect(editorStore.CLOSE_TAB).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'tab-1' })
       )
     })
@@ -153,8 +153,8 @@ describe('chrome icon swap (C-38 T-006 N4 d)', () => {
       editorStore.currentFile = tab1
       editorStore.tabs = [tab1, tab2]
       editorStore.UPDATE_CURRENT_FILE = vi.fn()
-      editorStore.FORCE_CLOSE_TAB = vi.fn()
-      editorStore.CLOSE_UNSAVED_TAB = vi.fn()
+      editorStore.CLOSE_TAB = vi.fn()
+      editorStore.CLOSE_TAB = vi.fn()
       editorStore.NEW_UNTITLED_TAB = vi.fn()
 
       const Tabs = (await import('@/components/editorWithTabs/tabs.vue')).default
@@ -175,7 +175,7 @@ describe('chrome icon swap (C-38 T-006 N4 d)', () => {
       expect(closeIcons).toHaveLength(2)
       const { useEditorStore } = await import('@/store/editor')
       await closeIcons[0].trigger('click')
-      expect(useEditorStore().FORCE_CLOSE_TAB).toHaveBeenCalledWith(
+      expect(useEditorStore().CLOSE_TAB).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'tab-1' })
       )
     })

@@ -6,6 +6,7 @@
       <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
     </ProjectMetadata>
     <M-001>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts.</SummaryDelta>
       <SummaryDelta>C-STABILIZE-LINK-ALIASES: absolute local links using the supplied document-directory alias rebase onto its canonical directory before existing lexical/canonical document fencing. Requested and resolved executable guards remain; global M-010 policy and HTTP routing are unchanged.</SummaryDelta>
       <Name>mt-tauri-shell</Name>
       <DisplayName>mt-tauri-shell</DisplayName>
@@ -2610,6 +2611,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: util/documentSnapshot.js owns mounted rich/source identity and IME-first complete-model capture; util/documentOperations.js owns tracked save admission and the final whole-target close barrier. editor.js routes Save, Save As, autosave, Save All, tab/group/window close and Quit; notices expose fresh explicit retry. No bare saved/path/close-by-id event authorizes a mutation.</SummaryDelta>
       <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: one transient editor-store findVisible flag is the search component visibility source and resets on teardown. Selection prefills Find only while closed; an open Find retains query/matches during text selection so no selection-driven delayed render removes native clipboard focus. Native shortcut/menu/clipboard routes are unchanged.</SummaryDelta>
       <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: editor-store SELECTION_CHANGE prefills Find only for noncollapsed same-block text selections. Caret-only updates retain the active query/matches and still synchronize native menus, preventing the selection-to-empty-query debounce from rerendering and blurring the editor.</SummaryDelta>
       <Name>mt-renderer</Name>
@@ -3786,6 +3788,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: The renderer snapshot adapter consumes the existing complete-model Markdown and shared-history APIs, including progressive unmounted content. Following split panes cannot normalize the active source; Muya internals and canonical serialization contracts remain unchanged.</SummaryDelta>
       <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: the existing keyboard browser verification now checks real copy/paste after a nonempty selection with Find open (matching or absent query) or closed, exact inserted Markdown, retained selection/focus and close/reopen prefill. Muya runtime clipboard/keyboard code is unchanged.</SummaryDelta>
       <Name>muya</Name>
       <DisplayName>muya</DisplayName>
@@ -4882,6 +4885,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-012; docs/development-plan.xml: M-012</LegacySource>
     </M-012>
     <M-013>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Document save commands use the typed invoke contract; native picker and physical-write tracking last until actual settlement. Missing registration is an explicit error, never undefined success.</SummaryDelta>
       <Name>mt-ipc-bridge</Name>
       <DisplayName>mt-ipc-bridge</DisplayName>
       <Type>UTILITY</Type>
@@ -5130,6 +5134,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-013; docs/development-plan.xml: M-013</LegacySource>
     </M-013>
     <M-013-A>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: types.ts includes SaveTargetRequest/Reply and DocumentWriteRequest/Reply plus the two document command mappings; generated fixture and M-001 registration stay synchronized.</SummaryDelta>
       <Name>mt-ipc-contract</Name>
       <DisplayName>mt-ipc-contract</DisplayName>
       <Type>UTILITY</Type>
@@ -5374,6 +5379,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-013-A; docs/development-plan.xml: M-013-A</LegacySource>
     </M-013-A>
     <M-013-B>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: ipc/runtime/documentSave.ts exports chooseTarget/writeSnapshot over M-013-A with actual-settlement lifetime. Its runtime barrel exports ipcDocumentSave.</SummaryDelta>
       <Name>mt-ipc-runtime</Name>
       <DisplayName>mt-ipc-runtime</DisplayName>
       <Type>UTILITY</Type>

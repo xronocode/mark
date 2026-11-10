@@ -45,6 +45,7 @@
 //     the C-1 per-root watcher disposers are unchanged underneath.
 // END_CHANGE_SUMMARY
 
+import { documentOwner, captureDocumentSnapshot, inspectDocumentComposition } from '../util/documentSnapshot'
 import { defineStore } from 'pinia'
 import { addFile, unlinkFile, addDirectory, unlinkDirectory } from './treeCtrl'
 import bus from '../bus'
@@ -700,37 +701,10 @@ export const useProjectStore = defineStore('project', {
         console.info(`[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACE_ABORTED path=${canonicalizePath(pathname)} reason=cancel]`)
         return
       }
-      if (action === 'save-close') {
-        // Save each dirty tab before anything closes. A failed save aborts
-        // the whole replace — dirty work is never discarded by a failure.
-        const editorStore = useEditorStore()
-        for (const id of pending.dirtyIds) {
-          const tab = editorStore.tabs.find((t) => t.id === id)
-          if (!tab) continue
-          try {
-            const { invoke } = await import('@tauri-apps/api/core')
-            const outcome = await invoke('mt_response_file_save', {
-              id: tab.id,
-              filename: tab.filename,
-              pathname: tab.pathname,
-              markdown: tab.markdown,
-              defaultPath: null
-            })
-            if (outcome) editorStore.APPLY_SAVE_OUTCOME(outcome, tab.contentRevision || 0)
-          } catch (e) {
-            notice.notify({
-              title: i18n.global.t('dialog.saveFailure'),
-              message: String(e),
-              type: 'error',
-              time: 20000,
-              showConfirm: false
-            })
-            console.info(`[ProjectStore][_replaceWorkspace][BLOCK_WORKSPACE_REPLACE_ABORTED path=${canonicalizePath(pathname)} reason=save-failed]`)
-            return
-          }
-        }
-      }
-      await this._finishReplace(pathname, origin, action === 'save-close' ? pending.dirtyIds.length : 0)
+      const editorStore = useEditorStore()
+      return editorStore.REQUEST_DOCUMENT_OPERATION({kind:'workspace-replace',owners:pending.owners,
+        decision:action==='save-close'?'save':'discard',confirmedSnapshots:pending.snapshots,
+        commit:owners=>this._finishReplace(pathname,origin,pending.dirtyIds.length,owners)})
     },
     // END_BLOCK_FOLDER_CHOICE_RESOLUTION
 
@@ -753,28 +727,31 @@ export const useProjectStore = defineStore('project', {
       const foreignTabs = editorStore.tabs.filter(
         (t) => t.pathname && foreignRoots.some((r) => isPathContained(t.pathname, r.pathname))
       )
-      const dirtyTabs = foreignTabs.filter((t) => !t.isSaved)
-      if (dirtyTabs.length > 0) {
-        this.pendingReplaceConfirm = {
-          pathname: canonical,
-          origin,
-          tabIds: foreignTabs.map((t) => t.id),
-          dirtyIds: dirtyTabs.map((t) => t.id)
-        }
-        // eslint-disable-next-line no-console
-        console.debug(`[ProjectStore][_replaceWorkspace][BLOCK_REPLACE_CONFIRM_PENDING] path=${canonical} dirty=${dirtyTabs.length} tabs=${foreignTabs.length}`)
+      const owners=foreignTabs.map(documentOwner)
+      if (inspectDocumentComposition(owners).composingOwners.length) {
+        editorStore._notifyDocumentOperation({status:'blocked',reason:'composing',affectedOwners:owners},{kind:'workspace-replace',owners})
         return
       }
-      await this._finishReplace(pathname, origin, 0)
+      const collected=owners.map(owner=>captureDocumentSnapshot(editorStore,owner))
+      if(collected.some(result=>result.status!=='ready')) {
+        editorStore._notifyDocumentOperation({status:'blocked',reason:'unavailable',affectedOwners:owners},{kind:'workspace-replace',owners})
+        return
+      }
+      const snapshots=collected.map(result=>result.snapshot)
+      const dirtyIds=snapshots.filter(snapshot=>!snapshot.isSaved).map(snapshot=>snapshot.id)
+      if (dirtyIds.length) {
+        this.pendingReplaceConfirm = {pathname:canonical,origin,tabIds:foreignTabs.map(t=>t.id),dirtyIds,owners,snapshots}
+        return
+      }
+      return editorStore.REQUEST_DOCUMENT_OPERATION({kind:'workspace-replace',owners,
+        commit:targets=>this._finishReplace(pathname,origin,0,targets)})
     },
 
-    async _finishReplace(pathname, origin, dirtyHandled) {
+    async _finishReplace(pathname, origin, dirtyHandled, owners) {
       const canonical = canonicalizePath(pathname)
       const foreignRoots = this.projectTrees.filter((r) => r.pathname !== canonical)
       const editorStore = useEditorStore()
-      const foreignTabs = editorStore.tabs.filter(
-        (t) => t.pathname && foreignRoots.some((r) => isPathContained(t.pathname, r.pathname))
-      )
+      const foreignTabs = owners.map(owner=>editorStore.tabs.find(t=>t.id===owner.id && t.documentToken===owner.documentToken)).filter(Boolean)
       let tabsClosed = 0
       for (const tab of foreignTabs) {
         editorStore.FORCE_CLOSE_TAB(tab)
@@ -940,8 +917,16 @@ export const useProjectStore = defineStore('project', {
     RENAME_IN_SIDEBAR(name) {
       const editorStore = useEditorStore()
       const src = this.renameCache
+      const affected=editorStore.tabs.filter(tab=>tab.pathname===src || tab.pathname?.startsWith(src + PATH_SEPARATOR))
+      if(affected.some(tab=>editorStore._documentOperations().isBusy(documentOwner(tab)))) {
+        const owners=affected.map(documentOwner)
+        editorStore._notifyDocumentOperation({status:'blocked',reason:'busy',affectedOwners:owners},{kind:'save',owners})
+        return Promise.resolve()
+      }
       const dirname = window.path.dirname(src)
       const dest = dirname + PATH_SEPARATOR + name
+      const releasePath=affected.length ? editorStore._documentOperations().reservePathChange(affected.map(documentOwner)) : ()=>{}
+      if(!releasePath) return Promise.resolve()
       return rename(src, dest)
         .then(() => {
           editorStore.RENAME_IF_NEEDED({ src, dest })
@@ -952,7 +937,7 @@ export const useProjectStore = defineStore('project', {
             type: 'error',
             message: err.message
           })
-        })
+        }).finally(releasePath)
     },
 
     async OPEN_SETTING_WINDOW() {

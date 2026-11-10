@@ -23,6 +23,7 @@
 // END_CHANGE_SUMMARY
 
 import { getUniqueId, deepClone } from '../util'
+import { createDocumentToken } from '../util/documentSnapshot'
 import { i18n } from '../i18n'
 
 /**
@@ -90,6 +91,7 @@ export const getFileStateFromData = (data) => {
 
   return Object.assign(fileState, {
     id,
+    documentToken: createDocumentToken(),
     markdown,
     filename,
     pathname,
@@ -134,6 +136,7 @@ export const getBlankFileState = (
     lineEnding,
     adjustLineEndingOnSave: lineEnding.toLowerCase() === 'crlf',
     id,
+    documentToken: createDocumentToken(),
     filename: `Untitled-${++untitleId}`,
     markdown,
     lastSavedHistoryId: -1
@@ -154,6 +157,7 @@ export const getSingleFileState = ({
 
   return Object.assign(fileState, {
     id,
+    documentToken: createDocumentToken(),
     markdown,
     filename,
     pathname,
@@ -187,6 +191,7 @@ export const createDocumentState = (markdownDocument, id = getUniqueId()) => {
 
   return Object.assign(docState, {
     id,
+    documentToken: createDocumentToken(),
     markdown,
     filename,
     pathname,

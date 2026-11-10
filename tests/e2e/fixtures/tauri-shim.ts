@@ -33,6 +33,9 @@ export async function installTauriShim(page: Page): Promise<void> {
     // Default fake handler table — return-on-call. Tests override via
     // window.__mockInvoke[cmd] = () => ...
     const defaults: Record<string, (args: any) => any> = {
+      // Correlated save-only responses. These are renderer doubles, not disk evidence.
+      mt_document_choose_save_target: () => null,
+      mt_document_write_snapshot: ({request}: any) => ({...request,pathname:request.targetPath,filename:request.targetPath.split('/').pop()}),
       // backend prefs/keybindings — used at boot by install-window-globals
       // and bootstrap-ipc.
       mt_prefs_get_all: () => ({

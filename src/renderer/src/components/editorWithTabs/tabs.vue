@@ -213,14 +213,7 @@ const selectFile = (file) => {
   }
 }
 
-const removeFileInTab = (file) => {
-  const { isSaved } = file
-  if (isSaved) {
-    editorStore.FORCE_CLOSE_TAB(file)
-  } else {
-    editorStore.CLOSE_UNSAVED_TAB(file)
-  }
-}
+const removeFileInTab = file => editorStore.CLOSE_TAB(file)
 
 // Original methods
 const newFile = () => {

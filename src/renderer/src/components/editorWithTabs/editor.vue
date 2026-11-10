@@ -339,6 +339,7 @@ import FrontMenu from 'muya/lib/ui/frontMenu'
 import BlockViewer from 'muya/lib/ui/blockViewer'
 import EditorSearch from '../search'
 import bus from '@/bus'
+import { documentOwner, registerDocumentSurface } from '@/util/documentSnapshot'
 import { DEFAULT_EDITOR_FONT_FAMILY } from '@/config'
 import notice from '@/services/notification'
 import Printer from '@/services/printService'
@@ -502,6 +503,7 @@ const editor = ref(null)
 // This identity belongs to the Muya buffer, independently of the selected tab.
 // It changes only after a document render succeeds.
 let renderedTabId = null
+let renderedDocumentOwner = null
 const isShowClose = ref(false)
 const dialogTableVisible = ref(false)
 const imageViewerVisible = ref(null)
@@ -723,6 +725,26 @@ const ensureUnified = () => {
   file.history = muya.getHistory()
   richSerialization = muya.getMarkdown()
 }
+// START_BLOCK_OWNED_SAVE_SNAPSHOT
+const unregisterSaveSurface = registerDocumentSurface(() => renderedDocumentOwner, {
+  isComposing: () => richComposition.isArmed(),
+  isAuthoritative: () => !props.mirror && !sourceCode.value && !sourceFocused(),
+  captureCommitted: () => {
+    const muya = editor.value
+    if (!muya || renderedTabId !== currentFile.value?.id) return null
+    const serialized = muya.getMarkdown()
+    const file = currentFile.value
+    const markdown = preserveSourceSyntax(file.markdown, richSerialization ?? serialized, serialized)
+    if (markdown !== file.markdown) {
+      if (unified()) muya.contentState.history.commitDocument(markdown, splitSession(), true)
+      editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: file.id, markdown, history: muya.getHistory() })
+      file.isSaved = false
+    }
+    richSerialization = serialized
+    return file.markdown
+  }
+})
+// END_BLOCK_OWNED_SAVE_SNAPSHOT
 const flushSplit = () => {
   if (!unified() || !editor.value) return
   editor.value.contentState.history.commitPending()
@@ -782,6 +804,8 @@ const renderFromStore = () => {
     editorStore.UPDATE_SPLIT_OUTLINE({ id: currentFile.value.id, toc: muya.getTOC() })
   }
   renderedTabId = currentFile.value?.id || null
+  renderedDocumentOwner = currentFile.value?.id ? documentOwner(currentFile.value) : null
+  richSerialization = editor.value.getMarkdown()
   followedMarkdown = markdown
   if (surface) surface.scrollTop = scrollTop
   lastFollowRenderMs = performance.now() - started
@@ -2856,6 +2880,8 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
     }
     // C-29: the mirror already shows this document; skip the debounced re-render.
     renderedTabId = currentFile.value?.id || null
+  renderedDocumentOwner = currentFile.value?.id ? documentOwner(currentFile.value) : null
+  richSerialization = editor.value.getMarkdown()
     followedMarkdown = newMarkdown
     // C-65: adopt the stored table layouts of the newly opened document.
     applyStoredTableLayouts()
@@ -2935,8 +2961,9 @@ const handleFileChange = ({
         refreshProgressiveTailPending()
       }
       renderedTabId = activeFile?.id || null
+      renderedDocumentOwner = activeFile?.id ? documentOwner(activeFile) : null
       followedMarkdown = newMarkdown
-      if (unified()) richSerialization = editor.value.getMarkdown()
+      richSerialization = editor.value.getMarkdown()
       ensureUnified()
       if (unified()) nextTick(() => {
         if (!props.splitActive) splitSession().focused = sourceCode.value ? 'source' : 'rich'
@@ -3547,6 +3574,7 @@ onMounted(() => {
         if (changes.muyaIndexCursor) currentFile.value.muyaIndexCursor = changes.muyaIndexCursor
         return
       }
+      if (!unified()) richSerialization = changes.markdown
       editorStore.LISTEN_FOR_CONTENT_CHANGE(
         Object.assign(changes, { id, blocks: unified() ? undefined : editor.value.contentState.getBlocks() })
       )
@@ -3688,6 +3716,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  unregisterSaveSurface()
   if (followSyncTimer) clearTimeout(followSyncTimer)
   followSyncTimer = null
   bus.off('split:execute-command', handleSplitCommand)

@@ -22,6 +22,8 @@
  */
 
 import { setupTestPinia } from '../pinia'
+const askDocumentClose = vi.hoisted(() => vi.fn(async () => 'cancel'))
+vi.mock('@/components/editorWithTabs/unsavedCloseDialog',()=>({askUnsavedClose:askDocumentClose}))
 
 // ─── module-level mocks (must precede dynamic store import) ───────────
 
@@ -161,6 +163,7 @@ describe('store/editor', () => {
 
   beforeEach(async () => {
     setupTestPinia()
+    askDocumentClose.mockReset().mockResolvedValue('cancel')
 
     // Late imports so module mocks above are in effect first.
     const editorMod = await import('@/store/editor')
@@ -198,7 +201,7 @@ describe('store/editor', () => {
   // ─── helpers / index maintenance ──────────────────────────────────
 
   describe('updateTabIdToIndex', () => {
-    it('rebuilds the id→index map after array reorder', () => {
+    it('rebuilds the id→index map after array reorder', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.updateTabIdToIndex()
       expect(editor.tabIdToIndex).toEqual({ a: 0, b: 1, c: 2 })
@@ -211,14 +214,14 @@ describe('store/editor', () => {
   })
 
   describe('updateScrollPosition', () => {
-    it('updates scrollTop on the matching tab', () => {
+    it('updates scrollTop on the matching tab', async () => {
       editor.tabs = [makeTab({ id: 'a' })]
       editor.updateTabIdToIndex()
       editor.updateScrollPosition('a', 250)
       expect(editor.tabs[0].scrollTop).toBe(250)
     })
 
-    it('logs warn when tab id is unknown', () => {
+    it('logs warn when tab id is unknown', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       editor.updateScrollPosition('nope', 100)
       expect(spy).toHaveBeenCalledWith(
@@ -232,7 +235,7 @@ describe('store/editor', () => {
   // ─── pushTabNotification ──────────────────────────────────────────
 
   describe('pushTabNotification', () => {
-    it('adds a notification with default style/showConfirm/exclusiveType', () => {
+    it('adds a notification with default style/showConfirm/exclusiveType', async () => {
       editor.tabs = [makeTab({ id: 'a' })]
       editor.pushTabNotification({ tabId: 'a', msg: 'hi' })
       expect(editor.tabs[0].notifications).toHaveLength(1)
@@ -244,7 +247,7 @@ describe('store/editor', () => {
       expect(typeof n.action).toBe('function')
     })
 
-    it('exclusiveType replaces a prior matching notification', () => {
+    it('exclusiveType replaces a prior matching notification', async () => {
       editor.tabs = [makeTab({ id: 'a' })]
       editor.pushTabNotification({ tabId: 'a', msg: 'first', exclusiveType: 'file_changed' })
       editor.pushTabNotification({ tabId: 'a', msg: 'second', exclusiveType: 'file_changed' })
@@ -253,7 +256,7 @@ describe('store/editor', () => {
       expect(notifs[0].msg).toBe('second')
     })
 
-    it('logs error if tabId is unknown', () => {
+    it('logs error if tabId is unknown', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.pushTabNotification({ tabId: 'missing', msg: 'x' })
       expect(spy).toHaveBeenCalled()
@@ -264,7 +267,7 @@ describe('store/editor', () => {
   // ─── Tab CRUD ─────────────────────────────────────────────────────
 
   describe('NEW_UNTITLED_TAB', () => {
-    it('adds a blank tab and sets currentFile when selected', () => {
+    it('adds a blank tab and sets currentFile when selected', async () => {
       editor.NEW_UNTITLED_TAB({ markdown: '# hello', selected: true })
       expect(editor.tabs).toHaveLength(1)
       expect(editor.tabs[0].markdown).toBe('# hello')
@@ -272,7 +275,7 @@ describe('store/editor', () => {
       expect(editor.tabIdToIndex[editor.tabs[0].id]).toBe(0)
     })
 
-    it('appends without selecting when selected=false', () => {
+    it('appends without selecting when selected=false', async () => {
       editor.tabs = [makeTab({ id: 'existing' })]
       editor.currentFile = editor.tabs[0]
       editor.updateTabIdToIndex()
@@ -283,37 +286,37 @@ describe('store/editor', () => {
   })
 
   describe('CLOSE_TAB / FORCE_CLOSE_TAB', () => {
-    it('saved tab → FORCE_CLOSE_TAB splices the tab', () => {
+    it('saved tab → FORCE_CLOSE_TAB splices the tab', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       const b = makeTab({ id: 'b', isSaved: true })
       editor.tabs = [a, b]
       editor.currentFile = a
       editor.updateTabIdToIndex()
 
-      editor.CLOSE_TAB(a)
+      await editor.CLOSE_TAB(a)
       expect(editor.tabs.map((t: any) => t.id)).toEqual(['b'])
       expect(editor.currentFile.id).toBe('b')
     })
 
-    it('CLOSE_TAB() with no arg falls back to currentFile', () => {
+    it('CLOSE_TAB() with no arg falls back to currentFile', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       editor.tabs = [a]
       editor.currentFile = a
       editor.updateTabIdToIndex()
-      editor.CLOSE_TAB()
+      await editor.CLOSE_TAB()
       expect(editor.tabs).toHaveLength(0)
     })
 
-    it('CLOSE_TAB() with empty currentFile is a no-op', () => {
+    it('CLOSE_TAB() with empty currentFile is a no-op', async () => {
       // currentFile starts as {} → hasKeys returns false → early return
       expect(editor.tabs).toHaveLength(0)
-      editor.CLOSE_TAB()
+      await editor.CLOSE_TAB()
       expect(editor.tabs).toHaveLength(0)
     })
   })
 
   describe('CLOSE_TABS (bulk)', () => {
-    it('splices multiple tabs by id and resets currentFile when it was closed', () => {
+    it('splices multiple tabs by id and resets currentFile when it was closed', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       const b = makeTab({ id: 'b', isSaved: true })
       const c = makeTab({ id: 'c', isSaved: true })
@@ -327,7 +330,7 @@ describe('store/editor', () => {
       expect(editor.currentFile.id).toBe('c')
     })
 
-    it('returns early on empty list', () => {
+    it('returns early on empty list', async () => {
       const a = makeTab({ id: 'a' })
       editor.tabs = [a]
       editor.currentFile = a
@@ -340,110 +343,76 @@ describe('store/editor', () => {
   // ─── Save flow (alpha-blocker territory) ──────────────────────────
 
   describe('FILE_SAVE', () => {
-    it('invokes mt_response_file_save and applies outcome on success', async () => {
-      const tab = makeTab({ id: 't1', filename: 'foo.md', pathname: '/tmp/foo.md', isSaved: false })
-      editor.tabs = [tab]
-      editor.currentFile = tab
-      editor.updateTabIdToIndex()
-
-      ;(invoke as any).mockResolvedValueOnce({
-        id: 't1',
-        pathname: '/tmp/foo.md',
-        filename: 'foo.md',
-        isSaved: true
-      })
-
-      await editor.FILE_SAVE()
-
-      expect(invoke).toHaveBeenCalledWith(
-        'mt_response_file_save',
-        expect.objectContaining({
-          id: 't1',
-          filename: 'foo.md',
-          pathname: '/tmp/foo.md'
-        })
-      )
-      expect(editor.tabs[0].isSaved).toBe(true)
+    it('writes the current owned snapshot and applies only its correlated result', async () => {
+      const tab=makeTab({id:'saved-owner',pathname:'/tmp/owned.md',markdown:'fresh',isSaved:false})
+      editor.tabs=[tab];editor.currentFile=tab;editor.updateTabIdToIndex()
+      invoke.mockImplementationOnce(async (_cmd:any,{request}:any)=>({...request,pathname:request.targetPath,filename:'owned.md'}))
+      expect((await editor.FILE_SAVE()).status).toBe('completed')
+      expect(invoke).toHaveBeenCalledWith('mt_document_write_snapshot',{request:expect.objectContaining({id:'saved-owner',markdown:'fresh',documentToken:expect.any(String)})})
+      expect(editor.currentFile.isSaved).toBe(true)
     })
-
-    it('returns early when currentFile has no id', async () => {
-      editor.currentFile = {}
-      await editor.FILE_SAVE()
-      expect(invoke).not.toHaveBeenCalled()
+    it('reports write failure without claiming saved text', async () => {
+      editor.currentFile=makeTab({id:'failed',pathname:'/tmp/f.md',isSaved:false});editor.tabs=[editor.currentFile]
+      invoke.mockRejectedValueOnce(Error('disk full'))
+      expect((await editor.FILE_SAVE()).status).toBe('failed');expect(editor.currentFile.isSaved).toBe(false)
+      expect(notice.notify).toHaveBeenCalledWith(expect.objectContaining({severity:'error',source:'file'}))
     })
+    it('is quiet without a current document', async()=>{editor.currentFile={};await editor.FILE_SAVE();expect(invoke).not.toHaveBeenCalled()})
+  })
 
-    it('shows a notification on rejection', async () => {
-      const tab = makeTab({ id: 't1', pathname: '/tmp/foo.md' })
-      editor.tabs = [tab]
-      editor.currentFile = tab
-      editor.updateTabIdToIndex()
 
-      ;(invoke as any).mockRejectedValueOnce(new Error('disk full'))
+  it('a retry notice cannot save or close a reopened lifetime',async()=>{
+    editor.currentFile=makeTab({id:'reused',pathname:'/tmp/reused.md',markdown:'old edit',isSaved:false});editor.tabs=[editor.currentFile]
+    invoke.mockRejectedValueOnce(Error('write failed'))
+    await editor.FILE_SAVE()
+    const noticeAction=notice.notify.mock.calls.at(-1)[0].actions[0]
+    editor.currentFile=makeTab({id:'reused',pathname:'/tmp/reused.md',markdown:'new lifetime',isSaved:false});editor.tabs=[editor.currentFile]
+    invoke.mockClear();await noticeAction.handler()
+    expect(invoke).not.toHaveBeenCalled();expect(editor.currentFile.markdown).toBe('new lifetime');expect(editor.tabs).toHaveLength(1)
+  })
 
-      await editor.FILE_SAVE()
-
-      expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'error',
-          message: expect.stringContaining('disk full')
-        })
-      )
+  describe('native destruction handoff',()=>{
+    it('refuses new document admission only after commit and restores it on a rejected close',async()=>{
+      editor.currentFile=makeTab({id:'closing',pathname:'/tmp/closing.md',isSaved:true});editor.tabs=[editor.currentFile]
+      let rejectWrite:any
+      invoke.mockImplementationOnce(()=>new Promise((_resolve,reject)=>{rejectWrite=reject}))
+      const closing=editor.QUIT_APP()
+      await vi.waitFor(()=>expect(invoke).toHaveBeenCalledWith('mt_app_quit'))
+      expect(editor.documentWindowClosing).toBe(true)
+      expect(editor.NEW_UNTITLED_TAB({markdown:'late new text',selected:true})).toBe(false)
+      expect(await editor.NEW_TAB_WITH_CONTENT({markdownDocument:{pathname:'/tmp/late.md',markdown:'late opened text'}})).toBe(false)
+      expect(editor.tabs).toHaveLength(1)
+      rejectWrite(Error('native close refused'))
+      expect((await closing).status).toBe('failed')
+      expect(editor.documentWindowClosing).toBe(false)
+      expect(editor.currentFile.locked).not.toBe(true)
+      editor.NEW_UNTITLED_TAB({markdown:'explicit new text',selected:true})
+      expect(editor.tabs).toHaveLength(2)
+    })
+    it('never destroys the window while an earlier document open is pending',async()=>{
+      editor.currentFile=makeTab({id:'pending-open',isSaved:true});editor.tabs=[editor.currentFile];editor._opensInFlight=1
+      expect((await editor.QUIT_APP()).status).toBe('failed')
+      expect(invoke).not.toHaveBeenCalledWith('mt_app_quit');expect(editor.documentWindowClosing).toBe(false)
+      expect(editor.tabs).toHaveLength(1)
     })
   })
 
   describe('APPLY_SAVE_OUTCOME', () => {
-    it('updates tab.isSaved and pathname/filename on save-as', () => {
-      const tab = makeTab({ id: 't1', pathname: '', filename: 'Untitled-1', isSaved: false })
-      editor.tabs = [tab]
-      editor.currentFile = tab
-      editor.updateTabIdToIndex()
-
-      editor.APPLY_SAVE_OUTCOME({
-        id: 't1',
-        pathname: '/tmp/saved.md',
-        filename: 'saved.md',
-        isSaved: true
-      })
-
-      expect(editor.tabs[0].pathname).toBe('/tmp/saved.md')
-      expect(editor.tabs[0].filename).toBe('saved.md')
-      expect(editor.tabs[0].isSaved).toBe(true)
+    it.each([{}, {id:'unknown',isSaved:true}, {id:'owned',pathname:'/tmp/replaced.md',isSaved:true}])('ignores an unowned compatibility reply %j', outcome => {
+      editor.currentFile=makeTab({id:'owned',pathname:'/tmp/original.md',markdown:'newer',isSaved:false});editor.tabs=[editor.currentFile]
+      editor.APPLY_SAVE_OUTCOME(outcome)
+      expect(editor.currentFile).toMatchObject({pathname:'/tmp/original.md',markdown:'newer',isSaved:false})
     })
-
-    it('is a no-op when outcome has no id', () => {
-      editor.tabs = [makeTab({ id: 't1', isSaved: false })]
-      editor.APPLY_SAVE_OUTCOME({})
-      expect(editor.tabs[0].isSaved).toBe(false)
-    })
-
-    it('is a no-op when no tab matches outcome.id', () => {
-      editor.tabs = [makeTab({ id: 't1', isSaved: false })]
-      editor.APPLY_SAVE_OUTCOME({ id: 'unknown', isSaved: true })
-      expect(editor.tabs[0].isSaved).toBe(false)
-    })
-
-    it('closes a colliding tab if save-as overwrites another tab path', () => {
-      const a = makeTab({ id: 'a', pathname: '/tmp/x.md', isSaved: true })
-      const b = makeTab({ id: 'b', pathname: '', isSaved: false })
-      editor.tabs = [a, b]
-      editor.currentFile = b
-      editor.updateTabIdToIndex()
-
-      editor.APPLY_SAVE_OUTCOME({
-        id: 'b',
-        pathname: '/tmp/x.md',
-        filename: 'x.md',
-        isSaved: true
-      })
-
-      // 'a' should have been closed by the collision branch
-      expect(editor.tabs.find((t: any) => t.id === 'a')).toBeUndefined()
-      expect(editor.tabs.find((t: any) => t.id === 'b').pathname).toBe('/tmp/x.md')
+    it('never evicts another live path owner',()=>{
+      editor.tabs=[makeTab({id:'a',pathname:'/tmp/a.md'}),makeTab({id:'b',pathname:'',isSaved:false})]
+      editor.APPLY_SAVE_OUTCOME({id:'b',pathname:'/tmp/a.md',isSaved:true})
+      expect(editor.tabs).toHaveLength(2);expect(editor.tabs[1].pathname).toBe('')
     })
   })
 
+
   describe('APPLY_TAB_SAVED', () => {
-    it('flips isSaved=true when history is at a valid edit index', () => {
+    it('cannot mark a valid live history saved from a bare id', async () => {
       const tab = makeTab({
         id: 't1',
         isSaved: false,
@@ -451,18 +420,18 @@ describe('store/editor', () => {
       })
       editor.tabs = [tab]
       editor.APPLY_TAB_SAVED('t1')
-      expect(editor.tabs[0].isSaved).toBe(true)
-      expect(editor.tabs[0].lastSavedHistoryId).toBe('h1')
+      expect(editor.tabs[0].isSaved).toBe(false)
+      expect(editor.tabs[0].lastSavedHistoryId).not.toBe('h1')
     })
 
-    it('does nothing when tab is missing', () => {
+    it('does nothing when tab is missing', async () => {
       editor.tabs = []
       expect(() => editor.APPLY_TAB_SAVED('nope')).not.toThrow()
     })
   })
 
   describe('APPLY_TAB_SAVE_FAILURE', () => {
-    it('marks tab dirty and pushes a failure notification', () => {
+    it('marks tab dirty and pushes a failure notification', async () => {
       const tab = makeTab({ id: 't1', isSaved: true })
       editor.tabs = [tab]
       editor.APPLY_TAB_SAVE_FAILURE('t1', 'EACCES')
@@ -471,7 +440,7 @@ describe('store/editor', () => {
       expect(editor.tabs[0].notifications[0].style).toBe('crit')
     })
 
-    it('falls back to global toast when the tab is unknown', () => {
+    it('falls back to global toast when the tab is unknown', async () => {
       editor.APPLY_TAB_SAVE_FAILURE('missing', 'boom')
       expect(notice.notify).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'error', message: 'boom' })
@@ -480,46 +449,25 @@ describe('store/editor', () => {
   })
 
   describe('FILE_SAVE_AS', () => {
-    it('invokes mt_response_file_save_as and applies outcome', async () => {
-      const tab = makeTab({ id: 't1', filename: 'untitled.md', pathname: '' })
-      editor.tabs = [tab]
-      editor.currentFile = tab
-      editor.updateTabIdToIndex()
-
-      ;(invoke as any).mockResolvedValueOnce({
-        id: 't1',
-        pathname: '/tmp/new.md',
-        filename: 'new.md',
-        isSaved: true
-      })
-
-      await editor.FILE_SAVE_AS()
-
-      expect(invoke).toHaveBeenCalledWith('mt_response_file_save_as', expect.any(Object))
-      expect(editor.tabs[0].pathname).toBe('/tmp/new.md')
-      expect(editor.tabs[0].isSaved).toBe(true)
+    it('chooses a target without text, then writes a fresh owned version', async () => {
+      editor.currentFile=makeTab({id:'as',pathname:'',markdown:'before',isSaved:false});editor.tabs=[editor.currentFile]
+      invoke.mockImplementationOnce(async (_cmd:any,{request}:any)=>{editor.currentFile.markdown='after picker';editor.currentFile.contentRevision=1;return {...request,pathname:'/tmp/new.md'}})
+        .mockImplementationOnce(async (_cmd:any,{request}:any)=>({...request,pathname:request.targetPath,filename:'new.md'}))
+      expect((await editor.FILE_SAVE_AS()).status).toBe('completed')
+      expect(invoke.mock.calls[0][0]).toBe('mt_document_choose_save_target')
+      expect(invoke.mock.calls[0][1].request).not.toHaveProperty('markdown')
+      expect(invoke.mock.calls[1][1].request.markdown).toBe('after picker')
+      expect(editor.currentFile.pathname).toBe('/tmp/new.md');expect(editor.currentFile.isSaved).toBe(true)
     })
-
-    it('shows notification on rejection', async () => {
-      const tab = makeTab({ id: 't1' })
-      editor.tabs = [tab]
-      editor.currentFile = tab
-      editor.updateTabIdToIndex()
-      ;(invoke as any).mockRejectedValueOnce(new Error('user cancelled'))
-      await editor.FILE_SAVE_AS()
-      expect(notice.notify).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'error' })
-      )
+    it('keeps an untitled document on cancel or picker failure', async()=>{
+      editor.currentFile=makeTab({id:'as',pathname:'',isSaved:false});editor.tabs=[editor.currentFile]
+      invoke.mockResolvedValueOnce(null);expect((await editor.FILE_SAVE_AS()).status).toBe('cancelled')
+      invoke.mockRejectedValueOnce(Error('picker failure'));expect((await editor.FILE_SAVE_AS()).status).toBe('failed')
+      expect(editor.currentFile.pathname).toBe('');expect(editor.currentFile.isSaved).toBe(false)
     })
-
-    it('returns early when no currentFile id', async () => {
-      editor.currentFile = {}
-      await editor.FILE_SAVE_AS()
-      expect(invoke).not.toHaveBeenCalled()
-    })
+    it('is quiet without a current document',async()=>{editor.currentFile={};await editor.FILE_SAVE_AS();expect(invoke).not.toHaveBeenCalled()})
   })
 
-  // ─── File-watcher reactions (C-1 integration) ─────────────────────
 
   describe('APPLY_FILE_CHANGE', () => {
     function seedTab(over: Record<string, unknown> = {}) {
@@ -536,7 +484,7 @@ describe('store/editor', () => {
       return tab
     }
 
-    it("'change' marks tab dirty and pushes fileChangedOnDisk notification", () => {
+    it("'change' marks tab dirty and pushes fileChangedOnDisk notification", async () => {
       // Disable auto-reload to test notification path
       const stubs = (globalThis as any).__editorStubs
       stubs.preferences.liveReload = false
@@ -549,7 +497,7 @@ describe('store/editor', () => {
       stubs.preferences.liveReload = true
     })
 
-    it("'add' takes the same path as 'change' (case fall-through)", () => {
+    it("'add' takes the same path as 'change' (case fall-through)", async () => {
       // Disable auto-reload to test notification path
       const stubs = (globalThis as any).__editorStubs
       stubs.preferences.liveReload = false
@@ -560,7 +508,7 @@ describe('store/editor', () => {
       stubs.preferences.liveReload = true
     })
 
-    it("'unlink' marks dirty + pushes fileRemovedOnDisk notification (showConfirm=false)", () => {
+    it("'unlink' marks dirty + pushes fileRemovedOnDisk notification (showConfirm=false)", async () => {
       seedTab({ isSaved: true })
       editor.APPLY_FILE_CHANGE('unlink', { pathname: '/tmp/watched.md' })
       expect(editor.tabs[0].isSaved).toBe(false)
@@ -570,7 +518,7 @@ describe('store/editor', () => {
       expect(n.exclusiveType).toBe('file_changed')
     })
 
-    it('invalid type → console.error (no crash)', () => {
+    it('invalid type → console.error (no crash)', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       seedTab({ isSaved: true })
       editor.APPLY_FILE_CHANGE('weird', { pathname: '/tmp/watched.md' })
@@ -580,7 +528,7 @@ describe('store/editor', () => {
       spy.mockRestore()
     })
 
-    it('no tab matches pathname → console.error early return, no crash', () => {
+    it('no tab matches pathname → console.error early return, no crash', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = []
       editor.APPLY_FILE_CHANGE('change', { pathname: '/tmp/missing.md' })
@@ -588,7 +536,7 @@ describe('store/editor', () => {
       spy.mockRestore()
     })
 
-    it('no pathname in change payload → silent early return', () => {
+    it('no pathname in change payload → silent early return', async () => {
       seedTab({ isSaved: true })
       editor.APPLY_FILE_CHANGE('change', {})
       expect(editor.tabs[0].notifications).toHaveLength(0)
@@ -615,7 +563,7 @@ describe('store/editor', () => {
       expect(editor.tabs).toHaveLength(0)
     })
 
-    it('opens a blank tab per markdownList entry when addBlankTab=false', () => {
+    it('opens a blank tab per markdownList entry when addBlankTab=false', async () => {
       editor.APPLY_BOOTSTRAP_EDITOR({
         addBlankTab: false,
         markdownList: ['# one', '# two', '# three'],
@@ -629,7 +577,7 @@ describe('store/editor', () => {
       expect(editor.currentFile.markdown).toBe('# one') // first selected
     })
 
-    it('null payload does not crash', () => {
+    it('null payload does not crash', async () => {
       expect(() => editor.APPLY_BOOTSTRAP_EDITOR(null)).not.toThrow()
     })
   })
@@ -637,7 +585,7 @@ describe('store/editor', () => {
   // ─── Misc ─────────────────────────────────────────────────────────
 
   describe('APPLY_EXPORT_SUCCESS', () => {
-    it('pushes a success notification with a reveal action (C-NOTIFICATION-SYSTEM)', () => {
+    it('pushes a success notification with a reveal action (C-NOTIFICATION-SYSTEM)', async () => {
       editor.APPLY_EXPORT_SUCCESS('/tmp/out.pdf')
       expect(notice.notify).toHaveBeenCalledTimes(1)
       const opts = notice.notify.mock.calls[0][0]
@@ -649,21 +597,21 @@ describe('store/editor', () => {
       expect(typeof opts.actions[0].payload).toBe('function')
     })
 
-    it('returns early on empty path', () => {
+    it('returns early on empty path', async () => {
       editor.APPLY_EXPORT_SUCCESS('')
       expect(notice.notify).not.toHaveBeenCalled()
     })
   })
 
   describe('copyGithubSlug', () => {
-    it('writes slug to clipboard + success toast on hit', () => {
+    it('writes slug to clipboard + success toast on hit', async () => {
       editor.listToc = [{ slug: 's1', githubSlug: 'github-slug-1' }]
       editor.copyGithubSlug('s1')
       expect(window.electron.clipboard.writeText).toHaveBeenCalledWith('#github-slug-1')
       expect(notice.notify).toHaveBeenCalled()
     })
 
-    it('warns on miss', () => {
+    it('warns on miss', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       editor.listToc = []
       editor.copyGithubSlug('nope')
@@ -674,7 +622,7 @@ describe('store/editor', () => {
   })
 
   describe('loadChange', () => {
-    it('replaces tab content for a matched path and emits file-changed when current', () => {
+    it('replaces tab content for a matched path and emits file-changed when current', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/x.md', filename: 'x.md' })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -697,7 +645,7 @@ describe('store/editor', () => {
       expect(bus.emit).toHaveBeenCalledWith('file-changed', expect.any(Object))
     })
 
-    it('errors out + notifies when no tab matches', () => {
+    it('errors out + notifies when no tab matches', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = []
       editor.loadChange({
@@ -717,7 +665,7 @@ describe('store/editor', () => {
       spy.mockRestore()
     })
 
-    it('pushes mixedLineEndings notification when flagged', () => {
+    it('pushes mixedLineEndings notification when flagged', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/x.md', filename: 'x.md' })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -742,7 +690,7 @@ describe('store/editor', () => {
   // ─── Smoke / spot-checks for surface coverage ─────────────────────
 
   describe('action surface', () => {
-    it('LISTEN_FOR_CLOSE registers an ipcRenderer listener', () => {
+    it('LISTEN_FOR_CLOSE registers an ipcRenderer listener', async () => {
       editor.LISTEN_FOR_CLOSE()
       expect(window.electron.ipcRenderer.on).toHaveBeenCalledWith(
         'mt::ask-for-close',
@@ -750,7 +698,7 @@ describe('store/editor', () => {
       )
     })
 
-    it('LISTEN_FOR_SAVE / LISTEN_FOR_SAVE_AS / LISTEN_FOR_NEW_TAB subscribe on bus', () => {
+    it('LISTEN_FOR_SAVE / LISTEN_FOR_SAVE_AS / LISTEN_FOR_NEW_TAB subscribe on bus', async () => {
       editor.LISTEN_FOR_SAVE()
       editor.LISTEN_FOR_SAVE_AS()
       editor.LISTEN_FOR_NEW_TAB()
@@ -759,7 +707,7 @@ describe('store/editor', () => {
       expect(bus.on).toHaveBeenCalledWith('mt::new-untitled-tab', expect.any(Function))
     })
 
-    it('SET_LINE_ENDING flips the currentFile flags + isSaved', () => {
+    it('SET_LINE_ENDING flips the currentFile flags + isSaved', async () => {
       editor.currentFile = makeTab({ id: 'a', lineEnding: 'lf', isSaved: false })
       editor.tabs = [editor.currentFile]
       editor.SET_LINE_ENDING('crlf')
@@ -768,13 +716,13 @@ describe('store/editor', () => {
       expect(editor.currentFile.isSaved).toBe(true)
     })
 
-    it('SET_LINE_ENDING is a no-op when value unchanged', () => {
+    it('SET_LINE_ENDING is a no-op when value unchanged', async () => {
       editor.currentFile = makeTab({ id: 'a', lineEnding: 'lf', isSaved: false })
       editor.SET_LINE_ENDING('lf')
       expect(editor.currentFile.isSaved).toBe(false)
     })
 
-    it('SEARCH writes a deep-cloned value to currentFile.searchMatches', () => {
+    it('SEARCH writes a deep-cloned value to currentFile.searchMatches', async () => {
       editor.currentFile = makeTab({ id: 'a' })
       const value = { matches: [1], index: 0, value: 'foo' }
       editor.SEARCH(value)
@@ -782,7 +730,7 @@ describe('store/editor', () => {
       expect(editor.currentFile.searchMatches).not.toBe(value) // deep clone
     })
 
-    it('SET_SAVE_STATUS_WHEN_REMOVE marks matching tab dirty', () => {
+    it('SET_SAVE_STATUS_WHEN_REMOVE marks matching tab dirty', async () => {
       editor.tabs = [
         makeTab({ id: 'a', pathname: '/tmp/a.md', isSaved: true }),
         makeTab({ id: 'b', pathname: '/tmp/b.md', isSaved: true })
@@ -792,14 +740,14 @@ describe('store/editor', () => {
       expect(editor.tabs[1].isSaved).toBe(true)
     })
 
-    it('CYCLE_TABS no-op with ≤1 tab', () => {
+    it('CYCLE_TABS no-op with ≤1 tab', async () => {
       editor.tabs = [makeTab({ id: 'a' })]
       editor.currentFile = editor.tabs[0]
       editor.CYCLE_TABS(true)
       expect(editor.currentFile.id).toBe('a')
     })
 
-    it('CYCLE_TABS rotates currentFile right', () => {
+    it('CYCLE_TABS rotates currentFile right', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.currentFile = editor.tabs[0]
       editor.updateTabIdToIndex()
@@ -807,7 +755,7 @@ describe('store/editor', () => {
       expect(editor.currentFile.id).toBe('b')
     })
 
-    it('SWITCH_TAB_BY_INDEX warns on out-of-range', () => {
+    it('SWITCH_TAB_BY_INDEX warns on out-of-range', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a' })]
       editor.currentFile = editor.tabs[0]
@@ -816,7 +764,7 @@ describe('store/editor', () => {
       spy.mockRestore()
     })
 
-    it('SWITCH_TAB_BY_INDEX moves currentFile when valid', () => {
+    it('SWITCH_TAB_BY_INDEX moves currentFile when valid', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.currentFile = editor.tabs[0]
       editor.updateTabIdToIndex()
@@ -824,7 +772,7 @@ describe('store/editor', () => {
       expect(editor.currentFile.id).toBe('b')
     })
 
-    it('SWITCH_TAB_BY_FILEPATH switches on hit', () => {
+    it('SWITCH_TAB_BY_FILEPATH switches on hit', async () => {
       editor.tabs = [
         makeTab({ id: 'a', pathname: '/x.md' }),
         makeTab({ id: 'b', pathname: '/y.md' })
@@ -835,7 +783,7 @@ describe('store/editor', () => {
       expect(editor.currentFile.id).toBe('b')
     })
 
-    it('SWITCH_TAB_BY_FILEPATH warns/errors on miss', () => {
+    it('SWITCH_TAB_BY_FILEPATH warns/errors on miss', async () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a', pathname: '/tmp/a.md' })]
@@ -909,7 +857,7 @@ describe('store/editor', () => {
   })
 
   describe('LISTEN_FOR_CONTENT_CHANGE', () => {
-    it('updates markdown / wordCount / cursor / blocks on the matching tab', () => {
+    it('updates markdown / wordCount / cursor / blocks on the matching tab', async () => {
       const tab = makeTab({
         id: 't1',
         pathname: '/tmp/x.md',
@@ -937,20 +885,20 @@ describe('store/editor', () => {
       expect(editor.tabs[0].isSaved).toBe(false)
     })
 
-    it('throws when id is missing', () => {
+    it('throws when id is missing', async () => {
       expect(() =>
         editor.LISTEN_FOR_CONTENT_CHANGE({ id: undefined, markdown: '' })
       ).toThrow(/id was not set/)
     })
 
-    it('returns silently when no tabs are open', () => {
+    it('returns silently when no tabs are open', async () => {
       editor.tabs = []
       expect(() =>
         editor.LISTEN_FOR_CONTENT_CHANGE({ id: 'anything', markdown: '' })
       ).not.toThrow()
     })
 
-    it('returns silently when id is not in tabIdToIndex', () => {
+    it('returns silently when id is not in tabIdToIndex', async () => {
       editor.tabs = [makeTab({ id: 'a' })]
       editor.updateTabIdToIndex()
       expect(() =>
@@ -958,7 +906,7 @@ describe('store/editor', () => {
       ).not.toThrow()
     })
 
-    it('keeps isSaved=true on undo (history index aligns with lastSavedHistoryId)', () => {
+    it('keeps isSaved=true on undo (history index aligns with lastSavedHistoryId)', async () => {
       const tab = makeTab({
         id: 't1',
         markdown: 'a',
@@ -979,62 +927,62 @@ describe('store/editor', () => {
   })
 
   describe('CLOSE_OTHER_TABS / CLOSE_SAVED_TABS / CLOSE_ALL_TABS', () => {
-    it('CLOSE_OTHER_TABS keeps only the given tab', () => {
+    it('CLOSE_OTHER_TABS keeps only the given tab', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       const b = makeTab({ id: 'b', isSaved: true })
       const c = makeTab({ id: 'c', isSaved: true })
       editor.tabs = [a, b, c]
       editor.currentFile = b
       editor.updateTabIdToIndex()
-      editor.CLOSE_OTHER_TABS(b)
+      await editor.CLOSE_OTHER_TABS(b)
       expect(editor.tabs.map((t: any) => t.id)).toEqual(['b'])
     })
 
-    it('CLOSE_SAVED_TABS removes only saved ones', () => {
+    it('CLOSE_SAVED_TABS removes only saved ones', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       const b = makeTab({ id: 'b', isSaved: false })
       editor.tabs = [a, b]
       editor.currentFile = a
       editor.updateTabIdToIndex()
-      editor.CLOSE_SAVED_TABS()
+      await editor.CLOSE_SAVED_TABS()
       expect(editor.tabs.map((t: any) => t.id)).toEqual(['b'])
     })
 
-    it('CLOSE_ALL_TABS clears all (saved branch)', () => {
+    it('CLOSE_ALL_TABS clears all (saved branch)', async () => {
       editor.tabs = [
         makeTab({ id: 'a', isSaved: true }),
         makeTab({ id: 'b', isSaved: true })
       ]
       editor.currentFile = editor.tabs[0]
       editor.updateTabIdToIndex()
-      editor.CLOSE_ALL_TABS()
+      await editor.CLOSE_ALL_TABS()
       expect(editor.tabs).toHaveLength(0)
     })
   })
 
   describe('EXCHANGE_TABS_BY_ID', () => {
-    it('moves tab to end when toId is falsy', () => {
+    it('moves tab to end when toId is falsy', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'a', toId: null })
       expect(editor.tabs.map((t: any) => t.id)).toEqual(['b', 'c', 'a'])
     })
 
-    it('moves between two ids', () => {
+    it('moves between two ids', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'c', toId: 'a' })
       expect(editor.tabs.map((t: any) => t.id)).toEqual(['c', 'a', 'b'])
     })
 
-    it('returns early when fromId is unknown', () => {
+    it('returns early when fromId is unknown', async () => {
       editor.tabs = [makeTab({ id: 'a' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'missing', toId: 'a' })
       expect(editor.tabs.map((t: any) => t.id)).toEqual(['a'])
     })
 
-    it('returns early when toId is unknown', () => {
+    it('returns early when toId is unknown', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.updateTabIdToIndex()
       editor.EXCHANGE_TABS_BY_ID({ fromId: 'a', toId: 'missing' })
@@ -1043,7 +991,7 @@ describe('store/editor', () => {
   })
 
   describe('UPDATE_CURRENT_FILE / RENAME_FILE / RENAME', () => {
-    it('UPDATE_CURRENT_FILE sets currentFile + emits file-changed', () => {
+    it('UPDATE_CURRENT_FILE sets currentFile + emits file-changed', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/a.md', markdown: 'x' })
       editor.UPDATE_CURRENT_FILE(tab)
       expect(editor.currentFile.id).toBe('t1')
@@ -1051,7 +999,7 @@ describe('store/editor', () => {
       expect(bus.emit).toHaveBeenCalledWith('file-changed', expect.any(Object))
     })
 
-    it('UPDATE_CURRENT_FILE no-ops when same id', () => {
+    it('UPDATE_CURRENT_FILE no-ops when same id', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/a.md' })
       editor.UPDATE_CURRENT_FILE(tab)
       ;(bus.emit as any).mockClear()
@@ -1059,7 +1007,7 @@ describe('store/editor', () => {
       expect(bus.emit).not.toHaveBeenCalledWith('file-changed', expect.any(Object))
     })
 
-    it('RENAME_FILE delegates and emits rename', () => {
+    it('RENAME_FILE delegates and emits rename', async () => {
       const tab = makeTab({ id: 't1', pathname: '/tmp/a.md' })
       editor.RENAME_FILE(tab)
       expect(bus.emit).toHaveBeenCalledWith('rename')
@@ -1142,11 +1090,11 @@ describe('store/editor', () => {
       expect(notice.notify).not.toHaveBeenCalled()
     })
 
-    it('PRINT_RESPONSE removed — print uses the native panel via mt_print_webview (C-18)', () => {
+    it('PRINT_RESPONSE removed — print uses the native panel via mt_print_webview (C-18)', async () => {
       expect(editor.PRINT_RESPONSE).toBeUndefined()
     })
 
-    it('_pdfDefaultName uses the document name, else the first heading, else Untitled (C-61 corner-4)', () => {
+    it('_pdfDefaultName uses the document name, else the first heading, else Untitled (C-61 corner-4)', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'Notes.md' })
       expect(editor._pdfDefaultName()).toBe('Notes.pdf')
 
@@ -1159,7 +1107,7 @@ describe('store/editor', () => {
       expect(editor._pdfDefaultName()).toBe('Untitled.pdf')
     })
 
-    it('PRINT_DOCUMENT emits bus export with defaults on first use (C-61 R-1)', () => {
+    it('PRINT_DOCUMENT emits bus export with defaults on first use (C-61 R-1)', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.PRINT_DOCUMENT()
@@ -1178,13 +1126,13 @@ describe('store/editor', () => {
       )
     })
 
-    it('PRINT_DOCUMENT is a no-op without a document', () => {
+    it('PRINT_DOCUMENT is a no-op without a document', async () => {
       editor.currentFile = {}
       editor.PRINT_DOCUMENT()
       expect(bus.emit).not.toHaveBeenCalled()
     })
 
-    it('REMEMBER_EXPORT_OPTIONS feeds PRINT_DOCUMENT and drops per-flow keys (C-61 R-1)', () => {
+    it('REMEMBER_EXPORT_OPTIONS feeds PRINT_DOCUMENT and drops per-flow keys (C-61 R-1)', async () => {
       editor.currentFile = makeTab({ id: 't1', pathname: '/tmp/a.md', filename: 'a.md' })
       editor.tabs = [editor.currentFile]
       editor.REMEMBER_EXPORT_OPTIONS({
@@ -1255,18 +1203,18 @@ describe('store/editor', () => {
   })
 
   describe('FORMAT_LINK_CLICK', () => {
-    it('emits scroll-to-header on local anchor link', () => {
+    it('emits scroll-to-header on local anchor link', async () => {
       editor.listToc = [{ slug: 'h1', githubSlug: 'h-one' }]
       editor.FORMAT_LINK_CLICK({ data: { href: '#h-one' }, dirname: '/tmp' })
       expect(bus.emit).toHaveBeenCalledWith('scroll-to-header', 'h1')
     })
 
-    it('returns early on bare # link', () => {
+    it('returns early on bare # link', async () => {
       editor.FORMAT_LINK_CLICK({ data: { href: '#' }, dirname: '/' })
       expect(bus.emit).not.toHaveBeenCalledWith('scroll-to-header', expect.anything())
     })
 
-    it('forwards non-anchor links via ipc', () => {
+    it('forwards non-anchor links via ipc', async () => {
       editor.FORMAT_LINK_CLICK({ data: { href: 'https://x.com' }, dirname: '/' })
       expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
         'mt::format-link-click',
@@ -1316,7 +1264,7 @@ describe('store/editor', () => {
   })
 
   describe('SELECTION_FORMATS', () => {
-    it('sends mt::update-format-menu', () => {
+    it('sends mt::update-format-menu', async () => {
       editor.SELECTION_FORMATS([{ type: 'strong' }, { type: 'em' }])
       expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
         'mt::update-format-menu',
@@ -1327,17 +1275,17 @@ describe('store/editor', () => {
   })
 
   describe('zoom + listeners surface', () => {
-    it('EDIT_ZOOM updates preferences and sets CSS variable', () => {
+    it('EDIT_ZOOM updates preferences and sets CSS variable', async () => {
       editor.EDIT_ZOOM(1.25)
       expect(document.documentElement.style.getPropertyValue('--content-zoom')).toBe('1.25')
     })
 
-    it('LISTEN_WINDOW_ZOOM subscribes', () => {
+    it('LISTEN_WINDOW_ZOOM subscribes', async () => {
       editor.LISTEN_WINDOW_ZOOM()
       expect(bus.on).toHaveBeenCalledWith('mt::window-zoom', expect.any(Function))
     })
 
-    it('LISTEN_FOR_MOVE_TO / LISTEN_FOR_RENAME / LISTEN_FOR_CLOSE_TAB / LISTEN_FOR_TAB_CYCLE / LINTEN_FOR_SET_LINE_ENDING / LINTEN_FOR_SET_ENCODING / LINTEN_FOR_SET_FINAL_NEWLINE register bus subs', () => {
+    it('LISTEN_FOR_MOVE_TO / LISTEN_FOR_RENAME / LISTEN_FOR_CLOSE_TAB / LISTEN_FOR_TAB_CYCLE / LINTEN_FOR_SET_LINE_ENDING / LINTEN_FOR_SET_ENCODING / LINTEN_FOR_SET_FINAL_NEWLINE register bus subs', async () => {
       editor.LISTEN_FOR_MOVE_TO()
       editor.LISTEN_FOR_RENAME()
       editor.LISTEN_FOR_CLOSE_TAB()
@@ -1357,24 +1305,24 @@ describe('store/editor', () => {
   })
 
   describe('ASK_FOR_SAVE_ALL', () => {
-    it('closeTabs=true with no unsaved → CLOSE_TABS for all', () => {
+    it('closeTabs=true with no unsaved → CLOSE_TABS for all', async () => {
       const a = makeTab({ id: 'a', isSaved: true, markdown: 'x' })
       const b = makeTab({ id: 'b', isSaved: true, markdown: 'y' })
       editor.tabs = [a, b]
       editor.currentFile = a
       editor.updateTabIdToIndex()
-      editor.ASK_FOR_SAVE_ALL(true)
+      await editor.ASK_FOR_SAVE_ALL(true)
       // tabs should be closed
       expect(editor.tabs).toHaveLength(0)
     })
 
-    it('closeTabs=false sends mt::save-tabs', () => {
+    it('Save All does not close clean documents or use the unregistered legacy transport', async () => {
       const a = makeTab({ id: 'a', isSaved: false, pathname: '/tmp/a.md', markdown: 'edits' })
       editor.tabs = [a]
       editor.currentFile = a
       editor.updateTabIdToIndex()
-      editor.ASK_FOR_SAVE_ALL(false)
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+      await editor.ASK_FOR_SAVE_ALL(false)
+      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith(
         'mt::save-tabs',
         expect.any(Array)
       )
@@ -1416,7 +1364,7 @@ describe('store/editor', () => {
   })
 
   describe('SELECTION_CHANGE', () => {
-    it('writes search value snapshot when selection on a single line', () => {
+    it('writes search value snapshot when selection on a single line', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -1445,7 +1393,7 @@ describe('store/editor', () => {
     })
 
     // (a) Legacy path: autoSave=true + change WITH data -> loadChange, content updated
-    it('autoSave=true + change WITH data triggers loadChange directly (legacy path)', () => {
+    it('autoSave=true + change WITH data triggers loadChange directly (legacy path)', async () => {
       stubs.preferences.autoSave = true
       const tab = makeTab({
         id: 't1',
@@ -1566,7 +1514,7 @@ describe('store/editor', () => {
     })
 
     // (e) liveReload=false + autoSave=false -> notification, no auto-reload
-    it('liveReload=false + autoSave=false shows notification instead of auto-reload', () => {
+    it('liveReload=false + autoSave=false shows notification instead of auto-reload', async () => {
       stubs.preferences.autoSave = false
       stubs.preferences.liveReload = false
 
@@ -1626,7 +1574,7 @@ describe('store/editor', () => {
 
   describe('loadChange cursor/scrollTop preservation', () => {
     // (g) loadChange preserves cursor, scrollTop, muyaIndexCursor
-    it('preserves cursor, scrollTop, and muyaIndexCursor after Object.assign', () => {
+    it('preserves cursor, scrollTop, and muyaIndexCursor after Object.assign', async () => {
       const savedCursor = { start: { key: 'k1', offset: 5 }, end: { key: 'k1', offset: 10 } }
       const tab = makeTab({
         id: 't1',

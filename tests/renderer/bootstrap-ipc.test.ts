@@ -240,35 +240,11 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
   })
 
   describe('mt::tab-saved', () => {
-    it('forwards string tabId to editorStore.APPLY_TAB_SAVED', async () => {
+    it('ignores bare saved ids', async () => {
       const { setupIpcListeners, handlers } = await freshBootstrap()
       await setupIpcListeners()
       handlers.get('mt::tab-saved')!({ payload: 'tab-42' })
-      expect(__editorStub.APPLY_TAB_SAVED).toHaveBeenCalledWith('tab-42')
-    })
-
-    it('ignores empty / non-string payload', async () => {
-      const { setupIpcListeners, handlers } = await freshBootstrap()
-      await setupIpcListeners()
-      const h = handlers.get('mt::tab-saved')!
-      h({ payload: '' })
-      h({ payload: { id: 'x' } })
-      h({ payload: null })
       expect(__editorStub.APPLY_TAB_SAVED).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('mt::tab-save-failure', () => {
-    it('handles array shape [id, msg]', async () => {
-      const { setupIpcListeners, handlers } = await freshBootstrap()
-      await setupIpcListeners()
-      handlers.get('mt::tab-save-failure')!({
-        payload: ['tab-7', 'disk full']
-      })
-      expect(__editorStub.APPLY_TAB_SAVE_FAILURE).toHaveBeenCalledWith(
-        'tab-7',
-        'disk full'
-      )
     })
 
     it('handles object shape {id, msg}', async () => {
@@ -308,18 +284,13 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
   })
 
   describe('mt::set-pathname', () => {
-    it('calls APPLY_SAVE_OUTCOME with id+pathname+filename when payload object has id', async () => {
+    it('ignores unowned path broadcasts', async () => {
       const { setupIpcListeners, handlers } = await freshBootstrap()
       await setupIpcListeners()
       handlers.get('mt::set-pathname')!({
         payload: { id: 'tab-3', pathname: '/x/y.md', filename: 'y.md' }
       })
-      expect(__editorStub.APPLY_SAVE_OUTCOME).toHaveBeenCalledWith({
-        id: 'tab-3',
-        pathname: '/x/y.md',
-        filename: 'y.md',
-        isSaved: true
-      })
+      expect(__editorStub.APPLY_SAVE_OUTCOME).not.toHaveBeenCalled()
     })
 
     it('ignores payload with no id', async () => {
@@ -398,11 +369,11 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
   })
 
   describe('mt::force-close-tabs-by-id', () => {
-    it('forwards non-empty array to editorStore.CLOSE_TABS', async () => {
+    it('ignores bare force-close ids', async () => {
       const { setupIpcListeners, handlers } = await freshBootstrap()
       await setupIpcListeners()
       handlers.get('mt::force-close-tabs-by-id')!({ payload: ['a', 'b'] })
-      expect(__editorStub.CLOSE_TABS).toHaveBeenCalledWith(['a', 'b'])
+      expect(__editorStub.CLOSE_TABS).not.toHaveBeenCalled()
     })
 
     it('ignores empty array / non-array', async () => {

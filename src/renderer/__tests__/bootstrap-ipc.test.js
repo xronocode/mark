@@ -333,21 +333,21 @@ describe('bootstrap-ipc / setupIpcListeners (M-025 reorder)', () => {
     cap.restore()
   })
 
-  it('mt::tab-saved forwards string id', async () => {
+  it('mt::tab-saved has no uncorrelated authority', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const cap = captureLogs()
     await setupIpcListeners()
     handlers.get('mt::tab-saved')({ payload: 'tab-42' })
-    expect(__editorStub.APPLY_TAB_SAVED).toHaveBeenCalledWith('tab-42')
+    expect(__editorStub.APPLY_TAB_SAVED).not.toHaveBeenCalled()
     cap.restore()
   })
 
-  it('mt::force-close-tabs-by-id forwards non-empty array', async () => {
+  it('mt::force-close-tabs-by-id has no uncorrelated authority', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const cap = captureLogs()
     await setupIpcListeners()
     handlers.get('mt::force-close-tabs-by-id')({ payload: ['a', 'b'] })
-    expect(__editorStub.CLOSE_TABS).toHaveBeenCalledWith(['a', 'b'])
+    expect(__editorStub.CLOSE_TABS).not.toHaveBeenCalled()
     cap.restore()
   })
 })

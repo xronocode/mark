@@ -515,7 +515,9 @@ describe('source focus, scroll and composition lifecycle', () => {
   it('retains never-unified cursor/tab commits and its native selection ownership', async () => {
     const cm = mountSource({ markdown: 'plain source', unified: false, sourceCode: true, splitActive: false, splitEdit: false })
     cm.setCursor({ line: 0, ch: 5 })
-    expect(store.LISTEN_FOR_CONTENT_CHANGE).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a', markdown: 'plain source', muyaIndexCursor: { anchor: { line: 0, ch: 5 }, focus: { line: 0, ch: 5 } } }))
+    expect(store.LISTEN_FOR_CONTENT_CHANGE).not.toHaveBeenCalled()
+    expect(store.currentFile.muyaIndexCursor).toEqual({anchor:{line:0,ch:5},focus:{line:0,ch:5}})
+    expect(store.currentFile.isSaved).toBe(true)
     expect(adapter.config.extraKeys['Cmd-B'](cm)).toBe(codeMirror.Pass)
     const external = document.createElement('input'); external.value = 'find field'; document.body.appendChild(external); external.focus()
     bus.emit('selectAll'); expect(external.selectionStart).toBe(0); expect(external.selectionEnd).toBe(10)

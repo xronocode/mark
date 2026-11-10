@@ -1,0 +1,182 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SAVE-CLOSE-DATA-SAFETY>
+    <ChangeRef>C-SAVE-CLOSE-DATA-SAFETY</ChangeRef>
+    <Created>2026-11-10</Created>
+    <IntentSummary>Implement the owner-approved Save All and save/close data-safety spec as one sequential stabilization item. Preserve edits made during I/O, refuse active IME before disturbing it, and commit destructive transitions only after a fresh whole-target check. This completed draft requires separate owner approval before any implementation.</IntentSummary>
+    <ExecutionBoundary>Use the existing isolated change branch based on 2a67b1be3b4924e90a323ab9130395f07ea0fcda. Implement natively, task by task; no fresh-reviewer rounds or automatic task/plan approval. If the baseline moves, inspect the diff and expose a material contract conflict before editing. Keep normal typing available during save I/O. Do not change versions, dependencies, release admission, tags or publication.</ExecutionBoundary>
+    <BaselineAssertions>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>ASK_FOR_SAVE_ALL(closeTabs)</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>contentRevision</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>renderedTabId</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/sourceCode.vue</File><Text>compositionFence</Text></MustContain>
+      <MustContain><File>src-tauri/src/m001_save_close.rs</File><Text>pub(crate) fn save_to_path_inner(</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>src/renderer/src/util/documentOperations.js</File><Text>createDocumentOperations</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/documentSnapshot.js</File><Text>captureDocumentSnapshot</Text></MustContain>
+      <MustContain><File>src/renderer/src/ipc/contract/types.ts</File><Text>mt::document::write_snapshot</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>m001_save_close::mt_document_write_snapshot</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/store/editor.js</File><Text>ipcRenderer.send('mt::save-tabs'</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/bootstrap-ipc.js</File><Text>editorStore.CLOSE_TABS(list)</Text></MustNotContain>
+      <MustPassCommand><Command budgetSeconds="600">npm run test:coverage</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="60">npm run typecheck:ipc</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="180">npm run build</Command></MustPassCommand>
+    </TargetAssertions>
+    <CommandBudgets>Reference-host observations on this product baseline: complete renderer coverage 151 seconds (an earlier run took 272 seconds), renderer build 10-15 seconds, IPC typecheck 2.54 seconds on 2026-11-10. Declared limits include headroom, not an invitation to weaken thresholds. Rust compilation and browser startup are separate required acceptance tiers below; neither is hidden inside a short lifecycle gate. Do not repeat focused Vitest tasks inside TargetAssertions: the full coverage command already includes them.</CommandBudgets>
+    <DurableScope>
+      <GraphAnchors><M-001/><M-011/><M-012/><M-013/><M-013-A/><M-013-B/><M-025/><M-036/><M-060/></GraphAnchors>
+      <VerificationAnchors><V-M-001/><V-M-011/><V-M-012/><V-M-013/><V-M-013-A/><V-M-013-B/><V-M-025/><V-M-036/><V-M-060/></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/util/documentSnapshot.js</File>
+      <File>src/renderer/src/util/documentOperations.js</File>
+      <File>src/renderer/src/ipc/runtime/documentSave.ts</File>
+      <File>src/renderer/src/ipc/runtime/index.ts</File>
+      <File>src/renderer/src/ipc/contract/types.ts</File>
+      <File>src/renderer/src/ipc/contract/index.ts</File>
+      <File>src/renderer/src/ipc/contract/contract.test.ts</File>
+      <File>src/renderer/src/store/help.js</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src/renderer/src/store/project.js</File>
+      <File>src/renderer/src/bootstrap-ipc.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/sourceCode.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js</File>
+      <File>src/renderer/src/components/editorWithTabs/tabs.vue</File>
+      <File>src/renderer/src/components/sideBar/treeOpenedTab.vue</File>
+      <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File>
+      <File>src-tauri/src/m001_save_close.rs</File>
+      <File>src-tauri/src/main.rs</File>
+      <File>src-tauri/src/m001_validate.rs</File>
+      <File>test/fixtures/ipc-channels/tauri.v2.json</File>
+      <File>tests/renderer/util/document-snapshot.test.js</File>
+      <File>tests/renderer/util/document-operations.test.js</File>
+      <File>tests/renderer/ipc/document-save.test.ts</File>
+      <File>tests/renderer/components/document-save-surfaces.test.js</File>
+      <File>tests/renderer/components/unsaved-close-dialog.test.js</File>
+      <File>tests/renderer/components/split-rich-history.test.js</File>
+      <File>tests/renderer/components/sideBar/workspaceModeDialog.test.js</File>
+      <File>tests/renderer/store/help.test.ts</File>
+      <File>tests/renderer/store/editor.test.ts</File>
+      <File>tests/renderer/store/editor-deep.test.js</File>
+      <File>tests/renderer/store/editor-deep2.test.js</File>
+      <File>tests/renderer/store/editor-coverage.test.js</File>
+      <File>tests/renderer/store/project-workspace.test.ts</File>
+      <File>tests/renderer/store/bootstrap-ipc-coverage.test.js</File>
+      <File>tests/renderer/bootstrap-ipc.test.ts</File>
+      <File>tests/e2e/fixtures/tauri-shim.ts</File>
+      <File>tests/e2e/perf/characterization-save-close.spec.ts</File>
+      <File>tests/e2e/perf/characterization-ime-seeded.spec.ts</File>
+      <File>tests/e2e/perf/save-close-safety.spec.ts</File>
+      <File>tests/e2e/unsaved-close-actions.spec.ts</File>
+      <File>tests/e2e/unsaved-dialog-theme.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <Glob>static/locales/*.json</Glob>
+    </ObservedWriteScope>
+    <Architecture>
+      <Decision>One renderer-owned coordinator makes lifecycle decisions. Rust writes one correlated snapshot and returns its result; successful writes never broadcast permission to close. Save All walks intended dirty tabs in stable strip order, including untitled and empty dirty content. A destructive batch keeps all original targets until the final barrier succeeds. The first cancel, failure, identity change or unsafe state stops it; already completed writes remain on disk.</Decision>
+      <Decision>Separate native destination selection from writing. For Save As, choose a path first, then verify ownership and IME and collect current committed text immediately before dispatch. Never pass pre-picker text into a combined picker/write call. The new adapter has no fallback that swallows an unknown command into undefined success.</Decision>
+      <Decision>Transient renderer identity is {id, documentToken}. Allocate a fresh token for every actual opened/restored document object, including reused ids; never recover it from persisted session data or a closed tab. A SaveSnapshot additionally pins requestId, contentRevision, sourcePath, targetPath, markdown and history ownership. Acknowledgements validate identity, source/target and dispatched text before any pathname, saved marker or history mutation.</Decision>
+      <Decision>Track all document-save attempts, including ordinary Save, Save As and autosave, until the underlying write actually settles. Refuse a destructive attempt when a known older overlapping write is still pending, with explicit retry feedback; do not pretend a timeout cancelled a write. During an admitted close attempt, reserve affected document/path write lanes: overlapping manual requests return busy and autosave defers its timer, without blocking typing or automatically resuming close. This bounded admission guard is not a general filesystem scheduler.</Decision>
+      <Decision>Freshness is collected from the owned complete document model, not a DOM subtree. In unified split mode, reconcile the active editing surface through the existing preserveSourceSyntax/shared-history route; a following or stale surface cannot overwrite it. For Save All and global close, start with the full candidate tab set before filtering on isSaved. First inspect all target composition fences, then collect; if any target is composing, refuse the entire attempt before snapshots, prompts, pickers or render flushes. A clean-looking isSaved flag is never a shortcut past this check.</Decision>
+      <Decision>After awaited work, collect and validate all targets again. Save decisions require the exact acknowledged current version; discard decisions require the unchanged version explicitly authorized by the user. Global window close/Quit also checks the entire live document set for newly dirty or composing tabs. Finish session/position persistence before the last recheck. Do not yield between the final recheck and the synchronous logical close commit / destructive command dispatch; do not leave an editable document alive behind a committed close. Failure before commit leaves every original target open.</Decision>
+      <Decision>Use existing notifications and the existing three-action dialog. A post-dispatch edit preserves the newer buffer and dirty indicator and offers an explicit fresh retry bound to the original identities. A retry after close/reopen or path invalidation is inert with a clear notice. Repeat requests do not create duplicate dialogs, writes, notices or exit approvals. IME completion never automatically restarts a cancelled/refused attempt.</Decision>
+      <Decision>Retire unsafe renderer authority from bare mt::tab-saved, mt::set-pathname and mt::force-close-tabs-by-id events. No matching owned request means no clean/path/close mutation. The legacy mt_save_and_close_tabs sink becomes an explicit error with no write/close broadcasts; no production save/close caller remains. Keep old one-shot save command registrations as deprecated save-only compatibility handlers, with no lifecycle authority; all current editor/project/autosave callers use the new tracked adapter. Preserve other bootstrap subscriptions and the parallel pending-open drain.</Decision>
+      <Boundary>Rename/Move To repairs, metadata-only dirty rules, external byte equality, encoding/BOM/EOL, global physical write ordering, atomic replacement and crash recovery remain later items. During this attempt only, prevent conflicting destination/path mutation and reject saving over another live document's owned path. If the existing path or save boundary cannot establish that narrow safety without broader repair, stop and present the concrete dependency; do not weaken the approved invariant.</Boundary>
+    </Architecture>
+    <Interfaces>
+      <Interface>documentSnapshot.js exports registerDocumentSurface(owner, adapter) -&gt; unregister(), inspectDocumentComposition(owners) -&gt; {composingOwners}, captureDocumentSnapshot(store, owner) -&gt; {status:'ready', snapshot}|{status:'composing'|'stale'|'unavailable', owner}. owner={id,documentToken}; adapter exposes isComposing() and captureCommitted(). captureCommitted synchronously commits pending owned model changes through existing store/history APIs and returns the complete canonical Markdown, without rerendering or forcing compositionend. Every mounted rich/source surface registers with actual rendered ownership and removes only its own registration on switch/unmount. A tab with no live surface uses its fully committed store model; a missing or mismatched expected surface fails closed.</Interface>
+      <Interface>documentSave.ts exports ipcDocumentSave.chooseTarget({requestId,documentToken,filename,defaultPath}) -&gt; Promise&lt;{requestId,documentToken,pathname}|null&gt; and writeSnapshot({requestId,documentToken,id,revision,sourcePath,targetPath,markdown,ownedPaths}) -&gt; Promise&lt;{requestId,documentToken,id,revision,sourcePath,pathname,filename}&gt;. ownedPaths lists other live owners and paths; the Rust write validates collision with canonical existing-target or canonical parent + basename semantics before touching disk. Replies echo the dispatched identities rather than consulting whichever tab is active. A picker cancellation is null, an invalid/missing response is failure. Native picker and tracked writes use ipcInvoke with timeoutMs:Infinity so tracking ends with actual settlement; cancellation invalidates close authority, not the physical write. No new capabilities or sandbox bypass.</Interface>
+      <Interface>Register typed commands mt::document::choose_save_target and mt::document::write_snapshot as Rust mt_document_choose_save_target and mt_document_write_snapshot in m001_save_close.rs/main.rs, CommandName/CommandMap, contract exports/type tests, generated tauri.v2.json and m001_validate::REGISTERED_COMMANDS. Reuse pick_save_path and existing sandboxed save primitive. The shim's existing :: to _ mapping remains sufficient; test it through the real bridge/adapter instead of inventing another channel translator.</Interface>
+      <Interface>documentOperations.js exports createDocumentOperations(deps) -&gt; {run(request), save(owner,{saveAs:false}), isBusy(owner), invalidate(owner)}. run returns Promise&lt;{status:'completed'|'cancelled'|'blocked'|'failed', affectedOwners}&gt;; requests pin kind:'save-all'|'close'|'close-all'|'close-others'|'window-close'|'quit'|'workspace-replace', owners, optional preselected decision:'save'|'discard', and an owned commit callback. deps is {getTabs, inspectComposition, capture, chooseTarget, writeSnapshot, confirm, notify, prepareCommit}: getTabs returns current tabs; inspectComposition/capture use T-001; chooseTarget/writeSnapshot use the tracked T-002 adapter; confirm returns save/discard/cancel; notify uses the existing facade; prepareCommit returns a Promise for session/position preparation only and never closes. request.commit is the synchronous owned logical-close/dispatch callback, called only after preparation and the final freshness barrier. Editor store exposes REQUEST_DOCUMENT_OPERATION(request) and retains public FILE_SAVE, FILE_SAVE_AS, ASK_FOR_SAVE_ALL, CLOSE_TAB/CLOSE_UNSAVED_TAB/CLOSE_ALL_TABS/CLOSE_OTHER_TABS/QUIT_APP entrypoints as thin adapters returning the structured outcome. No caller treats undefined as success. Only the successful coordinator commit invokes low-level tab cleanup; forced external deletion behavior outside the user close pipeline retains its documented separate origin.</Interface>
+      <Interface>askUnsavedClose keeps save/discard/cancel results and backwards-compatible single-file arguments, adds localized operation context and group filenames. Escape, close glyph and backdrop cancel; save is default. A workspace chooser's explicit save/discard result enters the same coordinator without prompting twice and pins the version actually confirmed. Existing notification actions use label+handler with a returned Promise and dedupKey per attempt; handlers collect fresh text and require the same live owner set.</Interface>
+    </Interfaces>
+    <ReviewFocus>
+      <Case>Clean-looking active IME in an inactive pane: refuse before touching either pane, then save the final committed text exactly once on explicit retry (T-001, T-003).</Case>
+      <Case>Owner changes while a native picker is open: bind result to the original lifetime; source path change, close/reopen or cancellation cannot retarget another tab (T-002).</Case>
+      <Case>Destination aliases and duplicate filenames across workspace roots: reject a live-owned target before disk overwrite, preserve both buffers and distinguish affected filenames in feedback (T-002, T-003).</Case>
+      <Case>A new dirty tab or a late edit appears during position/session persistence: global destruction is refused; Close Others leaves later unrelated tabs untouched (T-003).</Case>
+      <Case>A known older autosave settles after a newer attempt, including a rejected request or an invalid response: no premature clean or close and no auto-resumed close (T-002, T-003).</Case>
+    </ReviewFocus>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Own document lifetimes and fresh complete snapshots without disturbing IME</Title>
+        <DependsOn></DependsOn>
+        <Files>Create util/documentSnapshot.js and document-snapshot.test.js, document-save-surfaces.test.js; modify store/help.js, store/editor.js, editorWithTabs/editor.vue, sourceCode.vue, help.test.ts and split-rich-history.test.js. Synchronize M-011/M-012 and V-M-011/V-M-012 for the collector boundary; Muya internals remain unchanged.</Files>
+        <Steps>
+          <Step>Write tests before the collector: pending rich/source edits must appear in a snapshot even while isSaved is true; source syntax and shared undo/redo stay intact; cursor-only collection changes no contentRevision; replaced ids reject the old token; stale mirrored surfaces cannot write into the current owner.</Step>
+          <Step>Pin rich/source/split active-composition tests: snapshot.status is composing, captureCommitted is never called, no prompt/write/rerender occurs and preedit/focus remain. After real compositionend, an explicit new capture contains the final text once. Include the seeded clean-looking close-loss case in the later integration matrix.</Step>
+          <Step>Implement the snapshot interfaces and fresh token assignment across all canonical document factories and close/reopen recovery, with owner-specific mount/switch/unmount cleanup. Obtain full Markdown from the model, including progressive unmounted tail. Use existing split change/history paths to preserve source formatting instead of blindly serializing a following rich pane.</Step>
+          <Step>Run the focused collector/component/history tests red then green. Record the failure proving the missing invariant, not a broken import alone; update file contracts, maps, change summaries and routed verification with the resulting named scenarios.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>R-002, R-007 and the snapshot portion of R-008/R-012: freshness and IME decisions are independent of stored dirty flags; complete-model collection preserves history, owner identity and syntax across all three editing modes and a large progressive document.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/renderer/util/document-snapshot.test.js tests/renderer/components/document-save-surfaces.test.js tests/renderer/components/split-rich-history.test.js tests/renderer/store/help.test.ts</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Write correlated snapshots after destination selection and account for every in-flight save</Title>
+        <DependsOn>T-001</DependsOn>
+        <Files>Create ipc/runtime/documentSave.ts, util/documentOperations.js and their focused tests; modify store/editor.js save/autosave/outcome actions, IPC contract/types/barrel/type tests, runtime/index.ts, m001_save_close.rs, main.rs, m001_validate.rs and generated test/fixtures/ipc-channels/tauri.v2.json. Extend existing editor unit suites only where they assert replaced save behavior. Synchronize M-001/M-011/M-013/M-013-A/M-013-B and matching verification.</Files>
+        <Steps>
+          <Step>Write deferred-transport tests for choose then fresh capture then write; include typing during the picker versus typing after dispatch, picker cancellation, undefined/malformed response, rejected write, tab switch, close/reopen with reused id, source-path mutation, same-path alias collision and saving dirty empty/whitespace text. Assert target bytes in Rust temp-file tests and exact payload identity in renderer tests.</Step>
+          <Step>Implement the two typed commands and adapter exactly as Interfaces specify. Validate owned-path collision using existing filesystem/sandbox boundaries, including an existing target and a new filename in an existing parent. Keep dialog access on its supported main-thread callback bridge. Regenerate the IPC fixture with node tools/gen-tauri-v2-fixture.mjs and check registration/fixture parity; do not edit generator policy or ACLs.</Step>
+          <Step>Implement coordinator save(owner) and the write-admission registry. Route FILE_SAVE, FILE_SAVE_AS and HANDLE_AUTO_SAVE through it. Preserve the live Auto Save preference check at timer fire. Preserve background tab/history ownership and do not clear a pending write from tracking merely because its close attempt was cancelled. A busy destructive attempt returns blocked with retry information; no second physical write competes in the affected lane.</Step>
+          <Step>Replace outcome application with request/token/revision/source/target validation before mutation. A successful Save As may adopt its own newly chosen destination while leaving newer text dirty; it must never close another owner or revert a later pathname. Old, superseded or unowned results cannot mutate path/history/clean state. An acknowledged old version never cleans a newer revision even if text later happens to compare equal.</Step>
+          <Step>Run focused renderer/type/Rust tests red then green, including older pending ordinary-save/autosave admission and later safe explicit retry. Register content-free attempt/stale/busy/collision markers; never log Markdown or newly introduced raw private paths.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>R-002/R-004/R-005/R-008/R-009: actual save output is tied to the originally owned lifetime and dispatched version; picker-time edits are included, post-dispatch edits survive dirty, cancellation and errors are explicit, colliding live-owned paths are untouched, and known pending writes cannot authorize close.</Criterion></AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/ipc/document-save.test.ts tests/renderer/util/document-operations.test.js tests/renderer/store/editor.test.ts tests/renderer/store/editor-deep.test.js tests/renderer/store/editor-deep2.test.js tests/renderer/store/editor-coverage.test.js tests/renderer/ipc-shim.test.js</Command>
+          <Command>npm run typecheck:ipc</Command>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m001_save_close::tests</Command>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m001_validate::tests</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Route every destructive entrypoint through one checked batch commit and truthful feedback</Title>
+        <DependsOn>T-001, T-002</DependsOn>
+        <Files>Extend documentOperations.js; modify editor.js close/Save All/Quit adapters, project.js replacement, bootstrap-ipc.js, tabs.vue and treeOpenedTab.vue close affordances, unsavedCloseDialog.js and workspaceModeDialog.vue, static/locales/*.json; modify the listed dialog, editor, bootstrap and workspace tests. Disable legacy batch close authority in m001_save_close.rs. Synchronize M-001/M-011/M-025/M-036 and matching verification; reuse M-067 notifications without changing its runtime contract.</Files>
+        <Steps>
+          <Step>Write coordinator/store integration tests parameterized over Save All, single close, Close All, Close Others, main-window close, menu/keyboard/palette Quit and workspace replacement. Assert Save All never closes; stable named/untitled order; pristine clean empty is quiet; dirty empty is saved; no target closes on first error/cancel and no later batch write starts; completed writes are retained. Never assert only a mocked success return: inspect all original tabs and issued side effects.</Step>
+          <Step>Implement run(request) with one active destructive attempt, original identity membership, three semantic decisions, whole-group composition precheck and fresh capture before deciding clean/discard/save. Sequentially save selected targets, stop on the first unsuccessful result, and apply the final whole-target barrier. A dirty non-target created before global close blocks exit; a later unrelated tab is not swept into Close Others. Recheck after every awaited destructive preparation, including session/position persistence, then commit without an intervening yield.</Step>
+          <Step>Route tab strip/sidebar clean fast paths through CLOSE_TAB too: isSaved is insufficient to force-close. Keep FORCE_CLOSE_TAB cleanup for an authorized synchronous commit so recently-closed recovery, positions, watches and session behavior survive. Route workspace replacement through the structured result before any target tab/root mutation; retain the existing chooser and do not present duplicate confirmations. Guard path-changing Save As/rename actions during an admitted attempt or invalidate it before their mutation.</Step>
+          <Step>Use localized Save / explicit Discard / Cancel wording for named, untitled and grouped close/Quit; save is default, Escape/glyph/backdrop are cancel. Save never means discard. On newer edits, keep dirty state and use existing source:file info notification with affected names and a fresh retry action; IME feedback requests completion and explicit retry without queued continuation. Distinguish duplicate filenames by owning path/root in grouped feedback. Deduplicate by attempt and preserve editor focus. Add keys to every locale table discovered from static/locales/*.json, not a stale fixed count.</Step>
+          <Step>Remove bare-id saved/path/forced-close authority from bootstrap, keeping other subscriptions and pending-open drain ordering. Make legacy mt_save_and_close_tabs reject explicitly with no write or close events. Tests inject bare events, delayed valid replies, cancelled/superseded attempts, newer edit after Discard, stale retry after reopen, rapid repeated Quit and a known older write: none may bypass the final barrier.</Step>
+          <Step>Run the focused operation/dialog/bootstrap/workspace/localization tests red then green and Rust save/close tests. Update the exact scenarios and content-free markers in routed graph/verification; do not rewrite archived baselines or unrelated dirty/metadata invariants.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>R-001..R-011: all named entrypoints return an explicit safe outcome; a failed/cancelled/refused batch leaves every original target open; only current acknowledged saves or unchanged explicit discard permits close; user feedback and retry are visible and localized; no legacy event or reentrant request can cause partial closure or exit.</Criterion></AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/util/document-operations.test.js tests/renderer/components/unsaved-close-dialog.test.js tests/renderer/store/editor.test.ts tests/renderer/store/editor-deep.test.js tests/renderer/store/editor-deep2.test.js tests/renderer/store/editor-coverage.test.js tests/renderer/store/project-workspace.test.ts tests/renderer/components/sideBar/workspaceModeDialog.test.js tests/renderer/store/bootstrap-ipc-coverage.test.js tests/renderer/bootstrap-ipc.test.ts tests/renderer/i18n/locale-keys.test.js</Command>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m001_save_close::tests</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Prove the loss-prevention matrix, preserve accepted behavior and prepare isolated owner QA</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <Files>Create tests/e2e/perf/save-close-safety.spec.ts; update the two listed live save-close/IME characterizations, tauri-shim.ts and existing unsaved-close-actions/unsaved-dialog-theme browser tests for the new contract. Synchronize V-M-060 and other owned verification scenarios with current behavior. Frozen Stage 0 artifacts and unrelated characterizations remain unchanged.</Files>
+        <Steps>
+          <Step>Add deferred choose/write support for the real registered command names to the renderer browser fixture. Convert only this change's known-loss expectations in live save-close and IME tests to the approved desired invariant; preserve historical provenance and label browser doubles honestly. Keep unrelated rename, encoding and metadata defects explicitly recorded.</Step>
+          <Step>Browser tests use actual editor text input and real public store/command entrypoints, not pre-marked clean fixtures. Cover all three editing modes, a named plus untitled batch, typing during confirmation/picker and after dispatch, partial failure, cancel, delayed/bare ack, no partial closes, active IME refusal then explicit retry, and new dirty global tab. Assert visible focus/preedit/dirty/notification state, exact canonical payload text and surviving tab identities. Include an ordinary document and the existing 1 MB fixture with an unmounted tail; compare complete-model content, not only mounted DOM.</Step>
+          <Step>Run TargetAssertions once for final unit coverage/type/build evidence. Run full Rust tests and the browser acceptance commands below against the same final candidate. Run the normal repository CI matrix on the exact outgoing head. Existing CI, coverage floors, retries, deadlines and performance budgets are unchanged; resolve actual failures before handoff instead of weakening or relabeling them.</Step>
+          <Step>Build an isolated identifiable native QA app from the verified candidate, without replacing the installed application or reusing a frozen prior candidate. Verify real disk text, native picker cancel/save, window close and Quit, named/untitled groups, late typing feedback and retry. Record macOS WKWebView native IME and Windows native IME separately from synthetic browser composition; if native evidence is unavailable, label it pending and do not claim that platform verified. Check the already accepted table/Find scenarios for regressions in automated suites; request owner attention only for this item's short new acceptance checklist.</Step>
+          <Step>Before declaring implementation complete, record leaf-command outputs and head/build identity, execute the selected target/final assertions externally, archive only after final evidence, then rerun current integrity and module status. Follow exact-candidate commit/push safety. Owner QA acceptance and any release authorization are separate later decisions; do not advance to item 2 automatically.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>AC-001..AC-006 and R-012 have identified evidence tiers; all deterministic required checks pass on the final candidate, actual loss scenarios assert the new behavior, native acceptance is explicitly observed or remains pending, existing table/Find/shared-history/canonical Markdown/performance behavior is preserved. No publication or next-item work is authorized by these checks.</Criterion></AcceptanceCriteria>
+        <Verification>
+          <Command>npm run test:coverage</Command><Command>npm run typecheck:ipc</Command><Command>npm run build</Command>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark</Command>
+          <Command>npx playwright test tests/e2e/unsaved-close-actions.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts --project=chromium</Command>
+          <Command>npx playwright test tests/e2e/perf/save-close-safety.spec.ts tests/e2e/perf/characterization-save-close.spec.ts tests/e2e/perf/characterization-ime-seeded.spec.ts --project=webkit-perf</Command>
+          <Command>WAVEA_EXPERIMENTAL=1 npx playwright test tests/e2e/perf/save-close-safety.spec.ts --project=webkit-perf</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <SpecCoverage>R-001:T-003; R-002:T-001/T-002; R-003:T-002/T-003; R-004:T-002/T-003; R-005:T-002/T-003; R-006:T-003; R-007:T-001/T-003; R-008:T-002/T-003; R-009:T-002/T-003; R-010:T-003; R-011:T-003; R-012:T-001/T-004. AC-001..AC-006 are consolidated in T-004; each earlier task has its own focused red/green cycle.</SpecCoverage>
+    <Coexistence>Deferred C-50 and the draft C-EXPORT-SETTINGS-SECTION share broad renderer scope. Do not execute them concurrently with this change. Planning has not changed current graph/verification, product code or test expectations. Current preflight on the exact baseline reports zero errors and four pre-existing Python heuristic warnings; this is not a claim of whole-project readiness.</Coexistence>
+    <ApprovalPause>The spec is approved. This plan remains draft until the owner approves this completed plan. Stop here: no product implementation, automatic review rounds, QA acceptance, release operation or next stabilization item follows from spec approval alone.</ApprovalPause>
+  </C-SAVE-CLOSE-DATA-SAFETY>
+</GraceChangePlan>

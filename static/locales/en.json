@@ -1823,5 +1823,24 @@
   },
   "extensions": {
     "disableFailed": "The extension is disabled, but access revocation could not be verified. Try again."
+  },
+  "documentOperations": {
+    "title": "Unsaved changes",
+    "message": "{names}\n\nSave changes before closing?",
+    "untitledMessage": "{names}\n\nSave changes before closing? Choose a location for each untitled document.",
+    "saveClose": "Save & Close",
+    "saveQuit": "Save & Quit",
+    "discard": "Discard",
+    "cancel": "Cancel",
+    "composing": "Finish text input, then retry. Documents remain open: {names}",
+    "busy": "A save is still in progress. Wait for it to finish, then retry: {names}",
+    "collision": "Another open document owns the selected destination. Both documents remain open: {names}",
+    "changed": "New edits arrived during saving and remain unsaved. Documents were kept open: {names}",
+    "new-dirty": "A new document has unsaved changes. Closing was stopped.",
+    "stale": "This document changed or was reopened. Start a new operation: {names}",
+    "unavailable": "The editor is still switching documents. Retry when it is ready: {names}",
+    "failed": "Saving or closing failed. Documents were kept open: {names}",
+    "retryClose": "Save again and close",
+    "retrySave": "Save again"
   }
 }

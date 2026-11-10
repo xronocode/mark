@@ -22,7 +22,11 @@
 //   Cancel-equivalence of Escape, the close glyph and the backdrop.
 // END_CHANGE_SUMMARY
 
-import { describe, expect, it, afterEach } from 'vitest'
+import { vi, describe, expect, it, afterEach } from 'vitest'
+vi.mock('@/i18n', async () => {
+  const {default:en}=await import('../../../static/locales/en.json')
+  return {i18n:{global:{t:(key,values={})=>key.split('.').reduce((v,k)=>v?.[k],en)?.replace(/\{(\w+)\}/g,(_,k)=>values[k]) || key}}}
+})
 import { askUnsavedClose, UNSAVED_CLOSE_ACTIONS } from '@/components/editorWithTabs/unsavedCloseDialog'
 
 const openDialog = async (opts = { filename: 'Untitled-1', named: false }) => {
@@ -115,14 +119,14 @@ describe('unsavedCloseDialog (FIX-011 three-action model)', () => {
   it('the untitled message announces Save As; the named message asks to save', async () => {
     const untitled = await openDialog({ filename: 'Untitled-1', named: false })
     const untitledText = untitled.overlay.querySelector('.ag-unsaved-close-message').textContent
-    expect(untitledText).toContain('unsaved and untitled')
-    expect(untitledText).toContain('Save & Close will ask where to save it')
+    expect(untitledText).toContain('untitled document')
+    expect(untitledText).toContain('Choose a location')
     pressKey(untitled.overlay, 'Escape')
 
     const named = await openDialog({ filename: 'notes.md', named: true })
     const namedText = named.overlay.querySelector('.ag-unsaved-close-message').textContent
     expect(namedText).toContain('notes.md')
-    expect(namedText).toContain('Save before closing the tab?')
+    expect(namedText).toContain('Save changes before closing?')
     pressKey(named.overlay, 'Escape')
 
     await expect(untitled.asked).resolves.toBe(UNSAVED_CLOSE_ACTIONS.CANCEL)
