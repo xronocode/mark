@@ -3,7 +3,7 @@
 //            (ported as-is per variant-(a)) calls. Mostly stubs returning
 //            sensible defaults; mt_close_project_root is a real
 //            implementation since C-2 (WatchRegistry unwatch).
-//   SCOPE:   thin compatibility shims, validated document-local link opening,
+//   SCOPE:   thin compatibility shims, validated document-local link routing to the invoking window,
 //            plus the C-2 close-project unwatch.
 //            Every remaining stub has a corresponding F-* followup
 //            pointing at the proper module that should own it long-term.
@@ -45,11 +45,12 @@
 //   mt_update_sidebar_menu - Synchronize the allowlisted sidebar menu check.
 //   mt_request_window_content_size - Retain the no-op legacy size request sink.
 //   mt_open_setting_window - Open the native settings shell.
-//   mt_format_link_click - Open web links or validated document-local paths.
+//   mt_format_link_click - Route validated documents to invoking-window tabs and other targets to their existing opener.
 //   parse_open_file_args - Normalize supported compatibility file-open argument shapes.
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-MD-LINK-TABS: validated document links use the invoking window tab pipeline; OS openers retain only web/non-document destinations, without failure fallback.
 //   - 2026-11-10 C-STABILIZE-LINK-ALIASES: rebase absolute document-directory aliases before the unchanged canonical fence; preserve requested/resolved executable guards.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-006: all local link forms join the
 //     canonical document directory and pass path/extension guards before the
@@ -904,6 +905,7 @@ pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String>
 #[derive(Debug, PartialEq, Eq)]
 enum LinkClickTarget {
     Web(String),
+    Markdown(String),
     Local(String),
 }
 
@@ -940,42 +942,55 @@ fn validate_link_click_target(href: &str, dirname: &str) -> Result<LinkClickTarg
     crate::m010_security::check_shell_open_extension(&validated)
         .map_err(|e| denied(e.to_string()))?;
     let target = validated.to_str().ok_or_else(|| denied("non-UTF-8 link target".to_string()))?;
-    Ok(LinkClickTarget::Local(target.to_string()))
+    Ok(if is_markdown(target) {
+        LinkClickTarget::Markdown(target.to_string())
+    } else {
+        LinkClickTarget::Local(target.to_string())
+    })
 }
 
-/// Opens a clicked link in the system browser.
-/// Renderer calls this via `ipcRenderer.send('mt::format-link-click', { data, dirname })`.
+// START_BLOCK_LINK_DESTINATION_DISPATCH
+// Production and tests share this dispatch: errors never try another sink.
+fn dispatch_link_click_with(
+    target: LinkClickTarget,
+    document: impl FnOnce(&str) -> Result<(), String>,
+    web: impl FnOnce(&str) -> Result<(), String>,
+    local: impl FnOnce(&str) -> Result<(), String>,
+) -> Result<(), String> {
+    match target {
+        LinkClickTarget::Markdown(path) => document(&path),
+        LinkClickTarget::Web(url) => web(&url),
+        LinkClickTarget::Local(path) => local(&path),
+    }
+}
+
+/// Route a clicked link after document-local validation.
+/// Only the invoking window may receive a document-open event.
 #[tauri::command]
 pub async fn mt_format_link_click(
-    app: tauri::AppHandle,
+    window: tauri::Window,
     data: Value,
     dirname: Value,
 ) -> Result<(), String> {
-    let href = data
-        .get("href")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default();
+    let href = data.get("href").and_then(|v| v.as_str()).unwrap_or_default();
     if href.is_empty() {
         return Ok(());
     }
     let target = validate_link_click_target(href, dirname.as_str().unwrap_or("."))?;
-    // Only the validated local variant may reach open_path. No OS opener is
-    // involved in the validation seam exercised by link_click_ regressions.
     use tauri_plugin_opener::OpenerExt;
-    match target {
-        LinkClickTarget::Web(url) => {
-            safe_eprintln!("[v1_compat][link][BLOCK_OPEN_URL url={url}]");
-            app.opener().open_url(url, None::<&str>)
-                .map_err(|e| format!("Failed to open URL: {e}"))?;
-        }
-        LinkClickTarget::Local(path) => {
-            safe_eprintln!("[v1_compat][link][BLOCK_OPEN_LOCAL_PATH]");
-            app.opener().open_path(path, None::<&str>)
-                .map_err(|e| format!("Failed to open path: {e}"))?;
-        }
-    }
-    Ok(())
+    dispatch_link_click_with(
+        target,
+        |path| {
+            safe_eprintln!("[v1_compat][link][BLOCK_LINK_DOCUMENT_TAB]");
+            emit_open_new_tab(&window, path, false)
+        },
+        |url| window.app_handle().opener().open_url(url, None::<&str>)
+            .map_err(|e| format!("Failed to open URL: {e}")),
+        |path| window.app_handle().opener().open_path(path, None::<&str>)
+            .map_err(|e| format!("Failed to open path: {e}")),
+    )
 }
+// END_BLOCK_LINK_DESTINATION_DISPATCH
 
 // ──────────────────────────────────────────────────────────────────────
 // Helpers
@@ -1037,6 +1052,60 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
+    fn link_click_document_has_internal_destination() {
+        let dir = TempDir::new().unwrap();
+        for name in ["note.md", "UPPER.MARKDOWN", "draft.txt", "notes.mdx"] {
+            std::fs::write(dir.path().join(name), b"# Document\n").unwrap();
+            let target = validate_link_click_target(name, dir.path().to_str().unwrap()).unwrap();
+            assert!(format!("{target:?}").starts_with("Markdown("), "document sent outside: {target:?}");
+        }
+    }
+
+    #[test]
+    fn link_click_dispatches_only_the_selected_destination() {
+        use std::cell::RefCell;
+        let root = TempDir::new().unwrap();
+        std::fs::create_dir(root.path().join("sub")).unwrap();
+        for (name, expected) in [("note.md", "document"), ("UPPER.MARKDOWN", "document"),
+            ("sub/deep.txt", "document"), ("image.png", "local"), ("paper.pdf", "local")] {
+            std::fs::write(root.path().join(name), b"# Target\n").unwrap();
+            let calls = RefCell::new(Vec::new());
+            let target = validate_link_click_target(name, root.path().to_str().unwrap()).unwrap();
+            dispatch_link_click_with(target,
+                |p| { let payload = build_open_new_tab_payload(p, false)?; assert_eq!(payload["markdown"], "# Target\n"); calls.borrow_mut().push("document"); Ok(()) },
+                |_| { calls.borrow_mut().push("web"); Ok(()) },
+                |_| { calls.borrow_mut().push("local"); Ok(()) },
+            ).unwrap();
+            assert_eq!(*calls.borrow(), vec![expected]);
+        }
+        let calls = RefCell::new(Vec::new());
+        let target = validate_link_click_target("https://example.invalid/path", "/missing").unwrap();
+        dispatch_link_click_with(target,
+            |_| { calls.borrow_mut().push("document"); Ok(()) },
+            |_| { calls.borrow_mut().push("web"); Ok(()) },
+            |_| { calls.borrow_mut().push("local"); Ok(()) },
+        ).unwrap();
+        assert_eq!(*calls.borrow(), vec!["web"]);
+    }
+
+    #[test]
+    fn link_click_unreadable_document_never_falls_back_or_emits_empty_payload() {
+        use std::cell::Cell;
+        let dir = TempDir::new().unwrap();
+        let name = dir.path().join("invalid.md");
+        std::fs::write(&name, [0xff, 0xfe, 0xfd]).unwrap();
+        let emitted = Cell::new(false);
+        let result = dispatch_link_click_with(
+            validate_link_click_target("invalid.md", dir.path().to_str().unwrap()).unwrap(),
+            |p| { let _ = build_open_new_tab_payload(p, false)?; emitted.set(true); Ok(()) },
+            |_| panic!("document error fell back to browser"),
+            |_| panic!("document error fell back to OS"),
+        );
+        assert!(result.is_err());
+        assert!(!emitted.get());
+    }
+
+    #[test]
     fn link_click_refuses_bare_command() {
         let dir = TempDir::new().unwrap();
         for href in ["run.cmd.command", "Unsafe.app", "run.SCPT"] {
@@ -1067,7 +1136,11 @@ mod tests {
             for href in [name.to_string(), format!("./{name}"), sibling.to_string_lossy().into_owned()] {
                 assert_eq!(
                     validate_link_click_target(&href, document_dir.path().to_str().unwrap()).unwrap(),
-                    LinkClickTarget::Local(sibling.canonicalize().unwrap().to_string_lossy().into_owned())
+                    if is_markdown(name) {
+                        LinkClickTarget::Markdown(sibling.canonicalize().unwrap().to_string_lossy().into_owned())
+                    } else {
+                        LinkClickTarget::Local(sibling.canonicalize().unwrap().to_string_lossy().into_owned())
+                    }
                 );
             }
         }
@@ -1106,7 +1179,7 @@ mod tests {
         std::fs::write(actual.join("note.md"), b"fixture").unwrap();
         let alias = root.path().join("alias");
         std::os::unix::fs::symlink(&actual, &alias).unwrap();
-        assert_eq!(validate_link_click_target("note.md", alias.to_str().unwrap()).unwrap(), LinkClickTarget::Local(actual.join("note.md").canonicalize().unwrap().to_string_lossy().into_owned()));
+        assert_eq!(validate_link_click_target("note.md", alias.to_str().unwrap()).unwrap(), LinkClickTarget::Markdown(actual.join("note.md").canonicalize().unwrap().to_string_lossy().into_owned()));
     }
 
     #[test]
@@ -1126,7 +1199,7 @@ mod tests {
         std::fs::write(&sibling, b"fixture").unwrap();
         let alias = root.path().join("document-alias");
         std::os::unix::fs::symlink(&actual, &alias).unwrap();
-        let expected = LinkClickTarget::Local(sibling.canonicalize().unwrap().to_string_lossy().into_owned());
+        let expected = LinkClickTarget::Markdown(sibling.canonicalize().unwrap().to_string_lossy().into_owned());
         for href in [alias.join("note.md"), sibling.canonicalize().unwrap()] {
             assert_eq!(validate_link_click_target(href.to_str().unwrap(), alias.to_str().unwrap()).unwrap(), expected);
         }

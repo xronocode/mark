@@ -774,11 +774,12 @@ describe('editor.vue — C-LARGE-DOC-WAVE-A T-004 progressive mount orchestratio
     )
     expect(mockEditorInstance.progressiveMount).not.toHaveBeenCalled()
 
-    // A real undo history references old block keys: legacy.
+    // A real undo history references old block keys: legacy render-only restore
+    // must not append a cursor import snapshot to that cached history.
     const history = { stack: [{ type: 'insert' }] }
     getBusHandler('file-changed')({ id: 'tab-1', markdown: '# History restore', history })
     expect(mockEditorInstance.setMarkdown).toHaveBeenCalledWith(
-      '# History restore', undefined, undefined, undefined, undefined
+      '# History restore', undefined, undefined, undefined, undefined, { renderOnly: true }
     )
     expect(mockEditorInstance.progressiveMount).not.toHaveBeenCalled()
 

@@ -1,0 +1,147 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-MD-LINK-TABS>
+    <ChangeRef>C-MD-LINK-TABS</ChangeRef>
+    <IntentSummary>Implement the approved rendered-link interaction and current-window document routing as one bounded repair. Preserve source text, editing ownership and existing security checks. This completed draft requires separate owner approval before implementation.</IntentSummary>
+    <ExecutionBoundary>Native sequential execution in fix/md-link-tabs, based on fa25b309fd85450aa907a2fcd908de6d33a0bf6b. No subagent/reviewer rounds. Do not change the approved spec, Save/Close bundle/candidate, system file associations, installed applications, dependencies, versions, release admission, tags or publication.</ExecutionBoundary>
+    <BaselineAssertions>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>fn validate_link_click_target(</Text></MustContain>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>pub(crate) fn emit_open_new_tab</Text></MustContain>
+      <MustContain><File>src/muya/lib/ui/linkTools/index.js</File><Text>this.hideTimer = null</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>if (this.documentWindowClosing) return false</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const handlePreviewMousedown</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>dispatch_link_click_with</Text></MustContain>
+      <MustContain><File>src/muya/lib/eventHandler/linkInteraction.js</File><Text>class LinkInteraction</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/getLinkInfo.js</File><Text>resolveLinkElement</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>link-activate</Text></MustContain>
+      <MustContain><File>playwright.config.ts</File><Text>link-interaction</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="600">npm run test:coverage</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="60">npm run typecheck:ipc</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="180">npm run build</Command></MustPassCommand>
+    </TargetAssertions>
+    <CommandBudgets>The same source baseline completed renderer coverage in 226 seconds, IPC typecheck in 0.323 seconds and renderer build in 18 seconds during Save/Close verification. Budgets retain that baseline's headroom and thresholds. Rust compilation, browser/native startup and hosted CI are separate required acceptance tiers, not nested in short lifecycle commands. Focused task commands are not repeated inside the whole-suite gate.</CommandBudgets>
+    <DurableScope>
+      <GraphAnchors><M-001/><M-033/><M-011/><M-012/><M-025/></GraphAnchors>
+      <VerificationAnchors><V-M-001/><V-M-033/><V-M-011/><V-M-012/><V-M-025/></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m_v1_compat.rs</File>
+      <File>src/muya/lib/eventHandler/linkInteraction.js</File>
+      <File>src/muya/lib/eventHandler/mouseEvent.js</File>
+      <File>src/muya/lib/eventHandler/clickEvent.js</File>
+      <File>src/muya/lib/eventHandler/keyboard.js</File>
+      <File>src/muya/lib/utils/getLinkInfo.js</File>
+      <File>src/muya/lib/parser/render/renderInlines/link.js</File>
+      <File>src/muya/lib/parser/render/renderInlines/referenceLink.js</File>
+      <File>src/muya/lib/parser/render/renderInlines/autoLink.js</File>
+      <File>src/muya/lib/parser/render/renderInlines/autoLinkExtension.js</File>
+      <File>src/muya/lib/ui/linkTools/index.js</File>
+      <File>src/muya/lib/ui/linkTools/index.css</File>
+      <File>src/muya/lib/index.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/muya/link-hover.test.js</File>
+      <File>tests/renderer/muya/link-interaction.test.js</File>
+      <File>tests/renderer/muya/inline-token-parity.test.js</File>
+      <File>tests/renderer/muya/plugin-registry-lifecycle.test.js</File>
+      <File>tests/renderer/components/editor-link-interaction.test.js</File>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>tests/renderer/store/link-target-tabs.test.js</File>
+      <File>tests/renderer/bootstrap-ipc.test.ts</File>
+      <File>tests/e2e/link-interaction.spec.ts</File>
+      <File>tests/e2e/fixtures/tauri-shim.ts</File>
+      <File>playwright.config.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/verification/performance.xml</File>
+    </ObservedWriteScope>
+    <Architecture>
+      <Decision>Validate local targets with the unchanged document fence and requested/resolved executable guards, then classify the canonical filename with existing is_markdown. Add a Markdown(String) variant beside Web and Local. The production dispatcher sends Markdown only through emit_open_new_tab on the invoking tauri::Window, Web through open_url and other Local through open_path. Do not broadcast or fall back between destinations after failure.</Decision>
+      <Decision>Resolve the nearest anchor inside this Muya container, including nested formatted text. Add stable token identity data to existing inline-link nodes and syntax spans without a wrapper or source-model change, so the second press can still identify the original link after the first click exposes brackets. Harden getLinkInfo against missing token metadata; no-text, reference and existing autolink renderers receive equivalent metadata while retaining their current URI destinations and source forms.</Decision>
+      <Decision>Own gestures in one LinkInteraction per Muya instance. Capture epoch, block key, token range/raw destination, rendered-versus-editing state and prior selection on the first primary mousedown with native detail=1. A detail=2 continuation validates that same logical token, even when the DOM target is now its exposed syntax. It must not recompute the origin state from the second press or retarget another nearby link. No home-grown double-click timeout or new native timing command.</Decision>
+      <Decision>Allow the first ordinary single click to take the existing inline-edit path. On the second mousedown of a rendered-origin continuation, suppress native word selection; its click detail=2 activates once and the trailing dblclick is consumed without a duplicate. Restore valid pre-gesture selection/render-only state before navigation so the first click does not remain as an editing outcome. A fresh detail=1 that begins in established link editing retains normal word selection for its subsequent double-click. Modifier navigation and tool Jump use the same per-instance activation event.</Decision>
+      <Decision>LinkInteraction alone attaches and calls its capture handlers before the generic ClickEvent/Keyboard click paths; generic handlers do not call the controller a second time. Consumed navigation events never reach their cursor/content notifications; guard deferred click notifications against a changed Muya epoch too. Invalidate on document replacement, actual token invalidation, composition start, cancellation and teardown; ordinary cursor-driven partial renders do not erase the origin lease. Drag/selection gestures do not activate links. No content/history transaction is used for hover or navigation.</Decision>
+      <Decision>Use one instance-scoped link-activate event. The editor host checks rendered lifetime/current ownership and derives the originating document directory immediately before FORMAT_LINK_CLICK. LinkTools no longer selects a host via the shared Muya.use callback; the existing host jumpClick function can be the per-instance handler. Preview link gestures bypass only the link-specific auto-exit branch; ordinary non-link preview mousedown/drag keeps its established behavior. Locked/read-only surfaces never become editable through a link.</Decision>
+      <Decision>LinkTools owns one cancellable show and hide generation, active logical link and scoped teardown. Re-entry cancels pending hide, leave cancels stale show, movement within a link or into its tools is not a logical leave, and tab replacement/destroy invalidates all callbacks. Keep styling scoped to link tools and inline-link metadata; do not change BaseFloat policy globally.</Decision>
+    </Architecture>
+    <Interfaces>
+      <Interface>Rust dispatch_link_click_with(target: LinkClickTarget, document: impl FnOnce(&amp;str)-&gt;Result&lt;(),String&gt;, web: impl FnOnce(&amp;str)-&gt;Result&lt;(),String&gt;, local: impl FnOnce(&amp;str)-&gt;Result&lt;(),String&gt;) -&gt; Result&lt;(),String&gt; is used by the registered mt_format_link_click command and no-op/counting test sinks. The command receives the invoking Window instead of relying on AppHandle emission; IPC channel and payload remain unchanged.</Interface>
+      <Interface>getLinkInfo.js exports resolveLinkElement(target, container) -&gt; HTMLAnchorElement|null and getLinkInfo(anchor) -&gt; {key,token,href}|null. Token metadata includes block ownership, raw/start/end for the anchor and associated existing syntax nodes. Resolution never searches another editor container.</Interface>
+      <Interface>new LinkInteraction(muya) owns beginGesture(event), handleClick(event)-&gt;boolean, handleDoubleClick(event)-&gt;boolean, isLinkTarget(target)-&gt;boolean, invalidate(reason), destroy(). true means consumed with native/default and competing handlers cancelled. Only validated activation emits link-activate({event,linkInfo,epoch,source}); source is double, modifier or tool. Engine state is ephemeral and never persisted into the document.</Interface>
+      <Interface>Muya creates linkInteraction after ContentState and before generic click handlers; setMarkdown document replacement and destroy invalidate it. The host binds link-activate to that same Muya instance and rejects a stale rendered documentToken or nonauthoritative split surface. Hover tools and host teardown use the same current instance epoch; the normal shared-history and save coordinator APIs are unchanged.</Interface>
+    </Interfaces>
+    <ReviewFocus>
+      <Case>First-click reflow at the leading glyph, nested formatting and wrapped lines: T-003 tests the actual two-press sequence and logical token identity.</Case>
+      <Case>Old hide/show firing after re-entry, tab replacement or destroy: T-002 tests controlled clocks; T-004 verifies real pointer travel and pixels.</Case>
+      <Case>Dirty duplicate targets and canonical aliases: T-001 tests classification/dispatch; T-004 tests actual store reuse without replacing its buffer.</Case>
+      <Case>Preview auto-exit, drag selection and active IME: T-003 pins link-only interception and unchanged non-link/default editing paths.</Case>
+      <Case>Two split Muya instances with different documents: T-003 pins instance-scoped routing and rejection of stale document epochs; T-004 exercises the rich pane.</Case>
+    </ReviewFocus>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Route validated local documents through the invoking window's existing tab pipeline</Title>
+        <DependsOn></DependsOn>
+        <Files>m_v1_compat.rs and M-001/M-033 runtime/features graph and verification entries.</Files>
+        <Steps>
+          <Step>Add failing link_click_ tests using the production dispatcher seam: supported canonical Markdown/text names (including uppercase), relative/subdirectory/absolute aliases call document once and neither OS sink; HTTP and validated PDF/image call only their existing sink. Exercise document-load error with zero fallback or empty-tab event, and retain every traversal/executable/symlink denial.</Step>
+          <Step>Implement the Markdown target variant and dispatch_link_click_with. Inject the invoking Window into mt_format_link_click; use emit_open_new_tab(window,path,false) only for the document variant. Propagate read errors without OS fallback. Do not edit the global security policy or create a window.</Step>
+          <Step>Run the selected native regressions red then green; synchronize function maps/contracts and routed scenarios. Add content-free document-tab routing evidence without new raw path or Markdown logging.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>R-001/R-004/R-005 and AC-001/AC-003: the registered command uses the tested dispatcher, canonical validation precedes routing, the invoking window alone receives a real document payload, and failures do not fall back.</Criterion></AcceptanceCriteria>
+        <Verification><Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click</Command><Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark open_new_tab</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Stabilize inline-link hit testing and hover-tool lifetime</Title>
+        <DependsOn></DependsOn>
+        <Files>getLinkInfo.js, renderInlines/link.js, referenceLink.js, autoLink.js, autoLinkExtension.js, mouseEvent.js, linkTools/index.js and its scoped CSS; link-hover.test.js and inline-token-parity.test.js; M-012 graph/verification.</Files>
+        <Steps>
+          <Step>Port the observed immediate-parent miss and uncancelled old-hide reproduction into permanent failing tests. Cover the anchor itself, nested bold/italic/code label descendants, no-text links, reference links and existing autolinks, relatedTarget transitions, re-entry before hide, leave before queued show, A-to-B replacement and destroy.</Step>
+          <Step>Implement container-scoped resolveLinkElement and guarded token extraction, with identity metadata on existing link/syntax nodes. Resolve logical enter/leave with relatedTarget containment. Give LinkTools cancellable show/hide generations; clear them on hide/invalidation/destroy and revalidate the active token before actions. Retain other float/footnote behavior.</Step>
+          <Step>Use scoped hit-area/style corrections only if needed; no global BaseFloat redesign. Prove Markdown export and token ranges unchanged, then run hover/inline/lifecycle tests and synchronize M-012 contracts/scenarios.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>R-006/R-009 and AC-007: all visible label descendants resolve the same current link, re-entry/tools travel is stable, delayed callbacks cannot resurrect stale tools and document text is unchanged.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/renderer/muya/link-hover.test.js tests/renderer/muya/inline-token-parity.test.js tests/renderer/muya/plugin-registry-lifecycle.test.js</Command></Verification>
+      </T-002>
+      <T-003>
+        <Title>Distinguish rendered-origin navigation from established link editing</Title>
+        <DependsOn>T-002</DependsOn>
+        <Files>new eventHandler/linkInteraction.js; Muya index.js, clickEvent.js, keyboard.js, linkTools/index.js; editor.vue; link-interaction.test.js, editor-link-interaction.test.js, editor-coverage.test.js and plugin-registry-lifecycle.test.js; M-011/M-012 graph/verification.</Files>
+        <Steps>
+          <Step>Write failing sequence tests with initial rendered/editing state: first down/click, second down/click/dblclick; rendered-origin emits once, first-single then a fresh editing-origin double selects normally, and the first click cannot overwrite origin. Include leading-edge syntax reflow, different nearby links, source/plain-text bypass, pointer drag, IME/cancel and stale epoch.</Step>
+          <Step>Implement the instance controller and token lease from Architecture/Interfaces. Capture native detail before default selection, consume only the qualifying navigation sequence and modifier activation, suppress trailing duplicate events and restore only valid view/selection state. Keep normal single-click inline editing and ordinary native word selection; no fixed double-click timer.</Step>
+          <Step>Wire per-instance link-activate for double/modifier/tool actions, removing shared host-callback authority from LinkTools. Guard the host's rendered lifetime and focused split ownership before deriving dirname. Make Preview's mousedown guard ignore link gestures without changing non-link preview exit or locked/source editing. Guard consumed/deferred Keyboard click notifications narrowly; preserve its native input, IME and selection behavior.</Step>
+          <Step>Invalidate through Muya document import/teardown and hover generation without treating normal cursor rendering as a new document. Test two instances and close/reopen/stale callback isolation, unchanged canonical Markdown/dirty/history and non-link preview drag behavior. Synchronize M-011/M-012 maps and scenarios.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>R-007..R-010 and AC-006/AC-008: each complete native-style sequence has one outcome based on its origin; read-only and split ownership remain correct, no navigation depends on tiny popup targeting, and no interaction edits canonical text.</Criterion></AcceptanceCriteria>
+        <Verification><Command>npx vitest run tests/renderer/muya/link-interaction.test.js tests/renderer/muya/link-hover.test.js tests/renderer/muya/keyboard-selection.test.js tests/renderer/muya/plugin-registry-lifecycle.test.js tests/renderer/components/editor-link-interaction.test.js tests/renderer/components/editor-coverage.test.js</Command></Verification>
+      </T-003>
+      <T-004>
+        <Title>Prove the complete click-to-tab flow and prepare one isolated acceptance build</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <Files>new link-target-tabs.test.js and e2e/link-interaction.spec.ts; bootstrap-ipc.test.ts, tauri-shim.ts, playwright.config.ts; M-001/M-033/M-011/M-012/M-025 graph and verification.</Files>
+        <Steps>
+          <Step>Test registered-command browser doubles delivering the existing open-new-tab payload to real bootstrap/store consumers. Verify fresh target, existing dirty target, canonical alias and rapid duplicate reuse, load failure, source edits retained, and committed-close admission refusal. Rust evidence from T-001 remains authoritative for real path validation/window emission; do not relabel fixture results native.</Step>
+          <Step>Drive real mouse press/release/click sequences in the built renderer for plain, nested and wrapped links, including the leading glyph and representative reference/autolink forms: initial double follows once; separate single then fresh double selects; modifier/tool actions route once; drag does not navigate. Exercise hover-to-tool travel, scroll, tab replacement, Preview, source and split. Check exact canonical Markdown, dirty/history, visible selection, active tab and process/window side-effect counters.</Step>
+          <Step>Include link-interaction.spec.ts in the existing webkit-rich testMatch beside rich-markdown-coverage.spec.ts. Its existing mandatory hosted job then runs the new WebKit cases without workflow changes. Keep every project name, previous match, retry, coverage and performance budget. Capture before/after screenshots and geometry for label/tools on Chromium and WebKit and inspect them; code or DOM-only evidence cannot establish absence of visual flicker.</Step>
+          <Step>Run target leaf coverage/type/build once for the final source, full Rust and selected browser tiers below, and the ordinary exact-head hosted matrix. Resolve real failures without weakening checks. Commit/push only through repository exact-candidate safety; one self-review against the approved requirements, no fresh-reviewer rounds.</Step>
+          <Step>Build one isolated Mark Links Test 2.8.2 with a unique profile, no updater or file associations, from the verified candidate; keep the accepted-source Save Close Test intact. Record source/binary identity. Verify actual link-to-tab routing and unchanged native process/window counts, plain initial double and edit-origin double separately, and scoped hover/selection behavior. If the background native pointer/visual route is unavailable, label that evidence pending and give the owner one short case-per-state checklist rather than inventing native proof or escalating focus/permissions.</Step>
+          <Step>Run selected final assertions externally with commands before requesting apply. Owner acceptance/apply confirmation precedes applied/archive, followed by current integrity and module status. This task does not merge, admit to a train, release or start another stabilization item.</Step>
+        </Steps>
+        <AcceptanceCriteria><Criterion>R-001..R-010 and AC-001..AC-008 have separate engine/renderer/native evidence; current-window document routing, stable labels/tools and both gesture origins are proven without data loss or security regression. Required automated checks pass on the artifact source; owner acceptance remains a separate verdict.</Criterion></AcceptanceCriteria>
+        <Verification>
+          <Command>npx vitest run tests/renderer/store/link-target-tabs.test.js tests/renderer/bootstrap-ipc.test.ts</Command>
+          <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark</Command>
+          <Command>npx playwright test tests/e2e/link-interaction.spec.ts --project=chromium --project=webkit-rich</Command>
+          <Command>npx playwright test tests/e2e/link-autocomplete.spec.ts tests/e2e/keyboard-selection.spec.ts tests/e2e/split-view.spec.ts --project=chromium</Command>
+          <Command>npx playwright test tests/e2e/perf/save-close-safety.spec.ts --project=webkit-perf</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <SpecCoverage>R-001:T-001/T-004; R-002:T-004; R-003:T-001/T-004; R-004:T-001/T-004; R-005:T-001/T-003/T-004; R-006:T-002/T-004; R-007:T-003/T-004; R-008:T-003/T-004; R-009:T-002/T-003/T-004; R-010:T-003/T-004. AC-001..AC-008 consolidate in T-004. T-001 and T-002 are independent, T-003 requires T-002, and T-004 requires all three; execution is still sequential by owner preference.</SpecCoverage>
+    <Coexistence>Preflight on the exact candidate reports zero errors and five known warnings: four Python-analysis heuristics plus C-50 overlap with Save/Close. C-50 and C-EXPORT-SETTINGS-SECTION remain deferred; do not execute overlapping work concurrently. Save/Close implementation and exact-head CI passed, but its owner acceptance is still pending. Planning changes only this active bundle; existing durable graph/verification and product source are untouched.</Coexistence>
+    <ApprovalPause>The updated spec was approved by the owner's 2026-11-10 go. This plan remains draft until a separate approval of the completed plan. Stop before product/test implementation, automatic reviewers, applying/archiving, native build changes or release actions.</ApprovalPause>
+  </C-MD-LINK-TABS>
+</GraceChangePlan>

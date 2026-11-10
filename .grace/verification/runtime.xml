@@ -16,6 +16,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
+        <scenario-md-link-m001-route>C-MD-LINK-TABS: link_click_document_has_internal_destination fails on the OS-only baseline. The production dispatch seam selects exactly one document/web/local sink; real document payload reading and an unreadable UTF-8 target prove no empty event or OS fallback. Existing canonical aliases, traversal and executable guards remain. Native current-window/process evidence is recorded separately.</scenario-md-link-m001-route>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <scenario-local-link-directory-alias>C-STABILIZE-LINK-ALIASES: a real Unix directory-symlink fixture reproduces absolute sibling denial before repair, then accepts alias/canonical siblings while rejecting traversal, outward links and dangerous clicked names. Existing link_click_ tests retain HTTP, bare/prefixed executable, canonical-directory and outside-document cases.</scenario-local-link-directory-alias>
         <Scenario>scenario-1: App starts, main window is created, menu is registered.</Scenario>
@@ -25,6 +26,7 @@
       <scenario-security-stabilization-001>C-SEC-AUDIT-FIXES: The registered compatibility link command is fenced before opener access; link_click_refuses_bare_command, link_click_refuses_prefixed_command, link_click_opens_document_sibling, link_click_refuses_escape_from_document_dir and link_click_http_unchanged exercise the real validation seam in m_v1_compat.rs.</scenario-security-stabilization-001>
       </Scenarios>
       <Markers>
+        <Marker>[v1_compat][link][BLOCK_LINK_DOCUMENT_TAB]</Marker>
         <Marker>[TauriShell][main][BLOCK_BUILD_APP]</Marker>
         <Marker>[TauriShell][onWindowCreated][BLOCK_REGISTER_MENU]</Marker>
         <Marker>[Shell][lifecycle][DRAIN_PENDING_WINDOW]</Marker>
@@ -3321,6 +3323,7 @@
     <V-M-011>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/components/editor-link-interaction.test.js tests/renderer/components/editor-coverage.test.js</Command>
         <Command>npx --no-install vitest run tests/renderer/store/editor-coverage.test.js tests/renderer/components/search-deep.test.js tests/renderer/components/search-fn.test.js tests/renderer/components/search.test.js</Command>
         <Command>npx --no-install playwright test tests/e2e/keyboard-selection.spec.ts --project=chromium --project=webkit-keyboard</Command>
         <Command>npx vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/components/split-view.test.js tests/renderer/store/session-restore.test.js tests/renderer/store/live-reload.test.js tests/renderer/publication-privacy.test.js</Command>
@@ -3517,6 +3520,7 @@
         <Command>npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</Command>
       </Commands>
       <Scenarios>
+        <scenario-md-link-v-m-011>Mounted editor host validates the instance epoch, rendered lifetime and owning pathname, rejects committed close and stale path/lifetime events, and preserves Preview for links while ordinary text exits it.</scenario-md-link-v-m-011>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: util/documentSnapshot.js owns mounted rich/source identity and IME-first complete-model capture; util/documentOperations.js owns tracked save admission and the final whole-target close barrier. editor.js routes Save, Save As, autosave, Save All, tab/group/window close and Quit; notices expose fresh explicit retry. No bare saved/path/close-by-id event authorizes a mutation. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>C-FIND-SELECTION-CLIPBOARD: Find/Replace visibility is shared with the editor store and cleared on close/unmount. While open, nonempty selection preserves the exact active query/matches and native menu updates; while closed, selected-text prefill remains. Real Chromium/WebKit keyboard copy/paste after the150ms debounce boundary inserts the selected text exactly once with matching, missing or closed Find queries; close/reopen prefill and unchanged Markdown on selection are checked. Before the fix the new unit store identity and lifecycle assertions failed, and WebKit lost COPYWORD selection before the keyboard copy.</Scenario>
         <Scenario>C-HOSTED-VALIDATION-RECOVERY: a collapsed editor selection preserves the active Find query/matches and exact Markdown/saved state while still dispatching native menu state. Nonempty selected-text prefill remains covered. The unchanged progressive-mount navigation case in WebKit must retain its mounted caret and complete tail.</Scenario>
@@ -5911,6 +5915,8 @@
     <V-M-012>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/muya/link-interaction.test.js tests/renderer/muya/link-hover.test.js tests/renderer/muya/keyboard-selection.test.js</Command>
+        <Command>npx vitest run tests/renderer/muya/link-hover.test.js tests/renderer/muya/inline-token-parity.test.js tests/renderer/muya/plugin-registry-lifecycle.test.js</Command>
         <Command>npx vitest run -c vitest.int.config.mjs --maxWorkers=1 tests/renderer/muya</Command>
         <Command>npx vitest run tests/renderer/muya/markdown-round-trip.test.js tests/renderer/muya/lexer-token-parity.test.js tests/renderer/muya/inline-token-parity.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/emphasis-pairing.test.js tests/renderer/muya/inline-token-parity.test.js</Command>
@@ -6006,6 +6012,8 @@
 <Command>npx --no-install vitest run tests/renderer/muya/history-external-commit.test.js tests/renderer/muya/footnote-options.test.js</Command>
       </Commands>
       <Scenarios>
+        <scenario-md-link-v-m-012>Native-style first/second mouse sequences distinguish reading from established editing, exposed syntax retains ownership, modifier/tool dispatch is single, selection modifiers/IME/drag and invalidated epochs do not navigate. The current fixture mocks native selection; real browser sequences prove visible selection separately.</scenario-md-link-v-m-012>
+        <scenario-md-link-hover>C-MD-LINK-TABS: real link DOM and controlled timers prove direct/nested/syntax lookup, re-entry cancellation, pointer travel to tools, replacement, detached metadata and teardown; inline token goldens remain unchanged. Native visual proof is separate.</scenario-md-link-hover>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: The renderer snapshot adapter consumes the existing complete-model Markdown and shared-history APIs, including progressive unmounted content. Following split panes cannot normalize the active source; Muya internals and canonical serialization contracts remain unchanged. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>C-FIND-SELECTION-CLIPBOARD: keyboard-selection.spec.ts also verifies real clipboard events and exact keyboard-pasted text with active/closed Find, stable selection/focus after its debounce window and selected-text prefill on close/reopen. Host store/UI owns the correction; Muya clipboard/keyboard runtime paths remain unchanged.</Scenario>
         <Scenario>scenario-rich-boot-baselines: before capturing exact Markdown/saved-state baselines, block-viewer, table-column-resize, table-footer, table-toolbar-labels, table-ui-regressions and table-layout wait for the initial rich content revision. A visible table and fonts/frame completion alone can precede the store's canonical serialization; an idle two-engine control records that initialization without pointer input. Fixture bytes, exact post-operation equality, all geometry/tolerance checks and existing deadlines remain unchanged. This test setup barrier does not alter or hide the separately retained external-delete-during-bootstrap characterization race.</Scenario>

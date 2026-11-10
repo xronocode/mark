@@ -1,0 +1,11 @@
+# Markdown link interaction and tab routing
+
+The scoped implementation routes validated local documents into the invoking window's tab pipeline, stabilizes link tools across pointer travel, and distinguishes a rendered-origin navigation double-click from a later editing-origin word-selection gesture. Existing path fences, other destinations, source text, dirty state and document ownership remain unchanged.
+
+Original implementation source: `94db8add579d3a2354c2d2cb9eb0e7a90cce759b`. The integration candidate is based on main `e896dd214d2077ff771fa9fd6a333b16a9d69861`; all files outside change bundles match that implementation exactly. Approved requirements, assertions, tasks and scopes are unchanged; the completed bundle's lifecycle status is applied.
+
+Fresh target command gates passed on the implementation source with lockfile-matched dependencies. Fresh final assertions with command execution passed on the integration working tree: renderer coverage 5639 passed, 0 failed, 2 existing skips and 3 existing todos; IPC typecheck and renderer build passed. Final lint reported 0 errors and 5 known warnings before archive. Full implementation backend evidence is 581 passed, 0 failed, 1 existing ignored; selected browser evidence covers link gestures, hover, routing and editing regressions. Required hosted checks apply to the exact outgoing integration head separately.
+
+Owner acceptance on 2026-11-10 covers three distinct states on the isolated Mark Links Test build: initial rendered-link double-click follows once into the existing tab model; completed single click enters inline editing and a later separate double-click selects text without navigation; hover over the logical label/syntax and movement into tools stay stable. Binary SHA-256: `a0681335082dfd9b63590a0be7da3faa174db1b606baa8895565938efc561fbf`.
+
+The existing canonical document-directory fence is retained. This does not implement arbitrary vault-root access, cross-document fragments or multi-window editing. Separate Windows native acceptance and real conversion IME are not inferred from browser tests or the macOS owner verdict. Train admission and consolidated acceptance remain distinct from implementation closure. No version, tag, release dispatch or publication is authorized.

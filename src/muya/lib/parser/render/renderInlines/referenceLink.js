@@ -1,5 +1,22 @@
+// FILE: src/muya/lib/parser/render/renderInlines/referenceLink.js
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Render reference links with the same logical token identity across syntax expansion.
+//   SCOPE: Existing reference resolution and inline metadata; unresolved references remain text.
+//   DEPENDS: Existing Muya inline/event APIs and getLinkInfo ownership helpers.
+//   LINKS: M-012; C-MD-LINK-TABS.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   default - Preserved module entry with scoped logical-link behavior.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   - 2026-11-10 C-MD-LINK-TABS: stable container-local hit testing and cancellable hover ownership; canonical Markdown unchanged.
+// END_CHANGE_SUMMARY
 import { CLASS_OR_ID } from '../../../config'
 import { snakeToCamel } from '../../../utils'
+import { linkMetadata } from '../../../utils/getLinkInfo'
 import { sanitizeHyperlink } from '../../../utils/url'
 
 export default function referenceLink (h, cursor, block, token, outerClass) {
@@ -8,6 +25,8 @@ export default function referenceLink (h, cursor, block, token, outerClass) {
     ? CLASS_OR_ID.AG_REFERENCE_LABEL
     : className
 
+  const metadata = linkMetadata(token, className === CLASS_OR_ID.AG_HIDE)
+  const syntax = { dataset: metadata }
   const { start, end } = token.range
   const {
     anchor,
@@ -50,11 +69,7 @@ export default function referenceLink (h, cursor, block, token, outerClass) {
     props: {
       title
     },
-    dataset: {
-      start,
-      end,
-      raw: token.raw
-    }
+    dataset: metadata
   }
   if (href) {
     Object.assign(data.props, { href: sanitizeHyperlink(href) })
@@ -85,18 +100,18 @@ export default function referenceLink (h, cursor, block, token, outerClass) {
     const secondBacklashStart = end - MARKER.length - backlash.second.length
 
     return [
-      h(`span.${className}`, startMarker),
+      h(`span.${className}`, syntax, startMarker),
       h(anchorSelector, data, content),
-      h(`span.${className}`, middleMarker),
-      h(`span.${labelClass}`, labelContent),
+      h(`span.${className}`, syntax, middleMarker),
+      h(`span.${labelClass}`, syntax, labelContent),
       ...this.backlashInToken(h, backlash.second, className, secondBacklashStart, token),
-      h(`span.${className}`, lastMarker)
+      h(`span.${className}`, syntax, lastMarker)
     ]
   } else {
     return [
-      h(`span.${className}`, startMarker),
+      h(`span.${className}`, syntax, startMarker),
       h(anchorSelector, data, content),
-      h(`span.${className}`, endMarker)
+      h(`span.${className}`, syntax, endMarker)
     ]
   }
 }
