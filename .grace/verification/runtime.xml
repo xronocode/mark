@@ -6000,6 +6000,7 @@
 <Command>npx --no-install vitest run tests/renderer/muya/history-external-commit.test.js tests/renderer/muya/footnote-options.test.js</Command>
       </Commands>
       <Scenarios>
+        <Scenario>scenario-rich-boot-baselines: before capturing exact Markdown/saved-state baselines, block-viewer, table-column-resize, table-footer, table-toolbar-labels, table-ui-regressions and table-layout wait for the initial rich content revision. A visible table and fonts/frame completion alone can precede the store's canonical serialization; an idle two-engine control records that initialization without pointer input. Fixture bytes, exact post-operation equality, all geometry/tolerance checks and existing deadlines remain unchanged. This test setup barrier does not alter or hide the separately retained external-delete-during-bootstrap characterization race.</Scenario>
 
 
         <scenario-table-bar-menu-locale-geometry>

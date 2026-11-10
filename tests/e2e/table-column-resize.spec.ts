@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-column-resize.spec.ts
-// VERSION: 1.4.0
+// VERSION: 1.4.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-002 session-only table column resize in the built renderer: dragging a header border resizes that column live and only that column, the markdown stays byte-identical with the tab still saved, widths survive re-renders (typing) and tab switches, closing+reopening the file restores auto layout, double-click resets the column, wide Auto drags fit the frame without hiding columns or causing internal/page overflow, and caret placement still works next to a border.
 //   SCOPE: muya.tableResize (src/muya/lib/tableResize/index.js) + START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js + the C-39 T-002 CSS section.
@@ -17,6 +17,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
+//   initial rich content revision before byte baselines; retain exact
+//   Markdown/saved comparisons and all pointer/geometry oracles.
 //   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: preserve fixed Auto
 //   wrapping through render/refit/tab reconciliation; require explicit frame
 //   clamp and slack-growth preconditions with settled pointer geometry.
@@ -72,6 +75,11 @@ test.describe('table column resize (C-39 T-002)', () => {
       await document.fonts.ready
       await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
     })
+    // A visible table/fonts frame can precede initial store serialization.
+    await expect.poll(() => page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return file?.contentRevision ?? 0
+    })).toBeGreaterThan(0)
     return wrapper
   }
 

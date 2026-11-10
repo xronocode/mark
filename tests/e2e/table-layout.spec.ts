@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-layout.spec.ts
-// VERSION: 1.12.0
+// VERSION: 1.12.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-001 default table rendering in the built renderer (wide tables fit every column without internal scrolling, narrow tables keep content width, long URLs wrap, fitted cells remain editable), the absence of obsolete clipped-column cues, and the real-pointer Full width/Fit transition, sibling viewer availability, reverse action, and persistence across sidebar visibility changes.
 //   SCOPE: The div.ag-table-scroll wrapper (renderContainerBlock START_BLOCK_TABLE_SCROLL_WRAPPER), the C-39 CSS section and the C-65 cue section of src/muya/lib/assets/styles/index.css, lib/tableResize/tableCue.js, C-TABLE-FIT-PERSISTENCE's pointer/sidebar/reopen boundary, and C-TABLE-NATIVE-TOOLBAR-DELIVERY's sidebar-hidden/sidebar-visible action matrix.
@@ -21,6 +21,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
+//   initial rich content revision before byte baselines; retain exact
+//   Markdown/saved comparisons and all pointer/geometry oracles.
 //   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
 //   fitting/icon-only controls together with natural-size viewer access, real
 //   pointer/keyboard interactions and preserved document/dirty semantics.
@@ -400,6 +403,11 @@ test.describe('table layout (C-39 T-001)', () => {
     await waitForTable(page)
     await stayInAuto(page)
     await expectAllColumnsVisible(page, 15)
+    // A visible table/fonts frame can precede initial store serialization.
+    await expect.poll(() => page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return file?.contentRevision ?? 0
+    })).toBeGreaterThan(0)
     const before = await page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
       return { markdown: file.markdown, isSaved: file.isSaved }

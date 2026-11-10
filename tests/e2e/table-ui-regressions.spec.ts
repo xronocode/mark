@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-ui-regressions.spec.ts
-// VERSION: 1.4.0
+// VERSION: 1.4.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce wide-table centering, viewer zoom reachability and localized tooltip layout regressions reported on 2026-10-19.
 //   SCOPE: Chromium/WebKit full-editor table geometry, scroll-driven whole-outline occlusion/restoration, late outline visibility, click-driven viewer zoom and ten-locale image labels.
@@ -17,6 +17,9 @@
 //   chooseFullWidth - evaluate-click helper: explicitly chooses the honest Full width mode through the toolbar segment (T-007 — nothing auto-expands anymore).
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
+//   initial rich content revision before byte baselines; retain exact
+//   Markdown/saved comparisons and all pointer/geometry oracles.
 //   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
 //   fitting/icon-only controls together with natural-size viewer access, real
 //   pointer/keyboard interactions and preserved document/dirty semantics.
@@ -144,6 +147,11 @@ test('table intersection hides the whole outline during scrolling without hover 
   // (T-007: chosen explicitly through the segment — nothing auto-expands).
   await chooseFullWidth(page)
   await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
+  // A visible table/fonts frame can precede initial store serialization.
+  await expect.poll(() => page.evaluate(() => {
+    const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+    return file?.contentRevision ?? 0
+  })).toBeGreaterThan(0)
   const beforeDocument = await documentState(page)
   expect(beforeDocument.isSaved).toBe(true)
   const rail = page.locator('.outline-rail')
