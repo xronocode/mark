@@ -729,6 +729,263 @@
             }
           ]
         }
+      },
+      {
+        "id": "C-SAVE-CLOSE-DATA-SAFETY",
+        "summary": "Save complete owned document snapshots and retain all tabs when grouped save or close is cancelled, blocked or fails.",
+        "state": "queued",
+        "commits": [
+          "e896dd214d2077ff771fa9fd6a333b16a9d69861"
+        ],
+        "acceptance": {
+          "status": "accepted",
+          "owner": "owner",
+          "date": "2026-11-10",
+          "testedArtifact": "Mark Save Close Test 2.8.2; source fa25b309fd85450aa907a2fcd908de6d33a0bf6b; binary SHA-256 6f2c96e7dd236cc56d6773e1dc93c968a1ad39b5a1011202f062a05a33d6d7a0; bundle com.xronocode.mark.test.saveclose",
+          "scenarios": [
+            "Save All: modified named document and untitled document; picker cancellation followed by explicit retry; owner reports test passed."
+          ]
+        },
+        "pullRequest": {
+          "number": 214,
+          "headSha": "47a6fb8cc99745173839689ead479cf5b9305681",
+          "mergeSha": "e896dd214d2077ff771fa9fd6a333b16a9d69861",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/214/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage; npm run typecheck:ipc; npm run build",
+              "result": "5615 passed, 0 failed; 2 existing skips and 3 existing todos. Fresh selected target and integration final command gates passed; post-archive current has 0 errors and 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "47a6fb8cc99745173839689ead479cf5b9305681",
+              "evidence": "https://github.com/xronocode/mark/pull/214"
+            },
+            {
+              "command": "GitHub Actions on exact integration head 47a6fb8cc99745173839689ead479cf5b9305681",
+              "result": "All current applicable checks passed, including full test, CI, governance and packaging; optional Project mirror skipped. Squash tree equals the checked integration head.",
+              "date": "2026-11-11",
+              "build": "47a6fb8cc99745173839689ead479cf5b9305681",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42871869614"
+            }
+          ],
+          "manual": [
+            {
+              "scenario": "Save All: modified named document and untitled document; picker cancellation followed by explicit retry; owner reports test passed.",
+              "result": "Accepted by owner, limited to this offered scenario.",
+              "date": "2026-11-10",
+              "build": "Mark Save Close Test 2.8.2; source fa25b309fd85450aa907a2fcd908de6d33a0bf6b; binary SHA-256 6f2c96e7dd236cc56d6773e1dc93c968a1ad39b5a1011202f062a05a33d6d7a0; bundle com.xronocode.mark.test.saveclose",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            },
+            {
+              "scenario": "Dirty untitled Save & Close opens the filename picker; cancelling returns to editing with the nonempty text retained.",
+              "result": "Owner confirmed the picker and cancellation.",
+              "date": "2026-11-10",
+              "build": "Mark Save Close Test 2.8.2; source fa25b309fd85450aa907a2fcd908de6d33a0bf6b; binary SHA-256 6f2c96e7dd236cc56d6773e1dc93c968a1ad39b5a1011202f062a05a33d6d7a0; bundle com.xronocode.mark.test.saveclose",
+              "evidence": "Source-bound native observations accompanying the offered artifact; no broader owner verdict inferred."
+            },
+            {
+              "scenario": "Two untitled tabs: Close all tabs then Save & Close opens a picker; Cancel retains both tabs.",
+              "result": "Owner confirmed both tabs retained; active text observed, inactive text not separately reread.",
+              "date": "2026-11-10",
+              "build": "Mark Save Close Test 2.8.2; source fa25b309fd85450aa907a2fcd908de6d33a0bf6b; binary SHA-256 6f2c96e7dd236cc56d6773e1dc93c968a1ad39b5a1011202f062a05a33d6d7a0; bundle com.xronocode.mark.test.saveclose",
+              "evidence": "Source-bound native observations accompanying the offered artifact; no broader owner verdict inferred."
+            },
+            {
+              "scenario": "Native red window close then Cancel retains window and tabs.",
+              "result": "Owner verified retention.",
+              "date": "2026-11-10",
+              "build": "Mark Save Close Test 2.8.2; source fa25b309fd85450aa907a2fcd908de6d33a0bf6b; binary SHA-256 6f2c96e7dd236cc56d6773e1dc93c968a1ad39b5a1011202f062a05a33d6d7a0; bundle com.xronocode.mark.test.saveclose",
+              "evidence": "Source-bound native observations accompanying the offered artifact; no broader owner verdict inferred."
+            },
+            {
+              "scenario": "Save & Quit saves both entered texts and exits the tested process.",
+              "result": "Owner completed both pickers; disk bytes and process exit independently observed.",
+              "date": "2026-11-10",
+              "build": "Mark Save Close Test 2.8.2; source fa25b309fd85450aa907a2fcd908de6d33a0bf6b; binary SHA-256 6f2c96e7dd236cc56d6773e1dc93c968a1ad39b5a1011202f062a05a33d6d7a0; bundle com.xronocode.mark.test.saveclose",
+              "evidence": "Source-bound native observations accompanying the offered artifact; no broader owner verdict inferred."
+            }
+          ],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native system IME on macOS and Windows",
+              "reason": "No actual system composition test has been performed."
+            },
+            {
+              "section": "manual",
+              "scenario": "Named plus untitled group cancellation by owner",
+              "reason": "Earlier agent native evidence exists; the owner separately checked a two-untitled group, not this exact mixed pair."
+            },
+            {
+              "section": "manual",
+              "scenario": "Later report of a missing picker on nonempty untitled text",
+              "reason": "Not reproduced by subsequent single/group close checks; cause is unresolved, with no claimed repair."
+            },
+            {
+              "section": "manual",
+              "scenario": "Initial Save As folder context",
+              "reason": "Recorded separate UX proposal; no approved specification or implementation."
+            },
+            {
+              "section": "manual",
+              "scenario": "Consolidated dispatch-build and release acceptance",
+              "reason": "Not inferred from the focused owner verdicts; no dispatch, version decision, tag or publication authorized."
+            },
+            {
+              "section": "manual",
+              "scenario": "Atomic replacement, process-fault recovery and a global native write-order guarantee",
+              "reason": "Outside this delivery. Isolated native characterization on integration source shows EFBIG and SIGXFSZ can leave a partial file; a direct older backend request can overwrite a newer revision when bypassing renderer admission. These observations do not imply renderer overlap is permitted and are not repaired by format encoding."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-MD-LINK-TABS",
+        "summary": "Follow rendered links on double-click, preserve editing word selection and stable hover tools, and open local text links in current-window tabs.",
+        "state": "queued",
+        "commits": [
+          "39a9c284dc3aaa9c4824a00cf1ae198ecdfdbb7b"
+        ],
+        "acceptance": {
+          "status": "accepted",
+          "owner": "owner",
+          "date": "2026-11-10",
+          "testedArtifact": "Mark Links Test 2.8.2; source 94db8add579d3a2354c2d2cb9eb0e7a90cce759b; binary SHA-256 a0681335082dfd9b63590a0be7da3faa174db1b606baa8895565938efc561fbf; bundle com.xronocode.mark.test.links",
+          "scenarios": [
+            "Initial rendered double-click follows once into a current-window tab",
+            "Completed single click enters editing; a subsequent fresh double-click selects without navigation",
+            "Logical-label hover and travel to tools remain available"
+          ]
+        },
+        "pullRequest": {
+          "number": 215,
+          "headSha": "772f076edb7eadb2b1550bf67937005cab67651e",
+          "mergeSha": "39a9c284dc3aaa9c4824a00cf1ae198ecdfdbb7b",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/215/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage; npm run typecheck:ipc; npm run build",
+              "result": "5639 passed, 0 failed; 2 existing skips and 3 existing todos. Fresh selected target and integration final command gates passed; post-archive current has 0 errors and 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "772f076edb7eadb2b1550bf67937005cab67651e",
+              "evidence": "https://github.com/xronocode/mark/pull/215"
+            },
+            {
+              "command": "GitHub Actions on exact integration head 772f076edb7eadb2b1550bf67937005cab67651e",
+              "result": "All current applicable checks passed, including full test, CI, governance and packaging; optional Project mirror skipped. Squash tree equals the checked integration head.",
+              "date": "2026-11-11",
+              "build": "772f076edb7eadb2b1550bf67937005cab67651e",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42880595849"
+            }
+          ],
+          "manual": [
+            {
+              "scenario": "Initial rendered double-click follows once into a current-window tab",
+              "result": "Accepted by owner, limited to this offered scenario.",
+              "date": "2026-11-10",
+              "build": "Mark Links Test 2.8.2; source 94db8add579d3a2354c2d2cb9eb0e7a90cce759b; binary SHA-256 a0681335082dfd9b63590a0be7da3faa174db1b606baa8895565938efc561fbf; bundle com.xronocode.mark.test.links",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            },
+            {
+              "scenario": "Completed single click enters editing; a subsequent fresh double-click selects without navigation",
+              "result": "Accepted by owner, limited to this offered scenario.",
+              "date": "2026-11-10",
+              "build": "Mark Links Test 2.8.2; source 94db8add579d3a2354c2d2cb9eb0e7a90cce759b; binary SHA-256 a0681335082dfd9b63590a0be7da3faa174db1b606baa8895565938efc561fbf; bundle com.xronocode.mark.test.links",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            },
+            {
+              "scenario": "Logical-label hover and travel to tools remain available",
+              "result": "Accepted by owner, limited to this offered scenario.",
+              "date": "2026-11-10",
+              "build": "Mark Links Test 2.8.2; source 94db8add579d3a2354c2d2cb9eb0e7a90cce759b; binary SHA-256 a0681335082dfd9b63590a0be7da3faa174db1b606baa8895565938efc561fbf; bundle com.xronocode.mark.test.links",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            }
+          ],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Windows native link gestures and real conversion IME",
+              "reason": "Not separately verified; hosted browser tests do not establish native acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Vault distinctions and wikilinks",
+              "reason": "Separate product discussion outside the accepted link repair."
+            },
+            {
+              "section": "manual",
+              "scenario": "Consolidated dispatch-build and release acceptance",
+              "reason": "Not inferred from the focused owner verdicts; no dispatch, version decision, tag or publication authorized."
+            }
+          ]
+        }
+      },
+      {
+        "id": "FIX-EMOJI-TIMESTAMPS",
+        "summary": "Keep clock times literal while retaining supported numeric and alphabetic emoji.",
+        "state": "queued",
+        "commits": [
+          "04b180cb48d7070089672ccb293a9f72eda256df"
+        ],
+        "acceptance": {
+          "status": "accepted",
+          "owner": "owner",
+          "date": "2026-11-10",
+          "testedArtifact": "Mark Emoji Test 2.8.2; source debfe25dd888019bbc9d6df709ff93e14b81d661; binary SHA-256 b2306d15373e9a18dd1ab90dc8420b8890e1c57d877a42633cc772403d00e387; bundle com.xronocode.mark.test.timestamps",
+          "scenarios": [
+            "Clock times in the focused timestamp document render without erroneous red numeric emoji warnings; existing emoji remain supported."
+          ]
+        },
+        "pullRequest": {
+          "number": 216,
+          "headSha": "fb946d4ae85044e7d4f25c1f71475f389854c056",
+          "mergeSha": "04b180cb48d7070089672ccb293a9f72eda256df",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/216/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npx vitest run timestamp, inline/lexer parity, Markdown round-trip and emphasis suites; npm run build",
+              "result": "49 passed, 0 failed with exact-lock Vitest 5.1.0; renderer build passed and current GRACE has 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "fb946d4ae85044e7d4f25c1f71475f389854c056",
+              "evidence": "https://github.com/xronocode/mark/pull/216"
+            },
+            {
+              "command": "CI=1 npx playwright test tests/e2e/rich-markdown-coverage.spec.ts --project=chromium --project=webkit-rich",
+              "result": "6 passed, 0 failed, 0 retries. Fresh rebuild after reparenting produced the identical complete 740-file renderer asset inventory.",
+              "date": "2026-11-11",
+              "build": "fb946d4ae85044e7d4f25c1f71475f389854c056",
+              "evidence": "https://github.com/xronocode/mark/pull/216"
+            },
+            {
+              "command": "GitHub Actions exact integration-head checks",
+              "result": "Full test run, three-OS renderer/backend units, Chromium/WebKit/performance/theme tiers, CI, governance and all applicable current checks passed. Optional Project mirror skipped; no threshold, timeout or retry changes. Squash tree equals checked head.",
+              "date": "2026-11-11",
+              "build": "fb946d4ae85044e7d4f25c1f71475f389854c056",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42885511865"
+            }
+          ],
+          "manual": [
+            {
+              "scenario": "Clock times in the focused timestamp document render without erroneous red numeric emoji warnings; existing emoji remain supported.",
+              "result": "Accepted by owner on the source-bound isolated QA artifact.",
+              "date": "2026-11-10",
+              "build": "Mark Emoji Test 2.8.2; source debfe25dd888019bbc9d6df709ff93e14b81d661; binary SHA-256 b2306d15373e9a18dd1ab90dc8420b8890e1c57d877a42633cc772403d00e387; bundle com.xronocode.mark.test.timestamps",
+              "evidence": "docs/acceptance/registry.json; source-bound owner verdict 2026-11-10"
+            }
+          ],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Broader editor, native IME, export and dispatch-build acceptance",
+              "reason": "Outside the focused timestamp verdict; no such acceptance or quit smoke is inferred."
+            }
+          ]
+        }
       }
     ],
     "operational": [
@@ -991,6 +1248,12 @@
       "date": "2026-11-10",
       "actor": "release-agent",
       "evidence": "Admitted C-STABILIZE-29 from green mergeable PR #199, squash 5fece09f75375489f58d7616392993dc30df9674; owner acceptance remains pending. Accounted CI PR #198 separately as operational C-CI-CD-AUDIT-FIXES.  Separately accounted the actual merged/green C-STABILIZE-TRAIN-MIRROR code PR before this docs-only admission. No dispatch, version decision or publication authorized."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-11-11",
+      "actor": "maintainer",
+      "evidence": "Admitted the separately checked Save/Close, link and timestamp integrations with focused owner verdicts, immutable artifact identities and explicit native/IME/dispatch gaps. No dispatch, version decision or publication authorized."
     }
   ]
 }

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "protocol": "docs/acceptance/README.md",
   "scope": "Delivery items of the 2.6.x-next train onward. Pre-2.6.0 acceptance history is frozen prose in the Released 2.5.x-next record.",
-  "lastSynced": "2026-11-10",
+  "lastSynced": "2026-11-11",
   "artifacts": [
     {
       "id": "mark-test-fix009-7057d645",
@@ -165,6 +165,69 @@
       ],
       "location": "Owner-retained isolated QA application and attributed archive; identified by bundle identity and binary digest.",
       "smoke": "Background launch and exact executable/source/binary attribution observed with the disposable Find-focus document. Native owner verdict and quit smoke are not recorded."
+    },
+    {
+      "id": "mark-save-close-fa25b309",
+      "source": {
+        "sha": "fa25b309fd85450aa907a2fcd908de6d33a0bf6b",
+        "branch": "spec/save-close-data-safety",
+        "pullRequest": 214,
+        "mergedAs": "e896dd214d2077ff771fa9fd6a333b16a9d69861"
+      },
+      "platform": "macos-arm64-release-qa",
+      "bundleIdentity": "com.xronocode.mark.test.saveclose",
+      "productName": "Mark Save Close Test",
+      "binarySha256": "6f2c96e7dd236cc56d6773e1dc93c968a1ad39b5a1011202f062a05a33d6d7a0",
+      "productVersion": "2.8.2",
+      "builtAt": "2026-11-10",
+      "builtBy": "Tauri app-only optimized QA build: build --ci --no-sign --bundles app --config qa-overlay.json -- --locked --offline; isolated product/identifier, updater endpoints empty, createUpdaterArtifacts false, fileAssociations empty, signingIdentity null. Version unchanged.",
+      "covers": [
+        "C-SAVE-CLOSE-DATA-SAFETY"
+      ],
+      "location": "Owner-retained isolated QA application and attributed archive, identified by bundle identity and binary digest.",
+      "smoke": "Native launch and save/cancel checks observed. Owner Save & Quit completed both pickers; both texts were verified on disk and the tested process exited."
+    },
+    {
+      "id": "mark-links-94db8add",
+      "source": {
+        "sha": "94db8add579d3a2354c2d2cb9eb0e7a90cce759b",
+        "branch": "fix/md-link-tabs",
+        "pullRequest": 215,
+        "mergedAs": "39a9c284dc3aaa9c4824a00cf1ae198ecdfdbb7b"
+      },
+      "platform": "macos-arm64-release-qa",
+      "bundleIdentity": "com.xronocode.mark.test.links",
+      "productName": "Mark Links Test",
+      "binarySha256": "a0681335082dfd9b63590a0be7da3faa174db1b606baa8895565938efc561fbf",
+      "productVersion": "2.8.2",
+      "builtAt": "2026-11-10",
+      "builtBy": "Tauri app-only optimized QA build: build --ci --no-sign --bundles app --config qa-overlay.json -- --locked --offline; isolated product/identifier, updater endpoints empty, createUpdaterArtifacts false, fileAssociations empty, signingIdentity null. Version unchanged.",
+      "covers": [
+        "C-MD-LINK-TABS"
+      ],
+      "location": "Owner-retained isolated QA application and attributed archive, identified by bundle identity and binary digest.",
+      "smoke": "Native launch and current-window link navigation observed. Owner accepted the three offered link scenarios; no separate quit smoke recorded."
+    },
+    {
+      "id": "mark-timestamps-debfe25d",
+      "source": {
+        "sha": "debfe25dd888019bbc9d6df709ff93e14b81d661",
+        "branch": "fix/emoji-timestamps",
+        "pullRequest": 216,
+        "mergedAs": "04b180cb48d7070089672ccb293a9f72eda256df"
+      },
+      "platform": "macos-arm64-release-qa",
+      "bundleIdentity": "com.xronocode.mark.test.timestamps",
+      "productName": "Mark Emoji Test",
+      "binarySha256": "b2306d15373e9a18dd1ab90dc8420b8890e1c57d877a42633cc772403d00e387",
+      "productVersion": "2.8.2",
+      "builtAt": "2026-11-10",
+      "builtBy": "Tauri app-only optimized QA build: build --ci --no-sign --bundles app --config qa-overlay.json -- --locked --offline; isolated product/identifier, updater endpoints empty, createUpdaterArtifacts false, fileAssociations empty, signingIdentity null. Frozen precommit source manifest was subsequently matched in full to the recorded source commit. Version unchanged.",
+      "covers": [
+        "FIX-EMOJI-TIMESTAMPS"
+      ],
+      "location": "Owner-retained isolated QA application and attributed archive, identified by bundle identity and binary digest.",
+      "smoke": "Background launch reported process running and window ready; owner subsequently accepted the offered focused timestamp case. Agent visual observation at handoff was blocked by screen lock; no quit smoke recorded."
     }
   ],
   "items": [
@@ -963,6 +1026,134 @@
             "With Find open, the query and selection remain usable for keyboard copy/paste; keyboard copy/paste also works after closing Find."
           ],
           "detail": "Find and keyboard clipboard owner acceptance: owner reported that the latest focused QA looks okay in the follow-up chat. This records only the offered Find/keyboard clipboard scenario. The case file remains unticked; the verdict is transcribed from chat. No broader stabilization, save/close/export/IME or release approval is inferred."
+        }
+      ]
+    },
+    {
+      "id": "C-SAVE-CLOSE-DATA-SAFETY",
+      "summary": "Save complete owned document snapshots and retain all tabs when grouped save or close is cancelled, blocked or fails.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "detail": "Save complete owned document snapshots and retain all tabs when grouped save or close is cancelled, blocked or fails."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Implementation completed on the accepted source; PR #214 exact integration head 47a6fb8cc99745173839689ead479cf5b9305681; squash e896dd214d2077ff771fa9fd6a333b16a9d69861. Approved bundle applied and archived; product payload retains the accepted artifact's implementation. Integration completed 2026-11-11."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-save-close-fa25b309",
+          "detail": "Isolated attributed QA build offered with focused Markdown cases. Historical offered cases are retained; no new acceptance is inferred."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-save-close-fa25b309",
+          "verdict": "accepted",
+          "scenarios": [
+            "Save All: modified named document and untitled document; picker cancellation followed by explicit retry; owner reports test passed."
+          ],
+          "detail": "Transcribed focused owner verdict. Additional native observations and intentionally unverified variants remain separately recorded in the train testing protocol."
+        },
+        {
+          "state": "queued",
+          "date": "2026-11-11",
+          "actor": "maintainer",
+          "detail": "Admitted to Collecting train 2.9.x-next after PR #214 integration. No release authorized."
+        }
+      ]
+    },
+    {
+      "id": "C-MD-LINK-TABS",
+      "summary": "Follow rendered links on double-click, preserve editing word selection and stable hover tools, and open local text links in current-window tabs.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "detail": "Follow rendered links on double-click, preserve editing word selection and stable hover tools, and open local text links in current-window tabs."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Implementation completed on the accepted source; PR #215 exact integration head 772f076edb7eadb2b1550bf67937005cab67651e; squash 39a9c284dc3aaa9c4824a00cf1ae198ecdfdbb7b. Approved bundle applied and archived; product payload retains the accepted artifact's implementation. Integration completed 2026-11-11."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-links-94db8add",
+          "detail": "Isolated attributed QA build offered with focused Markdown cases. Historical offered cases are retained; no new acceptance is inferred."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-links-94db8add",
+          "verdict": "accepted",
+          "scenarios": [
+            "Initial rendered double-click follows once into a current-window tab",
+            "Completed single click enters editing; a subsequent fresh double-click selects without navigation",
+            "Logical-label hover and travel to tools remain available"
+          ],
+          "detail": "Transcribed focused owner verdict. Additional native observations and intentionally unverified variants remain separately recorded in the train testing protocol."
+        },
+        {
+          "state": "queued",
+          "date": "2026-11-11",
+          "actor": "maintainer",
+          "detail": "Admitted to Collecting train 2.9.x-next after PR #215 integration. No release authorized."
+        }
+      ]
+    },
+    {
+      "id": "FIX-EMOJI-TIMESTAMPS",
+      "summary": "Keep clock times literal while retaining supported numeric and alphabetic emoji.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "detail": "Clock times were shown as invalid numeric emoji warnings."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "detail": "Accepted implementation source debfe25dd888019bbc9d6df709ff93e14b81d661; integration head fb946d4ae85044e7d4f25c1f71475f389854c056, PR #216 squash 04b180cb48d7070089672ccb293a9f72eda256df on 2026-11-11. Product and test payload unchanged."
+        },
+        {
+          "state": "artifact-offered",
+          "date": "2026-11-10",
+          "actor": "maintainer",
+          "artifact": "mark-timestamps-debfe25d",
+          "detail": "Isolated source-bound QA application offered with a focused Markdown timestamp case."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-timestamps-debfe25d",
+          "verdict": "accepted",
+          "scenarios": [
+            "Clock times in the focused timestamp document render without erroneous red numeric emoji warnings; existing emoji remain supported."
+          ],
+          "detail": "Owner explicitly accepted the timestamp repair; no broader stabilization acceptance inferred."
+        },
+        {
+          "state": "queued",
+          "date": "2026-11-11",
+          "actor": "maintainer",
+          "detail": "Admitted to Collecting train 2.9.x-next after exact-head green CI and sequential integration. No release authorized."
         }
       ]
     }
