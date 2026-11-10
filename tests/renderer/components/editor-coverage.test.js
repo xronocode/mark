@@ -140,6 +140,7 @@ const mockEditorInstance = vi.hoisted(() => ({
   exportStyledHTML: vi.fn(async () => '<html></html>'),
   getTOC: vi.fn(() => []),
   getMarkdown: vi.fn(() => ''),
+  getWordCount: vi.fn(() => ({ word: 1, character: 5, paragraph: 1, all: 7 })),
   getCopyData: vi.fn(() => ({ html: '', text: '' })),
   copyAsRich: vi.fn(),
   copyAsHtml: vi.fn(),
@@ -1353,17 +1354,18 @@ describe('editor.vue — coverage', () => {
   })
 
   it('copyAsMarkdown falls back to the whole document (C-40 T-004)', async () => {
+    editorStore.currentFile.markdown = '* whole doc'
+    mockEditorInstance.getMarkdown.mockReturnValue('- whole doc')
     await mountEditor()
     mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
-    mockEditorInstance.getMarkdown.mockReturnValueOnce('# whole doc')
     await getBusHandler('copyAsMarkdown')()
-    expect(writeTextMock).toHaveBeenCalledWith('# whole doc')
+    expect(writeTextMock).toHaveBeenCalledWith('* whole doc')
   })
 
   it('copyAsMarkdown no-ops for an empty document with no selection (C-40 T-004)', async () => {
+    editorStore.currentFile.markdown = ''
     await mountEditor()
     mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '' })
-    mockEditorInstance.getMarkdown.mockReturnValueOnce('')
     await getBusHandler('copyAsMarkdown')()
     expect(writeTextMock).not.toHaveBeenCalled()
   })

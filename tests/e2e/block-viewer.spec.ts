@@ -27,7 +27,7 @@
 //   gestures dispatch native window drag while controls, canvas, native
 //   resize edges and non-primary input retain their actions.
 //   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
-//   initial rich content revision before byte baselines; retain exact
+//   initial rich model blocks before byte baselines; retain exact
 //   Markdown/saved comparisons and all pointer/geometry oracles.
 //   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: preserve fixed Auto
 //   wrapping through render/refit/tab reconciliation; require explicit frame
@@ -445,7 +445,7 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
     await expect(expand).toBeVisible()
     await expect.poll(() => page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
-      return file?.contentRevision ?? 0
+      return file?.blocks?.length ?? 0
     })).toBeGreaterThan(0)
     const documentState = () => page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
@@ -1301,10 +1301,10 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
       return { markdown: file.markdown, isSaved: file.isSaved }
     })
-    // A visible table/fonts frame can precede initial store serialization.
+    // Wait for the owned model blocks before comparing the exact document state.
     await expect.poll(() => page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
-      return file?.contentRevision ?? 0
+      return file?.blocks?.length ?? 0
     })).toBeGreaterThan(0)
     const beforeDocument = await documentState()
 

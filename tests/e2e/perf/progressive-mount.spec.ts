@@ -375,13 +375,12 @@ test.describe('progressive mount through the product toggle (C-LARGE-DOC-WAVE-A 
     const legacyCopy = await copyAsMarkdown(page)
     const legacyStore = await editorStore(page)
 
-    // (c) canonical equivalence: byte-for-byte. (The canonical re-export is
-    // muya's own normalization of the fixture — both paths' outputs are
-    // compared with each other AND against the store markdown.)
+    // Both mount paths retain and copy the original source byte-for-byte.
     expect(progressiveCopy.length, 'copy-as-markdown is non-empty').toBeGreaterThan(0)
     expect(progressiveCopy).toBe(legacyCopy)
     expect(progressiveStore.markdown).toBe(legacyStore.markdown)
     expect(progressiveCopy).toBe(progressiveStore.markdown)
+    expect(progressiveCopy).toBe(text)
   })
 
   test('size-1mb: word count and TOC cover the whole document while the tail is still pending', async ({ page }) => {
