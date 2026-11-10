@@ -1,9 +1,9 @@
 // FILE: src/muya/lib/ui/blockViewer/index.js
-// VERSION: 3.8.0
+// VERSION: 3.8.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared fullscreen block viewer (C-34 R2.2 + C-39 T2) that shows a Mermaid/flowchart/sequence/plantuml/vega-lite diagram (clone of the current preview, no re-render) or a read-only clone of a rendered table with pan/zoom via @panzoom/panzoom; C-56 adds toolbar actions that export the whole viewed Pele diagram / Vega-Lite chart as a picture regardless of the viewer's zoom/pan.
-//   SCOPE: viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
-//   DEPENDS: tableResize/tableFit.measureColumnExtents (natural automatic table snapshot); @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR — role gate only, no transports inside muya), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render); renderBlock/renderDiagramAppearance, muya.diagramAppearance.
+//   SCOPE: host-window header drag regions with controls excluded, viewer open/close lifecycle, diagram-preview and table-clone sanitization, wheel/pinch/key zoom, drag pan, focus trap and focus restore, panzoom cleanup, block resolution from an element (preview, table, or the FIGURE the C-51 persistent expand button dispatches), the C-51 T-014 polish (fit scales small content UP to the stage (no 1:1 cap); an open viewer follows option-driven re-renders (theme switches) by re-cloning the live block once its diagram content has actually CHANGED (never the viewer's own clone; the captured figure element is a fallback anchor), keeping zoom/pan), and the C-56 export toolbar (Copy as Image / Save as PNG… / Save as SVG… shown only for MERMAID/VEGA-LITE sources, dispatching muya-diagram-export with the LIVE source — the host editor owns the clipboard/dialog/fs transports). C-62: expose the shared Mermaid appearance control in the header; local palettes refresh the clone without changing zoom/pan.
+//   DEPENDS: existing host titlebar drag-region/no-drag contract (M-011); tableResize/tableFit.measureColumnExtents (natural automatic table snapshot); @panzoom/panzoom, muya/lib/config (CLASS_OR_ID, EVENT_KEYS), muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR — role gate only, no transports inside muya), muya/lib/eventHandler/event (via muya.eventCenter; Muya#setOptions dispatches muya-options-rerender after a needRender re-render); renderBlock/renderDiagramAppearance, muya.diagramAppearance.
 //   LINKS: .grace/changes/archive/C-34 T-002; .grace/changes/archive/C-39 T2 and T-002 (viewer shows the session column widths — the clone carries the live colgroup — but no resize handles); .grace/changes/archive/C-51 T-006 (always-visible expand button, scenario-60) and T-014 (theme-follow, fit-up, scenario-64); .grace/changes/archive/C-56 (picture export, scenario-63); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012 scenario-19.; .grace/changes/archive/C-62.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -15,6 +15,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-VIEWER-WINDOW-DRAG: the viewer header/title
+//   reuse the host drag region, with controls excluded from window drag.
 //   LAST_CHANGE: 2026-11-10 C-STABILIZE-TABLE-E2E: automatically fitted table
 //   clones recover natural content widths; explicit column/wall widths remain
 //   unchanged. Temporary measurements never alter the live table or profile.
@@ -303,10 +305,12 @@ class BlockViewer {
 
     const header = document.createElement('div')
     header.className = 'ag-block-viewer-header'
+    header.setAttribute('data-tauri-drag-region', '')
     const title = document.createElement('span')
     title.className = 'ag-block-viewer-title'
+    title.setAttribute('data-tauri-drag-region', '')
     const controls = document.createElement('div')
-    controls.className = 'ag-block-viewer-controls'
+    controls.className = 'ag-block-viewer-controls title-no-drag'
     header.appendChild(title)
     header.appendChild(controls)
 

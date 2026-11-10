@@ -4017,7 +4017,10 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         &lt;style&gt;) and read-only table clones (editing affordances
         stripped, sticky thead) with @panzoom/panzoom pan/zoom
         (pinch/Cmd+wheel, drag, +/−/0/1 keys), Esc close with focus trap
-        and restore. C-51 T-006 replaced the old hover/caret toolbar with
+        and restore. C-VIEWER-WINDOW-DRAG: the header and title expose
+        the existing M-011 host-window drag-region contract, while the
+        controls carry its no-drag exclusion and the canvas retains pan.
+        C-51 T-006 replaced the old hover/caret toolbar with
         the per-block expand button: renderContainerBlock.js
         START_BLOCK_EXPAND_BUTTON renders button.ag-block-expand as a
         direct child of every viewable figure (mermaid fence, flowchart,

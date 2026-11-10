@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.9.1
+// VERSION: 3.9.2
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2), the C-51 T-006/T-010 expand affordances (since C-56 T-005: the corner pill on mermaid/vega-lite figures and the standalone glyph on flowchart/sequence/plantuml; since C-65 T-002: the TABLE toolbar on tables — its expand action is the pill-family need-gated button) and the T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd/click, Esc close with focus restore; the T-010 need rules (hidden expand actions on small blocks — no Tab stop; wide/tall blocks get them), the C-56 T-005 pill look (variant C: opacity 0 → 1 on figure hover / :focus-within, never the caret; themed surface pill, label reveal, muted → fg hover), the C-65 table toolbar placement above the table clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -23,6 +23,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-VIEWER-WINDOW-DRAG: real header/title mouse
+//   gestures dispatch native window drag while controls, canvas, native
+//   resize edges and non-primary input retain their actions.
 //   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
 //   initial rich content revision before byte baselines; retain exact
 //   Markdown/saved comparisons and all pointer/geometry oracles.
@@ -423,6 +426,71 @@ async function nodeFillIn (page: Page, rootSelector: string): Promise<string> {
 test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
   test.beforeEach(async ({ page }) => {
     await installTauriShim(page)
+  })
+
+  test('viewer header drags the host window while controls and canvas keep their actions', async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as any
+      w.__viewerWindowDrags = 0
+      w.__mockInvoke['plugin:window|start_dragging'] = () => {
+        w.__viewerWindowDrags++
+        return null
+      }
+    })
+    await bootstrapWithMarkdown(page, WIDE_TABLE_MD)
+    await expect(page.locator('html')).toHaveClass(/platform-darwin/)
+    const table = page.locator("figure[data-role='TABLE']").first()
+    await table.hover()
+    const expand = table.locator('.ag-table-toolbar-expand')
+    await expect(expand).toBeVisible()
+    await expect.poll(() => page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return file?.contentRevision ?? 0
+    })).toBeGreaterThan(0)
+    const documentState = () => page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return { markdown: file.markdown, saved: file.isSaved }
+    })
+    const before = await documentState()
+    await expand.click()
+    const viewer = page.locator('.ag-block-viewer')
+    await expect(viewer).toHaveClass(/ag-block-viewer-open/)
+    const dragCount = () => page.evaluate(() => (window as any).__viewerWindowDrags)
+    const header = (await viewer.locator('.ag-block-viewer-header').boundingBox())!
+    // The blank top strip replaces the covered titlebar, away from resize edges.
+    await page.mouse.move(header.x + 200, header.y + 12)
+    await page.mouse.down()
+    await page.mouse.move(header.x + 260, header.y + 32, { steps: 5 })
+    await page.mouse.up()
+    await expect.poll(dragCount).toBe(1)
+    await viewer.locator('.ag-block-viewer-title').click()
+    await expect.poll(dragCount).toBe(2)
+
+    const scale = await canvasScale(page)
+    await viewer.locator('.ag-block-viewer-zoom-in').click()
+    await expect.poll(() => canvasScale(page)).toBeGreaterThan(scale)
+    expect(await dragCount()).toBe(2)
+    await viewer.locator('.ag-block-viewer-fit').click()
+    const canvas = viewer.locator('.ag-block-viewer-canvas')
+    const transform = await canvas.evaluate(el => getComputedStyle(el).transform)
+    const c = (await canvas.boundingBox())!
+    const stage = (await viewer.locator('.ag-block-viewer-stage').boundingBox())!
+    const x = (Math.max(c.x, stage.x) + Math.min(c.x + c.width, stage.x + stage.width)) / 2
+    const y = (Math.max(c.y, stage.y) + Math.min(c.y + c.height, stage.y + stage.height)) / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + 40, y + 20, { steps: 5 })
+    await page.mouse.up()
+    await expect.poll(() => canvas.evaluate(el => getComputedStyle(el).transform)).not.toBe(transform)
+    expect(await dragCount()).toBe(2)
+
+    await page.mouse.click(header.x + 200, header.y + 2)
+    await page.mouse.click(header.x + 200, header.y + 12, { button: 'middle' })
+    expect(await dragCount()).toBe(2)
+    await viewer.locator('.ag-block-viewer-close-btn').click()
+    await expect(viewer).not.toHaveClass(/ag-block-viewer-open/)
+    expect(await dragCount()).toBe(2)
+    expect(await documentState()).toEqual(before)
   })
 
   test('diagram: the needed expand button opens the fullscreen viewer; zoom key scales; Esc restores focus', async ({ page }) => {

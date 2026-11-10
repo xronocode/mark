@@ -6205,6 +6205,11 @@
           native table scrolling, +/−/0/1 and existing zoom buttons remain operable. Horizontal
           table navigation is pan-only at every scale, with no native scrollbar/track; live edge
           shadows show the clipped side(s), including both at centered wide 1:1 and neither at Fit.
+          C-VIEWER-WINDOW-DRAG: real header/title mouse input invokes the host
+          native drag command exactly once; controls and canvas do not invoke it,
+          native resize-edge/non-primary guards remain effective, zoom/pan/close
+          and exact document state remain intact. Actual OS window movement is
+          a separate native manual acceptance check.
           Focus is trapped while open. Esc/close/backdrop restore the live expand action across
           unsolicited editor re-focus and replacement DOM, but subsequent keyboard/pointer intent
           cancels pending restore timers; Tab continues Expand→Copy and Shift+Tab reverses without
