@@ -952,6 +952,17 @@
           "date": "2026-11-10",
           "actor": "maintainer",
           "detail": "Admitted to Collecting train 2.9.x-next with complete automated evidence and explicit pending native acceptance."
+        },
+        {
+          "state": "owner-verdict",
+          "date": "2026-11-10",
+          "actor": "owner",
+          "artifact": "mark-clipboard-test-18a06b37",
+          "verdict": "accepted",
+          "scenarios": [
+            "With Find open, the query and selection remain usable for keyboard copy/paste; keyboard copy/paste also works after closing Find."
+          ],
+          "detail": "Find and keyboard clipboard owner acceptance: owner reported that the latest focused QA looks okay in the follow-up chat. This records only the offered Find/keyboard clipboard scenario. The case file remains unticked; the verdict is transcribed from chat. No broader stabilization, save/close/export/IME or release approval is inferred."
         }
       ]
     }

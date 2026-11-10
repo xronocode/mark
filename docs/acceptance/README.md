@@ -80,4 +80,4 @@ reload picks the verdict up):
 | C-TABLE-SEQUENTIAL-RESIZE | queued | mark-table-fix-827b138 | accepted 2026-11-10 |
 | C-TABLE-FITTED-RESET | queued | mark-viewer-test-3d54d2b | accepted 2026-11-10 |
 | C-VIEWER-WINDOW-DRAG | queued | mark-viewer-test-3d54d2b | accepted 2026-11-10 |
-| C-HOSTED-VALIDATION-RECOVERY | queued | mark-clipboard-test-18a06b37 | pending |
+| C-HOSTED-VALIDATION-RECOVERY | owner-verdict | mark-clipboard-test-18a06b37 | accepted 2026-11-10 |
