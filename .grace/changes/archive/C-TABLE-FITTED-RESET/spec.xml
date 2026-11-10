@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-TABLE-FITTED-RESET>
+<Name>Keep fitted tables inside their frame after partial column reset</Name>
+<ApprovalBasis>Owner regression report on 2026-11-10 after accepting sequential resizing: in Fit, double-clicking the second internal border after resizing exposes horizontal scrolling, and resetting the first normalizes it. Standing delegation covers the bounded repair of this existing no-scroll contract.</ApprovalBasis>
+<Summary>Route partial column resets through the selected mode layout before persistence, retaining the column-reset meaning and manual choices that remain.</Summary>
+<Goals><Goal>Fit/Full stay in the same mode and frame immediately after either internal border is double-clicked following sequential drags. Persisted geometry is the fitted result. Repeated resets, tab adoption and reconciliation do not restore overflow.</Goal></Goals>
+<Constraints><Item>Retain adjacent resizing, the measured per-column reset semantics, automatic whole-table reset when no manual columns remain, Auto behavior, wrapping and narrow-frame fitting. Keep Markdown/history/saved state, thresholds, retries, timeouts, schema and application version unchanged.</Item></Constraints>
+<NonGoals><Item>No redesign of reset semantics, new scrolling mode, profile migration, release or mutation of an open user document.</Item></NonGoals>
+<AcceptanceCriteria><Criterion>A real-pointer red/green reproduction covers the second-border-then-first-border reset after resizing, with frame, no-scroll, mode and exact Markdown/saved oracles. Unit evidence pins immediate fitted store and persisted geometry.</Criterion></AcceptanceCriteria>
+<AffectedAreas><Area>M-012 TableResize and V-M-012.</Area></AffectedAreas>
+<VerificationIntent><ExpectedEvidence>Focused reproduction, existing sizing units, full affected table/viewer browser gate in Chromium/WebKit, renderer build and a fresh uniquely identified QA artifact.</ExpectedEvidence></VerificationIntent>
+</C-TABLE-FITTED-RESET></GraceChangeSpec>

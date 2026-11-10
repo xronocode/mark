@@ -4479,7 +4479,10 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
                 other columns unchanged. Manual ratios use the resize floor and
                 wrap content across reconciliation; an observer refit retains
                 the active gesture entry identity. Auto single-column sizing and
-                its bounded overflow fitting remain unchanged. C-65: every table
+                its bounded overflow fitting remain unchanged. C-TABLE-FITTED-RESET:
+                partial column resets fit the measured natural width through the
+                selected Fit/Full layout before persisting the resulting geometry.
+                C-65: every table
                 also gets a PERSISTENT IDENTITY (document ordinal +
                 tableSignature = column count + hash of the header texts)
                 — syncIdentities runs after every render, adopts the

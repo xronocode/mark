@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 2.2.0
+// VERSION: 2.2.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the persistent table layout behaviour (C-65 T-001/T-004 + C-PAGE-WIDTH-TABLES T-007/T-008/T-009) — the persistent identity (ordinal + header signature), the schema-v2 adoption (widths + ratios + tableWidth + mode, with the idempotent legacy fit:true/fullWidth migration), the rememberTableColumnSizes gate, the identity-change drops (corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the honest three-mode defaults and the toolbar mode-segment routing, the degradation badge caption, the walls and the reset/wall-double-click persist paths.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities load versus write modes, applyPersistedLayouts, serializeTableLayouts, persist snapshot refresh, toggle/openViewer, handleToolbarAction/Click/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -24,6 +24,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-TABLE-FITTED-RESET: partial Fit/Full reset
+//   after adjacent drags fits before persistence and never exposes overflow.
 //   CURRENT: 2026-11-10 C-TABLE-SEQUENTIAL-RESIZE: adjacent Fit/Full
 //   gestures conserve prior columns, survive refit and clamp both sides.
 //   LAST_CHANGE: v2.1.0 - 2026-11-05: adoption runs after the
@@ -1509,6 +1511,32 @@ describe('sequential fitted borders (C-TABLE-SEQUENTIAL-RESIZE)', () => {
     f.down(0)
     expect(f.resize.planModeWidths(f.table.id, f.figure, f.table, 'fit').widths).toEqual(baseline)
     f.up()
+  })
+
+  it.each(['fit', 'full'])('%s fits partial reset before persisting (C-TABLE-FITTED-RESET)', mode => {
+    const f = makeFramedResizeFixture(mode)
+    f.drag(0, -180)
+    f.drag(1, 60 - f.widths()[1])
+    expect(f.widths()).toEqual([60, 60, 600])
+    Array.from(f.row.cells).forEach((cell, i) => {
+      const fixedRect = cell.getBoundingClientRect
+      cell.getBoundingClientRect = () => f.table.querySelector('colgroup')
+        ? fixedRect()
+        : { ...fixedRect(), width: [240, 260, 220][i] }
+    })
+    for (const index of [1, 0]) {
+      f.row.cells[index].querySelector('.ag-column-resizer')
+        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))
+      expect(f.widths().reduce((a, b) => a + b, 0)).toBe(f.frame)
+      expect(f.resize.modeOf(f.table.id)).toBe(mode)
+      const entry = f.resize.widths.get(f.table.id)
+      expect(entry.manual).toEqual(index === 1 ? [true, false, true] : [false, false, true])
+      const persisted = Object.values(f.resize.serializeTableLayouts())[0]
+      expect(persisted.widths).toEqual(f.widths())
+      expect(f.muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', { entries: f.resize.serializeTableLayouts() })
+      f.resize.reconcileAfterRender()
+      expect(f.widths().reduce((a, b) => a + b, 0)).toBe(f.frame)
+    }
   })
 
   it('keeps a squeezed adjacent pair inside an already narrow frame', () => {

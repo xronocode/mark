@@ -6371,6 +6371,11 @@
           fixed, in-flight refit/reversed gestures retain their baseline, and
           manual ratios survive long content, tab adoption and mode round trips.
           Exact Markdown/saved state and no-scroll assertions remain required.
+          C-TABLE-FITTED-RESET: after the sequential drags, double-clicking
+          border two then border one on header/body surfaces keeps Fit/Full
+          inside its frame, persists fitted geometry and retains remaining
+          manual flags. Tab adoption keeps proportions; exact Markdown/saved
+          and no-scroll checks remain required.
           scenario-21: Session-only table column resize (C-39 T-002,
           lib/tableResize/index.js + renderContainerBlock.js
           START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE
