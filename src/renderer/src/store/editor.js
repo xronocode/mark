@@ -110,6 +110,7 @@ const sessionAutosaveStores = new WeakSet()
 export const useEditorStore = defineStore('editor', {
   state: () => ({
     currentFile: {},
+    findVisible: false,
     tabs: [],
     tabIdToIndex: {},
     listToc: [], // Used for equal check and for searching for the correct github-slug to jump to
@@ -2146,9 +2147,9 @@ export const useEditorStore = defineStore('editor', {
 
     SELECTION_CHANGE(changes) {
       const { start, end } = changes
-      // A caret move is not a new Find query. Clearing the query here feeds
-      // the search bar's debounce back into a render that blurs the editor.
-      if (start.key === end.key && start.offset !== end.offset && start.block.text) {
+      // Selection can prefill a closed Find bar. Once it is open, selection
+      // belongs to editing/copying and must not trigger a new search render.
+      if (!this.findVisible && start.key === end.key && start.offset !== end.offset && start.block.text) {
         const value = start.block.text.substring(start.offset, end.offset)
         this.currentFile.searchMatches = {
           matches: [],
@@ -2849,7 +2850,7 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
+//   SCOPE: Transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots.
 //   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/active/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
@@ -2857,12 +2858,15 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   useEditorStore - Pinia store: tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS); RENAME/RENAME_IF_NEEDED move the stored table layouts, file positions and page widths (util/tableLayoutStore, util/filePositionStore, util/pageWidthStore) to the new path.
+//   useEditorStore - Pinia store: transient Find visibility, tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS); RENAME/RENAME_IF_NEEDED move the stored table layouts, file positions and page widths (util/tableLayoutStore, util/filePositionStore, util/pageWidthStore) to the new path.
 //   __resetBootPhase - test hook that re-arms the boot-phase guard.
 //   getRememberedExportAppearance - C-EXPORT-SINGLE-PAGE R-5 read-only defaults+remembered appearance view for the export dialog.
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-FIND-SELECTION-CLIPBOARD: a shared transient Find
+//     visibility flag keeps editing selections from replacing an active
+//     query; selected-text prefill remains available while Find is closed.
 //   - 2026-11-10 C-HOSTED-VALIDATION-RECOVERY: collapsed selections retain
 //     the active Find query/matches; nonempty selections still prefill it
 //     and all selection changes continue synchronizing native menu state.

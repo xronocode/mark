@@ -2610,6 +2610,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: one transient editor-store findVisible flag is the search component visibility source and resets on teardown. Selection prefills Find only while closed; an open Find retains query/matches during text selection so no selection-driven delayed render removes native clipboard focus. Native shortcut/menu/clipboard routes are unchanged.</SummaryDelta>
       <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: editor-store SELECTION_CHANGE prefills Find only for noncollapsed same-block text selections. Caret-only updates retain the active query/matches and still synchronize native menus, preventing the selection-to-empty-query debounce from rerendering and blurring the editor.</SummaryDelta>
       <Name>mt-renderer</Name>
         <SummaryDelta>
@@ -3785,6 +3786,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: the existing keyboard browser verification now checks real copy/paste after a nonempty selection with Find open (matching or absent query) or closed, exact inserted Markdown, retained selection/focus and close/reopen prefill. Muya runtime clipboard/keyboard code is unchanged.</SummaryDelta>
       <Name>muya</Name>
       <DisplayName>muya</DisplayName>
       <Type>CORE_LOGIC</Type>

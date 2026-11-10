@@ -62,6 +62,24 @@ describe('search/index.vue — deep coverage', () => {
     })
 
   // --- bus listener registration ---
+  it('shares Find visibility with the editor store and clears it on teardown', async () => {
+    const { useEditorStore } = await import('@/store/editor')
+    const editorStore = useEditorStore()
+    const wrapper = mountComponent()
+    expect(editorStore.findVisible).toBe(false)
+    const findHandler = bus.on.mock.calls.find((c) => c[0] === 'find')[1]
+    findHandler()
+    await nextTick()
+    expect(editorStore.findVisible).toBe(true)
+    wrapper.vm.emptySearch()
+    expect(editorStore.findVisible).toBe(false)
+    const replaceHandler = bus.on.mock.calls.find((c) => c[0] === 'replace')[1]
+    replaceHandler()
+    expect(editorStore.findVisible).toBe(true)
+    wrapper.unmount()
+    expect(editorStore.findVisible).toBe(false)
+  })
+
   describe('bus listener registration', () => {
     it('registers all listeners on mount', () => {
       mountComponent()
