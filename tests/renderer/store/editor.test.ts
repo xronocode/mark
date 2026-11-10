@@ -178,7 +178,7 @@ describe('store/editor', () => {
 
   // ─── helpers ───────────────────────────────────────────────────────
   function makeTab(overrides: Record<string, unknown> = {}) {
-    return {
+    const tab = {
       id: overrides.id ?? 'tab-1',
       filename: overrides.filename ?? 'untitled.md',
       pathname: overrides.pathname ?? '',
@@ -196,6 +196,10 @@ describe('store/editor', () => {
       scrollTop: 0,
       ...overrides
     }
+    return { savedMarkdown:tab.isSaved ? tab.markdown : 'saved checkpoint',
+      savedFormat:{ encoding:tab.encoding.encoding,isBom:tab.encoding.isBom,lineEnding:tab.lineEnding,finalNewline:tab.trimTrailingNewline },
+      requiresExplicitSave:false,...tab }
+
   }
 
   // ─── helpers / index maintenance ──────────────────────────────────
@@ -707,13 +711,13 @@ describe('store/editor', () => {
       expect(bus.on).toHaveBeenCalledWith('mt::new-untitled-tab', expect.any(Function))
     })
 
-    it('SET_LINE_ENDING flips the currentFile flags + isSaved', async () => {
+    it('SET_LINE_ENDING changes the policy and keeps the document unsaved', async () => {
       editor.currentFile = makeTab({ id: 'a', lineEnding: 'lf', isSaved: false })
       editor.tabs = [editor.currentFile]
       editor.SET_LINE_ENDING('crlf')
       expect(editor.currentFile.lineEnding).toBe('crlf')
       expect(editor.currentFile.adjustLineEndingOnSave).toBe(true)
-      expect(editor.currentFile.isSaved).toBe(true)
+      expect(editor.currentFile.isSaved).toBe(false)
     })
 
     it('SET_LINE_ENDING is a no-op when value unchanged', async () => {
@@ -906,7 +910,7 @@ describe('store/editor', () => {
       ).not.toThrow()
     })
 
-    it('keeps isSaved=true on undo (history index aligns with lastSavedHistoryId)', async () => {
+    it('keeps isSaved=true when saved text and format match after undo', async () => {
       const tab = makeTab({
         id: 't1',
         markdown: 'a',

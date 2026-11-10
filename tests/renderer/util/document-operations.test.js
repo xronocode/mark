@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
+import { captureDocumentFormat, applyDocumentFormat, recomputeDocumentSaved } from '@/util/documentFormat'
 import { createDocumentOperations } from '@/util/documentOperations'
 import { documentOwner, captureDocumentSnapshot, inspectDocumentComposition, registerDocumentSurface } from '@/util/documentSnapshot'
 const deferred = () => { let resolve, reject; const promise = new Promise((a,b) => { resolve=a; reject=b }); return {promise,resolve,reject} }
 const make = (data = [{}]) => {
-  const store = { tabs: data.map((t,i) => ({ id: String(i), filename: `${i}.md`, pathname: `/tmp/${i}.md`, markdown: 'original', isSaved: false, contentRevision: 1, ...t })) }
+  const store = { tabs: data.map((t,i) => ({ id: String(i), filename: `${i}.md`, pathname: `/tmp/${i}.md`, markdown: 'original', encoding: { encoding: 'utf8', isBom: false }, lineEnding: 'lf', trimTrailingNewline: 3, isSaved: false, contentRevision: 1, ...t })) }
+  for (const tab of store.tabs) { tab.savedMarkdown = tab.isSaved ? tab.markdown : 'previous'; tab.savedFormat = captureDocumentFormat(tab); tab.requiresExplicitSave = false }
   store.currentFile = store.tabs[0]
   const deps = {
     getTabs: () => store.tabs,
@@ -131,4 +133,77 @@ it('canonical destination conflicts returned by Rust explain the owned-path refu
   const outcome=await h.ops.save(documentOwner(h.store.tabs[0]))
   expect(outcome).toMatchObject({status:'blocked',reason:'collision'})
   expect(h.store.tabs[0].pathname).toBe('');expect(h.store.tabs[0].isSaved).toBe(false)
+})
+
+it.each([{ encoding: 'cp1251' }, { isBom: true }, { lineEnding: 'crlf' }, { finalNewline: 1 }])('retains a post-dispatch format change until explicit fresh retry: %j', async patch => {
+  const h = make(); const write = deferred(); const tab = h.store.tabs[0]
+  h.deps.writeSnapshot.mockImplementationOnce(r => write.promise.then(() => ({ ...r, pathname: r.targetPath })))
+  const attempt = h.run(); await vi.waitFor(() => expect(h.deps.writeSnapshot).toHaveBeenCalled())
+  const dispatched = h.deps.writeSnapshot.mock.calls[0][0]
+  applyDocumentFormat(tab, patch); write.resolve()
+  expect((await attempt).status).toBe('blocked'); expect(tab.isSaved).toBe(false); expect(h.commit).not.toHaveBeenCalled()
+  expect(dispatched.format).toEqual({ encoding: 'utf8', isBom: false, lineEnding: 'lf', finalNewline: 3 })
+  expect(tab.savedFormat).toEqual(dispatched.format); expect(tab.requiresExplicitSave).toBe(true)
+  expect((await h.run()).status).toBe('completed')
+  expect(h.deps.writeSnapshot.mock.calls[1][0].format).toEqual(captureDocumentFormat(tab))
+  expect(tab.requiresExplicitSave).toBe(false); expect(tab.isSaved).toBe(true)
+})
+it('changed-then-reverted format remains dirty after stale ACK and later reconciliation', async () => {
+  const h = make(); const tab = h.store.tabs[0]; const write = deferred()
+  h.deps.writeSnapshot.mockImplementationOnce(r => write.promise.then(() => ({ ...r, pathname: r.targetPath })))
+  const attempt = h.run(); await vi.waitFor(() => expect(h.deps.writeSnapshot).toHaveBeenCalled())
+  applyDocumentFormat(tab, { isBom: true }); applyDocumentFormat(tab, { isBom: false }); write.resolve()
+  expect((await attempt).status).toBe('blocked')
+  expect(recomputeDocumentSaved(tab)).toBe(false); expect(tab.requiresExplicitSave).toBe(true)
+  expect((await h.run()).status).toBe('completed'); expect(recomputeDocumentSaved(tab)).toBe(true)
+})
+it('Save All includes format-only dirty tabs and captures picker-time policies', async () => {
+  const h = make([{ isSaved: true }, { isSaved: true }]); const tab = h.store.tabs[0]
+  applyDocumentFormat(tab, { lineEnding: 'crlf' })
+  expect((await h.run('save-all')).status).toBe('completed')
+  expect(h.deps.writeSnapshot).toHaveBeenCalledTimes(1); expect(tab.savedFormat.lineEnding).toBe('crlf')
+  const h2 = make([{ pathname: '' }]); h2.deps.chooseTarget.mockImplementation(async r => {
+    applyDocumentFormat(h2.store.tabs[0], { finalNewline: 0 }); return { ...r, pathname: '/tmp/fresh-policy.md' }
+  })
+  expect((await h2.run()).status).toBe('completed')
+  expect(h2.deps.writeSnapshot.mock.calls[0][0].format.finalNewline).toBe(0)
+})
+it.each(['missing', 'mismatch'])('rejects %s format ACK before path or checkpoint mutation', async mode => {
+  const h = make([{ pathname: '' }]); const tab = h.store.tabs[0]
+  h.deps.writeSnapshot.mockImplementationOnce(async r => ({ ...r, pathname: r.targetPath, format: mode === 'missing' ? undefined : { ...r.format, isBom: true } }))
+  expect((await h.run()).status).toBe('failed'); expect(tab.pathname).toBe(''); expect(tab.savedMarkdown).toBe('previous')
+  expect(tab.isSaved).toBe(false); expect(h.commit).not.toHaveBeenCalled()
+})
+it('Save As adopts its destination while retaining a newer format and requiring explicit retry', async () => {
+  const h = make([{ isSaved: true }]); const tab = h.store.tabs[0]; const write = deferred()
+  h.deps.writeSnapshot.mockImplementationOnce(r => write.promise.then(() => ({ ...r, pathname: r.targetPath })))
+  const attempt = h.ops.save(documentOwner(tab), { saveAs: true })
+  await vi.waitFor(() => expect(h.deps.writeSnapshot).toHaveBeenCalled())
+  applyDocumentFormat(tab, { lineEnding: 'crlf' }); write.resolve()
+  expect((await attempt).status).toBe('blocked'); expect(tab.pathname).toBe('/tmp/chosen.md')
+  expect(tab.lineEnding).toBe('crlf'); expect(tab.savedFormat.lineEnding).toBe('lf'); expect(tab.requiresExplicitSave).toBe(true)
+  expect((await h.ops.save(documentOwner(tab))).status).toBe('completed')
+  expect(h.deps.chooseTarget).toHaveBeenCalledTimes(1); expect(tab.isSaved).toBe(true)
+})
+it('a text change and reversion during write cannot clear the stale-ACK retry obligation', async () => {
+  const h = make(); const tab = h.store.tabs[0]; const write = deferred()
+  h.deps.writeSnapshot.mockImplementationOnce(r => write.promise.then(() => ({ ...r, pathname: r.targetPath })))
+  const attempt = h.run(); await vi.waitFor(() => expect(h.deps.writeSnapshot).toHaveBeenCalled())
+  const original = tab.markdown; h.edit(); tab.markdown = original; tab.contentRevision++; write.resolve()
+  expect((await attempt).status).toBe('blocked'); expect(recomputeDocumentSaved(tab)).toBe(false)
+  expect(tab.savedMarkdown).toBe(original); expect(tab.requiresExplicitSave).toBe(true); expect(h.commit).not.toHaveBeenCalled()
+})
+it('an encoding refusal remains an error reason with no path adoption or checkpoint', async () => {
+  const h = make([{ pathname: '' }]); h.deps.writeSnapshot.mockRejectedValueOnce(Error('MT_ENC_UNREPRESENTABLE'))
+  expect(await h.ops.save(documentOwner(h.store.tabs[0]))).toMatchObject({ status: 'failed', reason: 'MT_ENC_UNREPRESENTABLE' })
+  expect(h.store.tabs[0].pathname).toBe(''); expect(h.store.tabs[0].savedMarkdown).toBe('previous')
+})
+it.each([{ encoding:'cp1251' },{ isBom:true },{ lineEnding:'crlf' },{ finalNewline:1 }])('captures picker-time policy changes and fences discard confirmation: %j', async patch => {
+  const h = make([{ pathname:'' }]); h.deps.chooseTarget.mockImplementation(async r => {
+    applyDocumentFormat(h.store.tabs[0],patch); return { ...r,pathname:'/tmp/picker-format.md' }
+  })
+  expect((await h.run()).status).toBe('completed')
+  expect(h.deps.writeSnapshot.mock.calls[0][0].format).toEqual(captureDocumentFormat(h.store.tabs[0]))
+  const h2 = make(); h2.deps.confirm.mockImplementation(async () => { applyDocumentFormat(h2.store.tabs[0],patch); return 'discard' })
+  expect((await h2.run()).status).toBe('blocked'); expect(h2.commit).not.toHaveBeenCalled(); expect(h2.deps.writeSnapshot).not.toHaveBeenCalled()
 })

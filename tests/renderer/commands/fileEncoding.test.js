@@ -1,3 +1,4 @@
+import { delay } from '@/util'
 /**
  * Tests for src/renderer/src/commands/fileEncoding.js
  *
@@ -13,7 +14,7 @@ vi.mock('@/bus', () => ({
 }))
 
 vi.mock('@/util', () => ({
-  delay: () => Promise.resolve(),
+  delay: vi.fn(() => Promise.resolve()),
   isOsx: false,
   isWindows: false,
   isLinux: true
@@ -28,6 +29,8 @@ describe('FileEncodingCommand', () => {
 
   beforeEach(() => {
     editorState = {
+      CAN_CHANGE_DOCUMENT_FORMAT: vi.fn(() => true),
+      _notifyFormatError: vi.fn(),
       currentFile: {
         encoding: { encoding: 'utf8', isBom: false }
       }
@@ -52,7 +55,7 @@ describe('FileEncodingCommand', () => {
   it('run highlights current encoding (non-BOM)', async () => {
     await cmd.run()
 
-    const current = cmd.subcommands.find((s) => s.description.includes('- current'))
+    const current = cmd.subcommands.find((s) => s.description.includes('- t:fileFormat.current'))
     expect(current).toBeDefined()
     expect(current.id).toBe('utf8')
   })
@@ -62,7 +65,7 @@ describe('FileEncodingCommand', () => {
 
     expect(cmd.subcommandSelectedIndex).toBeGreaterThanOrEqual(0)
     const selected = cmd.subcommands[cmd.subcommandSelectedIndex]
-    expect(selected.description).toContain('- current')
+    expect(selected.description).toContain('- t:fileFormat.current')
   })
 
   it('run handles BOM encoding', async () => {
@@ -72,7 +75,7 @@ describe('FileEncodingCommand', () => {
 
     expect(cmd.subcommandSelectedIndex).toBe(0)
     expect(cmd.subcommands[0].id).toBe('utf8-bom')
-    expect(cmd.subcommands[0].description).toContain('- current')
+    expect(cmd.subcommands[0].description).toContain('- t:fileFormat.current')
   })
 
   it('execute emits show-command-palette after delay', async () => {
@@ -82,13 +85,13 @@ describe('FileEncodingCommand', () => {
 
   it('executeSubcommand emits mt::set-file-encoding for non-BOM', async () => {
     await cmd.executeSubcommand('utf8')
-    expect(bus.emit).toHaveBeenCalledWith('mt::set-file-encoding', 'utf8')
+    expect(bus.emit).toHaveBeenCalledWith('mt::set-file-encoding', { encoding: 'utf8', isBom: false })
   })
 
-  it('executeSubcommand ignores BOM encodings', async () => {
+  it('executeSubcommand applies an explicit Unicode BOM policy', async () => {
     vi.mocked(bus.emit).mockClear()
     await cmd.executeSubcommand('utf8-bom')
-    expect(bus.emit).not.toHaveBeenCalledWith('mt::set-file-encoding', expect.anything())
+    expect(bus.emit).toHaveBeenCalledWith('mt::set-file-encoding', { encoding: 'utf8', isBom: true })
   })
 
   it('unload clears subcommands', () => {
@@ -107,4 +110,21 @@ describe('FileEncodingCommand', () => {
     const enc = cmd._getCurrentEncoding()
     expect(enc).toEqual({})
   })
+  it('refuses an active composition before delay, palette or dispatch', async () => {
+    editorState.CAN_CHANGE_DOCUMENT_FORMAT.mockReturnValue(false)
+    vi.mocked(bus.emit).mockClear(); vi.mocked(delay).mockClear()
+    await cmd.run(); await cmd.execute(); await cmd.executeSubcommand('utf8', 'crlf')
+    expect(delay).not.toHaveBeenCalled(); expect(bus.emit).not.toHaveBeenCalled()
+  })
+
+  it('offers explicit Unicode BOM policies and explains unavailable codecs without an action', async () => {
+    await cmd.run()
+    expect(cmd.subcommands.find(item => item.id === 'utf16le-bom').value).toEqual({ encoding: 'utf16le', isBom: true })
+    expect(cmd.subcommands.find(item => item.id === 'utf16le').value).toEqual({ encoding: 'utf16le', isBom: false })
+    const unavailable = cmd.subcommands.find(item => item.id === 'gb2312')
+    expect(unavailable.disabled).toBe(true); expect(unavailable.description).toContain('fileFormat.unavailable.gb2312')
+    vi.mocked(bus.emit).mockClear(); await cmd.executeSubcommand('gb2312')
+    expect(bus.emit).not.toHaveBeenCalled()
+  })
+
 })

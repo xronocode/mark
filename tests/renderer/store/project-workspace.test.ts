@@ -48,6 +48,9 @@ type StubTab = {
   filename?: string
   isSaved?: boolean
   markdown?: string
+  encoding?: {encoding:string,isBom:boolean}
+  lineEnding?: string
+  trimTrailingNewline?: number
   contentRevision?: number
 }
 
@@ -214,7 +217,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/alpha')
     editorStubRef.tabs = [
-      { id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' }
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3, id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' }
     ]
     await store.OPEN_FOLDER('/tmp/beta', { origin: 'drop' })
 
@@ -231,7 +234,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
   it('chooser Replace without dirty tabs replaces directly', async () => {
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/alpha')
-    editorStubRef.tabs = [{ id: 't1', pathname: '/tmp/alpha/a.md', isSaved: true }]
+    editorStubRef.tabs = [{ encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't1', pathname: '/tmp/alpha/a.md', isSaved: true }]
     await store.OPEN_FOLDER('/tmp/beta', { origin: 'drop' })
 
     await store.RESOLVE_FOLDER_CHOICE('replace')
@@ -302,8 +305,8 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/alpha')
     editorStubRef.tabs = [
-      { id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' },
-      { id: 't2', pathname: '/tmp/loose/b.md', isSaved: true }
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3, id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' },
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't2', pathname: '/tmp/loose/b.md', isSaved: true }
     ]
 
     await store.OPEN_FOLDER('/tmp/beta', { mode: 'replace', origin: 'picker' })
@@ -319,7 +322,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/alpha')
     editorStubRef.tabs = [
-      { id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' }
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3, id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' }
     ]
     await store.OPEN_FOLDER('/tmp/beta', { mode: 'replace', origin: 'picker' })
 
@@ -339,10 +342,10 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     store.ADD_PROJECT('/tmp/alpha')
     store.ADD_PROJECT('/tmp/keep')
     editorStubRef.tabs = [
-      { id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' },
-      { id: 't2', pathname: '/tmp/alpha/c.md', isSaved: true },
-      { id: 't3', pathname: '/tmp/loose/b.md', isSaved: true },
-      { id: 't4', pathname: '/tmp/keep/k.md', isSaved: true }
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3, id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' },
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't2', pathname: '/tmp/alpha/c.md', isSaved: true },
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't3', pathname: '/tmp/loose/b.md', isSaved: true },
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't4', pathname: '/tmp/keep/k.md', isSaved: true }
     ]
     await store.OPEN_FOLDER('/tmp/keep', { mode: 'replace', origin: 'picker' })
     expect(store.pendingReplaceConfirm).not.toBeNull()
@@ -364,7 +367,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/alpha')
     editorStubRef.tabs = [
-      {
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,
         id: 't1',
         pathname: '/tmp/alpha/a.md',
         filename: 'a.md',
@@ -393,7 +396,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/alpha')
     editorStubRef.tabs = [
-      { id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' }
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3, id: 't1', pathname: '/tmp/alpha/a.md', isSaved: false, markdown: 'draft' }
     ]
     invokeMock.mockImplementation(async (cmd: string, args?: unknown) => {
       invokeCalls.push([cmd, args])
@@ -417,7 +420,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
   it('CLOSE_PROJECT (root X) never closes tabs of that root', async () => {
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/alpha')
-    editorStubRef.tabs = [{ id: 't1', pathname: '/tmp/alpha/a.md', isSaved: true }]
+    editorStubRef.tabs = [{ encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't1', pathname: '/tmp/alpha/a.md', isSaved: true }]
 
     await store.CLOSE_PROJECT('/tmp/alpha')
 
@@ -447,7 +450,7 @@ describe('projectStore.OPEN_FOLDER dispatcher (C-MULTI-SOURCE-WORKSPACE)', () =>
     const store = await loadStore()
     store.ADD_PROJECT('/tmp/notes')
     const treeCtrl = await import('@/store/treeCtrl')
-    editorStubRef.tabs = [{ id: 't1', pathname: '/tmp/notes/.hidden.md' }]
+    editorStubRef.tabs = [{ encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't1', pathname: '/tmp/notes/.hidden.md' }]
     vi.mocked(treeCtrl.unlinkFile).mockClear()
     vi.mocked(treeCtrl.unlinkDirectory).mockClear()
 

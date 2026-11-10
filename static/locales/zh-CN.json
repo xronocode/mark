@@ -1818,5 +1818,26 @@
     "failed": "保存或关闭失败。文档保持打开：{names}",
     "retryClose": "重新保存并关闭",
     "retrySave": "重新保存"
+  },
+  "fileFormat": {
+    "title": "文件格式",
+    "current": "当前",
+    "withBom": "带 BOM",
+    "withoutBom": "不带 BOM",
+    "errors": {
+      "composing": "更改文件格式前，请先完成输入法组字。",
+      "unknown": "无法识别此编码。请选择受支持的编码。",
+      "unsupported": "此编码无法用于保存。请选择受支持的编码。",
+      "invalidPolicy": "无法保存此编码、BOM 和换行设置的组合。",
+      "unrepresentable": "部分字符无法用此编码表示。请选择兼容的编码，例如 UTF-8。",
+      "mixed": "保存混合换行的文件前，请选择 LF 或 CRLF。",
+      "lossyRead": "无法在不丢失字符的情况下解码文件，因此未打开。",
+      "readFailed": "无法读取文件。请检查文件是否可用、文件类型和大小。"
+    },
+    "unavailable": {
+      "utf32": "不支持保存为 UTF-32。请选择 UTF-8 或 UTF-16。",
+      "gb2312": "暂不支持严格的 GB2312 输出。GBK 是单独受支持的选项。",
+      "big5hkscs": "暂不支持 Big5-HKSCS 输出。Big5 是单独受支持的选项。"
+    }
   }
 }

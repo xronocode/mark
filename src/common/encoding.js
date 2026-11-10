@@ -1,3 +1,27 @@
+// FILE: src/common/encoding.js
+// START_MODULE_CONTRACT
+//   PURPOSE: Shared visible encoding names and explicit write capabilities.
+//   SCOPE: Immutable catalog entries; no heuristic alias or fallback codec.
+//   DEPENDS: fileFormatCatalog.json.
+//   LINKS: M-014; C-METADATA-SAVE-SAFETY T-001.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   FILE_FORMAT_CATALOG - immutable declared codec capabilities.
+//   getEncodingCapability - exact UI identifier lookup.
+//   ENCODING_NAME_MAP - existing visible encoding names.
+//   getEncodingName - visible encoding and BOM description.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-11: explicit 32-supported/four-unavailable codec catalog.
+// END_CHANGE_SUMMARY
+import catalog from './fileFormatCatalog.json'
+
+export const FILE_FORMAT_CATALOG = Object.freeze(catalog.map(entry => Object.freeze({ ...entry })))
+const capabilities = new Map(FILE_FORMAT_CATALOG.map(entry => [entry.id, entry]))
+export const getEncodingCapability = id => capabilities.get(id)
+
 export const ENCODING_NAME_MAP = Object.freeze({
   utf8: 'UTF-8',
   utf16be: 'UTF-16 BE',

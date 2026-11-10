@@ -1,25 +1,33 @@
-// MODULE_CONTRACT
-//   PURPOSE: Type-level surface for the M-013-A frontend IPC contract.
-//   SCOPE:   Command name set, payload/result discriminated unions, error
-//            code enum. NOT runtime — pure types + a string-literal union
-//            that downstream code grep-checks against fixture parity.
-//   DEPENDS: (none — LAYER=0)
-//   LINKS:   .grace/graph/runtime.xml M-013-A, .grace/graph/runtime.xml M-013
-//            Phase-B1 step-2.
-//   STATUS:  Phase-B1 stub. Command set grows in B2 (fs/search/watcher),
-//            B3 (prefs/shortcuts/spell/fonts/menu/recent/datacenter/cli/
-//            encoding/pandoc/updater/screenshot). ts-rs codegen replaces
-//            the manual literal union once Rust side stabilizes.
-//
-// CHANGE_SUMMARY:
-//   - 2026-04-28 B1-step-2: initial stub. Empty CommandName union; only
-//     internal `mt::ping` for the typecheck self-test.
+// FILE: src/renderer/src/ipc/contract/types.ts
+// START_MODULE_CONTRACT
+//   PURPOSE: M-013-A typed IPC command, payload and error identities.
+//   SCOPE: Complete readonly DocumentFormat in correlated requests/replies;
+//          shared command/result types and stable runtime error tags.
+//   DEPENDS: TypeScript and JavaScript Error.
+//   LINKS: M-013-A/M-013-B; C-METADATA-SAVE-SAFETY T-002.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   IpcErrorCode - stable error constants and corresponding value union.
+//   IpcError - tagged runtime transport error.
+//   CommandName - sanctioned command-name union.
+//   FsStat - filesystem metadata shape.
+//   SearchOptions - search request options.
+//   SaveTargetRequest - destination-picker request identity.
+//   SaveTargetReply - owned destination-picker reply.
+//   DocumentFormat - complete readonly byte-policy value.
+//   DocumentWriteRequest - required text/format/revision write snapshot.
+//   DocumentWriteReply - matching write identity and format acknowledgement.
+//   CommandMap - command argument and result pairs.
+//   ExtensionInfo - extension metadata shape.
+//   CommandArgs - arguments selected by command name.
+//   CommandResult - result selected by command name.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-11: require complete immutable format on both correlated write DTOs.
+// END_CHANGE_SUMMARY
 
-/**
- * Stable error codes returned by ipcInvoke / useIpcListener / ipcCorrelated.
- * Negative-assertion: these strings MUST NOT change across versions; they
- * are the contract surface for renderer error handling and telemetry.
- */
 export const IpcErrorCode = {
   UNKNOWN_COMMAND: 'MT_IPC_UNKNOWN_COMMAND',
   TIMEOUT: 'MT_IPC_TIMEOUT',
@@ -156,14 +164,20 @@ export interface SearchOptions {
  */
 export interface SaveTargetRequest { requestId: string; documentToken: string; filename: string; defaultPath: string | null }
 export interface SaveTargetReply { requestId: string; documentToken: string; pathname: string }
+export interface DocumentFormat {
+  readonly encoding: string;
+  readonly isBom: boolean;
+  readonly lineEnding: 'lf' | 'crlf' | 'mixed';
+  readonly finalNewline: 0 | 1 | 3;
+}
 export interface DocumentWriteRequest {
   requestId: string; documentToken: string; id: string; revision: number;
-  sourcePath: string; targetPath: string; markdown: string;
+  sourcePath: string; targetPath: string; markdown: string; format: DocumentFormat;
   ownedPaths: { documentToken: string; pathname: string }[]
 }
 export interface DocumentWriteReply {
   requestId: string; documentToken: string; id: string; revision: number;
-  sourcePath: string; pathname: string; filename: string
+  sourcePath: string; pathname: string; filename: string; format: DocumentFormat
 }
 
 export interface CommandMap {

@@ -323,3 +323,14 @@ describe('store/preferences', () => {
     )
   })
 })
+
+it('refuses an unavailable new default while retaining and surfacing a stored legacy choice', async () => {
+  setupTestPinia()
+  const { usePreferencesStore } = await import('@/store/preferences')
+  const store = usePreferencesStore(); const original = store.defaultEncoding
+  vi.mocked(invoke).mockClear()
+  expect(await store.SET_SINGLE_PREFERENCE({ type:'defaultEncoding',value:'gb2312' })).toBe(false)
+  expect(store.defaultEncoding).toBe(original); expect(invoke).not.toHaveBeenCalled()
+  store.SET_USER_PREFERENCE({ defaultEncoding:'gb2312' })
+  expect(store.defaultEncoding).toBe('gb2312')
+})

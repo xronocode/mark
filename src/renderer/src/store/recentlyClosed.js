@@ -9,7 +9,8 @@
 //   SCOPE: RECORD_CLOSE (dedup-by-pathname to the newest close, bound
 //          25), CONSUME on any open arrival, REOPEN_ONE / REOPEN_NEWEST /
 //          REOPEN_ALL (deterministic strip order, active-tab metadata,
-//          missing files dropped with a notice), CLEAR.
+//          missing files dropped with a notice), CLEAR; validated pending format choices
+//          survive recovery without text or old disk checkpoints.
 //   DEPENDS: pinia, ipc/runtime (ipcFs), services/notification,
 //            i18n, bus-free (opening goes through the mt::open-file IPC
 //            path exactly like every other open surface).
@@ -36,6 +37,7 @@
 // END_CHANGE_SUMMARY
 
 import { defineStore } from 'pinia'
+import { captureRestoredFormat } from '../util/documentFormat'
 import { ipcFs } from '../ipc/runtime'
 import notice from '../services/notification'
 import i18n from '../i18n'
@@ -59,7 +61,8 @@ const makeEntry = (input) => ({
   stripIndex: Number.isFinite(input.stripIndex) ? input.stripIndex : 0,
   wasActive: !!input.wasActive,
   root: String(input.root || ''),
-  closedAt: Number.isFinite(input.closedAt) ? input.closedAt : Date.now()
+  closedAt: Number.isFinite(input.closedAt) ? input.closedAt : Date.now(),
+  ...(() => { try { return { restoredFormat: captureRestoredFormat(input.restoredFormat) } } catch { return {} } })()
 })
 
 export const useRecentlyClosedStore = defineStore('recentlyClosed', {
@@ -132,7 +135,7 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
         return false
       }
       try {
-        await window.electron.ipcRenderer.invoke('mt::open-file', entry.pathname, {})
+        await window.electron.ipcRenderer.invoke('mt::open-file', entry.pathname, entry.restoredFormat ? { restoredFormat: captureRestoredFormat(entry.restoredFormat) } : {})
       } catch (e) {
         console.warn('[RecentlyClosed][REOPEN_ONE][BLOCK_REOPEN_FAILED]', e)
         return false
@@ -175,7 +178,7 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
       let activeSuccess = null
       for (const entry of live) {
         try {
-          await window.electron.ipcRenderer.invoke('mt::open-file', entry.pathname, {})
+          await window.electron.ipcRenderer.invoke('mt::open-file', entry.pathname, entry.restoredFormat ? { restoredFormat: captureRestoredFormat(entry.restoredFormat) } : {})
         } catch (e) {
           console.warn('[RecentlyClosed][REOPEN_ALL][BLOCK_REOPEN_FAILED]', e)
           continue

@@ -79,14 +79,14 @@ describe('store/help', () => {
         encoding: { encoding: 'utf8', isBom: false },
         lineEnding: 'lf',
         adjustLineEndingOnSave: false,
-        trimTrailingNewline: 2
+        trimTrailingNewline: 3
       })
       expect(state.id).toBeDefined()
       expect(state.markdown).toBe('# hi')
       expect(state.filename).toBe('a.md')
       expect(state.pathname).toBe('/x/a.md')
       expect(state.lineEnding).toBe('lf')
-      expect(state.trimTrailingNewline).toBe(2)
+      expect(state.trimTrailingNewline).toBe(3)
       // defaults preserved
       expect(state.isSaved).toBe(true)
       expect(state.history).toEqual({ stack: [], index: -1 })
@@ -184,7 +184,7 @@ describe('store/help', () => {
           encoding: { encoding: 'utf8', isBom: false },
           lineEnding: 'lf',
           adjustLineEndingOnSave: false,
-          trimTrailingNewline: 2
+          trimTrailingNewline: 3
         }
       })
       expect(state.id).toBe('fixed-id')
@@ -193,7 +193,7 @@ describe('store/help', () => {
       expect(state.pathname).toBe('/p/doc.md')
       expect(state.encoding).toEqual({ encoding: 'utf8', isBom: false })
       expect(state.lineEnding).toBe('lf')
-      expect(state.trimTrailingNewline).toBe(2)
+      expect(state.trimTrailingNewline).toBe(3)
       expect((state as any).lastSavedHistoryId).toBe(-1)
     })
 
@@ -297,5 +297,35 @@ describe('store/help', () => {
       state.history.stack.push({ x: 1 } as any)
       expect(defaultFileState.history.stack.length).toBe(0)
     })
+  })
+})
+
+describe('complete saved format checkpoints', () => {
+  it('fresh loaded text owns a defensive text/format checkpoint', async () => {
+    const { createDocumentState } = await import('@/store/help')
+    const input = { markdown: 'Привет\r\n', filename: 'legacy.md', pathname: '/legacy.md', encoding: { encoding: 'cp1251', isBom: false }, lineEnding: 'crlf', trimTrailingNewline: 3, adjustLineEndingOnSave: true }
+    const state = createDocumentState(input)
+    expect(state.savedMarkdown).toBe(input.markdown)
+    expect(state.savedFormat).toEqual({ encoding: 'cp1251', isBom: false, lineEnding: 'crlf', finalNewline: 3 })
+    expect(state.requiresExplicitSave).toBe(false)
+    state.encoding.encoding = 'utf8'
+    expect(state.savedFormat.encoding).toBe('cp1251'); expect(input.encoding.encoding).toBe('cp1251')
+  })
+  it('new empty drafts retain the applicable supported default and checkpoint', async () => {
+    const { getBlankFileState } = await import('@/store/help')
+    const state = getBlankFileState([], 'gbk', 'default')
+    expect(state.savedMarkdown).toBe(''); expect(state.isSaved).toBe(true)
+    expect(state.savedFormat.encoding).toBe('gbk'); expect(['lf','crlf']).toContain(state.lineEnding)
+  })
+  it.each(['utf32le','utf32be','gb2312','big5hkscs'])('refuses cached unavailable default %s instead of creating a UTF-8 tab', async codec => {
+    const { getBlankFileState, defaultFileState } = await import('@/store/help')
+    const before = structuredClone(defaultFileState)
+    expect(() => getBlankFileState([], codec)).toThrow('MT_ENC_UNSUPPORTED')
+    expect(defaultFileState).toEqual(before)
+  })
+  it('retains mixed input as a mixed saved-format checkpoint', async () => {
+    const { createDocumentState } = await import('@/store/help')
+    const state = createDocumentState({ markdown: 'A\r\nB\n', filename: 'mixed.md', pathname: '/mixed.md', encoding: { encoding: 'utf8', isBom: false }, lineEnding: 'mixed', isMixedLineEndings: true, trimTrailingNewline: 3 })
+    expect(state.savedFormat.lineEnding).toBe('mixed'); expect(state.markdown).toBe('A\r\nB\n')
   })
 })

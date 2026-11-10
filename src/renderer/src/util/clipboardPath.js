@@ -7,13 +7,13 @@
 //            Markdown), resolve clipboard candidates in order, and open
 //            a Markdown file in a tab with the drag-drop bridge's exact
 //            mt::open-new-tab payload.
-//   SCOPE: pure parsing/classification plus the shared tab-open emit;
+//   SCOPE: pure parsing/classification plus the shared native tab-open request;
 //            NO stores, NO i18n, NO notification — routing lives in
 //            util/clipboardOpen.js so the drag-drop shim in
 //            _shims/install-window-globals.js can import these parts
 //            without dragging Pinia into the boot shim.
-//   DEPENDS: @/ipc/runtime (ipc.fs read/stat), @tauri-apps/api/event
-//            (emit mt::open-new-tab). window.fileUtils is read lazily
+//   DEPENDS: @/ipc/runtime (ipc.fs stat), @tauri-apps/api/core
+//            (shared mt_open_file). window.fileUtils is read lazily
 //            inside functions, never at import time (test-setup rule).
 //   LINKS: .grace/changes/archive/C-52/spec.xml R-3/R-4;
 //            _shims/install-window-globals.js (drop path);
@@ -30,10 +30,12 @@
 //   isEditableTarget - INPUT/TEXTAREA/SELECT/contentEditable focus guard for the ⌘V handler.
 //   classifyStat - stat result → 'folder' | 'markdown' | null.
 //   resolveClipboardTarget - pasteboard paths first, then the parsed text; first usable wins.
-//   openMarkdownFileTab - fs read + mt::open-new-tab emit (the drop bridge's markdown branch).
+//   openMarkdownFileTab - shared metadata-aware native open for clipboard/drop.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-11 C-METADATA-SAVE-SAFETY: clipboard/drop reuse strict native
+//     open instead of synthesizing UTF8/LF source metadata.
 //   - 2026-10-16 C-52 T-001: initial module (parsing + classification
 //     extracted so the menu command, the welcome-screen ⌘V and the
 //     folder-drop fix share one resolver).
@@ -46,7 +48,7 @@
 // END_CHANGE_SUMMARY
 
 import { ipc } from '@/ipc/runtime'
-import { emit as tauriEmit } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 
 // START_BLOCK_FILE_URL_TO_PATH
 // file:///a%20b → /a b. Remote hosts are rejected (spec NonGoals: no
@@ -174,36 +176,14 @@ export const resolveClipboardTarget = async ({ filePaths = [], text = '' } = {},
 // END_BLOCK_RESOLVE_CLIPBOARD_TARGET
 
 // START_BLOCK_OPEN_MARKDOWN_FILE_TAB
-// Open one Markdown file exactly like the drag-drop bridge's markdown
-// branch (C-52 R-1: ".md → open in a tab like a drop"): fs read, then
-// the IMarkdownDocumentRaw-shaped mt::open-new-tab emit the editor
-// store's LISTEN_FOR_NEW_TAB consumes. Read/emit failures log and stop —
-// an unreadable file must never reject the resolver.
+// Keep clipboard/drop parsing and its non-throwing boundary; the shared native
+// open owns access, strict decode, actual metadata and visible read refusal.
 export const openMarkdownFileTab = async (filePath) => {
-  let content
   try {
-    content = await ipc.fs.read(filePath)
-  } catch (e) {
-    console.error('[ClipboardPath][openMarkdownFileTab][BLOCK_READ_FAILED] path skipped', e)
-    return
-  }
-  const filename = filePath.split(/[\\/]/).pop() || filePath
-  const markdownDocument = {
-    markdown: typeof content === 'string' ? content : (content?.text ?? ''),
-    filename,
-    pathname: filePath,
-    encoding: { encoding: 'utf8', isBom: false },
-    lineEnding: 'lf',
-    adjustLineEndingOnSave: false,
-    trimTrailingNewline: 3,
-    cursor: null,
-    isMixedLineEndings: false
-  }
-  try {
-    await tauriEmit('mt::open-new-tab', markdownDocument)
-    console.info(`[ClipboardPath][openMarkdownFileTab][BLOCK_TAB_OPENED] file=${filename}`)
-  } catch (e) {
-    console.error('[ClipboardPath][openMarkdownFileTab][BLOCK_EMIT_FAILED]', e)
+    await invoke('mt_open_file', { args: [filePath, {}] })
+    console.info('[ClipboardPath][openMarkdownFileTab][BLOCK_TAB_OPEN_REQUESTED]')
+  } catch {
+    console.error('[ClipboardPath][openMarkdownFileTab][BLOCK_OPEN_REFUSED]')
   }
 }
 // END_BLOCK_OPEN_MARKDOWN_FILE_TAB

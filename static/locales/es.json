@@ -1826,5 +1826,26 @@
     "failed": "No se pudo guardar o cerrar. Los documentos siguen abiertos: {names}",
     "retryClose": "Volver a guardar y cerrar",
     "retrySave": "Volver a guardar"
+  },
+  "fileFormat": {
+    "title": "Formato del archivo",
+    "current": "actual",
+    "withBom": "con BOM",
+    "withoutBom": "sin BOM",
+    "errors": {
+      "composing": "Termina la composición de texto antes de cambiar el formato del archivo.",
+      "unknown": "Esta codificación es desconocida. Elige una codificación compatible.",
+      "unsupported": "Esta codificación no está disponible para guardar. Elige una compatible.",
+      "invalidPolicy": "No se puede guardar esta combinación de codificación, BOM y saltos de línea.",
+      "unrepresentable": "Algunos caracteres no se pueden representar con esta codificación. Elige una compatible, como UTF-8.",
+      "mixed": "Elige LF o CRLF antes de guardar un archivo con saltos de línea mixtos.",
+      "lossyRead": "El archivo no se puede decodificar sin perder caracteres. No se ha abierto.",
+      "readFailed": "No se pudo leer el archivo. Comprueba su disponibilidad, tipo y tamaño."
+    },
+    "unavailable": {
+      "utf32": "No se admite guardar como UTF-32. Elige UTF-8 o UTF-16.",
+      "gb2312": "La salida GB2312 estricta no está disponible. GBK se admite por separado.",
+      "big5hkscs": "La salida Big5-HKSCS no está disponible. Big5 se admite por separado."
+    }
   }
 }

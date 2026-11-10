@@ -201,7 +201,7 @@ describe('sideBar/workspaceModeDialog.vue (C-MULTI-SOURCE-WORKSPACE)', () => {
 
   it('chooser: the destructive button resolves Replace', async () => {
     store.ADD_PROJECT('/tmp/alpha')
-    editorStubRef.tabs = [{ id: 't1', pathname: '/tmp/alpha/a.md', isSaved: true }]
+    editorStubRef.tabs = [{ encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,markdown:'', id: 't1', pathname: '/tmp/alpha/a.md', isSaved: true }]
     store.pendingFolderChoice = { pathname: '/tmp/beta', origin: 'drop' }
     const wrapper = await mountDialog()
 
@@ -217,7 +217,7 @@ describe('sideBar/workspaceModeDialog.vue (C-MULTI-SOURCE-WORKSPACE)', () => {
   it('replace-confirm: Save & Close persists the dirty tab before closing it', async () => {
     store.ADD_PROJECT('/tmp/alpha')
     editorStubRef.tabs = [
-      {
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,
         id: 't1',
         pathname: '/tmp/alpha/a.md',
         filename: 'a.md',
@@ -250,7 +250,7 @@ describe('sideBar/workspaceModeDialog.vue (C-MULTI-SOURCE-WORKSPACE)', () => {
     const notice = (await import('@/services/notification')).default
     store.ADD_PROJECT('/tmp/alpha')
     editorStubRef.tabs = [
-      { id: 't1', pathname: '/tmp/alpha/a.md', filename: 'a.md', isSaved: false, markdown: 'x' }
+      { encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3, id: 't1', pathname: '/tmp/alpha/a.md', filename: 'a.md', isSaved: false, markdown: 'x' }
     ]
     invokeMock.mockImplementation(async (cmd, args) => {
       invokeCalls.push([cmd, args])

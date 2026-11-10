@@ -1,7 +1,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Define canonical per-document state and state-construction helpers.
-//   SCOPE: Defaults and cloning/option extraction for editor tabs.
-//   DEPENDS: renderer util and i18n helpers.
+//   SCOPE: Fresh text/format checkpoints, defaults and cloning/option extraction for editor tabs.
+//   DEPENDS: renderer util, documentFormat/documentSnapshot and i18n helpers.
 //   LINKS: src/renderer/src/store/editor.js (tab lifecycle); tests/renderer/store/help.test.ts
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -17,12 +17,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-11: fresh immutable format/text checkpoints; unavailable defaults fail without migration.
 //   LAST_CHANGE: 2026-10-15 C-40 - getBlankFileState counts only real
 //   "Untitled-N" names; a titled pathless tab (the Mark Guide) produced
 //   "Untitled-NaN" for the next new tab.
 // END_CHANGE_SUMMARY
 
-import { getUniqueId, deepClone } from '../util'
+import { getUniqueId, deepClone, isWindows } from '../util'
+import { captureDocumentFormat } from '../util/documentFormat'
 import { createDocumentToken } from '../util/documentSnapshot'
 import { i18n } from '../i18n'
 
@@ -34,6 +36,9 @@ import { i18n } from '../i18n'
 export const defaultFileState = {
   // Monotonic renderer revision used to reject stale async save/reload outcomes.
   contentRevision: 0,
+  savedMarkdown: '',
+  savedFormat: Object.freeze({ encoding: 'utf8', isBom: false, lineEnding: 'lf', finalNewline: 3 }),
+  requiresExplicitSave: false,
   // Indicates whether there are unsaved changes.
   isSaved: true,
   // Full path to the file or empty. If the value is empty the file doesn't exist on disk.
@@ -44,7 +49,8 @@ export const defaultFileState = {
     encoding: 'utf8',
     isBom: false
   },
-  lineEnding: 'lf', // lf or crlf
+  lineEnding: 'lf', // lf, crlf or explicitly mixed
+  isMixedLineEndings: false,
   trimTrailingNewline: 3,
   adjustLineEndingOnSave: false, // convert editor buffer (LF) to CRLF when saving
   history: {
@@ -71,6 +77,19 @@ export const defaultFileState = {
   notifications: []
 }
 
+// Fresh source construction establishes the actual loaded text and policy only.
+const initializeCheckpoint = state => {
+  state.encoding = { ...(state.encoding ?? defaultFileState.encoding) }
+  state.lineEnding = (state.lineEnding ?? 'lf').toLowerCase()
+  state.trimTrailingNewline ??= 3
+  state.savedMarkdown = state.markdown
+  state.savedFormat = captureDocumentFormat(state)
+  state.lineEnding = state.savedFormat.lineEnding
+  state.isMixedLineEndings = state.lineEnding === 'mixed'
+  state.requiresExplicitSave = false
+  return state
+}
+
 export const getOptionsFromState = (file) => {
   const { encoding, lineEnding, adjustLineEndingOnSave, trimTrailingNewline } = file
   return { encoding, lineEnding, adjustLineEndingOnSave, trimTrailingNewline }
@@ -84,12 +103,13 @@ export const getFileStateFromData = (data) => {
     pathname,
     encoding,
     lineEnding,
+    isMixedLineEndings = false,
     adjustLineEndingOnSave,
     trimTrailingNewline
   } = data
   const id = getUniqueId()
 
-  return Object.assign(fileState, {
+  return initializeCheckpoint(Object.assign(fileState, {
     id,
     documentToken: createDocumentToken(),
     markdown,
@@ -97,9 +117,10 @@ export const getFileStateFromData = (data) => {
     pathname,
     encoding,
     lineEnding,
+    isMixedLineEndings,
     adjustLineEndingOnSave,
     trimTrailingNewline
-  })
+  }))
 }
 
 export const getBlankFileState = (
@@ -131,8 +152,10 @@ export const getBlankFileState = (
     markdown = ''
   }
 
+  lineEnding = lineEnding.toLowerCase()
+  if (lineEnding === 'default') lineEnding = isWindows ? 'crlf' : 'lf'
   fileState.encoding.encoding = defaultEncoding
-  return Object.assign(fileState, {
+  return initializeCheckpoint(Object.assign(fileState, {
     lineEnding,
     adjustLineEndingOnSave: lineEnding.toLowerCase() === 'crlf',
     id,
@@ -140,7 +163,7 @@ export const getBlankFileState = (
     filename: `Untitled-${++untitleId}`,
     markdown,
     lastSavedHistoryId: -1
-  })
+  }))
 }
 
 export const getSingleFileState = ({
@@ -155,7 +178,7 @@ export const getSingleFileState = ({
   const fileState = deepClone(defaultFileState)
   const { encoding, lineEnding, adjustLineEndingOnSave, trimTrailingNewline } = options
 
-  return Object.assign(fileState, {
+  return initializeCheckpoint(Object.assign(fileState, {
     id,
     documentToken: createDocumentToken(),
     markdown,
@@ -166,7 +189,7 @@ export const getSingleFileState = ({
     adjustLineEndingOnSave,
     trimTrailingNewline,
     lastSavedHistoryId: -1
-  })
+  }))
 }
 
 /**
@@ -184,12 +207,13 @@ export const createDocumentState = (markdownDocument, id = getUniqueId()) => {
     pathname,
     encoding,
     lineEnding,
+    isMixedLineEndings = false,
     adjustLineEndingOnSave,
     trimTrailingNewline,
     cursor = null
   } = markdownDocument
 
-  return Object.assign(docState, {
+  return initializeCheckpoint(Object.assign(docState, {
     id,
     documentToken: createDocumentToken(),
     markdown,
@@ -197,9 +221,10 @@ export const createDocumentState = (markdownDocument, id = getUniqueId()) => {
     pathname,
     encoding,
     lineEnding,
+    isMixedLineEndings,
     cursor,
     adjustLineEndingOnSave,
     trimTrailingNewline,
     lastSavedHistoryId: -1
-  })
+  }))
 }

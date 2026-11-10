@@ -1826,5 +1826,26 @@
     "failed": "儲存或關閉失敗。文件保持開啟：{names}",
     "retryClose": "重新儲存並關閉",
     "retrySave": "重新儲存"
+  },
+  "fileFormat": {
+    "title": "檔案格式",
+    "current": "目前",
+    "withBom": "含 BOM",
+    "withoutBom": "不含 BOM",
+    "errors": {
+      "composing": "變更檔案格式前，請先完成輸入法組字。",
+      "unknown": "無法辨識此編碼。請選擇支援的編碼。",
+      "unsupported": "此編碼無法用於儲存。請選擇支援的編碼。",
+      "invalidPolicy": "無法儲存此編碼、BOM 與換行設定的組合。",
+      "unrepresentable": "部分字元無法以此編碼表示。請選擇相容的編碼，例如 UTF-8。",
+      "mixed": "儲存混合換行的檔案前，請選擇 LF 或 CRLF。",
+      "lossyRead": "無法在不遺失字元的情況下解碼檔案，因此未開啟。",
+      "readFailed": "無法讀取檔案。請檢查檔案是否可用、檔案類型與大小。"
+    },
+    "unavailable": {
+      "utf32": "不支援儲存為 UTF-32。請選擇 UTF-8 或 UTF-16。",
+      "gb2312": "暫不支援嚴格的 GB2312 輸出。GBK 是單獨支援的選項。",
+      "big5hkscs": "暫不支援 Big5-HKSCS 輸出。Big5 是單獨支援的選項。"
+    }
   }
 }

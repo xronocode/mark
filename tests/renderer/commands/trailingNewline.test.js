@@ -1,3 +1,4 @@
+import { delay } from '@/util'
 /**
  * Tests for src/renderer/src/commands/trailingNewline.js
  *
@@ -14,7 +15,7 @@ vi.mock('@/bus', () => ({
 }))
 
 vi.mock('@/util', () => ({
-  delay: () => Promise.resolve(),
+  delay: vi.fn(() => Promise.resolve()),
   isOsx: false,
   isWindows: false,
   isLinux: true
@@ -29,6 +30,8 @@ describe('TrailingNewlineCommand', () => {
 
   beforeEach(() => {
     editorState = {
+      CAN_CHANGE_DOCUMENT_FORMAT: vi.fn(() => true),
+      _notifyFormatError: vi.fn(),
       currentFile: {
         trimTrailingNewline: 0
       }
@@ -96,4 +99,11 @@ describe('TrailingNewlineCommand', () => {
   it('unload is callable without error', () => {
     expect(() => cmd.unload()).not.toThrow()
   })
+  it('refuses an active composition before delay, palette or dispatch', async () => {
+    editorState.CAN_CHANGE_DOCUMENT_FORMAT.mockReturnValue(false)
+    vi.mocked(bus.emit).mockClear(); vi.mocked(delay).mockClear()
+    await cmd.run(); await cmd.execute(); await cmd.executeSubcommand('utf8', 'crlf')
+    expect(delay).not.toHaveBeenCalled(); expect(bus.emit).not.toHaveBeenCalled()
+  })
+
 })

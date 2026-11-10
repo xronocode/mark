@@ -10,6 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   formatB - complete pending format fixture.
 //   PREFS - in-memory prefs backing the ipcPrefs mock.
 //   FILES - fake files the ipcFs.stat mock answers isFile for.
 //   DIRS - fake directories the ipcFs.stat mock answers isDirectory for.
@@ -57,7 +58,7 @@ let projectStore
 let preferencesStore
 let originalElectron
 
-const openFileInvoke = vi.fn(async (channel, pathname) => {
+const openFileInvoke = vi.fn(async (channel, pathname, options = {}) => {
   if (channel !== 'mt::open-file') return
   await editorStore.NEW_TAB_WITH_CONTENT({
     markdownDocument: {
@@ -68,6 +69,7 @@ const openFileInvoke = vi.fn(async (channel, pathname) => {
       lineEnding: 'lf',
       trimTrailingNewline: 3
     },
+    options,
     selected: true
   })
 })
@@ -246,5 +248,69 @@ describe('restore degradation (C-MULTI-SOURCE-WORKSPACE)', () => {
     const calls = notice.notify.mock.calls.map((c) => c[0])
     expect(calls.some((c) => c.type === 'error' && String(c.message).includes('not downloaded')))
       .toBe(true)
+  })
+})
+
+const formatB = { encoding: 'utf16be', isBom: true, lineEnding: 'crlf', finalNewline: 1 }
+describe('pending session format choices (B)', () => {
+  it('persists named selected formats and format dirty intent without text or saved proof', async () => {
+    await openFileInvoke('mt::open-file', '/a.md'); await openFileInvoke('mt::open-file', '/b.md')
+    const a = editorStore.tabs[0]; const b = editorStore.tabs[1]
+    editorStore.SET_FILE_ENCODING({ encoding:'utf16be',isBom:true })
+    a.markdown = 'TEXT ONLY UNSAVED'; a.isSaved = false
+    b.requiresExplicitSave = true
+    editorStore.tabs.push({ pathname:'',markdown:'PRIVATE DRAFT' })
+    await editorStore._saveSessionState()
+    const records = PREFS.get('lastSessionFormats')
+    expect(records).toHaveLength(2)
+    expect(records[0]).toEqual({ pathname:'/a.md',format:a.savedFormat,dirty:false })
+    expect(records[1].dirty).toBe(true)
+    expect(JSON.stringify(records)).not.toMatch(/TEXT ONLY|PRIVATE|savedFormat|documentToken|history/)
+  })
+  it('restores selected policy onto a fresh actual disk checkpoint and preserves explicit dirty intent', async () => {
+    FILES.add('/a.md'); PREFS.set('lastSessionTabs',['/a.md'])
+    PREFS.set('lastSessionFormats',[{ pathname:'/a.md',format:formatB,dirty:true }])
+    await editorStore.RESTORE_SESSION()
+    const tab = editorStore.tabs[0]
+    expect(tab.savedFormat).toEqual({ encoding:'utf8',isBom:false,lineEnding:'lf',finalNewline:3 })
+    expect(tab.encoding).toEqual({ encoding:'utf16be',isBom:true }); expect(tab.lineEnding).toBe('crlf')
+    expect(tab.trimTrailingNewline).toBe(1); expect(tab.isSaved).toBe(false); expect(tab.requiresExplicitSave).toBe(true)
+    editorStore.LISTEN_FOR_CONTENT_CHANGE({ id:tab.id,markdown:tab.savedMarkdown })
+    expect(tab.isSaved).toBe(false)
+    const before = JSON.parse(JSON.stringify(tab))
+    await openFileInvoke('mt::open-file','/a.md',{restoredFormat:{format:{...formatB,encoding:'utf8'},dirty:false}})
+    expect(editorStore.tabs).toHaveLength(1); expect(JSON.parse(JSON.stringify(tab))).toEqual(before)
+  })
+  it('keeps a dirty obligation when the restored format now matches externally changed disk metadata', async () => {
+    await openFileInvoke('mt::open-file','/a.md',{restoredFormat:{format:{encoding:'utf8',isBom:false,lineEnding:'lf',finalNewline:3},dirty:true}})
+    expect(editorStore.tabs[0].isSaved).toBe(false); expect(editorStore.tabs[0].requiresExplicitSave).toBe(true)
+  })
+  it('ignores malformed/foreign records visibly and opens old sessions with the actual format', async () => {
+    const notice = (await import('@/services/notification')).default; notice.notify.mockClear()
+    FILES.add('/a.md'); PREFS.set('lastSessionTabs',['/a.md'])
+    PREFS.set('lastSessionFormats',[null,{pathname:'/else.md',format:formatB,dirty:true},{pathname:'/a.md',format:{...formatB,encoding:'utf32be'},dirty:true}])
+    await editorStore.RESTORE_SESSION()
+    expect(editorStore.tabs[0].encoding.encoding).toBe('utf8'); expect(editorStore.tabs[0].isSaved).toBe(true)
+    expect(notice.notify).toHaveBeenCalled()
+  })
+  it('freezes formats with the disabled automatic restore offer before autosave changes preferences', async () => {
+    FILES.add('/a.md'); preferencesStore.restoreSessionOnLaunch = false
+    PREFS.set('lastSessionTabs',['/a.md']); PREFS.set('lastSessionFormats',[{pathname:'/a.md',format:formatB,dirty:true}])
+    await editorStore.BOOT_SESSION({restore:true})
+    const offer = editorStore.coldStartSession
+    PREFS.set('lastSessionFormats',[])
+    expect(offer.formats).toEqual([{pathname:'/a.md',format:formatB,dirty:true}])
+    await editorStore.RESTORE_SESSION({from:offer})
+    expect(editorStore.tabs[0].encoding.encoding).toBe('utf16be'); expect(editorStore.tabs[0].isSaved).toBe(false)
+  })
+  it('preserves pending choices through current-run close and reopen', async () => {
+    FILES.add('/a.md'); await openFileInvoke('mt::open-file','/a.md')
+    editorStore.SET_LINE_ENDING('crlf')
+    const {useRecentlyClosedStore} = await import('@/store/recentlyClosed'); const recent = useRecentlyClosedStore()
+    editorStore.FORCE_CLOSE_TAB(editorStore.tabs[0])
+    expect(recent.entries[0].restoredFormat.format.lineEnding).toBe('crlf')
+    expect(await recent.REOPEN_NEWEST()).toBe(true)
+    expect(editorStore.tabs[0].lineEnding).toBe('crlf'); expect(editorStore.tabs[0].savedFormat.lineEnding).toBe('lf')
+    expect(editorStore.tabs[0].isSaved).toBe(false)
   })
 })

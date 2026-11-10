@@ -12,7 +12,7 @@
 // START_MODULE_MAP
 //   getLanguageOptions - the 10 shipped locales led by 'system' (follows the OS preferred languages; C-45 default).
 //   getEndOfLineOptions - "Match my operating system" / "LF (Unix, macOS)" / "CRLF (Windows)" in IA §3.1 wording.
-//   getDefaultEncodingOptions - ENCODING_NAME_MAP entries, built once and cached (the list never changes at runtime).
+//   getDefaultEncodingOptions - shared codec dispositions with localized unavailable reasons and disabled choices.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -21,7 +21,7 @@
 
 import { t } from '@/i18n'
 import { SYSTEM_LANGUAGE } from '@/i18n/systemLocale'
-import { ENCODING_NAME_MAP } from 'common/encoding'
+import { ENCODING_NAME_MAP, getEncodingCapability } from 'common/encoding'
 
 // C-45 T-001: 'system' (As in system) leads the list — it is the
 // new-profile default and follows the OS preferred languages.
@@ -72,16 +72,8 @@ export const getEndOfLineOptions = () => [{
   value: 'crlf'
 }]
 
-// Built once and cached — the encoding list is static at runtime.
-let defaultEncodingOptions = null
-export const getDefaultEncodingOptions = () => {
-  if (defaultEncodingOptions) {
-    return defaultEncodingOptions
-  }
-
-  defaultEncodingOptions = []
-  for (const [value, label] of Object.entries(ENCODING_NAME_MAP)) {
-    defaultEncodingOptions.push({ label, value })
-  }
-  return defaultEncodingOptions
-}
+// Rebuild localized unavailable explanations when the UI language changes.
+export const getDefaultEncodingOptions = () => Object.entries(ENCODING_NAME_MAP).map(([value,label]) => {
+  const codec = getEncodingCapability(value)
+  return { value, label:codec.supported ? label : `${label} — ${t(codec.unavailableReason)}`, disabled:!codec.supported }
+})

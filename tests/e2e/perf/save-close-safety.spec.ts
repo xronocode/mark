@@ -86,11 +86,13 @@ test('Save All preserves the complete 1 MB model including an unmounted tail',as
   // Type into the first mounted block; compare the complete canonical model after actual input.
   await page.locator('#ag-editor-id span.ag-paragraph').first().click();await page.keyboard.type('LARGE_SAVE_MARKER')
   await expect.poll(async()=>(await state(page)).markdown).toContain('LARGE_SAVE_MARKER')
+  await page.evaluate(code=>{const s=eval(code);s.SET_FILE_ENCODING({encoding:'utf16le',isBom:true});s.SET_LINE_ENDING('crlf')},storeExpression)
   const before=(await state(page)).markdown
   expect(new TextEncoder().encode(before).byteLength).toBeGreaterThan(1_000_000)
   await page.evaluate(async code=>await eval(code).ASK_FOR_SAVE_ALL(false),storeExpression)
   const written=await page.evaluate(()=>(window as any).__writes[0].markdown)
   expect(written).toBe(before)
+  expect(await page.evaluate(()=>(window as any).__writes[0].format)).toEqual({encoding:'utf16le',isBom:true,lineEnding:'crlf',finalNewline:3})
   expect((await state(page)).tabs).toHaveLength(2)
 })
 

@@ -1,0 +1,213 @@
+[
+  {
+    "id": "utf8",
+    "kind": "utf8",
+    "supported": true
+  },
+  {
+    "id": "utf16be",
+    "kind": "utf16be",
+    "supported": true
+  },
+  {
+    "id": "utf16le",
+    "kind": "utf16le",
+    "supported": true
+  },
+  {
+    "id": "utf32be",
+    "kind": "unavailable",
+    "supported": false,
+    "unavailableReason": "fileFormat.unavailable.utf32"
+  },
+  {
+    "id": "utf32le",
+    "kind": "unavailable",
+    "supported": false,
+    "unavailableReason": "fileFormat.unavailable.utf32"
+  },
+  {
+    "id": "ascii",
+    "kind": "latin1",
+    "supported": true
+  },
+  {
+    "id": "latin3",
+    "kind": "mapped",
+    "label": "ISO-8859-3",
+    "supported": true
+  },
+  {
+    "id": "iso885915",
+    "kind": "mapped",
+    "label": "ISO-8859-15",
+    "supported": true
+  },
+  {
+    "id": "cp1252",
+    "kind": "mapped",
+    "label": "windows-1252",
+    "supported": true
+  },
+  {
+    "id": "arabic",
+    "kind": "mapped",
+    "label": "ISO-8859-6",
+    "supported": true
+  },
+  {
+    "id": "cp1256",
+    "kind": "mapped",
+    "label": "windows-1256",
+    "supported": true
+  },
+  {
+    "id": "latin4",
+    "kind": "mapped",
+    "label": "ISO-8859-4",
+    "supported": true
+  },
+  {
+    "id": "cp1257",
+    "kind": "mapped",
+    "label": "windows-1257",
+    "supported": true
+  },
+  {
+    "id": "iso88592",
+    "kind": "mapped",
+    "label": "ISO-8859-2",
+    "supported": true
+  },
+  {
+    "id": "windows1250",
+    "kind": "mapped",
+    "label": "windows-1250",
+    "supported": true
+  },
+  {
+    "id": "cp866",
+    "kind": "mapped",
+    "label": "IBM866",
+    "supported": true
+  },
+  {
+    "id": "iso88595",
+    "kind": "mapped",
+    "label": "ISO-8859-5",
+    "supported": true
+  },
+  {
+    "id": "koi8r",
+    "kind": "mapped",
+    "label": "KOI8-R",
+    "supported": true
+  },
+  {
+    "id": "koi8u",
+    "kind": "mapped",
+    "label": "KOI8-U",
+    "supported": true
+  },
+  {
+    "id": "cp1251",
+    "kind": "mapped",
+    "label": "windows-1251",
+    "supported": true
+  },
+  {
+    "id": "iso885913",
+    "kind": "mapped",
+    "label": "ISO-8859-13",
+    "supported": true
+  },
+  {
+    "id": "greek",
+    "kind": "mapped",
+    "label": "ISO-8859-7",
+    "supported": true
+  },
+  {
+    "id": "cp1253",
+    "kind": "mapped",
+    "label": "windows-1253",
+    "supported": true
+  },
+  {
+    "id": "hebrew",
+    "kind": "mapped",
+    "label": "ISO-8859-8",
+    "supported": true
+  },
+  {
+    "id": "cp1255",
+    "kind": "mapped",
+    "label": "windows-1255",
+    "supported": true
+  },
+  {
+    "id": "latin5",
+    "kind": "latin5",
+    "supported": true
+  },
+  {
+    "id": "cp1254",
+    "kind": "mapped",
+    "label": "windows-1254",
+    "supported": true
+  },
+  {
+    "id": "gb2312",
+    "kind": "unavailable",
+    "supported": false,
+    "unavailableReason": "fileFormat.unavailable.gb2312"
+  },
+  {
+    "id": "gb18030",
+    "kind": "mapped",
+    "label": "gb18030",
+    "supported": true
+  },
+  {
+    "id": "gbk",
+    "kind": "mapped",
+    "label": "GBK",
+    "supported": true
+  },
+  {
+    "id": "big5",
+    "kind": "mapped",
+    "label": "Big5",
+    "supported": true
+  },
+  {
+    "id": "big5hkscs",
+    "kind": "unavailable",
+    "supported": false,
+    "unavailableReason": "fileFormat.unavailable.big5hkscs"
+  },
+  {
+    "id": "shiftjis",
+    "kind": "mapped",
+    "label": "Shift_JIS",
+    "supported": true
+  },
+  {
+    "id": "eucjp",
+    "kind": "mapped",
+    "label": "EUC-JP",
+    "supported": true
+  },
+  {
+    "id": "euckr",
+    "kind": "mapped",
+    "label": "EUC-KR",
+    "supported": true
+  },
+  {
+    "id": "latin6",
+    "kind": "mapped",
+    "label": "ISO-8859-10",
+    "supported": true
+  }
+]

@@ -107,7 +107,7 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
     )
   })
 
-  it('R-1 markdown: opens the file in a tab with the drop payload', async () => {
+  it('R-1 markdown: requests the shared metadata-aware native tab open', async () => {
     invokeMock.mockImplementation(async (cmd) => {
       if (cmd === 'mt_read_clipboard_paths') {
         return { paths: [], text: '  /tmp/docs/notes.md\n' }
@@ -120,11 +120,9 @@ describe('util/clipboardOpen.openFromClipboard (C-52)', () => {
     await openFromClipboard()
 
     expect(projectMock.OPEN_FOLDER).not.toHaveBeenCalled()
-    expect(ipcFsMock.read).toHaveBeenCalledWith('/tmp/docs/notes.md')
-    expect(emitMock).toHaveBeenCalledWith(
-      'mt::open-new-tab',
-      expect.objectContaining({ filename: 'notes.md', pathname: '/tmp/docs/notes.md' })
-    )
+    expect(ipcFsMock.read).not.toHaveBeenCalled()
+    expect(invokeMock).toHaveBeenCalledWith('mt_open_file',{args:['/tmp/docs/notes.md',{}]})
+    expect(emitMock).not.toHaveBeenCalled()
   })
 
   it('R-1 nothing usable: notifies with the localized message, no dialog', async () => {

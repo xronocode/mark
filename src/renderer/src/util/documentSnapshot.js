@@ -1,8 +1,8 @@
 // FILE: src/renderer/src/util/documentSnapshot.js
 // START_MODULE_CONTRACT
-//   PURPOSE: Collect complete committed text for one live document lifetime.
-//   SCOPE: Transient owner tokens, mounted editing-surface registrations and IME-first snapshots.
-//   DEPENDS: None; surface adapters own model/history integration.
+//   PURPOSE: Collect complete committed text and format for one live document lifetime.
+//   SCOPE: Transient owner tokens, mounted editing-surface registrations and IME-first immutable text/format snapshots.
+//   DEPENDS: documentFormat; surface adapters own model/history integration.
 //   LINKS: M-011, M-012; C-SAVE-CLOSE-DATA-SAFETY T-001.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -17,6 +17,8 @@
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: 2026-11-10 C-SAVE-CLOSE-DATA-SAFETY: fresh complete model and IME-first lifetime ownership.
 // END_CHANGE_SUMMARY
+
+import { captureDocumentFormat, recomputeDocumentSaved } from './documentFormat'
 
 let serial = 0
 const surfaces = new Map()
@@ -53,12 +55,14 @@ export const captureDocumentSnapshot = (store, owner) => {
     if (markdown !== tab.markdown) {
       tab.markdown = markdown
       tab.contentRevision = (tab.contentRevision || 0) + 1
-      tab.isSaved = false
+      recomputeDocumentSaved(tab)
     }
   }
-  return { status: 'ready', snapshot: {
+  let format
+  try { format = captureDocumentFormat(tab) } catch (error) { return { status: 'format-error', owner, code: error.message } }
+  return { status: 'ready', snapshot: Object.freeze({
     ...owner, revision: tab.contentRevision || 0, sourcePath: tab.pathname || '',
-    markdown: tab.markdown, filename: tab.filename, isSaved: !!tab.isSaved,
+    format, markdown: tab.markdown, filename: tab.filename, isSaved: !!tab.isSaved,
     historyId: tab.history?.stack?.[tab.history.lastEditIndex]?.id
-  } }
+  }) }
 }

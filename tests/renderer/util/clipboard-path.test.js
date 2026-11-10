@@ -18,7 +18,7 @@
 //
 // START_MODULE_MAP
 //   ipcFsMock - ipc.fs double (stat / read) driving the default resolvers.
-//   emitMock - @tauri-apps/api/event emit spy (mt::open-new-tab pin).
+//   invokeMock - native shared document-open spy.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -26,7 +26,7 @@
 // END_CHANGE_SUMMARY
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { emit } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 
 const ipcFsMock = { stat: vi.fn(), read: vi.fn() }
 vi.mock('@/ipc/runtime', () => ({
@@ -43,14 +43,14 @@ import {
   openMarkdownFileTab
 } from '@/util/clipboardPath'
 
-const emitMock = vi.mocked(emit)
+const invokeMock = vi.mocked(invoke)
 
 describe('util/clipboardPath (C-52)', () => {
   beforeEach(() => {
     ipcFsMock.stat.mockReset()
     ipcFsMock.read.mockReset()
-    emitMock.mockReset()
-    emitMock.mockResolvedValue(undefined)
+    invokeMock.mockReset()
+    invokeMock.mockResolvedValue(undefined)
   })
 
   // ── text parsing ──────────────────────────────────────────────────
@@ -221,26 +221,17 @@ describe('util/clipboardPath (C-52)', () => {
   // ── the drop-shaped markdown tab open ─────────────────────────────
 
   describe('openMarkdownFileTab', () => {
-    it('reads the file and emits mt::open-new-tab with the drop payload', async () => {
-      ipcFsMock.read.mockResolvedValue('# Title\n\nbody')
+    it('uses the shared native metadata-aware open instead of synthesizing UTF8/LF', async () => {
+      invokeMock.mockResolvedValue(undefined)
       await openMarkdownFileTab('/tmp/docs/notes.md')
-      expect(ipcFsMock.read).toHaveBeenCalledWith('/tmp/docs/notes.md')
-      expect(emitMock).toHaveBeenCalledTimes(1)
-      const [channel, payload] = emitMock.mock.calls[0]
-      expect(channel).toBe('mt::open-new-tab')
-      expect(payload).toMatchObject({
-        markdown: '# Title\n\nbody',
-        filename: 'notes.md',
-        pathname: '/tmp/docs/notes.md',
-        lineEnding: 'lf'
-      })
-      expect(payload.encoding).toEqual({ encoding: 'utf8', isBom: false })
+      expect(invokeMock).toHaveBeenCalledWith('mt_open_file',{args:['/tmp/docs/notes.md',{}]})
+      expect(ipcFsMock.read).not.toHaveBeenCalled()
     })
 
-    it('never emits when the read fails', async () => {
-      ipcFsMock.read.mockRejectedValue(new Error('MT_FS_NOT_FOUND'))
-      await openMarkdownFileTab('/gone/note.md')
-      expect(emitMock).not.toHaveBeenCalled()
+    it('retains the non-throwing clipboard/drop boundary on a refused open', async () => {
+      invokeMock.mockRejectedValue(new Error('MT_ENC_LOSSY'))
+      await expect(openMarkdownFileTab('/gone/note.md')).resolves.toBeUndefined()
+      expect(ipcFsMock.read).not.toHaveBeenCalled()
     })
   })
 })

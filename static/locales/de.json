@@ -1823,5 +1823,26 @@
     "failed": "Speichern oder Schließen fehlgeschlagen. Dokumente bleiben geöffnet: {names}",
     "retryClose": "Erneut speichern und schließen",
     "retrySave": "Erneut speichern"
+  },
+  "fileFormat": {
+    "title": "Dateiformat",
+    "current": "aktuell",
+    "withBom": "mit BOM",
+    "withoutBom": "ohne BOM",
+    "errors": {
+      "composing": "Beenden Sie die Texteingabe-Komposition, bevor Sie das Dateiformat ändern.",
+      "unknown": "Diese Kodierung ist unbekannt. Wählen Sie eine unterstützte Kodierung.",
+      "unsupported": "Diese Kodierung ist zum Speichern nicht verfügbar. Wählen Sie eine unterstützte Kodierung.",
+      "invalidPolicy": "Diese Kombination aus Kodierung, BOM und Zeilenumbrüchen kann nicht gespeichert werden.",
+      "unrepresentable": "Einige Zeichen sind in dieser Kodierung nicht darstellbar. Wählen Sie eine passende Kodierung, etwa UTF-8.",
+      "mixed": "Wählen Sie LF oder CRLF, bevor Sie eine Datei mit gemischten Zeilenumbrüchen speichern.",
+      "lossyRead": "Die Datei kann nicht ohne Zeichenverlust dekodiert werden. Sie wurde nicht geöffnet.",
+      "readFailed": "Die Datei konnte nicht gelesen werden. Prüfen Sie Verfügbarkeit, Dateityp und Größe."
+    },
+    "unavailable": {
+      "utf32": "Speichern als UTF-32 wird nicht unterstützt. Wählen Sie UTF-8 oder UTF-16.",
+      "gb2312": "Striktes GB2312 ist für die Ausgabe nicht verfügbar. GBK wird separat unterstützt.",
+      "big5hkscs": "Big5-HKSCS ist für die Ausgabe nicht verfügbar. Big5 wird separat unterstützt."
+    }
   }
 }

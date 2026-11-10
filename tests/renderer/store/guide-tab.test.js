@@ -284,10 +284,10 @@ describe('store/editor — C-40 guide tab', () => {
         markdown: '# plan',
         filename: 'plan.md',
         pathname: '/tmp/plan.md',
-        encoding: 'utf-8',
+        encoding: {encoding:'utf8',isBom:false},
         lineEnding: 'lf',
         adjustLineEndingOnSave: false,
-        trimTrailingNewline: false
+        trimTrailingNewline: 3
       },
       selected: true
     })

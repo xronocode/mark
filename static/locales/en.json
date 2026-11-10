@@ -1842,5 +1842,26 @@
     "failed": "Saving or closing failed. Documents were kept open: {names}",
     "retryClose": "Save again and close",
     "retrySave": "Save again"
+  },
+  "fileFormat": {
+    "title": "File format",
+    "current": "current",
+    "withBom": "with BOM",
+    "withoutBom": "without BOM",
+    "errors": {
+      "composing": "Finish text composition before changing the file format.",
+      "unknown": "This encoding is not recognized. Choose a supported encoding.",
+      "unsupported": "This encoding is unavailable for saving. Choose a supported encoding.",
+      "invalidPolicy": "This combination of encoding, BOM and newline settings cannot be saved.",
+      "unrepresentable": "Some characters cannot be represented in this encoding. Choose a compatible encoding, such as UTF-8.",
+      "mixed": "Choose LF or CRLF before saving a file with mixed line endings.",
+      "lossyRead": "The file could not be decoded without losing characters. It was not opened.",
+      "readFailed": "The file could not be read. Check that it is an available regular file within the size limit."
+    },
+    "unavailable": {
+      "utf32": "Saving as UTF-32 is not supported. Choose UTF-8 or UTF-16.",
+      "gb2312": "Strict GB2312 output is unavailable. GBK is a separate supported choice.",
+      "big5hkscs": "Big5-HKSCS output is unavailable. Big5 is a separate supported choice."
+    }
   }
 }

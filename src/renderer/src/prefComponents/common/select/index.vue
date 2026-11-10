@@ -19,7 +19,7 @@
         :disabled="disable"
         @change="select"
       >
-        <option v-for="item in options" :key="item.value" :value="item.value">
+        <option v-for="item in options" :key="item.value" :value="item.value" :disabled="item.disabled">
           {{ item.label }}
         </option>
       </select>
@@ -44,11 +44,12 @@
 //   selectValue - current value (mirrors the value prop through a watcher).
 //   osClass - 'pref-os-mac' / 'pref-os-win' per-OS metrics selector.
 //   helpLine - secondary help text (help prop, else legacy notes).
-//   select - calls onChange with the picked value.
+//   select - calls onChange only for an enabled choice.
 //   handleMoreClick - opens the external `more` link.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-11 C-METADATA-SAVE-SAFETY: honor disabled codec options and refuse programmatic selection before the preference callback.
 //   - 2026-10-15 v2.0.0: C-38 T-003 — new row anatomy (no trailing colon, optional help); el-select replaced by a native styled select (WebKit renders the mockup's up/down chevrons natively); per-OS padding/radius.
 //   - (v1.x: el-select with 'Label:' above — retired.)
 // END_CHANGE_SUMMARY
@@ -94,6 +95,10 @@ const handleMoreClick = () => {
 // updated) or an explicit value (direct calls in tests).
 const select = (value) => {
   const next = value instanceof Event ? selectValue.value : value
+  if (props.options?.find(option => option.value === next)?.disabled) {
+    selectValue.value = props.value
+    return
+  }
   props.onChange(next)
 }
 </script>

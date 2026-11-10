@@ -159,7 +159,7 @@ const mountOwner = async (overrides = {}) => {
   preferences.sourceCode = false
   preferences.autoSave = false
   preferences.spellcheckerEnabled = false
-  store.currentFile = { id: 'a', filename: 'a.md', pathname: '/fixture/a.md', markdown: DOC, cursor: null, muyaIndexCursor: caret(2, 4), history: { stack: [], index: -1, lastEditIndex: -1 }, contentRevision: 0, isSaved: true, lastSavedHistoryId: -1, notifications: [], scrollTop: 0, previewMode: false, ...overrides }
+  store.currentFile = { id: 'a', filename: 'a.md', pathname: '/fixture/a.md', markdown: DOC, savedMarkdown:DOC, savedFormat:{encoding:'utf8',isBom:false,lineEnding:'lf',finalNewline:3}, encoding:{encoding:'utf8',isBom:false}, lineEnding:'lf', trimTrailingNewline:3, cursor: null, muyaIndexCursor: caret(2, 4), history: { stack: [], index: -1, lastEditIndex: -1 }, contentRevision: 0, isSaved: true, lastSavedHistoryId: -1, notifications: [], scrollTop: 0, previewMode: false, ...overrides }
   store.tabs = [store.currentFile]
   store.updateTabIdToIndex()
   store.END_BOOT_PHASE()

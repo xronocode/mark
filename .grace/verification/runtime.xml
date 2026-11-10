@@ -3,6 +3,7 @@
     <V-M-001>
       <Priority>critical</Priority>
       <Commands>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m001_save_close::tests</Command>
         <Command>npx vitest run tests/renderer/whatsNew/content.test.js tests/renderer/whatsNew/gate.test.js tests/renderer/components/whatsNew.test.js</Command>
         <Command>
           cd src-tauri &amp;&amp; cargo test --manifest-path
@@ -16,6 +17,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
+        <scenario-metadata-t001-vm001>T-001: required format deserialization, UTF-16 BOM/CRLF exact bytes and echoed format; invalid/unsupported/mixed/BOM/unrepresentable policies preserve an existing byte sentinel and create no missing parent. Owned-path and sandbox regressions remain unchanged.</scenario-metadata-t001-vm001>
         <scenario-md-link-m001-route>C-MD-LINK-TABS: link_click_document_has_internal_destination fails on the OS-only baseline. The production dispatch seam selects exactly one document/web/local sink; real document payload reading and an unreadable UTF-8 target prove no empty event or OS fallback. Existing canonical aliases, traversal and executable guards remain. Native current-window/process evidence is recorded separately.</scenario-md-link-m001-route>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <scenario-local-link-directory-alias>C-STABILIZE-LINK-ALIASES: a real Unix directory-symlink fixture reproduces absolute sibling denial before repair, then accepts alias/canonical siblings while rejecting traversal, outward links and dangerous clicked names. Existing link_click_ tests retain HTTP, bare/prefixed executable, canonical-directory and outside-document cases.</scenario-local-link-directory-alias>
@@ -465,6 +467,7 @@
     <V-M-002>
       <Priority>critical</Priority>
       <Commands>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m013b::fs::tests</Command>
         <Command>
           cd src-tauri &amp;&amp; cargo test --manifest-path
           src-tauri/Cargo.toml commands::fs
@@ -472,6 +475,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m013b</Command>
       </Commands>
       <Scenarios>
+        <scenario-metadata-t001-vm002>T-001: common byte writer retains sandbox/symlink/size and text/binary facade behavior. In-place writer is not atomic; encoding rejection occurs before this function is called.</scenario-metadata-t001-vm002>
         <Scenario>scenario-1: read/write UTF-8 roundtrip preserves bytes.</Scenario>
         <Scenario>scenario-2: 10 MB file reads within memory budget (no OOM).</Scenario>
         <Scenario>scenario-3: Symlinks resolved but honor sandbox rules from M-010.</Scenario>
@@ -1538,6 +1542,7 @@
         <Command>cargo test --manifest-path src-tauri/Cargo.toml m005_prefs</Command>
       </Commands>
       <Scenarios>
+        <Scenario>T-003: session-restore and editor-session-coldstart units prove named-path format records, text exclusion, frozen offers and legacy/invalid records. Internal format records are not user-reset settings.</Scenario>
         <Scenario>scenario-5 (C-PUBLIC-REPOSITORY-HYGIENE): the complete retained legacy fixture corpus has six valid JSON examples, synthetic home paths and an exact SHA-256/size manifest; captured profiles and browser runtime files are absent. Exact obsolete QA, handoff and generated showcase paths stay absent and ignored, while authored work and release screenshot evidence stay present. Checkout attributes pin the seven hashed example/manifest files to LF, and verification uses portable path separators and manifest line delimiters on Windows.</Scenario>
         <Scenario>scenario-1: set→get roundtrip for all known pref keys.</Scenario>
         <Scenario>scenario-3: Corrupt prefs file falls back to defaults and logs a loud marker.</Scenario>
@@ -2365,12 +2370,14 @@
     <V-M-009>
       <Priority>high</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/commands/fileEncoding.test.js tests/renderer/commands/lineEnding.test.js tests/renderer/commands/trailingNewline.test.js</Command>
         <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
         <Command>npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js</Command>
         <Command>npx vitest run tests/renderer/commands/index.test.js tests/renderer/commands/paragraph-shortcuts.test.js tests/renderer/pages/app-deep.test.js</Command>
       <Command>npx --no-install vitest run tests/renderer/util/split-commands.test.js tests/renderer/commands/index.test.js</Command>
       </Commands>
       <Scenarios>
+        <scenario-metadata-t002-vm009>T-002: palette and native/bus format paths retain canonical text and dirty state; Unicode BOM variants are explicit, unavailable choices explain refusal, mixed source has no implied LF selection, and composition blocks before delay/palette/dispatch.</scenario-metadata-t002-vm009>
         <Scenario>
           scenario-1: All 128 menu items have explicit command-id and dispatch
           expected command.
@@ -3323,6 +3330,8 @@
     <V-M-011>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/store/editor-format.test.js tests/renderer/store/help.test.ts tests/renderer/util/document-format.test.js tests/renderer/util/document-snapshot.test.js tests/renderer/util/document-operations.test.js</Command>
+        <Command>npx vitest run tests/renderer/util/document-format.test.js</Command>
         <Command>npx vitest run tests/renderer/components/editor-link-interaction.test.js tests/renderer/components/editor-coverage.test.js</Command>
         <Command>npx --no-install vitest run tests/renderer/store/editor-coverage.test.js tests/renderer/components/search-deep.test.js tests/renderer/components/search-fn.test.js tests/renderer/components/search.test.js</Command>
         <Command>npx --no-install playwright test tests/e2e/keyboard-selection.spec.ts --project=chromium --project=webkit-keyboard</Command>
@@ -3520,6 +3529,9 @@
         <Command>npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</Command>
       </Commands>
       <Scenarios>
+        <Scenario>T-003: session-restore units prove pending format choice over fresh disk checkpoint, same-format explicit dirty intent, duplicate dirty tab reuse and recently-closed roundtrip. Clipboard-path/open units prove existing clipboard/drop helper requests the shared strict native open; boot-shim dynamic import guard remains unchanged.</Scenario>
+        <scenario-metadata-t002-vm011>T-002: text plus format checkpoints, no-op revision, exact buffer/history/cursor preservation, metadata-only autosave with live preference and explicit-retry guard, all-field picker/post-dispatch freshness, malformed format ACK refusal, Save As path adoption with newer dirty policy, changed-then-reverted retry, group cancellation and IME-first no extraction. Existing store/surface regressions retain exact content and composition assertions.</scenario-metadata-t002-vm011>
+        <scenario-metadata-t001-vm011>T-001: complete immutable defensive format capture, all-field equality, explicit mixed source, safe invalid/unavailable refusal, exact 36 visible IDs and 32 supported/four unavailable entries.</scenario-metadata-t001-vm011>
         <scenario-md-link-v-m-011>Mounted editor host validates the instance epoch, rendered lifetime and owning pathname, rejects committed close and stale path/lifetime events, and preserves Preview for links while ordinary text exits it.</scenario-md-link-v-m-011>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: util/documentSnapshot.js owns mounted rich/source identity and IME-first complete-model capture; util/documentOperations.js owns tracked save admission and the final whole-target close barrier. editor.js routes Save, Save As, autosave, Save All, tab/group/window close and Quit; notices expose fresh explicit retry. No bare saved/path/close-by-id event authorizes a mutation. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>C-FIND-SELECTION-CLIPBOARD: Find/Replace visibility is shared with the editor store and cleared on close/unmount. While open, nonempty selection preserves the exact active query/matches and native menu updates; while closed, selected-text prefill remains. Real Chromium/WebKit keyboard copy/paste after the150ms debounce boundary inserts the selected text exactly once with matching, missing or closed Find queries; close/reopen prefill and unchanged Markdown on selection are checked. Before the fix the new unit store identity and lifecycle assertions failed, and WebKit lost COPYWORD selection before the keyboard copy.</Scenario>
@@ -5323,6 +5335,7 @@
         <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_PREFS_READ_FAILED] — C-66 prefs read failed; fail-open defaults used</Marker>
         <Marker>[autoUpdates][RUN_LAUNCH_CHECK][BLOCK_STAMP_FAILED] — C-66 lastUpdateCheckAt write failed; decision unaffected</Marker>
         <Marker>[autoUpdates][SKIP_VERSION][BLOCK_SKIP_FAILED] — C-66 skippedUpdateVersion write failed; notice still hidden</Marker>
+        <Marker>[editor][format][BLOCK_FORMAT_CHANGED]</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>Document-ownership rejection/recovery markers contain no pathname, filename, document text or raw event payload.</TraceAssertion>
@@ -8689,6 +8702,7 @@
     <V-M-013-A>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npm run typecheck:ipc</Command>
         <Command>
           rg &quot;ipcInvoke|useIpcListener|ipcCorrelated&quot;
           src/renderer/src/ipc/contract
@@ -8724,6 +8738,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-metadata-t002-vm013a>T-002: DocumentFormat is exported, complete and readonly; both correlated write DTOs require it and negative type cases enforce unsupported final-newline policy/missing field rejection.</scenario-metadata-t002-vm013a>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: types.ts includes SaveTargetRequest/Reply and DocumentWriteRequest/Reply plus the two document command mappings; generated fixture and M-001 registration stay synchronized. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>
           scenario-1: Generated Tauri v2 command-name fixture has empty
@@ -8977,6 +8992,7 @@
     <V-M-013-B>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx vitest run tests/renderer/ipc/document-save.test.ts</Command>
         <Command>
           rg
           &quot;MT_NOT_IMPLEMENTED|BLOCK_VALIDATE_AGAINST_FIXTURE|BLOCK_DISPATCH&quot; src/renderer/src/ipc/runtime
@@ -8992,6 +9008,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-metadata-t002-vm013b>T-002: actual command args contain a defensive complete format and owned-path copy. Invalid or unavailable policy fails before invoke; coordinator validates the echoed policy before any path/checkpoint change. Browser transport doubles are not encoding-byte proof.</scenario-metadata-t002-vm013b>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: ipc/runtime/documentSave.ts exports chooseTarget/writeSnapshot over M-013-A with actual-settlement lifetime. Its runtime barrel exports ipcDocumentSave. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>
           scenario-1: On boot, registered runtime command names match the
@@ -9215,11 +9232,14 @@
     <V-M-014>
       <Priority>high</Priority>
       <Commands>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m014_encoding::tests</Command>
         <Command>
           cargo test --manifest-path src-tauri/Cargo.toml encoding
         </Command>
       </Commands>
       <Scenarios>
+        <Scenario>T-003: inline strict decode/open fixtures pin UTF8/16 LE/BE BOM, inner literal BOM, canonical mixed/CRLF/empty text, deterministic detected CP1251, and lossy/UTF32/nonregular/oversize refusal without file mutation.</Scenario>
+        <scenario-metadata-t001-vm014>T-001: exact non-ASCII fixtures for all 32 supported codecs, 36 catalog dispositions, strict mapped roundtrip, UTF-16 surrogate/BOM bytes, ISO 8859-1 C1 and ISO 8859-9 Turkish/displaced letters. Policies 0/1/3 cover empty text, trailing question marks, multiple breaks and CRLF/lone CR without double conversion.</scenario-metadata-t001-vm014>
         <Scenario>scenario-1: UTF-8 BOM detected and stripped; byte-roundtrip preserves original.</Scenario>
         <Scenario>scenario-2: UTF-16 LE/BE BOM detection; decoded to UTF-8.</Scenario>
         <Scenario>
@@ -9227,12 +9247,10 @@
           chardet/encoding_rs.
         </Scenario>
         <Scenario>
-          scenario-4: 28 codec enum (from upstream `static/preference.json`) —
-          each roundtrips ASCII subset.
+          scenario-4: the current shared catalog has 36 UI IDs: 32 exact supported codecs and four explicitly unavailable choices. Native non-ASCII fixtures prove each supported output codec.
         </Scenario>
         <Scenario>
-          scenario-5: LF/CRLF/mixed detection; `trimTrailingNewline` modes
-          0/1/2/3 produce correct output bytes.
+          scenario-5: actual LF/CRLF/mixed/lone-CR source classification; final-newline policies 0/1/3 produce exact boundary bytes and policy 2 is refused. Mixed output requires an explicit LF/CRLF choice.
         </Scenario>
         <Scenario>scenario-6: Unsupported encoding returns MT_ENC_UNSUPPORTED with stable code.</Scenario>
       </Scenarios>
@@ -9243,6 +9261,8 @@
         <Marker>[Encoding][detect_encoding][BLOCK_CHUNK_BOUNDARY_DEFER] { held_tail_bytes }</Marker>
         <Marker>[Encoding][decode][BLOCK_DECODE_REPLACEMENT] { count, encoding }</Marker>
         <Marker>[Encoding][detect_encoding][BLOCK_BIDI_OVERRIDE_DETECTED] { codepoint, offset }</Marker>
+        <Marker>[Encoding][encode_document][BLOCK_ENCODED]</Marker>
+        <Marker>[Encoding][encode_document][BLOCK_ENCODE_REFUSED]</Marker>
       </Markers>
       <TraceAssertions>
         <TraceAssertion>

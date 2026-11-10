@@ -4,6 +4,7 @@
 //            sensible defaults; mt_close_project_root is a real
 //            implementation since C-2 (WatchRegistry unwatch).
 //   SCOPE:   thin compatibility shims, validated document-local link routing to the invoking window,
+//            strict metadata-aware bounded opens and validated restored format options,
 //            plus the C-2 close-project unwatch.
 //            Every remaining stub has a corresponding F-* followup
 //            pointing at the proper module that should own it long-term.
@@ -46,10 +47,14 @@
 //   mt_request_window_content_size - Retain the no-op legacy size request sink.
 //   mt_open_setting_window - Open the native settings shell.
 //   mt_format_link_click - Route validated documents to invoking-window tabs and other targets to their existing opener.
+//   parse_restored_open_format - allowlisted validated pending format options.
+//   emit_open_new_tab_with_options - shared strict open with visible refusal.
 //   parse_open_file_args - Normalize supported compatibility file-open argument shapes.
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-11 C-METADATA-SAVE-SAFETY: bounded strict byte decode, actual source
+//     format, validated restored choices and visible refusal across shared opens.
 //   - 2026-11-10 C-MD-LINK-TABS: validated document links use the invoking window tab pipeline; OS openers retain only web/non-document destinations, without failure fallback.
 //   - 2026-11-10 C-STABILIZE-LINK-ALIASES: rebase absolute document-directory aliases before the unchanged canonical fence; preserve requested/resolved executable guards.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-006: all local link forms join the
@@ -491,13 +496,24 @@ pub async fn mt_open_file(
         }
     };
 
-    // Best-effort: log + swallow read failures. Sidebar click on a
-    // file that vanished between watcher event and click should not
-    // raise a Promise rejection in the renderer.
-    // M-022: sidebar click is an explicit "edit this file" gesture, so
-    // preview_mode=false (open in editor view).
-    let _ = emit_open_new_tab(&window, &pathname, false);
-    Ok(())
+    let restored = parse_restored_open_format(&args)?;
+    emit_open_new_tab_with_options(&window, &pathname, false, false, false, restored)
+
+}
+
+/// Relay only validated format choices, never arbitrary session text or saved proof.
+fn parse_restored_open_format(args: &Value) -> Result<Option<Value>, String> {
+    let options = match args {
+        Value::Array(values) => values.get(1),
+        Value::Object(object) => object.get("options").or_else(|| object.get("args").and_then(Value::as_array).and_then(|values| values.get(1))),
+        _ => None,
+    };
+    let Some(value) = options.and_then(|options| options.get("restoredFormat")) else { return Ok(None); };
+    let format: crate::m014_encoding::DocumentFormat = serde_json::from_value(value.get("format").cloned().ok_or("MT_ENC_INVALID_POLICY")?)
+        .map_err(|_| "MT_ENC_INVALID_POLICY")?;
+    crate::m014_encoding::validate_document_format(&format)?;
+    let dirty = value.get("dirty").and_then(Value::as_bool).ok_or("MT_ENC_INVALID_POLICY")?;
+    Ok(Some(json!({"format":format,"dirty":dirty})))
 }
 
 /// Maps to v1 'mt::cmd-open-file'. Shows a native file picker (markdown
@@ -542,30 +558,34 @@ pub(crate) fn build_open_new_tab_payload(
     pathname: &str,
     preview_mode: bool,
 ) -> Result<Value, String> {
-    let content = match std::fs::read_to_string(pathname) {
-        Ok(s) => s,
-        Err(e) => {
-            safe_eprintln!(
-                "[v1_compat][open_new_tab][BLOCK_READ_FAILED path={pathname} err={e}]"
-            );
-            return Err(e.to_string());
-        }
-    };
+    use std::io::Read;
+    let resolved = crate::m047_bookmarks::ensure_access(pathname);
+    let initial_metadata = std::fs::metadata(&resolved).map_err(|_| "MT_OPEN_READ_FAILED")?;
+    if !initial_metadata.is_file() { return Err("MT_OPEN_NOT_REGULAR".into()); }
+    let file = std::fs::File::open(resolved).map_err(|_| "MT_OPEN_READ_FAILED")?;
+    let metadata = file.metadata().map_err(|_| "MT_OPEN_READ_FAILED")?;
+    if !metadata.is_file() { return Err("MT_OPEN_NOT_REGULAR".into()); }
+    let limit = crate::m013b::fs::MAX_READ_BYTES;
+    if metadata.len() > limit { return Err("MT_OPEN_TOO_LARGE".into()); }
+    let mut bytes = Vec::new();
+    file.take(limit + 1).read_to_end(&mut bytes).map_err(|_| "MT_OPEN_READ_FAILED")?;
+    if bytes.len() as u64 > limit { return Err("MT_OPEN_TOO_LARGE".into()); }
+    let decoded = crate::m014_encoding::decode_document(&bytes)?;
     let filename = std::path::Path::new(pathname)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or(pathname)
         .to_string();
     Ok(json!({
-        "markdown": content,
+        "markdown": decoded.text,
         "filename": filename,
         "pathname": pathname,
-        "encoding": { "encoding": "utf8", "isBom": false },
-        "lineEnding": "lf",
+        "encoding": { "encoding": decoded.format.encoding, "isBom": decoded.format.is_bom },
+        "lineEnding": decoded.format.line_ending,
         "adjustLineEndingOnSave": false,
         "trimTrailingNewline": 3,
         "cursor": null,
-        "isMixedLineEndings": false,
+        "isMixedLineEndings": decoded.format.line_ending == "mixed",
         "previewMode": preview_mode,
     }))
 }
@@ -597,7 +617,21 @@ pub(crate) fn emit_open_new_tab_ext<E: tauri::Emitter<tauri::Wry>>(
     watch_mode: bool,
     diff_mode: bool,
 ) -> Result<(), String> {
-    let mut markdown_document = build_open_new_tab_payload(pathname, preview_mode)?;
+    emit_open_new_tab_with_options(emitter, pathname, preview_mode, watch_mode, diff_mode, None)
+}
+
+fn emit_open_new_tab_with_options<E: tauri::Emitter<tauri::Wry>>(
+    emitter: &E, pathname: &str, preview_mode: bool, watch_mode: bool, diff_mode: bool,
+    restored: Option<Value>,
+) -> Result<(), String> {
+    let mut markdown_document = build_open_new_tab_payload(pathname, preview_mode).map_err(|code| {
+        // Fire-and-forget sidebar and CLI routes must also report strict read refusal.
+        let _ = emitter.emit("mt::open-file-failed", json!({"code":code}));
+        code
+    })?;
+    if let Some(choice) = restored {
+        markdown_document["options"] = json!({"restoredFormat":choice});
+    }
     if let Some(obj) = markdown_document.as_object_mut() {
         obj.insert("watchMode".to_string(), json!(watch_mode));
         obj.insert("diffMode".to_string(), json!(diff_mode));
@@ -1488,6 +1522,60 @@ mod tests {
         walk_and_emit_inner(dir.path(), |_| count += 1).unwrap();
         assert!(count >= 1);
     }
+    #[test]
+    fn restored_open_options_are_validated_and_copy_only_policy_intent() {
+        let choice = json!({"format":{"encoding":"utf16le","isBom":true,"lineEnding":"crlf","finalNewline":3},"dirty":true,"markdown":"do not relay"});
+        for args in [json!(["/a.md",{"restoredFormat":choice}]), json!({"pathname":"/a.md","options":{"restoredFormat":choice}}), json!({"args":["/a.md",{"restoredFormat":choice}]})] {
+            let parsed = parse_restored_open_format(&args).unwrap().unwrap();
+            assert_eq!(parsed["format"]["encoding"],"utf16le"); assert_eq!(parsed["dirty"],true);
+            assert!(parsed.get("markdown").is_none());
+        }
+        assert_eq!(parse_restored_open_format(&json!(["/a.md",{}])).unwrap(),None);
+        for invalid in [json!({}),json!({"format":choice["format"],"dirty":1}),json!({"format":{"encoding":"utf32be","isBom":false,"lineEnding":"lf","finalNewline":3},"dirty":false})] {
+            assert!(parse_restored_open_format(&json!(["/a.md",{"restoredFormat":invalid}])).is_err());
+        }
+    }
+
+    #[test]
+    fn open_payload_uses_detected_bom_and_eol_instead_of_fixed_utf8_lf() {
+        let dir = TempDir::new().unwrap();
+        for (name,bytes,encoding,eol,mixed,text) in [
+            ("utf8.md",vec![0xef,0xbb,0xbf,0x41,0x0d,0x0a],"utf8","crlf",false,"A\r\n"),
+            ("le.md",vec![0xff,0xfe,0x41,0,0x0a,0],"utf16le","lf",false,"A\n"),
+            ("be.md",vec![0xfe,0xff,0,0x41,0,0x0a],"utf16be","lf",false,"A\n"),
+            ("mixed.md",b"A\r\nB\n".to_vec(),"utf8","mixed",true,"A\r\nB\n")
+        ] {
+            let path=dir.path().join(name);std::fs::write(&path,&bytes).unwrap();
+            let payload=build_open_new_tab_payload(path.to_str().unwrap(),false).unwrap();
+            assert_eq!(payload["encoding"]["encoding"],json!(encoding));
+            assert_eq!(payload["encoding"]["isBom"],json!(name!="mixed.md"));
+            assert_eq!(payload["lineEnding"],json!(eol));assert_eq!(payload["isMixedLineEndings"],json!(mixed));
+            assert_eq!(payload["markdown"],json!(text));assert_eq!(payload["trimTrailingNewline"],json!(3));
+            assert_eq!(std::fs::read(&path).unwrap(),bytes);
+        }
+    }
+    #[test]
+    fn open_payload_detects_legacy_non_utf_fixture() {
+        let dir=TempDir::new().unwrap();let path=dir.path().join("cp1251.md");
+        let bytes: &[u8]=&[0x23, 0x20, 0xcf, 0xf0, 0xee, 0xe2, 0xe5, 0xf0, 0xea, 0xe0, 0x20, 0xea, 0xee, 0xe4, 0xe8, 0xf0, 0xee, 0xe2, 0xea, 0xe8, 0xa, 0xa, 0xdd, 0xf2, 0xee, 0x20, 0xee, 0xe1, 0xfb, 0xf7, 0xed, 0xfb, 0xe9, 0x20, 0xf0, 0xf3, 0xf1, 0xf1, 0xea, 0xe8, 0xe9, 0x20, 0xf2, 0xe5, 0xea, 0xf1, 0xf2, 0x20, 0xe4, 0xeb, 0xff, 0x20, 0xef, 0xf0, 0xee, 0xe2, 0xe5, 0xf0, 0xea, 0xe8, 0x20, 0xee, 0xf2, 0xea, 0xf0, 0xfb, 0xf2, 0xe8, 0xff, 0x20, 0xe8, 0x20, 0xef, 0xee, 0xe2, 0xf2, 0xee, 0xf0, 0xed, 0xee, 0xe3, 0xee, 0x20, 0xf1, 0xee, 0xf5, 0xf0, 0xe0, 0xed, 0xe5, 0xed, 0xe8, 0xff, 0x20, 0xe4, 0xee, 0xea, 0xf3, 0xec, 0xe5, 0xed, 0xf2, 0xe0, 0x2e, 0x20, 0xcf, 0xee, 0xf1, 0xeb, 0xe5, 0xe4, 0xed, 0xe8, 0xe5, 0x20, 0xe8, 0xe7, 0xec, 0xe5, 0xed, 0xe5, 0xed, 0xe8, 0xff, 0x20, 0xe4, 0xee, 0xeb, 0xe6, 0xed, 0xfb, 0x20, 0xee, 0xf1, 0xf2, 0xe0, 0xf2, 0xfc, 0xf1, 0xff, 0x20, 0xed, 0xe0, 0x20, 0xe4, 0xe8, 0xf1, 0xea, 0xe5, 0x20, 0xe2, 0x20, 0xe2, 0xfb, 0xe1, 0xf0, 0xe0, 0xed, 0xed, 0xee, 0xe9, 0x20, 0xea, 0xee, 0xe4, 0xe8, 0xf0, 0xee, 0xe2, 0xea, 0xe5, 0x2e, 0xa, 0xa, 0xd1, 0xee, 0xf5, 0xf0, 0xe0, 0xed, 0xed, 0xee, 0xf1, 0xf2, 0xfc, 0x20, 0xf2, 0xe5, 0xea, 0xf1, 0xf2, 0xe0, 0x20, 0xe2, 0xe0, 0xe6, 0xed, 0xe5, 0xe5, 0x20, 0xeb, 0xfe, 0xe1, 0xee, 0xe3, 0xee, 0x20, 0xe8, 0xed, 0xe4, 0xe8, 0xea, 0xe0, 0xf2, 0xee, 0xf0, 0xe0, 0x20, 0xf1, 0xee, 0xf1, 0xf2, 0xee, 0xff, 0xed, 0xe8, 0xff, 0x2e, 0xa];std::fs::write(&path,bytes).unwrap();
+        let payload=build_open_new_tab_payload(path.to_str().unwrap(),false).unwrap();
+        assert_eq!(payload["encoding"]["encoding"],json!("cp1251"));
+        assert_eq!(payload["encoding"]["isBom"],json!(false));assert_eq!(payload["markdown"],json!("# \u{041f}\u{0440}\u{043e}\u{0432}\u{0435}\u{0440}\u{043a}\u{0430} \u{043a}\u{043e}\u{0434}\u{0438}\u{0440}\u{043e}\u{0432}\u{043a}\u{0438}\n\n\u{042d}\u{0442}\u{043e} \u{043e}\u{0431}\u{044b}\u{0447}\u{043d}\u{044b}\u{0439} \u{0440}\u{0443}\u{0441}\u{0441}\u{043a}\u{0438}\u{0439} \u{0442}\u{0435}\u{043a}\u{0441}\u{0442} \u{0434}\u{043b}\u{044f} \u{043f}\u{0440}\u{043e}\u{0432}\u{0435}\u{0440}\u{043a}\u{0438} \u{043e}\u{0442}\u{043a}\u{0440}\u{044b}\u{0442}\u{0438}\u{044f} \u{0438} \u{043f}\u{043e}\u{0432}\u{0442}\u{043e}\u{0440}\u{043d}\u{043e}\u{0433}\u{043e} \u{0441}\u{043e}\u{0445}\u{0440}\u{0430}\u{043d}\u{0435}\u{043d}\u{0438}\u{044f} \u{0434}\u{043e}\u{043a}\u{0443}\u{043c}\u{0435}\u{043d}\u{0442}\u{0430}. \u{041f}\u{043e}\u{0441}\u{043b}\u{0435}\u{0434}\u{043d}\u{0438}\u{0435} \u{0438}\u{0437}\u{043c}\u{0435}\u{043d}\u{0435}\u{043d}\u{0438}\u{044f} \u{0434}\u{043e}\u{043b}\u{0436}\u{043d}\u{044b} \u{043e}\u{0441}\u{0442}\u{0430}\u{0442}\u{044c}\u{0441}\u{044f} \u{043d}\u{0430} \u{0434}\u{0438}\u{0441}\u{043a}\u{0435} \u{0432} \u{0432}\u{044b}\u{0431}\u{0440}\u{0430}\u{043d}\u{043d}\u{043e}\u{0439} \u{043a}\u{043e}\u{0434}\u{0438}\u{0440}\u{043e}\u{0432}\u{043a}\u{0435}.\n\n\u{0421}\u{043e}\u{0445}\u{0440}\u{0430}\u{043d}\u{043d}\u{043e}\u{0441}\u{0442}\u{044c} \u{0442}\u{0435}\u{043a}\u{0441}\u{0442}\u{0430} \u{0432}\u{0430}\u{0436}\u{043d}\u{0435}\u{0435} \u{043b}\u{044e}\u{0431}\u{043e}\u{0433}\u{043e} \u{0438}\u{043d}\u{0434}\u{0438}\u{043a}\u{0430}\u{0442}\u{043e}\u{0440}\u{0430} \u{0441}\u{043e}\u{0441}\u{0442}\u{043e}\u{044f}\u{043d}\u{0438}\u{044f}.\n"));
+    }
+    #[test]
+    fn open_payload_refuses_lossy_unsupported_nonregular_and_oversize_sources() {
+        let dir=TempDir::new().unwrap();
+        for bytes in [vec![0xef,0xbb,0xbf,0xff],vec![0xff,0xfe,0,0,0x41,0,0,0]] {
+            let path=dir.path().join("refused.md");std::fs::write(&path,&bytes).unwrap();
+            assert!(build_open_new_tab_payload(path.to_str().unwrap(),false).is_err());
+            assert_eq!(std::fs::read(path).unwrap(),bytes);
+        }
+        assert!(build_open_new_tab_payload(dir.path().to_str().unwrap(),false).is_err());
+        let path=dir.path().join("oversize.md");let file=std::fs::File::create(&path).unwrap();
+        file.set_len(crate::m013b::fs::MAX_READ_BYTES+1).unwrap();drop(file);
+        assert!(build_open_new_tab_payload(path.to_str().unwrap(),false).is_err());
+    }
+
 }
 
 // START_BLOCK_SETTINGS_TITLEBAR

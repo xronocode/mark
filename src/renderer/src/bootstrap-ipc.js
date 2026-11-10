@@ -20,6 +20,8 @@
 //            retained as migration provenance.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-11 C-METADATA-SAVE-SAFETY: shared strict-open refusal notification;
+//     unchanged parallel drain and successful tab arrival ordering.
 //   - 2026-10-25 C-FILE-POSITION-MEMORY: the mt::open-new-tab arrival
 //                awaits the now-async NEW_TAB_WITH_CONTENT (position
 //                restore leg) so the recently-closed consume and the
@@ -224,6 +226,9 @@ const setupIpcListenersImpl = async () => {
     // bootstrap-editor stays a thin APPLY_BOOTSTRAP_EDITOR forwarder.
     listen('mt::bootstrap-editor', (event) => {
       if (event?.payload) editorStore.APPLY_BOOTSTRAP_EDITOR(event.payload)
+    }),
+    listen('mt::open-file-failed', (event) => {
+      editorStore._notifyFileOpenError(event?.payload?.code)
     }),
     listen('mt::open-new-tab', async (event) => {
       // V-M-025 trace: every tab arrival (drain OR direct-emit) emits

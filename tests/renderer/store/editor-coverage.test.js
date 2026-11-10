@@ -185,7 +185,7 @@ describe('store/editor — coverage gaps', () => {
   let notice
 
   function makeTab (overrides = {}) {
-    return {
+    const tab = {
       id: overrides.id ?? 'tab-1',
       filename: overrides.filename ?? 'untitled.md',
       pathname: overrides.pathname ?? '',
@@ -203,6 +203,10 @@ describe('store/editor — coverage gaps', () => {
       scrollTop: 0,
       ...overrides
     }
+    return { savedMarkdown:tab.isSaved ? tab.markdown : 'saved checkpoint',
+      savedFormat:{ encoding:tab.encoding.encoding,isBom:tab.encoding.isBom,lineEnding:tab.lineEnding,finalNewline:tab.trimTrailingNewline },
+      requiresExplicitSave:false,...tab }
+
   }
 
   beforeEach(async () => {
@@ -994,10 +998,10 @@ describe('store/editor — coverage gaps', () => {
         (c) => c[0] === 'mt::set-file-encoding'
       )[1]
 
-      handler('latin1')
-      expect(editor.currentFile.encoding.encoding).toBe('latin1')
+      handler('ascii')
+      expect(editor.currentFile.encoding.encoding).toBe('ascii')
       expect(editor.currentFile.encoding.isBom).toBe(false)
-      expect(editor.currentFile.isSaved).toBe(true)
+      expect(editor.currentFile.isSaved).toBe(false)
     })
 
     it('does not update when encoding is the same', async () => {
@@ -1036,7 +1040,7 @@ describe('store/editor — coverage gaps', () => {
 
       handler(1)
       expect(editor.currentFile.trimTrailingNewline).toBe(1)
-      expect(editor.currentFile.isSaved).toBe(true)
+      expect(editor.currentFile.isSaved).toBe(false)
     })
 
     it('does not update when value is the same', async () => {

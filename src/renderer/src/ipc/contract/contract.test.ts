@@ -119,3 +119,19 @@ void _code
 // ---------------------------------------------------------------
 const _cmdName: CommandName = 'mt::ping'
 void _cmdName
+
+// Complete format is required in both directions; none of these functions runs.
+function _documentFormatShape(request: import('./types').DocumentWriteRequest, reply: import('./types').DocumentWriteReply) {
+  const format: import('./types').DocumentFormat = { encoding:'utf8',isBom:false,lineEnding:'lf',finalNewline:3 }
+  const _requestFormat: import('./types').DocumentFormat = request.format
+  const _replyFormat: import('./types').DocumentFormat = reply.format
+  // @ts-expect-error — immutable snapshots cannot have their BOM policy mutated
+  format.isBom = true
+  // @ts-expect-error — final-newline policy 2 is not a supported wire value
+  const _invalidPolicy: import('./types').DocumentFormat = { ...format, finalNewline:2 }
+  const { format: _removed, ...missing } = request
+  // @ts-expect-error — correlated writes never accept an omitted format
+  const _missingFormat: import('./types').DocumentWriteRequest = missing
+  void _requestFormat; void _replyFormat; void _invalidPolicy; void _missingFormat; void _removed
+}
+void _documentFormatShape

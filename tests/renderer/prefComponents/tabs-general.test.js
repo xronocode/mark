@@ -36,7 +36,8 @@ vi.mock('@/bus', () => ({ default: { on: vi.fn(), emit: vi.fn(), off: vi.fn() } 
 vi.mock('@/services/notification', () => ({ default: { notify: vi.fn() } }))
 
 vi.mock('common/encoding', () => ({
-  ENCODING_NAME_MAP: Object.freeze({ utf8: 'UTF-8', gbk: 'GBK' })
+  ENCODING_NAME_MAP: Object.freeze({ utf8: 'UTF-8', gbk: 'GBK', gb2312: 'GB2312' }),
+  getEncodingCapability: id => ({ supported:id !== 'gb2312', unavailableReason:'fileFormat.unavailable.gb2312' })
 }))
 
 vi.mock('@tauri-apps/api/app', () => ({ getVersion: vi.fn(async () => '9.9.9') }))
@@ -269,4 +270,16 @@ describe('tabs/general — C-38 T-004 content', () => {
       expect(text).not.toContain(dead)
     }
   })
+})
+
+it('renders unavailable default codecs disabled and refuses programmatic selection', async () => {
+  const Select = (await import('@/prefComponents/common/select/index.vue')).default
+  const { getDefaultEncodingOptions } = await import('@/prefComponents/tabs/general/config')
+  const onChange = vi.fn(); const options = getDefaultEncodingOptions()
+  const wrapper = mount(Select, { props: { description: 'Encoding', value: 'utf8', options, onChange } })
+  try {
+    expect(wrapper.find('option[value="gb2312"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('option[value="gb2312"]').text()).toContain('fileFormat.unavailable.gb2312')
+    wrapper.vm.select('gb2312'); expect(onChange).not.toHaveBeenCalled(); expect(wrapper.vm.selectValue).toBe('utf8')
+  } finally { wrapper.unmount() }
 })

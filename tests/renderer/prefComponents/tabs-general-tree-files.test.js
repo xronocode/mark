@@ -50,7 +50,8 @@ vi.mock('@/bus', () => ({ default: { on: vi.fn(), emit: vi.fn(), off: vi.fn() } 
 vi.mock('@/services/notification', () => ({ default: { notify: vi.fn() } }))
 vi.mock('@/commands', () => ({ default: [] }))
 vi.mock('@tauri-apps/api/app', () => ({ getVersion: vi.fn(async () => '9.9.9') }))
-vi.mock('common/encoding', () => ({
+vi.mock('common/encoding', async (importOriginal) => ({
+  ...await importOriginal(),
   ENCODING_NAME_MAP: Object.freeze({ utf8: 'UTF-8', gbk: 'GBK' })
 }))
 
