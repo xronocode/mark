@@ -2267,7 +2267,7 @@ describe('editor.vue — coverage', () => {
     await mountEditor()
     const call = mockEditorInstance.on.mock.calls.find((c) => c[0] === 'format-click')
     call[1]({
-      event: { ctrlKey: true, metaKey: false },
+      event: { ctrlKey: true, metaKey: false, target: mockEditorInstance.container },
       formatType: 'link',
       data: { href: 'http://example.com' }
     })
@@ -2551,10 +2551,11 @@ describe('editor.vue — coverage', () => {
   })
 
   /* ── jumpClick ─────────────────────────────────────────────── */
-  it('jumpClick calls FORMAT_LINK_CLICK', async () => {
-    // jumpClick is passed to Muya.use(LinkTools) which is a static no-op.
-    // The function delegates to editorStore.FORMAT_LINK_CLICK.
-    // Already exercised by the format-click Muya event test above.
+  it('an owned link activation delegates to FORMAT_LINK_CLICK', async () => {
+    await mountEditor()
+    const call = mockEditorInstance.on.mock.calls.find(c => c[0] === 'link-activate')
+    call[1]({linkInfo:{href:'target.md'},epoch:undefined})
+    expect(editorStore.FORMAT_LINK_CLICK).toHaveBeenCalledWith({data:{href:'target.md'},dirname:'/tmp'})
   })
 
   /* ── handlePreviewKeydown with null event ───────────────────── */

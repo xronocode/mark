@@ -139,6 +139,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-10 C-MD-LINK-TABS: instance-owned link activation validates rendered lifetime/path; link gestures retain read-only Preview and scoped split ownership.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Own unified raw-Markdown history, rich/source focused commands, adaptive render-only follows, both caret snapshots and rich IME fencing; retain page-width/progressive/export paths.
 //   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
 //   PREV: v1.34.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-007: the
@@ -587,6 +588,7 @@ const handlePreviewMousedown = (event) => {
   // E-02: right-click (contextmenu) shouldn't exit preview. mousedown
   // fires for button=2 too, so gate on left button.
   if (event && typeof event.button === 'number' && event.button !== 0) return
+  if (editor.value?.linkInteraction?.isLinkTarget(event?.target)) return
   const tabId = currentFile.value && currentFile.value.id
   if (tabId) editorStore.EXIT_PREVIEW_MODE(tabId, 'click')
 }
@@ -1260,14 +1262,26 @@ watch(sourceCode, (value, oldValue) => {
   }
 })
 
+// A lifetime/path/mode change invalidates delayed link work even when an
+// identical-text tab switch does not need a Muya document import.
+watch(() => [currentFile.value?.id, currentFile.value?.documentToken, currentFile.value?.pathname, sourceCode.value, props.mirror], () => {
+  editor.value?.linkInteraction?.invalidate('owner')
+}, { flush: 'sync' })
+
 // Methods
 const photoCreatorClick = (url) => {
   window.electron.shell.openExternal(url)
 }
 
-const jumpClick = (linkInfo) => {
-  const { href } = linkInfo
-  editorStore.FORMAT_LINK_CLICK({ data: { href }, dirname: window.DIRNAME })
+const jumpClick = (linkInfo, epoch, sourceMuya) => {
+  const file = currentFile.value
+  if (!linkInfo?.href || !sourceMuya || sourceMuya !== editor.value ||
+      epoch !== sourceMuya.linkInteraction?.epoch || props.mirror || isDiffMode.value ||
+      (!props.splitActive && sourceCode.value) || sourceFocused() || !file?.id ||
+      renderedTabId !== file.id || renderedDocumentOwner?.documentToken !== documentOwner(file).documentToken ||
+      editorStore.documentWindowClosing || richComposition.isArmed()) return false
+  editorStore.FORMAT_LINK_CLICK({ data: { href: linkInfo.href }, dirname: file.pathname ? window.path.dirname(file.pathname) : '' })
+  return true
 }
 
 const imagePathAutoComplete = async (src) => {
@@ -2955,6 +2969,7 @@ const handleFileChange = ({
         mountDocumentProgressively(newMarkdown)
       } else {
         if (history?.unified) editor.value.setMarkdown(newMarkdown, null, renderCursor, activeFile.splitSession?.rich, undefined, { renderOnly: true })
+        else if (!contentReloaded && history?.stack?.length) editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks, { renderOnly: true })
         else editor.value.setMarkdown(newMarkdown, newCursor, renderCursor, muyaIndexCursor, blocks)
         // A legacy content load cancels any pending progressive tail
         // (T-003 setMarkdown wiring) — drop the indication right away.
@@ -3379,9 +3394,7 @@ onMounted(() => {
   Muya.use(ImageToolbar)
   Muya.use(FormatPicker)
   Muya.use(FrontMenu)
-  Muya.use(LinkTools, {
-    jumpClick
-  })
+  Muya.use(LinkTools)
   Muya.use(FootnoteTool)
   Muya.use(TableBarTools)
   Muya.use(BlockViewer)
@@ -3446,6 +3459,8 @@ onMounted(() => {
   }
 
   editor.value = new Muya(ele, options)
+  const linkSourceMuya = editor.value
+  linkSourceMuya.on('link-activate', ({ linkInfo, epoch }) => jumpClick(linkInfo, epoch, linkSourceMuya))
 
   // Muya replaces the Vue ref node, so apply preview/editable state to the
   // actual replacement surface after construction. Normal editing also gets
@@ -3618,7 +3633,9 @@ onMounted(() => {
   editor.value.on('format-click', ({ event, formatType, data }) => {
     const ctrlOrMeta = (isOsx && event.metaKey) || (!isOsx && event.ctrlKey)
     if (formatType === 'link' && ctrlOrMeta) {
-      editorStore.FORMAT_LINK_CLICK({ data, dirname: window.DIRNAME })
+      if (linkSourceMuya.container?.contains(event.target)) {
+        jumpClick(data, linkSourceMuya.linkInteraction?.epoch, linkSourceMuya)
+      }
     } else if (formatType === 'image' && ctrlOrMeta) {
       if (imageViewer) {
         imageViewer.destroy()

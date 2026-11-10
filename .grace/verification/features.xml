@@ -1064,8 +1064,10 @@
     <V-M-033>
       <Priority>high</Priority>
       <Commands><Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command></Commands>
-      <Scenarios><scenario-security-stabilization-033>C-SEC-AUDIT-FIXES: The five pinned link_click_ guards plus canonical-directory and symlink-executable companions cover requested/canonical executable denial, sibling documents and unchanged HTTP(S) handling without invoking the OS opener.</scenario-security-stabilization-033></Scenarios>
-      <Markers><Marker>[v1_compat][link][BLOCK_LINK_TARGET_DENIED]</Marker></Markers>
+      <Scenarios>
+        <scenario-md-link-m033-route>C-MD-LINK-TABS: link_click_document_has_internal_destination fails on the OS-only baseline. The production dispatch seam selects exactly one document/web/local sink; real document payload reading and an unreadable UTF-8 target prove no empty event or OS fallback. Existing canonical aliases, traversal and executable guards remain. Native current-window/process evidence is recorded separately.</scenario-md-link-m033-route><scenario-security-stabilization-033>C-SEC-AUDIT-FIXES: The five pinned link_click_ guards plus canonical-directory and symlink-executable companions cover requested/canonical executable denial, sibling documents and unchanged HTTP(S) handling without invoking the OS opener.</scenario-security-stabilization-033></Scenarios>
+      <Markers>
+        <Marker>[v1_compat][link][BLOCK_LINK_DOCUMENT_TAB]</Marker><Marker>[v1_compat][link][BLOCK_LINK_TARGET_DENIED]</Marker></Markers>
       <TraceAssertions/>
       <LegacyBase>
         <Source>docs/verification-plan.xml</Source>

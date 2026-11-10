@@ -14,6 +14,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-10 C-MD-LINK-TABS: delayed click/selection notifications retain the originating editor epoch; consumed link gestures never enter this path.
 //   LAST_CHANGE: v1.6.1 - 2026-10-19 FIX-001 follow-up: passive hover/action panels may overlap the format toolbar without taking Shift-arrow selection.
 //   PREV: v1.6.0 - 2026-10-19: keep native Shift+Up/Down and host selection updates working while the passive format toolbar is visible.
 //   PREV: v1.5.0 - 2026-10-18 C-62: extend native-button keyboard isolation to the diagram appearance control.
@@ -165,8 +166,10 @@ class Keyboard {
         return
       }
 
+      const linkEpoch = this.muya.linkInteraction?.epoch
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
+        if (linkEpoch !== this.muya.linkInteraction?.epoch) return
         const cursor = selection.getCursorRange()
         if (!cursor.start || !cursor.end) {
           return

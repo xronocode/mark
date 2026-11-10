@@ -180,6 +180,7 @@
         <Command>npm run build &amp;&amp; npx playwright test tests/e2e/open-file-timing.spec.ts --project=chromium</Command>
       </Commands>
       <Scenarios>
+        <Scenario>C-MD-LINK-TABS: link-target-tabs.test.js and bootstrap-ipc.test.ts exercise the existing event/store admission path with fresh, canonical duplicate, concurrent and committed-close targets. link-interaction.spec.ts drives real Chromium/WebKit pointer sequences through the fixture transport and preserves an existing dirty target's document token, text and history. Rust dispatcher tests separately establish native validation and invoking-window emission; browser fixture delivery is not native process/window evidence.</Scenario>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: bootstrap-ipc.js retains parallel pending-open drain and other subscriptions, but legacy saved/path/forced-close broadcasts have no live document authority. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>
           FIX-002 (2026-10-20) open-file timing trace — a sidebar-clicked

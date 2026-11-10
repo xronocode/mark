@@ -280,6 +280,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-032; docs/development-plan.xml: M-032</LegacySource>
     </M-032>
     <M-033>
+      <SummaryDelta>C-MD-LINK-TABS: after unchanged document-local checks, is_markdown classifies canonical filenames. The registered command shares dispatch_link_click_with with tests and emits document tabs only on its invoking Window; CLI/Finder preview flag handling remains unchanged.</SummaryDelta>
       <Name>cli-preview</Name>
       <DisplayName>cli-preview</DisplayName>
       <Type>ENTRY_POINT</Type>
@@ -307,8 +308,7 @@
       <VerificationRef>V-M-033</VerificationRef>
       <Contract>
         <Purpose>
-          No explicit legacy module contract; use Summary and
-          LegacyKnowledgeDetail until the module is next changed.
+          Preserve CLI preview/watch/diff intent and resolve validated local links: Markdown/text documents enter the invoking window through existing tab admission, while HTTP(S) and non-document paths retain their system destinations.
         </Purpose>
         <Inputs/>
         <Outputs/>

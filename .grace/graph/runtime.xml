@@ -6,6 +6,7 @@
       <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
     </ProjectMetadata>
     <M-001>
+      <SummaryDelta>C-MD-LINK-TABS: the validated local Markdown/text branch emits the existing document payload only to the invoking Window; Web and other Local targets retain their openers, and a read failure never falls back.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts.</SummaryDelta>
       <SummaryDelta>C-STABILIZE-LINK-ALIASES: absolute local links using the supplied document-directory alias rebase onto its canonical directory before existing lexical/canonical document fencing. Requested and resolved executable guards remain; global M-010 policy and HTTP routing are unchanged.</SummaryDelta>
       <Name>mt-tauri-shell</Name>
@@ -462,8 +463,7 @@
                   m_v1_compat command: extracts href from data payload, resolves
                   relative paths against the canonical document directory, validates
                   local targets via m010 check_path and check_shell_open_extension
-                  before the opener plugin, and preserves HTTP(S) routing
-                  (C-SEC-AUDIT-FIXES). Handles mt::format-link-click IPC.
+                  before classification. C-MD-LINK-TABS dispatches Markdown through the invoking window tab pipeline; HTTP(S) and other local targets retain their existing opener. Failures never switch destinations. Handles mt::format-link-click IPC.
                 </Value>
               </Attribute>
             </LegacyAttributes>
@@ -2611,6 +2611,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-MD-LINK-TABS: Link activation belongs to the emitting Muya instance and rendered document lifetime/path. Local navigation uses the owning directory; link gestures preserve read-only Preview while ordinary text keeps its preview-exit behavior. Split/global callbacks cannot redirect stale links.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: util/documentSnapshot.js owns mounted rich/source identity and IME-first complete-model capture; util/documentOperations.js owns tracked save admission and the final whole-target close barrier. editor.js routes Save, Save As, autosave, Save All, tab/group/window close and Quit; notices expose fresh explicit retry. No bare saved/path/close-by-id event authorizes a mutation.</SummaryDelta>
       <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: one transient editor-store findVisible flag is the search component visibility source and resets on teardown. Selection prefills Find only while closed; an open Find retains query/matches during text selection so no selection-driven delayed render removes native clipboard focus. Native shortcut/menu/clipboard routes are unchanged.</SummaryDelta>
       <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: editor-store SELECTION_CHANGE prefills Find only for noncollapsed same-block text selections. Caret-only updates retain the active query/matches and still synchronize native menus, preventing the selection-to-empty-query debounce from rerendering and blurring the editor.</SummaryDelta>
@@ -3676,8 +3677,7 @@
             `imagePathAutoComplete(path)`: async path autocomplete for src
             field; (5) `imagePathPicker()`: async file-browser returning
             Promise&lt;filePath&gt;; (6) `photoCreatorClick(url)`: Unsplash
-            photo-creator click handler; (7) `jumpClick(href)`: link jump
-            callback for linkTools.
+            photo-creator click handler; (7) instance-scoped `link-activate`: the host jumpClick handler validates the emitting Muya epoch and rendered document lifetime before routing; LinkTools no longer uses a shared plugin callback.
           </note-5>
           <note-6>
             **muya.options.unsplashAccessKey** — if bundled, exposed in browser
@@ -3788,6 +3788,8 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>C-MD-LINK-TABS: Instance-scoped LinkInteraction retains native gesture origin and token identity across reflow; no-history cursor APIs reveal/revert syntax without truncating redo. Document imports/teardown and composition invalidate the lease; link-activate routes once.</SummaryDelta>
+      <SummaryDelta>C-MD-LINK-TABS: inline link renderers share source-token metadata across anchors/syntax, container-scoped lookup handles nested labels, and LinkTools cancels stale show/hide work. These view-only changes do not alter canonical Markdown.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: The renderer snapshot adapter consumes the existing complete-model Markdown and shared-history APIs, including progressive unmounted content. Following split panes cannot normalize the active source; Muya internals and canonical serialization contracts remain unchanged.</SummaryDelta>
       <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: the existing keyboard browser verification now checks real copy/paste after a nonempty selection with Find open (matching or absent query) or closed, exact inserted Markdown, retained selection/focus and close/reopen prefill. Muya runtime clipboard/keyboard code is unchanged.</SummaryDelta>
       <Name>muya</Name>
