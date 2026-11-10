@@ -314,6 +314,115 @@
             "gates: grace lint final --run-commands exit 0; 18/18 target pins; 7/7 locale keys x10"
           ]
         }
+      },
+      {
+        "id": "C-STABILIZE-29",
+        "summary": "Stabilize document editing and recovery: preserve unsaved edits on external reload; complete shared-history dual split editing and reading gestures; repair table/titlebar/checkbox behavior; isolate test profiles; close the approved security findings and retain attribution and verification evidence. Approved deferred/future work remains outside this delivery.",
+        "state": "queued",
+        "commits": [
+          "5fece09f75375489f58d7616392993dc30df9674"
+        ],
+        "acceptance": {
+          "status": "pending"
+        },
+        "pullRequest": {
+          "number": 199,
+          "headSha": "6fba2a5974517ba398cf66264882b14801056fc6",
+          "mergeSha": "5fece09f75375489f58d7616392993dc30df9674",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/199/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage",
+              "result": "402 files; 5555 passed, 0 failed, 2 existing skips, 3 todo; statements 92.08%, branches 85.20%, functions 88.01%, lines 93.48%; unchanged floors pass",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "cargo test --manifest-path src-tauri/Cargo.toml --bin mark",
+              "result": "574 passed, 0 failed, 1 existing ignored; ordinary native-host compatibility distinguished from retained confined negative security evidence",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "npx --no-install playwright test tests/e2e/table- tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-tables --project=webkit-block-viewer",
+              "result": "164 passed,0 failed,0 retries in the full Chromium/WebKit table/viewer matrix; no-scroll fixed text, real tab readoption, slack growth, frame clamp and manual viewer geometry; unchanged assertions/timeouts/skips.",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "npx --no-install vitest run tests/renderer/muya/table-column-resize.test.js tests/renderer/muya/table-fit.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-cue.test.js",
+              "result": "152 passed,0 failed; repeated fixed Auto reconciliation and explicit reset semantics.",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "GitHub Actions runtime test workflow42715121681 at6fba2a5974517ba398cf66264882b14801056fc6",
+              "result": "713 passed,0 failed,0 flaky:Chromium445 plus8existing skips;WebKit core37,performance65,UI140,themes/tree26. All platform renderer/backend suites, native dryrun/warning gate, CodeQL and both CI workflows green at this exact head.",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "npm run typecheck:ipc",
+              "result": "Passed",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "npm run build",
+              "result": "Passed; production frontend build",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "node node_modules/@tauri-apps/cli/tauri.js build --ci --no-sign --bundles app --config tauri.qa.conf.json -- --locked --offline",
+              "result": "Unsigned optimized app-only QA build passed; version 2.8.2, configured bundle com.xronocode.mark.test.stabilize29; binary SHA-256 89df7749043b9fb177ef71c5e607b042967bd639af34f3ae7a1b046270fcd6a7; ZIP SHA-256 cbf3e37d574eae011326b4ae8b69183b6e9f168e03634032af02314c4953e175; automated native launch observed, self activation suppressed, QA Caches/ApplicationSupport/WebKit roots present, installed canonical binary hash unchanged. The complete build-source inventory matches the admitted PR source inventory. This is operator boot evidence only, no GUI/manual/owner acceptance",
+              "date": "2026-11-10",
+              "build": "QA source 6fba2a5974517ba398cf66264882b14801056fc6; verified 2110-file build payload feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "grace lint --path . --assertions current",
+              "result": "0 errors, 4 existing Python heuristic warnings",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199"
+            },
+            {
+              "command": "GitHub Actions checks for PR #199 at 6fba2a5974517ba398cf66264882b14801056fc6",
+              "result": "All required/substantive checks green; mergeable at recorded evidence; exact head is bound above",
+              "date": "2026-11-10",
+              "build": "stabilization PR #199 head 6fba2a5974517ba398cf66264882b14801056fc6; local source payload SHA-256 feb2851439c51506faf91d9f5ef296a6dec891a6fe3d9e6564504372251041ef",
+              "evidence": "https://github.com/xronocode/mark/pull/199/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on consolidated acceptance of the included editing/reload/split/table/checkbox/security/profile flows on an attributable QA build",
+              "reason": "Not run. Unsigned QA build and automated operator boot succeeded from the attributed build snapshot, but native GUI editing/export/IME scenarios were not executed in the available environment. Operator boot is not manual or owner acceptance; record actual dated scenario verdicts on the identified artifact and obtain train acceptance under rule 5."
+            },
+            {
+              "section": "manual",
+              "scenario": "Native GUI editing/export/IME on the unsigned QA artifact",
+              "reason": "Not run; the available GUI environment could not perform these scenarios. No screen/permission settings were changed. Keep verdicts pending rather than treating the automated boot as acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Broader data-preservation invariants recorded by the large-document characterization",
+              "reason": "Not repaired or accepted by this item. Separate recorded prerequisites remain for Move To/rename and metadata false-clean state, write ordering, close identity, atomic save, Save All transport, external equality/encoding writeback and close during active IME composition. External-delete characterization also showed false-clean state in one hosted attempt. These observations require a separate data-preservation scope before claiming those invariants or release readiness; passing characterization is not acceptance."
+            }
+          ]
+        }
       }
     ],
     "operational": [
@@ -419,6 +528,82 @@
           "849cffa9cb93a71cc387d64d87303830a00a7eef",
           "8ea9d16e23434a6b248f06694a357ec64cd0b999"
         ]
+      },
+      {
+        "id": "C-CI-CD-AUDIT-FIXES",
+        "summary": "Restore required CI classification/release safety checks and isolated unsigned QA build workflows, with the supported two-worker renderer cap; operational tooling, no user-facing acceptance claim.",
+        "commits": [
+          "96be1b358bce94c3f161676d4fd78c62680ec59c"
+        ],
+        "pullRequest": {
+          "number": 198,
+          "headSha": "faab503cc8a154561f7f11394a835edf702021e4",
+          "mergeSha": "96be1b358bce94c3f161676d4fd78c62680ec59c"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions PR #198 checks at faab503cc8a154561f7f11394a835edf702021e4",
+              "result": "Four checked-head PR workflow runs succeeded: dryrun42665699922, governance42665700001, CI42665699867, test42665700181; public PR evidence reports coverage5293passed/0failed/2skips/3todo, focused38passed, build/safety/GRACE passed. Exact-head eligibility was verified before integration; no product manual acceptance is asserted",
+              "date": "2026-11-09",
+              "build": "PR #198 checked head faab503cc8a154561f7f11394a835edf702021e4; merged 96be1b358bce94c3f161676d4fd78c62680ec59c",
+              "evidence": "https://github.com/xronocode/mark/pull/198/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Launch an isolated unsigned QA build produced by the repaired workflow",
+              "reason": "Native GUI editing/export/IME Not run. A separately identified unsigned QA build and automated operator boot passed; that is not manual or owner acceptance. CI configuration admission remains operational."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-STABILIZE-TRAIN-MIRROR",
+        "summary": "Keep the optional Project mirror truthful for pending/rejected/needs-recheck owner acceptance, and await initial rich serialization before table/viewer byte baselines; operational delivery verification with no application-source or owner-verdict change.",
+        "commits": [
+          "2f99489017b6c66dc6e8a251286296d7a58a218e"
+        ],
+        "pullRequest": {
+          "number": 209,
+          "headSha": "3291fcbe85c87f505e42601159e718e2d218f02a",
+          "mergeSha": "2f99489017b6c66dc6e8a251286296d7a58a218e"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npx --no-install vitest run tests/renderer/release-project-sync.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js --maxWorkers=2",
+              "result": "144 focused Project-sync/readiness/train tests passed; read-only readiness and final/current GRACE passed.",
+              "date": "2026-11-10",
+              "build": "Mirror PR #209 head 3291fcbe85c87f505e42601159e718e2d218f02a; merged 2f99489017b6c66dc6e8a251286296d7a58a218e",
+              "evidence": "https://github.com/xronocode/mark/pull/209/checks"
+            },
+            {
+              "command": "npx --no-install playwright test tests/e2e/table- tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-tables --project=webkit-block-viewer",
+              "result": "164 passed, 0 failed, 0 retries with initial rich content revision awaited before byte baselines. Fixtures, exact after-operation comparisons, geometry and deadlines remain intact. Build and final GRACE passed; production application inputs unchanged.",
+              "date": "2026-11-10",
+              "build": "Mirror PR #209 head 3291fcbe85c87f505e42601159e718e2d218f02a; merged 2f99489017b6c66dc6e8a251286296d7a58a218e",
+              "evidence": "https://github.com/xronocode/mark/pull/209/checks"
+            },
+            {
+              "command": "GitHub Actions PR #209 checks at 3291fcbe85c87f505e42601159e718e2d218f02a",
+              "result": "All required and substantive hosted checks passed at this exact head; merge eligibility was verified before integration. Browser evidence: 712 passed;1 additional case passed configured retry;8 existing skips;0 final failures. Navigation-only revision characterization unchanged.",
+              "date": "2026-11-10",
+              "build": "Mirror PR #209 head 3291fcbe85c87f505e42601159e718e2d218f02a; merged 2f99489017b6c66dc6e8a251286296d7a58a218e",
+              "evidence": "https://github.com/xronocode/mark/pull/209/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Live external Project application",
+              "reason": "Intentionally not run as part of the bounded fix. Pure, memory and injected-fetch fixtures verify projection/clearing/idempotence; Project availability is non-required, and no external mutation or owner verdict was authorized."
+            }
+          ]
+        }
       }
     ],
     "notPresent": []
@@ -494,6 +679,12 @@
       "date": "2026-10-30",
       "actor": "release-agent",
       "evidence": "Admitted FIX-021 (75219f62, PR #128) as user-facing after its fully green CI. The train stays Collecting; no dispatch or release activity is authorized."
+    },
+    {
+      "state": "Collecting",
+      "date": "2026-11-10",
+      "actor": "release-agent",
+      "evidence": "Admitted C-STABILIZE-29 from green mergeable PR #199, squash 5fece09f75375489f58d7616392993dc30df9674; owner acceptance remains pending. Accounted CI PR #198 separately as operational C-CI-CD-AUDIT-FIXES.  Separately accounted the actual merged/green C-STABILIZE-TRAIN-MIRROR code PR before this docs-only admission. No dispatch, version decision or publication authorized."
     }
   ]
 }

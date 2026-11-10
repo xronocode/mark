@@ -1,0 +1,12 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-STABILIZE-TRAIN-RECORDS>
+    <Summary>Admit the verified stabilization, CI baseline and truthful Project mirror repairs into the existing collecting train with their actual merged source identities.</Summary>
+    <ApprovalBasis>Owner-approved stabilization recovery and delegated disposition decisions. Admission remains separate from owner acceptance, dispatch and publication.</ApprovalBasis>
+    <Goals><Goal>Record the three green mergeable PRs and their actual squash SHAs with complete rule4 testing protocols; preserve all23 historical membership and acceptance objects.</Goal></Goals>
+    <Constraints><Item>Keep Collecting, package2.8.2, provisional computed version, release boundary, payload, seal, materials and publication authorization unchanged. No future or self-referential commit identity.</Item></Constraints>
+    <NonGoals><Item>No product code, external Project operation, owner verdict, version selection, freeze, tag or publication.</Item></NonGoals>
+    <AffectedAreas><Area>Current train manifest and human ledger.</Area></AffectedAreas>
+    <AcceptanceCriteria><Criterion>The new runtime group remains pending; the two delivery-tool rows are operational. Automatic evidence identifies its actual build; manual scenarios remain Not run with explicit reasons. Existing rows are unchanged and ordinary validators pass.</Criterion></AcceptanceCriteria>
+    <VerificationIntent><ExpectedEvidence>Actual exact-head PR/main receipts, private generation/history preservation proof, read-only readiness/governance commands and final current integrity.</ExpectedEvidence></VerificationIntent>
+  </C-STABILIZE-TRAIN-RECORDS>
+</GraceChangeSpec>
