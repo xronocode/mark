@@ -155,6 +155,8 @@ A footnote.[^1]
 
 An emoji :tada: and a [link to Mark](https://example.com/mark).
 
+Clock times 19:55:01 and 00:00:00 stay literal beside numeric emoji :100: and :1234:.
+
 ![dot](${DOT_PNG})
 
 An aligned table:
@@ -264,6 +266,12 @@ test.describe('rich Markdown coverage (C-51 T-009)', () => {
 
     // ── emoji shortcode resolves to the character ──────────────────────
     await expect(page.locator('.editor-with-tabs span[data-emoji="🎉"]')).toHaveCount(1)
+    const times = page.locator('.editor-with-tabs p', { hasText: 'Clock times' })
+    await expect(times).toContainText('19:55:01 and 00:00:00')
+    await expect(times.locator('.ag-warn')).toHaveCount(0)
+    await expect(times.locator('[data-emoji="💯"]')).toHaveCount(1)
+    await expect(times.locator('[data-emoji="🔢"]')).toHaveCount(1)
+    await times.screenshot({ path: test.info().outputPath('timestamp-emoji.png') })
 
     // ── link ────────────────────────────────────────────────────────────
     const link = page.locator('.editor-with-tabs a.ag-inline-rule[href*="example.com"]')
