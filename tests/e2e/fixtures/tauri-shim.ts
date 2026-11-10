@@ -33,6 +33,17 @@ export async function installTauriShim(page: Page): Promise<void> {
     // Default fake handler table — return-on-call. Tests override via
     // window.__mockInvoke[cmd] = () => ...
     const defaults: Record<string, (args: any) => any> = {
+      // Link transport double: only an opt-in exact fixture map can emit a
+      // document. Rust tests, not this lookup, prove real path validation.
+      mt_format_link_click: ({data,dirname}: any) => {
+        const w = window as any
+        if (!w.__linkDocuments) return undefined
+        w.__linkRequests.push({href:data.href,dirname})
+        const target = w.__linkDocuments[data.href]
+        if (target === false) throw new Error('fixture document read failed')
+        if (target) w.__emitFakeEvent('mt::open-new-tab', {...target,filename:target.pathname.split('/').pop(),previewMode:false})
+        return undefined
+      },
       // Correlated save-only responses. These are renderer doubles, not disk evidence.
       mt_document_choose_save_target: () => null,
       mt_document_write_snapshot: ({request}: any) => ({...request,pathname:request.targetPath,filename:request.targetPath.split('/').pop()}),

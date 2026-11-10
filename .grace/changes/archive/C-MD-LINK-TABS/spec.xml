@@ -1,0 +1,57 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-MD-LINK-TABS>
+    <Summary>Make rendered Markdown links stable and reliably actionable, distinguish reading from link editing during click gestures, and open validated local documents in the originating Mark window through the existing tab pipeline.</Summary>
+    <Problem>Owner QA on 2026-11-10 found that clicking a local Markdown link launches an obsolete Mark installation. The current mt_format_link_click handler sends every validated local target to the OS opener; the workstation selected Mark 2.1.17. This handler is unchanged between the Save/Close baseline and fa25b309. Cleaning up installations does not repair the product routing. The owner additionally reported an unstable hover target and plain double-click selecting text instead of opening a rendered link; word selection is desired only when that link was already being edited before the gesture.</Problem>
+    <Goals>
+      <R-001>A successfully validated local file supported by the existing Markdown/text document classifier opens as a selected document tab in the same native window that received the click. It never goes through the OS file opener or creates another document window or application process.</R-001>
+      <R-002>When that document is already open, activate its existing tab. Preserve its document lifetime, unsaved buffer, history and dirty state, including when the same canonical target is reached through a supported directory alias.</R-002>
+      <R-003>Use the existing open-new-tab document loading and renderer admission pipeline; preserve concurrent-open deduplication, file-position restoration and the active Save/Close destruction guard.</R-003>
+      <R-004>Validate the target before choosing its destination. Preserve the canonical document-directory fence, alias handling and requested/resolved executable-name guards. Failed validation or file loading does not open an empty tab, invoke the OS as a fallback, close the source document or modify any unsaved buffer.</R-004>
+      <R-005>Preserve current HTTP(S) external-browser routing, same-document hash-anchor navigation and the existing validated OS handling of non-document local targets such as PDF and images.</R-005>
+      <R-006>A rendered link remains visible and presents a stable pointer target across its label, nested formatting and wrapped lines. Hovering or scrolling alone never enters link editing or changes canonical Markdown. The pointer can move from the link to its tools without a stale hide/show timer making the active tools disappear or target a different link.</R-006>
+      <R-007>A plain double-click whose gesture starts on a rendered, not-yet-edited link follows that link exactly once through the existing destination dispatcher. It does not select a word as its final outcome. The first click of that same double-click sequence cannot reclassify the gesture as an edit-mode double-click.</R-007>
+      <R-008>A completed single click on a rendered link enters that link's inline editing state without navigation. A later separate double-click that starts while the link is already in that editing state selects text normally and never follows the link. Merely focusing the document or scrolling is not evidence that this particular link is being edited.</R-008>
+      <R-009>Keep existing Cmd/Ctrl-click navigation and explicit link-tool Jump available, using the same destination and safety rules. Link editing, navigation and text selection cannot all win for one gesture. Cancel pending gesture/hover work when its link, owning document or surface becomes stale; it must not open a later tab's unrelated target.</R-009>
+      <R-010>Apply the rendered-link interaction to rich editing surfaces, including the rich side of split view. Explicit read-only Preview stays noneditable and retains navigation. Source-code editing and ordinary double-click word selection outside a rendered link remain unchanged. Drag selection across links, copy, active IME, canonical Markdown, dirty state, history and caret ownership are preserved.</R-010>
+    </Goals>
+    <Constraints>
+      <Constraint>Reading versus link editing is a local interaction state, not a new global document mode. Gesture recognition must preserve the ordinary platform/browser double-click sequence; it must not require an extra preliminary click, a modifier or a precise hover-icon hit to navigate.</Constraint>
+      <Constraint>No new windows, application instances, system-association dependency, dependency changes, broad path permissions or validation bypass.</Constraint>
+      <Constraint>Reuse the existing supported-document classification and window-targeted event/open path. Do not broadcast a document open to unrelated windows.</Constraint>
+      <Constraint>Keep the approved C-SAVE-CLOSE-DATA-SAFETY artifacts and its candidate immutable. This dependent repair starts from fa25b309 and receives its own later approved plan and source-bound QA artifact.</Constraint>
+      <Constraint>Retain existing test thresholds, retries and command budgets. No fresh-reviewer approval loops.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Multi-window editing, new-window gestures or preferences; these remain a future feature.</NonGoal>
+      <NonGoal>New URL schemes, URI decoding rules, cross-document fragment navigation or a broader redesign of parent-directory traversal policy.</NonGoal>
+      <NonGoal>Installation cleanup and macOS default-handler changes are separate workstation operations, not retroactively implemented by this draft.</NonGoal>
+      <NonGoal>Save/Close redesign, unrelated stabilization items, main integration, release-train admission, version changes, tags or publication.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-001>A clicked relative Markdown sibling, supported subdirectory target and permitted absolute/alias target open exactly one selected tab in the originating window; the OS opener and any window/application creation are absent.</AC-001>
+      <AC-002>Repeated clicks, rapid duplicate arrivals and links to an already open dirty target retain exactly one owned tab and preserve its newer text, history and dirty state. Source-tab edits remain intact.</AC-002>
+      <AC-003>Dangerous requested/resolved names, outward traversal and outward symlinks remain denied. Missing/unreadable targets do not fall back to the OS or create an empty document tab.</AC-003>
+      <AC-004>HTTP(S), same-document anchors and validated non-document files retain their existing destinations. A close that has committed window destruction cannot admit a late link-open result.</AC-004>
+      <AC-005>An isolated source-bound native build proves the clicked Markdown target becomes a tab without another Mark process/window, regardless of the selected system Markdown handler. Automated dispatch coverage proves this independently of cleaning up the workstation.</AC-005>
+      <AC-006>Real pointer sequences on rendered links with plain, nested-formatted and wrapped labels demonstrate: initial double-click follows once; completed single click reveals editing without opening; a later double-click in established editing selects a word without opening. Verify in WebKit and Chromium, with a separate native macOS smoke; dispatching an isolated synthetic dblclick event is insufficient evidence.</AC-006>
+      <AC-007>Controlled hover/leave/re-enter and link-to-tools movement reproduce and eliminate premature hiding. A pending show/hide cannot resurrect stale tools after a tab switch/unmount. The label and actionable area stay stable under actual pointer movement and scroll, without Markdown or dirty-state changes.</AC-007>
+      <AC-008>Existing modifier navigation, tool Jump, read-only preview, split rich-pane ownership, drag selection, adjacent-text/source-mode double-click selection, link destination autocomplete and IME editing retain their respective semantics.</AC-008>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-001/><M-033/><M-011/><M-012/><M-025/>
+      <Paths>src-tauri/src/m_v1_compat.rs link dispatch and existing tab payload path; renderer editor/bootstrap consumers; Muya link hover tools, pointer/click handling and inline link rendering as required for the approved interaction; routed runtime/features graph and verification entries. Exact writes and commands belong to the later plan.</Paths>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedEvidence>A failing dispatch regression before the fix and passing result after it: local Markdown uses only the originating-window document-open route; HTTP(S) and non-document local files use only their respective existing openers.</ExpectedEvidence>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click</ExpectedCommand>
+      <ExpectedEvidence>Existing path-security and alias regressions; file-load failure, dirty-target reuse, rapid duplicate and committed-close refusal checks through the real tab admission boundary.</ExpectedEvidence>
+      <ExpectedEvidence>A native clicked-link smoke with source revision, binary hash, visible target tab and unchanged process/window counts; clearly distinguished from browser IPC doubles. Normal repository safety and required exact-head checks remain mandatory before integration.</ExpectedEvidence>
+      <ExpectedEvidence>The 2026-11-10 controlled diagnostic executes the unchanged LinkTools and MouseEvent source with a stub DOM/clock: re-entry shows at 200ms and the uncancelled old hide closes at 500ms; direct anchor and nested label targets miss the immediate-parent hover gate. This is root-cause reproduction, not native pixel verification or a passing fix test. The approved plan must add permanent regressions and actual pointer/visual evidence.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <OwnerIntent>On 2026-11-10 the owner requested local Markdown links to open tabs and stated that multi-window support belongs to a later version. This draft records that intent for approval; it does not assert approval.</OwnerIntent>
+      <OwnerIntent>The same owner clarified that a double-click from the rendered reading state should navigate, while word selection is appropriate after an earlier completed single-click has already entered that link editing state. The draft remains unapproved.</OwnerIntent>
+      <Default>Use the existing editor document-extension list rather than adding a second Markdown-only list. Existing fragment/encoding limitations are not expanded in this repair.</Default>
+    </Assumptions>
+  </C-MD-LINK-TABS>
+</GraceChangeSpec>

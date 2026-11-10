@@ -102,7 +102,7 @@ export default defineConfig({
     // prompt names, rendered) also gates in WebKit — the engine WKWebView
     // ships; scoped to the coverage spec so the rest of the suite is
     // unchanged.
-    { name: 'webkit-rich', use: { browserName: 'webkit' }, testMatch: 'rich-markdown-coverage.spec.ts' },
+    { name: 'webkit-rich', use: { browserName: 'webkit' }, testMatch: /(rich-markdown-coverage|link-interaction)\.spec\.ts/ },
     // C-51 T-005: the non-Mermaid content theming (Vega-Lite config,
     // flowchart.js and js-sequence colours, KaTeX text colour, theme-switch
     // re-render) also gates in WebKit — the engine WKWebView ships.

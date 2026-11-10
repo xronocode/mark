@@ -23,6 +23,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-10 C-MD-LINK-TABS: own one capture-phase link controller per instance and invalidate it on document imports/teardown.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Add render-only document import and one-shot exact unified-history replay while preserving ordinary and progressive load paths.
 //   LAST_CHANGE: v1.11.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-003:
 //                progressive mount entry points (progressiveMount — parse
@@ -85,6 +86,7 @@ import Clipboard from './eventHandler/clipboard'
 import Keyboard from './eventHandler/keyboard'
 import DragDrop from './eventHandler/dragDrop'
 import Resize from './eventHandler/resize'
+import LinkInteraction from './eventHandler/linkInteraction'
 import ClickEvent from './eventHandler/clickEvent'
 import TableResize from './tableResize'
 import { releaseExpandNeedObservations } from './parser/render/renderBlock/expandNeed'
@@ -156,6 +158,7 @@ class Muya {
     }
 
     this.contentState = new ContentState(this, this.options)
+    this.linkInteraction = new LinkInteraction(this)
     this.clipboard = new Clipboard(this)
     this.clickEvent = new ClickEvent(this)
     this.keyboard = new Keyboard(this)
@@ -315,6 +318,7 @@ class Muya {
     blocks = undefined,
     { renderOnly = false } = {}
   ) {
+    this.linkInteraction?.invalidate('document')
     let finalCursor = null
 
     // C-LARGE-DOC-WAVE-A T-003 (R-2 prefix-mismatch reset): a content load
@@ -829,6 +833,7 @@ class Muya {
   }
 
   destroy() {
+    this.linkInteraction?.destroy()
     // C-LARGE-DOC-WAVE-A T-003: a destroyed editor stops its progressive
     // tail — no lane may fire after teardown.
     if (this._progressive) {

@@ -138,7 +138,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-024; docs/development-plan.xml: M-024</LegacySource>
     </M-024>
     <M-025>
-      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: bootstrap-ipc.js retains parallel pending-open drain and other subscriptions, but legacy saved/path/forced-close broadcasts have no live document authority.</SummaryDelta>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: bootstrap-ipc.js retains parallel pending-open drain and other subscriptions, but legacy saved/path/forced-close broadcasts have no live document authority. C-MD-LINK-TABS: validated document links reuse the existing current-window mt::open-new-tab consumer; canonical duplicate targets retain their live document token, unsaved buffer and history. No parallel-drain or timing policy changes.</SummaryDelta>
       <Name>perf-pending-opens-parallel</Name>
       <DisplayName>perf-pending-opens-parallel</DisplayName>
       <Type>INTEGRATION</Type>
