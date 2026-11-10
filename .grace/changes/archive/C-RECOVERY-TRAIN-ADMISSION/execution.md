@@ -1,0 +1,9 @@
+# Find and hosted dependency admission
+
+Appended one fourth train item covering the merged Find preservation and selection/clipboard follow-up, plus its hosted dependency setup correction. Source head 18a06b377b4b42d5f24b4fcd4622e7608231e8e9 and squash efa9e60955dab59d27d1223d15b8c7f2200014d6 have identical trees. All four required contexts and every substantive platform/browser job passed before integration.
+
+Both isolated Find QA offers are retained: the earlier cdf0d3f artifact and owner-authored checked case with the reported keyboard clipboard issue; then the repaired Mark Clipboard Test artifact at head 18a06b37, binary SHA-256 22d594c00342be7fb8f4231a96c1e7ca5f460a3157a998578f2e27a84c3eba3f. The new case was opened and executable attribution verified. No unqualified owner verdict, native clipboard automation result or quit smoke is inferred. Current native Find/clipboard acceptance remains pending.
+
+Final metadata commands passed: registry validation, Collecting readiness and 125 acceptance/readiness/train/governance fixtures. README survey is generated from the registry. Final assertions ran all three commands with 0 errors and four existing Python heuristic warnings. An append-only comparison proved every old registry event/artifact and all prior train fields/items unchanged. Only the four new items/artifacts and their testing protocols were appended; counts are 30 items, 21 user-facing and 9 operational. The three prior table/window verdicts retain their actual binaries and scenarios. Cosmetic spacing in this batch's new testing text was checked again by the final metadata gate.
+
+Current integrity/status follow archival. No runtime files, version, train state, tags, freeze or publication were changed by the admission. Existing data-preservation prerequisites and unrelated pending acceptance remain open.

@@ -1,0 +1,12 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-TABLE-VIEWER-ACCEPTANCE>
+<ChangeRef>C-TABLE-VIEWER-ACCEPTANCE</ChangeRef><ApprovalBasis>Owner focused QA acceptance and standing ordinary integration/queue delegation.</ApprovalBasis>
+<IntentSummary>After the unchanged green PR211 source is squash-merged, append its actual merge identity, source-bound artifacts, per-scenario owner events and three item testing protocols. Preserve Collecting and existing release boundaries.</IntentSummary>
+<BaselineAssertions><MustExist><Value>docs/acceptance/registry.json</Value><Value>docs/release-trains/2.9.x-next.json</Value></MustExist></BaselineAssertions>
+<TargetAssertions><MustContain><File>docs/acceptance/registry.json</File><Text>C-VIEWER-WINDOW-DRAG</Text></MustContain><MustContain><File>docs/release-trains/2.9.x-next.json</File><Text>C-TABLE-FITTED-RESET</Text></MustContain>
+<MustPassCommand><Command budgetSeconds="180">node tools/acceptance-registry.mjs --check</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="180">npm run release:readiness</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="180">npx --no-install vitest run tests/renderer/acceptance-registry.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js tests/renderer/release-governance.test.js</Command></MustPassCommand></TargetAssertions>
+<DurableScope><GraphAnchors><M-046/></GraphAnchors><VerificationAnchors><V-M-046/></VerificationAnchors></DurableScope>
+<ObservedWriteScope><File>docs/acceptance/registry.json</File><File>docs/acceptance/README.md</File><File>docs/release-trains/2.9.x-next.json</File><File>docs/release-trains/2.9.x-next.md</File><Glob>.grace/changes/active/C-TABLE-VIEWER-ACCEPTANCE/**</Glob></ObservedWriteScope>
+<ImplementationPlan><T-001><Title>Append accepted artifacts and admit the three existing repair IDs</Title><DependsOn/><AcceptanceCriteria><Criterion>Record actual source/merge identities and scoped QA verdicts; retain all old events, unrelated pending acceptance and the release authorization boundary. Queue entries include complete rule4 testing protocols and matching human headings.</Criterion></AcceptanceCriteria><Verification><Command>node tools/acceptance-registry.mjs --check</Command></Verification></T-001></ImplementationPlan>
+</C-TABLE-VIEWER-ACCEPTANCE></GraceChangePlan>
