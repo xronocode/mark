@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-toolbar-labels.spec.ts
-// VERSION: 2.0.0
+// VERSION: 2.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce shrinking corner panels when moving between table/diagram buttons and pin cumulative label reveal until whole-panel exit.
 //   SCOPE: Real pointer traversal over table, Mermaid and Vega-Lite inline toolbars in Chromium/WebKit; label visibility, nonshrinking button/panel widths, panel anchoring, exit reset and unchanged document state.
@@ -13,6 +13,9 @@
 //   documentState - normalized Markdown and saved state, excluding view-only selection.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
+//   initial rich content revision before byte baselines; retain exact
+//   Markdown/saved comparisons and all pointer/geometry oracles.
 //   LAST_CHANGE: v2.0.0 - 2026-11-05 owner review: the expanding pill
 //   labels are RETIRED everywhere (tables AND diagrams) — every button
 //   renders icon-only, the names live in tooltips, the pill never
@@ -82,6 +85,11 @@ for (const role of ['TABLE', 'MERMAID', 'VEGA-LITE']) {
     // text labels are retired — a visited label turned the clicked button
     // into a wide "big button"). Hovering never reveals a label and never
     // widens the pill; the names live in the title/aria tooltips.
+    // A visible table/fonts frame can precede initial store serialization.
+    await expect.poll(() => page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return file?.contentRevision ?? 0
+    })).toBeGreaterThan(0)
     const beforeDocument = await documentState(page)
     const anchor = await panel.boundingBox()
     const width0 = anchor!.width

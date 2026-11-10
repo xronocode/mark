@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-footer.spec.ts
-// VERSION: 1.4.0
+// VERSION: 1.4.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Reproduce the owner's table/counter/scrollbar spacing report and pin a compact constant-height reserved footer.
 //   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, continuous shade paint through the noneditable caption, sticky counter visibility, fitting-table width-control gating including restored Full width, bottom drag-handle hit testing and unchanged Markdown.
@@ -15,6 +15,9 @@
 //   documentState - normalized Markdown and saved state for non-editing interactions.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
+//   initial rich content revision before byte baselines; retain exact
+//   Markdown/saved comparisons and all pointer/geometry oracles.
 //   CURRENT: 2026-11-10 C-STABILIZE-TABLE-E2E: verify accepted no-scroll
 //   fitting/icon-only controls together with natural-size viewer access, real
 //   pointer/keyboard interactions and preserved document/dirty semantics.
@@ -93,6 +96,11 @@ test.beforeEach(async ({ page }) => {
 
 test('reserved footer stays compact and clear when fitted tables no longer need a scrolling counter', async ({ page }, testInfo) => {
   const figure = page.locator("figure[data-role='TABLE']").first()
+  // A visible table/fonts frame can precede initial store serialization.
+  await expect.poll(() => page.evaluate(() => {
+    const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+    return file?.contentRevision ?? 0
+  })).toBeGreaterThan(0)
   const beforeDocument = await documentState(page)
   const geometry = await footer(figure)
   expect(geometry.inside).toBe(true)

@@ -1,8 +1,8 @@
 // FILE: tools/release-project-sync.mjs
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Mirror the checked-in release train into one user-owned GitHub Project without making Project availability part of release admission.
-//   SCOPE: Public-field projection, paginated read, deterministic dry-run/check/apply planning, idempotent owned-field writes, read-back lag tolerance, and duplicate protection; never reverse-syncs or deletes.
+//   SCOPE: Public-field projection with explicit/complete-legacy owner-acceptance truth, paginated read, deterministic dry-run/check/apply planning, idempotent owned-field writes, read-back lag tolerance, and duplicate protection; never reverse-syncs or deletes.
 //   DEPENDS: Node.js fs/path/url; GitHub GraphQL Projects v2 API; release-readiness train authority; .github/release-governance.json.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 //   ROLE: SCRIPT
@@ -11,6 +11,7 @@
 //
 // START_MODULE_MAP
 //   ReleaseProjectSyncError - Stable coded Project mirror error.
+//   ownerAcceptanceProjection - Preserve declared/legacy acceptance truth without inventing a public verdict.
 //   buildProjectProjection - Convert the train authority into allowlisted public Project rows.
 //   planProjectReconciliation - Diff owned fields by stable Item ID without deleting or touching unowned fields.
 //   GraphqlProjectClient - Paginated GitHub Projects v2 read/apply client with bounded retries.
@@ -30,6 +31,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-10 C-STABILIZE-TRAIN-MIRROR: project unaccepted owner states as empty with status text in new row bodies; preserve accepted outputs and use existing field clearing/reconciliation.
 //   - 2026-10-27 v1.5.0: tolerate GitHub Project read-back lag after a create — the apply loop waits for the new stable Item ID instead of re-planning a second create, which duplicated C-NATIVE-DOCX-RTF-EXPORT on 2026-10-26; a read-back that never exposes the created row fails closed with MT_RELEASE_PROJECT_READBACK_LAG rather than creating a duplicate.
 //   - 2026-10-24 v1.4.0: C-RELEASE-CONVEYOR — derive evidence URLs from the manifest's own train ID instead of a hardcoded train.
 //   - 2026-10-21 v1.3.0: use the current draft-item payload field, skip absent values on new items, and clear existing empty values through the dedicated GraphQL mutation.
@@ -79,6 +81,25 @@ const assertPublicValue = (field, value) => {
   }
 }
 
+// A mirror is never an owner verdict. Explicit non-accepted declarations
+// take precedence over filled historical fields, including during recheck.
+const ownerAcceptanceProjection = (item) => {
+  const acceptance = item.acceptance
+  const declared = [acceptance?.status, acceptance?.verdict,
+    ...(['pending', 'rejected', 'needs-recheck'].includes(item.state) ? [item.state] : [])]
+    .filter(value => value !== undefined)
+  const negative = ['rejected', 'needs-recheck', 'pending'].find(value => declared.includes(value))
+  if (negative) return { value: '', status: negative }
+  const explicitAccepted = declared.length > 0 && declared.every(value => value === 'accepted')
+  const legacyComplete = declared.length === 0 &&
+    ['owner', 'date', 'testedArtifact'].every(field => typeof acceptance?.[field] === 'string' && acceptance[field].trim().length > 0) &&
+    Array.isArray(acceptance?.scenarios) && acceptance.scenarios.length > 0 &&
+    acceptance.scenarios.every(scenario => typeof scenario === 'string' && scenario.trim().length > 0)
+  return explicitAccepted || legacyComplete
+    ? { value: 'accepted', status: 'accepted' }
+    : { value: '', status: 'not recorded' }
+}
+
 // START_CONTRACT: buildProjectProjection
 //   PURPOSE: Convert one validated train authority into a train-summary row plus stable public item rows.
 //   INPUTS: { manifest: object - validated train, projectConfig: object - managed Project contract }
@@ -107,23 +128,27 @@ export const buildProjectProjection = (manifest, projectConfig) => {
       }
     }
   ]
-  const addRows = (entries, admission, acceptance) => {
+  const addRows = (entries, admission, fixedAcceptance) => {
     for (const item of entries) {
+      const acceptance = fixedAcceptance
+        ? { value: fixedAcceptance, status: fixedAcceptance }
+        : ownerAcceptanceProjection(item)
+      const statusNote = acceptance.value ? '' : `\n\nOwner acceptance: ${acceptance.status}. Repository train ledger remains authoritative.`
       rows.push({
         stableId: item.id,
         title: `${item.id} — ${item.summary}`,
-        body: `Public release-train mirror for ${item.id}.\n\nManaged Item ID: ${item.id}`,
+        body: `Public release-train mirror for ${item.id}.\n\nManaged Item ID: ${item.id}${statusNote}`,
         fields: {
           ...baseFields,
           Admission: admission,
-          'Owner acceptance': acceptance,
+          'Owner acceptance': acceptance.value,
           'Item ID': item.id,
           'Evidence URL': evidenceUrl(manifest.trainId, item.id)
         }
       })
     }
   }
-  addRows(manifest.items.userFacing, 'included', 'accepted')
+  addRows(manifest.items.userFacing, 'included')
   addRows(manifest.items.operational, 'operational', 'not-required')
   addRows(manifest.items.notPresent, 'not-present', 'not-required')
   for (const row of rows) {

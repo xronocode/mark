@@ -2406,6 +2406,7 @@
     <V-M-046>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx --no-install vitest run tests/renderer/release-project-sync.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js --maxWorkers=2</Command>
         <Command>npm run typecheck:ipc</Command>
         <Command>npx vitest run tests/renderer/release-github-controls.test.js</Command>
         <Command>npm run release:governance</Command>
@@ -2422,6 +2423,7 @@
       <Command>npx --no-install vitest run tests/tools/release-fresh-npx.test.mjs</Command>
       </Commands>
       <Scenarios>
+        <scenario-train-mirror-acceptance>C-STABILIZE-TRAIN-MIRROR: pure/memory/injected-fetch fixtures first reproduce false accepted values for pending, rejected, needs-recheck, missing or incomplete owner evidence. Preserve explicit accepted and validated complete legacy row output; negative declarations override filled legacy fields. Pending new drafts carry status text and omit the empty select field, formerly accepted fields use the unchanged dedicated clear mutation, reconciliation preserves unowned notes and reruns are idempotent. No Project API call or option migration occurs outside the injected fixtures; readiness admission and strict owner gates remain unchanged.</scenario-train-mirror-acceptance>
         <Scenario>C-ATTRIBUTION-NOTICE-REFRESH: actual checker25.0.1 output with NOFILE4096 covers every installed production identity and all direct dependencies; excluded-root counts and local commands are fixture-tested. Complete cargo-bundle-licenses4.2.0 metadata and exact full attribution comparison pass offline. Node optional packages reflect the installed OS/CPU, so another platform may produce a different notice inventory.</Scenario>
         <scenario-train-admission-testing-protocol>C-STABILIZE-TRAIN-ADMISSION: release-readiness fixture tests first reproduce complete-protocol early admission failing on owner fields. Red-to-green cases cover pending/no owner in Collecting/Preparing/Frozen, incomplete protocol rejection including manual build and unexplained omissions, legacy acceptance compatibility, complete accepted Ready/Released, and missing/pending/rejected/needs-recheck rejection at strict manifest and direct strict repository boundaries. Existing exact seal/tag/check/authorization fixtures and the read-only current-train CLI remain green; no actual train admission or owner verdict is generated.</scenario-train-admission-testing-protocol>
         <Scenario>C-CI-CD-AUDIT-FIXES: the docs-only classifier checks out the tree, has PR read permission and identifies any non-documentation file so mixed PRs get the full gate; the required status check includes renderer-unit IPC type checking, every WebKit theme/tree project runs once with screenshot upload retained, and manual QA builds omit updater signing while each verification step fails the job independently. Local, CI and release packaging select Rust 1.99.0; executable Actions references are immutable.</Scenario>

@@ -1,5 +1,5 @@
 // FILE: tests/e2e/block-viewer.spec.ts
-// VERSION: 3.9.0
+// VERSION: 3.9.1
 // START_MODULE_CONTRACT
 //   PURPOSE: End-to-end pin of the shared fullscreen block viewer (C-34 R2.2 + C-39 T2), the C-51 T-006/T-010 expand affordances (since C-56 T-005: the corner pill on mermaid/vega-lite figures and the standalone glyph on flowchart/sequence/plantuml; since C-65 T-002: the TABLE toolbar on tables — its expand action is the pill-family need-gated button) and the T-014 polish — overlay open, zoom keys, read-only table clone with sticky header, Cmd/click, Esc close with focus restore; the T-010 need rules (hidden expand actions on small blocks — no Tab stop; wide/tall blocks get them), the C-56 T-005 pill look (variant C: opacity 0 → 1 on figure hover / :focus-within, never the caret; themed surface pill, label reveal, muted → fg hover), the C-65 table toolbar placement above the table clear of header text and the last-column resize handle, viewport-resize re-evaluation, and light/dark colours; the T-014 cases — fit scales a small diagram UP on open and on Fit with 1:1 restoring natural size, an open viewer follows a paper→ink theme switch (clone re-rendered from the live block, zoom kept), and an edited diagram/math preview sits in flow below the source so the next heading is pushed down, never covered.
 //   SCOPE: block-viewer.spec.ts only; diagram and table flows against the built renderer.
@@ -23,6 +23,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
+//   initial rich content revision before byte baselines; retain exact
+//   Markdown/saved comparisons and all pointer/geometry oracles.
 //   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: preserve fixed Auto
 //   wrapping through render/refit/tab reconciliation; require explicit frame
 //   clamp and slack-growth preconditions with settled pointer geometry.
@@ -1230,6 +1233,11 @@ test.describe('block viewer (C-34 R2.2 + C-39 T2)', () => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
       return { markdown: file.markdown, isSaved: file.isSaved }
     })
+    // A visible table/fonts frame can precede initial store serialization.
+    await expect.poll(() => page.evaluate(() => {
+      const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
+      return file?.contentRevision ?? 0
+    })).toBeGreaterThan(0)
     const beforeDocument = await documentState()
 
     // Geometry: the C-65 toolbar lives in the band ABOVE the table (the

@@ -1,0 +1,11 @@
+# Rich bootstrap baseline evidence
+
+Main5fece09f75375489f58d7616392993dc30df9674 is tree-identical to the checked6f runtime candidate, but its complete browser run exposed one byte-baseline race:139WebKit UI cases passed and the table/viewer case captured raw table Markdown before later canonical store serialization. The same run retained64performance passes plus1configured successful retry; that external-delete legacy behavior is not repaired or hidden here.
+
+A private idle control and the original/settled table gestures passed6/6 in Chromium/WebKit. Pinia action tracing observes the initial LISTEN_FOR_CONTENT_CHANGE with revision0 and a visible table, then canonical Markdown at revision1/2 with isSaved=true and no edit history entry; no pointer action is needed. Local original cases also passed, so the retained hosted failure is the red evidence rather than a claimed deterministic local failure.
+
+Six existing table/viewer specs now wait for their initial rich content revision before taking exact before-operation byte snapshots. Independent stripping of only the six guards and header notes/version increments reproduces every original spec byte-for-byte: fixture Markdown, all existing after-operation comparisons and all pointer/geometry assertions are intact. No application/store, shared shim, comparison normalization, skip, retry, timeout or tolerance changed.
+
+Central final ran the literal build and full table/viewer matrix:2/2commands passed,164browser cases passed in Chromium/WebKit,0failures and0retries. GRACE final reports0errors/4inherited Python heuristic warnings. The previously demonstrated asleep-display test-browser animation workaround was temporary; its original preference was restored and read back. No Mark preference or screen/input/security state was changed.
+
+Production application inputs and the attributed6f QA artifact are unchanged. Main5fe's failed receipt remains retained; it is not rerolled or called green. The qualifying main checkpoint must be observed after the actual merged repair before parent closeout and train bookkeeping. Manual native editing/export/IME and owner acceptance remain pending; version2.8.2 and release authority are unchanged.
