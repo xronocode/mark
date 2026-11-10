@@ -2610,6 +2610,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: editor-store SELECTION_CHANGE prefills Find only for noncollapsed same-block text selections. Caret-only updates retain the active query/matches and still synchronize native menus, preventing the selection-to-empty-query debounce from rerendering and blurring the editor.</SummaryDelta>
       <Name>mt-renderer</Name>
         <SummaryDelta>
         C-STABILIZE-PRODUCT-REPAIRS: owner-accepted no-scroll table fitting, explicit Auto width reset, Auto-only outer walls, full-height internal border zones, icon-only toolbars, final Aa settings glyph and persistent Standard entry. Delayed table adoption is generation/document guarded; repaint preserves transforms and cleans up on teardown.

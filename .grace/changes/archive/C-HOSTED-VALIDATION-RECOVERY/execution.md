@@ -1,0 +1,11 @@
+# Find selection and hosted dependency verification
+
+A collapsed same-block selection replaced the active Find query and matches with an empty value. The search bar reflected that state, scheduled its150ms search debounce, and Muya.search rendered without cursor restoration, blurring the editor. The unchanged WebKit progressive-navigation case failed both hosted attempts and the identical local run. A direct store regression also failed before the guard. Noncollapsed text alone now prefills Find; caret-only updates preserve its full object while native menu synchronization continues.
+
+Hosted Ubuntu dependency setup repeatedly stalled on the Azure HTTP source before backend tests. Only that Ubuntu URI is canonicalized to HTTPS in ephemeral runner source files. Shell syntax and a source fixture passed; nonmatching URLs and signed metadata fields remained intact, and the complete apt guard/package suffix was byte-identical to the prior workflow. No retry, timeout, package, signing key or gate was changed.
+
+The final four literal commands passed: renderer coverage402files with5584passed,2existing skips and3todo; unchanged coverage floors passed at92.08% statements,85.20% branches,88.01% functions and93.48% lines. Production build passed. The unchanged WebKit-perf suite completed64passed plus1existing BOM/EOL flaky case on its preconfigured retry, with zero final failures; the repaired navigation case passed first attempt. The complete178case Chromium/WebKit table/viewer gate passed with zero failures or retries.
+
+Selected final lint returned0errors/6warnings: four existing Python heuristic warnings, broad durable overlap with deferred C-50, and a command-subsumed heuristic warning despite distinct explicit project selectors. Execution logs show65unique WebKit-perf cases and178separate table/viewer cases. No approved plan assertion or scope was edited. After archival current-state lint/status must be rerun.
+
+The earlier three table/viewer owner verdicts retain their original artifact/scenario scope. Native Find-focus acceptance is separate and pending on fresh attributable QA. Hosted checks on the new exact head are required before merge. Version, tags and publication remain unchanged.

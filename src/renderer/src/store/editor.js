@@ -2146,7 +2146,9 @@ export const useEditorStore = defineStore('editor', {
 
     SELECTION_CHANGE(changes) {
       const { start, end } = changes
-      if (start.key === end.key && start.block.text) {
+      // A caret move is not a new Find query. Clearing the query here feeds
+      // the search bar's debounce back into a render that blurs the editor.
+      if (start.key === end.key && start.offset !== end.offset && start.block.text) {
         const value = start.block.text.substring(start.offset, end.offset)
         this.currentFile.searchMatches = {
           matches: [],
@@ -2861,6 +2863,9 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-10 C-HOSTED-VALIDATION-RECOVERY: collapsed selections retain
+//     the active Find query/matches; nonempty selections still prefill it
+//     and all selection changes continue synchronizing native menu state.
 //   - 2026-11-09 C-STABILIZE-DIRTY-RELOAD: automatic reload requires a
 //     clean tab regardless of liveReload/preview/watch flags; recheck local
 //     content, revision, generation and tab ownership across delayed reads.

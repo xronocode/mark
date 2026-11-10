@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.9.0
+# VERSION: 1.9.1
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,6 +11,7 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
+#   CURRENT: 2026-11-10 C-HOSTED-VALIDATION-RECOVERY: replace the stalled Azure HTTP Ubuntu source URI with canonical HTTPS on the ephemeral Linux runner; retain signed suites, package lists, retry counts and budgets.
 #   LAST_CHANGE: v1.9.0 - 2026-11-09 C-CI-CD-AUDIT-FIXES: repair docs-only classification, gate IPC types in renderer-unit, pin executable actions and Rust 1.99.0, and run each WebKit theme/tree project once.
 #   PREV: v1.8.0 - 2026-11-09: the docs-only lane (owner instruction) — pull requests whose diff is confined to docs/**, .grace/changes/** and top-level *.md skip renderer-unit/backend-unit/renderer-e2e (job-level skips satisfy the strict ruleset); status-check aggregates the skipped lane green; push events always run the full suite.
 #   PREV: v1.7.0 - 2026-10-30: the tech-debt lane (integ/techdebt) runs the full suite on push and on pull requests into it, so lane admissions carry the same evidence as main.
@@ -168,6 +169,13 @@ jobs:
         timeout-minutes: 20
         run: |
           set -euo pipefail
+          # Some image sources use an Azure HTTP mirror that can stall while
+          # canonical Ubuntu HTTPS downloads succeed. Preserve every suite,
+          # component and signing key; change only that known source URI.
+          for apt_source in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+            [ -f "$apt_source" ] || continue
+            sudo sed -E -i 's@http://azure[.]archive[.]ubuntu[.]com/ubuntu([/[:space:]]|$)@https://archive.ubuntu.com/ubuntu\1@g' "$apt_source"
+          done
           apt_opts=(
             -o Acquire::ForceIPv4=true
             -o Acquire::Retries=3
