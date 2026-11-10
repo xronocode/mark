@@ -3803,6 +3803,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY renderer follow-up: rich and CodeMirror surfaces project actual model deltas onto the exact owned source. Import-only formatting, list indentation, table padding and line-break normalization do not replace the saved text checkpoint or create revisions. Existing Muya grammar, codec rules, layout and composition fences remain unchanged.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: the renderer adds format to owned complete-model snapshots and keeps composition-first extraction. Muya code, history and canonical serialization are unchanged; the existing mounted-source composition fixture now supplies complete format metadata.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: Instance-scoped LinkInteraction retains native gesture origin and token identity across reflow; no-history cursor APIs reveal/revert syntax without truncating redo. Document imports/teardown and composition invalidate the lease; link-activate routes once.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: inline link renderers share source-token metadata across anchors/syntax, container-scoped lookup handles nested labels, and LinkTools cancels stale show/hide work. These view-only changes do not alter canonical Markdown.</SummaryDelta>

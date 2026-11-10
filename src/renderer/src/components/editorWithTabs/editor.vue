@@ -740,7 +740,6 @@ const unregisterSaveSurface = registerDocumentSurface(() => renderedDocumentOwne
     if (markdown !== file.markdown) {
       if (unified()) muya.contentState.history.commitDocument(markdown, splitSession(), true)
       editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: file.id, markdown, history: muya.getHistory() })
-      file.isSaved = false
     }
     richSerialization = serialized
     return file.markdown
@@ -3569,16 +3568,23 @@ onMounted(() => {
     // the previous surface's text/blocks/history to that new document.
     const id = renderedTabId
     if (id && id === currentFile.value?.id) {
-      if (unified()) {
+      const isUnified = unified()
+      const replay = isUnified && changes.historyRestore === true
+      const serialized = replay ? editor.value.getMarkdown() : changes.markdown
+      if (!replay) {
+        // The first rich serialization can normalize table padding, list
+        // indentation and EOLs. Project only actual model deltas onto the
+        // owned source, just as snapshot capture and Split View already do.
+        // A render echo therefore keeps the exact disk text/checkpoint.
+        changes.markdown = preserveSourceSyntax(currentFile.value.markdown, richSerialization ?? serialized, serialized)
+      }
+      richSerialization = serialized
+      if (isUnified) {
         const history = editor.value.contentState.history
-        const replay = changes.historyRestore === true
-        const serialized = replay ? editor.value.getMarkdown() : changes.markdown
         if (!replay) {
-          changes.markdown = preserveSourceSyntax(currentFile.value.markdown, richSerialization ?? serialized, changes.markdown)
           splitSession().rich = changes.muyaIndexCursor
           history.commitDocument(changes.markdown, splitSession(), true)
         }
-        richSerialization = serialized
         changes.history = editor.value.getHistory()
       }
       if (unified() && changes.markdown === currentFile.value.markdown && !changes.historyRestore) {
@@ -3589,7 +3595,6 @@ onMounted(() => {
         if (changes.muyaIndexCursor) currentFile.value.muyaIndexCursor = changes.muyaIndexCursor
         return
       }
-      if (!unified()) richSerialization = changes.markdown
       editorStore.LISTEN_FOR_CONTENT_CHANGE(
         Object.assign(changes, { id, blocks: unified() ? undefined : editor.value.contentState.getBlocks() })
       )

@@ -96,10 +96,10 @@ test.beforeEach(async ({ page }) => {
 
 test('reserved footer stays compact and clear when fitted tables no longer need a scrolling counter', async ({ page }, testInfo) => {
   const figure = page.locator("figure[data-role='TABLE']").first()
-  // A visible table/fonts frame can precede initial store serialization.
+  // Wait for the owned model blocks, without requiring a text revision on import.
   await expect.poll(() => page.evaluate(() => {
     const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
-    return file?.contentRevision ?? 0
+    return file?.blocks?.length ?? 0
   })).toBeGreaterThan(0)
   const beforeDocument = await documentState(page)
   const geometry = await footer(figure)

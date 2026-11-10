@@ -523,7 +523,12 @@ describe('source focus, scroll and composition lifecycle', () => {
     bus.emit('selectAll'); expect(external.selectionStart).toBe(0); expect(external.selectionEnd).toBe(10)
     expect(cm.execCommand).not.toHaveBeenCalled(); external.remove()
     bus.emit('selectAll'); expect(cm.getSelection()).toBe('plain source')
-    cm.replaceRange(' draft', { line: 0, ch: 12 }); store.LISTEN_FOR_CONTENT_CHANGE.mockClear()
+    store.LISTEN_FOR_CONTENT_CHANGE.mockImplementation(({id,markdown}) => {
+      store.tabs.find(tab=>tab.id===id).markdown=markdown
+    })
+    cm.replaceRange(' draft', { line: 0, ch: 12 })
+    expect(store.currentFile.markdown).toBe('plain source draft')
+    store.LISTEN_FOR_CONTENT_CHANGE.mockClear()
     store.currentFile = { id: 'b', markdown: 'next source' }; store.tabs.push(store.currentFile); await nextTick()
     expect(store.LISTEN_FOR_CONTENT_CHANGE).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: 'a', markdown: 'plain source draft' }))
     expect(cm.getValue()).toBe('next source'); expect(sourceEdits()).toHaveLength(0)

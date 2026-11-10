@@ -1924,6 +1924,9 @@ describe('editor.vue — coverage', () => {
       history: { stack: [], index: -1, lastEditIndex: -1 }, scrollTop: 150
     }
     mockEditorInstance.setMarkdown.mockClear()
+    mockEditorInstance.setMarkdown.mockImplementationOnce(markdown => {
+      mockEditorInstance.getMarkdown.mockReturnValueOnce(markdown)
+    })
     editorStore.tabs = [remaining]
     editorStore.currentFile = remaining
     // The native activation already changed the selected tab, but no render

@@ -85,10 +85,10 @@ for (const role of ['TABLE', 'MERMAID', 'VEGA-LITE']) {
     // text labels are retired — a visited label turned the clicked button
     // into a wide "big button"). Hovering never reveals a label and never
     // widens the pill; the names live in the title/aria tooltips.
-    // A visible table/fonts frame can precede initial store serialization.
+    // Wait for the owned model blocks, without requiring a text revision on import.
     await expect.poll(() => page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
-      return file?.contentRevision ?? 0
+      return file?.blocks?.length ?? 0
     })).toBeGreaterThan(0)
     const beforeDocument = await documentState(page)
     const anchor = await panel.boundingBox()

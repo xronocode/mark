@@ -1,6 +1,6 @@
 <!-- MODULE_CONTRACT
   PURPOSE: Host the editable Markdown source surface and commit user changes to its owning tab; unified split sessions use the same Muya-owned document history in all modes.
-  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, and file event handling. Split companion (splitEdit, C-SPLIT-DUAL-EDIT): editable, follows the tab markdown render-only (isRenderingFromStore guard, 150 ms debounce, scroll kept, remembered caret translated/clamped, IME fenced), CodeMirror history kept empty (unified muya history owns undo via bus undo/redo), locked tabs read-only; the C-29 read-only mirror branch is retired. C-SPLIT-SCROLL-SYNC: the pane pairs its scroller with the muya container ('source' side of splitScrollSync), align to the rich pane's fraction on mount/split activation, and the editable pane re-anchors on its caret line through pane-width changes.
+  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, file event handling and exact-source projection of actual model changes. Split companion (splitEdit, C-SPLIT-DUAL-EDIT): editable, follows the tab markdown render-only (isRenderingFromStore guard, 150 ms debounce, scroll kept, remembered caret translated/clamped, IME fenced), CodeMirror history kept empty (unified muya history owns undo via bus undo/redo), locked tabs read-only; the C-29 read-only mirror branch is retired. C-SPLIT-SCROLL-SYNC: the pane pairs its scroller with the muya container ('source' side of splitScrollSync), align to the rich pane's fraction on mount/split activation, and the editable pane re-anchors on its caret line through pane-width changes.
   DEPENDS: editor/preferences stores, bus, CodeMirror adapter, util/splitScrollSync.js.
   ROLE: RUNTIME
 END_MODULE_CONTRACT
@@ -162,7 +162,7 @@ const prepareTabSwitch = () => {
     const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
     editorStore.LISTEN_FOR_CONTENT_CHANGE({
       id: tabId.value,
-      markdown: newMarkdown,
+      markdown: owner ? preserveSourceSyntax(owner.markdown, sourceSerialization ?? newMarkdown, newMarkdown) : newMarkdown,
       muyaIndexCursor: cursor
     })
     tabId.value = null
@@ -187,13 +187,13 @@ const handleFileChange = ({ id, markdown: newMarkdown, muyaIndexCursor, scrollTo
   followSyncTimer = null
   if (id && id !== tabId.value) compositionFence.release()
   if (id) {
-    compositionText = newMarkdown
     tabId.value = id
     const owner = editorStore.tabs.find(tab => tab.id === id)
     renderedDocumentOwner = owner ? documentOwner(owner) : null
   }
   isRenderingFromStore = true
   if (typeof newMarkdown === 'string' && newMarkdown !== editor.value.getValue()) editor.value.setValue(newMarkdown)
+  sourceSerialization = editor.value.getValue()
   const selection = currentTab.value?.splitSession?.source
   if (selection?.anchor && selection?.head) editor.value.setSelection(selection.anchor, selection.head, { scroll: false })
   else if (muyaIndexCursor?.anchor && muyaIndexCursor?.focus) editor.value.setSelection(muyaIndexCursor.anchor, muyaIndexCursor.focus, { scroll: false })
@@ -311,6 +311,7 @@ const renderFromStore = () => {
   const scroll = cm.getScrollInfo()
   isRenderingFromStore = true
   cm.setValue(markdown)
+  sourceSerialization = cm.getValue()
   cm.clearHistory()
   cm.setSelection(next.anchor, next.head, { scroll: false })
   cm.scrollTo(scroll.left, scroll.top)
@@ -333,19 +334,20 @@ const handleHistoryRestored = (meta) => {
     rememberSelection()
   }
 }
-let compositionText = null
-const handleCompositionStart = () => { compositionText = editor.value?.getValue(); compositionFence.arm() }
+// CodeMirror displays normalized line breaks; this is the rendered baseline,
+// while the tab retains the exact canonical source and its disk checkpoint.
+let sourceSerialization = null
+const handleCompositionStart = () => { sourceSerialization = editor.value?.getValue(); compositionFence.arm() }
 const captureCommittedSource = () => {
   const owner = editorStore.tabs.find(tab => tab.id === tabId.value)
   const cm = editor.value
   if (!owner || !cm || owner.id !== currentTab.value?.id) return null
   const { cursor, markdown:nativeMarkdown } = getMarkdownAndCursor(cm)
-  const markdown=unified.value ? preserveSourceSyntax(owner.markdown,compositionText ?? owner.markdown,nativeMarkdown) : nativeMarkdown
-  compositionText=nativeMarkdown
+  const markdown = preserveSourceSyntax(owner.markdown, sourceSerialization ?? nativeMarkdown, nativeMarkdown)
+  sourceSerialization=nativeMarkdown
   if (markdown !== owner.markdown) {
     if (unified.value) bus.emit('split:source-edit', { id: owner.id, markdown, cursor, selection: currentSelection(), wordCount: getWordCount(markdown) })
     else editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: owner.id, markdown, muyaIndexCursor: cursor, wordCount: getWordCount(markdown) })
-    owner.isSaved = false
   }
   return owner.markdown
 }
@@ -501,8 +503,8 @@ const listenChange = () => {
     }
     if (!unified.value || isRenderingFromStore || viewDestroyed.value || tabId.value !== currentTab.value?.id) return
     const { cursor, markdown: nativeMarkdown } = getMarkdownAndCursor(cm)
-    const markdown = compositionFence.isArmed() ? preserveSourceSyntax(currentTab.value.markdown, compositionText ?? nativeMarkdown, nativeMarkdown) : nativeMarkdown
-    compositionText = nativeMarkdown
+    const markdown = preserveSourceSyntax(currentTab.value.markdown, sourceSerialization ?? nativeMarkdown, nativeMarkdown)
+    sourceSerialization = nativeMarkdown
     if (markdown === currentTab.value.markdown) return
     const wordCount = getWordCount(markdown)
     bus.emit('split:source-edit', { id: tabId.value, markdown, cursor, selection: currentSelection(), wordCount })
@@ -701,7 +703,7 @@ onMounted(() => {
 
   editor.value = codeMirrorInstance
   tabId.value = id
-  compositionText = markdown
+  sourceSerialization = codeMirrorInstance.getValue()
   renderedDocumentOwner = currentTab.value?.id === id ? documentOwner(currentTab.value) : null
 
   // C-40 T-004: a tab already locked when the source pane mounts (source

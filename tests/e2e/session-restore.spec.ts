@@ -196,16 +196,13 @@ test.describe('session restore (C-69)', () => {
     await boot(page)
     await expect(page.locator('#ag-editor-id')).toContainText('Gamma report')
     await page.locator('.editor-component').evaluate((el) => { el.scrollTop = 600 })
-    // Its noncanonical table/blank-line source is normalized by the rich editor.
-    // The complete text checkpoint correctly requires a discard/save decision.
+    // Rendering tables/list syntax must not change the stored source checkpoint.
     const report=await page.evaluate(() => {
       const s=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
       return {markdown:s.currentFile.markdown,savedMarkdown:s.currentFile.savedMarkdown}
     })
-    expect(report.markdown).not.toBe(report.savedMarkdown)
+    expect(report.markdown).toBe(report.savedMarkdown)
     await page.locator('.tabs-container li.active .close-icon').click()
-    await expect(page.locator('.ag-unsaved-close-dialog')).toBeVisible()
-    await page.locator('.ag-unsaved-close-discard').click()
     await expect(page.locator('.tabs-container li.active')).toContainText('beta.md')
     await expect(page.locator('#ag-editor-id')).toContainText('Beta draft')
     await expect(page.locator('#ag-editor-id')).not.toContainText('Gamma report')

@@ -128,3 +128,23 @@ test('mixed policy and unrepresentable text refuse visibly and remain retryable'
   expect((await state(page)).at(-1)!.isSaved).toBe(false)
   test.info().annotations.push({type:'evidence-tier',description:'Refusal transport double; Rust sentinel tests prove no byte mutation.'})
 })
+for (const mode of ['rich','source','split']) test(`${mode} import preserves exact source and format through an explicit save`,async({page})=>{
+  const pathname='/tmp/raw-format.md'
+  const markdown='# Source\r\n\r\n| A | B |\r\n| --- | --- |\r\n| one | two |\r\n\r\n- [ ] Parent\r\n    - [ ] Child\r\n'
+  await page.evaluate(({pathname,markdown})=>{(window as any).__emitFakeEvent('mt::open-new-tab',{
+    pathname,filename:'raw-format.md',markdown,encoding:{encoding:'utf8',isBom:true},lineEnding:'crlf',trimTrailingNewline:3
+  })},{pathname,markdown})
+  await expect(page.locator('#ag-editor-id table').first()).toBeVisible()
+  await page.waitForFunction(code=>eval(code).currentFile?.blocks?.length>0,storeExpression)
+  await setMode(page,mode)
+  if(mode!=='rich') await page.locator('.CodeMirror-line').first().click()
+  const before=(await state(page)).at(-1)!
+  expect(before.markdown).toBe(markdown);expect(before.savedMarkdown).toBe(markdown)
+  expect(before.isSaved).toBe(true);expect(before.revision).toBe(0)
+  await installWrites(page)
+  expect((await action(page,'FILE_SAVE')).status).toBe('completed')
+  const write=await page.evaluate(()=>(window as any).__writes[0])
+  expect(write.markdown).toBe(markdown)
+  expect(write.format).toEqual({encoding:'utf8',isBom:true,lineEnding:'crlf',finalNewline:3})
+  expect((await state(page)).at(-1)!.revision).toBe(0)
+})

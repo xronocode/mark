@@ -403,10 +403,10 @@ test.describe('table layout (C-39 T-001)', () => {
     await waitForTable(page)
     await stayInAuto(page)
     await expectAllColumnsVisible(page, 15)
-    // A visible table/fonts frame can precede initial store serialization.
+    // Wait for the owned model blocks, without requiring a text revision on import.
     await expect.poll(() => page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
-      return file?.contentRevision ?? 0
+      return file?.blocks?.length ?? 0
     })).toBeGreaterThan(0)
     const before = await page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile

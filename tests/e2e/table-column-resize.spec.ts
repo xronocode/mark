@@ -80,10 +80,10 @@ test.describe('table column resize (C-39 T-002)', () => {
       await document.fonts.ready
       await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
     })
-    // A visible table/fonts frame can precede initial store serialization.
+    // Wait for the owned model blocks, without requiring a text revision on import.
     await expect.poll(() => page.evaluate(() => {
       const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
-      return file?.contentRevision ?? 0
+      return file?.blocks?.length ?? 0
     })).toBeGreaterThan(0)
     return wrapper
   }

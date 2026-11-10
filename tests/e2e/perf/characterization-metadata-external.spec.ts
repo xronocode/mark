@@ -542,7 +542,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
 
   test('a BOM-only external rewrite compares equal and is skipped while an EOL-only rewrite is reloaded', async ({ page }) => {
     const observedLegacyBehavior =
-      'Live reload compares only the decoded markdown string. A rewrite with the same text but a UTF-8 BOM (raw bytes differ, M-014 decode strips the BOM) equals tab.markdown, so the watcher logs BLOCK_RELOAD_SKIPPED reason=hash-match, records no snapshot and leaves the tab on stale bytes. An EOL-only rewrite (LF -> CRLF) decodes to a different string, so it IS reloaded and the buffer normalizes back to LF: the visible text ends identical to the pre-change text while the CRLF bytes are gone. The B checkpoint now keeps the normalized live buffer dirty because it differs from the decoded disk text; external byte-equality repair remains deferred.'
+      'Live reload compares only the decoded markdown string. A rewrite with the same text but a UTF-8 BOM (raw bytes differ, M-014 decode strips the BOM) equals tab.markdown, so the watcher logs BLOCK_RELOAD_SKIPPED reason=hash-match, records no snapshot and leaves the tab on stale bytes. An EOL-only rewrite (LF -> CRLF) decodes to a different string, so it IS reloaded and the complete decoded CRLF text remains the saved checkpoint despite the LF representation in the rich renderer. External byte-equality repair remains deferred.'
     const desiredInvariant =
       'External equality must be byte-aware (hash the raw bytes before decoding): a BOM/EOL/final-newline-only rewrite must be reported as a disk change, and no equality decision may rest on the decoded JS string alone.'
     test.info().annotations.push(
@@ -574,7 +574,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     expect(markers.some((line) => line.includes('BLOCK_SNAPSHOT_RECORDED'))).toBe(false)
     expect(tabByPath(await readTabs(page), `${E2E_ROOT}/byte-equal.md`).markdown).toBe(UTF8_PLAIN)
 
-    // EOL-only rewrite: detected as a change; the editor normalizes the CRLF.
+    // EOL-only rewrite: detected as a change; renderer imports without rewriting source CRLF.
     await page.evaluate(({ p, md }: { p: string, md: string }) => {
       ;(window as any).__mockInvoke.mt_fs_read = () => md
       ;(window as any).__emitFakeEvent('mt::watch::event', { kind: 'modify', paths: [p] })
@@ -582,10 +582,8 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     await expectMarker(markers, 'BLOCK_LIVE_RELOAD')
     await expectMarker(markers, 'BLOCK_SNAPSHOT_RECORDED')
     const afterEol = tabByPath(await readTabs(page), `${E2E_ROOT}/byte-equal.md`)
-    expect(afterEol.markdown).toBe(UTF8_PLAIN)
-    expect(afterEol.markdown).not.toContain('\r\n')
-    // The decoded CRLF checkpoint and normalized live text differ: never falsely clean.
-    expect(afterEol.isSaved).toBe(false)
+    expect(afterEol.markdown).toBe(UTF8_CRLF_TEXT)
+    expect(afterEol.isSaved).toBe(true)
   })
 
   test('BOM/CRLF fixtures carry actual format through save while canonical text remains a string', async ({page}) => {
