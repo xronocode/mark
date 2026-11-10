@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-SAVE-CLOSE-DATA-SAFETY>
     <Name>Preserve document text across Save All, close and quit</Name>
     <Summary>Repair the save/close lifecycle as one bounded stabilization item: Save All must save its intended documents, destructive transitions must depend on confirmed current document state, untitled documents must have a real save route, and active IME composition must remain intact. This draft is for owner review; it authorizes no implementation.</Summary>
