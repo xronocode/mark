@@ -26,6 +26,7 @@
 // END_CHANGE_SUMMARY
 
 import './unsavedCloseDialog.css'
+import { i18n } from '../../i18n'
 
 export const UNSAVED_CLOSE_ACTIONS = Object.freeze({
   SAVE: 'save',
@@ -39,7 +40,9 @@ export const UNSAVED_CLOSE_ACTIONS = Object.freeze({
 // finish(), which is idempotent: Escape, the close glyph and a backdrop
 // click resolve CANCEL — the nondestructive default for an ambiguous
 // dismissal — never discard.
-export const askUnsavedClose = ({ filename = '', named = false } = {}) => new Promise((resolve) => {
+export const askUnsavedClose = ({ filename = '', named = false, kind = 'close', filenames = [] } = {}) => new Promise((resolve) => {
+  const t = (key, values) => i18n.global.t(`documentOperations.${key}`, values)
+  const priorFocus = document.activeElement
   const overlay = document.createElement('div')
   overlay.className = 'ag-unsaved-close-overlay'
 
@@ -54,20 +57,18 @@ export const askUnsavedClose = ({ filename = '', named = false } = {}) => new Pr
   const title = document.createElement('span')
   title.id = 'ag-unsaved-close-title'
   title.className = 'ag-unsaved-close-title'
-  title.textContent = 'Unsaved changes'
+  title.textContent = t('title')
   const closeBtn = document.createElement('button')
   closeBtn.type = 'button'
   closeBtn.className = 'ag-unsaved-close-x'
-  closeBtn.setAttribute('aria-label', 'Cancel')
+  closeBtn.setAttribute('aria-label', t('cancel'))
   closeBtn.textContent = '✕'
   header.appendChild(title)
   header.appendChild(closeBtn)
 
   const message = document.createElement('div')
   message.className = 'ag-unsaved-close-message'
-  message.textContent = named
-    ? `"${filename}" has unsaved changes. Save before closing the tab?`
-    : `"${filename}" is unsaved and untitled — Save & Close will ask where to save it.`
+  message.textContent = t(named ? 'message' : 'untitledMessage', {names:filenames.length?filenames.join(', '):filename})
 
   const actions = document.createElement('div')
   actions.className = 'ag-unsaved-close-actions'
@@ -81,9 +82,9 @@ export const askUnsavedClose = ({ filename = '', named = false } = {}) => new Pr
   // macOS order: destructive leftmost, plain Cancel, default rightmost —
   // the destructive action never sits next to the default, and nothing is
   // labelled "Close".
-  const discardBtn = makeButton('ag-unsaved-close-btn ag-unsaved-close-discard', 'Discard')
-  const cancelBtn = makeButton('ag-unsaved-close-btn ag-unsaved-close-cancel', 'Cancel')
-  const saveBtn = makeButton('ag-unsaved-close-btn ag-unsaved-close-save', 'Save & Close')
+  const discardBtn = makeButton('ag-unsaved-close-btn ag-unsaved-close-discard', t('discard'))
+  const cancelBtn = makeButton('ag-unsaved-close-btn ag-unsaved-close-cancel', t('cancel'))
+  const saveBtn = makeButton('ag-unsaved-close-btn ag-unsaved-close-save', t(kind==='quit'?'saveQuit':'saveClose'))
   actions.appendChild(discardBtn)
   actions.appendChild(cancelBtn)
   actions.appendChild(saveBtn)
@@ -102,6 +103,7 @@ export const askUnsavedClose = ({ filename = '', named = false } = {}) => new Pr
     box.removeEventListener('keydown', onKeydown)
     overlay.removeEventListener('mousedown', onBackdrop)
     overlay.remove()
+    if (priorFocus?.isConnected) priorFocus.focus({preventScroll:true})
     resolve(action)
   }
   const onKeydown = (event) => {

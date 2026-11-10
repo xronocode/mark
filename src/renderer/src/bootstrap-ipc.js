@@ -195,10 +195,7 @@ const setupIpcListenersImpl = async () => {
     // still emits per-tab during batch close. Boot-time registration so
     // cross-window batch saves (e.g., another window's "Save All" flow)
     // update this window's tab state correctly.
-    listen('mt::tab-saved', (event) => {
-      const tabId = event?.payload
-      if (typeof tabId === 'string' && tabId) editorStore.APPLY_TAB_SAVED(tabId)
-    }),
+    listen('mt::tab-saved', () => { /* Uncorrelated legacy event: no authority. */ }),
     listen('mt::tab-save-failure', (event) => {
       // Backend emits as Vec<(String, String)> tuple; serializes to
       // [id, msg]. event.payload may be either array shape or object.
@@ -214,21 +211,7 @@ const setupIpcListenersImpl = async () => {
       }
       if (id) editorStore.APPLY_TAB_SAVE_FAILURE(id, msg)
     }),
-    listen('mt::set-pathname', (event) => {
-      // Same batch-save fallback. Single-window save path uses invoke
-      // return value via APPLY_SAVE_OUTCOME; this listener picks up
-      // cross-window emits if backend ever decides to push pathname
-      // updates outside the invoke ack.
-      const fi = event?.payload
-      if (fi && typeof fi === 'object' && fi.id) {
-        editorStore.APPLY_SAVE_OUTCOME({
-          id: fi.id,
-          pathname: fi.pathname,
-          filename: fi.filename,
-          isSaved: true
-        })
-      }
-    }),
+    listen('mt::set-pathname', () => { /* Path adoption requires an owned invoke result. */ }),
 
     // Editor-event listeners. Live channels: bootstrap-editor +
     // open-new-tab. Other editor listeners (close-tab, tab-cycle,
@@ -364,10 +347,7 @@ const setupIpcListenersImpl = async () => {
     // spelling) were deleted: they are menu-driven and now flow through
     // mt::menu-invoked → install-menu-bridge.js, or have no backend
     // emitter at all.
-    listen('mt::force-close-tabs-by-id', (event) => {
-      const list = event?.payload
-      if (Array.isArray(list) && list.length) editorStore.CLOSE_TABS(list)
-    }),
+    listen('mt::force-close-tabs-by-id', () => { /* Bare ids cannot close live documents. */ }),
     // C-1 fix: the legacy mt::update-file listener was dead. Backend
     // emits file-watcher events on mt::watch::event (see m013b/watch.rs);
     // the renderer subscribes through ipcWatch in project.js#ADD_PROJECT,

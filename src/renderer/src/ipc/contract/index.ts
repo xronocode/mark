@@ -27,6 +27,10 @@ export {
   type CommandArgs,
   type CommandResult,
   type CommandMap,
+  type SaveTargetRequest,
+  type SaveTargetReply,
+  type DocumentWriteRequest,
+  type DocumentWriteReply,
   type FsStat,
   type SearchOptions,
   type ExtensionInfo

@@ -1,7 +1,8 @@
 import equal from 'deep-equal'
+import { invoke as invokeDocumentCommand } from '@tauri-apps/api/core'
 import bus from '../bus'
 import { ipcFs, ipcWatch, ipcRecent, ipcPrefs } from '../ipc/runtime'
-import { hasKeys, getUniqueId, deepClone } from '../util'
+import { hasKeys, getUniqueId } from '../util'
 import listToTree from '../util/listToTree'
 import {
   createDocumentState,
@@ -10,6 +11,9 @@ import {
   getBlankFileState
 } from './help'
 import notice from '../services/notification'
+import { documentOwner, captureDocumentSnapshot, inspectDocumentComposition } from '../util/documentSnapshot'
+import { createDocumentOperations } from '../util/documentOperations'
+import { ipcDocumentSave } from '../ipc/runtime/documentSave'
 import { useRecentlyClosedStore } from './recentlyClosed'
 import {
   FileEncodingCommand,
@@ -19,7 +23,6 @@ import {
 } from '../commands'
 import { defineStore } from 'pinia'
 import { watch } from 'vue'
-import { ElMessageBox } from 'element-plus/es/components/message-box/index.mjs'
 import { usePreferencesStore } from './preferences'
 import { useProjectStore } from './project'
 import { useLayoutStore } from './layout'
@@ -40,8 +43,9 @@ import {
   moveFilePositionsEntry,
   clampEntryToMarkdown
 } from '../util/filePositionStore'
-import { askUnsavedClose, UNSAVED_CLOSE_ACTIONS } from '../components/editorWithTabs/unsavedCloseDialog'
+import { askUnsavedClose } from '../components/editorWithTabs/unsavedCloseDialog'
 
+const documentCoordinators = new WeakMap()
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
 const liveReloadGenerations = new Map()
@@ -111,6 +115,7 @@ export const useEditorStore = defineStore('editor', {
   state: () => ({
     currentFile: {},
     findVisible: false,
+    documentWindowClosing: false,
     tabs: [],
     tabIdToIndex: {},
     listToc: [], // Used for equal check and for searching for the correct github-slug to jump to
@@ -525,83 +530,72 @@ export const useEditorStore = defineStore('editor', {
      * state via APPLY_SAVE_OUTCOME — no listener race for the per-tab
      * save ack.
      */
-    async FILE_SAVE() {
-      const projectStore = useProjectStore()
-      const { id, filename, pathname, markdown } = this.currentFile
-      const revision = this.currentFile.contentRevision || 0
-      const defaultPath = getRootFolderFromState(projectStore)
-      if (!id) return
-      try {
-        const { invoke } = await import('@tauri-apps/api/core')
-        const outcome = await invoke('mt_response_file_save', {
-          id,
-          filename,
-          pathname: pathname || null,
-          markdown,
-          defaultPath: defaultPath || null
+    // START_BLOCK_DOCUMENT_OPERATIONS
+    _documentOperations() {
+      if (!documentCoordinators.has(this)) {
+        const coordinator = createDocumentOperations({
+          getTabs: () => this.tabs,
+          capture: owner => captureDocumentSnapshot(this, owner),
+          inspectComposition: inspectDocumentComposition,
+          chooseTarget: request => ipcDocumentSave.chooseTarget(request),
+          writeSnapshot: request => ipcDocumentSave.writeSnapshot(request),
+          defaultPath: () => getRootFolderFromState(useProjectStore()),
+          samePath: (a,b) => window.fileUtils.isSamePathSync(a,b),
+          confirm: ({kind,snapshots}) => askUnsavedClose({
+            filename: snapshots.map(s => s.filename || s.sourcePath).join(', '),
+            named: snapshots.every(s => !!s.sourcePath), kind,
+            filenames: snapshots.map(s => s.sourcePath || s.filename)
+          }),
+          notify: (outcome, request) => this._notifyDocumentOperation(outcome, request),
+          prepareCommit: request => ['quit','window-close'].includes(request.kind)
+            ? this._saveSessionState()
+            : Promise.all(request.owners.map(owner => {
+              const tab=this.tabs.find(t=>t.id===owner.id && t.documentToken===owner.documentToken)
+              return tab ? this._flushFilePositionForTab(tab) : null
+            })),
+          onSaved: (tab, current) => {
+            if (tab.id === this.currentFile.id) window.DIRNAME = window.path.dirname(tab.pathname)
+            if (current) bus.emit('file-saved', {id:tab.id,pathname:tab.pathname})
+            void ipcRecent.add(tab.pathname).catch(() => {})
+          }
         })
-        if (outcome) this.APPLY_SAVE_OUTCOME(outcome, revision)
-      } catch (e) {
-        notice.notify({
-          title: i18n.global.t('dialog.saveFailure'),
-          message: String(e),
-          type: 'error',
-          time: 20000,
-          showConfirm: false
-        })
+        documentCoordinators.set(this,coordinator)
       }
+      return documentCoordinators.get(this)
     },
 
-    /**
-     * Applies a SavedTabState ({id, pathname, filename, isSaved})
-     * returned from mt_response_file_save / mt_response_file_save_as.
-     * Replaces the listener-driven mt::tab-saved + mt::set-pathname
-     * update path. Idempotent — also called from the bootstrap-ipc.js
-     * batch-save listener for cross-window mt_save_and_close_tabs flow.
-     */
-    APPLY_SAVE_OUTCOME(outcome, expectedRevision = null) {
-      if (!outcome || !outcome.id) return
-      const tab = this.tabs.find((t) => t.id === outcome.id)
-      if (!tab) return
-      // Pathname change (save-as or first save of untitled)
-      if (outcome.pathname && outcome.pathname !== tab.pathname) {
-        // Drop any existing tab pointing at the same path (overwrite
-        // semantics that mt::set-pathname listener used to enforce).
-        const existing = this.tabs.find(
-          (t) => t.id !== outcome.id && window.fileUtils.isSamePathSync(t.pathname, outcome.pathname)
-        )
-        if (existing) this.CLOSE_TAB(existing)
-        tab.pathname = outcome.pathname
-        tab.filename = outcome.filename || tab.filename
-        if (outcome.id === this.currentFile.id && outcome.pathname) {
-          window.DIRNAME = window.path.dirname(outcome.pathname)
+    _notifyDocumentOperation(outcome, request) {
+      const owners = request?.owners || outcome.affectedOwners
+      const names = owners.map(owner => this.tabs.find(t => t.id===owner.id && t.documentToken===owner.documentToken))
+        .filter(Boolean).map(tab => tab.pathname || tab.filename).join(', ')
+      const reason = ['composing','busy','collision','changed','new-dirty','stale','unavailable'].includes(outcome.reason) ? outcome.reason : 'failed'
+      const t = (key, values) => i18n.global.t(`documentOperations.${key}`, values)
+      const retry = async () => {
+        if (!owners.every(owner => this.tabs.some(tab => tab.id===owner.id && tab.documentToken===owner.documentToken))) {
+          notice.notify({source:'file',severity:'info',message:t('stale',{names}),dedupKey:'document-operation-stale-retry'})
+          return
         }
+        if (request?.kind === 'save') return this._documentOperations().save(owners[0],{saveAs:request.saveAs})
+        return this.REQUEST_DOCUMENT_OPERATION({...request,owners,decision:'save',confirmedSnapshots:undefined})
       }
-      const stale = expectedRevision !== null && (tab.contentRevision || 0) !== expectedRevision
-      if (stale) {
-        console.warn(`[editor][save][BLOCK_STALE_SAVE_OUTCOME_IGNORED id=${outcome.id}]`)
-        tab.isSaved = false
-      } else {
-        tab.isSaved = !!outcome.isSaved
-        // C-48 review request: a successful save is one half of a
-        // "successful session" (document opened and saved) — the review
-        // controller listens and owns all further logic.
-        if (tab.isSaved) {
-          bus.emit('file-saved', { id: tab.id, pathname: tab.pathname })
-        }
-      }
-      if (
-        tab.isSaved &&
-        tab.history &&
-        tab.history.lastEditIndex >= 0 &&
-        tab.history.lastEditIndex < tab.history.stack.length
-      ) {
-        if (!stale) tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
-      }
-      if (outcome.pathname) {
-        ipcRecent.add(outcome.pathname).catch(() => {})
-      }
+      notice.notify({source:'file',severity:outcome.status==='failed'?'error':'info',title:t('title'),
+        message:t(reason,{names}),dedupKey:`document-operation-${reason}-${owners.map(o=>o.documentToken).join('-')}`,
+        actions:[{label:t(request?.kind==='save'||request?.kind==='save-all'?'retrySave':'retryClose'),handler:retry}]})
     },
+
+    REQUEST_DOCUMENT_OPERATION(request) {
+      const owners=request.owners || this.tabs.map(documentOwner)
+      return this._documentOperations().run({...request,owners})
+    },
+
+    FILE_SAVE() {
+      if (!this.currentFile.id) return Promise.resolve({status:'completed',affectedOwners:[]})
+      return this._documentOperations().save(documentOwner(this.currentFile))
+    },
+
+    // Uncorrelated compatibility events have no authority over live content.
+    APPLY_SAVE_OUTCOME() { return false },
+    // END_BLOCK_DOCUMENT_OPERATIONS
 
     /**
      * IPC listener moved to bootstrap-ipc.js; bus subscription stays
@@ -613,30 +607,9 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
-    async FILE_SAVE_AS() {
-      const projectStore = useProjectStore()
-      const { id, filename, markdown } = this.currentFile
-      const revision = this.currentFile.contentRevision || 0
-      const defaultPath = getRootFolderFromState(projectStore)
-      if (!id) return
-      try {
-        const { invoke } = await import('@tauri-apps/api/core')
-        const outcome = await invoke('mt_response_file_save_as', {
-          id,
-          filename,
-          markdown,
-          defaultPath: defaultPath || null
-        })
-        if (outcome) this.APPLY_SAVE_OUTCOME(outcome, revision)
-      } catch (e) {
-        notice.notify({
-          title: i18n.global.t('dialog.saveFailure'),
-          message: String(e),
-          type: 'error',
-          time: 20000,
-          showConfirm: false
-        })
-      }
+    FILE_SAVE_AS() {
+      if (!this.currentFile.id) return Promise.resolve({status:'completed',affectedOwners:[]})
+      return this._documentOperations().save(documentOwner(this.currentFile),{saveAs:true})
     },
 
     /**
@@ -664,73 +637,25 @@ export const useEditorStore = defineStore('editor', {
     // app.exit(0) never consults the window close lifecycle, so unsaved
     // tabs were dropped silently (owner acceptance probe 2026-10-22:
     // instant exit, zero lifecycle markers).
-    async QUIT_APP() {
-      const projectStore = useProjectStore()
-      const unsavedFiles = this.tabs
-        .filter((file) => !file.isSaved)
-        .map((file) => {
-          const { id, filename, pathname, markdown } = file
-          const options = getOptionsFromState(file)
-          return {
-            id,
-            filename,
-            pathname,
-            markdown,
-            options,
-            defaultPath: getRootFolderFromState(projectStore)
-          }
-        })
+    QUIT_APP() {
+      return this.REQUEST_DOCUMENT_OPERATION({kind:'quit',commit:() => this._commitDocumentWindow('mt_app_quit')})
+    },
 
-      if (!unsavedFiles.length) {
-        await this._saveSessionState()
-        const { invoke } = await import('@tauri-apps/api/core')
-        await invoke('mt_app_quit')
-        return
-      }
-
-      const tabCount = unsavedFiles.length
-      const namedCount = unsavedFiles.filter((f) => f.pathname).length
-      const message =
-        namedCount === tabCount
-          ? `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. Save them before quitting?`
-          : `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. ${tabCount - namedCount} ${tabCount - namedCount > 1 ? 'are' : 'is'} untitled and cannot be auto-saved — Save will commit the named ${namedCount} and discard the rest.`
+    async _commitDocumentWindow(command) {
+      if (this._opensInFlight > 0) throw new Error('Document opens are still pending')
+      this.documentWindowClosing = true
+      const savedLocks=this.tabs.map(tab=>({tab,locked:tab.locked}))
+      // Only the already-approved destruction handoff locks input; disk I/O is complete.
+      savedLocks.forEach(({tab})=>{tab.locked=true})
       try {
-        await ElMessageBox.confirm(message, 'Unsaved changes', {
-          confirmButtonText: namedCount > 0 ? 'Save & Quit' : 'Discard & Quit',
-          cancelButtonText: "Don't Save",
-          type: 'warning',
-          distinguishCancelAndClose: true,
-          closeOnClickModal: false,
-          closeOnPressEscape: true
-        })
-        if (namedCount > 0) {
-          try {
-            await window.electron.ipcRenderer.invoke(
-              'mt::save-and-close-tabs',
-              deepClone(unsavedFiles)
-            )
-          } catch (err) {
-            notice.notify({
-              title: 'Save failed',
-              type: 'error',
-              message: String(err)
-            })
-            return
-          }
-        }
-        await this._saveSessionState()
-        const { invoke } = await import('@tauri-apps/api/core')
-        await invoke('mt_app_quit')
-      } catch (action) {
-        if (action === 'cancel') {
-          // Don't Save — quit without committing the dirty tabs.
-          await this._saveSessionState()
-          const { invoke } = await import('@tauri-apps/api/core')
-          await invoke('mt_app_quit')
-        }
-        // 'close' (Esc/✕) — the user stayed; do not quit.
+        return await invokeDocumentCommand(command)
+      } catch (error) {
+        this.documentWindowClosing = false
+        savedLocks.forEach(({tab,locked})=>{tab.locked=locked})
+        throw error
       }
     },
+
     // END_BLOCK_QUIT_APP
 
     /**
@@ -738,18 +663,7 @@ export const useEditorStore = defineStore('editor', {
      * listener for cross-window batch-save. Same logic as the inline
      * v1 listener body had.
      */
-    APPLY_TAB_SAVED(tabId) {
-      const tab = this.tabs.find((f) => f.id === tabId)
-      if (
-        tab &&
-        tab.history &&
-        tab.history.lastEditIndex >= 0 &&
-        tab.history.lastEditIndex < tab.history.stack.length
-      ) {
-        tab.lastSavedHistoryId = tab.history.stack[tab.history.lastEditIndex].id
-        tab.isSaved = true
-      }
-    },
+    APPLY_TAB_SAVED() { return false },
 
     /**
      * Public action — invoked by bootstrap-ipc.js mt::tab-save-failure
@@ -988,109 +902,30 @@ export const useEditorStore = defineStore('editor', {
     },
 
     LISTEN_FOR_CLOSE() {
-      const projectStore = useProjectStore()
-      window.electron.ipcRenderer.on('mt::ask-for-close', async () => {
-        const unsavedFiles = this.tabs
-          .filter((file) => !file.isSaved)
-          .map((file) => {
-            const { id, filename, pathname, markdown } = file
-            const options = getOptionsFromState(file)
-            return {
-              id,
-              filename,
-              pathname,
-              markdown,
-              options,
-              defaultPath: getRootFolderFromState(projectStore)
-            }
-          })
-
-        if (!unsavedFiles.length) {
-          await this._saveSessionState()
-          window.electron.ipcRenderer.send('mt::close-window')
-          return
-        }
-
-        const tabCount = unsavedFiles.length
-        const namedCount = unsavedFiles.filter((f) => f.pathname).length
-        const message =
-          namedCount === tabCount
-            ? `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. Save them before closing?`
-            : `${tabCount} tab${tabCount > 1 ? 's have' : ' has'} unsaved changes. ${tabCount - namedCount} ${tabCount - namedCount > 1 ? 'are' : 'is'} untitled and cannot be auto-saved — Save will commit the named ${namedCount} and discard the rest.`
-        try {
-          await ElMessageBox.confirm(message, 'Unsaved changes', {
-            confirmButtonText: namedCount > 0 ? 'Save & Close' : 'Discard & Close',
-            cancelButtonText: "Don't Save",
-            type: 'warning',
-            distinguishCancelAndClose: true,
-            closeOnClickModal: false,
-            closeOnPressEscape: true
-          })
-          if (namedCount > 0) {
-            try {
-              await window.electron.ipcRenderer.invoke(
-                'mt::save-and-close-tabs',
-                deepClone(unsavedFiles)
-              )
-              await this._saveSessionState()
-              window.electron.ipcRenderer.send('mt::close-window')
-            } catch (err) {
-              notice.notify({
-                title: 'Save failed',
-                type: 'error',
-                message: String(err)
-              })
-            }
-          } else {
-            await this._saveSessionState()
-            window.electron.ipcRenderer.send('mt::close-window')
-          }
-        } catch (action) {
-          if (action === 'cancel') {
-            await this._saveSessionState()
-            window.electron.ipcRenderer.send('mt::close-window')
-          }
-        }
-      })
+      window.electron.ipcRenderer.on('mt::ask-for-close', () => this.REQUEST_DOCUMENT_OPERATION({
+        kind:'window-close',commit:() => this._commitDocumentWindow('mt_close_window')
+      }))
     },
 
     ASK_FOR_SAVE_ALL(closeTabs) {
-      const { tabs } = this
-      const projectStore = useProjectStore()
-      const unsavedFiles = tabs
-        .filter((file) => !(file.isSaved && /[^\n]/.test(file.markdown)))
-        .map((file) => {
-          const { id, filename, pathname, markdown } = file
-          const options = getOptionsFromState(file)
-          return {
-            id,
-            filename,
-            pathname,
-            markdown,
-            options,
-            defaultPath: getRootFolderFromState(projectStore)
-          }
-        })
-
-      if (closeTabs) {
-        if (unsavedFiles.length) {
-          this.CLOSE_TABS(tabs.filter((f) => f.isSaved).map((f) => f.id))
-          window.electron.ipcRenderer.send('mt::save-and-close-tabs', deepClone(unsavedFiles))
-        } else {
-          this.CLOSE_TABS(tabs.map((f) => f.id))
-        }
-      } else {
-        window.electron.ipcRenderer.send('mt::save-tabs', deepClone(unsavedFiles))
-      }
+      return this.REQUEST_DOCUMENT_OPERATION({kind:closeTabs?'close-all':'save-all',
+        commit:owners => this._commitDocumentTabs(owners)})
     },
 
     async MOVE_FILE_TO() {
+      if (this.tabs.some(tab=>this._documentOperations().isBusy(documentOwner(tab)))) {
+        this._notifyDocumentOperation({status:'blocked',reason:'busy',affectedOwners:this.tabs.map(documentOwner)},{kind:'save',owners:[documentOwner(this.currentFile)]})
+        return
+      }
       const { id, pathname } = this.currentFile
       if (!id) return
       if (!pathname) {
         await this.FILE_SAVE_AS()
         return
       }
+      const releasePath=this._documentOperations().reservePathChange([documentOwner(this.currentFile)])
+      if(!releasePath) return
+      try {
       const { open } = await import('@tauri-apps/plugin-dialog')
       const destDir = await open({ directory: true, multiple: false })
       if (!destDir) return
@@ -1099,12 +934,9 @@ export const useEditorStore = defineStore('editor', {
       const newPathname = window.path.join(destDir, filename)
       try {
         await window.fileUtils.move(pathname, newPathname)
-        this.APPLY_SAVE_OUTCOME({
-          id,
-          pathname: newPathname,
-          filename,
-          isSaved: true
-        })
+        const moved=this.tabs.find(tab=>tab.id===id && tab.pathname===pathname)
+        if(moved) { moved.pathname=newPathname; moved.filename=filename }
+        if(this.currentFile.id===id && moved) window.DIRNAME=window.path.dirname(newPathname)
       } catch (e) {
         notice.notify({
           title: 'Move failed',
@@ -1112,6 +944,7 @@ export const useEditorStore = defineStore('editor', {
           message: String(e)
         })
       }
+      } finally { releasePath() }
     },
 
     LISTEN_FOR_MOVE_TO() {
@@ -1145,9 +978,15 @@ export const useEditorStore = defineStore('editor', {
     },
 
     async RENAME(newFilename) {
+      if (this.tabs.some(tab=>this._documentOperations().isBusy(documentOwner(tab)))) {
+        this._notifyDocumentOperation({status:'blocked',reason:'busy',affectedOwners:this.tabs.map(documentOwner)},{kind:'save',owners:[documentOwner(this.currentFile)]})
+        return
+      }
       const { id, pathname, filename } = this.currentFile
       if (typeof filename !== 'string' || filename === newFilename) return
       const newPathname = window.path.join(window.path.dirname(pathname), newFilename)
+      const releasePath=this._documentOperations().reservePathChange([documentOwner(this.currentFile)])
+      if(!releasePath) return
       try {
         await window.fileUtils.move(pathname, newPathname)
         // C-65 R-2: the stored table layouts follow the rename (the
@@ -1164,12 +1003,9 @@ export const useEditorStore = defineStore('editor', {
         movePageWidthEntry(pathname, newPathname).catch(e =>
           console.warn(`[editor][rename][BLOCK_PAGE_WIDTH_MOVE_FAILED] ${e}`)
         )
-        this.APPLY_SAVE_OUTCOME({
-          id,
-          pathname: newPathname,
-          filename: newFilename,
-          isSaved: true
-        })
+        const renamed=this.tabs.find(tab=>tab.id===id && tab.pathname===pathname)
+        if (renamed) { renamed.pathname=newPathname; renamed.filename=newFilename }
+        if (this.currentFile.id===id && renamed) window.DIRNAME=window.path.dirname(newPathname)
       } catch (e) {
         notice.notify({
           title: 'Rename failed',
@@ -1177,9 +1013,11 @@ export const useEditorStore = defineStore('editor', {
           message: String(e)
         })
       }
+      finally { releasePath() }
     },
 
     UPDATE_CURRENT_FILE(currentFile) {
+      if (this.documentWindowClosing) return false
       const oldCurrentFile = this.currentFile
       if (!oldCurrentFile.id || oldCurrentFile.id !== currentFile.id) {
         if (oldCurrentFile.splitSession?.unified) bus.emit('split:before-tab-change')
@@ -1341,16 +1179,17 @@ export const useEditorStore = defineStore('editor', {
     },
 
     CLOSE_TAB(file = null) {
-      if (!file) {
-        file = this.currentFile
-      }
-      if (!hasKeys(file)) return
+      const target=file || this.currentFile
+      if (!target?.id) return Promise.resolve({status:'completed',affectedOwners:[]})
+      return this.REQUEST_DOCUMENT_OPERATION({kind:'close',owners:[documentOwner(target)],
+        commit:owners=>this._commitDocumentTabs(owners)})
+    },
 
-      if (file.isSaved) {
-        this.FORCE_CLOSE_TAB(file)
-      } else {
-        this.CLOSE_UNSAVED_TAB(file)
-      }
+    _commitDocumentTabs(owners) {
+      // Remove inactive owners first so a dying batch never renders an intermediate owner.
+      const tabs=owners.map(owner=>this.tabs.find(t=>t.id===owner.id && t.documentToken===owner.documentToken)).filter(Boolean)
+      tabs.sort((a,b)=>Number(a.id===this.currentFile.id)-Number(b.id===this.currentFile.id))
+      tabs.forEach(tab=>this.FORCE_CLOSE_TAB(tab))
     },
 
     /**
@@ -1480,82 +1319,20 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    async CLOSE_UNSAVED_TAB(file) {
-      // F-LIFECYCLE-WIRE (B4-pre-alpha-step-3): renderer-driven confirm
-      // dialog before saving/discarding an unsaved tab on Cmd+W. v1.2.3
-      // would silently save+close which surprised the 2026-05-08 smoke
-      // user ("nothing appears"). FIX-011 (2026-10-20): the owner-approved
-      // action model — default Save & Close, a separate non-default
-      // Discard, and a visible Cancel (Escape and the close glyph are
-      // Cancel). For an untitled tab, Save & Close leads into Save As and
-      // the tab closes ONLY after the write succeeds; cancelling or
-      // failing the save leaves the tab and its content open.
-      const { id, pathname, filename, markdown } = file
-      const options = getOptionsFromState(file)
-      const named = !!pathname
-      const action = await askUnsavedClose({ filename, named })
-      if (action === UNSAVED_CLOSE_ACTIONS.CANCEL) return
-      if (action === UNSAVED_CLOSE_ACTIONS.DISCARD) {
-        this.FORCE_CLOSE_TAB(file)
-        return
-      }
-      if (named) {
-        window.electron.ipcRenderer.send('mt::save-and-close-tabs', [
-          { id, pathname, filename, markdown, options: deepClone(options) }
-        ])
-        return
-      }
-      // Untitled: Save As through the same transport FILE_SAVE_AS uses,
-      // applied to THIS tab's identity (it may not be the current tab).
-      // A cancelled dialog (falsy outcome) resolves without closing.
-      const revision = file.contentRevision || 0
-      try {
-        const { invoke } = await import('@tauri-apps/api/core')
-        const outcome = await invoke('mt_response_file_save_as', {
-          id,
-          filename,
-          markdown,
-          defaultPath: getRootFolderFromState(useProjectStore()) || null
-        })
-        if (outcome) {
-          this.APPLY_SAVE_OUTCOME(outcome, revision)
-          this.FORCE_CLOSE_TAB(file)
-          console.debug(`[Editor][CLOSE_UNSAVED_TAB][BLOCK_UNSAVED_CLOSE_SAVED_AND_CLOSED id=${id}]`)
-        } else {
-          console.debug(`[Editor][CLOSE_UNSAVED_TAB][BLOCK_UNSAVED_CLOSE_SAVE_CANCELLED id=${id}]`)
-        }
-      } catch (e) {
-        notice.notify({
-          title: i18n.global.t('dialog.saveFailure'),
-          message: String(e),
-          type: 'error',
-          time: 20000,
-          showConfirm: false
-        })
-        console.warn(`[Editor][CLOSE_UNSAVED_TAB][BLOCK_UNSAVED_CLOSE_SAVE_FAILED id=${id}] ${e}`)
-      }
-    },
+    CLOSE_UNSAVED_TAB(file) { return this.CLOSE_TAB(file) },
 
     CLOSE_OTHER_TABS(file) {
-      this.tabs
-        .filter((f) => f.id !== file.id)
-        .forEach((tab) => {
-          this.CLOSE_TAB(tab)
-        })
+      return this.REQUEST_DOCUMENT_OPERATION({kind:'close-others',owners:this.tabs.filter(t=>t.id!==file.id).map(documentOwner),
+        commit:owners=>this._commitDocumentTabs(owners)})
     },
 
     CLOSE_SAVED_TABS() {
-      this.tabs
-        .filter((f) => f.isSaved)
-        .forEach((tab) => {
-          this.CLOSE_TAB(tab)
-        })
+      return this.REQUEST_DOCUMENT_OPERATION({kind:'close-all',owners:this.tabs.filter(t=>t.isSaved).map(documentOwner),
+        commit:owners=>this._commitDocumentTabs(owners)})
     },
 
     CLOSE_ALL_TABS() {
-      this.tabs.slice().forEach((tab) => {
-        this.CLOSE_TAB(tab)
-      })
+      return this.REQUEST_DOCUMENT_OPERATION({kind:'close-all',commit:owners=>this._commitDocumentTabs(owners)})
     },
 
     CLOSE_TABS(tabIdList) {
@@ -1654,6 +1431,7 @@ export const useEditorStore = defineStore('editor', {
     // tab of that file follows to `dest` and its per-file watcher moves
     // with it. No bus 'rename' here — that channel opens the rename dialog.
     RENAME_IF_NEEDED({ src, dest }) {
+      this.tabs.forEach(tab=> { if(this._documentOperations().isBusy(documentOwner(tab))) this._documentOperations().invalidate(documentOwner(tab)) })
       const moved = this.tabs.filter((t) => window.fileUtils.isSamePathSync(t.pathname, src))
       if (moved.length === 0) return
       const oldPathname = moved[0].pathname
@@ -1763,6 +1541,7 @@ export const useEditorStore = defineStore('editor', {
      * and whether the tab should become the selected tab (true if not set).
      */
     NEW_UNTITLED_TAB({ markdown: markdownString, selected }) {
+      if (this.documentWindowClosing) return false
       if (selected == null) {
         selected = true
       }
@@ -1868,6 +1647,7 @@ export const useEditorStore = defineStore('editor', {
      * and optional whether the tab should become the selected tab (true if not set).
      */
     async NEW_TAB_WITH_CONTENT({ markdownDocument, options = {}, selected }) {
+      if (this.documentWindowClosing) return false
       if (!markdownDocument) {
         console.warn('Cannot create a file tab without a markdown document!')
         this.NEW_UNTITLED_TAB({})
@@ -1911,6 +1691,7 @@ export const useEditorStore = defineStore('editor', {
           }
         }
         // END_BLOCK_POSITION_RESTORE
+        if (this.documentWindowClosing) return false
 
         const { currentFile, tabs } = this
         // Checked AFTER the await on purpose: two rapid arrivals for one
@@ -2106,7 +1887,6 @@ export const useEditorStore = defineStore('editor', {
         autoSaveTimers.delete(id)
       }
 
-      const revision = requestedRevision ?? (this.tabs.find((tab) => tab.id === id)?.contentRevision || 0)
       const timer = setTimeout(async () => {
         autoSaveTimers.delete(id)
 
@@ -2122,24 +1902,14 @@ export const useEditorStore = defineStore('editor', {
 
         const tab = this.tabs.find((t) => t.id === id)
         if (tab && !tab.isSaved) {
-          const defaultPath = getRootFolderFromState(projectStore)
-          // Auto-save through canonical invoke. Untitled tabs skip
-          // auto-save (would open picker mid-edit which is awful UX).
-          // Named tabs write straight through.
-          if (!pathname) return
-          try {
-            const { invoke } = await import('@tauri-apps/api/core')
-            const outcome = await invoke('mt_response_file_save', {
-              id,
-              filename,
-              pathname: pathname || null,
-              markdown,
-              defaultPath: defaultPath || null
-            })
-            if (outcome) this.APPLY_SAVE_OUTCOME(outcome, revision)
-          } catch (e) {
-            console.warn('[editor][auto-save] failed', e)
+          if (!tab.pathname) return
+          const owner=documentOwner(tab)
+          if (this._documentOperations().isBusy(owner)) {
+            this.HANDLE_AUTO_SAVE({id,pathname:tab.pathname})
+            return
           }
+          await this._documentOperations().save(owner)
+
         }
       }, autoSaveDelay)
       autoSaveTimers.set(id, timer)

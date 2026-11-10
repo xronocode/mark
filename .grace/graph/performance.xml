@@ -138,6 +138,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-024; docs/development-plan.xml: M-024</LegacySource>
     </M-024>
     <M-025>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: bootstrap-ipc.js retains parallel pending-open drain and other subscriptions, but legacy saved/path/forced-close broadcasts have no live document authority.</SummaryDelta>
       <Name>perf-pending-opens-parallel</Name>
       <DisplayName>perf-pending-opens-parallel</DisplayName>
       <Type>INTEGRATION</Type>
@@ -746,6 +747,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-030; docs/development-plan.xml: M-030</LegacySource>
     </M-030>
     <M-060>
+      <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Live save/close and owned IME characterization scenarios assert C-SAVE-CLOSE-DATA-SAFETY desired invariants. Historical Stage 0 bundles and unrelated metadata/byte-policy defect records remain frozen. Browser doubles remain explicitly distinct from native disk/IME evidence.</SummaryDelta>
       <Name>perf-stage0-harness</Name>
       <DisplayName>perf-stage0-harness</DisplayName>
       <Type>UTILITY</Type>

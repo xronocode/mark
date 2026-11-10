@@ -63,10 +63,10 @@ async function setSaveAsMock(page: import('@playwright/test').Page, behaviour: s
   await page.evaluate((body) => {
     const w = window as any
     w.__saveAsCalls = []
-    w.__mockInvoke.mt_response_file_save_as = (args: any) => {
+    w.__mockInvoke.mt_document_choose_save_target = ({request:args}: any) => {
       w.__saveAsCalls.push(args)
       const outcome = eval(body)
-      return outcome
+      return outcome ? {...args,pathname:outcome.pathname} : null
     }
   }, behaviour)
 }
@@ -181,9 +181,9 @@ test.describe('unsaved named-tab close regression (FIX-011 boundary)', () => {
     await page.evaluate(() => {
       const w = window as any
       w.__saveCloseCalls = []
-      w.__mockInvoke.mt_save_and_close_tabs = (args: any) => {
+      w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => {
         w.__saveCloseCalls.push(args)
-        return null
+        return {...args,pathname:args.targetPath,filename:args.filename}
       }
     })
   })
@@ -197,7 +197,7 @@ test.describe('unsaved named-tab close regression (FIX-011 boundary)', () => {
     await expect.poll(() => page.evaluate(() => (window as any).__saveCloseCalls.length), { timeout: 5_000 }).toBe(1)
     const payload = await page.evaluate(() => (window as any).__saveCloseCalls[0])
     const tabs = payload?.args ?? payload
-    expect(Array.isArray(tabs) ? tabs[0].pathname : tabs.pathname).toBe('/tmp/mark-e2e/named.md')
+    expect(Array.isArray(tabs) ? tabs[0].targetPath : tabs.targetPath).toBe('/tmp/mark-e2e/named.md')
   })
 
   test('Discard closes the named tab directly; Cancel keeps it', async ({ page }) => {

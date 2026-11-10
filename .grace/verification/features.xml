@@ -1334,6 +1334,7 @@
         <Command>npx playwright test tests/e2e/multi-root-workspace.spec.ts --project=chromium</Command>
       </Commands>
       <Scenarios>
+        <Scenario>C-SAVE-CLOSE-DATA-SAFETY: Workspace replacement captures original document lifetimes and confirmation versions, then awaits the shared structured operation result before its owned tab/root commit. Cancel/failure leaves all original targets open; a later unrelated tab is never swept into the original target set. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>
           scenario-c4-sidebar-rename: RENAME_IN_SIDEBAR builds dest from the source directory, calls editorStore.RENAME_IF_NEEDED after a successful rename, and a failed rename shows an 'Error in Side Bar' notice instead of an unhandled rejection (project.test.ts RENAME_IN_SIDEBAR).
         </Scenario>

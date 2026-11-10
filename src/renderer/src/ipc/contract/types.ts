@@ -61,6 +61,8 @@ export class IpcError extends Error {
  * until Phase-B2 ships real impls in M-002 / M-003 / M-004.
  */
 export type CommandName =
+  | 'mt::document::choose_save_target'
+  | 'mt::document::write_snapshot'
   | 'mt::ping'
   | 'mt::fs::read'
   | 'mt::fs::write'
@@ -152,7 +154,21 @@ export interface SearchOptions {
  * real impls. Empty args use `Record<string, never>` so a renderer
  * caller is forced to pass `{}` rather than rely on undefined.
  */
+export interface SaveTargetRequest { requestId: string; documentToken: string; filename: string; defaultPath: string | null }
+export interface SaveTargetReply { requestId: string; documentToken: string; pathname: string }
+export interface DocumentWriteRequest {
+  requestId: string; documentToken: string; id: string; revision: number;
+  sourcePath: string; targetPath: string; markdown: string;
+  ownedPaths: { documentToken: string; pathname: string }[]
+}
+export interface DocumentWriteReply {
+  requestId: string; documentToken: string; id: string; revision: number;
+  sourcePath: string; pathname: string; filename: string
+}
+
 export interface CommandMap {
+  'mt::document::choose_save_target': { args: { request: SaveTargetRequest }; result: SaveTargetReply | null }
+  'mt::document::write_snapshot': { args: { request: DocumentWriteRequest }; result: DocumentWriteReply }
   'mt::ping': {
     args: { nonce?: string }
     result: { pong: true; nonce: string | undefined }

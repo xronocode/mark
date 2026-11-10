@@ -254,9 +254,9 @@ async function installSaveSuccess (page: Page): Promise<void> {
   await page.evaluate(() => {
     const w = window as any
     w.__saveCalls = []
-    w.__mockInvoke.mt_response_file_save = (args: any) => {
+    w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => {
       w.__saveCalls.push(args)
-      return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
+      return {...args,pathname:args.targetPath,filename:args.targetPath.split('/').pop()}
     }
   })
 }
@@ -265,7 +265,7 @@ async function installSaveReject (page: Page, message: string): Promise<void> {
   await page.evaluate((msg: string) => {
     const w = window as any
     w.__saveAttempts = 0
-    w.__mockInvoke.mt_response_file_save = () => {
+    w.__mockInvoke.mt_document_write_snapshot = () => {
       w.__saveAttempts++
       throw new Error(msg)
     }
@@ -340,13 +340,12 @@ async function installDeferredSave (page: Page): Promise<void> {
     const w = window as any
     w.__saveCalls = []
     w.__saveResolvers = []
-    w.__mockInvoke.mt_response_file_save = (args: any) => new Promise((resolve: any) => {
+    w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => new Promise((resolve: any) => {
       w.__saveCalls.push(args)
       w.__saveResolvers.push(() => resolve({
-        id: args.id,
-        pathname: args.pathname,
-        filename: args.filename,
-        isSaved: true
+        ...args,
+        pathname: args.targetPath,
+        filename: args.targetPath.split('/').pop()
       }))
     })
   })
@@ -489,7 +488,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     const args = (await saveCalls(page))[0]
 
     expect(args.markdown).toBe(editedMarkdown)
-    expect(Object.keys(args).sort()).toEqual(['defaultPath', 'filename', 'id', 'markdown', 'pathname'])
+    expect(Object.keys(args).sort()).toEqual(['documentToken','id','markdown','ownedPaths','requestId','revision','sourcePath','targetPath'])
     expect(args).not.toHaveProperty('encoding')
     expect(args).not.toHaveProperty('lineEnding')
     expect(args).not.toHaveProperty('adjustLineEndingOnSave')
@@ -688,7 +687,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     expect(bomArgs.markdown.charCodeAt(0)).not.toBe(0xfeff)
     expect(bomArgs.markdown.includes('\uFEFF')).toBe(false)
     expect(Buffer.from(bomArgs.markdown, 'utf8').subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]))).toBe(false)
-    expect(Object.keys(bomArgs).sort()).toEqual(['defaultPath', 'filename', 'id', 'markdown', 'pathname'])
+    expect(Object.keys(bomArgs).sort()).toEqual(['documentToken','id','markdown','ownedPaths','requestId','revision','sourcePath','targetPath'])
     expect(bomArgs).not.toHaveProperty('bytes')
     expect(bomArgs).not.toHaveProperty('encoding')
 
@@ -743,8 +742,8 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     await installSaveReject(page, 'disk full (characterization fixture)')
     await callFileSave(page)
     await expect.poll(() => page.evaluate(() => (window as any).__saveAttempts), { timeout: 5_000 }).toBe(1)
-    await expect(page.locator('.notification-card').first()).toContainText('Save failure', { timeout: 5_000 })
-    await expect(page.locator('.notification-card').first()).toContainText('disk full (characterization fixture)')
+    await expect(page.locator('.notification-card').first()).toContainText('Saving or closing failed', { timeout: 5_000 })
+    await expect(page.locator('.notification-card').first()).toContainText('save-reject.md')
 
     const after = tabByPath(await readTabs(page), `${E2E_ROOT}/save-reject.md`)
     // No phantom clean state and no silent data loss.
@@ -754,68 +753,24 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     expect(after.pathname).toBe(before.pathname)
     expect(after.id).toBe(before.id)
     // The renderer never reaches a write/temp/recovery command: no WAL exists.
-    expect(await saveInvocations(page)).toEqual(['mt_response_file_save'])
+    expect(await saveInvocations(page)).toEqual(['mt_document_write_snapshot'])
   })
 
-  test('Save As onto a path owned by another tab silently takes the path (expected-absent collision)', async ({ page }) => {
-    const observedLegacyBehavior =
-      'FILE_SAVE_AS trusts the pathname returned by mt_response_file_save_as: when the fake backend reports the destination absent through mt_fs_stat and returns a path owned by another saved tab, APPLY_SAVE_OUTCOME force-closes the owning tab with no dialog and no save, reassigns the current tab to that pathname/filename, and the renderer never stats the destination itself. The Save As request carries no destination path at all.'
-    const desiredInvariant =
-      'Save As must verify an expected-absent destination at commit time: a collision with an owning tab (or an external create after the temp write) must fail closed and surface the conflict, never silently close the owning tab or commit over a path the operation did not expect.'
-    test.info().annotations.push(
-      { type: 'observedLegacyBehavior', description: observedLegacyBehavior },
-      { type: 'desiredInvariant', description: desiredInvariant }
-    )
-
-    const target = `${E2E_ROOT}/save-as-target.md`
-    const source = `${E2E_ROOT}/save-as-source.md`
-
-    await installTauriShim(page)
-    await page.addInitScript(() => {
-      ;(window as any).__statCalls = []
-      ;(window as any).__mockInvoke.mt_fs_stat = (args: any) => {
-        ;(window as any).__statCalls.push(args)
-        return { isFile: false, isDirectory: false }
-      }
-    })
-    await bootEditor(page)
-    await openTab(page, target, '# Target\n\nowned by the other tab\n')
-    await openTab(page, source, '# Source\n\ncurrent tab buffer\n')
-    await expect(page.locator('.editor-with-tabs p').last()).toContainText('current tab buffer', { timeout: 5_000 })
-    const before = await readTabs(page)
-    expect(before.map((t) => t.pathname).sort()).toEqual([source, target].sort())
-    const owningId = tabByPath(before, target).id
-    const sourceId = tabByPath(before, source).id
-
-    await page.evaluate((dest: string) => {
-      const w = window as any
-      w.__saveAsCalls = []
-      w.__mockInvoke.mt_response_file_save_as = (args: any) => {
-        w.__saveAsCalls.push(args)
-        return { id: args.id, pathname: dest, filename: dest.split('/').pop(), isSaved: true }
-      }
-      const store = (document.querySelector('#app') as any).__vue_app__
-        .config.globalProperties.$pinia._s.get('editor')
-      void store.FILE_SAVE_AS()
-    }, target)
-
-    await expect.poll(async () => (await readTabs(page)).length, { timeout: 5_000 }).toBe(1)
-    const after = await readTabs(page)
-    expect(after[0].id).toBe(sourceId)
-    expect(after[0].id).not.toBe(owningId)
-    expect(after[0].pathname).toBe(target)
-    expect(after[0].filename).toBe('save-as-target.md')
-    expect(after[0].markdown).toContain('current tab buffer')
-    expect(after[0].isSaved).toBe(true)
-    expect(await page.locator('.ag-unsaved-close-dialog').count()).toBe(0)
-
-    const saveAsCalls = await page.evaluate(() => (window as any).__saveAsCalls)
-    expect(saveAsCalls).toHaveLength(1)
-    expect(Object.keys(saveAsCalls[0]).sort()).toEqual(['defaultPath', 'filename', 'id', 'markdown'])
-    expect(saveAsCalls[0]).not.toHaveProperty('pathname')
-    // The expected-absent question was never asked by the renderer.
-    expect(await page.evaluate((dest: string) => (window as any).__statCalls
-      .filter((args: any) => args.path === dest).length, target)).toBe(0)
+  test('Save As onto a live-owned path preserves both buffers and rejects before writing',async({page})=>{
+    const target=`${E2E_ROOT}/save-as-target.md`;const source=`${E2E_ROOT}/save-as-source.md`
+    await installTauriShim(page);await bootEditor(page)
+    await openTab(page,target,'# Target\n\nother owner\n');await openTab(page,source,'# Source\n\ncurrent buffer\n')
+    const before=await readTabs(page)
+    await page.evaluate(dest=>{
+      const w=window as any;w.__writes=[]
+      w.__mockInvoke.mt_document_choose_save_target=({request}:any)=>({...request,pathname:dest})
+      w.__mockInvoke.mt_document_write_snapshot=({request}:any)=>{w.__writes.push(request);return {...request,pathname:request.targetPath}}
+      const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');void store.FILE_SAVE_AS()
+    },target)
+    await expect(page.locator('.notification-card').first()).toBeVisible()
+    expect((await readTabs(page)).map(t=>({id:t.id,pathname:t.pathname,markdown:t.markdown}))).toEqual(before.map(t=>({id:t.id,pathname:t.pathname,markdown:t.markdown})))
+    expect(await page.evaluate(()=>(window as any).__writes.length)).toBe(0)
+    test.info().annotations.push({type:'observedLegacyBehavior',description:'Previously a Save As reply evicted the other live owner.'},{type:'desiredInvariant',description:'C-SAVE-CLOSE-DATA-SAFETY rejects live-owned path collisions. General filesystem expected-absence/atomicity remains a separate change.'})
   })
 
   test('navigation-only caret and selection changes do not dirty the tab', async ({ page }) => {
@@ -897,7 +852,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     const afterRetry = tabByPath(await readTabs(page), `${E2E_ROOT}/save-retry.md`)
     expect(afterRetry.markdown).toBe(afterFailure.markdown)
     expect(afterRetry.contentRevision).toBe(revision)
-    expect(await saveInvocations(page)).toEqual(['mt_response_file_save', 'mt_response_file_save'])
+    expect(await saveInvocations(page)).toEqual(['mt_document_write_snapshot', 'mt_document_write_snapshot'])
   })
 
   test('an external delete on the open path marks the tab dirty and leaves it open', async ({ page }) => {
@@ -1102,7 +1057,7 @@ test.describe('rename / Move To characterization (T-007 follow-up)', () => {
     expect(await saveInvocations(page)).toEqual([])
   })
 
-  test('a direct RENAME clears the dirty flag without saving, and close then discards the edit', async ({ page }) => {
+  test('a direct RENAME preserves dirty text and close still requires a decision', async ({ page }) => {
     const observedLegacyBehavior =
       'Calling the real RENAME store action on a dirty named tab moves the file through window.fileUtils.move and applies an isSaved=true outcome: pathname/filename change, the edited markdown stays, contentRevision is unchanged, lastSavedHistoryId advances and no save transport runs. A later CLOSE_TAB force-closes the tab with no unsaved-close dialog, silently discarding the edit.'
     const desiredInvariant =
@@ -1133,16 +1088,16 @@ test.describe('rename / Move To characterization (T-007 follow-up)', () => {
     expect(after.markdown).toBe(before.markdown)
     expect(after.markdown).toContain('body!')
     expect(after.contentRevision).toBe(before.contentRevision)
-    // Observed false-clean: the rename outcome claims the dirty buffer saved.
-    expect(after.isSaved).toBe(true)
-    expect(after.lastSavedHistoryId).not.toBe(before.lastSavedHistoryId)
-    expect(typeof after.lastSavedHistoryId).toBe('number')
+    // Correlated-save authority cannot be synthesized by path-only mutation.
+    expect(after.isSaved).toBe(false)
+    expect(after.lastSavedHistoryId).toBe(before.lastSavedHistoryId)
     expect(await moveCalls(page)).toEqual([{ src: pathname, dest: renamed }])
     expect(await saveInvocations(page)).toEqual([])
 
     await callStore(page, 'CLOSE_TAB')
-    await expect.poll(async () => (await readTabs(page)).length, { timeout: 5_000 }).toBe(0)
-    expect(await page.locator('.ag-unsaved-close-dialog').count()).toBe(0)
+    await expect(page.locator('.ag-unsaved-close-dialog')).toBeVisible()
+    await page.locator('.ag-unsaved-close-cancel').click()
+    expect((await readTabs(page))[0].markdown).toBe(before.markdown)
     expect(await saveInvocations(page)).toEqual([])
   })
 
@@ -1216,92 +1171,22 @@ test.describe('rename / Move To characterization (T-007 follow-up)', () => {
     expect(await saveInvocations(page)).toEqual([])
   })
 
-  test('a pending save acknowledgement after Move To reverts the tab to the old pathname', async ({ page }) => {
-    const observedLegacyBehavior =
-      'With an mt_response_file_save promise still pending, MOVE_FILE_TO completes and applies the new pathname. When the earlier save acknowledgement resolves with the OLD pathname, APPLY_SAVE_OUTCOME treats that pathname as authoritative and moves the tab back, reversing the Move To and re-attributing isSaved/lastSavedHistoryId to the old path. The stale-revision guard does not fire because the content revision did not change.'
-    const desiredInvariant =
-      'A save acknowledgement must be fenced by revision AND pathname identity: an ack issued for the pre-move path must not override a completed move/rename, and the final path must be the user\'s last operation or a surfaced conflict.'
-    test.info().annotations.push(
-      { type: 'observedLegacyBehavior', description: observedLegacyBehavior },
-      { type: 'desiredInvariant', description: desiredInvariant }
-    )
-
-    const pathname = `${E2E_ROOT}/reorder-move.md`
-    const movedPath = `${E2E_ROOT}/reorder-dir/reorder-move.md`
-    await installTauriShim(page)
-    await installInvokeLog(page)
-    await bootEditor(page)
-    await openTab(page, pathname, '# Reorder\n\nbody\n')
-    await expect(page.locator('.editor-with-tabs p').last()).toContainText('body', { timeout: 5_000 })
-    await dirtyThroughEditor(page, '!')
-    const before = tabByPath(await readTabs(page), pathname)
-
-    await installDeferredSave(page)
-    await callFileSave(page)
-    await expect.poll(async () => (await saveCalls(page)).length, { timeout: 5_000 }).toBe(1)
-    await expect.poll(() => pendingSaveCount(page), { timeout: 5_000 }).toBe(1)
-
-    await installMoveSpy(page, 'success')
-    await installDirectoryPicker(page, `${E2E_ROOT}/reorder-dir`)
-    await callStore(page, 'MOVE_FILE_TO')
-    await expect.poll(async () => (await readTabs(page))[0].pathname, { timeout: 5_000 }).toBe(movedPath)
-    const afterMove = tabByPath(await readTabs(page), movedPath)
-    expect(afterMove.isSaved).toBe(true)
-    expect(afterMove.markdown).toContain('body!')
-    expect(afterMove.contentRevision).toBe(before.contentRevision)
-
-    await resolveDeferredSave(page)
-    await expect.poll(async () => (await readTabs(page))[0].pathname, { timeout: 5_000 }).toBe(pathname)
-    const reverted = tabByPath(await readTabs(page), pathname)
-    expect(reverted.filename).toBe('reorder-move.md')
-    expect(reverted.isSaved).toBe(true)
-    expect(reverted.markdown).toContain('body!')
-    expect(reverted.contentRevision).toBe(before.contentRevision)
-    expect(await moveCalls(page)).toEqual([{ src: pathname, dest: movedPath }])
-  })
-
-  test('a pending save acknowledgement after RENAME reverts the tab to the old pathname', async ({ page }) => {
-    const observedLegacyBehavior =
-      'With an mt_response_file_save promise still pending, RENAME completes and applies the new pathname/filename. When the earlier save acknowledgement resolves with the OLD pathname, APPLY_SAVE_OUTCOME reintroduces the old pathname/filename, reversing the rename; the stale-revision guard stays silent because the edit revision is unchanged.'
-    const desiredInvariant =
-      'A save acknowledgement must be fenced by revision AND pathname identity so a completed rename/ Move To cannot be undone by an in-flight save; stale acks must be rejected or surfaced, never applied to the moved tab.'
-    test.info().annotations.push(
-      { type: 'observedLegacyBehavior', description: observedLegacyBehavior },
-      { type: 'desiredInvariant', description: desiredInvariant }
-    )
-
-    const pathname = `${E2E_ROOT}/reorder-rename.md`
-    const renamed = `${E2E_ROOT}/reorder-renamed.md`
-    await installTauriShim(page)
-    await installInvokeLog(page)
-    await bootEditor(page)
-    await openTab(page, pathname, '# Reorder\n\nbody\n')
-    await expect(page.locator('.editor-with-tabs p').last()).toContainText('body', { timeout: 5_000 })
-    await dirtyThroughEditor(page, '!')
-    const before = tabByPath(await readTabs(page), pathname)
-
-    await installDeferredSave(page)
-    await callFileSave(page)
-    await expect.poll(async () => (await saveCalls(page)).length, { timeout: 5_000 }).toBe(1)
-    await expect.poll(() => pendingSaveCount(page), { timeout: 5_000 }).toBe(1)
-
-    await installMoveSpy(page, 'success')
-    await callStore(page, 'RENAME', 'reorder-renamed.md')
-    await expect.poll(async () => (await readTabs(page))[0].pathname, { timeout: 5_000 }).toBe(renamed)
-    const afterRename = tabByPath(await readTabs(page), renamed)
-    expect(afterRename.isSaved).toBe(true)
-    expect(afterRename.markdown).toContain('body!')
-    expect(afterRename.contentRevision).toBe(before.contentRevision)
-
-    await resolveDeferredSave(page)
-    await expect.poll(async () => (await readTabs(page))[0].pathname, { timeout: 5_000 }).toBe(pathname)
-    const reverted = tabByPath(await readTabs(page), pathname)
-    expect(reverted.filename).toBe('reorder-rename.md')
-    expect(reverted.isSaved).toBe(true)
-    expect(reverted.markdown).toContain('body!')
-    expect(reverted.contentRevision).toBe(before.contentRevision)
-    expect(await moveCalls(page)).toEqual([{ src: pathname, dest: renamed }])
-  })
+  for(const kind of ['MOVE_FILE_TO','RENAME']) {
+    test(`a pending save prevents ${kind} from changing destination ownership`,async({page})=>{
+      const pathname=`${E2E_ROOT}/pending-path.md`
+      await installTauriShim(page);await installInvokeLog(page);await bootEditor(page);await openTab(page,pathname,'# Pending\n\nbody\n')
+      await dirtyThroughEditor(page,'!');await installDeferredSave(page);await callFileSave(page)
+      await expect.poll(async()=>(await saveCalls(page)).length).toBe(1)
+      await installMoveSpy(page,'success');await installDirectoryPicker(page,`${E2E_ROOT}/reorder-dir`)
+      if(kind==='RENAME')await callStore(page,kind,'new.md');else await callStore(page,kind)
+      expect((await readTabs(page))[0].pathname).toBe(pathname);expect(await moveCalls(page)).toEqual([])
+      await expect(page.locator('.notification-card').first()).toBeVisible()
+      await resolveDeferredSave(page)
+      await expect.poll(async()=>(await readTabs(page))[0].isSaved).toBe(true)
+      expect((await readTabs(page))[0].pathname).toBe(pathname)
+      test.info().annotations.push({type:'observedLegacyBehavior',description:'A stale save acknowledgement previously reverted Move To/rename ownership.'},{type:'desiredInvariant',description:'A known overlapping save blocks the path transition with feedback; a fresh explicit path action follows settlement.'})
+    })
+  }
 })
 
 test.describe('live-reference alias + DTO scaffold (T-007 follow-up)', () => {

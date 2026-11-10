@@ -5,9 +5,9 @@
     "file": "src/renderer/src/ipc/contract/types.ts",
     "generated_from": "CommandMap interface"
   },
-  "generated_at": "2026-11-03T17:53:32.234Z",
+  "generated_at": "2026-11-10T09:36:34.048Z",
   "counts": {
-    "commands": 51,
+    "commands": 53,
     "error_codes": 4
   },
   "error_codes": [
@@ -17,6 +17,22 @@
     "MT_IPC_VALIDATION"
   ],
   "channels": [
+    {
+      "name": "mt::document::choose_save_target",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
+    {
+      "name": "mt::document::write_snapshot",
+      "direction": "renderer->main",
+      "transport": "invoke",
+      "layer": "M-013-A",
+      "has_args": true,
+      "has_result": true
+    },
     {
       "name": "mt::ext::disable",
       "direction": "renderer->main",

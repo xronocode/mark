@@ -172,12 +172,12 @@ describe('store/editor.js — fn coverage', () => {
     // t2 is unsaved so remains (or triggers confirm dialog)
   })
 
-  it('CLOSE_ALL_TABS calls CLOSE_TAB for each tab', () => {
+  it('CLOSE_ALL_TABS awaits one checked batch', async () => {
     const t1 = { id: '1', isSaved: true, filename: 'a.md', pathname: '/a.md', markdown: '' }
     editorStore.tabs = [t1]
     editorStore.currentFile = t1
     editorStore.updateTabIdToIndex()
-    editorStore.CLOSE_ALL_TABS()
+    await editorStore.CLOSE_ALL_TABS()
     expect(editorStore.tabs.length).toBe(0)
   })
 
@@ -349,7 +349,7 @@ describe('store/editor.js — fn coverage', () => {
     editorStore.APPLY_SAVE_OUTCOME({})
   })
 
-  it('APPLY_TAB_SAVED marks tab as saved', () => {
+  it('APPLY_TAB_SAVED cannot clean a live revision from a bare id', () => {
     const t = {
       id: '1', isSaved: false,
       history: { lastEditIndex: 0, stack: [{ id: 'h1' }] },
@@ -358,8 +358,8 @@ describe('store/editor.js — fn coverage', () => {
     editorStore.tabs = [t]
     editorStore.updateTabIdToIndex()
     editorStore.APPLY_TAB_SAVED('1')
-    expect(t.isSaved).toBe(true)
-    expect(t.lastSavedHistoryId).toBe('h1')
+    expect(t.isSaved).toBe(false)
+    expect(t.lastSavedHistoryId).toBeNull()
   })
 
   it('APPLY_TAB_SAVE_FAILURE marks tab unsaved and pushes notification', () => {

@@ -92,6 +92,7 @@ describe('sourceCode.vue — coverage', () => {
       ...overrides
     }
     editorStore.tabs = [editorStore.currentFile]
+    editorStore.updateTabIdToIndex()
     editorStore.LISTEN_FOR_CONTENT_CHANGE = vi.fn()
     editorStore.updateScrollPosition = vi.fn()
   }
@@ -450,7 +451,7 @@ describe('sourceCode.vue — coverage', () => {
   })
 
   /* ── listenChange / cursorActivity ─────────────────────────── */
-  it('listenChange registers cursorActivity handler that commits changes', async () => {
+  it('cursorActivity updates position without creating a content revision', async () => {
     await mountSourceCode()
     const cursorCall = cmMockInstance.on.mock.calls.find((c) => c[0] === 'cursorActivity')
     expect(cursorCall).toBeTruthy()
@@ -458,9 +459,8 @@ describe('sourceCode.vue — coverage', () => {
 
     // Simulate cursor activity
     handler(cmMockInstance)
-    expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'tab-1' })
-    )
+    expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).not.toHaveBeenCalled()
+    expect(editorStore.currentFile.muyaIndexCursor).toBeTruthy()
   })
 
   it('listenChange warns when no tabId set', async () => {
@@ -491,7 +491,7 @@ describe('sourceCode.vue — coverage', () => {
     const handler = cursorCall[1]
     handler(cmMockInstance)
 
-    expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).toHaveBeenCalledWith(
+    expect(editorStore.currentFile).toEqual(
       expect.objectContaining({
         muyaIndexCursor: expect.objectContaining({
           // After normalization, anchor should be before focus

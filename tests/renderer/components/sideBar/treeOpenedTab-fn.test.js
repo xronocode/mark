@@ -64,15 +64,15 @@ describe('sideBar/treeOpenedTab.vue — fn coverage', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 
-  it('removeFileInTab calls FORCE_CLOSE_TAB for saved file', () => {
-    const spy = vi.spyOn(editorStore, 'FORCE_CLOSE_TAB').mockImplementation(() => {})
+  it('removeFileInTab calls CLOSE_TAB for saved file', () => {
+    const spy = vi.spyOn(editorStore, 'CLOSE_TAB').mockImplementation(() => {})
     const w = mount({ isSaved: true })
     w.vm.removeFileInTab({ id: 'tab1', isSaved: true })
     expect(spy).toHaveBeenCalled()
   })
 
-  it('removeFileInTab calls CLOSE_UNSAVED_TAB for unsaved file', () => {
-    const spy = vi.spyOn(editorStore, 'CLOSE_UNSAVED_TAB').mockImplementation(() => {})
+  it('removeFileInTab calls CLOSE_TAB for unsaved file', () => {
+    const spy = vi.spyOn(editorStore, 'CLOSE_TAB').mockImplementation(() => {})
     const w = mount({ isSaved: false })
     w.vm.removeFileInTab({ id: 'tab1', isSaved: false })
     expect(spy).toHaveBeenCalled()

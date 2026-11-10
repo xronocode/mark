@@ -1807,5 +1807,24 @@
   },
   "extensions": {
     "disableFailed": "擴充功能已停用，但無法確認存取權限已撤銷。請再試一次。"
+  },
+  "documentOperations": {
+    "title": "未儲存的變更",
+    "message": "{names}\n\n關閉前儲存變更嗎？",
+    "untitledMessage": "{names}\n\n關閉前儲存嗎？請為每個未命名文件選擇儲存位置。",
+    "saveClose": "儲存並關閉",
+    "saveQuit": "儲存並結束",
+    "discard": "不儲存",
+    "cancel": "取消",
+    "composing": "請完成文字輸入後重試。文件保持開啟：{names}",
+    "busy": "仍在儲存中。請等待完成後重試：{names}",
+    "collision": "另一個開啟的文件已使用所選路徑。兩個文件都保持開啟：{names}",
+    "changed": "儲存期間產生了新變更，尚未儲存。文件保持開啟：{names}",
+    "new-dirty": "新文件有未儲存的變更。已停止關閉。",
+    "stale": "文件已變更或重新開啟。請重新開始操作：{names}",
+    "unavailable": "編輯器正在切換文件。完成後請重試：{names}",
+    "failed": "儲存或關閉失敗。文件保持開啟：{names}",
+    "retryClose": "重新儲存並關閉",
+    "retrySave": "重新儲存"
   }
 }

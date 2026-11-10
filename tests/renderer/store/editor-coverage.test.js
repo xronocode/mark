@@ -225,6 +225,11 @@ describe('store/editor — coverage gaps', () => {
     const editorMod = await import('@/store/editor')
     editor = editorMod.useEditorStore()
     invoke = (await import('@tauri-apps/api/core')).invoke
+    invoke.mockImplementation(async (cmd,{request}={})=>{
+      if(cmd==='mt_document_choose_save_target') return {...request,pathname:'/tmp/chosen.md'}
+      if(cmd==='mt_document_write_snapshot') return {...request,pathname:request.targetPath,filename:'saved.md'}
+    })
+    invoke = (await import('@tauri-apps/api/core')).invoke
     bus = (await import('@/bus')).default
     notice = (await import('@/services/notification')).default
   })
@@ -236,7 +241,7 @@ describe('store/editor — coverage gaps', () => {
       vi.useRealTimers()
     })
 
-    it('throws when id or pathname is missing', () => {
+    it('throws when id or pathname is missing', async () => {
       expect(() =>
         editor.HANDLE_AUTO_SAVE({ id: '', pathname: '/x', markdown: '', options: {} })
       ).toThrow('Invalid tab')
@@ -245,7 +250,7 @@ describe('store/editor — coverage gaps', () => {
       ).toThrow('Invalid tab')
     })
 
-    it('debounces: cancels previous timer if one exists', () => {
+    it('debounces: cancels previous timer if one exists', async () => {
       vi.useFakeTimers()
       __preferencesStub.autoSave = true
 
@@ -260,7 +265,7 @@ describe('store/editor — coverage gaps', () => {
       vi.advanceTimersByTime(200)
     })
 
-    it('auto-save invokes mt_response_file_save after delay', async () => {
+    it('auto-save invokes the owned snapshot writer after delay', async () => {
       vi.useFakeTimers()
       __preferencesStub.autoSave = true
       __preferencesStub.autoSaveDelay = 50
@@ -281,10 +286,7 @@ describe('store/editor — coverage gaps', () => {
       vi.advanceTimersByTime(60)
       await vi.runAllTimersAsync()
 
-      expect(invoke).toHaveBeenCalledWith('mt_response_file_save', expect.objectContaining({
-        id: 't1',
-        pathname: '/tmp/a.md'
-      }))
+      expect(invoke).toHaveBeenCalledWith('mt_document_write_snapshot', {request:expect.objectContaining({id:'t1',targetPath:'/tmp/a.md'})})
     })
 
     it('skips a queued save when Auto Save is disabled before the timer fires', async () => {
@@ -312,7 +314,7 @@ describe('store/editor — coverage gaps', () => {
 
       await vi.advanceTimersByTimeAsync(60)
 
-      expect(invoke).not.toHaveBeenCalledWith('mt_response_file_save', expect.anything())
+      expect(invoke).not.toHaveBeenCalledWith('mt_document_write_snapshot', expect.anything())
     })
 
     it('allows a later queued save after Auto Save is re-enabled', async () => {
@@ -324,6 +326,7 @@ describe('store/editor — coverage gaps', () => {
         id: 'reenable-race',
         pathname: '/tmp/reenable-race.md',
         filename: 'reenable-race.md',
+        markdown: 'fresh content after re-enable',
         isSaved: false
       })
       editor.tabs = [tab]
@@ -356,10 +359,7 @@ describe('store/editor — coverage gaps', () => {
       await vi.advanceTimersByTimeAsync(60)
 
       expect(invoke).toHaveBeenCalledTimes(1)
-      expect(invoke).toHaveBeenCalledWith('mt_response_file_save', expect.objectContaining({
-        id: tab.id,
-        markdown: 'fresh content after re-enable'
-      }))
+      expect(invoke).toHaveBeenCalledWith('mt_document_write_snapshot', {request:expect.objectContaining({id:tab.id,markdown:'fresh content after re-enable'})})
     })
 
     it('auto-save skips if tab is already saved by the time timer fires', async () => {
@@ -378,10 +378,10 @@ describe('store/editor — coverage gaps', () => {
       await vi.runAllTimersAsync()
 
       // invoke should NOT be called since tab is saved
-      expect(invoke).not.toHaveBeenCalledWith('mt_response_file_save', expect.anything())
+      expect(invoke).not.toHaveBeenCalledWith('mt_document_write_snapshot', expect.anything())
     })
 
-    it('auto-save failure is caught and logged as warning', async () => {
+    it('auto-save failure remains visible and keeps the document dirty', async () => {
       vi.useFakeTimers()
       __preferencesStub.autoSave = true
       __preferencesStub.autoSaveDelay = 50
@@ -400,10 +400,7 @@ describe('store/editor — coverage gaps', () => {
       vi.advanceTimersByTime(60)
       await vi.runAllTimersAsync()
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('auto-save'),
-        expect.any(Error)
-      )
+      expect((await import('@/services/notification')).default.notify).toHaveBeenCalledWith(expect.objectContaining({severity:'error',source:'file'}))
       warnSpy.mockRestore()
     })
   })
@@ -411,7 +408,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── LISTEN_FOR_CONTENT_CHANGE — additional branches ──────────────
 
   describe('LISTEN_FOR_CONTENT_CHANGE — toc + autoSave', () => {
-    it('updates toc and listToc when toc differs and tab is currentFile', () => {
+    it('updates toc and listToc when toc differs and tab is currentFile', async () => {
       const tab = makeTab({
         id: 't1',
         markdown: 'x',
@@ -434,7 +431,7 @@ describe('store/editor — coverage gaps', () => {
       expect(editor.listToc[0].slug).toBe('s1')
     })
 
-    it('does not update toc when toc is same (deep-equal)', () => {
+    it('does not update toc when toc is same (deep-equal)', async () => {
       const toc = [{ slug: 's1', content: 'Title', lvl: 1 }]
       const tab = makeTab({
         id: 't1',
@@ -458,7 +455,7 @@ describe('store/editor — coverage gaps', () => {
       expect(editor.listToc).toEqual(toc)
     })
 
-    it('triggers HANDLE_AUTO_SAVE when dirty + autoSave + has pathname', () => {
+    it('triggers HANDLE_AUTO_SAVE when dirty + autoSave + has pathname', async () => {
       __preferencesStub.autoSave = true
       __preferencesStub.autoSaveDelay = 1000
       vi.useFakeTimers()
@@ -485,7 +482,7 @@ describe('store/editor — coverage gaps', () => {
       vi.useRealTimers()
     })
 
-    it('skips initial newline-only content change', () => {
+    it('skips initial newline-only content change', async () => {
       const tab = makeTab({
         id: 't1',
         markdown: '',
@@ -513,7 +510,7 @@ describe('store/editor — coverage gaps', () => {
   // synchronously; if not, these will timeout.
 
   describe('CLOSE_UNSAVED_TAB', () => {
-    it('save + named file → sends mt::save-and-close-tabs', async () => {
+    it('save + named file writes a correlated snapshot before closing', async () => {
       askUnsavedCloseMock.mockResolvedValueOnce('save')
       const tab = makeTab({ id: 'u1', pathname: '/tmp/dirty.md', filename: 'dirty.md', isSaved: false })
       editor.tabs = [tab]
@@ -522,15 +519,12 @@ describe('store/editor — coverage gaps', () => {
 
       await editor.CLOSE_UNSAVED_TAB(tab)
 
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::save-and-close-tabs',
-        expect.arrayContaining([expect.objectContaining({ id: 'u1' })])
-      )
+      expect(invoke).toHaveBeenCalledWith('mt_document_write_snapshot',{request:expect.objectContaining({id:'u1'})})
     }, 10000)
 
     it('save + untitled + Save As succeeds → outcome applied and the tab closes', async () => {
       askUnsavedCloseMock.mockResolvedValueOnce('save')
-      invoke.mockResolvedValueOnce({ id: 'u2', pathname: '/tmp/saved.md', filename: 'saved.md', isSaved: true })
+      invoke.mockImplementationOnce(async (_cmd,{request})=>({...request,pathname:'/tmp/saved.md'})).mockImplementationOnce(async (_cmd,{request})=>({...request,pathname:request.targetPath,filename:'saved.md'}))
       const tab = makeTab({ id: 'u2', pathname: '', filename: 'Untitled-1', isSaved: false })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -538,7 +532,7 @@ describe('store/editor — coverage gaps', () => {
 
       await editor.CLOSE_UNSAVED_TAB(tab)
 
-      expect(invoke).toHaveBeenCalledWith('mt_response_file_save_as', expect.objectContaining({ id: 'u2' }))
+      expect(invoke).toHaveBeenCalledWith('mt_document_choose_save_target', expect.objectContaining({request:expect.objectContaining({documentToken:expect.any(String)})}))
       expect(editor.tabs.find((t) => t.id === 'u2')).toBeUndefined()
     }, 10000)
 
@@ -585,7 +579,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── CYCLE_TABS — additional directions ───────────────────────────
 
   describe('CYCLE_TABS — left direction', () => {
-    it('rotates currentFile left (wraps around)', () => {
+    it('rotates currentFile left (wraps around)', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' }), makeTab({ id: 'c' })]
       editor.currentFile = editor.tabs[0]
       editor.updateTabIdToIndex()
@@ -593,7 +587,7 @@ describe('store/editor — coverage gaps', () => {
       expect(editor.currentFile.id).toBe('c')
     })
 
-    it('errors when currentFile not in tabs', () => {
+    it('errors when currentFile not in tabs', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.currentFile = makeTab({ id: 'missing' })
@@ -607,7 +601,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── SELECTION_CHANGE — cross-line and affiliation branches ───────
 
   describe('SELECTION_CHANGE — menu state', () => {
-    it('preserves Find query and matches while selecting text in an open Find session', () => {
+    it('preserves Find query and matches while selecting text in an open Find session', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.findVisible = true
@@ -630,7 +624,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('collapsed selection preserves an active Find query and still synchronizes native menus', () => {
+    it('collapsed selection preserves an active Find query and still synchronizes native menus', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.currentFile.searchMatches = { value: 'needle', index: 0, matches: [{ key: 'k1', start: 0, end: 6 }] }
@@ -652,7 +646,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('cross-line selection does not set searchMatches.value', () => {
+    it('cross-line selection does not set searchMatches.value', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -664,7 +658,7 @@ describe('store/editor — coverage gaps', () => {
       expect(editor.currentFile.searchMatches.value).toBe('')
     })
 
-    it('code block selection sets isCodeFences and isCodeContent', () => {
+    it('code block selection sets isCodeFences and isCodeContent', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -684,7 +678,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('table cell selection sets isTable and isDisabled', () => {
+    it('table cell selection sets isTable and isDisabled', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -705,7 +699,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('list affiliation with depth >= 1 and ul/ol type sets isLooseListItem/isTaskList', () => {
+    it('list affiliation with depth >= 1 and ul/ol type sets isLooseListItem/isTaskList', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -725,7 +719,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('list affiliation at depth >= 3 with li type', () => {
+    it('list affiliation at depth >= 3 with li type', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -747,7 +741,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('pre block with code functionType in affiliation', () => {
+    it('pre block with code functionType in affiliation', async () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
       editor.SELECTION_CHANGE({
@@ -766,7 +760,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('multiline with heading (regex /^h{1,6}$/) clears affiliation', () => {
+    it('multiline with heading (regex /^h{1,6}$/) clears affiliation', async () => {
       // NOTE: The source code regex /^h{1,6}$/ matches 'hh', 'hhh', etc.
       // (NOT 'h1', 'h2') — this is likely a latent source bug. We test the
       // actual behavior: type='hh' triggers the clear branch.
@@ -873,7 +867,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── SHOW_TAB_VIEW ────────────────────────────────────────────────
 
   describe('SHOW_TAB_VIEW', () => {
-    it('always=true → layout SET_LAYOUT called even with multiple tabs', () => {
+    it('always=true → layout SET_LAYOUT called even with multiple tabs', async () => {
       editor.tabs = [makeTab({ id: 'a' }), makeTab({ id: 'b' })]
       editor.SHOW_TAB_VIEW(true)
       expect(__layoutStub.SET_LAYOUT).toHaveBeenCalledWith({ showTabBar: true })
@@ -883,7 +877,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── FORCE_CLOSE_TAB — clears toc on last tab ────────────────────
 
   describe('FORCE_CLOSE_TAB', () => {
-    it('clears toc when closing the last tab', () => {
+    it('clears toc when closing the last tab', async () => {
       const tab = makeTab({ id: 'a', isSaved: true })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -898,7 +892,7 @@ describe('store/editor — coverage gaps', () => {
       expect(editor.tabs).toHaveLength(0)
     })
 
-    it('sends mt::window-tab-closed when tab has pathname', () => {
+    it('sends mt::window-tab-closed when tab has pathname', async () => {
       const tab = makeTab({ id: 'a', pathname: '/tmp/a.md', isSaved: true })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -912,7 +906,7 @@ describe('store/editor — coverage gaps', () => {
       )
     })
 
-    it('sets window.DIRNAME to empty when closing current file with no remaining tabs', () => {
+    it('sets window.DIRNAME to empty when closing current file with no remaining tabs', async () => {
       const tab = makeTab({ id: 'a', pathname: '/tmp/a.md', isSaved: true })
       editor.tabs = [tab]
       editor.currentFile = tab
@@ -923,7 +917,7 @@ describe('store/editor — coverage gaps', () => {
       expect(window.DIRNAME).toBe('')
     })
 
-    it('switches to next tab when closing non-last tab', () => {
+    it('switches to next tab when closing non-last tab', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       const b = makeTab({ id: 'b', isSaved: true, pathname: '/tmp/b.md', markdown: 'hello' })
       editor.tabs = [a, b]
@@ -975,7 +969,7 @@ describe('store/editor — coverage gaps', () => {
       editor.updateTabIdToIndex()
 
       // CLOSE_TAB is sync but internally calls async CLOSE_UNSAVED_TAB
-      editor.CLOSE_TAB(tab)
+      await editor.CLOSE_TAB(tab)
 
       // Wait for async dialog to resolve
       await new Promise((r) => setTimeout(r, 50))
@@ -988,7 +982,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── LINTEN_FOR_SET_ENCODING ──────────────────────────────────────
 
   describe('LINTEN_FOR_SET_ENCODING — bus handler', () => {
-    it('updates encoding when different', () => {
+    it('updates encoding when different', async () => {
       editor.currentFile = makeTab({
         id: 't1',
         encoding: { encoding: 'utf8', isBom: false }
@@ -1006,7 +1000,7 @@ describe('store/editor — coverage gaps', () => {
       expect(editor.currentFile.isSaved).toBe(true)
     })
 
-    it('does not update when encoding is the same', () => {
+    it('does not update when encoding is the same', async () => {
       editor.currentFile = makeTab({
         id: 't1',
         encoding: { encoding: 'utf8', isBom: false },
@@ -1027,7 +1021,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── LINTEN_FOR_SET_FINAL_NEWLINE ─────────────────────────────────
 
   describe('LINTEN_FOR_SET_FINAL_NEWLINE — bus handler', () => {
-    it('updates trimTrailingNewline when different', () => {
+    it('updates trimTrailingNewline when different', async () => {
       editor.currentFile = makeTab({
         id: 't1',
         trimTrailingNewline: 3,
@@ -1045,7 +1039,7 @@ describe('store/editor — coverage gaps', () => {
       expect(editor.currentFile.isSaved).toBe(true)
     })
 
-    it('does not update when value is the same', () => {
+    it('does not update when value is the same', async () => {
       editor.currentFile = makeTab({
         id: 't1',
         trimTrailingNewline: 3,
@@ -1078,14 +1072,14 @@ describe('store/editor — coverage gaps', () => {
 
       await editor.MOVE_FILE_TO()
 
-      expect(invoke).toHaveBeenCalledWith('mt_response_file_save_as', expect.any(Object))
+      expect(invoke).toHaveBeenCalledWith('mt_document_choose_save_target', expect.any(Object))
     })
   })
 
   // ─── LISTEN_FOR_BOOTSTRAP_WINDOW ─────────────────────────────────
 
   describe('LISTEN_FOR_BOOTSTRAP_WINDOW', () => {
-    it('registers commands after timeout', () => {
+    it('registers commands after timeout', async () => {
       vi.useFakeTimers()
       editor.LISTEN_FOR_BOOTSTRAP_WINDOW()
       // Commands are registered after 400ms delay
@@ -1101,28 +1095,26 @@ describe('store/editor — coverage gaps', () => {
   // ─── ASK_FOR_SAVE_ALL — unsaved files path ───────────────────────
 
   describe('ASK_FOR_SAVE_ALL — with unsaved files', () => {
-    it('closeTabs=true + unsaved → closes saved tabs + sends mt::save-and-close-tabs', () => {
+    it('closeTabs=true keeps every target when the dirty save is cancelled', async () => {
+      askUnsavedCloseMock.mockResolvedValueOnce('cancel')
       const saved = makeTab({ id: 'saved', isSaved: true, markdown: 'hello\n' })
       const dirty = makeTab({ id: 'dirty', isSaved: false, pathname: '/tmp/d.md', markdown: 'changed' })
       editor.tabs = [saved, dirty]
       editor.currentFile = saved
       editor.updateTabIdToIndex()
 
-      editor.ASK_FOR_SAVE_ALL(true)
+      await editor.ASK_FOR_SAVE_ALL(true)
 
       // saved tab should be closed
-      expect(editor.tabs.find((t) => t.id === 'saved')).toBeUndefined()
-      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
-        'mt::save-and-close-tabs',
-        expect.any(Array)
-      )
+      expect(editor.tabs.find((t) => t.id === 'saved')).toBeDefined()
+      expect(window.electron.ipcRenderer.send).not.toHaveBeenCalledWith('mt::save-and-close-tabs',expect.any(Array))
     })
   })
 
   // ─── CLOSE_TABS — selecting remaining tab ────────────────────────
 
   describe('CLOSE_TABS — currentFile was in closed set', () => {
-    it('picks the next remaining tab and emits file-changed', () => {
+    it('picks the next remaining tab and emits file-changed', async () => {
       const a = makeTab({ id: 'a', isSaved: true, pathname: '/tmp/a.md', markdown: 'a' })
       const b = makeTab({ id: 'b', isSaved: true, pathname: '/tmp/b.md', markdown: 'b' })
       const c = makeTab({ id: 'c', isSaved: true, pathname: '/tmp/c.md', markdown: 'c' })
@@ -1137,7 +1129,7 @@ describe('store/editor — coverage gaps', () => {
       expect(['a', 'c']).toContain(editor.currentFile.id)
     })
 
-    it('clears toc when all tabs closed', () => {
+    it('clears toc when all tabs closed', async () => {
       const a = makeTab({ id: 'a', isSaved: true })
       editor.tabs = [a]
       editor.currentFile = a
@@ -1155,7 +1147,7 @@ describe('store/editor — coverage gaps', () => {
   // ─── EDIT_ZOOM — same zoom no-ops the pref call ──────────────────
 
   describe('EDIT_ZOOM', () => {
-    it('skips SET_SINGLE_PREFERENCE when zoom unchanged', () => {
+    it('skips SET_SINGLE_PREFERENCE when zoom unchanged', async () => {
       __preferencesStub.zoom = 1.0
       editor.EDIT_ZOOM(1.0)
       expect(__preferencesStub.SET_SINGLE_PREFERENCE).not.toHaveBeenCalled()
@@ -1166,23 +1158,23 @@ describe('store/editor — coverage gaps', () => {
   // ─── APPLY_PREVIEW_MODE / EXIT_PREVIEW_MODE ──────────────────────
 
   describe('APPLY_PREVIEW_MODE / EXIT_PREVIEW_MODE', () => {
-    it('APPLY_PREVIEW_MODE with no tabId is a no-op', () => {
+    it('APPLY_PREVIEW_MODE with no tabId is a no-op', async () => {
       editor.APPLY_PREVIEW_MODE(null, true)
       // No crash
     })
 
-    it('APPLY_PREVIEW_MODE with unknown tabId is a no-op', () => {
+    it('APPLY_PREVIEW_MODE with unknown tabId is a no-op', async () => {
       editor.tabs = []
       editor.APPLY_PREVIEW_MODE('ghost', true)
       // No crash
     })
 
-    it('EXIT_PREVIEW_MODE with no tabId is a no-op', () => {
+    it('EXIT_PREVIEW_MODE with no tabId is a no-op', async () => {
       editor.EXIT_PREVIEW_MODE(null, 'test')
       // No crash
     })
 
-    it('EXIT_PREVIEW_MODE on non-preview tab is a silent no-op', () => {
+    it('EXIT_PREVIEW_MODE on non-preview tab is a silent no-op', async () => {
       const tab = makeTab({ id: 'x' })
       editor.tabs = [tab]
       editor.EXIT_PREVIEW_MODE('x', 'test')

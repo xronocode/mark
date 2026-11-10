@@ -1804,5 +1804,24 @@
   },
   "extensions": {
     "disableFailed": "Die Erweiterung ist deaktiviert, aber der Entzug des Zugriffs konnte nicht bestätigt werden. Versuchen Sie es erneut."
+  },
+  "documentOperations": {
+    "title": "Ungespeicherte Änderungen",
+    "message": "{names}\n\nÄnderungen vor dem Schließen speichern?",
+    "untitledMessage": "{names}\n\nÄnderungen vor dem Schließen speichern? Wählen Sie für jedes unbenannte Dokument einen Speicherort.",
+    "saveClose": "Speichern und schließen",
+    "saveQuit": "Speichern und beenden",
+    "discard": "Verwerfen",
+    "cancel": "Abbrechen",
+    "composing": "Beenden Sie die Texteingabe und versuchen Sie es erneut. Dokumente bleiben geöffnet: {names}",
+    "busy": "Ein Speichervorgang läuft noch. Warten Sie und versuchen Sie es erneut: {names}",
+    "collision": "Ein anderes geöffnetes Dokument verwendet das Ziel. Beide Dokumente bleiben geöffnet: {names}",
+    "changed": "Während des Speicherns kamen neue, ungespeicherte Änderungen hinzu. Dokumente bleiben geöffnet: {names}",
+    "new-dirty": "Ein neues Dokument enthält ungespeicherte Änderungen. Das Schließen wurde gestoppt.",
+    "stale": "Das Dokument wurde geändert oder erneut geöffnet. Starten Sie einen neuen Vorgang: {names}",
+    "unavailable": "Der Editor wechselt noch das Dokument. Versuchen Sie es danach erneut: {names}",
+    "failed": "Speichern oder Schließen fehlgeschlagen. Dokumente bleiben geöffnet: {names}",
+    "retryClose": "Erneut speichern und schließen",
+    "retrySave": "Erneut speichern"
   }
 }

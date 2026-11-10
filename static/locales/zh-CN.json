@@ -1799,5 +1799,24 @@
   },
   "extensions": {
     "disableFailed": "扩展已禁用，但无法确认访问权限已撤销。请重试。"
+  },
+  "documentOperations": {
+    "title": "未保存的更改",
+    "message": "{names}\n\n关闭前保存更改吗？",
+    "untitledMessage": "{names}\n\n关闭前保存吗？请为每个未命名文档选择保存位置。",
+    "saveClose": "保存并关闭",
+    "saveQuit": "保存并退出",
+    "discard": "不保存",
+    "cancel": "取消",
+    "composing": "请完成文字输入后重试。文档保持打开：{names}",
+    "busy": "保存仍在进行。请等待完成后重试：{names}",
+    "collision": "另一个打开的文档已占用所选路径。两个文档都保持打开：{names}",
+    "changed": "保存期间产生了新更改，尚未保存。文档保持打开：{names}",
+    "new-dirty": "新文档有未保存的更改。已停止关闭。",
+    "stale": "文档已更改或重新打开。请重新开始操作：{names}",
+    "unavailable": "编辑器正在切换文档。完成后请重试：{names}",
+    "failed": "保存或关闭失败。文档保持打开：{names}",
+    "retryClose": "重新保存并关闭",
+    "retrySave": "重新保存"
   }
 }

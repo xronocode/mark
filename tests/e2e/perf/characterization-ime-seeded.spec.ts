@@ -352,61 +352,18 @@ test.describe('IME composition while editing (R-6)', () => {
 })
 
 test.describe('IME composition then save (R-6/R-7)', () => {
-  test('FILE_SAVE during active composition sends the pre-composition markdown and marks the tab saved', async ({ page }) => {
-    const observedLegacyBehavior =
-      'FILE_SAVE reads currentFile.markdown, which Muya has not updated while composition is active. The transport receives the exact pre-composition Markdown (the composed text is only in the DOM), the tab becomes isSaved=true, and compositionend later commits the text locally and marks the tab dirty again — the write and the screen disagree.'
-    const desiredInvariant =
-      'A save issued while an IME composition is active must either commit the composition first (so the exact composed Markdown is written and the tab matches the file) or refuse/defer the save; it must never write a document that omits visible composed text or report the tab clean while that text is uncommitted.'
-
-    await installTauriShim(page)
-    const before = await bootDocument(page)
-    const preComposition = before.activeMarkdown
-    expect(preComposition).toBeTruthy()
-
-    await page.evaluate(() => {
-      const w = window as any
-      w.__imeSaveCalls = []
-      w.__mockInvoke.mt_response_file_save = (args: any) => {
-        w.__imeSaveCalls.push(args)
-        return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
-      }
-    })
-
-    await startComposition(page, PINYIN, 'type')
-    const during = await readStore(page)
-    expect(during.activeMarkdown, 'composition does not change store markdown').toBe(preComposition)
+  test('FILE_SAVE refuses active composition and a fresh retry saves completed input once', async({page})=>{
+    await installTauriShim(page);await bootDocument(page)
+    await page.evaluate(()=>{const w=window as any;w.__imeSaveCalls=[];w.__mockInvoke.mt_document_write_snapshot=({request}:any)=>{w.__imeSaveCalls.push(request);return {...request,pathname:request.targetPath}}})
+    await startComposition(page,PINYIN,'type')
+    await page.evaluate(async()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');await store.FILE_SAVE()})
+    expect(await page.evaluate(()=>(window as any).__imeSaveCalls.length)).toBe(0)
     expect((await readDom(page)).editorText ?? '').toContain(PINYIN)
-
-    await page.evaluate(async () => {
-      const app = document.querySelector('#app') as any
-      const store = app.__vue_app__.config.globalProperties.$pinia._s.get('editor')
-      await store.FILE_SAVE()
-    })
-    await expect.poll(
-      () => page.evaluate(() => ((window as any).__imeSaveCalls || []).length),
-      { timeout: 5_000 }
-    ).toBe(1)
-
-    const calls = await page.evaluate(() => (window as any).__imeSaveCalls)
-    const sent = calls[0]
-    expect(sent.markdown, 'transport receives the exact pre-composition markdown').toBe(preComposition)
-    expect(sent.markdown).not.toContain(PINYIN)
-    const afterSave = await readStore(page)
-    expect(afterSave.activeMarkdown).toBe(preComposition)
-    expect(afterSave.activeSaved, 'the stale write reports the tab saved').toBe(true)
-    expect((await readDom(page)).editorText ?? '').toContain(PINYIN)
-
-    // The real compositionend still commits the text into the editor: the tab
-    // is dirty again while the transport payload never contained it.
-    await endComposition(page, PINYIN)
-    const afterEnd = await readStore(page)
-    expect(afterEnd.activeMarkdown ?? '').toContain(PINYIN)
-    expect(afterEnd.activeSaved).toBe(false)
-
-    test.info().annotations.push(
-      { type: 'observedLegacyBehavior', description: observedLegacyBehavior },
-      { type: 'desiredInvariant', description: desiredInvariant }
-    )
+    await expect(page.locator('.notification-card').first()).toBeVisible()
+    await endComposition(page,PINYIN)
+    await page.evaluate(async()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');await store.FILE_SAVE()})
+    expect(await page.evaluate(()=>(window as any).__imeSaveCalls.length)).toBe(1)
+    expect(await page.evaluate(()=>(window as any).__imeSaveCalls[0].markdown)).toContain(PINYIN)
   })
 })
 
@@ -545,27 +502,20 @@ const SAVE_ROW: BoundaryRow = {
     await page.evaluate(() => {
       const w = window as any
       w.__imeSaveCalls = []
-      w.__mockInvoke.mt_response_file_save = (args: any) => {
+      w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => {
         w.__imeSaveCalls.push({ args, atFire: { dom: document.querySelector('#ag-editor-id')?.textContent ?? null } })
-        return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
+        return {...args,pathname:args.targetPath,filename:args.filename}
       }
     })
   },
-  fire: async (page) => {
-    await page.evaluate(async () => {
-      const app = document.querySelector('#app') as any
-      await app.__vue_app__.config.globalProperties.$pinia._s.get('editor').FILE_SAVE()
-    })
-    await expect.poll(() => page.evaluate(() => (window as any).__imeSaveCalls.length), { timeout: 5_000 }).toBe(1)
-  },
-  check: async (obs, page) => {
-    const calls = await page.evaluate(() => (window as any).__imeSaveCalls)
-    expect(calls[0].args.markdown).toBe(obs.before.activeMarkdown)
-    expect(calls[0].args.markdown).not.toContain(PINYIN)
-    expect(calls[0].atFire.dom ?? '').toContain(PINYIN)
+  fire:async(page)=>{await page.evaluate(async()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');await store.FILE_SAVE()})},
+  check:async(obs,page)=>{
+    expect(obs.after.tabCount).toBe(obs.before.tabCount)
     expect(obs.after.activeMarkdown).toBe(obs.before.activeMarkdown)
-    expect(obs.after.activeSaved).toBe(true)
     expect(obs.afterDom.editorText ?? '').toContain(PINYIN)
+    expect(obs.invokeLog).not.toContain('mt_document_write_snapshot')
+    expect(obs.invokeLog).not.toContain('mt_document_choose_save_target')
+    await expect(page.locator('.notification-card').first()).toBeVisible()
   },
   observedLegacyBehavior:
     'Save writes currentFile.markdown without the active composition, reports isSaved=true, and leaves the composed text only in the DOM.',
@@ -586,21 +536,14 @@ const SAVE_AS_ROW: BoundaryRow = {
       }
     })
   },
-  fire: async (page) => {
-    await page.evaluate(async () => {
-      const app = document.querySelector('#app') as any
-      await app.__vue_app__.config.globalProperties.$pinia._s.get('editor').FILE_SAVE_AS()
-    })
-    await expect.poll(() => page.evaluate(() => (window as any).__imeSaveAsCalls.length), { timeout: 5_000 }).toBe(1)
-  },
-  check: async (obs, page) => {
-    const calls = await page.evaluate(() => (window as any).__imeSaveAsCalls)
-    expect(calls[0].markdown).toBe(obs.before.activeMarkdown)
-    expect(calls[0].markdown).not.toContain(PINYIN)
-    expect(obs.after.activePath).toBe('/tmp/mark-e2e/ime-saved-as.md')
+  fire:async(page)=>{await page.evaluate(async()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');await store.FILE_SAVE_AS()})},
+  check:async(obs,page)=>{
+    expect(obs.after.tabCount).toBe(obs.before.tabCount)
     expect(obs.after.activeMarkdown).toBe(obs.before.activeMarkdown)
-    expect(obs.after.activeSaved).toBe(true)
     expect(obs.afterDom.editorText ?? '').toContain(PINYIN)
+    expect(obs.invokeLog).not.toContain('mt_document_write_snapshot')
+    expect(obs.invokeLog).not.toContain('mt_document_choose_save_target')
+    await expect(page.locator('.notification-card').first()).toBeVisible()
   },
   observedLegacyBehavior:
     'Save As sends the pre-composition markdown, moves the tab to the chosen path, marks it saved and leaves the composed text only in the DOM.',
@@ -621,22 +564,14 @@ const SAVE_ALL_ROW: BoundaryRow = {
       }
     })
   },
-  fire: async (page) => {
-    await page.evaluate(() => {
-      const app = document.querySelector('#app') as any
-      app.__vue_app__.config.globalProperties.$pinia._s.get('editor').ASK_FOR_SAVE_ALL(false)
-    })
-    await expect.poll(() => page.evaluate(() => (window as any).__imeSaveAllCalls.length), { timeout: 5_000 }).toBe(1)
-  },
-  check: async (obs, page) => {
-    const calls = await page.evaluate(() => (window as any).__imeSaveAllCalls)
-    const payloadTabs = calls[0]?.args
-    expect(Array.isArray(payloadTabs), 'shim wraps the tabs array as {args: [...]}').toBe(true)
-    expect(payloadTabs).toHaveLength(0)
-    expect(obs.invokeLog).toContain('mt_save_tabs')
+  fire:async(page)=>{await page.evaluate(async()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');await store.ASK_FOR_SAVE_ALL(false)})},
+  check:async(obs,page)=>{
+    expect(obs.after.tabCount).toBe(obs.before.tabCount)
     expect(obs.after.activeMarkdown).toBe(obs.before.activeMarkdown)
-    expect(obs.after.activeSaved).toBe(true)
     expect(obs.afterDom.editorText ?? '').toContain(PINYIN)
+    expect(obs.invokeLog).not.toContain('mt_document_write_snapshot')
+    expect(obs.invokeLog).not.toContain('mt_document_choose_save_target')
+    await expect(page.locator('.notification-card').first()).toBeVisible()
   },
   observedLegacyBehavior:
     'Save All filters by isSaved; the composing tab still looks clean, so mt_save_tabs receives an empty tab list (and that channel is unregistered/no-op in this harness), while the composed text remains only in the DOM.',
@@ -651,7 +586,7 @@ const AUTOSAVE_ROW: BoundaryRow = {
     await page.evaluate(() => {
       const w = window as any
       w.__imeSaveCalls = []
-      w.__mockInvoke.mt_response_file_save = (args: any) => {
+      w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => {
         const app = document.querySelector('#app') as any
         const store = app.__vue_app__.config.globalProperties.$pinia._s.get('editor')
         w.__imeSaveCalls.push({
@@ -661,7 +596,7 @@ const AUTOSAVE_ROW: BoundaryRow = {
             dom: document.querySelector('#ag-editor-id')?.textContent ?? null
           }
         })
-        return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
+        return {...args,pathname:args.targetPath,filename:args.filename}
       }
       const prefs = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('preferences')
       prefs.autoSave = true
@@ -676,17 +611,14 @@ const AUTOSAVE_ROW: BoundaryRow = {
     await expect.poll(async () => (await readStore(page)).activeMarkdown ?? '', { timeout: 5_000 })
       .toContain('Z')
   },
-  fire: async (page) => {
-    await expect.poll(() => page.evaluate(() => (window as any).__imeSaveCalls.length), { timeout: 8_000 }).toBe(1)
-  },
-  check: async (obs, page) => {
-    const calls = await page.evaluate(() => (window as any).__imeSaveCalls)
-    expect(calls[0].args.markdown, 'autosave payload keeps the committed edit').toContain('Z')
-    expect(calls[0].args.markdown, 'autosave payload omits the active composition').not.toContain(PINYIN)
-    expect(calls[0].atFire.dom ?? '', 'composition was live when the timer fired').toContain(PINYIN)
-    expect(calls[0].atFire.markdown).not.toContain(PINYIN)
-    expect(obs.after.activeSaved, 'the stale autosave reports the tab clean').toBe(true)
+  fire:async(page)=>{await page.waitForTimeout(2600)},
+  check:async(obs,page)=>{
+    expect(obs.after.tabCount).toBe(obs.before.tabCount)
+    expect(obs.after.activeMarkdown).toBe(obs.before.activeMarkdown)
     expect(obs.afterDom.editorText ?? '').toContain(PINYIN)
+    expect(obs.invokeLog).not.toContain('mt_document_write_snapshot')
+    expect(obs.invokeLog).not.toContain('mt_document_choose_save_target')
+    await expect(page.locator('.notification-card').first()).toBeVisible()
   },
   observedLegacyBehavior:
     'The autosave debounce armed by the last committed edit fires during the active composition; it writes the stale markdown (committed edit only, no composed text), marks the tab saved and leaves the preedit in the DOM.',
@@ -934,28 +866,17 @@ const WORKSPACE_REPLACE_ROW: BoundaryRow = {
       { timeout: 5_000 }
     ).toEqual(['/tmp/mark-e2e/ws-a'])
   },
-  fire: async (page) => {
-    await page.evaluate(async () => {
-      const app = document.querySelector('#app') as any
-      const project = app.__vue_app__.config.globalProperties.$pinia._s.get('project')
-      await project.OPEN_FOLDER('/tmp/mark-e2e/ws-b', { mode: 'replace', origin: 'characterization' })
-    })
-    await expect.poll(
-      () => page.evaluate(() => {
-        const app = document.querySelector('#app') as any
-        const project = app.__vue_app__.config.globalProperties.$pinia._s.get('project')
-        return project.projectTrees.map((r: any) => r.pathname)
-      }),
-      { timeout: 8_000 }
-    ).toEqual(['/tmp/mark-e2e/ws-b'])
+  fire:async(page)=>{
+    await page.evaluate(async()=>{const pinia=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia;await pinia._s.get('project').OPEN_FOLDER('/tmp/mark-e2e/ws-b',{mode:'replace',origin:'characterization'})})
   },
-  check: async (obs) => {
-    expect(obs.after.tabCount, 'clean-looking composing tab was closed by the replace').toBe(0)
-    expect(obs.after.tabs).toEqual([])
-    expect(obs.dialogs.workspace, 'no dirty-confirm dialog appeared').toBe(0)
-    expect(obs.dialogs.unsaved).toBe(0)
-    expect(obs.afterDom.editorText).toBeNull()
-    expect(obs.invokeLog).not.toContain('mt_response_file_save')
+  check:async(obs,page)=>{
+    expect(obs.after.tabCount).toBe(1)
+    expect(obs.after.activeMarkdown).toBe(obs.before.activeMarkdown)
+    expect(obs.afterDom.editorText ?? '').toContain(PINYIN)
+    expect(await page.evaluate(()=>(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('project').projectTrees.map((r:any)=>r.pathname))).toEqual(['/tmp/mark-e2e/ws-a'])
+    expect(obs.dialogs.unsaved + obs.dialogs.workspace).toBe(0)
+    expect(obs.invokeLog).not.toContain('mt_document_write_snapshot')
+    await expect(page.locator('.notification-card').first()).toBeVisible()
   },
   observedLegacyBehavior:
     'Workspace replacement counts only isSaved=false tabs as dirty; the composing tab still looks clean, so it is closed silently with no confirm dialog and no save transport, and the preedit disappears with it.',
@@ -1043,25 +964,20 @@ const CLOSE_ROW: BoundaryRow = {
     await page.evaluate(() => {
       const w = window as any
       w.__imeSaveCalls = []
-      w.__mockInvoke.mt_response_file_save = (args: any) => {
+      w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => {
         w.__imeSaveCalls.push(args)
-        return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
+        return {...args,pathname:args.targetPath,filename:args.filename}
       }
     })
   },
-  fire: async (page) => {
-    await page.evaluate(() => {
-      const app = document.querySelector('#app') as any
-      app.__vue_app__.config.globalProperties.$pinia._s.get('editor').CLOSE_TAB()
-    })
-    await expect.poll(async () => (await readStore(page)).tabCount, { timeout: 5_000 }).toBe(0)
-  },
-  check: async (obs, page) => {
-    expect(obs.after.tabCount).toBe(0)
-    expect(obs.dialogs.unsaved, 'no unsaved-close dialog appeared').toBe(0)
-    expect(obs.dialogs.messageBox).toBe(0)
-    expect(await page.evaluate(() => (window as any).__imeSaveCalls.length)).toBe(0)
-    expect(obs.afterDom.editorText).toBeNull()
+  fire:async(page)=>{await page.evaluate(async()=>{const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor');await store.CLOSE_TAB()})},
+  check:async(obs,page)=>{
+    expect(obs.after.tabCount).toBe(obs.before.tabCount)
+    expect(obs.after.activeMarkdown).toBe(obs.before.activeMarkdown)
+    expect(obs.afterDom.editorText ?? '').toContain(PINYIN)
+    expect(obs.invokeLog).not.toContain('mt_document_write_snapshot')
+    expect(obs.invokeLog).not.toContain('mt_document_choose_save_target')
+    await expect(page.locator('.notification-card').first()).toBeVisible()
   },
   observedLegacyBehavior:
     'CLOSE_TAB checks only isSaved; the composing tab still looks clean, so it closes with no unsaved-close dialog and no save transport, discarding the preedit.',
@@ -1087,12 +1003,13 @@ const QUIT_ROW: BoundaryRow = {
       const app = document.querySelector('#app') as any
       await app.__vue_app__.config.globalProperties.$pinia._s.get('editor').QUIT_APP()
     })
-    await expect.poll(() => page.evaluate(() => (window as any).__imeQuitCalls.length), { timeout: 8_000 }).toBe(1)
+    await expect.poll(() => page.evaluate(() => (window as any).__imeQuitCalls.length), { timeout: 8_000 }).toBe(0)
   },
   check: async (obs) => {
     expect(obs.dialogs.messageBox, 'no unsaved-changes quit prompt appeared').toBe(0)
     expect(obs.invokeLog).not.toContain('mt_save_and_close_tabs')
     expect(obs.invokeLog).not.toContain('mt_save_tabs')
+    expect(obs.invokeLog).not.toContain('mt_app_quit')
     expect(obs.after.tabCount).toBe(1)
     expect(obs.after.activeMarkdown).toBe(obs.before.activeMarkdown)
     expect(obs.after.activeMarkdown ?? '').not.toContain(PINYIN)
@@ -1392,9 +1309,9 @@ async function runSeededSession (page: Page, seed: number): Promise<SeededSessio
   await page.evaluate(() => {
     const w = window as any
     w.__imeSeedSaveCalls = []
-    w.__mockInvoke.mt_response_file_save = (args: any) => {
+    w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => {
       w.__imeSeedSaveCalls.push(args)
-      return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
+      return {...args,pathname:args.targetPath,filename:args.filename}
     }
   })
 
@@ -1604,9 +1521,9 @@ async function runCloseLossScenario (page: Page, seed: number): Promise<CloseLos
   await page.evaluate(() => {
     const w = window as any
     w.__imeLossSaveCalls = []
-    w.__mockInvoke.mt_response_file_save = (args: any) => {
+    w.__mockInvoke.mt_document_write_snapshot = ({request:args}: any) => {
       w.__imeLossSaveCalls.push(args)
-      return { id: args.id, pathname: args.pathname, filename: args.filename, isSaved: true }
+      return {...args,pathname:args.targetPath,filename:args.filename}
     }
   })
 
@@ -1635,7 +1552,7 @@ async function runCloseLossScenario (page: Page, seed: number): Promise<CloseLos
     const app = document.querySelector('#app') as any
     app.__vue_app__.config.globalProperties.$pinia._s.get('editor').CLOSE_TAB()
   })
-  await expect.poll(async () => (await readStore(page)).tabCount, { timeout: 5_000 }).toBe(0)
+  await expect.poll(async () => (await readStore(page)).tabCount, { timeout: 5_000 }).toBe(1)
   await page.waitForTimeout(250)
 
   const after = await readStore(page)
@@ -1656,7 +1573,7 @@ async function runCloseLossScenario (page: Page, seed: number): Promise<CloseLos
       { action: `open(${'/tmp/mark-e2e/ime-failing-seed.md'})`, state: { activePath: during.activePath, clean: true } },
       { action: preludeSave ? 'prelude-save' : 'no-prelude', state: { clean: true } },
       { action: `compose(${payload})`, state: { markdownHasPayload: false, domHasPayload: true } },
-      { action: 'close', state: { tabCount: 0, dialogCount: 0, saveCalls: 0 } }
+      { action: 'close-refused', state: { tabCount: 1, dialogCount: 0, saveCalls: 0 } }
     ]
   }
 }
@@ -1664,7 +1581,7 @@ async function runCloseLossScenario (page: Page, seed: number): Promise<CloseLos
 test.describe('seeded known-loss reproduction (R-6/R-7)', () => {
   test.describe.configure({ timeout: 60_000 })
 
-  test('a seeded clean-looking close drops the active composition (desired invariant currently fails)', async ({ page }) => {
+  test('a seeded clean-looking close preserves active composition and refuses closure', async ({ page }) => {
     const observedLegacyBehavior =
       'CLOSE_TAB during an active IME composition sees isSaved=true (Muya has not dispatched a change), so the tab closes with no unsaved-close dialog and no save transport; the composed text never enters any tab markdown and is lost with the tab. This is asserted as today\'s fact, not as acceptable behavior.'
     const desiredInvariant =
@@ -1676,8 +1593,8 @@ test.describe('seeded known-loss reproduction (R-6/R-7)', () => {
     // session test above.
     const first = await runCloseLossScenario(page, FAILING_SEED)
 
-    // The desired invariant fails, the observed behavior passes.
-    expect(first.tabCountAfterClose).toBe(0)
+    // C-SAVE-CLOSE-DATA-SAFETY repairs the retained loss seed; assert its desired invariant.
+    expect(first.tabCountAfterClose).toBe(1)
     expect(first.dialogCount, 'no prompt appeared').toBe(0)
     expect(first.saveCallsDuringComposition, 'no save transport was attempted').toBe(0)
     expect(first.anyMarkdownReceivedPayload, 'the composed text never reached markdown').toBe(false)

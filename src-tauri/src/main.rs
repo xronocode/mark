@@ -939,6 +939,8 @@ fn main() {
             m_v1_compat::mt_close_project_root,
             m_v1_compat::mt_app_quit,
             // F-LIFECYCLE-WIRE / F-SAVE-FLOW-WIRE (B4-pre-alpha-step-3):
+            m001_save_close::mt_document_choose_save_target,
+            m001_save_close::mt_document_write_snapshot,
             m001_save_close::mt_response_file_save,
             m001_save_close::mt_response_file_save_as,
             m001_save_close::mt_close_window,

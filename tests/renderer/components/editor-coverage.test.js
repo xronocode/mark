@@ -1117,6 +1117,8 @@ describe('editor.vue — coverage', () => {
 
   it('handleCopyAsHtml sanitizes and writes the selection payload via native writeHtml', async () => {
     await mountEditor()
+    // Opening initializes the save snapshot baseline; only the copy operation must avoid whole-model serialization.
+    mockEditorInstance.getMarkdown.mockClear()
     mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '# Title' })
     await getBusHandler('copyAsHtmlRich')()
     expect(markedMock).toHaveBeenCalledWith('# Title', expect.anything())
@@ -1142,6 +1144,8 @@ describe('editor.vue — coverage', () => {
 
   it('handleCopyAsHtml copies table-cell selections instead of the whole document', async () => {
     await mountEditor()
+    // Opening initializes the save snapshot baseline; only the copy operation must avoid whole-model serialization.
+    mockEditorInstance.getMarkdown.mockClear()
     mockEditorInstance.getCopyData.mockReturnValueOnce({ text: '| a | b |' })
     await getBusHandler('copyAsHtmlRich')()
     expect(mockEditorInstance.getMarkdown).not.toHaveBeenCalled()

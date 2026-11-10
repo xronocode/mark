@@ -1,40 +1,44 @@
-// MODULE_CONTRACT
-//   PURPOSE: M-001 close-flow + save-flow IPC bridge for the renderer.
-//            Plus the WindowEvent::CloseRequested handler that drives
-//            the existing CloseStateMachine in m001_lifecycle.
-//   SCOPE:   IPC commands the renderer's editor.js sends:
-//              - mt_response_file_save  (Cmd+S → write file, emit
-//                                        mt::tab-saved or mt::tab-save-failure)
-//              - mt_response_file_save_as (Cmd+Shift+S → no-op for alpha
-//                                          per F-SAVE-AS-DIALOG; reports
-//                                          via mt::tab-save-failure)
-//              - mt_close_window        (renderer signals "destroy now")
-//              - mt_save_and_close_tabs (renderer-collected unsaved
-//                                        list → save each → close)
-//              - mt_close_window_confirm (no-op IPC sink — renderer
-//                                         shows its own dialog now)
-//            Plus wire_close_handler() — registers
-//            on_window_event(CloseRequested → prevent_close + emit
-//            mt::ask-for-close + advance state machine).
-//   DEPENDS: m001_lifecycle (state machine), m013b::fs (mt_fs_write),
-//            m013b::state::SecurityCtx, tauri::Emitter, tauri::Manager.
-//   LINKS:   .grace/graph/runtime.xml M-001 (PhaseRef Phase-B4-pre-alpha) step-3
-//            (closes F-LIFECYCLE-WIRE; introduces save-flow wiring
-//            that v1.2.3 main process did and was missing in Tauri
-//            port — tracked as F-SAVE-FLOW-WIRE in followups).
-//   STATUS:  Phase-B4-pre-alpha step-3.
-//   LOG MARKERS:
-//            [m001][lifecycle][BLOCK_CLOSE_REQUESTED]
-//            [m001][save_close][BLOCK_FILE_SAVED id=… path=…]
-//            [m001][save_close][BLOCK_FILE_SAVE_FAILED id=… reason=…]
-//            [m001][save_close][BLOCK_SAVE_AS_NOT_IMPLEMENTED id=…]
-//            [m001][save_close][BLOCK_CLOSE_CONFIRM_RECEIVED]
-//            [m001][save_close][BLOCK_DESTROY_WINDOW label=…]
-//
-// CHANGE_SUMMARY:
-//   - 2026-05-08 B4-pre-alpha-step-3: initial save+close IPC bridge
-//                + WindowEvent close handler, drives existing
-//                CloseStateMachine.
+// FILE: src-tauri/src/m001_save_close.rs
+// START_MODULE_CONTRACT
+//   PURPOSE: M-001 correlated save-only bridge and guarded native window lifecycle.
+//   SCOPE: Native destination selection is separate from writing; complete snapshot
+//          requests echo lifetime/revision/source ownership and reject a destination
+//          owned by another live document before sandboxed disk writes. Renderer
+//          coordination alone authorizes logical close; legacy batch close rejects.
+//          Deprecated one-shot saves remain save-only compatibility endpoints.
+//   DEPENDS: m001_lifecycle, m013b::fs, m013b::state::SecurityCtx,
+//            m010_security, m047_bookmarks and the native dialog plugin.
+//   LINKS: .grace/graph/runtime.xml M-001; V-M-001;
+//          C-SAVE-CLOSE-DATA-SAFETY T-002/T-003.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   MainCloseSm - Managed native close-state machine.
+//   SavedTabState - Deprecated save-only result shape.
+//   mt_response_file_save - Deprecated one-shot save compatibility command.
+//   mt_response_file_save_as - Deprecated picker-plus-save compatibility command.
+//   save_to_path_inner - Sandboxed save-only primitive and legacy result formatter.
+//   SaveTargetRequest - Native picker request with request/lifetime identity.
+//   SaveTargetReply - Selected path correlated to its picker request.
+//   OwnedDocumentPath - Another live lifetime and its protected destination.
+//   DocumentWriteRequest - Immutable text/revision/source/destination write request.
+//   DocumentWriteReply - Acknowledged write identity and resulting filename.
+//   mt_document_choose_save_target - Select a native path without capturing document text.
+//   write_document_snapshot_inner - Validate ownership collisions and write exact snapshot text.
+//   mt_document_write_snapshot - Invoke the guarded snapshot writer using the active sandbox.
+//   mt_close_window - Destroy the caller window after renderer close approval.
+//   save_and_close_inner - Test-only historical batch behavior; no runtime authority.
+//   mt_save_and_close_tabs - Reject the unsafe legacy batch-close route.
+//   mt_close_window_confirm - Retain the legacy confirmation sink.
+//   advance_close_state_machine - Advance native lifecycle after a confirmed close.
+//   wire_close_handler - Intercept native close requests for renderer approval.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   - 2026-11-10 C-SAVE-CLOSE-DATA-SAFETY: correlated snapshot writes,
+//     separate picker, canonical owned-path collision fence and rejected legacy close.
+//   - 2026-05-08 B4-pre-alpha-step-3: initial save/close bridge.
+// END_CHANGE_SUMMARY
 
 use crate::m001_lifecycle::{CloseState, CloseStateMachine};
 use crate::m013b::state::SecurityCtx;
@@ -157,9 +161,16 @@ async fn pick_save_path(
     // is where Tauri async commands run) — this plugin handles the
     // dispatch internally.
     let (tx, rx) = tokio::sync::oneshot::channel::<Option<tauri_plugin_dialog::FilePath>>();
-    let mut builder = app.dialog().file().set_title("Save File").set_file_name(fname);
+    let mut builder = app
+        .dialog()
+        .file()
+        .set_title("Save File")
+        .set_file_name(fname);
     builder = builder
-        .add_filter("Markdown", &["md", "markdown", "mdown", "mkd", "mkdn", "mdtxt"])
+        .add_filter(
+            "Markdown",
+            &["md", "markdown", "mdown", "mkd", "mkdn", "mdtxt"],
+        )
         .add_filter("Text", &["txt", "text"])
         .add_filter("All Files", &["*"]);
     if !default_dir.is_empty() {
@@ -171,11 +182,7 @@ async fn pick_save_path(
     let chosen = rx.await.ok().flatten()?;
     // FilePath has Display; convert to String. file_path() returns the
     // PathBuf when on a real filesystem (vs a content URI on Android).
-    let path_str = chosen
-        .into_path()
-        .ok()?
-        .to_string_lossy()
-        .to_string();
+    let path_str = chosen.into_path().ok()?.to_string_lossy().to_string();
     safe_eprintln!("[m001][save_close][BLOCK_SAVE_AS_PICKED path={path_str}]");
     Some(path_str)
 }
@@ -232,6 +239,145 @@ pub(crate) fn save_to_path_inner(
     }
 }
 
+// START_BLOCK_CORRELATED_DOCUMENT_SAVE
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveTargetRequest {
+    pub request_id: String,
+    pub document_token: String,
+    pub filename: String,
+    pub default_path: Option<String>,
+}
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveTargetReply {
+    pub request_id: String,
+    pub document_token: String,
+    pub pathname: String,
+}
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OwnedDocumentPath {
+    pub document_token: String,
+    pub pathname: String,
+}
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentWriteRequest {
+    pub request_id: String,
+    pub document_token: String,
+    pub id: String,
+    pub revision: u64,
+    pub source_path: String,
+    pub target_path: String,
+    pub markdown: String,
+    pub owned_paths: Vec<OwnedDocumentPath>,
+}
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentWriteReply {
+    pub request_id: String,
+    pub document_token: String,
+    pub id: String,
+    pub revision: u64,
+    pub source_path: String,
+    pub pathname: String,
+    pub filename: String,
+}
+
+#[tauri::command]
+pub async fn mt_document_choose_save_target(
+    request: SaveTargetRequest,
+    app: AppHandle,
+) -> Result<Option<SaveTargetReply>, String> {
+    if request.request_id.is_empty() || request.document_token.is_empty() {
+        return Err("MT_DOCUMENT_INVALID_OWNER".into());
+    }
+    Ok(pick_save_path(
+        &app,
+        &request.filename,
+        request.default_path.as_deref().unwrap_or(""),
+    )
+    .await
+    .map(|pathname| SaveTargetReply {
+        request_id: request.request_id,
+        document_token: request.document_token,
+        pathname,
+    }))
+}
+
+fn canonical_document_target(path: &str) -> Result<std::path::PathBuf, String> {
+    let path = std::path::Path::new(path);
+    if !path.is_absolute() {
+        return Err("MT_DOCUMENT_INVALID_PATH".into());
+    }
+    if path.exists() {
+        return std::fs::canonicalize(path).map_err(|_| "MT_DOCUMENT_PATH_UNAVAILABLE".into());
+    }
+    let parent = path.parent().ok_or("MT_DOCUMENT_INVALID_PATH")?;
+    let name = path.file_name().ok_or("MT_DOCUMENT_INVALID_PATH")?;
+    std::fs::canonicalize(parent)
+        .map(|p| p.join(name))
+        .map_err(|_| "MT_DOCUMENT_PATH_UNAVAILABLE".into())
+}
+
+pub(crate) fn write_document_snapshot_inner(
+    sandbox: &std::path::Path,
+    request: DocumentWriteRequest,
+) -> Result<DocumentWriteReply, String> {
+    if request.request_id.is_empty() || request.document_token.is_empty() || request.id.is_empty() {
+        return Err("MT_DOCUMENT_INVALID_OWNER".into());
+    }
+    // Reuse the canonical sandbox guard before resolving any owned destination.
+    let resolved_target = crate::m047_bookmarks::ensure_access(&request.target_path);
+    let target = crate::m010_security::check_path(sandbox, std::path::Path::new(&resolved_target))
+        .map_err(|_| "MT_DOCUMENT_PATH_DENIED")?;
+    for owner in &request.owned_paths {
+        if owner.document_token == request.document_token || owner.pathname.is_empty() {
+            continue;
+        }
+        let owned = canonical_document_target(&owner.pathname)?;
+        #[cfg(target_os = "windows")]
+        let same = owned
+            .to_string_lossy()
+            .eq_ignore_ascii_case(&target.to_string_lossy());
+        #[cfg(not(target_os = "windows"))]
+        let same = owned == target;
+        if same {
+            safe_eprintln!("[m001][save_close][BLOCK_DOCUMENT_DESTINATION_OWNED]");
+            return Err("MT_DOCUMENT_DESTINATION_OWNED".into());
+        }
+    }
+    crate::m013b::fs::fs_write_inner(&request.target_path, &request.markdown, sandbox)
+        .map_err(|_| "MT_DOCUMENT_WRITE_FAILED")?;
+    safe_eprintln!(
+        "[m001][save_close][BLOCK_DOCUMENT_SNAPSHOT_WRITTEN revision={}]",
+        request.revision
+    );
+    Ok(DocumentWriteReply {
+        request_id: request.request_id,
+        document_token: request.document_token,
+        id: request.id,
+        revision: request.revision,
+        source_path: request.source_path,
+        filename: std::path::Path::new(&request.target_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string(),
+        pathname: request.target_path,
+    })
+}
+
+#[tauri::command]
+pub async fn mt_document_write_snapshot(
+    request: DocumentWriteRequest,
+    sec: State<'_, SecurityCtx>,
+) -> Result<DocumentWriteReply, String> {
+    write_document_snapshot_inner(&sec.sandbox(), request)
+}
+// END_BLOCK_CORRELATED_DOCUMENT_SAVE
+
 // END_BLOCK save_commands
 
 // ─────────────────────────────────────────────────────────────────────
@@ -252,7 +398,9 @@ pub async fn mt_close_window(
         safe_eprintln!("[m001][save_close][BLOCK_DESTROY_WINDOW label=main]");
         win.destroy().map_err(|e| e.to_string())?;
     } else {
-        safe_eprintln!("[m001][save_close][BLOCK_DESTROY_WINDOW_SKIPPED label=main reason=not-found]");
+        safe_eprintln!(
+            "[m001][save_close][BLOCK_DESTROY_WINDOW_SKIPPED label=main reason=not-found]"
+        );
     }
     Ok(())
 }
@@ -280,6 +428,7 @@ pub async fn mt_close_window(
 /// on partial/total failure. Extracted so unit tests can exercise both
 /// outcomes without an AppHandle. Untitled entries (empty pathname) are
 /// silently skipped — caller is expected to have warned the user.
+#[cfg(test)]
 pub(crate) fn save_and_close_inner(
     sandbox: &std::path::Path,
     args: Vec<serde_json::Value>,
@@ -351,36 +500,15 @@ pub(crate) fn save_and_close_inner(
 #[tauri::command]
 pub async fn mt_save_and_close_tabs(
     args: Vec<serde_json::Value>,
-    app: AppHandle,
-    sec: State<'_, SecurityCtx>,
+    _app: AppHandle,
+    _sec: State<'_, SecurityCtx>,
 ) -> Result<(), String> {
-    let sandbox = sec.sandbox();
-    match save_and_close_inner(&sandbox, args) {
-        Ok(saved_ids) => {
-            for id in &saved_ids {
-                let _ = app.emit("mt::tab-saved", id.clone());
-            }
-            if !saved_ids.is_empty() {
-                let _ = app.emit("mt::force-close-tabs-by-id", saved_ids);
-            }
-            Ok(())
-        }
-        Err((agg_msg, failures, saved_ids)) => {
-            for id in &saved_ids {
-                let _ = app.emit("mt::tab-saved", id.clone());
-            }
-            for (id, msg) in failures {
-                let _ = app.emit("mt::tab-save-failure", (id, msg));
-            }
-            Err(agg_msg)
-        }
-    }
+    let _ = args;
+    Err("MT_DOCUMENT_LEGACY_CLOSE_REJECTED".into())
 }
 
 #[tauri::command]
-pub async fn mt_close_window_confirm(
-    _args: Vec<serde_json::Value>,
-) -> Result<(), String> {
+pub async fn mt_close_window_confirm(_args: Vec<serde_json::Value>) -> Result<(), String> {
     // v1.2.3 routed this IPC to a native main-process dialog. In Tauri
     // port the renderer's LISTEN_FOR_CLOSE shows the dialog locally
     // (ElMessageBox), so this command is just an acknowledgement sink
@@ -461,6 +589,89 @@ mod tests {
     use serde_json::json;
     use tempfile::TempDir;
 
+    fn snapshot_request(path: &std::path::Path) -> DocumentWriteRequest {
+        DocumentWriteRequest {
+            request_id: "request-1".into(),
+            document_token: "lifetime-1".into(),
+            id: "tab-1".into(),
+            revision: 7,
+            source_path: String::new(),
+            target_path: path.to_string_lossy().to_string(),
+            markdown: "fresh\n".into(),
+            owned_paths: vec![],
+        }
+    }
+    #[test]
+    fn correlated_snapshot_writes_exact_bytes_and_echoes_ownership() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("fresh.md");
+        let reply = write_document_snapshot_inner(dir.path(), snapshot_request(&target)).unwrap();
+        assert_eq!(std::fs::read_to_string(target).unwrap(), "fresh\n");
+        assert_eq!(
+            (
+                reply.request_id.as_str(),
+                reply.document_token.as_str(),
+                reply.id.as_str(),
+                reply.revision
+            ),
+            ("request-1", "lifetime-1", "tab-1", 7)
+        );
+        assert_eq!(reply.source_path, "");
+    }
+    #[test]
+    fn correlated_snapshot_rejects_owned_target_before_overwriting() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("owned.md");
+        std::fs::write(&target, "keep").unwrap();
+        let mut request = snapshot_request(&target);
+        request.owned_paths.push(OwnedDocumentPath {
+            document_token: "another".into(),
+            pathname: target.to_string_lossy().into_owned(),
+        });
+        assert_eq!(
+            write_document_snapshot_inner(dir.path(), request).unwrap_err(),
+            "MT_DOCUMENT_DESTINATION_OWNED"
+        );
+        assert_eq!(std::fs::read_to_string(target).unwrap(), "keep");
+    }
+    #[test]
+    fn correlated_snapshot_rejects_an_owned_new_destination_and_sandbox_escape() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("new.md");
+        let mut request = snapshot_request(&target);
+        request.owned_paths.push(OwnedDocumentPath {
+            document_token: "another".into(),
+            pathname: target.to_string_lossy().into_owned(),
+        });
+        assert!(write_document_snapshot_inner(dir.path(), request).is_err());
+        assert!(!target.exists());
+        let outside = TempDir::new().unwrap();
+        assert!(write_document_snapshot_inner(
+            dir.path(),
+            snapshot_request(&outside.path().join("no.md"))
+        )
+        .is_err());
+    }
+    #[cfg(unix)]
+    #[test]
+    fn correlated_snapshot_rejects_alias_of_live_owned_path() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("owned.md");
+        let alias = dir.path().join("alias.md");
+        std::fs::write(&target, "keep").unwrap();
+        std::os::unix::fs::symlink(&target, &alias).unwrap();
+        let mut request = snapshot_request(&alias);
+        request.owned_paths.push(OwnedDocumentPath {
+            document_token: "another".into(),
+            pathname: target.to_string_lossy().into_owned(),
+        });
+        assert_eq!(
+            write_document_snapshot_inner(dir.path(), request).unwrap_err(),
+            "MT_DOCUMENT_DESTINATION_OWNED"
+        );
+        assert_eq!(std::fs::read_to_string(target).unwrap(), "keep");
+    }
+
     #[test]
     fn main_close_sm_default_is_idle() {
         let sm = MainCloseSm::default();
@@ -493,14 +704,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let outside = TempDir::new().unwrap();
         let target = outside.path().join("nope.md");
-        let err = save_to_path_inner(
-            dir.path(),
-            "tab-1",
-            target.to_str().unwrap(),
-            "x",
-            false,
-        )
-        .unwrap_err();
+        let err = save_to_path_inner(dir.path(), "tab-1", target.to_str().unwrap(), "x", false)
+            .unwrap_err();
         assert!(err.contains("MT_FS_PATH_DENIED"), "got {err}");
     }
 
@@ -564,8 +769,7 @@ mod tests {
             json!({"id": "good", "pathname": p_ok.to_str().unwrap(), "markdown": "yay"}),
             json!({"id": "bad", "pathname": p_bad.to_str().unwrap(), "markdown": "boom"}),
         ];
-        let (msg, failures, saved) =
-            save_and_close_inner(dir.path(), args).unwrap_err();
+        let (msg, failures, saved) = save_and_close_inner(dir.path(), args).unwrap_err();
         assert!(msg.contains("1 tab(s) failed"), "got {msg}");
         assert_eq!(saved, vec!["good".to_string()]);
         assert_eq!(failures.len(), 1);
@@ -601,7 +805,11 @@ mod tests {
         let mut sm = CloseStateMachine::default();
         assert_eq!(sm.state(), CloseState::Idle);
         advance_close_state_machine(&mut sm);
-        assert!(sm.is_terminal(), "expected terminal state, got {:?}", sm.state());
+        assert!(
+            sm.is_terminal(),
+            "expected terminal state, got {:?}",
+            sm.state()
+        );
     }
 
     #[test]
@@ -645,8 +853,7 @@ mod tests {
             json!({"id": "a", "pathname": p1.to_str().unwrap(), "markdown": "x"}),
             json!({"id": "b", "pathname": p2.to_str().unwrap(), "markdown": "y"}),
         ];
-        let (msg, failures, saved) =
-            save_and_close_inner(dir.path(), args).unwrap_err();
+        let (msg, failures, saved) = save_and_close_inner(dir.path(), args).unwrap_err();
         assert!(msg.contains("2 tab(s) failed"));
         assert!(saved.is_empty());
         assert_eq!(failures.len(), 2);
