@@ -1,8 +1,8 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 3.4.2
+// VERSION: 3.4.4
 // START_MODULE_CONTRACT
 //   PURPOSE: Table sizing and resize affordances in Auto (content-sized), Fit page (text frame) and Full width (window canvas). All modes wrap or squeeze rather than internally scroll; explicit Auto reset drops fixed widths. Fit/Full external edges are pinned, Auto alone exposes external walls, and internal borders remain draggable at full table height.
-//   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, fixed-geometry wrapping through Auto reconciliation, proportional fitting and bounded manual drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
+//   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, fixed-geometry wrapping through Auto reconciliation, proportional fitting, adjacent-pair framed drags, mode-bounded partial reset and bounded Auto drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
 //   DEPENDS: muya.eventCenter (capture- and bubble-phase DOM events on muya.container), window pointer events during a drag, ResizeObserver (jsdom degrades to render-time evaluation only), DOM colgroup/th measuring; ./tableFit (measureColumnExtents, planTableFit, distributeIntoFrame, applyRatiosToWidth, ratiosFromWidths); ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS + the degradation badge formatting); ../parser/render/renderBlock/renderTableToolbar (the mode segment for the live active-state swap).
 //   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007/T-008/T-009, spec R-8/R-9/R-10/R-11, corners C-7/C-8/C-9/C-10); .grace/graph/performance.xml M-061 and runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21/scenario-66 and verification/performance.xml V-M-061; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js (schema v2) + tableLayoutRatios.js (the store-side ratio maths) + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side); store/preferences.js tableFullWidthDefault/rememberTableColumnSizes (the Tables-tab keys this module consumes).
 //   ROLE: RUNTIME
@@ -38,6 +38,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-TABLE-FITTED-RESET: partial column resets
+//   pass through the selected Fit/Full layout before persistence, so
+//   measured natural widths cannot leave a wider-than-frame table.
+//   CURRENT: 2026-11-10 C-TABLE-SEQUENTIAL-RESIZE: Fit/Full internal
+//   borders transfer width only between their adjacent columns. Manual
+//   ratios keep the resize minimum through refit, and active gestures
+//   retain their entry identity and pointer-down geometry.
 //   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: Auto restores wrap
 //   chrome for fixed/session entries across reconciliation, including narrow
 //   columns whose border box fits but whose content minimum does not. Natural
@@ -782,7 +789,14 @@ class TableResize {
     const extents = this.extentsFor(table)
     if (entry && Array.isArray(entry.ratios) && entry.ratios.length &&
         entry.ratios.length === (table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells.length : 0)) {
-      const minima = this.degradeMinima(extents) || []
+      // A user-chosen ratio is allowed to wrap below min-content. Using
+      // intrinsic minima here expands narrow manual columns on the next
+      // observer/render pass and erases the border the user just placed.
+      const manualGeometry = (Array.isArray(entry.manual) && entry.manual.some(Boolean)) ||
+        (this.dragging && this.dragging.kind === 'column' && this.dragging.key === key && this.dragging.hasMoved)
+      const minima = manualGeometry
+        ? entry.widths.map(() => MIN_COLUMN_WIDTH)
+        : this.degradeMinima(extents) || []
       const widths = applyRatiosToWidth(entry.ratios, frame, minima)
       // Owner 2026-11-07: stored ratios may NOT fit the frame (the ratio
       // floors are the plain minima; a narrow canvas leaves their sum
@@ -1217,12 +1231,10 @@ class TableResize {
     table.classList.toggle('ag-table-wrap-anywhere', plan.kind === 'wrap')
     this.degrade.delete(key)
     delete figure.dataset.degradeOverflow
-    const next = {
-      widths: plan.widths,
-      // Fitted widths are the algorithm's, not the user's drag — the
-      // manual flags and stored ratios survive untouched.
-      manual: entry ? entry.manual.slice() : plan.widths.map(() => false)
-    }
+    // Keep the entry identity: ResizeObserver may refit between pointer
+    // moves, while the active drag still owns this same width store entry.
+    const next = entry || { manual: plan.widths.map(() => false) }
+    next.widths = plan.widths
     if (entry && entry.ratios) next.ratios = entry.ratios
     if (entry && entry.tableWidth) next.tableWidth = entry.tableWidth
     this.widths.set(key, next)
@@ -1750,6 +1762,9 @@ class TableResize {
       ? Number(columnWall.dataset.columnWallIndex)
       : handle.closest('th,td').cellIndex
     if (!(columnIndex >= 0)) return
+    const framed = this.modeOf(key) !== 'auto'
+    const columnCount = table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells.length : 0
+    if (framed && columnIndex >= columnCount - 1) return
     let entry = this.widths.get(key)
     const createdThisDrag = !entry
     if (!entry) {
@@ -1772,6 +1787,8 @@ class TableResize {
       createdThisDrag,
       startX: event.clientX,
       startWidth: entry.widths[columnIndex],
+      startWidths: entry.widths.slice(),
+      pairedColumnIndex: framed ? columnIndex + 1 : null,
       handle: columnWall || handle
     }
     const grip = columnWall || handle
@@ -1824,27 +1841,35 @@ class TableResize {
       return
     }
     const drag0 = drag
-    const next = clampWidth(drag0.startWidth + (event.clientX - drag0.startX))
-    if (next === drag0.entry.widths[drag0.columnIndex]) return
-    drag0.entry.widths[drag0.columnIndex] = next
-    // R-9: a drag in Fit/Full fixes that column and re-fits the remainder —
-    // the table never leaves its frame. Auto keeps the C-39 freeze
-    // behaviour (the table is content-sized).
-    const mode = this.modeOf(drag0.key)
-    const dragFrame = this.frameWidthFor(drag0.figure, mode === 'auto' ? 'fit' : mode)
-    if (mode !== 'auto' || sumWidths(drag0.entry.widths) > dragFrame) {
-      const frame = dragFrame
-      if (Number.isFinite(frame) && frame > 0) {
+    if (Number.isInteger(drag0.pairedColumnIndex)) {
+      // Framed modes move one shared border, conserving the adjacent pair.
+      // Other columns keep their widths, including earlier manual choices.
+      const left = drag0.columnIndex
+      const right = drag0.pairedColumnIndex
+      const pairWidth = drag0.startWidths[left] + drag0.startWidths[right]
+      const floor = Math.min(MIN_COLUMN_WIDTH, Math.floor(pairWidth / 2))
+      const next = Math.max(floor, Math.min(pairWidth - floor,
+        Math.round(drag0.startWidth + event.clientX - drag0.startX)))
+      if (next === drag0.entry.widths[left] && pairWidth - next === drag0.entry.widths[right]) return
+      drag0.entry.widths[left] = next
+      drag0.entry.widths[right] = pairWidth - next
+    } else {
+      // Auto keeps its existing content-sized single-column behavior and
+      // only invokes the no-scroll fitting fallback at the frame limit.
+      const next = clampWidth(drag0.startWidth + event.clientX - drag0.startX)
+      if (next === drag0.entry.widths[drag0.columnIndex]) return
+      drag0.entry.widths[drag0.columnIndex] = next
+      const frame = this.frameWidthFor(drag0.figure, 'fit')
+      if (Number.isFinite(frame) && frame > 0 && sumWidths(drag0.entry.widths) > frame) {
         const extents = this.extentsFor(drag0.table)
         const minima = this.degradeMinima(extents)
-        const maxima = extents && Array.isArray(extents.maxContent)
-          ? extents.maxContent
-          : null
+        const maxima = extents && Array.isArray(extents.maxContent) ? extents.maxContent : null
         this.refitRemainder(drag0.entry, drag0.columnIndex, frame, minima, maxima)
         drag0.table.classList.add('ag-table-wrap-anywhere')
       }
     }
     // T-008: the drag writes both — px and the stored proportions.
+    drag0.hasMoved = true
     const ratios = ratiosFromWidths(drag0.entry.widths)
     if (ratios) drag0.entry.ratios = ratios
     this.applyWidths(drag0.table, drag0.entry)
@@ -1855,7 +1880,7 @@ class TableResize {
     this.updateSizeChips()
   }
 
-  // A manual drag fixes one column and re-fits the rest. Content minima
+  // Auto overflow fitting fixes one column and re-fits the rest. Content minima
   // may yield under pressure: retaining them would hide real cells behind
   // the ghost-tail clip even though the scrollbar is absent.
   refitRemainder(entry, fixedIndex, frame, minima, maxima) {
@@ -1912,6 +1937,7 @@ class TableResize {
     const moved = Math.abs(drag.entry.widths[drag.columnIndex] - drag.startWidth) >= 1
     if (moved) {
       drag.entry.manual[drag.columnIndex] = true
+      if (Number.isInteger(drag.pairedColumnIndex)) drag.entry.manual[drag.pairedColumnIndex] = true
       console.debug(
         `[Muya][tableResize][BLOCK_COLUMN_RESIZED table=${drag.key} col=${drag.columnIndex} width=${drag.entry.widths[drag.columnIndex]}]`
       )
@@ -2013,7 +2039,13 @@ class TableResize {
     entry.manual[columnIndex] = false
     const ratios = ratiosFromWidths(entry.widths)
     if (ratios) entry.ratios = ratios
-    this.applyWidths(table, entry)
+    // A measured natural width can make this partial reset exceed the
+    // fitted frame. Apply the selected mode before persisting its widths.
+    if (figure && this.modeOf(key) !== 'auto') {
+      this.applyTableLayout(key, figure, table)
+    } else {
+      this.applyWidths(table, entry)
+    }
     // The measured reset width may change the table's edges — the walls
     // ride along (owner smoke 2026-11-05: the wall left behind reads as
     // an extra fixed table border).

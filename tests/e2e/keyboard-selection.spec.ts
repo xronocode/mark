@@ -1,8 +1,8 @@
 // FILE: tests/e2e/keyboard-selection.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Verify native vertical selection while Muya's selection-format toolbar is visible.
-//   SCOPE: Repeated Shift+Up/Down, overlapping link-hover and format panels, direction reversal, wrapped lines, paragraph boundaries, painted selection and unchanged Markdown.
+//   PURPOSE: Verify native vertical selection and keyboard clipboard behavior while Find or the selection-format toolbar is visible.
+//   SCOPE: Active/closed Find selection, real keyboard copy/paste and query prefill, repeated Shift+Up/Down, overlapping link-hover and format panels, direction reversal, wrapped lines, paragraph boundaries, painted selection and unchanged Markdown.
 //   DEPENDS: Playwright, renderer-only Tauri shim, editor boot helpers.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
@@ -16,6 +16,9 @@
 //   expectPaintedSelection - Verifies a visible selection color and multiple selected visual rows.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-FIND-SELECTION-CLIPBOARD: real keyboard copy/paste
+//   across the Find debounce boundary with matching/missing queries and
+//   a closed bar; exact inserted Markdown, selection/focus and prefill.
 //   LAST_CHANGE: v1.1.0 - Reproduce delayed link-hover dismissal blocking Shift+Up/Down beside the format toolbar.
 //   PREV: v1.0.0 - Reproduce and prevent format-toolbar interception of Shift+Up/Down.
 // END_CHANGE_SUMMARY
@@ -67,6 +70,66 @@ test.describe('keyboard selection with the format toolbar', () => {
   })
 
   // START_BLOCK_SELECTION_TOOLBAR_REGRESSIONS
+  for (const query of [null, 'needle', 'absent-query'] as const) {
+    test(`keyboard copy/paste retains selection with Find ${query ?? 'closed'}`, async ({ page }) => {
+      await openFileTab(page, '/tmp/find-clipboard.md',
+        'Unique needle paragraph.\n\nCOPYWORD target words here.\n\nPaste destination.')
+      const original = await markdown(page)
+      if (query !== null) {
+        await page.evaluate(() => (window as any).__bus.emit('find', 'find'))
+        await page.locator('.search-bar .search input').fill(query)
+        await expect(page.locator('.search-result')).toContainText(query === 'needle' ? '1 / 1' : '0 / 0')
+        // Zero matches is also the initial counter. Wait for the actual
+        // query result before starting the independent selection gesture.
+        await expect.poll(() => page.evaluate(() =>
+          (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile.searchMatches.value
+        )).toBe(query)
+      }
+      await placeCaret(page, 'COPYWORD target words here.', 0)
+      for (let i = 0; i < 'COPYWORD'.length; i++) await page.keyboard.press('Shift+ArrowRight')
+      // The previous selection-to-Find feedback removed focus after its
+      // 150ms debounce. Check beyond that boundary before copying.
+      await page.waitForTimeout(400)
+      expect(await selectedText(page)).toBe('COPYWORD')
+      expect(await markdown(page)).toBe(original)
+      expect(await page.evaluate(() => !!document.activeElement?.closest('.editor-component'))).toBe(true)
+      if (query !== null) await expect(page.locator('.search-bar .search input')).toHaveValue(query)
+
+      await page.evaluate(() => {
+        ;(window as any).__clipboardEvents = { copy: 0, paste: 0 }
+        for (const type of ['copy', 'paste']) {
+          document.addEventListener(type, () => (window as any).__clipboardEvents[type]++, true)
+        }
+      })
+      const modifier = process.platform === 'darwin' ? 'Meta' : 'Control'
+      await page.keyboard.press(`${modifier}+c`)
+      await page.keyboard.press('ArrowRight')
+      await page.keyboard.press(`${modifier}+v`)
+      await expect.poll(() => markdown(page)).toBe(original.replace('COPYWORD target', 'COPYWORDCOPYWORD target'))
+      expect(await page.evaluate(() => (window as any).__clipboardEvents)).toEqual({ copy: 1, paste: 1 })
+      if (query !== null) await expect(page.locator('.search-bar .search input')).toHaveValue(query)
+    })
+  }
+
+  test('selected text still prefills Find after closing and reopening it', async ({ page }) => {
+    await openFileTab(page, '/tmp/find-prefill.md', 'FIRSTWORD paragraph.\n\nSECONDWORD paragraph.')
+    const original = await markdown(page)
+    for (const word of ['FIRSTWORD', 'SECONDWORD']) {
+      await placeCaret(page, `${word} paragraph.`, 0)
+      for (let i = 0; i < word.length; i++) await page.keyboard.press('Shift+ArrowRight')
+      await expect.poll(() => selectedText(page)).toBe(word)
+      await expect.poll(() => page.evaluate(() =>
+        (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile.searchMatches.value
+      )).toBe(word)
+      await page.evaluate(() => (window as any).__bus.emit('find', 'find'))
+      await expect(page.locator('.search-bar .search input')).toHaveValue(word)
+      await expect(page.locator('.search-result')).toContainText('1 / 1')
+      await page.locator('.search-close').click()
+      await expect(page.locator('.search-bar')).not.toBeVisible()
+    }
+    expect(await markdown(page)).toBe(original)
+  })
+
   for (const direction of ['Down', 'Up'] as const) {
     test(`Shift+${direction} works while link hover and format panels overlap`, async ({ page }) => {
       await openFileTab(page, '/tmp/keyboard-selection-hover.md',

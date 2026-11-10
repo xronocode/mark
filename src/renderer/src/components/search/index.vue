@@ -105,6 +105,9 @@
 
 <script setup>
 // START_CHANGE_SUMMARY
+//   - 2026-11-10 C-FIND-SELECTION-CLIPBOARD: Find/Replace visibility is
+//     shared with the editor store and cleared on teardown so editor
+//     selection cannot feed a new query into an open Find session.
 //   - 2026-10-15 C-38 T-006 N4 b/d: every find/replace icon renders from
 //     the drawn chromeIcons set (chevron toggle, arrow-up/down,
 //     case-sensitive / whole-word / regex, replace / replace-all,
@@ -124,7 +127,6 @@ const { t } = useI18n()
 
 const editorStore = useEditorStore()
 
-const showSearch = ref(false)
 const isCaseSensitive = ref(false)
 const isWholeWord = ref(false)
 const isRegexp = ref(false)
@@ -134,7 +136,7 @@ const replaceValue = ref('')
 const searchErrorMsg = ref('')
 const search = ref(null)
 
-const { currentFile } = storeToRefs(editorStore)
+const { currentFile, findVisible: showSearch } = storeToRefs(editorStore)
 const searchMatches = computed(() => currentFile.value?.searchMatches)
 
 watch(searchValue, () => {
@@ -175,6 +177,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  showSearch.value = false
   bus.off('find', listenFind)
   bus.off('replace', listenReplace)
   bus.off('findNext', listenFindNext)

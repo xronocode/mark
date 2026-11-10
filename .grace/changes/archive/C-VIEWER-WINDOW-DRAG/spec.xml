@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-VIEWER-WINDOW-DRAG>
+<Name>Restore host-window dragging from the fullscreen block viewer header</Name>
+<ApprovalBasis>Owner report on 2026-11-10 that the table viewer makes the window impossible to move, plus standing delegated stabilization decisions. Diagnostic real-pointer evidence separates working canvas panning from a header that dispatches no native drag command.</ApprovalBasis>
+<Summary>The body-level fullscreen viewer covers the ordinary title bar. Expose its header and title to the existing host drag-region mechanism and exclude its controls.</Summary>
+<Goals><Goal>The viewer header and title initiate host-window dragging through the existing titlebar contract. Buttons, pan/zoom canvas, native resize edges and non-primary mouse buttons keep their existing actions.</Goal></Goals>
+<Constraints><Item>Keep the current fullscreen overlay, content cloning, pan/zoom, controls, focus lifecycle, exports, app version and native permission set. No new native window or drag implementation, schema, dependency, retry, timeout, skip or coverage reduction. Do not change open user documents.</Item></Constraints>
+<NonGoals><Item>No viewer redesign, native window conversion, drag/pan redesign or release.</Item></NonGoals>
+<AcceptanceCriteria><Criterion>Red/green real-pointer browser evidence proves native drag command dispatch from header/title and no dispatch from controls, canvas, resize edge or a non-primary press. Existing viewer lifecycle, pan, zoom and focus tests remain green.</Criterion></AcceptanceCriteria>
+<AffectedAreas><Area>M-012 BlockViewer, V-M-012; reuse the unchanged M-011 titlebar drag-region contract.</Area></AffectedAreas>
+<VerificationIntent><ExpectedEvidence>Viewer and macOS titlebar units, renderer build, Chromium/WebKit table/viewer gate and a fresh attributable QA build. Actual native window movement is a separate manual acceptance scenario.</ExpectedEvidence></VerificationIntent>
+</C-VIEWER-WINDOW-DRAG></GraceChangeSpec>

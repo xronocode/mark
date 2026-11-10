@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 2.1.0
+// VERSION: 2.2.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the persistent table layout behaviour (C-65 T-001/T-004 + C-PAGE-WIDTH-TABLES T-007/T-008/T-009) — the persistent identity (ordinal + header signature), the schema-v2 adoption (widths + ratios + tableWidth + mode, with the idempotent legacy fit:true/fullWidth migration), the rememberTableColumnSizes gate, the identity-change drops (corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the honest three-mode defaults and the toolbar mode-segment routing, the degradation badge caption, the walls and the reset/wall-double-click persist paths.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities load versus write modes, applyPersistedLayouts, serializeTableLayouts, persist snapshot refresh, toggle/openViewer, handleToolbarAction/Click/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -10,6 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   makeFramedResizeFixture - real-pointer fixture for sequential fitted-border gestures and layout reconciliation.
 //   CLEANUP - teardown callbacks run after each test.
 //   flushAdoption - flush the post-paint adoption frames.
 //   makeFakeMuya - fake muya {container, options, eventCenter with REAL addEventListener-backed attachDOMEvent, dispatch spy} with a real TableResize.
@@ -23,6 +24,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-TABLE-FITTED-RESET: partial Fit/Full reset
+//   after adjacent drags fits before persistence and never exposes overflow.
+//   CURRENT: 2026-11-10 C-TABLE-SEQUENTIAL-RESIZE: adjacent Fit/Full
+//   gestures conserve prior columns, survive refit and clamp both sides.
 //   LAST_CHANGE: v2.1.0 - 2026-11-05: adoption runs after the
 //   first paint (double rAF — the WKWebView stale-border fix), so the
 //   tests flush those frames before reading the adopted state.
@@ -1406,3 +1411,140 @@ describe('C-STABILIZE-PRODUCT-REPAIRS lifecycle and drag boundaries', () => {
   })
 })
 // END_BLOCK_STABILIZE_LIFECYCLE_ASSERTIONS
+
+// START_BLOCK_SEQUENTIAL_FITTED_RESIZE
+// C-TABLE-SEQUENTIAL-RESIZE: the owner narrows the first column, then the
+// second. A later border must not redistribute a previously chosen width.
+const makeFramedResizeFixture = (mode, initial = [240, 240, 240], minima = initial.map(() => 48)) => {
+  const muya = makeFakeMuya()
+  const resize = muya.tableResize
+  CLEANUP.push(() => resize.destroy())
+  const built = buildTableFigure('sequential', initial.map((_, i) => `Column ${i}`))
+  muya.container.appendChild(built.figure)
+  const frame = initial.reduce((sum, width) => sum + width, 0)
+  Object.defineProperty(built.figure, 'clientWidth', { value: frame + 1 })
+  Object.defineProperty(built.wrapper, 'clientWidth', { value: frame + 1 })
+  resize.modes.set(built.table.id, mode)
+  // Fit's automatic squeeze can legitimately be below the drag floor.
+  resize.widths.set(built.table.id, { widths: initial.slice(), manual: initial.map(() => false) })
+  const handles = addHandles(built.row)
+  const widths = () => resize.getWidths(built.table.id)
+  built.table.getBoundingClientRect = () => ({ left: 0, right: frame, width: frame, top: 0, height: 40 })
+  Array.from(built.row.cells).forEach((cell, i) => {
+    cell.getBoundingClientRect = () => ({ left: widths().slice(0, i).reduce((a, b) => a + b, 0), width: widths()[i], right: widths().slice(0, i + 1).reduce((a, b) => a + b, 0), top: 0, height: 20 })
+  })
+  vi.spyOn(resize, 'extentsFor').mockReturnValue({ minContent: minima, maxContent: initial.map(() => 600), wrappedMin: initial.map(() => 16) })
+  resize.applyWidths(built.table, resize.widths.get(built.table.id))
+  const down = index => handles[index].dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 400, button: 0 }))
+  const move = delta => window.dispatchEvent(new MouseEvent('pointermove', { clientX: 400 + delta }))
+  const up = () => window.dispatchEvent(new MouseEvent('pointerup'))
+  const drag = (index, delta) => { down(index); move(delta); up() }
+  return { ...built, muya, resize, widths, down, move, up, drag, frame }
+}
+
+describe('sequential fitted borders (C-TABLE-SEQUENTIAL-RESIZE)', () => {
+  it.each(['fit', 'full'])('%s retains two narrow columns after sequential drags and refits', async mode => {
+    const f = makeFramedResizeFixture(mode, [240, 240, 240], [220, 200, 48])
+    f.drag(0, -180)
+    expect(f.widths()[0]).toBe(60)
+    const secondStart = f.widths()[1]
+    f.drag(1, 60 - secondStart)
+    expect(f.widths()).toEqual([60, 60, 600])
+    for (let pass = 0; pass < 3; pass++) {
+      f.resize.refitNow()
+      f.resize.reconcileAfterRender()
+      expect(f.widths()).toEqual([60, 60, 600])
+    }
+    const entries = f.resize.serializeTableLayouts()
+    expect(Object.values(entries)[0].widths).toEqual([60, 60, 600])
+    const reopened = makeFramedResizeFixture(mode, [240, 240, 240], [220, 200, 48])
+    reopened.resize.widths.clear()
+    reopened.resize.modes.clear()
+    reopened.resize.applyPersistedLayouts(entries)
+    await flushAdoption(reopened.muya)
+    expect(reopened.widths()).toEqual([60, 60, 600])
+    expect(f.table.classList.contains('ag-table-wrap-anywhere')).toBe(true)
+    expect(f.muya.contentState.cursor).toEqual({ start: { key: 'x' }, end: { key: 'x' } })
+  })
+
+  it.each(['fit', 'full'])('%s transfers width only to the adjacent column and clamps both sides', mode => {
+    const f = makeFramedResizeFixture(mode, [180, 180, 180, 180])
+    f.drag(1, -100)
+    expect(f.widths()).toEqual([180, 80, 280, 180])
+    f.drag(1, -1000)
+    expect(f.widths()).toEqual([180, 48, 312, 180])
+    f.drag(1, 1000)
+    expect(f.widths()).toEqual([180, 312, 48, 180])
+    expect(f.widths().reduce((a, b) => a + b, 0)).toBe(f.frame)
+  })
+
+  it('keeps the pointer-down baseline when a refit occurs during a reversed gesture', () => {
+    const f = makeFramedResizeFixture('fit', [240, 240, 240], [220, 200, 48])
+    f.down(0)
+    f.move(-180)
+    f.resize.refitNow()
+    expect(f.widths()).toEqual([60, 420, 240])
+    f.move(-120)
+    f.up()
+    f.resize.refitNow()
+    expect(f.widths()).toEqual([120, 360, 240])
+  })
+
+  it('does not persist a zero-net gesture or resize the pinned outer edge', () => {
+    const f = makeFramedResizeFixture('fit')
+    f.down(0)
+    f.move(-100)
+    f.move(0)
+    f.up()
+    expect(f.widths()).toEqual([240, 240, 240])
+    expect(f.resize.widths.get(f.table.id).manual).toEqual([false, false, false])
+    f.drag(2, -100)
+    expect(f.widths()).toEqual([240, 240, 240])
+    expect(f.muya.eventCenter.dispatch).not.toHaveBeenCalled()
+  })
+
+  it('does not treat a plain border press as manual sizing during an automatic refit', () => {
+    const f = makeFramedResizeFixture('fit', [60, 60, 600], [220, 200, 48])
+    const entry = f.resize.widths.get(f.table.id)
+    entry.ratios = [1 / 12, 1 / 12, 10 / 12]
+    const baseline = f.resize.planModeWidths(f.table.id, f.figure, f.table, 'fit').widths
+    f.down(0)
+    expect(f.resize.planModeWidths(f.table.id, f.figure, f.table, 'fit').widths).toEqual(baseline)
+    f.up()
+  })
+
+  it.each(['fit', 'full'])('%s fits partial reset before persisting (C-TABLE-FITTED-RESET)', mode => {
+    const f = makeFramedResizeFixture(mode)
+    f.drag(0, -180)
+    f.drag(1, 60 - f.widths()[1])
+    expect(f.widths()).toEqual([60, 60, 600])
+    Array.from(f.row.cells).forEach((cell, i) => {
+      const fixedRect = cell.getBoundingClientRect
+      cell.getBoundingClientRect = () => f.table.querySelector('colgroup')
+        ? fixedRect()
+        : { ...fixedRect(), width: [240, 260, 220][i] }
+    })
+    for (const index of [1, 0]) {
+      f.row.cells[index].querySelector('.ag-column-resizer')
+        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))
+      expect(f.widths().reduce((a, b) => a + b, 0)).toBe(f.frame)
+      expect(f.resize.modeOf(f.table.id)).toBe(mode)
+      const entry = f.resize.widths.get(f.table.id)
+      expect(entry.manual).toEqual(index === 1 ? [true, false, true] : [false, false, true])
+      const persisted = Object.values(f.resize.serializeTableLayouts())[0]
+      expect(persisted.widths).toEqual(f.widths())
+      expect(f.muya.eventCenter.dispatch).toHaveBeenLastCalledWith('muya-table-layouts', { entries: f.resize.serializeTableLayouts() })
+      f.resize.reconcileAfterRender()
+      expect(f.widths().reduce((a, b) => a + b, 0)).toBe(f.frame)
+    }
+  })
+
+  it('keeps a squeezed adjacent pair inside an already narrow frame', () => {
+    const f = makeFramedResizeFixture('fit', [32, 32, 32])
+    expect(f.widths()).toEqual([32, 32, 32])
+    f.drag(0, 100)
+    expect(f.widths().reduce((a, b) => a + b, 0)).toBe(96)
+    expect(f.widths().every(width => width > 0)).toBe(true)
+  })
+})
+// END_BLOCK_SEQUENTIAL_FITTED_RESIZE

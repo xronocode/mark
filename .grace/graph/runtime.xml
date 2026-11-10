@@ -2610,6 +2610,8 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: one transient editor-store findVisible flag is the search component visibility source and resets on teardown. Selection prefills Find only while closed; an open Find retains query/matches during text selection so no selection-driven delayed render removes native clipboard focus. Native shortcut/menu/clipboard routes are unchanged.</SummaryDelta>
+      <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: editor-store SELECTION_CHANGE prefills Find only for noncollapsed same-block text selections. Caret-only updates retain the active query/matches and still synchronize native menus, preventing the selection-to-empty-query debounce from rerendering and blurring the editor.</SummaryDelta>
       <Name>mt-renderer</Name>
         <SummaryDelta>
         C-STABILIZE-PRODUCT-REPAIRS: owner-accepted no-scroll table fitting, explicit Auto width reset, Auto-only outer walls, full-height internal border zones, icon-only toolbars, final Aa settings glyph and persistent Standard entry. Delayed table adoption is generation/document guarded; repaint preserves transforms and cleans up on teardown.
@@ -3784,6 +3786,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: the existing keyboard browser verification now checks real copy/paste after a nonempty selection with Find open (matching or absent query) or closed, exact inserted Markdown, retained selection/focus and close/reopen prefill. Muya runtime clipboard/keyboard code is unchanged.</SummaryDelta>
       <Name>muya</Name>
       <DisplayName>muya</DisplayName>
       <Type>CORE_LOGIC</Type>
@@ -4017,7 +4020,10 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         &lt;style&gt;) and read-only table clones (editing affordances
         stripped, sticky thead) with @panzoom/panzoom pan/zoom
         (pinch/Cmd+wheel, drag, +/−/0/1 keys), Esc close with focus trap
-        and restore. C-51 T-006 replaced the old hover/caret toolbar with
+        and restore. C-VIEWER-WINDOW-DRAG: the header and title expose
+        the existing M-011 host-window drag-region contract, while the
+        controls carry its no-drag exclusion and the canvas retains pan.
+        C-51 T-006 replaced the old hover/caret toolbar with
         the per-block expand button: renderContainerBlock.js
         START_BLOCK_EXPAND_BUTTON renders button.ag-block-expand as a
         direct child of every viewable figure (mermaid fence, flowchart,
@@ -4474,7 +4480,15 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
                 content sizing, and explicit Auto reset removes fixed geometry), an
                 invisible span.ag-column-resizer hit zone per th
                 (capture-phase pointer interaction, 48px minimum,
-                double-click reset, accent hairline). C-65: every table
+                double-click reset, accent hairline). C-TABLE-SEQUENTIAL-RESIZE:
+                Fit/Full internal borders conserve their adjacent pair and leave
+                other columns unchanged. Manual ratios use the resize floor and
+                wrap content across reconciliation; an observer refit retains
+                the active gesture entry identity. Auto single-column sizing and
+                its bounded overflow fitting remain unchanged. C-TABLE-FITTED-RESET:
+                partial column resets fit the measured natural width through the
+                selected Fit/Full layout before persisting the resulting geometry.
+                C-65: every table
                 also gets a PERSISTENT IDENTITY (document ordinal +
                 tableSignature = column count + hash of the header texts)
                 — syncIdentities runs after every render, adopts the

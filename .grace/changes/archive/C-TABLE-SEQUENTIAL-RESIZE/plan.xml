@@ -1,0 +1,16 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-TABLE-SEQUENTIAL-RESIZE>
+<ChangeRef>C-TABLE-SEQUENTIAL-RESIZE</ChangeRef>
+<ApprovalBasis>Direct owner-defined three-column expectation, confirmed Fit/QA identity and standing delegated implementation decisions. Execute centrally in the isolated fix worktree.</ApprovalBasis>
+<IntentSummary>Use the pointer-down width snapshot to conserve the two adjacent columns in framed modes. Preserve the manual wrap/ratio intent at subsequent layout passes; retain Auto fitting as a separate existing path.</IntentSummary>
+<BaselineAssertions><MustExist><Value>src/muya/lib/tableResize/index.js</Value><Value>tests/renderer/muya/table-layout-persistence.test.js</Value><Value>tests/e2e/table-column-resize.spec.ts</Value></MustExist></BaselineAssertions>
+<TargetAssertions>
+<MustContain><File>tests/renderer/muya/table-layout-persistence.test.js</File><Text>C-TABLE-SEQUENTIAL-RESIZE</Text></MustContain>
+<MustContain><File>tests/e2e/table-column-resize.spec.ts</File><Text>sequential fitted borders preserve two narrow columns</Text></MustContain>
+<MustPassCommand><Command budgetSeconds="180">npx --no-install vitest run tests/renderer/muya/table-column-resize.test.js tests/renderer/muya/table-fit.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-cue.test.js</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="600">npm run build</Command></MustPassCommand>
+<MustPassCommand><Command budgetSeconds="600">env CI=1 npx --no-install playwright test tests/e2e/table- tests/e2e/block-viewer.spec.ts --project=chromium --project=webkit-tables --project=webkit-block-viewer</Command></MustPassCommand>
+</TargetAssertions>
+<DurableScope><GraphAnchors><M-012/></GraphAnchors><VerificationAnchors><V-M-012/></VerificationAnchors></DurableScope>
+<ObservedWriteScope><File>src/muya/lib/tableResize/index.js</File><File>tests/renderer/muya/table-layout-persistence.test.js</File><File>tests/e2e/table-column-resize.spec.ts</File><File>.grace/graph/runtime.xml</File><File>.grace/verification/runtime.xml</File><Glob>.grace/changes/active/C-TABLE-SEQUENTIAL-RESIZE/**</Glob></ObservedWriteScope>
+<ImplementationPlan><T-001><Title>Pin and repair adjacent fitted drags and subsequent manual layout</Title><DependsOn/><AcceptanceCriteria><Criterion>Red before and green after: [240,240,240] to [60,420,240] to [60,60,600]; a fourth nonparticipant is unchanged. Both pair minima clamp, pointer reversals use the original snapshot, content-minimum refits preserve manual proportions and wrapping, and persistence plus Markdown/saved assertions remain intact.</Criterion></AcceptanceCriteria><Verification><Command>npx --no-install vitest run tests/renderer/muya/table-layout-persistence.test.js</Command></Verification></T-001></ImplementationPlan>
+</C-TABLE-SEQUENTIAL-RESIZE></GraceChangePlan>

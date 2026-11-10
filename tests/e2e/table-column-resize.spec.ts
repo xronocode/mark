@@ -1,5 +1,5 @@
 // FILE: tests/e2e/table-column-resize.spec.ts
-// VERSION: 1.4.1
+// VERSION: 1.5.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-002 session-only table column resize in the built renderer: dragging a header border resizes that column live and only that column, the markdown stays byte-identical with the tab still saved, widths survive re-renders (typing) and tab switches, closing+reopening the file restores auto layout, double-click resets the column, wide Auto drags fit the frame without hiding columns or causing internal/page overflow, and caret placement still works next to a border.
 //   SCOPE: muya.tableResize (src/muya/lib/tableResize/index.js) + START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js + the C-39 T-002 CSS section.
@@ -17,6 +17,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-TABLE-FITTED-RESET: partial Fit/Full reset
+//   after adjacent drags fits before persistence and never exposes overflow.
+//   CURRENT: 2026-11-10 C-TABLE-SEQUENTIAL-RESIZE: sequential Fit/Full
+//   pointer borders preserve two narrow columns, their frame and exact
+//   document bytes through tab adoption and a mode round trip.
 //   CURRENT: 2026-11-10 C-STABILIZE-RICH-BOOT-BASELINES: wait for the
 //   initial rich content revision before byte baselines; retain exact
 //   Markdown/saved comparisons and all pointer/geometry oracles.
@@ -133,6 +138,150 @@ test.describe('table column resize (C-39 T-002)', () => {
     await page.mouse.move(x + delta, y, { steps: 10 })
     await page.mouse.up()
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+  }
+
+  for (const mode of ['fit', 'full'] as const) {
+    test(`${mode}: sequential fitted borders preserve two narrow columns`, async ({ page }) => {
+      const markdown = TABLE_MD.replace('Alpha column', 'UnbreakableFirstColumnTokenForWrapping')
+        .replace('Beta column', 'UnbreakableSecondColumnTokenForWrapping')
+      await bootEditor(page)
+      await openFileTab(page, RESIZE_PATH, markdown)
+      await waitForTable(page)
+      const figure = page.locator("figure[data-role='TABLE']").first()
+      await figure.hover()
+      await figure.locator(`button[data-table-mode='${mode}']`).click()
+      await expect(figure).toHaveClass(mode === 'fit' ? /ag-table-fit/ : /ag-table-full-width/)
+      const before = (await columnWidths(page))!
+      const beforeMarkdown = await currentMarkdown(page)
+      expect(await currentIsSaved(page)).toBe(true)
+      expect(before[0]).toBeGreaterThan(100)
+      expect(before[1]).toBeGreaterThan(100)
+
+      await dragBorder(page, 0, 60 - before[0])
+      const first = (await columnWidths(page))!
+      expect(Math.abs(first[0] - 60)).toBeLessThanOrEqual(2)
+      expect(Math.abs(first[2] - before[2]), 'the unrelated third column stays put').toBeLessThanOrEqual(2)
+      await dragBorder(page, 1, 60 - first[1])
+      const second = (await columnWidths(page))!
+      expect(Math.abs(second[0] - 60), 'the first narrow column survives the second drag').toBeLessThanOrEqual(2)
+      expect(Math.abs(second[1] - 60)).toBeLessThanOrEqual(2)
+      expect(second[2]).toBeGreaterThan(first[2])
+      expect(Math.abs(second.reduce((a, b) => a + b, 0) - before.reduce((a, b) => a + b, 0)), 'the outside frame is unchanged').toBeLessThanOrEqual(2)
+
+      await openFileTab(page, PLAIN_PATH, PLAIN_MD)
+      await page.locator('.tabs-container li', { hasText: 'column-resize.md' }).locator('span').first().click()
+      await waitForTable(page)
+      await figure.hover()
+      await figure.locator(`button[data-table-mode='${mode === 'fit' ? 'full' : 'fit'}']`).click()
+      await figure.locator(`button[data-table-mode='${mode}']`).click()
+      await expect.poll(async () => {
+        const widths = (await columnWidths(page))!
+        const frame = await figure.evaluate((el, selectedMode) => {
+          const wrapper = el.querySelector('.ag-table-scroll')!
+          const style = getComputedStyle(wrapper)
+          return (selectedMode === 'fit' ? el.clientWidth : wrapper.clientWidth) -
+            parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 1
+        }, mode)
+        const previousTotal = second.reduce((a, b) => a + b, 0)
+        const expected = second.map(width => width * frame / previousTotal)
+        // A vertical scrollbar can change Full's canvas across tabs. Keep
+        // the chosen proportions in the actual frame, with the same 2px
+        // per-column tolerance, and reject an underfilled/overflowing box.
+        return Math.max(Math.abs(widths.reduce((a, b) => a + b, 0) - frame),
+          ...widths.map((width, index) => Math.abs(width - expected[index])))
+      }).toBeLessThanOrEqual(2)
+      await expect(figure.locator('table')).toHaveClass(/ag-table-wrap-anywhere/)
+      const overflow = await figure.locator('.ag-table-scroll').evaluate(el => el.scrollWidth - el.clientWidth)
+      expect(overflow).toBeLessThanOrEqual(1)
+      expect(await currentMarkdown(page)).toBe(beforeMarkdown)
+      expect(await currentIsSaved(page)).toBe(true)
+    })
+  }
+
+  for (const mode of ['fit', 'full'] as const) {
+    for (const surface of ['header', 'body'] as const) {
+      test(`${mode} ${surface}: partial fitted reset stays inside the frame`, async ({ page }) => {
+        await page.addInitScript(({ resizePath, plainPath }) => {
+          const w = window as any
+          // Tab adoption reads preferences and prunes confirmed-missing files.
+          // Give this scenario the same saving transport as the persistence suite.
+          const backing: Record<string, unknown> = Object.create(null)
+          w.__fittedResetPrefs = backing
+          w.__mockInvoke.mt_prefs_get = ({ key }: { key: string }) => backing[key] ?? null
+          const save = ({ key, value }: { key: string; value: unknown }) => {
+            backing[key] = JSON.parse(JSON.stringify(value))
+            return null
+          }
+          w.__mockInvoke.mt_prefs_set = save
+          w.__mockInvoke['mt::prefs::set'] = save
+          w.__mockInvoke.mt_fs_stat = ({ path }: { path: string }) => {
+            const isFile = [resizePath, plainPath].includes(path)
+            return { isFile, isDirectory: false, is_file: isFile }
+          }
+        }, { resizePath: RESIZE_PATH, plainPath: PLAIN_PATH })
+        await bootEditor(page)
+        await openFileTab(page, RESIZE_PATH, TABLE_MD)
+        await waitForTable(page)
+        const figure = page.locator("figure[data-role='TABLE']").first()
+        await figure.hover()
+        await figure.locator(`button[data-table-mode='${mode}']`).click()
+        const beforeMarkdown = await currentMarkdown(page)
+        const initial = (await columnWidths(page))!
+        await dragBorder(page, 0, 60 - initial[0])
+        const first = (await columnWidths(page))!
+        await dragBorder(page, 1, 60 - first[1])
+        const narrow = (await columnWidths(page))!
+        expect(Math.abs(narrow[0] - 60)).toBeLessThanOrEqual(2)
+        expect(Math.abs(narrow[1] - 60)).toBeLessThanOrEqual(2)
+
+        for (const index of [1, 0]) {
+          const cell = figure.locator(surface === 'header' ? 'thead th' : 'tbody tr:first-child td').nth(index)
+          const box = (await cell.boundingBox())!
+          await page.mouse.dblclick(box.x + box.width, box.y + box.height / 2)
+          await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+          const geometry = await figure.evaluate((el, selectedMode) => {
+            const wrapper = el.querySelector('.ag-table-scroll') as HTMLElement
+            const table = el.querySelector('table')!
+            const style = getComputedStyle(wrapper)
+            const frame = (selectedMode === 'fit' ? el.clientWidth : wrapper.clientWidth) -
+              parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 1
+            return { frame, width: table.getBoundingClientRect().width,
+              tail: wrapper.scrollWidth - wrapper.clientWidth,
+              pageTail: document.documentElement.scrollWidth - document.documentElement.clientWidth }
+          }, mode)
+          expect(Math.abs(geometry.width - geometry.frame), JSON.stringify(geometry)).toBeLessThanOrEqual(2)
+          expect(geometry.tail).toBeLessThanOrEqual(1)
+          expect(geometry.pageTail).toBeLessThanOrEqual(1)
+          await expect(figure).toHaveClass(mode === 'fit' ? /ag-table-fit/ : /ag-table-full-width/)
+          expect(await currentMarkdown(page)).toBe(beforeMarkdown)
+          expect(await currentIsSaved(page)).toBe(true)
+        }
+        const resetWidths = (await columnWidths(page))!
+        await expect.poll(() => page.evaluate(path => {
+          const entries = (window as any).__fittedResetPrefs.tableLayouts?.files?.[path] || {}
+          return (Object.values(entries).find((entry: any) => Array.isArray(entry?.widths)) as any)?.mode
+        }, RESIZE_PATH)).toBe(mode)
+        await openFileTab(page, PLAIN_PATH, PLAIN_MD)
+        await page.locator('.tabs-container li', { hasText: 'column-resize.md' }).locator('span').first().click()
+        await waitForTable(page)
+        await expect(figure).toHaveClass(mode === 'fit' ? /ag-table-fit/ : /ag-table-full-width/)
+        await expect.poll(async () => {
+          const adopted = (await columnWidths(page))!
+          const frame = await figure.evaluate((el, selectedMode) => {
+            const wrapper = el.querySelector('.ag-table-scroll')!
+            const style = getComputedStyle(wrapper)
+            return (selectedMode === 'fit' ? el.clientWidth : wrapper.clientWidth) -
+              parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 1
+          }, mode)
+          const resetTotal = resetWidths.reduce((a, b) => a + b, 0)
+          return Math.max(Math.abs(adopted.reduce((a, b) => a + b, 0) - frame),
+            ...adopted.map((width, i) => Math.abs(width - resetWidths[i] * frame / resetTotal)))
+        }).toBeLessThanOrEqual(2)
+        expect(await figure.locator('.ag-table-scroll').evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1)
+        expect(await currentMarkdown(page)).toBe(beforeMarkdown)
+        expect(await currentIsSaved(page)).toBe(true)
+      })
+    }
   }
 
   test('dragging a border resizes that column live; the others are unchanged', async ({ page }) => {

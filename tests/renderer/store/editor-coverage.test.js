@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/editor-coverage.test.js
-// VERSION: 1.1.0
+// VERSION: 1.1.2
 // START_MODULE_CONTRACT
 //   PURPOSE: Exercise editor-store persistence, tab, watcher, selection, and export branches that need direct regression coverage.
 //   SCOPE: Editor Pinia actions with mocked IPC, preferences, dialogs, timers, filesystem services, and Tauri invoke.
@@ -21,6 +21,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-10 C-FIND-SELECTION-CLIPBOARD: selected text retains
+//   an open Find query/matches and document identity while menus update.
+//   CURRENT: 2026-11-10 C-HOSTED-VALIDATION-RECOVERY: collapsed selection
+//   retains Find state and document identity while native menu state updates;
+//   nonempty selected-text prefill remains covered.
 //   LAST_CHANGE: v1.1.0 - 2026-10-20 FIX-016: pin disabling Auto Save during debounce and saving again after re-enable.
 // END_CHANGE_SUMMARY
 //
@@ -602,6 +607,51 @@ describe('store/editor — coverage gaps', () => {
   // ─── SELECTION_CHANGE — cross-line and affiliation branches ───────
 
   describe('SELECTION_CHANGE — menu state', () => {
+    it('preserves Find query and matches while selecting text in an open Find session', () => {
+      editor.currentFile = makeTab({ id: 't1' })
+      editor.tabs = [editor.currentFile]
+      editor.findVisible = true
+      editor.currentFile.searchMatches = { value: 'needle', index: 0, matches: [{ key: 'k1', start: 0, end: 6 }] }
+      const search = editor.currentFile.searchMatches
+      const markdown = editor.currentFile.markdown
+      const saved = editor.currentFile.isSaved
+      window.electron.ipcRenderer.send.mockClear()
+      editor.SELECTION_CHANGE({
+        start: { key: 'k2', offset: 0, block: { text: 'Copy target', functionType: '' }, type: 'span' },
+        end: { key: 'k2', offset: 4, block: { text: 'Copy target', functionType: '' }, type: 'span' },
+        affiliation: []
+      })
+      expect(editor.currentFile.searchMatches).toBe(search)
+      expect(editor.currentFile.searchMatches.value).toBe('needle')
+      expect(editor.currentFile.markdown).toBe(markdown)
+      expect(editor.currentFile.isSaved).toBe(saved)
+      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+        'mt::editor-selection-changed', expect.any(Number), expect.any(Object)
+      )
+    })
+
+    it('collapsed selection preserves an active Find query and still synchronizes native menus', () => {
+      editor.currentFile = makeTab({ id: 't1' })
+      editor.tabs = [editor.currentFile]
+      editor.currentFile.searchMatches = { value: 'needle', index: 0, matches: [{ key: 'k1', start: 0, end: 6 }] }
+      const search = editor.currentFile.searchMatches
+      const markdown = editor.currentFile.markdown
+      const saved = editor.currentFile.isSaved
+      window.electron.ipcRenderer.send.mockClear()
+      editor.SELECTION_CHANGE({
+        start: { key: 'k1', offset: 3, block: { text: 'needle text', functionType: '' }, type: 'span' },
+        end: { key: 'k1', offset: 3, block: { text: 'needle text', functionType: '' }, type: 'span' },
+        affiliation: []
+      })
+      expect(editor.currentFile.searchMatches).toBe(search)
+      expect(editor.currentFile.searchMatches.value).toBe('needle')
+      expect(editor.currentFile.markdown).toBe(markdown)
+      expect(editor.currentFile.isSaved).toBe(saved)
+      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+        'mt::editor-selection-changed', expect.any(Number), expect.any(Object)
+      )
+    })
+
     it('cross-line selection does not set searchMatches.value', () => {
       editor.currentFile = makeTab({ id: 't1' })
       editor.tabs = [editor.currentFile]
@@ -622,6 +672,7 @@ describe('store/editor — coverage gaps', () => {
         end: { key: 'k1', offset: 4, block: { text: 'code', functionType: 'codeContent' }, type: 'span' },
         affiliation: []
       })
+      expect(editor.currentFile.searchMatches.value).toBe('code')
       // The IPC send should include code block state
       expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
         'mt::editor-selection-changed',
