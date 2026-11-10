@@ -6365,6 +6365,12 @@
           typing and undo, nothing rendered when off, markdown untouched).
         </Scenario>
         <Scenario>
+          C-TABLE-SEQUENTIAL-RESIZE: real Fit/Full pointer drags narrow column
+          one and then column two without redistributing earlier columns. Both
+          pair minima clamp, four-column nonparticipants and total width stay
+          fixed, in-flight refit/reversed gestures retain their baseline, and
+          manual ratios survive long content, tab adoption and mode round trips.
+          Exact Markdown/saved state and no-scroll assertions remain required.
           scenario-21: Session-only table column resize (C-39 T-002,
           lib/tableResize/index.js + renderContainerBlock.js
           START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE

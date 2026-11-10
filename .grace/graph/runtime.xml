@@ -4474,7 +4474,12 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
                 content sizing, and explicit Auto reset removes fixed geometry), an
                 invisible span.ag-column-resizer hit zone per th
                 (capture-phase pointer interaction, 48px minimum,
-                double-click reset, accent hairline). C-65: every table
+                double-click reset, accent hairline). C-TABLE-SEQUENTIAL-RESIZE:
+                Fit/Full internal borders conserve their adjacent pair and leave
+                other columns unchanged. Manual ratios use the resize floor and
+                wrap content across reconciliation; an observer refit retains
+                the active gesture entry identity. Auto single-column sizing and
+                its bounded overflow fitting remain unchanged. C-65: every table
                 also gets a PERSISTENT IDENTITY (document ordinal +
                 tableSignature = column count + hash of the header texts)
                 — syncIdentities runs after every render, adopts the
