@@ -9238,6 +9238,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <Scenario>C-METADATA-SAVE-SAFETY local evidence on source 4f67a7f840802f33926406df8e07e9a24bbd4cfe: 17 codec tests and 41 native open tests passed; full Rust suite passed 593 with one existing ignored test. Exact-byte and sentinel tests prove the codec/prevalidation boundary, while isolated EFBIG/SIGXFSZ probes still leave partial in-place output. No atomic or crash-recovery guarantee is established.</Scenario>
         <Scenario>T-003: inline strict decode/open fixtures pin UTF8/16 LE/BE BOM, inner literal BOM, canonical mixed/CRLF/empty text, deterministic detected CP1251, and lossy/UTF32/nonregular/oversize refusal without file mutation.</Scenario>
         <scenario-metadata-t001-vm014>T-001: exact non-ASCII fixtures for all 32 supported codecs, 36 catalog dispositions, strict mapped roundtrip, UTF-16 surrogate/BOM bytes, ISO 8859-1 C1 and ISO 8859-9 Turkish/displaced letters. Policies 0/1/3 cover empty text, trailing question marks, multiple breaks and CRLF/lone CR without double conversion.</scenario-metadata-t001-vm014>
         <Scenario>scenario-1: UTF-8 BOM detected and stripped; byte-roundtrip preserves original.</Scenario>
