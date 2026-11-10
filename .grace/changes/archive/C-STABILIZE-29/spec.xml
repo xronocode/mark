@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-STABILIZE-29>
     <Name>Reconcile outstanding repairs into a clean checked main</Name>
     <Created>2026-11-09</Created>

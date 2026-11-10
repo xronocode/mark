@@ -1,0 +1,21 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-STABILIZE-TRAIN-RECORDS>
+    <ChangeRef>C-STABILIZE-TRAIN-RECORDS</ChangeRef>
+    <IntentSummary>Apply only the reviewed manifest/ledger candidate generated from actual green merged PR facts, retaining pending owner acceptance and historical objects.</IntentSummary>
+    <ApprovalBasis>Delegated stabilization recovery; source integration and acceptance are separate train states.</ApprovalBasis>
+    <BaselineAssertions><MustContain><File>docs/release-trains/2.9.x-next.json</File><Text>"state": "Collecting"</Text></MustContain><MustContain><File>package.json</File><Text>"version": "2.8.2"</Text></MustContain></BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>docs/release-trains/2.9.x-next.json</File><Text>C-STABILIZE-29</Text></MustContain>
+      <MustContain><File>docs/release-trains/2.9.x-next.json</File><Text>C-CI-CD-AUDIT-FIXES</Text></MustContain>
+      <MustContain><File>docs/release-trains/2.9.x-next.json</File><Text>C-STABILIZE-TRAIN-MIRROR</Text></MustContain>
+      <MustContain><File>docs/release-trains/2.9.x-next.json</File><Text>"state": "Collecting"</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"version": "2.8.2"</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="180">node tools/release-readiness.mjs</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="180">node tools/release-governance.mjs</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="180">npx --no-install vitest run tests/renderer/release-project-sync.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js --maxWorkers=2</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><None /></DurableScope>
+    <ObservedWriteScope><File>docs/release-trains/2.9.x-next.json</File><File>docs/release-trains/2.9.x-next.md</File><Glob>.grace/changes/active/C-STABILIZE-TRAIN-RECORDS/**</Glob></ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Record actual eligible sources and complete testing protocols</Title><DependsOn /><AcceptanceCriteria><Criterion>Only the three intended rows are added; historical membership and acceptance stay unchanged. The runtime owner verdict is pending, manual evidence is empty with honest reasons, and all lifecycle/version/publication fields are retained.</Criterion></AcceptanceCriteria><Verification><Command>node tools/release-readiness.mjs</Command><Command>node tools/release-governance.mjs</Command></Verification></T-001></ImplementationPlan>
+  </C-STABILIZE-TRAIN-RECORDS>
+</GraceChangePlan>
