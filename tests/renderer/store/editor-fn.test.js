@@ -51,7 +51,7 @@ vi.mock('@/store/help', () => ({
     encoding: { encoding: 'utf8', isBom: false },
     lineEnding: 'lf',
     adjustLineEndingOnSave: false,
-    trimTrailingNewline: 2,
+    trimTrailingNewline: 3,
     history: { stack: [], index: -1, lastEditIndex: -1 },
     lastSavedHistoryId: null,
     notifications: [],
@@ -73,7 +73,7 @@ vi.mock('@/store/help', () => ({
     encoding: { encoding: 'utf8', isBom: false },
     lineEnding: 'lf',
     adjustLineEndingOnSave: false,
-    trimTrailingNewline: 2,
+    trimTrailingNewline: 3,
     history: { stack: [], index: -1, lastEditIndex: -1 },
     lastSavedHistoryId: null,
     notifications: [],
@@ -94,7 +94,7 @@ vi.mock('@/store/help', () => ({
     encoding: { encoding: enc || 'utf8', isBom: false },
     lineEnding: eol || 'lf',
     adjustLineEndingOnSave: false,
-    trimTrailingNewline: 2,
+    trimTrailingNewline: 3,
     history: { stack: [], index: -1, lastEditIndex: -1 },
     lastSavedHistoryId: null,
     notifications: [],
@@ -151,7 +151,7 @@ describe('store/editor.js — fn coverage', () => {
   })
 
   it('CLOSE_OTHER_TABS closes all tabs except the given one', () => {
-    const t1 = { id: '1', isSaved: true, filename: 'a.md', pathname: '/a.md', markdown: '' }
+    const t1 = { id: '1', isSaved: true, filename: 'a.md', pathname: '/a.md', markdown: '',encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3 }
     const t2 = { id: '2', isSaved: true, filename: 'b.md', pathname: '/b.md', markdown: '' }
     const t3 = { id: '3', isSaved: true, filename: 'c.md', pathname: '/c.md', markdown: '' }
     editorStore.tabs = [t1, t2, t3]
@@ -163,7 +163,7 @@ describe('store/editor.js — fn coverage', () => {
   })
 
   it('CLOSE_SAVED_TABS closes only saved tabs', () => {
-    const t1 = { id: '1', isSaved: true, filename: 'a.md', pathname: '/a.md', markdown: '' }
+    const t1 = { id: '1', isSaved: true, filename: 'a.md', pathname: '/a.md', markdown: '',encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3 }
     const t2 = { id: '2', isSaved: false, filename: 'b.md', pathname: '', markdown: 'x' }
     editorStore.tabs = [t1, t2]
     editorStore.currentFile = t1
@@ -173,7 +173,7 @@ describe('store/editor.js — fn coverage', () => {
   })
 
   it('CLOSE_ALL_TABS awaits one checked batch', async () => {
-    const t1 = { id: '1', isSaved: true, filename: 'a.md', pathname: '/a.md', markdown: '' }
+    const t1 = { id: '1', isSaved: true, filename: 'a.md', pathname: '/a.md', markdown: '',encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3 }
     editorStore.tabs = [t1]
     editorStore.currentFile = t1
     editorStore.updateTabIdToIndex()
@@ -207,14 +207,14 @@ describe('store/editor.js — fn coverage', () => {
   })
 
   it('SET_LINE_ENDING updates line ending', () => {
-    editorStore.currentFile = { lineEnding: 'lf', adjustLineEndingOnSave: false, isSaved: true }
+    editorStore.currentFile = {id:'format',markdown:'',encoding:{encoding:'utf8',isBom:false},trimTrailingNewline:3,lineEnding:'lf',adjustLineEndingOnSave:false,isSaved:true}
     editorStore.SET_LINE_ENDING('crlf')
     expect(editorStore.currentFile.lineEnding).toBe('crlf')
     expect(editorStore.currentFile.adjustLineEndingOnSave).toBe(true)
   })
 
   it('SET_LINE_ENDING does nothing if same', () => {
-    editorStore.currentFile = { lineEnding: 'lf', adjustLineEndingOnSave: false, isSaved: true }
+    editorStore.currentFile = {id:'format',markdown:'',encoding:{encoding:'utf8',isBom:false},trimTrailingNewline:3,lineEnding:'lf',adjustLineEndingOnSave:false,isSaved:true}
     editorStore.SET_LINE_ENDING('lf')
     expect(editorStore.currentFile.isSaved).toBe(true)
   })
@@ -280,15 +280,15 @@ describe('store/editor.js — fn coverage', () => {
   })
 
   it('LINTEN_FOR_SET_ENCODING registers bus listener and handler works', () => {
-    editorStore.currentFile = { encoding: { encoding: 'utf8', isBom: false }, isSaved: true }
+    editorStore.currentFile = { id:'format',markdown:'',lineEnding:'lf',trimTrailingNewline:3,encoding: { encoding: 'utf8', isBom: false }, isSaved: true }
     editorStore.LINTEN_FOR_SET_ENCODING()
     const handler = bus.on.mock.calls.find(c => c[0] === 'mt::set-file-encoding')[1]
-    handler('latin1')
-    expect(editorStore.currentFile.encoding.encoding).toBe('latin1')
+    handler('ascii')
+    expect(editorStore.currentFile.encoding.encoding).toBe('ascii')
   })
 
   it('LINTEN_FOR_SET_FINAL_NEWLINE registers bus listener and handler works', () => {
-    editorStore.currentFile = { trimTrailingNewline: 2, isSaved: true }
+    editorStore.currentFile = {id:'format',markdown:'',lineEnding:'lf',encoding:{encoding:'utf8',isBom:false},trimTrailingNewline:3,isSaved:true}
     editorStore.LINTEN_FOR_SET_FINAL_NEWLINE()
     const handler = bus.on.mock.calls.find(c => c[0] === 'mt::set-final-newline')[1]
     handler(0)

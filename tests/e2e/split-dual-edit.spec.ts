@@ -265,7 +265,7 @@ test.describe('Split recovery acceptance', () => {
     await page.evaluate(() => {
       const pinia = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia
       const store = pinia._s.get('editor')
-      store.loadChange({ pathname: '/tmp/csplit/recovery-a.md', data: { markdown: '# Reloaded\n', filename: 'recovery-a.md', encoding: 'utf8', lineEnding: 'lf', trimTrailingNewline: false } })
+      store.loadChange({ pathname: '/tmp/csplit/recovery-a.md', data: { markdown: '# Reloaded\n', filename: 'recovery-a.md', encoding: {encoding:'utf8',isBom:false}, lineEnding: 'lf', trimTrailingNewline: 3 } })
     })
     await expect.poll(() => sourceValue(page)).toContain('# Reloaded')
     await page.keyboard.press('Meta+z')

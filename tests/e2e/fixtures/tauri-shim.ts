@@ -44,9 +44,26 @@ export async function installTauriShim(page: Page): Promise<void> {
         if (target) w.__emitFakeEvent('mt::open-new-tab', {...target,filename:target.pathname.split('/').pop(),previewMode:false})
         return undefined
       },
+      // Shared native-open double for renderer routing. Text and metadata here are
+      // explicit fixture assumptions, never detector or native-byte evidence.
+      mt_open_file: async ({args}: any) => {
+        const w=window as any
+        const pathname=Array.isArray(args)?args[0]:args.pathname
+        const options=Array.isArray(args)?args[1]:args.options
+        const markdown=await (w.__mockInvoke.mt_fs_read || defaults.mt_fs_read)({path:pathname})
+        const fixture=w.__metadataOpenDocuments?.[pathname]
+        w.__emitFakeEvent('mt::open-new-tab',{
+          pathname,filename:pathname.split('/').pop(),markdown:typeof markdown==='string'?markdown:markdown?.text || '',
+          encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',trimTrailingNewline:3,isMixedLineEndings:false,
+          ...fixture,options:options || {}
+        })
+      },
       // Correlated save-only responses. These are renderer doubles, not disk evidence.
       mt_document_choose_save_target: () => null,
-      mt_document_write_snapshot: ({request}: any) => ({...request,pathname:request.targetPath,filename:request.targetPath.split('/').pop()}),
+      mt_document_write_snapshot: ({request}: any) => {
+        if (!request.format || typeof request.format.isBom !== 'boolean' || ![0,1,3].includes(request.format.finalNewline)) throw Error('Invalid required format fixture')
+        return {...request,format:{...request.format},pathname:request.targetPath,filename:request.targetPath.split('/').pop()}
+      },
       // backend prefs/keybindings — used at boot by install-window-globals
       // and bootstrap-ipc.
       mt_prefs_get_all: () => ({

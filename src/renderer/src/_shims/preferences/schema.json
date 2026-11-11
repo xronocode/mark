@@ -21,6 +21,11 @@
     "type": "boolean",
     "default": true
   },
+  "lastSessionFormats": {
+    "description": "Session--Named selected file formats and pending format intent only; no text or saved proof.--internal",
+    "type": "array",
+    "default": []
+  },
   "language": {
     "description": "General--The language Mark use. 'system' follows the OS preferred languages (C-45).",
     "type": "string",

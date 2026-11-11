@@ -1,8 +1,8 @@
 // FILE: src/renderer/src/util/documentOperations.js
 // START_MODULE_CONTRACT
 //   PURPOSE: Coordinate owned snapshot saves and all-or-nothing logical document closure.
-//   SCOPE: Attempt/lifetime/revision correlation, write admission, three-way decisions and final freshness barrier.
-//   DEPENDS: documentSnapshot; injected transport, prompts, notices and owned commit callbacks.
+//   SCOPE: Attempt/lifetime/text/format/revision correlation, write admission, three-way decisions and final freshness barrier.
+//   DEPENDS: documentSnapshot/documentFormat; injected transport, prompts, notices and owned commit callbacks.
 //   LINKS: M-011; C-SAVE-CLOSE-DATA-SAFETY T-002/T-003.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -14,6 +14,7 @@
 //   LAST_CHANGE: 2026-11-10 C-SAVE-CLOSE-DATA-SAFETY: correlated writes and IME-first batch barrier.
 // END_CHANGE_SUMMARY
 import { documentOwner } from './documentSnapshot'
+import { captureDocumentFormat, sameDocumentFormat } from './documentFormat'
 
 export const createDocumentOperations = deps => {
   let serial = 0
@@ -23,7 +24,7 @@ export const createDocumentOperations = deps => {
   const key = owner => owner.documentToken
   const sameOwner = (a,b) => a?.id === b?.id && a?.documentToken === b?.documentToken
   const find = owner => deps.getTabs().find(tab => sameOwner(documentOwner(tab),owner))
-  const sameVersion = (a,b) => a && b && sameOwner(a,b) && a.revision === b.revision && a.markdown === b.markdown && a.sourcePath === b.sourcePath
+  const sameVersion = (a,b) => a && b && sameOwner(a,b) && a.revision === b.revision && a.markdown === b.markdown && a.sourcePath === b.sourcePath && sameDocumentFormat(a.format,b.format)
   const result = (status, owners, reason, request) => {
     const outcome = { status, affectedOwners: owners, reason }
     if (status === 'blocked' || status === 'failed') {
@@ -65,24 +66,32 @@ export const createDocumentOperations = deps => {
         return result('blocked',[owner],'collision',request)
       }
       pending.set(key(owner),{sourcePath,targetPath})
-      const snapshot = {...fresh.snapshot,requestId,targetPath}
+      const snapshot = Object.freeze({...fresh.snapshot,requestId,targetPath})
       const reply = await deps.writeSnapshot({...snapshot, ownedPaths:deps.getTabs().filter(t=>!sameOwner(documentOwner(t),owner)&&t.pathname).map(t=>({documentToken:documentOwner(t).documentToken,pathname:t.pathname}))})
-      if (!reply || reply.requestId !== requestId || !sameOwner(reply,owner) || reply.revision !== snapshot.revision || reply.sourcePath !== sourcePath || reply.pathname !== targetPath) throw Error('Invalid save acknowledgement')
+      if (!reply || reply.requestId !== requestId || !sameOwner(reply,owner) || reply.revision !== snapshot.revision || reply.sourcePath !== sourcePath || reply.pathname !== targetPath || !sameDocumentFormat(reply.format,snapshot.format)) throw Error('Invalid save acknowledgement')
       const current = capture(owner)
       const tab = find(owner)
-      if (!tab || current.status !== 'ready' || current.snapshot.sourcePath !== sourcePath) return result('blocked',[owner],current.status === 'composing' ? 'composing' : 'stale',request)
+      if (!tab || current.status !== 'ready' || current.snapshot.sourcePath !== sourcePath) {
+        if (tab) { tab.requiresExplicitSave = true; tab.isSaved = false }
+        return result('blocked',[owner],current.status === 'composing' ? 'composing' : 'stale',request)
+      }
       if (collision(targetPath,owner)) return result('blocked',[owner],'collision',request)
       // The destination belongs to this attempt even when newer edits arrived.
       tab.pathname = reply.pathname
       tab.filename = reply.filename || tab.filename
       const unchanged = sameVersion(current.snapshot,snapshot)
+      tab.savedMarkdown = snapshot.markdown
+      tab.savedFormat = captureDocumentFormat(snapshot.format)
+      tab.requiresExplicitSave = !unchanged
       tab.isSaved = unchanged
       if (unchanged && snapshot.historyId !== undefined) tab.lastSavedHistoryId = snapshot.historyId
       deps.onSaved?.(tab,unchanged)
       if (!unchanged) return result('blocked',[owner],'changed',request)
-      return {status:'completed',affectedOwners:[owner],snapshot:{...current.snapshot,sourcePath:targetPath,isSaved:true}}
+      return {status:'completed',affectedOwners:[owner],snapshot:Object.freeze({...current.snapshot,sourcePath:targetPath,isSaved:true})}
     } catch (error) {
-      const tab=find(owner); if(tab) tab.isSaved=false
+      const tab=find(owner); if(tab) { tab.isSaved=false; tab.requiresExplicitSave=true }
+      const encodingCode = String(error?.message || error).match(/MT_ENC_(?:UNKNOWN|UNSUPPORTED|INVALID_POLICY|UNREPRESENTABLE|MIXED_EOL)/)?.[0]
+      if (encodingCode) return result('failed',[owner],encodingCode,request)
       if (String(error?.message || error).includes('MT_DOCUMENT_DESTINATION_OWNED')) return result('blocked',[owner],'collision',request)
       return result('failed',[owner],'write-failed',request)
     } finally { pending.delete(key(owner)) }

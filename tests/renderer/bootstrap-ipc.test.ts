@@ -64,7 +64,8 @@ const __editorStub: Record<string, any> = {
   NEW_TAB_WITH_CONTENT: vi.fn(),
   NEW_UNTITLED_TAB: vi.fn(),
   CLOSE_TABS: vi.fn(),
-  END_BOOT_PHASE: vi.fn()
+  END_BOOT_PHASE: vi.fn(),
+  _notifyFileOpenError: vi.fn()
 }
 
 vi.mock('@/store/preferences', () => ({
@@ -134,11 +135,11 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
     // and matches the Wave-1 idiom.
   })
 
-  it('registers all 11 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
+  it('registers all 12 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     await setupIpcListeners()
-    expect(handlers.size).toBe(11)
+    expect(handlers.size).toBe(12)
     const channels = Array.from(handlers.keys()).sort()
     expect(channels).toEqual(
       [
@@ -150,6 +151,7 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
         'mt::set-pathname',
         'mt::bootstrap-editor',
         'mt::open-new-tab',
+        'mt::open-file-failed',
         'mt::force-close-tabs-by-id',
         'mt::text::op',
         'mt::ext::context_request'
@@ -157,6 +159,14 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
     )
     expect(log).toHaveBeenCalledWith('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
     log.mockRestore()
+  })
+
+  it('reports strict native decode refusal without creating a tab', async () => {
+    const {setupIpcListeners, handlers} = await freshBootstrap()
+    await setupIpcListeners()
+    handlers.get('mt::open-file-failed')!({payload:{code:'MT_ENC_LOSSY'}})
+    expect(__editorStub._notifyFileOpenError).toHaveBeenCalledWith('MT_ENC_LOSSY')
+    expect(__editorStub.NEW_TAB_WITH_CONTENT).not.toHaveBeenCalled()
   })
 
   it('is idempotent — second call warns and does NOT re-register', async () => {

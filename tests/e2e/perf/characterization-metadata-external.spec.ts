@@ -53,6 +53,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-11 C-METADATA-SAVE-SAFETY: repaired metadata false-clean,
+//   close and source-format transport cases assert desired invariants. Separate
+//   external equality, Rename/Move, physical order and durability families remain.
 //   CURRENT: 2026-11-10 C-STABILIZE-DIRTY-CHARACTERIZATION: external-event
 //   observations follow the implemented dirty-buffer preservation contract;
 //   seeded determinism and all timing/performance boundaries remain intact.
@@ -129,10 +132,8 @@ const UTF8_BOM_TEXT = decodeLikeBackend(UTF8_BOM_RAW)
 const UTF8_CRLF_RAW = readFixture('utf8-crlf.md')
 const UTF8_CRLF_TEXT = decodeLikeBackend(UTF8_CRLF_RAW)
 
-// build_open_new_tab_payload (src-tauri/src/m_v1_compat.rs) always sends this
-// fixed metadata shape, even for a CRLF/BOM file; the real mount normalizes
-// the buffer afterwards. Feeding the same shape keeps this suite honest about
-// what the backend actually hands the renderer.
+// Default UTF8/LF fixture metadata. Byte-policy cases provide the actual source
+// metadata now supplied by the shared native open; this browser is not a decoder.
 const DEFAULT_OPEN_METADATA = {
   encoding: { encoding: 'utf8', isBom: false },
   lineEnding: 'lf',
@@ -156,7 +157,7 @@ interface TabState {
   cursor: { anchor: [string, number], focus: [string, number] } | null
 }
 
-async function openTab (page: Page, pathname: string, markdown: string): Promise<void> {
+async function openTab (page: Page, pathname: string, markdown: string, metadata = DEFAULT_OPEN_METADATA): Promise<void> {
   const filename = pathname.split('/').pop() || pathname
   await page.evaluate(({ p, md, fn, meta }: {
     p: string
@@ -173,7 +174,7 @@ async function openTab (page: Page, pathname: string, markdown: string): Promise
       isMixedLineEndings: false,
       previewMode: false
     })
-  }, { p: pathname, md: markdown, fn: filename, meta: DEFAULT_OPEN_METADATA })
+  }, { p: pathname, md: markdown, fn: filename, meta: metadata })
   await page.waitForFunction((p: string) => {
     const store = (document.querySelector('#app') as any).__vue_app__
       .config.globalProperties.$pinia._s.get('editor')
@@ -446,102 +447,40 @@ export function buildTocDto (nodes: unknown): TocDto {
 }
 
 test.describe('metadata / external change / byte policy characterization (T-007)', () => {
-  test('metadata change marks a dirty named tab clean and FILE_SAVE carries no metadata options', async ({ page }) => {
-    const observedLegacyBehavior =
-      'Changing a tab\'s lineEnding and encoding through the real store/bus path sets isSaved=true without any write, so the dirty metadata false-clean lands before a save. FILE_SAVE then invokes mt_response_file_save with exactly {id, filename, pathname, markdown, defaultPath}: the new encoding, lineEnding, adjustLineEndingOnSave and trimTrailingNewline never reach the save transport.'
-    const desiredInvariant =
-      'A metadata change alone must keep the tab dirty until a save carrying the selected encoding, lineEnding, adjustLineEndingOnSave and trimTrailingNewline completes; the save transport must receive the metadata instead of silently defaulting the writeback encoding and EOL.'
-    test.info().annotations.push(
-      { type: 'observedLegacyBehavior', description: observedLegacyBehavior },
-      { type: 'desiredInvariant', description: desiredInvariant }
-    )
-
-    await installTauriShim(page)
-    await installInvokeLog(page)
-    await bootEditor(page)
+  test('metadata changes retain dirty text and the save carries a complete immutable format', async ({page}) => {
+    await installTauriShim(page); await bootEditor(page)
     await openTab(page, `${E2E_ROOT}/metadata-save.md`, '# Metadata\n\nbody text\n')
-    await expect(page.locator('.editor-with-tabs p').last()).toContainText('body text', { timeout: 5_000 })
-
-    // Dirty the tab through the editor, then change metadata only.
     await dirtyThroughEditor(page, '!')
-    expect(tabByPath(await readTabs(page), `${E2E_ROOT}/metadata-save.md`).isSaved).toBe(false)
-
+    const before = tabByPath(await readTabs(page),`${E2E_ROOT}/metadata-save.md`)
     await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__
-        .config.globalProperties.$pinia._s.get('editor')
-      store.SET_LINE_ENDING('crlf')
-      ;(window as any).__bus.emit('mt::set-file-encoding', 'windows-1251')
+      const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
+      store.SET_LINE_ENDING('crlf'); (window as any).__bus.emit('mt::set-file-encoding','cp1251')
     })
-
-    const afterMetadata = tabByPath(await readTabs(page), `${E2E_ROOT}/metadata-save.md`)
-    expect(afterMetadata.lineEnding).toBe('crlf')
-    expect(afterMetadata.adjustLineEndingOnSave).toBe(true)
-    expect(afterMetadata.encoding.encoding).toBe('windows-1251')
-    // Observed false-clean: the metadata change alone cleared the dirty flag.
-    expect(afterMetadata.isSaved).toBe(true)
-    const editedMarkdown = afterMetadata.markdown
-    expect(editedMarkdown).toContain('body text!')
-
-    await installSaveSuccess(page)
-    await callFileSave(page)
-    await expect.poll(async () => (await saveCalls(page)).length, { timeout: 5_000 }).toBe(1)
-    const args = (await saveCalls(page))[0]
-
-    expect(args.markdown).toBe(editedMarkdown)
-    expect(Object.keys(args).sort()).toEqual(['documentToken','id','markdown','ownedPaths','requestId','revision','sourcePath','targetPath'])
-    expect(args).not.toHaveProperty('encoding')
-    expect(args).not.toHaveProperty('lineEnding')
-    expect(args).not.toHaveProperty('adjustLineEndingOnSave')
-    expect(args).not.toHaveProperty('trimTrailingNewline')
-    expect(args).not.toHaveProperty('options')
-    await expect.poll(
-      async () => tabByPath(await readTabs(page), `${E2E_ROOT}/metadata-save.md`).isSaved,
-      { timeout: 5_000 }
-    ).toBe(true)
+    const changed=tabByPath(await readTabs(page),`${E2E_ROOT}/metadata-save.md`)
+    expect(changed.markdown).toBe(before.markdown); expect(changed.isSaved).toBe(false)
+    expect(changed.encoding.encoding).toBe('cp1251'); expect(changed.lineEnding).toBe('crlf')
+    await installSaveSuccess(page); await callFileSave(page)
+    await expect.poll(async()=>(await saveCalls(page)).length).toBe(1)
+    const request=(await saveCalls(page))[0]
+    expect(request.markdown).toBe(before.markdown)
+    expect(request.format).toEqual({encoding:'cp1251',isBom:false,lineEnding:'crlf',finalNewline:3})
+    await expect.poll(async()=>tabByPath(await readTabs(page),`${E2E_ROOT}/metadata-save.md`).isSaved).toBe(true)
   })
 
-  test('a dirty named tab closed after EOL/final-newline metadata changes closes without a prompt', async ({ page }) => {
-    const observedLegacyBehavior =
-      'After an unsaved edit, SET_LINE_ENDING and a final-newline metadata change set isSaved=true; CLOSE_TAB then force-closes the tab with no unsaved-close dialog and no save or save-and-close transport call, so the unsaved edit is discarded even though the buffer still differs from disk.'
-    const desiredInvariant =
-      'EOL/final-newline metadata changes must not clear the dirty flag; closing a buffer that differs from disk must prompt or save regardless of metadata, and metadata must only be persisted through an explicit save.'
-    test.info().annotations.push(
-      { type: 'observedLegacyBehavior', description: observedLegacyBehavior },
-      { type: 'desiredInvariant', description: desiredInvariant }
-    )
-
-    await installTauriShim(page)
-    await installInvokeLog(page)
-    await bootEditor(page)
+  test('closing after EOL/final-newline changes still prompts and cancellation preserves the edit', async ({page}) => {
+    await installTauriShim(page); await installInvokeLog(page); await bootEditor(page)
     await openTab(page, `${E2E_ROOT}/metadata-close.md`, '# Close\n\nunsaved body\n')
-    await expect(page.locator('.editor-with-tabs p').last()).toContainText('unsaved body', { timeout: 5_000 })
-
-    await dirtyThroughEditor(page, '!')
-    expect(tabByPath(await readTabs(page), `${E2E_ROOT}/metadata-close.md`).isSaved).toBe(false)
-
+    await dirtyThroughEditor(page,'!')
     await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__
-        .config.globalProperties.$pinia._s.get('editor')
-      store.SET_LINE_ENDING('crlf')
-      ;(window as any).__bus.emit('mt::set-final-newline', 1)
+      const store=(document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
+      store.SET_LINE_ENDING('crlf'); (window as any).__bus.emit('mt::set-final-newline',1)
     })
-
-    const afterMetadata = tabByPath(await readTabs(page), `${E2E_ROOT}/metadata-close.md`)
-    expect(afterMetadata.lineEnding).toBe('crlf')
-    expect(afterMetadata.trimTrailingNewline).toBe(1)
-    expect(afterMetadata.isSaved).toBe(true)
-    expect(afterMetadata.markdown).toContain('unsaved body!')
-
-    await page.evaluate(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__
-        .config.globalProperties.$pinia._s.get('editor')
-      store.CLOSE_TAB()
-    })
-    // If a prompt had opened, the tab would stay; reaching zero tabs proves
-    // the force-close path ran without asking.
-    await expect.poll(async () => (await readTabs(page)).length, { timeout: 5_000 }).toBe(0)
-    expect(await page.locator('.ag-unsaved-close-dialog').count()).toBe(0)
-    expect((await saveInvocations(page)).filter((cmd) => /save/i.test(cmd))).toEqual([])
+    const before=await readTabs(page); expect(before[0].isSaved).toBe(false)
+    await callStore(page,'CLOSE_TAB')
+    await expect(page.locator('.ag-unsaved-close-dialog')).toBeVisible()
+    await page.locator('.ag-unsaved-close-cancel').click()
+    expect(await readTabs(page)).toEqual(before)
+    expect((await saveInvocations(page)).filter(cmd=>/save/i.test(cmd))).toEqual([])
   })
 
   test('an external rewrite reloads the tab and the diff baseline is the pre-reload snapshot', async ({ page }) => {
@@ -586,7 +525,8 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     expect(after.id).toBe(before.id)
     expect(after.markdown).toBe(external)
     expect(after.isSaved).toBe(true)
-    expect(after.contentRevision).toBe(1)
+    // A fresh disk load establishes a new document token at revision zero.
+    expect(after.contentRevision).toBe(0)
     expect(await expectMarker(markers, 'BLOCK_LIVE_RELOAD')).toContain('source=disk')
     await expectMarker(markers, 'BLOCK_SNAPSHOT_RECORDED')
     await expectMarker(markers, 'BLOCK_OPENED_SNAPSHOT_RECORDED')
@@ -602,7 +542,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
 
   test('a BOM-only external rewrite compares equal and is skipped while an EOL-only rewrite is reloaded', async ({ page }) => {
     const observedLegacyBehavior =
-      'Live reload compares only the decoded markdown string. A rewrite with the same text but a UTF-8 BOM (raw bytes differ, M-014 decode strips the BOM) equals tab.markdown, so the watcher logs BLOCK_RELOAD_SKIPPED reason=hash-match, records no snapshot and leaves the tab on stale bytes. An EOL-only rewrite (LF -> CRLF) decodes to a different string, so it IS reloaded and the buffer normalizes back to LF: the visible text ends identical to the pre-change text while the CRLF bytes are gone.'
+      'Live reload compares only the decoded markdown string. A rewrite with the same text but a UTF-8 BOM (raw bytes differ, M-014 decode strips the BOM) equals tab.markdown, so the watcher logs BLOCK_RELOAD_SKIPPED reason=hash-match, records no snapshot and leaves the tab on stale bytes. An EOL-only rewrite (LF -> CRLF) decodes to a different string, so it IS reloaded and the complete decoded CRLF text remains the saved checkpoint despite the LF representation in the rich renderer. External byte-equality repair remains deferred.'
     const desiredInvariant =
       'External equality must be byte-aware (hash the raw bytes before decoding): a BOM/EOL/final-newline-only rewrite must be reported as a disk change, and no equality decision may rest on the decoded JS string alone.'
     test.info().annotations.push(
@@ -634,7 +574,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     expect(markers.some((line) => line.includes('BLOCK_SNAPSHOT_RECORDED'))).toBe(false)
     expect(tabByPath(await readTabs(page), `${E2E_ROOT}/byte-equal.md`).markdown).toBe(UTF8_PLAIN)
 
-    // EOL-only rewrite: detected as a change; the editor normalizes the CRLF.
+    // EOL-only rewrite: detected as a change; renderer imports without rewriting source CRLF.
     await page.evaluate(({ p, md }: { p: string, md: string }) => {
       ;(window as any).__mockInvoke.mt_fs_read = () => md
       ;(window as any).__emitFakeEvent('mt::watch::event', { kind: 'modify', paths: [p] })
@@ -642,82 +582,26 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     await expectMarker(markers, 'BLOCK_LIVE_RELOAD')
     await expectMarker(markers, 'BLOCK_SNAPSHOT_RECORDED')
     const afterEol = tabByPath(await readTabs(page), `${E2E_ROOT}/byte-equal.md`)
-    expect(afterEol.markdown).toBe(UTF8_PLAIN)
-    expect(afterEol.markdown).not.toContain('\r\n')
+    expect(afterEol.markdown).toBe(UTF8_CRLF_TEXT)
     expect(afterEol.isSaved).toBe(true)
   })
 
-  test('the save transport carries a JS string and drops the fixture BOM and CRLF bytes', async ({ page }) => {
-    const observedLegacyBehavior =
-      'Opening utf8-bom.md through the production decode (leading BOM stripped) and saving after an edit invokes mt_response_file_save with markdown as a plain JS string equal to the decoded text: no EF BB BF bytes, no byte buffer and no encoding field are part of the transport. The CRLF fixture follows the same path: its bytes are decoded, the mount normalizes CRLF to LF, and the save transport carries the LF string — the original CRLF bytes never reach the transport.'
-    const desiredInvariant =
-      'The save transport must carry the source encoding/EOL/BOM policy or the exact original bytes so a writeback preserves the file\'s byte identity; a lossy decode-to-String value may never be the only save input.'
-    test.info().annotations.push(
-      { type: 'observedLegacyBehavior', description: observedLegacyBehavior },
-      { type: 'desiredInvariant', description: desiredInvariant }
-    )
-
-    const bomHeading = '# Byte policy sample edited'
-    const bomExpected = UTF8_BOM_TEXT.replace('# Byte policy sample', bomHeading)
-
-    expect(UTF8_BOM_RAW.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]))).toBe(true)
-    expect(UTF8_BOM_TEXT.charCodeAt(0)).not.toBe(0xfeff)
-
-    await installTauriShim(page)
-    await installInvokeLog(page)
-    await bootEditor(page)
-    await openTab(page, `${E2E_ROOT}/byte-writeback-bom.md`, UTF8_BOM_TEXT)
-    await expect(page.locator('.editor-with-tabs h1').first()).toContainText('Byte policy sample', { timeout: 5_000 })
-    await installSaveSuccess(page)
-
-    await page.locator('#ag-editor-id h1').first().click()
-    await page.keyboard.press('End')
-    await page.keyboard.type(' edited')
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__
-        .config.globalProperties.$pinia._s.get('editor')
-      return !!store.currentFile && !store.currentFile.isSaved
-    }, undefined, { timeout: 5_000 })
-    await callFileSave(page)
-    await expect.poll(async () => (await saveCalls(page)).length, { timeout: 5_000 }).toBe(1)
-    const bomArgs = (await saveCalls(page))[0]
-
-    expect(typeof bomArgs.markdown).toBe('string')
-    expect(bomArgs.markdown).toBe(bomExpected)
-    expect(bomArgs.markdown.charCodeAt(0)).not.toBe(0xfeff)
-    expect(bomArgs.markdown.includes('\uFEFF')).toBe(false)
-    expect(Buffer.from(bomArgs.markdown, 'utf8').subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]))).toBe(false)
-    expect(Object.keys(bomArgs).sort()).toEqual(['documentToken','id','markdown','ownedPaths','requestId','revision','sourcePath','targetPath'])
-    expect(bomArgs).not.toHaveProperty('bytes')
-    expect(bomArgs).not.toHaveProperty('encoding')
-
-    // CRLF fixture: raw bytes differ from the LF writeback the transport carries.
-    expect(UTF8_CRLF_RAW.includes('\r\n')).toBe(true)
-    const crlfExpected = UTF8_PLAIN.replace('# Byte policy sample', '# Byte policy sample!')
-    await openTab(page, `${E2E_ROOT}/byte-writeback-crlf.md`, UTF8_CRLF_TEXT)
-    await expect(page.locator('.editor-with-tabs h1').first()).toContainText('Byte policy sample', { timeout: 5_000 })
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__
-        .config.globalProperties.$pinia._s.get('editor')
-      return !store.currentFile?.markdown.includes('\r\n')
-    }, undefined, { timeout: 5_000 })
-    await installSaveSuccess(page)
-    await page.locator('#ag-editor-id h1').first().click()
-    await page.keyboard.press('End')
-    await page.keyboard.type('!')
-    await page.waitForFunction(() => {
-      const store = (document.querySelector('#app') as any).__vue_app__
-        .config.globalProperties.$pinia._s.get('editor')
-      return !!store.currentFile && !store.currentFile.isSaved
-    }, undefined, { timeout: 5_000 })
-    await callFileSave(page)
-    await expect.poll(async () => (await saveCalls(page)).length, { timeout: 5_000 }).toBe(1)
-    const crlfArgs = (await saveCalls(page))[0]
-
-    expect(typeof crlfArgs.markdown).toBe('string')
-    expect(crlfArgs.markdown).toBe(crlfExpected)
-    expect(crlfArgs.markdown.includes('\r')).toBe(false)
-    expect(UTF8_CRLF_TEXT).not.toBe(crlfArgs.markdown)
+  test('BOM/CRLF fixtures carry actual format through save while canonical text remains a string', async ({page}) => {
+    await installTauriShim(page); await bootEditor(page)
+    for (const fixture of [
+      {name:'bom',text:UTF8_BOM_TEXT,bom:true,eol:'lf'},
+      {name:'crlf',text:UTF8_CRLF_TEXT,bom:false,eol:'crlf'}
+    ]) {
+      await openTab(page,`${E2E_ROOT}/byte-${fixture.name}.md`,fixture.text,{
+        ...DEFAULT_OPEN_METADATA, encoding:{encoding:'utf8',isBom:fixture.bom}, lineEnding:fixture.eol
+      })
+      await dirtyThroughEditor(page,'!'); await installSaveSuccess(page); await callFileSave(page)
+      await expect.poll(async()=>(await saveCalls(page)).length).toBe(1)
+      const request=(await saveCalls(page))[0]
+      expect(request.format).toEqual({encoding:'utf8',isBom:fixture.bom,lineEnding:fixture.eol,finalNewline:3})
+      expect(request.markdown).toContain('!'); expect(typeof request.markdown).toBe('string')
+    }
+    test.info().annotations.push({type:'evidence-tier',description:'Renderer policy transport only; native codec tests prove exact BOM/EOL bytes.'})
   })
 
   test('a rejected save transport leaves the edit unsaved with a failure notice and no recovery path', async ({ page }) => {
@@ -775,7 +659,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
 
   test('navigation-only caret and selection changes do not dirty the tab', async ({ page }) => {
     const observedLegacyBehavior =
-      'The first focus click into the editor emits one content-change and bumps contentRevision by exactly one (1 -> 2 here) while leaving isSaved=true and the edit history untouched; after that, arrow-key caret moves and a Shift+ArrowLeft selection change tab.cursor but leave contentRevision and isSaved unchanged.'
+      'Focus, caret and selection events leave the complete text/format revision and dirty state unchanged. This is the B revision-ownership invariant; historical focus bump behavior is retained only in archived evidence.'
     const desiredInvariant =
       'Cursor and selection navigation must never increment the content revision or dirty the tab: revision and dirty state belong to semantic content edits only, so the focus-click revision bump must also disappear before revision ownership gates a save.'
     test.info().annotations.push(
@@ -797,7 +681,7 @@ test.describe('metadata / external change / byte policy characterization (T-007)
     await expect.poll(
       async () => tabByPath(await readTabs(page), `${E2E_ROOT}/navigation.md`).contentRevision,
       { timeout: 5_000 }
-    ).toBe(settled.contentRevision + 1)
+    ).toBe(settled.contentRevision)
     const focused = tabByPath(await readTabs(page), `${E2E_ROOT}/navigation.md`)
     expect(focused.isSaved).toBe(true)
     expect(focused.cursor).not.toBeNull()
@@ -1327,7 +1211,7 @@ test.describe('live-reference alias + DTO scaffold (T-007 follow-up)', () => {
     await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.source-code-mode'))
     await page.locator('.source-code').waitFor({ state: 'hidden', timeout: 5_000 })
     await expect.poll(async () => (await readTabs(page))[0].contentRevision, { timeout: 5_000 })
-      .toBe(before.revision + 1)
+      .toBe(before.revision)
 
     const after = await page.evaluate(() => {
       const store = (document.querySelector('#app') as any).__vue_app__
@@ -1348,9 +1232,9 @@ test.describe('live-reference alias + DTO scaffold (T-007 follow-up)', () => {
     expect(after.id).toBe(before.id)
     expect(after.markdown).toBe(before.markdown)
     expect(after.isSaved).toBe(false)
-    // Observed revision-ownership defect: leaving source mode mints a history
-    // entry and a revision bump with no content change.
-    expect(after.revision).toBe(before.revision + 1)
+    // Source mode retains the existing history-entry behavior; identical text
+    // no longer mints a document revision. History is a separate characterization.
+    expect(after.revision).toBe(before.revision)
     expect(after.historyStackLength).toBe(before.history.stackLength + 1)
     expect(after.lastEditIndex).toBe(before.history.lastEditIndex)
     expect(after.hasCursor).toBe(true)

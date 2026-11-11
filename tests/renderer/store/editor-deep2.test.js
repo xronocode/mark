@@ -153,7 +153,7 @@ describe('store/editor — deep coverage (wave 2)', () => {
   let notice
 
   function makeTab (overrides = {}) {
-    return {
+    const tab = {
       id: overrides.id ?? 'tab-1',
       filename: overrides.filename ?? 'untitled.md',
       pathname: overrides.pathname ?? '',
@@ -173,6 +173,10 @@ describe('store/editor — deep coverage (wave 2)', () => {
       blocks: null,
       ...overrides
     }
+    return { savedMarkdown:tab.isSaved ? tab.markdown : 'saved checkpoint',
+      savedFormat:{ encoding:tab.encoding.encoding,isBom:tab.encoding.isBom,lineEnding:tab.lineEnding,finalNewline:tab.trimTrailingNewline },
+      requiresExplicitSave:false,...tab }
+
   }
 
   beforeEach(async () => {

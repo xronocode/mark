@@ -1,39 +1,44 @@
-// MODULE_CONTRACT
-//   PURPOSE: M-002 mt-fs-commands real impls. 5 #[tauri::command]
-//            handlers performing read / write / stat / readdir / unlink
-//            against the workspace sandbox declared by SecurityCtx.
-//            Each command:
-//              1. Reads the active sandbox from SecurityCtx state.
-//              2. Validates the requested path through M-010 check_path
-//                 (NUL/overlong/traversal/symlink-escape).
-//              3. Performs the FS syscall, mapping errors to typed
-//                 IpcError variants with stable codes.
-//              4. Emits stable [FsCmd][${op}][BLOCK_*] markers for trace
-//                 correlation.
-//   SCOPE:   single-shot fs ops only. Watcher is M-003 (separate module);
-//            search is M-004. NEVER panics — every fallible call is
-//            Result-mapped to IpcError. NEVER reads outside sandbox.
-//   DEPENDS: m010_security::check_path (path validation),
-//            m013b::state::SecurityCtx (active sandbox),
-//            m013b::error::IpcError (typed error envelope),
-//            stdlib std::fs.
-//   LINKS:   .grace/changes/archive/C-SEC-AUDIT-FIXES T-007;
-//            .grace/graph/runtime.xml M-013 (PhaseRef Phase-B2) step-2;
-//            .grace/verification/runtime.xml V-M-002 (5 scenarios + 12
-//            adversarial edge cases — this commit covers ~6 of them
-//            backend-side).
-//   STATUS:  Phase-B2 step-2 real-impl shipped. Atomic-write semantics
-//            (temp+rename+fsync) deferred to a B2 step-2a follow-up
-//            because rename atomicity needs more thought on cross-
-//            filesystem boundaries.
-//
-// CHANGE_SUMMARY:
-//   - 2026-11-09 C-SEC-AUDIT-FIXES T-007: real writer regressions pin
-//     outward-parent and dangling-leaf denial, inward/plain writes and
-//     existing outside-target preservation through the shared M-010 guard.
-//   - 2026-04-28 B2-step-2: replace B1 stubs with real read/write/stat/
-//     readdir/unlink wired through SecurityCtx + M-010 check_path.
-//   - 2026-04-28 B1-step-6: initial stub returning Err(MT_NOT_IMPLEMENTED).
+// FILE: src-tauri/src/m013b/fs.rs
+// START_MODULE_CONTRACT
+//   PURPOSE: M-002/M-013-B sandboxed native filesystem operations.
+//   SCOPE: Guard paths, regular-file/size reads, text/byte writes and file operations.
+//          Byte callers validate encoding before mutation. Writes remain in-place
+//          with write_all and sync_all; no atomic replacement or crash guarantee.
+//   DEPENDS: m010_security, m013b error/state, m014_encoding, bookmarks, std::fs.
+//   LINKS: M-002, M-013-B; V-M-002; C-METADATA-SAVE-SAFETY T-001.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   MAX_READ_BYTES - regular-file read size ceiling.
+//   fs_read_inner - sandboxed text read.
+//   mt_fs_read - native text read command.
+//   fs_write_inner - UTF-8 compatibility facade.
+//   fs_write_bytes_inner - sandboxed byte writer after caller prevalidation.
+//   mt_fs_write - native UTF-8 write command.
+//   FsStat - filesystem metadata value.
+//   fs_stat_inner - validated metadata lookup.
+//   mt_fs_stat - native metadata command.
+//   fs_readdir_inner - validated directory listing.
+//   mt_fs_readdir - native directory command.
+//   fs_mkdir_inner - validated directory creation.
+//   mt_fs_mkdir - native directory creation command.
+//   fs_unlink_inner - validated file removal.
+//   mt_fs_unlink - native file removal command.
+//   fs_read_binary_inner - regular-file bounded byte read.
+//   mt_fs_read_binary - native binary read command.
+//   fs_write_binary_inner - binary compatibility facade retaining its error command.
+//   mt_fs_write_binary - native binary write command.
+//   fs_copy_inner - validated filesystem copy.
+//   mt_fs_copy - native copy command.
+//   fs_move_inner - validated filesystem move.
+//   mt_fs_move - native move command.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   - 2026-11-11 C-METADATA-SAVE-SAFETY: common validated byte writer,
+//     retaining UTF-8/binary facade commands, sandbox guards and fsync semantics.
+//   - 2026-11-09 C-SEC-AUDIT-FIXES: guarded outward/dangling/inward write paths.
+// END_CHANGE_SUMMARY
 
 use crate::m010_security;
 use crate::m013b::error::IpcError;
@@ -116,25 +121,26 @@ pub async fn mt_fs_read(
 
 /// Inner pure-logic write — see `fs_read_inner` for rationale.
 pub(crate) fn fs_write_inner(path: &str, content: &str, sandbox: &Path) -> Result<(), IpcError> {
-    let cmd = "mt::fs::write";
-    let requested = Path::new(path);
+    fs_write_bytes_inner(path, content.as_bytes(), sandbox)
+}
 
+/// Validated byte writer. Encoding errors must be resolved before this boundary.
+pub(crate) fn fs_write_bytes_inner(path: &str, bytes: &[u8], sandbox: &Path) -> Result<(), IpcError> {
+    write_validated_bytes(path, bytes, sandbox, "mt::fs::write")?;
+    safe_eprintln!("[FsCmd][write][BLOCK_WRITE_TO_DISK path={} bytes={} fsync=true]", redact(path), bytes.len());
+    Ok(())
+}
+
+fn write_validated_bytes(path: &str, bytes: &[u8], sandbox: &Path, cmd: &str) -> Result<(), IpcError> {
     safe_eprintln!("[FsCmd][write][BLOCK_VALIDATE_PATH path={}]", redact(path));
-    let validated = m010_security::check_path(sandbox, requested)
+    let validated = m010_security::check_path(sandbox, Path::new(path))
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
-
     if let Some(parent) = validated.parent() {
         fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;
     }
-    let mut f = fs::File::create(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-    f.write_all(content.as_bytes())
-        .map_err(|e| IpcError::from_io(cmd, e))?;
-    f.sync_all().map_err(|e| IpcError::from_io(cmd, e))?;
-    safe_eprintln!(
-        "[FsCmd][write][BLOCK_WRITE_TO_DISK path={} bytes={} fsync=true]",
-        redact(path),
-        content.len()
-    );
+    let mut file = fs::File::create(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+    file.write_all(bytes).map_err(|e| IpcError::from_io(cmd, e))?;
+    file.sync_all().map_err(|e| IpcError::from_io(cmd, e))?;
     Ok(())
 }
 
@@ -349,18 +355,7 @@ pub(crate) fn fs_write_binary_inner(
     data: &[u8],
     sandbox: &Path,
 ) -> Result<(), IpcError> {
-    let cmd = "mt::fs::write_binary";
-    let requested = Path::new(path);
-
-    let validated = m010_security::check_path(sandbox, requested)
-        .map_err(|e| IpcError::from_security_path(cmd, e))?;
-
-    if let Some(parent) = validated.parent() {
-        fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;
-    }
-    let mut f = fs::File::create(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
-    f.write_all(data).map_err(|e| IpcError::from_io(cmd, e))?;
-    f.sync_all().map_err(|e| IpcError::from_io(cmd, e))?;
+    write_validated_bytes(path, data, sandbox, "mt::fs::write_binary")?;
     safe_eprintln!(
         "[FsCmd][write_binary][BLOCK_WRITE_TO_DISK path={} bytes={} fsync=true]",
         redact(path),

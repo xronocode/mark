@@ -294,15 +294,8 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
 
     const canonicalBeforeSave = await readTab(page)
     expect(canonicalBeforeSave.isSaved).toBe(false)
-    // Canonicalization observed on open: muya re-serializes the fixture —
-    // the tilde fence becomes a backtick fence and table columns are padded.
-    expect(canonicalBeforeSave.markdown.startsWith('# Semantic edges\n')).toBe(true)
-    expect(canonicalBeforeSave.markdown).toContain('```\nfenced with tilde and document\n```')
-    expect(canonicalBeforeSave.markdown).toContain('| id  | metric    | value |')
-    // The frozen corpus bytes and the canonical serialization differ; the
-    // suite asserts the transport against the latter, not against the file.
-    expect(canonicalBeforeSave.markdown).not.toBe(DOC)
-    expect(sha256(canonicalBeforeSave.markdown)).not.toBe(FIXTURE_SHA256)
+    const expected = DOC.replace(TARGET_PARAGRAPH_TEXT, `Z${TARGET_PARAGRAPH_TEXT}`)
+    expect(canonicalBeforeSave.markdown).toBe(expected)
 
     await installSaveMock(page)
     const atActionEntry = await startSave(page)
@@ -507,7 +500,7 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
       })
     })
 
-    // Edit › Copy as Markdown (command palette/menu flavor): muya getMarkdown.
+    // Edit › Copy as Markdown (command palette/menu flavor).
     await page.evaluate(() => {
       (window as any).__bus.emit('cmd::execute', 'edit.copy-as-markdown')
     })

@@ -138,6 +138,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-024; docs/development-plan.xml: M-024</LegacySource>
     </M-024>
     <M-025>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-003: mt::open-file-failed reports shared strict read refusals, including fire-and-forget routes. Successful mt::open-new-tab retains existing parallel drain and awaited position/recently-closed ordering; validated options carry pending choices separately from actual source metadata.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: bootstrap-ipc.js retains parallel pending-open drain and other subscriptions, but legacy saved/path/forced-close broadcasts have no live document authority. C-MD-LINK-TABS: validated document links reuse the existing current-window mt::open-new-tab consumer; canonical duplicate targets retain their live document token, unsaved buffer and history. No parallel-drain or timing policy changes.</SummaryDelta>
       <Name>perf-pending-opens-parallel</Name>
       <DisplayName>perf-pending-opens-parallel</DisplayName>
@@ -747,6 +748,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-030; docs/development-plan.xml: M-030</LegacySource>
     </M-030>
     <M-060>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-004: shared metadata-save-safety browser contract runs through real rich/source/split surfaces in WebKit and Chromium. Owned metadata false-clean/close/transport characterizations now assert repaired invariants; existing Rename/Move, external equality and I/O fault evidence remain separate. Complete-model Save All retains the unmounted tail with the selected format. Synthetic browser composition is not system IME proof.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Live save/close and owned IME characterization scenarios assert C-SAVE-CLOSE-DATA-SAFETY desired invariants. Historical Stage 0 bundles and unrelated metadata/byte-policy defect records remain frozen. Browser doubles remain explicitly distinct from native disk/IME evidence.</SummaryDelta>
       <Name>perf-stage0-harness</Name>
       <DisplayName>perf-stage0-harness</DisplayName>

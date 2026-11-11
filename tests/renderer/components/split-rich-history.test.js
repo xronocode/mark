@@ -91,6 +91,7 @@ vi.mock('muya/lib', async () => {
         this.contentState.history.id = Math.max(-1, ...history.stack.map(entry => entry.id))
       }
       this.getMarkdown = vi.fn(() => this.text)
+      this.getWordCount = (markdown) => ({ word: 4, character: markdown.length })
       this.getCursor = vi.fn(() => this.contentState.cursor)
       this.getSelection = vi.fn(() => ({ cursorCoords: { y: 200 }, selectedText: '' }))
       this.getCopyData = vi.fn(() => ({ text: 'rich selection' }))
@@ -113,7 +114,7 @@ vi.mock('muya/lib', async () => {
         const historyRestore = !!history.replaying
         delete history.replayMarkdown
         delete history.replaying
-        this.emit('change', { markdown, history: this.getHistory(), cursor: this.getCursor(), muyaIndexCursor: JSON.parse(JSON.stringify(this.indexCursor)), wordCount: { word: 4, character: markdown.length }, toc: [], ...(historyRestore ? { historyRestore: true } : {}) })
+        this.emit('change', { markdown, history: this.getHistory(), cursor: this.getCursor(), muyaIndexCursor: JSON.parse(JSON.stringify(this.indexCursor)), wordCount: this.getWordCount(markdown), toc: [], ...(historyRestore ? { historyRestore: true } : {}) })
       }
       this.userEdit = (text, indexCursor = this.indexCursor) => {
         this.text = text
@@ -159,7 +160,7 @@ const mountOwner = async (overrides = {}) => {
   preferences.sourceCode = false
   preferences.autoSave = false
   preferences.spellcheckerEnabled = false
-  store.currentFile = { id: 'a', filename: 'a.md', pathname: '/fixture/a.md', markdown: DOC, cursor: null, muyaIndexCursor: caret(2, 4), history: { stack: [], index: -1, lastEditIndex: -1 }, contentRevision: 0, isSaved: true, lastSavedHistoryId: -1, notifications: [], scrollTop: 0, previewMode: false, ...overrides }
+  store.currentFile = { id: 'a', filename: 'a.md', pathname: '/fixture/a.md', markdown: DOC, savedMarkdown:DOC, savedFormat:{encoding:'utf8',isBom:false,lineEnding:'lf',finalNewline:3}, encoding:{encoding:'utf8',isBom:false}, lineEnding:'lf', trimTrailingNewline:3, cursor: null, muyaIndexCursor: caret(2, 4), history: { stack: [], index: -1, lastEditIndex: -1 }, contentRevision: 0, isSaved: true, lastSavedHistoryId: -1, notifications: [], scrollTop: 0, previewMode: false, ...overrides }
   store.tabs = [store.currentFile]
   store.updateTabIdToIndex()
   store.END_BOOT_PHASE()

@@ -152,7 +152,8 @@ describe('store/editor.js — FIX-009 cold start + record hooks', () => {
       expect(editorStore.coldStartSession).toEqual({
         tabs: ['/tmp/a.md', '/tmp/b.md'],
         folders: [],
-        active: null
+        active: null,
+        formats: []
       })
       expect(electronInvoke).not.toHaveBeenCalled()
     })

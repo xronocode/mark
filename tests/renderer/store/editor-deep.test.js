@@ -144,7 +144,7 @@ describe('store/editor — deep coverage', () => {
   let bus
 
   function makeTab (overrides = {}) {
-    return {
+    const tab = {
       id: overrides.id ?? 'tab-1',
       filename: overrides.filename ?? 'untitled.md',
       pathname: overrides.pathname ?? '',
@@ -164,6 +164,10 @@ describe('store/editor — deep coverage', () => {
       blocks: overrides.blocks ?? null,
       ...overrides
     }
+    return { savedMarkdown:tab.isSaved ? tab.markdown : 'saved checkpoint',
+      savedFormat:{ encoding:tab.encoding.encoding,isBom:tab.encoding.isBom,lineEnding:tab.lineEnding,finalNewline:tab.trimTrailingNewline },
+      requiresExplicitSave:false,...tab }
+
   }
 
   beforeEach(async () => {
@@ -192,7 +196,7 @@ describe('store/editor — deep coverage', () => {
 
   // ─── adjustTrailingNewlines (via LISTEN_FOR_CONTENT_CHANGE) ─────
 
-  describe('adjustTrailingNewlines via LISTEN_FOR_CONTENT_CHANGE', () => {
+  describe('write-only newline policies preserve live canonical text', () => {
     function setupTab (trimOption, markdown, historyId = 'h0') {
       const tab = makeTab({
         id: 't1',
@@ -208,35 +212,34 @@ describe('store/editor — deep coverage', () => {
       return tab
     }
 
-    it('option 0: trims trailing newlines', async () => {
+    it('option 0: keeps canonical trailing newlines until the byte writer', async () => {
       setupTab(0, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
         markdown: 'hello\n\n\n',
         history: { stack: [{ id: 'h0' }], index: 0, lastEditIndex: 0 }
       })
-      expect(editor.tabs[0].markdown).toBe('hello')
+      expect(editor.tabs[0].markdown).toBe('hello\n\n\n')
     })
 
-    it('option 1: ensures single trailing newline', async () => {
+    it('option 1: preserves canonical multiple trailing newlines', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
         markdown: 'hello\n\n\n',
         history: { stack: [{ id: 'h0' }], index: 0, lastEditIndex: 0 }
       })
-      expect(editor.tabs[0].markdown).toBe('hello\n')
+      expect(editor.tabs[0].markdown).toBe('hello\n\n\n')
     })
 
-    it('option 1: returns empty for single newline input', async () => {
+    it('option 1: preserves canonical single newline input', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
         markdown: '\n',
         history: { stack: [{ id: 'h0' }], index: 0, lastEditIndex: 0 }
       })
-      // Single newline → empty (makes no sense to add trailing newline)
-      expect(editor.tabs[0].markdown).toBe('')
+      expect(editor.tabs[0].markdown).toBe('\n')
     })
 
     it('option 1: keeps markdown with single trailing newline as-is', async () => {
@@ -249,14 +252,14 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('hello\n')
     })
 
-    it('option 1: returns empty string for all-newline input', async () => {
+    it('option 1: preserves all canonical newline input', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
         markdown: '\n\n\n',
         history: { stack: [{ id: 'h0' }], index: 0, lastEditIndex: 0 }
       })
-      expect(editor.tabs[0].markdown).toBe('')
+      expect(editor.tabs[0].markdown).toBe('\n\n\n')
     })
 
     it('option default (3): uses text as-is', async () => {
@@ -279,14 +282,14 @@ describe('store/editor — deep coverage', () => {
       expect(editor.tabs[0].markdown).toBe('')
     })
 
-    it('option 1: handles markdown without trailing newline — adds one', async () => {
+    it('option 1: does not add a newline to the live canonical text', async () => {
       setupTab(1, 'old')
       editor.LISTEN_FOR_CONTENT_CHANGE({
         id: 't1',
         markdown: 'hello',
         history: { stack: [{ id: 'h0' }], index: 0, lastEditIndex: 0 }
       })
-      expect(editor.tabs[0].markdown).toBe('hello\n')
+      expect(editor.tabs[0].markdown).toBe('hello')
     })
   })
 

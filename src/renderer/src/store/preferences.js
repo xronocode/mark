@@ -2,8 +2,8 @@
 // VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, the C-51 T-001 treeShowAllFiles preference, the C-LARGE-DOC-WAVE-A T-004 experimental progressive-mount toggle plus its session-only served-opens counters, and the C-PAGE-WIDTH-TABLES T-006 table preferences (the default table mode under the existing muya option name tableFullWidthDefault and the rememberTableColumnSizes switch — the quick-settings Tables tab writes them through the same SET_SINGLE_PREFERENCE path as every other row).
-//   SCOPE: default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001), the experimental session-only surface (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT, the hydration strip of EXPERIMENTAL_SESSION_ONLY_KEYS and the mt::experimental-progressive-* cross-window events; never persisted, never resettable).
-//   DEPENDS: pinia, @tauri-apps/api/core, @tauri-apps/api/event (listen/emit — experimental cross-window sync only), bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js.
+//   SCOPE: Supported-codec default validation with visible retained legacy values; default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001), the experimental session-only surface (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT, the hydration strip of EXPERIMENTAL_SESSION_ONLY_KEYS and the mt::experimental-progressive-* cross-window events; never persisted, never resettable).
+//   DEPENDS: pinia, @tauri-apps/api/core, @tauri-apps/api/event (listen/emit — experimental cross-window sync only), bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js, common/encoding capability catalog.
 //   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); prefComponents/tabs/experimental (the Experimental tab); components/editorWithTabs/editor.vue (the open-path consumer); components/titleBar/quickSettings/tablesTab.vue (the T-006 writer of the table preference keys); src/muya/lib/config/index.js tableFullWidthDefault (the option the tri-state preference feeds from plan T-007); .grace/changes/archive/C-49; .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001; .grace/changes/active/C-LARGE-DOC-WAVE-A; .grace/changes/active/C-PAGE-WIDTH-TABLES.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -21,6 +21,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-11 C-METADATA-SAVE-SAFETY: supported-codec default guard, with unavailable stored defaults retained and surfaced.
 //   LAST_CHANGE: v2.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-006: two new
 //   persisted, resettable keys for the quick-settings Tables tab —
 //   tableFullWidthDefault (the tri-state 'auto'|'fit'|'full' default
@@ -104,6 +105,7 @@
 //   v1.1.0 - C-45 T-001: default language 'system' for new profiles (stored values untouched); LISTEN_SYSTEM_LANGUAGE re-resolves on window languagechange/focus and applies only when the effective locale changed.
 // END_CHANGE_SUMMARY
 
+import { getEncodingCapability } from 'common/encoding'
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 // C-LARGE-DOC-WAVE-A T-004: listen/emit carry ONLY the experimental
@@ -112,7 +114,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen as tauriListen, emit as tauriEmit } from '@tauri-apps/api/event'
 import bus from '../bus'
 import notice from '../services/notification'
-import { setLanguage, getCurrentLanguage } from '../i18n'
+import { setLanguage, getCurrentLanguage, t } from '../i18n'
 import { SYSTEM_LANGUAGE, resolveSystemLocale } from '../i18n/systemLocale'
 import { resolveAutoTheme } from '../util/autoTheme'
 import { migrateThemePreferences } from '../util/themeMigration'
@@ -266,6 +268,8 @@ export const preferenceDefaults = () => ({
     autoPairQuote: true,
     endOfLine: 'default',
     defaultEncoding: 'utf8',
+    // Internal session choices; excluded from resettable preferences. No document text.
+    lastSessionFormats: [],
     autoGuessEncoding: true,
     autoNormalizeLineEndings: false,
 
@@ -516,6 +520,13 @@ export const usePreferencesStore = defineStore('preferences', {
         }
       })
 
+      // Retain legacy stored values for diagnosis; never silently migrate a default.
+      if (preference?.defaultEncoding != null && !getEncodingCapability(preference.defaultEncoding)?.supported) {
+        notice.notify({ source:'settings', severity:'error', title:t('fileFormat.title'),
+          message:t(getEncodingCapability(preference.defaultEncoding) ? 'fileFormat.errors.unsupported' : 'fileFormat.errors.unknown'),
+          dedupKey:'file-format-default-unavailable' })
+      }
+
       // START_BLOCK_AUTO_THEME_ON_BROADCAST
       // Every mt_prefs_set broadcasts the FULL snapshot, whose persisted
       // `theme` is the last manual pick. In Auto that stale value must not
@@ -653,6 +664,12 @@ export const usePreferencesStore = defineStore('preferences', {
     },
 
     async SET_SINGLE_PREFERENCE({ type, value }) {
+      if (type === 'defaultEncoding' && !getEncodingCapability(value)?.supported) {
+        notice.notify({ source:'settings', severity:'error', title:t('fileFormat.title'),
+          message:t(getEncodingCapability(value) ? 'fileFormat.errors.unsupported' : 'fileFormat.errors.unknown') })
+        return false
+      }
+
       if (typeof this[type] === 'undefined') {
         if (import.meta.env.DEV) {
           console.warn(`[prefs] SET_SINGLE_PREFERENCE: unknown key "${type}"`)

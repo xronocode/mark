@@ -1,3 +1,4 @@
+import { delay } from '@/util'
 /**
  * Tests for src/renderer/src/commands/lineEnding.js
  *
@@ -14,7 +15,7 @@ vi.mock('@/bus', () => ({
 }))
 
 vi.mock('@/util', () => ({
-  delay: () => Promise.resolve(),
+  delay: vi.fn(() => Promise.resolve()),
   isOsx: false,
   isWindows: false,
   isLinux: true
@@ -29,6 +30,8 @@ describe('LineEndingCommand', () => {
 
   beforeEach(() => {
     editorState = {
+      CAN_CHANGE_DOCUMENT_FORMAT: vi.fn(() => true),
+      _notifyFormatError: vi.fn(),
       currentFile: {
         lineEnding: 'lf'
       }
@@ -80,4 +83,20 @@ describe('LineEndingCommand', () => {
   it('unload is callable', () => {
     expect(() => cmd.unload()).not.toThrow()
   })
+  it('refuses an active composition before delay, palette or dispatch', async () => {
+    editorState.CAN_CHANGE_DOCUMENT_FORMAT.mockReturnValue(false)
+    vi.mocked(bus.emit).mockClear(); vi.mocked(delay).mockClear()
+    await cmd.run(); await cmd.execute(); await cmd.executeSubcommand('utf8', 'crlf')
+    expect(delay).not.toHaveBeenCalled(); expect(bus.emit).not.toHaveBeenCalled()
+  })
+
+  it('shows no implicit LF choice for mixed source and allows only an explicit supported choice', async () => {
+    editorState.currentFile.isMixedLineEndings = true
+    await cmd.run()
+    expect(cmd.subcommandSelectedIndex).toBe(-1)
+    expect(cmd.subcommands.every(item => !item.description.includes(' - current'))).toBe(true)
+    await cmd.executeSubcommand('file.line-ending-lf', 'lf')
+    expect(bus.emit).toHaveBeenCalledWith('mt::set-line-ending', 'lf')
+  })
+
 })

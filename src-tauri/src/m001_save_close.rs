@@ -22,10 +22,10 @@
 //   SaveTargetRequest - Native picker request with request/lifetime identity.
 //   SaveTargetReply - Selected path correlated to its picker request.
 //   OwnedDocumentPath - Another live lifetime and its protected destination.
-//   DocumentWriteRequest - Immutable text/revision/source/destination write request.
-//   DocumentWriteReply - Acknowledged write identity and resulting filename.
+//   DocumentWriteRequest - Immutable text/format/revision/source/destination write request.
+//   DocumentWriteReply - Acknowledged write identity, format and resulting filename.
 //   mt_document_choose_save_target - Select a native path without capturing document text.
-//   write_document_snapshot_inner - Validate ownership collisions and write exact snapshot text.
+//   write_document_snapshot_inner - Validate ownership collisions and write exact snapshot text and format.
 //   mt_document_write_snapshot - Invoke the guarded snapshot writer using the active sandbox.
 //   mt_close_window - Destroy the caller window after renderer close approval.
 //   save_and_close_inner - Test-only historical batch behavior; no runtime authority.
@@ -35,6 +35,8 @@
 //   wire_close_handler - Intercept native close requests for renderer approval.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-11 C-METADATA-SAVE-SAFETY: required format echo and complete
+//     pre-write encoding validation before the shared sandboxed byte writer.
 //   - 2026-11-10 C-SAVE-CLOSE-DATA-SAFETY: correlated snapshot writes,
 //     separate picker, canonical owned-path collision fence and rejected legacy close.
 //   - 2026-05-08 B4-pre-alpha-step-3: initial save/close bridge.
@@ -271,6 +273,7 @@ pub struct DocumentWriteRequest {
     pub source_path: String,
     pub target_path: String,
     pub markdown: String,
+    pub format: crate::m014_encoding::DocumentFormat,
     pub owned_paths: Vec<OwnedDocumentPath>,
 }
 #[derive(Debug, serde::Serialize)]
@@ -283,6 +286,7 @@ pub struct DocumentWriteReply {
     pub source_path: String,
     pub pathname: String,
     pub filename: String,
+    pub format: crate::m014_encoding::DocumentFormat,
 }
 
 #[tauri::command]
@@ -348,7 +352,8 @@ pub(crate) fn write_document_snapshot_inner(
             return Err("MT_DOCUMENT_DESTINATION_OWNED".into());
         }
     }
-    crate::m013b::fs::fs_write_inner(&request.target_path, &request.markdown, sandbox)
+    let bytes = crate::m014_encoding::encode_document(&request.markdown, &request.format)?;
+    crate::m013b::fs::fs_write_bytes_inner(&request.target_path, &bytes, sandbox)
         .map_err(|_| "MT_DOCUMENT_WRITE_FAILED")?;
     safe_eprintln!(
         "[m001][save_close][BLOCK_DOCUMENT_SNAPSHOT_WRITTEN revision={}]",
@@ -356,6 +361,7 @@ pub(crate) fn write_document_snapshot_inner(
     );
     Ok(DocumentWriteReply {
         request_id: request.request_id,
+        format: request.format,
         document_token: request.document_token,
         id: request.id,
         revision: request.revision,
@@ -598,6 +604,7 @@ mod tests {
             source_path: String::new(),
             target_path: path.to_string_lossy().to_string(),
             markdown: "fresh\n".into(),
+            format: crate::m014_encoding::DocumentFormat { encoding: "utf8".into(), is_bom: false, line_ending: "lf".into(), final_newline: 3 },
             owned_paths: vec![],
         }
     }
@@ -894,6 +901,53 @@ mod tests {
             // Now the next CloseRequested is a valid transition again.
             machine.transition(CloseState::CloseRequested).unwrap();
             assert_eq!(machine.state(), CloseState::CloseRequested);
+        }
+    }
+
+    #[test]
+    fn correlated_format_is_required_and_echoed_after_exact_byte_write() {
+        assert!(serde_json::from_value::<DocumentWriteRequest>(json!({
+            "requestId":"r", "documentToken":"d", "id":"t", "revision":0,
+            "sourcePath":"", "targetPath":"/fixture.md", "markdown":"A", "ownedPaths":[]
+        })).is_err());
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("utf16.md");
+        let mut request = snapshot_request(&path);
+        request.markdown = "A😀\n\n".into();
+        request.format = crate::m014_encoding::DocumentFormat { encoding:"utf16le".into(), is_bom:true, line_ending:"crlf".into(), final_newline:1 };
+        let expected = request.format.clone();
+        let reply = write_document_snapshot_inner(dir.path(), request).unwrap();
+        assert_eq!(reply.format, expected);
+        assert_eq!(std::fs::read(path).unwrap(), vec![0xff,0xfe,0x41,0,0x3d,0xd8,0,0xde,0x0d,0,0x0a,0]);
+    }
+    #[test]
+    fn correlated_encoding_failures_preserve_sentinel_and_create_no_parent() {
+        for (encoding, is_bom, line_ending, final_newline, error) in [
+            ("cp1251",false,"lf",3,"MT_ENC_UNREPRESENTABLE"),
+            ("ascii",false,"lf",3,"MT_ENC_UNREPRESENTABLE"),
+            ("utf32be",false,"lf",3,"MT_ENC_UNSUPPORTED"),
+            ("utf32le",false,"lf",3,"MT_ENC_UNSUPPORTED"),
+            ("gb2312",false,"lf",3,"MT_ENC_UNSUPPORTED"),
+            ("big5hkscs",false,"lf",3,"MT_ENC_UNSUPPORTED"),
+            ("unknown",false,"lf",3,"MT_ENC_UNKNOWN"),
+            ("cp1251",true,"lf",3,"MT_ENC_INVALID_POLICY"),
+            ("utf8",false,"lf",2,"MT_ENC_INVALID_POLICY"),
+            ("utf8",false,"wrong",3,"MT_ENC_INVALID_POLICY"),
+            ("utf8",false,"mixed",3,"MT_ENC_MIXED_EOL")
+        ] {
+            let dir = TempDir::new().unwrap();
+            let sentinel = dir.path().join("existing.md");
+            let original = b"\x00\xfforiginal-sentinel";
+            std::fs::write(&sentinel,original).unwrap();
+            let new = dir.path().join("not-created").join("new.md");
+            for target in [&sentinel,&new] {
+                let mut request = snapshot_request(target);
+                request.markdown = "A😀".into();
+                request.format = crate::m014_encoding::DocumentFormat { encoding:encoding.into(), is_bom, line_ending:line_ending.into(), final_newline };
+                assert_eq!(write_document_snapshot_inner(dir.path(),request).unwrap_err(),error);
+                assert_eq!(std::fs::read(&sentinel).unwrap(),original);
+                assert!(!new.parent().unwrap().exists());
+            }
         }
     }
 }

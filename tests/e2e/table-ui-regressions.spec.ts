@@ -147,10 +147,10 @@ test('table intersection hides the whole outline during scrolling without hover 
   // (T-007: chosen explicitly through the segment — nothing auto-expands).
   await chooseFullWidth(page)
   await expect(page.locator("figure[data-role='TABLE']")).toHaveClass(/ag-table-full-width/)
-  // A visible table/fonts frame can precede initial store serialization.
+  // Wait for the owned model blocks, without requiring a text revision on import.
   await expect.poll(() => page.evaluate(() => {
     const file = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia.state.value.editor.currentFile
-    return file?.contentRevision ?? 0
+    return file?.blocks?.length ?? 0
   })).toBeGreaterThan(0)
   const beforeDocument = await documentState(page)
   expect(beforeDocument.isSaved).toBe(true)

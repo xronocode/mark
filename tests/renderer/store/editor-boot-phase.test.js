@@ -46,10 +46,10 @@ describe('M-028 boot phase deferral', () => {
       markdown: `# ${name}`,
       filename: `${name}.md`,
       pathname: `/tmp/${name}.md`,
-      encoding: 'utf-8',
+      encoding: {encoding:'utf8',isBom:false},
       lineEnding: 'lf',
       adjustLineEndingOnSave: false,
-      trimTrailingNewline: false
+      trimTrailingNewline: 3
     }
   }
 

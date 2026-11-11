@@ -17,9 +17,9 @@ vi.mock('@/codeMirror', () => ({
 vi.mock('muya/lib/utils',()=>({debounce:fn=>fn,wordCount:()=>({word:0,character:0,paragraph:0})}))
 vi.mock('@/config',()=>({oneDarkThemes:[],railscastsThemes:[]}))
 const i18n=createI18n({legacy:false,locale:'en',messages:{en:{}}})
-it('captures the actual mounted source buffer only after native composition finishes',async()=>{
+it('captures the actual mounted source buffer only after composition finishes',async()=>{
   const pinia=setupTestPinia();const {useEditorStore}=await import('@/store/editor');const store=useEditorStore()
-  store.currentFile={id:'source-owner',pathname:'/tmp/source.md',filename:'source.md',markdown:'old',isSaved:true,history:{stack:[],lastEditIndex:-1},trimTrailingNewline:3}
+  store.currentFile={id:'source-owner',pathname:'/tmp/source.md',filename:'source.md',markdown:'old',savedMarkdown:'old',savedFormat:{encoding:'utf8',isBom:false,lineEnding:'lf',finalNewline:3},encoding:{encoding:'utf8',isBom:false},lineEnding:'lf',isSaved:true,history:{stack:[],lastEditIndex:-1},trimTrailingNewline:3}
   store.tabs=[store.currentFile];store.updateTabIdToIndex();store.END_BOOT_PHASE()
   const Source=(await import('@/components/editorWithTabs/sourceCode.vue')).default
   const wrapper=shallowMount(Source,{props:{markdown:'old',textDirection:'ltr'},global:{plugins:[pinia,i18n]}})

@@ -13,6 +13,7 @@ import {
 import notice from '../services/notification'
 import { documentOwner, captureDocumentSnapshot, inspectDocumentComposition } from '../util/documentSnapshot'
 import { createDocumentOperations } from '../util/documentOperations'
+import { recomputeDocumentSaved, applyDocumentFormat, captureFormatChoice, captureRestoredFormat, captureSessionFormats, captureDocumentFormat } from '../util/documentFormat'
 import { ipcDocumentSave } from '../ipc/runtime/documentSave'
 import { useRecentlyClosedStore } from './recentlyClosed'
 import {
@@ -45,6 +46,10 @@ import {
 } from '../util/filePositionStore'
 import { askUnsavedClose } from '../components/editorWithTabs/unsavedCloseDialog'
 
+const formatErrorKeys = Object.freeze({
+  MT_ENC_UNKNOWN: 'unknown', MT_ENC_UNSUPPORTED: 'unsupported', MT_ENC_INVALID_POLICY: 'invalidPolicy',
+  MT_ENC_UNREPRESENTABLE: 'unrepresentable', MT_ENC_MIXED_EOL: 'mixed'
+})
 const documentCoordinators = new WeakMap()
 const autoSaveTimers = new Map()
 const fileWatchDisposers = new Map()
@@ -170,9 +175,9 @@ export const useEditorStore = defineStore('editor', {
     // C-FILE-POSITION-MEMORY (spec A, D-1): write ONLY the block-key cursor
     // of a tab. This is the arrow-key fix — pure keyboard navigation must
     // reach the tab state exactly like clicks and edits do. It deliberately
-    // bypasses LISTEN_FOR_CONTENT_CHANGE: that path increments
-    // tab.contentRevision (the stale save-outcome guard) and would corrupt
-    // it on navigation without any content change (corner C-2).
+    // bypasses LISTEN_FOR_CONTENT_CHANGE without serializing the model.
+    // The content handler also advances the complete document revision only
+    // for real committed text changes (corner C-2).
     updateCursorPosition(id, cursor) {
       if (!cursor || !(id in this.tabIdToIndex)) return
       const tab = this.tabs[this.tabIdToIndex[id]]
@@ -292,8 +297,6 @@ export const useEditorStore = defineStore('editor', {
         filename
       } = data
       const options = { encoding, lineEnding, adjustLineEndingOnSave, trimTrailingNewline }
-      // Create a new document and update few entires later.
-      const newFileState = getSingleFileState({ markdown, filename, pathname, options })
 
       const tab = tabs.find((t) => window.fileUtils.isSamePathSync(t.pathname, pathname))
       if (!tab) {
@@ -308,6 +311,9 @@ export const useEditorStore = defineStore('editor', {
         })
         return
       }
+
+      // Validate a fresh loaded state only for a still-live target.
+      const newFileState = getSingleFileState({ markdown, filename, pathname, options })
 
       // Backup few entries that we need to restore later.
       const oldId = tab.id
@@ -579,7 +585,7 @@ export const useEditorStore = defineStore('editor', {
         return this.REQUEST_DOCUMENT_OPERATION({...request,owners,decision:'save',confirmedSnapshots:undefined})
       }
       notice.notify({source:'file',severity:outcome.status==='failed'?'error':'info',title:t('title'),
-        message:t(reason,{names}),dedupKey:`document-operation-${reason}-${owners.map(o=>o.documentToken).join('-')}`,
+        message:formatErrorKeys[outcome.reason] ? i18n.global.t(`fileFormat.errors.${formatErrorKeys[outcome.reason]}`) : t(reason,{names}),dedupKey:`document-operation-${reason}-${owners.map(o=>o.documentToken).join('-')}`,
         actions:[{label:t(request?.kind==='save'||request?.kind==='save-all'?'retrySave':'retryClose'),handler:retry}]})
     },
 
@@ -700,14 +706,18 @@ export const useEditorStore = defineStore('editor', {
       const tabs = this.tabs.map((t) => t.pathname).filter(Boolean)
       const active = (this.currentFile && this.currentFile.pathname) || null
       const folders = (projectStore.projectTrees || []).map((r) => r.pathname).filter(Boolean)
-      return { tabs, active, folders }
+      const formats = this.tabs.filter(tab => tab.pathname).flatMap(tab => {
+        try { return [{ pathname: tab.pathname, ...captureFormatChoice(tab) }] } catch { return [] }
+      })
+      return { tabs, active, folders, formats }
     },
 
     async _saveSessionState() {
-      const { tabs, active, folders } = this._sessionSnapshot()
+      const { tabs, active, folders, formats } = this._sessionSnapshot()
       await ipcPrefs.set('lastSessionTabs', tabs).catch(() => {})
       await ipcPrefs.set('lastSessionActive', active).catch(() => {})
       await ipcPrefs.set('lastSessionFolders', folders).catch(() => {})
+      await ipcPrefs.set('lastSessionFormats', formats).catch(() => {})
       // C-FILE-POSITION-MEMORY (corner C-7): the quit/save-session flush —
       // every open file's position lands on disk with the session paths, so
       // a relaunch restores both the tabs and the reading positions.
@@ -757,13 +767,16 @@ export const useEditorStore = defineStore('editor', {
               const value = await ipcPrefs.get(key).catch(() => null)
               return Array.isArray(value) ? value.filter((x) => typeof x === 'string' && x) : []
             }
-            const [tabs, folders, activeRaw] = await Promise.all([
+            const [tabs, folders, activeRaw, formatsRaw] = await Promise.all([
               readList('lastSessionTabs'),
               readList('lastSessionFolders'),
-              ipcPrefs.get('lastSessionActive').catch(() => null)
+              ipcPrefs.get('lastSessionActive').catch(() => null),
+              ipcPrefs.get('lastSessionFormats').catch(() => null)
             ])
             const active = typeof activeRaw === 'string' && activeRaw ? activeRaw : null
-            if (tabs.length) this.coldStartSession = { tabs, folders, active }
+            const { formats, rejected } = captureSessionFormats(formatsRaw, tabs)
+            if (rejected) this._notifyFormatError('MT_ENC_INVALID_POLICY')
+            if (tabs.length) this.coldStartSession = { tabs, folders, active, formats }
           }
         }
       } finally {
@@ -806,6 +819,9 @@ export const useEditorStore = defineStore('editor', {
       const folders = await readList('lastSessionFolders')
       const paths = await readList('lastSessionTabs')
       const active = from ? (from.active || null) : await ipcPrefs.get('lastSessionActive').catch(() => null)
+      const rawFormats = from ? from.formats : await ipcPrefs.get('lastSessionFormats').catch(() => null)
+      const { formats, rejected } = captureSessionFormats(rawFormats, paths)
+      if (rejected) this._notifyFormatError('MT_ENC_INVALID_POLICY')
       let skipped = 0
       let restoredFolders = 0
       let restoredTabs = 0
@@ -827,7 +843,9 @@ export const useEditorStore = defineStore('editor', {
       for (const p of paths) {
         if (!(await exists(p, 'file'))) { skipped++; continue }
         try {
-          await window.electron.ipcRenderer.invoke('mt::open-file', p, {})
+          const record = formats.find(record => record.pathname === p)
+          const options = record ? { restoredFormat: captureRestoredFormat(record) } : {}
+          await window.electron.ipcRenderer.invoke('mt::open-file', p, options)
           restoredTabs++
         } catch (e) {
           skipped++
@@ -1257,7 +1275,8 @@ export const useEditorStore = defineStore('editor', {
             stripIndex: index,
             wasActive: file.id === currentFile.id,
             root,
-            closedAt: Date.now()
+            closedAt: Date.now(),
+            ...(() => { try { return { restoredFormat: captureFormatChoice(file) } } catch { return {} } })()
           })
         }
         tabs.splice(index, 1)
@@ -1546,11 +1565,13 @@ export const useEditorStore = defineStore('editor', {
         selected = true
       }
 
-      this.SHOW_TAB_VIEW(false)
 
       const preferencesStore = usePreferencesStore()
       const { defaultEncoding, endOfLine } = preferencesStore
-      const fileState = getBlankFileState(this.tabs, defaultEncoding, endOfLine, markdownString)
+      let fileState
+      try { fileState = getBlankFileState(this.tabs, defaultEncoding, endOfLine, markdownString) }
+      catch (error) { this._notifyFormatError(error.message); return false }
+      this.SHOW_TAB_VIEW(false)
 
       if (selected) {
         const { id, markdown } = fileState
@@ -1580,7 +1601,6 @@ export const useEditorStore = defineStore('editor', {
       // (C-40 review): only a still-pathless guide tab is reused.
       const existing = this.tabs.find((t) => t.isGuide && !t.pathname)
       if (existing) {
-        this.SHOW_TAB_VIEW(false)
         this.UPDATE_CURRENT_FILE(existing)
       } else {
       // END_BLOCK_GUIDE_TAB_REUSE
@@ -1593,7 +1613,10 @@ export const useEditorStore = defineStore('editor', {
 
         const preferencesStore = usePreferencesStore()
         const { defaultEncoding, endOfLine } = preferencesStore
-        const fileState = getBlankFileState(this.tabs, defaultEncoding, endOfLine, guideMarkdown)
+        let fileState
+        try { fileState = getBlankFileState(this.tabs, defaultEncoding, endOfLine, guideMarkdown) }
+        catch (error) { this._notifyFormatError(error.message); return false }
+        this.SHOW_TAB_VIEW(false)
         fileState.filename = i18n.global.t('guide.tabTitle')
         fileState.isGuide = true
 
@@ -1719,7 +1742,23 @@ export const useEditorStore = defineStore('editor', {
         }
 
         const { isMixedLineEndings } = markdownDocument
-        const docState = createDocumentState(Object.assign(markdownDocument, options))
+        // Establish the current disk checkpoint before applying any restored choice.
+        // Old session metadata can request a policy, never prove current disk bytes.
+        const { restoredFormat, encoding, lineEnding, trimTrailingNewline, adjustLineEndingOnSave, isMixedLineEndings: ignoredMixed, ...viewOptions } = options
+        const docState = createDocumentState({ ...markdownDocument, ...viewOptions })
+        try {
+          if (restoredFormat !== undefined) {
+            const choice = captureRestoredFormat(restoredFormat)
+            applyDocumentFormat(docState, choice.format)
+            docState.requiresExplicitSave = choice.dirty
+            recomputeDocumentSaved(docState)
+          } else if (encoding !== undefined || lineEnding !== undefined || trimTrailingNewline !== undefined) {
+            const choice = captureDocumentFormat({ ...docState, ...(encoding !== undefined ? { encoding } : {}),
+              ...(lineEnding !== undefined ? { lineEnding, isMixedLineEndings: lineEnding === 'mixed' } : {}),
+              ...(trimTrailingNewline !== undefined ? { trimTrailingNewline } : {}) })
+            applyDocumentFormat(docState, choice)
+          }
+        } catch (error) { this._notifyFormatError(String(error.message)) }
         const { id, cursor } = docState
 
         if (restored) {
@@ -1755,13 +1794,9 @@ export const useEditorStore = defineStore('editor', {
         }
 
         if (isMixedLineEndings) {
-          const { filename, lineEnding } = markdownDocument
           this.pushTabNotification({
             tabId: id,
-            msg: i18n.global.t('store.editor.mixedLineEndingsNormalized', {
-              name: filename,
-              lineEnding: lineEnding.toUpperCase()
-            })
+            msg: i18n.global.t('fileFormat.errors.mixed')
           })
         }
 
@@ -1826,11 +1861,11 @@ export const useEditorStore = defineStore('editor', {
 
       const tab = this.tabs[this.tabIdToIndex[id]]
 
-      const { filename, pathname, markdown: oldMarkdown, trimTrailingNewline } = tab
-
-      markdown = adjustTrailingNewlines(markdown, trimTrailingNewline)
+      const { filename, pathname, markdown: oldMarkdown } = tab
+      const changed = markdown !== oldMarkdown
+      const emptyImport = oldMarkdown === '' && markdown === '\n'
       tab.markdown = markdown
-      tab.contentRevision = (tab.contentRevision || 0) + 1
+      if (changed && !emptyImport) tab.contentRevision = (tab.contentRevision || 0) + 1
 
       // Only update TOC if it's the current file.
       // FIX-003 (2026-10-20): this sync must run BEFORE the empty-document
@@ -1843,7 +1878,8 @@ export const useEditorStore = defineStore('editor', {
         this.toc = listToTree(toc)
       }
 
-      if (oldMarkdown.length === 0 && markdown.length === 1 && markdown[0] === '\n') {
+      if (emptyImport) {
+        if (tab.isSaved && !tab.requiresExplicitSave && tab.savedMarkdown === '') tab.savedMarkdown = markdown
         return
       }
 
@@ -1853,23 +1889,10 @@ export const useEditorStore = defineStore('editor', {
       if (history) tab.history = history
       if (blocks) tab.blocks = blocks
 
-      if (
-        tab.history.lastEditIndex >= 0 &&
-        tab.history.stack[tab.history.lastEditIndex].id !== tab.lastSavedHistoryId
-      ) {
-        tab.isSaved = false
-        if (pathname && autoSave) {
-          const options = getOptionsFromState(tab)
-          this.HANDLE_AUTO_SAVE({
-            id,
-            filename,
-            pathname,
-            markdown,
-            revision: tab.contentRevision,
-            options
-          })
-        }
-      } else tab.isSaved = true // An undo can trigger this
+      recomputeDocumentSaved(tab)
+      if (changed && !tab.isSaved && pathname && autoSave && !tab.requiresExplicitSave) {
+        this.HANDLE_AUTO_SAVE({ id, filename, pathname, markdown, revision: tab.contentRevision, options: getOptionsFromState(tab) })
+      }
     },
 
     HANDLE_AUTO_SAVE({ id, filename, pathname, markdown, options, revision: requestedRevision }) {
@@ -1901,7 +1924,7 @@ export const useEditorStore = defineStore('editor', {
         // END_BLOCK_AUTO_SAVE_DISABLED_AT_FIRE
 
         const tab = this.tabs.find((t) => t.id === id)
-        if (tab && !tab.isSaved) {
+        if (tab && !tab.isSaved && !tab.requiresExplicitSave) {
           if (!tab.pathname) return
           const owner=documentOwner(tab)
           if (this._documentOperations().isBusy(owner)) {
@@ -2182,42 +2205,59 @@ export const useEditorStore = defineStore('editor', {
       })
     },
 
-    SET_LINE_ENDING(lineEnding) {
-      const { lineEnding: oldLineEnding } = this.currentFile
-      if (lineEnding !== oldLineEnding) {
-        this.currentFile.lineEnding = lineEnding
-        this.currentFile.adjustLineEndingOnSave = lineEnding !== 'lf'
-        this.currentFile.isSaved = true
+    _notifyFileOpenError(code) {
+      const key = code === 'MT_ENC_LOSSY' ? 'lossyRead' : code === 'MT_ENC_UNSUPPORTED' ? 'unsupported' : 'readFailed'
+      notice.notify({ source:'file',severity:'error', title:i18n.global.t('workspace.fileOpenFailedTitle'),
+        message:i18n.global.t(`fileFormat.errors.${key}`) })
+    },
+
+    _notifyFormatError(code) {
+      notice.notify({ source:'file', severity:code === 'composing' ? 'info' : 'error',
+        title:i18n.global.t('fileFormat.title'), message:i18n.global.t(`fileFormat.errors.${formatErrorKeys[code] || code}`) })
+    },
+
+    CAN_CHANGE_DOCUMENT_FORMAT() {
+      const tab = this.currentFile
+      if (!tab?.id || this.documentWindowClosing) return false
+      if (inspectDocumentComposition([documentOwner(tab)]).composingOwners.length) {
+        this._notifyFormatError('composing')
+        return false
+      }
+      return true
+    },
+
+    APPLY_DOCUMENT_FORMAT(patch) {
+      if (!this.CAN_CHANGE_DOCUMENT_FORMAT()) return false
+      const tab = this.currentFile
+      try {
+        if (!applyDocumentFormat(tab, patch)) return false
+        console.debug(`[editor][format][BLOCK_FORMAT_CHANGED] revision=${tab.contentRevision} codec=${tab.encoding.encoding} bom=${tab.encoding.isBom} eol=${tab.lineEnding} final=${tab.trimTrailingNewline}`)
         this.UPDATE_LINE_ENDING_MENU()
+        if (tab.pathname && !tab.isSaved && !tab.requiresExplicitSave && usePreferencesStore().autoSave) {
+          this.HANDLE_AUTO_SAVE({ id:tab.id, pathname:tab.pathname })
+        }
+        return true
+      } catch (error) {
+        this._notifyFormatError(error.message)
+        return false
       }
     },
 
+    SET_LINE_ENDING(lineEnding) { return this.APPLY_DOCUMENT_FORMAT({ lineEnding }) },
+    SET_FILE_ENCODING(choice) {
+      const policy = typeof choice === 'string' ? { encoding:choice, isBom:false } : choice
+      return this.APPLY_DOCUMENT_FORMAT({ encoding:policy?.encoding, isBom:policy?.isBom })
+    },
+    SET_FINAL_NEWLINE(finalNewline) { return this.APPLY_DOCUMENT_FORMAT({ finalNewline }) },
+
     LINTEN_FOR_SET_LINE_ENDING() {
-      // IPC listener lives in bootstrap-ipc.js; bus subscription only.
-      bus.on('mt::set-line-ending', (lineEnding) => {
-        this.SET_LINE_ENDING(lineEnding)
-      })
+      bus.on('mt::set-line-ending', lineEnding => this.SET_LINE_ENDING(lineEnding))
     },
-
     LINTEN_FOR_SET_ENCODING() {
-      bus.on('mt::set-file-encoding', (encodingName) => {
-        const { encoding } = this.currentFile.encoding
-        if (encoding !== encodingName) {
-          this.currentFile.encoding.encoding = encodingName
-          this.currentFile.encoding.isBom = false
-          this.currentFile.isSaved = true
-        }
-      })
+      bus.on('mt::set-file-encoding', encoding => this.SET_FILE_ENCODING(encoding))
     },
-
     LINTEN_FOR_SET_FINAL_NEWLINE() {
-      bus.on('mt::set-final-newline', (value) => {
-        const { trimTrailingNewline } = this.currentFile
-        if (trimTrailingNewline !== value) {
-          this.currentFile.trimTrailingNewline = value
-          this.currentFile.isSaved = true
-        }
-      })
+      bus.on('mt::set-final-newline', value => this.SET_FINAL_NEWLINE(value))
     },
 
     APPLY_FILE_CHANGE(type, change) {
@@ -2620,18 +2660,22 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
-//   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots.
+//   SCOPE: Complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
+//   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, documentFormat/documentSnapshot/documentOperations.
 //   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/active/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   useEditorStore - Pinia store: transient Find visibility, tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS); RENAME/RENAME_IF_NEEDED move the stored table layouts, file positions and page widths (util/tableLayoutStore, util/filePositionStore, util/pageWidthStore) to the new path.
+//   useEditorStore - Pinia store: complete text/format state and guarded actions, transient Find visibility, tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS); RENAME/RENAME_IF_NEEDED move the stored table layouts, file positions and page widths (util/tableLayoutStore, util/filePositionStore, util/pageWidthStore) to the new path.
 //   __resetBootPhase - test hook that re-arms the boot-phase guard.
 //   getRememberedExportAppearance - C-EXPORT-SINGLE-PAGE R-5 read-only defaults+remembered appearance view for the export dialog.
 // END_MODULE_MAP
+//
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-11 C-METADATA-SAVE-SAFETY: text/format checkpoint reconciliation, composition-first format choices, boundary-only newline policy and explicit retry after stale ACK.
+// END_CHANGE_SUMMARY
 //
 // CHANGE_SUMMARY:
 //   - 2026-11-10 C-FIND-SELECTION-CLIPBOARD: a shared transient Find
@@ -2784,59 +2828,6 @@ const getRootFolderFromState = (projectStore) => {
     return openedFolder.pathname
   }
   return ''
-}
-
-/**
- * Trim the final newlines according `trimTrailingNewlineOption`.
- *
- * @param {string} markdown The text to trim.
- * @param {*} trimTrailingNewlineOption The option how we should trim the final newlines.
- */
-const adjustTrailingNewlines = (markdown, trimTrailingNewlineOption) => {
-  if (!markdown) {
-    return ''
-  }
-
-  switch (trimTrailingNewlineOption) {
-    // Trim trailing newlines.
-    case 0: {
-      return trimTrailingNewlines(markdown)
-    }
-    // Ensure single trailing newline.
-    case 1: {
-      // Muya will always add a final new line to the markdown text. Check first whether
-      // only one newline exist to prevent copying the string.
-      const lastIndex = markdown.length - 1
-      if (markdown[lastIndex] === '\n') {
-        if (markdown.length === 1) {
-          // Just return nothing because adding a final new line makes no sense.
-          return ''
-        } else if (markdown[lastIndex - 1] !== '\n') {
-          return markdown
-        }
-      }
-
-      // Otherwise trim trailing newlines and add one.
-      markdown = trimTrailingNewlines(markdown)
-      if (markdown.length === 0) {
-        // Just return nothing because adding a final new line makes no sense.
-        return ''
-      }
-      return markdown + '\n'
-    }
-    // Disabled, use text as it is.
-    default:
-      return markdown
-  }
-}
-
-/**
- * Trim trailing newlines from `text`.
- *
- * @param {string} text The text to trim.
- */
-const trimTrailingNewlines = (text) => {
-  return text.replace(/[\r?\n]+$/, '')
 }
 
 /**

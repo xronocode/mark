@@ -180,6 +180,7 @@
         <Command>npm run build &amp;&amp; npx playwright test tests/e2e/open-file-timing.spec.ts --project=chromium</Command>
       </Commands>
       <Scenarios>
+        <Scenario>T-003: bootstrap-ipc unit routes mt::open-file-failed to visible editor notification without tab creation. Existing parallel-drain listener order and awaited successful arrivals remain covered.</Scenario>
         <Scenario>C-MD-LINK-TABS: link-target-tabs.test.js and bootstrap-ipc.test.ts exercise the existing event/store admission path with fresh, canonical duplicate, concurrent and committed-close targets. link-interaction.spec.ts drives real Chromium/WebKit pointer sequences through the fixture transport and preserves an existing dirty target's document token, text and history. Rust dispatcher tests separately establish native validation and invoking-window emission; browser fixture delivery is not native process/window evidence.</Scenario>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: bootstrap-ipc.js retains parallel pending-open drain and other subscriptions, but legacy saved/path/forced-close broadcasts have no live document authority. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>
@@ -1486,6 +1487,9 @@
     <V-M-060>
       <Priority>high</Priority>
       <Commands>
+        <Command>npx playwright test tests/e2e/perf/metadata-save-safety.spec.ts tests/e2e/perf/save-close-safety.spec.ts tests/e2e/perf/characterization-metadata-external.spec.ts --project=webkit-perf</Command>
+        <Command>npx playwright test tests/e2e/metadata-save-safety.spec.ts --project=chromium</Command>
+        <Command>WAVEA_EXPERIMENTAL=1 npx playwright test tests/e2e/perf/save-close-safety.spec.ts --project=webkit-perf</Command>
         <Command>node tests/e2e/fixtures/large-doc/generators/regen.mjs --check</Command>
         <Command>npx vitest run tests/renderer/perf</Command>
         <Command>npx playwright test tests/e2e/perf --project=webkit-perf</Command>
@@ -1493,6 +1497,8 @@
         <Command>npx --no-install playwright test --project=webkit-perf</Command>
       </Commands>
       <Scenarios>
+        <Scenario>C-METADATA-SAVE-SAFETY local evidence on source 4f67a7f840802f33926406df8e07e9a24bbd4cfe: 5713 renderer tests and unchanged coverage floors passed; IPC types and renderer build passed. WebKit 37, Chromium 22, Wave A save/close eight and WebKit session six scenarios passed without retries. Selected target and final commands passed with zero integrity errors. The isolated native QA binary SHA-256 is 22ac9402828941c682a207410bb597162c10952a31f0fd68d82dd26046d7e3a2. Native GUI byte roundtrips, export and system IME remain unverified because the Mac is locked; hosted CI and owner verdicts are separate pending evidence.</Scenario>
+        <Scenario>C-METADATA-SAVE-SAFETY T-004: real rich/source/split text survives policy changes and stale ACK; changed-then-reverted formats require explicit retry. Save All includes format-only background targets; Save As captures post-picker format; mixed/unrepresentable transport refusal stays visible and retryable. Browser doubles prove state and protocol, Rust fixtures prove bytes, native QA and OS IME remain separate evidence tiers.</Scenario>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: Live save/close and owned IME characterization scenarios assert C-SAVE-CLOSE-DATA-SAFETY desired invariants. Historical Stage 0 bundles and unrelated metadata/byte-policy defect records remain frozen. Browser doubles remain explicitly distinct from native disk/IME evidence. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <scenario-dirty-external-characterization>
           A dirty external watcher event preserves exact local Markdown, saved

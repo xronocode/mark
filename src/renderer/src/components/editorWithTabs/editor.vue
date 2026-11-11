@@ -739,8 +739,12 @@ const unregisterSaveSurface = registerDocumentSurface(() => renderedDocumentOwne
     const markdown = preserveSourceSyntax(file.markdown, richSerialization ?? serialized, serialized)
     if (markdown !== file.markdown) {
       if (unified()) muya.contentState.history.commitDocument(markdown, splitSession(), true)
-      editorStore.LISTEN_FOR_CONTENT_CHANGE({ id: file.id, markdown, history: muya.getHistory() })
-      file.isSaved = false
+      editorStore.LISTEN_FOR_CONTENT_CHANGE({
+        id: file.id,
+        markdown,
+        wordCount: muya.getWordCount(markdown),
+        history: muya.getHistory()
+      })
     }
     richSerialization = serialized
     return file.markdown
@@ -1628,7 +1632,7 @@ const handleCopyAsStructuredText = () =>
 
 // START_CONTRACT: handleCopyAsMarkdown
 //   PURPOSE: Put the selection (or whole document) on the clipboard as raw Markdown text — the document flavor of R-2's copy-document tools (C-40 T-004).
-//   INPUTS: { none - reads Muya selection state via getCopyData }
+//   INPUTS: { none - reads the focused selection and owned document text }
 //   OUTPUTS: { Promise<void> - resolves after the clipboard write attempt }
 //   SIDE_EFFECTS: Native clipboard-manager writeText; failure warns with the anchored marker and notifies.
 //   LINKS: C-40 T-004; commands/index.js edit.copy-as-markdown; contextMenu/tabs copyAsMarkdown (whole-document flavor over the tab markdown).
@@ -1638,7 +1642,17 @@ const handleCopyAsMarkdown = async () => {
   const ed = editor.value
   if (!ed) return
   const selectionData = focusedCopyData()
-  const text = selectionData && selectionData.text ? selectionData.text : ed.getMarkdown()
+  const file = currentFile.value
+  let text = selectionData?.text
+  if (!text && file?.id && renderedTabId === file.id) {
+    text = file.markdown
+    if (!sourceFocused() && !richComposition.isArmed()) {
+      const serialized = ed.getMarkdown()
+      text = preserveSourceSyntax(text, richSerialization ?? serialized, serialized)
+    }
+  } else if (!text && !file?.id) {
+    text = ed.getMarkdown()
+  }
   if (!text) return
   try {
     const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
@@ -2894,8 +2908,8 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
     }
     // C-29: the mirror already shows this document; skip the debounced re-render.
     renderedTabId = currentFile.value?.id || null
-  renderedDocumentOwner = currentFile.value?.id ? documentOwner(currentFile.value) : null
-  richSerialization = editor.value.getMarkdown()
+    renderedDocumentOwner = currentFile.value?.id ? documentOwner(currentFile.value) : null
+    richSerialization = editor.value.getMarkdown()
     followedMarkdown = newMarkdown
     // C-65: adopt the stored table layouts of the newly opened document.
     applyStoredTableLayouts()
@@ -3569,16 +3583,24 @@ onMounted(() => {
     // the previous surface's text/blocks/history to that new document.
     const id = renderedTabId
     if (id && id === currentFile.value?.id) {
-      if (unified()) {
+      const isUnified = unified()
+      const replay = isUnified && changes.historyRestore === true
+      const serialized = replay ? editor.value.getMarkdown() : changes.markdown
+      if (!replay) {
+        // The first rich serialization can normalize table padding, list
+        // indentation and EOLs. Project only actual model deltas onto the
+        // owned source, just as snapshot capture and Split View already do.
+        // A render echo therefore keeps the exact disk text/checkpoint.
+        changes.markdown = preserveSourceSyntax(currentFile.value.markdown, richSerialization ?? serialized, serialized)
+        if (changes.markdown !== serialized) changes.wordCount = editor.value.getWordCount(changes.markdown)
+      }
+      richSerialization = serialized
+      if (isUnified) {
         const history = editor.value.contentState.history
-        const replay = changes.historyRestore === true
-        const serialized = replay ? editor.value.getMarkdown() : changes.markdown
         if (!replay) {
-          changes.markdown = preserveSourceSyntax(currentFile.value.markdown, richSerialization ?? serialized, changes.markdown)
           splitSession().rich = changes.muyaIndexCursor
           history.commitDocument(changes.markdown, splitSession(), true)
         }
-        richSerialization = serialized
         changes.history = editor.value.getHistory()
       }
       if (unified() && changes.markdown === currentFile.value.markdown && !changes.historyRestore) {
@@ -3589,12 +3611,10 @@ onMounted(() => {
         if (changes.muyaIndexCursor) currentFile.value.muyaIndexCursor = changes.muyaIndexCursor
         return
       }
-      if (!unified()) richSerialization = changes.markdown
       editorStore.LISTEN_FOR_CONTENT_CHANGE(
         Object.assign(changes, { id, blocks: unified() ? undefined : editor.value.contentState.getBlocks() })
       )
-      // The store now holds muya's own serialization; the follow watcher
-      // must not echo it back through a render.
+      // The owned document now reflects the model edit. Skip a render echo.
       if (typeof changes.markdown === 'string' && !richComposition.isArmed()) followedMarkdown = changes.markdown
       // C-17: feed the problems panel (debounced — typing must not lint
       // on every keystroke). Snapshot {id, markdown} at event time so the

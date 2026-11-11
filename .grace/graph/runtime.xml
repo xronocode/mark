@@ -6,6 +6,7 @@
       <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
     </ProjectMetadata>
     <M-001>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: correlated requests require DocumentFormat; complete strict encoding precedes the byte writer and successful replies echo the exact policy. Legacy save-only UTF-8 endpoints remain compatibility facades.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: the validated local Markdown/text branch emits the existing document payload only to the invoking Window; Web and other Local targets retain their openers, and a read failure never falls back.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts.</SummaryDelta>
       <SummaryDelta>C-STABILIZE-LINK-ALIASES: absolute local links using the supplied document-directory alias rebase onto its canonical directory before existing lexical/canonical document fencing. Requested and resolved executable guards remain; global M-010 policy and HTTP routing are unchanged.</SummaryDelta>
@@ -84,6 +85,7 @@
         <Source>src-tauri/src/main.rs</Source>
         <KnowledgeGraphPath>src-tauri/src/main.rs</KnowledgeGraphPath>
         <Tests>src-tauri/src/main.rs (#[cfg(test)] blocks) + test/e2e/tauri-shell.spec.ts</Tests>
+        <Source>src-tauri/src/m001_save_close.rs</Source>
       </Sources>
       <Observability>
         <LogPrefix>[TauriShell]</LogPrefix>
@@ -628,6 +630,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-001; docs/development-plan.xml: M-001</LegacySource>
     </M-001>
     <M-002>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: fs_write_bytes_inner shares validated write_all/sync_all mechanics with the text/binary facades. Codec validation belongs before this mutating boundary; in-place I/O remains non-atomic.</SummaryDelta>
       <Name>mt-fs-commands</Name>
       <DisplayName>mt-fs-commands</DisplayName>
       <Type>INTEGRATION</Type>
@@ -727,9 +730,9 @@
         </fn-fs_delete>
       </Interface>
       <Sources>
-        <Source>src-tauri/src/commands/fs.rs</Source>
-        <KnowledgeGraphPath>src-tauri/src/commands/fs.rs</KnowledgeGraphPath>
-        <Tests>src-tauri/src/commands/fs.rs (#[cfg(test)])</Tests>
+        <Source>src-tauri/src/m013b/fs.rs</Source>
+        <KnowledgeGraphPath>src-tauri/src/m013b/fs.rs</KnowledgeGraphPath>
+        <Tests>src-tauri/src/m013b/fs.rs (#[cfg(test)])</Tests>
       </Sources>
       <Observability>
         <LogPrefix>[FsCmd]</LogPrefix>
@@ -1258,6 +1261,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-004; docs/development-plan.xml: M-004</LegacySource>
     </M-004>
     <M-005>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-003: internal lastSessionFormats stores validated named-path selected policy and format-dirty intent only, excluded from resettable settings. No text, tokens, history or saved proof are persisted.</SummaryDelta>
       <Name>mt-prefs</Name>
       <DisplayName>mt-prefs</DisplayName>
       <Type>DATA_LAYER</Type>
@@ -1985,6 +1989,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-008; docs/development-plan.xml: M-008</LegacySource>
     </M-008>
     <M-009>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: existing EOL/encoding/final-newline command routes use a composition-first store action; format palettes refuse before delay/focus/dispatch. Native command IDs are unchanged.</SummaryDelta>
       <Name>mt-menu</Name>
       <DisplayName>mt-menu</DisplayName>
       <Type>UI_COMPONENT</Type>
@@ -2611,6 +2616,9 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-003: native opens establish fresh actual disk checkpoints before validated restored choices. Session snapshots, frozen cold-start offers and bounded recently-closed entries retain selected formats and pending intent; duplicate dirty tabs are reused unchanged. Clipboard/drop delegates its existing helper to the same strict native open instead of synthesizing UTF8/LF.</SummaryDelta>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: fresh tabs own savedMarkdown/savedFormat and requiresExplicitSave. Effective metadata changes advance one complete document revision without altering text/history/cursor; ordinary text events reconcile both checkpoints. Write-only newline policy replaces live-buffer trimming; stale ACK requires explicit retry, including changed-then-reverted state. Autosave includes format-only changes and never clears a retry obligation.</SummaryDelta>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: documentFormat captures a validated immutable complete byte policy and compares all fields, preserving explicit mixed source and rejecting unavailable codecs without fallback. State checkpoint reconciliation follows T-002.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: Link activation belongs to the emitting Muya instance and rendered document lifetime/path. Local navigation uses the owning directory; link gestures preserve read-only Preview while ordinary text keeps its preview-exit behavior. Split/global callbacks cannot redirect stale links.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: util/documentSnapshot.js owns mounted rich/source identity and IME-first complete-model capture; util/documentOperations.js owns tracked save admission and the final whole-target close barrier. editor.js routes Save, Save As, autosave, Save All, tab/group/window close and Quit; notices expose fresh explicit retry. No bare saved/path/close-by-id event authorizes a mutation.</SummaryDelta>
       <SummaryDelta>C-FIND-SELECTION-CLIPBOARD: one transient editor-store findVisible flag is the search component visibility source and resets on teardown. Selection prefills Find only while closed; an open Find retains query/matches during text selection so no selection-driven delayed render removes native clipboard focus. Native shortcut/menu/clipboard routes are unchanged.</SummaryDelta>
@@ -3526,6 +3534,13 @@
         <Source>src/renderer/</Source>
         <KnowledgeGraphPath>src/renderer/, src/renderer/src/util/splitScrollSync.js, src/renderer/src/util/splitDualEdit.js, src/renderer/src/util/splitCommands.js</KnowledgeGraphPath>
         <Tests>test/unit/renderer/**.spec.js + test/e2e/renderer.spec.ts + tests/renderer/whatsNew/content.test.js + tests/renderer/whatsNew/gate.test.js</Tests>
+        <Source>src/renderer/src/util/documentFormat.js</Source>
+        <Source>src/renderer/src/store/help.js</Source>
+        <Source>src/renderer/src/commands/fileEncoding.js</Source>
+        <Source>src/renderer/src/commands/lineEnding.js</Source>
+        <Source>src/renderer/src/commands/trailingNewline.js</Source>
+        <Source>src/renderer/src/prefComponents/common/select/index.vue</Source>
+        <Source>src/renderer/src/prefComponents/tabs/general/config.js</Source>
       </Sources>
       <Observability>
         <LogPrefix>[Renderer]</LogPrefix>
@@ -3788,6 +3803,8 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY renderer follow-up: rich and CodeMirror surfaces project actual model deltas onto the exact owned source. Import-only formatting, list indentation, table padding and line-break normalization do not replace the saved text checkpoint or create revisions. Existing Muya grammar, codec rules, layout and composition fences remain unchanged.</SummaryDelta>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: the renderer adds format to owned complete-model snapshots and keeps composition-first extraction. Muya code, history and canonical serialization are unchanged; the existing mounted-source composition fixture now supplies complete format metadata.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: Instance-scoped LinkInteraction retains native gesture origin and token identity across reflow; no-history cursor APIs reveal/revert syntax without truncating redo. Document imports/teardown and composition invalidate the lease; link-activate routes once.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: inline link renderers share source-token metadata across anchors/syntax, container-scoped lookup handles nested labels, and LinkTools cancels stale show/hide work. These view-only changes do not alter canonical Markdown.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: The renderer snapshot adapter consumes the existing complete-model Markdown and shared-history APIs, including progressive unmounted content. Following split panes cannot normalize the active source; Muya internals and canonical serialization contracts remain unchanged.</SummaryDelta>
@@ -5137,6 +5154,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-013; docs/development-plan.xml: M-013</LegacySource>
     </M-013>
     <M-013-A>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: readonly DocumentFormat is required by DocumentWriteRequest/Reply and re-exported by the barrel. Type-level checks reject missing format, policy 2 and direct policy mutation. No correlated-command fallback is permitted.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: types.ts includes SaveTargetRequest/Reply and DocumentWriteRequest/Reply plus the two document command mappings; generated fixture and M-001 registration stay synchronized.</SummaryDelta>
       <Name>mt-ipc-contract</Name>
       <DisplayName>mt-ipc-contract</DisplayName>
@@ -5382,6 +5400,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-013-A; docs/development-plan.xml: M-013-A</LegacySource>
     </M-013-A>
     <M-013-B>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: documentSave validates the shared codec catalog and complete policy at dispatch, then defensively copies format and owned paths. Settlement still tracks the actual native request; logical authority remains with the coordinator.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: ipc/runtime/documentSave.ts exports chooseTarget/writeSnapshot over M-013-A with actual-settlement lifetime. Its runtime barrel exports ipcDocumentSave.</SummaryDelta>
       <Name>mt-ipc-runtime</Name>
       <DisplayName>mt-ipc-runtime</DisplayName>
@@ -5480,6 +5499,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <Sources>
         <Source>src/renderer/src/ipc/runtime/</Source>
         <Tests>src/renderer/src/ipc/runtime/*.test.ts</Tests>
+        <Source>src/renderer/src/ipc/runtime/documentSave.ts</Source>
       </Sources>
       <Observability>
         <LogPrefix>[IpcRuntime]</LogPrefix>
@@ -5726,6 +5746,8 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-013-B; docs/development-plan.xml: M-013-B</LegacySource>
     </M-013-B>
     <M-014>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-003: decode_document retains the existing detector and refuses lossy or unsupported sources. One transport BOM is removed, inner BOM text and canonical EOL are preserved; lone CR and mixed breaks are explicit mixed state. The shared bounded regular-file open payload carries actual UI codec/BOM/EOL with final policy 3.</SummaryDelta>
+      <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: one 36-entry shared catalog declares 32 strict output codecs and four unavailable choices. DocumentFormat covers codec/BOM/EOL/final-newline; explicit Unicode and ISO 8859-1/9 encoders and strict mapped codecs construct complete bytes without fallback before mutation.</SummaryDelta>
       <Name>mt-encoding</Name>
       <DisplayName>mt-encoding</DisplayName>
       <Type>UTILITY</Type>
@@ -5742,8 +5764,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <Contract>
         <Purpose>
           Detect and convert text encodings (UTF-8, UTF-16 LE/BE with BOM,
-          Shift-JIS, GB2312, Latin-1, etc.); normalize line endings
-          (LF/CRLF/mixed) and trailing newlines per 4-mode policy.
+          Shift-JIS, GB2312, Latin-1, etc.); apply explicit LF/CRLF and final-newline policies 0/1/3 at the byte boundary; refuse mixed output until a choice.
         </Purpose>
         <Inputs>
           <Input>
@@ -5828,6 +5849,8 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         <Source>src-tauri/src/m014_encoding.rs</Source>
         <KnowledgeGraphPath>src-tauri/src/m014_encoding.rs</KnowledgeGraphPath>
         <Tests>src-tauri/src/m014_encoding.rs (#[cfg(test)])</Tests>
+        <Source>src/common/encoding.js</Source>
+        <Source>src/common/fileFormatCatalog.json</Source>
       </Sources>
       <Observability>
         <LogPrefix>[Encoding]</LogPrefix>

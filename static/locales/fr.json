@@ -1827,5 +1827,26 @@
     "failed": "L’enregistrement ou la fermeture a échoué. Les documents restent ouverts : {names}",
     "retryClose": "Enregistrer à nouveau et fermer",
     "retrySave": "Enregistrer à nouveau"
+  },
+  "fileFormat": {
+    "title": "Format du fichier",
+    "current": "actuel",
+    "withBom": "avec BOM",
+    "withoutBom": "sans BOM",
+    "errors": {
+      "composing": "Terminez la composition du texte avant de modifier le format du fichier.",
+      "unknown": "Cet encodage est inconnu. Choisissez un encodage pris en charge.",
+      "unsupported": "Cet encodage ne permet pas l’enregistrement. Choisissez un encodage pris en charge.",
+      "invalidPolicy": "Cette combinaison d’encodage, de BOM et de fins de ligne ne peut pas être enregistrée.",
+      "unrepresentable": "Certains caractères ne sont pas représentables dans cet encodage. Choisissez un encodage adapté, comme UTF-8.",
+      "mixed": "Choisissez LF ou CRLF avant d’enregistrer un fichier aux fins de ligne mixtes.",
+      "lossyRead": "Le fichier ne peut pas être décodé sans perte de caractères. Il n’a pas été ouvert.",
+      "readFailed": "Impossible de lire le fichier. Vérifiez sa disponibilité, son type et sa taille."
+    },
+    "unavailable": {
+      "utf32": "L’enregistrement en UTF-32 n’est pas pris en charge. Choisissez UTF-8 ou UTF-16.",
+      "gb2312": "La sortie GB2312 stricte n’est pas disponible. GBK est pris en charge séparément.",
+      "big5hkscs": "La sortie Big5-HKSCS n’est pas disponible. Big5 est pris en charge séparément."
+    }
   }
 }
