@@ -2427,6 +2427,7 @@
       <Command>npx --no-install vitest run tests/tools/release-fresh-npx.test.mjs</Command>
       </Commands>
       <Scenarios>
+        <scenario-quicklook-required-status>C-QUICKLOOK-CONTENT-BOUNDARY: execute the actual aggregate shell for both runtime and docs-only lanes. Every heavy job, including quicklook-native, must reject failure/cancellation/empty results; only docs-only may accept skipped. The native job is read-only, macos-15, Node 22 and credential-free; it runs the real provider fixture and extension-only unsigned build without registration.</scenario-quicklook-required-status>
         <scenario-shell-import-isolation>C-SEC-COVERAGE-IMPORTS: app.test.js and app-deep.test.js use an import-level editor child stub, preserving all 41 shell assertions and existing timeouts. Real editor and live-stream rendering remain covered by their component suites and Chromium/WebKit regressions.</scenario-shell-import-isolation>
         <scenario-security-stream-and-tooling-ci>C-SEC-STREAM-TABS and C-SEC-GATEWAY-TOOLS: test.yml installs the nested toolchain with npm ci --ignore-scripts --no-audit --no-fund and includes webkit-live-stream in the required browser lane.</scenario-security-stream-and-tooling-ci>
         <Scenario>C-HOSTED-VALIDATION-RECOVERY: validate the CI shell syntax and a URI fixture proving only Azure HTTP Ubuntu sources become canonical HTTPS; nonmatching URLs, signed metadata fields, package lists, retry counts and time limits stay unchanged. Exact-head hosted backend and browser jobs must pass before integration.</Scenario>
@@ -2821,5 +2822,20 @@
       <Markers></Markers>
       <TraceAssertions><TraceAssertion>The dialog emits only the bus 'export' payload — no direct invoke, no fs access; slot text passes through verbatim into header/footer strings, trimmed never.</TraceAssertion></TraceAssertions>
     </V-M-072>
+    <V-M-073>
+      <Priority>critical</Priority>
+      <Commands>
+        <Command>node tools/check-quicklook.mjs</Command>
+        <Command>npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+        <Command>xcodebuild -project mark-quicklook/MarkQuickLook.xcodeproj -target MarkPreview -configuration Debug SYMROOT="$PWD/.claude/quicklook-content-boundary/target-build/products" OBJROOT="$PWD/.claude/quicklook-content-boundary/target-build/intermediates" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES build</Command>
+      </Commands>
+      <Scenarios>
+        <scenario-native-content-boundary>Compile the actual renderer/provider with the separate com.xronocode.mark.quicklook.fixture harness and unchanged packaged resources. Require all 24 named cases for Markdown/table/highlighting/Unicode/title, embedded raster, raw active content/script terminators, dangerous schemes, forms/objects/frames, remote image/fetch/beacon, actual navigation/new windows, initial/missing/repeated files and local-resource policy. Preserve failing-first native results and independent loopback counts; zero execution markers/requests after repair. No browser emulation or injected process result establishes native boundary proof.</scenario-native-content-boundary>
+        <scenario-runner-fail-closed>Reject unsupported hosts, missing compiler/resources/binary, failed compilation/native exit, malformed/empty/duplicate/missing/failed results, observer failures/requests, source drift and the whole-run 110-second deadline. Kill only owned children and close the observer in finally. Record source revision/digests, binary identity, OS/architecture and all native cases. Injected unit adapters prove orchestration only.</scenario-runner-fail-closed>
+        <scenario-installation-boundary>Execute the exact fixture binary directly with prohibited activation and a separate identifier. Build only the unsigned MarkPreview extension with LaunchServices registration disabled. Do not register/install the host or extension, change owner associations or claim installed-extension/owner acceptance.</scenario-installation-boundary>
+      </Scenarios>
+      <Markers><Marker>BLOCK_QUICKLOOK_BOUNDARY_CONFIRMED</Marker><Marker>BLOCK_QUICKLOOK_BOUNDARY_REJECTED</Marker></Markers>
+      <TraceAssertions><TraceAssertion>The success marker requires the complete native result set, successful native process and independent zero observer requests. No unsupported-host or missing-evidence path is a green skip.</TraceAssertion></TraceAssertions>
+    </V-M-073>
   </VD-FEATURES>
 </GraceVerificationDocument>

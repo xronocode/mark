@@ -1,0 +1,48 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-QUICKLOOK-CONTENT-BOUNDARY>
+    <Summary>Make the separately installed QuickLook preview render untrusted Markdown without executing document-controlled active content or accessing remote resources.</Summary>
+    <Problem>The preview currently enables markdown-it HTML, inserts its output into innerHTML, embeds the Markdown string inside an executable script, and uses an unrestricted WKWebView with network-client entitlement. A document can therefore cross from data into active preview content. No native exploit or arbitrary native-file access is claimed by this specification.</Problem>
+    <Goals>
+      <R-1>Keep all document-controlled Markdown and titles in a data boundary. Neither HTML event handlers, active elements, nor closing-script sequences may execute document-controlled JavaScript.</R-1>
+      <R-2>Permit only the packaged rendering scripts and styles. Block remote subresources, frames, forms, popups and document-driven navigation; the preview must not silently open an external application.</R-2>
+      <R-3>Preserve headings, paragraphs, tables, fenced-code highlighting, Unicode, links as readable content and packaged resources. Define the local-image policy explicitly and prove allowed local previews do not broaden access beyond the selected document's authorized resource scope.</R-3>
+      <R-4>Prove the repaired boundary in an isolated native WKWebView fixture, with independent execution and network observations, and retain the original failure evidence.</R-4>
+    </Goals>
+    <Constraints>
+      <Constraint>Work only on the separate MarkQuickLook component and narrowly owned verification. Do not change the main Mark renderer, IPC, document-save behavior, dependency versions or production signing identity.</Constraint>
+      <Constraint>The proposed initial policy disables raw HTML in markdown-it. This is an intentional compatibility change: raw HTML becomes readable escaped text. Do not introduce an HTML sanitizer dependency or a partial regex sanitizer.</Constraint>
+      <Constraint>Use a restrictive CSP and a native navigation policy in addition to safe data embedding. A script nonce does not make interpolated untrusted content safe.</Constraint>
+      <Constraint>Remove the preview's network-client entitlement if native verification confirms all intended local rendering remains functional. Never compensate by broadening filesystem or network capabilities.</Constraint>
+      <Constraint>Native tests must use a separate fixture and output directory. Do not register or replace the installed owner extension or change the owner's default preview association.</Constraint>
+      <Constraint>No version change, production signing, release tag, dispatch or publication is authorized.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Supporting arbitrary raw HTML, remote images, embedded websites, active SVG, remote fonts or external navigation from QuickLook.</NonGoal>
+      <NonGoal>A light/dark redesign, packaging overhaul, main-app security audit, or repair of the local QA-builder finding.</NonGoal>
+      <NonGoal>Claiming owner acceptance or production extension installation from an automated WKWebView fixture.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>A failing-first fixture demonstrates document-controlled execution on the unchanged renderer using harmless in-memory markers. The repaired renderer leaves markers absent for event handlers, script terminators, mixed-case terminators, active SVG, iframe/srcdoc, object/embed, forms and dangerous URL schemes.</Criterion>
+      <Criterion>Hostile title, quotes, backslashes, Unicode line separators and Markdown containing closing-script sequences remain literal data and do not break packaged rendering.</Criterion>
+      <Criterion>Native navigation policy refuses external main-frame/subframe navigation and new-window requests. A controlled loopback observer receives no remote-image, fetch, beacon, frame, form or navigation request.</Criterion>
+      <Criterion>Positive fixtures show correct headings, a table, fenced-code highlighting and Unicode without remote requests. Allowed local-resource cases and blocked outside-scope cases have explicit expected results.</Criterion>
+      <Criterion>The extension builds without production signing in an isolated target. The compiled native fixture records revision, source digest, binary identity, result for each case and network/execution observations. Existing installed apps and extensions remain unchanged.</Criterion>
+      <Criterion>The affected runtime files have synchronized file-local contracts and routed GRACE ownership/verification; selected target/final gates pass without changed assertions, longer deadlines or hidden failures.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <Area>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</Area>
+      <Area>mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift</Area>
+      <Area>mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements</Area>
+      <Area>New narrowly scoped QuickLook verification fixtures under tests/quicklook and their runner under tools; exact paths and module ownership belong to the completed plan.</Area>
+      <Area>.grace/graph/index.xml, its affected routed document, .grace/verification/index.xml and its affected routed document, only for QuickLook ownership.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedEvidence>Failing-first harmless content-execution receipt; repaired native WKWebView positive/negative matrix; independent loopback request count; isolated unsigned build identity; exact owner acceptance still pending.</ExpectedEvidence>
+      <ExpectedEvidence>The completed plan must name the exact runner command and measure its gate budget before approval. Browser emulation and source-string scans do not establish the native content boundary.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>Raw HTML compatibility is intentionally traded for a smaller auditable boundary. This proposal remains draft until owner approval.</Assumption>
+      <Assumption>The standalone extension is not currently represented as a routed module. Its plan must allocate unused ownership anchors rather than attach unrelated runtime files to an existing module.</Assumption>
+    </Assumptions>
+  </C-QUICKLOOK-CONTENT-BOUNDARY>
+</GraceChangeSpec>

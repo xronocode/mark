@@ -136,6 +136,7 @@
         <V-M-071/>
         <!-- C-EXPORT-SINGLE-PAGE: V-M-072 owns the dialog verification. -->
         <V-M-072/>
+        <V-M-073/>
       </Owns>
     </VD-FEATURES>
   </VerificationDocuments>
