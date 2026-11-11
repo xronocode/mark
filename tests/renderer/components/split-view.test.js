@@ -20,6 +20,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-11 C-SOURCE-HISTORY-OWNERSHIP: model public Doc binding without changing pane-role assertions.
 //   - 2026-10-29 v1.1.0: C-SPLIT-DBLCLICK-TOGGLE — divider dblclick
 //     requests the toggle via cmd::execute (no swap), Alt+dblclick swaps,
 //     the right-edge strip gates on width/diff/split-state and enables.
@@ -38,6 +39,13 @@ const busMock = vi.hoisted(() => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn() }))
 
 const cmInstance = vi.hoisted(() => ({
   value: '',
+  doc: null,
+  getDoc: vi.fn(() => cmInstance.doc),
+  swapDoc: vi.fn(next => {
+    const old = cmInstance.doc; cmInstance.doc = next
+    cmInstance.value = next.getValue(); cmInstance.getValue.mockReturnValue(cmInstance.value)
+    return old
+  }),
   on: vi.fn(),
   getValue: vi.fn(),
   setValue: vi.fn(),
@@ -310,6 +318,8 @@ describe('C-29 Split View', () => {
     const { useEditorStore } = await import('@/store/editor')
     const editorStore = useEditorStore()
     editorStore.currentFile = { id: 'tab-1', markdown: '# One', scrollTop: 42, blocks: ['b'], cursor: { c: 1 } }
+    editorStore.tabs = [editorStore.currentFile]
+    editorStore.updateTabIdToIndex()
     editorStore.LISTEN_FOR_CONTENT_CHANGE = vi.fn()
     const SourceCode = (await import('@/components/editorWithTabs/sourceCode.vue')).default
     const wrapper = shallowMount(SourceCode, {

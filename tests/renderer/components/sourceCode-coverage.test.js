@@ -22,6 +22,10 @@ const setTextDirectionMock = vi.hoisted(() => vi.fn())
 const setModeMock = vi.hoisted(() => vi.fn())
 
 const cmMockInstance = vi.hoisted(() => ({
+  doc: null,
+  getDoc: vi.fn(() => cmMockInstance.doc),
+  getOption: vi.fn(),
+  swapDoc: vi.fn(next => { const old = cmMockInstance.doc; cmMockInstance.doc = next; return old }),
   on: vi.fn(),
   off: vi.fn(),
   getValue: vi.fn(() => '# Hello\n\nWorld'),
@@ -113,13 +117,15 @@ describe('sourceCode.vue — coverage', () => {
   beforeEach(async () => {
     // Reset mock state
     cmMockInstance.on.mockReset()
-    cmMockInstance.getValue.mockReturnValue('# Hello\n\nWorld')
+    cmMockInstance.doc = null
+    cmMockInstance.swapDoc.mockClear()
+    cmMockInstance.getValue.mockImplementation(() => cmMockInstance.doc?.getValue() ?? '# Hello\n\nWorld')
     cmMockInstance.getCursor.mockReturnValue({ line: 0, ch: 0 })
     cmMockInstance.getLine.mockImplementation((n) => {
       const lines = ['# Hello', '', 'World']
       return lines[n] || ''
     })
-    cmMockInstance.setValue.mockReset()
+    cmMockInstance.setValue.mockReset().mockImplementation(value => cmMockInstance.doc?.setValue(value))
     cmMockInstance.setSelection.mockReset()
     cmMockInstance.hasFocus.mockReturnValue(true)
     cmMockInstance.execCommand.mockReset()
@@ -275,24 +281,31 @@ describe('sourceCode.vue — coverage', () => {
     expect(cmMockInstance.invalidateImageCache).toHaveBeenCalled()
   })
 
+  // File events identify the selected, still-live owner; stale events are rejected.
+  const selectIncoming = data => {
+    const incoming = { ...editorStore.currentFile, ...data, documentToken: 'coverage-' + data.id,
+      markdown: data.markdown ?? editorStore.currentFile.markdown }
+    editorStore.tabs.push(incoming); editorStore.currentFile = incoming; editorStore.updateTabIdToIndex()
+    return data
+  }
   /* ── handleFileChange ──────────────────────────────────────── */
   it('handleFileChange sets markdown and selection', async () => {
     await mountSourceCode()
     const call = busMock.on.mock.calls.find((c) => c[0] === 'file-changed')
     const handler = call[1]
 
-    handler({
+    handler(selectIncoming({
       id: 'tab-2',
       markdown: '## New content',
       muyaIndexCursor: { anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 5 } },
       scrollTop: undefined
-    })
+    }))
 
-    expect(cmMockInstance.setValue).toHaveBeenCalledWith('## New content')
+    expect(cmMockInstance.getDoc().getValue()).toBe('## New content')
     expect(cmMockInstance.setSelection).toHaveBeenCalled()
     // C-29 live smoke: a reactive Proxy as `this` corrupts CodeMirror's line
     // measurement (info.map) — the instance must stay raw.
-    expect(cmMockInstance.setValue.mock.contexts[0]).toBe(cmMockInstance)
+    expect(cmMockInstance.swapDoc.mock.contexts[0]).toBe(cmMockInstance)
   })
 
   it('handleFileChange calls setCursorAtFirstLine when no cursor', async () => {
@@ -300,12 +313,12 @@ describe('sourceCode.vue — coverage', () => {
     const call = busMock.on.mock.calls.find((c) => c[0] === 'file-changed')
     const handler = call[1]
 
-    handler({
+    handler(selectIncoming({
       id: 'tab-2',
       markdown: '## New content',
       muyaIndexCursor: null,
       scrollTop: undefined
-    })
+    }))
 
     expect(setCursorAtFirstLineMock).toHaveBeenCalled()
   })
@@ -315,12 +328,12 @@ describe('sourceCode.vue — coverage', () => {
     const call = busMock.on.mock.calls.find((c) => c[0] === 'file-changed')
     const handler = call[1]
 
-    handler({
+    handler(selectIncoming({
       id: 'tab-2',
       markdown: '## New',
       muyaIndexCursor: null,
       scrollTop: 150
-    })
+    }))
     // scrollToCords uses requestAnimationFrame — just verify no throw
   })
 
@@ -329,12 +342,12 @@ describe('sourceCode.vue — coverage', () => {
     const call = busMock.on.mock.calls.find((c) => c[0] === 'file-changed')
     const handler = call[1]
 
-    handler({
+    handler(selectIncoming({
       id: 'tab-2',
       markdown: undefined,
       muyaIndexCursor: { anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 3 } },
       scrollTop: undefined
-    })
+    }))
 
     // setValue should NOT be called since markdown is undefined
     // but setSelection should be (noop since setValue wasn't called, but handler still calls it)
@@ -545,12 +558,12 @@ describe('sourceCode.vue — coverage', () => {
     const handler = call[1]
 
     // First call to handleFileChange triggers prepareTabSwitch
-    handler({
+    handler(selectIncoming({
       id: 'tab-2',
       markdown: '## New',
       muyaIndexCursor: null,
       scrollTop: undefined
-    })
+    }))
 
     // prepareTabSwitch should have committed with the old tab id
     expect(editorStore.LISTEN_FOR_CONTENT_CHANGE).toHaveBeenCalledWith(

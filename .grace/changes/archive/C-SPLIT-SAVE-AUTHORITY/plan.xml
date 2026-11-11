@@ -1,0 +1,128 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SPLIT-SAVE-AUTHORITY>
+    <IntentSummary>Restore one authoritative committed save surface for editable Split in both retained Source preference states; prove explicit saves and autosave of newly edited bytes.</IntentSummary>
+    <ReferenceState>Prepared on main 4fa3cffa813445e1e6974a5ac8283f54abf89e5c on 2026-11-11. The specification is approved; this completed plan remains draft until explicit owner approval. No runtime writes have begun.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-011</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-012</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>isAuthoritative: () =&gt; !props.mirror &amp;&amp; !sourceCode.value &amp;&amp; !sourceFocused()</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/sourceCode.vue</File>
+        <Text>isAuthoritative: () =&gt; !props.mirror &amp;&amp; (!unified.value || sourceFocused())</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-012</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-SPLIT-SAVE-AUTHORITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>C-SPLIT-SAVE-AUTHORITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>C-SPLIT-SAVE-AUTHORITY</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npx --no-install vitest run tests/renderer/components/document-save-surfaces.test.js tests/renderer/components/sourceCode.test.js tests/renderer/components/sourceCode-coverage.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/components/split-rich-history.test.js tests/renderer/util/document-snapshot.test.js tests/renderer/util/document-operations.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">npm run typecheck:ipc</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="45">npm run build</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+        <M-012 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-011 />
+        <V-M-012 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/components/document-save-surfaces.test.js</File>
+      <File>tests/renderer/components/sourceCode.test.js</File>
+      <File>tests/renderer/components/sourceCode-coverage.test.js</File>
+      <File>tests/renderer/components/split-dual-edit.test.js</File>
+      <File>tests/renderer/components/split-rich-history.test.js</File>
+      <File>tests/renderer/util/document-snapshot.test.js</File>
+      <File>tests/renderer/util/document-operations.test.js</File>
+      <File>tests/e2e/split-dual-edit.spec.ts</File>
+      <File>tests/e2e/live-stream-ownership.spec.ts</File>
+      <Glob>.claude/native-repair/**</Glob>
+    </ObservedWriteScope>
+    <Coordination>Execute first, with a single writer. Archive this bundle only after its final gate and explicit apply confirmation, then begin C-SOURCE-HISTORY-OWNERSHIP from the resulting reviewed state. Shared tests and M-011/M-012 projections overlap; parallel execution is forbidden. Existing approved backlog scopes may also overlap and must not be edited. The ordinary Source undo defect remains a separately tracked acceptance blocker during this repair.</Coordination>
+    <Architecture>The rich adapter is authoritative exactly when it is editable (not mirror), Standard rich or active editable Split permits it despite the retained sourceCode flag, and the unified source pane does not own focus. The existing source adapter keeps source focus authority. Keep captureDocumentSnapshot fail-closed for zero/multiple authorities and stale owners. Use the existing complete Muya model, source syntax, composition and correlated save machinery. No Source flag clearing, history redesign, utility/IPC/backend modification or save-UI change.</Architecture>
+    <CommandBudgets>Reference host measurements on unchanged 4fa3cffa: seven existing suites / 100 tests in 2.93 seconds (the Source command including its not-yet-created test filter in 2.84 seconds), IPC typecheck 0.17 seconds, renderer build 7.98 seconds. Budgets are 30 / 10 / 45 seconds with execution headroom; preserve these budgets and existing product/test deadlines. The new Source helper tests must exist and execute after implementation; the baseline measurement is not regression proof. Full coverage and browser/native startup belong to acceptance, not nested MustPassCommand gates.</CommandBudgets>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Repair rich snapshot authority with mounted-surface failing-first regressions</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Before runtime edits, update the affected file contract and M-011/M-012 graph and verification target descriptions. Extend document-save-surfaces.test.js to mount the actual rich and source adapters and invoke captureDocumentSnapshot. The sourceCode=true, splitActive=true, unified focused=rich case must fail with unavailable on the baseline; retain the failure receipt.</Criterion>
+          <Criterion>Change only the rich registered authority condition in editor.vue to permit active editable Split with either sourceCode preference. Source-only rich stays excluded; unified source focus selects source; mirrors stay excluded. Add the change-summary entry without changing mode flags or capture semantics.</Criterion>
+          <Criterion>Parameterize both preference values, Split on/off, both pane focuses, stale token/unrelated tab, mirror and IME composition. Assert exactly one capture and exact markdown/format for ready states; unavailable/stale/composing states never extract uncommitted or unrelated content. Keep the existing source adapter and snapshot/operations utility code unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/components/document-save-surfaces.test.js tests/renderer/components/sourceCode.test.js tests/renderer/components/sourceCode-coverage.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/components/split-rich-history.test.js tests/renderer/util/document-snapshot.test.js tests/renderer/util/document-operations.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Exercise real browser edits, focus changes and save dispatch</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend split-dual-edit.spec.ts with Source-to-Split and Standard-to-Split in Chromium and WebKit. Type a distinct new suffix in each pane with autosave off, invoke real renderer Save dispatch and assert the complete expected write payload, owner token, format and acknowledgement; repeat with autosave on through the existing timer without weakening assertions or delays.</Criterion>
+          <Criterion>Extend live-stream-ownership.spec.ts for new rich edits in Source-to-Split after background and closed-stream late patches. Assert complete local content/write payloads, pathname, local undo/redo and no foreign text. Do not label ordinary Source undo fixed; if it blocks a shared case, retain its failed result for the separately approved history plan.</Criterion>
+          <Criterion>Run coverage at its existing thresholds and the selected browser acceptance commands. Start only this worktree's built preview server; validate any occupied port before execution, use a unique owned port via an ignored config if needed, and never reuse another worktree's preview.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run test:coverage</Command>
+          <Command>npx --no-install playwright test tests/e2e/split-dual-edit.spec.ts --config playwright.split-recovery.config.ts</Command>
+          <Command>npx --no-install playwright test tests/e2e/live-stream-ownership.spec.ts --project=chromium</Command>
+          <Command>npx --no-install playwright test tests/e2e/live-stream-ownership.spec.ts --project=webkit-live-stream</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Repeat the native Split save matrix and reconcile evidence</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>On a fresh isolated app, repeat Source-to-Split and Standard-to-Split, rich and source new edits, autosave off with native Save plus close/reopen, and autosave on at the unchanged configured delay. Compare complete independent expected disk bytes and keep Standard controls.</Criterion>
+          <Criterion>Repeat background and closed stream late-update cases for local Split text, local undo/redo, format and save bytes. Keep a failed case failed; the shared closed-Source undo blocker may only be resolved by C-SOURCE-HISTORY-OWNERSHIP. Mark broad native acceptance pending until the full combined matrix is green and the owner gives a verdict.</Criterion>
+          <Criterion>Record source/diff identity, app/binary identity, each actual case and exact-byte result in .claude/native-repair/split-acceptance.md. Update only the declared graph/verification anchors with actual evidence and run selected target/final externally. No train admission, version/tag or publication.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/components/document-save-surfaces.test.js tests/renderer/components/sourceCode.test.js tests/renderer/components/sourceCode-coverage.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/components/split-rich-history.test.js tests/renderer/util/document-snapshot.test.js tests/renderer/util/document-operations.test.js --maxWorkers=2</Command>
+          <Command>npm run typecheck:ipc</Command>
+          <Command>npm run build</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceTier>
+      <Command>npm run test:coverage</Command>
+      <Command>npx --no-install playwright test tests/e2e/split-dual-edit.spec.ts --config playwright.split-recovery.config.ts</Command>
+      <Command>npx --no-install playwright test tests/e2e/live-stream-ownership.spec.ts --project=chromium</Command>
+      <Command>npx --no-install playwright test tests/e2e/live-stream-ownership.spec.ts --project=webkit-live-stream</Command>
+      <NativeEvidence>Build a fresh isolated app with npx --no-install tauri build --debug --config .claude/native-repair/tauri.qa.json. Set a unique product name and bundle identifier, app-only debug build, updater artifacts disabled, and a separate CARGO_TARGET_DIR under .claude/native-repair. Record the exact source tree and diff identity, binary SHA-256, bundle identifier and OS/architecture. Never replace the installed owner app, the b90f1f0d QA bundle or d14be7c5 baseline. Use native GUI Save and undo/redo plus independent Python byte comparisons against predeclared fixture bytes; no unchanged-buffer Save smoke establishes a repair. Preserve failed results and separate agent observations from owner verdicts.</NativeEvidence>
+    </AcceptanceTier>
+    <Lifecycle>After explicit completed-plan approval and sequential execution choice: run current before observed writes, then selected baseline. Use selected target after writes; reconcile durable projections centrally. Run selected final with commands outside leaf assertions. Present fresh end-state evidence for explicit apply confirmation before setting spec/plan applied and archiving. Then run current and grace status --path . --with modules --json. If unexplained drift or an out-of-scope cause appears, stop and replan rather than editing approved assertions or broadening scope. Commit/push only through the repository exact-candidate safety protocol. Native acceptance and release authorization remain separate.</Lifecycle>
+  </C-SPLIT-SAVE-AUTHORITY>
+</GraceChangePlan>

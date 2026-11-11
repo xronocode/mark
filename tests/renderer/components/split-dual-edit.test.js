@@ -32,9 +32,13 @@ vi.mock('@/bus', () => ({ default: {
 vi.mock('@/services/notification', () => ({ default: { notify: vi.fn() } }))
 vi.mock('@/config', () => ({ oneDarkThemes: [], railscastsThemes: [] }))
 vi.mock('@/util', () => ({ adjustCursor: cursor => cursor, isOsx: true }))
-vi.mock('@/codeMirror', () => {
+vi.mock('@/codeMirror', async () => {
+  const { default: NativeCodeMirror } = await import('codemirror/lib/codemirror')
+  let doc
   const cm = {
     on: (name, fn) => adapter.callbacks.set(name, fn),
+    getDoc: () => doc,
+    swapDoc: next => { const old = doc; doc = next; adapter.text = doc.getValue(); return old },
     getValue: () => adapter.text,
     setValue: value => { adapter.text = value; adapter.callbacks.get('changes')?.(cm); adapter.callbacks.get('cursorActivity')?.(cm) },
     getCursor: which => adapter.selection[which === 'anchor' ? 'anchor' : 'head'],
@@ -47,7 +51,7 @@ vi.mock('@/codeMirror', () => {
     focus: () => adapter.callbacks.get('focus')?.(cm), execCommand: vi.fn(),
     cursorCoords: () => ({ top: 0 }), invalidateImageCache: vi.fn()
   }
-  return { default: vi.fn((container, config) => { adapter.config = config; adapter.text = config.value; return cm }), setMode: vi.fn(), setCursorAtFirstLine: vi.fn(), setTextDirection: vi.fn() }
+  return { default: vi.fn((container, config) => { adapter.config = config; adapter.text = config.value; doc = new NativeCodeMirror.Doc(config.value); return cm }), setMode: vi.fn(), setCursorAtFirstLine: vi.fn(), setTextDirection: vi.fn() }
 })
 import SourceCode from '@/components/editorWithTabs/sourceCode.vue'
 import bus from '@/bus'

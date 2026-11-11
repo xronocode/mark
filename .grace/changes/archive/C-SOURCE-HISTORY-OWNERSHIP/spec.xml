@@ -1,0 +1,58 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SOURCE-HISTORY-OWNERSHIP>
+    <Summary>Bind ordinary Source undo and redo to the owning document lifetime, so opening or returning to a file cannot import another document's content through CodeMirror history.</Summary>
+    <Problem>Native security acceptance on b90f1f0dde9694f3b34d6695937184ccefbc3691 showed stream content in a local Source document after undo. A fresh local file reproduced it with its first undo before any local edit. The pre-security native baseline d14be7c5e37a80b8a4ac7d9d271928d9de5b4749 reproduced the generic case without extensions: open Source A, open fresh Source B, then the first undo in B displays A while B's path remains selected. Redo restored B and its disk bytes were not overwritten. The Source adapter file is unchanged between the two sources. Its ordinary file-change path sets a new CodeMirror value but clears history only for unified or content-reloaded cases; ordinary Source history remains shared across document bindings.</Problem>
+    <Approval>Owner explicitly approved both repair specifications on 2026-11-11. This approves the stated scope and requirements; the completed implementation plan still requires separate approval. It is neither native acceptance nor release authorization.</Approval>
+    <Goals>
+      <R-1>Each live ordinary Source document has its own undo and redo history. A new document with no local edit has nothing to undo from another file; importing its initial text is not a user edit.</R-1>
+      <R-2>Switching from edited Source A to B and back preserves A's own undo and redo history, selection and saved checkpoint. Do not substitute clearing history on every tab switch for ownership.</R-2>
+      <R-3>Closing, reopening, resynchronizing or replacing a document cannot reuse a retired lifetime's Source history. Background and closed stream updates never appear in another document's undo or redo states or save snapshots.</R-3>
+      <R-4>Preserve the established Muya-owned unified history for Split and source-mode unified sessions, and preserve existing IME, format and write-acknowledgement fences.</R-4>
+    </Goals>
+    <Constraints>
+      <Constraint>Use the existing document token and tab ownership contract. A reused pathname, tab label or transient render selection alone does not authorize history transfer.</Constraint>
+      <Constraint>Keep ordinary Source and unified Split history responsibilities explicit. Retain local edits across tab switches rather than disabling undo or discarding redo to avoid contamination.</Constraint>
+      <Constraint>Mirror and locked-document behavior, exact source syntax, encoding/EOL metadata, composition fences and correlated saves remain unchanged.</Constraint>
+      <Constraint>Coordinate sequentially with any approved Split-save-authority change touching the same adapters. Each specification retains its own approval, assertions and evidence; do not silently widen either approved scope.</Constraint>
+      <Constraint>No new document-content persistence or payload logging, dependencies, egress, IPC capability, version, dispatch, tag, publication or deployment.</Constraint>
+      <Constraint>Do not relax deadlines, retry policy, assertions or coverage floors. Preserve the failing native artifacts and historical evidence.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Redesigning editor modes, history UI, save UI or the shared unified history algorithm.</NonGoal>
+      <NonGoal>Repairing Split snapshot authority under this change; it has a separate approved specification.</NonGoal>
+      <NonGoal>Changing backend storage, file codecs, crash recovery, physical write atomicity or independent request ordering.</NonGoal>
+      <NonGoal>Inferring Windows native acceptance or owner verdicts from macOS observations or mocked browser transport.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Tests fail on the observed source for fresh Source B after A: first undo and redo cannot import A; B retains its initial exact content and pathname. Exercise the real Source adapter and actual CodeMirror history, not only tab.history serialization.</Criterion>
+      <Criterion>For A with two local edits and a redo branch, switch to B, edit B, then return to A. Undo and redo traverse only A's recorded edits in the original order; B's history remains independent and both saved checkpoints remain truthful.</Criterion>
+      <Criterion>Document closure and reopening with the same path or a new lifetime token retire stale history. Pending outgoing Source events cannot attach history or text to the newly selected owner.</Criterion>
+      <Criterion>After a real stream tab is opened, updated, closed and updated late, local Source undo and redo never expose stream text. Explicit Save and autosave on/off preserve independently expected local bytes.</Criterion>
+      <Criterion>Never-unified Source and unified rich/source/Split transitions retain their documented history owners; composition blocks extraction until commit. Mirror and locked-document regression checks remain passing.</Criterion>
+      <Criterion>Repeat the minimal two-ordinary-file native case and the stream-close native case on a fresh isolated artifact identified by source revision, bundle identity and binary SHA-256. Verify visible content, local history, selected pathname and independent disk bytes.</Criterion>
+      <Criterion>Applicable renderer, browser, build, coverage and GRACE gates pass with existing thresholds and no new skips or retries. Record actual manual results and owner verdicts separately.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-011 />
+      <M-012 />
+      <Area>src/renderer/src/components/editorWithTabs/sourceCode.vue ordinary history and document-binding lifecycle.</Area>
+      <Area>Existing document owner, tab-close and unified-history integration as contract references; change only proved responsible paths within the approved plan.</Area>
+      <Area>tests/renderer/components/sourceCode.test.js, sourceCode-coverage.test.js and applicable split/history suites; browser Source and live-stream ownership regressions.</Area>
+      <Area>.grace/graph/runtime.xml and .grace/verification/runtime.xml contracts and verification anchors for the affected modules, synchronized during approved implementation.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/components/sourceCode.test.js tests/renderer/components/sourceCode-coverage.test.js tests/renderer/components/split-dual-edit.test.js tests/renderer/components/split-rich-history.test.js tests/renderer/util/document-snapshot.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>npm run test:coverage</ExpectedCommand>
+      <ExpectedCommand>npm run typecheck:ipc</ExpectedCommand>
+      <ExpectedCommand>npm run build</ExpectedCommand>
+      <ExpectedCommand>npx --no-install playwright test tests/e2e/source-code-mode.spec.ts tests/e2e/split-dual-edit.spec.ts tests/e2e/live-stream-ownership.spec.ts --project=chromium</ExpectedCommand>
+      <ExpectedCommand>npx --no-install playwright test tests/e2e/live-stream-ownership.spec.ts --project=webkit-live-stream</ExpectedCommand>
+      <ExpectedEvidence>Keep the source-bound macOS failures on b90f1f0d and d14be7c5. A repaired native artifact must prove per-document undo/redo and exact save bytes, including a first undo in fresh B and retention of A's local history after returning from B.</ExpectedEvidence>
+      <LifecycleEvidence>Current integrity before implementation, selected target assertions during implementation, final assertions with commands before archiving, then current integrity and module status. The subsequently approved plan defines exact scopes and measured command budgets.</LifecycleEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>This is a pre-existing ordinary Source-history defect, not evidence that PR #220 introduced it. Its ability to expose stream text still blocks broad native acceptance of stream isolation.</Assumption>
+      <Assumption>The specification is approved. The completed plan requires separate approval before implementation; release authorization remains separate.</Assumption>
+    </Assumptions>
+  </C-SOURCE-HISTORY-OWNERSHIP>
+</GraceChangeSpec>
