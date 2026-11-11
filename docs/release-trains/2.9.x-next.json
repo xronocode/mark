@@ -1246,6 +1246,126 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "C-SOURCE-HISTORY-OWNERSHIP",
+        "summary": "Keep Source undo, redo and selections with their document lifetime across tabs and remounts.",
+        "state": "queued",
+        "commits": [
+          "b77669f59fde849e4de08a5d4552126515618dfc"
+        ],
+        "pullRequest": {
+          "number": 223,
+          "headSha": "f0d2a18a4d81f0106861b4e68b945d88646da8f7",
+          "mergeSha": "b77669f59fde849e4de08a5d4552126515618dfc",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/223/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "PR #223 exact-head hosted test matrix, CI, ordinary governance and CodeQL",
+              "result": "All four required contexts passed on the checked head. Full renderer/backend matrices passed on Linux, macOS and Windows; the complete Chromium/WebKit e2e job passed. CodeQL Python, JavaScript/TypeScript, Rust, Actions and Swift analyses passed. Squash and checked head have identical full trees.",
+              "date": "2026-11-11",
+              "build": "f0d2a18a4d81f0106861b4e68b945d88646da8f7",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43069528836; https://github.com/xronocode/mark/actions/runs/43069528911; https://github.com/xronocode/mark/actions/runs/43069528693; https://github.com/xronocode/mark/actions/runs/43069173166"
+            },
+            {
+              "command": "npm run test:coverage; focused Chromium/WebKit Source, Split and stream acceptance; IPC and strict helper typechecks; renderer build",
+              "result": "415 suites, 5761 passed, 0 failed, 2 existing skips, 3 existing todos. Browser acceptance 50/50 passed. Coverage S/B/F/L 92.12/85.46/88.48/93.60 percent. Typechecks and build passed; floors and deadlines unchanged.",
+              "date": "2026-11-11",
+              "build": "f0d2a18a4d81f0106861b4e68b945d88646da8f7",
+              "evidence": "https://github.com/xronocode/mark/blob/f0d2a18a4d81f0106861b4e68b945d88646da8f7/.grace/changes/archive/C-SOURCE-HISTORY-OWNERSHIP/evidence.md"
+            },
+            {
+              "result": "Observed native checks passed on the recorded isolated artifact. The combined implementation has 29/29 independent full-byte disk receipts; the earlier isolated Split repair also has 21 receipts. These observations do not supply an owner verdict.",
+              "date": "2026-11-11",
+              "build": "com.xronocode.mark.test.sourcehistory.4fa3cffa; binary SHA-256 d4c7462ff9f77ff5f62f8172f3860e82fdeb53ae03057d1f4ace7c67a86ba307",
+              "evidence": "https://github.com/xronocode/mark/blob/f0d2a18a4d81f0106861b4e68b945d88646da8f7/.grace/changes/archive/C-SOURCE-HISTORY-OWNERSHIP/evidence.md; https://github.com/xronocode/mark/blob/f0d2a18a4d81f0106861b4e68b945d88646da8f7/.grace/changes/archive/C-SPLIT-SAVE-AUTHORITY/evidence.md",
+              "command": "Isolated macOS native UI fixture matrix: Fresh-document first Undo/Redo, retained redo and reversed selection after switching tabs, remount, same-path reopen, unified adoption, and background/closed stream isolation with local Save."
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Owner native acceptance and consolidated dispatch-build acceptance",
+              "reason": "Owner verdict remains pending. Apply/archive approval is separate from native acceptance; no dispatch build or release has been authorized."
+            },
+            {
+              "section": "manual",
+              "scenario": "Native Windows and native credential-store-failure injection",
+              "reason": "Not performed on the recorded macOS artifacts; cross-platform unit tests and browser IPC doubles do not establish these verdicts."
+            },
+            {
+              "section": "manual",
+              "scenario": "Adjacent stale LIVE banner after session close or extension disable",
+              "reason": "Not repaired by either bounded change; preserved as a separate observation without expanding frozen bundles."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SPLIT-SAVE-AUTHORITY",
+        "summary": "Save current rich-pane Split edits even when the retained Source preference is enabled.",
+        "state": "queued",
+        "commits": [
+          "b77669f59fde849e4de08a5d4552126515618dfc"
+        ],
+        "pullRequest": {
+          "number": 223,
+          "headSha": "f0d2a18a4d81f0106861b4e68b945d88646da8f7",
+          "mergeSha": "b77669f59fde849e4de08a5d4552126515618dfc",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/223/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "PR #223 exact-head hosted test matrix, CI, ordinary governance and CodeQL",
+              "result": "All four required contexts passed on the checked head. Full renderer/backend matrices passed on Linux, macOS and Windows; the complete Chromium/WebKit e2e job passed. CodeQL Python, JavaScript/TypeScript, Rust, Actions and Swift analyses passed. Squash and checked head have identical full trees.",
+              "date": "2026-11-11",
+              "build": "f0d2a18a4d81f0106861b4e68b945d88646da8f7",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43069528836; https://github.com/xronocode/mark/actions/runs/43069528911; https://github.com/xronocode/mark/actions/runs/43069528693; https://github.com/xronocode/mark/actions/runs/43069173166"
+            },
+            {
+              "command": "npm run test:coverage; focused Chromium/WebKit Source, Split and stream acceptance; IPC and strict helper typechecks; renderer build",
+              "result": "415 suites, 5761 passed, 0 failed, 2 existing skips, 3 existing todos. Browser acceptance 50/50 passed. Coverage S/B/F/L 92.12/85.46/88.48/93.60 percent. Typechecks and build passed; floors and deadlines unchanged.",
+              "date": "2026-11-11",
+              "build": "f0d2a18a4d81f0106861b4e68b945d88646da8f7",
+              "evidence": "https://github.com/xronocode/mark/blob/f0d2a18a4d81f0106861b4e68b945d88646da8f7/.grace/changes/archive/C-SPLIT-SAVE-AUTHORITY/evidence.md"
+            },
+            {
+              "result": "Observed native checks passed on the recorded isolated artifact. The combined implementation has 29/29 independent full-byte disk receipts; the earlier isolated Split repair also has 21 receipts. These observations do not supply an owner verdict.",
+              "date": "2026-11-11",
+              "build": "com.xronocode.mark.test.sourcehistory.4fa3cffa; binary SHA-256 d4c7462ff9f77ff5f62f8172f3860e82fdeb53ae03057d1f4ace7c67a86ba307",
+              "evidence": "https://github.com/xronocode/mark/blob/f0d2a18a4d81f0106861b4e68b945d88646da8f7/.grace/changes/archive/C-SPLIT-SAVE-AUTHORITY/evidence.md; https://github.com/xronocode/mark/blob/f0d2a18a4d81f0106861b4e68b945d88646da8f7/.grace/changes/archive/C-SPLIT-SAVE-AUTHORITY/evidence.md",
+              "command": "Isolated macOS native UI fixture matrix: Source-to-Split and Standard-to-Split new edits in both panes, explicit native Save, autosave at five seconds, close/reopen, and background/closed stream isolation."
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Owner native acceptance and consolidated dispatch-build acceptance",
+              "reason": "Owner verdict remains pending. Apply/archive approval is separate from native acceptance; no dispatch build or release has been authorized."
+            },
+            {
+              "section": "manual",
+              "scenario": "Native Windows and native credential-store-failure injection",
+              "reason": "Not performed on the recorded macOS artifacts; cross-platform unit tests and browser IPC doubles do not establish these verdicts."
+            },
+            {
+              "section": "manual",
+              "scenario": "Adjacent stale LIVE banner after session close or extension disable",
+              "reason": "Not repaired by either bounded change; preserved as a separate observation without expanding frozen bundles."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "operational": [
