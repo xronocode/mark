@@ -16,7 +16,7 @@
     "userFacing": [
       {
         "id": "C-GITHUB-THEME",
-        "summary": "The GitHub theme family joins as the 17th built-in pair: github (Primer light — white ground, #1F2328 ink, #0969DA accent, green primary buttons, README-style h1/h2 bottom rules) and github-dark (Primer dark — #0D1117 ground, #F0F6FC ink, #4493F8 accent) with Prism code-highlight companions, registered across the theme list, the native View › Theme menu, the command palette, Settings › Appearance and all ten locales; the site diagram gallery theme table carries both (34 themes, 17 dark / 17 light).",
+        "summary": "The GitHub theme family joins as the 17th built-in pair: github (Primer light \u2014 white ground, #1F2328 ink, #0969DA accent, green primary buttons, README-style h1/h2 bottom rules) and github-dark (Primer dark \u2014 #0D1117 ground, #F0F6FC ink, #4493F8 accent) with Prism code-highlight companions, registered across the theme list, the native View \u203a Theme menu, the command palette, Settings \u203a Appearance and all ten locales; the site diagram gallery theme table carries both (34 themes, 17 dark / 17 light).",
         "state": "queued",
         "commits": [
           "a685701a4241b564f5601e937a607568d0e21e3e"
@@ -24,10 +24,10 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-25",
-          "testedArtifact": "None — owner accepted without a separate visual check; evidence: automated contrast tests, rendered-pixel check of both variants, and code review of an additive-only diff (owner-reviewed implementation 8015e4ef; the CI-caught site-gallery and e2e count repairs eaf8890c/9485bae5 landed before the fully green PR #66 run).",
+          "testedArtifact": "None \u2014 owner accepted without a separate visual check; evidence: automated contrast tests, rendered-pixel check of both variants, and code review of an additive-only diff (owner-reviewed implementation 8015e4ef; the CI-caught site-gallery and e2e count repairs eaf8890c/9485bae5 landed before the fully green PR #66 run).",
           "scenarios": [
-            "theme-contrast gate: full paper variable parity and WCAG AA floors (editorColor/linkColor ≥ 4.5:1, blockquote text ≥ 3:1) for github and github-dark",
-            "registration pins: themeMap/themeCssFactories, THEME_FAMILIES 17 families / 34 members, the command palette, the native View › Theme menu, the Settings Appearance grid (17 tiles) and menu.theme names in all 10 locales",
+            "theme-contrast gate: full paper variable parity and WCAG AA floors (editorColor/linkColor \u2265 4.5:1, blockquote text \u2265 3:1) for github and github-dark",
+            "registration pins: themeMap/themeCssFactories, THEME_FAMILIES 17 families / 34 members, the command palette, the native View \u203a Theme menu, the Settings Appearance grid (17 tiles) and menu.theme names in all 10 locales",
             "rendered-pixel check of both variants against the GitHub Primer palette on a real render (implementing-session evidence, owner-reviewed diff)",
             "site diagram gallery: the regenerated theme table classifies github-dark dark (34 themes, 17/17) and the strip shows GitHub / GitHub Dark with brand casing"
           ]
@@ -35,7 +35,7 @@
       },
       {
         "id": "C-NOTIFICATION-SYSTEM",
-        "summary": "One notification system: every transient message renders as a single severity-styled card (colored status chip, four severities, all theme tokens) in one bottom-right stack — max three visible with a localized overflow counter, sticky errors, hover-paused auto-dismiss, Esc closes the topmost; selecting text in any notification copies it (quiet double-pulse confirmation); a palette command recovers everything shown during the session with full texts and per-entry copy; the update banner and the per-file message strip join the same family; the legacy toast implementation and dead pandoc-missing code are removed.",
+        "summary": "One notification system: every transient message renders as a single severity-styled card (colored status chip, four severities, all theme tokens) in one bottom-right stack \u2014 max three visible with a localized overflow counter, sticky errors, hover-paused auto-dismiss, Esc closes the topmost; selecting text in any notification copies it (quiet double-pulse confirmation); a palette command recovers everything shown during the session with full texts and per-entry copy; the update banner and the per-file message strip join the same family; the legacy toast implementation and dead pandoc-missing code are removed.",
         "state": "queued",
         "commits": [
           "660e5ff96c0c8abd2f92c2a1f3a8c9646de5f29d"
@@ -43,7 +43,7 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-26",
-          "testedArtifact": "None — owner merged PR #72 on instruction without a separate visual check; evidence: the visual acceptance record in the change bundle (pixel-exact chip tint in Paper and Ink, no-stripe edges, timer hairline), a 6-test e2e probe, full CI green after the label admission (17 checks), and vitest 370 files / 5029 passed on the merge candidate.",
+          "testedArtifact": "None \u2014 owner merged PR #72 on instruction without a separate visual check; evidence: the visual acceptance record in the change bundle (pixel-exact chip tint in Paper and Ink, no-stripe edges, timer hairline), a 6-test e2e probe, full CI green after the label admission (17 checks), and vitest 370 files / 5029 passed on the merge candidate.",
           "scenarios": [
             "visual probe: chip tint equals the exact 14% severity token blend in Paper and Ink; card edges stripe-free; timer hairline color-exact",
             "stack behavior: five notifications render three cards plus the 'More 2 notifications' overflow chip; errors never auto-dismiss; Esc closes only the topmost without stealing the editor's Escape",
@@ -55,7 +55,7 @@
       },
       {
         "id": "C-NATIVE-DOCX-RTF-EXPORT",
-        "summary": "Export to Word: File menu, tab context menu and the export command write real .docx files renderer-side (docx/html over the shared styled-HTML pipeline) — native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, real footnotes and native OMML equations from KaTeX MathML; figures rasterize to 2x PNG, page geometry follows the remembered print options, writing rides the existing binary facade with no new backend commands; the docx library loads lazily in its own 1.4 KB chunk (300 KB budget guard), ten locales carry the new strings.",
+        "summary": "Export to Word: File menu, tab context menu and the export command write real .docx files renderer-side (docx/html over the shared styled-HTML pipeline) \u2014 native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, real footnotes and native OMML equations from KaTeX MathML; figures rasterize to 2x PNG, page geometry follows the remembered print options, writing rides the existing binary facade with no new backend commands; the docx library loads lazily in its own 1.4 KB chunk (300 KB budget guard), ten locales carry the new strings.",
         "state": "queued",
         "commits": [
           "15ceef40b85a71a3aaea73b5429ff1666e9b1bac"
@@ -63,18 +63,18 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-26",
-          "testedArtifact": "None — owner merged PR #52 on instruction after a three-rebase refresh (green 17-check CI twice); manual field verification of the produced .docx in Microsoft Word / Pages is deferred to the train acceptance protocol (train rule 5).",
+          "testedArtifact": "None \u2014 owner merged PR #52 on instruction after a three-rebase refresh (green 17-check CI twice); manual field verification of the produced .docx in Microsoft Word / Pages is deferred to the train acceptance protocol (train rule 5).",
           "scenarios": [
             "AUTOMATED (merge candidate CI, green): renderer unit x3 OS incl. 117 PR-specific OOXML assertions (Heading styles, table alignment, hyperlinks, one checked checkbox, OMML m:oMath with m:f, RU footnote text, zero front-matter, CJK intact, mm-derived sectPr geometry, hostile-text round-trip); backend unit x3 OS; e2e 370+ incl. export-office 5/5 (menu flow mounts no settings dialog, invokes exactly [plugin:dialog|save, mt_fs_write_binary] with PK-magic bytes; cancel writes nothing; tab-menu path activates a background tab first) and open-file-timing green after an A/B local proof that the earlier budget miss was CI-runner noise, not a branch regression.",
-            "AUTOMATED (guards): check-export-chunk — entry chunk carries no docx code, the lazy docx+docx/html surface is 1.4 KB + 106 KB gzip against a 300 KB budget; NOTICES-node regenerated and diff-clean; grace lint 0.",
+            "AUTOMATED (guards): check-export-chunk \u2014 entry chunk carries no docx code, the lazy docx+docx/html surface is 1.4 KB + 106 KB gzip against a 300 KB budget; NOTICES-node regenerated and diff-clean; grace lint 0.",
             "MANUAL BEFORE ADMISSION: none beyond code review of the diff.",
-            "INTENTIONALLY UNVERIFIED: opening the produced .docx in Microsoft Word / Pages on a real build (deferred to the train acceptance protocol per rule 5); display math $$ blocks render as literal text — a known muya export-grammar input gap recorded in the bundle backlog, inline math converts."
+            "INTENTIONALLY UNVERIFIED: opening the produced .docx in Microsoft Word / Pages on a real build (deferred to the train acceptance protocol per rule 5); display math $$ blocks render as literal text \u2014 a known muya export-grammar input gap recorded in the bundle backlog, inline math converts."
           ]
         }
       },
       {
         "id": "C-FILE-POSITION-MEMORY",
-        "summary": "Reading position memory: every file remembers its last reading spot — scrollTop plus a mode-neutral line/ch caret — across tab close/reopen, file reopen, app relaunch and rename; the caret moved only by arrow keys survives tab switching (the arrow-key gap of the f-cursor report), positions persist through a numbers-only 200-entry prefs store with rename moves and stale-entry clamping, and the flush writes coalesce so navigation never touches the save-outcome guard; two latent muya defects surfaced by the change are fixed alongside (idempotent plugin registration, registry-driven teardown with per-plugin isolation).",
+        "summary": "Reading position memory: every file remembers its last reading spot \u2014 scrollTop plus a mode-neutral line/ch caret \u2014 across tab close/reopen, file reopen, app relaunch and rename; the caret moved only by arrow keys survives tab switching (the arrow-key gap of the f-cursor report), positions persist through a numbers-only 200-entry prefs store with rename moves and stale-entry clamping, and the flush writes coalesce so navigation never touches the save-outcome guard; two latent muya defects surfaced by the change are fixed alongside (idempotent plugin registration, registry-driven teardown with per-plugin isolation).",
         "state": "queued",
         "commits": [
           "ac60bc02ee71c0331d2258454ec263784495da42"
@@ -82,9 +82,9 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-26",
-          "testedArtifact": "None — owner merged PR #68 on instruction after a six-round CI (fully green final round: 20 pass incl. full e2e and x3-OS units); the position memory also carries automated visual e2e acceptance with byte-identical before/after transcripts; manual verification of positions on a real build is deferred to the train acceptance protocol (train rule 5).",
+          "testedArtifact": "None \u2014 owner merged PR #68 on instruction after a six-round CI (fully green final round: 20 pass incl. full e2e and x3-OS units); the position memory also carries automated visual e2e acceptance with byte-identical before/after transcripts; manual verification of positions on a real build is deferred to the train acceptance protocol (train rule 5).",
           "scenarios": [
-            "AUTOMATED (merge candidate CI, green): renderer unit x3 OS incl. 28 position-specific tests (store transforms/clamp/cap/prune/move, serialized concurrent saves, tri-state stat verdicts, flush boundaries, restore leg, duplicate-open guard, in-flight counter, false computation sentinel); muya plugin-registry lifecycle 7; e2e gates C-1 arrows/switch, C-3 close+reopen, C-4 relaunch, C-5 stale-entry clamp, C-9 burst coalescing, C-13 multi-tab relaunch (three tabs, middle active — every position restored and the right active tab).",
+            "AUTOMATED (merge candidate CI, green): renderer unit x3 OS incl. 28 position-specific tests (store transforms/clamp/cap/prune/move, serialized concurrent saves, tri-state stat verdicts, flush boundaries, restore leg, duplicate-open guard, in-flight counter, false computation sentinel); muya plugin-registry lifecycle 7; e2e gates C-1 arrows/switch, C-3 close+reopen, C-4 relaunch, C-5 stale-entry clamp, C-9 burst coalescing, C-13 multi-tab relaunch (three tabs, middle active \u2014 every position restored and the right active tab).",
             "AUTOMATED (visual acceptance e2e): close+reopen and arrow-moved-caret round-trip return byte-identical transcripts ({scrollTop 3778, caret Paragraph 120, rows P111-113} and {2601, P90, P76-78}); evidence PNGs reviewed by the implementing session; kept in the local acceptance record pending multimodal binary admission.",
             "AUTOMATED (guards): global branch coverage held above the 85% threshold with margin (85.34%) after two dedicated coverage commits; grace lint 0 findings for the bundle; three review passes logged (spec Pass-1/2, review-wave Pass-3 with all findings dispositioned in code).",
             "MANUAL BEFORE ADMISSION: owner-ordered smart-review (excellence + failure-hunt) with an independent code verification session; all blockers closed with pinning tests.",
@@ -102,9 +102,9 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-27",
-          "testedArtifact": "None — the owner accepted after the 2026-10-27 visual pass and the Standard-full-reset amendment; the merge commit d14335e4 passed the 17-check PR #113 CI run. Evidence is archived with the bundle (acceptance.md).",
+          "testedArtifact": "None \u2014 the owner accepted after the 2026-10-27 visual pass and the Standard-full-reset amendment; the merge commit d14335e4 passed the 17-check PR #113 CI run. Evidence is archived with the bundle (acceptance.md).",
           "scenarios": [
-            "machine gate (grace lint --assertions target --run-commands): 2/2 commands green — 128 unit/i18n tests (including the six mode-* descriptors, 16-grid bounds and fifteen locale families x ten locales with byte-identical min twins) and the full chromium + webkit-titlebar e2e run (408 passed, 7 pre-existing conditional skips, 0 failed) against built dist sha256 443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206",
+            "machine gate (grace lint --assertions target --run-commands): 2/2 commands green \u2014 128 unit/i18n tests (including the six mode-* descriptors, 16-grid bounds and fifteen locale families x ten locales with byte-identical min twins) and the full chromium + webkit-titlebar e2e run (408 passed, 7 pre-existing conditional skips, 0 failed) against built dist sha256 443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206",
             "full suite on the change tree: 5150 tests, 5143 passed, 2 failed, both outside this change (release-train bookkeeping); the known full-suite mount timeouts stay out of scope",
             "shim control experiment: removing __TAURI_EVENT_PLUGIN_INTERNALS__ makes the teardown row fail with exactly two unregisterListener pageerrors; with the repair it passes",
             "owner amendment: Standard returns the view to Standard and turns both writing modes off; the Reset row and its resetAll/hintReset keys are removed"
@@ -131,7 +131,7 @@
       },
       {
         "id": "C-UPDATER-ROLLBACK",
-        "summary": "One-step updater rollback: every update snapshots the previous version and its settings first, Help › Roll Back to Mark… restores the snapshot together with the settings it had before the update, and the version being left is skipped until a newer release ships; if an update breaks startup the same restore runs from the terminal before the UI boots (mark --rollback, --yes for scripts). A failed snapshot cancels the update with a clear notice, the fresh snapshot promotes only after the new version actually boots (staging-to-live at next-boot reconcile), the Windows restore verifies the previous installer's minisignature from that release's feed against the pinned public key (two network requests; macOS restore fully offline), a concurrent mark --rollback delegates to the running app's confirmation, and the App Store edition exposes no rollback surface; M-068/V-M-068 route the new mt-rollback module.",
+        "summary": "One-step updater rollback: every update snapshots the previous version and its settings first, Help \u203a Roll Back to Mark\u2026 restores the snapshot together with the settings it had before the update, and the version being left is skipped until a newer release ships; if an update breaks startup the same restore runs from the terminal before the UI boots (mark --rollback, --yes for scripts). A failed snapshot cancels the update with a clear notice, the fresh snapshot promotes only after the new version actually boots (staging-to-live at next-boot reconcile), the Windows restore verifies the previous installer's minisignature from that release's feed against the pinned public key (two network requests; macOS restore fully offline), a concurrent mark --rollback delegates to the running app's confirmation, and the App Store edition exposes no rollback surface; M-068/V-M-068 route the new mt-rollback module.",
         "state": "queued",
         "commits": [
           "8dc938f356ffc0d53f684afc3ba3bd21ab874ad6"
@@ -139,12 +139,12 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-29",
-          "testedArtifact": "None — PR #120 squash-merged as 8dc938f3 after a fully green run (cargo 459/459, npm test 4932/0, macOS packaging smoke); acceptance record in the archived bundle. The two-platform manual restore protocol (macOS menu + terminal crash path, Windows polygon installer) is owed as owner-executed evidence in V-M-068; hands-on rollback on a dispatch build is deferred to the train acceptance protocol (rule 5).",
+          "testedArtifact": "None \u2014 PR #120 squash-merged as 8dc938f3 after a fully green run (cargo 459/459, npm test 4932/0, macOS packaging smoke); acceptance record in the archived bundle. The two-platform manual restore protocol (macOS menu + terminal crash path, Windows polygon installer) is owed as owner-executed evidence in V-M-068; hands-on rollback on a dispatch build is deferred to the train acceptance protocol (rule 5).",
           "scenarios": [
-            "AUTOMATED (merge candidate, green): cargo test full bin suite 459 passed / 0 failed — 19 dedicated rollback tests (snapshot validity, digests, tampered-signature-never-executes, two-fetch counter, delegation nonce, CLI line format); npm test 4932/0 (prepare-order pins, fail-closed cancel, cancel-is-a-no-op, ten-locale coverage, menu-command consistency); coverage gate over thresholds; grace lint --assertions final --run-commands 0 errors.",
-            "AUTOMATED (guards): strict snapshot-manifest validation — corrupted, tampered or self-referential manifests behave exactly like 'no snapshot', nothing is half-applied, digests re-verified before any swap; the Update button installs nothing unless the snapshot was taken; mark-site build + check-dist 22/22 pages / 740 links.",
+            "AUTOMATED (merge candidate, green): cargo test full bin suite 459 passed / 0 failed \u2014 19 dedicated rollback tests (snapshot validity, digests, tampered-signature-never-executes, two-fetch counter, delegation nonce, CLI line format); npm test 4932/0 (prepare-order pins, fail-closed cancel, cancel-is-a-no-op, ten-locale coverage, menu-command consistency); coverage gate over thresholds; grace lint --assertions final --run-commands 0 errors.",
+            "AUTOMATED (guards): strict snapshot-manifest validation \u2014 corrupted, tampered or self-referential manifests behave exactly like 'no snapshot', nothing is half-applied, digests re-verified before any swap; the Update button installs nothing unless the snapshot was taken; mark-site build + check-dist 22/22 pages / 740 links.",
             "MANUAL BEFORE ADMISSION: none beyond the archived four-corner review record (spec and plan, two consecutive clean passes each).",
-            "INTENTIONALLY UNVERIFIED: a real two-version restore on both platforms — pending owner-executed evidence in V-M-068; hands-on rollback on a dispatch build deferred to the train acceptance protocol (rule 5)."
+            "INTENTIONALLY UNVERIFIED: a real two-version restore on both platforms \u2014 pending owner-executed evidence in V-M-068; hands-on rollback on a dispatch build deferred to the train acceptance protocol (rule 5)."
           ]
         }
       },
@@ -158,17 +158,17 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-26",
-          "testedArtifact": "None — PR #81 squash-merged after a green run (originally b3388391; 4e6aa2c5 after the 2026-10-28 message-only history rewrite). The manual scenario below is not yet run on a local build; hands-on verification is deferred to the train acceptance protocol (rule 5).",
+          "testedArtifact": "None \u2014 PR #81 squash-merged after a green run (originally b3388391; 4e6aa2c5 after the 2026-10-28 message-only history rewrite). The manual scenario below is not yet run on a local build; hands-on verification is deferred to the train acceptance protocol (rule 5).",
           "scenarios": [
             "AUTOMATED (merge candidate, green): tests/renderer/muya/copy-cut-stale-selection.test.js 9/9; muya suite 641/641; full renderer suite 364 files / 4868 passed / 0 failed; grace lint --assertions current 0 errors; live table selections pinned unchanged by tests.",
-            "MANUAL SCENARIO (for the train acceptance protocol): open a document with a table, click a cell, Cmd+A selects the cell; switch tabs by clicking the tab bar; in the second document select text with Shift+arrows (a mouse click also clears the flag and masks the bug); Cmd+X or Edit › Cut now cuts the text — before the fix nothing happened until an app restart.",
+            "MANUAL SCENARIO (for the train acceptance protocol): open a document with a table, click a cell, Cmd+A selects the cell; switch tabs by clicking the tab bar; in the second document select text with Shift+arrows (a mouse click also clears the flag and masks the bug); Cmd+X or Edit \u203a Cut now cuts the text \u2014 before the fix nothing happened until an app restart.",
             "INTENTIONALLY UNVERIFIED: the manual scenario on a real build before admission; evidence anchor V-M-012 scenario-75, graph anchor fn-clearStaleSelections."
           ]
         }
       },
       {
         "id": "DEPS-PELE-1-10",
-        "summary": "Pele diagram engine 1.6.0 → 1.10.0 (four upstream minors), app and site in lockstep: labels support sub/sup/code/kbd and friends, List<T>-style text is no longer eaten by label HTML parsing, long CJK labels wrap between characters instead of stretching diagrams, rendered SVG is always valid XML (no U+FFFE/U+FFFF/unpaired surrogates — matters for the export paths), wrapped lines sit closer together and %% comments no longer eat the preceding character; the C-58 pin literals, e2e provenance comments and NOTICES-node advance with the bump.",
+        "summary": "Pele diagram engine 1.6.0 \u2192 1.10.0 (four upstream minors), app and site in lockstep: labels support sub/sup/code/kbd and friends, List<T>-style text is no longer eaten by label HTML parsing, long CJK labels wrap between characters instead of stretching diagrams, rendered SVG is always valid XML (no U+FFFE/U+FFFF/unpaired surrogates \u2014 matters for the export paths), wrapped lines sit closer together and %% comments no longer eat the preceding character; the C-58 pin literals, e2e provenance comments and NOTICES-node advance with the bump.",
         "state": "queued",
         "commits": [
           "643d5dd58c2ed39a3288eb946f7aa6f36c9c5e17"
@@ -176,17 +176,17 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-26",
-          "testedArtifact": "None — PR #80 squash-merged after a green run (originally 35f12ac8; 643d5dd5 after the 2026-10-28 message-only history rewrite). Visual before/after corpus evidence from the implementing session; hands-on diagram check is deferred to the train acceptance protocol (rule 5).",
+          "testedArtifact": "None \u2014 PR #80 squash-merged after a green run (originally 35f12ac8; 643d5dd5 after the 2026-10-28 message-only history rewrite). Visual before/after corpus evidence from the implementing session; hands-on diagram check is deferred to the train acceptance protocol (rule 5).",
           "scenarios": [
-            "AUTOMATED (merge candidate, green): full npm test 5054 green; pele e2e 25/25 (pele-render, pele-theme, showcase-screenshots, chromium); full chromium e2e 384/385 — the single miss is an unrelated large-doc paint-budget flake, re-verified solo at 9.5 s against the 10 s budget.",
-            "VISUAL CORPUS (implementing session): 1.6.0 rendered 'Value x2' / 'List container'; 1.10.0 renders 'Value x₂' (true subscript tspan) / 'List<T> container'; the sequence/state corpus renders byte-identical or near-identical with no fixture changes anywhere.",
-            "INTENTIONALLY UNVERIFIED: hands-on diagram editing with the new label syntax on a dispatch build — deferred to the train acceptance protocol (rule 5)."
+            "AUTOMATED (merge candidate, green): full npm test 5054 green; pele e2e 25/25 (pele-render, pele-theme, showcase-screenshots, chromium); full chromium e2e 384/385 \u2014 the single miss is an unrelated large-doc paint-budget flake, re-verified solo at 9.5 s against the 10 s budget.",
+            "VISUAL CORPUS (implementing session): 1.6.0 rendered 'Value x2' / 'List container'; 1.10.0 renders 'Value x\u2082' (true subscript tspan) / 'List<T> container'; the sequence/state corpus renders byte-identical or near-identical with no fixture changes anywhere.",
+            "INTENTIONALLY UNVERIFIED: hands-on diagram editing with the new label syntax on a dispatch build \u2014 deferred to the train acceptance protocol (rule 5)."
           ]
         }
       },
       {
         "id": "FIX-021",
-        "summary": "The native View menu gains Standard View: the one-click full reset the titlebar chip menu's Standard row performs, reachable through View › Standard View at the head of the mode group (before Source Code Mode). The renderer view.standard-mode command re-dispatches only the active flags through the five shipped view.* toggles — no new command ids, no new end states; the command palette carries the entry localized in all ten locales (each locale reuses its own wording of the chip Standard hint).",
+        "summary": "The native View menu gains Standard View: the one-click full reset the titlebar chip menu's Standard row performs, reachable through View \u203a Standard View at the head of the mode group (before Source Code Mode). The renderer view.standard-mode command re-dispatches only the active flags through the five shipped view.* toggles \u2014 no new command ids, no new end states; the command palette carries the entry localized in all ten locales (each locale reuses its own wording of the chip Standard hint).",
         "state": "queued",
         "commits": [
           "75219f629d45617e6959f442f6668815f2b9ae02"
@@ -194,12 +194,12 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-30",
-          "testedArtifact": "None — owner-ordered delivery («давай в поезд») from the reported registry entry; the semantics are the chip menu's already-accepted Standard behavior through a new dispatch route. Hands-on check deferred to the train acceptance protocol (rule 5).",
+          "testedArtifact": "None \u2014 owner-ordered delivery (\u00ab\u0434\u0430\u0432\u0430\u0439 \u0432 \u043f\u043e\u0435\u0437\u0434\u00bb) from the reported registry entry; the semantics are the chip menu's already-accepted Standard behavior through a new dispatch route. Hands-on check deferred to the train acceptance protocol (rule 5).",
           "scenarios": [
-            "AUTOMATED (merge candidate, green): cargo 461/0 incl. two new m009 pins (view.standard-mode is id-dispatched with no accelerator; it sits before view.source-code-mode in the taxonomy and the built menu); vitest 371 files / 4942 passed / 0 failed incl. the new standard-view suite 4/4 (all-five-on reset in the chip order diff → split → source → typewriter → focus under fake timers, no-op in the standard state, no-op without an open tab); chromium e2e titlebar-mode-chips + view-menu-checks 12/12 incl. new case 5a (the menu id resets all five modes through the same mt::menu-invoked route the native menu rides, chips cluster gone); i18n suites 69/69; grace lint --assertions current 0 findings.",
+            "AUTOMATED (merge candidate, green): cargo 461/0 incl. two new m009 pins (view.standard-mode is id-dispatched with no accelerator; it sits before view.source-code-mode in the taxonomy and the built menu); vitest 371 files / 4942 passed / 0 failed incl. the new standard-view suite 4/4 (all-five-on reset in the chip order diff \u2192 split \u2192 source \u2192 typewriter \u2192 focus under fake timers, no-op in the standard state, no-op without an open tab); chromium e2e titlebar-mode-chips + view-menu-checks 12/12 incl. new case 5a (the menu id resets all five modes through the same mt::menu-invoked route the native menu rides, chips cluster gone); i18n suites 69/69; grace lint --assertions current 0 findings.",
             "AUTOMATED (PR CI): fully green after the rebase onto the C-LARGE-DOC-STAGE-0 main; the single build miss was the known macOS runner bundle_dmg.sh hdiutil flake, green on rerun; renderer e2e lane green at 25m31s.",
-            "MANUAL BEFORE ADMISSION: none — the reset semantics were accepted with the chip menu (C-TITLEBAR-MODE-CHIPS); this change only adds a dispatch route.",
-            "INTENTIONALLY UNVERIFIED: a hands-on View › Standard View check on a dispatch build — deferred to the train acceptance protocol (rule 5)."
+            "MANUAL BEFORE ADMISSION: none \u2014 the reset semantics were accepted with the chip menu (C-TITLEBAR-MODE-CHIPS); this change only adds a dispatch route.",
+            "INTENTIONALLY UNVERIFIED: a hands-on View \u203a Standard View check on a dispatch build \u2014 deferred to the train acceptance protocol (rule 5)."
           ]
         }
       },
@@ -217,13 +217,13 @@
           "scenarios": [
             "AUTOMATED (merge candidate, green): vitest 4996/0 including the m009 parity cross-check; playwright windows-accelerators 4/4 on chromium; full PR #158 check run green.",
             "LIVE: Ctrl+Alt+S engages Source Code Mode with the titlebar mode chip rendered (the C-TITLEBAR-MODE-CHIPS Windows acceptance effect); Ctrl+N opens a tab; every chord logs BLOCK_ACCELERATOR_FIRED; the darwin gate stays silent without the e2e seam.",
-            "INTENTIONALLY UNVERIFIED: nothing for this item — the Windows save-pipeline write gap found during the round is a separate finding (draft C-WINDOWS-SAVE-PIPELINE), not part of this change."
+            "INTENTIONALLY UNVERIFIED: nothing for this item \u2014 the Windows save-pipeline write gap found during the round is a separate finding (draft C-WINDOWS-SAVE-PIPELINE), not part of this change."
           ]
         }
       },
       {
         "id": "C-WINDOWS-SAVE-PIPELINE",
-        "summary": "Saving works on Windows: the sandbox prefix check in m010_security::check_path was Windows-blind — the permissive default sandbox \"/\" normalizes to a bare root no DOS path ever prefix-matches (every absolute write denied with MT_FS_PATH_DENIED), and a restored workspace added the \\\\?\\ UNC-form mismatch. A root-only sandbox is now permissive on every platform, both comparison sides strip the \\\\?\\ / \\\\?\\UNC\\ device prefixes, and the symlink step skips its prefix denial under the permissive root; every other denial keeps firing.",
+        "summary": "Saving works on Windows: the sandbox prefix check in m010_security::check_path was Windows-blind \u2014 the permissive default sandbox \"/\" normalizes to a bare root no DOS path ever prefix-matches (every absolute write denied with MT_FS_PATH_DENIED), and a restored workspace added the \\\\?\\ UNC-form mismatch. A root-only sandbox is now permissive on every platform, both comparison sides strip the \\\\?\\ / \\\\?\\UNC\\ device prefixes, and the symlink step skips its prefix denial under the permissive root; every other denial keeps firing.",
         "state": "queued",
         "commits": [
           "f7ffccd8e64d9967f547c95ce6fe4b209adb5938"
@@ -234,14 +234,14 @@
           "testedArtifact": "Windows polygon: NSIS rebuilt from the branch (SHA-256 6840EA3D...F8149), silently reinstalled; real SendInput Ctrl+S wrote a scratch document under D:\\polygon.",
           "scenarios": [
             "AUTOMATED (merge candidate, green): cargo test m010_security 29/29 with the new Windows fixture matrix; cargo test m001_save_close 16/16; grace final --run-commands 2/2; full PR #162 check run green (governance with release:user-facing after the label-race reopen).",
-            "LIVE: scratch doc opened via the mt_open_file channel, dirtied through the editor; real Ctrl+S (cua hotkey foreground) — isSaved true, no notification, file mtime 01:02:13 -> 01:06:14, size 15 -> 44 bytes, probe text round-trips from disk.",
-            "INTENTIONALLY UNVERIFIED: nothing — the fix is platform-guard logic pinned by cross-host fixture tests; the owner workspace stayed read-only throughout."
+            "LIVE: scratch doc opened via the mt_open_file channel, dirtied through the editor; real Ctrl+S (cua hotkey foreground) \u2014 isSaved true, no notification, file mtime 01:02:13 -> 01:06:14, size 15 -> 44 bytes, probe text round-trips from disk.",
+            "INTENTIONALLY UNVERIFIED: nothing \u2014 the fix is platform-guard logic pinned by cross-host fixture tests; the owner workspace stayed read-only throughout."
           ]
         }
       },
       {
         "id": "C-PAGE-WIDTH-TABLES-768",
-        "summary": "The default writing column becomes an honest 768 px of text: the shared :root default and all 34 shipped themes carry --editorAreaWidth: calc(100px + 768px) — the padding-inclusive form the preference writer has always used — replacing the raw 750px value that rendered only 650 px of content; the out-of-the-box column and a manually set 768px are pixel-identical.",
+        "summary": "The default writing column becomes an honest 768 px of text: the shared :root default and all 34 shipped themes carry --editorAreaWidth: calc(100px + 768px) \u2014 the padding-inclusive form the preference writer has always used \u2014 replacing the raw 750px value that rendered only 650 px of content; the out-of-the-box column and a manually set 768px are pixel-identical.",
         "state": "queued",
         "commits": [
           "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9"
@@ -249,7 +249,7 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-11-02",
-          "testedArtifact": "None beyond the owner's direction — a default value flip with a pinned equivalence (guard test editor-width-default.test.js); hands-on check deferred to the train acceptance protocol.",
+          "testedArtifact": "None beyond the owner's direction \u2014 a default value flip with a pinned equivalence (guard test editor-width-default.test.js); hands-on check deferred to the train acceptance protocol.",
           "scenarios": [
             "guard: the calc form present in all 35 shipped width sources, zero raw 750px defaults, exactly 34 theme files",
             "renderer suite green on real node_modules (4965/4965); PR CI green on three OS lanes including the full e2e run",
@@ -269,12 +269,12 @@
           "owner": "xronocode",
           "date": "2026-11-03",
           "scenarios": [
-            "automated: cargo test --bin mark rollback 65 passed (19 baseline + 46 new regression tests covering every fixed failure mode); npx vitest run tests/tools/stats-gateway.test.mjs 21 passed (18 baseline + 3 new live-format subprocess tests); grace lint --change C-UPDATER-REVIEW-FIXES --assertions final --run-commands 0 errors; PR CI across the three OS lanes (this admission lands once the substantive lanes are green — the release/governance check on the PR unblocks by this very admission)",
+            "automated: cargo test --bin mark rollback 65 passed (19 baseline + 46 new regression tests covering every fixed failure mode); npx vitest run tests/tools/stats-gateway.test.mjs 21 passed (18 baseline + 3 new live-format subprocess tests); grace lint --change C-UPDATER-REVIEW-FIXES --assertions final --run-commands 0 errors; PR CI across the three OS lanes (this admission lands once the substantive lanes are green \u2014 the release/governance check on the PR unblocks by this very admission)",
             "review gate: four corners (correctness / security / UX / performance), 13 rounds, closed with two consecutive clean passes (rounds 12-13); ~110 findings addressed or explicitly dispositioned (ReviewLog in the change bundle)",
-            "manual before admission: none beyond the review gate — hands-on rollback drills are deferred to the train acceptance protocol (rule 5) and the archived V-M-068 two-platform manual protocol at release time",
+            "manual before admission: none beyond the review gate \u2014 hands-on rollback drills are deferred to the train acceptance protocol (rule 5) and the archived V-M-068 two-platform manual protocol at release time",
             "intentionally not verified: live Cloudflare Analytics Engine behavior (the owner-side live smoke is recorded as the owed step after the next deploy); Windows-host execution of the cfg(not(macos)) restore branches (type-inspected; the ordering is covered host-agnostically on the macOS reference host)"
           ],
-          "testedArtifact": "None beyond the automated suites and the review gate — the train acceptance protocol (rule 5) will exercise a real rollback on the train build."
+          "testedArtifact": "None beyond the automated suites and the review gate \u2014 the train acceptance protocol (rule 5) will exercise a real rollback on the train build."
         }
       },
       {
@@ -287,7 +287,7 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-11-03",
-          "testedArtifact": "The owner-confirmed real-app interactive mock on the product dist («мок норм»); hands-on dispatch-build check deferred to the train acceptance protocol.",
+          "testedArtifact": "The owner-confirmed real-app interactive mock on the product dist (\u00ab\u043c\u043e\u043a \u043d\u043e\u0440\u043c\u00bb); hands-on dispatch-build check deferred to the train acceptance protocol.",
           "scenarios": [
             "units: 5222 renderer tests incl. 143 width/table and 32 host-wiring",
             "e2e: chromium 417 passed / 8 skipped / 1 pre-existing base flake; webkit-tables 55",
@@ -298,7 +298,7 @@
       },
       {
         "id": "C-RENDER-REVIEW-FIXES",
-        "summary": "Four renderer-surface defects from the 2026-11-02 smart review (findings 11-14) plus localization debts: honest async notification actions (a failing Reveal raises a localized warning notice, zero unhandled rejections), a rollback confirmation that cannot fail silently (import inside the try, awaited store action, localized error notice), a truthful copy pulse only after a real clipboard write on both copy-on-select surfaces, a fully localized rollback-feedback surface (seven new keys across ten locales), and a one-time localized boot notice when a rollback skipped restoring preferences — fed by an additive restore-outcome fact channel (marker + read-and-clear command); the restore algorithm itself unchanged.",
+        "summary": "Four renderer-surface defects from the 2026-11-02 smart review (findings 11-14) plus localization debts: honest async notification actions (a failing Reveal raises a localized warning notice, zero unhandled rejections), a rollback confirmation that cannot fail silently (import inside the try, awaited store action, localized error notice), a truthful copy pulse only after a real clipboard write on both copy-on-select surfaces, a fully localized rollback-feedback surface (seven new keys across ten locales), and a one-time localized boot notice when a rollback skipped restoring preferences \u2014 fed by an additive restore-outcome fact channel (marker + read-and-clear command); the restore algorithm itself unchanged.",
         "state": "queued",
         "commits": [
           "b9b59d4271c51c9c72c2dcd2dfac9eb5fe3e8d40"
@@ -1087,6 +1087,165 @@
             }
           ]
         }
+      },
+      {
+        "id": "C-SEC-LINK-OPEN",
+        "summary": "Refuse executable and ambiguous document links while preserving supported Markdown, image and PDF routes.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SEC-STREAM-AUTH",
+        "summary": "Revoke disabled extensions and isolate live sessions between paired extensions.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SEC-STREAM-TABS",
+        "summary": "Keep live updates with their owned tab across switches, closure, resync and local saves.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "operational": [
@@ -1100,17 +1259,17 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-28",
-          "testedArtifact": "None — bookkeeping only. PR #99 squash-merged as 495a58b9 after 19 checks passed on a rerun; the first Windows renderer-unit attempt failed in editor-coverage.test.js, a lane flake outside this diff (main's Windows lane is green on 11b88a93).",
+          "testedArtifact": "None \u2014 bookkeeping only. PR #99 squash-merged as 495a58b9 after 19 checks passed on a rerun; the first Windows renderer-unit attempt failed in editor-coverage.test.js, a lane flake outside this diff (main's Windows lane is green on 11b88a93).",
           "scenarios": [
             "AUTOMATED: grace lint --assertions current reports 0 findings on main; the graph source-path scan reports 0 declared files missing.",
             "MANUAL BEFORE ADMISSION: none; the diff edits one Sources block pair and adds an archived change bundle.",
-            "INTENTIONALLY UNVERIFIED: nothing — no runtime behavior, build surface or user-facing surface changes."
+            "INTENTIONALLY UNVERIFIED: nothing \u2014 no runtime behavior, build surface or user-facing surface changes."
           ]
         }
       },
       {
         "id": "C-LOCALE-MIN-TWIN-REMOVAL",
-        "summary": "The locale min twins are gone: the Electron-era byte-compacted .min.json twins (560,622 bytes across ten languages, an inherited fetch optimization the Tauri port had made pointless) are removed end to end — the loader globs the full tables, an inverted directory guard (exactly ten .json tables, no .min.json; a reintroduced twin fails CI naming the file) replaces the byte-parity laws, the release tools stop writing and validating twins, the dead zero-importer src/common/i18n.js goes, and every graph/verification/context mention is rewritten in the bundle; locale-commit diffs drop from ~1.13 MB to kilobytes and the installed locale payload grows a bounded 66,168 bytes.",
+        "summary": "The locale min twins are gone: the Electron-era byte-compacted .min.json twins (560,622 bytes across ten languages, an inherited fetch optimization the Tauri port had made pointless) are removed end to end \u2014 the loader globs the full tables, an inverted directory guard (exactly ten .json tables, no .min.json; a reintroduced twin fails CI naming the file) replaces the byte-parity laws, the release tools stop writing and validating twins, the dead zero-importer src/common/i18n.js goes, and every graph/verification/context mention is rewritten in the bundle; locale-commit diffs drop from ~1.13 MB to kilobytes and the installed locale payload grows a bounded 66,168 bytes.",
         "state": "queued",
         "commits": [
           "2474281761404fb08bc80bf3f01c3dda4d314061"
@@ -1118,11 +1277,11 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-29",
-          "testedArtifact": "None — infrastructure cleanup with no user-visible behaviour change beyond bundle bytes; the owner pipeline mandate of 2026-10-28 approved the direction, pipeline and commit. Acceptance record in the archived bundle.",
+          "testedArtifact": "None \u2014 infrastructure cleanup with no user-visible behaviour change beyond bundle bytes; the owner pipeline mandate of 2026-10-28 approved the direction, pipeline and commit. Acceptance record in the archived bundle.",
           "scenarios": [
             "AUTOMATED: targeted vitest over the thirteen touched suites 193/193; the locale-keys guard keeps the three C-TITLEBAR-MODE-CHIPS T-003 gates and adds the directory guard; npm test full suite 369 files / 4924 passed / 0 failed (quiet-window run); typecheck:ipc clean after git rm src/common/i18n.js (zero importers re-verified).",
             "AUTOMATED (hygiene): repo-wide min.json residue is exactly the guard test, the .gitignore entry and the frozen docs/development-plan.xml provenance; chromium e2e on the two i18n-dependent specs 13/13.",
-            "INTENTIONALLY UNVERIFIED: no manual product probe applies — no user-visible behaviour change beyond bundle bytes."
+            "INTENTIONALLY UNVERIFIED: no manual product probe applies \u2014 no user-visible behaviour change beyond bundle bytes."
           ]
         }
       },
@@ -1136,11 +1295,11 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-28",
-          "testedArtifact": "None — developer tooling. PR #98 squash-merged (originally 4ac68cbc; ff9ff6e1 after the 2026-10-28 message-only history rewrite); an independent code review (request-changes) verified the lane-logic core — no deadlocks, no leaks, no fail-open — and its blocker was closed by PR #118 restoring the two truncated+hostile done_reason tests and the Opener passthrough verbatim from main (e05d170b, 2026-10-29).",
+          "testedArtifact": "None \u2014 developer tooling. PR #98 squash-merged (originally 4ac68cbc; ff9ff6e1 after the 2026-10-28 message-only history rewrite); an independent code review (request-changes) verified the lane-logic core \u2014 no deadlocks, no leaks, no fail-open \u2014 and its blocker was closed by PR #118 restoring the two truncated+hostile done_reason tests and the Opener passthrough verbatim from main (e05d170b, 2026-10-29).",
           "scenarios": [
             "AUTOMATED (merge candidate, green): full check run green including x3-OS units after the lane rework; PR #118's restored done_reason diagnostics tests pass on main.",
             "REVIEW: independent code review with request-changes; blockers closed via #118, four non-blocking follow-ups recorded (contention-message test, weakened two-operation concurrency test, non-concurrent distinct-evidence test, last-model-review cleanup).",
-            "INTENTIONALLY UNVERIFIED: nothing user-facing — the gate is developer tooling; lane contention with parallel sessions was exercised live during the 2026-10-28 night merges."
+            "INTENTIONALLY UNVERIFIED: nothing user-facing \u2014 the gate is developer tooling; lane contention with parallel sessions was exercised live during the 2026-10-28 night merges."
           ]
         }
       },
@@ -1168,11 +1327,11 @@
         "acceptance": {
           "owner": "xronocode",
           "date": "2026-10-31",
-          "testedArtifact": "None — developer tooling. PR #140 squash-merged (1f4ce7e5); the new gate reviewed its own delivery live — the bootstrap install and the delivery commit resolved to the offload executor (reviewers=offload(1), 12 and 13 chunks) while the Mac GPU stayed free, and the follow-up archive-status chore commit (PR #144) resolved locally (reviewers=local(1)) — both receipt-bound.",
+          "testedArtifact": "None \u2014 developer tooling. PR #140 squash-merged (1f4ce7e5); the new gate reviewed its own delivery live \u2014 the bootstrap install and the delivery commit resolved to the offload executor (reviewers=offload(1), 12 and 13 chunks) while the Mac GPU stayed free, and the follow-up archive-status chore commit (PR #144) resolved locally (reviewers=local(1)) \u2014 both receipt-bound.",
           "scenarios": [
             "AUTOMATED (merge candidate, green): npm run safety:test 50/50 including the executor-resolution matrix (unconfigured, unreachable or busy offload selects local; healthy executes there; public or redirecting fails closed); full PR check run green.",
-            "LIVE: both executor directions exercised in production use — offload while the host was powered on, local when it was not reachable — plus a deterministic verdict-slip (a malformed \":findings\" key) diagnosed via a local chunk replay and cleared by re-chunking, proving the fail-closed verdict path.",
-            "INTENTIONALLY UNVERIFIED: nothing user-facing — the gate is developer tooling; the Windows machine remains a test polygon outside the gate."
+            "LIVE: both executor directions exercised in production use \u2014 offload while the host was powered on, local when it was not reachable \u2014 plus a deterministic verdict-slip (a malformed \":findings\" key) diagnosed via a local chunk replay and cleared by re-chunking, proving the fail-closed verdict path.",
+            "INTENTIONALLY UNVERIFIED: nothing user-facing \u2014 the gate is developer tooling; the Windows machine remains a test polygon outside the gate."
           ]
         }
       },
@@ -1265,6 +1424,156 @@
               "section": "manual",
               "scenario": "Live external Project application",
               "reason": "Intentionally not run as part of the bounded fix. Pure, memory and injected-fetch fixtures verify projection/clearing/idempotence; Project availability is non-required, and no external mutation or owner verdict was authorized."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-SEC-GATEWAY-TOOLS",
+        "summary": "Use prepared locked deployment tooling and restrict deployment credentials to the deployment process.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-SEC-GATEWAY-LOCK-SCAN",
+        "summary": "Scan the dedicated deployment lockfile as part of dependency verification.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-SEC-COVERAGE-IMPORTS",
+        "summary": "Isolate unused application-shell child imports in shallow coverage fixtures without relaxing thresholds.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
             }
           ]
         }
