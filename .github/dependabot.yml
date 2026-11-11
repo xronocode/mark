@@ -1,5 +1,6 @@
 # Dependabot version updates — keeps the lockfiles from drifting.
 # Security updates are opened immediately regardless of this schedule.
+# Website dependency updates are owned by the separate site repository.
 #
 # Ecosystems:
 #   npm  /       — app + test tooling (root package-lock.json)
