@@ -986,6 +986,107 @@
             }
           ]
         }
+      },
+      {
+        "id": "C-METADATA-SAVE-SAFETY",
+        "summary": "Save one coherent text and file-format version with strict validated bytes and actual source metadata on open.",
+        "state": "queued",
+        "commits": [
+          "f666d4c65025409266cac284c65a8a21373adb3e"
+        ],
+        "acceptance": {
+          "status": "pending"
+        },
+        "pullRequest": {
+          "number": 218,
+          "headSha": "57d50bafecdee917224647b07301af8c4a79d069",
+          "mergeSha": "f666d4c65025409266cac284c65a8a21373adb3e",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/218/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npm run test:coverage; npm run typecheck:ipc; npm run build",
+              "result": "5713 passed, 0 failed; two skips and three todos. Coverage floors, IPC types, renderer build and selected final command assertions passed.",
+              "date": "2026-11-11",
+              "build": "57d50bafecdee917224647b07301af8c4a79d069",
+              "evidence": "https://github.com/xronocode/mark/pull/218"
+            },
+            {
+              "command": "cargo test --manifest-path src-tauri/Cargo.toml --locked --bin mark",
+              "result": "593 passed, 0 failed, one existing ignored test. Exact-byte codec and open fixtures included.",
+              "date": "2026-11-11",
+              "build": "57d50bafecdee917224647b07301af8c4a79d069",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42949677784"
+            },
+            {
+              "command": "GitHub Actions on the exact source head",
+              "result": "478 Chromium passed with eight skipped; 306 WebKit passed. All six renderer/backend OS jobs and the aggregate status passed. The squash tree equals the checked head.",
+              "date": "2026-11-11",
+              "build": "57d50bafecdee917224647b07301af8c4a79d069",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42949677784"
+            },
+            {
+              "command": "ARM64 packaging, launch smoke and warnings allowlist check",
+              "result": "The actual ARM64 job passed; warnings 195 allowed, zero unallowed, zero forbidden.",
+              "date": "2026-11-11",
+              "build": "57d50bafecdee917224647b07301af8c4a79d069",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/42949677719"
+            }
+          ],
+          "manual": [
+            {
+              "scenario": "Native UTF8 BOM/CRLF, UTF16LE/BE BOM and detected CP1251 open/edit/save/close/reopen.",
+              "result": "Four format round trips matched independent exact-byte expectations and retained Cyrillic and emoji where representable.",
+              "date": "2026-11-11",
+              "build": "Mark Format QA 2.8.2; source 05a15fc7b044ddcc900535fa1dcc8a14bea39051; binary SHA-256 918a15ca1c47390b9d08dccd1ad25d9e2c50c81d91f24ba482091016870d58b0; bundle com.xronocode.mark.test.format.qa",
+              "evidence": "Source-bound native verification recorded in the archived change execution summary."
+            },
+            {
+              "scenario": "Mixed EOL, unrepresentable CP1251 text, explicit retries and empty input final-newline policy.",
+              "result": "Visible refusals preserved original bytes. Explicit LF and UTF8 retry produced exact expected bytes. Empty input with policy 1 produced one LF.",
+              "date": "2026-11-11",
+              "build": "Mark Format QA 2.8.2; source 05a15fc7b044ddcc900535fa1dcc8a14bea39051; binary SHA-256 918a15ca1c47390b9d08dccd1ad25d9e2c50c81d91f24ba482091016870d58b0; bundle com.xronocode.mark.test.format.qa",
+              "evidence": "Source-bound native verification recorded in the archived change execution summary."
+            },
+            {
+              "scenario": "DOCX exported through the app UI and opened in Microsoft Word.",
+              "result": "Unicode, headings, formatting, lists, 3x2 table, hyperlink, real footnote, inline equation and multiline display equation were checked. Other display-math forms remain outside this result.",
+              "date": "2026-11-11",
+              "build": "Mark Format QA 2.8.2; source 05a15fc7b044ddcc900535fa1dcc8a14bea39051; binary SHA-256 918a15ca1c47390b9d08dccd1ad25d9e2c50c81d91f24ba482091016870d58b0; bundle com.xronocode.mark.test.format.qa",
+              "evidence": "Source-bound native verification recorded in the archived change execution summary."
+            },
+            {
+              "scenario": "Final-source native UTF16LE BOM/CRLF open/edit/save/close/reopen.",
+              "result": "Exact-byte smoke passed. The source delta from the full native cases removes only an unread backend catalog field and a comment; renderer, shared catalog and conversion/write functions are unchanged.",
+              "date": "2026-11-11",
+              "build": "Mark Format QA 2.8.2; source 57d50bafecdee917224647b07301af8c4a79d069; binary SHA-256 7747ef39de9bda03216d4094a168b4bde590b1daea34129db96ff56c2db3fc2c; bundle com.xronocode.mark.test.format.qa",
+              "evidence": "Source-bound native verification recorded in the archived change execution summary."
+            }
+          ],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Real system IME",
+              "reason": "Deferred by the owner on 2026-11-11. It remains unverified; no Hiragana source was added and the original Russian-PC input source was restored."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native UI",
+              "reason": "Windows native host access was unavailable. Passing hosted Windows unit jobs do not establish native UI acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Consolidated dispatch-build acceptance",
+              "reason": "The owner approved apply/archive and integration of this scoped implementation. Owner verdicts on a future dispatch build remain pending."
+            },
+            {
+              "section": "manual",
+              "scenario": "Physical write atomicity, crash recovery, independent backend ordering, inline Rename and external byte equality",
+              "reason": "Separate unresolved families. Fault probes can leave partial in-place bytes, and direct backend requests can overwrite newer content with an older request. These are not repaired or accepted by this item."
+            }
+          ]
+        }
       }
     ],
     "operational": [
