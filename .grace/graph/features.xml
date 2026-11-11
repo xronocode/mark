@@ -1746,6 +1746,7 @@
         (was assume-stale) and platform labels windows-x86_64/aarch64;
         discovery scans %APPDATA% on Windows.
         C-SEC-AUDIT-FIXES: the three existing incoming data routes require bearer authentication for an enabled extension; text-insert additionally requires text.insert and emits the authenticated requester identity. Candidate capabilities are snapshotted before credential lookup outside the registry lock and off the async executor. Successful disable first fences enabled state, then revokes and verifies absence in persistent and memory stores; failures remain visible and fresh pairing restores access. Both outgoing clients parse and revalidate loopback URLs with no userinfo, refuse redirects and bypass proxy environment settings. Pair bootstrap, stream sessions and listener surface remain unchanged.
+        C-SEC-STREAM-AUTH and C-SEC-STREAM-TABS: stream routes require an enabled registered identity and validate its authorization generation and session owner/incarnation at a serialized mutation boundary. Disable closes only its active stream before credential revocation, including deletion failure. Foreign-owner open conflicts disclose no session ID; same-owner resync remains supported. Ordered open/patch/close events all carry session_id and a monotonic session_epoch, and the renderer routes them through owned store actions.
       </Summary>
       <Path>src-tauri/src/m045_ext/mod.rs</Path>
       <Dependencies>
@@ -1882,7 +1883,7 @@
           <LegacyAttributes>
             <Attribute>
               <Name>PURPOSE</Name>
-              <Value>
+              <Value>C-SEC-STREAM-AUTH: the authenticated extension must own an active session before its ID may authorize replacement or be disclosed.
                 Pure function: /stream/open vs active session — FreshOpen |
                 ReplaceSameSession (wholesale replace, resync path) | Conflict
                 (different session_id, 409)
@@ -2206,7 +2207,7 @@
             <LegacyAttributes>
               <Attribute>
                 <Name>PURPOSE</Name>
-                <Value>
+                <Value>C-SEC-STREAM-AUTH: the authenticated extension must own an active session before its ID may authorize replacement or be disclosed.
                   Pure core: decide how /stream/open interacts with the active
                   session — FreshOpen | ReplaceSameSession (resync path) |
                   Conflict (409); token is validated before this decision
@@ -2503,6 +2504,8 @@
         closed with MT_RELEASE_PROJECT_READBACK_LAG when the row never
         becomes visible.
         C-SEC-AUDIT-FIXES: Node attribution and SBOM generation use exact lockfile-installed license-checker 25.0.1 and @cyclonedx/cyclonedx-npm 6.0.1 binaries. The release-fresh-npx guard rejects fresh resolution in the workflow and attribution script; pinned Cargo tools and owner promotion gates remain unchanged.
+        C-SEC-STREAM-TABS and C-SEC-GATEWAY-TOOLS: required CI prepares the nested gateway lockfile with installation scripts disabled and runs the stream ownership regression in Chromium plus the dedicated webkit-live-stream project.
+        C-SEC-COVERAGE-IMPORTS: application-shell smoke tests stub the unused editor module before import, matching their existing rendering stub and retaining assertions and deadlines.
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
@@ -3109,6 +3112,7 @@
         before Wrangler runs and records the resulting Worker version in an
         owner-local receipt.
         C-SEC-AUDIT-FIXES: deployment documentation retains the checked gateway deployment wrapper and pinned Wrangler identity; the residual unpinned logout command is removed. Gateway runtime and deployment authorization remain unchanged.
+        C-SEC-GATEWAY-TOOLS: a dedicated manifest and integrity lockfile pin deployment tooling. Credential-free npm ci with scripts disabled prepares the local CLI; the wrapper refuses missing/mismatched tooling without acquisition, strips Cloudflare credentials from admission subprocesses, passes an allowlisted environment only to the explicit-token deploy process, disables telemetry and redacts the deploy token from tool output. C-SEC-GATEWAY-LOCK-SCAN validates public package digests structurally while scanning all other metadata for secret shapes.
       </Summary>
       <Path>tools/stats-gateway/worker.mjs</Path><PlannedPath>tools/stats-gateway/worker.mjs, tools/stats-gateway/wrangler.toml, tools/stats-gateway/query.mjs, tools/stats-gateway/tables.mjs, tools/stats-gateway/deploy-checked.mjs, tools/stats-gateway/README.md, tests/tools/stats-gateway.test.mjs, tests/tools/stats-gateway-deploy.test.mjs</PlannedPath>
       <Dependencies>Workers runtime (fetch/waitUntil, env.STATS Analytics Engine binding, dataset mark_update_funnel); consumers: tauri.conf.json updater endpoints (gateway first, GitHub fallback), release.yml latest.json platform fragments (pkg routes); NO client code, NO renderer egress; the C-UPDATER-ROLLBACK restore fetches stay direct-GitHub by design</Dependencies><VerificationRef>V-M-071</VerificationRef>

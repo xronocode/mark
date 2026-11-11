@@ -3,7 +3,7 @@
 
   Receives mt::live::update events from the Rust backend (via
   live_bridge.rs) and opens a new untitled tab in the main editor.
-  Patches update the tab content via setMarkdown(). No separate Muya
+  C-SEC-STREAM-TABS: patches update their owned tab through the store. No separate Muya
   instance — reuses the main editor for full visual consistency.
 
   Phase B5b: tab-based approach (replaces overlay).
@@ -17,13 +17,34 @@
 </template>
 
 <script setup>
+// START_MODULE_CONTRACT
+//   PURPOSE: Route backend live-document events through session/tab-owned store actions.
+//   SCOPE: Live indicator, typed event translation and listener lifecycle; no anonymous editor loads.
+//   DEPENDS: Tauri events, Vue lifecycle/refs, editor store.
+//   LINKS: M-045; M-011; C-SEC-STREAM-TABS.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   editorStore - Window-local owner of live session/tab bindings.
+//   isLive - Whether this listener has an accepted active stream.
+//   sessionTitle - Escaped title displayed in the indicator.
+//   unlisten - Registered event listener disposal callback.
+//   disposed - Fence for asynchronous listener registration after unmount.
+//   handleLiveUpdate - Translate identified lifecycle events into owned store operations.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-11 C-SEC-STREAM-TABS: replace anonymous file-loaded patches with session-owned store actions.
+// END_CHANGE_SUMMARY
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { listen } from '@tauri-apps/api/event'
-import bus from '@/bus'
+import { useEditorStore } from '@/store/editor'
 
+const editorStore = useEditorStore()
 const isLive = ref(false)
 const sessionTitle = ref('')
 let unlisten = null
+let disposed = false
 
 const handleLiveUpdate = (event) => {
   const data = event?.payload
@@ -32,39 +53,30 @@ const handleLiveUpdate = (event) => {
   const { update_type: type, payload } = data
   if (!type || !payload) return
 
+  const identity = { sessionId: payload.session_id, sessionEpoch: payload.session_epoch }
   if (type === 'doc_open') {
-    isLive.value = true
-    sessionTitle.value = payload.title || 'Meeting'
-
-    bus.emit('mt::new-untitled-tab', {
-      markdown: payload.content || '',
-      selected: true
-    })
-
-    // eslint-disable-next-line no-console
-    console.log(`[LiveViewer][DOC_OPEN session=${payload.session_id}]`)
-  } else if (type === 'doc_patch') {
-    if (isLive.value) {
-      bus.emit('file-loaded', { markdown: payload.full_content || '' })
+    const id = editorStore.OPEN_LIVE_DOCUMENT({ ...identity, markdown: payload.content || '', title: payload.title })
+    if (id) {
+      isLive.value = true
+      sessionTitle.value = payload.title || 'Meeting'
     }
-
-    // eslint-disable-next-line no-console
-    console.log(`[LiveViewer][DOC_PATCH rev=${payload.revision} section=${payload.section}]`)
+  } else if (type === 'doc_patch') {
+    if (isLive.value) editorStore.PATCH_LIVE_DOCUMENT({ ...identity, revision: payload.revision, markdown: payload.full_content || '' })
   } else if (type === 'doc_close') {
-    isLive.value = false
-
-    // eslint-disable-next-line no-console
-    console.log(`[LiveViewer][DOC_CLOSE session=${payload.session_id} rev=${payload.final_revision}]`)
+    if (editorStore.CLOSE_LIVE_DOCUMENT(identity)) isLive.value = false
   }
 }
 
 onMounted(async () => {
-  unlisten = await listen('mt::live::update', handleLiveUpdate)
+  const stop = await listen('mt::live::update', handleLiveUpdate)
+  if (disposed) stop()
+  else unlisten = stop
   // eslint-disable-next-line no-console
   console.log('[LiveViewer][LISTENER_REGISTERED]')
 })
 
 onBeforeUnmount(() => {
+  disposed = true
   if (unlisten) {
     unlisten()
     unlisten = null

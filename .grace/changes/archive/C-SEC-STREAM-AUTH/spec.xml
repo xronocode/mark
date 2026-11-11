@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SEC-STREAM-AUTH>
+    <Summary>Fence disabled extensions and foreign owners at the stream mutation boundary.</Summary>
+    <Goals><Goal>A retained credential cannot authorize any stream operation after disable.</Goal><Goal>Only the enabled session owner may resynchronize; foreign conflicts disclose no session ID.</Goal><Goal>Disable, mutation and ordered session-epoch events share a synchronization boundary.</Goal></Goals>
+    <Constraints><Constraint>Owner approved the source-validated 2026-11-11 remediation plan by instructing implementation. Execute sequentially; use dummy fixtures and preserve release authorization.</Constraint><Constraint>Keep repository artifacts English and synchronize contracts, graph and verification. No production deploy or release.</Constraint></Constraints>
+    <NonGoals><NonGoal>Broad dependency upgrades, new executable-confirmation UI and release publication.</NonGoal></NonGoals>
+    <AcceptanceCriteria><Criterion>A retained credential cannot authorize any stream operation after disable.</Criterion><Criterion>Only the enabled session owner may resynchronize; foreign conflicts disclose no session ID.</Criterion><Criterion>Disable, mutation and ordered session-epoch events share a synchronization boundary.</Criterion></AcceptanceCriteria>
+    <AffectedAreas><M-045/><M-001/></AffectedAreas>
+    <VerificationIntent><ExpectedCommand>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</ExpectedCommand><ExpectedEvidence>Regressions fail before the fix and pass after it; final GRACE assertions and current integrity pass.</ExpectedEvidence></VerificationIntent>
+  </C-SEC-STREAM-AUTH>
+</GraceChangeSpec>

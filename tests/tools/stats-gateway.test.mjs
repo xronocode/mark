@@ -1167,7 +1167,7 @@ describe('tools/stats-gateway — secrets shape scan (C-STATS-READOUT)', () => {
   const walkFiles = (dir) =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
       const full = join(dir, entry.name)
-      return entry.isDirectory() ? walkFiles(full) : [full]
+      return entry.name === 'node_modules' ? [] : entry.isDirectory() ? walkFiles(full) : [full]
     })
 
   const xmlEntry = (text, tag) => {
@@ -1186,7 +1186,19 @@ describe('tools/stats-gateway — secrets shape scan (C-STATS-READOUT)', () => {
     // are skipped).
     for (const abs of walkFiles(join(ROOT, 'tools/stats-gateway'))) {
       if (abs.includes('/.')) continue
-      sources.push([abs, readFileSync(abs, 'utf8')])
+      let text = readFileSync(abs, 'utf8')
+      if (abs === join(ROOT, 'tools/stats-gateway/package-lock.json')) {
+        const lock = JSON.parse(text)
+        for (const [name, entry] of Object.entries(lock.packages)) {
+          if (!name) continue
+          expect(entry.integrity, name).toMatch(/^sha512-[A-Za-z0-9+/]{86}==$/)
+          // Public npm digests are package metadata, not credential candidates.
+          // All other fields still pass through the unchanged secret scan.
+          entry.integrity = '<public-package-integrity>'
+        }
+        text = JSON.stringify(lock)
+      }
+      sources.push([abs, text])
     }
     sources.push([
       'tests/tools/stats-gateway.test.mjs',

@@ -119,6 +119,8 @@ export default defineConfig({
     // the diff, CodeMirror MergeView rendering, the calm notice) also gates
     // in WebKit — the engine WKWebView ships.
     { name: 'webkit-diff', use: { browserName: 'webkit' }, testMatch: 'diff-*.spec.ts' },
+    // C-SEC-STREAM-TABS: stream updates must stay within their owned document.
+    { name: 'webkit-live-stream', use: { browserName: 'webkit' }, testMatch: 'live-stream-ownership.spec.ts' },
     // Session restore and close/edit ownership in WKWebView's browser engine.
     { name: 'webkit-session', use: { browserName: 'webkit' }, testMatch: 'session-restore.spec.ts' }
   ]

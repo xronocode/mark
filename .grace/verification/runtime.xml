@@ -17,6 +17,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
+        <scenario-security-stream-state>C-SEC-STREAM-AUTH: the full backend test binary compiles the managed live-server state and generic disable command; mock-runtime fixtures prove disable reaches exactly the owner session.</scenario-security-stream-state>
         <scenario-metadata-t001-vm001>T-001: required format deserialization, UTF-16 BOM/CRLF exact bytes and echoed format; invalid/unsupported/mixed/BOM/unrepresentable policies preserve an existing byte sentinel and create no missing parent. Owned-path and sandbox regressions remain unchanged.</scenario-metadata-t001-vm001>
         <scenario-md-link-m001-route>C-MD-LINK-TABS: link_click_document_has_internal_destination fails on the OS-only baseline. The production dispatch seam selects exactly one document/web/local sink; real document payload reading and an unreadable UTF-8 target prove no empty event or OS fallback. Existing canonical aliases, traversal and executable guards remain. Native current-window/process evidence is recorded separately.</scenario-md-link-m001-route>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
@@ -2911,6 +2912,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m010</Command>
       </Commands>
       <Scenarios>
+        <scenario-security-link-attachments>C-SEC-LINK-OPEN: link_click regression fixtures reject Windows launch extensions, case variants, requested/canonical aliases, unknown types, ambiguous names and non-file external targets without invoking any sink; Markdown, HTTPS, image and PDF routes remain intact.</scenario-security-link-attachments>
         <Scenario>
           scenario-1: CVE-2023-2318 payload: `script` tag in injected HTML does
           not execute (#3621).
@@ -3330,6 +3332,7 @@
     <V-M-011>
       <Priority>critical</Priority>
       <Commands>
+        <Command>node node_modules/vitest/vitest.mjs run tests/renderer/store/live-stream-ownership.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js</Command>
         <Command>npx vitest run tests/renderer/store/editor-format.test.js tests/renderer/store/help.test.ts tests/renderer/util/document-format.test.js tests/renderer/util/document-snapshot.test.js tests/renderer/util/document-operations.test.js</Command>
         <Command>npx vitest run tests/renderer/util/document-format.test.js</Command>
         <Command>npx vitest run tests/renderer/components/editor-link-interaction.test.js tests/renderer/components/editor-coverage.test.js</Command>
@@ -3529,6 +3532,8 @@
         <Command>npx --no-install vitest run tests/renderer/components/split-rich-history.test.js tests/renderer/components/split-source-commands.test.js tests/renderer/util/split-commands.test.js tests/renderer/util/split-dual-edit.test.js</Command>
       </Commands>
       <Scenarios>
+        <scenario-shell-import-isolation>C-SEC-COVERAGE-IMPORTS: app.test.js and app-deep.test.js use an import-level editor child stub, preserving all 41 shell assertions and existing timeouts. Real editor and live-stream rendering remain covered by their component suites and Chromium/WebKit regressions.</scenario-shell-import-isolation>
+        <scenario-security-live-tab-owner>C-SEC-STREAM-TABS: live-stream-ownership store tests protect background/closed tabs, local history and dirty state, resync identity, duplicate revisions, stale epochs and independent window stores. Browser fixtures prove rich/source/split rendering and the next local save in Chromium and WebKit.</scenario-security-live-tab-owner>
         <Scenario>T-003: session-restore units prove pending format choice over fresh disk checkpoint, same-format explicit dirty intent, duplicate dirty tab reuse and recently-closed roundtrip. Clipboard-path/open units prove existing clipboard/drop helper requests the shared strict native open; boot-shim dynamic import guard remains unchanged.</Scenario>
         <scenario-metadata-t002-vm011>T-002: text plus format checkpoints, no-op revision, exact buffer/history/cursor preservation, metadata-only autosave with live preference and explicit-retry guard, all-field picker/post-dispatch freshness, malformed format ACK refusal, Save As path adoption with newer dirty policy, changed-then-reverted retry, group cancellation and IME-first no extraction. Existing store/surface regressions retain exact content and composition assertions.</scenario-metadata-t002-vm011>
         <scenario-metadata-t001-vm011>T-001: complete immutable defensive format capture, all-field equality, explicit mixed source, safe invalid/unavailable refusal, exact 36 visible IDs and 32 supported/four unavailable entries.</scenario-metadata-t001-vm011>
@@ -5928,6 +5933,7 @@
     <V-M-012>
       <Priority>critical</Priority>
       <Commands>
+        <Command>node node_modules/@playwright/test/cli.js test tests/e2e/live-stream-ownership.spec.ts --project chromium --project webkit-live-stream</Command>
         <Command>npx --no-install vitest run tests/renderer/muya/emoji-timestamps.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/link-interaction.test.js tests/renderer/muya/link-hover.test.js tests/renderer/muya/keyboard-selection.test.js</Command>
         <Command>npx vitest run tests/renderer/muya/link-hover.test.js tests/renderer/muya/inline-token-parity.test.js tests/renderer/muya/plugin-registry-lifecycle.test.js</Command>
@@ -6026,6 +6032,7 @@
 <Command>npx --no-install vitest run tests/renderer/muya/history-external-commit.test.js tests/renderer/muya/footnote-options.test.js</Command>
       </Commands>
       <Scenarios>
+        <scenario-security-live-render-owner>C-SEC-STREAM-TABS: live-stream-ownership.spec.ts checks actual rich/source/split panes across background patch, tab activation, resync, delayed old epoch, close and user edit/save; foreign streamed content never enters the local save payload.</scenario-security-live-render-owner>
         <Scenario>C-METADATA-SAVE-SAFETY renderer import regression: CRLF/BOM source containing a table and nested tasks stays exact and clean through rich, source and split readback and explicit Save. First model blocks establish test readiness without assuming an edit revision. Checkbox undo, table width-only changes, split reload and post-boot close retain their existing invariants.</Scenario>
         <Scenario>scenario-emoji-timestamps: one/two-digit colon-delimited numeric fields in clock times and durations remain literal in the inline tokenizer and marked HTML path, with exact Markdown round-trip. Existing numeric emoji 100/1234, signed and alphanumeric aliases, and unknown alphabetic editing tokens retain their behavior. tests/renderer/muya/emoji-timestamps.test.js pins both parsers; rich-markdown-coverage.spec.ts verifies visible clock text, zero warning spans and real numeric emoji in Chromium and WebKit.</Scenario>
         <scenario-md-link-v-m-012>Native-style first/second mouse sequences distinguish reading from established editing, exposed syntax retains ownership, modifier/tool dispatch is single, selection modifiers/IME/drag and invalidated epochs do not navigate. The current fixture mocks native selection; real browser sequences prove visible selection separately.</scenario-md-link-v-m-012>
@@ -9009,6 +9016,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-security-link-dispatch>C-SEC-LINK-OPEN: production-shaped validation/dispatch uses fake sinks only; denial produces zero dispatch and read errors never fall back to an external opener.</scenario-security-link-dispatch>
         <scenario-metadata-t002-vm013b>T-002: actual command args contain a defensive complete format and owned-path copy. Invalid or unavailable policy fails before invoke; coordinator validates the echoed policy before any path/checkpoint change. Browser transport doubles are not encoding-byte proof.</scenario-metadata-t002-vm013b>
         <Scenario>C-SAVE-CLOSE-DATA-SAFETY: ipc/runtime/documentSave.ts exports chooseTarget/writeSnapshot over M-013-A with actual-settlement lifetime. Its runtime barrel exports ipcDocumentSave. Evidence: document-snapshot.test.js, document-operations.test.js, document-save-surfaces.test.js, ipc/document-save.test.ts, the owned editor/bootstrap/workspace tests, Rust m001_save_close/m001_validate tests and perf/save-close-safety.spec.ts. Native IME and on-disk acceptance are recorded separately; no renderer double claims native verification.</Scenario>
         <Scenario>

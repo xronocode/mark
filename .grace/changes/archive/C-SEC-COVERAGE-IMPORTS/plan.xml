@@ -1,0 +1,8 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><C-SEC-COVERAGE-IMPORTS>
+<IntentSummary>Use a module-level child stub in the shell tests, matching the existing rendering stub; preserve product behavior, assertions and budgets.</IntentSummary>
+<BaselineAssertions><MustExist><Value>M-011</Value></MustExist><MustExist><Value>M-046</Value></MustExist></BaselineAssertions>
+<TargetAssertions><MustVerify><Module>M-011</Module></MustVerify><MustPassCommand><Command>node node_modules/vitest/vitest.mjs run tests/renderer/pages/app.test.js tests/renderer/pages/app-deep.test.js</Command></MustPassCommand></TargetAssertions>
+<DurableScope><GraphAnchors><M-011/><M-046/></GraphAnchors><VerificationAnchors><V-M-011/><V-M-046/></VerificationAnchors></DurableScope>
+<ObservedWriteScope><File>tests/renderer/pages/app.test.js</File><File>tests/renderer/pages/app-deep.test.js</File></ObservedWriteScope>
+<ImplementationPlan><T-001><Title>Replace the unused production child import with an equivalent module stub in both shell fixtures.</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Existing shell assertions pass unchanged and the real editor remains covered by component/browser tests.</Criterion></AcceptanceCriteria><Verification><Command>node node_modules/vitest/vitest.mjs run tests/renderer/pages/app.test.js tests/renderer/pages/app-deep.test.js</Command></Verification></T-001></ImplementationPlan>
+</C-SEC-COVERAGE-IMPORTS></GraceChangePlan>

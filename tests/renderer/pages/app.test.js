@@ -6,6 +6,29 @@ vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
+// C-SEC-COVERAGE-IMPORTS: stub shell child modules at import as well as at mount.
+// Rendering stubs alone still compile the unused production editor/dialog trees.
+vi.mock('@/components/recent', () => ({ default: { name: 'Recent', template: '<div />' } }))
+vi.mock('@/components/editorWithTabs', () => ({ default: { name: 'EditorWithTabs', template: '<div />' } }))
+vi.mock('@/components/titleBar', () => ({ default: { name: 'TitleBar', template: '<div />' } }))
+vi.mock('@/components/sideBar', () => ({ default: { name: 'SideBar', template: '<div />' } }))
+vi.mock('@/components/about', () => ({ default: { name: 'AboutDialog', template: '<div />' } }))
+vi.mock('@/components/commandPalette', () => ({ default: { name: 'CommandPalette', template: '<div />' } }))
+vi.mock('@/components/projectSearch', () => ({ default: { name: 'ProjectSearch', template: '<div />' } }))
+vi.mock('@/components/problems', () => ({ default: { name: 'ProblemsPanel', template: '<div />' } }))
+vi.mock('@/components/exportSettings', () => ({ default: { name: 'ExportSettingDialog', template: '<div />' } }))
+vi.mock('@/components/rename', () => ({ default: { name: 'Rename', template: '<div />' } }))
+vi.mock('@/components/tweet', () => ({ default: { name: 'Tweet', template: '<div />' } }))
+vi.mock('@/components/import', () => ({ default: { name: 'ImportModal', template: '<div />' } }))
+vi.mock('@/components/liveViewer', () => ({ default: { name: 'LiveViewer', template: '<div />' } }))
+vi.mock('@/components/zoomIndicator', () => ({ default: { name: 'ZoomIndicator', template: '<div />' } }))
+vi.mock('@/components/updateNotice', () => ({ default: { name: 'UpdateNotice', template: '<div />' } }))
+vi.mock('@/components/rollbackConfirm', () => ({ default: { name: 'RollbackConfirm', template: '<div />' } }))
+vi.mock('@/components/notificationStack', () => ({ default: { name: 'NotificationStack', template: '<div />' } }))
+vi.mock('@/components/notificationsHistory', () => ({ default: { name: 'NotificationsHistory', template: '<div />' } }))
+vi.mock('@/components/whatsNew', () => ({ default: { name: 'WhatsNewDialog', template: '<div />' } }))
+vi.mock('@/components/sideBar/workspaceModeDialog.vue', () => ({ default: { name: 'WorkspaceModeDialog', template: '<div />' } }))
+
 vi.mock('@/util/theme', () => ({
   addCommonStyle: vi.fn(),
   addThemeStyle: vi.fn(),
@@ -62,7 +85,7 @@ describe('App.vue page', () => {
     })
     expect(wrapper.exists()).toBe(true)
     expect(wrapper.find('.editor-container').exists()).toBe(true)
-  }, 15_000) // first mount pays the cold transform of the whole editor tree; 5 s flaked under the parallel coverage run
+  }, 15_000) // bounded shell mount; the unrelated editor import is stubbed above
 
   it('renders placeholder when init is false', async () => {
     const { useMainStore } = await import('@/store')

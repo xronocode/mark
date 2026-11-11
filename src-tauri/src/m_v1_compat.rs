@@ -979,6 +979,10 @@ fn validate_link_click_target(href: &str, dirname: &str) -> Result<LinkClickTarg
     Ok(if is_markdown(target) {
         LinkClickTarget::Markdown(target.to_string())
     } else {
+        crate::m010_security::check_markdown_external_target(&requested)
+            .map_err(|e| denied(e.to_string()))?;
+        crate::m010_security::check_markdown_external_target(&validated)
+            .map_err(|e| denied(e.to_string()))?;
         LinkClickTarget::Local(target.to_string())
     })
 }
@@ -1137,6 +1141,42 @@ mod tests {
         );
         assert!(result.is_err());
         assert!(!emitted.get());
+    }
+
+    #[test]
+    fn link_click_refuses_windows_launchers_and_unknown_attachments_without_dispatch() {
+        use std::cell::Cell;
+        let dir = TempDir::new().unwrap();
+        for name in ["run.exe", "run.COM", "run.bat", "run.CmD", "setup.msi", "patch.msp",
+            "screen.scr", "launch.pif", "panel.cpl", "page.hta", "run.ps1", "run.vbs",
+            "run.vbe", "run.js", "run.jse", "run.wsf", "run.wsh", "config.reg",
+            "setup.inf", "launch.appref-ms", "unknown.bin", "no-extension", "run.exe.",
+            "run.exe ", "image.png:run.exe", "folder.pdf"] {
+            if name == "folder.pdf" { std::fs::create_dir(dir.path().join(name)).unwrap(); }
+            else if !cfg!(windows) || !name.contains(':') {
+                std::fs::write(dir.path().join(name), b"inert fixture").unwrap();
+            }
+            let called = Cell::new(false);
+            let result = validate_link_click_target(name, dir.path().to_str().unwrap()).and_then(|target|
+                dispatch_link_click_with(target,
+                    |_| { called.set(true); Ok(()) }, |_| { called.set(true); Ok(()) },
+                    |_| { called.set(true); Ok(()) }));
+            assert!(result.is_err(), "unsafe target admitted: {name}");
+            assert!(!called.get(), "denied target dispatched: {name}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn link_click_refuses_windows_executable_aliases() {
+        let dir = TempDir::new().unwrap();
+        std::fs::write(dir.path().join("run.exe"), b"inert fixture").unwrap();
+        std::fs::write(dir.path().join("safe.png"), b"inert fixture").unwrap();
+        std::os::unix::fs::symlink("run.exe", dir.path().join("alias.png")).unwrap();
+        std::os::unix::fs::symlink("safe.png", dir.path().join("alias.cmd")).unwrap();
+        for name in ["alias.png", "alias.cmd"] {
+            assert!(validate_link_click_target(name, dir.path().to_str().unwrap()).is_err());
+        }
     }
 
     #[test]

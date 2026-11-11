@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SEC-STREAM-TABS>
+    <Summary>Bind live updates to an explicit session incarnation and tab.</Summary>
+    <Goals><Goal>Background patches update only the stream tab, preserving unrelated content, history, dirty state and saved bytes.</Goal><Goal>Closed tabs and stale epochs cannot redirect updates; same-session resync retains its tab.</Goal><Goal>Rich, source and split surfaces render the owned state; Chromium and WebKit cover the lifecycle.</Goal></Goals>
+    <Constraints><Constraint>Owner approved the source-validated 2026-11-11 remediation plan by instructing implementation. Execute sequentially; use dummy fixtures and preserve release authorization.</Constraint><Constraint>Keep repository artifacts English and synchronize contracts, graph and verification. No production deploy or release.</Constraint></Constraints>
+    <NonGoals><NonGoal>Broad dependency upgrades, new executable-confirmation UI and release publication.</NonGoal></NonGoals>
+    <AcceptanceCriteria><Criterion>Background patches update only the stream tab, preserving unrelated content, history, dirty state and saved bytes.</Criterion><Criterion>Closed tabs and stale epochs cannot redirect updates; same-session resync retains its tab.</Criterion><Criterion>Rich, source and split surfaces render the owned state; Chromium and WebKit cover the lifecycle.</Criterion></AcceptanceCriteria>
+    <AffectedAreas><M-011/><M-012/><M-045/><M-046/></AffectedAreas>
+    <VerificationIntent><ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/store/live-stream-ownership.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js</ExpectedCommand><ExpectedEvidence>Regressions fail before the fix and pass after it; final GRACE assertions and current integrity pass.</ExpectedEvidence></VerificationIntent>
+  </C-SEC-STREAM-TABS>
+</GraceChangeSpec>

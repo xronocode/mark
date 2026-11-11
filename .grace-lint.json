@@ -3,6 +3,7 @@
     ".playwright-mcp",
     "clipboard-capture",
     "homebrew-mark",
-    "mark-quicklook"
+    "mark-quicklook",
+    ".claude"
   ]
 }

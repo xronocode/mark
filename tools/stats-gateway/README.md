@@ -182,12 +182,20 @@ commit, or any missing or unsuccessful required GitHub Actions check
 SHA. It then invokes Wrangler from this directory and writes the SHA,
 Worker version ID and UTC time to the owner-local
 `~/.local/state/mark/stats-gateway-deployments.jsonl` receipt. Never run
-Wrangler directly for a production deploy. The wrapper pins Wrangler
-4.159.0 so a repeated command does not silently change its CLI.
+Wrangler directly for a production deploy. The dedicated manifest pins Wrangler 4.159.0 and the committed lockfile fixes
+its complete dependency graph with integrity. The wrapper invokes only the
+prepared local CLI; missing or mismatched tooling fails without downloading it.
+Git/GitHub admission subprocesses receive no Cloudflare credentials. Only the
+prepared deployment process receives the explicit narrow token/account pair;
+there is no OAuth fallback. Telemetry is disabled for that process.
 
 ```sh
 git switch main
 git pull --ff-only fork main
+# Prepare in a shell without Cloudflare or unrelated credentials.
+# Installation scripts are disabled; supported platform binaries are locked optional packages.
+npm ci --prefix tools/stats-gateway --ignore-scripts --no-audit --no-fund
+node tools/stats-gateway/node_modules/wrangler/bin/wrangler.js --version
 node tools/stats-gateway/deploy-checked.mjs --check-only
 export CLOUDFLARE_API_TOKEN=…   # narrow deploy token, not a broad OAuth grant
 export CLOUDFLARE_ACCOUNT_ID=…  # the account ID from the dashboard account home

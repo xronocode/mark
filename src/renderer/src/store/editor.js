@@ -119,6 +119,7 @@ const sessionAutosaveStores = new WeakSet()
 export const useEditorStore = defineStore('editor', {
   state: () => ({
     currentFile: {},
+    liveDocument: null,
     findVisible: false,
     documentWindowClosing: false,
     tabs: [],
@@ -1583,6 +1584,68 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    // START_BLOCK_LIVE_DOCUMENT_OWNERSHIP
+    OPEN_LIVE_DOCUMENT({ sessionId, sessionEpoch, markdown, title }) {
+      if (this.documentWindowClosing || typeof sessionId !== 'string' || !sessionId ||
+        !Number.isSafeInteger(sessionEpoch) || sessionEpoch <= 0 || typeof markdown !== 'string') return null
+      const previous = this.liveDocument
+      if (previous && sessionEpoch <= previous.sessionEpoch) return null
+      let tab = previous?.active && previous.sessionId === sessionId
+        ? this.tabs.find(tab => tab.id === previous.tabId) : null
+      if (!tab) {
+        const { defaultEncoding, endOfLine } = usePreferencesStore()
+        try { tab = getBlankFileState(this.tabs, defaultEncoding, endOfLine, '') }
+        catch (error) { this._notifyFormatError(error.message); return null }
+        tab.requiresExplicitSave = true
+        this.tabs.push(tab)
+        this.updateTabIdToIndex()
+        // Keep the Pinia-owned reference, not the unproxied factory object.
+        tab = this.tabs.find(candidate => candidate.id === tab.id)
+      }
+      this.liveDocument = { sessionId, sessionEpoch, tabId: tab.id, revision: 0, active: true }
+      tab.liveTitle = typeof title === 'string' ? title : ''
+      this.PATCH_LIVE_DOCUMENT({ sessionId, sessionEpoch, revision: 1, markdown })
+      // A resync updates its tab without stealing focus from another document.
+      if (!previous?.active || previous.tabId !== tab.id) {
+        this.SHOW_TAB_VIEW(false)
+        this.UPDATE_CURRENT_FILE(tab)
+      }
+      return tab.id
+    },
+
+    PATCH_LIVE_DOCUMENT({ sessionId, sessionEpoch, revision, markdown }) {
+      const binding = this.liveDocument
+      if (!binding?.active || binding.sessionId !== sessionId || binding.sessionEpoch !== sessionEpoch ||
+        !Number.isSafeInteger(revision) || revision <= binding.revision || typeof markdown !== 'string') return false
+      const tab = this.tabs.find(tab => tab.id === binding.tabId)
+      if (!tab) { binding.active = false; return false }
+      binding.revision = revision
+      if (markdown !== tab.markdown) tab.contentRevision = (tab.contentRevision || 0) + 1
+      tab.markdown = markdown
+      tab.blocks = undefined
+      tab.cursor = null
+      tab.muyaIndexCursor = null
+      tab.history = { stack: [], index: -1 }
+      delete tab.splitSession
+      tab.contentReloaded = true
+      recomputeDocumentSaved(tab)
+      // No content-change/autosave path: streamed bytes belong only to this tab.
+      if (this.currentFile.id === tab.id) {
+        bus.emit('file-changed', { id: tab.id, markdown, history: tab.history,
+          cursor: null, muyaIndexCursor: null, contentReloaded: true, renderCursor: false })
+        tab.contentReloaded = false
+      }
+      return true
+    },
+
+    CLOSE_LIVE_DOCUMENT({ sessionId, sessionEpoch }) {
+      const binding = this.liveDocument
+      if (!binding?.active || binding.sessionId !== sessionId || binding.sessionEpoch !== sessionEpoch) return false
+      binding.active = false
+      return true
+    },
+    // END_BLOCK_LIVE_DOCUMENT_OWNERSHIP
+
     /**
      * C-40 G-3: open (or focus) the Mark Guide as a temporary untitled
      * tab. The guide is a pathname-less untitled tab, so nothing is ever
@@ -2660,7 +2723,7 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
+//   SCOPE: Session-incarnation-owned live tabs; complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, documentFormat/documentSnapshot/documentOperations.
 //   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/active/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
@@ -2674,6 +2737,7 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-11 C-SEC-STREAM-TABS: route live updates through explicit session/tab store ownership and tombstone closed streams.
 //   LAST_CHANGE: 2026-11-11 C-METADATA-SAVE-SAFETY: text/format checkpoint reconciliation, composition-first format choices, boundary-only newline policy and explicit retry after stale ACK.
 // END_CHANGE_SUMMARY
 //

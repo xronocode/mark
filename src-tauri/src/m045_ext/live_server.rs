@@ -17,6 +17,7 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-11 C-SEC-STREAM-AUTH: validate enabled generation and session owner at serialized mutations; stamp ordered live events.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: authenticate text insertion by enabled capability and bearer identity; runtime-generic fixtures.
 //   - 2026-08-14 live-doc v2: DocPatchRequest gained `op` (append|replace,
 //     default replace; replace_section synonym). LiveSession.sections is now
@@ -58,6 +59,7 @@ use tokio::sync::Mutex;
 pub struct LiveSession {
     pub session_id: String,
     pub extension_id: String,
+    pub session_epoch: u64,
     pub last_seq: u64,
     pub revision: u64,
     pub document_md: String,
@@ -73,6 +75,7 @@ pub struct LiveSession {
 /// (async-aware, no blocking across await points).
 pub struct LiveServerState<R: tauri::Runtime = tauri::Wry> {
     pub session: Mutex<Option<LiveSession>>,
+    pub next_epoch: AtomicU64,
     pub app_handle: tauri::AppHandle<R>,
     /// Pending /ext/context requests awaiting frontend response.
     /// Uses std::sync::Mutex (not tokio) because the lock is held
@@ -323,19 +326,22 @@ pub fn build_sections_from_init(inits: Vec<SectionInit>) -> Vec<(String, String)
 pub enum OpenDecision {
     /// No active session — start fresh.
     FreshOpen,
-    /// Active session with the SAME id — replace state wholesale
+    /// Active session with the SAME owner and id — replace state wholesale
     /// (resync path; live-doc v2 recovery for a client stuck on
     /// needs_resync).
     ReplaceSameSession,
     /// Active session with a DIFFERENT id — reject with 409.
     Conflict,
+    /// An enabled but different owner must learn no session identifier.
+    ForeignOwner,
 }
 
-/// Pure core: decide how /stream/open interacts with the active session.
-pub fn decide_open(existing: Option<&LiveSession>, incoming_session_id: &str) -> OpenDecision {
+/// Pure core: session identity is scoped to the authenticated extension owner.
+pub fn decide_open(existing: Option<&LiveSession>, incoming_session_id: &str, incoming_extension_id: &str) -> OpenDecision {
     match existing {
         None => OpenDecision::FreshOpen,
         Some(s) if !s.active => OpenDecision::FreshOpen,
+        Some(s) if s.extension_id != incoming_extension_id => OpenDecision::ForeignOwner,
         Some(s) if s.session_id == incoming_session_id => OpenDecision::ReplaceSameSession,
         Some(_) => OpenDecision::Conflict,
     }
@@ -376,32 +382,48 @@ fn extract_bearer(headers: &HeaderMap) -> Result<String, (StatusCode, String)> {
     Ok(token.to_string())
 }
 
-/// Validate a bearer token against the extension's stored secret.
-async fn validate_bearer<R: tauri::Runtime>(
-    headers: &HeaderMap,
-    state: &LiveServerState<R>,
-) -> Result<String, (StatusCode, String)> {
-    let token = extract_bearer(headers)?;
+/// An authenticated identity snapshot. Never contains the credential itself.
+struct StreamIdentity {
+    extension_id: String,
+    authorization_epoch: u64,
+    session_epoch: Option<u64>,
+}
 
-    let session_guard = state.session.lock().await;
-    let session = session_guard.as_ref().ok_or_else(|| {
-        (
-            StatusCode::CONFLICT,
-            "no active session".to_string(),
-        )
-    })?;
-
-    let ext_id = session.extension_id.clone();
-    drop(session_guard);
-
-    if !super::auth::validate_token(&ext_id, &token) {
-        safe_eprintln!(
-            "[ExtHost][live_server][BLOCK_AUTH_FAILED ext_id={ext_id}]"
-        );
-        return Err((StatusCode::UNAUTHORIZED, "invalid token".to_string()));
+impl StreamIdentity {
+    fn is_enabled(&self, registry: &super::registry::ExtRegistry) -> bool {
+        registry.authorization_epoch(&self.extension_id).ok() == Some(self.authorization_epoch)
     }
+    fn owns(&self, session: Option<&LiveSession>) -> bool {
+        session.is_some_and(|s| s.extension_id == self.extension_id && Some(s.session_epoch) == self.session_epoch)
+    }
+}
 
-    Ok(ext_id)
+async fn authenticate_stream<R: tauri::Runtime>(
+    headers: &HeaderMap, state: &LiveServerState<R>, extension_id: String, session_epoch: Option<u64>,
+) -> Result<StreamIdentity, (StatusCode, String)> {
+    let token = extract_bearer(headers)?;
+    let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+    let authorization_epoch = registry.authorization_epoch(&extension_id)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "extension is not enabled".to_string()))?;
+    let id = extension_id.clone();
+    let valid = tokio::task::spawn_blocking(move || super::auth::validate_token(&id, &token))
+        .await.unwrap_or(false);
+    if !valid { return Err((StatusCode::UNAUTHORIZED, "invalid token".to_string())); }
+    Ok(StreamIdentity { extension_id, authorization_epoch, session_epoch })
+}
+
+/// Snapshot owner/incarnation before credential I/O; every caller must recheck
+/// it and the enabled generation under stream_gate at the mutation boundary.
+async fn validate_bearer<R: tauri::Runtime>(
+    headers: &HeaderMap, state: &LiveServerState<R>,
+) -> Result<StreamIdentity, (StatusCode, String)> {
+    extract_bearer(headers)?;
+    let (id, epoch) = {
+        let guard = state.session.lock().await;
+        let session = guard.as_ref().ok_or((StatusCode::CONFLICT, "no active session".to_string()))?;
+        (session.extension_id.clone(), session.session_epoch)
+    };
+    authenticate_stream(headers, state, id, Some(epoch)).await
 }
 
 /// Authenticate an incoming data request without holding the registry lock during
@@ -535,30 +557,18 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
 }
 
 /// POST /stream/open — start a live document session.
-async fn handle_doc_open<R: tauri::Runtime>(
+pub(super) async fn handle_doc_open<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<DocOpenRequest>,
 ) -> impl IntoResponse {
-    let bearer_token = match extract_bearer(&headers) {
-        Ok(token) => token,
-        Err(e) => return (e.0, Json(serde_json::json!({"error": e.1}))),
+    let identity = match authenticate_stream(&headers, &state, req.extension_id.clone(), None).await {
+        Ok(identity) => identity,
+        Err((status, error)) => return (status, Json(serde_json::json!({"error": error}))),
     };
-
-    // Authenticate BEFORE any session-state disclosure (401 must precede
-    // 409 — otherwise an unauthenticated local caller gets a session
-    // existence oracle plus the real existing_session_id). Identity comes
-    // from the request's extension_id, validated against the
-    // keychain-stored secret — not client-controlled session state.
-    let extension_id = req.extension_id.clone();
-    if !super::auth::validate_token(&extension_id, &bearer_token) {
-        safe_eprintln!("[ExtHost][live_server][BLOCK_DOC_OPEN_AUTH_FAILED ext_id={extension_id}]");
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({"error": "invalid token for extension"})),
-        );
-    }
-
+    let extension_id = identity.extension_id.clone();
+    let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+    let _stream_gate = registry.stream_gate.lock().await;
     safe_eprintln!(
         "[ExtHost][live_server][BLOCK_DOC_OPEN session_id={} title={}]",
         req.session_id,
@@ -566,8 +576,14 @@ async fn handle_doc_open<R: tauri::Runtime>(
     );
 
     let mut session_guard = state.session.lock().await;
+    if !identity.is_enabled(&registry) {
+        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"extension is not enabled"})));
+    }
 
-    match decide_open(session_guard.as_ref(), &req.session_id) {
+    match decide_open(session_guard.as_ref(), &req.session_id, &extension_id) {
+        OpenDecision::ForeignOwner => {
+            return (StatusCode::CONFLICT, Json(serde_json::json!({"error":"a session is already active"})));
+        }
         OpenDecision::Conflict => {
             let existing_id = session_guard
                 .as_ref()
@@ -612,7 +628,9 @@ async fn handle_doc_open<R: tauri::Runtime>(
     };
     let document_md_for_emit = document_md.clone();
 
+    let session_epoch = state.next_epoch.fetch_add(1, Ordering::Relaxed);
     let session = LiveSession {
+        session_epoch,
         session_id: req.session_id.clone(),
         extension_id,
         last_seq: 0,
@@ -624,7 +642,6 @@ async fn handle_doc_open<R: tauri::Runtime>(
     };
 
     *session_guard = Some(session);
-    drop(session_guard);
 
     // B5b: emit doc_open to frontend for live rendering. Emits the
     // authoritative document_md (== join of sections), not the raw
@@ -632,6 +649,7 @@ async fn handle_doc_open<R: tauri::Runtime>(
     if let Err(e) = super::live_bridge::emit_doc_open(
         &state.app_handle,
         &req.session_id,
+        session_epoch,
         &req.title,
         &document_md_for_emit,
     ) {
@@ -655,16 +673,24 @@ async fn handle_doc_open<R: tauri::Runtime>(
 }
 
 /// POST /stream/patch — incremental document update.
-async fn handle_doc_patch<R: tauri::Runtime>(
+pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<DocPatchRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = validate_bearer(&headers, &state).await {
-        return (e.0, Json(serde_json::json!({"error": e.1})));
-    }
-
+    let identity = match validate_bearer(&headers, &state).await {
+        Ok(identity) => identity,
+        Err((status, error)) => return (status, Json(serde_json::json!({"error":error}))),
+    };
+    let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+    let _stream_gate = registry.stream_gate.lock().await;
     let mut session_guard = state.session.lock().await;
+    if !identity.is_enabled(&registry) {
+        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"extension is not enabled"})));
+    }
+    if !identity.owns(session_guard.as_ref()) {
+        return (StatusCode::CONFLICT, Json(serde_json::json!({"error":"session changed during authentication"})));
+    }
 
     let session = match session_guard.as_mut() {
         Some(s) if s.active => s,
@@ -780,11 +806,13 @@ async fn handle_doc_patch<R: tauri::Runtime>(
     let full_content = session.document_md.clone();
     let section = req.section.clone();
     let revision = session.revision;
-    drop(session_guard);
+    let session_epoch = session.session_epoch;
 
     // B5b: emit doc_patch to frontend for live rendering.
     if let Err(e) = super::live_bridge::emit_doc_patch(
         &state.app_handle,
+        &req.session_id,
+        session_epoch,
         &full_content,
         &section,
         revision,
@@ -814,16 +842,24 @@ async fn handle_doc_patch<R: tauri::Runtime>(
 }
 
 /// POST /stream/close — end the live session.
-async fn handle_doc_close<R: tauri::Runtime>(
+pub(super) async fn handle_doc_close<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<DocCloseRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = validate_bearer(&headers, &state).await {
-        return (e.0, Json(serde_json::json!({"error": e.1})));
-    }
-
+    let identity = match validate_bearer(&headers, &state).await {
+        Ok(identity) => identity,
+        Err((status, error)) => return (status, Json(serde_json::json!({"error":error}))),
+    };
+    let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+    let _stream_gate = registry.stream_gate.lock().await;
     let mut session_guard = state.session.lock().await;
+    if !identity.is_enabled(&registry) {
+        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"extension is not enabled"})));
+    }
+    if !identity.owns(session_guard.as_ref()) {
+        return (StatusCode::CONFLICT, Json(serde_json::json!({"error":"session changed during authentication"})));
+    }
 
     let session = match session_guard.as_mut() {
         Some(s) if s.active => s,
@@ -851,12 +887,13 @@ async fn handle_doc_close<R: tauri::Runtime>(
     session.active = false;
     let final_revision = session.revision;
     let session_id = session.session_id.clone();
-    drop(session_guard);
+    let session_epoch = session.session_epoch;
 
     // B5b: emit doc_close to frontend.
     if let Err(e) = super::live_bridge::emit_doc_close(
         &state.app_handle,
         &session_id,
+        session_epoch,
         final_revision,
     ) {
         safe_eprintln!(
@@ -880,16 +917,24 @@ async fn handle_doc_close<R: tauri::Runtime>(
 }
 
 /// POST /stream/heartbeat — keepalive signal.
-async fn handle_heartbeat<R: tauri::Runtime>(
+pub(super) async fn handle_heartbeat<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<HeartbeatRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = validate_bearer(&headers, &state).await {
-        return (e.0, Json(serde_json::json!({"error": e.1})));
-    }
-
+    let identity = match validate_bearer(&headers, &state).await {
+        Ok(identity) => identity,
+        Err((status, error)) => return (status, Json(serde_json::json!({"error":error}))),
+    };
+    let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+    let _stream_gate = registry.stream_gate.lock().await;
     let mut session_guard = state.session.lock().await;
+    if !identity.is_enabled(&registry) {
+        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"extension is not enabled"})));
+    }
+    if !identity.owns(session_guard.as_ref()) {
+        return (StatusCode::CONFLICT, Json(serde_json::json!({"error":"session changed during authentication"})));
+    }
 
     let session = match session_guard.as_mut() {
         Some(s) if s.active => s,
@@ -1193,13 +1238,14 @@ async fn heartbeat_monitor<R: tauri::Runtime>(state: Arc<LiveServerState<R>>) {
                 );
                 let sid = session.session_id.clone();
                 let rev = session.revision;
+                let epoch = session.session_epoch;
                 session.active = false;
-                drop(session_guard);
 
                 // B5b: emit doc_close on heartbeat timeout.
                 if let Err(e) = super::live_bridge::emit_doc_close(
                     &state.app_handle,
                     &sid,
+                    epoch,
                     rev,
                 ) {
                     safe_eprintln!(

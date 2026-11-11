@@ -39,6 +39,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-11 C-SEC-STREAM-AUTH: manage shared live-session state and its event epoch so disable can close the owned stream before native credential I/O.
 //   - 2026-11-09 C-STABILIZE-PROFILE-ISOLATION: bind the generated application namespace before pre-boot state access and reuse the same Context for Tauri build.
 //   - 2026-10-30 M-069: setup applies m069_dev_badge::apply_dev_badge after
 //     the Mica hook; the tauri devtools feature became an opt-in cargo
@@ -776,10 +777,12 @@ fn main() {
                 let live_state = std::sync::Arc::new(
                     m045_ext::LiveServerState {
                         session: tokio::sync::Mutex::new(None),
+                        next_epoch: std::sync::atomic::AtomicU64::new(1),
                         app_handle: app.handle().clone(),
                         pending_context: std::sync::Mutex::new(std::collections::HashMap::new()),
                     },
                 );
+                app.manage(live_state.clone());
                 // ASC review (2026-09-30): the App Store build carries no
                 // com.apple.security.network.server entitlement — the live
                 // viewer stays a desktop-build feature (MAS: no listener).
