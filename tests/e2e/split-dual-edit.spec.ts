@@ -328,3 +328,55 @@ test.describe('Split recovery acceptance', () => {
     expect((await editorState(page)).markdown).toBe(large)
   })
 })
+
+// C-SPLIT-SAVE-AUTHORITY: actual adapters, focus and correlated write path.
+for (const origin of ['standard', 'source']) for (const autoSave of [false, true]) {
+  test(`${origin}-to-Split writes newly edited bytes in both panes, autosave=${autoSave}`, async ({ page }) => {
+    await installTauriShim(page)
+    await page.addInitScript(() => {
+      const w = window as any
+      w.__splitSaveWrites = []
+      w.__mockInvoke.mt_document_write_snapshot = ({ request }: any) => {
+        w.__splitSaveWrites.push(request)
+        return { ...request, pathname: request.targetPath, filename: 'save-authority.md' }
+      }
+    })
+    await bootEditor(page)
+    const initial = '# Save authority\n\nLOCAL BASE\n'
+    const pathname = '/docs/save-authority.md'
+    await openFileTab(page, pathname, initial)
+    if (origin === 'source') await invokeMenu(page, 'view.source-code-mode')
+    await invokeMenu(page, 'view.split-view')
+    await expect(page.locator('.split-view.is-split')).toBeVisible()
+    const owner = await page.evaluate(enabled => {
+      const pinia = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia
+      pinia._s.get('preferences').autoSave = enabled
+      const tab = pinia._s.get('editor').currentFile
+      return { id: tab.id, documentToken: tab.documentToken }
+    }, autoSave)
+    let expected = initial
+    for (const [index, pane] of ['rich', 'source'].entries()) {
+      // Follow projection must finish before this pane receives the next edit.
+      await expect.poll(() => sourceValue(page)).toBe(expected)
+      const line = pane === 'rich'
+        ? page.locator('.split-pane-rich p', { hasText: 'LOCAL BASE' })
+        : page.locator('.split-pane-source .CodeMirror-line', { hasText: 'LOCAL BASE' })
+      await line.click()
+      await page.keyboard.press('End')
+      const suffix = pane === 'rich' ? ' RICH' : ' SOURCE'
+      await page.keyboard.type(suffix)
+      expected = expected.replace('\n\nLOCAL BASE' + (index ? ' RICH' : '') + '\n', '\n\nLOCAL BASE' + (index ? ' RICH' : '') + suffix + '\n')
+      await expect.poll(async () => (await editorState(page)).markdown).toBe(expected)
+      if (!autoSave) {
+        expect(await page.evaluate(() => (window as any).__splitSaveWrites.length)).toBe(index)
+        await invokeMenu(page, 'file.save')
+      }
+      await expect.poll(() => page.evaluate(() => (window as any).__splitSaveWrites.length), { timeout: 10_000 }).toBe(index + 1)
+      const write = await page.evaluate(() => (window as any).__splitSaveWrites.at(-1))
+      expect(write).toMatchObject({ ...owner, sourcePath: pathname, targetPath: pathname, markdown: expected,
+        format: { encoding: 'utf8', isBom: false, lineEnding: 'lf', finalNewline: 3 } })
+      await expect.poll(async () => (await editorState(page)).isSaved).toBe(true)
+      expect(await page.evaluate(() => (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('preferences').sourceCode)).toBe(origin === 'source')
+    }
+  })
+}

@@ -2621,6 +2621,8 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-SOURCE-HISTORY-OWNERSHIP: ordinary Source retains one nonpersistent CodeMirror Doc per live id/token; tab return restores its history and selection, lifetime/canonical replacement retires it, and unified history remains Muya-owned.</SummaryDelta>
+      <SummaryDelta>C-SPLIT-SAVE-AUTHORITY: the editable rich Split surface remains an eligible committed-snapshot owner with a retained Source preference; unified pane focus, mirrors, document lifetime and IME fences retain authority.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-003: native opens establish fresh actual disk checkpoints before validated restored choices. Session snapshots, frozen cold-start offers and bounded recently-closed entries retain selected formats and pending intent; duplicate dirty tabs are reused unchanged. Clipboard/drop delegates its existing helper to the same strict native open instead of synthesizing UTF8/LF.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: fresh tabs own savedMarkdown/savedFormat and requiresExplicitSave. Effective metadata changes advance one complete document revision without altering text/history/cursor; ordinary text events reconcile both checkpoints. Write-only newline policy replaces live-buffer trimming; stale ACK requires explicit retry, including changed-then-reverted state. Autosave includes format-only changes and never clears a retry obligation.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: documentFormat captures a validated immutable complete byte policy and compares all fields, preserving explicit mixed source and rejecting unavailable codecs without fallback. State checkpoint reconciliation follows T-002.</SummaryDelta>
@@ -3810,6 +3812,8 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>C-SOURCE-HISTORY-OWNERSHIP: ordinary Source retains one nonpersistent CodeMirror Doc per live id/token; tab return restores its history and selection, lifetime/canonical replacement retires it, and unified history remains Muya-owned.</SummaryDelta>
+      <SummaryDelta>C-SPLIT-SAVE-AUTHORITY: the editable rich Split surface remains an eligible committed-snapshot owner with a retained Source preference; unified pane focus, mirrors, document lifetime and IME fences retain authority.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY renderer follow-up: rich and CodeMirror surfaces project actual model deltas onto the exact owned source. Import-only formatting, list indentation, table padding and line-break normalization do not replace the saved text checkpoint or create revisions. Existing Muya grammar, codec rules, layout and composition fences remain unchanged.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: the renderer adds format to owned complete-model snapshots and keeps composition-first extraction. Muya code, history and canonical serialization are unchanged; the existing mounted-source composition fixture now supplies complete format metadata.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: Instance-scoped LinkInteraction retains native gesture origin and token identity across reflow; no-history cursor APIs reveal/revert syntax without truncating redo. Document imports/teardown and composition invalidate the lease; link-activate routes once.</SummaryDelta>

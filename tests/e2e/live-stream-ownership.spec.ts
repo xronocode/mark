@@ -134,3 +134,134 @@ test('a background patch cannot change a local save already in flight', async ({
   await expect.poll(async () => (await snapshot(page)).saved).toBe(true)
   expect((await snapshot(page)).markdown).not.toContain('FOREIGN STREAM')
 })
+
+// C-SPLIT-SAVE-AUTHORITY: retained Source preference and new rich content.
+for (const autoSave of [false, true]) test(`Source-to-Split rich save and local history survive background/closed streams, autosave=${autoSave}`, async ({ page }) => {
+  await installTauriShim(page)
+  await page.addInitScript(() => {
+    const w = window as any
+    w.__streamWrites = []
+    w.__mockInvoke.mt_document_write_snapshot = ({ request }: any) => {
+      w.__streamWrites.push(request)
+      return { ...request, pathname: request.targetPath, filename: 'split-local.md' }
+    }
+  })
+  await bootEditor(page)
+  const initial = '# Split local\n\nLOCAL ONLY\n'
+  await openFileTab(page, '/docs/split-local.md', initial)
+  await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.source-code-mode'))
+  await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.split-view'))
+  await expect(page.locator('.split-view.is-split')).toBeVisible()
+  await emit(page, 'doc_open', { session_id: 'split-stream', session_epoch: 1, title: 'Dummy', content: '# FOREIGN STREAM\n' })
+  await expect.poll(async () => (await snapshot(page)).markdown).toBe('# FOREIGN STREAM\n')
+  const streamId = (await snapshot(page)).id
+  await page.locator('.editor-tabs li').filter({ hasText: 'split-local.md' }).click()
+  if (!await page.locator('.split-view.is-split').isVisible()) {
+    await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'view.split-view'))
+  }
+  await expect(page.locator('.split-view.is-split')).toBeVisible()
+  await page.evaluate(enabled => (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('preferences').autoSave = enabled, autoSave)
+  let expected = initial
+  for (const [index, phase] of ['BACKGROUND', 'CLOSED'].entries()) {
+    if (phase === 'BACKGROUND') {
+      await emit(page, 'doc_patch', { session_id: 'split-stream', session_epoch: 1, revision: 2, full_content: '# FOREIGN BACKGROUND\n' })
+      await expect.poll(async () => (await snapshot(page)).tabs.find((tab: any) => tab.id === streamId)?.markdown).toBe('# FOREIGN BACKGROUND\n')
+    } else {
+      await page.evaluate(id => {
+        const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
+        store.FORCE_CLOSE_TAB(store.tabs.find((tab: any) => tab.id === id))
+      }, streamId)
+      await emit(page, 'doc_patch', { session_id: 'split-stream', session_epoch: 1, revision: 3, full_content: '# FOREIGN CLOSED\n' })
+    }
+    const paragraph = page.locator('.split-pane-rich span.ag-paragraph', { hasText: 'LOCAL ONLY' })
+    await expect(paragraph).toBeVisible()
+    await paragraph.click()
+    // Select the real editable surface after activation/follow reconciliation.
+    await page.locator('.split-pane-rich .editor-component').focus()
+    await page.keyboard.press('End'); await page.keyboard.type(' ' + phase)
+    const prior = expected
+    expected = expected.replace(/\n$/, ' ' + phase + '\n')
+    await expect.poll(async () => (await snapshot(page)).markdown).toBe(expected)
+    await page.keyboard.press('Meta+z')
+    await expect.poll(async () => (await snapshot(page)).markdown).toBe(prior)
+    await page.keyboard.press('Meta+Shift+z')
+    await expect.poll(async () => (await snapshot(page)).markdown).toBe(expected)
+    if (!autoSave) {
+      expect((await snapshot(page)).writes).toHaveLength(index)
+      await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'file.save'))
+    }
+    await expect.poll(async () => (await snapshot(page)).writes.length, { timeout: 10_000 }).toBe(index + 1)
+    const state = await snapshot(page)
+    expect(state.writes.at(-1)).toMatchObject({ id: state.id, sourcePath: '/docs/split-local.md', targetPath: '/docs/split-local.md', markdown: expected })
+    expect(state.pathname).toBe('/docs/split-local.md')
+    expect(state.markdown).not.toContain('FOREIGN')
+    await expect.poll(async () => (await snapshot(page)).saved).toBe(true)
+    expect(await page.evaluate(() => (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('preferences').sourceCode)).toBe(true)
+  }
+})
+
+// C-SOURCE-HISTORY-OWNERSHIP: a never-unified Source editor executes actual undo.
+for (const autoSave of [false, true]) test(`ordinary Source undo excludes background and closed-stream payloads, autosave=${autoSave}`, async ({ page }) => {
+  await installTauriShim(page)
+  await page.addInitScript(() => {
+    const w = window as any
+    w.__streamWrites = []
+    w.__mockInvoke.mt_document_write_snapshot = ({ request }: any) => {
+      w.__streamWrites.push(request)
+      return { ...request, pathname: request.targetPath, filename: 'ordinary-source.md' }
+    }
+  })
+  await bootEditor(page, { sourceCodeModeEnabled: true })
+  const initial = '# Ordinary local\n\nOWN LOCAL\n'
+  await openFileTab(page, '/docs/ordinary-source.md', initial)
+  await page.evaluate(enabled => (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('preferences').autoSave = enabled, autoSave)
+  await emit(page, 'doc_open', { session_id: 'ordinary-stream', session_epoch: 1, title: 'Dummy', content: '# FOREIGN ORIGINAL\n' })
+  await expect.poll(async () => (await snapshot(page)).markdown).toBe('# FOREIGN ORIGINAL\n')
+  const streamId = (await snapshot(page)).id
+  await page.locator('.editor-tabs li').filter({ hasText: 'ordinary-source.md' }).click()
+  const value = () => page.evaluate(() => (document.querySelector('.CodeMirror') as any).CodeMirror.getValue())
+  await page.locator('.CodeMirror textarea').focus()
+  await page.keyboard.press('Meta+z'); await page.keyboard.press('Meta+Shift+z')
+  expect(await value()).toBe(initial)
+  let expected = initial
+  for (const [index, phase] of ['AFTERBG', 'AFTERCLOSE'].entries()) {
+    if (!index) {
+      await emit(page, 'doc_patch', { session_id: 'ordinary-stream', session_epoch: 1, revision: 2, full_content: '# FOREIGN BACKGROUND\n' })
+      await expect.poll(async () => (await snapshot(page)).tabs.find((tab: any) => tab.id === streamId)?.markdown).toBe('# FOREIGN BACKGROUND\n')
+    } else {
+      await page.locator('.editor-tabs li').filter({ hasText: 'Untitled' }).click()
+      await expect.poll(value).toBe('# FOREIGN BACKGROUND\n')
+      await page.evaluate(() => {
+        const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
+        store.FORCE_CLOSE_TAB(store.currentFile)
+      })
+      await emit(page, 'doc_patch', { session_id: 'ordinary-stream', session_epoch: 1, revision: 3, full_content: '# FOREIGN CLOSED\n' })
+      await expect.poll(value).toBe(expected)
+      await page.locator('.CodeMirror textarea').focus()
+      await page.keyboard.press('Meta+z')
+      await expect.poll(value).toBe(initial)
+      await page.keyboard.press('Meta+Shift+z')
+      await expect.poll(value).toBe(expected)
+    }
+    await page.locator('.CodeMirror-line', { hasText: 'OWN LOCAL' }).click()
+    await page.keyboard.press('End')
+    await page.evaluate(() => (document.querySelector('.CodeMirror') as any).CodeMirror.changeGeneration(true))
+    await page.keyboard.type(' ' + phase)
+    const prior = expected
+    expected = expected.replace(/\n$/, ' ' + phase + '\n')
+    await expect.poll(value).toBe(expected)
+    await page.keyboard.press('Meta+z'); await expect.poll(value).toBe(prior)
+    await page.keyboard.press('Meta+Shift+z'); await expect.poll(value).toBe(expected)
+    if (!autoSave) {
+      expect((await snapshot(page)).writes).toHaveLength(index)
+      await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'file.save'))
+    }
+    await expect.poll(async () => (await snapshot(page)).writes.length, { timeout: 10_000 }).toBe(index + 1)
+    const local = await snapshot(page)
+    expect(local.pathname).toBe('/docs/ordinary-source.md')
+    expect(local.markdown).toBe(expected)
+    expect(local.writes.at(-1)).toMatchObject({ id: local.id, sourcePath: local.pathname, targetPath: local.pathname, markdown: expected })
+    expect(local.markdown).not.toContain('FOREIGN')
+    await expect.poll(async () => (await snapshot(page)).saved).toBe(true)
+  }
+})

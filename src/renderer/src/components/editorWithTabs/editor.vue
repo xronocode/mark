@@ -81,10 +81,10 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.34.0
+// VERSION: 1.34.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
-//   SCOPE: Unified split document history, focused-pane commands, per-surface caret/IME coordination and render-only synchronization; renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
+//   SCOPE: C-SPLIT-SAVE-AUTHORITY: committed rich Split snapshots remain eligible with a retained Source preference, subject to pane focus, mirror, owner and IME guards. Unified split document history, focused-pane commands, per-surface caret/IME coordination and render-only synchronization; renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
 //   DEPENDS: Muya, muya/lib BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE markers (C-LARGE-DOC-WAVE-A T-003), Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence), util/pageWidth + util/pageWidthStore (C-PAGE-WIDTH-TABLES — the width resolution pipeline and the per-document store this host applies), util/autoTheme (the Auto-aware global theme restore behind a pinned surface theme).
 //   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004); .grace/changes/active/C-PAGE-WIDTH-TABLES (the page-width host wiring).
 //   ROLE: RUNTIME
@@ -139,6 +139,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-11 C-SPLIT-SAVE-AUTHORITY: preserve rich-pane save authority in active Split with a retained Source preference.
 //   - 2026-11-10 C-MD-LINK-TABS: instance-owned link activation validates rendered lifetime/path; link gestures retain read-only Preview and scoped split ownership.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Own unified raw-Markdown history, rich/source focused commands, adaptive render-only follows, both caret snapshots and rich IME fencing; retain page-width/progressive/export paths.
 //   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
@@ -730,7 +731,7 @@ const ensureUnified = () => {
 // START_BLOCK_OWNED_SAVE_SNAPSHOT
 const unregisterSaveSurface = registerDocumentSurface(() => renderedDocumentOwner, {
   isComposing: () => richComposition.isArmed(),
-  isAuthoritative: () => !props.mirror && !sourceCode.value && !sourceFocused(),
+  isAuthoritative: () => !props.mirror && (props.splitActive || !sourceCode.value) && !sourceFocused(),
   captureCommitted: () => {
     const muya = editor.value
     if (!muya || renderedTabId !== currentFile.value?.id) return null

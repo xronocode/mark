@@ -1,0 +1,57 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SPLIT-SAVE-AUTHORITY>
+    <Summary>Save newly committed edits from the owning Split pane after a Source-to-Split transition, including explicit Save and autosave, while preserving the established document-view flags and document lifetime ownership.</Summary>
+    <Problem>Native acceptance on runtime source b90f1f0dde9694f3b34d6695937184ccefbc3691 and pre-security baseline d14be7c5e37a80b8a4ac7d9d271928d9de5b4749 reproduced visible new rich-pane text in Split with unchanged disk bytes after native File Save. Standard saved the corresponding new text. Live native state after Source-to-Split was sourceCode=true, splitView=true, unified=true and focused=rich. The rich snapshot adapter rejects sourceCode=true and the unified source adapter rejects rich focus, leaving no authoritative mounted surface. Autosave failure was separately observed on the security QA artifact. No runtime repair has been applied.</Problem>
+    <Approval>Owner explicitly approved both repair specifications on 2026-11-11. This approves the stated scope and requirements; the completed implementation plan still requires separate approval. It is neither native acceptance nor release authorization.</Approval>
+    <Goals>
+      <R-1>A committed rich edit in editable Split has exactly one authoritative save surface even when the retained sourceCode preference is true. Source focus has exactly the source surface. A hidden, mirrored, stale or unrelated surface never becomes an alternate authority.</R-1>
+      <R-2>Explicit Save and autosave write the complete committed local text and format to its owned document. A visible edit in either Split pane cannot leave the preceding text on disk after a successful save.</R-2>
+      <R-3>Source-to-Split, Standard-to-Split and pane-focus changes retain coherent authority and unified history. Background and closed stream tabs cannot change another document, its undo history or its save snapshot.</R-3>
+      <R-4>Repeat the failing native case on a fresh isolated artifact and independently compare disk bytes. Preserve the failed artifacts and owner acceptance history; owner verdicts remain explicit.</R-4>
+    </Goals>
+    <Constraints>
+      <Constraint>Preserve the existing flag-truth precedence and the allowed coexistence of sourceCode and splitView. Do not clear the source preference merely to hide the ownership conflict.</Constraint>
+      <Constraint>Retain document token and tab ownership, mirror exclusion, composition fences, locked-document behavior, exact source-syntax preservation, format snapshots and correlated write acknowledgement checks.</Constraint>
+      <Constraint>Production IPC, backend codecs, native write implementation, dependency versions, timing limits, retries and coverage floors are unchanged unless a separately approved replacement scope proves them necessary.</Constraint>
+      <Constraint>Investigate autosave through the real edit and snapshot path. A changed authority predicate or a green mocked test alone does not establish repaired autosave.</Constraint>
+      <Constraint>Use a separate implementation branch after approval; reconcile with current main before writes. Never modify archived bundles, frozen provenance, accepted app bundles or the installed owner application.</Constraint>
+      <Constraint>No version change, train dispatch, release authorization, tag, publication or production deployment.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Redesigning document modes, introducing a new history owner, changing source-format normalization or changing save UI.</NonGoal>
+      <NonGoal>Repairing physical write atomicity, crash recovery, independent backend request ordering, inline Rename or repository-wide module-health debt.</NonGoal>
+      <NonGoal>Inferring owner acceptance, Windows native acceptance or repaired credential-store-failure behavior from this Split repair.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Regression evidence fails on the observed sources for sourceCode=true, active editable Split and rich focus, then passes after the repair. Tests use the real registered surface adapters and snapshot collector rather than a duplicate predicate.</Criterion>
+      <Criterion>The matrix covers sourceCode true and false; rich and source focus; Split active and inactive; correct, stale and unrelated document owners; mirror exclusion; and composition blocking without extracting uncommitted text.</Criterion>
+      <Criterion>With autosave off, a new local edit in each Split pane survives native File Save, close and reopen with exact independently expected bytes. Test both Source-to-Split and Standard-to-Split.</Criterion>
+      <Criterion>With autosave on at the unchanged configured delay, a new edit in each Split pane reaches the exact disk bytes. The native Source-to-Split rich-pane reproduction must pass, not only a Standard control.</Criterion>
+      <Criterion>After a background stream update or a closed stream tab's late update, the local document retains its own text, local undo and redo history, format and saved bytes. Existing stream security assertions remain passing.</Criterion>
+      <Criterion>Focused assertions and applicable renderer, browser, build and GRACE gates pass without new skips, retries, relaxed assertions, longer deadlines or lower coverage floors. A fresh native artifact is identified by source revision, bundle identity and binary SHA-256.</Criterion>
+      <Criterion>Record the actual manual cases, failure dispositions and owner verdicts separately. A passing automated check or native agent observation does not automatically mark owner acceptance.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-011 />
+      <M-012 />
+      <Area>src/renderer/src/components/editorWithTabs/editor.vue and sourceCode.vue registered snapshot adapters and pane-focus integration.</Area>
+      <Area>src/renderer/src/util/documentSnapshot.js and documentOperations.js as contract references; change only if a proved root cause requires it within the approved scope.</Area>
+      <Area>Existing renderer component and snapshot tests plus source-bound native and browser acceptance cases.</Area>
+      <Area>.grace/graph/runtime.xml and .grace/verification/runtime.xml ownership and verification entries for the affected modules, synchronized only during approved implementation.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/components/split-dual-edit.test.js tests/renderer/components/split-rich-history.test.js tests/renderer/util/document-snapshot.test.js tests/renderer/util/document-operations.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>npm run test:coverage</ExpectedCommand>
+      <ExpectedCommand>npm run typecheck:ipc</ExpectedCommand>
+      <ExpectedCommand>npm run build</ExpectedCommand>
+      <ExpectedCommand>npx --no-install playwright test tests/e2e/split-dual-edit.spec.ts tests/e2e/live-stream-ownership.spec.ts --project=chromium</ExpectedCommand>
+      <ExpectedCommand>npx --no-install playwright test tests/e2e/live-stream-ownership.spec.ts --project=webkit-live-stream</ExpectedCommand>
+      <LifecycleEvidence>Run current before implementation, selected target during implementation and final with commands before archiving. Rerun current integrity and module status after archiving. The approved plan owns exact assertion definitions, scopes and measured command budgets; the approved specification does not by itself authorize plan execution.</LifecycleEvidence>
+      <ExpectedEvidence>Failing source b90f1f0d and pre-change native baseline d14be7c5 retain their binary digests and exact-byte failure records. The repaired artifact repeats both-pane explicit-save and autosave cases with independent disk-byte comparison and the unchanged Standard control.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The observed zero-authority state explains explicit-save refusal. Autosave must be traced and proved independently rather than assumed fixed.</Assumption>
+      <Assumption>The specification is approved. Plan preparation is authorized; runtime changes begin only after approval of the completed plan.</Assumption>
+    </Assumptions>
+  </C-SPLIT-SAVE-AUTHORITY>
+</GraceChangeSpec>

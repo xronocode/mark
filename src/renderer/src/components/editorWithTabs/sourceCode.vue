@@ -1,10 +1,11 @@
 <!-- MODULE_CONTRACT
   PURPOSE: Host the editable Markdown source surface and commit user changes to its owning tab; unified split sessions use the same Muya-owned document history in all modes.
-  SCOPE: CodeMirror lifecycle, cursor/scroll synchronization, file event handling and exact-source projection of actual model changes. Split companion (splitEdit, C-SPLIT-DUAL-EDIT): editable, follows the tab markdown render-only (isRenderingFromStore guard, 150 ms debounce, scroll kept, remembered caret translated/clamped, IME fenced), CodeMirror history kept empty (unified muya history owns undo via bus undo/redo), locked tabs read-only; the C-29 read-only mirror branch is retired. C-SPLIT-SCROLL-SYNC: the pane pairs its scroller with the muya container ('source' side of splitScrollSync), align to the rich pane's fraction on mount/split activation, and the editable pane re-anchors on its caret line through pane-width changes.
-  DEPENDS: editor/preferences stores, bus, CodeMirror adapter, util/splitScrollSync.js.
+  SCOPE: C-SOURCE-HISTORY-OWNERSHIP: ordinary Source uses lifetime-scoped native Docs, retaining local undo/redo and selection across tab activation and remount. CodeMirror lifecycle, cursor/scroll synchronization, file event handling and exact-source projection of actual model changes. Split companion (splitEdit, C-SPLIT-DUAL-EDIT): editable, follows the tab markdown render-only (isRenderingFromStore guard, 150 ms debounce, scroll kept, remembered caret translated/clamped, IME fenced), CodeMirror history kept empty (unified muya history owns undo via bus undo/redo), locked tabs read-only; the C-29 read-only mirror branch is retired. C-SPLIT-SCROLL-SYNC: the pane pairs its scroller with the muya container ('source' side of splitScrollSync), align to the rich pane's fraction on mount/split activation, and the editable pane re-anchors on its caret line through pane-width changes.
+  DEPENDS: editor/preferences stores, bus, CodeMirror adapter, util/sourceDocumentHistory.ts, util/splitScrollSync.js.
   ROLE: RUNTIME
 END_MODULE_CONTRACT
-CHANGE_SUMMARY: 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: preserve never-unified source cursor/tab commits and reject stale outgoing unified events.
+CHANGE_SUMMARY: 2026-11-11 C-SOURCE-HISTORY-OWNERSHIP: bind ordinary native Docs to id/token; preserve local history and reject retired/outgoing events.
+  2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: preserve never-unified source cursor/tab commits and reject stale outgoing unified events.
   2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: one content operation per change, Muya-owned raw history in unified sessions, source commands/search/assets, translated reversed selections, composition fences, post-Vue tab reconciliation and complete cleanup.
   2026-10-29 C-SPLIT-DUAL-EDIT: splitEdit prop; render-only store-follow (guard + clearHistory + translateAndClamp caret + IME fence); unified undo extraKeys (bus undo/redo); lock covers the companion; mountMirror retired — one editable instance.
   2026-10-27 C-SPLIT-SCROLL-SYNC: splitActive prop; both instances attach to splitScrollSync ('source'), mount/split-on aligns to the rich fraction (alignToFraction), the editable pane centers its caret line on transitions and width changes (reanchorSourcePane), unmount detaches.
@@ -29,6 +30,7 @@ import { debounce, wordCount as getWordCount } from 'muya/lib/utils'
 import { adjustCursor } from '../../util'
 import bus from '../../bus'
 import { documentOwner, registerDocumentSurface } from '@/util/documentSnapshot'
+import { createSourceDocumentHistory } from '@/util/sourceDocumentHistory'
 import { oneDarkThemes, railscastsThemes } from '@/config'
 import {
   splitScrollSync,
@@ -70,6 +72,7 @@ const props = defineProps({
 
 const editorStore = useEditorStore()
 const preferencesStore = usePreferencesStore()
+const sourceHistory = createSourceDocumentHistory(editorStore)
 
 const sourceCodeContainer = ref(null)
 
@@ -86,15 +89,21 @@ const { theme, sourceCode } = storeToRefs(preferencesStore)
 const { currentFile: currentTab } = storeToRefs(editorStore)
 const unified = computed(() => !!currentTab.value?.splitSession?.unified)
 const sourceFocused = () => unified.value && currentTab.value.splitSession.focused === 'source'
+const sameOwner = (a, b) => !!a && !!b && a.id === b.id && a.documentToken === b.documentToken
+const renderedOwner = () => editorStore.tabs.find(tab => sameOwner(documentOwner(tab), renderedDocumentOwner))
+const ownsCurrentDocument = () => sameOwner(renderedDocumentOwner, currentTab.value?.id ? documentOwner(currentTab.value) : null)
+watch(() => editorStore.tabs.map(tab => [tab.id, tab.documentToken, !!tab.splitSession?.unified]), () => {
+  sourceHistory.retain(editorStore.tabs.filter(tab => !tab.splitSession?.unified).map(documentOwner))
+}, { flush: 'post' })
 const currentSelection = () => ({ anchor: editor.value.getCursor('anchor'), head: editor.value.getCursor('head') })
 const rememberSelection = () => {
-  if (unified.value && editor.value && !isRenderingFromStore) {
+  if (unified.value && editor.value && ownsCurrentDocument() && !isRenderingFromStore) {
     currentTab.value.splitSession.source = currentSelection()
     currentTab.value.splitSession.selectedSourceText = editor.value.getSelection()
     bus.emit('split:selection-changed')
   }
 }
-const handleSourceFocus = () => { if (unified.value) bus.emit('split:focus', 'source') }
+const handleSourceFocus = () => { if (unified.value && ownsCurrentDocument()) bus.emit('split:focus', 'source') }
 
 // START_BLOCK_LOCKED_READ_ONLY
 // C-40 T-004: while the active tab is locked (View › Lock Document) the
@@ -138,7 +147,7 @@ const getMarkdownAndCursor = (cm) => {
 
   // Normalize cursor that `anchor` is always before `focus` because
   // this is the expected behavior in Muya.
-  if (anchor && focus && anchor.line > focus.line) {
+  if (anchor && focus && (anchor.line > focus.line || (anchor.line === focus.line && anchor.ch > focus.ch))) {
     const tmpCursor = focus
     focus = anchor
     anchor = tmpCursor
@@ -152,21 +161,19 @@ const getMarkdownAndCursor = (cm) => {
  */
 const prepareTabSwitch = () => {
   if (commitTimer.value) clearTimeout(commitTimer.value)
-  const owner = editorStore.tabs.find(tab => tab.id === tabId.value)
-  if (owner?.splitSession?.unified) {
+  const owner = renderedOwner()
+  if (!owner || compositionFence.isArmed()) return
+  if (owner.splitSession?.unified) {
     // The store flushes an outgoing unified owner before changing tabs.
-    if (tabId.value === currentTab.value?.id) { rememberSelection(); bus.emit('split:flush') }
+    if (ownsCurrentDocument()) { rememberSelection(); bus.emit('split:flush') }
     return
   }
-  if (tabId.value) {
-    const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
-    editorStore.LISTEN_FOR_CONTENT_CHANGE({
-      id: tabId.value,
-      markdown: owner ? preserveSourceSyntax(owner.markdown, sourceSerialization ?? newMarkdown, newMarkdown) : newMarkdown,
-      muyaIndexCursor: cursor
-    })
-    tabId.value = null
-  }
+  const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
+  editorStore.LISTEN_FOR_CONTENT_CHANGE({
+    id: owner.id,
+    markdown: preserveSourceSyntax(owner.markdown, sourceSerialization ?? newMarkdown, newMarkdown),
+    muyaIndexCursor: cursor
+  })
 }
 
 const scrollToCords = (y) => {
@@ -178,40 +185,57 @@ const scrollToCords = (y) => {
   })
 }
 
-const handleFileChange = ({ id, markdown: newMarkdown, muyaIndexCursor, scrollTop, contentReloaded }) => {
-  const owner = editorStore.tabs.find(tab => tab.id === tabId.value)
-  if (!editor.value || ((unified.value || owner?.splitSession?.unified) && id && id !== currentTab.value?.id)) return
-  // Never-unified source mode retains its outgoing content/caret commit.
-  if (id && id !== tabId.value) prepareTabSwitch()
+const handleFileChange = ({ id, documentToken, markdown: newMarkdown, muyaIndexCursor, scrollTop, contentReloaded }) => {
+  const incoming = currentTab.value
+  if (!editor.value || !incoming?.id || (id && id !== incoming.id)) return
+  const nextOwner = documentOwner(incoming)
+  if (documentToken && documentToken !== nextOwner.documentToken) return
+  // Activation/reload producers update the canonical owner before emitting.
+  // A tokenless delayed payload cannot import a retired document into it.
+  if (typeof newMarkdown === 'string' && newMarkdown !== incoming.markdown) return
+  if (compositionFence.markDeferred()) return
+  const switching = !sameOwner(renderedDocumentOwner, nextOwner)
+  if (switching) prepareTabSwitch()
   if (followSyncTimer) clearTimeout(followSyncTimer)
   followSyncTimer = null
-  if (id && id !== tabId.value) compositionFence.release()
-  if (id) {
-    tabId.value = id
-    const owner = editorStore.tabs.find(tab => tab.id === id)
-    renderedDocumentOwner = owner ? documentOwner(owner) : null
-  }
   isRenderingFromStore = true
-  if (typeof newMarkdown === 'string' && newMarkdown !== editor.value.getValue()) editor.value.setValue(newMarkdown)
-  sourceSerialization = editor.value.getValue()
-  const selection = currentTab.value?.splitSession?.source
+  let restored = false
+  if (!unified.value && !props.mirror) {
+    if (contentReloaded) sourceHistory.retire(nextOwner)
+    // Set depth before attaching an ordinary Doc after a unified projection.
+    editor.value.setOption('undoDepth', 200)
+    const binding = sourceHistory.bind(editor.value, nextOwner, typeof newMarkdown === 'string' ? newMarkdown : incoming.markdown)
+    sourceSerialization = binding.serialization
+    restored = binding.restored
+  } else {
+    sourceHistory.release(editor.value)
+    sourceHistory.retire(nextOwner)
+    if (typeof newMarkdown === 'string' && newMarkdown !== editor.value.getValue()) editor.value.setValue(newMarkdown)
+    sourceSerialization = editor.value.getValue()
+  }
+  tabId.value = incoming.id
+  renderedDocumentOwner = nextOwner
+  setTextDirection(editor.value, props.textDirection)
+  const selection = incoming.splitSession?.source
   if (selection?.anchor && selection?.head) editor.value.setSelection(selection.anchor, selection.head, { scroll: false })
-  else if (muyaIndexCursor?.anchor && muyaIndexCursor?.focus) editor.value.setSelection(muyaIndexCursor.anchor, muyaIndexCursor.focus, { scroll: false })
-  else if (unified.value) editor.value.setCursor({ line: 0, ch: 0 })
-  else setCursorAtFirstLine(editor.value)
-  if (unified.value || contentReloaded) editor.value.clearHistory()
+  else if (!restored) {
+    if (muyaIndexCursor?.anchor && muyaIndexCursor?.focus) editor.value.setSelection(muyaIndexCursor.anchor, muyaIndexCursor.focus, { scroll: false })
+    else if (unified.value) editor.value.setCursor({ line: 0, ch: 0 })
+    else setCursorAtFirstLine(editor.value)
+  }
+  applyUnifiedKeys()
   isRenderingFromStore = false
   if (unified.value && props.splitActive) {
     alignToFraction()
     afterSplitLayout(alignToFraction)
-  } else if (typeof scrollTop === 'number') scrollToCords(currentTab.value?.splitSession?.sourceScrollTop ?? scrollTop)
+  } else if (typeof scrollTop === 'number') scrollToCords(incoming.splitSession?.sourceScrollTop ?? scrollTop)
 }
 
-// The synchronous activation event can precede the component's updated
-// tab ref/layout. Reconcile once after Vue selects the owner, as Muya does.
-watch(() => currentTab.value?.id, () => {
+// Synchronous events can precede Vue activation; include lifetime replacement
+// even when the visible tab id and pathname are reused.
+watch(() => [currentTab.value?.id, currentTab.value?.documentToken], () => {
   const tab = currentTab.value
-  if (editor.value && tab?.id && (tabId.value !== tab.id || editor.value.getValue() !== tab.markdown)) handleFileChange(tab)
+  if (editor.value && tab?.id && !ownsCurrentDocument()) handleFileChange(tab)
 }, { flush: 'post' })
 
 const handleInvalidateImageCache = () => {
@@ -303,7 +327,7 @@ const renderFromStore = () => {
   followSyncTimer = null
   const cm = editor.value
   const markdown = currentTab.value?.markdown
-  if (!cm || tabId.value !== currentTab.value?.id || typeof markdown !== 'string' || cm.getValue() === markdown) return
+  if (!cm || !ownsCurrentDocument() || typeof markdown !== 'string' || cm.getValue() === markdown) return
   if (compositionFence.markDeferred()) return
   const old = cm.getValue()
   const selection = currentTab.value?.splitSession?.source || currentSelection()
@@ -325,6 +349,7 @@ watch(() => props.markdown, () => {
   followSyncTimer = setTimeout(renderFromStore, FOLLOW_SYNC_DELAY_MS)
 })
 const handleHistoryRestored = (meta) => {
+  if (!ownsCurrentDocument()) return
   renderFromStore()
   const selection = meta?.source
   if (selection && editor.value) {
@@ -339,9 +364,9 @@ const handleHistoryRestored = (meta) => {
 let sourceSerialization = null
 const handleCompositionStart = () => { sourceSerialization = editor.value?.getValue(); compositionFence.arm() }
 const captureCommittedSource = () => {
-  const owner = editorStore.tabs.find(tab => tab.id === tabId.value)
+  const owner = renderedOwner()
   const cm = editor.value
-  if (!owner || !cm || owner.id !== currentTab.value?.id) return null
+  if (!owner || !cm || !ownsCurrentDocument()) return null
   const { cursor, markdown:nativeMarkdown } = getMarkdownAndCursor(cm)
   const markdown = preserveSourceSyntax(owner.markdown, sourceSerialization ?? nativeMarkdown, nativeMarkdown)
   sourceSerialization=nativeMarkdown
@@ -359,6 +384,8 @@ const unregisterSaveSurface = registerDocumentSurface(() => renderedDocumentOwne
 const handleCompositionEnd = () => {
   const deferred = compositionFence.release()
   captureCommittedSource()
+  if (!ownsCurrentDocument()) { handleFileChange(currentTab.value); return }
+  applyUnifiedKeys()
   if (deferred) renderFromStore()
 }
 // END_BLOCK_SOURCE_FOLLOW_SYNC
@@ -457,11 +484,12 @@ const insertAsset = (image, alt = '') => {
   const cm = editor.value
   if (!cm || cm.getOption('readOnly')) return
   const id = tabId.value
+  const owner = renderedDocumentOwner
   const target = cm.setBookmark(cm.getCursor('head'))
   bus.emit('split:insert-asset', { image, alt, id, complete: result => {
     const position = target.find()
     target.clear()
-    if (!viewDestroyed.value && id === tabId.value && id === currentTab.value?.id && position && result && !cm.getOption('readOnly')) {
+    if (!viewDestroyed.value && sameOwner(owner, renderedDocumentOwner) && ownsCurrentDocument() && position && result && !cm.getOption('readOnly')) {
       cm.replaceRange(`![${alt}](${result})`, position, position, '+input')
     }
   } })
@@ -481,7 +509,7 @@ const listenChange = () => {
   const cm = editor.value
   cm.on('cursorActivity', () => {
     if (unified.value) { rememberSelection(); return }
-    if (isRenderingFromStore || viewDestroyed.value || !tabId.value) return
+    if (isRenderingFromStore || viewDestroyed.value || !ownsCurrentDocument() || compositionFence.isArmed()) return
     const { cursor, markdown } = getMarkdownAndCursor(cm)
     const owner=editorStore.tabs.find(tab=>tab.id===tabId.value)
     if (owner && markdown !== owner.markdown && !compositionFence.isArmed()) captureCommittedSource()
@@ -497,11 +525,11 @@ const listenChange = () => {
     }
   })
   cm.on('changes', () => {
-    if (!unified.value && !isRenderingFromStore && !viewDestroyed.value && tabId.value === currentTab.value?.id) {
+    if (!unified.value && !isRenderingFromStore && !viewDestroyed.value && ownsCurrentDocument()) {
       if (!compositionFence.isArmed()) captureCommittedSource()
       return
     }
-    if (!unified.value || isRenderingFromStore || viewDestroyed.value || tabId.value !== currentTab.value?.id) return
+    if (!unified.value || isRenderingFromStore || viewDestroyed.value || !ownsCurrentDocument()) return
     const { cursor, markdown: nativeMarkdown } = getMarkdownAndCursor(cm)
     const markdown = preserveSourceSyntax(currentTab.value.markdown, sourceSerialization ?? nativeMarkdown, nativeMarkdown)
     sourceSerialization = nativeMarkdown
@@ -542,10 +570,10 @@ const handleSourceCommand = async ({ command, payload }) => {
   bus.emit('split:flush')
   if (command === 'insertAsset') { insertAsset(payload.image, payload.alt); return }
   if (command === 'pasteAsPlainText') {
+    const owner = renderedDocumentOwner
     const { readText } = await import('@tauri-apps/plugin-clipboard-manager')
-    const id = tabId.value
     const text = await readText()
-    if (id === tabId.value && !cm.getOption('readOnly') && text) cm.replaceSelection(text, 'end', '+input')
+    if (sameOwner(owner, renderedDocumentOwner) && ownsCurrentDocument() && !cm.getOption('readOnly') && text) cm.replaceSelection(text, 'end', '+input')
     return
   }
   if (command === 'replace') {
@@ -581,9 +609,22 @@ const handleSourceSelection = (request) => {
 }
 const applyUnifiedKeys = () => {
   const cm = editor.value
-  if (!cm) return
-  cm.setOption('undoDepth', unified.value ? 0 : 200)
-  if (unified.value) cm.clearHistory()
+  if (!cm || !ownsCurrentDocument()) return
+  if (unified.value) {
+    if (compositionFence.markDeferred()) return
+    const rendering = isRenderingFromStore
+    isRenderingFromStore = true
+    const selection = currentSelection()
+    sourceHistory.retire(renderedDocumentOwner)
+    if (sourceHistory.release(cm)) {
+      cm.setValue(currentTab.value.markdown)
+      sourceSerialization = cm.getValue()
+      cm.setSelection(selection.anchor, selection.head, { scroll: false })
+    }
+    isRenderingFromStore = rendering
+    cm.setOption('undoDepth', 0)
+    cm.clearHistory()
+  } else cm.setOption('undoDepth', 200)
 }
 watch(unified, applyUnifiedKeys)
 
@@ -690,13 +731,19 @@ onMounted(() => {
     bus.emit('split:contextmenu', event)
   })
 
+  let restoredOrdinary = false
+  if (!unified.value && !props.mirror) {
+    const binding = sourceHistory.bind(codeMirrorInstance, documentOwner(currentTab.value), currentTab.value.markdown)
+    restoredOrdinary = binding.restored
+  }
+  setTextDirection(codeMirrorInstance, textDirection)
   const savedSelection = currentTab.value?.splitSession?.source
   if (savedSelection) {
     codeMirrorInstance.setSelection(savedSelection.anchor, savedSelection.head, { scroll: false })
-  } else if (muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus) {
+  } else if (!restoredOrdinary && muyaIndexCursor && muyaIndexCursor.anchor && muyaIndexCursor.focus) {
     const { anchor, focus } = muyaIndexCursor
     codeMirrorInstance.setSelection(anchor, focus, { scroll: !unified.value })
-  } else {
+  } else if (!restoredOrdinary) {
     if (unified.value) codeMirrorInstance.setCursor({ line: 0, ch: 0 })
     else setCursorAtFirstLine(codeMirrorInstance)
   }
@@ -754,24 +801,30 @@ onBeforeUnmount(() => {
   bus.off('split:history-restored', handleHistoryRestored)
   searchMarks.forEach(mark => mark.clear())
 
-  if (tabId.value && editor.value && !unified.value) {
-    const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
-    bus.emit('file-changed', {
-      id: tabId.value,
-      markdown: newMarkdown,
-      muyaIndexCursor: cursor,
-      renderCursor: true
-    })
-  }
+  try {
+    const owner = renderedOwner()
+    if (owner && editor.value && !owner.splitSession?.unified && !compositionFence.isArmed()) {
+      const { cursor, markdown: newMarkdown } = getMarkdownAndCursor(editor.value)
+      bus.emit('file-changed', {
+        id: tabId.value,
+        markdown: preserveSourceSyntax(owner.markdown, sourceSerialization ?? newMarkdown, newMarkdown),
+        muyaIndexCursor: cursor,
+        renderCursor: true
+      })
+    }
 
-  sourceCodeContainer.value.removeEventListener('scroll', handleScroll)
+  } finally {
+    if (compositionFence.isArmed() && renderedDocumentOwner) sourceHistory.retire(renderedDocumentOwner)
+    sourceHistory.release(editor.value)
+    sourceCodeContainer.value.removeEventListener('scroll', handleScroll)
+  }
 })
 
 const handleScroll = debounce(() => {
   if (!tabId.value || !sourceCodeContainer.value) {
     return
   }
-  if (tabId.value !== currentTab.value?.id) return
+  if (viewDestroyed.value || !ownsCurrentDocument()) return
   if (unified.value) currentTab.value.splitSession.sourceScrollTop = sourceCodeContainer.value.scrollTop
   else editorStore.updateScrollPosition(tabId.value, sourceCodeContainer.value.scrollTop)
 }, 100)

@@ -7,6 +7,7 @@
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
+// C-SOURCE-HISTORY-OWNERSHIP: model public Doc/getDoc/swapDoc while retaining all command and lifetime assertions.
 // START_MODULE_MAP
 //   adapter - Stateful public CodeMirror view, event callbacks and peer-service fixtures.
 //   wrapper - Mounted source view lifecycle owner.
@@ -37,7 +38,8 @@ vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({ readText: vi.fn() }))
 vi.mock('@/util/splitScrollSync', async importActual => ({ ...(await importActual()), splitScrollSync: {
   attach: vi.fn(), detach: vi.fn(), align: vi.fn(), fractionOf: vi.fn(() => 0.5)
 } }))
-vi.mock('@/codeMirror', () => {
+vi.mock('@/codeMirror', async () => {
+  const { default: NativeCodeMirror } = await import('codemirror/lib/codemirror')
   const clone = pos => ({ line: pos.line, ch: pos.ch })
   const index = pos => {
     const lines = adapter.state.text.split('\n')
@@ -50,17 +52,26 @@ vi.mock('@/codeMirror', () => {
   }
   const cursorEvent = () => adapter.callbacks.get('cursorActivity')?.(adapter.cm)
   const changed = () => {
+    if (adapter.doc.getValue() !== adapter.state.text) adapter.doc.setValue(adapter.state.text)
     if (adapter.state.depth) { adapter.state.pending = true; return }
     adapter.callbacks.get('changes')?.(adapter.cm)
     cursorEvent()
   }
   const factory = vi.fn((container, config) => {
     adapter.config = config
+    adapter.doc = new NativeCodeMirror.Doc(config.value)
     adapter.state = { text: config.value, anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 }, options: { ...config }, depth: 0, pending: false }
     adapter.input = document.createElement('textarea')
     container.appendChild(adapter.input)
     const cm = {
       on: (name, handler) => adapter.callbacks.set(name, handler),
+      getDoc: () => adapter.doc,
+      swapDoc: next => {
+        const old = adapter.doc; adapter.doc = next
+        adapter.state.text = next.getValue()
+        adapter.state.anchor = clone(next.getCursor('anchor')); adapter.state.head = clone(next.getCursor('head'))
+        return old
+      },
       getValue: () => adapter.state.text,
       setValue: vi.fn(value => {
         adapter.bookmarks.forEach(bookmark => { bookmark.cleared = true })
