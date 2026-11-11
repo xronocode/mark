@@ -1,0 +1,15 @@
+# Document text and format safety
+
+Implementation source `57d50bafecdee917224647b07301af8c4a79d069` was integrated through PR #218 as `f666d4c65025409266cac284c65a8a21373adb3e`. The integration tree equals the checked source tree. The owner explicitly approved GRACE apply/archive and integration on 2026-11-11. Approved requirements, assertions, scopes and tasks retain their approved bodies.
+
+The document version owns text and format together. Save attempts carry immutable encoding/BOM/EOL/final-newline choices, and an older acknowledgement cannot clean or close a newer version. Native conversion validates complete output bytes before writing. Normal opening propagates actual supported source metadata, while display serialization preserves the original canonical Markdown.
+
+Final command evidence passed on the source candidate with 5713 renderer tests, zero failures, two existing skips and three todos. IPC typecheck and renderer build passed. The Rust suite passed 593 tests with one existing ignored test. Hosted test run [42949677784](https://github.com/xronocode/mark/actions/runs/42949677784) passed 478 Chromium cases with eight skips and 306 WebKit cases. CI and governance passed. ARM64 packaging run [42949677719](https://github.com/xronocode/mark/actions/runs/42949677719) passed its actual build and warnings jobs, with 195 allowed warnings and zero unallowed or forbidden warnings.
+
+Seven native byte scenarios ran on source `05a15fc7b044ddcc900535fa1dcc8a14bea39051`, QA binary SHA-256 `918a15ca1c47390b9d08dccd1ad25d9e2c50c81d91f24ba482091016870d58b0`. UTF8 BOM/CRLF, UTF16LE/BE BOM and detected CP1251 retained exact expected text and format after an edit and reopen. Mixed EOL and unrepresentable CP1251 input produced visible refusals with original bytes intact. Explicit LF and UTF8 retries succeeded. Empty input with the single-newline policy produced exactly one LF.
+
+Native Word export from the same app was opened in Microsoft Word and checked for Unicode, formatting, ordered and unordered lists, a table, hyperlink, real footnote, inline equation and multiline display equation. The final source removes only an unread backend catalog explanation field and its comment. Renderer, shared catalog and conversion/write functions are unchanged. Its separately attributed QA binary SHA-256 `7747ef39de9bda03216d4094a168b4bde590b1daea34129db96ff56c2db3fc2c` passed an additional native UTF16LE BOM/CRLF open/edit/save/close/reopen exact-byte smoke.
+
+The owner deferred actual system IME testing. It remains unverified. No Hiragana source was added, and the original Russian-PC input source was restored. Windows native QA and consolidated dispatch-build owner acceptance remain separate gaps.
+
+Physical write atomicity, crash recovery, independent backend revision ordering, inline Rename and external byte equality remain unresolved follow-up work. Native fault probes can still leave partial in-place output. This record authorizes no version, train dispatch, tag or publication.

@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-METADATA-SAVE-SAFETY>
     <ChangeRef>C-METADATA-SAVE-SAFETY</ChangeRef>
     <IntentSummary>Implement the approved option B as one sequential text-and-format save contract. Preserve canonical editor text, correlate immutable format snapshots, encode exact supported bytes before mutation, and propagate actual open metadata. This completed plan requires owner approval before product implementation.</IntentSummary>
