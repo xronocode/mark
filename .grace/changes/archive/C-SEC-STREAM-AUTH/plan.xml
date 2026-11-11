@@ -1,0 +1,10 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-STREAM-AUTH>
+    <IntentSummary>Fence disabled extensions and foreign owners at the stream mutation boundary. Approval is the owner's instruction to implement the reviewed Markdown plan on 2026-11-11; the plan's corresponding task defines the detailed behavior and regression matrix.</IntentSummary>
+    <BaselineAssertions><MustExist><Value>M-045</Value></MustExist><MustExist><Value>M-001</Value></MustExist></BaselineAssertions>
+    <TargetAssertions><MustVerify><Module>M-045</Module></MustVerify><MustVerify><Module>M-001</Module></MustVerify><MustPassCommand><Command>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command></MustPassCommand></TargetAssertions>
+    <DurableScope><GraphAnchors><M-045/><M-001/></GraphAnchors><VerificationAnchors><V-M-045/><V-M-001/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope><Glob>src-tauri/src/m045_ext/*.rs</Glob><File>src-tauri/src/main.rs</File></ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Fence disabled extensions and foreign owners at the stream mutation boundary</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>A retained credential cannot authorize any stream operation after disable.</Criterion><Criterion>Only the enabled session owner may resynchronize; foreign conflicts disclose no session ID.</Criterion><Criterion>Disable, mutation and ordered session-epoch events share a synchronization boundary.</Criterion></AcceptanceCriteria><Verification><Command>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command></Verification></T-001></ImplementationPlan>
+  </C-SEC-STREAM-AUTH>
+</GraceChangePlan>

@@ -11,6 +11,7 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
+#   SECURITY: 2026-11-11 C-SEC-STREAM-TABS/C-SEC-GATEWAY-TOOLS: require stream-ownership WebKit regressions and prepare the credential-free nested toolchain from its lockfile.
 #   CURRENT: 2026-11-10 C-HOSTED-VALIDATION-RECOVERY: replace the stalled Azure HTTP Ubuntu source URI with canonical HTTPS on the ephemeral Linux runner; retain signed suites, package lists, retry counts and budgets.
 #   LAST_CHANGE: v1.9.0 - 2026-11-09 C-CI-CD-AUDIT-FIXES: repair docs-only classification, gate IPC types in renderer-unit, pin executable actions and Rust 1.99.0, and run each WebKit theme/tree project once.
 #   PREV: v1.8.0 - 2026-11-09: the docs-only lane (owner instruction) — pull requests whose diff is confined to docs/**, .grace/changes/** and top-level *.md skip renderer-unit/backend-unit/renderer-e2e (job-level skips satisfy the strict ruleset); status-check aggregates the skipped lane green; push events always run the full suite.
@@ -118,6 +119,10 @@ jobs:
 
       - name: npm ci
         run: npm ci
+
+      - name: prepare locked gateway tools without credentials
+        working-directory: tools/stats-gateway
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: verify IPC types
         run: npm run typecheck:ipc
@@ -270,7 +275,7 @@ jobs:
 
       # C-63: retain WKWebView-engine coverage for the C-60/C-62 fixes.
       - name: webkit footnote preferences, diagram appearance, keyboard selection, diff baselines and sessions
-        run: npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session
+        run: npx playwright test --project webkit-footnotes --project webkit-diagram-appearance --project webkit-keyboard --project webkit-diff --project webkit-session --project webkit-live-stream
 
       - name: webkit large-document perf gate
         run: npx playwright test --project webkit-perf

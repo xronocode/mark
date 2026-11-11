@@ -1,0 +1,10 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-GATEWAY-LOCK-SCAN>
+    <IntentSummary>Adapt the existing secret-shape scan to verify public integrity fields and keep scanning all other lockfile content. Approval is the owner's instruction to implement the reviewed Markdown plan on 2026-11-11; the plan's corresponding task defines the detailed behavior and regression matrix.</IntentSummary>
+    <BaselineAssertions><MustExist><Value>M-071</Value></MustExist><MustExist><Value>M-046</Value></MustExist></BaselineAssertions>
+    <TargetAssertions><MustVerify><Module>M-071</Module></MustVerify><MustVerify><Module>M-046</Module></MustVerify><MustPassCommand><Command>node node_modules/vitest/vitest.mjs run tests/tools/stats-gateway-deploy.test.mjs tests/tools/stats-gateway.test.mjs</Command></MustPassCommand></TargetAssertions>
+    <DurableScope><GraphAnchors><M-071/><M-046/></GraphAnchors><VerificationAnchors><V-M-071/><V-M-046/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope><File>tests/tools/stats-gateway.test.mjs</File></ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Adapt the existing secret-shape scan to verify public integrity fields and keep scanning all other lockfile content</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Wrangler and its dependency closure have a dedicated reviewed lockfile with integrity.</Criterion><Criterion>Missing or mismatched local CLI fails without installation; only its process receives Cloudflare credentials.</Criterion><Criterion>Existing exact-main admission, receipt and Worker behavior remain intact.</Criterion></AcceptanceCriteria><Verification><Command>node node_modules/vitest/vitest.mjs run tests/tools/stats-gateway-deploy.test.mjs tests/tools/stats-gateway.test.mjs</Command></Verification></T-001></ImplementationPlan>
+  </C-SEC-GATEWAY-LOCK-SCAN>
+</GraceChangePlan>

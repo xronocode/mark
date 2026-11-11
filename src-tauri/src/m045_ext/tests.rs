@@ -465,6 +465,7 @@ fn test_b5b_load_smoke_30min_synthetic() {
     // (sections ordered, content self-contained markdown; core patch
     // logic is exercised via the real apply_section_patch fn).
     let mut session = LiveSession {
+        session_epoch: 1,
         session_id: "endurance-b5b-001".to_string(),
         extension_id: "com.tokmo.meeting".to_string(),
         last_seq: 0,
@@ -678,6 +679,7 @@ fn v2_open_same_session_id_replaces_for_resync() {
     // Recovery path for needs_resync: re-open with the SAME session id
     // must be allowed to replace the active session state wholesale.
     let session = LiveSession {
+        session_epoch: 1,
         session_id: "s1".to_string(),
         extension_id: "com.tokmo.voice".to_string(),
         last_seq: 42,
@@ -688,7 +690,7 @@ fn v2_open_same_session_id_replaces_for_resync() {
         last_heartbeat: std::time::Instant::now(),
     };
     assert_eq!(
-        decide_open(Some(&session), "s1"),
+        decide_open(Some(&session), "s1", "com.tokmo.voice"),
         OpenDecision::ReplaceSameSession
     );
 }
@@ -696,6 +698,7 @@ fn v2_open_same_session_id_replaces_for_resync() {
 #[test]
 fn v2_open_different_active_session_conflicts() {
     let session = LiveSession {
+        session_epoch: 1,
         session_id: "s1".to_string(),
         extension_id: "com.tokmo.voice".to_string(),
         last_seq: 0,
@@ -705,13 +708,14 @@ fn v2_open_different_active_session_conflicts() {
         active: true,
         last_heartbeat: std::time::Instant::now(),
     };
-    assert_eq!(decide_open(Some(&session), "s2"), OpenDecision::Conflict);
+    assert_eq!(decide_open(Some(&session), "s2", "com.tokmo.voice"), OpenDecision::Conflict);
 }
 
 #[test]
 fn v2_open_after_close_or_without_session_is_fresh() {
-    assert_eq!(decide_open(None, "s1"), OpenDecision::FreshOpen);
+    assert_eq!(decide_open(None, "s1", "com.tokmo.voice"), OpenDecision::FreshOpen);
     let mut closed = LiveSession {
+        session_epoch: 1,
         session_id: "s1".to_string(),
         extension_id: "com.tokmo.voice".to_string(),
         last_seq: 0,
@@ -722,8 +726,8 @@ fn v2_open_after_close_or_without_session_is_fresh() {
         last_heartbeat: std::time::Instant::now(),
     };
     closed.active = false;
-    assert_eq!(decide_open(Some(&closed), "s1"), OpenDecision::FreshOpen);
-    assert_eq!(decide_open(Some(&closed), "s2"), OpenDecision::FreshOpen);
+    assert_eq!(decide_open(Some(&closed), "s1", "com.tokmo.voice"), OpenDecision::FreshOpen);
+    assert_eq!(decide_open(Some(&closed), "s2", "com.tokmo.voice"), OpenDecision::FreshOpen);
 }
 
 fn tokmo_like_sections() -> Vec<(String, String)> {
@@ -922,6 +926,7 @@ struct IncomingFixture {
     id: String,
     token: String,
     credential: Arc<DummyCredential>,
+    live_events: Arc<Mutex<Vec<serde_json::Value>>>,
 }
 
 fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
@@ -946,8 +951,15 @@ fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
     });
     let state = Arc::new(super::live_server::LiveServerState {
         session: tokio::sync::Mutex::new(None),
+        next_epoch: std::sync::atomic::AtomicU64::new(1),
         app_handle: app.handle().clone(),
         pending_context: Mutex::new(std::collections::HashMap::new()),
+    });
+    app.manage(state.clone());
+    let live_events = Arc::new(Mutex::new(Vec::new()));
+    let seen_live = live_events.clone();
+    app.listen("mt::live::update", move |event| {
+        seen_live.lock().unwrap().push(serde_json::from_str(event.payload()).unwrap());
     });
     let weak_state = Arc::downgrade(&state);
     app.listen("mt::ext::context_request", move |event| {
@@ -960,7 +972,7 @@ fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
             }).unwrap();
         }
     });
-    IncomingFixture { app, state, events, id, token, credential }
+    IncomingFixture { app, state, events, id, token, credential, live_events }
 }
 
 fn bearer_headers(token: Option<&str>) -> HeaderMap {
@@ -1042,11 +1054,19 @@ struct DummyCredential {
     fail_read: std::sync::atomic::AtomicBool,
     keep_after_delete: std::sync::atomic::AtomicBool,
     reads: std::sync::atomic::AtomicUsize,
+    read_pause: Mutex<Option<(std::sync::mpsc::Sender<()>, Arc<(Mutex<bool>, std::sync::Condvar)>)>>,
 }
 
 impl super::auth::Credential for DummyCredential {
     fn read(&self) -> Result<Option<String>, String> {
         self.reads.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let pause = self.read_pause.lock().unwrap().take();
+        if let Some((entered, release)) = pause {
+            entered.send(()).unwrap();
+            let (ready, wake) = &*release;
+            let guard = ready.lock().unwrap();
+            drop(wake.wait_while(guard, |ready| !*ready).unwrap());
+        }
         if self.fail_read.load(std::sync::atomic::Ordering::Relaxed) {
             Err("dummy credential read access failed".to_string())
         } else { Ok(self.persistent.lock().unwrap().clone()) }
@@ -1095,21 +1115,21 @@ async fn disable_revokes_and_verifies_absence() {
     assert!(super::auth::verify_secret_absent(&f.id).is_err());
     assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()));
     *f.credential.persistent.lock().unwrap() = Some(f.token.clone());
-    super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap();
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
     super::auth::verify_secret_absent(&f.id).unwrap();
     assert!(super::auth::get_secret(&f.id).unwrap().is_none());
     assert!(f.credential.persistent.lock().unwrap().is_none());
     assert!(!super::auth::validate_token(&f.id, &f.token));
     assert_old_token_fenced(&f).await;
     // Confirmed missing credentials remain a successful, idempotent disable.
-    super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap();
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
 }
 
 #[tokio::test]
 async fn disable_surfaces_revoke_failure() {
     let f = incoming_fixture(true, "text.insert");
     f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
-    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
     assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err());
     assert_eq!(f.credential.persistent.lock().unwrap().as_deref(), Some(f.token.as_str()));
     assert!(super::auth::validate_token(&f.id, &f.token), "the enabled-state gate must fence a still-valid persistent token");
@@ -1125,7 +1145,7 @@ async fn disable_refuses_unverified_revocation() {
             "read" => f.credential.fail_read.store(true, std::sync::atomic::Ordering::Relaxed),
             _ => f.credential.keep_after_delete.store(true, std::sync::atomic::Ordering::Relaxed),
         }
-        assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_disable_revoke_failed", "{mode}");
+        assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed", "{mode}");
         assert!(super::auth::verify_secret_absent(&f.id).is_err(), "{mode}");
         assert_old_token_fenced(&f).await;
         if mode != "survives" {
@@ -1152,7 +1172,7 @@ async fn enabled_extension_passes_all_three_routes() {
 #[tokio::test]
 async fn fresh_pairing_restores_access() {
     let f = incoming_fixture(true, "text.insert");
-    super::mt_ext_disable(f.id.clone(), f.app.state()).await.unwrap();
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&f).await;
     // Enabling never makes the old token usable; a real fresh pair supplies it.
     super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
@@ -1347,3 +1367,129 @@ async fn invoke_redirect_response_not_followed() {
     assert!(target_server.join().unwrap().is_none(), "health probe followed its redirect");
 }
 // END_BLOCK_LOOPBACK_URL_TESTS
+
+// START_BLOCK_STREAM_SECURITY_TESTS
+async fn stream_open_fixture(f: &IncomingFixture, id: &str, token: &str, sid: &str) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({
+        "extension_id": id, "session_id": sid, "title": "Dummy stream", "initial_md": "original",
+        "sections": [{"name":"body", "content":"original"}]
+    })).unwrap();
+    super::live_server::handle_doc_open(State(f.state.clone()), bearer_headers(Some(token)), Json(request)).await.into_response()
+}
+
+async fn stream_route_fixture(f: &IncomingFixture, route: &str) -> StatusCode {
+    let headers = bearer_headers(Some(&f.token));
+    let body = serde_json::json!({"session_id":"session-a", "seq":1, "base_revision":1, "section":"body", "content":"replacement"});
+    let state = State(f.state.clone());
+    match route {
+        "patch" => super::live_server::handle_doc_patch(state, headers, Json(serde_json::from_value(body).unwrap())).await.into_response().status(),
+        "close" => super::live_server::handle_doc_close(state, headers, Json(serde_json::from_value(body).unwrap())).await.into_response().status(),
+        _ => super::live_server::handle_heartbeat(state, headers, Json(serde_json::from_value(body).unwrap())).await.into_response().status(),
+    }
+}
+
+#[tokio::test]
+async fn stream_disabled_owner_is_fenced_even_when_keyring_delete_fails() {
+    let f = incoming_fixture(true, "stream.document");
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::UNAUTHORIZED);
+    for route in ["patch", "close", "heartbeat"] {
+        assert_eq!(stream_route_fixture(&f, route).await, StatusCode::UNAUTHORIZED, "{route}");
+    }
+    assert!(!f.state.session.lock().await.as_ref().unwrap().active);
+}
+
+#[tokio::test]
+async fn stream_foreign_owner_cannot_disclose_or_replace_session() {
+    let f = incoming_fixture(true, "stream.document");
+    let other_id = format!("{}-other", f.id);
+    let other_token = "dummy-other-stream-token";
+    f.app.state::<ExtRegistry>().register(test_manifest(&other_id), true).unwrap();
+    f.app.state::<ExtRegistry>().enable(&other_id).unwrap();
+    super::auth::inject_test_secret(&other_id, other_token);
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+    for sid in ["different-session", "session-a"] {
+        let response = stream_open_fixture(&f, &other_id, other_token, sid).await;
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+        let bytes = axum::body::to_bytes(response.into_body(), 4096).await.unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert!(body.get("existing_session_id").is_none());
+        assert!(!String::from_utf8_lossy(&bytes).contains("session-a"));
+        let guard = f.state.session.lock().await;
+        assert_eq!(guard.as_ref().unwrap().extension_id, f.id);
+        assert_eq!(guard.as_ref().unwrap().document_md, "original");
+    }
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+    super::auth::clear_test_secret(&other_id);
+}
+
+#[tokio::test]
+async fn stream_authentication_cannot_cross_disable_or_session_replacement() {
+    for replacement in [false, true] {
+        for route in ["open", "patch", "close", "heartbeat"] {
+            if replacement && route == "open" { continue; }
+            let f = incoming_fixture(true, "stream.document");
+            assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+            let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+            let release = Arc::new((Mutex::new(false), std::sync::Condvar::new()));
+            *f.credential.read_pause.lock().unwrap() = Some((entered_tx, release.clone()));
+            let state = f.state.clone(); let id = f.id.clone(); let token = f.token.clone();
+            let pending = tokio::spawn(async move {
+                let headers = bearer_headers(Some(&token));
+                let body = serde_json::json!({"extension_id":id, "session_id":"session-a", "title":"Dummy",
+                    "seq":1,"base_revision":1,"section":"body","content":"stale", "initial_md":"stale"});
+                let state = State(state);
+                match route {
+                    "open" => super::live_server::handle_doc_open(state, headers, Json(serde_json::from_value(body).unwrap())).await.into_response().status(),
+                    "patch" => super::live_server::handle_doc_patch(state, headers, Json(serde_json::from_value(body).unwrap())).await.into_response().status(),
+                    "close" => super::live_server::handle_doc_close(state, headers, Json(serde_json::from_value(body).unwrap())).await.into_response().status(),
+                    _ => super::live_server::handle_heartbeat(state, headers, Json(serde_json::from_value(body).unwrap())).await.into_response().status(),
+                }
+            });
+            tokio::task::spawn_blocking(move || entered_rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap()).await.unwrap();
+            if replacement {
+                assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+            } else {
+                f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+                assert!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.is_err());
+            }
+            let event_count = f.live_events.lock().unwrap().len();
+            let expected_heartbeat = f.state.session.lock().await.as_ref().unwrap().last_heartbeat;
+            *release.0.lock().unwrap() = true; release.1.notify_all();
+            assert_eq!(pending.await.unwrap(), if replacement { StatusCode::CONFLICT } else { StatusCode::UNAUTHORIZED }, "{route}");
+            let guard = f.state.session.lock().await; let session = guard.as_ref().unwrap();
+            assert_eq!(session.document_md, "original");
+            assert_eq!(session.revision, 1);
+            assert_eq!(session.last_heartbeat, expected_heartbeat);
+            assert_eq!(session.active, replacement);
+            assert_eq!(f.live_events.lock().unwrap().len(), event_count);
+        }
+    }
+}
+
+#[tokio::test]
+async fn stream_events_keep_ordered_identity_and_disable_only_closes_its_owner() {
+    let f = incoming_fixture(true, "stream.document");
+    let other_id = format!("{}-disabled", f.id);
+    f.app.state::<ExtRegistry>().register(test_manifest(&other_id), true).unwrap();
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+    // No credential is stored for B; disabling it still cannot close A.
+    let _ = super::mt_ext_disable(other_id, f.app.state(), f.app.handle().clone()).await;
+    assert!(f.state.session.lock().await.as_ref().unwrap().active);
+    assert_eq!(stream_route_fixture(&f, "patch").await, StatusCode::OK);
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.is_err());
+    let events = f.live_events.lock().unwrap();
+    assert_eq!(events.iter().map(|e| e["update_type"].as_str().unwrap()).collect::<Vec<_>>(), vec!["doc_open","doc_patch","doc_open","doc_close"]);
+    let first = events[0]["payload"]["session_epoch"].as_u64().unwrap();
+    let second = events[2]["payload"]["session_epoch"].as_u64().unwrap();
+    assert!(second > first);
+    for (event, epoch) in events.iter().zip([first, first, second, second]) {
+        assert_eq!(event["payload"]["session_id"], "session-a");
+        assert_eq!(event["payload"]["session_epoch"], epoch);
+    }
+}
+// END_BLOCK_STREAM_SECURITY_TESTS

@@ -4,7 +4,8 @@
 //            registered extensions with enable/disable/query operations.
 //   SCOPE:   State management only. No I/O, no HTTP. Enable/disable
 //            persists to m005_prefs via a helper (deferred to B2b wiring).
-//   DEPENDS: manifest::ExtensionManifest, std::sync::Mutex.
+//   DEPENDS: manifest::ExtensionManifest, std::sync::Mutex, tokio::sync::Mutex.
+//   CHANGE_SUMMARY: 2026-11-11 C-SEC-STREAM-AUTH: serialize stream mutations and stamp enabled identities across credential I/O.
 //   LINKS:   .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
 //   STATUS:  Phase-B2b initial.
@@ -27,6 +28,7 @@ pub struct ExtensionState {
     pub manifest: ExtensionManifest,
     pub enabled: bool,
     pub healthy: bool,
+    authorization_epoch: u64,
 }
 // END_BLOCK_EXTENSION_STATE
 
@@ -70,12 +72,17 @@ impl From<&ExtensionState> for ExtensionInfo {
 /// `.manage(ExtRegistry::new())`.
 pub struct ExtRegistry {
     extensions: Mutex<HashMap<String, ExtensionState>>,
+    next_authorization_epoch: std::sync::atomic::AtomicU64,
+    /// Lock order: stream_gate, then live session. Native credential I/O holds neither.
+    pub(super) stream_gate: tokio::sync::Mutex<()>,
 }
 
 impl ExtRegistry {
     pub fn new() -> Self {
         Self {
             extensions: Mutex::new(HashMap::new()),
+            next_authorization_epoch: std::sync::atomic::AtomicU64::new(1),
+            stream_gate: tokio::sync::Mutex::new(()),
         }
     }
 
@@ -91,6 +98,7 @@ impl ExtRegistry {
             manifest,
             enabled: false,
             healthy,
+            authorization_epoch: self.next_authorization_epoch.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         };
         let mut map = self.extensions.lock().map_err(|e| {
             safe_eprintln!("[ExtHost][registry][BLOCK_LOCK_POISONED reason={e}]");
@@ -110,6 +118,7 @@ impl ExtRegistry {
         match map.get_mut(id) {
             Some(state) => {
                 state.enabled = true;
+                state.authorization_epoch = self.next_authorization_epoch.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 safe_eprintln!("[ExtHost][registry][BLOCK_ENABLE id={id}]");
                 Ok(())
             }
@@ -129,6 +138,7 @@ impl ExtRegistry {
         match map.get_mut(id) {
             Some(state) => {
                 state.enabled = false;
+                state.authorization_epoch = self.next_authorization_epoch.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 safe_eprintln!("[ExtHost][registry][BLOCK_DISABLE id={id}]");
                 Ok(())
             }
@@ -182,6 +192,14 @@ impl ExtRegistry {
                 Vec::new()
             }
         }
+    }
+
+    /// Snapshot the enabled identity generation, invalidated on registration,
+    /// enable or disable so credentials checked in flight cannot cross revocation.
+    pub(super) fn authorization_epoch(&self, id: &str) -> Result<u64, String> {
+        let map = self.extensions.lock().map_err(|_| "registry lock poisoned".to_string())?;
+        map.get(id).filter(|state| state.enabled).map(|state| state.authorization_epoch)
+            .ok_or_else(|| "extension is not enabled".to_string())
     }
 
     /// Get the manifest for a specific extension by id (must be enabled).

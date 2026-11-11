@@ -1,0 +1,9 @@
+<GraceChangeSpec graceVersion="4.0" status="applied"><C-SEC-COVERAGE-IMPORTS>
+<Summary>Isolate application-shell smoke tests from the real editor component tree during module import.</Summary>
+<Goals><Goal>Exercise shell mounting and computed state using the child stub already intended by shallowMount, without paying unrelated editor compilation in the smoke-test deadline.</Goal></Goals>
+<Constraints><Constraint>Preserve all assertions, timeout values and global coverage thresholds. The owner requested green checks before merge.</Constraint></Constraints>
+<NonGoals><NonGoal>Change production imports, relax coverage or change editor rendering behavior.</NonGoal></NonGoals>
+<AcceptanceCriteria><Criterion>Both application-shell test files pass using an import-level EditorWithTabs stub; real editor and stream browser regressions remain in their existing suites.</Criterion></AcceptanceCriteria>
+<AffectedAreas><M-011/><M-046/></AffectedAreas>
+<VerificationIntent><ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/pages/app.test.js tests/renderer/pages/app-deep.test.js</ExpectedCommand><ExpectedEvidence>Focused shell regressions pass; the complete CI coverage gate remains mandatory before merge.</ExpectedEvidence></VerificationIntent>
+</C-SEC-COVERAGE-IMPORTS></GraceChangeSpec>

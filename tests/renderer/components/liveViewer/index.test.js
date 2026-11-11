@@ -8,17 +8,19 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: listenMock
 }))
 
-const busMock = { emit: vi.fn() }
-
-vi.mock('@/bus', () => ({
-  default: busMock
-}))
+const storeMock = {
+  OPEN_LIVE_DOCUMENT: vi.fn(), PATCH_LIVE_DOCUMENT: vi.fn(), CLOSE_LIVE_DOCUMENT: vi.fn()
+}
+vi.mock('@/store/editor', () => ({ useEditorStore: () => storeMock }))
 
 describe('LiveViewer – extended coverage', () => {
   let eventHandler
 
   beforeEach(() => {
     vi.clearAllMocks()
+    storeMock.OPEN_LIVE_DOCUMENT.mockReturnValue('live-tab')
+    storeMock.PATCH_LIVE_DOCUMENT.mockReturnValue(true)
+    storeMock.CLOSE_LIVE_DOCUMENT.mockReturnValue(true)
     listenMock.mockImplementation(async (_event, handler) => {
       eventHandler = handler
       return unlistenMock
@@ -63,22 +65,22 @@ describe('LiveViewer – extended coverage', () => {
 
   // ── doc_open ─────────────────────────────────────────────────
 
-  it('doc_open — shows indicator, sets session info, emits new-untitled-tab', async () => {
+  it('doc_open — shows indicator, sets session info and opens an owned tab', async () => {
     const wrapper = await mountComponent()
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'Test Meeting', content: '# Hello' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'Test Meeting', content: '# Hello' }
       }
     })
     await nextTick()
 
     expect(wrapper.find('.live-indicator').exists()).toBe(true)
     expect(wrapper.find('.live-session-info').text()).toContain('Test Meeting')
-    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+    expect(storeMock.OPEN_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({
       markdown: '# Hello',
-      selected: true
-    })
+      sessionId: 's1', sessionEpoch: 1
+    }))
   })
 
   it('doc_open with missing title defaults to Meeting', async () => {
@@ -86,7 +88,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, content: '' }
       }
     })
     await nextTick()
@@ -99,15 +101,15 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X' }
       }
     })
     await nextTick()
 
-    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+    expect(storeMock.OPEN_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({
       markdown: '',
-      selected: true
-    })
+      sessionId: 's1', sessionEpoch: 1
+    }))
   })
 
   it('doc_open shows indicator', async () => {
@@ -117,7 +119,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
@@ -133,21 +135,21 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: 'initial' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: 'initial' }
       }
     })
     await nextTick()
-    busMock.emit.mockClear()
+    storeMock.PATCH_LIVE_DOCUMENT.mockClear()
 
     eventHandler({
       payload: {
         update_type: 'doc_patch',
-        payload: { full_content: '# Updated', revision: 2, section: 'body' }
+        payload: { session_id: 's1', session_epoch: 1, full_content: '# Updated', revision: 2, section: 'body' }
       }
     })
     await nextTick()
 
-    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '# Updated' })
+    expect(storeMock.PATCH_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 's1', sessionEpoch: 1, markdown: '# Updated' }))
   })
 
   it('doc_patch with missing full_content defaults to empty string', async () => {
@@ -155,36 +157,36 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
-    busMock.emit.mockClear()
+    storeMock.PATCH_LIVE_DOCUMENT.mockClear()
 
     eventHandler({
       payload: {
         update_type: 'doc_patch',
-        payload: { revision: 3 }
+        payload: { session_id: 's1', session_epoch: 1, revision: 3 }
       }
     })
     await nextTick()
 
-    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '' })
+    expect(storeMock.PATCH_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 's1', sessionEpoch: 1, markdown: '' }))
   })
 
   it('doc_patch is ignored when not live', async () => {
     await mountComponent()
-    busMock.emit.mockClear()
+    storeMock.PATCH_LIVE_DOCUMENT.mockClear()
 
     eventHandler({
       payload: {
         update_type: 'doc_patch',
-        payload: { full_content: 'X', revision: 1 }
+        payload: { session_id: 's1', session_epoch: 1, full_content: 'X', revision: 1 }
       }
     })
     await nextTick()
 
-    expect(busMock.emit).not.toHaveBeenCalledWith('file-loaded', expect.anything())
+    expect(storeMock.PATCH_LIVE_DOCUMENT).not.toHaveBeenCalled()
   })
 
   // ── doc_close ────────────────────────────────────────────────
@@ -194,7 +196,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
@@ -203,7 +205,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_close',
-        payload: { session_id: 's1', final_revision: 5 }
+        payload: { session_id: 's1', session_epoch: 1, final_revision: 5 }
       }
     })
     await nextTick()
@@ -218,7 +220,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_close',
-        payload: { session_id: 's1', final_revision: 1 }
+        payload: { session_id: 's1', session_epoch: 1, final_revision: 1 }
       }
     })
     await nextTick()
@@ -231,7 +233,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
@@ -287,7 +289,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
@@ -305,7 +307,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'Session 1', content: '# One' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'Session 1', content: '# One' }
       }
     })
     await nextTick()
@@ -314,7 +316,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_close',
-        payload: { session_id: 's1', final_revision: 3 }
+        payload: { session_id: 's1', session_epoch: 1, final_revision: 3 }
       }
     })
     await nextTick()
@@ -344,7 +346,7 @@ describe('LiveViewer – extended coverage', () => {
   // These exercise the '?' fallback branches in console.log template
   // literals. V8 counts each || as a branch.
 
-  it('doc_open with missing session_id hits fallback branch', async () => {
+  it('delegates missing identity to the store for refusal', async () => {
     await mountComponent()
     // payload.session_id is undefined, so the `|| "?"` branch fires
     eventHandler({
@@ -354,11 +356,11 @@ describe('LiveViewer – extended coverage', () => {
       }
     })
     await nextTick()
-    // No error — emits bus event regardless
-    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+    // The store owns identity validation; the bridge supplies the exact missing values.
+    expect(storeMock.OPEN_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({
       markdown: '',
-      selected: true
-    })
+      sessionId: undefined, sessionEpoch: undefined
+    }))
   })
 
   it('doc_open with explicit session_id hits truthy branch', async () => {
@@ -377,21 +379,21 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
-    busMock.emit.mockClear()
+    storeMock.PATCH_LIVE_DOCUMENT.mockClear()
 
     // No revision or section — both `|| "?"` branches fire
     eventHandler({
       payload: {
         update_type: 'doc_patch',
-        payload: { full_content: '# No meta' }
+        payload: { session_id: 's1', session_epoch: 1, full_content: '# No meta' }
       }
     })
     await nextTick()
-    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '# No meta' })
+    expect(storeMock.PATCH_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 's1', sessionEpoch: 1, markdown: '# No meta' }))
   })
 
   it('doc_patch with explicit revision and section hits truthy branches', async () => {
@@ -399,20 +401,20 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
-    busMock.emit.mockClear()
+    storeMock.PATCH_LIVE_DOCUMENT.mockClear()
 
     eventHandler({
       payload: {
         update_type: 'doc_patch',
-        payload: { full_content: '# Meta', revision: 5, section: 'body' }
+        payload: { session_id: 's1', session_epoch: 1, full_content: '# Meta', revision: 5, section: 'body' }
       }
     })
     await nextTick()
-    expect(busMock.emit).toHaveBeenCalledWith('file-loaded', { markdown: '# Meta' })
+    expect(storeMock.PATCH_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 's1', sessionEpoch: 1, markdown: '# Meta' }))
   })
 
   it('doc_close with missing session_id and final_revision hits fallback branches', async () => {
@@ -420,7 +422,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
@@ -441,7 +443,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '' }
       }
     })
     await nextTick()
@@ -449,7 +451,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_close',
-        payload: { session_id: 's1', final_revision: 10 }
+        payload: { session_id: 's1', session_epoch: 1, final_revision: 10 }
       }
     })
     await nextTick()
@@ -463,7 +465,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'Board Meeting', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'Board Meeting', content: '' }
       }
     })
     await nextTick()
@@ -475,7 +477,7 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: '', content: '' }
+        payload: { session_id: 's1', session_epoch: 1, title: '', content: '' }
       }
     })
     await nextTick()
@@ -491,14 +493,14 @@ describe('LiveViewer – extended coverage', () => {
     eventHandler({
       payload: {
         update_type: 'doc_open',
-        payload: { session_id: 's1', title: 'X', content: '# Content' }
+        payload: { session_id: 's1', session_epoch: 1, title: 'X', content: '# Content' }
       }
     })
     await nextTick()
-    expect(busMock.emit).toHaveBeenCalledWith('mt::new-untitled-tab', {
+    expect(storeMock.OPEN_LIVE_DOCUMENT).toHaveBeenCalledWith(expect.objectContaining({
       markdown: '# Content',
-      selected: true
-    })
+      sessionId: 's1', sessionEpoch: 1
+    }))
   })
 
   // ── Edge: unknown update_type is silently ignored ────────────

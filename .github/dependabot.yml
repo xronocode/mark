@@ -79,6 +79,16 @@ updates:
     labels:
       - dependencies
 
+  - package-ecosystem: npm
+    directory: /tools/stats-gateway
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+
   - package-ecosystem: cargo
     directory: /
     schedule:

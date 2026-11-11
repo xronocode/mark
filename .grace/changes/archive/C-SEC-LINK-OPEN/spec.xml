@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SEC-LINK-OPEN>
+    <Summary>Prevent executable and ambiguous attachments from being opened by Markdown links.</Summary>
+    <Goals><Goal>Reject Windows executables, ambiguous names and unsupported external attachment types before dispatch.</Goal><Goal>Preserve internal Markdown and allowlisted image/PDF routing and both path fences.</Goal></Goals>
+    <Constraints><Constraint>Owner approved the source-validated 2026-11-11 remediation plan by instructing implementation. Execute sequentially; use dummy fixtures and preserve release authorization.</Constraint><Constraint>Keep repository artifacts English and synchronize contracts, graph and verification. No production deploy or release.</Constraint></Constraints>
+    <NonGoals><NonGoal>Broad dependency upgrades, new executable-confirmation UI and release publication.</NonGoal></NonGoals>
+    <AcceptanceCriteria><Criterion>Reject Windows executables, ambiguous names and unsupported external attachment types before dispatch.</Criterion><Criterion>Preserve internal Markdown and allowlisted image/PDF routing and both path fences.</Criterion></AcceptanceCriteria>
+    <AffectedAreas><M-010/><M-013-B/></AffectedAreas>
+    <VerificationIntent><ExpectedCommand>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark link_click</ExpectedCommand><ExpectedEvidence>Regressions fail before the fix and pass after it; final GRACE assertions and current integrity pass.</ExpectedEvidence></VerificationIntent>
+  </C-SEC-LINK-OPEN>
+</GraceChangeSpec>

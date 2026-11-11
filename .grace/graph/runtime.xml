@@ -23,6 +23,7 @@
         the PDF-export contract surface.
        C-STABILIZE-PROFILE-ISOLATION: after read-only CLI exits, bind the application namespace from the exact generated Tauri Context before pre-boot rollback and other state consumers; reuse that Context for Tauri build.
         C-SEC-AUDIT-FIXES: mt_format_link_click delegates local targets to canonical document-directory validation and m010 path/executable guards before the cross-platform opener; HTTP(S) preserves its existing route.
+        C-SEC-STREAM-AUTH: bootstrap manages the shared live-server state and monotonic event epoch so extension disable can synchronously fence and close its owned stream.
       </Summary>
       <Path>src-tauri/src/main.rs</Path>
       <Dependencies>
@@ -2250,6 +2251,7 @@
         permissive root (canonicalize("/") on Windows is the
         current-drive root). All other denials unchanged.
         C-SEC-AUDIT-FIXES: check_path resolves the nearest existing directory entry with symlink_metadata; only NotFound advances to a parent. Canonical entry plus missing suffix must remain inside the canonical sandbox, with existing permissive-root and Windows device-prefix rules retained. Dangling links and other I/O errors fail closed. Document-local link opening reuses this fence and check_shell_open_extension on requested and canonical targets.
+        C-SEC-LINK-OPEN: Windows launch types are denied on every platform. Markdown external attachments must be regular files with unambiguous component names and an explicitly allowed document/image extension on both requested and canonical paths.
       </Summary>
       <Path>src-tauri/src/m010_security.rs</Path>
       <Dependencies/>
@@ -2420,13 +2422,16 @@
                 <Name>PURPOSE</Name>
                 <Value>
                   Block
-                  .command/.app/.scpt/.scptd/.lnk/.url/.desktop/.applescript
+                  macOS/Linux execution types and Windows executable, script, installer, shortcut and control-panel extensions
                   regardless of sandbox; emit BLOCK_EXECUTABLE_EXT
                   ext=&lt;name&gt;
                 </Value>
               </Attribute>
             </LegacyAttributes>
           </fn-check_shell_open_extension>
+          <fn-check_markdown_external_target>
+            <Purpose>Permit only allowlisted regular external attachments with unambiguous component names; the link dispatcher checks requested and canonical paths after internal Markdown routing.</Purpose>
+          </fn-check_markdown_external_target>
           <fn-lexical_normalize>
             <LegacyAttributes>
               <Attribute>
@@ -3122,6 +3127,8 @@
         custom property on the editor root, re-applies on sidebar and window
         changes and moves the stored entry on rename (V-M-061).
         C-STABILIZE-SPLIT-PROJECTIONS: Both split surfaces edit one tab. Store-driven rendering uses guarded adaptive follows, translated selections and per-surface IME fences. The sole document history and both carets survive tab/layout/mode transitions for unified tabs and clear on disk reload; never-unified tabs retain legacy behavior. Focused commands/search/clipboard/assets/statistics use the active pane, dirty/autosave notification occurs once, and locked/preview surfaces stay protected. Scroll/gesture recovery keeps proportional bidirectional sync, transition anchors, persisted ratio, narrow/diff collapse and cleanup.
+        C-SEC-STREAM-TABS: liveDocument binds one session incarnation to its created tab. Background updates replace only that stored document, clear its stale render/history caches and never invoke autosave. Missing tabs, stale epochs and duplicate revisions are ignored; an explicit newer open alone may recreate a tab. Same-session resync preserves its tab and current selection.
+        C-SEC-COVERAGE-IMPORTS: application-shell smoke tests stub the unused editor module before import, matching their existing rendering stub and retaining assertions and deadlines.
       </Summary>
       <Path>src/renderer/</Path>
       <Dependencies>
@@ -4343,6 +4350,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         untouched default and the fail-safe fallback (V-M-063).
         C-STABILIZE-PRODUCT-REPAIRS: owner-accepted no-scroll table fitting, explicit Auto width reset, Auto-only outer walls, full-height internal border zones, icon-only toolbars, final Aa settings glyph and persistent Standard entry. Delayed table adoption is generation/document guarded; repaint preserves transforms and cleans up on teardown. M-012 owns table sizing/toolbars; M-061 owns the panel boundary; verification remains V-M-012 and V-M-061.
         C-STABILIZE-SPLIT-PROJECTIONS: History owns the bounded document timeline. Unified entries replace block snapshots with one exact raw Markdown payload and constant-size rich/source selection metadata; pending typing coalesces and surface/command/tab boundaries commit. Activation preserves pre-split content history while collapsing adjacent native navigation entries. Render-only setMarkdown imports suppress history/change echoes; undo/redo replay carries exact raw source through one genuine change. Legacy progressive/footnote behavior remains.
+        C-SEC-STREAM-TABS: rich/source/split surfaces consume identified file-changed refreshes from the owned store state; an unrelated selected document retains its buffer, history and next save.
       </Summary>
       <Path>src/muya/</Path>
       <Dependencies/>
@@ -5416,6 +5424,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         invoke wrapper. C-2: ipcWatch.subscribe (watch.ts) gained a leak guard
         — a failed listener registration after a successful backend subscribe
         unwinds the watcher instead of leaking it.
+        C-SEC-LINK-OPEN: local link dispatch applies the external-attachment policy after internal Markdown classification, with fake-sink regressions proving zero dispatch on denial.
       </Summary>
       <Path>src/renderer/src/ipc/runtime/</Path>
       <Dependencies>

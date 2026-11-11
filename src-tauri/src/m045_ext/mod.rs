@@ -22,6 +22,7 @@
 //            Phase-B4 — text_ops (text.insert + text.transform) added.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-11 C-SEC-STREAM-AUTH: fence and close the owner stream before credential revocation, including failure.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-004: fence disable before strict credential revocation and read-back.
 //   - 2026-06-08 B4: text_ops module added (text.insert + text.transform
 //     capabilities for extensions).
@@ -73,6 +74,7 @@ pub async fn mt_ext_discover(
 ) -> Result<Vec<ExtensionInfo>, String> {
     let discovered = discovery::discover_extensions().await;
 
+    let _stream_gate = registry.stream_gate.lock().await;
     for ext in &discovered {
         registry.register(ext.manifest.clone(), ext.healthy)?;
     }
@@ -98,6 +100,7 @@ pub async fn mt_ext_enable(
         safe_eprintln!("[ExtHost][command][BLOCK_ENABLE_SECRET_GENERATED id={id}]");
     }
 
+    let _stream_gate = registry.stream_gate.lock().await;
     registry.enable(&id)?;
     safe_eprintln!("[ExtHost][command][BLOCK_ENABLE id={id}]");
     Ok(())
@@ -105,12 +108,25 @@ pub async fn mt_ext_enable(
 
 /// Disable an extension by id.
 #[tauri::command]
-pub async fn mt_ext_disable(
+pub async fn mt_ext_disable<R: tauri::Runtime>(
     id: String,
     registry: tauri::State<'_, ExtRegistry>,
+    app: tauri::AppHandle<R>,
 ) -> Result<(), String> {
-    // Fence incoming data routes before any potentially failing native I/O.
-    registry.disable(&id)?;
+    // Fence stream mutations and deactivate the owned session before native I/O.
+    // Lock order matches handlers: stream_gate, then session; never keyring I/O.
+    {
+        use tauri::Manager;
+        let _stream_gate = registry.stream_gate.lock().await;
+        registry.disable(&id)?;
+        if let Some(state) = app.try_state::<std::sync::Arc<LiveServerState<R>>>() {
+            let mut guard = state.session.lock().await;
+            if let Some(session) = guard.as_mut().filter(|s| s.active && s.extension_id == id) {
+                session.active = false;
+                let _ = live_bridge::emit_doc_close(&app, &session.session_id, session.session_epoch, session.revision);
+            }
+        }
+    }
     let revoked_id = id.clone();
     let revoked = tokio::task::spawn_blocking(move || {
         auth::revoke_secret(&revoked_id)?;

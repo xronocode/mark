@@ -1,0 +1,11 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SEC-GATEWAY-TOOLS>
+    <Summary>Use a locked local deployment toolchain before passing deployment credentials.</Summary>
+    <Goals><Goal>Wrangler and its dependency closure have a dedicated reviewed lockfile with integrity.</Goal><Goal>Missing or mismatched local CLI fails without installation; only its process receives Cloudflare credentials.</Goal><Goal>Existing exact-main admission, receipt and Worker behavior remain intact.</Goal></Goals>
+    <Constraints><Constraint>Owner approved the source-validated 2026-11-11 remediation plan by instructing implementation. Execute sequentially; use dummy fixtures and preserve release authorization.</Constraint><Constraint>Keep repository artifacts English and synchronize contracts, graph and verification. No production deploy or release.</Constraint></Constraints>
+    <NonGoals><NonGoal>Broad dependency upgrades, new executable-confirmation UI and release publication.</NonGoal></NonGoals>
+    <AcceptanceCriteria><Criterion>Wrangler and its dependency closure have a dedicated reviewed lockfile with integrity.</Criterion><Criterion>Missing or mismatched local CLI fails without installation; only its process receives Cloudflare credentials.</Criterion><Criterion>Existing exact-main admission, receipt and Worker behavior remain intact.</Criterion></AcceptanceCriteria>
+    <AffectedAreas><M-071/><M-046/></AffectedAreas>
+    <VerificationIntent><ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/tools/stats-gateway-deploy.test.mjs tests/tools/stats-gateway.test.mjs</ExpectedCommand><ExpectedEvidence>Regressions fail before the fix and pass after it; final GRACE assertions and current integrity pass.</ExpectedEvidence></VerificationIntent>
+  </C-SEC-GATEWAY-TOOLS>
+</GraceChangeSpec>

@@ -3,9 +3,10 @@
 //            three classes V-M-010 names: path-sandbox (reject traversal,
 //            symlink escape, NUL/overlong, lexical/canonical mismatch),
 //            URL scheme allowlist (only http/https/file: + sandboxed
-//            file://), and shell.open executable-extension blocklist.
+//            file://), shell.open executable-extension blocklist, and the
+//            regular-file allowlist for external Markdown attachments.
 //   SCOPE:   pure Rust logic; no Tauri runtime, no I/O beyond
-//            std::fs::symlink_metadata()/canonicalize() for entry resolution.
+//            std::fs entry resolution and regular-file metadata checks.
 //            Renderer-side concerns DEFERRED:
 //              - HTML sanitizer (DOMPurify) → Phase-B3
 //              - KaTeX `\href{javascript:...}` filter → Phase-B3
@@ -29,6 +30,7 @@
 //            downstream FsCmd or shell-open call.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-11 C-SEC-LINK-OPEN: block Windows launch types and allow only regular, unambiguous document attachments from Markdown.
 //   - 2026-11-10 C-STABILIZE-PATH-TEST-PORTABILITY: three positive fixtures assert exact native canonical temporary paths on every platform; runtime guard policy is unchanged.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-007: missing paths resolve their
 //     nearest existing directory entry before fencing; dangling links and
@@ -58,9 +60,7 @@ pub const MAX_PATH_BYTES: usize = 4096;
 /// inert text after sanitization.
 const ALLOWED_URL_SCHEMES: &[&str] = &["http", "https", "file"];
 
-/// File extensions that can execute when shell.open opens them. macOS
-/// + cross-platform set; Windows-specific (.bat, .cmd, .ps1, .vbs)
-/// added when Windows port lands.
+/// File extensions that can execute or change system settings through the OS opener.
 const DANGEROUS_SHELL_OPEN_EXTENSIONS: &[&str] = &[
     "command", // macOS shell-script bundle
     "app",     // macOS application bundle
@@ -69,7 +69,9 @@ const DANGEROUS_SHELL_OPEN_EXTENSIONS: &[&str] = &[
     "lnk",     // Windows shortcut
     "url",     // Windows internet shortcut
     "desktop", // Linux desktop entry
-    "applescript",
+    "applescript", "exe", "com", "bat", "cmd", "msi", "msp", "mst", "scr", "pif",
+    "cpl", "hta", "ps1", "ps1xml", "ps2", "ps2xml", "psc1", "psc2", "vbs", "vbe",
+    "js", "jse", "wsf", "wsh", "reg", "inf", "appref-ms", "application", "chm",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -370,6 +372,27 @@ pub fn check_shell_open_extension(path: &Path) -> Result<(), SecurityError> {
     }
     Ok(())
 }
+
+// START_BLOCK_MARKDOWN_ATTACHMENT_POLICY
+/// External Markdown attachments are data files, not arbitrary OS launch targets.
+/// Check both the clicked name and canonical target at the caller. Reject Windows
+/// ambiguous component spelling on every platform, including alternate streams.
+pub fn check_markdown_external_target(path: &Path) -> Result<(), SecurityError> {
+    const ALLOWED: &[&str] = &["pdf", "txt", "png", "jpg", "jpeg", "gif", "webp", "bmp",
+        "ico", "tif", "tiff", "avif"];
+    let ambiguous = path.components().any(|component| match component {
+        Component::Normal(name) => name.to_str().is_none_or(|name|
+            name.ends_with([' ', '.']) || name.contains(':')),
+        _ => false,
+    });
+    let ext = path.extension().and_then(OsStr::to_str).unwrap_or("").to_ascii_lowercase();
+    if ambiguous || !ALLOWED.contains(&ext.as_str()) || !path.is_file() {
+        safe_eprintln!("[Security][shellOpen][BLOCK_MARKDOWN_ATTACHMENT]");
+        return Err(SecurityError::DangerousShellOpenExtension { ext });
+    }
+    Ok(())
+}
+// END_BLOCK_MARKDOWN_ATTACHMENT_POLICY
 
 // ─── Tests ──────────────────────────────────────────────────────────
 

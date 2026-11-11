@@ -16,6 +16,7 @@
 //   STATUS:  Phase-B5b initial — bridge emit helpers.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-11 C-SEC-STREAM-AUTH: include session identity and incarnation on every document event.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: share event emission across production and mock runtimes.
 //   - 2026-06-09 E1a: add emit_context_request helper for /ext/context.
 //   - 2026-06-08 B5b: initial live_bridge module creation.
@@ -40,9 +41,9 @@ pub struct LiveUpdate {
     /// Event kind: "doc_open", "doc_patch", or "doc_close".
     pub update_type: String,
     /// Kind-specific payload. Shapes:
-    ///   doc_open:  { title, content, session_id }
-    ///   doc_patch: { full_content, section, revision }
-    ///   doc_close: { session_id, final_revision }
+    ///   doc_open:  { title, content, session_id, session_epoch }
+    ///   doc_patch: { full_content, section, revision, session_id, session_epoch }
+    ///   doc_close: { session_id, session_epoch, final_revision }
     pub payload: serde_json::Value,
 }
 
@@ -79,6 +80,7 @@ pub fn emit_live_update<R: tauri::Runtime>(app: &AppHandle<R>, update: LiveUpdat
 pub fn emit_doc_open<R: tauri::Runtime>(
     app: &AppHandle<R>,
     session_id: &str,
+    session_epoch: u64,
     title: &str,
     content: &str,
 ) -> Result<(), String> {
@@ -86,6 +88,7 @@ pub fn emit_doc_open<R: tauri::Runtime>(
         update_type: "doc_open".to_string(),
         payload: serde_json::json!({
             "session_id": session_id,
+            "session_epoch": session_epoch,
             "title": title,
             "content": content,
         }),
@@ -95,6 +98,8 @@ pub fn emit_doc_open<R: tauri::Runtime>(
 /// Convenience: emit a doc_patch event with the full rebuilt document.
 pub fn emit_doc_patch<R: tauri::Runtime>(
     app: &AppHandle<R>,
+    session_id: &str,
+    session_epoch: u64,
     full_content: &str,
     section: &str,
     revision: u64,
@@ -102,6 +107,8 @@ pub fn emit_doc_patch<R: tauri::Runtime>(
     emit_live_update(app, LiveUpdate {
         update_type: "doc_patch".to_string(),
         payload: serde_json::json!({
+            "session_id": session_id,
+            "session_epoch": session_epoch,
             "full_content": full_content,
             "section": section,
             "revision": revision,
@@ -113,12 +120,14 @@ pub fn emit_doc_patch<R: tauri::Runtime>(
 pub fn emit_doc_close<R: tauri::Runtime>(
     app: &AppHandle<R>,
     session_id: &str,
+    session_epoch: u64,
     final_revision: u64,
 ) -> Result<(), String> {
     emit_live_update(app, LiveUpdate {
         update_type: "doc_close".to_string(),
         payload: serde_json::json!({
             "session_id": session_id,
+            "session_epoch": session_epoch,
             "final_revision": final_revision,
         }),
     })

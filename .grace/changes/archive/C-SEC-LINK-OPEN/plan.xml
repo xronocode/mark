@@ -1,0 +1,10 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-LINK-OPEN>
+    <IntentSummary>Prevent executable and ambiguous attachments from being opened by Markdown links. Approval is the owner's instruction to implement the reviewed Markdown plan on 2026-11-11; the plan's corresponding task defines the detailed behavior and regression matrix.</IntentSummary>
+    <BaselineAssertions><MustExist><Value>M-010</Value></MustExist><MustExist><Value>M-013-B</Value></MustExist></BaselineAssertions>
+    <TargetAssertions><MustVerify><Module>M-010</Module></MustVerify><MustVerify><Module>M-013-B</Module></MustVerify><MustPassCommand><Command>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark link_click</Command></MustPassCommand></TargetAssertions>
+    <DurableScope><GraphAnchors><M-010/><M-013-B/></GraphAnchors><VerificationAnchors><V-M-010/><V-M-013-B/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope><File>src-tauri/src/m010_security.rs</File><File>src-tauri/src/m_v1_compat.rs</File></ObservedWriteScope>
+    <ImplementationPlan><T-001><Title>Prevent executable and ambiguous attachments from being opened by Markdown links</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Reject Windows executables, ambiguous names and unsupported external attachment types before dispatch.</Criterion><Criterion>Preserve internal Markdown and allowlisted image/PDF routing and both path fences.</Criterion></AcceptanceCriteria><Verification><Command>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark link_click</Command></Verification></T-001></ImplementationPlan>
+  </C-SEC-LINK-OPEN>
+</GraceChangePlan>
