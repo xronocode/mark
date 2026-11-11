@@ -45,6 +45,7 @@ private enum PreviewBoundaryTests {
       attackers: document.querySelectorAll('[data-quicklook-attacker]').length,
       tableHeaders: document.querySelectorAll('table th').length,
       heading: document.querySelector('h1')?.textContent || '',
+      rightAligned: Array.from(document.querySelectorAll('th,td')).filter(cell => getComputedStyle(cell).textAlign === 'right').length,
       highlighted: !!document.querySelector('code span.hljs-keyword'),
       dangerousLinks: Array.from(document.querySelectorAll('a[href]')).filter(a => /^javascript:/i.test(a.getAttribute('href'))).length,
       svgImages: Array.from(document.images).filter(i => /^data:image\\/svg/i.test(i.getAttribute('src') || '')).length,
@@ -94,7 +95,7 @@ private enum PreviewBoundaryTests {
         let brokenImage = "data:image/png;base64,AA=="
         let svgData = Data("<svg onload=\"\(mark)\"></svg>".utf8).base64EncodedString()
         return [
-            BoundaryCase("markdown", "# Heading\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\n[Readable link](#section)"),
+            BoundaryCase("markdown", "# Heading\n\n| A | B |\n| :--- | ---: |\n| 1 | 2 |\n\n[Readable link](#section)"),
             BoundaryCase("highlight", "```javascript\nconst answer = 42;\n```"),
             BoundaryCase("unicode-title", "Résumé 日本語 Кириллица \u{2028} \u{2029}", filename: "Résumé & <title> \"日本語\" \\ \u{2028}.md"),
             BoundaryCase("embedded-raster", "![embedded](\(dataImage))"),
@@ -172,6 +173,7 @@ private enum PreviewBoundaryTests {
         case "markdown":
             checks["heading"] = result["heading"] as? String == "Heading"
             checks["table"] = (result["tableHeaders"] as? Int ?? 0) >= 2
+            checks["tableAlignment"] = result["rightAligned"] as? Int == 2
         case "highlight": checks["highlight"] = result["highlighted"] as? Bool == true
         case "unicode-title":
             checks["title"] = result["title"] as? String == name

@@ -26,12 +26,14 @@ enum MarkdownRenderer {
         let highlightJS = Self.highlightJS
         let highlightCSS = Self.highlightCSS
 
+        // markdown-it emits controlled inline styles for table alignment.
+        // Raw HTML is disabled; document-supplied style elements/attributes remain text.
         return """
         <!DOCTYPE html>
         <html lang="en">
         <head>
         <meta charset="utf-8">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-\(nonce)'; style-src 'nonce-\(nonce)'; img-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-\(nonce)'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>\(escapeHTML(title))</title>
         <style nonce="\(nonce)">\(css)</style>
