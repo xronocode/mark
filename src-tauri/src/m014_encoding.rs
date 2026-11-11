@@ -24,6 +24,8 @@
 //   decode_file - legacy disk helper.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-11: keep renderer-only unavailable-codec explanations out of
+//     the backend catalog projection to avoid an unused-field warning.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: strict 32-codec byte construction,
 //     four explicit unavailable choices, BOM and boundary-only newline policies.
 //   - 2026-04-29 B3-step-2: initial detection and legacy decode helpers.
@@ -48,7 +50,6 @@ pub struct CodecEntry {
     pub kind: String,
     pub supported: bool,
     pub label: Option<String>,
-    pub unavailable_reason: Option<String>,
 }
 
 pub fn codec_catalog() -> Result<&'static [CodecEntry], String> {
