@@ -1,9 +1,10 @@
 # Dependabot version updates — keeps the lockfiles from drifting.
 # Security updates are opened immediately regardless of this schedule.
+# Website dependency updates are owned by the separate site repository.
 #
 # Ecosystems:
 #   npm  /       — app + test tooling (root package-lock.json)
-#   npm  /site   — marketing/docs site (separate lockfile)
+#   npm  /tools/stats-gateway — isolated deployment tooling (separate lockfile)
 #   cargo /      — Tauri workspace (Cargo.lock lives in the repo root)
 #
 # Grouping rule: patch and minor updates arrive as two separate groups per
@@ -55,27 +56,6 @@ updates:
       - dependency-name: "appium-xcuitest-driver"
         update-types:
           - "version-update:semver-minor"
-    labels:
-      - dependencies
-
-  - package-ecosystem: npm
-    directory: /site
-    schedule:
-      interval: weekly
-      day: monday
-    commit-message:
-      prefix: chore
-    groups:
-      npm-site-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "patch"
-      npm-site-minor:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
     labels:
       - dependencies
 

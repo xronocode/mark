@@ -1,5 +1,5 @@
 // FILE: tests/tools/stats-gateway.test.mjs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the M-071 gateway worker's contract (C-UPDATER-STATS):
 //            the full derivation table (both platforms -> exact GitHub
@@ -51,6 +51,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-11 v1.4.0: await the native-auth upstream-entry signal before advancing the unchanged 10-second abort clock.
 //   - 2026-11-03 v1.3.0 C-STATS-DASH-PUSH T-002: the dashboard push pins
 //     (event shape and key header per route, off-by-absence, swallow-on-
 //     failure, no push for malformed input).
@@ -821,6 +822,8 @@ describe('tools/stats-gateway — /stats upstream failure mapping (C-STATS-READO
     try {
       const worker = await freshWorker()
       let seenSignal = null
+      let markUpstreamReached
+      const upstreamReached = new Promise((resolve) => { markUpstreamReached = resolve })
       // The stub honors the AbortSignal it receives and rejects on the
       // abort event — the real fetch contract.
       const slowUpstream = (_url, init = {}) =>
@@ -829,15 +832,18 @@ describe('tools/stats-gateway — /stats upstream failure mapping (C-STATS-READO
           seenSignal.addEventListener('abort', () =>
             reject(new Error('The operation was aborted'))
           )
+          markUpstreamReached()
         })
       vi.stubGlobal('fetch', slowUpstream)
       const pending = statsCall(worker, readoutEnv())
-      // The pre-hash digest is native async (not timer-driven); flush
-      // microtasks until the upstream call has been reached.
-      for (let i = 0; i < 100 && seenSignal === null; i += 1) {
-        await vi.advanceTimersByTimeAsync(1)
-      }
+      // Native crypto completion is not driven by the fake clock. Wait
+      // for the real fetch boundary; an early response must still fail.
+      await Promise.race([
+        upstreamReached,
+        pending.then(() => { throw new Error('response completed before reaching upstream') })
+      ])
       expect(seenSignal, 'the stubbed upstream must have been reached').not.toBeNull()
+      expect(seenSignal.aborted).toBe(false)
       // The seam: the setTimeout-driven controller.abort fires at 10 s.
       await vi.advanceTimersByTimeAsync(10000)
       await expectFixed502(await pending, { label: 'abort' })
