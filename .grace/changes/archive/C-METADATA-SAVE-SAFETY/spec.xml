@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-METADATA-SAVE-SAFETY>
     <Summary>Preserve unsaved document text and the selected file format across metadata changes, Save, Save All and save-before-close. The owner's active stabilization goal selects end-to-end format ownership (option B); approval of this exact spec and its later implementation plan remains separate.</Summary>
     <Problem>
