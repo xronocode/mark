@@ -19,13 +19,27 @@ PDF, HTML and Word commands open Save directly, using an immutable snapshot of r
 
 ## Remaining gates
 
-The owner authorized integration and apply/archive while preserving open native/owner/platform acceptance. The authorization remains valid; fresh review, hosted checks and an identified native build must bind to the final refreshed committed candidate before lifecycle completion and integration. Release-train admission remains pending. No version, tag, signing, release dispatch or publication is authorized.
+The owner authorized integration and apply/archive with an explicit exception for the remaining native matrix and owner/platform acceptance. The corrected current-model source has source-bound native content evidence, and the final committed candidate has fresh review, hosted checks and an identified native build. The additional final-package replay remains unverified under that exception; it is not a condition silently added to the owner's authorization. Fresh final command validation precedes lifecycle apply, followed by current-state integrity/status and required checks on the archive commit before integration. Release-train admission remains pending. No version, tag, signing, release dispatch or publication is authorized.
+
+## Refreshed committed candidate
+
+Candidate `451a5f2601655922fd2b124707d51408cc3032b9` descends from the accepted current-model repair in main. Its tree is identical to reviewed `38be2918ae6f857f393fb27d4874d19f4fab4b66`; Standards and Spec have zero remaining findings. Normal commit and push safety checks passed without overrides.
+
+- e2e: 42/42 passed (fresh local Export/Settings cohort on the committed candidate).
+- e2e: 832 passed, 1 flaky, 8 existing skips (complete hosted Chromium/WebKit matrix on the same candidate).
+- Hosted renderer: 5932 passed on Linux and Windows; 5936 on macOS. Each run passed 421 files and unchanged coverage thresholds, with existing platform skips and three todos.
+- Hosted backend: 557 passed on Linux, 542 on Windows and 600 on macOS; each has one existing ignored case.
+- Build, QuickLook and all four required contexts passed. Four CodeQL language analyses passed; Swift did not start because hosted macOS capacity was unavailable and remains explicitly open.
+
+The external-delete characterization passed its existing configured retry and remains an open instability also observed on the core dependency. An earlier Source-to-Split typed-marker failure remains under investigation: the same case passed three local repeats on both main and this candidate, all eleven stream cases passed thirty-three local runs, and the current complete hosted matrix passed. These results do not establish either observation's root cause.
 
 ## Current-model export dependency
 
 The refreshed tree integrates the applied and archived C-MUYA-CURRENT-MODEL-EXPORT repair. Both existing HTML export APIs read one current complete-model string rather than a stale change-event cache. The real-Muya focused suites passed 23 tests in the merged tree. Strengthened PDF, HTML and Word browser cases inspect actual output content as well as the selected filename; the complete Export/Settings cohort passed 42 of 42 cases in Chromium and WebKit.
 
 All 882 compared product source paths match the identified earlier acceptance combination byte for byte. That combination passed nine native entry/format routes and fourteen output-content inspections, plus orientation, Settings navigation, Reset, Save cancellation and Print cancellation. This establishes source-bound acceptance evidence and does not relabel a temporary tree as the final committed native artifact.
+
+All 740 built renderer files in the identified final candidate also match the native-tested combination byte for byte, and the backend print source is identical. The final isolated artifact was built successfully from the clean committed candidate. Its product/bundle identity and asset-directory path differ; no binary-byte or final-package execution equivalence is claimed. Its pending replay and owner/platform verdicts stay open under the owner's explicit exception. The previously discovered wrong-buffer defect itself is corrected and is not waived.
 
 The minimized-Settings presentation observation also reproduces on unchanged main through both the native Settings menu and its keyboard shortcut. It remains a separately open pre-existing window issue, together with the preserved owner/platform verdicts. No unrelated window repair or C-50 work is included here.
 

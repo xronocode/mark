@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-EXPORT-SETTINGS-SECTION-RECOVERY>
     <IntentSummary>Relocate the shipped single-page export form into Preferences with immediate apply; route PDF, HTML and Word exports directly to Save; open Export from their success notices. Retain four tasks and the approved specification, including its explicit loss of one-off overrides in v1.</IntentSummary>
     <ReferenceState>Recovery proposal on base 271a36955f39412273e7650a05d377558c818421 with authorized partial observed writes. Original current/selected baseline passed before implementation, 0 errors and 5 existing warnings. The checkpoint manifest preserves every modified/new/deleted path. Do not reset it or edit the original approved plan in place. The two original pre-edit baseline failures are expected after modal removal; the new test MODULE_MAP mismatch remains a real correction to make. No successor has been approved, installed or executed.</ReferenceState>

@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-EXPORT-SETTINGS-SECTION-RECOVERY>
     <Name>Export without the settings modal: an Export section in Preferences owns the parameters (the C-EXPORT-SINGLE-PAGE form relocated); PDF/HTML export becomes one click like Word; the post-export notice opens the section</Name>
     <Created>2026-11-07</Created>
