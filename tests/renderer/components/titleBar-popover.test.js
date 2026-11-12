@@ -19,6 +19,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: quick exports capture remembered options and skip the modal.
 //   - 2026-11-07 v1.2.0 C-DOC-POPOVER-EXPORT-HUB: quick-export row pins
 //     (PDF/HTML dialog commands, Word store action, untitled gating) and
 //     the Rename press now finds its button by label.
@@ -317,22 +318,26 @@ describe('titleBar trim + document info popover (C-40 T-002)', () => {
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
     })
 
-    it('quick-export PDF and HTML open the settings dialog and close the popover (C-DOC-POPOVER-EXPORT-HUB)', async () => {
+    it('quick-export PDF and HTML dispatch remembered snapshots and close the popover', async () => {
       const wrapper = mountBar()
       const bus = (await import('@/bus')).default
+      const { useEditorStore } = await import('@/store/editor')
+      const editorStore = useEditorStore()
+      editorStore.EXPORT_DOCUMENT = vi.fn()
       bus.emit.mockClear()
       await openPopover(wrapper)
       const pdf = wrapper.findAll('.doc-info-action').find((a) => a.text() === 'Export as PDF')
       expect(pdf).toBeTruthy()
       await pdf.trigger('click')
-      expect(bus.emit).toHaveBeenCalledWith('showExportDialog', 'pdf')
+      expect(editorStore.EXPORT_DOCUMENT).toHaveBeenCalledWith('pdf')
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
 
       await openPopover(wrapper)
       const html = wrapper.findAll('.doc-info-action').find((a) => a.text() === 'Export as HTML')
       expect(html).toBeTruthy()
       await html.trigger('click')
-      expect(bus.emit).toHaveBeenCalledWith('showExportDialog', 'styledHtml')
+      expect(editorStore.EXPORT_DOCUMENT).toHaveBeenCalledWith('styledHtml')
+      expect(bus.emit).not.toHaveBeenCalledWith('showExportDialog', expect.anything())
       expect(wrapper.find('.doc-info-popover').exists()).toBe(false)
     })
 

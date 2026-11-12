@@ -189,8 +189,8 @@
           </div>
         </div>
         <!-- C-DOC-POPOVER-EXPORT-HUB R-2: quick-export row — the same
-             commands as File › Export; PDF/HTML open the single-page
-             settings dialog, Word saves directly (pathname-gated like
+             commands as File › Export; all formats save directly using
+             remembered options (Word remains pathname-gated like
              the tab-menu export group). -->
         <div class="doc-info-actions doc-info-export">
           <button
@@ -278,7 +278,7 @@
 //   statWords/statCharacters/statLines/readingLabel - Popover statistics; lines and reading minutes via the shared util/docStats (words/230 rounded up, min 1; C-40 T-002, shared since C-40 T-004).
 //   docInfoMeta - "folder · size · edited <relative>" meta line; untitled documents render none (C-40 T-002).
 //   handleRenameClick - Popover Rename… → editorStore.RESPONSE_FOR_RENAME (the old click-to-rename path).
-//   handleExportPdfClick/handleExportHtmlClick - popover quick-export → bus showExportDialog (File › Export commands verbatim).
+//   handleExportPdfClick/handleExportHtmlClick - popover quick-export → editorStore.EXPORT_DOCUMENT with current remembered options.
 //   handleExportWordClick - popover Word export → editorStore.EXPORT_DOCX_DOCUMENT, pathname-gated like the tab-menu group.
 //   handleRevealClick - Popover reveal → window.electron.shell.showItemInFolder.
 //   handleCopyPathClick - Popover Copy path → native clipboard plugin write (WKWebView-safe).
@@ -286,6 +286,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: PDF/HTML quick export captures remembered settings and opens Save directly.
 //   - 2026-11-09 v2.5.2: the bar's z-index rises 2 → 6 — muya's table
 //     side-wall handles (injected z-index 3) escaped to the root
 //     stacking context and pierced the quick-settings popover (owner
@@ -619,12 +620,11 @@ const handleRevealClick = () => {
   console.debug('[TitleBar][handleRevealClick][BLOCK_REVEAL_IN_FOLDER] revealed=true')
 }
 
-// C-DOC-POPOVER-EXPORT-HUB R-3: pure command reuse — the File › Export
-// entries verbatim; C-EXPORT-SETTINGS-SECTION later flips the commands
-// themselves to one-click without touching this popover again.
+// C-EXPORT-SETTINGS-SECTION-RECOVERY: share the File-menu snapshot
+// action; close the popover before the existing Save flow starts.
 const handleExportPdfClick = () => {
   closePopover()
-  bus.emit('showExportDialog', 'pdf')
+  editorStore.EXPORT_DOCUMENT('pdf')
 }
 
 const handleExportWordClick = () => {
@@ -635,7 +635,7 @@ const handleExportWordClick = () => {
 
 const handleExportHtmlClick = () => {
   closePopover()
-  bus.emit('showExportDialog', 'styledHtml')
+  editorStore.EXPORT_DOCUMENT('styledHtml')
 }
 
 const handleCopyPathClick = async () => {

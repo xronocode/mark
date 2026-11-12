@@ -554,7 +554,8 @@
       "general": "一般",
       "advanced": "詳細",
       "appearance": "外観",
-      "experimental": "実験的機能"
+      "experimental": "実験的機能",
+      "export": "エクスポート"
     },
     "experimental": {
       "title": "実験的機能",
@@ -1434,17 +1435,12 @@
     }
   },
   "exportSettings": {
-    "title": "エクスポートオプション",
     "style": {
       "label": "スタイル",
       "lineHeight": "行の高さ",
       "overwriteThemeFont": "テーマフォント設定を上書き",
       "fontSize": "フォントサイズ",
       "fontFamily": "フォントファミリー:"
-    },
-    "info": {
-      "description": "ページレイアウトを調整して、'エクスポート'をクリックして続行してください。",
-      "label": "情報"
     },
     "page": {
       "topBottom": "上/下:",
@@ -1455,7 +1451,15 @@
       "widthHeight": "幅/高さ (mm):",
       "pageSize": "ページサイズ:",
       "pageMarginPreset": "余白:",
-      "pageMargin": "ページ余白 (mm):"
+      "pageMargin": "ページ余白 (mm):",
+      "dimensions": {
+        "width": "幅 (mm)",
+        "height": "高さ (mm)",
+        "top": "上 (mm)",
+        "bottom": "下 (mm)",
+        "left": "左 (mm)",
+        "right": "右 (mm)"
+      }
     },
     "theme": {
       "theme": "テーマ",
@@ -1484,7 +1488,6 @@
     },
     "autoNumberingHeadings": "見出しの自動番号付け",
     "showFrontMatter": "フロントマターを表示",
-    "export": "エクスポート...",
     "pdfTitle": "PDF に書き出す",
     "toc": {
       "title": "目次",
@@ -1528,7 +1531,9 @@
     "content": {
       "label": "内容"
     },
-    "reset": "リセット"
+    "reset": "リセット",
+    "saveFailed": "一部のエクスポート設定を保存できませんでした。エクスポートする前に再試行してください。",
+    "retrySave": "再試行"
   },
   "import": {
     "title": "インポートまたは開く",

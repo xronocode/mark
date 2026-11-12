@@ -9,6 +9,7 @@
 // Mock all page/component imports
 vi.mock('@/pages/app', () => ({ default: { name: 'App' } }))
 vi.mock('@/pages/preference', () => ({ default: { name: 'Preference' } }))
+vi.mock('@/prefComponents/tabs/export', () => ({ default: { name: 'ExportTab' } }))
 vi.mock('@/prefComponents/tabs/general', () => ({ default: { name: 'GeneralTab' } }))
 vi.mock('@/prefComponents/tabs/appearance', () => ({ default: { name: 'AppearanceTab' } }))
 vi.mock('@/prefComponents/tabs/editor', () => ({ default: { name: 'EditorTab' } }))
@@ -66,6 +67,7 @@ describe('router/index', () => {
     it('has exactly the 5 IA tab children plus the experimental tab', () => {
       const children = preferenceRoute().children.filter((c) => c.name)
       expect(children.map((c) => c.name)).toEqual([
+        'export',
         'general',
         'appearance',
         'editor',
@@ -74,6 +76,7 @@ describe('router/index', () => {
         'experimental'
       ])
       expect(children.map((c) => c.path)).toEqual([
+        'export',
         'general',
         'appearance',
         'editor',
@@ -82,6 +85,7 @@ describe('router/index', () => {
         'experimental'
       ])
       expect(children.map((c) => c.component.name)).toEqual([
+        'ExportTab',
         'GeneralTab',
         'AppearanceTab',
         'EditorTab',
@@ -91,7 +95,7 @@ describe('router/index', () => {
       ])
     })
 
-    it("the '' child redirects to the remembered tab (general by default)", () => {
+    it("the '' child redirects to the remembered tab (General by default)", () => {
       window.localStorage.removeItem('settings.lastTab')
       const emptyChild = preferenceRoute().children.find((c) => c.path === '')
       expect(typeof emptyChild.redirect).toBe('function')

@@ -1,5 +1,5 @@
 // FILE: tests/e2e/perf/characterization-save-close.spec.ts
-// VERSION: 1.1.0
+// VERSION: 1.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Freeze the CURRENT observable save / Save As / Save All / Save & Close / Quit / session / reader output behavior of the renderer at the boundaries named by R-6, dual-recording every known-defect observation instead of blessing it.
 //   SCOPE: Renderer-only (vite preview + Tauri shim, WebKit) against the committed semantic-edge corpus: FILE_SAVE, APPLY_SAVE_OUTCOME revision ownership, FILE_SAVE_AS (payload + overwrite-by-path), ASK_FOR_SAVE_ALL(false) mt_save_tabs no-op, CLOSE_TAB -> unsaved-close dialog -> mt_save_and_close_tabs, edit-after-payload-before-close race, QUIT_APP dialogs/payloads, _saveSessionState prefs writes, muya-derived wordCount/TOC/cursor, whole-document Copy as Markdown and styled-HTML export, and the --new-window no-op. It does NOT cover real Tauri IPC, real disk bytes, native WKWebView, or the multi-window behavior F-MULTI-WINDOW will add.
@@ -38,6 +38,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.1.1 - 2026-11-12: follow direct HTML Save while preserving canonical reader assertions and requiring one Save and one write.
 //   LAST_CHANGE: v1.1.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-006: added the
 //   WAVEA_EXPERIMENTAL beforeAll hook — bootEditor/openFileTab now import
 //   through tests/e2e/perf/helpers/experimental so WAVEA_EXPERIMENTAL=1
@@ -538,6 +539,7 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
     await page.evaluate(() => {
       const w = window as any
       w.__written = []
+      w.__invokeLog = []
       w.__mockInvoke['plugin:dialog|save'] = () => '/tmp/mark-e2e/styled-export.html'
       w.__mockInvoke.mt_fs_write = (args: any) => {
         w.__written.push(args)
@@ -547,13 +549,14 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
     await page.evaluate(() => {
       ;(window as any).__emitFakeEvent('mt::menu-invoked', 'file.export-file-html')
     })
-    const dialog = page.locator('.el-dialog', { hasText: 'Export Options' })
-    await expect(dialog).toBeVisible({ timeout: 5_000 })
-    await dialog.locator('.button-controlls .button-primary').click()
+    await expect(page.locator('.el-dialog', { hasText: 'Export Options' })).toHaveCount(0)
     await page.waitForFunction(() => (window as any).__written.length > 0, undefined, {
       timeout: 10_000
     })
     const written = await page.evaluate(() => (window as any).__written[0])
+    const log = await invokeLog(page)
+    expect(log.filter((command: string) => command === 'plugin:dialog|save')).toHaveLength(1)
+    expect(log.filter((command: string) => command === 'mt_fs_write')).toHaveLength(1)
     expect(written.path).toBe('/tmp/mark-e2e/styled-export.html')
     // The reader is fed the live editor document: the same headings, the
     // same edited paragraph and the same footnote text as the canonical

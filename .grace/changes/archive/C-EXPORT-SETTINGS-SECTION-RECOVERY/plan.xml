@@ -1,0 +1,266 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-EXPORT-SETTINGS-SECTION-RECOVERY>
+    <IntentSummary>Relocate the shipped single-page export form into Preferences with immediate apply; route PDF, HTML and Word exports directly to Save; open Export from their success notices. Retain four tasks and the approved specification, including its explicit loss of one-off overrides in v1.</IntentSummary>
+    <ReferenceState>Recovery proposal on base 271a36955f39412273e7650a05d377558c818421 with authorized partial observed writes. Original current/selected baseline passed before implementation, 0 errors and 5 existing warnings. The checkpoint manifest preserves every modified/new/deleted path. Do not reset it or edit the original approved plan in place. The two original pre-edit baseline failures are expected after modal removal; the new test MODULE_MAP mismatch remains a real correction to make. No successor has been approved, installed or executed.</ReferenceState>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/export/index.vue</File>
+        <Text>C-EXPORT-SETTINGS-SECTION</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>EXPORT_DOCUMENT(type)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/pages/app.vue</File>
+        <Text>&lt;editor-with-tabs</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/index.vue</File>
+        <Text>bus.emit('showExportDialog', 'pdf')</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/contextMenu/tabs/actions.js</File>
+        <Text>bus.emit('showExportDialog', kind)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabsBar/config.js</File>
+        <Text>'settings.lastTab'</Text>
+      </MustContain>
+      <MustExist>
+        <Value>M-011</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-072</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-072</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/export/index.vue</File>
+        <Text>C-EXPORT-SETTINGS-SECTION</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/exportPageDefaults.js</File>
+        <Text>getRememberedExportPageOptions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/exportSettingsNavigation.js</File>
+        <Text>openExportSettings</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>EXPORT_DOCUMENT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabsBar/config.js</File>
+        <Text>'/preference/export'</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/renderer/src/pages/app.vue</File>
+        <Text>ExportSettingDialog</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/commands/index.js</File>
+        <Text>showExportDialog</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>showExportDialog</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npx --no-install vitest run tests/renderer/prefComponents/export-section.test.js tests/renderer/prefComponents/export-section-fn.test.js tests/renderer/prefComponents/export-section-deep.test.js tests/renderer/util/export-page-defaults.test.js tests/renderer/util/export-settings-navigation.test.js tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/components/exportOptions.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/i18n/locale-keys.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">npm run typecheck:ipc</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="90">npm run build</Command>
+      </MustPassCommand>
+      <MustNotContain>
+        <File>src/renderer/src/components/titleBar/index.vue</File>
+        <Text>showExportDialog</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/contextMenu/tabs/actions.js</File>
+        <Text>showExportDialog</Text>
+      </MustNotContain>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+        <M-072 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-011 />
+        <V-M-072 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/exportSettings/index.vue</File>
+      <File>src/renderer/src/components/exportSettings/headerFooterStrip.vue</File>
+      <File>src/renderer/src/prefComponents/tabs/export/index.vue</File>
+      <File>src/renderer/src/prefComponents/tabsBar/config.js</File>
+      <File>src/renderer/src/prefComponents/tabsBar/icons.js</File>
+      <File>src/renderer/src/pages/preference.vue</File>
+      <File>src/renderer/src/pages/app.vue</File>
+      <File>src/renderer/src/router/index.js</File>
+      <File>src/renderer/src/util/exportPageDefaults.js</File>
+      <File>src/renderer/src/util/exportSettingsNavigation.js</File>
+      <File>src/renderer/src/commands/index.js</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/components/exportSettings.test.js</File>
+      <File>tests/renderer/components/exportSettings-fn.test.js</File>
+      <File>tests/renderer/components/exportSettings-deep.test.js</File>
+      <File>tests/renderer/prefComponents/export-section.test.js</File>
+      <File>tests/renderer/prefComponents/export-section-fn.test.js</File>
+      <File>tests/renderer/prefComponents/export-section-deep.test.js</File>
+      <File>tests/renderer/prefComponents/tabsBar-config.test.js</File>
+      <File>tests/renderer/prefComponents/tabsBar.test.js</File>
+      <File>tests/renderer/pages/preference.test.js</File>
+      <File>tests/renderer/router/index.test.js</File>
+      <File>tests/renderer/util/export-page-defaults.test.js</File>
+      <File>tests/renderer/util/export-settings-navigation.test.js</File>
+      <File>tests/renderer/store/export-defaults-dispatch.test.js</File>
+      <File>tests/renderer/store/export-docx-dispatch.test.js</File>
+      <File>tests/renderer/store/editor.test.ts</File>
+      <File>tests/renderer/commands/index-deep.test.js</File>
+      <File>tests/renderer/components/titleBar-popover.test.js</File>
+      <File>tests/renderer/contextMenu/tabs-export.test.js</File>
+      <File>tests/renderer/components/editor-print-clearup.test.js</File>
+      <File>tests/renderer/components/editor-export-images.test.js</File>
+      <File>tests/e2e/print-export.spec.ts</File>
+      <File>tests/e2e/export-office.spec.ts</File>
+      <File>tests/e2e/settings-shell.spec.ts</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <Glob>.claude/export-settings-acceptance/**</Glob>
+      <File>src/renderer/src/components/titleBar/index.vue</File>
+      <File>src/renderer/src/contextMenu/tabs/actions.js</File>
+    </ObservedWriteScope>
+    <Coordination>One implementation writer, after this completed plan is approved. Keep native PR #223 independent; do not edit its frozen archives. Reconcile M-011/M-072 projections centrally. Current contexts, all other active bundles, archived bundles, backend commands, capabilities, dependencies, versions and release artifacts are outside the write scope. A newly discovered required file outside this literal scope stops implementation for a bounded replan; do not weaken assertions or silently expand it. This successor adds only titleBar/index.vue and contextMenu/tabs/actions.js to the original 46 exact paths. Preserve all existing pathname, active-document and popover-close guards; reject missing tab identities instead of exporting a different current document. No visual redesign is included.</Coordination>
+    <Architecture>The new Export preferences tab reuses the current form sections, controls, presets, slot strips and factory values. It shows both page geometry and HTML-title defaults rather than selecting one export format. It has Reset and immediate apply, no Export/OK button and no dialog shell. Preserve the mark-last-print-options appearance schema and REMEMBER_EXPORT_OPTIONS filtering. A separate mark-export-page-options localStorage record holds the five formerly per-flow fields as explicit future-export defaults: pageSize, pageSizeWidth, pageSizeHeight, isLandscape and htmlTitle. This deliberate plan proposal makes every relocated control effective while preserving legacy appearance payloads. The HTML-title default is only used for styled HTML; an empty default retains the existing document-title behavior. No document-derived title is persisted automatically.</Architecture>
+    <Interfaces>util/exportPageDefaults.js exports DEFAULT_EXPORT_PAGE_OPTIONS(), getRememberedExportPageOptions() and rememberExportPageOptions(options). Factory values are A4, 210, 297, false and empty HTML title. Accept the existing seven size values A3/A4/A5/Legal/Letter/Tabloid/custom; finite custom dimensions stay within the existing 10..2000 mm control bounds; orientation must be boolean and HTML title string. Malformed, null, array and missing fields fall back independently. Keep a same-realm memory fallback for unavailable storage and expose write success to the section so a failed cross-window save cannot look durably applied. store/editor.js keeps getRememberedExportAppearance() but refreshes guarded persisted appearance at dispatch time instead of relying solely on module initialization. EXPORT_DOCUMENT(type) snapshots appearance plus page defaults for pdf/styledHtml/docx into the existing bus export shape; EXPORT_DOCX_DOCUMENT delegates for compatibility. Forward the same captured Word options through the already-supported internal pageOptions field to _EXPORT_DOCX; never reread mutable defaults after the save dialog. PRINT_DOCUMENT retains type print, appearance-only options and native-panel geometry.</Interfaces>
+    <SettingsNavigation>util/exportSettingsNavigation.js exports openExportSettings(): write the existing settings.lastTab value export through the tab catalog helper, then call the existing projectStore.OPEN_SETTING_WINDOW action. Add export as the first catalog tab with a matching icon in the existing 22-pixel scaffold, route /preference/export, name export and localized preferences.tabs.export. The Settings shell watches valid storage changes of its existing last-tab key and routes an already-open window; a new window uses the existing root redirect. Ignore other keys, null and invalid tab values; remove the listener on unmount. No backend command, new IPC event or capability is introduced. If storage is unavailable, open Settings and keep Export as its first visible tab, matching the specification fallback; report an actual settings-write failure rather than pretending cross-window persistence succeeded.</SettingsNavigation>
+    <ReviewFocus>Coherent snapshots while settings change during an export; new and already-open separate Settings windows; legacy/corrupt/unavailable storage; disabled optional font/header/footer keys being removed instead of retained; native print retaining its panel and ignoring export-only geometry. Each condition is pinned by its owning task below.</ReviewFocus>
+    <CommandBudgets>Baseline reference command on the unchanged export sources: the existing exportOptions, export-docx-dispatch and locale-keys suites passed 23 tests in 1.16 seconds, wall 1.88 seconds, on 2026-11-11. New section/default/navigation/dispatch suites must exist and run after implementation; this is not a passing result for future tests. Focused gate budget is 30 seconds; IPC typecheck budget 10 seconds. Renderer build was measured at 52.59 seconds during concurrent validation of the exact Source/Split tree (same export sources); budget is 90 seconds. Full coverage and browser/native startup stay in acceptance. No product timeout, retry, skip, assertion or coverage floor changes are authorized.</CommandBudgets>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Relocate the form into immediate-apply Export preferences with coherent remembered defaults</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Write failing-first storage/default and mounted-form regressions. Legacy appearance data hydrates all original appearance fields and optional toggles. Separate page defaults preserve chosen size, dimensions, orientation and explicit HTML title through remount and a fresh module realm. Invalid values fall back independently; reads and writes cannot throw into the UI.</Criterion>
+          <Criterion>Move the three dialog suites to the exact prefComponents destinations, retaining meaningful hydration, presets, custom-margin detours, header/footer type derivation, font/style toggles and Reset assertions. Replace obsolete dialog/listener assertions with immediate-apply, no Export button and no export-dispatch assertions. Every control, including numeric input v-model changes, commits valid state. Removing an optional block removes its previously remembered keys.</Criterion>
+          <Criterion>Add the Export catalog entry, icon and route. Apply existing Preferences tokens in its real shell; preserve light/dark and standard control behavior. Reset restores and remembers the full factory baseline without exporting. Preserve existing appearance storage semantics and keep HTML title separate from appearance.</Criterion>
+          <Criterion>Refresh appearance reads and implement EXPORT_DOCUMENT with an immutable operation snapshot. The Word pipeline receives the same captured page/appearance options even if settings change before Save resolves. PRINT_DOCUMENT retains its native panel and appearance-only payload. Failure to persist from Settings is visible; no successful cross-window durability claim is inferred from a memory-only fallback.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/prefComponents/export-section.test.js tests/renderer/prefComponents/export-section-fn.test.js tests/renderer/prefComponents/export-section-deep.test.js tests/renderer/util/export-page-defaults.test.js tests/renderer/util/export-settings-navigation.test.js tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/components/exportOptions.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/i18n/locale-keys.test.js --maxWorkers=2</Command>
+          <Command>npm run typecheck:ipc</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Dispatch every export directly to Save and remove the modal surface</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Make file.export-file-pdf and file.export-file-html call the snapshotting store action. Retain the Word compatibility entry. Menu, tab-menu and titlebar popover reach the same action without a settings modal; popover visuals and document activation guards remain unchanged.</Criterion>
+          <Criterion>Remove the dialog mount/import from pages/app.vue and delete its old shell after the three suites migrate. Retain reusable exportOptions and headerFooterStrip modules. Remove showExportDialog producers, handlers and obsolete comments in live source; preserve the existing bus export keys and renderer/backend payload contracts.</Criterion>
+          <Criterion>Pin Save-dialog cancellation, empty/current/background-document guards and complete payloads for all formats. Capture pre-change default-option semantic output in isolated fixtures, then prove unchanged HTML content/styles/assets, PDF page options and Word geometry/content for the same options. No new backend command or exporter rewrite is in scope.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/commands/index-deep.test.js tests/renderer/store/editor.test.ts tests/renderer/store/export-docx-dispatch.test.js tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/components/titleBar-popover.test.js tests/renderer/contextMenu/tabs-export.test.js tests/renderer/components/editor-print-clearup.test.js tests/renderer/components/editor-export-images.test.js --maxWorkers=2</Command>
+          <Command>npm run build</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Route all export notices to Export preferences and complete locale parity</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add openExportSettings and the owned Settings-shell storage listener. Test the existing last-tab key, valid export navigation, listener cleanup, newly created and already-open windows, same-tab requests, invalid keys/values and blocked storage. Use the existing OPEN_SETTING_WINDOW action without changing its backend.</Criterion>
+          <Criterion>Retarget the existing Word quiet action and add the same quiet action to successful PDF/HTML notices through APPLY_EXPORT_SUCCESS. Reveal actions, cancelled exports and error notifications retain their behavior. The notice action never dispatches an export.</Criterion>
+          <Criterion>Add preferences.tabs.export and any genuinely needed section/status text in all ten existing locale JSON files. Remove only keys proved unused after dialog removal; retain pdfTitle/docxTitle and any live save-dialog labels. The repository has ten locale originals and no generated min twins; do not invent new locale artifacts.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/util/export-settings-navigation.test.js tests/renderer/pages/preference.test.js tests/renderer/prefComponents/tabsBar-config.test.js tests/renderer/prefComponents/tabsBar.test.js tests/renderer/router/index.test.js tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/i18n/locale-keys.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Verify browser/native correction loops and synchronize routed ownership</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Update print-export and export-office e2e expectations to zero settings-dialog mounts and preserved Save/write/cancel behavior. Extend settings-shell acceptance with two actual browser pages sharing storage: immediate settings changes affect the next editor export, notices target a fresh or existing Settings page, and a changed orientation affects the next PDF/Word operation. Browser IPC doubles are not native window or disk acceptance.</Criterion>
+          <Criterion>Run full coverage without changed floors, all three browser specs in Chromium and settings/affected export cases in WebKit through a worktree-owned preview server. Screenshot the actual Export section inside the Preferences shell in light/dark at the existing native window size; inspect all controls, scrolling, toolbar labels and focus. No new diagram or broad redesign is required.</Criterion>
+          <Criterion>Build a fresh isolated native artifact after code gates. Check menu/tab-menu/popover Save for PDF/HTML/Word, separate-window option refresh and notice navigation, Reset/legacy options, orientation correction, output parity and unchanged native print. Record source/binary identity and actual cases; preserve pending owner and platform verdicts explicitly.</Criterion>
+          <Criterion>Retarget M-072/V-M-072 from the deleted dialog to the new section, page-default helper and navigation; synchronize M-011/V-M-011 routes/store/command/pipeline ownership only. New helpers receive file-local contracts and maps. Run selected target/final gates externally; only explicit owner apply confirmation authorizes apply/archive.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/prefComponents/export-section.test.js tests/renderer/prefComponents/export-section-fn.test.js tests/renderer/prefComponents/export-section-deep.test.js tests/renderer/util/export-page-defaults.test.js tests/renderer/util/export-settings-navigation.test.js tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/components/exportOptions.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/i18n/locale-keys.test.js --maxWorkers=2</Command>
+          <Command>npm run test:coverage</Command>
+          <Command>npx --no-install playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts tests/e2e/settings-shell.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceTier>
+      <Command>npm run test:coverage</Command>
+      <Command>npx --no-install playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts tests/e2e/settings-shell.spec.ts --project=chromium</Command>
+      <Command>npx --no-install playwright test tests/e2e/settings-shell.spec.ts --project=webkit-settings</Command>
+      <BrowserEvidence>Use an ignored worktree-specific config for affected export cases in WebKit and a unique preview port; retain baseline timeouts and retries. Record source/tree identity and avoid attaching to another worktree preview.</BrowserEvidence>
+      <NativeEvidence>Use a separate QA bundle identifier and target directory under .claude/export-settings-acceptance. Do not replace the installed owner app, Source/Split QA apps or existing native evidence. Keep native observations separate from owner acceptance and Windows verdicts; no release is authorized.</NativeEvidence>
+    </AcceptanceTier>
+    <Lifecycle>This completed recovery proposal requires owner approval. Then install the matching successor specification and plan, mark the original bundle superseded with ReplacementChange and a reason while preserving its assertions/scopes/tasks, and archive that superseded provenance. Resume the checkpoint rather than reverting it; run the successor selected baseline before further observed writes. Keep target/final gates, review, apply/archive confirmation, current/status and safety hooks. Plan approval is neither apply/archive nor release authorization.</Lifecycle>
+    <ReviewLog>
+      <Pass-1>
+        <Date>2026-11-07</Date>
+        <Correctness>
+          <Verdict>findings</Verdict>
+          <Note>F1: the plan is written against the PR #188 branch state, not merged main — disposition: explicit re-verify sanction in the IntentSummary and T-001 criteria (re-measure the relocated form before any edit). F2: MustNotContain showExportDialog — the removal must also cover the notification quiet action and commands imports, or lint-green dead code remains — disposition: T-002 scope names the bus surface removal, T-003 the retarget.</Note>
+        </Correctness>
+        <Security>
+          <Verdict>clean</Verdict>
+          <Note>No new capabilities: Preferences open is an existing surface; the section writes only the existing prefs/localStorage key.</Note>
+        </Security>
+        <UX>
+          <Verdict>clean</Verdict>
+          <Note>Immediate-apply is standard settings semantics and the backlog decision; the one-off override loss is the recorded conscious v1 trade (⌥-click stays v1.5).</Note>
+        </UX>
+        <Performance>
+          <Verdict>clean</Verdict>
+          <Note>The section mounts lazily inside the settings window; export paths lose a dialog hop.</Note>
+        </Performance>
+      </Pass-1>
+      <Pass-2>
+        <Date>2026-11-07</Date>
+        <Correctness>
+          <Verdict>clean</Verdict>
+          <Note>F1/F2 dispositions verified; task graph acyclic (T-001 → T-002/T-003 → T-004); observed scope covers every file the criteria touch.</Note>
+        </Correctness>
+        <Security>
+          <Verdict>clean</Verdict>
+        </Security>
+        <UX>
+          <Verdict>clean</Verdict>
+        </UX>
+        <Performance>
+          <Verdict>clean</Verdict>
+        </Performance>
+      </Pass-2>
+    </ReviewLog>
+    <Reverification>2026-11-11: the draft now names the actual Settings shell/app mount, exact locale originals, split appearance/page defaults, operation snapshots, cross-window refresh/navigation and existing Word propagation. The existing approved specification is unchanged. These design choices are presented for plan approval; neither the old review log nor this re-verification approves execution.</Reverification>
+    <Supersedes>C-EXPORT-SETTINGS-SECTION</Supersedes>
+    <RecoveryEvidence>Private export-scope-stop-checkpoint.json identifies the recoverable source state; publish only portable source/test evidence, never private paths or logs.</RecoveryEvidence>
+  </C-EXPORT-SETTINGS-SECTION-RECOVERY>
+</GraceChangePlan>

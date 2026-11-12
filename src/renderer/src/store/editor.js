@@ -45,6 +45,8 @@ import {
   clampEntryToMarkdown
 } from '../util/filePositionStore'
 import { askUnsavedClose } from '../components/editorWithTabs/unsavedCloseDialog'
+import { getRememberedExportPageOptions } from '../util/exportPageDefaults'
+import { openExportSettings } from '../util/exportSettingsNavigation'
 
 const formatErrorKeys = Object.freeze({
   MT_ENC_UNKNOWN: 'unknown', MT_ENC_UNSUPPORTED: 'unsupported', MT_ENC_INVALID_POLICY: 'invalidPolicy',
@@ -63,12 +65,10 @@ const renameEchoUntil = new Map()
 const RENAME_ECHO_WINDOW_MS = 2000
 
 // START_BLOCK_LAST_PRINT_OPTIONS
-// C-61 R-1: ⌘P renders the print container with the LAST-USED export
-// options (theme, margins, header/footer, TOC) — no settings dialog on
-// the print path. Remembered whenever the Export-to-PDF settings dialog
-// is OK'd; persisted to localStorage (guarded, same pattern as the
-// Settings tab memory) so the choice survives restarts. Defaults on
-// first use mirror the dialog's initial values.
+// C-EXPORT-SETTINGS-SECTION: appearance keeps the existing C-61 schema.
+// Read persisted choices at each operation so a separate Settings window's
+// changes reach this realm. Failed writes remain available in this realm and
+// return false to Settings; they do not claim cross-window durability.
 const PRINT_OPTIONS_STORAGE_KEY = 'mark-last-print-options'
 const DEFAULT_PRINT_OPTIONS = () => ({
   theme: null,
@@ -83,11 +83,16 @@ const DEFAULT_PRINT_OPTIONS = () => ({
 })
 
 const loadLastPrintOptions = () => {
+  let raw
   try {
-    const raw = window.localStorage.getItem(PRINT_OPTIONS_STORAGE_KEY)
-    if (!raw) return null
+    raw = window.localStorage.getItem(PRINT_OPTIONS_STORAGE_KEY)
+  } catch {
+    return undefined
+  }
+  if (!raw) return null
+  try {
     const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : null
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
   } catch {
     return null
   }
@@ -96,18 +101,43 @@ const loadLastPrintOptions = () => {
 // Module-scoped so Pinia never proxies it (same convention as
 // autoSaveTimers / _bootPhase above).
 let _lastPrintOptions = loadLastPrintOptions()
+let hasUnpersistedAppearance = false
 
-// C-EXPORT-SINGLE-PAGE R-5: read-only view of the remembered appearance
-// options for the export settings dialog (defaults on first use). The
-// dialog hydrates its form from this on open; page geometry and
-// htmlTitle are per-flow and never part of the remembered shape.
-// Optional keys (header/footer, font overrides, headerFooter style
-// keys) are present only when the last export carried them — the dialog
-// infers its toggles from that presence.
-export const getRememberedExportAppearance = () => ({
-  ...DEFAULT_PRINT_OPTIONS(),
-  ...(_lastPrintOptions || {})
-})
+const copyExportAppearance = (options) => {
+  const {
+    // Retain the original REMEMBER_EXPORT_OPTIONS filter exactly.
+    // eslint-disable-next-line no-unused-vars
+    type, pageSize, pageSizeWidth, pageSizeHeight, isLandscape, htmlTitle, content,
+    ...appearance
+  } = options
+  for (const key of ['header', 'footer']) {
+    if (appearance[key] && typeof appearance[key] === 'object') appearance[key] = { ...appearance[key] }
+  }
+  return appearance
+}
+
+export const getRememberedExportAppearance = () => {
+  const persisted = loadLastPrintOptions()
+  if (!hasUnpersistedAppearance && persisted !== undefined) _lastPrintOptions = persisted
+  return { ...DEFAULT_PRINT_OPTIONS(), ...copyExportAppearance(_lastPrintOptions || {}) }
+}
+
+// The appearance schema is scalar except for the two header/footer records.
+// Copy and freeze those records as well as the complete bus payload.
+const captureExportOptions = (options) => {
+  const captured = { ...options }
+  for (const key of ['header', 'footer']) {
+    if (captured[key] && typeof captured[key] === 'object') captured[key] = Object.freeze({ ...captured[key] })
+  }
+  return Object.freeze(captured)
+}
+
+const getExportOperationOptions = (type) => {
+  const { htmlTitle, ...pageOptions } = getRememberedExportPageOptions()
+  const options = { ...getRememberedExportAppearance(), ...pageOptions, type }
+  if (type === 'styledHtml') options.htmlTitle = htmlTitle
+  return captureExportOptions(options)
+}
 // END_BLOCK_LAST_PRINT_OPTIONS
 
 let _bootPhase = true
@@ -2044,9 +2074,9 @@ export const useEditorStore = defineStore('editor', {
 
       // C-NATIVE-DOCX-RTF-EXPORT R-1: modal-less Word export — the save
       // dialog is the first and only UI; geometry comes from the
-      // remembered print options inside _EXPORT_DOCX.
+      // captured options supplied by the renderer pipeline.
       if (type === 'docx') {
-        await this._EXPORT_DOCX(content)
+        await this._EXPORT_DOCX(content, pageOptions)
         return
       }
 
@@ -2094,10 +2124,15 @@ export const useEditorStore = defineStore('editor', {
     // → lazy renderer-side conversion (M-066 exportDocx) → binary write
     // through the same facade the C-56 picture export uses. No settings
     // dialog ever mounts (modal-less owner decision 2026-10-23); geometry
-    // follows the remembered print options (the ⌘P storage), and the
+    // and appearance use the operation captured before Save, and the
     // success card carries a quiet "Export settings" action beside the
     // reveal shortcut (C-NOTIFICATION-SYSTEM actions API).
-    async _EXPORT_DOCX(content) {
+    async _EXPORT_DOCX(content, pageOptions) {
+      // Capture before the first await, including compatibility callers that
+      // enter EXPORT directly rather than through the bus dispatcher.
+      const printOptions = pageOptions
+        ? captureExportOptions(pageOptions)
+        : getExportOperationOptions('docx')
       const { filename } = this.currentFile
       const firstHeading = (this.listToc || []).find((h) => h && h.content)
       const fallbackName = String(firstHeading ? firstHeading.content : 'export')
@@ -2117,35 +2152,9 @@ export const useEditorStore = defineStore('editor', {
 
       try {
         const { exportToDocx } = await import('../util/exportDocx')
-        const printOptions = { ...DEFAULT_PRINT_OPTIONS(), ...(_lastPrintOptions || {}) }
         const bytes = await exportToDocx({ html: content, printOptions })
         await window.fileUtils.writeFile(filePath, bytes, 'binary')
-        notice.notify({
-          title: i18n.global.t('store.editor.exportSuccessTitle'),
-          message: i18n.global.t('store.editor.exportSuccessMessage', {
-            name: window.path.basename(filePath)
-          }),
-          severity: 'success',
-          source: 'export',
-          actions: [
-            {
-              kind: 'reveal',
-              payload: () => {
-                return window.electron.shell.showItemInFolder(filePath)
-              }
-            },
-            {
-              // Quiet shortcut to the export-settings surface of the day
-              // (the shared dialog owns the remembered geometry until the
-              // dedicated Export section lands).
-              label: i18n.global.t('editor.export.settingsAction'),
-              style: 'quiet',
-              handler: () => {
-                bus.emit('showExportDialog', 'pdf')
-              }
-            }
-          ]
-        })
+        this.APPLY_EXPORT_SUCCESS(filePath)
       } catch (e) {
         notice.notify({
           title: i18n.global.t('editor.export.failed', { type: 'Word' }),
@@ -2197,53 +2206,44 @@ export const useEditorStore = defineStore('editor', {
       return `${safe || 'Untitled'}.pdf`
     },
 
-    // C-61 R-1: remember the Export-to-PDF settings (appearance keys only
-    // — type, page geometry and htmlTitle are per-flow) so a later ⌘P can
-    // render the print container without the settings dialog.
+    // Appearance remains separate from the explicit future-export page defaults.
     REMEMBER_EXPORT_OPTIONS(options) {
-      if (!options || typeof options !== 'object') return
-      const {
-        // eslint-disable-next-line no-unused-vars
-        type, pageSize, pageSizeWidth, pageSizeHeight, isLandscape, htmlTitle, content,
-        ...appearance
-      } = options
-      _lastPrintOptions = appearance
+      if (!options || typeof options !== 'object' || Array.isArray(options)) return false
+      _lastPrintOptions = copyExportAppearance(options)
       try {
         window.localStorage.setItem(
           PRINT_OPTIONS_STORAGE_KEY,
-          JSON.stringify(appearance)
+          JSON.stringify(_lastPrintOptions)
         )
+        hasUnpersistedAppearance = false
+        return true
       } catch {
-        // persistence is best-effort — the in-memory copy still serves ⌘P
+        hasUnpersistedAppearance = true
+        return false
       }
     },
 
     // C-61 R-1: ⌘P goes straight to the print panel. The print container
     // is rendered from the remembered options (defaults on first use) via
-    // the same bus 'export' pipeline the settings dialog uses; editor.vue
+    // the same bus 'export' pipeline as file exports; editor.vue
     // invokes mt_print_webview and clears the container when the panel
     // closes.
     PRINT_DOCUMENT() {
       if (!hasKeys(this.currentFile)) return
-      const options = {
-        ...DEFAULT_PRINT_OPTIONS(),
-        ...(_lastPrintOptions || {})
-      }
+      const options = captureExportOptions(getRememberedExportAppearance())
       // eslint-disable-next-line no-console
       console.log('[editor][print][BLOCK_PRINT_REQUESTED]')
       bus.emit('export', { ...options, type: 'print' })
     },
 
-    // C-NATIVE-DOCX-RTF-EXPORT R-1: modal-less Word export entry — the
-    // remembered print options ride the same bus 'export' pipeline; the
-    // settings dialog is never involved.
+    // Capture one complete operation; later settings changes affect the next one.
+    EXPORT_DOCUMENT(type) {
+      if (!hasKeys(this.currentFile) || !['pdf', 'styledHtml', 'docx'].includes(type)) return
+      bus.emit('export', getExportOperationOptions(type))
+    },
+
     EXPORT_DOCX_DOCUMENT() {
-      if (!hasKeys(this.currentFile)) return
-      const options = {
-        ...DEFAULT_PRINT_OPTIONS(),
-        ...(_lastPrintOptions || {})
-      }
-      bus.emit('export', { ...options, type: 'docx' })
+      return this.EXPORT_DOCUMENT('docx')
     },
 
     APPLY_EXPORT_SUCCESS(filePath) {
@@ -2263,6 +2263,11 @@ export const useEditorStore = defineStore('editor', {
             payload: () => {
               return window.electron.shell.showItemInFolder(filePath)
             }
+          },
+          {
+            label: i18n.global.t('editor.export.settingsAction'),
+            style: 'quiet',
+            handler: openExportSettings
           }
         ]
       })
@@ -2723,20 +2728,21 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Session-incarnation-owned live tabs; complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
-//   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, documentFormat/documentSnapshot/documentOperations.
+//   SCOPE: Session-incarnation-owned live tabs; complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; current export appearance/page snapshots and pre-Save Word options with independent native print geometry; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
+//   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, documentFormat/documentSnapshot/documentOperations, util/exportPageDefaults, util/exportSettingsNavigation.
 //   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/active/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/active/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   useEditorStore - Pinia store: complete text/format state and guarded actions, transient Find visibility, tabs, content revisions, save/autosave, reloads, export (C-61 PDF via save dialog + mt_export_pdf, PRINT_DOCUMENT, REMEMBER_EXPORT_OPTIONS); RENAME/RENAME_IF_NEEDED move the stored table layouts, file positions and page widths (util/tableLayoutStore, util/filePositionStore, util/pageWidthStore) to the new path.
+//   useEditorStore - Pinia store: complete text/format state and guarded actions, transient Find visibility, tabs, content revisions, save/autosave, reloads, immutable EXPORT_DOCUMENT snapshots and captured Word options, PRINT_DOCUMENT and REMEMBER_EXPORT_OPTIONS; RENAME/RENAME_IF_NEEDED move stored table layouts, file positions and page widths to the new path.
 //   __resetBootPhase - test hook that re-arms the boot-phase guard.
-//   getRememberedExportAppearance - C-EXPORT-SINGLE-PAGE R-5 read-only defaults+remembered appearance view for the export dialog.
+//   getRememberedExportAppearance - Fresh guarded appearance view with defensive header/footer copies; retains reported same-realm failed writes.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   EXPORT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: snapshot current appearance/page defaults before export and preserve them across Word Save; print retains native-panel geometry.
 //   CURRENT: 2026-11-11 C-SEC-STREAM-TABS: route live updates through explicit session/tab store ownership and tombstone closed streams.
 //   LAST_CHANGE: 2026-11-11 C-METADATA-SAVE-SAFETY: text/format checkpoint reconciliation, composition-first format choices, boundary-only newline policy and explicit retry after stale ACK.
 // END_CHANGE_SUMMARY

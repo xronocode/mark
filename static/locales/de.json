@@ -554,7 +554,8 @@
       "general": "Allgemein",
       "advanced": "Erweitert",
       "appearance": "Erscheinungsbild",
-      "experimental": "Experimentell"
+      "experimental": "Experimentell",
+      "export": "Export"
     },
     "experimental": {
       "title": "Experimentelle Funktionen",
@@ -1435,17 +1436,12 @@
     }
   },
   "exportSettings": {
-    "title": "Export-Optionen",
     "style": {
       "label": "Stil",
       "lineHeight": "Zeilenhöhe",
       "overwriteThemeFont": "Design-Schrifteinstellungen überschreiben",
       "fontSize": "Schriftgröße",
       "fontFamily": "Schriftfamilie:"
-    },
-    "info": {
-      "description": "Bitte passen Sie das Seitenlayout an und klicken Sie auf 'Exportieren', um fortzufahren.",
-      "label": "Information"
     },
     "page": {
       "topBottom": "Oben/Unten:",
@@ -1456,7 +1452,15 @@
       "widthHeight": "Breite/Höhe (mm):",
       "pageSize": "Seitengröße:",
       "pageMarginPreset": "Ränder:",
-      "pageMargin": "Seitenrand (mm):"
+      "pageMargin": "Seitenrand (mm):",
+      "dimensions": {
+        "width": "Breite (mm)",
+        "height": "Höhe (mm)",
+        "top": "Oben (mm)",
+        "bottom": "Unten (mm)",
+        "left": "Links (mm)",
+        "right": "Rechts (mm)"
+      }
     },
     "theme": {
       "theme": "Design",
@@ -1485,7 +1489,6 @@
     },
     "autoNumberingHeadings": "Automatische Nummerierung der Überschriften",
     "showFrontMatter": "Front Matter anzeigen",
-    "export": "Exportieren...",
     "pdfTitle": "Als PDF exportieren",
     "toc": {
       "title": "Inhaltsverzeichnis",
@@ -1529,7 +1532,9 @@
     "content": {
       "label": "Inhalt"
     },
-    "reset": "Zurücksetzen"
+    "reset": "Zurücksetzen",
+    "saveFailed": "Einige Exporteinstellungen konnten nicht gespeichert werden. Versuche es vor dem Export erneut.",
+    "retrySave": "Erneut versuchen"
   },
   "import": {
     "title": "Importieren oder öffnen",

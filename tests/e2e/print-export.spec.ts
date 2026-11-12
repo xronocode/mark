@@ -9,9 +9,8 @@
  *     - the styled print container is in the DOM when the panel opens.
  *
  *   Export to PDF (File › Export to PDF…):
- *     - the settings dialog opens (pdf-flavoured, R-5),
- *     - OK → plugin:dialog|save → mt_export_pdf with the chosen path and
- *       the dialog's pageOptions,
+ *     - plugin:dialog|save → mt_export_pdf with remembered pageOptions,
+ *     - no export-settings dialog mounts,
  *     - mt_print_webview is NEVER invoked (R-2/R-6),
  *     - cancelling the save dialog writes nothing and notifies nobody
  *       (corner-2) and clears the print container.
@@ -72,7 +71,7 @@ test.describe('print and export-to-pdf flows (C-61)', () => {
     expect(relevant).toEqual(['mt_print_webview'])
   })
 
-  test('Export to PDF: settings dialog → save dialog → mt_export_pdf (never the print panel)', async ({ page }) => {
+  test('Export to PDF: save dialog → mt_export_pdf with no settings dialog or print panel', async ({ page }) => {
     await page.addInitScript(() => {
       const w = window as any
       w.__saveCalls = []
@@ -90,14 +89,7 @@ test.describe('print and export-to-pdf flows (C-61)', () => {
       ;(window as any).__emitFakeEvent('mt::menu-invoked', 'file.export-file-pdf')
     })
 
-    // The settings dialog opens with the pdf title (R-5) and the page
-    // setup back (page size selector present).
-    const dialog = page.locator('.el-dialog', { hasText: 'Export to PDF' })
-    await expect(dialog).toBeVisible()
-    await expect(dialog.locator('h3')).toHaveText('Export to PDF')
-
-    // OK → save dialog (pdf filter, document-based default name) → write.
-    await dialog.locator('.button-controlls .button-primary').click()
+    await expect(page.locator('.el-dialog')).toHaveCount(0)
 
     await page.waitForFunction(
       () => (window as any).__invokeLog?.includes('mt_export_pdf')
@@ -136,9 +128,7 @@ test.describe('print and export-to-pdf flows (C-61)', () => {
       ;(window as any).__emitFakeEvent('mt::menu-invoked', 'file.export-file-pdf')
     })
 
-    const dialog = page.locator('.el-dialog', { hasText: 'Export to PDF' })
-    await expect(dialog).toBeVisible()
-    await dialog.locator('.button-controlls .button-primary').click()
+    await expect(page.locator('.el-dialog')).toHaveCount(0)
 
     // Wait for the save dialog to have been asked (the container renders
     // first, asynchronously), then for the clearup after the cancel.

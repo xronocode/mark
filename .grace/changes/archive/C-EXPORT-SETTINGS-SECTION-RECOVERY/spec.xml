@@ -1,0 +1,55 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-EXPORT-SETTINGS-SECTION-RECOVERY>
+    <Name>Export without the settings modal: an Export section in Preferences owns the parameters (the C-EXPORT-SINGLE-PAGE form relocated); PDF/HTML export becomes one click like Word; the post-export notice opens the section</Name>
+    <Created>2026-11-07</Created>
+    <Priority>medium</Priority>
+    <Status>approved</Status>
+    <RoadmapPhase>next</RoadmapPhase>
+    <Complexity>M</Complexity>
+    <Summary>The backlog item recorded 2026-10-23 (owner proposal on the DOCX spec review): remove the pre-export settings modal entirely — Word already ships modal-less — move its parameters into a dedicated Export section of app settings, and make every export one click (menu → save dialog) using the remembered options, exactly as the ⌘P print path already does. The single-page form shipped by C-EXPORT-SINGLE-PAGE (sections, hydration from remembered options, margin presets, header/footer strips, Reset) is the content that relocates into that section. The post-export notification balloon already carries the quiet "Export settings" action; it retargets from opening the dialog to opening Preferences at the Export section. This change executes after C-EXPORT-SINGLE-PAGE is merged (same files, strictly sequential).</Summary>
+    <Problem>
+      <Description>The modal is friction in the common case: options are remembered, most exports are a bare "OK" click, and a third format triples the ceremony. Export parameters live in a modal users meet only mid-task instead of where they look for settings. Word and ⌘P already prove the modal-less shape; PDF and HTML are the remaining ceremony.</Description>
+    </Problem>
+    <Goals>
+      <R-1>Export section in Preferences (Settings window): the C-EXPORT-SINGLE-PAGE form relocates there — same sections, same hydration, same Reset — as a first-class settings section (⌘, › Export); saving semantics follow the settings-window convention (immediate apply to the remembered options store, no Export button).</R-1>
+      <R-2>One-click export everywhere: File › Export to PDF / Export as HTML / Export as Word, the tab-menu export group and the titlebar popover row (C-DOC-POPOVER-EXPORT-HUB) all go straight to the save dialog with the remembered options; the pre-export modal is removed from all flows; the export bus payload shape is unchanged.</R-2>
+      <R-3>Post-export notice: the existing quiet "Export settings" action opens Preferences at the Export section (all three formats' notices); the correction loop wrong-output → button → section → fix → re-export completes without any modal.</R-3>
+      <R-4>Escape hatch deferred by design: one-off per-export overrides are a conscious v1 loss (⌥-click "Export with settings…" is the recorded v1.5 candidate, not in this change); the section's Reset remains the way back to factory defaults.</R-4>
+      <R-5>Tests and locales: store/unit coverage that each export command skips the dialog and rides remembered options (Word precedent pattern); e2e print/export specs updated to the new invoke order (command → save dialog → write; the settings dialog never opens for any format); ten locales gain the section title; dead dialog-title keys removed.</R-5>
+    </Goals>
+    <Constraints>
+      <Item>Strictly after C-EXPORT-SINGLE-PAGE merges (same component and store files; single-writer discipline).</Item>
+      <Item>REMEMBER_EXPORT_OPTIONS persistence semantics unchanged (the section writes the same remembered store); no new IPC or capabilities; Preferences opens via the existing settings entry points.</Item>
+      <Item>The bus 'export' payload stays byte-compatible; ⌘P print path untouched.</Item>
+      <Item>Baseline grace lint current = 0; final assertions with commands; graph/verification updates ride the existing export modules (M-072 retarget) rather than new anchors.</Item>
+    </Constraints>
+    <NonGoals>
+      <Item>⌥-click per-export override UI (v1.5 candidate).</Item>
+      <Item>New export parameters (Word base font, static TOC toggle, PDF header/footer templates stay the recorded later candidates); print (⌘P) changes; the mobile viewer.</Item>
+      <Item>Syncing export settings across machines or profiles.</Item>
+    </NonGoals>
+    <AffectedAreas>
+      <Item>src/renderer/src/components/exportSettings/ (form relocates into prefComponents; the dialog shell and its bus showExportDialog surface are removed), src/renderer/src/prefComponents/ (Export section)</Item>
+      <Item>src/renderer/src/commands/index.js + store/editor.js (pdf/html export actions go modal-less like EXPORT_DOCX_DOCUMENT; quiet action retarget)</Item>
+      <Item>static/locales/*.json (ten locales: section title, dead keys removed)</Item>
+      <Item>tests/renderer/** (dialog suites relocate with the form; store dispatch tests), tests/e2e/print-export.spec.ts + export-office.spec.ts (expectation updates: no settings dialog on any flow)</Item>
+      <Item>.grace/graph/features.xml M-072 + .grace/verification/features.xml V-M-072 (retarget to the section surface)</Item>
+    </AffectedAreas>
+    <AcceptanceCriteria>
+      <Criterion>R-1..R-5 done; full vitest green; both export e2e specs green with the updated no-dialog expectations; grace lint 0 at close.</Criterion>
+      <Criterion>Live check on macOS (owner): every export (menu, tab menu, popover) goes file straight to the save dialog and produces identical output to a pre-change export with the same remembered options; ⌘, › Export shows the section with last-used values; the notice button lands on the section; wrong-orientation loop fixed without ever seeing a modal.</Criterion>
+    </AcceptanceCriteria>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run</ExpectedCommand>
+      <ExpectedCommand>npx playwright test tests/e2e/print-export.spec.ts tests/e2e/export-office.spec.ts --project=chromium</ExpectedCommand>
+      <ExpectedCommand>grace lint --path . --change C-EXPORT-SETTINGS-SECTION --assertions final --run-commands</ExpectedCommand>
+      <ExpectedEvidence>Unit: modal-less dispatch for pdf/styledHtml mirrors the Word precedent; section hydration/reset coverage relocated intact. E2e: invoke order save-dialog-first for all formats, zero settings-dialog mounts. Owner smoke incl. the notice-button correction loop.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The settings window supports opening at a section (or gains it cheaply) for the notice-button retarget; if not, the button opens Settings and the section is first — acceptable v1.</Assumption>
+      <Assumption>Immediate-apply semantics in the section are acceptable for export parameters (they only affect future exports; nothing exports from the section itself).</Assumption>
+    </Assumptions>
+    <RecoveryBasis>Proposed successor to C-EXPORT-SETTINGS-SECTION. The owner-approved R-1..R-5 behavior, constraints, non-goals and acceptance remain unchanged. Resume the exact preserved partial implementation, extend the literal observed scope by only the two existing UI producers, and retain every original target assertion and command. Approval of this completed successor is pending; this file is not active authority.</RecoveryBasis>
+    <Supersedes>C-EXPORT-SETTINGS-SECTION</Supersedes>
+  </C-EXPORT-SETTINGS-SECTION-RECOVERY>
+</GraceChangeSpec>

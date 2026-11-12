@@ -9,11 +9,11 @@
 
 <script setup>
 // FILE: src/renderer/src/pages/preference.vue
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
-//   PURPOSE: The C-38 T-003 Settings window shell — native-titlebar window (title follows the active tab), 5-tab toolbar, scrollable grouped body, remembered tab, and the theme/auto-theme wiring the settings webview has always owned.
+//   PURPOSE: Settings window shell with a catalog-driven toolbar, active-tab title, scrollable body, remembered tab and theme/auto-theme wiring.
 //   SCOPE: Shell layout + palette (per-OS metrics, dark parity via body.dark), tab-title sync (document + native window), last-tab persistence, theme application for this window.
-//   DEPENDS: prefComponents/tabsBar, prefComponents/tabsBar/config (TAB_IDS/tabTitle/writeLastTab), util/theme, util/autoTheme, store/preferences, util (isOsx), @tauri-apps/api/window (setTitle).
+//   DEPENDS: prefComponents/tabsBar, prefComponents/tabsBar/config, vue-router, util/theme, util/autoTheme, store/preferences, util (isOsx), @tauri-apps/api/window (setTitle).
 //   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -24,10 +24,12 @@
 //   applyWindowTitle - sets document.title AND the native window title to the active tab (macOS: bare label; Windows/Linux: '<label> — Mark').
 //   watch route.name - persists the active tab (writeLastTab) and re-applies the window title; non-tab routes are ignored.
 //   watch locale - re-applies the title after a language switch.
+//   handleRememberedTab - routes valid last-tab changes from other windows; owned listener is removed on unmount.
 //   APPLY_AUTO_THEME block - unchanged C-41 behaviour: keep `theme` synced with prefers-color-scheme while followSystemTheme is on.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 v2.2.0: C-EXPORT-SETTINGS-SECTION: route existing Settings windows through the existing last-tab storage key.
 //   - 2026-10-15 v2.1.0: C-38 T-006 N4 a/b — the Settings accent and
 //     font now alias the shared chrome identity: --prefAccent mirrors
 //     --chromeAccent and --prefAccentSoft mirrors --chromeAccentSoft
@@ -39,12 +41,12 @@
 // END_CHANGE_SUMMARY
 
 import { watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
 import TabsBar from '@/prefComponents/tabsBar'
-import { TABS, TAB_IDS, tabTitle, writeLastTab } from '@/prefComponents/tabsBar/config'
+import { TABS, TAB_IDS, LAST_TAB_STORAGE_KEY, tabPath, tabTitle, writeLastTab } from '@/prefComponents/tabsBar/config'
 import { addThemeStyle } from '@/util/theme'
 import { resolveAutoTheme, watchSystemColorScheme } from '@/util/autoTheme'
 import { DEFAULT_STYLE } from '@/config'
@@ -54,6 +56,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 // Store
 const preferencesStore = usePreferencesStore()
 const route = useRoute()
+const router = useRouter()
 const { t, locale } = useI18n()
 
 const { theme } = storeToRefs(preferencesStore)
@@ -109,6 +112,20 @@ watch(locale, () => {
 })
 // END_BLOCK_REMEMBER_TAB
 
+// START_BLOCK_CROSS_WINDOW_TAB
+const handleRememberedTab = (event) => {
+  if (event.key !== LAST_TAB_STORAGE_KEY || !TAB_IDS.includes(event.newValue) || event.newValue === route.name) return
+  try {
+    if (event.storageArea !== window.localStorage) return
+  } catch {
+    return
+  }
+  router.push({ path: tabPath(event.newValue) }).catch(() => {
+    console.warn('[preference][BLOCK_SETTINGS_TAB_NAVIGATION_FAILED]')
+  })
+}
+// END_BLOCK_CROSS_WINDOW_TAB
+
 // START_BLOCK_APPLY_AUTO_THEME
 // C-41 T-001 Auto mode (settings window): mirror app.vue — keep `theme` in
 // sync with prefers-color-scheme while followSystemTheme is on, including
@@ -138,6 +155,7 @@ const stopColorSchemeWatch = watchSystemColorScheme(() => {
 
 // Lifecycle
 onMounted(() => {
+  window.addEventListener('storage', handleRememberedTab)
   nextTick(async () => {
     const state = window.marktext.initialState || DEFAULT_STYLE
     try {
@@ -153,6 +171,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('storage', handleRememberedTab)
   // C-41 T-001: drop the prefers-color-scheme listener with the window.
   stopColorSchemeWatch()
 })

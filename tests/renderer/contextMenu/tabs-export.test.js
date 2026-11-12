@@ -1,7 +1,7 @@
 // FILE: tests/renderer/contextMenu/tabs-export.test.js
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the tab-context-menu export group (C-NATIVE-DOCX-RTF-EXPORT T-005): three items with pathname gating, label keys shared with the File menu wording, handlers that activate a background tab first and then run the identical export flow (docx via the modal-less store action, pdf/html via showExportDialog).
+//   PURPOSE: Pin the tab-context-menu export group (C-NATIVE-DOCX-RTF-EXPORT T-005): three items with pathname gating, label keys shared with the File menu wording, handlers that activate a background tab first and then run the identical export flow (docx via its compatibility store action, PDF/HTML via the shared snapshot action).
 //   SCOPE: getEXPORT_PDF/HTML/DOCX, HANDLERS.tabExport*, showContextMenu item list and gating, activateThenExport in src/renderer/src/contextMenu/tabs/.
 //   DEPENDS: Vitest; mocked @/bus, @/i18n, @/store/editor.
 //   LINKS: .grace/changes/active/C-NATIVE-DOCX-RTF-EXPORT (R-2); contextMenu/tabs/menuItems.js, actions.js, index.js.
@@ -12,7 +12,8 @@
 // START_MODULE_MAP
 //   busEmitMock - the bus emit spy.
 //   updateCurrentFileMock - the activation spy.
-//   exportDocxDocumentMock - the modal-less store action spy.
+//   exportDocxDocumentMock - the Word compatibility action spy.
+//   exportDocumentMock - the shared snapshot action spy.
 //   fakeTabs - background + current tab fixtures.
 //   popupMock - the native popup ipc invoke spy (returns the clicked id).
 // END_MODULE_MAP
@@ -29,6 +30,7 @@ vi.mock('@/i18n', () => ({
 
 const updateCurrentFileMock = vi.fn()
 const exportDocxDocumentMock = vi.fn()
+const exportDocumentMock = vi.fn()
 const fakeTabs = [
   { id: 'bg-1', filename: 'a.md', pathname: '/tmp/a.md' },
   { id: 'fg-0', filename: 'b.md', pathname: '/tmp/b.md' }
@@ -38,7 +40,8 @@ vi.mock('@/store/editor', () => ({
     tabs: fakeTabs,
     currentFile: fakeTabs[1],
     UPDATE_CURRENT_FILE: updateCurrentFileMock,
-    EXPORT_DOCX_DOCUMENT: exportDocxDocumentMock
+    EXPORT_DOCX_DOCUMENT: exportDocxDocumentMock,
+    EXPORT_DOCUMENT: exportDocumentMock
   })
 }))
 
@@ -49,9 +52,14 @@ beforeEach(() => {
   busEmitMock.mockReset()
   updateCurrentFileMock.mockReset()
   exportDocxDocumentMock.mockReset()
+  exportDocumentMock.mockReset()
   popupMock.mockReset()
   popupMock.mockResolvedValue('')
 })
+
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: direct export snapshots and stale-tab guards.
+// END_CHANGE_SUMMARY
 
 describe('tab context menu export group (T-005)', () => {
   it('labels come from the shared export keys and use distinct ids', async () => {
@@ -85,20 +93,39 @@ describe('tab context menu export group (T-005)', () => {
     }
   })
 
-  it('a background tab activates first, then docx runs the modal-less store action', async () => {
+  it('a background tab activates first, then docx runs the compatibility store action', async () => {
     const { activateThenExport } = await import('@/contextMenu/tabs/actions')
     activateThenExport('bg-1', 'docx')
     expect(updateCurrentFileMock).toHaveBeenCalledWith(fakeTabs[0])
     expect(exportDocxDocumentMock).toHaveBeenCalledTimes(1)
+    expect(updateCurrentFileMock.mock.invocationCallOrder[0]).toBeLessThan(exportDocxDocumentMock.mock.invocationCallOrder[0])
     expect(busEmitMock).not.toHaveBeenCalled()
   })
 
-  it('the current tab is not re-activated; pdf/html open the shared settings dialog', async () => {
+  it('the current tab is not re-activated; PDF/HTML dispatch snapshots without a settings dialog', async () => {
     const { activateThenExport } = await import('@/contextMenu/tabs/actions')
     activateThenExport('fg-0', 'pdf')
     expect(updateCurrentFileMock).not.toHaveBeenCalled()
-    expect(busEmitMock).toHaveBeenCalledWith('showExportDialog', 'pdf')
+    expect(exportDocumentMock).toHaveBeenCalledWith('pdf')
     activateThenExport('fg-0', 'styledHtml')
-    expect(busEmitMock).toHaveBeenCalledWith('showExportDialog', 'styledHtml')
+    expect(exportDocumentMock).toHaveBeenCalledWith('styledHtml')
+    expect(busEmitMock).not.toHaveBeenCalled()
   })
+  it.each(['pdf', 'styledHtml'])('activates a background tab before the %s snapshot', async kind => {
+    const { activateThenExport } = await import('@/contextMenu/tabs/actions')
+    activateThenExport('bg-1', kind)
+    expect(updateCurrentFileMock).toHaveBeenCalledWith(fakeTabs[0])
+    expect(exportDocumentMock).toHaveBeenCalledWith(kind)
+    expect(updateCurrentFileMock.mock.invocationCallOrder[0]).toBeLessThan(exportDocumentMock.mock.invocationCallOrder[0])
+  })
+
+  it.each(['pdf', 'styledHtml', 'docx'])('does not export the current document for a stale %s tab id', async kind => {
+    const { activateThenExport } = await import('@/contextMenu/tabs/actions')
+    activateThenExport('closed-tab', kind)
+    expect(updateCurrentFileMock).not.toHaveBeenCalled()
+    expect(exportDocumentMock).not.toHaveBeenCalled()
+    expect(exportDocxDocumentMock).not.toHaveBeenCalled()
+    expect(busEmitMock).not.toHaveBeenCalled()
+  })
+
 })

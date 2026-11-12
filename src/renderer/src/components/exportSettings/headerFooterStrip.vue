@@ -34,9 +34,9 @@
 //     by the parent from which slots carry text.
 //   SCOPE: Slot input rendering only; no knowledge of the export payload.
 //   DEPENDS: element-plus el-input; vue-i18n (slot placeholders).
-//   LINKS: src/renderer/src/components/exportSettings/index.vue;
+//   LINKS: src/renderer/src/prefComponents/tabs/export/index.vue;
 //     exportOptions.deriveHeaderFooterType;
-//     .grace/changes/active/C-EXPORT-SINGLE-PAGE (R-4, corner-2).
+//     .grace/graph/features.xml M-072; .grace/verification/features.xml V-M-072; C-EXPORT-SETTINGS-SECTION-RECOVERY.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -50,6 +50,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: retain slot bindings inside the Preferences row spacing.
 //   LAST_CHANGE: 2026-11-07 v1.0.0 - C-EXPORT-SINGLE-PAGE T-003: initial
 //   file — slot strip replacing the none/single/three-cells selects and
 //   their six conditional text boxes.
@@ -86,7 +87,7 @@ const rightProxy = computed({
 
 <style scoped>
 .hf-strip {
-  margin-bottom: 10px;
+  padding: 8px 14px;
 }
 .hf-strip-label {
   margin-bottom: 5px;
@@ -97,5 +98,6 @@ const rightProxy = computed({
 }
 .hf-strip-slots .el-input {
   flex: 1;
+  min-width: 0;
 }
 </style>

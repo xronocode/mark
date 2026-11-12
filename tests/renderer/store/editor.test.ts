@@ -596,9 +596,11 @@ describe('store/editor', () => {
       expect(opts.severity).toBe('success')
       expect(opts.source).toBe('export')
       expect(opts.title).toBeTruthy()
-      expect(opts.actions).toHaveLength(1)
+      expect(opts.actions).toHaveLength(2)
       expect(opts.actions[0].kind).toBe('reveal')
       expect(typeof opts.actions[0].payload).toBe('function')
+      expect(opts.actions[1].style).toBe('quiet')
+      expect(typeof opts.actions[1].handler).toBe('function')
     })
 
     it('returns early on empty path', async () => {

@@ -1,37 +1,23 @@
-// FILE: tests/renderer/components/exportSettings-fn.test.js
-// VERSION: 2.0.0
+// FILE: tests/renderer/prefComponents/export-section-fn.test.js
+// VERSION: 3.0.1
 // START_MODULE_CONTRACT
-//   PURPOSE: C-EXPORT-SINGLE-PAGE pin — the export settings dialog as one
-//     page (no el-tabs), semantic sections per flavor (pdf vs styledHtml),
-//     hydration from the remembered appearance options (toggle inference,
-//     theme null→'default'), Reset to factory defaults, margin preset
-//     selection with the Custom-values stash, and the slot-strip →
-//     header/footer payload derivation through handleClicked.
-//   SCOPE: src/renderer/src/components/exportSettings/index.vue behaviour
-//     (vm-level, shallowMounted with stubbed controls); exportOptions
-//     helpers used for real; store accessor mocked.
-//   DEPENDS: vitest, @vue/test-utils, setupTestPinia, test i18n instance,
-//     @/bus and @/store/editor mocked, @/i18n key-echo mock.
-//   LINKS: .grace/changes/active/C-EXPORT-SINGLE-PAGE (R-1..R-6,
-//          corner-1/2/3/4/6/8); .grace/graph/features.xml M-072;
-//          .grace/verification/features.xml V-M-072.
+//   PURPOSE: Preserve the shipped export form's hydration, presets, optional blocks, slot derivation and factory Reset in Preferences.
+//   SCOPE: Original meaningful form assertions, adapted from modal submission to immediate settings persistence; no export dispatch.
+//   DEPENDS: Vue Test Utils, controlled appearance accessor/write result, actual page-default helper and existing controls/options.
+//   LINKS: M-072; V-M-072; C-EXPORT-SETTINGS-SECTION.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
-//
 // START_MODULE_MAP
-//   rememberedFixture - hoisted mutable stand-in for the store accessor result (per-test shape over DEFAULTS).
-//   i18n - test i18n instance carrying the exportSettings namespace.
-//   stubs - shallowMount component stubs (dialog shell and pref controls).
+//   rememberedFixture - Legacy appearance inputs and write observation.
+//   i18n - Existing form labels.
+//   stubs - Control/section boundaries.
 // END_MODULE_MAP
-//
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-07 v2.0.0 - C-EXPORT-SINGLE-PAGE T-002/T-003:
-//   rewritten for the single-page anatomy (tabs/activeName/headerType
-//   selects gone) + hydration/reset/preset/strip coverage. v1: fn
-//   coverage of the six-tab dialog.
+//   LAST_CHANGE: 2026-11-12: cover six unsupported ASCII-gap prefixes in export-theme comment labels.
+//   PREVIOUS_CHANGE: 2026-11-12 C-EXPORT-SETTINGS-SECTION: retain form assertions while replacing obsolete modal behavior.
 // END_CHANGE_SUMMARY
-import { shallowMount } from '@vue/test-utils'
+import { shallowMount, flushPromises } from '@vue/test-utils'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 
@@ -50,14 +36,17 @@ const { rememberedFixture } = vi.hoisted(() => {
     tocTitle: '',
     tocIncludeTopHeading: true
   }
-  return { rememberedFixture: { value: {}, DEFAULTS } }
+  return { rememberedFixture: { value: {}, DEFAULTS, remember: vi.fn(() => true) } }
 })
 
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
+vi.mock('@/prefComponents/common/compound', () => ({ default: { name: 'Compound', template: '<section><slot name="head"/><slot name="children"/></section>' } }))
+
 vi.mock('@/store/editor', () => ({
+  useEditorStore: () => ({ REMEMBER_EXPORT_OPTIONS: rememberedFixture.remember }),
   getRememberedExportAppearance: vi.fn(() => ({
     ...rememberedFixture.DEFAULTS,
     ...rememberedFixture.value
@@ -100,7 +89,7 @@ const i18n = createI18n({
 })
 
 const stubs = {
-  ElDialog: { template: '<div><slot /></div>' },
+  Compound: { template: '<section><slot name="head"/><slot name="children"/></section>' },
   ElInputNumber: true,
   Bool: true,
   CurSelect: true,
@@ -110,11 +99,17 @@ const stubs = {
   HeaderFooterStrip: true
 }
 
-describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () => {
+describe('Export preferences — preserved form behavior', () => {
   let pinia, bus, ExportSettings
+  const wrappers = []
+  afterEach(() => {
+    for (const w of wrappers.splice(0)) if (!w.vm.$.isUnmounted) w.unmount()
+  })
 
   beforeEach(async () => {
+    localStorage.clear()
     rememberedFixture.value = {}
+    rememberedFixture.remember.mockReset().mockReturnValue(true)
     pinia = setupTestPinia()
     bus = (await import('@/bus')).default
     window.marktext = {
@@ -132,22 +127,18 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       readdir: vi.fn(async () => []),
       readFile: vi.fn(async () => '')
     }
-    ExportSettings = (await import('@/components/exportSettings/index.vue')).default
+    ExportSettings = (await import('@/prefComponents/tabs/export/index.vue')).default
   })
 
-  const mount = () => shallowMount(ExportSettings, {
-    global: { plugins: [pinia, i18n], stubs }
-  })
-
-  const show = (type = 'pdf') => {
-    const handler = bus.on.mock.calls.find(c => c[0] === 'showExportDialog')[1]
-    handler(type)
+  const mount = () => {
+    const w = shallowMount(ExportSettings, { global: { plugins: [pinia, i18n], stubs } })
+    wrappers.push(w)
+    return w
   }
 
   describe('single-page anatomy (R-1/R-2, corner-4)', () => {
-    it('renders no tab chrome and the four sections in order for pdf', async () => {
+    it('renders no tab chrome and the four sections in order for all future exports', async () => {
       const w = mount()
-      show('pdf')
       await w.vm.$nextTick()
       const html = w.html()
       expect(html).not.toMatch(/el-tabs|el-tab/)
@@ -161,16 +152,16 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       expect(hfAt).toBeGreaterThan(contentAt)
     })
 
-    it('styledHtml flavor: page section present, PDF-only sections absent', async () => {
+    it('shows HTML title together with page geometry and running-head controls', async () => {
       const w = mount()
-      show('styledHtml')
       await w.vm.$nextTick()
       const html = w.html()
       expect(html).toContain('>Page<')
       expect(html).toContain('>Style<')
       expect(html).toContain('>Content<')
-      expect(html).not.toContain('>HF<')
-      expect(w.vm.isPrintable).toBe(false)
+      expect(html).toContain('>HF<')
+      expect(html).toContain('PT')
+      expect(html).toContain('PS')
     })
   })
 
@@ -194,7 +185,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
         headerFooterFontSize: 10
       }
       const w = mount()
-      show('pdf')
       expect(w.vm.theme).toBe('academic')
       expect(w.vm.pageMarginTop).toBe(8)
       expect(w.vm.tocTitle).toBe('TOC')
@@ -211,7 +201,7 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       expect(w.vm.headerFooterCustomize).toBe(true)
       expect(w.vm.headerFooterStyled).toBe(false)
       expect(w.vm.headerFooterFontSize).toBe(10)
-      // geometry stays per-open factory defaults
+      // Missing page defaults use the factory values.
       expect(w.vm.pageSize).toBe('A4')
       expect(w.vm.isLandscape).toBe(false)
     })
@@ -219,7 +209,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
     it('empty remembered state falls back to factory defaults everywhere', () => {
       rememberedFixture.value = {}
       const w = mount()
-      show('pdf')
       expect(w.vm.theme).toBe('default')
       expect(w.vm.fontSettingsOverwrite).toBe(false)
       expect(w.vm.headerFooterCustomize).toBe(false)
@@ -230,40 +219,37 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
     it('theme null maps to the default sentinel', () => {
       rememberedFixture.value = { theme: null }
       const w = mount()
-      show('pdf')
       expect(w.vm.theme).toBe('default')
     })
   })
 
   describe('Reset (R-6, corner-6)', () => {
-    it('restores factory defaults in-form without touching remembered storage', () => {
+    it('restores and remembers the factory defaults without exporting', async () => {
       window.localStorage.setItem('mark-last-print-options', '{"sentinel":1}')
       rememberedFixture.value = { theme: 'academic', pageMarginTop: 8 }
       const w = mount()
-      show('pdf')
       w.vm.tocTitle = 'changed'
       w.vm.headerTextCenter = 'H'
       w.vm.onSelectChange('pageMarginTop', 33)
-      w.vm.handleReset()
+      await w.vm.handleReset()
       expect(w.vm.tocTitle).toBe('')
       expect(w.vm.headerTextCenter).toBe('')
       expect(w.vm.pageMarginTop).toBe(20)
       expect(w.vm.theme).toBe('default')
       expect(w.vm.marginPreset).toBe('normal')
-      expect(window.localStorage.getItem('mark-last-print-options')).toBe('{"sentinel":1}')
+      expect(rememberedFixture.remember).toHaveBeenCalledWith(expect.objectContaining({ theme: null, pageMarginTop: 20 }))
+      expect(bus.emit).not.toHaveBeenCalledWith('export', expect.anything())
     })
   })
 
   describe('margin presets (R-3, corner-3)', () => {
     it('factory values derive the normal preset', () => {
       const w = mount()
-      show('pdf')
       expect(w.vm.marginPreset).toBe('normal')
     })
 
     it('non-matching values derive custom', () => {
       const w = mount()
-      show('pdf')
       w.vm.onSelectChange('pageMarginTop', 11)
       w.vm.onSelectChange('pageMarginRight', 12)
       w.vm.onSelectChange('pageMarginBottom', 13)
@@ -273,7 +259,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
 
     it('picking a preset applies its values; Custom restores the pre-detour values', () => {
       const w = mount()
-      show('pdf')
       w.vm.onSelectChange('pageMarginTop', 11)
       w.vm.onSelectChange('pageMarginRight', 12)
       w.vm.onSelectChange('pageMarginBottom', 13)
@@ -294,7 +279,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
 
     it('a preset choice itself switches the derived preset', () => {
       const w = mount()
-      show('pdf')
       w.vm.onMarginPresetChange('narrow')
       expect(w.vm.pageMarginTop).toBe(10)
       expect(w.vm.marginPreset).toBe('narrow')
@@ -304,7 +288,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
   describe('slot strips → payload (R-4, corner-2)', () => {
     it('onStripChange patches only the addressed slot', () => {
       const w = mount()
-      show('pdf')
       w.vm.onStripChange('header', { left: 'X' })
       expect(w.vm.headerTextLeft).toBe('X')
       expect(w.vm.headerTextCenter).toBe('')
@@ -314,23 +297,21 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
 
     it('centre-only text emits header type 1 (single cell)', () => {
       const w = mount()
-      show('pdf')
       w.vm.onStripChange('header', { center: 'H' })
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.header).toEqual({ type: 1, left: '', center: 'H', right: '' })
       expect(args.footer).toBeUndefined()
     })
 
     it('any side slot emits type 2 with verbatim strings', () => {
       const w = mount()
-      show('pdf')
       w.vm.onStripChange('header', { left: 'L', right: 'R' })
       w.vm.onStripChange('footer', { left: 'FL', center: 'FC', right: 'FR' })
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.header).toEqual({ type: 2, left: 'L', center: '', right: 'R' })
       expect(args.footer).toEqual({ type: 2, left: 'FL', center: 'FC', right: 'FR' })
     })
@@ -338,10 +319,9 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
     it('a remembered three-cells shape with empty sides re-exports as single-cell (conscious normalization)', () => {
       rememberedFixture.value = { header: { type: 2, left: '', center: 'H', right: '' } }
       const w = mount()
-      show('pdf')
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.header.type).toBe(1)
     })
   })
@@ -359,49 +339,45 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       }
     })
 
-    it('handleClicked includes toc options', () => {
+    it('persistCurrentOptions includes toc options', () => {
       const w = mount()
-      show('pdf')
       w.vm.tocTitle = 'TOC'
       w.vm.tocIncludeTopHeading = false
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.tocTitle).toBe('TOC')
       expect(args.tocIncludeTopHeading).toBe(false)
     })
 
-    it('handleClicked includes pageSizeWidth and pageSizeHeight', () => {
+    it('persistCurrentOptions includes pageSizeWidth and pageSizeHeight', () => {
       const w = mount()
-      show('pdf')
       w.vm.pageSizeWidth = 300
       w.vm.pageSizeHeight = 400
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.pageSizeWidth).toBe(300)
       expect(args.pageSizeHeight).toBe(400)
     })
 
-    it('handleClicked sets pageMargin values correctly', () => {
+    it('persistCurrentOptions sets pageMargin values correctly', () => {
       const w = mount()
-      show('pdf')
       w.vm.pageMarginTop = 10
       w.vm.pageMarginRight = 12
       w.vm.pageMarginBottom = 14
       w.vm.pageMarginLeft = 16
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.pageMarginTop).toBe(10)
       expect(args.pageMarginRight).toBe(12)
       expect(args.pageMarginBottom).toBe(14)
       expect(args.pageMarginLeft).toBe(16)
     })
 
-    it('handleClicked with all optional blocks combined', () => {
+    it('persistCurrentOptions with all optional blocks combined', () => {
       const w = mount()
-      show('styledHtml')
       w.vm.htmlTitle = 'Title'
       w.vm.fontSettingsOverwrite = true
       w.vm.fontFamily = 'Mono'
@@ -413,8 +389,8 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       w.vm.headerFooterStyled = true
       w.vm.headerFooterFontSize = 16
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.htmlTitle).toBe('Title')
       expect(args.fontFamily).toBe('Mono')
       expect(args.header.type).toBe(2)
@@ -422,25 +398,24 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       expect(args.headerFooterFontSize).toBe(16)
     })
 
-    it('handleClicked omits header/footer/fontSettings/htmlTitle when conditions not met', () => {
+    it('persistCurrentOptions omits disabled optional appearance while keeping the explicit empty HTML default', () => {
       const w = mount()
-      show('pdf') // isPrintable = true, so no htmlTitle
       w.vm.fontSettingsOverwrite = false
       w.vm.headerFooterCustomize = false
       bus.emit.mockClear()
-      w.vm.handleClicked()
-      const args = bus.emit.mock.calls.find(c => c[0] === 'export')[1]
+      w.vm.persistCurrentOptions()
+      const args = rememberedFixture.remember.mock.calls.at(-1)[0]
       expect(args.header).toBeUndefined()
       expect(args.footer).toBeUndefined()
-      expect(args.htmlTitle).toBeUndefined()
+      expect(args.htmlTitle).toBe('')
+      expect(JSON.parse(localStorage.getItem('mark-export-page-options')).htmlTitle).toBe('')
       expect(args.headerFooterStyled).toBeUndefined()
     })
 
-    it('showDialog for print type sets isPrintable true', () => {
+    it('mounting the section never dispatches print or any export', () => {
       const w = mount()
-      show('print')
-      expect(w.vm.isPrintable).toBe(true)
-      expect(w.vm.exportType).toBe('print')
+      expect(w.exists()).toBe(true)
+      expect(bus.emit).not.toHaveBeenCalledWith('export', expect.anything())
     })
 
     it('loadThemesFromDisk skips non-css files', async () => {
@@ -450,7 +425,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
 
       const w = mount()
       const baseLen = w.vm.themeList.length
-      show('pdf')
       await new Promise(r => setTimeout(r, 50))
 
       expect(w.vm.themeList.length).toBe(baseLen)
@@ -463,7 +437,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
 
       const w = mount()
       const baseLen = w.vm.themeList.length
-      show('pdf')
       await new Promise(r => setTimeout(r, 50))
 
       expect(w.vm.themeList.length).toBe(baseLen)
@@ -476,7 +449,6 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       window.fileUtils.readFile = vi.fn(async () => '/** Fancy Theme */\nbody {}')
 
       const w = mount()
-      show('pdf')
       await new Promise(r => setTimeout(r, 50))
 
       const entry = w.vm.themeList.find(t => t.value === 'fancy.css')
@@ -484,10 +456,26 @@ describe('exportSettings/index.vue — single page (C-EXPORT-SINGLE-PAGE)', () =
       expect(entry.label.trim()).toBe('Fancy Theme')
     })
 
+    it.each(['[', '\\', ']', '^', '_', '`'])('uses the filename for unsupported CSS title prefix %s', async prefix => {
+      window.fileUtils.isDirectory = vi.fn(() => true)
+      window.fileUtils.readdir = vi.fn(async () => ['unusual.css'])
+      window.fileUtils.isFile = vi.fn(() => true)
+      window.fileUtils.readFile = vi.fn(async () => `/*${prefix}Invalid title*/\nbody {}`)
+
+      const w = mount()
+      await flushPromises()
+
+      expect(w.vm.themeList.find(t => t.value === 'unusual.css')).toEqual({
+        value: 'unusual.css',
+        label: 'unusual.css'
+      })
+      w.unmount()
+    })
+
     it('onBeforeUnmount removes listeners', () => {
       const w = mount()
       w.unmount()
-      expect(bus.off).toHaveBeenCalledWith('showExportDialog', expect.any(Function))
+      expect(bus.on.mock.calls.some(call => call[0] === 'showExportDialog')).toBe(false)
       expect(bus.off).toHaveBeenCalledWith('language-changed', expect.any(Function))
     })
 

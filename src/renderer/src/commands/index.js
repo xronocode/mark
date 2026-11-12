@@ -43,6 +43,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 C-EXPORT-SETTINGS-SECTION: PDF/HTML commands dispatch current remembered options directly to Save.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Preserve the remembered focused split pane through a synchronous owner request; ordinary command timers stay unchanged.
 //   - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the View › Page Width
 //     commands (view.page-width.compact/standard/wide/full/custom) — the
@@ -98,11 +99,9 @@
 //     never consults the C-66 skip key (that gate lives only in
 //     store/autoUpdates; pinned by a source scan in
 //     tests/renderer/commands/updater.test.js).
-//   - 2026-10-18 C-61 T-002: file.print no longer emits
-//     showExportDialog('print') — ⌘P routes to editorStore.PRINT_DOCUMENT
+//   - 2026-10-18 C-61 T-002: ⌘P routes to editorStore.PRINT_DOCUMENT
 //     which renders the print container with the remembered export
 //     options and opens the native panel directly (no settings dialog).
-//     file.export-file-pdf keeps showExportDialog('pdf').
 //   - 2026-10-16 C-52 T-001: add file.open-from-clipboard (File › Open
 //     from Clipboard, Alt+CmdOrCtrl+V — mirrors the native menu item
 //     added in m009) routing to util/clipboardOpen.openFromClipboard.
@@ -444,7 +443,8 @@ const commands = [
         description: 'Export as HTML',
         execute: async () => {
           await delay(50)
-          bus.emit('showExportDialog', 'styledHtml')
+          const { useEditorStore } = await import('../store/editor')
+          useEditorStore().EXPORT_DOCUMENT('styledHtml')
         }
       },
       {
@@ -452,13 +452,13 @@ const commands = [
         description: 'Export as PDF',
         execute: async () => {
           await delay(50)
-          bus.emit('showExportDialog', 'pdf')
+          const { useEditorStore } = await import('../store/editor')
+          useEditorStore().EXPORT_DOCUMENT('pdf')
         }
       },
       {
-        // C-NATIVE-DOCX-RTF-EXPORT R-1: modal-less — the settings dialog
-        // never opens; the store action merges the remembered print
-        // options and rides the same bus 'export' pipeline.
+        // Retain the Word compatibility action; every format now captures
+        // its remembered settings before entering the same export pipeline.
         id: 'file.export-file-docx',
         description: 'Export as Word',
         execute: async () => {

@@ -557,7 +557,8 @@
       "general": "Основные",
       "advanced": "Дополнительно",
       "appearance": "Оформление",
-      "experimental": "Эксперименты"
+      "experimental": "Эксперименты",
+      "export": "Экспорт"
     },
     "experimental": {
       "title": "Экспериментальные функции",
@@ -1442,17 +1443,12 @@
     }
   },
   "exportSettings": {
-    "title": "Параметры экспорта",
     "style": {
       "label": "Стиль",
       "lineHeight": "Высота строки",
       "overwriteThemeFont": "Переопределить настройки шрифта темы",
       "fontSize": "Размер шрифта",
       "fontFamily": "Шрифт:"
-    },
-    "info": {
-      "description": "Настройте внешний вид страницы и нажмите «Экспорт» для продолжения.",
-      "label": "Информация"
     },
     "page": {
       "topBottom": "Сверху/Снизу:",
@@ -1463,7 +1459,15 @@
       "widthHeight": "Ширина/Высота (мм):",
       "pageSize": "Размер страницы:",
       "pageMarginPreset": "Поля:",
-      "pageMargin": "Поля страницы (мм):"
+      "pageMargin": "Поля страницы (мм):",
+      "dimensions": {
+        "width": "Ширина (mm)",
+        "height": "Высота (mm)",
+        "top": "Сверху (mm)",
+        "bottom": "Снизу (mm)",
+        "left": "Слева (mm)",
+        "right": "Справа (mm)"
+      }
     },
     "theme": {
       "theme": "Тема",
@@ -1492,7 +1496,6 @@
     },
     "autoNumberingHeadings": "Автоматическая нумерация заголовков",
     "showFrontMatter": "Показать front matter",
-    "export": "Экспорт...",
     "pdfTitle": "Экспорт в PDF",
     "toc": {
       "title": "Оглавление",
@@ -1536,7 +1539,9 @@
     "content": {
       "label": "Содержимое"
     },
-    "reset": "Сбросить"
+    "reset": "Сбросить",
+    "saveFailed": "Не удалось сохранить часть настроек экспорта. Повторите попытку перед экспортом.",
+    "retrySave": "Повторить"
   },
   "import": {
     "title": "Импорт или открытие",

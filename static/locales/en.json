@@ -562,7 +562,8 @@
       "general": "General",
       "advanced": "Advanced",
       "appearance": "Appearance",
-      "experimental": "Experimental"
+      "experimental": "Experimental",
+      "export": "Export"
     },
     "experimental": {
       "title": "Experimental features",
@@ -1451,17 +1452,12 @@
     }
   },
   "exportSettings": {
-    "title": "Export Options",
     "style": {
       "label": "Style",
       "lineHeight": "Line height",
       "overwriteThemeFont": "Overwrite theme font settings",
       "fontSize": "Font size",
       "fontFamily": "Font family:"
-    },
-    "info": {
-      "description": "Please customize the page appearance and click on \"export\" to continue.",
-      "label": "Info"
     },
     "page": {
       "topBottom": "Top/Bottom:",
@@ -1472,7 +1468,15 @@
       "widthHeight": "Width/Height in mm:",
       "pageSize": "Page size:",
       "pageMarginPreset": "Margins:",
-      "pageMargin": "Page margin in mm:"
+      "pageMargin": "Page margin in mm:",
+      "dimensions": {
+        "width": "Width (mm)",
+        "height": "Height (mm)",
+        "top": "Top (mm)",
+        "bottom": "Bottom (mm)",
+        "left": "Left (mm)",
+        "right": "Right (mm)"
+      }
     },
     "theme": {
       "theme": "Theme",
@@ -1501,7 +1505,6 @@
     },
     "autoNumberingHeadings": "Auto numbering headings",
     "showFrontMatter": "Show front matter",
-    "export": "Export...",
     "pdfTitle": "Export to PDF",
     "toc": {
       "title": "Table of Contents",
@@ -1545,7 +1548,9 @@
     "content": {
       "label": "Content"
     },
-    "reset": "Reset"
+    "reset": "Reset",
+    "saveFailed": "Some export settings couldn’t be saved. Try again before exporting.",
+    "retrySave": "Try again"
   },
   "import": {
     "title": "Import or Open",

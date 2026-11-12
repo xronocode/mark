@@ -107,7 +107,7 @@ vi.mock('@/store/project', () => ({
 // C-MULTI-SOURCE-WORKSPACE fix wave: QUIT_APP mock — file.quit now runs
 // the guarded quit (Save & Quit / Don't Save dialog in the store action)
 // instead of invoking mt_app_quit directly.
-const editorStoreMock = { currentFile: null, PRINT_DOCUMENT: vi.fn(), QUIT_APP: vi.fn() }
+const editorStoreMock = { currentFile: null, PRINT_DOCUMENT: vi.fn(), EXPORT_DOCUMENT: vi.fn(), EXPORT_DOCX_DOCUMENT: vi.fn(), QUIT_APP: vi.fn() }
 vi.mock('@/store/editor', () => ({
   useEditorStore: () => editorStoreMock
 }))
@@ -229,18 +229,26 @@ describe('commands/index — deep coverage', () => {
       expect(cmd.subcommands).toHaveLength(3)
     })
 
-    it('file.export-file-html emits showExportDialog styledHtml', async () => {
+    it('file.export-file-html dispatches remembered HTML without a settings dialog', async () => {
       const cmd = findCmd('file.export-file')
       const sub = cmd.subcommands.find((s) => s.id === 'file.export-file-html')
       await sub.execute()
-      expect(bus.emit).toHaveBeenCalledWith('showExportDialog', 'styledHtml')
+      expect(editorStoreMock.EXPORT_DOCUMENT).toHaveBeenCalledWith('styledHtml')
+      expect(bus.emit).not.toHaveBeenCalledWith('showExportDialog', expect.anything())
     })
 
-    it('file.export-file-pdf emits showExportDialog pdf', async () => {
+    it('file.export-file-pdf dispatches remembered PDF without a settings dialog', async () => {
       const cmd = findCmd('file.export-file')
       const sub = cmd.subcommands.find((s) => s.id === 'file.export-file-pdf')
       await sub.execute()
-      expect(bus.emit).toHaveBeenCalledWith('showExportDialog', 'pdf')
+      expect(editorStoreMock.EXPORT_DOCUMENT).toHaveBeenCalledWith('pdf')
+      expect(bus.emit).not.toHaveBeenCalledWith('showExportDialog', expect.anything())
+    })
+
+    it('file.export-file-docx retains the Word compatibility entry without a settings dialog', async () => {
+      await findCmd('file.export-file').subcommands.find(s => s.id === 'file.export-file-docx').execute()
+      expect(editorStoreMock.EXPORT_DOCX_DOCUMENT).toHaveBeenCalledTimes(1)
+      expect(bus.emit).not.toHaveBeenCalledWith('showExportDialog', expect.anything())
     })
   })
 
