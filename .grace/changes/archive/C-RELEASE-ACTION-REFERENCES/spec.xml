@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-RELEASE-ACTION-REFERENCES>
     <Summary>Restore resolvable immutable action references in the release workflow and reject missing external action commits or metadata before merge.</Summary>
     <Problem>The current release workflow has six uses of three commit SHAs that GitHub reports missing. Existing governance validates the 40-hex shape, not commit existence or action metadata. No release was dispatched to reproduce this configuration failure.</Problem>

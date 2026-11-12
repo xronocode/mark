@@ -1745,6 +1745,61 @@
             }
           ]
         }
+      },
+      {
+        "id": "C-RELEASE-ACTION-REFERENCES",
+        "summary": "Restore six release action references and check exact upstream commits, metadata and inputs before merge.",
+        "state": "queued",
+        "commits": [
+          "6e0d98475d52f023507c456a5a1416c115204d23"
+        ],
+        "pullRequest": {
+          "number": 227,
+          "headSha": "05e995ecf41e34dc9975a5a416d00111249b7af5",
+          "mergeSha": "6e0d98475d52f023507c456a5a1416c115204d23",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/227/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused action-reference, governance and GitHub controls tests; read-only online references; actionlint",
+              "result": "98 focused tests passed. Declared final gate: 71 tests and syntax check passed. Online validation passed for 39 uses, 10 unique commits and 10 metadata records. actionlint v1.7.12 reported zero findings. Five shell-equivalence checks passed.",
+              "date": "2026-11-12",
+              "build": "05e995ecf41e34dc9975a5a416d00111249b7af5",
+              "evidence": "https://github.com/xronocode/mark/pull/227/checks"
+            },
+            {
+              "command": "GitHub Actions test matrix, CI, governance, unsigned QA build and CodeQL",
+              "result": "All four required contexts passed; CI, unsigned QA and all five CodeQL analyses succeeded. Renderer: macOS 5860 passed with 2 skips and 3 todos; Windows/Linux 5856 passed each with 6 skips and 3 todos. Backend: macOS 599, Windows 542 and Linux 557 passed, each with 1 ignored. Quick Look native: 24 cases, zero network requests. Browser final attempt: 810 passed, 1 flaky case passed its existing configured retry and 8 existing Chromium skips. PR head and squash have identical complete trees.",
+              "date": "2026-11-12",
+              "build": "05e995ecf41e34dc9975a5a416d00111249b7af5",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43178051440; https://github.com/xronocode/mark/pull/227/checks"
+            },
+            {
+              "command": "Selected final assertions with commands on integrated implementation",
+              "result": "Both declared leaf commands passed; GRACE reported zero errors and four unchanged heuristic warnings on the squash source.",
+              "date": "2026-11-12",
+              "build": "6e0d98475d52f023507c456a5a1416c115204d23",
+              "evidence": "https://github.com/xronocode/mark/pull/227/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Signed release, production credentials, dispatch-build owner acceptance and publication",
+              "reason": "No release was dispatched or authorized. Read-only action resolution and unsigned builds do not establish signing or publication acceptance."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Source/Split focus and external-delete timing stability",
+              "reason": "The first browser attempt failed the existing Source-to-Split case; the same-head failed-job rerun passed it. The final attempt passed the external-delete case on its existing retry. Both remain open runtime follow-ups; no product fix, retry change or clean first-attempt claim is made."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "notPresent": []

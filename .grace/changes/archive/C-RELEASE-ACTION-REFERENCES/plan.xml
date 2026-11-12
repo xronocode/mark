@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-RELEASE-ACTION-REFERENCES>
     <IntentSummary>Repair six release uses of three missing immutable refs and add a bounded read-only reference/metadata check to ordinary governance. No release, signing, version or permission boundary changes.</IntentSummary>
     <ReferenceState>Prepared from main 4fa3cffa813445e1e6974a5ac8283f54abf89e5c with the owner-approved specification. Native PR #223 is independent; reconcile actual main before execution. Upstream commit and exact action.yml discovery was performed read-only on 2026-11-11.</ReferenceState>
