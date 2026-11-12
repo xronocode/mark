@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-MUYA-CURRENT-MODEL-EXPORT>
     <IntentSummary>Repair only the two existing Muya HTML export entry points so they capture the current complete model rather than a stale change-event cache. Prove the failure and fix with real Muya/exporter content assertions, preserve read-only state and asynchronous snapshot semantics, and synchronize the existing M-012 ownership.</IntentSummary>
     <ReferenceState>Clean main 9912f7fbba95dfb4244fe53f930c690a19a5c0bc, with the matching specification explicitly approved on 2026-11-12. Current integrity before planning passed with zero errors and four existing heuristic warnings. The Muya entry source is identical to Export head 170ce81c641bc296a7ee481b957f76a7367a8d75. A real native inactive-tab PDF and two real-Muya failing probes independently establish stale cached-source export. No production implementation has started. Preserve the separately approved Export specification/plan and owner lifecycle decision; this plan does not rewrite their scopes or assertions.</ReferenceState>
