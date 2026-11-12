@@ -19,6 +19,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: resolve exact release action pins and preserve shell output under actionlint.
 #   - 2026-11-09 v3.6.0 C-SEC-AUDIT-FIXES T-001: generate Node supply-chain evidence with lockfile-installed local binaries.
 #   - 2026-11-09 v3.5.0 C-CI-CD-AUDIT-FIXES: split manual QA checks into fail-fast steps, disable updater artifacts only in unsigned packaging, and pin Rust and its cache keys.
 #   - 2026-10-30 C-UPDATER-STATS T-005: the latest.json platform url
@@ -142,9 +143,11 @@ jobs:
           EXPECTED_TAG=v$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).computedVersion")
           [ "$STATE" = Ready ]
           [ "$REF_NAME" = "$EXPECTED_TAG" ]
-          echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
-          echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
-          echo "seal=$SEAL" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$REF_NAME"
+            echo "payload=$PAYLOAD"
+            echo "seal=$SEAL"
+          } >> "$GITHUB_OUTPUT"
 
       - name: install locked dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
@@ -361,7 +364,7 @@ jobs:
       # TAURI_SIGNING_PRIVATE_KEY → ed25519 updater signature.
       - name: tauri build (macOS signed and notarized)
         if: runner.os == 'macOS'
-        uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -376,7 +379,7 @@ jobs:
 
       - name: tauri build (Windows updater-signed only)
         if: runner.os == 'Windows'
-        uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -458,7 +461,7 @@ jobs:
           RC=${PIPESTATUS[0]}
           echo "---"
           echo "verifier exit code: $RC"
-          exit $RC
+          exit "$RC"
 
       # ── attribution-completeness gate (B4 step-9) ────────────────
       # Re-runs license-checker + cargo-bundle-licenses, diffs against
@@ -573,8 +576,8 @@ jobs:
           # don't need to re-clone the repo.
           cp NOTICES-node.md /tmp/release/
           cp NOTICES-rust.md /tmp/release/
-          cp sbom/sbom-node.cdx.json /tmp/release/Mark_${VER}_sbom-node.cdx.json
-          cp sbom/sbom-rust.cdx.json /tmp/release/Mark_${VER}_sbom-rust.cdx.json
+          cp sbom/sbom-node.cdx.json "/tmp/release/Mark_${VER}_sbom-node.cdx.json"
+          cp sbom/sbom-rust.cdx.json "/tmp/release/Mark_${VER}_sbom-rust.cdx.json"
           ls -la /tmp/release
           echo "dmg=$DMG_DST" >> "$GITHUB_OUTPUT"
           echo "sha256=$DMG_DST.sha256" >> "$GITHUB_OUTPUT"
@@ -727,13 +730,13 @@ jobs:
       #   gh attestation verify Mark_v2.0.0_aarch64.dmg --owner xronocode
       - name: SLSA build provenance
         if: runner.os == 'macOS'
-        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: '/tmp/release/Mark_*.dmg'
 
       - name: SLSA build provenance (windows)
         if: runner.os == 'Windows'
-        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: '${{ runner.temp }}\release\Mark_*_x64-setup.exe'
 
@@ -748,7 +751,7 @@ jobs:
       #     Mark_v2.0.0_aarch64.dmg
       - name: install cosign
         if: runner.os == 'macOS'
-        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
         with:
           cosign-release: 'v2.4.1'
 
@@ -765,7 +768,7 @@ jobs:
 
       - name: install cosign (windows)
         if: runner.os == 'Windows'
-        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
         with:
           cosign-release: 'v2.4.1'
 
@@ -888,7 +891,7 @@ jobs:
               copy_one "$NAME"
             done
           fi
-          (cd "$ASSETS" && sha256sum * > release-assets.sha256)
+          (cd "$ASSETS" && sha256sum -- * > release-assets.sha256)
           jq -e --arg version "$VER" '.version == $version and (.platforms["darwin-aarch64"] != null)' "$ASSETS/latest.json" >/dev/null
 
       - name: render reviewed release body without write credentials
@@ -920,7 +923,7 @@ jobs:
           \`\`\`
           NOTES_EOF
           if [ "$WINDOWS_RELEASE" = true ]; then
-            printf '\n**Windows (x64):** NSIS installer `Mark_%s_x64-setup.exe` is included in the updater feed.\n' "$VER" >> /tmp/automated-release-body.md
+            printf "\n**Windows (x64):** NSIS installer \`Mark_%s_x64-setup.exe\` is included in the updater feed.\n" "$VER" >> /tmp/automated-release-body.md
           fi
           node tools/release-notes.mjs --tag "$TAG" --automated-body /tmp/automated-release-body.md > /tmp/release-body.md
 

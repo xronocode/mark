@@ -2410,6 +2410,7 @@
     <V-M-046>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx --no-install vitest run tests/renderer/action-ref-check.test.js tests/renderer/release-governance.test.js --maxWorkers=2</Command>
         <Command>npx --no-install vitest run tests/renderer/release-project-sync.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js --maxWorkers=2</Command>
         <Command>npm run typecheck:ipc</Command>
         <Command>npx vitest run tests/renderer/release-github-controls.test.js</Command>
@@ -2427,6 +2428,7 @@
       <Command>npx --no-install vitest run tests/tools/release-fresh-npx.test.mjs</Command>
       </Commands>
       <Scenarios>
+        <scenario-action-reference-resolution>C-RELEASE-ACTION-REFERENCES: offline injected-fetch and real Response fixtures reject missing commits despite valid SHA shape, malformed/oversized YAML/JSON/base64/UTF8, duplicate keys/alias expansion, unsafe/dynamic/Docker/reusable uses, unsupported runtimes, missing entrypoints and unknown/required inputs. Shared commit/metadata lookups still validate every use. HTTP errors/redirects, stalled headers/bodies/cancellation and cumulative request time fail within one deadline without leaking tokens or response payloads. Inert CLI fixtures prove success only after the complete batch; online acceptance checks the exact replacements and all three privileged workflows without running external actions.</scenario-action-reference-resolution>
         <scenario-quicklook-required-status>C-QUICKLOOK-CONTENT-BOUNDARY: execute the actual aggregate shell for both runtime and docs-only lanes. Every heavy job, including quicklook-native, must reject failure/cancellation/empty results; only docs-only may accept skipped. The native job is read-only, macos-15, Node 22 and credential-free; it runs the real provider fixture and extension-only unsigned build without registration.</scenario-quicklook-required-status>
         <scenario-shell-import-isolation>C-SEC-COVERAGE-IMPORTS: app.test.js and app-deep.test.js use an import-level editor child stub, preserving all 41 shell assertions and existing timeouts. Real editor and live-stream rendering remain covered by their component suites and Chromium/WebKit regressions.</scenario-shell-import-isolation>
         <scenario-security-stream-and-tooling-ci>C-SEC-STREAM-TABS and C-SEC-GATEWAY-TOOLS: test.yml installs the nested toolchain with npm ci --ignore-scripts --no-audit --no-fund and includes webkit-live-stream in the required browser lane.</scenario-security-stream-and-tooling-ci>

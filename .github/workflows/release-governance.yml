@@ -3,7 +3,7 @@
 # START_MODULE_CONTRACT
 #   PURPOSE: Expose the stable release/governance and docs-security required checks for ordinary pull requests and main without demanding a frozen release train.
 #   SCOPE: Read-only Conventional title/admission, repository governance, schema, focused regression validation and the committed-range leak scan; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
-#   DEPENDS: M-046 release-governance and Project-sync tools; tools/security_gate.py scan-diff with the Gitleaks binary; Node 22; locked npm dependencies; PROJECT_MIRROR_AUTH for the optional push-main mirror only.
+#   DEPENDS: M-046 release-governance, bounded action-reference and Project-sync tools; tools/security_gate.py scan-diff with the Gitleaks binary; Node 22; locked npm dependencies; PROJECT_MIRROR_AUTH for the optional push-main mirror only.
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
@@ -17,6 +17,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: verify privileged action commits and metadata using the existing read-only governance token.
 #   - 2026-11-09 v1.4.0: add the always-on docs-security job (owner instruction) — tools/security_gate.py scan-diff over origin/main..HEAD with a pinned Gitleaks binary, applying the local gate's exposure and secret rules to every pull-request diff so the docs-only CI lane cannot bypass leak review.
 #   - 2026-10-20 v1.3.0: fetch full history for the governance job so the release-boundary normalization regression can inspect its pinned bootstrap commit in CI.
 #   - 2026-10-20 v1.2.0: state the optional Project mirror's dedicated-secret boundary explicitly instead of describing the whole workflow as token-free.
@@ -90,10 +91,16 @@ jobs:
           PR_LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: npm run release:governance
 
+      - name: validate immutable action references and metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/action-ref-check.mjs
+
       - name: focused governance regressions
         run: >-
           npx vitest run
           tests/renderer/release-governance.test.js
+          tests/renderer/action-ref-check.test.js
           tests/renderer/release-github-controls.test.js
           tests/renderer/release-project-sync.test.js
           tests/renderer/release-normalize.test.js
