@@ -1366,6 +1366,54 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "C-QUICKLOOK-CONTENT-BOUNDARY",
+        "summary": "Display raw HTML as text in Quick Look previews and block remote content, document navigation and new windows while retaining Markdown, highlighting and embedded raster images.",
+        "state": "queued",
+        "commits": [
+          "ab1f0c00c02365d1c13aa1098300dd678d2b145b"
+        ],
+        "pullRequest": {
+          "number": 225,
+          "headSha": "4800c3020d219de7ab0fcad80439b6461a7a8da0",
+          "mergeSha": "ab1f0c00c02365d1c13aa1098300dd678d2b145b",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/225/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "PR #225 exact-head required contexts, three-OS test matrix, native preview job, browser e2e, unsigned QA build and CodeQL",
+              "result": "All four required contexts passed. Focused suites passed 61/61 on all three OSes without skips; renderer suites passed 5798 on macOS and 5794 on Linux/Windows, with only existing platform skips/todos. Browser matrix passed 811 with 8 existing Chromium skips. All five CodeQL analyses and the isolated unsigned QA build passed. The implementation squash has the exact checked tree.",
+              "date": "2026-11-11",
+              "build": "4800c3020d219de7ab0fcad80439b6461a7a8da0",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43088711667; https://github.com/xronocode/mark/actions/runs/43088711561; https://github.com/xronocode/mark/actions/runs/43088711565; https://github.com/xronocode/mark/actions/runs/43088711835; https://github.com/xronocode/mark/actions/runs/43088706706"
+            },
+            {
+              "command": "Actual native preview matrix and isolated extension-only unsigned build",
+              "result": "24/24 actual native cases passed locally and in hosted CI, with zero observed network requests; generated table alignment, packaged highlighting, Unicode and embedded PNG rendering remained intact. The build selected one extension target, without installing a host or registering an extension. Final owner-apply validation on the same source passed 61 focused tests and 24 native cases again, with zero requests and zero GRACE errors.",
+              "date": "2026-11-12",
+              "build": "4800c3020d219de7ab0fcad80439b6461a7a8da0",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43088711667/job/130759838430; https://github.com/xronocode/mark/blob/main/.grace/changes/archive/C-QUICKLOOK-CONTENT-BOUNDARY/evidence.md"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Owner acceptance of an installed Quick Look extension and consolidated dispatch-build acceptance",
+              "reason": "The native fixture was isolated and non-installing. Owner apply/archive approval does not supply an installed-extension verdict or authorize a release."
+            },
+            {
+              "section": "manual",
+              "scenario": "Native Windows extension behavior",
+              "reason": "Quick Look is a macOS-only extension; portable runner and aggregation tests passed on all supported unit hosts."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "operational": [

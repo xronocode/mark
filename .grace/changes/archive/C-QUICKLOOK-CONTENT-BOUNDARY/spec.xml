@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-QUICKLOOK-CONTENT-BOUNDARY>
     <Summary>Make the separately installed QuickLook preview render untrusted Markdown without executing document-controlled active content or accessing remote resources.</Summary>
     <Problem>The preview currently enables markdown-it HTML, inserts its output into innerHTML, embeds the Markdown string inside an executable script, and uses an unrestricted WKWebView with network-client entitlement. A document can therefore cross from data into active preview content. No native exploit or arbitrary native-file access is claimed by this specification.</Problem>

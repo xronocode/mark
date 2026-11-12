@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-QUICKLOOK-CONTENT-BOUNDARY>
     <IntentSummary>Keep untrusted QuickLook Markdown in a data boundary, block document-controlled execution/network/navigation, and prove the actual native provider through an isolated fixture and a blocking CI dependency. Main Mark rendering, production signing and installed extensions are outside scope.</IntentSummary>
     <ReferenceState>Prepared on main b77669f59fde849e4de08a5d4552126515618dfc after native editor PR #223. The specification is explicitly approved. Baseline renderer/provider are unchanged; standalone extension is not currently routed as a module. M-073/V-M-073 are unused and proposed for this ownership.</ReferenceState>
