@@ -1,9 +1,11 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='superseded'>
 <C-EXPORT-SETTINGS-SECTION>
+  <ReplacementChange>C-EXPORT-SETTINGS-SECTION-RECOVERY</ReplacementChange>
+  <SupersededReason>Owner approved a bounded recovery on 2026-11-12 to include the omitted titlebar and tab-menu export producers and resume preserved partial implementation. Original assertions, scopes and tasks remain historical provenance.</SupersededReason>
   <Name>Export without the settings modal: an Export section in Preferences owns the parameters (the C-EXPORT-SINGLE-PAGE form relocated); PDF/HTML export becomes one click like Word; the post-export notice opens the section</Name>
   <Created>2026-11-07</Created>
   <Priority>medium</Priority>
-  <Status>approved</Status>
+  <Status>superseded</Status>
   <RoadmapPhase>next</RoadmapPhase>
   <Complexity>M</Complexity>
   <Summary>The backlog item recorded 2026-10-23 (owner proposal on the DOCX spec review): remove the pre-export settings modal entirely — Word already ships modal-less — move its parameters into a dedicated Export section of app settings, and make every export one click (menu → save dialog) using the remembered options, exactly as the ⌘P print path already does. The single-page form shipped by C-EXPORT-SINGLE-PAGE (sections, hydration from remembered options, margin presets, header/footer strips, Reset) is the content that relocates into that section. The post-export notification balloon already carries the quiet "Export settings" action; it retargets from opening the dialog to opening Preferences at the Export section. This change executes after C-EXPORT-SINGLE-PAGE is merged (same files, strictly sequential).</Summary>

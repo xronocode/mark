@@ -554,7 +554,8 @@
       "general": "通用",
       "advanced": "高级",
       "appearance": "外观",
-      "experimental": "实验功能"
+      "experimental": "实验功能",
+      "export": "导出"
     },
     "experimental": {
       "title": "实验功能",
@@ -1434,17 +1435,12 @@
     }
   },
   "exportSettings": {
-    "title": "导出选项",
     "style": {
       "label": "样式",
       "lineHeight": "行高",
       "overwriteThemeFont": "覆盖主题字体设置",
       "fontSize": "字体大小",
       "fontFamily": "字体系列："
-    },
-    "info": {
-      "description": "请自定义页面外观并点击\"导出\"继续。",
-      "label": "信息"
     },
     "page": {
       "topBottom": "上/下：",
@@ -1455,7 +1451,15 @@
       "widthHeight": "宽度/高度（毫米）：",
       "pageSize": "页面大小：",
       "pageMarginPreset": "页边距：",
-      "pageMargin": "页面边距（毫米）："
+      "pageMargin": "页面边距（毫米）：",
+      "dimensions": {
+        "width": "宽度 (mm)",
+        "height": "高度 (mm)",
+        "top": "上边距 (mm)",
+        "bottom": "下边距 (mm)",
+        "left": "左边距 (mm)",
+        "right": "右边距 (mm)"
+      }
     },
     "theme": {
       "theme": "主题",
@@ -1484,7 +1488,6 @@
     },
     "autoNumberingHeadings": "自动编号标题",
     "showFrontMatter": "显示前置元数据",
-    "export": "导出…",
     "pdfTitle": "导出 PDF",
     "toc": {
       "title": "目录",
@@ -1528,7 +1531,9 @@
     "content": {
       "label": "内容"
     },
-    "reset": "重置"
+    "reset": "重置",
+    "saveFailed": "部分导出设置未能保存。请在导出前重试。",
+    "retrySave": "重试"
   },
   "import": {
     "title": "导入或打开",

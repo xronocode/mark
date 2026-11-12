@@ -139,6 +139,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   EXPORT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: pass the captured Word operation through pageOptions to conversion.
 //   2026-11-11 C-SPLIT-SAVE-AUTHORITY: preserve rich-pane save authority in active Split with a retained Source preference.
 //   - 2026-11-10 C-MD-LINK-TABS: instance-owned link activation validates rendered lifetime/path; link gestures retain read-only Preview and scoped split ownership.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Own unified raw-Markdown history, rich/source focused commands, adaptive render-only follows, both caret snapshots and rich IME fencing; retain page-width/progressive/export paths.
@@ -2287,7 +2288,7 @@ const handleExport = async (options) => {
             type: 'warning'
           })
         }
-        editorStore.EXPORT({ type, content: html })
+        editorStore.EXPORT({ type, content: html, pageOptions: options })
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
@@ -2299,8 +2300,8 @@ const handleExport = async (options) => {
       break
     }
     case 'pdf': {
-      // C-61 R-2: Export to PDF = settings dialog (already OK'd) → native
-      // save dialog → silent mt_export_pdf write; no print panel. Page
+      // C-EXPORT-SETTINGS-SECTION: the immutable remembered snapshot goes
+      // straight to Save and silent mt_export_pdf; no print panel. Page
       // size/orientation and margins travel in pageOptions (the backend
       // maps them onto the PDF page box; the shared @page CSS carries the
       // visible margins).
@@ -2336,9 +2337,8 @@ const handleExport = async (options) => {
           headerFooterStyled
         })
         printer.renderMarkdown(html, true)
-        // C-61 R-1: remember the appearance so a later ⌘P renders the
-        // print container without the settings dialog.
-        editorStore.REMEMBER_EXPORT_OPTIONS(options)
+        // Settings owns persistence. Rendering an older operation must not
+        // overwrite defaults changed in another window while CSS was loading.
         await editorStore.EXPORT({ type, pageOptions })
         // The flow is over — saved, cancelled in the save dialog (corner-2:
         // nothing written, no notice), or a notified failure. The container

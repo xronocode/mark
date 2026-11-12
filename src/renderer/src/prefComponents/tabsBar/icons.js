@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/prefComponents/tabsBar/icons.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The Settings toolbar tab icons as inline SVG functional components — the five C-38 N3 mockup icons (22×22, 1.6 stroke, currentColor) plus the C-LARGE-DOC-WAVE-A Experimental flask.
 //   SCOPE: Presentational SVG components only — no state, no props, no events.
@@ -10,6 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   ExportTabIcon - Export tray and arrow in the existing 22-pixel scaffold.
 //   GeneralTabIcon - gear (cog path + center circle) for the General tab.
 //   AppearanceTabIcon - half-filled circle for the Appearance tab.
 //   EditorTabIcon - pencil for the Editor tab.
@@ -20,6 +21,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 C-EXPORT-SETTINGS-SECTION: add the Export tab using the existing SVG metrics and currentColor.
 //   - 2026-11-02 v1.1.0: C-LARGE-DOC-WAVE-A T-004 — ExperimentalTabIcon
 //     (flask) joins TAB_ICONS for the new Experimental tab; drawn to the
 //     same scaffold metrics as the five C-38 icons.
@@ -54,6 +56,11 @@ const svg = (children, name) => ({
 // END_BLOCK_TAB_ICON_SVG
 
 const path = (d) => h('path', { d, fill: 'none' })
+
+export const ExportTabIcon = svg(
+  [path('M12 15V3M8 7l4-4 4 4'), path('M5 10v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9')],
+  'ExportTabIcon'
+)
 
 export const GeneralTabIcon = svg(
   [
@@ -109,6 +116,7 @@ export const ExperimentalTabIcon = svg(
 )
 
 export const TAB_ICONS = {
+  export: ExportTabIcon,
   general: GeneralTabIcon,
   appearance: AppearanceTabIcon,
   editor: EditorTabIcon,

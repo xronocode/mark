@@ -554,7 +554,8 @@
       "general": "Général",
       "advanced": "Avancé",
       "appearance": "Apparence",
-      "experimental": "Expérimental"
+      "experimental": "Expérimental",
+      "export": "Exportation"
     },
     "experimental": {
       "title": "Fonctions expérimentales",
@@ -1436,17 +1437,12 @@
     }
   },
   "exportSettings": {
-    "title": "Options d'exportation",
     "style": {
       "label": "Style",
       "lineHeight": "Hauteur de ligne",
       "overwriteThemeFont": "Remplacer les paramètres de police du thème",
       "fontSize": "Taille de police",
       "fontFamily": "Famille de police :"
-    },
-    "info": {
-      "description": "Veuillez personnaliser l'apparence de la page et cliquer sur 'Exporter' pour continuer.",
-      "label": "Informations"
     },
     "page": {
       "topBottom": "Haut/Bas :",
@@ -1457,7 +1453,15 @@
       "widthHeight": "Largeur/Hauteur (mm) :",
       "pageSize": "Taille de la page :",
       "pageMarginPreset": "Marges :",
-      "pageMargin": "Marge de page (mm) :"
+      "pageMargin": "Marge de page (mm) :",
+      "dimensions": {
+        "width": "Largeur (mm)",
+        "height": "Hauteur (mm)",
+        "top": "Haut (mm)",
+        "bottom": "Bas (mm)",
+        "left": "Gauche (mm)",
+        "right": "Droite (mm)"
+      }
     },
     "theme": {
       "theme": "Thème",
@@ -1486,7 +1490,6 @@
     },
     "autoNumberingHeadings": "Numérotation automatique des titres",
     "showFrontMatter": "Afficher les métadonnées",
-    "export": "Exporter...",
     "pdfTitle": "Exporter en PDF",
     "toc": {
       "title": "Table des matières",
@@ -1530,7 +1533,9 @@
     "content": {
       "label": "Contenu"
     },
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "saveFailed": "Certains réglages d’exportation n’ont pas pu être enregistrés. Réessayez avant d’exporter.",
+    "retrySave": "Réessayer"
   },
   "import": {
     "title": "Importer ou ouvrir",

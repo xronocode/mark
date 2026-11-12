@@ -17,8 +17,14 @@ A matching inert CLI runs exactly once through the current Node executable with 
 
 Both platform dry-runs and help remain dependency-free and non-building. The existing macOS digest/append and Windows manual-digest handoff remain intact. Module imports, including Node stdin, do not start a build.
 
+## Integrated-base refresh
+
+The refresh incorporates accepted main `0a72917c50904034eda06c64ee870e1ea8e7623c`, including the current-model and Export Settings repairs. The merge has no conflicts. The three observed files and approved specification and plan retain their exact implementation bytes; all durable changes relative to main remain within the declared module and verification anchors.
+
+Fresh target assertions passed all three leaf commands: 96 tests across three suites, plus both dependency-free platform dry-runs. Syntax and acceptance-registry validation passed. No native artifact was built or registered. Final assertions and exact-head hosted evidence remain separate publication and lifecycle gates for the refreshed candidate.
+
 ## Hosted checks and lifecycle
 
-Exact-head supported-host unit evidence is pending publication of the implementation PR. Local results do not imply Windows or Linux execution. The bundle remains approved until fresh hosted evidence and explicit owner apply/archive. No native build, production credentials, version, tag, release dispatch or publication was used as a probe.
+The previous implementation head `11f62e9257987a3781f4ff20bdd84611d1029a13` passed its supported-host matrix and all four required contexts. That evidence does not replace exact-head supported-host checks for the refreshed candidate. The bundle remains approved until fresh final and hosted evidence and explicit owner apply/archive. No native build, production credentials, version, tag, release dispatch or publication was used as a probe.
 
 Lock integrity metadata identifies the prepared package; it is not a digest verification of every installed file. The environment allowlist minimizes inheritance for trusted tooling; it does not impose a filesystem sandbox or resolve the separate signed-release threat model.
