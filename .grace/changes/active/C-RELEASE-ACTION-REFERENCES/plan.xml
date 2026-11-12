@@ -1,0 +1,130 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-RELEASE-ACTION-REFERENCES>
+    <IntentSummary>Repair six release uses of three missing immutable refs and add a bounded read-only reference/metadata check to ordinary governance. No release, signing, version or permission boundary changes.</IntentSummary>
+    <ReferenceState>Prepared from main 4fa3cffa813445e1e6974a5ac8283f54abf89e5c with the owner-approved specification. Native PR #223 is independent; reconcile actual main before execution. Upstream commit and exact action.yml discovery was performed read-only on 2026-11-11.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>fce9c6108b31ea247710505d3aaaa893ee6768d4</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>96b4a1ef7235a096b17240c259729fdd70c83d45</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>f713795cb21599bc4e5c4b58cbad1da852d7eeb9</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"yaml": "2.9.1"</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>fce9c6108b31ea247710505d3aaaa893ee6768d4</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>96b4a1ef7235a096b17240c259729fdd70c83d45</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>f713795cb21599bc4e5c4b58cbad1da852d7eeb9</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>84b9d35b5fc46c1e45415bdb6144030364f7ebc5</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>e8998f949152b193b063cb0ec769d69d929409be</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>398d4b0eeef1380460a10c8013a76f728fb906ac</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/action-ref-check.mjs</File>
+        <Text>BLOCK_ACTION_REFERENCES_CONFIRMED</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-governance.yml</File>
+        <Text>node tools/action-ref-check.mjs</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npx --no-install vitest run tests/renderer/action-ref-check.test.js tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="5">node --check tools/action-ref-check.mjs</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/action-ref-check.mjs</File>
+      <File>tests/renderer/action-ref-check.test.js</File>
+      <File>.github/workflows/release.yml</File>
+      <File>.github/workflows/release-governance.yml</File>
+      <Glob>.claude/action-ref-validation/**</Glob>
+    </ObservedWriteScope>
+    <Architecture>Use the already-declared locked yaml 2.9.1 dependency and Node built-ins. Parse the three privileged workflows as YAML, enumerate every jobs.*.steps action, and retain workflow/job/step identities plus with input names. Reject malformed YAML, unsupported dynamic refs, path traversal and non-40-hex external refs. Local ./ actions require a safe repository-relative path and generate no external lookup. Reusable workflow job-level uses are not present in the checked baseline and must fail explicitly as unsupported rather than being misinterpreted as action metadata. Docker uses are explicitly unsupported in these pinned privileged workflows rather than silently skipped. Bound source size to 1 MiB and YAML aliases to 100. No dependencies or package files change.</Architecture>
+    <Interfaces>tools/action-ref-check.mjs exports collectActionRefs(workflows), validateActionRefs(refs, options) and runActionRefCheck(workspaceRoot, options). Options inject fetchImpl and read-only token, with defaults timeoutMs=60000, concurrency=3 and maxResponseBytes=1048576. validateActionRefs returns references, uniqueCommits and uniqueActions counts. Coalesce commit lookups by repository/SHA and metadata lookups by repository/subpath/SHA while validating each use independently. The CLI reads only release.yml, promote-release.yml and release-governance.yml; tokens come from GITHUB_TOKEN and are never printed.</Interfaces>
+    <TransportContract>Allow requests only to https://api.github.com. Resolve /repos/OWNER/REPO/git/commits/SHA and require the returned SHA to match; fetch contents/SUBPATH/action.yml?ref=SHA, falling back to action.yaml only after 404. Require bounded successful JSON and valid base64 UTF-8 YAML metadata. Do not follow redirects or execute downloaded content. Validate runs.using against supported node20/node24/composite/docker metadata forms, required entrypoint shape, all workflow-used input names and required inputs without defaults. One AbortController/deadline covers the complete lookup batch and response bodies; race transport/body operations against that deadline even if an injected transport ignores abort. Reject malformed/error/rate-limit responses and overlarge bodies with stable path-free codes. No retries or successful skips hide a network failure. Cache only within one invocation.</TransportContract>
+    <WorkflowIntegration>Replace each old pin twice in release.yml with the corresponding approved-spec candidate and retain all with/env/if/signing contents. Keep Cosign cosign-release v2.4.1. Add one node tools/action-ref-check.mjs step to the existing governance job after ordinary validation, passing only github.token as GITHUB_TOKEN under existing contents:read permissions. Existing workflow selection already runs for ordinary PRs; do not change its events, rulesets or signing workflows. Extend its focused regression command with the new suite. The label-event observation is a separate issue, not scope creep in this repair.</WorkflowIntegration>
+    <ReviewFocus>Duplicate refs with different inputs, subdirectory and explicitly unsupported job-level reusable-workflow forms, hostile API body/redirects, missing metadata after a valid commit, and a body that stalls after headers. Tests pin each boundary and require stable diagnostics without tokens or response payloads.</ReviewFocus>
+    <CommandBudgets>The unchanged release-governance suite passed 9 tests in 3.54 seconds, wall 5.06 seconds, on the reference host. The focused new-plus-existing leaf budget is 30 seconds; syntax check 5 seconds. New tests do not exist yet and are not claimed verified. Online lookups and actionlint tool startup belong to acceptance. The online checker has its own 60-second total deadline with bounded bodies and concurrency.</CommandBudgets>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Implement the bounded reference checker with offline transport regressions</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Start with failing-first fixtures: original missing SHA and an all-zero 40-hex SHA fail commit resolution despite passing shape validation. Use injected fetch and real controlled Response streams; unit tests never contact GitHub.</Criterion>
+          <Criterion>Cover valid root/subdirectory refs, safe local actions, explicitly rejected Docker/dynamic/traversal refs, duplicate lookup coalescing, both metadata filenames, unknown and absent required inputs, supported runtime metadata, YAML duplicate keys/alias bounds and malformed/oversized API/base64/YAML data.</Criterion>
+          <Criterion>Cover 401/403/429/5xx, missing commit, missing both metadata files, cross-host redirect and a body that never completes after successful headers. Assert the common deadline includes body reads, in-flight work is bounded and diagnostics expose no token or arbitrary response content.</Criterion>
+          <Criterion>Add the SCRIPT contract/map and stable success/failure marker. A malformed candidate never reaches network code; a failed lookup never prints the success marker. Keep the existing immutable-pin validator unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/action-ref-check.test.js tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+          <Command>node --check tools/action-ref-check.mjs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Wire read-only pre-merge validation and replace the three unavailable pins</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Recheck the exact three approved candidates and their metadata, used inputs and required runtimes. Replace all six uses, preserving args, subject-path and Cosign version as well as current secret and authorization boundaries.</Criterion>
+          <Criterion>Add the bounded checker step and its suite to the existing governance job without new permissions, production secrets, dispatches or changes to PR event policy. A workflow modification or checker change is still selected by ordinary governance.</Criterion>
+          <Criterion>Run online validation on the corrected workflows. Independently confirm each original missing ref fails and the corrected immutable ref passes; do not trigger any action build or release. Capture public commit/metadata URLs and the exact source identity.</Criterion>
+          <Criterion>Obtain actionlint v1.7.12 outside the repository from its official release only if no matching reviewed tool is available. For this Darwin ARM64 reference host, verify archive SHA-256 aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f before extracting/executing. Run it against release.yml and release-governance.yml; no unpinned installer, package fallback or rule suppression is permitted.</Criterion>
+          <Criterion>Synchronize only M-046/V-M-046 with the new checker and evidence, run selected target/final externally, and present exact end-state evidence for explicit apply/archive confirmation. Commit/PR only through exact-candidate safety hooks. No version, tag or release is authorized.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/action-ref-check.test.js tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+          <Command>node tools/action-ref-check.mjs</Command>
+          <Command>actionlint .github/workflows/release.yml .github/workflows/release-governance.yml</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceTier>
+      <Command>node tools/action-ref-check.mjs</Command>
+      <Command>actionlint .github/workflows/release.yml .github/workflows/release-governance.yml</Command>
+      <Command>npm run release:governance</Command>
+      <HostedEvidence>Require a green ordinary governance/reference step on the exact proposed PR head, with read-only permissions and no production credentials. Configuration validation is not signed release acceptance.</HostedEvidence>
+    </AcceptanceTier>
+    <Lifecycle>Draft until the owner approves the completed plan. Execute sequentially. Run current and selected baseline before writes; selected target after implementation and centralized M-046/V-M-046 reconciliation; final with declared leaf commands externally. Ask for explicit apply confirmation before setting applied and archiving. Approved assertions/scopes/tasks are immutable; unexpected scope or baseline drift requires a bounded replacement plan, not a gate bypass.</Lifecycle>
+  </C-RELEASE-ACTION-REFERENCES>
+</GraceChangePlan>
