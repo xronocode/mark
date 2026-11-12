@@ -776,7 +776,7 @@
         </Attribute>
         <Attribute>
           <Name>value</Name>
-          <Value>karma (unit) + Playwright (e2e)</Value>
+          <Value>Vitest (unit) + Playwright (renderer-only browser e2e)</Value>
         </Attribute>
         <Attribute>
           <Name>version</Name>
@@ -785,8 +785,21 @@
         <Attribute>
           <Name>note</Name>
           <Value>
-            Phase A keeps existing; Phase B adds cargo test for Rust modules and
-            Playwright over Tauri WebDriver
+            Current renderer unit checks use npm test and npm run test:coverage
+            (Vitest); npm run typecheck:ipc checks the TypeScript IPC contract.
+            npm run test:e2e runs Chromium against the built renderer through Vite
+            preview with tests/e2e/fixtures/tauri-shim.ts. test.yml also selects
+            explicit WebKit projects. These browser tests do not exercise the real
+            Rust IPC boundary, native menus, OS dialogs or application quit prompts.
+            Rust modules are checked separately with cargo test --bin mark.
+            The macOS Quick Look job separately runs tools/check-quicklook.mjs
+            against the actual provider and builds the isolated unsigned extension
+            target; it does not install or register the owner's extension.
+            Native application acceptance uses identified isolated artifacts and
+            docs/acceptance/README.md with the registry and owner verdicts. Browser
+            results, native fixture evidence and owner acceptance are distinct.
+            Earlier Phase A tooling remains historical migration provenance in
+            frozen docs/technology.xml, not the description of current checks.
           </Value>
         </Attribute>
       </LegacyAttributes>
