@@ -11,6 +11,24 @@ follow the [public artifact format](docs/public-artifacts-format.md): user-facin
 changes first, verification stated as numbered facts, explicit release status,
 and text a newcomer can read without the backstory.
 
+## GRACE CLI setup
+
+Governed changes require the [GRACE CLI](https://www.npmjs.com/package/@osovv/grace-cli). The supported version for this repository is **4.2.1**, distributed from [osovv/grace-marketplace](https://github.com/osovv/grace-marketplace). Install [Bun 1.3.14 or newer](https://bun.sh/docs/installation) and have Python 3 on `PATH` for the repository's Python analysis, then install the pinned CLI:
+
+```sh
+bun add -g @osovv/grace-cli@4.2.1
+grace --version                            # expected: 4.2.1
+```
+
+Keep Bun's global binary directory on `PATH`. From the repository root, verify setup before editing:
+
+```sh
+grace lint --path . --assertions current
+grace status --path . --with modules --json
+```
+
+The [engineering protocol](docs/engineering-protocol.md#modification-checklist) defines the checks required during implementation and before handoff.
+
 ## Build
 
 Requirements: Node.js 22, Rust 1.99.0 (selected by the checked-in `rust-toolchain.toml` via [rustup](https://rustup.rs)), and on macOS the Xcode command line tools. On Linux, the Tauri system packages listed in [`.github/workflows/test.yml`](.github/workflows/test.yml) (WebKitGTK 4.1 and friends).
@@ -22,13 +40,14 @@ npm run tauri dev       # run the app with hot reload
 npm run tauri build     # build a release bundle
 ```
 
+The commands below cover the desktop app and renderer. Edit this repository's documentation under `docs/`; the documentation website uses a separate project.
+
 Other useful scripts from `package.json`:
 
 | Script | What it does |
 |:---|:---|
 | `npm run dev` | Vite dev server for the renderer, without the Rust backend |
 | `npm run build` | Build the renderer |
-| `npm run docs:dev` | Run the documentation site locally |
 | `npm run bench:launch` | Measure launch time |
 
 ## Tests

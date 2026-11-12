@@ -2364,6 +2364,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-045; docs/development-plan.xml: M-045</LegacySource>
     </M-045>
     <M-046>
+      <SummaryDelta>C-QA-LOCAL-TAURI-TOOL: the isolated unsigned QA builder validates manifest/root-lock declarations, locked version/integrity and installed CLI identity, resolves a contained regular JavaScript entry and invokes it through the current Node executable. An exact runtime/toolchain environment allowlist excludes unrelated credentials and execution hooks. Invalid tooling fails before config/build/recording; help, dry-runs, artifact identity, digest, smoke and registry semantics remain unchanged.</SummaryDelta>
       <SummaryDelta>C-RELEASE-ACTION-REFERENCES: ordinary read-only governance resolves every external action commit and compatible action metadata in release, promotion and governance workflows. tools/action-ref-check.mjs uses locked YAML parsing, bounded bodies/concurrency, per-invocation lookup coalescing and one deadline including reads; unsafe refs, unknown/required inputs, API failures and redirects fail without credential/body diagnostics. The three repaired pins retain their workflow inputs, signing boundaries and Cosign binary version.</SummaryDelta>
       <SummaryDelta>C-QUICKLOOK-CONTENT-BOUNDARY: the credential-free macos-15 quicklook-native job compiles/runs the actual preview fixture and builds only the unsigned extension without registration. The already-required status-check depends on this job; runtime requires success and docs-only accepts only success/skipped, never failure/cancellation.</SummaryDelta>
       <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: the Linux test setup canonicalizes only the known Azure HTTP Ubuntu source URI to canonical HTTPS in ephemeral runner sources. Existing signed suites/components, packages, apt retries, timeouts and job gates are unchanged.</SummaryDelta>
@@ -2639,6 +2640,8 @@
         </fn-runReleasePreflight>
       </Interface>
       <Sources>
+        <Source>tools/build-test-artifact.mjs</Source>
+        <Tests>tests/tools/build-test-artifact.test.mjs</Tests>
         <Source>
           tools/release-preflight.mjs, tools/release-governance.mjs,
           tools/release-readiness.mjs, tools/release-materials.mjs,

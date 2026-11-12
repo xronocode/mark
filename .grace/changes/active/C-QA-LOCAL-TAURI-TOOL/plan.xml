@@ -1,0 +1,75 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-QA-LOCAL-TAURI-TOOL>
+    <IntentSummary>Validate the prepared lockfile-matched local Tauri CLI, invoke its checked entry directly with an explicit unsigned-build environment, and preserve isolated QA artifact and acceptance semantics without acquisition fallback.</IntentSummary>
+    <ReferenceState>Main 84680fb8936f62c199a16059936c6e72ee01c82e includes QuickLook implementation/admission #225/#226 and action-reference implementation/admission #227/#234. Both bundles are applied and archived. Fresh current integrity and module status passed with zero errors and four unchanged heuristic warnings. The approved specification SHA-256 is 3226c613e88c34a6a264cda7fd7efd4f6cdd80c4fe90f70bb475185ed668aaa7. The Export and native PDF branches are separate and unmerged; none of their changes is assumed here.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist><Value>M-046</Value></MustExist>
+      <MustContain><File>tools/build-test-artifact.mjs</File><Text>execFileSync('npx', ['tauri', 'build', '--debug', '--config', confPath]</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"@tauri-apps/cli": "^2.12.4"</Text></MustContain>
+      <MustContain><File>.grace/changes/archive/C-QUICKLOOK-CONTENT-BOUNDARY/spec.xml</File><Text>status="applied"</Text></MustContain>
+      <MustContain><File>.grace/changes/archive/C-RELEASE-ACTION-REFERENCES/spec.xml</File><Text>status="applied"</Text></MustContain>
+      <MustContain><File>tools/action-ref-check.mjs</File><Text>BLOCK_ACTION_REFERENCES_CONFIRMED</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-046</Module></MustVerify>
+      <MustNotContain><File>tools/build-test-artifact.mjs</File><Text>execFileSync('npx'</Text></MustNotContain>
+      <MustContain><File>tools/build-test-artifact.mjs</File><Text>process.execPath</Text></MustContain>
+      <MustContain><File>tools/build-test-artifact.mjs</File><Text>BLOCK_QA_LOCAL_TOOL_VALIDATED</Text></MustContain>
+      <MustContain><File>tools/build-test-artifact.mjs</File><Text>buildEnvironment</Text></MustContain>
+      <MustContain><File>docs/acceptance/README.md</File><Text>Prepared local build tool</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="30">npx --no-install vitest run tests/tools/build-test-artifact.test.mjs tests/renderer/acceptance-registry.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="5">node tools/build-test-artifact.mjs --item QA-LOCAL-TOOL --platform macos --dry-run</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="5">node tools/build-test-artifact.mjs --item QA-LOCAL-TOOL --platform windows --dry-run</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-046 /></GraphAnchors>
+      <VerificationAnchors><V-M-046 /></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/build-test-artifact.mjs</File>
+      <File>tests/tools/build-test-artifact.test.mjs</File>
+      <File>docs/acceptance/README.md</File>
+    </ObservedWriteScope>
+    <PreparedToolContract>Use only Node built-ins. Before creating build configuration, invoking a build or writing registry data, parse package.json, package-lock.json and installed node_modules/@tauri-apps/cli/package.json. Require supported lockfileVersion 3, identical manifest/root-lock CLI declarations, a canonical locked release version, valid SHA-512 integrity metadata and matching installed name/version. Require the locked version to satisfy the supported canonical exact, caret or tilde declaration; reject malformed, unsupported or incoherent forms. Lock metadata identifies the prepared package; do not claim that comparing package metadata verifies all installed file bytes against the tarball digest. Require a tauri entry in both lock and installed bin metadata, normalize their relative spellings, reject absolute/traversal entries, resolve real paths and require the same regular JavaScript file beneath the real installed package directory. The package directory itself must resolve beneath this worktree's real node_modules directory. Do not use PATH tool resolution, load candidate package code during validation, install anything or fall back on any executor. Missing or incompatible layout fails visibly.</PreparedToolContract>
+    <InvocationContract>Call the checked entry through process.execPath with [entry, 'build', '--debug', '--config', confPath], existing repository cwd and inherited stdio. Preserve cleanup in finally, child failure propagation and the order that prevents failed builds from appending registry records. Preserve source SHA, isolated product and bundle identity, updater-artifacts-off merge, platform targets, digest, output discovery, optional smoke and registry behavior. Help and dry-run return before local dependency checks and before configuration creation/build/recording. No actual build is required as a security probe.</InvocationContract>
+    <EnvironmentContract>Construct buildEnvironment from an empty object by copying only documented exact runtime/toolchain names. Runtime names: PATH, HOME, USERPROFILE, USER, LOGNAME, TMPDIR, TMP, TEMP, LANG, LC_ALL, LC_CTYPE, SystemRoot, WINDIR, COMSPEC, PATHEXT, SystemDrive, LOCALAPPDATA and APPDATA. Toolchain names: CARGO_HOME, RUSTUP_HOME, RUSTUP_TOOLCHAIN, DEVELOPER_DIR, SDKROOT, MACOSX_DEPLOYMENT_TARGET, CC, CXX, AR, CFLAGS, CXXFLAGS, CPPFLAGS, LDFLAGS, LIB, INCLUDE, LIBPATH, WindowsSdkDir, WindowsSDKVersion, UniversalCRTSdkDir, UCRTVersion, VCToolsInstallDir, VCINSTALLDIR and VSINSTALLDIR. Handle Windows environment names case-insensitively without duplicating aliases; deterministic fixtures cover their canonical output. Do not forward NODE_OPTIONS, arbitrary prefix-matched names, registry tokens, cloud/GitHub/Apple/updater credentials, signing identities or wrapper injection variables. The allowlist is environment minimization for trusted prepared tools; it does not confine filesystem access or promise protection against malicious dependencies. Do not alter output-location or smoke process selection under this change.</EnvironmentContract>
+    <FixtureDesign>Use temporary synthetic repositories and inert local Node CLI fixtures. Inject process/filesystem boundaries where needed to prove zero build calls and unchanged registry on rejection without invoking a native build, registry acquisition, external network or real credentials. Test direct child argv/cwd, preserved merge configuration, exact invocation count and a dummy ambient secret excluded from captured environment. Cover absent package/entry, bad JSON and shapes, lock-root mismatch, version/range/integrity problems, mismatched installed metadata, unsafe bin paths and realpath/symlink escape, non-file entries, child failure, dependency-free help and both dry-run targets. Symlink tests may use an injected realpath boundary where host policy disallows creating links; they must still exercise the containment decision and may not become successful skips. Preserve registry bytes and generated README survey; tests must prove these invariants.</FixtureDesign>
+    <CommandBudgets>On the integrated reference source, the two existing suites passed 33 tests in 4.76 seconds. Syntax and both dry-runs completed successfully without building or recording. The new suite does not yet exist and has no claimed measured result. Allocate 30 seconds for the combined focused gate, with inert child startup bounded by fixtures; each syntax/dry-run leaf has 5 seconds. If implementation cannot meet these measured-budget assumptions, report it before plan approval or execution; do not silently change an approved gate. Full hosted matrix/toolchain startup belongs to acceptance, not nested lifecycle assertions.</CommandBudgets>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Implement the checked local entry and allowlisted invocation with failing-first inert fixtures</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Capture the unchanged builder reaching an inert executor with absent/mismatched local metadata; preserve it as failing-first evidence without downloading or building. Add fixtures that require zero build/executor calls and zero registry changes for each invalid metadata/entry condition.</Criterion>
+          <Criterion>Implement the Node-only validation, direct process.execPath invocation and exact environment allowlist. A valid inert CLI runs exactly once with unchanged build arguments, cwd, configuration and exit handling; a dummy ambient credential and NODE_OPTIONS are absent while required runtime/toolchain values survive.</Criterion>
+          <Criterion>Exercise symlink/realpath containment, manifest/root-lock coherence and installed name/version/bin checks. Stable diagnostics identify the failure category without dumping file bodies, environment values or credentials.</Criterion>
+          <Criterion>Keep help and both dry-run forms dependency-free and non-building. Preserve config cleanup, registry/survey bytes on failure and existing macOS/Windows artifact semantics. Update only the builder's contract/map/change summary and its new focused suite.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/tools/build-test-artifact.test.mjs tests/renderer/acceptance-registry.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+          <Command>node --check tools/build-test-artifact.mjs</Command>
+          <Command>node tools/build-test-artifact.mjs --item QA-LOCAL-TOOL --platform macos --dry-run</Command>
+          <Command>node tools/build-test-artifact.mjs --item QA-LOCAL-TOOL --platform windows --dry-run</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Document prepared tooling and reconcile the existing builder ownership and verification</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add a Prepared local build tool section before the generated survey describing explicit locked dependency preparation, checked local CLI admission, exact environment names and visible failure behavior. Do not rewrite the generated survey or register acceptance.</Criterion>
+          <Criterion>Reconcile only M-046 and V-M-046 with the builder, new tests, guard/error markers and measured leaf evidence, retaining integrated QuickLook/action-reference ownership and all unrelated scenarios.</Criterion>
+          <Criterion>Confirm a diff limited to the three observed paths plus the declared durable anchors and this bundle's lifecycle evidence. Obtain independent standards/spec review and exact-candidate safety checks. Present final local/hosted results for owner apply/archive; do not mark applied before that decision.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/tools/build-test-artifact.test.mjs tests/renderer/acceptance-registry.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+          <Command>node tools/acceptance-registry.mjs --check</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceTier>
+      <HostedEvidence>Run the new tool suite and existing registry/control suites in the ordinary supported Windows/macOS/Linux unit matrix on the exact proposed head; preserve all coverage floors, retries, skip policy and required contexts. Local unit results do not imply another host passed. No workflow changes or native build are introduced by this plan.</HostedEvidence>
+      <ScopeLimits>No product runtime, native IPC test, signing workflow, production credentials, registry schema, smoke PID selection, output discovery or release/version/tag changes. Additional Detekt findings remain separately tracked.</ScopeLimits>
+    </AcceptanceTier>
+    <Lifecycle>Draft until the owner approves this completed plan. Execute sequentially. Revalidate current integrated state and selected baseline before observed writes. Run selected target externally during implementation and final with declared leaf commands before apply. Preserve the approved specification and, after approval, this plan's assertions/scopes/tasks. Any unexpected durable drift requires recovery rather than editing approved assertions. Explicit owner apply/archive follows fresh end-state evidence; release remains separately controlled.</Lifecycle>
+  </C-QA-LOCAL-TAURI-TOOL>
+</GraceChangePlan>

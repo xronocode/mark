@@ -1,0 +1,14 @@
+<GraceChangeDesignContext graceVersion="4.0">
+    <Change>C-QA-LOCAL-TAURI-TOOL</Change>
+    <NormativeStatus>non-normative</NormativeStatus>
+    <NormativeSource>spec.xml</NormativeSource>
+    <ObservedState>Source tools/build-test-artifact.mjs at main 271a36955f39412273e7650a05d377558c818421 has SHA-256 3978bab56842adfeb4275c19ff4acd7cae6f2e238ac7e1e53c1281a464015d9b. The script is unchanged in the planning worktree based on b77669f5. Controlled absent/mismatched CLI fixtures both reach an inert executable named npx; dependency-free dry-run reaches only the inert git recorder. Network was denied and no actual acquisition/build/app/registry action occurred.</ObservedState>
+    <Approaches>
+      <Recommended>Follow the repository prepared-tool precedent in tools/stats-gateway/deploy-checked.mjs: validate declared/locked/installed identity and real entry containment, then use process.execPath with that local JavaScript entry. This is the coordinator's proposed implementation of the already stated roadmap requirement.</Recommended>
+      <Rejected>Adding only --no-install leaves selection through a package executor and does not establish the installed version or real entry identity. It does not satisfy the requested checked local boundary.</Rejected>
+      <Rejected>A fresh exact-version package executor still resolves a separate package graph during the build. It contradicts the no-acquisition requirement.</Rejected>
+    </Approaches>
+    <Compatibility>Do not change the existing acceptance lifecycle, build identity, platform recipe or registry. No new package/helper module is required. Place the guard and child environment preparation in the existing script, with file-local contracts/maps. Keep meaningful executable fixtures separate from source-only negative guards.</Compatibility>
+    <Coordination>Shared M-046 projections require sequential durable reconciliation after QuickLook and action references. This draft is not an execution plan or approval. Revalidate main, source identity and metadata during planning; do not execute C-50 or modify another approved bundle.</Coordination>
+    <Boundaries>Environment minimization does not prevent prepared build dependencies from executing or reading files permitted to the owner process. The release signing boundary has its own threat model and remains outside this repair. The baseline fixture does not establish that npm actually downloaded or executed an unexpected package.</Boundaries>
+</GraceChangeDesignContext>

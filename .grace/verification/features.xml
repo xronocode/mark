@@ -2410,6 +2410,7 @@
     <V-M-046>
       <Priority>critical</Priority>
       <Commands>
+        <Command>npx --no-install vitest run tests/tools/build-test-artifact.test.mjs --maxWorkers=2</Command>
         <Command>npx --no-install vitest run tests/renderer/action-ref-check.test.js tests/renderer/release-governance.test.js --maxWorkers=2</Command>
         <Command>npx --no-install vitest run tests/renderer/release-project-sync.test.js tests/renderer/release-readiness.test.js tests/renderer/release-train.test.js --maxWorkers=2</Command>
         <Command>npm run typecheck:ipc</Command>
@@ -2428,6 +2429,7 @@
       <Command>npx --no-install vitest run tests/tools/release-fresh-npx.test.mjs</Command>
       </Commands>
       <Scenarios>
+        <scenario-qa-prepared-local-tool>C-QA-LOCAL-TAURI-TOOL: portable inert fixtures reject absent/malformed/incoherent manifest, root lock, locked version/integrity and installed identity/bin metadata before any build or registry mutation. Path/realpath escape and non-file entries fail; matching tooling runs exactly once through process.execPath with unchanged arguments/configuration/cwd, exact allowlisted environment and child-failure cleanup. An actual inert Node child confirms the boundary without native build or acquisition. Help and both platform dry-runs remain dependency-free; artifact digest/append and the generated survey retain their existing semantics. Metadata comparison is not installed-file integrity proof; environment minimization is not a filesystem sandbox.</scenario-qa-prepared-local-tool>
         <scenario-action-reference-resolution>C-RELEASE-ACTION-REFERENCES: offline injected-fetch and real Response fixtures reject missing commits despite valid SHA shape, malformed/oversized YAML/JSON/base64/UTF8, duplicate keys/alias expansion, unsafe/dynamic/Docker/reusable uses, unsupported runtimes, missing entrypoints and unknown/required inputs. Shared commit/metadata lookups still validate every use. HTTP errors/redirects, stalled headers/bodies/cancellation and cumulative request time fail within one deadline without leaking tokens or response payloads. Inert CLI fixtures prove success only after the complete batch; online acceptance checks the exact replacements and all three privileged workflows without running external actions.</scenario-action-reference-resolution>
         <scenario-quicklook-required-status>C-QUICKLOOK-CONTENT-BOUNDARY: execute the actual aggregate shell for both runtime and docs-only lanes. Every heavy job, including quicklook-native, must reject failure/cancellation/empty results; only docs-only may accept skipped. The native job is read-only, macos-15, Node 22 and credential-free; it runs the real provider fixture and extension-only unsigned build without registration.</scenario-quicklook-required-status>
         <scenario-shell-import-isolation>C-SEC-COVERAGE-IMPORTS: app.test.js and app-deep.test.js use an import-level editor child stub, preserving all 41 shell assertions and existing timeouts. Real editor and live-stream rendering remain covered by their component suites and Chromium/WebKit regressions.</scenario-shell-import-isolation>
@@ -2521,6 +2523,8 @@
       <scenario-security-stabilization-046>C-SEC-AUDIT-FIXES: tests/tools/release-fresh-npx.test.mjs rejects fresh-resolving npx variants in release.yml and verify-attributions.sh. Gateway deploy and release controls regressions preserve checked deployment and owner release gates. Exact locked attribution/SBOM commands require network-denied execution evidence.</scenario-security-stabilization-046>
       </Scenarios>
       <Markers>
+        <Marker>BLOCK_QA_LOCAL_TOOL_VALIDATED</Marker>
+        <Marker>MT_QA_LOCAL_TOOL_INVALID</Marker>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_CONSISTENT]</Marker>
         <Marker>[ReleasePreflight][validateVersions][BLOCK_RELEASE_VERSION_MISMATCH]</Marker>
         <Marker>[ReleaseGovernance][validate][BLOCK_RELEASE_GOVERNANCE_CONFIRMED]</Marker>
