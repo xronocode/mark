@@ -2,7 +2,7 @@
 // VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Native print surface — mt_print_webview opens the platform print panel for the caller window and mt_export_pdf silently writes the webview content to a .pdf path chosen in the renderer's save dialog (C-61 split of Print vs Export to PDF; MAS-sandbox-safe). On macOS both the panel and the silent export run their print operation through runOperationModalForWindow (the wry pattern) with an off-main completion watcher, and print-path panics degrade to logged errors (FIX-017/FIX-018).
-//   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer. On macOS the export save target is set through the printSettings dictionary (NSPrintJobSavingURL key — NSPrintInfo has no setJobSavingURL: method; sending it was the C-61-day-one abort, FIX-018), both command subtrees run under panic containment, and a runtime selector audit test pins every selector this module sends against the live AppKit classes.
+//   SCOPE: Two Tauri commands, the pure pageOptions→geometry mapping (named page sizes, landscape swap, margins), and .pdf path validation. No state, no dialogs of its own; the only file ever written is the user-selected path handed in by the renderer. On macOS the export save target is set through the NSPrintInfo attribute dictionary (NSPrintJobSavingURL key — NSPrintInfo has no setJobSavingURL: method; sending it was the C-61-day-one abort, FIX-018), both command subtrees run under panic containment, and a runtime selector audit test pins every selector this module sends against the live AppKit classes.
 //   DEPENDS: tauri 2 WebviewWindow::with_webview on the main thread (PlatformWebview: WKWebView pointer on macOS; ICoreWebView2Controller + ICoreWebView2Environment on Windows); cocoa/objc 0.2 on macOS; webview2-com 0.38 + windows-core 0.61 on Windows; tokio oneshot for main-thread→async-command results; serde for the pageOptions payload.
 //   LINKS: .grace/changes/archive/C-61; .grace/graph/runtime.xml M-052; .grace/verification/runtime.xml V-M-052; .grace/changes/archive/C-18 (the superseded single-panel flow); the owner-local export-crash audit directory outside this repository (FIX-018 evidence: .ips set + ObjC probe).
 //   ROLE: RUNTIME
@@ -10,18 +10,21 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   set_pdf_save_destination - Configure the native save-job destination for AppKit to consume.
+//   NSPrintJobSavingURL / NSPrintSaveJob - Exported AppKit key and disposition objects.
 //   PdfPageOptions - camelCase renderer payload (pageSize/pageSizeWidth/pageSizeHeight/isLandscape, pageMargin* in mm); every field optional.
 //   PdfPageGeometry - resolved geometry: portrait page size in mm, landscape flag, four margins in mm.
 //   page_geometry - PdfPageOptions → PdfPageGeometry via the named-size table (a3/a4/a5/legal/letter/taboloid, "custom" uses explicit mm), with range + margin clamping.
 //   validate_pdf_path - rejects empty and non-.pdf destinations (C-61 R-6).
 //   mm_to_points / mm_to_inches - unit conversions for AppKit (points) and WebView2 (inches).
 //   mt_print_webview - macOS: WKWebView print operation attached to the window, modal; resolves when the panel closes so the renderer can clear the print container. Windows: WebView2 browser print UI (ICoreWebView2_16::ShowPrintUI). Linux: explicit error.
-//   mt_export_pdf - macOS: NSPrintInfo with jobDisposition NSPrintSaveJob, the save URL in the printSettings dictionary under NSPrintJobSavingURL, paper size/orientation from pageOptions, panels suppressed, run through runOperationModalForWindow; resolves after the file exists. Windows: ICoreWebView2_7::PrintToPdf with ICoreWebView2Environment6 print settings; resolves from the completion handler. Linux: explicit error.
+//   mt_export_pdf - macOS: NSPrintInfo with jobDisposition NSPrintSaveJob, the save URL in the NSPrintInfo attribute dictionary under NSPrintJobSavingURL, paper size/orientation from pageOptions, panels suppressed, run through runOperationModalForWindow; resolves after the file exists. Windows: ICoreWebView2_7::PrintToPdf with ICoreWebView2Environment6 print settings; resolves from the completion handler. Linux: explicit error.
 //   contain_panics - macOS-only FIX-017: catch_unwind around both command subtrees so print-path Rust panics become logged errors (BLOCK_PRINT_GUARD_CAUGHT) instead of tearing down the app; foreign NSExceptions cannot be caught app-side on the current toolchain (verified 2026-10-23), so FIX-018 removed their actual trigger (the nonexistent setJobSavingURL: selector) and runs the job modally like the panel path.
 //   nsstring_to_string - macOS-only NSString → String reader (lossy) used to describe a caught exception; nil-safe.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12: bind the PDF destination to native print-info attributes using the exported AppKit key and disposition.
 //   - 2026-10-23 v2.2.0 FIX-018: root-cause repair of the export-to-PDF
 //     abort that FIX-017 did not hold (three further 15:0x .ips on v2.8.0
 //     with contain_panics in the faulting frames). The actual bug: C-61
@@ -157,8 +160,9 @@ pub fn page_geometry(options: &PdfPageOptions) -> Result<PdfPageGeometry, String
                 _ => (210.0, 297.0),
             }
         }
-        Some(name) => named_page_size_mm(name)
-            .ok_or_else(|| format!("unknown page size \"{name}\""))?,
+        Some(name) => {
+            named_page_size_mm(name).ok_or_else(|| format!("unknown page size \"{name}\""))?
+        }
     };
 
     if !(MIN_PAGE_MM..=MAX_PAGE_MM).contains(&width)
@@ -169,8 +173,7 @@ pub fn page_geometry(options: &PdfPageOptions) -> Result<PdfPageGeometry, String
         ));
     }
 
-    let clamp_margin =
-        |value: Option<f64>, fallback: f64| value.unwrap_or(fallback).max(0.0);
+    let clamp_margin = |value: Option<f64>, fallback: f64| value.unwrap_or(fallback).max(0.0);
 
     Ok(PdfPageGeometry {
         width_mm: width,
@@ -371,8 +374,7 @@ pub async fn mt_export_pdf(
 #[cfg(target_os = "macos")]
 unsafe fn objc_nsstring(s: &str) -> cocoa::base::id {
     use objc::{msg_send, sel, sel_impl};
-    let cls = objc::runtime::Class::get("NSString")
-        .expect("NSString class must exist on macOS");
+    let cls = objc::runtime::Class::get("NSString").expect("NSString class must exist on macOS");
     // stringWithUTF8String reads up to the NUL byte and treats the bytes
     // as UTF-8, so any path/label content round-trips.
     let mut buf = String::with_capacity(s.len() + 1);
@@ -438,7 +440,8 @@ unsafe fn print_panel_wkwebview(webview: *mut std::ffi::c_void) -> Result<(), St
     // START_BLOCK_PRINT_PANEL_SETUP
     let wv: id = webview as id;
     // Same macOS 11+ guard wry performs before touching the operation API.
-    let can_print: BOOL = unsafe { msg_send![wv, respondsToSelector: sel!(printOperationWithPrintInfo:)] };
+    let can_print: BOOL =
+        unsafe { msg_send![wv, respondsToSelector: sel!(printOperationWithPrintInfo:)] };
     if can_print == NO {
         return Err("WKWebView print operation unavailable (requires macOS 11+)".to_string());
     }
@@ -480,6 +483,31 @@ unsafe fn print_panel_wkwebview(webview: *mut std::ffi::c_void) -> Result<(), St
 }
 
 #[cfg(target_os = "macos")]
+#[link(name = "AppKit", kind = "framework")]
+extern "C" {
+    static NSPrintJobSavingURL: cocoa::base::id;
+    static NSPrintSaveJob: cocoa::base::id;
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn set_pdf_save_destination(print_info: cocoa::base::id, path: &str) -> Result<(), String> {
+    use cocoa::base::id;
+    use objc::{msg_send, sel, sel_impl};
+    let _: () = unsafe { msg_send![print_info, setJobDisposition: NSPrintSaveJob] };
+    let path_string = unsafe { objc_nsstring(path) };
+    let url_cls =
+        objc::runtime::Class::get("NSURL").ok_or_else(|| "NSURL class unavailable".to_string())?;
+    let url: id = unsafe { msg_send![url_cls, fileURLWithPath: path_string] };
+    if url == cocoa::base::nil {
+        return Err(format!("could not build a file URL for {path}"));
+    }
+    let attributes: id = unsafe { msg_send![print_info, dictionary] };
+    // The exported key value is NSJobSavingURL. Use the AppKit object.
+    let _: () = unsafe { msg_send![attributes, setObject: url forKey: NSPrintJobSavingURL] };
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
 unsafe fn export_pdf_wkwebview(
     webview: *mut std::ffi::c_void,
     path: &str,
@@ -490,7 +518,8 @@ unsafe fn export_pdf_wkwebview(
     use objc::{msg_send, sel, sel_impl};
 
     let wv: id = webview as id;
-    let can_print: BOOL = unsafe { msg_send![wv, respondsToSelector: sel!(printOperationWithPrintInfo:)] };
+    let can_print: BOOL =
+        unsafe { msg_send![wv, respondsToSelector: sel!(printOperationWithPrintInfo:)] };
     if can_print == NO {
         return Err("WKWebView print operation unavailable (requires macOS 11+)".to_string());
     }
@@ -503,9 +532,7 @@ unsafe fn export_pdf_wkwebview(
     let orientation: cocoa::foundation::NSInteger = if geometry.landscape { 1 } else { 0 }; // NS_LANDSCAPE / NS_PORTRAIT
     let _: () = unsafe { msg_send![print_info, setOrientation: orientation] };
     let (paper_w, paper_h) = geometry.paper_size_points();
-    let _: () = unsafe {
-        msg_send![print_info, setPaperSize: NSSize::new(paper_w, paper_h)]
-    };
+    let _: () = unsafe { msg_send![print_info, setPaperSize: NSSize::new(paper_w, paper_h)] };
     // Margins belong to the shared print CSS (@page) — see the panel path.
     let _: () = unsafe { msg_send![print_info, setTopMargin: 0.0f64] };
     let _: () = unsafe { msg_send![print_info, setBottomMargin: 0.0f64] };
@@ -513,25 +540,13 @@ unsafe fn export_pdf_wkwebview(
     let _: () = unsafe { msg_send![print_info, setRightMargin: 0.0f64] };
     // Silent save-to-file: NSPrintSaveJob ("NSPrintSaveJob" constant) plus
     // the save-dialog URL. MAS sandbox: this is the only write target.
-    // FIX-018 (2026-10-23): the save target goes into the print SETTINGS
-    // dictionary under the NSPrintJobSavingURL key — NSPrintInfo has no
-    // setJobSavingURL: method (verified against the SDK headers and live
-    // respondsToSelector), and sending that selector raised
-    // NSInvalidArgumentException, which unwound into Rust and aborted the
-    // app on every macOS export since C-61.
-    let disposition = unsafe { objc_nsstring("NSPrintSaveJob") };
-    let _: () = unsafe { msg_send![print_info, setJobDisposition: disposition] };
-    let path_string = unsafe { objc_nsstring(path) };
-    let url_cls = objc::runtime::Class::get("NSURL")
-        .ok_or_else(|| "NSURL class unavailable".to_string())?;
-    let url: id = unsafe { msg_send![url_cls, fileURLWithPath: path_string] };
-    if url == cocoa::base::nil {
+    // AppKit consumes NSPrintJobSavingURL in NSPrintInfo's attribute
+    // dictionary. printSettings stores printer/preset values and does not
+    // set the job destination. NSPrintInfo has no setJobSavingURL: selector.
+    if let Err(error) = unsafe { set_pdf_save_destination(print_info, path) } {
         let _: () = unsafe { msg_send![print_info, release] };
-        return Err(format!("could not build a file URL for {path}"));
+        return Err(error);
     }
-    let settings: id = unsafe { msg_send![print_info, printSettings] };
-    let saving_key = unsafe { objc_nsstring("NSPrintJobSavingURL") };
-    let _: () = unsafe { msg_send![settings, setObject: url forKey: saving_key] };
     // END_BLOCK_PDF_SAVE_PRINT_INFO
 
     let op: id = unsafe { msg_send![wv, printOperationWithPrintInfo: print_info] };
@@ -623,11 +638,11 @@ unsafe fn export_pdf_webview2(
     done: tokio::sync::oneshot::Sender<Result<(), String>>,
 ) -> Result<(), String> {
     use webview2_com::Microsoft::Web::WebView2::Win32::{
-        ICoreWebView2_7, ICoreWebView2Environment6, COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE,
+        ICoreWebView2Environment6, ICoreWebView2_7, COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE,
         COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT,
     };
     use webview2_com::PrintToPdfCompletedHandler;
-    use windows_core::{HSTRING, Interface};
+    use windows_core::{Interface, HSTRING};
 
     // START_BLOCK_PDF_SETTINGS
     let core = unsafe { controller.CoreWebView2() }
@@ -694,7 +709,10 @@ unsafe fn export_pdf_webview2(
             if let Err(why) = &outcome {
                 safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITE_FAILED reason={why}]");
             } else {
-                safe_eprintln!("[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]", path_owned);
+                safe_eprintln!(
+                    "[m052][mt_export_pdf][BLOCK_PDF_WRITTEN path={}]",
+                    path_owned
+                );
             }
             let _ = done.send(outcome);
             Ok(())
@@ -946,6 +964,34 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn pdf_save_destination_survives_native_print_info_copy() {
+        use cocoa::base::id;
+        use objc::{msg_send, sel, sel_impl};
+        let destination = "/tmp/mark-pdf-destination-fixture.pdf";
+        unsafe {
+            let info = new_print_info().expect("NSPrintInfo must init");
+            set_pdf_save_destination(info, destination)
+                .expect("native save destination must configure");
+            let copied: id = msg_send![info, copy];
+            let attributes: id = msg_send![copied, dictionary];
+            let url: id = msg_send![attributes, objectForKey: NSPrintJobSavingURL];
+            assert!(
+                url != cocoa::base::nil,
+                "AppKit's copied print-info attributes must own the save URL"
+            );
+            let path: id = msg_send![url, path];
+            let utf8: *const std::os::raw::c_char = msg_send![path, UTF8String];
+            assert_eq!(
+                std::ffi::CStr::from_ptr(utf8).to_str().unwrap(),
+                destination
+            );
+            let _: () = msg_send![copied, release];
+            let _: () = msg_send![info, release];
+        }
+    }
+
     // ── Print-path selector audit (FIX-018, macOS runtime only) ──────
 
     #[cfg(target_os = "macos")]
@@ -956,7 +1002,7 @@ mod tests {
         // selector), and the foreign exception aborts the process through
         // Rust's rule at ANY landing pad — C-61's setJobSavingURL: was
         // exactly that (live respondsToSelector == 0; the save URL is a
-        // printSettings dictionary key). This audit pins EVERY selector
+        // print-info attribute dictionary key). This audit pins EVERY selector
         // this module sends to the classes that must receive it, so an
         // imagined or renamed API fails here in CI instead of in the
         // owner's export click. Evidence chain:
@@ -977,7 +1023,7 @@ mod tests {
                 "setLeftMargin:",
                 "setRightMargin:",
                 "setJobDisposition:",
-                "printSettings",
+                "dictionary",
             ] {
                 let selector = objc::runtime::Sel::register(name);
                 let responds: BOOL = msg_send![print_info, respondsToSelector: selector];
@@ -987,13 +1033,16 @@ mod tests {
                 );
             }
 
-            // The save target travels through the settings dictionary.
-            let settings: id = msg_send![print_info, printSettings];
-            assert!(settings != cocoa::base::nil, "printSettings must exist");
-            let responds: BOOL = msg_send![settings, respondsToSelector: sel!(setObject:forKey:)];
+            // The save target travels through the print-info attributes.
+            let attributes: id = msg_send![print_info, dictionary];
+            assert!(
+                attributes != cocoa::base::nil,
+                "print-info attributes must exist"
+            );
+            let responds: BOOL = msg_send![attributes, respondsToSelector: sel!(setObject:forKey:)];
             assert!(
                 responds != NO,
-                "printSettings must accept setObject:forKey: (NSPrintJobSavingURL entry)"
+                "print-info attributes must accept setObject:forKey: (NSPrintJobSavingURL entry)"
             );
             let _: () = msg_send![print_info, release];
 
@@ -1018,8 +1067,7 @@ mod tests {
             // WKWebView side: the entry point both paths guard on.
             let wv_cls = objc::runtime::Class::get("WKWebView")
                 .expect("WKWebView class must exist on macOS");
-            let selector =
-                objc::runtime::Sel::register("printOperationWithPrintInfo:");
+            let selector = objc::runtime::Sel::register("printOperationWithPrintInfo:");
             let responds: BOOL = msg_send![wv_cls, instancesRespondToSelector: selector];
             assert!(
                 responds != NO,
