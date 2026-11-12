@@ -1,0 +1,48 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-RELEASE-ACTION-REFERENCES>
+    <Summary>Restore resolvable immutable action references in the release workflow and reject missing external action commits or metadata before merge.</Summary>
+    <Problem>The current release workflow has six uses of three commit SHAs that GitHub reports missing. Existing governance validates the 40-hex shape, not commit existence or action metadata. No release was dispatched to reproduce this configuration failure.</Problem>
+    <Goals>
+      <R-1>Replace the three unavailable action references with verified immutable commits whose action metadata and workflow-used inputs are compatible.</R-1>
+      <R-2>Add a bounded, read-only pre-merge reference check for external actions in the privileged release, promotion and governance workflows. Validate both commit existence and action metadata at the same exact SHA; syntactically valid missing SHAs must fail.</R-2>
+      <R-3>Keep deterministic offline fixtures for missing commits, missing metadata, unsupported inputs, local actions, subdirectory actions, duplicate references, API errors and bounded timeouts. Do not execute external actions to inspect them.</R-3>
+    </Goals>
+    <Constraints>
+      <Constraint>Preserve full-SHA pinning and the existing release-authorize, signing, approval, attestation, artifact-identity and publication boundaries. The change does not authorize or dispatch a release.</Constraint>
+      <Constraint>Candidate replacements, read from upstream major refs on 2026-11-11: tauri-apps/tauri-action 84b9d35b5fc46c1e45415bdb6144030364f7ebc5; actions/attest-build-provenance e8998f949152b193b063cb0ec769d69d929409be; sigstore/cosign-installer 398d4b0eeef1380460a10c8013a76f728fb906ac. Recheck exact metadata and required runner runtimes before approving the completed plan; mutable tags are discovery only.</Constraint>
+      <Constraint>Keep the current workflow inputs: Tauri args, attestation subject-path and Cosign cosign-release v2.4.1. Do not silently upgrade the installed Cosign binary or change artifact names.</Constraint>
+      <Constraint>Use GitHub's read-only API with least-privilege workflow permissions, bounded concurrency and an overall deadline including body reads. Never expose credentials in diagnostics, URLs or reports; never send an authorization header to a redirected host.</Constraint>
+      <Constraint>Offline tests inject transport responses and never contact GitHub. Network failure must produce an explicit non-green check result rather than a successful skip.</Constraint>
+      <Constraint>No production secrets, account controls, rulesets, release environments, versions, tags, dispatches or publication are changed.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Repairing manual-build artifact upload, Cargo cache paths or signing dependency isolation. They remain separate findings.</NonGoal>
+      <NonGoal>Automatically changing pins to moving tags, automatically trusting a major tag, executing third-party code during validation, or recursively auditing all dependencies inside each upstream action.</NonGoal>
+      <NonGoal>Proving end-to-end signed release execution from configuration validation.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Each chosen replacement has a successful commit lookup, action.yml or action.yaml at the exact commit, a supported action runtime and metadata declaring every input used by this workflow. Record public commit/metadata URLs.</Criterion>
+      <Criterion>The original three unavailable pins fail the new checker; the selected replacements pass. A generated all-zero 40-hex SHA also fails despite passing the old shape check.</Criterion>
+      <Criterion>Tests cover action references with and without a subdirectory, action.yml/action.yaml fallback, duplicate lookup coalescing, unsupported input, missing commit/metadata, malformed response, authentication/rate-limit/server failure, cross-host redirect and a response whose body stalls beyond the common deadline.</Criterion>
+      <Criterion>The workflow runs the reference check on ordinary relevant pull requests with read-only permissions and no release/signing credentials. Changes to any checked workflow or the checker cannot evade its selection rules.</Criterion>
+      <Criterion>Existing governance tests, deterministic pin rules and actionlint remain passing. Routed M-046/V-M-046 contracts and verification describe the additional read-only boundary.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+      <Area>.github/workflows/release.yml</Area>
+      <Area>.github/workflows/release-governance.yml and its job-selection rules, only to run the bounded read-only check.</Area>
+      <Area>New tools/action-ref-check.mjs and tests/renderer/action-ref-check.test.js; tools/release-governance.mjs only if sharing the existing immutable-ref extractor requires it.</Area>
+      <Area>tests/renderer/release-governance.test.js, .grace/graph/features.xml M-046 and .grace/verification/features.xml V-M-046.</Area>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/action-ref-check.test.js tests/renderer/release-governance.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>node tools/action-ref-check.mjs</ExpectedCommand>
+      <ExpectedCommand>actionlint .github/workflows/release.yml .github/workflows/release-governance.yml</ExpectedCommand>
+      <ExpectedEvidence>Offline failing-first missing-ref cases, exact replacement commit/metadata receipts and a green hosted pre-merge reference check on the proposed head. The completed plan measures leaf-command budgets and keeps online acceptance distinct from deterministic tests.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The proposal is draft; candidate upstream SHAs are verified discovery results, not owner approval of executable third-party dependencies.</Assumption>
+      <Assumption>A new checker is bounded to current privileged workflows. Expansion to every workflow is a separate scope decision.</Assumption>
+    </Assumptions>
+  </C-RELEASE-ACTION-REFERENCES>
+</GraceChangeSpec>

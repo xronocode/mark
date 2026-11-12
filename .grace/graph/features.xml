@@ -2364,6 +2364,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-045; docs/development-plan.xml: M-045</LegacySource>
     </M-045>
     <M-046>
+      <SummaryDelta>C-RELEASE-ACTION-REFERENCES: ordinary read-only governance resolves every external action commit and compatible action metadata in release, promotion and governance workflows. tools/action-ref-check.mjs uses locked YAML parsing, bounded bodies/concurrency, per-invocation lookup coalescing and one deadline including reads; unsafe refs, unknown/required inputs, API failures and redirects fail without credential/body diagnostics. The three repaired pins retain their workflow inputs, signing boundaries and Cosign binary version.</SummaryDelta>
       <SummaryDelta>C-QUICKLOOK-CONTENT-BOUNDARY: the credential-free macos-15 quicklook-native job compiles/runs the actual preview fixture and builds only the unsigned extension without registration. The already-required status-check depends on this job; runtime requires success and docs-only accepts only success/skipped, never failure/cancellation.</SummaryDelta>
       <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: the Linux test setup canonicalizes only the known Azure HTTP Ubuntu source URI to canonical HTTPS in ephemeral runner sources. Existing signed suites/components, packages, apt retries, timeouts and job gates are unchanged.</SummaryDelta>
       <SummaryDelta>C-STABILIZE-TRAIN-MIRROR: the optional Project mirror records explicit pending/rejected/needs-recheck or incomplete user-facing owner evidence as an empty Owner acceptance select value, never accepted/not-required. Known status is visible in newly projected draft bodies; explicit accepted and complete legacy accepted outputs remain unchanged. Existing reconciliation clears stale accepted values without field-option, API/apply, release authority or external-state changes. Existing generic draft bodies are not rewritten by this bounded projection repair.</SummaryDelta>
@@ -2510,7 +2511,7 @@
       </Summary>
       <PlannedPath>
         tools/release-{preflight,governance,readiness,materials,project-sync,
-        github-controls,normalize,notes,train}.mjs, package.json, package-lock.json,
+        github-controls,normalize,notes,train}.mjs, tools/action-ref-check.mjs, package.json, package-lock.json,
         Cargo.toml, Cargo.lock, rust-toolchain.toml, src-tauri/tauri.conf.json,
         CONTRIBUTING.md, docs/release-process.md, docs/release-trains/current.json,
         docs/release-trains/*.json,
@@ -2643,7 +2644,7 @@
           tools/release-readiness.mjs, tools/release-materials.mjs,
           tools/release-project-sync.mjs, tools/release-github-controls.mjs,
           tools/release-normalize.mjs, tools/release-notes.mjs,
-          tools/release-train.mjs,
+          tools/release-train.mjs, tools/action-ref-check.mjs,
           docs/release-process.md,
           docs/release-trains/current.json,
           .github/workflows/release.yml,
@@ -2652,7 +2653,7 @@
           .github/workflows/promote-release.yml
         </Source>
         <KnowledgeGraphPath>tools/release-readiness.mjs, tools/release-github-controls.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
-        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/publication-privacy.test.js</Tests>
+        <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/action-ref-check.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/publication-privacy.test.js</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>
