@@ -1,0 +1,75 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-MUYA-CURRENT-MODEL-EXPORT>
+    <IntentSummary>Repair only the two existing Muya HTML export entry points so they capture the current complete model rather than a stale change-event cache. Prove the failure and fix with real Muya/exporter content assertions, preserve read-only state and asynchronous snapshot semantics, and synchronize the existing M-012 ownership.</IntentSummary>
+    <ReferenceState>Clean main 9912f7fbba95dfb4244fe53f930c690a19a5c0bc, with the matching specification explicitly approved on 2026-11-12. Current integrity before planning passed with zero errors and four existing heuristic warnings. The Muya entry source is identical to Export head 170ce81c641bc296a7ee481b957f76a7367a8d75. A real native inactive-tab PDF and two real-Muya failing probes independently establish stale cached-source export. No production implementation has started. Preserve the separately approved Export specification/plan and owner lifecycle decision; this plan does not rewrite their scopes or assertions.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist><Value>M-012</Value></MustExist>
+      <MustContain><File>src/muya/lib/index.js</File><Text>exportStyledHTML(options) {
+    const { markdown } = this</Text></MustContain>
+      <MustContain><File>src/muya/lib/index.js</File><Text>exportHtml() {
+    const { markdown } = this</Text></MustContain>
+      <MustContain><File>src/muya/lib/index.js</File><Text>if (!renderOnly) setTimeout(() =&gt; {</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="60">npx --no-install vitest run tests/renderer/muya/export-fence-length.test.js tests/renderer/muya/markdown-round-trip.test.js --maxWorkers=2</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-012</Module></MustVerify>
+      <MustContain><File>src/muya/lib/index.js</File><Text>exportStyledHTML(options) {
+    const markdown = this.getMarkdown()</Text></MustContain>
+      <MustContain><File>src/muya/lib/index.js</File><Text>exportHtml() {
+    const markdown = this.getMarkdown()</Text></MustContain>
+      <MustContain><File>src/muya/lib/index.js</File><Text>if (!renderOnly) setTimeout(() =&gt; {</Text></MustContain>
+      <MustContain><File>tests/renderer/muya/export-current-model.test.js</File><Text>renderOnly: true</Text></MustContain>
+      <MustContain><File>tests/renderer/muya/export-current-model.test.js</File><Text>exportStyledHTML</Text></MustContain>
+      <MustContain><File>tests/renderer/muya/export-current-model.test.js</File><Text>exportHtml</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="60">npx --no-install vitest run tests/renderer/muya/export-current-model.test.js tests/renderer/muya/export-fence-length.test.js tests/renderer/muya/markdown-round-trip.test.js --maxWorkers=2</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="10">npm run typecheck:ipc</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="90">npm run build</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-012 /></GraphAnchors>
+      <VerificationAnchors><V-M-012 /></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/muya/lib/index.js</File>
+      <File>tests/renderer/muya/export-current-model.test.js</File>
+    </ObservedWriteScope>
+    <Architecture>In exportStyledHTML(options) and exportHtml(), synchronously obtain const markdown = this.getMarkdown() before constructing the existing ExportHtml. Construct exactly one exporter with that string and the same Muya instance; keep generate(options) or renderHtml() and the public signatures unchanged. Do not assign this.markdown, call dispatchChange, add timers or awaits before capture, or change setMarkdown, history, parser, import or progressive logic. The existing complete-model serializer owns Markdown production; the existing exporter owns conversion and formatting.</Architecture>
+    <FixtureDesign>Use actual Muya and ExportHtml. Start from a distinct previous-document marker, wait for the constructor's actual initial change event when testing event counts, then import a distinct selected document with renderOnly:true. Assert the live getMarkdown result first and inspect parsed exported body content for the selected marker and absence of the previous marker. Preserve a normal same-document case. For async capture, start export, perform a later render-only model replacement before awaiting conversion, and require the output to retain the model captured at method entry. Check complete-model content independent of what is currently mounted in the editor DOM. After a render-only import, capture the cache value, change-event count, cursor and history state; exporting must not refresh the cache or introduce change/history/cursor mutations. Destroy every instance and container in finally, drain lazy imports and restore any spies. No artificial sleep, successful skip or mocked snapshot-selection decision is allowed.</FixtureDesign>
+    <CommandBudgets>The prepared locked local dependency tree was measured on the unchanged main source: the two existing baseline suites passed 15 tests in 26.87 seconds including cold transform/startup; IPC typecheck passed; renderer build completed in 17.73 seconds. The earlier two real-Muya failing probes took 8.56 seconds on the unchanged Muya source. The new suite has no passing result yet. Set the combined focused command budget to 60 seconds, IPC typing to 10 seconds and build to 90 seconds; report a budget failure rather than extending this approved plan. These are new leaf-gate budgets, not changes to product/CI retries, timeouts, skips or coverage thresholds. Full browser/native startup remains acceptance evidence.</CommandBudgets>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Prove and repair current-model capture in the two public export methods</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Add the real-Muya regression file with selected-content, normal-content, async snapshot and read-only state assertions for both methods. Confirm selected-content cases fail for the previous-document marker before changing runtime code; preserve the native and earlier probe failures separately.</Criterion>
+          <Criterion>Apply only the two current-model reads described in Architecture. Preserve all method arguments, conversion calls, cache/event/history/import behavior and complete-model serialization semantics. Update the Muya local contract/map/change summary for this existing export responsibility.</Criterion>
+          <Criterion>Run the focused suite immediately. No test may infer document ownership only from filenames, cache mocks or a forced dispatchChange.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/muya/export-current-model.test.js tests/renderer/muya/export-fence-length.test.js tests/renderer/muya/markdown-round-trip.test.js --maxWorkers=2</Command>
+          <Command>npm run typecheck:ipc</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Reconcile existing export ownership and prove the delivered candidate</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Reconcile only the existing M-012/V-M-012 anchors with current-model capture, the new regression command and its actual results. Preserve all unrelated scenarios and every approved/archived bundle.</Criterion>
+          <Criterion>Obtain standards/spec review and inspect the exact staged/outgoing diff through normal deterministic safety hooks. Runtime/test writes remain exactly the two observed paths; durable edits stay inside M-012/V-M-012 and this bundle's evidence/lifecycle.</Criterion>
+          <Criterion>Run selected target and final externally, with the declared leaf commands at final. Publish an independently checked candidate on the clean main baseline and obtain supported hosted renderer/backend/coverage checks without changed floors, retries or skips.</Criterion>
+          <Criterion>Integrate this dependency into the Export candidate in its existing scope and verify the strengthened browser content oracles and a fresh native inactive-tab output. Preserve candidate source/binary identities and pending owner/platform verdicts. Perform this bundle's apply/archive only after explicit owner confirmation following fresh end-state evidence.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run build</Command>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceTier>
+      <HostedEvidence>Ordinary supported Windows/macOS/Linux renderer/backend matrix, unchanged coverage floors and required contexts on the exact proposed head. Existing browser, native fixture and skipped-platform boundaries remain explicit; no workflow or dependency change is introduced.</HostedEvidence>
+      <CombinedExportEvidence>The separately authorized Export branch strengthens its existing export-office.spec.ts tests to inspect the PDF print-container content, written HTML and Word document.xml. Require correct selected markers and absent previous-buffer markers in Chromium and WebKit. Then build an identified isolated native combined candidate and test actual content after inactive-tab export, plus the planned menu/popover/settings cases. These are integration checks, not authorization for this plan to edit Export-owned files.</CombinedExportEvidence>
+      <Boundaries>Browser IPC shims are renderer-only. Native observations are separate from owner/platform acceptance. Close exact owned applications normally, verify all owned PIDs/windows stopped, delete app bundles and exact executable copies, and preserve source, recipes, digests and output evidence after each completed run. No release/version/tag/signing/publication authority.</Boundaries>
+    </AcceptanceTier>
+    <Lifecycle>Draft execution plan. The matching specification is approved; implementation waits for explicit approval of this completed plan. Execute sequentially using current and selected baseline preflight before observed writes. Preserve approved assertions/scopes/tasks. Target/final are outer lifecycle gates, never nested task commands. After fresh evidence and explicit apply confirmation, mark roots applied, archive the complete bundle, then rerun current integrity and module status.</Lifecycle>
+  </C-MUYA-CURRENT-MODEL-EXPORT>
+</GraceChangePlan>

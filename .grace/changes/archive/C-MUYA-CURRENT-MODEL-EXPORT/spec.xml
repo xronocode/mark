@@ -1,0 +1,45 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-MUYA-CURRENT-MODEL-EXPORT>
+    <Name>Export the current Muya model after render-only document changes</Name>
+    <Created>2026-11-12</Created>
+    <Summary>Make the existing exportStyledHTML and exportHtml public methods capture the complete current model through getMarkdown at call entry, so a render-only tab/history import cannot export the previously active document. Preserve the renderer export pipeline, formatting options, signatures and read-only behavior.</Summary>
+    <Problem>On Export PR #233 head 170ce81c641bc296a7ee481b957f76a7367a8d75, a native inactive-tab PDF has the intended tab filename but the previous active tab's content. Two failing-first cases with real Muya confirm the mechanism independently: setMarkdown with renderOnly updates ContentState, getMarkdown returns the selected document, but both export APIs read the stale this.markdown field. That field is refreshed by dispatchChange, which render-only imports deliberately avoid. The Muya source is identical on current main 9912f7fbba95dfb4244fe53f930c690a19a5c0bc; this bounded dependency repair can be governed and verified on that clean main baseline. The original Export plan does not authorize writing this Muya file.</Problem>
+    <Goals>
+      <R-1>Both existing HTML export entry points obtain one current complete-model Markdown string synchronously when the method is called and pass that captured string to the existing ExportHtml instance. A later document change during asynchronous conversion cannot change this operation's source string.</R-1>
+      <R-2>Export remains a read: no dispatchChange, new history item, dirty/save revision, cursor mutation or assignment to the cached markdown field is added to refresh the snapshot. Existing arguments and return types remain unchanged.</R-2>
+      <R-3>Real-Muya regressions prove selected-document content after render-only imports, parity for ordinary current content, and a stable snapshot when a later model change occurs during asynchronous export. Verification distinguishes source content from save-dialog filenames.</R-3>
+    </Goals>
+    <Constraints>
+      <Item>Runtime writes are limited to src/muya/lib/index.js and its existing public export helpers, contract/map/change-summary documentation. Use the existing complete-model getMarkdown serializer and ExportHtml implementation; no new dependencies.</Item>
+      <Item>Synchronize only M-012 and V-M-012 in the routed runtime graph/verification documents, and add tests/renderer/muya/export-current-model.test.js. Existing approved plans, assertions and frozen archives remain immutable.</Item>
+      <Item>Keep load/import, renderOnly, progressive mounting, history, dirty tracking, native IPC, export options, filename selection, settings storage and release/signing behavior unchanged. Existing thresholds, retries, skips and timeout policy are not relaxed.</Item>
+      <Item>Owner approval of this specification authorizes planning only. Implementation requires the completed matching approved plan. Source review, final commands and exact-candidate hosted checks precede integration and lifecycle decisions.</Item>
+    </Constraints>
+    <NonGoals>
+      <Item>Global synchronization or removal of Muya's markdown cache, or changing dispatchChange/setMarkdown/history behavior.</Item>
+      <Item>Redesigning renderer operation ownership, exporting a different document after its initiating owner is invalidated, changing native commands, or changing export formatting and image embedding.</Item>
+      <Item>Repairing the separate image replacement failure, settings persistence, signing boundaries, versions, tags, releases or other audit groups.</Item>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Before the runtime fix, the new real-Muya selected-document cases fail on wrong output content. After the fix, both APIs export only the selected complete model after render-only load, without the preceding document marker.</Criterion>
+      <Criterion>Export captures the source string once at method entry and preserves it across the existing asynchronous exporter. Ordinary same-document output remains equivalent for the same model/options.</Criterion>
+      <Criterion>Focused export and Markdown round-trip suites pass. Tests prove no new change event or history/cursor mutation is introduced by obtaining the export snapshot. Existing renderer build, IPC typing and hosted coverage/matrix gates pass without relaxed floors or skips.</Criterion>
+      <Criterion>After this dependency is integrated into the Export feature candidate, strengthen its already-authorized browser oracles to inspect PDF/HTML payloads and Word document.xml, then verify native inactive-tab outputs on a fresh source/binary-bound artifact. Filename-only evidence is insufficient. Preserve owner/platform verdicts separately.</Criterion>
+      <Criterion>Current-state graph/verification, local contracts and evidence agree. Complete final assertions and required checks on the delivered candidate; archive only after explicit lifecycle authorization. Test applications and executable copies are closed and deleted after each completed run.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-012 />
+      <RuntimeFile>src/muya/lib/index.js</RuntimeFile>
+      <TestFile>tests/renderer/muya/export-current-model.test.js</TestFile>
+      <GraphAnchor>.grace/graph/runtime.xml M-012</GraphAnchor>
+      <VerificationAnchor>.grace/verification/runtime.xml V-M-012</VerificationAnchor>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/muya/export-current-model.test.js tests/renderer/muya/export-fence-length.test.js tests/renderer/muya/markdown-round-trip.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>npm run typecheck:ipc</ExpectedCommand>
+      <ExpectedCommand>npm run build</ExpectedCommand>
+      <ExpectedEvidence>Use real Muya and the existing exporter for failing-first selected-content checks; any async snapshot seam must be inert, must not replace the model-selection decision and must not provide a false native IPC claim. Measure leaf command budgets before approving the execution plan; full hosted/browser/native work belongs to acceptance. Preserve the native wrong-buffer PDF and the original two failing probe results as evidence.</ExpectedEvidence>
+    </VerificationIntent>
+    <Approval><ApprovedBy>pending</ApprovedBy><ApprovalScope>Draft specification only; no implementation or lifecycle authorization.</ApprovalScope></Approval>
+  </C-MUYA-CURRENT-MODEL-EXPORT>
+</GraceChangeSpec>
