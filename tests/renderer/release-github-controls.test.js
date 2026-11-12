@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-github-controls.test.js
-// VERSION: 2.3.0
+// VERSION: 2.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove release promotion, tag admission, signing, draft publication, and GitHub-control workflows preserve their event, identity, permission, and approval boundaries.
 //   SCOPE: YAML-AST and command-order assertions plus deterministic fake-client planning/apply/rollback; no live GitHub mutation or secret access.
@@ -23,10 +23,12 @@
 //   desiredControls - Normalized desired control plane used by fake-client tests.
 //   actionRefs - Enumerate action references recursively for immutable-pin assertions.
 //   commands - Flatten one job's command-bearing steps for negative assertions.
+//   runTestAggregate - Execute the actual aggregate shell with controlled workflow results.
 //   FakeControlsClient - In-memory control-plane adapter used to prove staged convergence and rollback.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 v2.4.0 C-QUICKLOOK-CONTENT-BOUNDARY: require native QuickLook evidence and execute both aggregate branches for failed/cancelled/skipped inputs.
 //   - 2026-11-09 v2.3.0 C-CI-CD-AUDIT-FIXES: guard unsigned QA, IPC gating, WebKit de-duplication and immutable CI inputs.
 //   - 2026-10-26 v2.2.0: C-RELEASE-MANUAL-PUBLISH — publication regains the synchronous release-Environment gate (owner reviewer) and loses the veto-window job; governance swaps release-notify back to release with no TG secret boundary; the unknown-policy simulation targets release again.
 //   - 2026-10-24 v2.1.0: C-RELEASE-CONVEYOR — promotion triggers on any train ledger and binds to a seal that is on main (not main's exact tip); the close-release-please job is gone and publication itself proves the latest-release feed advanced.
@@ -89,6 +91,25 @@ const actionRefs = (value, refs = []) => {
 
 const commands = (job) =>
   (job.steps ?? []).map(({ run = '', name = '' }) => `${name}\n${run}`).join('\n')
+
+const runTestAggregate = (docsOnly, results) => {
+  const values = {
+    'github.event_name': 'pull_request',
+    'needs.changes.outputs.docs_only': docsOnly ? 'true' : 'false',
+    ...Object.fromEntries(Object.entries(results).map(([job, status]) => [`needs.${job}.result`, status]))
+  }
+  const shell = testWorkflow.jobs['status-check'].steps.find(step => step.name === 'aggregate').run
+    .replace(/\$\{\{\s*([^}]+?)\s*\}\}/g, (_match, key) => {
+      if (!(key in values)) throw new Error(`uncontrolled aggregate input: ${key}`)
+      return values[key]
+    })
+  const bash = process.platform === 'win32'
+    ? resolve(process.env.ProgramFiles || 'C:/Program Files', 'Git/bin/bash.exe')
+    : 'bash'
+  const result = spawnSync(bash, ['--noprofile', '--norc', '-c', shell], { encoding: 'utf8', timeout: 3000 })
+  if (result.error) throw result.error
+  return result.status
+}
 
 class FakeControlsClient {
   constructor() {
@@ -212,6 +233,40 @@ describe('release GitHub trust boundaries', () => {
       expect(e2eSteps.filter((step) => step.run?.includes(`--project ${project}`))).toHaveLength(1)
     }
     expect(e2eSteps.some((step) => step.name === 'upload pele theme screenshots' && step.if === 'always()')).toBe(true)
+  })
+
+  it('makes the actual native QuickLook provider a required read-only macOS test job', () => {
+    const job = testWorkflow.jobs['quicklook-native']
+    expect(job).toBeDefined()
+    expect(job['runs-on']).toBe('macos-15')
+    expect(job['timeout-minutes']).toBe(5)
+    expect(job.needs).toEqual(['changes'])
+    expect(job.if).toBe(testWorkflow.jobs['renderer-unit'].if)
+    expect(job.permissions).toEqual({ contents: 'read' })
+    expect(testWorkflow.jobs['status-check'].needs).toContain('quicklook-native')
+    expect(job.steps.some(step => step.run === 'node tools/check-quicklook.mjs')).toBe(true)
+    const source = commands(job)
+    expect(source).toContain('-target MarkPreview')
+    expect(source).not.toContain('-scheme')
+    expect(source).toContain('SYMROOT="$PWD/.claude/quicklook-content-boundary/target-build/products"')
+    expect(source).toContain('OBJROOT="$PWD/.claude/quicklook-content-boundary/target-build/intermediates"')
+    expect(source).toContain('REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES')
+    expect(source).toContain('CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=')
+    expect(JSON.stringify(job)).not.toMatch(/secrets\.|environment|pluginkit|lsregister|tauri build/)
+    expect(job.steps.find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version']).toBe('22')
+  })
+
+  it.each([false, true])('executes the aggregate shell without masking failed or cancelled jobs (docs=%s)', docsOnly => {
+    const jobs = ['renderer-unit', 'backend-unit', 'renderer-e2e', 'quicklook-native']
+    const good = Object.fromEntries(jobs.map(job => [job, 'success']))
+    expect(runTestAggregate(docsOnly, good)).toBe(0)
+    if (docsOnly) expect(runTestAggregate(true, Object.fromEntries(jobs.map(job => [job, 'skipped'])))).toBe(0)
+    for (const job of jobs) {
+      for (const status of ['failure', 'cancelled', 'skipped', '']) {
+        expect(runTestAggregate(docsOnly, { ...good, [job]: status }), `${job}=${status}`)
+          .toBe(docsOnly && status === 'skipped' ? 0 : 1)
+      }
+    }
   })
 
   it('classifies only pure documentation PRs as docs-only without failing on an absent checkout', () => {

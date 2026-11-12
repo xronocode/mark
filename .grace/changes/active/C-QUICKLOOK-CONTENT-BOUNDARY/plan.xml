@@ -1,0 +1,133 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-QUICKLOOK-CONTENT-BOUNDARY>
+    <IntentSummary>Keep untrusted QuickLook Markdown in a data boundary, block document-controlled execution/network/navigation, and prove the actual native provider through an isolated fixture and a blocking CI dependency. Main Mark rendering, production signing and installed extensions are outside scope.</IntentSummary>
+    <ReferenceState>Prepared on main b77669f59fde849e4de08a5d4552126515618dfc after native editor PR #223. The specification is explicitly approved. Baseline renderer/provider are unchanged; standalone extension is not currently routed as a module. M-073/V-M-073 are unused and proposed for this ownership.</ReferenceState>
+    <BaselineAssertions>
+      <MustContain>
+        <File>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</File>
+        <Text>html: true</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift</File>
+        <Text>let webView = WKWebView()</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements</File>
+        <Text>com.apple.security.network.client</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>needs: [changes, renderer-unit, backend-unit, renderer-e2e]</Text>
+      </MustContain>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-073</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</File>
+        <Text>html: false</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</File>
+        <Text>Content-Security-Policy</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift</File>
+        <Text>nonPersistent()</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/check-quicklook.mjs</File>
+        <Text>BLOCK_QUICKLOOK_BOUNDARY_CONFIRMED</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>quicklook-native</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements</File>
+        <Text>com.apple.security.network.client</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node tools/check-quicklook.mjs</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+        <M-073 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+        <V-M-073 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</File>
+      <File>mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift</File>
+      <File>mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements</File>
+      <File>tools/check-quicklook.mjs</File>
+      <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+      <File>tests/renderer/quicklook-runner.test.js</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+      <File>.github/workflows/test.yml</File>
+      <File>.grace/graph/index.xml</File>
+      <File>.grace/verification/index.xml</File>
+      <Glob>.claude/quicklook-content-boundary/**</Glob>
+    </ObservedWriteScope>
+    <Architecture>Keep the packaged markdown-it/highlight scripts and current typography options, but set raw HTML false. Embed document text as UTF-8 base64 data, never raw executable source; decode inside the trusted nonce-bearing bootstrap. Keep escaped titles. Emit CSP before content: default-src none, only per-render nonce-bearing packaged scripts, trusted inline styles, embedded raster data images, no network/connect/frame/object/form/base resources. No unsafe-eval, remote fallback, sanitizer dependency or main-app renderer change is introduced. Native WKWebView configuration uses a nonpersistent data store, disables automatic windows, and installs the actual provider as navigation/UI delegate. Permit the explicitly initiated native preview load; refuse external main/subframe navigation and return no new window. No NSWorkspace external open is added. Remove only the preview network-client entitlement; sandbox and selected-file read entitlement remain.</Architecture>
+    <LocalResourcePolicy>Packaged JavaScript/CSS and embedded raster data images remain supported. The current provider loads with baseURL nil; this repair does not add a directory reader, custom URL scheme, filesystem bridge or remote image transport. Explicit file URLs and remote resources are refused. Capture baseline behavior for harmless relative/absolute local images before policy writes. If an existing authorized local resource actually works and the proposed policy would remove it, stop for a bounded policy adjustment rather than hiding the regression. The owner sees this local-resource limitation when reviewing the completed plan.</LocalResourcePolicy>
+    <NativeFixture>tools/check-quicklook.mjs uses Node built-ins, an owned temporary directory under .claude/quicklook-content-boundary and a loopback-only observer bound to 127.0.0.1 on an ephemeral port. Compile the actual MarkdownRenderer.swift and PreviewProvider.swift plus tests/quicklook/PreviewBoundaryTests.swift with xcrun swiftc, Swift 5 language mode and Cocoa/QuickLookUI/WebKit frameworks. The generated fixture bundle has its own com.xronocode.mark.quicklook.fixture identifier; copy packaged resources unchanged and record their digests. Execute its exact binary directly with activation prohibited, not open/pluginkit/lsregister. No production extension is installed or registered. The real provider/delegates remain in use; the fixture must not substitute a permissive webview/delegate or a rewritten renderer.</NativeFixture>
+    <FixtureCases>Require all 24 named cases: markdown highlight unicode-title embedded-raster raw-event-handler raw-script script-terminator mixed-case-terminator svg-handler iframe-srcdoc object-embed form javascript-link data-svg remote-image fetch-beacon external-navigation new-window subframe initial-load missing-file resource-integrity file-resource-policy repeat-preview. Positive cases assert literal text, headings/table, Unicode/title escaping, syntax-highlight spans and a decoded embedded raster image. Negative payloads use harmless in-memory markers and the owned loopback observer, never external data or destinations. Assert no marker execution, active raw element, network request, extra window or unauthorized navigation. Exercise actual external-link activation/new-window/subframe decisions independently of raw HTML stripping. Missing-file completion must report error. Repeat preview on one provider must display only the new fixture. Capture baseline file-image behavior and stop if the proposed policy contradicts a proved supported local case.</FixtureCases>
+    <RunnerContract>A non-macOS host, missing compiler/resource, compiler failure, malformed native JSON, missing/duplicate case, failed case, observer request or deadline expiry is a nonzero failure, never a successful skip. Validate the complete expected case-ID set and results before emitting BLOCK_QUICKLOOK_BOUNDARY_CONFIRMED. Record source revision/digests, fixture bundle/binary identity, OS/architecture and full case results. Bound the whole run to 110 seconds, including compilation and body/result collection; terminate only owned child processes and close the owned observer in finally. Unit tests inject process/host results to prove fail-closed orchestration; these doubles are not native security evidence.</RunnerContract>
+    <WorkflowIntegration>Add quicklook-native to the existing test workflow on macos-15 with a five-minute job budget, existing immutable checkout/setup-node pins and Node 22, contents-read permissions and no signing/release credentials. Use the same changes/docs_only condition as current heavy jobs; every runtime path is already selected by the fail-closed non-docs filter. Run the actual native fixture and the extension-only unsigned build. Add quicklook-native to status-check needs and both aggregate branches: non-docs requires success; docs-only permits only success/skipped. Execute the actual rendered aggregate shell in controlled tests to prove native failure/cancellation cannot become a green required status, including the docs-only branch. Do not change branch rulesets or existing suite timeouts/retries/floors.</WorkflowIntegration>
+    <UnsignedBuild>Build only scheme MarkPreview with xcodebuild -project mark-quicklook/MarkQuickLook.xcodeproj -scheme MarkPreview -configuration Debug -derivedDataPath .claude/quicklook-content-boundary/derived CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES build. This exact extension-only form was checked on the baseline and has no RegisterWithLaunchServices step. Do not build/register the host application, change signing identities, run pluginkit, install the extension or replace the owner app. Verify logs and owned outputs; packaging is not owner acceptance.</UnsignedBuild>
+    <CommandBudgets>Baseline unsigned host build took 30.38 seconds; the later extension-only unsigned build passed without a LaunchServices step. The unchanged release-github-controls suite passed 24 tests in 1.83 seconds, wall 3.93 seconds. The native fixture does not exist yet; its 120-second gate and 110-second runner limit include compile plus 24 bounded cases. Focused orchestration/aggregate tests have a 30-second gate. Measure actual post-implementation runtime; an over-budget or unsupported native host requires a bounded replan, not a silently longer timeout or a green skip. Extension packaging and hosted startup remain in acceptance.</CommandBudgets>
+    <Coordination>Execute sequentially with one writer. M-046 also belongs to the release-action-reference change; integrate/reconcile that known sibling state before writing its shared projection or supersede if assertions conflict. C-50 and the Export change remain outside this observed scope. New M-073/V-M-073 entries belong in routed features documents, with index registration; Swift compiler/native evidence is primary and no unavailable Swift semantic-map analysis may be claimed as parser-proven.</Coordination>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Establish failing-first native evidence and repair the content/navigation boundary</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Implement the fixture and fail-closed runner first. Run the unchanged actual provider/renderer: harmless HTML execution or remote-resource cases must fail the same negative oracles used after repair. Preserve the full failed receipt. Also record ordinary Markdown/highlighting/Unicode/embedded-resource and local-image baseline outcomes before policy writes.</Criterion>
+          <Criterion>Apply only the renderer data/CSP/HTML policy, native configuration/delegates and preview-entitlement changes described above. Add synchronized file-local contracts/maps/change summaries. Preserve packaged resource bytes, ordinary Markdown typography, selected-file reading and existing completion behavior.</Criterion>
+          <Criterion>Run all 24 actual native cases with independent observer counts and resource/binary identities. No marker executes and no observer request arrives. Positive rendering/highlighting/embedded-raster cases and repeat preview remain correct. Do not substitute browser emulation, static string tests, a permissive test provider, a changed oracle or absent-case success for native proof.</Criterion>
+          <Criterion>Test runner failure paths using injected compiler/process/host results on all supported unit-test hosts. A native failure, empty result, missing case, observer error or timeout cannot emit the confirmation marker. Owned child/observer cleanup is unconditional.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+          <Command>node tools/check-quicklook.mjs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Make the native boundary a blocking CI check and register durable ownership</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add the credential-free quicklook-native job and its required aggregate dependency. Prove success/runtime failure/cancellation/docs-only behavior by executing the actual aggregate shell with controlled result substitutions; preserve all existing matrix jobs and their test policies.</Criterion>
+          <Criterion>Register M-073/V-M-073 in the routed feature indexes/documents, describing the standalone extension, complete native fixture and runner failure contracts. Update only M-046/V-M-046 for the additional test job/aggregate. Do not mutate frozen archives, current context or unrelated module metadata to make lint green.</Criterion>
+          <Criterion>Repeat the extension-only unsigned build with registration disabled and the actual fixture. Record zero LaunchServices host-registration steps, output identity and all cases; preserve installed apps/extensions and previous native repair artifacts. Light/dark redesign remains a separate finding.</Criterion>
+          <Criterion>Run selected target/final externally with leaf commands and require the new native job plus aggregate green on the exact PR head. Present source-bound evidence for explicit apply confirmation before applied/archive. No version/tag/release authorization is inferred.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+          <Command>node tools/check-quicklook.mjs</Command>
+          <Command>xcodebuild -project mark-quicklook/MarkQuickLook.xcodeproj -scheme MarkPreview -configuration Debug -derivedDataPath .claude/quicklook-content-boundary/derived CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES build</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceTier>
+      <NativeEvidence>The actual macOS provider matrix is mandatory; owner acceptance and installed-extension validation remain separate. Baseline failures, full results and positive compatibility evidence stay source-bound. Native Windows is not relevant to this macOS-only component; no main-app Windows claim follows.</NativeEvidence>
+      <HostedEvidence>The added native job must be a dependency of the already-required status check, not an optional green-only side workflow. Preserve the docs-only lane without masking a failed or cancelled native job.</HostedEvidence>
+    </AcceptanceTier>
+    <Lifecycle>Draft until owner approval of the completed plan. Execute sequentially. Run current and selected baseline before implementation, selected target after observed work, then centrally reconcile only declared durable projections. Final with leaf commands is the outer gate. Ask for explicit apply confirmation after fresh evidence before applied/archive; rerun current/status afterward. Approved assertions/scopes/tasks are immutable and all publication uses exact-candidate safety hooks.</Lifecycle>
+  </C-QUICKLOOK-CONTENT-BOUNDARY>
+</GraceChangePlan>

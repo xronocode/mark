@@ -1,31 +1,53 @@
+// FILE: mark-quicklook/Sources/Shared/MarkdownRenderer.swift
+// VERSION: 1.1.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Render untrusted Markdown using only packaged scripts and styles.
+//   SCOPE: UTF-8 data embedding, escaped titles, disabled raw HTML and nonce-based CSP; embedded raster images only.
+//   DEPENDS: Foundation; unchanged packaged markdown-it/highlight/CSS resources.
+//   LINKS: M-073; V-M-073; C-QUICKLOOK-CONTENT-BOUNDARY.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   MarkdownRenderer.render - Produce a self-contained restricted preview document.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-12 C-QUICKLOOK-CONTENT-BOUNDARY: keep Markdown in a data boundary and restrict executable content/resources.
+// END_CHANGE_SUMMARY
+
 import Foundation
 
 enum MarkdownRenderer {
     static func render(markdown: String, title: String) -> String {
-        let escapedMD = escapeForJS(markdown)
+        let encodedMarkdown = Data(markdown.utf8).base64EncodedString()
+        let nonce = UUID().uuidString
         let css = Self.css
         let markdownItJS = Self.markdownItJS
         let highlightJS = Self.highlightJS
         let highlightCSS = Self.highlightCSS
 
+        // markdown-it emits controlled inline styles for table alignment.
+        // Raw HTML is disabled; document-supplied style elements/attributes remain text.
         return """
         <!DOCTYPE html>
         <html lang="en">
         <head>
         <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-\(nonce)'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>\(escapeHTML(title))</title>
-        <style>\(css)</style>
-        <style>\(highlightCSS)</style>
+        <style nonce="\(nonce)">\(css)</style>
+        <style nonce="\(nonce)">\(highlightCSS)</style>
         </head>
         <body>
         <article id="content"></article>
-        <script>\(markdownItJS)</script>
-        <script>\(highlightJS)</script>
-        <script>
+        <script type="application/octet-stream" id="markdown-data">\(encodedMarkdown)</script>
+        <script nonce="\(nonce)">\(markdownItJS)</script>
+        <script nonce="\(nonce)">\(highlightJS)</script>
+        <script nonce="\(nonce)">
         (function() {
           var md = window.markdownit({
-            html: true,
+            html: false,
             linkify: true,
             typographer: true,
             highlight: function(str, lang) {
@@ -35,17 +57,15 @@ enum MarkdownRenderer {
               return '';
             }
           });
-          document.getElementById('content').innerHTML = md.render(\(escapedMD));
+          var source = document.getElementById('markdown-data');
+          var bytes = Uint8Array.from(atob(source.textContent), function(c) { return c.charCodeAt(0); });
+          source.remove();
+          document.getElementById('content').innerHTML = md.render(new TextDecoder('utf-8', {fatal: true}).decode(bytes));
         })();
         </script>
         </body>
         </html>
         """
-    }
-
-    private static func escapeForJS(_ s: String) -> String {
-        let data = try! JSONEncoder().encode(s)
-        return String(data: data, encoding: .utf8)!
     }
 
     private static func escapeHTML(_ s: String) -> String {

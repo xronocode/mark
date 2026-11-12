@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- MODULE_CONTRACT: M-073 / V-M-073; CONFIG + NONE. Selected-file preview sandbox only.
+     CHANGE_SUMMARY: 2026-11-12 C-QUICKLOOK-CONTENT-BOUNDARY removes network-client capability. -->
 <plist version="1.0">
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
 	<key>com.apple.security.files.user-selected.read-only</key>
-	<true/>
-	<key>com.apple.security.network.client</key>
 	<true/>
 </dict>
 </plist>

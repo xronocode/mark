@@ -133,6 +133,7 @@
         <!-- C-EXPORT-SINGLE-PAGE: M-072 owns the export settings dialog
              (single-page form, hydration, strips, presets). -->
         <M-072/>
+        <M-073/>
       </Owns>
     </GD-FEATURES>
     <GD-FLOWS>
