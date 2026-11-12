@@ -7651,6 +7651,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
     </M-051>
 
     <M-052>
+      <SummaryDelta>The macOS PDF save job uses the exported NSPrintJobSavingURL key in NSPrintInfo attributes, which remain authoritative through a native print-info copy. Printer/preset settings do not own the save destination. This preserves silent export to the selected path without a second Save panel; native Print and Windows geometry/transport are unchanged.</SummaryDelta>
       <Name>NativePrint</Name>
       <DisplayName>Native print panel and silent PDF export</DisplayName>
       <Type>UTILITY</Type>

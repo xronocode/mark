@@ -12922,6 +12922,7 @@
         </Command>
       </Commands>
       <Scenarios>
+        <scenario-native-pdf-destination>The production destination helper configures live NSPrintInfo; a native copy must retain the exact save URL under the exported AppKit key in its attribute dictionary. Real macOS acceptance must write nonempty document content and chosen geometry to the selected PDF after one Save dialog, without a second Save panel. Preserve distinct source/binary identities and compare the failing pre-change native path.</scenario-native-pdf-destination>
         <Scenario>
           scenario-1: mt_print_webview opens the native WKWebView print
           panel for the caller window directly from ⌘P (C-61 R-1: no
@@ -12974,7 +12975,7 @@
           removed the actual trigger: C-61's
           msg_send![print_info, setJobSavingURL:] targeted a selector
           NSPrintInfo does not define (live respondsToSelector == 0; the
-          save URL is a printSettings DICTIONARY key, set via
+          save URL is an NSPrintInfo attribute dictionary key, set via
           setObject:forKey: now). The save job runs through
           runOperationModalForWindow — the same modal pattern as the
           working panel path — because plain runOperation from a
@@ -12989,8 +12990,8 @@
           scenario-6 (FIX-018 selector audit, macOS cargo lane):
           print_path_selectors_exist_on_live_appkit_classes pins EVERY
           selector this module sends — NSPrintInfo instance selectors
-          (orientation/paper/margins/jobDisposition/printSettings), the
-          settings dictionary setObject:forKey:, NSPrintOperation
+          (orientation/paper/margins/jobDisposition/dictionary), the
+          attribute dictionary setObject:forKey:, NSPrintOperation
           instance selectors (panels, canSpawnSeparateThread,
           runOperationModalForWindow:delegate:didRunSelector:contextInfo:)
           and WKWebView's printOperationWithPrintInfo: — against the
