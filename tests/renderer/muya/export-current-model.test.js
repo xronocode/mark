@@ -40,6 +40,7 @@ async function withEditor(markdown, run) {
     return await run(muya)
   } finally {
     muya.destroy()
+    muya.container.remove()
     container.remove()
   }
 }

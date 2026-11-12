@@ -16,6 +16,7 @@ The matching specification and sequential execution plan were explicitly approve
 - An isolated native application built from that clean implementation commit exported the inactive tab to PDF with the selected document marker present and the previous active document marker absent. The generated file's text was inspected independently. The application was closed normally and its app bundle, standalone executable and matching executable copy were removed.
 - A temporary combined acceptance tree used Export `170ce81c641bc296a7ee481b957f76a7367a8d75`, the exact Muya source from the implementation commit, and the strengthened Export content tests. All six PDF/HTML/Word selected-content cases passed in Chromium and WebKit. This establishes integration behavior on the identified source combination; it is not hosted verification of a committed combined head.
 - The complete combined Export/Settings browser acceptance set passed 42 of 42 cases in Chromium and WebKit, including remembered settings, orientation correction, success-notice navigation and Save cancellation.
+- Fixture teardown removes the actual editor container created by Muya, as well as destroying the instance and removing the original fixture node; Muya replaces the original node during construction. Export behavior and the eight regression cases are unchanged.
 
 ## Remaining gates
 
