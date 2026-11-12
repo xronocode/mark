@@ -22,13 +22,14 @@ npm run tauri dev       # run the app with hot reload
 npm run tauri build     # build a release bundle
 ```
 
+The commands below cover the desktop app and renderer. Edit this repository's documentation under `docs/`; the documentation website uses a separate project.
+
 Other useful scripts from `package.json`:
 
 | Script | What it does |
 |:---|:---|
 | `npm run dev` | Vite dev server for the renderer, without the Rust backend |
 | `npm run build` | Build the renderer |
-| `npm run docs:dev` | Run the documentation site locally |
 | `npm run bench:launch` | Measure launch time |
 
 ## Tests
