@@ -21,6 +21,7 @@
 //   workspace - Create only the three privileged workflow fixtures.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-12: encode CLI fixture imports as file URLs for Windows drive paths and reserved filename characters.
 //   LAST_CHANGE: 2026-11-12 C-RELEASE-ACTION-REFERENCES: offline failure-first transport and metadata boundaries.
 // END_CHANGE_SUMMARY
 
@@ -30,6 +31,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 import { collectActionRefs, validateActionRefs, runActionRefCheck } from '../../tools/action-ref-check.mjs'
 
 const SHA_A = 'a'.repeat(40)
@@ -264,9 +266,9 @@ describe('literal workspace and CLI integration', () => {
 
   it.each([false, true])('the real CLI prints success only after a completely valid inert batch (failure=%s)', failure => {
     const root = workspace([{ uses: `owner/repo@${SHA_A}` }])
-    const preload = join(root, 'inert-fetch.mjs')
+    const preload = join(root, 'inert fetch #.mjs')
     writeFileSync(preload, `globalThis.fetch=async url=>{const u=new URL(url);if(u.origin!=='https://api.github.com')throw Error('unexpected host');if(u.pathname.includes('/git/commits/'))return new Response(JSON.stringify(${failure ? '{message:"dummy-private-response"}' : '{sha:u.pathname.split("/").at(-1)}'}),{status:${failure ? 404 : 200}});return new Response(JSON.stringify({encoding:'base64',content:Buffer.from('runs:\\n  using: node24\\n  main: index.js\\n').toString('base64')}))}`)
-    const result = spawnSync(process.execPath, ['--import', preload, resolve('tools/action-ref-check.mjs')], { cwd: root, env: { PATH: process.env.PATH, GITHUB_TOKEN: TOKEN }, encoding: 'utf8', timeout: 5000 })
+    const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, resolve('tools/action-ref-check.mjs')], { cwd: root, env: { PATH: process.env.PATH, GITHUB_TOKEN: TOKEN }, encoding: 'utf8', timeout: 5000 })
     expect(result.status).toBe(failure ? 1 : 0)
     expect(result.stdout.includes('BLOCK_ACTION_REFERENCES_CONFIRMED')).toBe(!failure)
     expect(result.stderr).not.toContain(TOKEN)
