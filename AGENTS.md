@@ -4,6 +4,8 @@ This file is the short entry point for contributors and automation working in
 this repository. The durable rules live in the linked documents:
 
 - [Contributing](CONTRIBUTING.md) — build, test, language and pull-request basics.
+- [GRACE CLI setup](CONTRIBUTING.md#grace-cli-setup) — pinned tool installation
+  and availability checks before governed changes.
 - [Engineering protocol](docs/engineering-protocol.md) — GRACE contracts,
   semantic markup, graph and verification maintenance.
 - [Commit and push safety](docs/commit-push-safety.md) — mandatory deterministic
