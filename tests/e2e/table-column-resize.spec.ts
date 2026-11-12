@@ -17,6 +17,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12: reserve the sequential-resize fixture canvas before measuring its fixed frame; retain every pointer, byte and 2px geometry oracle.
 //   CURRENT: 2026-11-10 C-TABLE-FITTED-RESET: partial Fit/Full reset
 //   after adjacent drags fits before persistence and never exposes overflow.
 //   CURRENT: 2026-11-10 C-TABLE-SEQUENTIAL-RESIZE: sequential Fit/Full
@@ -147,6 +148,11 @@ test.describe('table column resize (C-39 T-002)', () => {
       await bootEditor(page)
       await openFileTab(page, RESIZE_PATH, markdown)
       await waitForTable(page)
+      // Narrow headers can create a vertical scrollbar. Reserve its gutter
+      // before measuring: this case tests a fixed frame on a fixed canvas.
+      await page.locator('.editor-component:visible').evaluate(el => { (el as HTMLElement).style.overflowY = 'scroll' })
+      await waitForTable(page)
+      const canvasWidth = await page.locator('.editor-component:visible').evaluate(el => el.clientWidth)
       const figure = page.locator("figure[data-role='TABLE']").first()
       await figure.hover()
       await figure.locator(`button[data-table-mode='${mode}']`).click()
@@ -166,6 +172,7 @@ test.describe('table column resize (C-39 T-002)', () => {
       expect(Math.abs(second[0] - 60), 'the first narrow column survives the second drag').toBeLessThanOrEqual(2)
       expect(Math.abs(second[1] - 60)).toBeLessThanOrEqual(2)
       expect(second[2]).toBeGreaterThan(first[2])
+      expect(await page.locator('.editor-component:visible').evaluate(el => el.clientWidth), 'the canvas remains fixed').toBe(canvasWidth)
       expect(Math.abs(second.reduce((a, b) => a + b, 0) - before.reduce((a, b) => a + b, 0)), 'the outside frame is unchanged').toBeLessThanOrEqual(2)
 
       await openFileTab(page, PLAIN_PATH, PLAIN_MD)
