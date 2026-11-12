@@ -224,7 +224,7 @@ let persistenceFailedInRealm = false
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/export/index.vue
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Own future-export defaults in the existing Preferences shell with immediate apply.
 //   SCOPE: Original Page/Style/Content/Header-Footer controls, presets, optional-key removal, Reset and honest persistence failure/retry; no export execution or modal.
@@ -249,7 +249,8 @@ let persistenceFailedInRealm = false
 //   updateTranslations/loadThemesFromDisk - Localized lists and existing export-theme discovery.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-12 C-EXPORT-SETTINGS-SECTION: relocate the shipped form into immediate-apply Preferences.
+//   LAST_CHANGE: 2026-11-12: use explicit ASCII letter ranges for export-theme comment labels.
+//   PREVIOUS_CHANGE: 2026-11-12 C-EXPORT-SETTINGS-SECTION: relocate the shipped form into immediate-apply Preferences.
 // END_CHANGE_SUMMARY
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 // step-8a: no direct Node-core imports in the production renderer bundle —
@@ -592,7 +593,7 @@ const loadThemesFromDisk = async () => {
           const content = await window.fileUtils.readFile(fullname, 'utf8')
 
           // Match comment with theme name in first line only.
-          const match = content.match(/^(?:\/\*+[ \t]*([A-z0-9 -]+)[ \t]*(?:\*+\/|[\n\r])?)/)
+          const match = content.match(/^(?:\/\*+[ \t]*([A-Za-z0-9 -]+)[ \t]*(?:\*+\/|[\n\r])?)/)
 
           let label
           if (match && match[1]) {

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/prefComponents/export-section-fn.test.js
-// VERSION: 3.0.0
+// VERSION: 3.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Preserve the shipped export form's hydration, presets, optional blocks, slot derivation and factory Reset in Preferences.
 //   SCOPE: Original meaningful form assertions, adapted from modal submission to immediate settings persistence; no export dispatch.
@@ -14,9 +14,10 @@
 //   stubs - Control/section boundaries.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-12 C-EXPORT-SETTINGS-SECTION: retain form assertions while replacing obsolete modal behavior.
+//   LAST_CHANGE: 2026-11-12: cover six unsupported ASCII-gap prefixes in export-theme comment labels.
+//   PREVIOUS_CHANGE: 2026-11-12 C-EXPORT-SETTINGS-SECTION: retain form assertions while replacing obsolete modal behavior.
 // END_CHANGE_SUMMARY
-import { shallowMount } from '@vue/test-utils'
+import { shallowMount, flushPromises } from '@vue/test-utils'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 
@@ -453,6 +454,22 @@ describe('Export preferences — preserved form behavior', () => {
       const entry = w.vm.themeList.find(t => t.value === 'fancy.css')
       expect(entry).toBeTruthy()
       expect(entry.label.trim()).toBe('Fancy Theme')
+    })
+
+    it.each(['[', '\\', ']', '^', '_', '`'])('uses the filename for unsupported CSS title prefix %s', async prefix => {
+      window.fileUtils.isDirectory = vi.fn(() => true)
+      window.fileUtils.readdir = vi.fn(async () => ['unusual.css'])
+      window.fileUtils.isFile = vi.fn(() => true)
+      window.fileUtils.readFile = vi.fn(async () => `/*${prefix}Invalid title*/\nbody {}`)
+
+      const w = mount()
+      await flushPromises()
+
+      expect(w.vm.themeList.find(t => t.value === 'unusual.css')).toEqual({
+        value: 'unusual.css',
+        label: 'unusual.css'
+      })
+      w.unmount()
     })
 
     it('onBeforeUnmount removes listeners', () => {

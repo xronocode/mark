@@ -20,3 +20,9 @@ PDF, HTML and Word commands open Save directly, using an immutable snapshot of r
 ## Remaining gates
 
 Fresh checks and an identified native build must bind to the final committed candidate. Owner native acceptance, apply/archive and release-train admission remain pending. No version, tag, signing, release dispatch or publication is authorized.
+
+## Theme label range follow-up
+
+The relocated theme loader retained an ambiguous ASCII range in CSS comment labels. Explicit uppercase and lowercase ranges remove the six intervening punctuation characters. Six mounted filename-fallback cases failed before the correction; the complete form-function suite then passed 32 tests, including the existing alphabetic-label case. Verification records this label behavior without claiming CSS sanitization.
+
+The preceding complete candidate, `ffee02501aca931404a063e15b693d93d92ee7a4`, passed all four required hosted contexts. Its browser matrix passed 832 cases; one flaky case passed its existing configured retry, with eight existing skips. This is evidence for that candidate; the follow-up requires fresh checks on its own head.
