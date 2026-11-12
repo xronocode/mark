@@ -4740,6 +4740,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         </fn-toolbarLabelVisits>
       </Interface>
       <Sources>
+        <Tests>tests/e2e/markdown-render.spec.ts</Tests>
         <Source>src/muya/</Source>
         <KnowledgeGraphPath>src/muya/</KnowledgeGraphPath>
         <Tests>test/specs/commonMark/**, test/specs/gfm/**</Tests>
