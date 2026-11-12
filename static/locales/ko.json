@@ -554,7 +554,8 @@
       "general": "일반",
       "advanced": "고급",
       "appearance": "화면 표시",
-      "experimental": "실험 기능"
+      "experimental": "실험 기능",
+      "export": "내보내기"
     },
     "experimental": {
       "title": "실험 기능",
@@ -1434,17 +1435,12 @@
     }
   },
   "exportSettings": {
-    "title": "내보내기 옵션",
     "style": {
       "label": "스타일",
       "lineHeight": "줄 높이",
       "overwriteThemeFont": "테마 글꼴 설정 덮어쓰기",
       "fontSize": "글꼴 크기",
       "fontFamily": "글꼴 패밀리:"
-    },
-    "info": {
-      "description": "페이지 모양을 사용자 정의하고 \"내보내기\"를 클릭하여 계속하세요.",
-      "label": "정보"
     },
     "page": {
       "topBottom": "위/아래:",
@@ -1455,7 +1451,15 @@
       "widthHeight": "너비/높이(mm):",
       "pageSize": "페이지 크기:",
       "pageMarginPreset": "여백:",
-      "pageMargin": "페이지 여백(mm):"
+      "pageMargin": "페이지 여백(mm):",
+      "dimensions": {
+        "width": "너비 (mm)",
+        "height": "높이 (mm)",
+        "top": "위 (mm)",
+        "bottom": "아래 (mm)",
+        "left": "왼쪽 (mm)",
+        "right": "오른쪽 (mm)"
+      }
     },
     "theme": {
       "theme": "테마",
@@ -1484,7 +1488,6 @@
     },
     "autoNumberingHeadings": "제목 자동 번호 매기기",
     "showFrontMatter": "프론트 매터 보기",
-    "export": "내보내기...",
     "pdfTitle": "PDF로 내보내기",
     "toc": {
       "title": "목차",
@@ -1528,7 +1531,9 @@
     "content": {
       "label": "콘텐츠"
     },
-    "reset": "재설정"
+    "reset": "재설정",
+    "saveFailed": "일부 내보내기 설정을 저장하지 못했습니다. 내보내기 전에 다시 시도하세요.",
+    "retrySave": "다시 시도"
   },
   "import": {
     "title": "가져오기 또는 열기",

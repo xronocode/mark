@@ -554,7 +554,8 @@
       "general": "一般",
       "advanced": "進階",
       "appearance": "外觀",
-      "experimental": "實驗功能"
+      "experimental": "實驗功能",
+      "export": "匯出"
     },
     "experimental": {
       "title": "實驗功能",
@@ -1442,17 +1443,12 @@
     }
   },
   "exportSettings": {
-    "title": "匯出選項",
     "style": {
       "label": "樣式",
       "lineHeight": "行高",
       "overwriteThemeFont": "覆寫主題字型設定",
       "fontSize": "字型大小",
       "fontFamily": "字型系列："
-    },
-    "info": {
-      "description": "請自訂頁面外觀並點選「匯出」以繼續。",
-      "label": "資訊"
     },
     "page": {
       "topBottom": "上/下：",
@@ -1463,7 +1459,15 @@
       "widthHeight": "寬度/高度（毫米）：",
       "pageSize": "頁面大小：",
       "pageMarginPreset": "頁邊距：",
-      "pageMargin": "頁面邊距（毫米）："
+      "pageMargin": "頁面邊距（毫米）：",
+      "dimensions": {
+        "width": "寬度 (mm)",
+        "height": "高度 (mm)",
+        "top": "上邊界 (mm)",
+        "bottom": "下邊界 (mm)",
+        "left": "左邊界 (mm)",
+        "right": "右邊界 (mm)"
+      }
     },
     "theme": {
       "theme": "主題",
@@ -1492,7 +1496,6 @@
     },
     "autoNumberingHeadings": "自動編號標題",
     "showFrontMatter": "顯示前置資料",
-    "export": "匯出…",
     "pdfTitle": "匯出 PDF",
     "toc": {
       "title": "目錄",
@@ -1536,7 +1539,9 @@
     "content": {
       "label": "內容"
     },
-    "reset": "重設"
+    "reset": "重設",
+    "saveFailed": "部分匯出設定無法儲存。請在匯出前重試。",
+    "retrySave": "重試"
   },
   "import": {
     "title": "匯入或開啟",

@@ -72,10 +72,8 @@ test.describe('export to HTML embeds local images (C-SELF-CONTAINED-HTML-EXPORT)
       ;(window as any).__emitFakeEvent('mt::menu-invoked', 'file.export-file-html')
     })
 
-    // The styledHtml export dialog (title is the shared "Export Options").
-    const dialog = page.locator('.el-dialog', { hasText: 'Export Options' })
-    await expect(dialog).toBeVisible()
-    await dialog.locator('.button-controlls .button-primary').click()
+    // HTML export opens Save directly and embeds images before writing.
+    await expect(page.locator('.el-dialog', { hasText: 'Export Options' })).toHaveCount(0)
 
     // The write happens after the embedding pass resolves.
     const written = await page.waitForFunction(
@@ -99,6 +97,8 @@ test.describe('export to HTML embeds local images (C-SELF-CONTAINED-HTML-EXPORT)
 
     // The pass went through the binary bridge, not the UTF-8 read.
     const log = await page.evaluate(() => (window as any).__invokeLog)
+    expect(log.filter((command: string) => command === 'plugin:dialog|save')).toHaveLength(1)
+    expect(log.filter((command: string) => command === 'mt_fs_write')).toHaveLength(1)
     expect(log).toContain('mt_fs_stat')
     expect(log).toContain('mt_fs_read_binary')
     expect(log).not.toContain('mt_fs_read')

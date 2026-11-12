@@ -24,6 +24,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: an in-flight PDF cannot overwrite newer remembered settings.
 //   LAST_CHANGE: 2026-10-18 v1.0.0 - C-61 T-002: initial file — macOS print
 //   container clearing (panel closed → clearup) plus the pdf save-cancel
 //   integration (real editorStore.EXPORT through the global plugin-dialog
@@ -289,6 +290,25 @@ describe('editor.vue — C-61 print/pdf container lifecycle (macOS)', () => {
     // macOS: the backend resolves after the modal panel closes, so the
     // renderer clears the print container then (C-61 R-1).
     expect(mockPrinter.clearup).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('pdf: keeps its captured options without overwriting settings changed during rendering', async () => {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    save.mockResolvedValue(null)
+    const wrapper = await mountEditor()
+    let releaseCss
+    getCssForOptionsMock.mockImplementationOnce(() => new Promise(resolve => { releaseCss = resolve }))
+    const operation = getBusHandler('export')({
+      type: 'pdf', theme: 'old.css', pageSize: 'A4', isLandscape: false,
+      pageSizeWidth: 210, pageSizeHeight: 297,
+      pageMarginTop: 20, pageMarginRight: 15, pageMarginBottom: 20, pageMarginLeft: 15
+    })
+    editorStore.REMEMBER_EXPORT_OPTIONS({ theme: 'new.css', pageMarginLeft: 31 })
+    releaseCss('')
+    await operation
+    const { getRememberedExportAppearance } = await import('@/store/editor')
+    expect(getRememberedExportAppearance()).toMatchObject({ theme: 'new.css', pageMarginLeft: 31 })
     wrapper.unmount()
   })
 

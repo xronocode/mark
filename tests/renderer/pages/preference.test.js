@@ -35,9 +35,11 @@ vi.mock('@/util', () => ({
 }))
 
 const routeRef = reactive({ name: 'general', path: '/preference/general' })
+const pushMock = vi.fn(async () => undefined)
 
 vi.mock('vue-router', () => ({
-  useRoute: () => routeRef
+  useRoute: () => routeRef,
+  useRouter: () => ({ push: pushMock })
 }))
 
 import TabsBar from '@/prefComponents/tabsBar'
@@ -50,6 +52,7 @@ const i18n = createI18n({
       preferences: {
         title: 'Preferences',
         tabs: {
+          export: 'Export',
           general: 'General',
           appearance: 'Appearance',
           editor: 'Editor',
@@ -67,6 +70,7 @@ describe('preference.vue page (C-38 T-003 shell)', () => {
   beforeEach(() => {
     pinia = setupTestPinia()
     window.localStorage.clear()
+    pushMock.mockClear()
     routeRef.name = 'general'
     osState.isOsx = true
   })
@@ -145,5 +149,32 @@ describe('preference.vue page (C-38 T-003 shell)', () => {
     await nextTick()
     expect(window.localStorage.getItem('settings.lastTab')).toBeNull()
     wrapper.unmount()
+  })
+
+  it('routes an already-open window when the other window requests Export', async () => {
+    const wrapper = await mountShell()
+    window.dispatchEvent(new StorageEvent('storage', { key: 'settings.lastTab', newValue: 'export', storageArea: localStorage }))
+    expect(pushMock).toHaveBeenCalledWith({ path: '/preference/export' })
+    routeRef.name = 'export'
+    await nextTick()
+    expect(document.title).toBe('Export')
+    wrapper.unmount()
+  })
+
+  it('ignores null/invalid/unrelated storage events and requests for the current tab', async () => {
+    const wrapper = await mountShell()
+    for (const [key, newValue] of [['other', 'export'], ['settings.lastTab', null], ['settings.lastTab', 'invalid'], ['settings.lastTab', 'general']]) {
+      window.dispatchEvent(new StorageEvent('storage', { key, newValue, storageArea: localStorage }))
+    }
+    window.dispatchEvent(new StorageEvent('storage', { key: 'settings.lastTab', newValue: 'export', storageArea: sessionStorage }))
+    expect(pushMock).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('removes its cross-window listener when the Settings shell unmounts', async () => {
+    const wrapper = await mountShell()
+    wrapper.unmount()
+    window.dispatchEvent(new StorageEvent('storage', { key: 'settings.lastTab', newValue: 'export', storageArea: localStorage }))
+    expect(pushMock).not.toHaveBeenCalled()
   })
 })

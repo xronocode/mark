@@ -24,12 +24,13 @@ describe('tabsBar/config.js', () => {
   })
 
   describe('TABS catalog', () => {
-    it('has the 5 IA tabs plus the experimental tab in display order', () => {
+    it('keeps General first and places Export after Markdown', () => {
       expect(TAB_IDS).toEqual([
         'general',
         'appearance',
         'editor',
         'markdown',
+        'export',
         'advanced',
         'experimental'
       ])
@@ -111,12 +112,12 @@ describe('tabsBar/config.js', () => {
   })
 
   describe('remembered tab persistence', () => {
-    it('readLastTab returns general when nothing is stored', () => {
+    it('readLastTab opens General when nothing is stored', () => {
       expect(readLastTab()).toBe('general')
     })
 
     it('writeLastTab persists and readLastTab returns it', () => {
-      writeLastTab('markdown')
+      expect(writeLastTab('markdown')).toBe(true)
       expect(window.localStorage.getItem(LAST_TAB_STORAGE_KEY)).toBe('markdown')
       expect(readLastTab()).toBe('markdown')
     })
@@ -127,12 +128,12 @@ describe('tabsBar/config.js', () => {
     })
 
     it('writeLastTab ignores non-tab ids', () => {
-      writeLastTab('spelling')
+      expect(writeLastTab('spelling')).toBe(false)
       expect(window.localStorage.getItem(LAST_TAB_STORAGE_KEY)).toBeNull()
     })
 
     it('readLastTab survives localStorage throwing (private mode)', () => {
-      const getter = vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+      const getter = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
         throw new Error('quota')
       })
       expect(readLastTab()).toBe('general')
@@ -141,11 +142,12 @@ describe('tabsBar/config.js', () => {
 
     it('writeLastTab survives localStorage throwing', () => {
       const setter = vi
-        .spyOn(window.localStorage, 'setItem')
+        .spyOn(Storage.prototype, 'setItem')
         .mockImplementation(() => {
           throw new Error('quota')
         })
       expect(() => writeLastTab('editor')).not.toThrow()
+      expect(writeLastTab('editor')).toBe(false)
       setter.mockRestore()
     })
   })

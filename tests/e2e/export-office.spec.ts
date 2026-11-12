@@ -180,4 +180,47 @@ test.describe('export to word and the tab-menu export group', () => {
     // The modal-less pin holds on the tab-menu door too.
     await expect(page.locator('.el-dialog')).toHaveCount(0)
   })
+
+  for (const format of ['Pdf', 'Html']) {
+    test(`a background-tab ${format} export goes directly to Save for the selected document`, async ({ page }) => {
+      await page.addInitScript(kind => {
+        const w = window as any
+        w.__saveCalls = []
+        w.__invokeLog = []
+        w.__mockInvoke.mt_window_popup_context_menu = () => `tabExport${kind}`
+        w.__mockInvoke['plugin:dialog|save'] = (args: any) => {
+          w.__saveCalls.push(args.options)
+          return `/tmp/background.${args.options.filters[0].extensions[0]}`
+        }
+      }, format)
+      await bootEditor(page)
+      await openFileTab(page, '/tmp/background.md', '# Background document\n\nOwn buffer.\n')
+      await openFileTab(page, '/tmp/foreground.md', '# Foreground document\n')
+      await page.locator('li[data-id][title="/tmp/background.md"]').click({ button: 'right' })
+      const write = format === 'Pdf' ? 'mt_export_pdf' : 'mt_fs_write'
+      await expect.poll(() => page.evaluate(command => (window as any).__invokeLog.includes(command), write)).toBe(true)
+      const calls = await page.evaluate(() => (window as any).__saveCalls)
+      expect(calls).toHaveLength(1)
+      expect(calls[0].defaultPath).toBe(`background.${format.toLowerCase()}`)
+      await expect(page.locator('.el-dialog')).toHaveCount(0)
+    })
+
+    test(`titlebar ${format} quick export closes the popover and opens Save directly`, async ({ page }) => {
+      await page.addInitScript(() => {
+        const w = window as any
+        w.__invokeLog = []
+        w.__mockInvoke['plugin:dialog|save'] = (args: any) => `/tmp/popover.${args.options.filters[0].extensions[0]}`
+      })
+      await bootEditor(page)
+      await openFileTab(page, '/tmp/popover.md', '# Popover export\n\nOwn buffer.\n')
+      await page.locator('.title-bar .title').click()
+      const popover = page.locator('.doc-info-popover')
+      await expect(popover).toBeVisible()
+      await popover.getByRole('button', { name: format === 'Pdf' ? 'Export as PDF' : 'Export as HTML', exact: true }).click()
+      await expect(popover).toHaveCount(0)
+      const write = format === 'Pdf' ? 'mt_export_pdf' : 'mt_fs_write'
+      await expect.poll(() => page.evaluate(command => (window as any).__invokeLog.includes(command), write)).toBe(true)
+      await expect(page.locator('.el-dialog')).toHaveCount(0)
+    })
+  }
 })

@@ -34,7 +34,6 @@
       <project-search></project-search>
       <problems-panel></problems-panel>
       <about-dialog></about-dialog>
-      <export-setting-dialog></export-setting-dialog>
       <whats-new-dialog></whats-new-dialog>
       <rename></rename>
       <tweet></tweet>
@@ -66,6 +65,7 @@
 //            is injected once while common styles still initialize on boot.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-12 C-EXPORT-SETTINGS-SECTION: export settings live in Preferences; remove the pre-export dialog mount.
 //   - 2026-11-01 C-WINDOWS-MENU-ACCELERATORS: boot installs the
 //     window-level menu-accelerator dispatcher beside the zoom/palette
 //     capture handlers (off on darwin; disposes with the other window
@@ -160,7 +160,6 @@ import AboutDialog from '@/components/about'
 import CommandPalette from '@/components/commandPalette'
 import ProjectSearch from '@/components/projectSearch'
 import ProblemsPanel from '@/components/problems'
-import ExportSettingDialog from '@/components/exportSettings'
 import Rename from '@/components/rename'
 import Tweet from '@/components/tweet'
 import ImportModal from '@/components/import'

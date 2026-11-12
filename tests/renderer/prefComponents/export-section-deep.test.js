@@ -1,21 +1,31 @@
+// FILE: tests/renderer/prefComponents/export-section-deep.test.js
+// VERSION: 2.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Preserve detailed export form controls, theme discovery and language cleanup after relocation into Preferences.
+//   SCOPE: Inherited field/option assertions with actual appearance persistence; replace modal lifecycle with section lifecycle.
+//   DEPENDS: Vue Test Utils, Pinia, actual editor store/page-default helper, controlled filesystem and bus.
+//   LINKS: M-072; V-M-072; C-EXPORT-SETTINGS-SECTION.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   i18n - Existing form labels.
+//   makeStubs - Existing control and section boundaries.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-12 C-EXPORT-SETTINGS-SECTION: retain deep form assertions without obsolete dialog events.
+// END_CHANGE_SUMMARY
 import { shallowMount } from '@vue/test-utils'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
 import { nextTick } from 'vue'
 
+vi.mock('@/prefComponents/common/compound', () => ({ default: { name: 'Compound', template: '<section><slot name="head"/><slot name="children"/></section>' } }))
+
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
-vi.mock('./exportOptions', () => ({
-  getPageSizeList: () => [{ label: 'A4', value: 'A4' }, { label: 'Custom', value: 'custom' }],
-  getHeaderFooterTypes: () => [
-    { label: 'None', value: 0 },
-    { label: 'Single', value: 1 },
-    { label: 'Three', value: 2 }
-  ],
-  getExportThemeList: () => [{ label: 'Default', value: 'default' }, { label: 'Academic', value: 'academic' }]
-}))
 
 const i18n = createI18n({
   legacy: false,
@@ -73,7 +83,7 @@ const i18n = createI18n({
 })
 
 const makeStubs = () => ({
-  ElDialog: { template: '<div><slot /></div>' },
+  Compound: { template: '<section><slot name="head"/><slot name="children"/></section>' },
   ElInputNumber: true,
   Bool: true,
   CurSelect: true,
@@ -82,10 +92,15 @@ const makeStubs = () => ({
   TextBox: true
 })
 
-describe('exportSettings/index.vue — deep coverage', () => {
-  let pinia, bus, ExportSettings
+describe('Export preferences — inherited deep behavior', () => {
+  let pinia, bus, ExportSettings, rememberOptions
+  const wrappers = []
+  afterEach(() => {
+    for (const w of wrappers.splice(0)) if (!w.vm.$.isUnmounted) w.unmount()
+  })
 
   beforeEach(async () => {
+    localStorage.clear()
     pinia = setupTestPinia()
     bus = (await import('@/bus')).default
 
@@ -109,65 +124,47 @@ describe('exportSettings/index.vue — deep coverage', () => {
       readFile: vi.fn(async () => '')
     }
 
-    ExportSettings = (await import('@/components/exportSettings/index.vue')).default
+    const store = (await import('@/store/editor')).useEditorStore()
+    rememberOptions = vi.spyOn(store, 'REMEMBER_EXPORT_OPTIONS')
+    ExportSettings = (await import('@/prefComponents/tabs/export/index.vue')).default
   })
 
-  const mountComponent = () =>
-    shallowMount(ExportSettings, {
-      global: {
-        plugins: [pinia, i18n],
-        stubs: makeStubs()
-      }
-    })
+  const mountComponent = () => {
+    const w = shallowMount(ExportSettings, { global: { plugins: [pinia, i18n], stubs: makeStubs() } })
+    wrappers.push(w)
+    return w
+  }
 
-  // --- showDialog ---
-  describe('showDialog', () => {
-    it('opens dialog for pdf type', () => {
+  describe('section lifecycle', () => {
+    it('is available immediately without an export dialog or editor blur', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-
-      showHandler('pdf')
-
-      expect(wrapper.vm.showExportSettingsDialog).toBe(true)
-      expect(wrapper.vm.exportType).toBe('pdf')
-      expect(wrapper.vm.isPrintable).toBe(true)
-      expect(bus.emit).toHaveBeenCalledWith('editor-blur')
+      expect(wrapper.exists()).toBe(true)
+      expect(bus.on.mock.calls.some(call => call[0] === 'showExportDialog')).toBe(false)
+      expect(bus.emit).not.toHaveBeenCalledWith('editor-blur')
     })
-
-    it('loads themes from disk on first show', () => {
-      const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-
-      showHandler('pdf')
-      expect(wrapper.vm.themesLoaded).toBe(true)
+    it('discovers export themes when mounted', () => {
+      mountComponent()
+      expect(window.fileUtils.isDirectory).toHaveBeenCalledTimes(1)
     })
-
-    it('does not reload themes on subsequent shows', () => {
+    it('does not reload themes when unrelated settings change', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-
-      showHandler('pdf')
       window.fileUtils.isDirectory.mockClear()
-      showHandler('pdf')
-
-      // isDirectory should only be called once (from the first show)
+      wrapper.vm.onSelectChange('tocTitle', 'TOC')
+      wrapper.vm.onSelectChange('theme', 'academic')
       expect(window.fileUtils.isDirectory).not.toHaveBeenCalled()
     })
   })
 
-  // --- handleClicked ---
-  describe('handleClicked', () => {
-    it('emits export with basic PDF options', () => {
+  // --- persistCurrentOptions ---
+  describe('persistCurrentOptions', () => {
+    it('persists the original factory form options without exporting', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      expect(wrapper.vm.showExportSettingsDialog).toBe(false)
-      expect(bus.emit).toHaveBeenCalledWith('export', expect.objectContaining({
-        type: 'pdf',
+      expect(bus.emit).not.toHaveBeenCalledWith('export', expect.anything())
+      expect(rememberOptions).toHaveBeenCalledWith(expect.objectContaining({
         pageSize: 'A4',
         isLandscape: false,
         pageMarginTop: 20,
@@ -179,30 +176,26 @@ describe('exportSettings/index.vue — deep coverage', () => {
 
     it('includes htmlTitle for styledHtml', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('styledHtml')
       wrapper.vm.htmlTitle = 'My Page'
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      const exportArgs = bus.emit.mock.calls.find((c) => c[0] === 'export')[1]
+      const exportArgs = rememberOptions.mock.calls.at(-1)[0]
       expect(exportArgs.htmlTitle).toBe('My Page')
     })
 
     it('includes font settings when overwrite is on', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
       wrapper.vm.fontSettingsOverwrite = true
       wrapper.vm.fontSize = 16
       wrapper.vm.lineHeight = 1.8
       wrapper.vm.fontFamily = 'Arial'
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      const exportArgs = bus.emit.mock.calls.find((c) => c[0] === 'export')[1]
+      const exportArgs = rememberOptions.mock.calls.at(-1)[0]
       expect(exportArgs.fontSize).toBe(16)
       expect(exportArgs.lineHeight).toBe(1.8)
       expect(exportArgs.fontFamily).toBe('Arial')
@@ -210,28 +203,24 @@ describe('exportSettings/index.vue — deep coverage', () => {
 
     it('sets fontFamily to null when Default', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
       wrapper.vm.fontSettingsOverwrite = true
       wrapper.vm.fontFamily = 'Default'
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      const exportArgs = bus.emit.mock.calls.find((c) => c[0] === 'export')[1]
+      const exportArgs = rememberOptions.mock.calls.at(-1)[0]
       expect(exportArgs.fontFamily).toBeNull()
     })
 
     it('includes header settings when headerType is not 0', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
       wrapper.vm.headerTextCenter = 'My Header'
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      const exportArgs = bus.emit.mock.calls.find((c) => c[0] === 'export')[1]
+      const exportArgs = rememberOptions.mock.calls.at(-1)[0]
       expect(exportArgs.header).toEqual({
         type: 1,
         left: '',
@@ -242,16 +231,14 @@ describe('exportSettings/index.vue — deep coverage', () => {
 
     it('includes footer settings when footerType is not 0', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
       wrapper.vm.footerTextLeft = 'Left'
       wrapper.vm.footerTextCenter = 'Center'
       wrapper.vm.footerTextRight = 'Right'
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      const exportArgs = bus.emit.mock.calls.find((c) => c[0] === 'export')[1]
+      const exportArgs = rememberOptions.mock.calls.at(-1)[0]
       expect(exportArgs.footer).toEqual({
         type: 2,
         left: 'Left',
@@ -262,30 +249,26 @@ describe('exportSettings/index.vue — deep coverage', () => {
 
     it('includes headerFooter customize settings', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
       wrapper.vm.headerFooterCustomize = true
       wrapper.vm.headerFooterStyled = false
       wrapper.vm.headerFooterFontSize = 10
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      const exportArgs = bus.emit.mock.calls.find((c) => c[0] === 'export')[1]
+      const exportArgs = rememberOptions.mock.calls.at(-1)[0]
       expect(exportArgs.headerFooterStyled).toBe(false)
       expect(exportArgs.headerFooterFontSize).toBe(10)
     })
 
     it('uses non-default theme value', () => {
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
       wrapper.vm.theme = 'academic'
 
       bus.emit.mockClear()
-      wrapper.vm.handleClicked()
+      wrapper.vm.persistCurrentOptions()
 
-      const exportArgs = bus.emit.mock.calls.find((c) => c[0] === 'export')[1]
+      const exportArgs = rememberOptions.mock.calls.at(-1)[0]
       expect(exportArgs.theme).toBe('academic')
     })
   })
@@ -377,8 +360,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       window.fileUtils.isDirectory = vi.fn(() => false)
 
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
 
       await nextTick()
       await new Promise((r) => setTimeout(r, 10))
@@ -394,8 +375,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       window.fileUtils.readFile = vi.fn(async () => '/* My Custom Theme */\nbody { color: red; }')
 
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
 
       // Wait for async operations
       await new Promise((r) => setTimeout(r, 50))
@@ -412,8 +391,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       window.fileUtils.readFile = vi.fn(async () => 'body { color: blue; }')
 
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
 
       await new Promise((r) => setTimeout(r, 50))
 
@@ -429,8 +406,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
 
       await new Promise((r) => setTimeout(r, 50))
 
@@ -447,8 +422,6 @@ describe('exportSettings/index.vue — deep coverage', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       const wrapper = mountComponent()
-      const showHandler = bus.on.mock.calls.find((c) => c[0] === 'showExportDialog')[1]
-      showHandler('pdf')
 
       await new Promise((r) => setTimeout(r, 50))
 
@@ -463,7 +436,7 @@ describe('exportSettings/index.vue — deep coverage', () => {
       const wrapper = mountComponent()
       wrapper.unmount()
 
-      expect(bus.off).toHaveBeenCalledWith('showExportDialog', expect.any(Function))
+      expect(bus.on.mock.calls.some(call => call[0] === 'showExportDialog')).toBe(false)
       expect(bus.off).toHaveBeenCalledWith('language-changed', expect.any(Function))
     })
   })

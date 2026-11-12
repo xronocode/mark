@@ -1,7 +1,7 @@
 // FILE: src/renderer/src/prefComponents/tabsBar/config.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Catalog for the C-38 T-003 Settings shell — the toolbar tabs (the 5 C-38 IA tabs plus the C-LARGE-DOC-WAVE-A Experimental tab), the legacy-route redirect map, the schema-category → tab routing map for settings search, and the remembered-tab persistence.
+//   PURPOSE: Catalog for the C-38 T-003 Settings shell — the toolbar tabs (General first, Export after Markdown and Experimental last), the legacy-route redirect map, the schema-category → tab routing map for settings search, and the remembered-tab persistence.
 //   SCOPE: Static tab metadata + pure helpers (tabPath, tabTitle, readLastTab, writeLastTab); no Vue rendering, no store access.
 //   DEPENDS: none (icons are attached by tabsBar/index.vue via icons.js).
 //   LINKS: .grace/changes/archive/C-38; .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
@@ -10,18 +10,19 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   TABS - the shell tabs in display order ({ id, labelKey, path }): the 5 C-38 IA tabs plus the C-LARGE-DOC-WAVE-A experimental tab last.
+//   TABS - the shell tabs in display order ({ id, labelKey, path }): General first, Export after Markdown and Experimental last.
 //   TAB_IDS - id array, single source of truth for valid tab ids.
 //   LEGACY_ROUTE_REDIRECTS - old 9-route → 5-tab path map (deep links and menu items keep working; every target is one of the original IA tabs).
 //   CATEGORY_TO_TAB - schema.json search categories → tab id (Theme → appearance, Spelling → editor, Image/Custom CSS → advanced …; the experimental toggle is not schema-backed and has no search category).
 //   LAST_TAB_STORAGE_KEY - localStorage key for the remembered tab.
 //   tabPath - id → '/preference/<id>' (identity-safe: unknown ids fall back to general).
 //   tabTitle - window title for a tab label (macOS: bare label; Windows/Linux: '<label> — Mark').
-//   readLastTab - persisted tab id or 'general' (try/catch around localStorage; invalid values fall back).
-//   writeLastTab - persists a tab id (try/catch; silently ignores storage failures).
+//   readLastTab - Persisted tab id or the first General tab; guards invalid/unavailable storage.
+//   writeLastTab - Persist a valid tab id and report whether the write succeeded.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   EXPORT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: place Export after Markdown; retain General as the fresh default and expose honest last-tab write success for cross-window navigation.
 //   LAST_CHANGE: v1.2.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-004: TABS gains
 //   the Experimental tab (id 'experimental', last position) hosting the
 //   session-latched progressive-mount toggle; LEGACY_ROUTE_REDIRECTS and
@@ -42,6 +43,7 @@ export const TABS = [
   { id: 'appearance', labelKey: 'preferences.tabs.appearance', path: '/preference/appearance' },
   { id: 'editor', labelKey: 'preferences.tabs.editor', path: '/preference/editor' },
   { id: 'markdown', labelKey: 'preferences.tabs.markdown', path: '/preference/markdown' },
+  { id: 'export', labelKey: 'preferences.tabs.export', path: '/preference/export' },
   { id: 'advanced', labelKey: 'preferences.tabs.advanced', path: '/preference/advanced' },
   { id: 'experimental', labelKey: 'preferences.tabs.experimental', path: '/preference/experimental' }
 ]
@@ -100,17 +102,18 @@ export const tabTitle = (label, isMac) => {
 export const readLastTab = () => {
   try {
     const stored = window.localStorage.getItem(LAST_TAB_STORAGE_KEY)
-    return TAB_IDS.includes(stored) ? stored : 'general'
+    return TAB_IDS.includes(stored) ? stored : TABS[0].id
   } catch (e) {
-    return 'general'
+    return TABS[0].id
   }
 }
 
 export const writeLastTab = (id) => {
-  if (!TAB_IDS.includes(id)) return
+  if (!TAB_IDS.includes(id)) return false
   try {
     window.localStorage.setItem(LAST_TAB_STORAGE_KEY, id)
+    return true
   } catch (e) {
-    // Private-mode/quota failures must never break tab switching.
+    return false
   }
 }

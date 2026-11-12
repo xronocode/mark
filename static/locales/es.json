@@ -554,7 +554,8 @@
       "general": "General",
       "advanced": "Avanzado",
       "appearance": "Apariencia",
-      "experimental": "Experimental"
+      "experimental": "Experimental",
+      "export": "Exportación"
     },
     "experimental": {
       "title": "Funciones experimentales",
@@ -1435,17 +1436,12 @@
     }
   },
   "exportSettings": {
-    "title": "Opciones de Exportación",
     "style": {
       "label": "Estilo",
       "lineHeight": "Altura de línea",
       "overwriteThemeFont": "Sobrescribir configuración de fuente del tema",
       "fontSize": "Tamaño de fuente",
       "fontFamily": "Familia de fuente:"
-    },
-    "info": {
-      "description": "Por favor personalice la apariencia de la página y haga clic en \"exportar\" para continuar.",
-      "label": "Información"
     },
     "page": {
       "topBottom": "Superior/Inferior:",
@@ -1456,7 +1452,15 @@
       "widthHeight": "Ancho/Alto en mm:",
       "pageSize": "Tamaño de página:",
       "pageMarginPreset": "Márgenes:",
-      "pageMargin": "Margen de página en mm:"
+      "pageMargin": "Margen de página en mm:",
+      "dimensions": {
+        "width": "Anchura (mm)",
+        "height": "Altura (mm)",
+        "top": "Superior (mm)",
+        "bottom": "Inferior (mm)",
+        "left": "Izquierda (mm)",
+        "right": "Derecha (mm)"
+      }
     },
     "theme": {
       "theme": "Tema",
@@ -1485,7 +1489,6 @@
     },
     "autoNumberingHeadings": "Numeración automática de encabezados",
     "showFrontMatter": "Mostrar metadatos",
-    "export": "Exportar...",
     "pdfTitle": "Exportar a PDF",
     "toc": {
       "title": "Tabla de Contenidos",
@@ -1529,7 +1532,9 @@
     "content": {
       "label": "Contenido"
     },
-    "reset": "Restablecer"
+    "reset": "Restablecer",
+    "saveFailed": "No se han podido guardar algunos ajustes de exportación. Vuelve a intentarlo antes de exportar.",
+    "retrySave": "Reintentar"
   },
   "import": {
     "title": "Importar o Abrir",
