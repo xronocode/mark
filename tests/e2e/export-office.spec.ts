@@ -14,12 +14,13 @@
  *     - the popup spec carries Export to PDF/HTML/Word after the file
  *       block, gated on pathname exactly like Copy path,
  *     - clicking Export to Word on a background tab activates that tab
- *       and exports ITS buffer (default name proves the right document).
+ *       and exports ITS buffer (both the filename and output content are checked).
  */
 
 import { test, expect } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
+import JSZip from 'jszip'
 
 const DOC = [
   '# Word export spec',
@@ -171,11 +172,21 @@ test.describe('export to word and the tab-menu export group', () => {
     expect(items.findIndex((i: any) => i.id === 'tabExportPdf')).toBeGreaterThan(lastSeparator)
     expect(items.find((i: any) => i.id === 'tabExportDocx').enabled).toBe(true)
 
-    // The export acted on the BACKGROUND tab's document: the default save
-    // name proves the activation-first semantics (R-2).
+    // Filename selection and actual document content must identify the same tab.
     const saveCalls = await page.evaluate(() => (window as any).__saveCalls)
     expect(saveCalls).toHaveLength(1)
     expect(saveCalls[0].defaultPath).toBe('word-bg.docx')
+    const writes = await page.evaluate(() => (window as any).__writeCalls)
+    expect(writes).toHaveLength(1)
+    const zip = await JSZip.loadAsync(new Uint8Array(writes[0].data))
+    const documentXml = await zip.file('word/document.xml')!.async('string')
+    const documentText = await page.evaluate(xml => {
+      const doc = new DOMParser().parseFromString(xml, 'application/xml')
+      return Array.from(doc.getElementsByTagName('w:t')).map(node => node.textContent).join('')
+    }, documentXml)
+    expect(documentText).toContain('Word export spec')
+    expect(documentText).toContain('кириллица и中文')
+    expect(documentText).not.toContain('Foreground')
 
     // The modal-less pin holds on the tab-menu door too.
     await expect(page.locator('.el-dialog')).toHaveCount(0)
@@ -187,10 +198,18 @@ test.describe('export to word and the tab-menu export group', () => {
         const w = window as any
         w.__saveCalls = []
         w.__invokeLog = []
+        w.__exportedContent = []
         w.__mockInvoke.mt_window_popup_context_menu = () => `tabExport${kind}`
         w.__mockInvoke['plugin:dialog|save'] = (args: any) => {
           w.__saveCalls.push(args.options)
           return `/tmp/background.${args.options.filters[0].extensions[0]}`
+        }
+        w.__mockInvoke.mt_export_pdf = () => {
+          w.__exportedContent.push(document.querySelector('article.print-container')?.textContent ?? '')
+        }
+        w.__mockInvoke.mt_fs_write = (args: any) => {
+          const html = new DOMParser().parseFromString(args?.content ?? '', 'text/html')
+          w.__exportedContent.push(html.body.textContent)
         }
       }, format)
       await bootEditor(page)
@@ -202,6 +221,11 @@ test.describe('export to word and the tab-menu export group', () => {
       const calls = await page.evaluate(() => (window as any).__saveCalls)
       expect(calls).toHaveLength(1)
       expect(calls[0].defaultPath).toBe(`background.${format.toLowerCase()}`)
+      const content = await page.evaluate(() => (window as any).__exportedContent)
+      expect(content).toHaveLength(1)
+      expect(content[0]).toContain('Background document')
+      expect(content[0]).toContain('Own buffer.')
+      expect(content[0]).not.toContain('Foreground document')
       await expect(page.locator('.el-dialog')).toHaveCount(0)
     })
 

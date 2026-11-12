@@ -8,10 +8,10 @@ PDF, HTML and Word commands open Save directly, using an immutable snapshot of r
 
 ## Local verification
 
-- tests: 123 passed, 0 failed (nine suites declared by the approved final gate).
+- tests: 129 passed, 0 failed (nine suites declared by the approved final gate).
 - build: green (`npm run typecheck:ipc` and `npm run build`).
 - Selected final validation on the integrated PDF-save baseline: three commands passed, zero errors and five existing warnings, including the unrelated overlapping active change.
-- Full renderer coverage on the matching feature renderer source: 5823 passed, 2 existing skips, 3 todos. Statement/branch/function/line coverage was 92.23/85.66/88.70/93.71 with unchanged thresholds. This predates baseline integration and is not a new-head hosted total.
+- Full renderer coverage on the refreshed integration tree: 5936 passed across 421 files, 2 existing skips and 3 todos. Statement/branch/function/line coverage is 92.23/85.66/88.70/93.71 with unchanged thresholds. These are local integration results; final-head hosted verification remains separate.
 - e2e: 42/42 passed (Settings and export flows, Chromium/WebKit); 22/22 passed (HTML images, Word and Print); 28/28 passed (save/close characterization). The latter two cohorts retain complete image bytes and canonical HTML oracles after removing obsolete modal expectations.
 - Semantic parity checks preserved PDF options, HTML bytes/styles/content and Word geometry/content for the same options.
 - Light/dark Settings rendering was inspected at 640 by 620. Earlier isolated native artifacts demonstrated PDF page geometry and notice navigation; those observations do not establish acceptance of a new build.
@@ -19,7 +19,15 @@ PDF, HTML and Word commands open Save directly, using an immutable snapshot of r
 
 ## Remaining gates
 
-Fresh checks and an identified native build must bind to the final committed candidate. Owner native acceptance, apply/archive and release-train admission remain pending. No version, tag, signing, release dispatch or publication is authorized.
+The owner authorized integration and apply/archive while preserving open native/owner/platform acceptance. The authorization remains valid; fresh review, hosted checks and an identified native build must bind to the final refreshed committed candidate before lifecycle completion and integration. Release-train admission remains pending. No version, tag, signing, release dispatch or publication is authorized.
+
+## Current-model export dependency
+
+The refreshed tree integrates the applied and archived C-MUYA-CURRENT-MODEL-EXPORT repair. Both existing HTML export APIs read one current complete-model string rather than a stale change-event cache. The real-Muya focused suites passed 23 tests in the merged tree. Strengthened PDF, HTML and Word browser cases inspect actual output content as well as the selected filename; the complete Export/Settings cohort passed 42 of 42 cases in Chromium and WebKit.
+
+All 882 compared product source paths match the identified earlier acceptance combination byte for byte. That combination passed nine native entry/format routes and fourteen output-content inspections, plus orientation, Settings navigation, Reset, Save cancellation and Print cancellation. This establishes source-bound acceptance evidence and does not relabel a temporary tree as the final committed native artifact.
+
+The minimized-Settings presentation observation also reproduces on unchanged main through both the native Settings menu and its keyboard shortcut. It remains a separately open pre-existing window issue, together with the preserved owner/platform verdicts. No unrelated window repair or C-50 work is included here.
 
 ## Theme label range follow-up
 

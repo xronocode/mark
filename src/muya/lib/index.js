@@ -2,7 +2,7 @@
 // VERSION: 1.11.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Muya editor entry class — construction, options, and the public API surface other modules call.
-//   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), destroy() teardown incl. the C-51 T-010 expand-need observation release, and C-LARGE-DOC-WAVE-A T-003: the progressive mount entry points (progressiveMount/mountToBlockKey/mountToOffset/cancelProgressive over muya.progressive), the content-free open-path marker names (BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE, re-exported), the pending-tail cancellation on setMarkdown content loads (R-2 prefix-mismatch reset) and on destroy, and the served=legacy marker for plain legacy content loads (corner-2). C-62: Per-diagram appearance controller lifecycle, writable metadata and read-only view overrides.
+//   SCOPE: Class construction/init, markdown IO (get/set), view-only Markdown reparse on footnote option changes and history restoration (C-60), export helpers with read-only complete-model snapshots at call entry, clipboard accessors, public editing commands, setOptions (dispatching muya-options-rerender after a needRender re-render so open overlays can follow theme-switch re-renders, C-51 T-014), the C-38 code-block line-number refresh entry, the C-39 T-002 session table column resize store (muya.tableResize), destroy() teardown incl. the C-51 T-010 expand-need observation release, and C-LARGE-DOC-WAVE-A T-003: the progressive mount entry points (progressiveMount/mountToBlockKey/mountToOffset/cancelProgressive over muya.progressive), the content-free open-path marker names (BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE, re-exported), the pending-tail cancellation on setMarkdown content loads (R-2 prefix-mismatch reset) and on destroy, and the served=legacy marker for plain legacy content loads (corner-2). C-62: Per-diagram appearance controller lifecycle, writable metadata and read-only view overrides.
 //   DEPENDS: contentState, event handlers (clipboard/keyboard/mouse/click/dragDrop/resize), tableResize, parser/render/renderBlock/expandNeed (observation release), utils (ExportMarkdown/ExportHtml), ui plugins, ./progressive (progressive mount subsystem, C-LARGE-DOC-WAVE-A T-003); ./ui/diagramAppearance.
 //   LINKS: .grace/graph/runtime.xml M-012 fn-getCopyData and fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-14, scenario-20 and scenario-21; C-3; C-38 T-005; C-39 T-002; C-51 T-010; C-51 T-014 (muya-options-rerender, consumed by ui/blockViewer).; .grace/changes/archive/C-62; .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-1/R-2/R-3/R-3 markers; plan T-003; M-063 routing lands with T-008).
 //   ROLE: RUNTIME
@@ -12,6 +12,8 @@
 // START_MODULE_MAP
 //   muya.diagramAppearance - per-diagram four-mode menu, portable metadata edits and bounded read-only overrides (C-62).
 //   default - GRACE 4 synchronized symbol (Muya class).
+//   Muya#exportStyledHTML - Capture the current complete model once before styled HTML conversion.
+//   Muya#exportHtml - Capture the current complete model once before raw HTML conversion.
 //   Muya#reparseMarkdown - rebuild blocks under the current footnote grammar without a content event or history entry, preserving source selection and scroll.
 //   Muya#refreshCodeBlockLineNumbers - re-measure every code-block gutter (wrap or code-font change without a re-render).
 //   muya.tableResize - TableResize instance (C-39 T-002): in-memory session column widths per table block key; never touches markdown, history or isSaved.
@@ -23,6 +25,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-12 C-MUYA-CURRENT-MODEL-EXPORT: both HTML export APIs snapshot getMarkdown without refreshing the change-event cache or mutating document state.
 //   - 2026-11-10 C-MD-LINK-TABS: own one capture-phase link controller per instance and invalidate it on document imports/teardown.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Add render-only document import and one-shot exact unified-history replay while preserving ordinary and progressive load paths.
 //   LAST_CHANGE: v1.11.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-003:
@@ -293,12 +296,12 @@ class Muya {
   }
 
   exportStyledHTML(options) {
-    const { markdown } = this
+    const markdown = this.getMarkdown()
     return new ExportHtml(markdown, this).generate(options)
   }
 
   exportHtml() {
-    const { markdown } = this
+    const markdown = this.getMarkdown()
     return new ExportHtml(markdown, this).renderHtml()
   }
 
