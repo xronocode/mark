@@ -14,6 +14,7 @@
 //   nativeResult - Complete positive result protocol for orchestration tests only.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-12: bound fixture deletion retries for transient Windows ENOTEMPTY while deadline-failure receipt writes finish.
 //   LAST_CHANGE: 2026-11-12 C-QUICKLOOK-CONTENT-BOUNDARY: fail-closed runner regression matrix.
 // END_CHANGE_SUMMARY
 
@@ -27,7 +28,7 @@ import { REQUIRED_QUICKLOOK_CASES, executeChild, runQuickLookChecks, validateNat
 
 const owned = []
 afterEach(async () => {
-  await Promise.all(owned.splice(0).map(path => fs.rm(path, { recursive: true, force: true })))
+  await Promise.all(owned.splice(0).map(path => fs.rm(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 })))
 })
 const nativeResult = () => ({ cases: REQUIRED_QUICKLOOK_CASES.map(id => ({ id, passed: true })) })
 async function fixture(native = async () => ({ code: 0, stdout: JSON.stringify(nativeResult()), stderr: '' })) {
