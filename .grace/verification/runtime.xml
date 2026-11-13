@@ -5005,7 +5005,8 @@
           webkit-clipboard project): the menu command opens a folder
           workspace from a text path (folder-switcher + walk) and from
           a shimmed pasteboard file-URL list, replaces an already open
-          workspace (close for the old root recorded), opens a .md in a
+          workspace (close for the old root recorded; the exact ordered walk
+          array awaited through its exposed callback), opens a .md in a
           tab with content rendered and no workspace opened, notifies
           on garbage without dialogs; the welcome screen opens a folder
           with plain ⌘V and stays inert for ⌥⌘V; a dropped folder opens
