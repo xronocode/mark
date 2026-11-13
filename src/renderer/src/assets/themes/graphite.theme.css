@@ -130,11 +130,7 @@
   border-bottom: none;
   background: var(--floatBgColor) !important;
 }
-.tabs-container > li.active:after {
-  top: 0 !important;
-  bottom: auto !important;
-  background: var(--themeColor) !important;
-}
+/* Active-tab marker follows the shared bottom chrome-accent rule. */
 
 /* ------------------------------------ */
 
