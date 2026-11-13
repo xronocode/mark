@@ -4,7 +4,7 @@
 //   PURPOSE: Pin util/pageWidth.js — the C-PAGE-WIDTH-TABLES T-002 (M-061) width resolution pipeline and canvas model: document > theme > global precedence with the source named, the ch/px/% conversion with the 10% preset snap and nearest-preset anchor, canvas = window − sidebar, the render-time clamp (min(setting, canvas − indent), 400px floor) that never mutates the stored value (corner C-2), the % recompute across canvas changes (corner C-3), the F-WINDOW-AUTO-RESIZE formula integration point, and the single inline writer with its theme-ordering guarantee (review finding F1: theme→width and width→theme both settle on the effective value).
 //   SCOPE: Pure functions over plain objects plus the DOM writer and the theme.js re-apply hook in jsdom; themeColor/config are mocked lightweight (mirroring theme.test.js) so the ordering test exercises the real addThemeStyle switch logic without the 34 shipped stylesheets.
 //   DEPENDS: Vitest; util/pageWidth.js; util/theme.js (addThemeStyle); @/config, @/util/themeColor, @/util/index mocked.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-002, corners C-1/C-2/C-3, findings F1/F2/F6); util/pageWidth.js; util/theme.js addThemeStyle; tests/renderer/util/editor-width-default.test.js (the 768px lockstep this suite's default arithmetic mirrors).
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-002, corners C-1/C-2/C-3, findings F1/F2/F6); util/pageWidth.js; util/theme.js addThemeStyle; tests/renderer/util/editor-width-default.test.js (the 768px lockstep this suite's default arithmetic mirrors).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

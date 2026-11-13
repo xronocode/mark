@@ -12,7 +12,7 @@
 //   DEPENDS: store/notifications (liveStack, overflowCount, DISMISS,
 //          DISMISS_TOP), components/notificationCard, icons/chromeIcons,
 //          i18n, bus.
-//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-2;
+//   LINKS: .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-2;
 //          pages/app.vue (mounts it once);
 //          components/notificationsHistory ('show-notifications-history').
 //   ROLE: RUNTIME

@@ -9,7 +9,7 @@
 //          timers with hover pause/resume, sticky errors, FIFO history capped
 //          at 50, DISMISS / DISMISS_TOP / CLEAR. No DOM, no rendering.
 //   DEPENDS: pinia, util (getUniqueId).
-//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-2/R-5/R-6;
+//   LINKS: .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-2/R-5/R-6;
 //          services/notification (compatibility facade over NOTIFY);
 //          components/notificationStack + notificationCard (rendering);
 //          components/notificationsHistory (history surface);

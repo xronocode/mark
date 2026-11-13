@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the tab-context-menu export group (C-NATIVE-DOCX-RTF-EXPORT T-005): three items with pathname gating, label keys shared with the File menu wording, handlers that activate a background tab first and then run the identical export flow (docx via its compatibility store action, PDF/HTML via the shared snapshot action).
 //   SCOPE: getEXPORT_PDF/HTML/DOCX, HANDLERS.tabExport*, showContextMenu item list and gating, activateThenExport in src/renderer/src/contextMenu/tabs/.
 //   DEPENDS: Vitest; mocked @/bus, @/i18n, @/store/editor.
-//   LINKS: .grace/changes/active/C-NATIVE-DOCX-RTF-EXPORT (R-2); contextMenu/tabs/menuItems.js, actions.js, index.js.
+//   LINKS: .grace/changes/archive/C-NATIVE-DOCX-RTF-EXPORT (R-2); contextMenu/tabs/menuItems.js, actions.js, index.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

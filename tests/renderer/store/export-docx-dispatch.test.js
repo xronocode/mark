@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the modal-less Word export dispatch (C-NATIVE-DOCX-RTF-EXPORT T-004): EXPORT_DOCX_DOCUMENT rides the bus 'export' pipeline with the remembered print options; the EXPORT 'docx' branch runs the save dialog, the lazy conversion and the binary write exactly once, and the success notification carries the full actions contract (reveal + quiet "Export settings", source 'export'); cancel writes nothing.
 //   SCOPE: EXPORT_DOCX_DOCUMENT / EXPORT('docx') / _EXPORT_DOCX in src/renderer/src/store/editor.js with dialog, conversion and fs facades mocked.
 //   DEPENDS: Vitest, setupTestPinia; mocked @/bus, @/services/notification, @/util/exportDocx, @tauri-apps/plugin-dialog, window.fileUtils.
-//   LINKS: .grace/changes/active/C-NATIVE-DOCX-RTF-EXPORT (R-1 notification contract); C-NOTIFICATION-SYSTEM export-settings-action corner.
+//   LINKS: .grace/changes/archive/C-NATIVE-DOCX-RTF-EXPORT (R-1 notification contract); C-NOTIFICATION-SYSTEM export-settings-action corner.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

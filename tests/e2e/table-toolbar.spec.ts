@@ -4,7 +4,7 @@
 //   PURPOSE: Pin table toolbar placement/keyboard access and the honest three-mode segment (C-PAGE-WIDTH-TABLES T-007): the toolbar retains its text-column anchor and the reserved caption inside its scroll block; a wide table opens in Auto (the wrapper owns the scroll), Full width escapes the column with the honest degradation badge, and the segment round-trips with the choice persisting across re-renders.
 //   SCOPE: renderTableToolbar.js (the three-button mode segment) + renderContainerBlock START_BLOCK_TABLE_TOOLBAR_AND_CAPTION, the C-65 CSS section of src/muya/lib/assets/styles/index.css, and the TableResize setMode/geometry/cue paths.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, ./fixtures/helpers (bootEditor/openFileTab), the built renderer served by `npm run preview`; runs in the chromium project and the webkit-tables project.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES T-007 (spec R-8/R-9); .grace/changes/archive/C-65 T-002/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; unit twins tests/renderer/muya/table-cue.test.js + table-layout-persistence.test.js; persistence e2e table-width-persistence.spec.ts; the canon mode suites table-modes.spec.ts / table-layout.spec.ts.
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES T-007 (spec R-8/R-9); .grace/changes/archive/C-65 T-002/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; unit twins tests/renderer/muya/table-cue.test.js + table-layout-persistence.test.js; persistence e2e table-width-persistence.spec.ts; the canon mode suites table-modes.spec.ts / table-layout.spec.ts.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

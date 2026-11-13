@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-LARGE-DOC-WAVE-A T-004 progressive-mount orchestration in editorWithTabs/editor.vue — the experimental open-path branch, the marker-fed session counters, the ag-tail-pending reserved-space indication and the scroll-driven prefetch.
 //   SCOPE: Deterministic Vue/jsdom tests (editor-coverage mock pattern) for: toggle-ON plain content opens routing through muya.progressiveMount instead of legacy setMarkdown (boot hydration, file-loaded and file-changed), toggle-OFF and mirror opens staying legacy, BLOCK_MOUNT_SERVED {served} feeding the preferences-store served-opens counters through the tauri echo listener, the ag-tail-pending class tracking muya.progressive.info() status across BLOCK_SYNC_REGION_DONE / BLOCK_TAIL_MOUNT_DONE / fallback markers and legacy replacements, handleProgressiveScrollPrefetch mounting ~3 viewports ahead via muya.mountToBlockKey with throttle and already-mounted short-circuits, restored opens (cursor / blocks cache / muyaIndexCursor / non-empty history) staying legacy, the BLOCK_PROGRESSIVE_ENTRY_FAILED belt, and the unmount marker unsubscribe function identity.
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, mocked Muya (same mock approach as editor-coverage.test.js), mocked @tauri-apps/api/event (listen captures the served handler, emit drives the echo).
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-2/R-4, plan T-004); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 and V-M-063.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A (spec R-2/R-4, plan T-004); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011 and V-M-063.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

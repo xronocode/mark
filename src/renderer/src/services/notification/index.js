@@ -13,11 +13,11 @@
 //          skipped under prefers-reduced-motion). No DOM building, no
 //          template strings.
 //   DEPENDS: store/notifications (pinia), i18n (default title/message).
-//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-3/R-4;
+//   LINKS: .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-3/R-4;
 //          components/notificationCard + editorWithTabs/notifications
 //          (consume the copy helpers); store/editor.js call sites
 //          (actions[] migration in T-004);
-//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-005).
+//          .grace/changes/archive/C-RENDER-REVIEW-FIXES (T-005).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

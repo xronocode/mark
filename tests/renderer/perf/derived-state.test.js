@@ -4,7 +4,7 @@
 //   PURPOSE: Tier-1 unit microbenches (C-LARGE-DOC-STAGE-0 R-5/T-005) isolating the four derived-state costs the opening/typing path pays: Markdown serialization, word count, TOC construction and history snapshot deep-copy.
 //   SCOPE: jsdom + real Muya over the committed semantic-edge fixture (byte-pinned in shape-metadata.json). Each measurement is taken in isolation on an already-mounted editor, reports a [MICROBENCH] p50/p95 line, and asserts only loose sanity bounds (CI non-flakiness) plus functional truth (the derived value is the expected one). Direct contentState mutation is used HERE and only here — explicitly labelled a microbenchmark, never the real-input typing path.
 //   DEPENDS: src/muya/lib (Muya, contentState/History), muya/lib/utils (wordCount), tests/e2e/fixtures/large-doc/semantic-edge.md, Vitest jsdom.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005; .grace/verification/performance.xml V-M-060; src/renderer/bench/main.js (the real-input phases this isolates the costs of).
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-005; .grace/verification/performance.xml V-M-060; src/renderer/bench/main.js (the real-input phases this isolates the costs of).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

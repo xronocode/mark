@@ -5,7 +5,7 @@
 //   PURPOSE: Print the exact identity (bytes + sha256) of a Stage 0 fixture for the real-app acceptance tier, and the matching content-free BLOCK_FIXTURE marker line the owner pastes into a capture.
 //   SCOPE: Reads one fixture file inside this repository, hashes its raw bytes, prints a human line and — with --json — a machine envelope. Refuses paths outside the repository (private absolute paths never enter evidence).
 //   DEPENDS: node:fs, node:crypto, node:path, node:url; tests/e2e/fixtures/large-doc/shape-metadata.json (the corpus pin, cross-checked when the fixture is a corpus member).
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); src/renderer/bench/acceptance/README.md.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); src/renderer/bench/acceptance/README.md.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

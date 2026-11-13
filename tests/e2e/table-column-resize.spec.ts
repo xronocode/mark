@@ -4,7 +4,7 @@
 //   PURPOSE: Pin C-39 T-002 session-only table column resize in the built renderer: dragging a header border resizes that column live and only that column, the markdown stays byte-identical with the tab still saved, widths survive re-renders (typing) and tab switches, closing+reopening the file restores auto layout, double-click resets the column, wide Auto drags fit the frame without hiding columns or causing internal/page overflow, and caret placement still works next to a border.
 //   SCOPE: muya.tableResize (src/muya/lib/tableResize/index.js) + START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js + the C-39 T-002 CSS section.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, ./fixtures/helpers (bootEditor/openFileTab), the built renderer served by `npm run preview`; runs in the chromium project and the webkit-tables project (WKWebView engine).
-//   LINKS: .grace/changes/active/C-39 T-002; .grace/verification/runtime.xml V-M-012 scenario-21; unit twin tests/renderer/muya/table-column-resize.test.js; wrapper behaviour tests/e2e/table-layout.spec.ts (C-39 T-001).
+//   LINKS: .grace/changes/archive/C-39 T-002; .grace/verification/runtime.xml V-M-012 scenario-21; unit twin tests/renderer/muya/table-column-resize.test.js; wrapper behaviour tests/e2e/table-layout.spec.ts (C-39 T-001).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

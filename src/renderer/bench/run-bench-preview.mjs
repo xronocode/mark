@@ -5,7 +5,7 @@
 //   PURPOSE: Make the bench-driver verification commands self-contained: ensure the built bench page exists, reuse or start `vite preview` on a fixed port, run run-bench.mjs with the caller's arguments, then stop the server it started.
 //   SCOPE: Process/HTTP lifecycle only — it builds nothing itself unless src/renderer/dist/bench/index.html is missing, never changes the driver's phase semantics, and never leaves a spawned preview server behind (SIGTERM then SIGKILL in a finally block). An already-running server on the port is reused and never killed.
 //   DEPENDS: src/renderer/bench/run-bench.mjs, node:child_process (spawn/spawnSync), node:fs, Node 18+ global fetch, vite preview via node_modules/.bin.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-003/T-004/T-012; .grace/verification/performance.xml V-M-060.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-003/T-004/T-012; .grace/verification/performance.xml V-M-060.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

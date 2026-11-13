@@ -13,11 +13,11 @@
 //          store. No state of its own beyond the root ref.
 //   DEPENDS: store/notifications (PAUSE/RESUME), services/notification
 //            (copySelectionText, applyCopyPulse), icons/chromeIcons, i18n.
-//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-1/R-3/R-4;
+//   LINKS: .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-1/R-3/R-4;
 //          components/notificationStack (mounts it);
 //          components/updateNotice (actions + onDismiss injection);
 //          components/editorWithTabs/notifications (same visual family);
-//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-003/T-005).
+//          .grace/changes/archive/C-RENDER-REVIEW-FIXES (T-003/T-005).
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT

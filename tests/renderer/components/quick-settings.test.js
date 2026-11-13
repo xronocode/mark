@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-PAGE-WIDTH-TABLES panel wave (M-061) — the titlebar quick-settings shell (T-003), the Page tab arithmetic (T-004), the View tab theme mode + 17-family grid + the R-4 per-document override pin (T-005) and the Tables tab preferences (T-006): C-38 composition with the neutral palette, dark active-segment fix living in the SHARED segmented component (never forked), outside-click close vs inside-keep, per-unit presets with the 10% snap and the nearest-preset anchor, the 12-36 zoom-shared font range, the scope switch writing global vs per-document tiers, the footer naming the live global default, and the two table preference keys.
 //   SCOPE: Vue/jsdom component tests over the real components with the real en locale and the real theme factories; util/pageWidthStore is mocked at the IO boundary (load/save spies) so the persistence contract asserted here is the calls the tabs make, not the prefs transport (pinned by tests/renderer/util/page-width-store.test.js).
 //   DEPENDS: Vitest, Vue Test Utils, setupTestPinia, static/locales/en.json, the quickSettings components, prefComponents/common/segmented, util/pageWidth.js constants.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-003/T-004/T-005/T-006, corners C-4/C-5/C-6); components/titleBar/quickSettings/*; prefComponents/common/segmented (the dark active-segment contrast fix); util/pageWidth.js; store/preferences.js (the T-006 keys).
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-003/T-004/T-005/T-006, corners C-4/C-5/C-6); components/titleBar/quickSettings/*; prefComponents/common/segmented (the dark active-segment contrast fix); util/pageWidth.js; store/preferences.js (the T-006 keys).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

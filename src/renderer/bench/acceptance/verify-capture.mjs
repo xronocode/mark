@@ -5,7 +5,7 @@
 //   PURPOSE: Validate a tier-3 (real-app WKWebView) acceptance capture before the owner reviews it: label honesty, exact fixture identity, marker grammar, content-free markers, and a commit that exists in this repository.
 //   SCOPE: Reads one capture JSON (never committed — it lives under .mark-local/) plus the fixture it names, re-hashes the fixture bytes, checks the recorded commit with git, and rejects unfilled placeholders, browser-tier labels, private absolute paths, unknown/extra marker keys, non-numeric metrics, a made-up mount-path label and a missing required phase. It does not measure anything and never claims native measurements itself.
 //   DEPENDS: node:fs, node:crypto, node:path, node:child_process (git cat-file), tests/e2e/fixtures/large-doc/shape-metadata.json.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); C-LARGE-DOC-WAVE-A T-005 (tail_mount_ms + served_path on BLOCK_OPEN); src/renderer/bench/acceptance/README.md.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); C-LARGE-DOC-WAVE-A T-005 (tail_mount_ms + served_path on BLOCK_OPEN); src/renderer/bench/acceptance/README.md.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

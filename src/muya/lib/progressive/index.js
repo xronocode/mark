@@ -32,7 +32,7 @@
 //            muya.contentState.stateRender (collectLabels, renderRegion,
 //            extendRegion, resolveOwnRoot), muya.eventCenter,
 //            utils/exportMarkdown (mountToOffset's block-length walk).
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-1/R-2/R-3; plan
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A (spec R-1/R-2/R-3; plan
 //          T-003, corners 3/4/6; T-002 Evidence records the proven
 //          range-mount primitives these build on); M-063 routing lands with
 //          T-008; consumers: bench driver (T-005), editor.vue (T-004).

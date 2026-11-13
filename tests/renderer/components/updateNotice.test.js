@@ -15,7 +15,7 @@
 //          ru pinned by swapping the locale messages), store/notifications.
 //   LINKS: .grace/changes/archive/C-66/spec.xml R-2/R-6 (semantic owner,
 //          corner C-8 of C-NOTIFICATION-SYSTEM);
-//          .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-7, T-005/T-007.
+//          .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-7, T-005/T-007.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

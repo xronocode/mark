@@ -18,7 +18,7 @@
 //          `--project=chromium`.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim,
 //          tests/e2e/fixtures/helpers (bootEditor, openFileTab).
-//   LINKS: .grace/changes/active/C-53/spec.xml R-2; README image
+//   LINKS: .grace/changes/archive/C-53/spec.xml R-2; README image
 //          references; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

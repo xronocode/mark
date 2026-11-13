@@ -41,7 +41,7 @@
 //   PURPOSE: The Experimental tab of the Settings window (C-LARGE-DOC-WAVE-A T-004, R-4) — hosts the session-latched progressive-mount toggle for large documents plus the per-session progressive-versus-legacy served-opens counter.
 //   SCOPE: One toggle row and one content-free counter line; the toggle writes ONLY in-memory session state (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT — never SET_SINGLE_PREFERENCE, never persisted, returns to off on relaunch) and affects only documents opened after the flip (no remount of open tabs).
 //   DEPENDS: prefComponents/common/{compound,bool}, store/preferences (session-only experimental state), vue-i18n.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-4, plan T-004/corner-10); components/editorWithTabs/editor.vue (the open-path consumer); .grace/graph/runtime.xml M-011/M-063.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A (spec R-4, plan T-004/corner-10); components/editorWithTabs/editor.vue (the open-path consumer); .grace/graph/runtime.xml M-011/M-063.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

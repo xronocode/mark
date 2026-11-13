@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-LARGE-DOC-WAVE-A T-004 experimental store behaviours — the session-only progressive-mount toggle (default off, never persisted, never reset), the content-free served-opens counters fed through the cross-window event listener, and the hydration strip that keeps a relaunch off even if prefs.json carries the key.
 //   SCOPE: SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT over the preferenceDefaults factory, plus the EXPERIMENTAL_SESSION_ONLY_KEYS hygiene (reset surface, hydration strip, no mt_prefs_set writes).
 //   DEPENDS: src/renderer/src/store/preferences.js, the global @tauri-apps/api/event mock, Pinia, Vitest.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-4, plan T-004/corner-10); .grace/verification/performance.xml V-M-063.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A (spec R-4, plan T-004/corner-10); .grace/verification/performance.xml V-M-063.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

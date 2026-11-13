@@ -2,7 +2,7 @@
   PURPOSE: C-29 Split View container: lays the rich (muya) and source (CodeMirror) panes side by side with a draggable divider.
   SCOPE: Pane layout, divider drag and arrow keys (ratio clamped 0.1–0.9) and Enter/Alt+double-click side swap persisted to preferences, collapse below 800px container width. C-SPLIT-DBLCLICK-TOGGLE: plain divider double-click and right-edge-strip double-click toggle split through the view.split-view command (bus cmd::execute); the strip renders only while split is off, the container is wide enough and the diff view is not replacing the surface. Owns no document state: which pane is the read-only mirror is decided by the parent from the `active` slot prop.
   DEPENDS: preferences store (splitViewRatio, splitViewSwapped), bus (cmd::execute).
-  LINKS: .grace/changes/archive/C-29; .grace/changes/active/C-SPLIT-DBLCLICK-TOGGLE; M-011 editorWithTabs.
+  LINKS: .grace/changes/archive/C-29; .grace/changes/archive/C-STABILIZE-SPLIT-GESTURES; M-011 editorWithTabs.
   ROLE: RUNTIME
   MAP_MODE: EXPORTS
 END_MODULE_CONTRACT

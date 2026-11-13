@@ -73,7 +73,7 @@
 //          resolve Cancel (the nondestructive default), Tab is trapped.
 //   DEPENDS: store/project (pending states + resolution actions); vue-i18n;
 //            window.path.basename for the chooser folder label.
-//   LINKS: .grace/changes/active/C-MULTI-SOURCE-WORKSPACE;
+//   LINKS: .grace/changes/archive/C-MULTI-SOURCE-WORKSPACE;
 //          .grace/graph/features.xml M-036; .grace/verification/features.xml
 //          V-M-036; pages/app.vue (mount); components/editorWithTabs/
 //          unsavedCloseDialog.js (the FIX-011 three-action house pattern);

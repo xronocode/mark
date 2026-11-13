@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the CommonMark delimiter-stack pairing (C-COMMONMARK-EMPHASIS) — the owner-report theft case, the GitHub-anchored theft class, run-splitting, masking corners, fast-path activation counts, generator round-trip, and muya-tokenizer vs marked-renderer parity.
 //   SCOPE: tokenizer() and marked() over the pairing corpus; computeEmphasisPairing activation counters; generator round-trip.
 //   DEPENDS: muya/lib/parser (tokenizer, generator), muya/lib/parser/marked (marked), muya/lib/parser/emphasisPairing, Vitest.
-//   LINKS: .grace/changes/active/C-COMMONMARK-EMPHASIS; .grace/verification/runtime.xml V-M-012.
+//   LINKS: .grace/changes/archive/C-COMMONMARK-EMPHASIS; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

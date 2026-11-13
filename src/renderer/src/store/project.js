@@ -15,7 +15,7 @@
 //          stores/layout, stores/pinned, ipc/runtime (watch/fs/prefs),
 //          services/notification, i18n, util/fileSystem, store/treeCtrl.
 //   LINKS: .grace/graph/features.xml M-036; .grace/verification/features.xml
-//          V-M-036; .grace/changes/active/C-MULTI-SOURCE-WORKSPACE;
+//          V-M-036; .grace/changes/archive/C-MULTI-SOURCE-WORKSPACE;
 //          components/sideBar/workspaceModeDialog.vue;
 //          tests/renderer/store/project-workspace.test.ts,
 //          project.test.ts, project-coverage.test.js;

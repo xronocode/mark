@@ -4,7 +4,7 @@
 //   PURPOSE: Machine-enforce the characterization rules the plan otherwise only states in prose (C-LARGE-DOC-STAGE-0 R-6/R-7/T-012): every characterization artifact carries both dual-record fields, the known defect families are all covered, the seeded suite retains a seed and a reproducible trace, and the materialized byte-policy corpus exists with its pinned bytes.
 //   SCOPE: Static assertions over the committed spec text plus a real materialization run (generators/ensure.mjs) and sha256 verification of every byte-policy fixture. It does not execute the suites themselves (the webkit-perf gate does) and it never rewrites a spec.
 //   DEPENDS: tests/e2e/perf/characterization-*.spec.ts, tests/e2e/fixtures/large-doc/generators/ensure.mjs, shape-metadata.json, node:fs/crypto/child_process, Vitest.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-006/T-007/T-008/T-012; .grace/verification/performance.xml V-M-060.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-006/T-007/T-008/T-012; .grace/verification/performance.xml V-M-060.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

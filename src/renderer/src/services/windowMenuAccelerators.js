@@ -20,7 +20,7 @@
 //   DEPENDS: menu-bridge (findCommandInRegistry), the static command registry
 //            shape it walks.
 //   LINKS: .grace/graph/runtime.xml M-070; .grace/verification/runtime.xml
-//          V-M-070; .grace/changes/active/C-WINDOWS-MENU-ACCELERATORS
+//          V-M-070; .grace/changes/archive/C-WINDOWS-MENU-ACCELERATORS
 //          spec.xml Goals 1-2.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

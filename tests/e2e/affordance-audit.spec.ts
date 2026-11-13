@@ -4,7 +4,7 @@
 //   PURPOSE: Behavioral half of the C-73 affordance audit — everything the UI advertises must visibly respond when used: desktop chords pressed as real keys, every registry leaf command dispatched through the mt::menu-invoked bridge, and welcome-screen action buttons.
 //   SCOPE: Real-key presses on the booted Muya surface; menu-bridge walk over registry leaf ids parsed from source; welcome action-button responses. Static advertised-chord ↔ route agreement lives in tests/renderer/commands/shortcut-routing-audit.test.js.
 //   DEPENDS: Playwright, renderer-only Tauri shim (__emitFakeEvent reaches the menu bridge through window.electron.ipcRenderer.on), editor boot helpers, src/renderer/src/commands/index.js and src-tauri/src/m009_menu.rs read for id extraction.
-//   LINKS: .grace/graph/runtime.xml M-009, M-012; .grace/verification/runtime.xml V-M-009, V-M-012; docs/release-trains/2.5.x-next.md FIX-005/FIX-006/FIX-009/FIX-010; .grace/changes/active/C-73.
+//   LINKS: .grace/graph/runtime.xml M-009, M-012; .grace/verification/runtime.xml V-M-009, V-M-012; docs/release-trains/2.5.x-next.md FIX-005/FIX-006/FIX-009/FIX-010; .grace/changes/archive/C-73.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

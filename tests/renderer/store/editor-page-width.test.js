@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-PAGE-WIDTH-TABLES rename hooks in store/editor.js — RENAME (the title-bar card › Rename… flow) and RENAME_IF_NEEDED (the sidebar rename) both move the file's stored pageWidths entry (width + pinned themeOverride) to the new path through util/pageWidthStore.movePageWidthEntry.
 //   SCOPE: store/editor.js RENAME + RENAME_IF_NEEDED (the move call sites only — the store util itself is pinned in page-width-store.test.js).
 //   DEPENDS: the tests/renderer/store pinia harness with the standard store mocks; util/pageWidthStore mocked with a spy.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-001, corners C-1); util/pageWidthStore.js; util/tableLayoutStore.js and util/filePositionStore.js (the sibling rename moves this hook mirrors).
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-001, corners C-1); util/pageWidthStore.js; util/tableLayoutStore.js and util/filePositionStore.js (the sibling rename moves this hook mirrors).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

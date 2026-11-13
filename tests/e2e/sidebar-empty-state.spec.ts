@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-011 e2e — with no folder open the sidebar Files column carries no Open Folder CTA and no RECENT folders list (both moved to the welcome screen, C-46); the file-sections column itself still renders.
 //   SCOPE: renderer-only e2e against vite preview + tauri-shim (chromium).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim, tests/e2e/fixtures/helpers (bootEditor).
-//   LINKS: .grace/changes/active/C-51 T-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

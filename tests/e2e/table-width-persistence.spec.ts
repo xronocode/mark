@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-65 T-001 profile persistence round trip in the built renderer — resized column widths and the per-table Full width mode are written to the tableLayouts prefs key only after a real user action, a close+reopen of the same file restores them, an edited header drops that table's widths (corner-2), and a file the (mocked) filesystem no longer has is pruned instead of applied (corner-3).
 //   SCOPE: The editor.vue BLOCK_TABLE_LAYOUTS_HOST wiring (load after document loads, save on muya-table-layouts dispatches), util/tableLayoutStore.js flows, and muya.tableResize adoption.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim (with per-spec mt_prefs_get/mt_prefs_set/mt_fs_stat overrides backing an in-page prefs store), ./fixtures/helpers (bootEditor/openFileTab), the built renderer served by `npm run preview`; runs in the chromium project and the webkit-tables project.
-//   LINKS: .grace/changes/active/C-65 T-001 (R-1, corners 1/2/3/5); .grace/verification/runtime.xml V-M-012 scenario-66; unit twins tests/renderer/muya/table-layout-persistence.test.js + tests/renderer/store/table-layout-store.test.js.
+//   LINKS: .grace/changes/archive/C-65 T-001 (R-1, corners 1/2/3/5); .grace/verification/runtime.xml V-M-012 scenario-66; unit twins tests/renderer/muya/table-layout-persistence.test.js + tests/renderer/store/table-layout-store.test.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

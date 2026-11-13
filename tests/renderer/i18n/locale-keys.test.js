@@ -13,7 +13,7 @@
 //   SCOPE: Locale tables/inventory and a gallery failure fixture with mocked IPC.
 //   DEPENDS: vitest, node:fs, Vue Test Utils, ExtensionGallery.
 //   LINKS: .grace/changes/archive/C-TITLEBAR-MODE-CHIPS/spec.xml R-4;
-//          .grace/changes/active/C-RENDER-REVIEW-FIXES plan T-002.
+//          .grace/changes/archive/C-RENDER-REVIEW-FIXES plan T-002.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

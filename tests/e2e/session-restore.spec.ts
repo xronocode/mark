@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-69 cold-launch session restore in the built renderer — with a saved session (folder + tabs + active tab) a launch without files reopens the folder in the sidebar, the tabs in order through mt_open_file and selects the saved active tab; open/close changes are autosaved into the prefs and survive a reload; a launch with files does not restore.
 //   SCOPE: Session restore/autosave and active-tab close DOM/store/edit isolation over the Tauri shim; no native dialogs or real user files.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, the built renderer served by `npm run preview`.
-//   LINKS: .grace/changes/active/C-69 R-1/R-2/R-5; unit twin tests/renderer/store/session-restore.test.js.
+//   LINKS: .grace/changes/archive/C-69 R-1/R-2/R-5; unit twin tests/renderer/store/session-restore.test.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

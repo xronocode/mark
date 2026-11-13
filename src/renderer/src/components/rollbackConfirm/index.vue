@@ -16,10 +16,10 @@
 //            validation and execution.
 //   DEPENDS: store/autoUpdates (rollback + actions), store/notifications
 //            (NOTIFY/DISMISS), i18n t, @tauri-apps/api/event.
-//   LINKS: .grace/changes/active/C-UPDATER-ROLLBACK spec R-4/R-5,
+//   LINKS: .grace/changes/archive/C-UPDATER-ROLLBACK spec R-4/R-5,
 //          corners C-2/C-5; components/updateNotice (the pattern);
 //          src-tauri/src/m068_rollback.rs (mt_rollback_restore);
-//          .grace/changes/active/C-RENDER-REVIEW-FIXES (T-004).
+//          .grace/changes/archive/C-RENDER-REVIEW-FIXES (T-004).
 //   ROLE: RUNTIME
 //   MAP_MODE: NONE
 // END_MODULE_CONTRACT

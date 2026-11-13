@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-SELF-CONTAINED-HTML-EXPORT wiring in editor.vue's handleExport — the styledHtml branch runs embedLocalImages with the active document's directory before EXPORT and warns on skips; the pdf and print branches never run the pass (design-context corner C-12); an untitled document passes no directory.
 //   SCOPE: The bus 'export' handler branch wiring only — the embedding semantics themselves live in tests/renderer/util/exportImages.test.js (M-065 unit matrix).
 //   DEPENDS: Vitest, editor.vue (mounted with the editor-print-clearup harness: mocked Muya/Printer/Tauri surfaces, global @tauri-apps mocks from tests/renderer/setup.ts), a mocked '@/util/exportImages'.
-//   LINKS: .grace/verification/features.xml V-M-065; .grace/changes/active/C-SELF-CONTAINED-HTML-EXPORT (R-4/R-5/R-6, corners C-9/C-12).
+//   LINKS: .grace/verification/features.xml V-M-065; .grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT (R-4/R-5/R-6, corners C-9/C-12).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

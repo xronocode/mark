@@ -4,7 +4,7 @@
 //   PURPOSE: Pin util/filePositionStore.js — the C-FILE-POSITION-MEMORY per-file reading position store: pure transforms (sanitize/normalize/cap/move/clamp), the numbers-only payload schema (corner C-8) and the IO flows with a fake prefs IO (prune/cap write-back, save, rename move — corners C-5/C-6).
 //   SCOPE: The module's exports; every rule is pure-object or fake-IO pinned, mirroring table-layout-store.test.js.
 //   DEPENDS: Vitest; util/filePositionStore.js; @/ipc/runtime mocked.
-//   LINKS: .grace/changes/active/C-FILE-POSITION-MEMORY (spec D-3); store/editor.js (the flush/restore host); util/tableLayoutStore.js (the mirrored pattern).
+//   LINKS: .grace/changes/archive/C-FILE-POSITION-MEMORY (spec D-3); store/editor.js (the flush/restore host); util/tableLayoutStore.js (the mirrored pattern).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

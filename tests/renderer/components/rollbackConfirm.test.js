@@ -17,7 +17,7 @@
 //          spies; restore execution lives in Rust and is out of scope.
 //   DEPENDS: @vue/test-utils, tests/renderer/pinia, real i18n (en table),
 //          store/notifications, @tauri-apps/api/event mock.
-//   LINKS: .grace/changes/active/C-UPDATER-ROLLBACK spec R-4/R-5,
+//   LINKS: .grace/changes/archive/C-UPDATER-ROLLBACK spec R-4/R-5,
 //          corners C-2/C-5; components/updateNotice (the pattern).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

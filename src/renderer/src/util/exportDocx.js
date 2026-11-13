@@ -4,7 +4,7 @@
 //   PURPOSE: M-066 — turn the styled export HTML into a .docx buffer: a data-only pre-pass (strip pre.front-matter, adapt muya's footnote markup to the shape docx/html recognizes, replace exportable figures with rasterized PNG images), then a lazy docx/docx-html conversion in named Word styles with the remembered print geometry.
 //   SCOPE: resolveGeometryMm / mmToTwips (pure mapping, mirrors m052_print.rs), preprocessExportHtml (pure DOM transform + injectable figure rasterizer), defaultRasterizeFigure (canvas via diagramExport), buildDocx (lazy import, sync conversion), exportToDocx (composition).
 //   DEPENDS: DOM (jsdom in tests); muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR, diagramExportSvg, buildStandaloneSvg, rasterizeSvg, nearestHeadingText — main-bundle muya code); docx + docx/html via dynamic import ONLY (check-export-chunk guard pins this).
-//   LINKS: .grace/graph/features.xml M-066; .grace/verification/features.xml V-M-066; .grace/changes/active/C-NATIVE-DOCX-RTF-EXPORT (R-3, R-4, R-5); util/exportImages.js M-065 runs BEFORE this, in the caller.
+//   LINKS: .grace/graph/features.xml M-066; .grace/verification/features.xml V-M-066; .grace/changes/archive/C-NATIVE-DOCX-RTF-EXPORT (R-3, R-4, R-5); util/exportImages.js M-065 runs BEFORE this, in the caller.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

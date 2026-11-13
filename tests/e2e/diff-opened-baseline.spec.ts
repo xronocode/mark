@@ -4,7 +4,7 @@
 //   PURPOSE: Visual gate for C-68 T-001 — a file outside git always has a ⌘D baseline: after an edit the diff runs against the content at open (header «Since you opened the file · time», the mt_diff_baseline error swallowed into the fallback); with no edits ⌘D shows the calm «No changes since you opened the file» notice, never the raw error, and never enters diff mode.
 //   SCOPE: Real renderer via vite preview + tauri-shim: mt_diff_baseline always rejects like m031_diff.rs does outside a repository; the opened snapshot recorded at mt::open-new-tab load is the asserted baseline; a real muya keyboard edit produces the current side.
 //   DEPENDS: tests/e2e/fixtures/tauri-shim.ts, tests/e2e/fixtures/helpers.ts
-//   LINKS: .grace/changes/active/C-68 corner-1/corner-2 acceptance; .grace/verification/runtime.xml V-M-011 scenario-67
+//   LINKS: .grace/changes/archive/C-68 corner-1/corner-2 acceptance; .grace/verification/runtime.xml V-M-011 scenario-67
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

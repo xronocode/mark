@@ -4,7 +4,7 @@
 //   PURPOSE: Re-align table viewports, gutters and framed column widths when owning editor, scroller, outline or font geometry changes.
 //   SCOPE: Instance-scoped throttled window/owned-surface resize and font completion listeners; observe outline visibility without a column resize; the framed-table re-fit funnel runs first (R-9: window resizes re-apply the honest distribution — the column's own ResizeObserver cannot see a canvas-only change), the surface refresh always runs, optional gutters follow their setting; destroy detaches all observers/listeners.
 //   DEPENDS: muya throttle; contentState.resizeLineNumber; tableResize.refitNow (the framed re-fit + surface funnel); owning editor scroller/outline DOM surfaces.
-//   LINKS: .grace/graph/runtime.xml M-012 fn-resizeSurfaces; .grace/verification/runtime.xml V-M-012 scenario-20 and scenario-69; C-38 T-005; C-71; .grace/changes/active/C-PAGE-WIDTH-TABLES (spec R-9/R-10 — resize re-applies ratios).
+//   LINKS: .grace/graph/runtime.xml M-012 fn-resizeSurfaces; .grace/verification/runtime.xml V-M-012 scenario-20 and scenario-69; C-38 T-005; C-71; .grace/changes/archive/C-PAGE-WIDTH-TABLES (spec R-9/R-10 — resize re-applies ratios).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

@@ -12,7 +12,7 @@
 //   DEPENDS: store/notifications (history), services/notification
 //          (copySelectionText for plain strings), icons/chromeIcons, i18n,
 //          bus, element-plus dialog.
-//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-6;
+//   LINKS: .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-6;
 //          commands/index.js view.notifications-history;
 //          components/notificationStack (overflow chip opens this).
 //   ROLE: RUNTIME

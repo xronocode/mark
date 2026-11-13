@@ -4,7 +4,7 @@
 //   PURPOSE: Node-side access to the REAL muya marked Lexer for progressive-mount.spec.ts's fixture block counts — Playwright compiles specs per-file (no bundling), so the muya ESM sources cannot be imported directly; this helper bundles lexer.js in-process with the repo's own esbuild (a vite dependency) and evaluates it once with minimal Node globals.
 //   SCOPE: Test-side Node computation only. Returns the real Lexer class (muya's own block segmentation — no reimplementation); top-level blocks = non-space top-level tokens, proven equal to muya's contentState.blocks on the Stage 0 evidence shapes (mixed-100k 367, size-1mb 3706) and re-proven against the app's legacy mount in every suite run.
 //   DEPENDS: esbuild (repo node_modules, vite's dependency), muya's parser/marked sources (read-only), Node globals shim (window/navigator/document stand-ins — muya's config module reads window.navigator at module scope).
-//   LINKS: tests/e2e/perf/progressive-mount.spec.ts (nodeTopLevelBlocks); src/muya/lib/parser/marked/lexer.js; .grace/changes/active/C-LARGE-DOC-WAVE-A plan T-006.
+//   LINKS: tests/e2e/perf/progressive-mount.spec.ts (nodeTopLevelBlocks); src/muya/lib/parser/marked/lexer.js; .grace/changes/archive/C-LARGE-DOC-WAVE-A plan T-006.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

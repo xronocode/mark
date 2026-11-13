@@ -16,7 +16,7 @@
 //            unit instead of an unbounded traversal).
 //   DEPENDS: none (leaf module; TextEncoder lazily when the engine provides
 //            it, otherwise a character-count byte approximation).
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-1/R-2/R-3; plan
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A (spec R-1/R-2/R-3; plan
 //          T-003 corners 4 and 6); M-063 routing lands with T-008.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
