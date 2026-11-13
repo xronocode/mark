@@ -2519,6 +2519,109 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "FIX-CURRENT-VERIFICATION-CONTEXT",
+        "summary": "Describe the current renderer, Rust, Quick Look and native acceptance boundaries.",
+        "state": "queued",
+        "commits": [
+          "599ff9d2083327f920c7cd46f254c5b87beb482c"
+        ],
+        "pullRequest": {
+          "number": 253,
+          "headSha": "ef8b3dfe933d6a71e580dd7e8f2cf914771a5b11",
+          "mergeSha": "599ff9d2083327f920c7cd46f254c5b87beb482c",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/253/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Current technology-context source and scope comparison",
+              "result": "Four npm script declarations and seven source/document paths verified. The intended context description is byte-identical to the checked head. It is the only file changed by integration; all other current main files and frozen technology provenance are preserved. Predicted and integrated trees match.",
+              "date": "2026-11-14",
+              "build": "599ff9d2083327f920c7cd46f254c5b87beb482c",
+              "evidence": "https://github.com/xronocode/mark/pull/253"
+            },
+            {
+              "command": "Exact-head required statuses and hosted checks",
+              "result": "All four required statuses, renderer/backend tests on three hosts, browser tests, QuickLook and CI passed. The initial macOS backend job ran zero steps before cancellation; one bounded retry after observed runner recovery passed. Four CodeQL languages passed; Swift analysis has no verdict after its running runner lost communication. Current lint/status reports zero integrity errors, four existing heuristic warnings and no drift. Detailed module-health remains one ready and 72 blocked from existing verification-linkage findings.",
+              "date": "2026-11-14",
+              "build": "ef8b3dfe933d6a71e580dd7e8f2cf914771a5b11",
+              "evidence": "https://github.com/xronocode/mark/pull/253/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "automatic",
+              "scenario": "Completed Swift CodeQL analysis",
+              "reason": "The non-required Swift job acquired a runner and executed nine steps before losing communication. The underlying cause is unproven; no completed analysis verdict or additional retry is claimed."
+            },
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build native and owner/platform acceptance",
+              "reason": "Factual documentation correction only. Browser fixtures, native fixture evidence and owner acceptance are described as distinct; this correction supplies no new native or owner verdict."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-TYPED-HEADING-REGRESSION",
+        "summary": "Exercise typed heading conversion through real editor keyboard input.",
+        "state": "queued",
+        "commits": [
+          "01d789c2622e410da2d7d92eabccec0a2aaf8486"
+        ],
+        "pullRequest": {
+          "number": 251,
+          "headSha": "6ce8b11a36caa57f1437263e71dba24bf91849e0",
+          "mergeSha": "01d789c2622e410da2d7d92eabccec0a2aaf8486",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/251/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Source-bound typed heading regression and controlled mutation",
+              "result": "Two focused browser cases passed in Chromium and WebKit. Real hash, space and text input require visible h1, no h2 and exact canonical Markdown. Disabling conversion failed both original controls; restoration passed. Current test and conversion source match those controls; renderer build passed.",
+              "date": "2026-11-14",
+              "build": "6ce8b11a36caa57f1437263e71dba24bf91849e0",
+              "evidence": "https://github.com/xronocode/mark/pull/251"
+            },
+            {
+              "command": "Exact-head hosted test matrix and required checks",
+              "result": "All four required statuses, renderer/backend tests on three hosts, browser tests, QuickLook and CI passed. Browser: 840 passed, zero failed, zero flaky and seven remaining conditional skips. The activated heading regression is no longer skipped. Four CodeQL languages passed; Swift was cancelled without a runner or steps and has no analysis verdict. Earlier zero-step macOS cancellations remain recorded; the bounded unit and browser retries passed after observed runner recovery. Assertions, timing budgets, retries and coverage floors are unchanged.",
+              "date": "2026-11-14",
+              "build": "6ce8b11a36caa57f1437263e71dba24bf91849e0",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43458692953; https://github.com/xronocode/mark/pull/251/checks"
+            },
+            {
+              "command": "Merge compatibility and post-integration current-state integrity",
+              "result": "The test and selected engine graph/verification entities match the hosted head. All unrelated main entities remain unchanged, and predicted/integrated trees match. Current lint/status reports zero integrity errors, four existing heuristic warnings and no drift. Detailed module-health remains one ready and 72 blocked from existing verification-linkage findings.",
+              "date": "2026-11-14",
+              "build": "01d789c2622e410da2d7d92eabccec0a2aaf8486",
+              "evidence": "https://github.com/xronocode/mark/pull/251"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "automatic",
+              "scenario": "Completed Swift CodeQL analysis",
+              "reason": "The non-required Swift analysis was cancelled with runner zero and no steps; no additional retry or analysis verdict is claimed."
+            },
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build native and owner/platform acceptance",
+              "reason": "Verification-only correction using the existing renderer IPC shim. It supplies no native IPC, native editor or owner verdict."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "notPresent": []
