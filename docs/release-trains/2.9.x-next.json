@@ -2677,6 +2677,56 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "FIX-CARGO-REPOSITORY-METADATA",
+        "summary": "Point inherited Cargo package metadata to the canonical public repository.",
+        "state": "queued",
+        "commits": [
+          "ef2e4359873688baa777edff275fd4012c177a08"
+        ],
+        "pullRequest": {
+          "number": 260,
+          "headSha": "773e7994f272c6707ce01d8e645f3296673ca60f",
+          "mergeSha": "ef2e4359873688baa777edff275fd4012c177a08",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/260/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Locked offline Cargo metadata and exact-source comparison",
+              "result": "The inherited package repository URL is the only metadata difference. The corrected manifest is byte-identical to the original metadata correction; versions, dependencies and lockfiles are unchanged. Merged workspace metadata resolves the canonical repository.",
+              "date": "2026-11-14",
+              "build": "773e7994f272c6707ce01d8e645f3296673ca60f",
+              "evidence": "https://github.com/xronocode/mark/pull/260"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend tests, QuickLook, CI and five CodeQL analyses passed. Browser: 840 passed, zero failed, zero flaky and seven existing conditional skips. The integrated base contains the separate clipboard observation correction; the original metadata candidate remains closed without merge with its failed browser result preserved.",
+              "date": "2026-11-14",
+              "build": "773e7994f272c6707ce01d8e645f3296673ca60f",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43507141092; https://github.com/xronocode/mark/pull/260/checks"
+            },
+            {
+              "command": "Merge compatibility and current-state integrity",
+              "result": "Only Cargo.toml differs from main and it matches the checked head. All other main files are preserved; predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing heuristic warnings and no drift. Detailed module-health remains one ready and 72 blocked from existing verification-linkage findings.",
+              "date": "2026-11-14",
+              "build": "ef2e4359873688baa777edff275fd4012c177a08",
+              "evidence": "https://github.com/xronocode/mark/pull/260"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance",
+              "reason": "Metadata-only correction. No new native application or owner verdict is supplied; version, signing and release controls remain unchanged."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "notPresent": []
