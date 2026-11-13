@@ -35,6 +35,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-14: Await the exact ordered walk record after workspace replacement.
 //   - 2026-10-16 C-52 T-001: initial spec (chromium + webkit-clipboard).
 // END_CHANGE_SUMMARY
 
@@ -242,7 +243,8 @@ test.describe('open from clipboard (C-52)', () => {
       .poll(() => projectRoots(page), { timeout: 10_000 })
       .toEqual(['/tmp/mark-e2e/second-root'])
     expect(rec.close).toEqual(['/tmp/mark-e2e/first-root'])
-    expect(rec.walk).toEqual(['/tmp/mark-e2e/first-root', '/tmp/mark-e2e/second-root'])
+    // Root publication precedes the asynchronous walk's exposed callback.
+    await expect.poll(() => rec.walk).toEqual(['/tmp/mark-e2e/first-root', '/tmp/mark-e2e/second-root'])
   })
 
   test('menu: a Markdown file opens in a TAB like a drop', async ({ page }) => {
