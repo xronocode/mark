@@ -1696,6 +1696,13 @@
               "date": "2026-11-13",
               "build": "619f7ddc9502d4f8984d76f7eae73104627c8c9b",
               "evidence": "https://github.com/xronocode/mark/pull/244"
+            },
+            {
+              "date": "2026-11-13",
+              "build": "Clean main a4830eab8da2231112ab200229933add945e4e70; source SHA-256 492a376d842bc7e9688efd79ea79daa46a12d9aa2005bb92628b2a4a6f191889; binary SHA-256 dfe7a08833930f6044421c24258608ea37b36dbaa38a96b1612c5d4a65b690a8; artifact removed after shutdown",
+              "command": "Focused native application theme and presentation check",
+              "result": "Three native Paper/Ink/Paper checkpoints passed. Actual native file open displays distinct current and stored .before baseline text; both panes follow application-theme changes and changed paragraphs remain visually readable. All three controlled files remain byte-unchanged. Eight shared screenshots bind this combined check. No numeric native contrast, editor-instance identity, OS-theme or owner/platform verdict is claimed. Normal Quit stopped the owned process/windows; the bundle, three executable paths and renderer assets were removed after digest checks.",
+              "evidence": "https://github.com/xronocode/mark/pull/244"
             }
           ],
           "manual": [],
@@ -1703,7 +1710,7 @@
             {
               "section": "manual",
               "scenario": "Dispatch-build owner/platform comparison acceptance and native system-theme propagation",
-              "reason": "Renderer transport-shim evidence is not native IPC or an owner verdict. Narrow captures do not establish mobile support or contrast for every syntax color."
+              "reason": "Native application-level baseline/theme evidence is recorded above. Global system-theme propagation, owner/platform verdicts, mobile support and contrast for every syntax color remain unverified."
             },
             {
               "section": "automatic",
@@ -1806,6 +1813,13 @@
               "date": "2026-11-13",
               "build": "b76efc57a07200b8f2849f7b73d259324a3ace84",
               "evidence": "https://github.com/xronocode/mark/pull/241"
+            },
+            {
+              "date": "2026-11-13",
+              "build": "Clean main a4830eab8da2231112ab200229933add945e4e70; source SHA-256 492a376d842bc7e9688efd79ea79daa46a12d9aa2005bb92628b2a4a6f191889; binary SHA-256 dfe7a08833930f6044421c24258608ea37b36dbaa38a96b1612c5d4a65b690a8; artifact removed after shutdown",
+              "command": "Focused native application theme and presentation check",
+              "result": "Four native Paper/Ink and active/inactive presentation states passed. All three project-search option glyphs and borders show the shared accent when active and neutral styling when inactive. The actual overlay opens with its native keyboard shortcut. All three controlled files remain byte-unchanged. No folder or search-query execution, OS-theme or owner/platform verdict is claimed. The isolated application and renderer build were removed after shutdown and digest checks.",
+              "evidence": "https://github.com/xronocode/mark/pull/241"
             }
           ],
           "manual": [],
@@ -1813,7 +1827,57 @@
             {
               "section": "manual",
               "scenario": "Dispatch-build owner/platform presentation acceptance",
-              "reason": "Rendered probes cover option styling, not native IPC or a human verdict. Native platform presentation and owner acceptance remain pending; this accent correction makes no claim about advanced search filters or query execution."
+              "reason": "Native application-level option styling is recorded above. Dispatch-build owner/platform verdicts, advanced search filters and query execution remain unverified."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-SHARED-ACTIVE-TAB-MARKER",
+        "summary": "Keep the shared active-tab underline visible in Graphite and One Dark.",
+        "state": "queued",
+        "commits": [
+          "7b971fa9d3e60191a6cdad4acf36478930f04f3e"
+        ],
+        "pullRequest": {
+          "number": 252,
+          "headSha": "c22d8f511dcecbf1799e2709d036cfebf85eb49c",
+          "mergeSha": "7b971fa9d3e60191a6cdad4acf36478930f04f3e",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/252/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused renderer and source-bound presentation verification",
+              "result": "79 focused tests passed across four suites. Theme styles and tab dependencies match the reviewed original implementation. Existing fourteen Chromium/WebKit painted-band cases pass; shared underline geometry, a 280-pixel long title and close-button visibility are preserved. Independent review recorded zero Standards and Spec findings. No new screenshot matrix is claimed.",
+              "date": "2026-11-13",
+              "build": "c22d8f511dcecbf1799e2709d036cfebf85eb49c",
+              "evidence": "https://github.com/xronocode/mark/pull/252"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend tests, QuickLook, CI and five CodeQL analyses passed. Browser: 839 passed, zero failed, zero flaky and eight existing skips. No assertions, retries, skips, timeouts or coverage floors changed.",
+              "date": "2026-11-13",
+              "build": "c22d8f511dcecbf1799e2709d036cfebf85eb49c",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43459589495; https://github.com/xronocode/mark/pull/252/checks"
+            },
+            {
+              "command": "Merge compatibility and current-state integrity",
+              "result": "Predicted and integrated trees match. Both theme files match the hosted source; all main/head verification commands and scenarios are preserved. Current lint reports zero errors and four existing warnings; drift is empty. Detailed module-health remains one ready and 72 blocked due to existing verification linkage findings, so no all-green module-health verdict is claimed.",
+              "date": "2026-11-13",
+              "build": "7b971fa9d3e60191a6cdad4acf36478930f04f3e",
+              "evidence": "https://github.com/xronocode/mark/pull/252"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build native and owner/platform tab presentation acceptance",
+              "reason": "Rendered source-bound observations are not a native or owner verdict. No dispatch artifact or platform acceptance is supplied by this theme-only repair."
             }
           ]
         },
