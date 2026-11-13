@@ -2622,6 +2622,61 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "FIX-CLIPBOARD-WALK-OBSERVATION",
+        "summary": "Await the ordered workspace-walk record after clipboard workspace replacement.",
+        "state": "queued",
+        "commits": [
+          "158653b623cb3c030b1e842e957cc96dc94a2cc4"
+        ],
+        "pullRequest": {
+          "number": 258,
+          "headSha": "dda58e986a896b2e7a87cb188faf57b33382d60c",
+          "mergeSha": "158653b623cb3c030b1e842e957cc96dc94a2cc4",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/258/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Controlled completion-boundary proof and full clipboard browser specification",
+              "result": "The actual project-store method publishes a root before its asynchronous import resolves and the walk callback is observed. The immediate exact-array assertion fails at that controlled boundary and the identical array passes after dispatch. All 14 clipboard cases passed in Chromium/WebKit; renderer build passed. The corrected assertion retains the exact old/new root order and existing close record, using the neighboring callback-polling pattern. Runtime, retry, skip, timeout, coverage and upload settings are unchanged.",
+              "date": "2026-11-14",
+              "build": "dda58e986a896b2e7a87cb188faf57b33382d60c",
+              "evidence": "https://github.com/xronocode/mark/pull/258"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend tests, QuickLook and CI passed. Browser: 839 passed, zero failed, zero flaky and eight existing skips. Four CodeQL languages passed; Swift was cancelled and has no completed analysis verdict. The original Cargo-candidate clipboard failure remains recorded separately and is not retroactively green.",
+              "date": "2026-11-14",
+              "build": "dda58e986a896b2e7a87cb188faf57b33382d60c",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43498084502; https://github.com/xronocode/mark/pull/258/checks"
+            },
+            {
+              "command": "Merge compatibility and current-state integrity",
+              "result": "The test and selected renderer verification entry match the checked head. All other main entries, including the typed-heading correction, remain preserved; predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing heuristic warnings and no drift. Detailed module-health remains one ready and 72 blocked from existing verification-linkage findings.",
+              "date": "2026-11-14",
+              "build": "158653b623cb3c030b1e842e957cc96dc94a2cc4",
+              "evidence": "https://github.com/xronocode/mark/pull/258"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "automatic",
+              "scenario": "Completed Swift CodeQL analysis",
+              "reason": "The non-required Swift job was cancelled; no completed analysis verdict or additional retry is claimed."
+            },
+            {
+              "section": "manual",
+              "scenario": "Native clipboard and dispatch-build owner/platform acceptance",
+              "reason": "This verification-only repair uses the existing renderer IPC shim and supplies no native clipboard, native editor or owner verdict. It is an additional verification dependency, not another original audit record."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "notPresent": []
