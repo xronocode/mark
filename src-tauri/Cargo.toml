@@ -54,7 +54,7 @@ url = "2"
 # C-UPDATER-ROLLBACK M-068: rollback manager crypto/trash deps.
 # minisign-verify is already in the lock transitively (tauri-plugin-updater)
 # and is reused directly; sha2 likewise already-locked; trash is new.
-minisign-verify = "0.2"
+minisign-verify = "0.3"
 sha2 = "0.10"
 trash = "5"
 rand = "0.10"
