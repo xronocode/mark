@@ -34,6 +34,7 @@
 //   handleLiveUpdate - Translate identified lifecycle events into owned store operations.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-13 - Resolve the live indicator background through the existing renderer theme token name.
 //   LAST_CHANGE: 2026-11-11 C-SEC-STREAM-TABS: replace anonymous file-loaded patches with session-owned store actions.
 // END_CHANGE_SUMMARY
 import { ref, onMounted, onBeforeUnmount } from 'vue'
@@ -90,7 +91,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 16px;
-  background: var(--sideBarBg, #f5f5f5);
+  background: var(--sideBarBgColor, #f5f5f5);
   border-bottom: 1px solid var(--tableBorderColor, #ddd);
   font-size: 12px;
   font-weight: 600;
