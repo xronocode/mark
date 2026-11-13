@@ -15,6 +15,9 @@ import { test, expect, type Page } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
 
+// This suite has no retry: keep the first failure's input and DOM timeline.
+test.use({ trace: 'retain-on-failure', screenshot: 'only-on-failure' })
+
 async function snapshot(page: Page) {
   return page.evaluate(() => {
     const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
@@ -94,12 +97,20 @@ for (const autoSave of [false, true]) for (const mode of ['rich', 'source', 'spl
     await page.keyboard.press('End')
     await page.keyboard.type(' APPENDED')
     await expect.poll(async () => (await snapshot(page)).markdown).toContain('APPENDED')
+    if (autoSave) {
+      await expect.poll(async () => (await snapshot(page)).writes.at(-1)?.markdown).toContain('APPENDED')
+      await expect.poll(async () => (await snapshot(page)).saved).toBe(true)
+    }
+    const beforeManualSave = await snapshot(page)
+    if (!autoSave) expect(beforeManualSave.writes).toHaveLength(0)
     await page.evaluate(() => (window as any).__emitFakeEvent('mt::menu-invoked', 'file.save'))
-    await expect.poll(async () => (await snapshot(page)).writes.length).toBe(1)
+    await expect.poll(async () => (await snapshot(page)).writes.length).toBe(beforeManualSave.writes.length + 1)
     const final = await snapshot(page)
-    expect(final.writes[0].targetPath).toBe('/docs/local.md')
-    expect(final.writes[0].markdown).toContain('APPENDED')
-    expect(final.writes[0].markdown).not.toMatch(/stream|STALE|CLOSED|Resynced/)
+    expect(final.writes.at(-1).markdown).toBe(beforeManualSave.markdown)
+    for (const write of final.writes) {
+      expect(write).toMatchObject({ id: final.id, sourcePath: '/docs/local.md', targetPath: '/docs/local.md' })
+      expect(write.markdown).not.toMatch(/stream|STALE|CLOSED|Resynced/)
+    }
   })
 }
 
@@ -175,10 +186,12 @@ for (const autoSave of [false, true]) test(`Source-to-Split rich save and local 
     }
     const paragraph = page.locator('.split-pane-rich span.ag-paragraph', { hasText: 'LOCAL ONLY' })
     await expect(paragraph).toBeVisible()
-    await paragraph.click()
+    // The block center is trailing whitespace; place the caret on its text.
+    await paragraph.click({ position: { x: 5, y: 5 } })
     // Select the real editable surface after activation/follow reconciliation.
     await page.locator('.split-pane-rich .editor-component').focus()
-    await page.keyboard.press('End'); await page.keyboard.type(' ' + phase)
+    await expect(page.locator('.split-pane-rich .editor-component')).toBeFocused()
+    await page.keyboard.press('Meta+ArrowRight'); await page.keyboard.type(' ' + phase)
     const prior = expected
     expected = expected.replace(/\n$/, ' ' + phase + '\n')
     await expect.poll(async () => (await snapshot(page)).markdown).toBe(expected)
