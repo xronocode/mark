@@ -2476,6 +2476,49 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "FIX-ARCHIVED-CONTRACT-LINKS",
+        "summary": "Resolve current source and test contract links to existing archived change bundles.",
+        "state": "queued",
+        "commits": [
+          "8723f859e9f3c385ad628ccff68556488e2a7f15"
+        ],
+        "pullRequest": {
+          "number": 254,
+          "headSha": "4129316b298b6aba9374fb898af4693a4bc54284",
+          "mergeSha": "8723f859e9f3c385ad628ccff68556488e2a7f15",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/254/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Exact source-reference and semantic-parity checks",
+              "result": "137 comment-only references repaired across 119 files. All 119 before/after hashes match the proven transformations in the integrated tree. JavaScript/TypeScript ASTs and Vue script/template/style boundaries are unchanged outside comments; the Rust edit is confined to a contract comment. Two historical labels resolve through their applied successor bundles. Five executable active-path literals remain unchanged. Runtime, executable test assertions, graph/verification and frozen archives are unchanged.",
+              "date": "2026-11-14",
+              "build": "8723f859e9f3c385ad628ccff68556488e2a7f15",
+              "evidence": "https://github.com/xronocode/mark/pull/254"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, renderer/backend tests on three hosts, QuickLook, CI and five CodeQL analyses passed. Browser: 839 passed, zero failed, zero flaky and eight existing skips. Current lint reports zero errors and four existing heuristic warnings. Predicted and integrated trees match.",
+              "date": "2026-11-14",
+              "build": "4129316b298b6aba9374fb898af4693a4bc54284",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43468521081; https://github.com/xronocode/mark/pull/254/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance",
+              "reason": "Comment-only navigation correction; no native or owner verdict is claimed. The additional automatic macOS-arm64 artifact build was cancelled before acquiring a runner, with zero steps and no artifact verdict. Product tests and builds were not repeated locally for the comment-only transformation."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "notPresent": []
