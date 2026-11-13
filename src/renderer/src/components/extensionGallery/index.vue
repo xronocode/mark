@@ -95,6 +95,27 @@
 </template>
 
 <script setup>
+// START_MODULE_CONTRACT
+//   PURPOSE: Display discovered extensions and route discovery and enable/disable actions to the extension host.
+//   SCOPE: Gallery state, extension IPC actions and presentation using the renderer theme tokens.
+//   DEPENDS: Vue refs/lifecycle, Vue i18n, Tauri core invoke, extension host commands.
+//   LINKS: M-011; M-045; V-M-011.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   t - Translate gallery labels and failure messages.
+//   extensions - Most recently fetched extension list.
+//   loading - Discovery and refresh progress.
+//   error - Current visible failure message.
+//   toggling - Per-extension enable/disable progress.
+//   fetchExtensions - Read the registered extension list.
+//   refresh - Discover extensions and refresh the list.
+//   toggleExtension - Apply an enable/disable action and refresh visible state.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-13 - Resolve gallery backgrounds through the existing renderer theme token names.
+// END_CHANGE_SUMMARY
 import { ref, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useI18n } from 'vue-i18n'
@@ -220,14 +241,14 @@ onMounted(async () => {
   font-size: 12px;
   border: 1px solid var(--tableBorderColor, #ddd);
   border-radius: 4px;
-  background: var(--sideBarBg, #f5f5f5);
+  background: var(--sideBarBgColor, #f5f5f5);
   color: var(--editorColor, #333);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .gallery-refresh-btn:hover:not(:disabled) {
-  background: var(--sideBarItemHoverBg, #e8e8e8);
+  background: var(--sideBarItemHoverBgColor, #e8e8e8);
 }
 
 .gallery-refresh-btn:disabled {
@@ -257,7 +278,7 @@ onMounted(async () => {
   padding: 16px;
   border: 1px solid var(--tableBorderColor, #ddd);
   border-radius: 8px;
-  background: var(--sideBarBg, #fafafa);
+  background: var(--sideBarBgColor, #fafafa);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -324,7 +345,7 @@ onMounted(async () => {
   padding: 2px 8px;
   font-size: 11px;
   border-radius: 10px;
-  background: var(--sideBarItemHoverBg, #e8e8e8);
+  background: var(--sideBarItemHoverBgColor, #e8e8e8);
   color: var(--editorColor, #333);
   font-family: monospace;
 }
