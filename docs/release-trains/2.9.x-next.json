@@ -1510,6 +1510,13 @@
               "date": "2026-11-13",
               "build": "Clean committed main 619f7ddc9502d4f8984d76f7eae73104627c8c9b; source SHA-256 0001a133792a8a55021930c3bea026702d1028799bee2e314ee04c4ff16bf32e; binary SHA-256 be2fce2d8cdafac4cf2496705c1034784bdd1d324ad67f3ad2d440ca187933b1; artifact removed after shutdown",
               "evidence": "https://github.com/xronocode/mark/pull/233; https://github.com/xronocode/mark/pull/236"
+            },
+            {
+              "command": "Focused native minimized Settings export-notice verification",
+              "result": "Failed restoration: after the native minimize button, the same Settings window routed to Export through a real Word success-notice action but remained off-screen. Native accessibility confirmed Export. Both Word controls contained expected fixture text; source Markdown stayed unchanged. Normal Quit stopped the process/windows; the bundle, three executable paths and renderer build were removed after hash checks. Restoration repair and native recheck remain open; previous export-content matrix results are preserved. This is automated macOS evidence, not owner acceptance.",
+              "date": "2026-11-13",
+              "build": "Clean main 57bac25458745399e272aba19a5ec1c97c36d74c; source SHA-256 60ae07aeca406f4761752c57fe6da590701b63e4fc95e8656bf324fb30c0818b; binary SHA-256 d8f0131a5550be834fa512ad0250610b7b6518587dc54ccb55cdd6a5fdd6115f; artifact removed after shutdown",
+              "evidence": "https://github.com/xronocode/mark/pull/233; https://github.com/xronocode/mark/pull/236"
             }
           ],
           "manual": [],
@@ -1517,7 +1524,7 @@
             {
               "section": "manual",
               "scenario": "Dispatch-build owner and platform acceptance",
-              "reason": "Clean-main packaged native execution now verifies current unsaved content across the export matrix. No train dispatch build or owner/platform verdict is recorded; the integration exception and separate minimized Settings observation remain open."
+              "reason": "The owner-authorized integration exception remains open. The minimized Settings case is now a confirmed restoration failure recorded above and requires a repair and native recheck. No dispatch-build owner/platform verdict is recorded; earlier content-matrix evidence does not waive this failure."
             },
             {
               "section": "automatic",
@@ -1572,14 +1579,21 @@
               "date": "2026-11-13",
               "build": "Clean committed main 619f7ddc9502d4f8984d76f7eae73104627c8c9b; source SHA-256 0001a133792a8a55021930c3bea026702d1028799bee2e314ee04c4ff16bf32e; binary SHA-256 be2fce2d8cdafac4cf2496705c1034784bdd1d324ad67f3ad2d440ca187933b1; artifact removed after shutdown",
               "evidence": "https://github.com/xronocode/mark/pull/233; https://github.com/xronocode/mark/pull/236"
+            },
+            {
+              "command": "Focused native minimized Settings export-notice verification",
+              "result": "Failed restoration: after the native minimize button, the same Settings window routed to Export through a real Word success-notice action but remained off-screen. Native accessibility confirmed Export. Both Word controls contained expected fixture text; source Markdown stayed unchanged. Normal Quit stopped the process/windows; the bundle, three executable paths and renderer build were removed after hash checks. Restoration repair and native recheck remain open; previous export-content matrix results are preserved. This is automated macOS evidence, not owner acceptance.",
+              "date": "2026-11-13",
+              "build": "Clean main 57bac25458745399e272aba19a5ec1c97c36d74c; source SHA-256 60ae07aeca406f4761752c57fe6da590701b63e4fc95e8656bf324fb30c0818b; binary SHA-256 d8f0131a5550be834fa512ad0250610b7b6518587dc54ccb55cdd6a5fdd6115f; artifact removed after shutdown",
+              "evidence": "https://github.com/xronocode/mark/pull/233; https://github.com/xronocode/mark/pull/236"
             }
           ],
           "manual": [],
           "intentionallyUnverified": [
             {
               "section": "manual",
-              "scenario": "Dispatch-build owner/platform acceptance and minimized Settings presentation",
-              "reason": "The owner authorized integration with remaining checks open. At admission, final packaged replay was pending; subsequent clean-main macOS execution now covers the technical native matrix above. Owner/platform verdicts and the pre-existing minimized Settings case remain unresolved. The new package does not claim byte equivalence with the older temporary combination or archive candidate."
+              "scenario": "Dispatch-build owner and platform acceptance",
+              "reason": "The owner-authorized integration exception remains open. The minimized Settings case is now a confirmed restoration failure recorded above and requires a repair and native recheck. No dispatch-build owner/platform verdict is recorded; earlier content-matrix evidence does not waive this failure."
             },
             {
               "section": "automatic",
@@ -1750,6 +1764,56 @@
               "section": "automatic",
               "scenario": "Root cause of the intermittent external-delete dirty-state characterization failure",
               "reason": "The existing configured retry passed. No runtime repair or root-cause conclusion is claimed."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-PROJECT-SEARCH-ACCENT",
+        "summary": "Use the shared window accent for active project-search options.",
+        "state": "queued",
+        "commits": [
+          "b76efc57a07200b8f2849f7b73d259324a3ace84"
+        ],
+        "pullRequest": {
+          "number": 241,
+          "headSha": "f8913acb2e071cf17250dec6be0e582ab62b4271",
+          "mergeSha": "b76efc57a07200b8f2849f7b73d259324a3ace84",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/241/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused renderer tests and source-bound browser presentation comparison",
+              "result": "138 focused tests passed across ten search/extension suites. Four matched Chromium/WebKit and Paper/Ink cases per phase reduced 24 active glyph/border accent mismatches to zero; inactive, hover, narrow-window and document-search controls were preserved. Script/template and search behavior are unchanged. Original implementation build passed; review reported zero Standards and Spec findings.",
+              "date": "2026-11-13",
+              "build": "f8913acb2e071cf17250dec6be0e582ab62b4271",
+              "evidence": "https://github.com/xronocode/mark/pull/241"
+            },
+            {
+              "command": "Exact-head hosted matrix, CI and required checks",
+              "result": "All four required statuses, renderer/backend checks on macOS, Windows and Linux, QuickLook, CI and five CodeQL analyses passed. Browser: 839 passed, zero failed, zero flaky and eight existing skips. The first attempt acquired no runner and ran zero browser steps; one bounded retry after observed runner recovery succeeded. No assertions, retries, skips, timeouts or coverage floors changed.",
+              "date": "2026-11-13",
+              "build": "f8913acb2e071cf17250dec6be0e582ab62b4271",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43448158753; https://github.com/xronocode/mark/pull/241/checks"
+            },
+            {
+              "command": "Merge compatibility and post-integration current-state integrity",
+              "result": "All source and verification files match the hosted head. Only two train files differ and match separately verified main. Predicted and integrated trees match; current integrity/status passed with zero errors, four existing heuristic warnings and no drift.",
+              "date": "2026-11-13",
+              "build": "b76efc57a07200b8f2849f7b73d259324a3ace84",
+              "evidence": "https://github.com/xronocode/mark/pull/241"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform presentation acceptance",
+              "reason": "Rendered probes cover option styling, not native IPC or a human verdict. Native platform presentation and owner acceptance remain pending; this accent correction makes no claim about advanced search filters or query execution."
             }
           ]
         },
