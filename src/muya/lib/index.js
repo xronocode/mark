@@ -10,6 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   Muya#mutationObserver - Observe existing table/empty-root crash conditions without counting all root children for each mutation.
 //   muya.diagramAppearance - per-diagram four-mode menu, portable metadata edits and bounded read-only overrides (C-62).
 //   default - GRACE 4 synchronized symbol (Muya class).
 //   Muya#exportStyledHTML - Capture the current complete model once before styled HTML conversion.
@@ -25,6 +26,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-13: preserve mutation crash guards while checking first-element presence instead of repeatedly counting all root elements.
 //   - 2026-11-12 C-MUYA-CURRENT-MODEL-EXPORT: both HTML export APIs snapshot getMarkdown without refreshing the change-event cache or mutating document state.
 //   - 2026-11-10 C-MD-LINK-TABS: own one capture-phase link controller per instance and invalidate it on document imports/teardown.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Add render-only document import and one-shot exact unified-history replay while preserving ordinary and progressive load paths.
@@ -227,7 +229,7 @@ class Muya {
             }
           }
 
-          if (target.getAttribute('id') === 'ag-editor-id' && target.childElementCount === 0) {
+          if (target.getAttribute('id') === 'ag-editor-id' && target.firstElementChild === null) {
             // TODO: the editor can not be input any more. report bugs and recovery...
             eventCenter.dispatch('crashed')
             console.warn('editor crashed, and can not be input any more.')
