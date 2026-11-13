@@ -1582,6 +1582,56 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "FIX-LARGE-DOCUMENT-EMPTY-GUARD",
+        "summary": "Avoid repeated root-child counts while opening large documents.",
+        "state": "queued",
+        "commits": [
+          "bf3601753824f88fadd89c6c6c94496424128d5f"
+        ],
+        "pullRequest": {
+          "number": 245,
+          "headSha": "4718b0b3845045b3fe53fab8c96f3e4804553f20",
+          "mergeSha": "bf3601753824f88fadd89c6c6c94496424128d5f",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/245/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused mutation-observer regression and maintained document timing checks",
+              "result": "38 unit tests across four suites and both existing Chromium timing cases passed. Before the change, the regression failed once with eight controls passing and counted 256 child-count reads. The equivalent first-element emptiness predicate preserves per-record crash and recovery behavior. Timing budgets, retries and skips are unchanged.",
+              "date": "2026-11-13",
+              "build": "4718b0b3845045b3fe53fab8c96f3e4804553f20",
+              "evidence": "https://github.com/xronocode/mark/pull/245"
+            },
+            {
+              "command": "Exact-head GitHub Actions test matrix, CI, governance and CodeQL",
+              "result": "All four required contexts passed; renderer/backend checks passed on macOS, Windows and Linux, with QuickLook and all five CodeQL analyses. Browser: 833 passed, zero flaky cases and eight existing skips. Integrated main has the same complete tree as the checked candidate.",
+              "date": "2026-11-13",
+              "build": "4718b0b3845045b3fe53fab8c96f3e4804553f20",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43417976198; https://github.com/xronocode/mark/pull/245/checks"
+            },
+            {
+              "command": "Controlled local large-document comparison and post-integration integrity",
+              "result": "Single local observations measured about 2836 ms before and 829 ms after; the sampled observer self time fell from about 1901 ms to 1.419 ms. These are diagnostic observations, not a cross-platform SLA or proof of the sole cause of the earlier hosted budget failure. Current integrity/status passed with zero errors and four unchanged heuristic warnings.",
+              "date": "2026-11-13",
+              "build": "bf3601753824f88fadd89c6c6c94496424128d5f",
+              "evidence": "https://github.com/xronocode/mark/pull/245"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance and representative production workloads",
+              "reason": "No owner verdict or multi-platform native performance acceptance is recorded. Local timings are individual observations; no performance guarantee is inferred."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "operational": [
@@ -2113,6 +2163,61 @@
               "section": "manual",
               "scenario": "Consolidated dispatch-build owner acceptance",
               "reason": "Documentation and isolated CLI availability only. No native product acceptance or production deployment is claimed."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-STREAM-OWNERSHIP-EVIDENCE",
+        "summary": "Verify focused stream edits and retain first-failure browser evidence.",
+        "state": "queued",
+        "commits": [
+          "63fcd587a263cdd93ae57198653e231e01d8de06"
+        ],
+        "pullRequest": {
+          "number": 239,
+          "headSha": "c512ae40ee9bcd1c2b94c85378b6400863f3f277",
+          "mergeSha": "63fcd587a263cdd93ae57198653e231e01d8de06",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/239/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Exact-head GitHub Actions test matrix, CI, governance and CodeQL",
+              "result": "All four required contexts passed; renderer/backend checks passed on macOS, Windows and Linux, with QuickLook and all five CodeQL analyses. The integrated tree matches the checked candidate.",
+              "date": "2026-11-13",
+              "build": "c512ae40ee9bcd1c2b94c85378b6400863f3f277",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43388709278; https://github.com/xronocode/mark/pull/239/checks"
+            },
+            {
+              "command": "Focused Chromium/WebKit stream tests and controlled evidence retention on the unchanged implementation",
+              "result": "22 stream cases passed. A deliberate first failure retained trace, screenshot and error context; passing controls retained none. Keyboard/DOM capture, complete current Markdown and local write ownership remained asserted. The refreshed candidate changed only two train documents.",
+              "date": "2026-11-13",
+              "build": "1d592f7d79618040cd1248c1410d49264be955b7",
+              "evidence": "https://github.com/xronocode/mark/pull/239"
+            },
+            {
+              "command": "Actual hosted failure upload using the integrated workflow",
+              "result": "The later comparison run failed its existing large-document paint budget and uploaded playwright-failure-evidence from test-results/ with 14-day retention. The downloaded artifact contained 99 files including 98 PNGs and the failing case error context; no trace ZIP was present. This proves the hosted storage path, not hosted stream-failure tracing.",
+              "date": "2026-11-13",
+              "build": "88798d08826cec6fdfd785f7c028a9d4f454d23b",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43398693168; https://github.com/xronocode/mark/actions/runs/43398693168/artifacts/14025506948"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance and native keyboard/focus behavior",
+              "reason": "This verification-only repair has no recorded owner verdict; browser transport uses the existing shim."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Hosted stream-failure trace retention and runtime trailing-whitespace focus behavior",
+              "reason": "The deliberate trace control was local; the actual hosted failure was a performance case. Product whitespace focus and intermittent external-delete observations remain open; no runtime repair or retry/threshold relaxation is claimed."
             }
           ]
         },
