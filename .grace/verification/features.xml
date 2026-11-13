@@ -2,8 +2,14 @@
   <VD-FEATURES>
     <V-M-031>
       <Priority>high</Priority>
-      <Commands/>
-      <Scenarios/>
+      <Commands>
+        <Command>npx --no-install vitest run tests/renderer/components/diff-theme-sync.test.js tests/renderer/components/diffView.test.js tests/renderer/components/diff-view-snapshot.test.js tests/renderer/components/diff-opened-baseline.test.js tests/renderer/components/diff-view.test.js tests/renderer/store/diff-snapshots.test.js --maxWorkers=2</Command>
+        <Command>npx --no-install playwright test tests/e2e/diff-theme.spec.ts --project=chromium --project=webkit-diff</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>Owned live themes: Paper to Ink to One Dark to Paper updates both CodeMirror options and classes without reconstructing editors, refetching the baseline, changing content/readOnly/tab state or issuing writes. Pending baseline uses the latest theme; unmount retires the watcher; unrelated editors are untouched.</Scenario>
+        <Scenario>Dark changed paragraphs: cold Ink and One Dark comparisons retain change markers and read-only panes with measured plain-paragraph contrast at least 4.5:1. Returning to Paper preserves its changed-line backgrounds. Renderer-shim evidence does not replace native/owner acceptance or establish contrast for every syntax token.</Scenario>
+      </Scenarios>
       <Markers/>
       <TraceAssertions/>
       <LegacyMatrixEvidence>
@@ -2428,6 +2434,7 @@
       <Command>npx --no-install vitest run tests/tools/release-fresh-npx.test.mjs</Command>
       </Commands>
       <Scenarios>
+        <scenario-playwright-first-failure-evidence>The stream-ownership browser suite retains trace and screenshot on its first failure without a retry. The renderer-e2e job uploads the actual test-results directory on failure. A controlled failing fixture must produce trace.zip, a screenshot and error context at that output path; its passing control must discard trace and screenshot. For stream/tab save isolation, autosave-enabled cases await the completed local autosave before requiring exactly one additional manual-save write; autosave-disabled cases first require no writes. Every captured write must target the selected local document and exclude foreign stream content; the manual write must equal its complete current Markdown. Source-to-Split input hits the paragraph text and asserts the rich surface is focused before typing; full-content, undo/redo and save assertions remain required. This is not verification of trailing-whitespace focus behavior. Runtime, retries, timeouts, performance projects and required status aggregation remain unchanged.</scenario-playwright-first-failure-evidence>
         <scenario-action-reference-resolution>C-RELEASE-ACTION-REFERENCES: offline injected-fetch and real Response fixtures reject missing commits despite valid SHA shape, malformed/oversized YAML/JSON/base64/UTF8, duplicate keys/alias expansion, unsafe/dynamic/Docker/reusable uses, unsupported runtimes, missing entrypoints and unknown/required inputs. Shared commit/metadata lookups still validate every use. HTTP errors/redirects, stalled headers/bodies/cancellation and cumulative request time fail within one deadline without leaking tokens or response payloads. Inert CLI fixtures prove success only after the complete batch; online acceptance checks the exact replacements and all three privileged workflows without running external actions.</scenario-action-reference-resolution>
         <scenario-quicklook-required-status>C-QUICKLOOK-CONTENT-BOUNDARY: execute the actual aggregate shell for both runtime and docs-only lanes. Every heavy job, including quicklook-native, must reject failure/cancellation/empty results; only docs-only may accept skipped. The native job is read-only, macos-15, Node 22 and credential-free; it runs the real provider fixture and extension-only unsigned build without registration.</scenario-quicklook-required-status>
         <scenario-shell-import-isolation>C-SEC-COVERAGE-IMPORTS: app.test.js and app-deep.test.js use an import-level editor child stub, preserving all 41 shell assertions and existing timeouts. Real editor and live-stream rendering remain covered by their component suites and Chromium/WebKit regressions.</scenario-shell-import-isolation>

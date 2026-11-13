@@ -12,9 +12,11 @@
       <Status>done</Status>
       <PhaseRef>B6-diff</PhaseRef>
       <Summary>
-        Inline diff view via CodeMirror 5 MergeView + diff-match-patch. Git
-        baseline via mt_diff_baseline (git show HEAD:{path}). Toggle via
-        view.diff-mode command. Theme support (railscasts/one-dark).
+        Read-only side-by-side comparison via CodeMirror 5 MergeView and
+        diff-match-patch. Baseline priority: latest tab snapshot, stored
+        mt_diff_baseline result, then opened snapshot. Both owned panes follow
+        live default/railscasts/one-dark themes; dark changed lines use the
+        existing code-block surface. Toggle via view.diff-mode.
       </Summary>
       <PlannedPath>
         src/renderer/src/components/editorWithTabs/diffView.vue,
@@ -28,8 +30,11 @@
       <VerificationRef>V-M-031</VerificationRef>
       <Contract>
         <Purpose>
-          No explicit legacy module contract; use Summary and
-          LegacyKnowledgeDetail until the module is next changed.
+          Resolve the current tab's baseline with tab/path/request/lifetime
+          guards, exit calmly when there is nothing to compare, and render
+          read-only panes with baseline source labels. Theme changes update
+          only the two owned editors without refetching the baseline, changing
+          comparison content or modifying document save/history state.
         </Purpose>
         <Inputs/>
         <Outputs/>

@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.10.0
+# VERSION: 1.11.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,6 +11,7 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
+#   - 2026-11-13 v1.11.0: collect Playwright failure evidence from its actual test-results output, including first-failure stream ownership traces; retain the existing gates and deadlines.
 #   LAST_CHANGE: 2026-11-12 C-QUICKLOOK-CONTENT-BOUNDARY: gate the actual native preview and isolated unsigned extension build through the required status aggregate.
 #   SECURITY: 2026-11-11 C-SEC-STREAM-TABS/C-SEC-GATEWAY-TOOLS: require stream-ownership WebKit regressions and prepare the credential-free nested toolchain from its lockfile.
 #   CURRENT: 2026-11-10 C-HOSTED-VALIDATION-RECOVERY: replace the stalled Azure HTTP Ubuntu source URI with canonical HTTPS on the ephemeral Linux runner; retain signed suites, package lists, retry counts and budgets.
@@ -303,12 +304,12 @@ jobs:
           path: test-results/pele-themes/
           retention-days: 14
 
-      - name: upload playwright report
+      - name: upload playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-failure-evidence
+          path: test-results/
           retention-days: 14
 
   quicklook-native:

@@ -1414,6 +1414,224 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "FIX-NATIVE-PDF-DESTINATION",
+        "summary": "Write macOS PDF exports to the chosen AppKit destination with the selected page geometry.",
+        "state": "queued",
+        "commits": [
+          "9912f7fbba95dfb4244fe53f930c690a19a5c0bc"
+        ],
+        "pullRequest": {
+          "number": 231,
+          "headSha": "fddbda41bdbd92da0825d82f62502e270b06cf97",
+          "mergeSha": "9912f7fbba95dfb4244fe53f930c690a19a5c0bc",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/231/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Native print destination regression and focused backend suite",
+              "result": "18 backend tests passed. Regression distinguishes the incorrect printSettings destination from the exported NSPrintInfo attribute dictionary. The reviewed destination source SHA-256 is adea3b9d85b50d39c41973dd4f67fd24a989c97bafdac3ebddd58441188ae7e3.",
+              "date": "2026-11-12",
+              "build": "fddbda41bdbd92da0825d82f62502e270b06cf97",
+              "evidence": "https://github.com/xronocode/mark/pull/231/checks"
+            },
+            {
+              "command": "Required hosted contexts, supported renderer/backend matrix, native Quick Look, unsigned QA build, CodeQL and browser matrix",
+              "result": "All required checks passed on the checked head. Browser: 810 passed, one flaky case passed its existing configured retry, eight existing skips. Source and squash complete trees match; no retry, timeout, skip or coverage threshold was changed.",
+              "date": "2026-11-12",
+              "build": "fddbda41bdbd92da0825d82f62502e270b06cf97",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43199398974; https://github.com/xronocode/mark/pull/231/checks"
+            },
+            {
+              "command": "Isolated macOS native Save and output inspection",
+              "result": "One Save panel produced nonempty A4 portrait and landscape PDFs with document headings and table content. Dimensions were 595 by 842 and 842 by 595 points. Both outputs were rendered and inspected. The combined QA artifact contains the exact reviewed backend source and the separate Export renderer; this is bounded backend evidence, not a whole-PR artifact or owner verdict. Identifier com.xronocode.mark.test.exportpdf.adea3b9d85b5; binary SHA-256 ce5fd1b2b60f2075cd5fd4baf1f33fd6956162dcf2482bfea0ee72d5189d81bf. Completed test applications and standalone executables were removed; source, recipes, hashes and outputs remain.",
+              "date": "2026-11-12",
+              "build": "native-source-sha256:adea3b9d85b50d39c41973dd4f67fd24a989c97bafdac3ebddd58441188ae7e3",
+              "evidence": "https://github.com/xronocode/mark/pull/231"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Owner native acceptance and consolidated dispatch-build acceptance",
+              "reason": "Automated native observations and output inspection do not supply an owner verdict. The isolated combined QA build has been removed after testing; a future review requires a fresh identified build."
+            },
+            {
+              "section": "manual",
+              "scenario": "Exact Unicode PDF text extraction parity",
+              "reason": "Rendered Cyrillic and Chinese glyphs were inspected, but extraction includes a Cyrillic ka substitution and compatibility forms. No exact Unicode substring equivalence is claimed."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Source/Split focus and external-delete timing stability",
+              "reason": "An existing browser case passed on its configured retry. Runtime follow-ups remain open; this backend destination repair does not claim to fix them."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-MUYA-CURRENT-MODEL-EXPORT",
+        "summary": "Keep HTML exports synchronized with the current document model.",
+        "state": "queued",
+        "commits": [
+          "7680bdf0050c2a5cd23fd79816a8bb26b707c9e4"
+        ],
+        "pullRequest": {
+          "number": 236,
+          "headSha": "c7cb020c50ed02392bbc9285e3770e4d0307a883",
+          "mergeSha": "7680bdf0050c2a5cd23fd79816a8bb26b707c9e4",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/236/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions test matrix, CI, governance and CodeQL on the archive candidate",
+              "result": "All four required contexts passed. Renderer and backend checks passed on macOS, Windows and Linux; QuickLook, CI and all five CodeQL analyses passed. Browser: 810 passed, one flaky external-delete case passed its existing configured retry, and eight existing skips. The integrated main tree is identical to the tested archive candidate.",
+              "date": "2026-11-12",
+              "build": "c7cb020c50ed02392bbc9285e3770e4d0307a883",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43265684162; https://github.com/xronocode/mark/pull/236/checks"
+            },
+            {
+              "command": "Current-state integrity and module status after integration",
+              "result": "GRACE reported zero errors and four unchanged heuristic warnings; module status passed. Both existing HTML export methods snapshot the current model without changing events, history or dirty state.",
+              "date": "2026-11-12",
+              "build": "7680bdf0050c2a5cd23fd79816a8bb26b707c9e4",
+              "evidence": "https://github.com/xronocode/mark/pull/236"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner and platform acceptance, including the final packaged native export matrix",
+              "reason": "No train dispatch build or owner platform verdict is recorded. Source-bound native checks remain separate; the owner authorized integration while retaining these open checks."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Root cause of the intermittent external-delete dirty-state characterization failure",
+              "reason": "The archive-candidate browser cohort passed this case on its existing retry. No runtime fix or root-cause conclusion is claimed."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-EXPORT-SETTINGS-SECTION-RECOVERY",
+        "summary": "Move export options into Settings and open Save directly for PDF, HTML and Word.",
+        "state": "queued",
+        "commits": [
+          "0a72917c50904034eda06c64ee870e1ea8e7623c"
+        ],
+        "pullRequest": {
+          "number": 233,
+          "headSha": "4b11b8b49caaf9af4c496aa0402af1894df650bc",
+          "mergeSha": "0a72917c50904034eda06c64ee870e1ea8e7623c",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/233/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Exact archive-head GitHub Actions test matrix, CI and required governance checks",
+              "result": "All four required contexts passed. Renderer: macOS 5936 passed, Linux and Windows 5932 each; 421 files per host with existing skips and todos. Backend: macOS 600 passed, Linux 557 and Windows 542; zero failures and one existing ignored test per host. QuickLook and CI passed. Browser: 833 passed, zero flaky cases and eight existing skips. Integrated main has the same complete tree as this archive candidate.",
+              "date": "2026-11-12",
+              "build": "4b11b8b49caaf9af4c496aa0402af1894df650bc",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43288494735; https://github.com/xronocode/mark/actions/runs/43288494866; https://github.com/xronocode/mark/pull/233/checks"
+            },
+            {
+              "command": "Current-state integrity and module status after integration",
+              "result": "GRACE reported zero errors and four existing heuristic warnings; module status passed. The applied and archived recovery bundle retains its approved specification and plan bodies.",
+              "date": "2026-11-12",
+              "build": "0a72917c50904034eda06c64ee870e1ea8e7623c",
+              "evidence": "https://github.com/xronocode/mark/pull/233"
+            },
+            {
+              "result": "Nine entry/format routes and fourteen outputs contained the selected document marker and excluded the other document marker. Landscape PDF and Word, notice navigation, settings persistence, reset, Save cancellation and Print cancellation passed on the identified temporary combination. All 882 product files and 740 renderer assets match the final implementation. This is source-bound native verification, not final-package execution or owner acceptance.",
+              "date": "2026-11-12",
+              "build": "Temporary combined Export/current-model source SHA-256 238e018605c6aae2b9a9963bdfbf577846de0d0e3a436d57be2c700d257816db; binary SHA-256 84607af995089f1090e78371a8855224cc8cabfce1136ec1bceee52e2537dc4b; artifact removed after shutdown",
+              "evidence": "https://github.com/xronocode/mark/pull/233; source-bound native verification and preserved owner exception",
+              "command": "Automated native UI and actual-content checks on the isolated combined Export/current-model build"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Final-package native replay, owner/platform acceptance and minimized Settings presentation",
+              "reason": "The owner explicitly authorized integration with the remaining native and owner/platform checks kept open. Final-package replay awaits screen unlock. The minimized Settings case also reproduces on the earlier accepted main and remains unresolved. Source and renderer-asset equivalence does not claim binary-byte equivalence."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Swift CodeQL on the archive candidate",
+              "reason": "GitHub cancelled the job before it acquired a hosted macOS arm64 runner because of capacity. The four required merge contexts passed; no workflow, runner, policy or permission workaround was used."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Root causes of the earlier Source-to-Split and external-delete intermittent failures",
+              "reason": "The final archive browser cohort is clean, but the earlier observations remain open. No retry, timeout, skip, assertion or coverage threshold was weakened, and no root cause or runtime fix is claimed."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-LARGE-DOCUMENT-EMPTY-GUARD",
+        "summary": "Avoid repeated root-child counts while opening large documents.",
+        "state": "queued",
+        "commits": [
+          "bf3601753824f88fadd89c6c6c94496424128d5f"
+        ],
+        "pullRequest": {
+          "number": 245,
+          "headSha": "4718b0b3845045b3fe53fab8c96f3e4804553f20",
+          "mergeSha": "bf3601753824f88fadd89c6c6c94496424128d5f",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/245/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused mutation-observer regression and maintained document timing checks",
+              "result": "38 unit tests across four suites and both existing Chromium timing cases passed. Before the change, the regression failed once with eight controls passing and counted 256 child-count reads. The equivalent first-element emptiness predicate preserves per-record crash and recovery behavior. Timing budgets, retries and skips are unchanged.",
+              "date": "2026-11-13",
+              "build": "4718b0b3845045b3fe53fab8c96f3e4804553f20",
+              "evidence": "https://github.com/xronocode/mark/pull/245"
+            },
+            {
+              "command": "Exact-head GitHub Actions test matrix, CI, governance and CodeQL",
+              "result": "All four required contexts passed; renderer/backend checks passed on macOS, Windows and Linux, with QuickLook and all five CodeQL analyses. Browser: 833 passed, zero flaky cases and eight existing skips. Integrated main has the same complete tree as the checked candidate.",
+              "date": "2026-11-13",
+              "build": "4718b0b3845045b3fe53fab8c96f3e4804553f20",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43417976198; https://github.com/xronocode/mark/pull/245/checks"
+            },
+            {
+              "command": "Controlled local large-document comparison and post-integration integrity",
+              "result": "Single local observations measured about 2836 ms before and 829 ms after; the sampled observer self time fell from about 1901 ms to 1.419 ms. These are diagnostic observations, not a cross-platform SLA or proof of the sole cause of the earlier hosted budget failure. Current integrity/status passed with zero errors and four unchanged heuristic warnings.",
+              "date": "2026-11-13",
+              "build": "bf3601753824f88fadd89c6c6c94496424128d5f",
+              "evidence": "https://github.com/xronocode/mark/pull/245"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance and representative production workloads",
+              "reason": "No owner verdict or multi-platform native performance acceptance is recorded. Local timings are individual observations; no performance guarantee is inferred."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "operational": [
@@ -1794,6 +2012,212 @@
               "section": "automatic",
               "scenario": "Source/Split focus and external-delete timing stability",
               "reason": "The first browser attempt failed the existing Source-to-Split case; the same-head failed-job rerun passed it. The final attempt passed the external-delete case on its existing retry. Both remain open runtime follow-ups; no product fix, retry change or clean first-attempt claim is made."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-QUICKLOOK-WINDOWS-FIXTURE",
+        "summary": "Allow bounded fixture cleanup retries for Windows file-handle release without changing Quick Look boundary assertions.",
+        "state": "queued",
+        "commits": [
+          "c558f9fd0ddd1378b8a2bc3881dafe370d4be9a0"
+        ],
+        "pullRequest": {
+          "number": 228,
+          "headSha": "24d21c6c230d51f871f4410834e97c2c935528a6",
+          "mergeSha": "c558f9fd0ddd1378b8a2bc3881dafe370d4be9a0",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/228/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused Quick Look verification and required hosted checks",
+              "result": "61 focused tests passed; current integrity reported zero errors and four unchanged heuristic warnings; required hosted contexts and supported test matrix passed. Production behavior, deadlines, skips and assertions are unchanged.",
+              "date": "2026-11-12",
+              "build": "24d21c6c230d51f871f4410834e97c2c935528a6",
+              "evidence": "https://github.com/xronocode/mark/pull/228/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Consolidated dispatch-build owner acceptance",
+              "reason": "Test-only cleanup repair; no product behavior changed. Installed-extension acceptance belongs to the separately admitted Quick Look change."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-TABLE-RESIZE-CANVAS",
+        "summary": "Stabilize the resize fixture canvas before Fit and Full measurements while retaining two-pixel bounds and content assertions.",
+        "state": "queued",
+        "commits": [
+          "bf6137d69560fc3ea2f10cdd92ca4d4095eedcfd"
+        ],
+        "pullRequest": {
+          "number": 229,
+          "headSha": "98001ed12355ecc2982b2d442916d48ba77ad3ba",
+          "mergeSha": "bf6137d69560fc3ea2f10cdd92ca4d4095eedcfd",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/229/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Failing-first and repaired table-resize browser fixture",
+              "result": "Original fixture failed 8 of 10 repetitions. Repaired fixture passed 40 repetitions and all 32 Chromium/WebKit table cases; required hosted contexts and full test matrix passed. Column independence, byte/save/tab/mode checks and tolerances remain unchanged.",
+              "date": "2026-11-12",
+              "build": "98001ed12355ecc2982b2d442916d48ba77ad3ba",
+              "evidence": "https://github.com/xronocode/mark/pull/229/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Consolidated dispatch-build owner acceptance",
+              "reason": "Test fixture geometry only; no product layout repair or native acceptance is claimed."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-CONTRIBUTOR-COMMANDS",
+        "summary": "Document desktop renderer commands and remove the unavailable documentation development command.",
+        "state": "queued",
+        "commits": [
+          "b6fa8d89daa11e6ac19b4fbbf57292dd6df4394b"
+        ],
+        "pullRequest": {
+          "number": 230,
+          "headSha": "257359cced79e7d1b0f979d50d70d13c4ffcb97a",
+          "mergeSha": "b6fa8d89daa11e6ac19b4fbbf57292dd6df4394b",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/230/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Command declarations, current integrity and required hosted checks",
+              "result": "All seven remaining npm script declarations matched package.json. Refreshed current integrity passed with zero errors and four unchanged heuristic warnings. All four required hosted contexts passed; product jobs were correctly skipped for the documentation-only diff.",
+              "date": "2026-11-12",
+              "build": "257359cced79e7d1b0f979d50d70d13c4ffcb97a",
+              "evidence": "https://github.com/xronocode/mark/pull/230/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Consolidated dispatch-build owner acceptance",
+              "reason": "Documentation-only correction. The separate documentation website was not built or deployed; this change does not resolve unrelated stale links."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-GRACE-CLI-BOOTSTRAP",
+        "summary": "Document pinned GRACE CLI installation, prerequisites and clean-clone availability checks.",
+        "state": "queued",
+        "commits": [
+          "cfa71fa75fdb9f246f7223254423fd5df776f079"
+        ],
+        "pullRequest": {
+          "number": 232,
+          "headSha": "7bf57ae0ff6b3cfef29bd5cd318d2f94f9fa0aaf",
+          "mergeSha": "cfa71fa75fdb9f246f7223254423fd5df776f079",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/232/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Isolated pinned installation and clean-clone verification",
+              "result": "Installed @osovv/grace-cli 4.2.1 in an isolated prefix. Version, current lint and module status passed on a clean clone with no tracked writes; zero errors and four existing heuristic warnings. The setup commands are unchanged on the refreshed head.",
+              "date": "2026-11-12",
+              "build": "7bf57ae0ff6b3cfef29bd5cd318d2f94f9fa0aaf",
+              "evidence": "https://github.com/xronocode/mark/pull/232/checks"
+            },
+            {
+              "command": "Refreshed current integrity and exact-head required hosted checks",
+              "result": "Current integrity passed with zero errors and four unchanged warnings. All four required hosted contexts passed on the refreshed documentation-only head; no runtime behavior changed.",
+              "date": "2026-11-12",
+              "build": "7bf57ae0ff6b3cfef29bd5cd318d2f94f9fa0aaf",
+              "evidence": "https://github.com/xronocode/mark/pull/232/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Consolidated dispatch-build owner acceptance",
+              "reason": "Documentation and isolated CLI availability only. No native product acceptance or production deployment is claimed."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-STREAM-OWNERSHIP-EVIDENCE",
+        "summary": "Verify focused stream edits and retain first-failure browser evidence.",
+        "state": "queued",
+        "commits": [
+          "63fcd587a263cdd93ae57198653e231e01d8de06"
+        ],
+        "pullRequest": {
+          "number": 239,
+          "headSha": "c512ae40ee9bcd1c2b94c85378b6400863f3f277",
+          "mergeSha": "63fcd587a263cdd93ae57198653e231e01d8de06",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/239/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Exact-head GitHub Actions test matrix, CI, governance and CodeQL",
+              "result": "All four required contexts passed; renderer/backend checks passed on macOS, Windows and Linux, with QuickLook and all five CodeQL analyses. The integrated tree matches the checked candidate.",
+              "date": "2026-11-13",
+              "build": "c512ae40ee9bcd1c2b94c85378b6400863f3f277",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43388709278; https://github.com/xronocode/mark/pull/239/checks"
+            },
+            {
+              "command": "Focused Chromium/WebKit stream tests and controlled evidence retention on the unchanged implementation",
+              "result": "22 stream cases passed. A deliberate first failure retained trace, screenshot and error context; passing controls retained none. Keyboard/DOM capture, complete current Markdown and local write ownership remained asserted. The refreshed candidate changed only two train documents.",
+              "date": "2026-11-13",
+              "build": "1d592f7d79618040cd1248c1410d49264be955b7",
+              "evidence": "https://github.com/xronocode/mark/pull/239"
+            },
+            {
+              "command": "Actual hosted failure upload using the integrated workflow",
+              "result": "The later comparison run failed its existing large-document paint budget and uploaded playwright-failure-evidence from test-results/ with 14-day retention. The downloaded artifact contained 99 files including 98 PNGs and the failing case error context; no trace ZIP was present. This proves the hosted storage path, not hosted stream-failure tracing.",
+              "date": "2026-11-13",
+              "build": "88798d08826cec6fdfd785f7c028a9d4f454d23b",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43398693168; https://github.com/xronocode/mark/actions/runs/43398693168/artifacts/14025506948"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance and native keyboard/focus behavior",
+              "reason": "This verification-only repair has no recorded owner verdict; browser transport uses the existing shim."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Hosted stream-failure trace retention and runtime trailing-whitespace focus behavior",
+              "reason": "The deliberate trace control was local; the actual hosted failure was a performance case. Product whitespace focus and intermittent external-delete observations remain open; no runtime repair or retry/threshold relaxation is claimed."
             }
           ]
         },

@@ -1,13 +1,14 @@
 <!-- MODULE_CONTRACT
   PURPOSE: M-031 read-only side-by-side diff of the current tab against its baseline; C-43 prefers Mark's own snapshot of the pre-reload content over the .before/git baseline; C-68 adds the «opened» fallback so ⌘D always has something to compare outside git, and replaces no-baseline errors with calm notices.
-  SCOPE: Tab-scoped baseline resolution (latest snapshot → mt_diff_baseline → opened snapshot), request/view lifetime guards, calm exits, CodeMirror MergeView rendering and source labels.
+  SCOPE: Tab-scoped baseline resolution (latest snapshot → mt_diff_baseline → opened snapshot), request/view lifetime guards, calm exits, CodeMirror MergeView rendering, owned-pane live themes and source labels.
   DEPENDS: editor store (currentFile.id), store/diffSnapshots (latestSnapshot, openedSnapshot), preferences store (theme), mt_diff_baseline IPC.
   LINKS: .grace/changes/archive/C-68; .grace/changes/archive/C-43; .grace/verification/runtime.xml V-M-011 scenario-39/scenario-67; src-tauri/src/m031_diff.rs.
   ROLE: RUNTIME
   MAP_MODE: EXPORTS
 MODULE_MAP:
-  default - DiffView component; props { markdown, pathname }; header labels the baseline source (snapshot + time, opened + time, or neutral "Previous version" for the stored baseline).
+  default - DiffView component; props { markdown, pathname }; read-only panes follow the current theme; header labels the baseline source (snapshot + time, opened + time, or neutral "Previous version" for the stored baseline).
 CHANGE_SUMMARY:
+  2026-11-13: synchronize themes on both owned editors without rebuilding the comparison; use the existing code-block surface for dark changed lines.
   2026-10-19 integration: discard obsolete baseline/import completions after tab/path changes, exit or unmount; log a stable fallback reason without backend paths.
   2026-10-19 C-68 T-001: opened-baseline fallback + calm notices (backend errors never reach the UI; equal content / no baseline exit with an info notice instead of a warning).
   2026-10-15 C-43 S1: snapshot baseline priority + header source label.
@@ -123,6 +124,17 @@ const getTheme = () => {
   if (oneDarkThemes.includes(theme.value)) return 'one-dark'
   return 'default'
 }
+
+// START_BLOCK_DIFF_THEME_SYNC
+const syncMergeTheme = () => {
+  if (!mergeView) return
+  const cmTheme = getTheme()
+  mergeView.editor().setOption('theme', cmTheme)
+  mergeView.rightOriginal()?.setOption('theme', cmTheme)
+}
+
+watch(theme, syncMergeTheme)
+// END_BLOCK_DIFF_THEME_SYNC
 
 const destroyMergeView = () => {
   if (mergeView) {
@@ -304,6 +316,10 @@ onBeforeUnmount(() => {
 }
 .diff-view .CodeMirror {
   background: transparent;
+}
+.diff-view .cm-s-railscasts .CodeMirror-merge-r-chunk,
+.diff-view .cm-s-one-dark .CodeMirror-merge-r-chunk {
+  background: var(--codeBlockBgColor, var(--editorBgColor));
 }
 .diff-view .CodeMirror-gutters {
   border-right: none;
