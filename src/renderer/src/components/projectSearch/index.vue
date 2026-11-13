@@ -61,6 +61,42 @@
 </template>
 
 <script setup>
+// START_MODULE_CONTRACT
+//   PURPOSE: Present the existing project-search overlay, options and result summary.
+//   SCOPE: Store bindings, option controls and bus-owned overlay lifecycle; search execution stays in the search store.
+//   DEPENDS: Vue lifecycle/reactivity, Pinia stores, Vue i18n, renderer bus, result item and plural-count helper.
+//   LINKS: M-011; V-M-011 scenario-56.
+//   ROLE: RUNTIME
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   t - Translate search labels and summaries.
+//   searchStore - Owner of project search state and operations.
+//   projectStore - Owner of the opened project tree.
+//   results - Current grouped search results.
+//   running - Current search progress state.
+//   error - Search-store failure state.
+//   isCaseSensitive - Case option binding.
+//   isWholeWord - Whole-word option binding.
+//   isRegexp - Regular-expression option binding.
+//   projectTree - Opened project context.
+//   inputEl - Search input reference for existing focus behavior.
+//   showProjectSearch - Overlay visibility.
+//   hasQuery - Whether a search query exists.
+//   matchCount - Total current match count.
+//   resultSummary - Localized match and file count summary.
+//   showNoFolderOpenedMessage - Whether to display the missing-folder hint.
+//   keywordModel - Search input model delegated to the store.
+//   toggleOption - Delegate an option toggle to the store.
+//   cancel - Delegate cancellation to the store.
+//   open - Show the overlay and focus/select the input.
+//   close - Hide the overlay.
+//   toggle - Handle the existing bus visibility action.
+//   focusResults - Retain the current Enter-key placeholder behavior.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-13 - Resolve active option text and borders through the established chrome accent.
+// END_CHANGE_SUMMARY
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
@@ -230,8 +266,8 @@ onBeforeUnmount(() => {
 }
 .opt.active {
   background: var(--floatHoverColor, rgba(0, 0, 0, 0.08));
-  color: var(--highlightThemeColor);
-  border-color: var(--highlightThemeColor);
+  color: var(--chromeAccent);
+  border-color: var(--chromeAccent);
 }
 .result-info {
   margin-top: 8px;
