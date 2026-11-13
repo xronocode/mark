@@ -328,8 +328,8 @@
     "default": "hand"
   },
   "imageInsertAction": {
-    "description": "Advanced--When I add an image: copy it into a folder, keep its original location, or upload to the cloud.",
-    "enum": ["upload", "folder", "path"],
+    "description": "Advanced--When I add an image: copy it into a folder or keep its original location.",
+    "enum": ["folder", "path"],
     "default": "folder"
   },
   "imagePreferRelativeDirectory": {
