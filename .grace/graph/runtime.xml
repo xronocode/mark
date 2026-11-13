@@ -3813,6 +3813,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
     </M-011>
     <M-012>
+      <SummaryDelta>Mutation crash guards retain their existing per-record table/element-empty-root semantics. Empty-root detection checks firstElementChild rather than counting every child element for each root insertion; observer registration, recovery dispatch, document state and public APIs are unchanged.</SummaryDelta>
       <SummaryDelta>C-MUYA-CURRENT-MODEL-EXPORT: the existing exportStyledHTML and exportHtml methods capture getMarkdown once before constructing ExportHtml. Render-only model loads therefore export current complete content without refreshing the change-event cache, emitting document changes or changing history/cursor/import behavior. The captured string remains the operation source during asynchronous conversion.</SummaryDelta>
       <SummaryDelta>C-SOURCE-HISTORY-OWNERSHIP: ordinary Source retains one nonpersistent CodeMirror Doc per live id/token; tab return restores its history and selection, lifetime/canonical replacement retires it, and unified history remains Muya-owned.</SummaryDelta>
       <SummaryDelta>C-SPLIT-SAVE-AUTHORITY: the editable rich Split surface remains an eligible committed-snapshot owner with a retained Source preference; unified pane focus, mirrors, document lifetime and IME fences retain authority.</SummaryDelta>
