@@ -204,14 +204,10 @@
 .tabs-container > li.active {
   border: 1px solid #181a1f;
   border-bottom: none;
+  /* Keep the border inside the shared 35px tab row and its bottom marker. */
+  box-sizing: border-box;
 }
-.tabs-container > li.active:after {
-  top: 0 !important;
-  right: auto !important;
-  width: 2px !important;
-  height: auto !important;
-  background: #4d78cc !important;
-}
+/* Active-tab marker follows the shared bottom chrome-accent rule. */
 .tabs-container svg.close-icon #unsaved-circle-icon {
   fill: #4d78cc;
 }
