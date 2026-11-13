@@ -4,7 +4,7 @@
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-007: pin the honest table fit algorithm (spec R-9, corners C-7/C-8) — the three-phase DOM measurement (max-content, min-content, wrap-anywhere min over the header plus the first 50 rows, with the jsdom/hidden-pane null guard), the distribution decision order (slack-proportional capped at maxContent, even leftover; wrap-anywhere fallback under space pressure; minimal-size scroll degradation reporting the exact overflow px), the integer snap whose sum equals the frame, and the ratio maths the mode model re-applies on resizes and Fit↔Full switches.
 //   SCOPE: src/muya/lib/tableResize/tableFit.js — measureColumnExtents, planTableFit, distributeIntoFrame, snapWidthsToInt, applyRatiosToWidth, ratiosFromWidths, FIT_MEASURE_ROW_LIMIT. The consuming mode model is pinned in table-layout-persistence.test.js; the store-side ratio twin in tests/renderer/util/table-layout-ratios.test.js.
 //   DEPENDS: Vitest + jsdom (measureColumnExtents refuses zero geometry; the three-phase measurement is pinned through a getBoundingClientRect stub keyed on the measurer class).
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-007; spec R-8/R-9; corners C-7/C-8); .grace/graph/performance.xml M-061; src/muya/lib/tableResize/index.js (the consumer); tests/renderer/util/table-layout-ratios.test.js (the store-side twin).
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-007; spec R-8/R-9; corners C-7/C-8); .grace/graph/performance.xml M-061; src/muya/lib/tableResize/index.js (the consumer); tests/renderer/util/table-layout-ratios.test.js (the store-side twin).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

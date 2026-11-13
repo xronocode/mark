@@ -16,7 +16,7 @@
 //   DEPENDS: store/autoUpdates (notice + actions), store/notifications
 //            (NOTIFY/DISMISS), i18n t.
 //   LINKS: .grace/changes/archive/C-66/spec.xml R-2 (semantic owner);
-//          .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-7, T-005;
+//          .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-7, T-005;
 //          components/notificationCard (renders the entry);
 //          pages/app.vue mounts it beside the stack.
 //   ROLE: RUNTIME

@@ -9,7 +9,7 @@
 //   SCOPE: src/renderer/src/components/exportSettings/headerFooterStrip.vue
 //          in isolation; no store, no bus, no export pipeline.
 //   DEPENDS: Vitest, @vue/test-utils, vue-i18n test instance.
-//   LINKS: .grace/changes/active/C-EXPORT-SINGLE-PAGE (R-4);
+//   LINKS: .grace/changes/archive/C-EXPORT-SINGLE-PAGE (R-4);
 //          .grace/graph/features.xml M-072.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

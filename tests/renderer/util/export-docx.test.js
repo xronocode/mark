@@ -4,7 +4,7 @@
 //   PURPOSE: The M-066 unit matrix (C-NATIVE-DOCX-RTF-EXPORT T-003) — pre-pass behavior and OOXML-level output assertions on real muya export HTML: named styles, table alignment, hyperlinks, native checkboxes, OMML equation content, real footnotes, front-matter absence, list numbering around display math, page geometry, hostile-text round-trip.
 //   SCOPE: preprocessExportHtml / buildDocx / exportToDocx / resolveGeometryMm / mmToTwips in src/renderer/src/util/exportDocx.js against real ExportHtml output.
 //   DEPENDS: util/exportDocx, muya/lib/utils/exportHtml, jszip, Vitest (jsdom).
-//   LINKS: .grace/changes/active/C-NATIVE-DOCX-RTF-EXPORT (R-4..R-8); shapes pinned in export-docx-shapes.test.js.
+//   LINKS: .grace/changes/archive/C-NATIVE-DOCX-RTF-EXPORT (R-4..R-8); shapes pinned in export-docx-shapes.test.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

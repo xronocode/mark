@@ -4,7 +4,7 @@
 //   PURPOSE: End-to-end pin of the C-49 unified zoom — ⌘+ scales p / td / code / KaTeX AND the pele diagram SVG (width + labels, still inside the column; C-55 renamed the hook class ag-mermaid-preview → ag-pele-preview, the zoom mechanism itself is unchanged), ⌘0 restores the Settings base size, the transient pill appears, and Ctrl+wheel inside the fullscreen block viewer never changes the editor font size.
 //   SCOPE: zoom.spec.ts only; keyboard/wheel zoom against the built renderer (tauri-shim bootstrap, same as block-viewer.spec.ts).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim.
-//   LINKS: .grace/changes/active/C-49 R-1/R-2/R-5/R-6; .grace/verification/runtime.xml V-M-011 scenario-41.
+//   LINKS: .grace/changes/archive/C-49 R-1/R-2/R-5/R-6; .grace/verification/runtime.xml V-M-011 scenario-41.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

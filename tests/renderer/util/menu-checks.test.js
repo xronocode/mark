@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the View-menu checkmark sync — util/menuChecks pushes the effective state of the native View CheckMenuItems (boot full sync after hydration, per-change single pushes) and never throws on backend rejection. C-40 T-005 owns the four layout/preference toggles; C-PAGE-WIDTH-TABLES T-010 adds the four Page Width preset rows whose exactly-one-checked state follows the effective width (document entry > global setting) for the active document.
 //   SCOPE: viewMenuCheckStates / syncViewMenuChecks value mapping incl. the per-OS statusBarVisibility default and stored-user-value precedence, watchViewMenuChecks one-push-per-flip behaviour, rejection swallowing in pushViewMenuCheck, pageWidthMenuStates preset mapping (60/80/110 ch, the 100% Full window sentinel, no check for Custom values), and the width re-sync on tab switch / editorLineWidth change / the panel announcement.
 //   DEPENDS: src/renderer/src/util/menuChecks.js, store/layout, store/preferences, store/editor (mocked — the lightweight document holder), util/pageWidthStore (mocked — the entry reader), Pinia, Vitest, tests/renderer/setup.ts window shims + auto-mocked invoke.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-57 (renderer half) and V-M-009 scenario-16 (backend half); .grace/changes/archive/C-40 T-005; .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-010, spec R-13).
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-57 (renderer half) and V-M-009 scenario-16 (backend half); .grace/changes/archive/C-40 T-005; .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-010, spec R-13).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

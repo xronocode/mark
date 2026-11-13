@@ -4,7 +4,7 @@
 //   PURPOSE: Reproduce the owner's table/counter/scrollbar spacing report and pin a compact constant-height reserved footer.
 //   SCOPE: Real Chromium/WebKit caption placement, 2px scrollbar gap, continuous shade paint through the noneditable caption, sticky counter visibility, fitting-table width-control gating including restored Full width, bottom drag-handle hit testing and unchanged Markdown.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, built renderer.
-//   LINKS: .grace/changes/active/C-TABLE-FOOTER; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
+//   LINKS: .grace/changes/archive/C-TABLE-FOOTER; .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

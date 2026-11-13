@@ -4,7 +4,7 @@
 //   PURPOSE: Systematic affordance audit — every chord the app advertises (palette registry, native menu accelerators, front-menu hints) must have a real dispatch route, and no route may silently claim a reserved chord.
 //   SCOPE: Source-level extraction and cross-check of advertised chords (commands/index.js shortcut arrays, m009_menu.rs accelerators, muya frontMenu/config.js hints) against dispatch routes (native accelerators, editor.vue BLOCK_PARAGRAPH_SHORTCUTS, app.vue command-palette/zoom blocks); collision and platform guards. No runtime execution.
 //   DEPENDS: src/renderer/src/commands/index.js, src-tauri/src/m009_menu.rs, src/renderer/src/components/editorWithTabs/editor.vue, src/renderer/src/pages/app.vue, src/muya/lib/ui/frontMenu/config.js, Vitest, Node fs/path.
-//   LINKS: .grace/graph/runtime.xml M-006, M-009, M-012; .grace/verification/runtime.xml V-M-009, V-M-012; docs/release-trains/2.5.x-next.md FIX-005/FIX-006/FIX-010; .grace/changes/active/C-73.
+//   LINKS: .grace/graph/runtime.xml M-006, M-009, M-012; .grace/verification/runtime.xml V-M-009, V-M-012; docs/release-trains/2.5.x-next.md FIX-005/FIX-006/FIX-010; .grace/changes/archive/C-73.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

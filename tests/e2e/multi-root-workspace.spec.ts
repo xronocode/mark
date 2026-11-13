@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-MULTI-SOURCE-WORKSPACE two-root runtime behavior in the built renderer — two restored roots render as independent sidebar sections; the shared Add-or-Replace chooser appears for an ambiguous open with roots present and its Add default appends; Replace with a dirty tab under a removed root prompts and Cancel leaves state untouched; an unavailable root at restore degrades visibly without blocking the rest.
 //   SCOPE: Multi-root workspace routing over the Tauri shim — store state, sidebar tree sections, the workspaceModeDialog DOM and the notification surface; no native dialogs or real user files (mt_pick_folder is mocked; iCloud roots are represented by synthetic paths with a `Mobile Documents` segment).
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, ./fixtures/helpers, the built renderer served by `npm run preview`.
-//   LINKS: .grace/changes/active/C-MULTI-SOURCE-WORKSPACE; unit twins tests/renderer/store/project-workspace.test.ts and tests/renderer/components/sideBar/workspaceModeDialog.test.js; session-restore.spec.ts (restore harness pattern).
+//   LINKS: .grace/changes/archive/C-MULTI-SOURCE-WORKSPACE; unit twins tests/renderer/store/project-workspace.test.ts and tests/renderer/components/sideBar/workspaceModeDialog.test.js; session-restore.spec.ts (restore harness pattern).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

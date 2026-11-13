@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the FIX-011 three-action unsaved-changes dialog: exactly three visible labeled actions with distinct results (Save & Close / Discard / Cancel), default focus on Save & Close with destructive/default styling separated, and Cancel semantics for Escape, the close glyph and a backdrop click.
 //   SCOPE: askUnsavedClose and UNSAVED_CLOSE_ACTIONS in src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js, in jsdom with real DOM events.
 //   DEPENDS: src/renderer/src/components/editorWithTabs/unsavedCloseDialog, Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-FIX-011-UNTITLED-CLOSE-ACTIONS; .grace/verification/runtime.xml V-M-011; docs/release-trains/2.5.x-next.md#fix-011; src/renderer/src/store/editor.js CLOSE_UNSAVED_TAB.
+//   LINKS: .grace/changes/archive/C-FIX-011-UNTITLED-CLOSE-ACTIONS; .grace/verification/runtime.xml V-M-011; docs/release-trains/2.5.x-next.md#fix-011; src/renderer/src/store/editor.js CLOSE_UNSAVED_TAB.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

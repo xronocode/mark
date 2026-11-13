@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-FILE-POSITION-MEMORY hooks in store/editor.js — updateCursorPosition (the arrow-key write that never touches the revision guard, corner C-2), the flush boundaries (SAVE_ACTIVE_FILE_POSITION, the FORCE_CLOSE_TAB close flush and the _saveSessionState quit flush, corner C-7), the rename moves (corner C-6) and the NEW_TAB_WITH_CONTENT restore leg with clamping (corners C-3/C-4/C-5).
 //   SCOPE: store/editor.js call sites only — util/filePositionStore itself is pinned in file-position-store.test.js.
 //   DEPENDS: the tests/renderer/store pinia harness with the standard store mocks; util/filePositionStore mocked with spies (the real clamp passthrough).
-//   LINKS: .grace/changes/active/C-FILE-POSITION-MEMORY (spec A/B, D-1..D-4); components/editorWithTabs/editor.vue (the selectionChange/scroll writers and the debounce).
+//   LINKS: .grace/changes/archive/C-FILE-POSITION-MEMORY (spec A/B, D-1..D-4); components/editorWithTabs/editor.vue (the selectionChange/scroll writers and the debounce).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

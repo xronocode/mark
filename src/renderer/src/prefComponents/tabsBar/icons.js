@@ -4,7 +4,7 @@
 //   PURPOSE: The Settings toolbar tab icons as inline SVG functional components — the five C-38 N3 mockup icons (22×22, 1.6 stroke, currentColor) plus the C-LARGE-DOC-WAVE-A Experimental flask.
 //   SCOPE: Presentational SVG components only — no state, no props, no events.
 //   DEPENDS: vue (h).
-//   LINKS: .grace/changes/archive/C-38 (mockup .c38-mockup/Settings.dc.html); .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011.
+//   LINKS: .grace/changes/archive/C-38 (mockup .c38-mockup/Settings.dc.html); .grace/changes/archive/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

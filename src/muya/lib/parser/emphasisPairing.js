@@ -4,7 +4,7 @@
 //   PURPOSE: CommonMark delimiter-stack pairing for strong/em — the authority on which delimiter run a closer belongs to, so an orphan opener can no longer steal the closer of a later clean pair (C-COMMONMARK-EMPHASIS).
 //   SCOPE: Scan * / _ delimiter runs with CommonMark flanking classification; mask escaped runs and runs inside code spans; run the process-emphasis algorithm (closers left-to-right, nearest eligible opener, odd-match rule, consumption from the content side of each run); fast-path exit when no character has three or more runs; position lookups used by both emphasis dispatch gates; a test-only activation counter.
 //   DEPENDS: ./utils (PUNCTUATION_REG).
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-COMMONMARK-EMPHASIS; src/muya/lib/parser/index.js START_BLOCK_EMPHASIS_PAIRING_GATE; src/muya/lib/parser/marked/inlineLexer.js START_BLOCK_EMPHASIS_PAIRING_GATE.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-COMMONMARK-EMPHASIS; src/muya/lib/parser/index.js START_BLOCK_EMPHASIS_PAIRING_GATE; src/muya/lib/parser/marked/inlineLexer.js START_BLOCK_EMPHASIS_PAIRING_GATE.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

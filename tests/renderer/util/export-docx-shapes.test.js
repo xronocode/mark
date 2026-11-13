@@ -4,7 +4,7 @@
 //   PURPOSE: Pin muya's REAL export-HTML shapes (C-NATIVE-DOCX-RTF-EXPORT T-002) — the exact markup the DOCX pre-pass depends on: footnote class/role structure, the pre.front-matter block, task checkboxes, table align attributes and KaTeX MathML.
 //   SCOPE: ExportHtml.renderHtml output on the shared EN+RU fixture with the product's option values (footnote on, Mark preferences).
 //   DEPENDS: muya/lib/utils/exportHtml (the same engine editor.value.exportStyledHTML drives), Vitest.
-//   LINKS: .grace/changes/active/C-NATIVE-DOCX-RTF-EXPORT (R-3, R-4, R-5); tests/renderer/util/export-docx.test.js consumes these shapes.
+//   LINKS: .grace/changes/archive/C-NATIVE-DOCX-RTF-EXPORT (R-3, R-4, R-5); tests/renderer/util/export-docx.test.js consumes these shapes.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -28,7 +28,7 @@
 //            (the same seam muya's inputCtrl drives).
 //   DEPENDS: muya/lib (Muya, progressive subsystem, markers), real corpus
 //            fixture mixed-100k.md for the equivalence oracle.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A plan T-003; M-063/V-M-063
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A plan T-003; M-063/V-M-063
 //          routing lands with T-008; V-M-060 perf tier.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

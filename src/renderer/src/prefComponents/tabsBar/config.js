@@ -4,7 +4,7 @@
 //   PURPOSE: Catalog for the C-38 T-003 Settings shell — the toolbar tabs (General first, Export after Markdown and Experimental last), the legacy-route redirect map, the schema-category → tab routing map for settings search, and the remembered-tab persistence.
 //   SCOPE: Static tab metadata + pure helpers (tabPath, tabTitle, readLastTab, writeLastTab); no Vue rendering, no store access.
 //   DEPENDS: none (icons are attached by tabsBar/index.vue via icons.js).
-//   LINKS: .grace/changes/archive/C-38; .grace/changes/active/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-38; .grace/changes/archive/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

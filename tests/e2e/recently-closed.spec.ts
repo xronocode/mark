@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the FIX-009 current-run recovery in the built renderer — closing tabs fills the session-scoped history, the strip's count-badged button and popover reopen one entry or all (deterministic strip order with the active tab restored), the welcome block offers the same recovery after the last tab closes, and an independent reopen consumes the entry.
 //   SCOPE: store/recentlyClosed + tabs.vue strip button/popover + welcome recovery block over the Tauri shim; no native dialogs, no ⇧⌘T native accelerator (menu-ridden — covered by the affordance-audit walk dispatching file.reopen-closed-tab).
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim, the built renderer served by `npm run preview`.
-//   LINKS: .grace/changes/active/C-FIX-009-RECENTLY-CLOSED; unit twins tests/renderer/store/recently-closed.test.js and tests/renderer/components/tabs-recently-closed.test.js.
+//   LINKS: .grace/changes/archive/C-FIX-009-RECENTLY-CLOSED; unit twins tests/renderer/store/recently-closed.test.js and tests/renderer/components/tabs-recently-closed.test.js.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

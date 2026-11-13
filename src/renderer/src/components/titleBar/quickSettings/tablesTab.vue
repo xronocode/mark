@@ -32,7 +32,7 @@
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-006 (M-061) the quick-settings Tables tab — the default table mode (Auto default, Fit, Full) carried by the existing muya option name tableFullWidthDefault, and the "Remember column sizes" switch; both rows write the same preference objects the rest of the app reads — no second source of truth.
 //   SCOPE: The two rows are plain SET_SINGLE_PREFERENCE writes over the two store keys this tab owns in store/preferences.js (tableFullWidthDefault: 'auto' | 'fit' | 'full'; rememberTableColumnSizes: boolean). The muya option consumption and the honest three-mode behaviour land with plan T-007 (src/muya is not in this wave) — this tab ships the missing UI surface over the preference the muya option already names, so T-007 consumes the stored value instead of inventing another. User-facing copy says "column sizes", never "column widths" (owner terminology correction, R-12c).
 //   DEPENDS: vue, vue-i18n, @/store/preferences (SET_SINGLE_PREFERENCE), the shared C-38 rows (compound/segmented/bool).
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-006, spec R-7/R-12c); .grace/graph/performance.xml M-061; src/muya/lib/config/index.js tableFullWidthDefault (the option this preference feeds from T-007); components/titleBar/quickSettings/index.vue (the shell).
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-006, spec R-7/R-12c); .grace/graph/performance.xml M-061; src/muya/lib/config/index.js tableFullWidthDefault (the option this preference feeds from T-007); components/titleBar/quickSettings/index.vue (the shell).
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

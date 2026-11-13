@@ -4,7 +4,7 @@
 //   PURPOSE: Prove the tier-3 real-app acceptance tooling is honest (C-LARGE-DOC-STAGE-0 T-005): fixture-identity pins exact bytes/sha256 and refuses non-repository paths; verify-capture rejects label lies, byte/hash mismatches, phantom commits, missing phases, extra (content-bearing) marker keys, private absolute paths and unfilled templates. C-LARGE-DOC-WAVE-A T-005 extends the proof to the two new BLOCK_OPEN fields: a missing or non-numeric tail_mount_ms and a made-up served_path mount-path label are both rejected.
 //   SCOPE: Spawns both CLIs with node against a synthetic capture in the OS temp directory; mutates it per case. Does not run the real app (that is owner-side, never CI) and does not measure anything it then reports as native evidence.
 //   DEPENDS: src/renderer/bench/acceptance/fixture-identity.mjs, verify-capture.mjs, tests/e2e/fixtures/large-doc/semantic-edge.md + shape-metadata.json, node:child_process, Vitest.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); .grace/changes/active/C-LARGE-DOC-WAVE-A plan T-005 (tail_mount_ms + served_path); src/renderer/bench/acceptance/README.md.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-005 (R-5 tier 3); .grace/changes/archive/C-LARGE-DOC-WAVE-A plan T-005 (tail_mount_ms + served_path); src/renderer/bench/acceptance/README.md.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

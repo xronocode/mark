@@ -17,7 +17,7 @@
 //            injectable for the unit tier (fake clock / captured lanes).
 //   DEPENDS: none (leaf module; MessageChannel/requestIdleCallback/
 //            requestIdleCallback timeout resolved lazily from the engine).
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-1; plan T-003);
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A (spec R-1; plan T-003);
 //          M-063 routing lands with T-008.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

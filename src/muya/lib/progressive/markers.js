@@ -12,7 +12,7 @@
 //            BLOCK_TAIL_MOUNT_DONE   { blocks: Number, ms: Number }
 //   DEPENDS: none (leaf module — imported by ./index and re-exported through
 //            muya/lib/index.js so the names live on muya's public surface).
-//   LINKS: .grace/changes/active/C-LARGE-DOC-WAVE-A (spec R-3; plan T-003);
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-WAVE-A (spec R-3; plan T-003);
 //          M-063 graph routing lands with T-008; V-M-063 scenarios reference
 //          these marker names.
 //   ROLE: RUNTIME

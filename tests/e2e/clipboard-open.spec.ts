@@ -14,7 +14,7 @@
 //            renderer clipboard-open routing).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim,
 //            tests/e2e/fixtures/helpers (bootEditor).
-//   LINKS: .grace/changes/active/C-52 spec R-1..R-5;
+//   LINKS: .grace/changes/archive/C-52 spec R-1..R-5;
 //          .grace/verification/runtime.xml V-M-011 scenario-62.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

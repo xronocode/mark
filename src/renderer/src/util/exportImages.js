@@ -4,7 +4,7 @@
 //   PURPOSE: M-065 — make the styled-HTML export self-contained by embedding locally readable images as base64 data-URLs, with an 8 MiB per-image cap, deduplicated reads and honest skipped accounting (C-SELF-CONTAINED-HTML-EXPORT).
 //   SCOPE: one async pass over an HTML string (detached DOM container), img src resolution (document-dir relative, POSIX absolute, file:// strip, Windows drive/extended-prefix via re-expressed muya correctImageSrc semantics, %20/unicode decode), stat-size gate before any read, readBinary + base64 encoding with an extension-mapped MIME table, and the counters the export notice reports.
 //   DEPENDS: M-013-B ipcFs (stat, readBinary) via '@/ipc/runtime'; arrayBufferToBase64 from '@/util/fileSystem'; isWindows from '@/util/index'.
-//   LINKS: .grace/graph/features.xml M-065; .grace/verification/features.xml V-M-065; .grace/graph/flows.xml DF-007; .grace/changes/active/C-SELF-CONTAINED-HTML-EXPORT.
+//   LINKS: .grace/graph/features.xml M-065; .grace/verification/features.xml V-M-065; .grace/graph/flows.xml DF-007; .grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

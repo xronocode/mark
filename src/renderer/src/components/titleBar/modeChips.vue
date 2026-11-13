@@ -17,7 +17,7 @@
     DEPENDS: vue, pinia stores (editor, preferences), vue-i18n,
              components/icons/chromeIcons.js.
     LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/graph/runtime.xml M-062; .grace/verification/runtime.xml
-           V-M-062; .grace/changes/active/C-TITLEBAR-MODE-CHIPS/spec.xml
+           V-M-062; .grace/changes/archive/C-TITLEBAR-MODE-CHIPS/spec.xml
            R-1, R-4, R-7.
     ROLE: RUNTIME
     MAP_MODE: LOCALS

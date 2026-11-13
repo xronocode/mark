@@ -18,7 +18,7 @@
 //            tests/renderer/commands/updater.test.js).
 //   LINKS: .grace/changes/archive/C-UPDATER-STATS spec R-1/R-4, corners
 //          C-2/C-3/C-6/C-9;
-//          .grace/changes/active/C-STATS-READOUT plan T-005 — the
+//          .grace/changes/archive/C-STATS-READOUT plan T-005 — the
 //          readout route is this change's documented exception, and the
 //          bundle path moves under .grace/changes/archive/ when the
 //          change archives.

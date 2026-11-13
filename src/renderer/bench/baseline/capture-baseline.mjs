@@ -5,7 +5,7 @@
 //   PURPOSE: Capture the large-document baseline (C-LARGE-DOC-STAGE-0 R-8/T-009, extended by C-LARGE-DOC-WAVE-A T-005): run the bench driver over the committed corpus for BOTH mount paths (legacy + progressive) and write a machine-readable baseline JSON plus the human-readable tables, each entry carrying path, commit, fixture hash/bytes, engine/runtime and run conditions.
 //   SCOPE: Spawns src/renderer/bench/run-bench-preview.mjs per fixture and path with --json, aggregates per-run parsed markers (open, typing, scroll, tail-mount for the progressive path, observer overhead, heap observations) and writes baseline/large-doc/baseline.json + baseline.md. Numbers are machine-specific observations, never product budgets; a failed engine run is recorded as such instead of being dropped.
 //   DEPENDS: src/renderer/bench/run-bench-preview.mjs (builds once if needed, reuses or starts and stops its own preview server), committed corpus fixtures, node:child_process/fs/os/path.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-009; .grace/changes/active/C-LARGE-DOC-WAVE-A plan T-005 (two-path recording, corner 9); .grace/verification/performance.xml V-M-060; src/renderer/bench/README.md.
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-009; .grace/changes/archive/C-LARGE-DOC-WAVE-A plan T-005 (two-path recording, corner 9); .grace/verification/performance.xml V-M-060; src/renderer/bench/README.md.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Renderer-CI WebKit tier of the Stage 0 evidence (C-LARGE-DOC-STAGE-0 R-5/T-005) — drive the bench harness page in the WebKit engine and fail unless BOTH required phases report numeric results with their truthfulness proof.
 //   SCOPE: Loads the built /bench/ page (vite preview), injects the committed semantic-edge fixture byte-for-byte via window.__BENCH_OPTIONS__, captures [BENCH] console markers, asserts PHASE_TYPING (numeric p50/p95, truth=ok) and PHASE_SCROLL (numeric frame distribution, frames>0) plus REPORT_DONE status=ok. Ceilings are deliberately loose (non-flaky CI gates, not product budgets — hard budgets are owner-approved only after Stage 0). This is renderer/browser evidence, never native WKWebView evidence.
 //   DEPENDS: src/renderer/dist/bench (npm run build; playwright webServer runs npm run preview), tests/e2e/fixtures/large-doc/semantic-edge.md + shape-metadata.json, Playwright webkit-perf project.
-//   LINKS: .grace/changes/active/C-LARGE-DOC-STAGE-0 plan T-005; .grace/verification/performance.xml V-M-060; src/renderer/bench/run-bench.mjs (the Chromium-tier vehicle; the Playwright chromium project testIgnores **/perf/**).
+//   LINKS: .grace/changes/archive/C-LARGE-DOC-STAGE-0 plan T-005; .grace/verification/performance.xml V-M-060; src/renderer/bench/run-bench.mjs (the Chromium-tier vehicle; the Playwright chromium project testIgnores **/perf/**).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

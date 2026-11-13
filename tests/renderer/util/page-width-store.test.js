@@ -4,7 +4,7 @@
 //   PURPOSE: Pin util/pageWidthStore.js — the C-PAGE-WIDTH-TABLES T-001 (M-061) per-document page width store: pure transforms (sanitize/normalize/set/cap/move), the payload schema (numbers + unit enum + optional theme id only), the untitled/guide refusal, the 200-file cap, the rename move and the IO flows with a fake prefs IO (serialized queue, tri-state prune, failed-read abort).
 //   SCOPE: The module's exports; every rule is pure-object or fake-IO pinned, mirroring file-position-store.test.js.
 //   DEPENDS: Vitest; util/pageWidthStore.js; @/ipc/runtime mocked.
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-001, corners C-1/C-2); util/pageWidthStore.js; util/filePositionStore.js (the mirrored pattern).
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-001, corners C-1/C-2); util/pageWidthStore.js; util/filePositionStore.js (the mirrored pattern).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the FIX-008 reopen pan-cue contract of the fullscreen table viewer: the pure transformed-bound-to-shadow-state maths (tableClipShadows) at the left bound, middle, right bound and fully fitted position, plus the updateClipShadows wiring that drives the two non-interactive edge overlays from the live canvas/stage rects.
 //   SCOPE: tableClipShadows and BlockViewer#updateClipShadows in src/muya/lib/ui/blockViewer/index.js with @panzoom/panzoom mocked and rect getters stubbed per case.
 //   DEPENDS: src/muya/lib/ui/blockViewer, src/muya/lib/eventHandler/event (real EventCenter), Vitest + jsdom.
-//   LINKS: .grace/changes/active/C-FIX-008-VIEWER-PAN-CUES; .grace/verification/runtime.xml V-M-012 scenario-19; docs/release-trains/2.5.x-next.md#fix-008; START_BLOCK_VIEWER_PAN_CUES.
+//   LINKS: .grace/changes/archive/C-FIX-008-VIEWER-PAN-CUES; .grace/verification/runtime.xml V-M-012 scenario-19; docs/release-trains/2.5.x-next.md#fix-008; START_BLOCK_VIEWER_PAN_CUES.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

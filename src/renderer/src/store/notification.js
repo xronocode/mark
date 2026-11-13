@@ -10,7 +10,7 @@
 //          C-NOTIFICATION-SYSTEM T-004 together with its test and the
 //          orphan installPandoc locale keys.
 //   DEPENDS: pinia, services/notification, i18n.
-//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-4/R-9;
+//   LINKS: .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-4/R-9;
 //          store/notifications (the actual stack).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS

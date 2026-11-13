@@ -4,7 +4,7 @@
 //   PURPOSE: Muya inline lexer for the export/copy path — turns one block's text into inline HTML through the renderer.
 //   SCOPE: InlineLexer class (output and helpers) over the normal/gfm/pedantic inline grammars; strong/em dispatches gated by the shared delimiter-stack pairing.
 //   DEPENDS: ./renderer, ./inlineRules, ./options, ./utils, ../utils, ../emphasisPairing.
-//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/active/C-COMMONMARK-EMPHASIS.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-COMMONMARK-EMPHASIS.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

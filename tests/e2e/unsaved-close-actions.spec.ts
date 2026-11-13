@@ -4,7 +4,7 @@
 //   PURPOSE: Drive the FIX-011 owner-approved untitled-tab action model through the real store funnel: Save & Close (successful, cancelled and failed Save As), Discard, Cancel, Escape and the close glyph — plus the named-file regression boundary.
 //   SCOPE: Untitled and named dirty tabs closed via CLOSE_TAB → CLOSE_UNSAVED_TAB → askUnsavedClose in the renderer harness, with the mt_response_file_save_as / mt_save_and_close_tabs transports mocked per case.
 //   DEPENDS: Playwright, renderer-only Tauri shim, editor boot helpers, the real Pinia editor store.
-//   LINKS: .grace/changes/active/C-FIX-011-UNTITLED-CLOSE-ACTIONS; .grace/verification/runtime.xml V-M-011; docs/release-trains/2.5.x-next.md#fix-011; components/editorWithTabs/unsavedCloseDialog.js; unsaved-dialog-theme.spec.ts (FIX-007 dark-theme + styling).
+//   LINKS: .grace/changes/archive/C-FIX-011-UNTITLED-CLOSE-ACTIONS; .grace/verification/runtime.xml V-M-011; docs/release-trains/2.5.x-next.md#fix-011; components/editorWithTabs/unsavedCloseDialog.js; unsaved-dialog-theme.spec.ts (FIX-007 dark-theme + styling).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

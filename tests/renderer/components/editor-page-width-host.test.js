@@ -4,7 +4,7 @@
 //   PURPOSE: Pin the C-PAGE-WIDTH-TABLES host wiring in editorWithTabs/editor.vue — the open/tab-switch funnel that resolves the active document's pageWidths entry through the width pipeline onto the single inline --editorAreaWidth property, the entry-less/untitled clear back to the global tier, the canvas-change re-applies (window resize from the cache with one property write + one trailing re-read; sidebar show/drag commits), the R-4 pinned themeOverride application to the document surface (apply, restore on switch/unmount, global cycle re-assert), the panel's mt::document-page-state-changed announcement, the editorLineWidth re-read, and the mirror-pane opt-out.
 //   SCOPE: editor.vue START_BLOCK_PAGE_WIDTH_HOST only (the pipeline/store maths are pinned in page-width.test.js / page-width-store.test.js, the rename move in store/editor-page-width.test.js).
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, the editor-coverage mock pattern (mocked Muya, bus, theme module with an addThemeStyle spy), util/pageWidthStore mocked with a scripted loadPageWidthFor, the REAL util/pageWidth pipeline (the box arithmetic is asserted for real).
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-002/T-005, corners C-1/C-2/C-3, R-4); util/pageWidth.js; util/pageWidthStore.js; util/theme.js; components/editorWithTabs/editor.vue START_BLOCK_PAGE_WIDTH_HOST.
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-002/T-005, corners C-1/C-2/C-3, R-4); util/pageWidth.js; util/pageWidthStore.js; util/theme.js; components/editorWithTabs/editor.vue START_BLOCK_PAGE_WIDTH_HOST.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

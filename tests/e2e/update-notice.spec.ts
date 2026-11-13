@@ -10,7 +10,7 @@
 //   SCOPE: renderer boot against the tauri-shim with prefs + feed backed
 //          by localStorage and __APP_VERSION_OVERRIDE__ = 2.5.0.
 //   DEPENDS: @playwright/test, ./fixtures/tauri-shim.
-//   LINKS: .grace/changes/active/C-66/spec.xml R-1..R-5 + CornerMatrix
+//   LINKS: .grace/changes/archive/C-66/spec.xml R-1..R-5 + CornerMatrix
 //          corner-1..corner-6; .grace/verification/runtime.xml V-M-016
 //          scenario-8.
 //   ROLE: TEST

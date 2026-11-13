@@ -10,7 +10,7 @@
 //   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, vue-i18n,
 //            titleBar/modeChips.vue.
 //   LINKS: .grace/verification/runtime.xml V-M-062; .grace/graph/runtime.xml
-//          M-062; .grace/changes/active/C-TITLEBAR-MODE-CHIPS/spec.xml
+//          M-062; .grace/changes/archive/C-TITLEBAR-MODE-CHIPS/spec.xml
 //          R-1, R-4, R-7.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

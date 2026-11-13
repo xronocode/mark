@@ -13,7 +13,7 @@
 //            in the change bundle's evidence/ directory.
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim,
 //            tests/e2e/fixtures/helpers (bootEditor).
-//   LINKS: .grace/changes/active/C-NOTIFICATION-SYSTEM spec R-1..R-4,
+//   LINKS: .grace/changes/archive/C-NOTIFICATION-SYSTEM spec R-1..R-4,
 //          plan T-008, corners C-1..C-4.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS

@@ -4,7 +4,7 @@
 //   PURPOSE: Muya inline tokenizer: turns a block's text into inline tokens for rendering.
 //   SCOPE: Begin-of-line rules, inline rules, highlight merging; generator for markdown re-serialisation.
 //   DEPENDS: ./rules, ../utils, ./marked/utils, ./utils, ./emphasisPairing.
-//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24; .grace/changes/active/C-COMMONMARK-EMPHASIS.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-24; .grace/changes/archive/C-COMMONMARK-EMPHASIS.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

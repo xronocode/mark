@@ -4,7 +4,7 @@
 //   PURPOSE: C-51 T-001/T-002/T-011/T-013 e2e — the redesigned sidebar tree (Markdown-only filter with the show-all toggle and folder reveal on create, guide lines, chevrons, folder switcher, current-file pill), the Recent/Pinned sections (pin via the tree context menu, persistence across reload, missing-file Remove, drag reorder), the T-011 polish (chevron left inset, the trailing pin mark in the tree and Opened files, the empty sidebar without the Open Folder CTA / RECENT folders list), the T-013 typography (no leading file-type icon, semibold folders + switcher, one regular file-row weight, the filled pushpin mark), plus light/dark screenshots.
 //   SCOPE: renderer-only e2e against vite preview + tauri-shim (no real Tauri IPC); runs in chromium and webkit (playwright project webkit-tree).
 //   DEPENDS: @playwright/test, tests/e2e/fixtures/tauri-shim, tests/e2e/fixtures/helpers (bootEditor, openFileTab).
-//   LINKS: .grace/changes/active/C-51 T-001/T-002/T-011/T-013; .grace/verification/runtime.xml V-M-011.
+//   LINKS: .grace/changes/archive/C-51 T-001/T-002/T-011/T-013; .grace/verification/runtime.xml V-M-011.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

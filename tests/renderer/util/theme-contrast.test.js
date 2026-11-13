@@ -23,7 +23,7 @@
 //            prefComponents/common/segmented source (T-011), the shared
 //            --pref* palette values (pages/preference.vue, mirrored
 //            verbatim by the quick-settings panel).
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-48 (C-41 T-003); .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-011, spec R-12a).
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenario-48 (C-41 T-003); .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-011, spec R-12a).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

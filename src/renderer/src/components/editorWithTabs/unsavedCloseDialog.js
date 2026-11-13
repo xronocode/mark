@@ -4,7 +4,7 @@
 //   PURPOSE: FIX-011 — the three-action unsaved-changes confirmation for closing a tab: default Save & Close, a separate non-default Discard, and a visible Cancel (Escape and the close glyph are Cancel), replacing the two-discard ElMessageBox that had no visible cancel.
 //   SCOPE: One imperative promise-based dialog (askUnsavedClose) teleported to document.body: overlay + themed box, role=dialog with aria-modal and labelled title, three buttons in the macOS order (Discard, Cancel, Save & Close — default focus on Save & Close), a Tab focus trap, and the finish-once resolution 'save' | 'discard' | 'cancel'. No store or transport logic lives here.
 //   DEPENDS: DOM APIs only (createElement/getComputedStyle/focus); theme via the float CSS variables consumed in unsavedCloseDialog.css; the editor store action CLOSE_UNSAVED_TAB owns the save/discard transports.
-//   LINKS: .grace/changes/active/C-FIX-011-UNTITLED-CLOSE-ACTIONS; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; src/renderer/src/store/editor.js CLOSE_UNSAVED_TAB; assets/styles/index.css FIX-007 float-token dialog theming (this module reuses the same tokens); tests/renderer/components/unsaved-close-dialog.test.js; tests/e2e/unsaved-close-actions.spec.ts.
+//   LINKS: .grace/changes/archive/C-FIX-011-UNTITLED-CLOSE-ACTIONS; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; src/renderer/src/store/editor.js CLOSE_UNSAVED_TAB; assets/styles/index.css FIX-007 float-token dialog theming (this module reuses the same tokens); tests/renderer/components/unsaved-close-dialog.test.js; tests/e2e/unsaved-close-actions.spec.ts.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

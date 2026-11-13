@@ -20,7 +20,7 @@
 //            .grace/verification/features.xml V-M-068;
 //            .grace/changes/archive/C-UPDATER-ROLLBACK (spec
 //            R-1..R-9, corner matrix C-1..C-13);
-//            .grace/changes/active/C-RENDER-REVIEW-FIXES (T-001).
+//            .grace/changes/archive/C-RENDER-REVIEW-FIXES (T-001).
 //   STATUS:  C-UPDATER-ROLLBACK T-001/T-003/T-004. Desktop builds
 //            only; app-store builds get inert command stubs with the
 //            store-managed voice.

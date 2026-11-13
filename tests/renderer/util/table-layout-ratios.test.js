@@ -4,7 +4,7 @@
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-008: pin the schema-v2 ratio persistence of tableLayouts — the pure ratio maths (normalize/derive/apply with the minima floors), the store sanitize carrying ratios + tableWidth + mode next to the px widths, the one-way idempotent v1→v2 migration (a legacy fit:true — the retired fake fit — opens in the honest Fit page; re-running the migration changes nothing), the v2 save→load round trip through the store IO, and the unchanged cap/prune/rename rules over the new shape.
 //   SCOPE: src/renderer/src/util/tableLayoutRatios.js (normalizeRatios, ratiosFromWidths, applyRatios, migrateTableEntry, MIN_TABLE_COLUMN_PX) and the tableLayoutStore.js flows over v2 entries (sanitizeEntry, normalizeStore version, saveTableLayoutsFor/loadTableLayoutsFor with a fake IO).
 //   DEPENDS: Vitest; a fake prefs IO (the store/twin pattern of table-layout-store.test.js).
-//   LINKS: .grace/changes/active/C-PAGE-WIDTH-TABLES (plan T-008; spec R-8/R-10; corners C-8/C-9); .grace/graph/performance.xml M-061; src/renderer/src/util/tableLayoutRatios.js; src/renderer/src/util/tableLayoutStore.js; src/muya/lib/tableResize (the muya-side sanitize/apply counterpart, pinned in tests/renderer/muya/).
+//   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-008; spec R-8/R-10; corners C-8/C-9); .grace/graph/performance.xml M-061; src/renderer/src/util/tableLayoutRatios.js; src/renderer/src/util/tableLayoutStore.js; src/muya/lib/tableResize (the muya-side sanitize/apply counterpart, pinned in tests/renderer/muya/).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT

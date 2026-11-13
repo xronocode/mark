@@ -4,7 +4,7 @@
 //   PURPOSE: Reproduce shrinking corner panels when moving between table/diagram buttons and pin cumulative label reveal until whole-panel exit.
 //   SCOPE: Real pointer traversal over table, Mermaid and Vega-Lite inline toolbars in Chromium/WebKit; label visibility, nonshrinking button/panel widths, panel anchoring, exit reset and unchanged document state.
 //   DEPENDS: @playwright/test, fixtures/tauri-shim, fixtures/helpers, built renderer; existing webkit-tables project includes this table-*.spec.ts file.
-//   LINKS: .grace/changes/active/C-TOOLBAR-LABELS; .grace/changes/active/C-PAGE-WIDTH-TABLES T-007 (the table pill's three-button mode segment); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
+//   LINKS: .grace/changes/archive/C-TOOLBAR-LABELS; .grace/changes/archive/C-PAGE-WIDTH-TABLES T-007 (the table pill's three-button mode segment); .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
