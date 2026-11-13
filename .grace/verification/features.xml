@@ -2,8 +2,14 @@
   <VD-FEATURES>
     <V-M-031>
       <Priority>high</Priority>
-      <Commands/>
-      <Scenarios/>
+      <Commands>
+        <Command>npx --no-install vitest run tests/renderer/components/diff-theme-sync.test.js tests/renderer/components/diffView.test.js tests/renderer/components/diff-view-snapshot.test.js tests/renderer/components/diff-opened-baseline.test.js tests/renderer/components/diff-view.test.js tests/renderer/store/diff-snapshots.test.js --maxWorkers=2</Command>
+        <Command>npx --no-install playwright test tests/e2e/diff-theme.spec.ts --project=chromium --project=webkit-diff</Command>
+      </Commands>
+      <Scenarios>
+        <Scenario>Owned live themes: Paper to Ink to One Dark to Paper updates both CodeMirror options and classes without reconstructing editors, refetching the baseline, changing content/readOnly/tab state or issuing writes. Pending baseline uses the latest theme; unmount retires the watcher; unrelated editors are untouched.</Scenario>
+        <Scenario>Dark changed paragraphs: cold Ink and One Dark comparisons retain change markers and read-only panes with measured plain-paragraph contrast at least 4.5:1. Returning to Paper preserves its changed-line backgrounds. Renderer-shim evidence does not replace native/owner acceptance or establish contrast for every syntax token.</Scenario>
+      </Scenarios>
       <Markers/>
       <TraceAssertions/>
       <LegacyMatrixEvidence>
