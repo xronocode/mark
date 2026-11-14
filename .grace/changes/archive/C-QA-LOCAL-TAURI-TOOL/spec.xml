@@ -1,0 +1,49 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-QA-LOCAL-TAURI-TOOL>
+    <Name>Use the prepared locked local Tauri CLI for isolated QA builds</Name>
+    <Created>2026-11-12</Created>
+    <Priority>medium</Priority>
+    <Summary>Close the package-executor fallback in tools/build-test-artifact.mjs. A real build must validate the installed local @tauri-apps/cli against the repository lockfile, then invoke its checked JavaScript entry directly. Missing or mismatched tooling fails before any build, acquisition or acceptance record. Preserve the existing isolated artifact recipe and dependency-free help/dry-run behavior.</Summary>
+    <Problem>The current builder invokes npx tauri without validating its local tool. An inert-executor fixture of the unchanged source reaches that command with no installed CLI and with a deliberately mismatched installed CLI. This proves the unchecked executor path, not an actual package download or compromise. The original audit severity remains low; the roadmap tracks the repair as delivery hardening.</Problem>
+    <Goals>
+      <R-1>Read the manifest, lockfile root declaration, exact locked @tauri-apps/cli package version/integrity and installed package metadata. Require a coherent declared/locked tool and matching installed name/version. Resolve its tauri entry to a regular file contained in the real installed package directory. Missing, malformed, mismatched or escaping metadata fails visibly before build admission.</R-1>
+      <R-2>Run that checked local entry with the current Node executable and the existing build --debug --config arguments, repository cwd and exit handling. Never invoke npx, npm exec, npm x, a global tauri command or an automatic tool-install fallback. Dependency preparation remains a separate explicit action from the reviewed lockfile.</R-2>
+      <R-3>Pass the build child an explicit documented allowlist of runtime and native toolchain environment variables. Do not forward unrelated ambient cloud, GitHub, Apple signing or updater credentials. This is environment minimization for an unsigned local QA build, not a process sandbox or a replacement for the separate release-signing threat model.</R-3>
+      <R-4>Preserve current isolated bundle identity, updater-artifacts-off merge configuration, platform targets, source identity, binary digest, optional smoke and registry semantics. Help and --dry-run remain usable without installed CLI and never build, install or record acceptance. Errors cannot append an artifact or imply an owner verdict.</R-4>
+    </Goals>
+    <Constraints>
+      <Constraint>No dependency or lockfile changes: consume the already locked @tauri-apps/cli, currently 2.12.4. Keep the guard dependent only on Node built-ins so missing dependencies can be diagnosed safely.</Constraint>
+      <Constraint>Observed implementation scope is limited to tools/build-test-artifact.mjs, tests/tools/build-test-artifact.test.mjs and the builder preparation instructions in docs/acceptance/README.md. Preserve its generated acceptance survey unchanged.</Constraint>
+      <Constraint>Reconcile only the existing M-046/V-M-046 builder ownership and evidence. Current contexts, other active bundles, frozen archives, backend/product runtime, capabilities, version sources, release workflows and production signing are outside this change.</Constraint>
+      <Constraint>Execute sequentially after the approved QuickLook and action-reference work is reconciled because they share M-046. Revalidate the actual integrated baseline before preparing the execution plan.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No real npm acquisition, production build, release dispatch, tag or publication as a security probe.</NonGoal>
+      <NonGoal>No rewrite of acceptance registry schema, smoke process selection, output discovery or cross-platform artifact accounting.</NonGoal>
+      <NonGoal>No claim of isolation from malicious dependencies executing during a signed release; DEPS:F-001 remains a separate change.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Failing-first portable fixtures show that absent CLI, malformed manifest/lock/installed metadata, incoherent declarations, version mismatch, absent entry and traversal/realpath escape cause zero build/executor calls and zero registry mutation. Use inert local tools and injected filesystem/process boundaries where needed; do not download a package or invoke the actual build.</Criterion>
+      <Criterion>A matching inert local CLI is invoked exactly once through the current Node executable, with the unchanged build arguments, isolated configuration and cwd. A dummy ambient secret is absent from its environment; required documented runtime/toolchain variables survive. Child failure propagates without acceptance recording.</Criterion>
+      <Criterion>Help and both platform dry-run configurations remain non-building without dependencies. Existing acceptance-registry validation and README survey tests pass unchanged.</Criterion>
+      <Criterion>Run the new focused tool suite and existing acceptance-registry/release-control suites on supported unit hosts. Keep coverage floors and ordinary CI policy unchanged. Actual source CLI syntax checking and a repository dry-run complement the inert integration fixtures.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+      <File>tools/build-test-artifact.mjs</File>
+      <File>tests/tools/build-test-artifact.test.mjs</File>
+      <File>docs/acceptance/README.md</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node --check tools/build-test-artifact.mjs</ExpectedCommand>
+      <ExpectedCommand>npx --no-install vitest run tests/tools/build-test-artifact.test.mjs tests/renderer/acceptance-registry.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>node tools/build-test-artifact.mjs --item QA-LOCAL-TOOL --platform macos --dry-run</ExpectedCommand>
+      <ExpectedCommand>node tools/build-test-artifact.mjs --item QA-LOCAL-TOOL --platform windows --dry-run</ExpectedCommand>
+      <ExpectedEvidence>Exact source-bound failing-first and repaired inert fixtures, rejected metadata with no build/record, matching direct invocation and environment capture, unchanged dry-run configuration and existing registry survey. Keep browser/native acceptance, owner verdicts and release authorization distinct.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The roadmap and VULN:F-002 already choose checked local execution without acquisition fallback; the coordinator proposes the existing prepared-tool pattern using Node built-ins and direct Node invocation.</Assumption>
+      <Assumption>The current installed CLI publishes a tauri JavaScript entry in its package bin metadata. A future incompatible entry layout must fail visibly and be reviewed, not acquire a replacement tool.</Assumption>
+    </Assumptions>
+  </C-QA-LOCAL-TAURI-TOOL>
+</GraceChangeSpec>

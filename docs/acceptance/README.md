@@ -58,6 +58,37 @@ reload picks the verdict up):
 - The registry's `owner-verdict.scenarios` mirror the per-case files one to one; verdicts
   are transcribed by the same session that offered the cases.
 
+## Prepared local build tool
+
+Prepare dependencies explicitly from the reviewed lockfile with `npm ci` before a real
+QA build. The builder does not acquire a missing tool. It checks the manifest and root
+lock declaration, locked CLI version and SHA-512 integrity metadata, installed package
+name/version and the contained regular JavaScript entry. It then invokes that entry
+through the current Node executable. Missing or inconsistent tooling fails with
+`MT_QA_LOCAL_TOOL_INVALID` before configuration, build or registry writes. Comparing
+metadata does not verify every installed file against the package tarball digest.
+
+Help and `--dry-run` remain available without installed dependencies. The existing
+isolated identity, updater-artifacts-off configuration, platform targets, binary digest,
+optional smoke and registry recipe are preserved. A successful build records an
+artifact; it never supplies an owner acceptance verdict.
+
+Only these exact environment names reach the unsigned build child:
+
+- Runtime: `PATH`, `HOME`, `USERPROFILE`, `USER`, `LOGNAME`, `TMPDIR`, `TMP`, `TEMP`,
+  `LANG`, `LC_ALL`, `LC_CTYPE`, `SystemRoot`, `WINDIR`, `COMSPEC`, `PATHEXT`,
+  `SystemDrive`, `LOCALAPPDATA`, `APPDATA`.
+- Native toolchain: `CARGO_HOME`, `RUSTUP_HOME`, `RUSTUP_TOOLCHAIN`, `DEVELOPER_DIR`,
+  `SDKROOT`, `MACOSX_DEPLOYMENT_TARGET`, `CC`, `CXX`, `AR`, `CFLAGS`, `CXXFLAGS`,
+  `CPPFLAGS`, `LDFLAGS`, `LIB`, `INCLUDE`, `LIBPATH`, `WindowsSdkDir`,
+  `WindowsSDKVersion`, `UniversalCRTSdkDir`, `UCRTVersion`, `VCToolsInstallDir`,
+  `VCINSTALLDIR`, `VSINSTALLDIR`.
+
+Windows names are matched case-insensitively and emitted once. Unrelated cloud,
+GitHub, Apple signing and updater credentials, `NODE_OPTIONS`, registry tokens and
+wrapper variables are not forwarded. This minimizes inherited environment for prepared
+trusted tooling; it is not a filesystem sandbox or a signed-release security boundary.
+
 ## Survey (generated from registry.json — `node tools/acceptance-registry.mjs --survey`)
 
 | Item | State | Artifact | Verdict / Why pending |
