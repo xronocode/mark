@@ -33,7 +33,7 @@
 // VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings pop-up row (C-38 T-003 anatomy) — label + optional help left, native pop-up button right (OS-drawn chevrons/menu, mockup trigger styling).
-//   SCOPE: Row rendering and change events; same props/events contract as v1 (description/notes/value/options/onChange/more/disable) plus help.
+//   SCOPE: Row rendering, keyboard-focus presentation and change events; same props/events contract as v1 (description/notes/value/options/onChange/more/disable) plus help.
 //   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
 //   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
@@ -49,6 +49,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-14: show the existing preference-accent outline on keyboard focus while retaining the native popup and value geometry.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: honor disabled codec options and refuse programmatic selection before the preference callback.
 //   - 2026-10-15 v2.0.0: C-38 T-003 — new row anatomy (no trailing colon, optional help); el-select replaced by a native styled select (WebKit renders the mockup's up/down chevrons natively); per-OS padding/radius.
 //   - (v1.x: el-select with 'Label:' above — retired.)
@@ -118,6 +119,11 @@ const select = (value) => {
   border: 0.5px solid var(--prefCtrlBorder, rgba(0, 0, 0, 0.14));
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
   outline: none;
+}
+
+.pref-select-item .pref-popup:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-select-item.pref-os-mac .pref-popup {

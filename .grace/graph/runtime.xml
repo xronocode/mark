@@ -2621,6 +2621,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-SETTINGS-KEYBOARD-FOCUS: shared switch, native select and segment controls use the existing preference-accent outline only for keyboard-visible focus. Settings and Quick Settings inherit the same presentation without changed values, selection, dimensions, callbacks or native keyboard policy.</SummaryDelta>
       <SummaryDelta>C-EXPORT-SETTINGS-SECTION-RECOVERY: File, titlebar and tab-menu export entry points use one current appearance/page snapshot and go directly to Save; stale tab callbacks do not export another document. Word retains its compatibility action and captured options through asynchronous Save; native Print remains appearance-only. All success notices request the existing Settings window at Export through its owned storage listener. General remains first and the fresh-profile default; Export follows Markdown before Advanced. The old app-level modal is removed; M-072 owns immediate defaults and honest persistence status. Rendering an older PDF does not write back settings.</SummaryDelta>
       <SummaryDelta>C-SOURCE-HISTORY-OWNERSHIP: ordinary Source retains one nonpersistent CodeMirror Doc per live id/token; tab return restores its history and selection, lifetime/canonical replacement retires it, and unified history remains Muya-owned.</SummaryDelta>
       <SummaryDelta>C-SPLIT-SAVE-AUTHORITY: the editable rich Split surface remains an eligible committed-snapshot owner with a retained Source preference; unified pane focus, mirrors, document lifetime and IME fences retain authority.</SummaryDelta>
@@ -3551,6 +3552,7 @@
         <Source>src/renderer/src/commands/trailingNewline.js</Source>
         <Source>src/renderer/src/prefComponents/common/select/index.vue</Source>
         <Source>src/renderer/src/prefComponents/tabs/general/config.js</Source>
+        <Source>tests/e2e/settings-shell.spec.ts</Source>
       </Sources>
       <Observability>
         <LogPrefix>[Renderer]</LogPrefix>

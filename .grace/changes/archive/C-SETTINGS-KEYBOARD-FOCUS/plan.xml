@@ -1,0 +1,76 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SETTINGS-KEYBOARD-FOCUS>
+    <IntentSummary>Apply the explicitly approved keyboard-focus design to the three existing shared preference controls. Prove visible focus in real Settings and Quick Settings consumers without changing values, events, dimensions, selected/on/nearest-preset states or native keyboard policy. Execute sequentially.</IntentSummary>
+    <ReferenceState>Clean main dd4a4c9a74c9554fcf85b0995bfd87bbfb32d8da. Specification approved explicitly on 2026-11-13; only its root status changed and the approved body is preserved. Current pre-planning lint passed with zero errors and four existing heuristic warnings. Detailed module-health remains one ready and 72 blocked by existing verification linkage findings, independently of integrity. Earlier production-renderer evidence has fourteen unchanged focus before/after comparisons and four positive textbox controls; all three component sources remain byte-identical to that observed source.</ReferenceState>
+    <ToolchainPreflight>Use the repository-pinned prepared local Node/Vitest/Playwright toolchain before selected baseline execution. Verify package/lock identity and local entries; no dependency upgrade or package metadata change is authorized. A worktree may reuse the existing locked dependency installation without reinstalling it. Source hashes bind existing unit/build timing evidence to this candidate.</ToolchainPreflight>
+    <BaselineAssertions>
+      <MustExist><Value>M-011</Value></MustExist>
+      <MustContain><File>src/renderer/src/prefComponents/common/bool/index.vue</File><Text>class="pref-switch"</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/select/index.vue</File><Text>outline: none;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/segmented/index.vue</File><Text>'is-near': isMarked(option.value)</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="30">node node_modules/vitest/vitest.mjs run tests/renderer/pages/common/bool.test.js tests/renderer/pages/common/select.test.js tests/renderer/pages/common/segmented.test.js</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-011</Module></MustVerify>
+      <MustContain><File>src/renderer/src/prefComponents/common/bool/index.vue</File><Text>.pref-switch-item .pref-switch:focus-visible</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/select/index.vue</File><Text>.pref-select-item .pref-popup:focus-visible</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/segmented/index.vue</File><Text>.pref-segmented-item .pref-segment:focus-visible</Text></MustContain>
+      <MustContain><File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on shared Settings controls</Text></MustContain>
+      <MustContain><File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on shared Quick Settings controls</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="30">node node_modules/vitest/vitest.mjs run tests/renderer/pages/common/bool.test.js tests/renderer/pages/common/select.test.js tests/renderer/pages/common/segmented.test.js</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="90">npm run build</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-011/></GraphAnchors>
+      <VerificationAnchors><V-M-011/></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/prefComponents/common/bool/index.vue</File>
+      <File>src/renderer/src/prefComponents/common/select/index.vue</File>
+      <File>src/renderer/src/prefComponents/common/segmented/index.vue</File>
+      <File>tests/e2e/settings-shell.spec.ts</File>
+    </ObservedWriteScope>
+    <Architecture>In each shared component stylesheet add its named focus-visible selector with outline: 2px solid var(--prefAccent) and outline-offset: 1px, matching the existing Quick Settings tab/open-all treatment. Keep the component template and JavaScript byte-identical except semantic contract/change-summary comments. No consumer-local focus styles, palette changes, new tokens, wrappers, tabindex, listeners, dependencies or preference writes. The ordinary selected/on/nearest-preset styling remains responsible for value state; the additional outline identifies only the keyboard target.</Architecture>
+    <RegressionDesign>Append two theme-parameterized consumer tests to settings-shell.spec.ts, which already runs in chromium and webkit-settings. The Settings test covers enabled switch off/on, native select, selected/unselected segments and a retained textbox positive control in Paper/Ink at the existing 640x620 size. The Quick Settings test boots a controlled editor document, opens the actual panel, and checks its real bool/segmented consumers in Paper/Ink at 1440x900; it must not invent a select consumer because the panel has none. Use real Tab/Shift-Tab traversal from an observed non-target starting control. If WebKit requires Option-Tab, attempt ordinary Tab first and record the fallback; never replace reaching the target with focus() or DOM event dispatch. Count preference-transport calls and snapshot control value/checked state, selected/nearest-preset state and control/row bounding rectangles before focus. Require focus-visible, computed solid two-pixel prefAccent outline and one-pixel offset, unchanged value/event count/geometry, visible before/after row captures, and removal after Tab away. Verify pointer-only activation does not force a keyboard outline beyond the browser's focus-visible behavior, using a fresh pointer-first context. Existing component suites retain disabled/callback coverage. Inspect screenshots for ring clipping/overlap; CSS assertions alone do not prove painted visibility. Preserve the four original textbox-positive observations and earlier failures as history.</RegressionDesign>
+    <CommandBudgets>The unchanged three-suite command measured 26 passing tests in 0.867 seconds on this host. Its gate budget is 30 seconds. The immediately preceding source-identified renderer build took approximately 16 to 18 seconds; its gate budget is 90 seconds. These budgets govern new leaf commands only and do not change product or CI timeouts/retries/skips/coverage. Browser and native startup belong to the acceptance tier below, not duplicated leaf gates. A budget or scope failure requires a bounded replan, not an in-place relaxation after approval.</CommandBudgets>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Prove and repair keyboard focus in the three shared controls</Title>
+        <DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Implement the two real-consumer regression groups in the existing Settings spec. Run the focused groups against unchanged component styles and retain the missing-outline failure in both engines before editing runtime CSS. No successful skip, artificial sleep or disabled timing budget is allowed.</Criterion>
+          <Criterion>Add only the three scoped outline rules described in Architecture and update their semantic change summaries. Preserve every control's template/JavaScript, geometry, disabled behavior and existing palette/state styles.</Criterion>
+          <Criterion>Run the existing component suites and build, then the focused consumer groups. Tab/Shift-Tab alone must not write preferences or alter value/selection; selected/on/nearest-preset appearance remains visible. Review actual Paper/Ink captures and fix clipping within the approved three-component scope; otherwise stop for a bounded scope revision.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/renderer/pages/common/bool.test.js tests/renderer/pages/common/select.test.js tests/renderer/pages/common/segmented.test.js</Command>
+          <Command>npm run build</Command>
+          <Command>node node_modules/@playwright/test/cli.js test tests/e2e/settings-shell.spec.ts --project=chromium --project=webkit-settings --grep "shows keyboard focus on shared"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Reconcile verification, collect native evidence and deliver the exact candidate</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Update only M-011/V-M-011 with the shared control focus responsibility and a named keyboard-focus scenario. Preserve every existing command/scenario and unrelated anchor. No broader module-health repair is authorized.</Criterion>
+          <Criterion>Review source/template/script equivalence, changed styles, real keyboard results and both consumers. Run selected target and final externally; final runs the declared leaf commands. Record exact source/assets and candidate identities. Use normal staged/outgoing safety hooks and obtain exact-head required hosted checks before integration.</Criterion>
+          <Criterion>When native capture/input is available, build one isolated source-identified app, record binary/path/profile/PIDs, and verify keyboard focus on actual Settings and Quick Settings. Preserve OS keyboard policy and owner documents. Native route unavailable means that item stays explicitly open; owner/platform acceptance cannot be inferred.</Criterion>
+          <Criterion>After fresh final and acceptance evidence, request the required explicit apply/archive decision. Then archive the complete bundle with approved bodies preserved, run current integrity/status, integrate the checked candidate, and record a separate Collecting-train testing protocol. No release/version/tag/signing/dispatch/publication authority is included.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git diff --check</Command>
+          <Command>node node_modules/@playwright/test/cli.js test tests/e2e/settings-shell.spec.ts --project=chromium --project=webkit-settings</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceTier>
+      <Browser>Focused keyboard groups before/after in both existing projects, then one complete Settings-shell spec pass for existing consumer/export guards. Capture attachments stay generated/private or in existing hosted test artifacts; no binary golden files or Playwright/config/workflow edits. An isolated local preview configuration may change only the task-owned port/output location, preserving every existing timeout, retry and project setting. Do not stop another preview or reuse an unowned listener.</Browser>
+      <Native>Actual application window observations are separate from renderer IPC-shim evidence. OS theme and keyboard policy remain unchanged. Fresh approved-style source, app identity, digests, owned PIDs/windows and scope limits accompany any native verdict. Quit only the task-owned app normally, verify process/window shutdown, delete its bundle/executable copies and renderer assets after hash checks, and preserve source/recipes/screenshots/logs.</Native>
+      <Hosted>Require exact candidate head and all four mandatory statuses plus applicable ordinary test/coverage checks. Preserve failures and runner-capacity observations; no blind same-head reruns, policy relaxation or unrelated branch changes.</Hosted>
+    </AcceptanceTier>
+    <Coordination>Source and test files outside the literal observed scope, consumer-local styles, Playwright settings, fixtures, global CSS and unrelated durable anchors are excluded. Newly required changes there stop implementation for a bounded replan. Existing QA/Settings-window-restore approvals or pending decisions are independent. Sequential execution remains the owner's selected method; no new method choice is requested.</Coordination>
+    <Lifecycle>The specification is approved. This completed plan is draft until explicit owner approval; do not implement before that review. Approved baseline/target assertions, scopes and tasks are immutable. Current and selected baseline are pre-edit gates; target/final are external lifecycle gates after writes. Apply/archive still requires the separate end-state owner decision specified above.</Lifecycle>
+  </C-SETTINGS-KEYBOARD-FOCUS>
+</GraceChangePlan>
