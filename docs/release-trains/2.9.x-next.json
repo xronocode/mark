@@ -2596,7 +2596,8 @@
         "summary": "Resolve current source and test contract links to existing archived change bundles.",
         "state": "queued",
         "commits": [
-          "8723f859e9f3c385ad628ccff68556488e2a7f15"
+          "8723f859e9f3c385ad628ccff68556488e2a7f15",
+          "d8857f2516fd59f171d1d50412199c620e017eb0"
         ],
         "pullRequest": {
           "number": 254,
@@ -2619,6 +2620,13 @@
               "date": "2026-11-14",
               "build": "4129316b298b6aba9374fb898af4693a4bc54284",
               "evidence": "https://github.com/xronocode/mark/actions/runs/43468521081; https://github.com/xronocode/mark/pull/254/checks"
+            },
+            {
+              "command": "Archive link maintenance procedure",
+              "result": "Engineering protocol requires contract links to move with archived bundles and verifies their target specifications or plans before handoff. Four required statuses passed on the documentation head; predicted and integrated trees match. Current lint reports zero errors and four existing heuristic warnings. Runtime and executable test fixtures are unchanged. Rust and Swift CodeQL were still running at merge; application source matches the previously checked source with all five language analyses passed.",
+              "date": "2026-11-14",
+              "build": "3cc9731e9bb1294a6b69a2e369211966b3b47ef7",
+              "evidence": "https://github.com/xronocode/mark/pull/266; https://github.com/xronocode/mark/pull/266/checks"
             }
           ],
           "manual": [],
