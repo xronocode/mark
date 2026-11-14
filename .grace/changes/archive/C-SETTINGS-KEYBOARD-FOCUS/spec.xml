@@ -1,0 +1,44 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SETTINGS-KEYBOARD-FOCUS>
+    <Name>Visible keyboard focus on shared Settings controls</Name>
+    <Created>2026-11-13</Created>
+    <Summary>Give the existing switch, native select and segmented-control buttons a distinct keyboard-focus outline in both Settings and Quick Settings, using the established shared preference accent. The proposed treatment follows existing Quick Settings focus outlines; no palette or interaction redesign is proposed.</Summary>
+    <Problem>DESIGN:F-002: real Chromium/WebKit keyboard probes in Paper and Ink reached focus-visible states on shared controls without any visible row/control change. Fourteen before/after screenshot comparisons were identical; four textbox positive controls changed. Selected/on styling cannot identify the current keyboard target.</Problem>
+    <Goals>
+      <R-1>For each enabled switch, native select and individual segment button, display a two-CSS-pixel outline in the existing prefAccent with a one-CSS-pixel offset when focus-visible is true, following the existing Quick Settings tab/open-all pattern.</R-1>
+      <R-2>Implement the presentation at the three existing shared component owners, so Settings and Quick Settings inherit the same treatment. Keep keyboard focus distinct from selected/on/nearest-preset state.</R-2>
+      <R-3>Preserve control and row geometry, labels, native selection menus, props/events, callbacks, saved preferences, disabled semantics, existing theme mapping and all consumers.</R-3>
+    </Goals>
+    <Constraints>
+      <Constraint>No JavaScript focus manager, tabindex changes, keyboard-policy changes, new events, IPC, preference keys, dependencies, OS settings, general global focus reset or parallel visual system.</Constraint>
+      <Constraint>Outline must remain visible without clipping in real Settings and Quick Settings at supported desktop sizes. If a required consumer cannot preserve geometry and focus visibility within the literal three-component scope, stop for a bounded scope revision.</Constraint>
+      <Constraint>Keep all existing failures, retries, skips, timeouts and coverage floors. Rendered evidence must use real keyboard input and identify any WebKit Option-Tab fallback; a synthetic focus() call alone is insufficient.</Constraint>
+      <Constraint>No implementation or plan until the proposed design/spec is explicitly approved. Do not mutate applied bundles or current graph/verification while this spec is draft.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Redesign Settings, repair narrow toolbar layout, alter tab order/radio navigation, modify textbox or slider styling, change system keyboard-access policy, supply owner/platform acceptance, or authorize a release.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Actual keyboard navigation yields a visible outline for all three enabled control types, including on/off switches and selected/unselected segments, in Paper and Ink. Disabled controls retain their current disabled and activation behavior.</Criterion>
+      <Criterion>Chromium and WebKit before/after captures visibly distinguish focus without changing row/control bounds, values or event counts. Tab away removes the additional outline; mouse-only activation does not force a keyboard indicator beyond browser focus-visible semantics.</Criterion>
+      <Criterion>Settings and Quick Settings consumers share the treatment without local copies. Existing selected/on/nearest-preset states and textbox positive controls remain intact.</Criterion>
+      <Criterion>A source-identified native macOS keyboard check verifies actual Settings/Quick Settings presentation when capture/input is available; otherwise the native item stays explicitly open. No owner/platform verdict is inferred from browser checks.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-011/>
+      <Source>src/renderer/src/prefComponents/common/bool/index.vue</Source>
+      <Source>src/renderer/src/prefComponents/common/select/index.vue</Source>
+      <Source>src/renderer/src/prefComponents/common/segmented/index.vue</Source>
+      <Verification>V-M-011; existing common-control tests plus a focused keyboard-presentation regression and real consumer evidence.</Verification>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/pages/common/bool.test.js tests/renderer/pages/common/select.test.js tests/renderer/pages/common/segmented.test.js</ExpectedCommand>
+      <ExpectedCommand>npm run build</ExpectedCommand>
+      <ExpectedEvidence>Focused real-keyboard Chromium/WebKit Paper/Ink captures, source/asset hashes, geometry/value/event invariants, Settings and Quick Settings consumer checks, retained textbox control and explicit native/owner boundaries. Exact commands and assertion files belong in the later approved execution plan.</ExpectedEvidence>
+      <ExpectedEvidence>GRACE current before editing; selected target/final assertions with commands; approved apply/archive and exact-head required hosted checks before integration, followed by Collecting train evidence without changing acceptance/release states.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The existing Quick Settings focus-outline treatment is the proposed design authority. It is a recommendation, not a recorded owner choice. Approval adopts this short design and spec; execution-plan approval remains separate.</Assumption>
+    </Assumptions>
+  </C-SETTINGS-KEYBOARD-FOCUS>
+</GraceChangeSpec>

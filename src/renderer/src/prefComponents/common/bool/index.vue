@@ -33,7 +33,7 @@
 // VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings switch row (C-38 T-003 anatomy) — label + optional secondary help left, mockup-spec switch right (macOS 32×18 filled / Windows 40×20 outlined).
-//   SCOPE: Row rendering and toggle interaction; same props/events contract as v1 (description/notes/bool/onChange/more/detailedDescription/disable) plus help.
+//   SCOPE: Row rendering, keyboard-focus presentation and toggle interaction; same props/events contract as v1 (description/notes/bool/onChange/more/detailedDescription/disable) plus help.
 //   DEPENDS: @element-plus/icons-vue (InfoFilled), prefComponents/common/osClass (prefOsClass).
 //   LINKS: .grace/changes/archive/C-38 T-003; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
@@ -49,6 +49,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-14: show the existing preference-accent outline on keyboard focus without changing toggle state or geometry.
 //   - 2026-10-15 v2.0.0: C-38 T-003 — new row anatomy (no trailing colon, help as secondary text instead of tooltip info icons); el-switch replaced by the mockup switch with role=switch/aria-checked; per-OS track metrics.
 //   - (v1.x: el-switch row with 'Label:' + tooltip — retired.)
 // END_CHANGE_SUMMARY
@@ -115,6 +116,11 @@ const handleSwitchClick = () => {
   display: block;
   box-sizing: border-box;
   transition: background 0.15s;
+}
+
+.pref-switch-item .pref-switch:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-switch-item.pref-os-mac .pref-switch {
