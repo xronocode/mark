@@ -1998,6 +1998,56 @@
         "acceptance": {
           "status": "pending"
         }
+      },
+      {
+        "id": "C-SETTINGS-KEYBOARD-FOCUS",
+        "summary": "Show keyboard focus on shared Settings and Quick Settings controls without changing values or layout.",
+        "state": "queued",
+        "commits": [
+          "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990"
+        ],
+        "pullRequest": {
+          "number": 269,
+          "headSha": "5857278e75cee89e6a0e08e499e61b18851c5dae",
+          "mergeSha": "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/269/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Shared-control suites, final renderer build and source-bound Settings matrix",
+              "result": "The combined current-main candidate passed 122 tests across six suites, including all 26 shared-control cases, and the renderer build. All nine Focus files match the approved implementation. The unchanged implementation also passed 30 source-bound Chromium/WebKit Settings cases, including eight focus cases and 40 keyboard checkpoints; values, geometry, selection and preference-write counts are preserved.",
+              "date": "2026-11-14",
+              "build": "5857278e75cee89e6a0e08e499e61b18851c5dae",
+              "evidence": "https://github.com/xronocode/mark/pull/269"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend checks, QuickLook, CI and five CodeQL analyses passed. Browser: 848 passed, 0 failed, 0 flaky and 7 existing conditional skips. Thresholds and retry policy are unchanged.",
+              "date": "2026-11-14",
+              "build": "5857278e75cee89e6a0e08e499e61b18851c5dae",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43604961531; https://github.com/xronocode/mark/pull/269/checks"
+            },
+            {
+              "command": "Merge identity and current-state integrity",
+              "result": "Predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing warnings and no drift. Existing module verification-linkage findings remain separate.",
+              "date": "2026-11-14",
+              "build": "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990",
+              "evidence": "https://github.com/xronocode/mark/pull/269"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native switch/segment keyboard focus and owner/platform acceptance",
+              "reason": "The owner explicitly approved integration while retaining these open checks. Earlier native select observations are partial; browser transport fixtures do not replace native keyboard evidence."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "operational": [
@@ -2893,6 +2943,56 @@
               "section": "manual",
               "scenario": "Native memory-leak measurements, late-bootstrap lifetime and dispatch-build owner/platform acceptance",
               "reason": "The regression verifies release after settled bootstrap; it does not measure native heap retention or provide broader lifetime/owner verdicts."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-QA-LOCAL-TAURI-TOOL",
+        "summary": "Require prepared local tooling and a restricted environment for isolated QA builds.",
+        "state": "queued",
+        "commits": [
+          "7450719668cf79454032ebc8d6cd8ead831d29cc"
+        ],
+        "pullRequest": {
+          "number": 268,
+          "headSha": "780eb362248604a34e6a343c0ca3d1be33e07f08",
+          "mergeSha": "7450719668cf79454032ebc8d6cd8ead831d29cc",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/268/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused QA tool, registry and GitHub-control suites plus platform dry-runs",
+              "result": "96 tests across three suites and all three final commands passed. Matching inert tooling runs through Node; invalid metadata and paths fail before build or registry mutation. The explicit synthetic environment fixture preserves every excluded-name and input-immutability check. The registry still contains 22 items and 11 artifacts, and the generated survey is unchanged.",
+              "date": "2026-11-14",
+              "build": "780eb362248604a34e6a343c0ca3d1be33e07f08",
+              "evidence": "https://github.com/xronocode/mark/pull/268"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend checks, QuickLook, CI and five CodeQL analyses passed. Browser: 840 passed, 0 failed, 0 flaky and 7 existing conditional skips. Thresholds and retry policy are unchanged.",
+              "date": "2026-11-14",
+              "build": "780eb362248604a34e6a343c0ca3d1be33e07f08",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43600726047; https://github.com/xronocode/mark/pull/268/checks"
+            },
+            {
+              "command": "Merge identity and current-state integrity",
+              "result": "Predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing warnings and no drift. Existing module verification-linkage findings remain separate.",
+              "date": "2026-11-14",
+              "build": "7450719668cf79454032ebc8d6cd8ead831d29cc",
+              "evidence": "https://github.com/xronocode/mark/pull/268"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance and the separate signed-release dependency threat model",
+              "reason": "The approved security probe uses inert local tools and non-building dry-runs. Environment minimization is not a filesystem sandbox or installed-package byte-integrity proof."
             }
           ]
         },
