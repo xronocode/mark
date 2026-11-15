@@ -14,8 +14,11 @@
 //   waitUntil - Bound waits for observed real child evidence.
 //   receipts - Read exact run evidence outside the synthetic target cache.
 //   stopped - Assert the recorded native child no longer exists.
+//   recordControl - Fsync exact synthetic launch, signal and cleanup evidence.
+//   prepareControl - Measure owned executable/script identities before controlled launch.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-CI-RUST-PLATFORM-CANCELLATION-VERIFICATION: distinguish parent recovery and direct runner completion; prove exact-child escalation.
 //   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: actual synthetic process/filesystem fault coverage.
 // END_CHANGE_SUMMARY
 import * as fs from 'node:fs'
@@ -24,9 +27,9 @@ import { join, resolve, dirname, basename } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it } from 'vitest'
-import { runRustTests, runExecutable, cleanupFiles, validateRuntime } from '../../tools/run-rust-tests.mjs'
+import { runRustTests, runExecutable, runOwned, cleanupFiles, validateRuntime } from '../../tools/run-rust-tests.mjs'
 
 const helper = resolve('tools/run-rust-tests.mjs')
 const fixtures = []
@@ -38,7 +41,7 @@ afterEach(async () => {
     const records = receipts(f.root)
     for (const row of records) if (row.nativePid) stopped(row.nativePid)
     fs.rmSync(f.root, { recursive: true, force: true })
-    const evidence = { fixture: f.root, source: f.source, records, externalPids: f.external.map(child => child.pid),
+    const evidence = { fixture: f.root, source: f.source, records, controls: f.controls, externalPids: f.external.map(child => child.pid),
       artifactAvailable: false, fixtureRemoved: !fs.existsSync(f.root), ownedProcessesReaped: f.external.every(child => child.exitCode !== null || child.signalCode !== null) }
     if (process.env.MARK_RUST_TEST_EVIDENCE_ROOT) {
       fs.mkdirSync(process.env.MARK_RUST_TEST_EVIDENCE_ROOT, { recursive: true })
@@ -61,7 +64,8 @@ const fixture = (mode = 'success', { count = 2 } = {}) => {
   const script = join(root, 'child.mjs'), cargoScript = join(root, 'cargo.mjs')
   const suffix = process.platform === 'win32' ? '.exe' : ''
   const paths = ['first', 'second'].slice(0, count).map(name => join(directory, `${name}-0123456789abcdef${suffix}`))
-  const source = { revision: 'synthetic-current-source', helperSha256: createHash('sha256').update(fs.readFileSync(helper)).digest('hex') }
+  const source = { revision: 'synthetic-current-source', helperSha256: createHash('sha256').update(fs.readFileSync(helper)).digest('hex'),
+    testSha256: createHash('sha256').update(fs.readFileSync(resolve('tests/tools/run-rust-tests.test.mjs'))).digest('hex') }
   fs.writeFileSync(script, `
     import*as fs from'node:fs';import{dirname,join}from'node:path';
     const control=JSON.parse(fs.readFileSync(process.env.MARK_RUST_TEST_STATE,'utf8'));
@@ -125,7 +129,7 @@ const fixture = (mode = 'success', { count = 2 } = {}) => {
     operation.finally(() => pending.delete(operation)).catch(() => {})
     return operation
   }
-  const value = { root, target, directory, paths, proof, cargoProof, source, signals, options, pending, external, run }
+  const value = { root, target, directory, paths, proof, cargoProof, script, source, signals, options, pending, external, run, controls: [] }
   fixtures.push(value)
   return value
 }
@@ -143,6 +147,26 @@ const receipts = root => fs.readdirSync(root).filter(name => name.startsWith('ma
 })
 const stopped = pid => {
   expect(() => process.kill(pid, 0)).toThrow()
+}
+
+// Only these new controls add launch records; old fixture behavior stays intact.
+const recordControl = control => {
+  const fd = fs.openSync(control.evidencePath, 'w', 0o600)
+  try { fs.writeFileSync(fd, JSON.stringify(control)); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+}
+const prepareControl = (f, name, executables, scripts) => {
+  const digest = path => createHash('sha256').update(fs.readFileSync(path)).digest('hex')
+  const control = {
+    name, evidencePath: join(f.root, `control-${f.controls.length}.json`), source: f.source,
+    runtime: { path: process.execPath, sha256: digest(process.execPath) },
+    scripts: Object.fromEntries(scripts.map(path => [path, digest(path)])),
+    executables: executables.map(path => ({ path, sha256: digest(path), available: true })),
+    recording: process.platform === 'win32' ? 'PID at spawn before controlled input' : 'same PID before production exec gate release',
+    events: [{ phase: 'identities-before-launch' }]
+  }
+  f.controls.push(control)
+  recordControl(control)
+  return control
 }
 
 describe('Cargo-preserving parent and actual executable runner', () => {
@@ -209,26 +233,230 @@ describe('Cargo-preserving parent and actual executable runner', () => {
     const running = f.run()
     await waitUntil(() => fs.existsSync(f.proof))
     f.signals.emit(signal)
-    expect((await running).status).toBe(signal === 'SIGINT' ? 130 : 143)
+    const result = await running
+    expect(result.status).toBe(signal === 'SIGINT' ? 130 : 143)
     expect(f.paths.every(path => !fs.existsSync(path))).toBe(true)
     const row = receipts(f.root)[0]
     stopped(row.nativePid)
-    expect(row.stopped).toBe(true)
-    expect(row.result.cancelled).toBe(true)
-    if (process.platform === 'win32') expect(row.result.signal).toBe('SIGTERM')
-    else expect(row.result.status).toBe(0) // The installed handler exits cooperatively.
+    expect(row.source).toEqual(f.source)
+    expect(row.path).toBe(f.paths[0])
+    expect(row.sha256).toBe(createHash('sha256').update(fs.readFileSync(process.execPath)).digest('hex'))
+    if (process.platform === 'win32') {
+      expect(result.state.stopped).toBe(true)
+      expect(result.state.result.reaped).toBe(true)
+      expect(result.state.result.cancelled).toBe(true)
+      expect(result.state.cleanupErrors).toEqual([])
+      expect(result.state.artifacts).toContainEqual(expect.objectContaining({ path: row.path, sha256: row.sha256, available: false }))
+      // Windows may abruptly stop the runner, or it may finish first.
+      // Preserve the actual record; an incomplete one is not a reap result.
+      if (row.result) {
+        expect(row.stopped).toBe(true)
+        expect(row.available).toBe(false)
+        expect(row.result.reaped).toBe(true)
+        expect(row.result.cancelled).toBe(true)
+        expect(row.result.signal).toBe('SIGTERM')
+        expect(row.cleanupErrors).toEqual([])
+      } else {
+        expect(row.stopped).toBe(false)
+        expect(row.available).toBe(true)
+      }
+      f.controls.push({ name: `parent-${signal}`, receiptKind: row.result ? 'completed-runner' : 'partial-spawn', parentState: result.state })
+    } else {
+      expect(row.stopped).toBe(true)
+      expect(row.available).toBe(false)
+      expect(row.result.reaped).toBe(true)
+      expect(row.result.cancelled).toBe(true)
+      expect(row.result.status).toBe(0) // The installed handler exits cooperatively.
+      expect(row.cleanupErrors).toEqual([])
+    }
   })
 
-  it('escalates only its own unresponsive child, awaits close and deletes it', async () => {
-    const f = fixture('ignore-signals')
-    const running = f.run()
-    await waitUntil(() => fs.existsSync(f.proof))
-    f.signals.emit('SIGTERM')
-    expect((await running).status).toBe(143)
-    const row = receipts(f.root)[0]
-    stopped(row.nativePid)
-    expect(row.result.signal).toBe(process.platform === 'win32' ? 'SIGTERM' : 'SIGKILL')
-    expect(fs.existsSync(row.path)).toBe(false)
+  it.each(['SIGINT', 'SIGTERM'])('records complete direct runner %s cancellation', async signal => {
+    const f = fixture('wait', { count: 1 })
+    fs.copyFileSync(process.execPath, f.paths[0], fs.constants.COPYFILE_FICLONE)
+    fs.chmodSync(f.paths[0], 0o755)
+    const directory = join(f.root, 'mark-rust-tests-direct')
+    fs.mkdirSync(directory)
+    const statePath = join(directory, 'state.json')
+    fs.writeFileSync(statePath, JSON.stringify({ identity: randomUUID(), target: f.target, names: ['first'], directory, parentPid: process.pid, source: f.source }))
+    const control = prepareControl(f, `direct-${signal}`, f.paths, [f.script, helper])
+    const signals = new EventEmitter()
+    const running = runExecutable({ statePath, args: [f.paths[0], f.script], cwd: f.root,
+      env: { ...f.options.environment, MARK_RUST_TEST_STATE: statePath }, signals, graceMs: f.options.graceMs })
+    f.pending.add(running)
+    try {
+      await waitUntil(() => fs.existsSync(f.proof))
+      const ready = JSON.parse(fs.readFileSync(f.proof, 'utf8').trim())
+      expect(ready.beforeExecRecorded).toBe(true)
+      expect(ready.receipt.nativePid).toBe(ready.pid)
+      expect(ready.receipt.sha256).toBe(control.executables[0].sha256)
+      expect(ready.receipt.source).toEqual(f.source)
+      control.events.push({ phase: 'ready-before-cancel', nativePid: ready.pid, receipt: ready.receipt, signal })
+      recordControl(control)
+      signals.emit(signal)
+      const result = await running
+      expect(result.status).toBe(signal === 'SIGINT' ? 130 : 143)
+      const row = JSON.parse(fs.readFileSync(result.receipt, 'utf8'))
+      expect(row.nativePid).toBe(ready.pid)
+      expect(row.path).toBe(f.paths[0])
+      expect(row.source).toEqual(f.source)
+      expect(row.sha256).toBe(control.executables[0].sha256)
+      expect(row.result.pid).toBe(ready.pid)
+      expect(row.result.reaped).toBe(true)
+      expect(row.result.cancelled).toBe(true)
+      expect(row.stopped).toBe(true)
+      expect(row.available).toBe(false)
+      expect(row.cleanupErrors).toEqual([])
+      if (process.platform === 'win32') expect(row.result.signal).toBe(signal)
+      else expect(row.result.status).toBe(0)
+      stopped(row.nativePid)
+      expect(fs.existsSync(row.path)).toBe(false)
+      control.executables[0].available = false
+      control.events.push({ phase: 'completed-and-absent', receipt: row })
+      recordControl(control)
+    } finally {
+      signals.emit('SIGTERM')
+      await Promise.allSettled([running])
+      f.pending.delete(running)
+    }
+  })
+
+  it.each([false, true])('escalates the exact owned child after a controlled first SIGTERM no-op (receipt failure: %s)', async failEvidence => {
+    const f = fixture('ignore-signals', { count: 1 })
+    const script = join(f.root, 'controlled-child.mjs'), sentinelScript = join(f.root, 'sentinel.mjs')
+    const proof = join(f.root, 'controlled-ready.json'), sentinelProof = join(f.root, 'sentinel-ready.json')
+    const evidencePath = join(f.root, 'control-0.json')
+    fs.writeFileSync(script, String.raw`
+      import*as fs from'node:fs';
+      if(process.platform==='win32'){let input='';for await(const bytes of process.stdin)input+=bytes;if(input!=='run\n')process.exit(98)}
+      const record=JSON.parse(fs.readFileSync(${JSON.stringify(evidencePath)},'utf8'));
+      if(record.nativePid!==process.pid||!record.executables[0].sha256)process.exit(98);
+      process.on('SIGTERM',()=>{});setInterval(()=>{},100);
+      fs.writeFileSync(${JSON.stringify(proof)},JSON.stringify({pid:process.pid,identityRecorded:true}));
+    `)
+    fs.writeFileSync(sentinelScript, String.raw`
+      import*as fs from'node:fs';let input='';for await(const bytes of process.stdin)input+=bytes;if(input!=='run\n')process.exit(98);
+      const record=JSON.parse(fs.readFileSync(${JSON.stringify(evidencePath)},'utf8'));if(record.sentinelPid!==process.pid)process.exit(98);
+      process.on('SIGTERM',()=>process.exit(0));setInterval(()=>{},100);
+      fs.writeFileSync(${JSON.stringify(sentinelProof)},JSON.stringify({pid:process.pid,identityRecorded:true}));
+    `)
+    fs.copyFileSync(process.execPath, f.paths[0], fs.constants.COPYFILE_FICLONE)
+    fs.chmodSync(f.paths[0], 0o755)
+    const control = prepareControl(f, 'controlled-escalation', f.paths, [script, sentinelScript, helper])
+    const signals = new EventEmitter(), requests = []
+    let sentinel, sentinelClosed, running, child, nativeKill, nativeClosed = false
+    try {
+      sentinel = spawn(process.execPath, [sentinelScript], { cwd: f.root, env: f.options.environment, stdio: ['pipe', 'ignore', 'pipe'] })
+      f.external.push(sentinel)
+      sentinelClosed = new Promise((done, reject) => { sentinel.once('error', reject); sentinel.once('close', (status, signal) => done({ status, signal, pid: sentinel.pid, reaped: true })) })
+      f.pending.add(sentinelClosed)
+      sentinel.once('spawn', () => {
+        control.sentinelPid = sentinel.pid
+        control.events.push({ phase: 'sentinel-spawn-before-input', pid: sentinel.pid })
+        try { recordControl(control); sentinel.stdin.end('run\n') } catch (error) {
+          control.evidenceError = error.message; sentinel.kill('SIGTERM')
+        }
+      })
+      const gated = process.platform !== 'win32'
+      running = runOwned(gated ? process.execPath : f.paths[0], gated ? [helper, '--exec-gate', f.paths[0], script] : [script], {
+        cwd: f.root, env: f.options.environment, signals, gate: true, graceMs: f.options.graceMs,
+        spawnProcess(file, args, options) {
+          child = spawn(file, args, options)
+          const kill = child.kill.bind(child)
+          nativeKill = kill
+          child.kill = signal => {
+            const request = { signal, pid: child.pid }
+            requests.push(request)
+            if (requests.length === 1 && signal === 'SIGTERM') {
+              process.kill(child.pid, 0)
+              request.controlledNoOp = true
+              request.aliveAfterNoOp = true
+              control.events.push({ phase: 'signal-request', ...request })
+              try { recordControl(control) } catch (error) {
+                control.evidenceError = error.message
+                control.events.push({ phase: 'evidence-write-failed', signal, code: error.code })
+              }
+              return true
+            }
+            control.events.push({ phase: 'signal-request', ...request })
+            try { recordControl(control) } catch (error) {
+              control.evidenceError = error.message
+              control.events.push({ phase: 'evidence-write-failed', signal, code: error.code })
+            }
+            return kill(signal)
+          }
+          child.once('close', (status, signal) => {
+            nativeClosed = true
+            control.events.push({ phase: 'native-close', pid: child.pid, status, signal })
+            try { recordControl(control) } catch (error) { control.evidenceError = error.message }
+          })
+          return child
+        },
+        onSpawn(pid) {
+          control.nativePid = pid
+          control.events.push({ phase: 'native-spawn-before-gate', pid }); recordControl(control)
+        }
+      })
+      f.pending.add(running)
+      await waitUntil(() => fs.existsSync(proof) && fs.existsSync(sentinelProof))
+      expect(JSON.parse(fs.readFileSync(proof, 'utf8'))).toEqual({ pid: child.pid, identityRecorded: true })
+      expect(JSON.parse(fs.readFileSync(sentinelProof, 'utf8'))).toEqual({ pid: sentinel.pid, identityRecorded: true })
+      if (failEvidence) {
+        // A real post-launch filesystem error, not a mocked controller.
+        fs.unlinkSync(control.evidencePath)
+        fs.mkdirSync(control.evidencePath)
+        control.events.push({ phase: 'receipt-path-blocked-after-ready', fault: 'directory-instead-of-receipt' })
+      }
+      signals.emit('SIGTERM')
+      await waitUntil(() => nativeClosed)
+      const result = await running
+      expect(requests).toEqual([{ signal: 'SIGTERM', pid: child.pid, controlledNoOp: true, aliveAfterNoOp: true }, { signal: 'SIGKILL', pid: child.pid }])
+      expect(result).toMatchObject({ pid: child.pid, signal: 'SIGKILL', cancelled: true, cancellationSignal: 'SIGTERM', reaped: true })
+      expect(control.events.some(event => event.phase === 'native-close' && event.pid === child.pid)).toBe(true)
+      if (failEvidence) {
+        expect(control.evidenceError).toBeTruthy()
+        const failures = control.events.filter(event => event.phase === 'evidence-write-failed')
+        expect(failures.map(event => event.signal)).toEqual(['SIGTERM', 'SIGKILL'])
+        expect(failures.every(event => ['EISDIR', 'EACCES', 'EPERM'].includes(event.code))).toBe(true)
+      } else expect(control.evidenceError).toBeUndefined()
+      stopped(child.pid)
+      expect(fs.existsSync(f.paths[0])).toBe(true)
+      const errors = []
+      cleanupFiles(f.target, control.executables, errors)
+      expect(errors).toEqual([])
+      expect(control.executables[0].available).toBe(false)
+      expect(fs.existsSync(f.paths[0])).toBe(false)
+      expect(() => process.kill(sentinel.pid, 0)).not.toThrow()
+      expect(sentinel.exitCode).toBeNull()
+      expect(sentinel.signalCode).toBeNull()
+      control.events.push({ phase: 'native-reaped-deleted-sentinel-alive', result, sentinelPid: sentinel.pid })
+      try { recordControl(control) } catch (error) {
+        control.evidenceError = error.message
+        control.events.push({ phase: 'post-close-evidence-write-failed', code: error.code })
+      }
+    } finally {
+      // Rescue bypasses the evidence-writing adapter; an assertion or log
+      // failure cannot prevent exact-child termination and awaited close.
+      if (child?.pid && child.exitCode === null && child.signalCode === null) {
+        control.events.push({ phase: 'independent-finally-rescue', pid: child.pid })
+        nativeKill('SIGKILL')
+      }
+      await Promise.allSettled(running ? [running] : [])
+      if (sentinel?.pid && sentinel.exitCode === null && sentinel.signalCode === null) sentinel.kill('SIGTERM')
+      const closed = sentinelClosed ? await sentinelClosed : null
+      const errors = []
+      cleanupFiles(f.target, control.executables, errors)
+      if (failEvidence && fs.statSync(control.evidencePath).isDirectory()) fs.rmdirSync(control.evidencePath)
+      control.events.push({ phase: 'finally-cleanup', sentinelResult: closed, cleanupErrors: errors })
+      recordControl(control)
+      if (running) f.pending.delete(running)
+      if (sentinelClosed) f.pending.delete(sentinelClosed)
+      if (child?.pid) stopped(child.pid)
+      if (sentinel?.pid) stopped(sentinel.pid)
+      expect(errors).toEqual([])
+    }
+    expect(control.events.some(event => event.phase === 'independent-finally-rescue')).toBe(false)
+    if (!failEvidence) expect(control.evidenceError).toBeUndefined()
   })
 
   it('catches parent output log failure, stops active runners and recovers owned artifact cleanup', async () => {
