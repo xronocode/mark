@@ -1248,6 +1248,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "未能保存文件访问权限",
+    "bookmarkPersistenceFailedMessage": "您可以继续工作。重新启动 Mark 后，可能需要再次选择此文件或文件夹。请检查可用磁盘空间和写入权限，然后重新选择以保存访问权限。",
     "chooser": {
       "title": "添加还是替换文件夹？",
       "message": "“{folder}”——添加到已打开的文件夹旁边，还是替换它们？替换会关闭其他文件夹及其标签页。",

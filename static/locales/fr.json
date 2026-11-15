@@ -1250,6 +1250,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "L’autorisation d’accès n’a pas été enregistrée",
+    "bookmarkPersistenceFailedMessage": "Vous pouvez continuer à travailler. Après avoir redémarré Mark, vous devrez peut-être sélectionner à nouveau ce fichier ou dossier. Vérifiez l’espace disque et les droits d’écriture, puis sélectionnez-le à nouveau pour enregistrer l’accès.",
     "chooser": {
       "title": "Ajouter ou remplacer des dossiers ?",
       "message": "« {folder} » : l'ajouter à côté des dossiers ouverts ou les remplacer ? Remplacer ferme les autres dossiers et leurs onglets.",

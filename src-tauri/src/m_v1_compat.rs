@@ -10,7 +10,8 @@
 //            pointing at the proper module that should own it long-term.
 //   DEPENDS: tauri (WebviewWindow for window-state queries, State),
 //            m013b::WatchRegistry (mt_close_project_root unwatch),
-//            m010_security (document-local path and executable guards).
+//            m010_security (document-local path and executable guards),
+//            m047_bookmarks (grants and queued persistence-failure warnings).
 //   LINKS:   .grace/changes/archive/C-SEC-AUDIT-FIXES T-006;
 //            .grace/graph/features.xml M-033;
 //            docs/development-plan.xml F-V1-IPC-COMPAT-STUBS;
@@ -53,6 +54,8 @@
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-15 C-BOOKMARK-PERSISTENCE-DURABILITY: folder grants preserve
+//     current access while queuing explicit bookmark persistence failures.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: bounded strict byte decode, actual source
 //     format, validated restored choices and visible refusal across shared opens.
 //   - 2026-11-10 C-MD-LINK-TABS: validated document links use the invoking window tab pipeline; OS openers retain only web/non-document destinations, without failure fallback.
@@ -248,7 +251,9 @@ pub async fn mt_pick_folder(
         Some(p) => {
             let s = p.to_string_lossy().to_string();
             // C-15 T-M3: folder grant moment — bookmark for sandbox re-access.
-            crate::m047_bookmarks::remember(&s);
+            if let Err(error) = crate::m047_bookmarks::remember(&s) {
+                crate::m047_bookmarks::report_persistence_failure(&error);
+            }
             s
         }
         None => {
@@ -287,7 +292,9 @@ pub async fn mt_grant_folder_access(app: tauri::AppHandle, dir: String) -> Resul
     match chosen {
         Some(p) => {
             let s = p.to_string_lossy().to_string();
-            crate::m047_bookmarks::remember(&s);
+            if let Err(error) = crate::m047_bookmarks::remember(&s) {
+                crate::m047_bookmarks::report_persistence_failure(&error);
+            }
             crate::m047_bookmarks::ensure_access(&s);
             safe_eprintln!("[m_fs_ops][grant_folder][BLOCK_GRANTED path={s}]");
             Ok(Some(s))

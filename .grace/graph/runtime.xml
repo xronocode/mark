@@ -6,6 +6,7 @@
       <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
     </ProjectMetadata>
     <M-001>
+      <SummaryDelta>C-BOOKMARK-PERSISTENCE-DURABILITY: main setup installs a content-free main-window warning callback; only the invoking main window may atomically consume pending bookmark-persistence warnings. Pending opens and compatibility folder grants retain current usable access after a typed persistence failure.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: correlated requests require DocumentFormat; complete strict encoding precedes the byte writer and successful replies echo the exact policy. Legacy save-only UTF-8 endpoints remain compatibility facades.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: the validated local Markdown/text branch emits the existing document payload only to the invoking Window; Web and other Local targets retain their openers, and a read failure never falls back.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts.</SummaryDelta>
@@ -2621,6 +2622,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
     </M-010>
     <M-011>
+      <SummaryDelta>C-BOOKMARK-PERSISTENCE-DURABILITY: bootstrap registers the main-only bookmark failure wakeup before triggering invokes; the serialized drain recovers pre-listener failures and shows sticky, localized access-persistence guidance through the existing notification facade. Secondary windows cannot consume the global pending bit.</SummaryDelta>
       <SummaryDelta>C-SETTINGS-KEYBOARD-FOCUS: shared switch, native select and segment controls use the existing preference-accent outline only for keyboard-visible focus. Settings and Quick Settings inherit the same presentation without changed values, selection, dimensions, callbacks or native keyboard policy.</SummaryDelta>
       <SummaryDelta>C-EXPORT-SETTINGS-SECTION-RECOVERY: File, titlebar and tab-menu export entry points use one current appearance/page snapshot and go directly to Save; stale tab callbacks do not export another document. Word retains its compatibility action and captured options through asynchronous Save; native Print remains appearance-only. All success notices request the existing Settings window at Export through its owned storage listener. General remains first and the fresh-profile default; Export follows Markdown before Advanced. The old app-level modal is removed; M-072 owns immediate defaults and honest persistence status. Rendering an older PDF does not write back settings.</SummaryDelta>
       <SummaryDelta>C-SOURCE-HISTORY-OWNERSHIP: ordinary Source retains one nonpersistent CodeMirror Doc per live id/token; tab return restores its history and selection, lifetime/canonical replacement retires it, and unified history remains Muya-owned.</SummaryDelta>
@@ -3542,6 +3544,8 @@
       <fn-splitFocusedCommands><Purpose>C-STABILIZE-SPLIT-PROJECTIONS: Both split surfaces edit one tab. Store-driven rendering uses guarded adaptive follows, translated selections and per-surface IME fences. The sole document history and both carets survive tab/layout/mode transitions for unified tabs and clear on disk reload; never-unified tabs retain legacy behavior. Focused commands/search/clipboard/assets/statistics use the active pane, dirty/autosave notification occurs once, and locked/preview surfaces stay protected. Scroll/gesture recovery keeps proportional bidirectional sync, transition anchors, persisted ratio, narrow/diff collapse and cleanup.</Purpose><Source>src/renderer/src/util/splitCommands.js</Source><Anchor>SPLIT_COMMAND_MATRIX, applySourceCommand, sourceSearch</Anchor></fn-splitFocusedCommands>
       </Interface>
       <Sources>
+        <Source>src/renderer/src/util/bookmarkPersistenceWarning.js</Source>
+        <Source>tests/renderer/bookmark-persistence-warning.test.js</Source>
         <Source>src/renderer/</Source>
         <KnowledgeGraphPath>src/renderer/, src/renderer/src/util/splitScrollSync.js, src/renderer/src/util/splitDualEdit.js, src/renderer/src/util/splitCommands.js</KnowledgeGraphPath>
         <Tests>test/unit/renderer/**.spec.js + test/e2e/renderer.spec.ts + tests/renderer/whatsNew/content.test.js + tests/renderer/whatsNew/gate.test.js</Tests>
@@ -6401,6 +6405,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
       <LegacySource>docs/knowledge-graph.xml: M-016; docs/development-plan.xml: M-016</LegacySource>
     </M-016>
     <M-017>
+      <SummaryDelta>C-BOOKMARK-PERSISTENCE-DURABILITY: recent-add consumes a bookmark persistence failure through the queued notice path while preserving the recent entry, OS integration and current access.</SummaryDelta>
       <Name>mt-recent-docs</Name>
       <DisplayName>mt-recent-docs</DisplayName>
       <Type>DATA_LAYER</Type>
@@ -7479,6 +7484,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
     </M-022>
 
     <M-047>
+      <SummaryDelta>C-BOOKMARK-PERSISTENCE-DURABILITY: version-1 snapshots use an exclusive private sibling, complete write, file sync and atomic rename before memory or bounded eviction commits. Precommit failures leave disk and memory unchanged and queue content-free guidance without revoking currently granted access. Normal-restart consistency is claimed; hardware power-loss and multiprocess durability are not.</SummaryDelta>
       <Name>SecurityBookmarks</Name>
       <DisplayName>security-scoped bookmarks</DisplayName>
       <Type>DATA_LAYER</Type>
@@ -7514,16 +7520,19 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
           </Output>
         </Outputs>
         <Errors>
-          <Error>bookmark create/resolve failure → silent passthrough (non-sandbox runs unaffected)</Error>
+          <Error>Bookmark creation, data-root, lock, serialization and precommit filesystem failures return BookmarkError; callers report queued guidance while current grants remain usable. Existing failed resolution still passes the input through; non-macOS remember succeeds without work.</Error>
         </Errors>
       </Contract>
       <Interface>
         <fn-remember>
-          create + persist a security-scoped bookmark for a granted path
+          create and atomically persist a granted bookmark; return Result&lt;(), BookmarkError&gt; and commit memory only after successful replacement
         </fn-remember>
         <fn-ensure_access>
           resolve stored bookmark, start security scope, return path
         </fn-ensure_access>
+        <fn-report_persistence_failure>Queue content-free pending guidance and wake the main renderer.</fn-report_persistence_failure>
+        <fn-install_warning_notifier>Install the main-renderer wakeup callback.</fn-install_warning_notifier>
+        <fn-take_persistence_warning>Only the invoking main window consumes pending guidance; other labels leave it pending.</fn-take_persistence_warning>
       </Interface>
       <ChangeRefs>
         <C-15/>

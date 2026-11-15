@@ -2976,6 +2976,7 @@
       <Sources><Source>src/renderer/src/util/exportDocx.js</Source><Tests>tests/renderer/util/export-docx-shapes.test.js</Tests><Tests>tests/renderer/util/export-docx.test.js</Tests><Tests>tests/renderer/store/export-docx-dispatch.test.js</Tests><Tests>tests/renderer/contextMenu/tabs-export.test.js</Tests><Tests>tests/e2e/export-office.spec.ts</Tests><Tests>scripts/check-export-chunk.mjs</Tests></Sources>
     </M-066>
     <M-067>
+      <SummaryDelta>C-BOOKMARK-PERSISTENCE-DURABILITY: the unchanged notification facade and stack consume sticky file-source bookmark-persistence guidance with one stable deduplication key; permission-store failures do not create a separate message surface.</SummaryDelta>
       <Name>NotificationCardSystem</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
       <Summary>
         The unified notification system (C-NOTIFICATION-SYSTEM): one card renderer

@@ -1250,6 +1250,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "A permissão de acesso não foi guardada",
+    "bookmarkPersistenceFailedMessage": "Pode continuar a trabalhar. Depois de reiniciar o Mark, poderá ter de selecionar este ficheiro ou pasta novamente. Verifique o espaço disponível e as permissões de escrita e volte a selecioná-lo para guardar o acesso.",
     "chooser": {
       "title": "Adicionar ou substituir pastas?",
       "message": "\"{folder}\" — adicionar junto às pastas abertas ou substituí-las? Substituir fecha as outras pastas e as respetivas abas.",
