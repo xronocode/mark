@@ -28,6 +28,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: require isolated named-test handoffs, exact smoke cleanup and evidence-only generic retention.
 //   - 2026-11-12 v2.4.0 C-QUICKLOOK-CONTENT-BOUNDARY: require native QuickLook evidence and execute both aggregate branches for failed/cancelled/skipped inputs.
 //   - 2026-11-09 v2.3.0 C-CI-CD-AUDIT-FIXES: guard unsigned QA, IPC gating, WebKit de-duplication and immutable CI inputs.
 //   - 2026-10-26 v2.2.0: C-RELEASE-MANUAL-PUBLISH — publication regains the synchronous release-Environment gate (owner reviewer) and loses the veto-window job; governance swaps release-notify back to release with no TG secret boundary; the unknown-policy simulation targets release again.
@@ -194,7 +195,8 @@ describe('release GitHub trust boundaries', () => {
   })
 
   it('keeps manual dispatch unsigned and unable to reach signing or publication', () => {
-    expect(release.on.workflow_dispatch).toBeNull()
+    expect(Object.keys(release.on.workflow_dispatch.inputs)).toEqual(['qa_test_case'])
+    expect(release.on.workflow_dispatch.inputs.qa_test_case).toMatchObject({ required: true, type: 'string' })
     expect(release.permissions).toEqual({})
     expect(release.jobs['manual-build'].environment).toBeUndefined()
     const manual = JSON.stringify(release.jobs['manual-build'])
@@ -207,7 +209,7 @@ describe('release GitHub trust boundaries', () => {
   it('makes each manual QA verification fail the job before unsigned packaging', () => {
     const steps = release.jobs['manual-build'].steps
     const commands = ['npm ci', 'npm run release:governance', 'npm run typecheck:ipc',
-      'npm test', 'npm run build', 'cargo test --bin mark --manifest-path src-tauri/Cargo.toml']
+      'npm test', 'npm run build', 'node tools/run-qa-rust-tests.mjs --state "$QA_STATE"']
     const positions = commands.map((command) => steps.findIndex((step) => step.run === command))
     expect(positions.every((position) => position >= 0)).toBe(true)
     expect(positions).toEqual([...positions].sort((a, b) => a - b))
@@ -216,8 +218,46 @@ describe('release GitHub trust boundaries', () => {
     expect(packageStep.shell).toBe('bash')
     expect(packageStep.run).toContain('set -euo pipefail')
     expect(packageStep.run).toContain('node ./node_modules/@tauri-apps/cli/tauri.js build')
-    expect(packageStep.run).toContain('"createUpdaterArtifacts":false')
+    expect(packageStep.run).toContain('--config "$QA_CONFIG"')
     expect(JSON.stringify(steps)).not.toMatch(/TAURI_SIGNING_PRIVATE_KEY|APPLE_CERTIFICATE/)
+  })
+
+  it('hands off only a named current-source installer and always cleans local binaries before evidence upload', () => {
+    const steps = release.jobs['manual-build'].steps
+    const prepare = steps.find(step => step.id === 'qa')
+    expect(prepare.env.QA_MODE).toBe('manual-handoff')
+    expect(prepare.env.QA_TEST_CASE).toBe('${{ inputs.qa_test_case }}')
+    const collect = steps.findIndex(step => step.name === 'collect exact QA installer')
+    const upload = steps.findIndex(step => step.id === 'qa_upload')
+    const cleanup = steps.findIndex(step => step.name === 'remove local QA binaries')
+    const evidence = steps.findIndex(step => step.name === 'upload QA lifecycle evidence')
+    expect(collect).toBeGreaterThan(steps.findIndex(step => step.name === 'package unsigned QA build'))
+    expect(upload).toBeGreaterThan(collect)
+    expect(steps[upload].with).toMatchObject({ name: '${{ steps.qa.outputs.artifact_name }}', path: '${{ steps.qa.outputs.handoff }}', 'if-no-files-found': 'error', 'retention-days': 1 })
+    expect(steps[upload].if).toBeUndefined()
+    expect(cleanup).toBeGreaterThan(upload); expect(evidence).toBeGreaterThan(cleanup)
+    expect(steps[cleanup].if).toContain('always()')
+    expect(steps[evidence].with.path).toBe('${{ steps.qa.outputs.evidence }}')
+    expect(steps.find(step => step.name === 'record QA upload identity').env).toMatchObject({ QA_UPLOAD_ID: '${{ steps.qa_upload.outputs.artifact-id }}', QA_UPLOAD_DIGEST: '${{ steps.qa_upload.outputs.artifact-digest }}' })
+  })
+
+  it('keeps generic dry-run installers local and retains metadata after exact smoke cleanup', () => {
+    const dryrun = parseWorkflow('.github/workflows/release-tauri.yml')
+    const steps = dryrun.jobs.build.steps
+    expect(dryrun.permissions).toEqual({ contents: 'read' })
+    expect(dryrun.jobs.build['continue-on-error']).toContain('phase=B1.5-gate')
+    expect(dryrun.on.workflow_dispatch).toBeNull()
+    expect(steps.find(step => step.id === 'qa').env.QA_MODE).toBe('dryrun')
+    expect(steps.find(step => step.name === 'smoke launch').run).toContain('node tools/qa-artifact-smoke.mjs')
+    expect(steps.find(step => step.name === 'bundle size').run).toContain('31457280')
+    const cleanup = steps.findIndex(step => step.name === 'remove local QA binaries')
+    const uploads = steps.filter(step => step.uses?.startsWith('actions/upload-artifact@'))
+    expect(uploads).toHaveLength(2)
+    for (const upload of uploads) {
+      expect(steps.indexOf(upload)).toBeGreaterThan(cleanup)
+      expect(upload.with.path).not.toMatch(/bundle|dmg|handoff/)
+    }
+    expect(commands(dryrun.jobs.build)).not.toMatch(/pgrep|pkill|\/Applications\/Mark\.app|find target/)
   })
 
   it('gates IPC types in the required status and runs each WebKit project once', () => {

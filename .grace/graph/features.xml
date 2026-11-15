@@ -2369,6 +2369,10 @@
       <LegacySource>docs/knowledge-graph.xml: M-045; docs/development-plan.xml: M-045</LegacySource>
     </M-045>
     <M-046>
+      <SummaryDelta>C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP composes the approved root workspace-cache mapping, three original Cargo lifecycle wrappers and isolated QA app/package cleanup as one required first CI delivery. Production release jobs remain unchanged except the separately approved cache mapping, and manual test-case provenance never grants dispatch or retention authority. Follow-up actual permission/closed-pipe regressions correct earlier QA failure paths: only ENOENT is absence, stale deletion/completion claims are reset, independent safe cleanup continues, and asynchronous outer stderr failure stops/reaps the owned CLI child before finally cleanup; the CLI guards a queued later pipe error until exit. The17file union changes only its two QA helpers/two tests after the reviewed source composition;13otherpaths retain exact bytes. Original applied/archive evidence stays historical and does not imply these later failure paths were previously covered.</SummaryDelta>
+      <SummaryDelta>C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE adds the mandatory test-executable hygiene prerequisite for CI:F-003 workspace cache delivery, without adding an original finding or changing cache mappings. All three original Cargo test selections/cwds remain Cargo-orchestrated through the dedicated Node helper. Exact source/artifact digests and owned PIDs are recorded before POSIX same-PID execve or at Windows spawn before further input; completed owned executable artifacts are removed in finally. Node22.15+ POSIX execve availability fails closed before Cargo build. Dependency/build caches and unrelated preexisting outputs remain intact. Root centrally superseded the immutable predecessor shell-gate design because macOS SIP strips Cargo DYLD environment through a protected shell. Hosted platform/cache reuse evidence and all owner/release/signing gates remain separate.</SummaryDelta>
+      <SummaryDelta>C-CARGO-WORKSPACE-CACHE: the existing backend test, production release and unsigned candidate Cargo caches preserve root workspace target alongside registry/Git dependencies. The cargo-workspace-v1 namespace retains each OS/target and exact toolchain/Cargo.lock inputs while preventing legacy member-target fallback; all other workflow action identities, gates and signing/publication controls remain unchanged. Cache availability is an optional optimization, not correctness or release authorization.</SummaryDelta>
+      <SummaryDelta>C-QA-INSTALLER-ARTIFACTS and linked prerequisite N-QA-DRYRUN-ARTIFACT-HYGIENE: manual unsigned QA packages use a source/run/attempt/platform-bound product and profile, a required safe unfinished-test case reference, contained DMG/NSIS collection and installer-byte/ZIP digest receipts. The case reference does not establish owner request, dispatch authority or acceptance. Only a separately requested active unfinished test permits a one-day maximum remote handoff. Generic Tauri dry-runs retain logs/metadata only, preserve ad-hoc signing, installed-app ten-second startup, size and warnings gates, and normal-Quit/verify/clean exact app/PID/binary copies in finally including cooperative cancellation. Complete manual Rust bin-mark tests compile with the original options plus no-run/JSON metadata and run every harness without filters; onSpawn/logging failures await exact child shutdown and clean snapshot/metadata-owned outputs. Production jobs, pins, signing boundaries, check controls and Cargo mappings remain unchanged. Fixture/source checks do not establish real CI native or manual delivery acceptance.</SummaryDelta>
       <SummaryDelta>C-QA-LOCAL-TAURI-TOOL: the isolated unsigned QA builder validates manifest/root-lock declarations, locked version/integrity and installed CLI identity, resolves a contained regular JavaScript entry and invokes it through the current Node executable. An exact runtime/toolchain environment allowlist excludes unrelated credentials and execution hooks. Invalid tooling fails before config/build/recording; help, dry-runs, artifact identity, digest, smoke and registry semantics remain unchanged.</SummaryDelta>
       <SummaryDelta>C-RELEASE-ACTION-REFERENCES: ordinary read-only governance resolves every external action commit and compatible action metadata in release, promotion and governance workflows. tools/action-ref-check.mjs uses locked YAML parsing, bounded bodies/concurrency, per-invocation lookup coalescing and one deadline including reads; unsafe refs, unknown/required inputs, API failures and redirects fail without credential/body diagnostics. The three repaired pins retain their workflow inputs, signing boundaries and Cosign binary version.</SummaryDelta>
       <SummaryDelta>C-QUICKLOOK-CONTENT-BOUNDARY: the credential-free macos-15 quicklook-native job compiles/runs the actual preview fixture and builds only the unsigned extension without registration. The already-required status-check depends on this job; runtime requires success and docs-only accepts only success/skipped, never failure/cancellation.</SummaryDelta>
@@ -2409,7 +2413,7 @@
         bookkeeping-only commits (each proven, merges judged against their first
         parent); promotion binds to a seal that is on main rather than main's
         exact tip; publication itself proves the releases/latest feed advanced.
-        Manual dispatch is unsigned build-only; Projects never
+        Manual dispatch is an unsigned named-test installer handoff with separate owner request/dispatch authorization and exact lifecycle evidence; Projects never
         becomes gate authority; secrets and admin apply are isolated by purpose.
         The pull-request Tauri dry-run also remains unprivileged: it disables
         updater artifacts through a narrow CLI config override while retaining
@@ -2524,7 +2528,7 @@
         docs/assets/readme/*.manifest.json, .github/release-governance.json,
         .github/workflows/{ci,lane,release,release-tauri,release-governance,
         promote-release,test}.yml
-      </PlannedPath>
+      ; tools/{prepare-qa-artifacts,qa-artifact-smoke,run-qa-rust-tests}.mjs; docs/acceptance/README.md</PlannedPath>
       <PublicationBoundary>
         C-PUBLIC-REPOSITORY-HYGIENE: reusable tools/release/ scripts remain public.
         Account-specific App Store submission records, one-off apply state and
@@ -2662,6 +2666,18 @@
         </Source>
         <KnowledgeGraphPath>tools/release-readiness.mjs, tools/release-github-controls.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
         <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/action-ref-check.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/publication-privacy.test.js</Tests>
+        <Source>tools/prepare-qa-artifacts.mjs</Source>
+        <Source>tools/qa-artifact-smoke.mjs</Source>
+        <Source>tools/run-qa-rust-tests.mjs</Source>
+        <Tests>tests/tools/prepare-qa-artifacts.test.mjs</Tests>
+        <Tests>tests/tools/qa-artifact-smoke.test.mjs</Tests>
+        <Tests>tests/tools/run-qa-rust-tests.test.mjs</Tests>
+      <Tests>tests/tools/cargo-workspace-cache.test.mjs</Tests>
+      <Source>tools/run-rust-tests.mjs</Source>
+      <Source>.github/workflows/test.yml</Source>
+      <Source>.github/workflows/ci.yml</Source>
+      <Tests>tests/tools/run-rust-tests.test.mjs</Tests>
+      <Tests>tests/tools/ci-rust-test-lifecycle.test.mjs</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>

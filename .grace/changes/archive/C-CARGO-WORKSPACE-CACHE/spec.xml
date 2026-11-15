@@ -1,0 +1,43 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-CARGO-WORKSPACE-CACHE>
+    <Summary>Align the three existing Cargo build caches with the root Cargo workspace target directory.</Summary>
+    <Problem>Original audit record CI:F-003 is confirmed on main a504783a98b9aa8ff5b1b388689ba2f1af114b3c. Locked offline cargo metadata resolves the target directory to the repository-root target, but the explicit caches in test.yml, release.yml and release-tauri.yml preserve src-tauri/target. The configured cache misses the workspace build products.</Problem>
+    <Goals>
+      <Goal>Preserve and restore the root workspace target in all three existing explicit Cargo caches, alongside their existing registry and Git dependency paths.</Goal>
+      <Goal>Give the corrected target layout a distinct cache-key namespace while retaining each current OS/target split, rust-toolchain.toml and Cargo.lock key inputs.</Goal>
+      <Goal>Keep correctness checks and release authorization independent of cache availability, and report actual restore/reuse evidence without inventing a speed improvement.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Change only the three affected cache path/key declarations and directly related stale path descriptions. Preserve tool versions, platforms, dependencies, build/test commands, checks, budgets, retries, skips, coverage floors, signing boundaries and publication controls.</Constraint>
+      <Constraint>Verification adds only tests/tools/cargo-workspace-cache.test.mjs with parsed workflow/controlled cache fixtures; it does not build Cargo, contact cache services, execute actions or require Rust in the renderer unit runner.</Constraint>
+      <Constraint>Use Cargo's existing root workspace layout. Do not move sources, set a new CARGO_TARGET_DIR, merge platform caches, clean shared caches or change production artifact paths.</Constraint>
+      <Constraint>Release workflow execution, signing and publication remain separately authorized. Source checks and ordinary PR backend runs do not prove a live production release-cache hit.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No compiler/dependency upgrade, cache service replacement, new runner, remote compiler cache, release redesign, automatic dispatch or version/tag change.</NonGoal>
+      <NonGoal>No signing-boundary C-50 work, QA installer upload changes or edits to frozen/archived history.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Locked offline cargo metadata and parsed workflow declarations agree that every affected target cache is the root target; registry/Git paths and per-platform key isolation remain present.</Criterion>
+      <Criterion>The corrected layout cannot restore an old member-target cache through a legacy restore prefix. Existing toolchain/lock identity inputs remain in the key, without source-by-source invalidation.</Criterion>
+      <Criterion>Applicable existing workflow/release boundary tests and action/reference validation pass; exact-candidate ordinary PR backend jobs prove compilation and tests on the supported operating systems.</Criterion>
+      <Criterion>Use a normal authorized subsequent CI run to record target save/restore and actual Cargo reuse where available. Keep unexecuted release-cache and measured-performance evidence explicit; do not dispatch a release merely to test a cache.</Criterion>
+      <Criterion>Maintain M-046/V-M-046 projections and pass GRACE final and normal safety gates. Technical spec/plan/apply decisions use the 2026-11-15 delegated mandate with explicit provenance; the root integrator centrally reconciles current XML, archives and delivers after successful gates.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+      <File>tests/tools/cargo-workspace-cache.test.mjs</File>
+      <File>.github/workflows/test.yml</File>
+      <File>.github/workflows/release.yml</File>
+      <File>.github/workflows/release-tauri.yml</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo metadata --locked --offline --no-deps --format-version 1</ExpectedCommand>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/tools/cargo-workspace-cache.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedEvidence>Parsed cache paths/key namespaces tied to Cargo's actual target directory; preserved workflow controls; existing supported backend matrix; subsequent normal cache restore/reuse logs with explicit unexecuted production boundaries.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>A cache is an optimization. Missing or stale entries must fall back to ordinary Cargo compilation, with all correctness checks unchanged.</Assumption>
+    </Assumptions>
+  </C-CARGO-WORKSPACE-CACHE>
+</GraceChangeSpec>

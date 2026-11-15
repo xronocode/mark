@@ -11,6 +11,8 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
+#   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: preserve the full Cargo gate while recording/reaping/removing exact test executables before cache save.
+#   - 2026-11-15 C-CARGO-WORKSPACE-CACHE: cache the root workspace target in a distinct platform-preserving namespace.
 #   - 2026-11-13 v1.11.0: collect Playwright failure evidence from its actual test-results output, including first-failure stream ownership traces; retain the existing gates and deadlines.
 #   LAST_CHANGE: 2026-11-12 C-QUICKLOOK-CONTENT-BOUNDARY: gate the actual native preview and isolated unsigned extension build through the required status aggregate.
 #   SECURITY: 2026-11-11 C-SEC-STREAM-TABS/C-SEC-GATEWAY-TOOLS: require stream-ownership WebKit regressions and prepare the credential-free nested toolchain from its lockfile.
@@ -161,10 +163,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: cargo-test-${{ matrix.os }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
+            target
+          key: cargo-workspace-v1-test-${{ matrix.os }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
           restore-keys: |
-            cargo-test-${{ matrix.os }}-
+            cargo-workspace-v1-test-${{ matrix.os }}-
 
       # The hosted Ubuntu image occasionally blackholes IPv6 and stalls the
       # apt fetch. Unbounded, that consumed the whole 30-minute job budget and
@@ -219,9 +221,14 @@ jobs:
           echo "::error::tauri sysdeps install failed after 3 attempts"
           exit 1
 
+      - name: setup node for Rust test lifecycle
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
       - name: cargo test
         working-directory: src-tauri
-        run: cargo test --bin mark
+        run: node ../tools/run-rust-tests.mjs --bin mark
 
   renderer-e2e:
     name: renderer e2e playwright (macos-15)
