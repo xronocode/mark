@@ -1249,6 +1249,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "Dateiberechtigung wurde nicht gespeichert",
+    "bookmarkPersistenceFailedMessage": "Sie können weiterarbeiten. Nach einem Neustart von Mark müssen Sie die Datei oder den Ordner möglicherweise erneut auswählen. Prüfen Sie freien Speicherplatz und Schreibrechte und wählen Sie das Objekt erneut aus, um den Zugriff zu speichern.",
     "chooser": {
       "title": "Ordner hinzufügen oder ersetzen?",
       "message": "„{folder}“ — neben den offenen Ordnern hinzufügen oder sie ersetzen? Ersetzen schließt die anderen Ordner und deren Tabs.",

@@ -1260,6 +1260,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "File permission was not saved",
+    "bookmarkPersistenceFailedMessage": "You can keep working now. After restarting Mark, you may need to select this file or folder again. Check available disk space and permissions, then select it again to save access.",
     "chooser": {
       "title": "Add or replace folders?",
       "message": "\"{folder}\" — add it next to the open folders, or replace them? Replacing closes the other folders and their tabs.",

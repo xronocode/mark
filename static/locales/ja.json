@@ -1248,6 +1248,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "ファイルへのアクセス権を保存できませんでした",
+    "bookmarkPersistenceFailedMessage": "現在の作業は続行できます。Mark の再起動後、このファイルまたはフォルダーを再選択する必要がある場合があります。ディスクの空き容量と書き込み権限を確認してから、再選択してアクセス権を保存してください。",
     "chooser": {
       "title": "フォルダを追加または置き換えますか？",
       "message": "「{folder}」を開いているフォルダに追加しますか、それとも置き換えますか？置き換えると他のフォルダとそのタブが閉じます。",
