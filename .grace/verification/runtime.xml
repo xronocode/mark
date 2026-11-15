@@ -3,6 +3,7 @@
     <V-M-001>
       <Priority>critical</Priority>
       <Commands>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m_v1_compat::tests</Command>
         <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark m001_save_close::tests</Command>
         <Command>npx vitest run tests/renderer/whatsNew/content.test.js tests/renderer/whatsNew/gate.test.js tests/renderer/components/whatsNew.test.js</Command>
         <Command>
@@ -17,6 +18,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
+        <scenario-settings-window-restore>C-SETTINGS-WINDOW-RESTORE: isolated real-native minimized General reopens visibly at General; fresh Word-export notice restores the same minimized Settings at Export. Hidden, visible and fresh-window controls preserve identity, fixed shell, section routing and close/reopen. Export document.xml marker and unchanged source bytes are verified separately from renderer navigation tests. Native results, source/artifact hashes and normal Quit/deletion evidence accompany acceptance; renderer doubles alone do not establish restoration.</scenario-settings-window-restore>
         <scenario-security-stream-state>C-SEC-STREAM-AUTH: the full backend test binary compiles the managed live-server state and generic disable command; mock-runtime fixtures prove disable reaches exactly the owner session.</scenario-security-stream-state>
         <scenario-metadata-t001-vm001>T-001: required format deserialization, UTF-16 BOM/CRLF exact bytes and echoed format; invalid/unsupported/mixed/BOM/unrepresentable policies preserve an existing byte sentinel and create no missing parent. Owned-path and sandbox regressions remain unchanged.</scenario-metadata-t001-vm001>
         <scenario-md-link-m001-route>C-MD-LINK-TABS: link_click_document_has_internal_destination fails on the OS-only baseline. The production dispatch seam selects exactly one document/web/local sink; real document payload reading and an unreadable UTF-8 target prove no empty event or OS fallback. Existing canonical aliases, traversal and executable guards remain. Native current-window/process evidence is recorded separately.</scenario-md-link-m001-route>
