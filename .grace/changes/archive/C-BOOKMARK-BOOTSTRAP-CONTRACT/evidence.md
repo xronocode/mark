@@ -1,0 +1,11 @@
+# Bookmark bootstrap contract evidence
+
+This verification-only successor addresses the two legacy test failures found in the bookmark durability pull request. The original archived change and all runtime/configuration files remain unchanged. Specification and plan approval use the owner's delegated technical authority dated 2026-11-15.
+
+All three hosted renderer jobs failed the same two stale assertions: main had thirteen registered listeners versus twelve expected, and the ready trace correctly reported thirteen versus eleven expected. A local red run reproduced both failures with fifteen other cases passing. The repair retains exact event-set equality and every prior order, handler, pending-open, drain-empty and failure assertion. It adds explicit main thirteen/Settings twelve registration and consumption checks, tied to captured handlers and actual trace counts.
+
+Focused verification passed 63 tests with three existing todos. Complete renderer coverage passed 427 files and 6,035 tests with two existing skips and three existing todos. Statements 92.25%, branches 85.69%, functions 88.72% and lines 93.72% exceed the unchanged floors. The local Node 26 runtime differs from hosted Node 22. The full local run used an ignored wrapper that only permits the external shared dependency directory in Vite; committed configuration is unchanged. Later changes only corrected two contract routing comments; executable test regions match the coverage candidate.
+
+Three independent cache-disabled fault controls reject a missing main warning, a Settings warning owner and a false ready count. An initial transform-fault attempt reused a persistent module cache and is explicitly invalid evidence; only the corrected distinct controls support this result. The first full-suite local attempt was blocked by Vite denying the shared dependency path and is retained separately.
+
+Independent source review found zero remaining findings. Root applied only additive current graph/verification entries. Selected final assertions and the declared focused command passed with zero errors and four existing heuristic warnings. Archival, publication and new exact-candidate hosted checks remain separate gates. Renderer doubles supply no native, owner or platform acceptance. No app or task-owned compiled executable was created.

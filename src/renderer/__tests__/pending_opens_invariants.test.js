@@ -10,7 +10,11 @@
 //              - cold-launch with N=0 (drain-empty)
 //              - drain-rejection (DRAIN_FAILED)
 //   DEPENDS: vitest, @tauri-apps/api/{event,core} (mocked), bootstrap-ipc.
-//   LINKS:   .grace/verification/runtime.xml V-M-025 ordering-invariants.
+//   LINKS:   .grace/verification/performance.xml V-M-025 ordering-invariants.
+
+// CHANGE_SUMMARY:
+//   - C-BOOKMARK-BOOTSTRAP-CONTRACT: compare ready counts with actual main
+//     and Settings registrations; only main may consume bookmark warnings.
 
 // ─── per-file mocks (mirror bootstrap-ipc.test.js) ─────────────────
 
@@ -73,7 +77,7 @@ vi.mock('./store/editor', () => ({
  * Returns the captured trace lines (in order) plus the BOOTSTRAP_START
  * synthetic anchor we prepend so invariant (1) is checkable.
  */
-async function runBootstrapWithTrace({ drainPaths, drainImpl, postEmits }) {
+async function runBootstrapWithTrace({ drainPaths, drainImpl, postEmits, windowLabel = 'main' }) {
   vi.resetModules()
   Object.values(__prefsStub).forEach((v) => v?.mockReset?.())
   Object.values(__projectStub).forEach((v) => v?.mockReset?.())
@@ -106,25 +110,32 @@ async function runBootstrapWithTrace({ drainPaths, drainImpl, postEmits }) {
   // marker so invariant (1) has a reference point.
   trace.push('[boot][app][BLOCK_BOOTSTRAP_START elapsed_ms=0]')
 
-  const mod = await import('@/bootstrap-ipc')
-  await mod.setupIpcListeners()
+  const { getCurrentWindow } = await import('@tauri-apps/api/window')
+  const previousWindow = getCurrentWindow()
+  getCurrentWindow.mockReturnValue({ ...previousWindow, label: windowLabel })
+  try {
+    const mod = await import('@/bootstrap-ipc')
+    await mod.setupIpcListeners()
 
-  // After the drain resolves the backend would emit mt::open-new-tab
-  // for each drained path. Drive each emit through the captured handler
-  // so BLOCK_NEW_TAB_RECEIVED markers join the trace.
-  if (Array.isArray(postEmits)) {
-    const onNewTab = handlers.get('mt::open-new-tab')
-    for (const payload of postEmits) {
-      // eslint-disable-next-line no-await-in-loop
-      await onNewTab({ payload })
+    // After the drain resolves the backend would emit mt::open-new-tab
+    // for each drained path. Drive each emit through the captured handler
+    // so BLOCK_NEW_TAB_RECEIVED markers join the trace.
+    if (Array.isArray(postEmits)) {
+      const onNewTab = handlers.get('mt::open-new-tab')
+      for (const payload of postEmits) {
+        // eslint-disable-next-line no-await-in-loop
+        await onNewTab({ payload })
+      }
     }
-  }
 
-  log.mockRestore()
-  dbg.mockRestore()
-  warn.mockRestore()
-  err.mockRestore()
-  return { trace, handlers }
+    return { trace, handlers, invoke: coreMod.invoke }
+  } finally {
+    getCurrentWindow.mockReturnValue(previousWindow)
+    log.mockRestore()
+    dbg.mockRestore()
+    warn.mockRestore()
+    err.mockRestore()
+  }
 }
 
 /**
@@ -303,10 +314,17 @@ describe('V-M-025 trace-invariants (log-grep parser)', () => {
     expect(iInvoked).toBeGreaterThan(iReady)
   })
 
-  it('LISTENERS_READY count=11 matches the 11-listener post-E1a surface', async () => {
-    const { trace } = await runBootstrapWithTrace({ drainPaths: [] })
+  it.each([
+    ['main', 13],
+    ['settings', 12]
+  ])('LISTENERS_READY matches all %s registrations (count=%i)', async (windowLabel, expectedCount) => {
+    const { trace, handlers, invoke } = await runBootstrapWithTrace({ drainPaths: [], windowLabel })
     const ready = trace.find((l) => l.includes('BLOCK_LISTENERS_READY'))
     expect(ready).toBeTruthy()
-    expect(ready).toMatch(/count=11/)
+    expect(handlers.size).toBe(expectedCount)
+    expect(extractCount(ready)).toBe(handlers.size)
+    expect(handlers.has('mt::bookmark-persistence-warning')).toBe(windowLabel === 'main')
+    expect(invoke.mock.calls.some(([command]) => command === 'mt_take_bookmark_persistence_warning'))
+      .toBe(windowLabel === 'main')
   })
 })

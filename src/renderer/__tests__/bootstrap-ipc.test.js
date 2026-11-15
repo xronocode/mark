@@ -9,7 +9,11 @@
 //            mocked in tests/renderer/setup.ts; this file extends with
 //            per-test mockImplementation.
 //   DEPENDS: vitest, @tauri-apps/api/{event,core} (mocked), bootstrap-ipc.
-//   LINKS:   .grace/verification/runtime.xml V-M-025 ordering-invariants 1-6.
+//   LINKS:   .grace/verification/performance.xml V-M-025 ordering-invariants 1-6.
+
+// CHANGE_SUMMARY:
+//   - C-BOOKMARK-BOOTSTRAP-CONTRACT: verify the complete main-only warning
+//     subscription alongside unchanged registration and pending-open order.
 
 // ─── per-file mocks ────────────────────────────────────────────────
 
@@ -121,15 +125,16 @@ function captureLogs() {
 // ─── test suite ────────────────────────────────────────────────────
 
 describe('bootstrap-ipc / setupIpcListeners (M-025 reorder)', () => {
-  it('registers all 12 listeners, emits LISTENERS_READY then DRAIN_INVOKED', async () => {
+  it('registers all 13 main listeners, emits LISTENERS_READY then DRAIN_INVOKED', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const cap = captureLogs()
     await setupIpcListeners()
 
-    expect(handlers.size).toBe(12)
+    expect(handlers.size).toBe(13)
     const channels = Array.from(handlers.keys()).sort()
     expect(channels).toEqual(
       [
+        'mt::bookmark-persistence-warning',
         'mt::user-preference',
         'mt::current-language',
         'mt::update-object-tree',

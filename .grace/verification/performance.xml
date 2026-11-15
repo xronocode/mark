@@ -178,6 +178,7 @@
       <Priority>high</Priority>
       <Commands>
         <Command>npm run build &amp;&amp; npx playwright test tests/e2e/open-file-timing.spec.ts --project=chromium</Command>
+        <Command>node node_modules/vitest/vitest.mjs run src/renderer/__tests__/bootstrap-ipc.test.js src/renderer/__tests__/pending_opens_invariants.test.js tests/renderer/bookmark-persistence-warning.test.js tests/renderer/bootstrap-ipc.test.ts tests/renderer/store/bootstrap-ipc-coverage.test.js --maxWorkers=2</Command>
       </Commands>
       <Scenarios>
         <Scenario>T-003: bootstrap-ipc unit routes mt::open-file-failed to visible editor notification without tab creation. Existing parallel-drain listener order and awaited successful arrivals remain covered.</Scenario>
@@ -189,6 +190,7 @@
           the click mark and BLOCK_OPEN_FIRST_PAINT within 2000 ms of the
           arrival; a ~600 KB document stays inside a 10000 ms paint budget locally, widened to 20000 ms on CI runners where concurrent macOS jobs add noise (2026-10-28 tolerance; the strict local budget remains).
         </Scenario>
+        <Scenario>C-BOOKMARK-BOOTSTRAP-CONTRACT: exact main channel equality includes mt::bookmark-persistence-warning; ready trace counts equal actual captured registrations for main13 and Settings12. Settings neither registers nor consumes the global warning; all existing pending-open ordering, drain-empty/failure, handler and set-equality assertions remain. Full renderer coverage uses unchanged thresholds. Renderer tests are doubles, not native owner/platform acceptance.</Scenario>
       </Scenarios>
       <Markers>
         <Marker>[sidebar][open-file][BLOCK_OPEN_FILE_CLICK]</Marker>
