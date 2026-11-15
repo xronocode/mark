@@ -1,0 +1,39 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SETTINGS-WINDOW-RESTORE>
+    <IntentSummary>Restore the existing Settings window through the established best-effort native activation sequence, preserving its identity and storage-driven section routing.</IntentSummary>
+    <ReferenceState>Main a504783a retains the focus-only existing-settings branch observed in the native minimized-window failure. The spec body was reviewed unchanged and approved through the owner's explicit autonomous execution delegation of 2026-11-15, not an inferred answer to the previous question. Current lint before planning passed with zero errors and four existing heuristic warnings.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist><Value>M-001</Value></MustExist>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>let _ = existing.set_focus();</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>let _ = window.unminimize();</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>let _ = window.show();</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-001</Module></MustVerify>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>let _ = existing.unminimize();
+        let _ = existing.show();
+        let _ = existing.set_focus();</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-SETTINGS-WINDOW-RESTORE</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>scenario-settings-window-restore</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m_v1_compat::tests</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="30">node node_modules/vitest/vitest.mjs run tests/renderer/util/export-settings-navigation.test.js tests/renderer/pages/preference.test.js tests/renderer/prefComponents/tabsBar-config.test.js --maxWorkers=2</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-001/></GraphAnchors><VerificationAnchors><V-M-001/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope><File>src-tauri/src/m_v1_compat.rs</File></ObservedWriteScope>
+    <Architecture>Add independent ignored-result unminimize and show calls immediately before the existing set_focus call. Retain the existing focus marker and successful return. Do not early-return on activation errors: every operation is attempted. Update only this file's module-map description, scope and change summary. Centrally add an M-001 summary and V-M-001 scenario/command without replacing existing content.</Architecture>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Restore existing Settings before focus and synchronize its current contract</Title><DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>The existing-window branch attempts unminimize, show, focus in that order and preserves the same window, result, marker and best-effort policy. The creation branch, dimensions, routing and other compatibility commands are byte-identical.</Criterion><Criterion>M-001 and V-M-001 describe the restoration and objective native controls without claiming an unobserved verdict.</Criterion></AcceptanceCriteria>
+        <Verification><Command>git diff --check</Command><Command>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m_v1_compat::tests</Command><Command>node node_modules/vitest/vitest.mjs run tests/renderer/util/export-settings-navigation.test.js tests/renderer/pages/preference.test.js tests/renderer/prefComponents/tabsBar-config.test.js --maxWorkers=2</Command></Verification>
+      </T-001>
+      <T-002>
+        <Title>Verify real native restored Settings and Word notice controls</Title><DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria><Criterion>Record isolated app identity, exact source and binary hashes, owned PIDs, window IDs, native minimized/hidden/visible/fresh controls, unchanged source Markdown and exported document.xml marker. Real native evidence is mandatory and cannot be substituted with renderer IPC doubles.</Criterion><Criterion>Quit normally, verify owned windows/processes stopped, delete task-owned apps/executables/assets and retain recipes and outputs.</Criterion></AcceptanceCriteria>
+        <Verification><Command>git diff --check</Command></Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceTier>Use the existing locked Tauri CLI with a unique test identifier and product name, unsigned debug app bundle and isolated generated config; no signing keys. Use the established cached Cargo substrate but inventory and remove task-built executables, never dependency caches. Renderer baseline is 34 tests in 3 suites, measured under one second; backend budget includes the reference-host native compile substrate and must not be relaxed to hide a failure. Exact-head hosted required checks, independent standards/spec review and current integrity are mandatory before normal integration. Native acceptance failure blocks apply of this change while independent original queue work continues.</AcceptanceTier>
+    <Lifecycle>Sequential execution; technical plan approval and later successful apply/archive are delegated by the owner's 2026-11-15 mandate. Record the exact approval hashes privately. Approved assertions/scopes/tasks remain immutable. Final command evidence is run before apply/archive, then current lint/status; ordinary commit/push/merge gates and Collecting accounting follow. No version, release, signing-boundary or C-50 work.</Lifecycle>
+  </C-SETTINGS-WINDOW-RESTORE>
+</GraceChangePlan>

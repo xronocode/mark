@@ -5,7 +5,7 @@
 //            implementation since C-2 (WatchRegistry unwatch).
 //   SCOPE:   thin compatibility shims, validated document-local link routing to the invoking window,
 //            strict metadata-aware bounded opens and validated restored format options,
-//            plus the C-2 close-project unwatch.
+//            best-effort Settings restoration, plus the C-2 close-project unwatch.
 //            Every remaining stub has a corresponding F-* followup
 //            pointing at the proper module that should own it long-term.
 //   DEPENDS: tauri (WebviewWindow for window-state queries, State),
@@ -45,7 +45,7 @@
 //   mt_view_layout_changed - Persist a renderer layout update.
 //   mt_update_sidebar_menu - Synchronize the allowlisted sidebar menu check.
 //   mt_request_window_content_size - Retain the no-op legacy size request sink.
-//   mt_open_setting_window - Open the native settings shell.
+//   mt_open_setting_window - Open or restore the existing native settings shell.
 //   mt_format_link_click - Route validated documents to invoking-window tabs and other targets to their existing opener.
 //   parse_restored_open_format - allowlisted validated pending format options.
 //   emit_open_new_tab_with_options - shared strict open with visible refusal.
@@ -53,6 +53,8 @@
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-15 C-SETTINGS-WINDOW-RESTORE: unminimize and show existing
+//     Settings before focus; preserve identity, section routing and best-effort activation.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: bounded strict byte decode, actual source
 //     format, validated restored choices and visible refusal across shared opens.
 //   - 2026-11-10 C-MD-LINK-TABS: validated document links use the invoking window tab pipeline; OS openers retain only web/non-document destinations, without failure fallback.
@@ -835,14 +837,16 @@ pub async fn mt_request_window_content_size(args: Value) -> Result<(), String> {
 /// Maps to v1 'mt::open-setting-window'. Spawns a second WebviewWindow
 /// with label="settings" loading index.html?type=settings — renderer's
 /// router (router/index.js) redirects '/' to '/preference' when
-/// `type !== 'editor'`. If a settings window already exists, focuses
-/// the existing one instead of opening a duplicate.
+/// `type !== 'editor'`. If a settings window already exists, restores
+/// and focuses the existing one instead of opening a duplicate.
 /// C-38 T-003: the window is the fixed 640×620 shell from the approved
 /// mockup (content scrolls inside the body; the title follows the
 /// active tab, set from the renderer via set_title).
 #[tauri::command]
 pub async fn mt_open_setting_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window("settings") {
+        let _ = existing.unminimize();
+        let _ = existing.show();
         let _ = existing.set_focus();
         safe_eprintln!("[v1_compat][settings][BLOCK_FOCUS_EXISTING]");
         return Ok(());

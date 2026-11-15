@@ -6,6 +6,7 @@
       <LegacySources>docs/knowledge-graph.xml; docs/development-plan.xml</LegacySources>
     </ProjectMetadata>
     <M-001>
+      <SummaryDelta>C-SETTINGS-WINDOW-RESTORE: the existing Settings command attempts unminimize, show and focus on the same native window; its section routing, creation shell and best-effort activation policy are preserved.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: correlated requests require DocumentFormat; complete strict encoding precedes the byte writer and successful replies echo the exact policy. Legacy save-only UTF-8 endpoints remain compatibility facades.</SummaryDelta>
       <SummaryDelta>C-MD-LINK-TABS: the validated local Markdown/text branch emits the existing document payload only to the invoking Window; Web and other Local targets retain their openers, and a read failure never falls back.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Correlated mt_document_choose_save_target and mt_document_write_snapshot select a native target separately from writing; results echo request/lifetime/revision/source ownership. Sandbox validation and canonical live-owned-path collision checks precede writes. The legacy batch-close command explicitly rejects without write/close broadcasts.</SummaryDelta>
