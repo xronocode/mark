@@ -30,6 +30,8 @@
 //
 // START_MODULE_MAP
 //   RollbackManifest - Strictly-validated snapshot manifest (schema 1).
+//   restore_inner - Desktop-only verified restore coordinator.
+//   restore_windows_flow - Desktop-only host-agnostic Windows verified-installer flow.
 //   RollbackStatus - Renderer-facing availability + versions.
 //   mt_rollback_prepare - Stage the running version before downloadAndInstall.
 //   mt_rollback_status - Report whether a valid rollback set exists.
@@ -42,6 +44,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-15 C-ROLLBACK-STORE-BUILD-GUARD: align desktop-only restore
+//     coordinator/Windows flow cfg with their excluded updater-key helper;
+//     preserve inert Store commands and unchanged desktop restore behavior.
 //   - 2026-10-28 C-UPDATER-ROLLBACK T-001/T-003/T-004: initial module.
 //   - 2026-10-31 td-1: silence the cfg-asymmetric `relaunch` parameter
 //     (its only use sits in the macOS restore path) for non-macOS
@@ -1381,6 +1386,7 @@ fn restore_macos_flow(
 /// Verify-first restore core, shared by the CLI and dialog paths.
 /// `fetch` is injected (tests count fetches). Every step logs its
 /// marker; any failure leaves the current state untouched.
+#[cfg(not(feature = "app-store"))]
 #[allow(clippy::too_many_arguments)]
 pub fn restore_inner(
     fetch: &dyn Fetch,
@@ -1513,6 +1519,7 @@ fn spawn_failure_user_line(err: &str) -> String {
 /// injectable seams (the Fetch/Trash precedent) so tests drive the
 /// staging failure and reach the spawn without the private key;
 /// production passes std::fs::write and verify_minisign.
+#[cfg(not(feature = "app-store"))]
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[allow(clippy::too_many_arguments)]
 pub fn restore_windows_flow(
@@ -4351,5 +4358,28 @@ mod rollback_restore_outcome {
             read_and_clear_restore_outcome(root.path()).is_some(),
             "an exactly-cap error is accepted"
         );
+    }
+}
+
+
+// C-ROLLBACK-STORE-BUILD-GUARD: compile the real Store feature and invoke its
+// inert command boundary without profiles, network access or desktop helpers.
+#[cfg(all(test, feature = "app-store"))]
+mod rollback_store_stubs {
+    use super::*;
+
+    #[tokio::test]
+    async fn mutation_commands_keep_the_store_managed_voice() {
+        assert_eq!(mt_rollback_prepare().await.unwrap_err(), "Updates are managed by the App Store");
+        assert_eq!(mt_rollback_restore().await.unwrap_err(), "Updates are managed by the App Store");
+    }
+
+    #[tokio::test]
+    async fn status_and_outcome_remain_unavailable_and_empty() {
+        let status = mt_rollback_status().await.unwrap();
+        assert!(!status.available);
+        assert!(status.previous_version.is_none());
+        assert_eq!(status.current_version, current_version());
+        assert!(mt_rollback_restore_outcome().await.unwrap().is_none());
     }
 }

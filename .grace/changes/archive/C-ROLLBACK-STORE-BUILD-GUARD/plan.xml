@@ -1,0 +1,46 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-ROLLBACK-STORE-BUILD-GUARD>
+    <IntentSummary>Exclude the desktop rollback flow/caller pair from app-store compilation; prove Store stub behavior and retain desktop rollback verification.</IntentSummary>
+    <ReferenceState>Main a504783a98b9aa8ff5b1b388689ba2f1af114b3c in a fresh isolated worktree; current integrity passed before planning. The actual bookmark sandbox app build exposed an E0425 in unchanged M-068. pinned_pubkey_b64 is desktop-only; restore_windows_flow and its restore_inner caller were not. All production callers of restore_inner and all existing rollback test modules are already desktop-gated.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist><Value>M-068</Value></MustExist>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>#[cfg(not(feature = "app-store"))]
+fn pinned_pubkey_b64()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>pub fn restore_windows_flow(</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>let pk = pinned_pubkey_b64().map_err(|e| (4, e))?;</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-068</Module></MustVerify>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>#[cfg(not(feature = "app-store"))]
+#[allow(clippy::too_many_arguments)]
+pub fn restore_inner(</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>#[cfg(not(feature = "app-store"))]
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+#[allow(clippy::too_many_arguments)]
+pub fn restore_windows_flow(</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>mod rollback_store_stubs</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="5">git diff --check</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-068/></GraphAnchors><VerificationAnchors><V-M-068/></VerificationAnchors></DurableScope>
+    <ObservedWriteScope><File>src-tauri/src/m068_rollback.rs</File></ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001><Title>Reproduce the Store compilation error and align the two desktop-only guards</Title><DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Record M-068 source equality with the failed native sandbox build and inspect all restore_windows_flow/restore_inner callers plus existing test cfg. Add the Store-only regression before the fix and reproduce the real compiler E0425 under app-store.</Criterion>
+          <Criterion>Add only cfg(not(feature = "app-store")) immediately before both restore_inner and restore_windows_flow. Preserve pinned_pubkey_b64 gating and exact function bodies/call sites. Update file-local descriptions to name desktop ownership.</Criterion>
+          <Criterion>Add feature-specific async tests invoking prepare, status, restore and restore_outcome; assert Store-managed errors and unavailable/null outcomes. No fixture or helper using desktop rollback is enabled for Store merely to make compilation pass.</Criterion>
+        </AcceptanceCriteria>
+        <Verification><Command>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --no-default-features --features app-store --bin mark m068_rollback::rollback_store_stubs</Command><Command>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::</Command></Verification>
+      </T-001>
+      <T-002><Title>Hand evidence and the bounded current-state projection to the root integrator</Title><DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Verify identical bodies for every pre-existing function and preserve all existing test cfg/counts. Propose only M-068/V-M-068 durable additions naming the feature compile/stub gate, desktop suite and additional-prerequisite linkage.</Criterion>
+          <Criterion>Keep spec/plan immutable; root owns durable apply, independent review, final gates, archive and ordinary delivery. Preserve native bookmark sandbox acceptance and other updater findings as open.</Criterion>
+          <Criterion>Use the assigned exclusive warm Cargo target, no shared writer. Compile tests without launching, record exact artifact hashes/source/PIDs, run selected tests, remove task-owned executables and verify reaping after each run; shared dependency caches remain.</Criterion>
+        </AcceptanceCriteria>
+        <Verification><Command>git diff --check</Command></Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceTier>Full-source feature compilation and Cargo startup are outer acceptance evidence rather than repeated nested command gates. Parent's observed actual native build failure is the initial red evidence; repeat the focused source compile when adding the regression. No native GUI, signing or app launch belongs to this prerequisite implementation.</AcceptanceTier>
+  </C-ROLLBACK-STORE-BUILD-GUARD>
+</GraceChangePlan>
