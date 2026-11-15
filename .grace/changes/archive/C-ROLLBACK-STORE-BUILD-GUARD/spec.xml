@@ -1,0 +1,26 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-ROLLBACK-STORE-BUILD-GUARD>
+    <Summary>Compile the actual app-store feature without including the desktop Windows rollback flow or its desktop-only caller, while retaining the pinned-key exclusion and inert Store commands.</Summary>
+    <Goals>
+      <R-1>Match restore_windows_flow and restore_inner to their documented desktop-only ownership with cfg(not(feature = "app-store")). Keep both function bodies and every desktop call route unchanged.</R-1>
+      <R-2>Keep pinned_pubkey_b64 excluded from app-store and all four Store command stubs inert. Preserve existing tests, verification, signature checks and mutation order.</R-2>
+    </Goals>
+    <Constraints>
+      <Constraint>Additional prerequisite discovered during TECH:F-004 native sandbox acceptance; original 77-record denominator unchanged. Link updater rollback groups without declaring any existing open updater finding fixed.</Constraint>
+      <Constraint>Observed scope is src-tauri/src/m068_rollback.rs only: two cfg guards, file-local ownership/change summary, and a new feature-specific stub regression. No function-body, signature, trust-anchor, key, networking, signing-boundary, configuration, entitlement, dependency, version or release change.</Constraint>
+      <Constraint>The root integrator owns durable M-068/V-M-068 apply and delivery. This approved spec/plan uses the owner's delegated technical authority, not a fabricated answer to an old question.</Constraint>
+    </Constraints>
+    <NonGoals><NonGoal>No updater transport remedy, signing architecture, Store packaging, production certificate/profile access, native sandbox acceptance claim or rollback refactor.</NonGoal></NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Reproduce the full-source app-store E0425 referencing pinned_pubkey_b64, then compile that same feature successfully with the helper still excluded. The additional restore_inner guard prevents its non-macOS branch from referencing an excluded Windows flow.</Criterion>
+      <Criterion>Actual feature-specific tests call all four Store command stubs: prepare/restore return the Store-managed error; status has no available version; outcome is null. Existing desktop rollback suites remain enabled and pass with their bodies unchanged.</Criterion>
+      <Criterion>Record source hashes and exact compiled test-artifact identity/digests/PIDs before test input; clean owned executables after every run. Root performs final integrity, review, apply/archive, ordinary delivery and Collecting accounting. Native bookmark sandbox acceptance remains separate until demonstrated.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas><M-068/></AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --no-default-features --features app-store --bin mark m068_rollback::rollback_store_stubs</ExpectedCommand>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::</ExpectedCommand>
+      <ExpectedEvidence>Failing-first actual app-store compile, successful same-feature compile and inert-stub execution, unchanged desktop rollback regression results. No sandbox/signing/owner acceptance inferred.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-ROLLBACK-STORE-BUILD-GUARD>
+</GraceChangeSpec>

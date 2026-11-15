@@ -3014,6 +3014,7 @@
       <Sources><Source>src/renderer/src/store/notifications.js</Source><Source>src/renderer/src/components/notificationCard/index.vue</Source><Source>src/renderer/src/components/notificationStack/index.vue</Source><Source>src/renderer/src/components/notificationsHistory/index.vue</Source><Source>src/renderer/src/services/notification/index.js</Source><Tests>tests/renderer/store/notifications.test.js</Tests><Tests>tests/renderer/components/notificationCard.test.js</Tests><Tests>tests/e2e/notifications-system.spec.ts</Tests></Sources>
     </M-067>
     <M-068>
+      <SummaryDelta>C-ROLLBACK-STORE-BUILD-GUARD: restore_inner and restore_windows_flow are excluded from app-store builds consistently with their desktop-only pinned-key helper. Store commands remain inert, and all existing desktop function bodies and test-module guards are preserved.</SummaryDelta>
       <Name>RollbackManager</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RUST</Layer>
       <Summary>
         One-step updater rollback (C-UPDATER-ROLLBACK): before every in-app update the
