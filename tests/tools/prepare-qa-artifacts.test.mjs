@@ -2,9 +2,9 @@
 // FILE: tests/tools/prepare-qa-artifacts.test.mjs
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove exact QA identity, installer collection and owned binary cleanup with synthetic filesystem fixtures.
-//   SCOPE: Existing macOS/Windows layouts, manifest/digest readback, malformed/missing/linked/ambiguous inputs and cache preservation.
+//   SCOPE: Inert platform layouts, exact identity/digests, persisted smoke protection, owned Node cleanup CLI, malformed records and cache preservation.
 //   DEPENDS: Vitest, Node built-ins and prepare-qa-artifacts; no installer execution, native build or network.
-//   LINKS: M-046; V-M-046; C-QA-INSTALLER-ARTIFACTS.
+//   LINKS: M-046; V-M-046; C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP; C-QA-INSTALLER-ARTIFACTS.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -12,6 +12,8 @@
 //   roots - Owned fixture trees deleted after every case.
 //   SHA - Synthetic source identity.
 //   fixture - Prepare one platform's coherent synthetic QA state.
+//   cleanupCliFixture - Execute only the owned Node cleanup CLI with external source/PID/reap evidence.
+//   protectedFixture - Bind one inert mounted/process descriptor through the production protocol.
 //   put - Write one owned synthetic output.
 // END_MODULE_MAP
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -19,8 +21,9 @@ import fs from 'node:fs'
 import { syncBuiltinESMExports } from 'node:module'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
-import { PLATFORMS, cleanupGenerated, collectQaInstaller, hash, loadQaState, prepareQa, qaIdentity, recordBinary, recordGenerated, recordQaUpload } from '../../tools/prepare-qa-artifacts.mjs'
+import { PLATFORMS, cleanupGenerated, collectQaInstaller, hash, loadQaState, prepareQa, qaIdentity, recordBinary, recordGenerated, recordQaUpload, saveQaState, beginSmokeCleanup } from '../../tools/prepare-qa-artifacts.mjs'
 const roots = []
 const SHA = 'a'.repeat(40)
 const put = (path, bytes = 'synthetic installer bytes') => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, bytes); return path }
@@ -34,7 +37,19 @@ const fixture = (platform = 'macos-arm64', mode = 'manual-handoff') => {
   const installer = join(bundle, `${state.identity.productName}_2.8.2${layout.extension}`)
   return { root, workspace, state, bundle, installer }
 }
-afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
+afterEach(() => {
+  const cleaned = [], errors = []
+  for (const root of roots.splice(0)) {
+    try { rmSync(root, { recursive: true, force: true }) } catch (error) { errors.push(`${root}:${error.message}`) }
+    cleaned.push({ root, absent: !existsSync(root), inertTextOnly: true })
+  }
+  if (process.env.MARK_QA_CORE_EVIDENCE_ROOT) {
+    mkdirSync(process.env.MARK_QA_CORE_EVIDENCE_ROOT, { recursive: true })
+    const source = Object.fromEntries(['tools/qa-artifact-smoke.mjs', 'tools/prepare-qa-artifacts.mjs', 'tests/tools/qa-artifact-smoke.test.mjs', 'tests/tools/prepare-qa-artifacts.test.mjs'].map(path => [path, hash(readFileSync(path))]))
+    fs.appendFileSync(join(process.env.MARK_QA_CORE_EVIDENCE_ROOT, 'prepare-fixture-cleanup.jsonl'), `${JSON.stringify({ source, cleaned, errors, nativeCommandsExecuted: false })}\n`)
+  }
+  expect(errors).toEqual([])
+})
 describe('QA case and isolated identity', () => {
   it.each(['macos-arm64', 'windows-x64'])('binds %s source/run/case without granting owner acceptance', platform => {
     const { state } = fixture(platform)
@@ -207,5 +222,165 @@ describe('QA cleanup permission and evidence failure boundaries', () => {
     try { expect(() => cleanupGenerated(state)).toThrow(/EACCES/); expect(state.generatedCleanupComplete).toBe(false) }
     finally { failure.mockRestore(); syncBuiltinESMExports() }
     expect(existsSync(path)).toBe(false)
+  })
+})
+
+async function cleanupCliFixture(state) {
+  const { spawn } = await vi.importActual('node:child_process')
+  const directory = process.env.MARK_QA_CORE_EVIDENCE_ROOT || join(tmpdir(), `mark-qa-core-receipts-${process.pid}`)
+  mkdirSync(directory, { recursive: true })
+  const receipt = join(directory, `cleanup-cli-${Date.now()}-${Math.random().toString(16).slice(2)}.json`)
+  const script = realpathSync('tools/prepare-qa-artifacts.mjs')
+  const sha = path => createHash('sha256').update(readFileSync(path)).digest('hex')
+  const record = { command: [process.execPath, script, 'cleanup', '--state', join(state.directory, 'state.json')],
+    nodeSha256: sha(process.execPath), scriptSha256: sha(script), source: Object.fromEntries(['tools/qa-artifact-smoke.mjs', 'tools/prepare-qa-artifacts.mjs', 'tests/tools/qa-artifact-smoke.test.mjs', 'tests/tools/prepare-qa-artifacts.test.mjs'].map(path => [path, sha(path)])), fixtureRoot: state.directory, phase: 'before-spawn' }
+  writeFileSync(receipt, JSON.stringify(record, null, 2))
+  let child, closed, timer, output = ''
+  try {
+    child = spawn(process.execPath, record.command.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] })
+    closed = new Promise((resolve, reject) => { child.once('error', reject); child.once('close', (code, signal) => resolve({ code, signal })) })
+    record.pid = child.pid; record.phase = 'spawned-before-any-further-input'
+    writeFileSync(receipt, JSON.stringify(record, null, 2))
+    child.stdout.on('data', bytes => { output = (output + bytes).slice(-4096) }); child.stderr.on('data', bytes => { output = (output + bytes).slice(-4096) })
+    timer = setTimeout(() => child.kill('SIGKILL'), 2500)
+    record.result = await closed; record.output = output; record.phase = 'closed'
+    return record
+  } finally {
+    clearTimeout(timer)
+    if (child && child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+    if (closed) { try { await closed } catch (error) { record.closeError = error.message } }
+    if (child?.pid) { try { process.kill(child.pid, 0); record.pidAbsent = false } catch (error) { if (error.code !== 'ESRCH') throw error; record.pidAbsent = true } }
+    record.phase = 'reaped'; writeFileSync(receipt, JSON.stringify(record, null, 2))
+    expect(record.pidAbsent).toBe(true)
+  }
+}
+
+
+describe('persisted smoke cleanup protection', () => {
+  it('holds a legacy unknown mount after fresh load/discovery and actual outer cleanup CLI', async () => {
+    const f = fixture('macos-arm64', 'dryrun'); put(f.installer)
+    const mount = mkdtempSync(join(f.state.directory, 'mount-'))
+    f.state.smoke = { mount, launchRequested: false, installedPath: '/fixture/not-a-real-app' }
+    recordGenerated(f.state); saveQaState(f.state)
+    const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).not.toBe(0)
+    expect(existsSync(f.installer)).toBe(true); expect(existsSync(mount)).toBe(true)
+    expect(result.output).toContain(f.installer)
+  })
+  it('does not let an outer CLI bypass unresolved smoke identity with no recorded PID', async () => {
+    const f = fixture('macos-arm64', 'dryrun'); put(f.installer)
+    f.state.smoke = { launchRequested: true, ownedPids: [], processIdentityUncertain: true, processStopped: false }
+    recordGenerated(f.state); saveQaState(f.state)
+    const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).not.toBe(0); expect(existsSync(f.installer)).toBe(true)
+  })
+})
+
+function protectedFixture() {
+  const f = fixture('macos-arm64', 'dryrun'); put(f.installer)
+  const session = beginSmokeCleanup(f.state), mount = mkdtempSync(join(f.state.directory, 'mount-'))
+  f.state.smoke = { mount, launchRequested: false, ownedPids: [], processIdentityUncertain: false }
+  session.armMount(f.installer, mount)
+  return { ...f, session, mount }
+}
+
+describe('persisted smoke cleanup protection validation', () => {
+  it.each(['active-mount', 'active-process', 'uncertain-process'])('holds %s through fresh discovery and cleanup CLI', async kind => {
+    const f = protectedFixture()
+    if (kind !== 'active-mount') { f.session.detached(); f.session.armProcess() }
+    if (kind === 'uncertain-process') { f.state.smoke.processIdentityUncertain = true; f.session.sync(); saveQaState(f.state) }
+    recordGenerated(loadQaState(join(f.state.directory, 'state.json')))
+    const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).not.toBe(0); expect(existsSync(f.installer)).toBe(true)
+    expect(result.output).toContain(f.installer)
+  })
+  it.each(['version', 'identity', 'workspace', 'directory', 'config', 'escaped', 'digest', 'mount-link', 'installer-link', 'missing', 'bad-status', 'bad-pid', 'missing-launch', 'wrong-uncertainty', 'mount-mismatch', 'stopped-without-proof', 'not-launched-owned-pid'])('rejects %s protection and preserves unrelated data', async kind => {
+    const f = protectedFixture(); f.session.detached(); const p = f.state.smoke.cleanupProtection
+    const sentinel = put(join(f.root, 'unrelated-sentinel'), 'keep unrelated bytes')
+    if (kind === 'version') p.version = 2
+    if (kind === 'identity') p.identity.sourceSha = 'b'.repeat(40)
+    if (kind === 'workspace') p.workspace = f.root
+    if (kind === 'directory') p.directory = f.root
+    if (kind === 'config') p.configSha256 = 'b'.repeat(64)
+    if (kind === 'escaped') p.installer.path = sentinel
+    if (kind === 'digest') put(f.installer, 'changed bytes')
+    if (kind === 'mount-link') { rmSync(f.mount, { recursive: true }); symlinkSync(f.root, f.mount, process.platform === 'win32' ? 'junction' : 'dir') }
+    if (kind === 'installer-link') { rmSync(f.installer); symlinkSync(sentinel, f.installer, 'file') }
+    if (kind === 'missing') delete f.state.smoke.cleanupProtection
+    if (kind === 'bad-status') p.mount.status = 'absent-means-safe'
+    if (kind === 'bad-pid') p.process.pids = [true]
+    if (kind === 'missing-launch') delete f.state.smoke.launchRequested
+    if (kind === 'wrong-uncertainty') f.state.smoke.processIdentityUncertain = null
+    if (kind === 'mount-mismatch') f.state.smoke.mount = join(f.state.directory, 'mount-other')
+    if (kind === 'stopped-without-proof') p.process.status = 'independently-stopped'
+    if (kind === 'not-launched-owned-pid') { p.process.pids = [12345]; f.state.smoke.ownedPids = [12345] }
+    saveQaState(f.state)
+    const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).not.toBe(0)
+    expect(readFileSync(sentinel, 'utf8')).toBe('keep unrelated bytes')
+    expect(existsSync(f.installer)).toBe(true)
+  })
+  it.each(['missing-state', 'truncated-state', 'stale-lifecycle'])('never replaces authoritative protection using %s', async kind => {
+    const f = protectedFixture(), statePath = join(f.state.directory, 'state.json')
+    if (kind === 'missing-state') rmSync(statePath)
+    if (kind === 'truncated-state') writeFileSync(statePath, '{')
+    if (kind === 'stale-lifecycle') {
+      const fake = structuredClone(f.state); fake.smoke.cleanupProtection.mount.status = 'verified-detached'; fake.smoke.cleanupProtection.process.status = 'independently-stopped'
+      writeFileSync(join(f.state.directory, 'evidence/lifecycle.json'), JSON.stringify(fake))
+    }
+    const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).not.toBe(0); expect(existsSync(f.installer)).toBe(true)
+  })
+  it.each(['macos-arm64', 'windows-x64'].flatMap(platform => ['dryrun', 'manual-handoff'].map(mode => ({ platform, mode }))))('preserves no-smoke $platform $mode outer cleanup', async ({ platform, mode }) => {
+    const f = fixture(platform, mode); put(f.installer); recordGenerated(f.state)
+    const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).toBe(0); expect(existsSync(f.installer)).toBe(false)
+  })
+  it('accepts exact persisted detach and no-launch proof through the actual outer CLI', async () => {
+    const f = protectedFixture(); f.session.detached(); f.session.finish({ mountStatus: 'verified-detached', processSafe: true })
+    recordGenerated(f.state)
+    const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).toBe(0); expect(existsSync(f.installer)).toBe(false)
+  })
+  it('permits local safe deletion after clear-save failure while stale outer protection remains armed', async () => {
+    const f = protectedFixture(); recordGenerated(f.state)
+    const original = fs.writeFileSync
+    const write = vi.spyOn(fs, 'writeFileSync').mockImplementation((path, ...args) => {
+      if (path === join(f.state.directory, 'state.json')) throw Object.assign(Error('EACCES clear state'), { code: 'EACCES' })
+      return original(path, ...args)
+    })
+    syncBuiltinESMExports()
+    try {
+      expect(() => f.session.finish({ mountStatus: 'verified-detached', processSafe: true })).toThrow('EACCES')
+      expect(() => f.session.cleanup()).toThrow('EACCES')
+      expect(existsSync(f.installer)).toBe(false)
+    } finally { write.mockRestore(); syncBuiltinESMExports() }
+    expect(loadQaState(join(f.state.directory, 'state.json')).smoke.cleanupProtection.mount.status).toBe('active-or-unknown')
+    put(f.installer); const result = await cleanupCliFixture(f.state)
+    expect(result.result.code).not.toBe(0); expect(existsSync(f.installer)).toBe(true)
+  })
+  it('does not restart or reset an existing uncertain smoke state', () => {
+    const f = protectedFixture()
+    expect(() => beginSmokeCleanup(loadQaState(join(f.state.directory, 'state.json')))).toThrow('smoke-restart-uncertain')
+    expect(existsSync(f.installer)).toBe(true)
+  })
+})
+
+
+describe('local cleanup proof ownership', () => {
+  it('cannot turn a serialized boolean-shaped local proof into cleanup authority', () => {
+    const f = protectedFixture(); recordGenerated(f.state)
+    expect(() => cleanupGenerated(f.state, { localProof: { processSafe: true, mountSafe: true, state: f.state, finished: true } })).toThrow(/unknown/)
+    expect(existsSync(f.installer)).toBe(true)
+  })
+  it('rejects escaped guard paths before opening unrelated data', () => {
+    const f = protectedFixture(), outside = put(join(f.root, 'private-unrelated'), 'keep')
+    f.state.smoke.cleanupProtection.installer.path = outside
+    const original = fs.openSync, opened = []
+    const open = vi.spyOn(fs, 'openSync').mockImplementation((path, ...args) => { opened.push(String(path)); return original(path, ...args) })
+    syncBuiltinESMExports()
+    try { expect(() => cleanupGenerated(f.state)).toThrow(); expect(opened).not.toContain(outside) }
+    finally { open.mockRestore(); syncBuiltinESMExports() }
+    expect(readFileSync(outside, 'utf8')).toBe('keep'); expect(existsSync(f.installer)).toBe(true)
   })
 })

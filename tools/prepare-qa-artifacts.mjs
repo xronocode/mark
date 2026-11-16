@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // FILE: tools/prepare-qa-artifacts.mjs
 // START_MODULE_CONTRACT
-//   PURPOSE: Bind unsigned QA packages to exact source/run/test identities and remove only their proved-owned binary outputs.
-//   SCOPE: Isolated configuration/state, contained installer collection, digest manifests, upload receipts and generated-output cleanup.
+//   PURPOSE: Bind unsigned QA identities and preserve active/unknown smoke artifacts across cleanup processes.
+//   SCOPE: Isolated state, contained installer/digest receipts, persisted mount/process protection and exact generated-output cleanup.
 //   DEPENDS: Node filesystem/path/crypto/process built-ins; existing target bundle layouts.
-//   LINKS: M-046; V-M-046; C-QA-INSTALLER-ARTIFACTS; N-QA-DRYRUN-ARTIFACT-HYGIENE.
+//   LINKS: M-046; V-M-046; C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP; C-QA-INSTALLER-ARTIFACTS; N-QA-DRYRUN-ARTIFACT-HYGIENE.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -21,6 +21,10 @@
 //   candidateFiles - Discover only expected-identity package/app and exact project executable candidates.
 //   prepareQa - Create a fresh isolated config/evidence/staging state before any build.
 //   saveQaState - Persist current evidence and private runner state.
+//   localSmokeProofs - Opaque same-invocation proof, never a serialized or CLI cleanup bypass.
+//   validateSmokeProtection - Validate persisted identity, paths, digest and mount/process safety schema.
+//   smokeCleanupPolicy - Preserve uncertain persisted smoke artifacts across fresh cleanup.
+//   beginSmokeCleanup - Arm native intent before action/query and bind actual local cleanup facts.
 //   loadQaState - Revalidate identity and derived runner paths.
 //   recordBinary - Bind one owned executable to bytes and source before launch.
 //   recordGenerated - Record created/changed output candidates and digest-identical executable copies.
@@ -30,6 +34,7 @@
 //   qaCli - Dispatch the narrow local helper commands.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP: persist identity-bound mount/process intent and enforce it across fresh cleanup; commit authoritative state last.
 //   - 2026-11-16 C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP: permission/I/O errors stay explicit, only ENOENT confirms absence; independent owned cleanup continues.
 //   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: purpose-bound QA handoff and exact generated-output hygiene.
 // END_CHANGE_SUMMARY
@@ -130,8 +135,83 @@ export function prepareQa({ workspace, temporaryRoot, identity, actualHead = exe
 }
 export function saveQaState(state) {
   const bytes = JSON.stringify(state, null, 2) + '\n'
-  writeFileSync(join(state.directory, 'state.json'), bytes, { mode: 0o600 })
+  // state.json is authoritative for the next cleanup process. Commit it last.
   writeFileSync(join(state.directory, 'evidence', 'lifecycle.json'), bytes, { mode: 0o600 })
+  writeFileSync(join(state.directory, 'state.json'), bytes, { mode: 0o600 })
+}
+// Local proof cannot be reconstructed from JSON or a cleanup CLI flag.
+const localSmokeProofs = new WeakMap()
+function validateSmokeProtection(state) {
+  const p = state.smoke?.cleanupProtection
+  if (!p || p.version !== 1 || p.workspace !== state.workspace || p.directory !== state.directory || p.configSha256 !== state.configSha256 || JSON.stringify(p.identity) !== JSON.stringify(state.identity)) fail('smoke-protection-identity')
+  if (state.identity.platform !== 'macos-arm64' || state.identity.mode !== 'dryrun') fail('smoke-protection-mode')
+  if (measuredFile(state.directory, join(state.directory, 'qa-config.json')).sha256 !== p.configSha256) fail('smoke-protection-config')
+  const installer = p.installer, mount = p.mount, process = p.process
+  const parent = join(state.workspace, 'target', state.identity.target, 'release/bundle/dmg')
+  if (!installer || dirname(installer.path || '') !== parent || !basename(installer.path).startsWith(`${state.identity.productName}_`) || !installer.path.endsWith('.dmg') || !/^[a-f0-9]{64}$/.test(installer.sha256 || '') || !Number.isSafeInteger(installer.size) || installer.size <= 0) fail('smoke-protection-installer')
+  if (!mount || dirname(mount.path || '') !== state.directory || !/^mount-[A-Za-z0-9]+$/.test(basename(mount.path)) || !['not-attempted', 'active-or-unknown', 'verified-detached'].includes(mount.status)) fail('smoke-protection-mount')
+  if (!process || !['not-launched', 'active-or-unknown', 'identity-uncertain', 'independently-stopped'].includes(process.status) || !Array.isArray(process.pids) || process.pids.some(pid => !Number.isSafeInteger(pid) || pid <= 0) || new Set(process.pids).size !== process.pids.length) fail('smoke-protection-process')
+  if (typeof state.smoke.launchRequested !== 'boolean' || typeof state.smoke.processIdentityUncertain !== 'boolean' || state.smoke.mount !== mount.path || !Array.isArray(state.smoke.ownedPids) || JSON.stringify(process.pids) !== JSON.stringify(state.smoke.ownedPids) || (process.status === 'not-launched' && (state.smoke.launchRequested || process.pids.length !== 0)) || (process.status === 'independently-stopped' && (state.smoke.processStopped !== true || state.smoke.processIdentityUncertain))) fail('smoke-protection-proof')
+  if (present(installer.path)) {
+    const measured = measuredFile(state.workspace, installer.path)
+    if (measured.sha256 !== installer.sha256 || measured.size !== installer.size) fail('smoke-protection-digest')
+  }
+  if (present(mount.path)) {
+    safeParents(state.directory, mount.path)
+    const info = lstatSync(mount.path)
+    if (!info.isDirectory() || info.isSymbolicLink()) fail('smoke-protection-mount-link')
+  }
+  return p
+}
+function smokeCleanupPolicy(state, localProof) {
+  if (state.smoke === undefined) return { processSafe: true, mountSafe: true }
+  const local = localSmokeProofs.get(localProof)
+  let p
+  try {
+    if (state.smoke?.cleanupProtection !== undefined) p = validateSmokeProtection(state)
+    else if (!local || local.state !== state || !local.finished) fail('legacy-smoke-protection-missing')
+  } catch (error) { return { processSafe: false, mountSafe: false, error: `${error.message}:${state.smoke?.mount || state.directory}` } }
+  if (local && local.state === state && local.finished && local.identity === JSON.stringify(state.identity) && local.workspace === state.workspace && local.directory === state.directory && local.configSha256 === state.configSha256) {
+    return { processSafe: local.processSafe, mountSafe: local.mountSafe, installer: p?.installer.path, mount: p?.mount.path }
+  }
+  return { processSafe: !state.smoke.processIdentityUncertain && ['not-launched', 'independently-stopped'].includes(p.process.status), mountSafe: p.mount.status !== 'active-or-unknown', installer: p.installer.path, mount: p.mount.path }
+}
+export function beginSmokeCleanup(state) {
+  const previous = smokeCleanupPolicy(state)
+  if (!previous.processSafe || !previous.mountSafe || previous.error) fail(`smoke-restart-uncertain:${previous.error || previous.installer || state.directory}`)
+  const token = {}, local = { state, identity: JSON.stringify(state.identity), workspace: state.workspace, directory: state.directory, configSha256: state.configSha256, finished: false }
+  localSmokeProofs.set(token, local)
+  const sync = () => {
+    const p = state.smoke?.cleanupProtection
+    if (p) {
+      p.process.pids = [...state.smoke.ownedPids]
+      if (state.smoke.processIdentityUncertain) p.process.status = 'identity-uncertain'
+    }
+  }
+  const saveTransition = change => {
+    const old = structuredClone(state.smoke.cleanupProtection)
+    change(state.smoke.cleanupProtection); sync()
+    try { saveQaState(state) } catch (error) { state.smoke.cleanupProtection = old; throw error }
+  }
+  return {
+    sync,
+    armMount(installerPath, mountPath) {
+      const file = measuredFile(state.workspace, installerPath)
+      state.smoke.cleanupProtection = { version: 1, identity: structuredClone(state.identity), configSha256: state.configSha256, workspace: state.workspace, directory: state.directory,
+        installer: { path: installerPath, sha256: file.sha256, size: file.size }, mount: { path: mountPath, status: 'active-or-unknown' }, process: { status: 'not-launched', pids: [...state.smoke.ownedPids] } }
+      validateSmokeProtection(state); saveQaState(state)
+    },
+    detached() { saveTransition(p => { p.mount.status = 'verified-detached' }) },
+    armProcess() { saveTransition(p => { if (p.process.status === 'identity-uncertain') fail('smoke-process-already-uncertain'); p.process.status = 'active-or-unknown' }) },
+    finish({ mountStatus, processSafe }) {
+      local.finished = true; local.mountSafe = mountStatus !== 'active-or-unknown'; local.processSafe = processSafe && !state.smoke.processIdentityUncertain
+      if (state.smoke.cleanupProtection) saveTransition(p => {
+        p.mount.status = mountStatus
+        p.process.status = state.smoke.processIdentityUncertain ? 'identity-uncertain' : local.processSafe ? (state.smoke.launchRequested ? 'independently-stopped' : 'not-launched') : 'active-or-unknown'
+      })
+    },
+    cleanup() { return cleanupGenerated(state, { localProof: token }) }
+  }
 }
 export function loadQaState(path) {
   const state = JSON.parse(readFileSync(path, 'utf8'))
@@ -139,6 +219,7 @@ export function loadQaState(path) {
   const identity = qaIdentity(state.identity)
   if (JSON.stringify(identity) !== JSON.stringify(state.identity)) fail('state-identity')
   if (measuredFile(state.directory, join(state.directory, 'qa-config.json')).sha256 !== state.configSha256) fail('config-digest-changed')
+  if (state.smoke?.cleanupProtection !== undefined) validateSmokeProtection(state)
   return state
 }
 export function recordBinary(state, path, reason = 'compiled-output') {
@@ -154,6 +235,7 @@ export function recordBinary(state, path, reason = 'compiled-output') {
   return data
 }
 export function recordGenerated(state) {
+  if (state.smoke?.cleanupProtection !== undefined) validateSmokeProtection(state)
   for (const path of candidateFiles(state)) {
     safeParents(state.workspace, path)
     const info = lstatSync(path)
@@ -214,13 +296,18 @@ export function recordQaUpload(state, { id, digest }) {
     purpose: 'Only the separately owner-requested active unfinished test; delete this exact ID when it finishes or is cancelled.' }
   saveQaState(state)
 }
-export function cleanupGenerated(state) {
+export function cleanupGenerated(state, { localProof } = {}) {
   state.generatedCleanupComplete = false
   const errors = []
+  const protection = smokeCleanupPolicy(state, localProof)
+  if (protection.error) errors.push(protection.error)
+  if (!protection.processSafe) errors.push(`smoke-process-unknown:${state.smoke?.ownedPids?.join(',') || 'unrecorded'}:${state.smoke?.installedPath || state.directory}`)
+  if (!protection.mountSafe) errors.push(`smoke-mount-unknown:${protection.mount || state.smoke?.mount || state.directory}:${protection.installer || state.owned.map(entry => entry.path).join(',')}`)
   try { recordGenerated(state) } catch (error) { errors.push(`discovery:${error.message}`) }
   for (const entry of [...state.owned].sort((a, b) => b.path.length - a.path.length)) {
     entry.deleted = false
     try {
+      if (!protection.processSafe || (!protection.mountSafe && (!protection.installer || entry.path === protection.installer))) { errors.push(`protected:${entry.path}`); continue }
       if (!present(entry.path)) { entry.deleted = true; continue }
       if (!inside(join(state.workspace, 'target'), entry.path)) fail('unsafe-cleanup-path')
       safeParents(state.workspace, entry.path)
@@ -232,13 +319,17 @@ export function cleanupGenerated(state) {
     } catch (error) { errors.push(`${entry.path}:${error.message}`) }
   }
   const stage = join(state.directory, 'handoff')
-  for (const name of readdirSync(stage)) {
+  for (const name of protection.processSafe ? readdirSync(stage) : []) {
     const path = join(stage, name)
     try { rmSync(path) } catch (error) { errors.push(`${path}:${error.message}`) }
   }
   state.generatedCleanupComplete = errors.length === 0
   state.cleanupErrors.push(...errors)
-  saveQaState(state)
+  try { saveQaState(state) } catch (error) {
+    state.generatedCleanupComplete = false
+    const message = `evidence:${error.message}`
+    errors.push(message); state.cleanupErrors.push(message)
+  }
   if (errors.length) fail(`cleanup:${errors.join(';')}`)
   return state
 }
