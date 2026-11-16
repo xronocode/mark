@@ -14,6 +14,9 @@
 //   bridgeFixture - Intercept actual generated native command with typed CF/Foundation VM doubles.
 //   fixture - Synthetic native adapter and filesystem state, never a runnable app.
 //   commandBoundary - Execute actual generated JXA with typed CF/Foundation VM command doubles.
+//   directorySyncCalls - Retain explicit inert directory-sync observations.
+//   fixtureDirectorySync - Use actual POSIX sync and explicit Windows simulation.
+//   atomicGateJson - Write actual records through the fixture sync boundary.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
 //   - C-QA-NATIVE-BRIDGE-CLEANUP: actual-adapter failure-first and independent cleanup controls without native commands.
@@ -31,7 +34,15 @@ import { syncBuiltinESMExports } from 'node:module'
 import { EventEmitter } from 'node:events'
 import { tmpdir } from 'node:os'
 import { prepareQa, qaIdentity, loadQaState } from '../../tools/prepare-qa-artifacts.mjs'
-import { smokeQa, smokeWithSignals, nativeAdapter } from '../../tools/qa-artifact-smoke.mjs'
+import { smokeQa, smokeWithSignals, nativeAdapter, cleanupSmokeQa } from '../../tools/qa-artifact-smoke.mjs'
+import { atomicGateJson as actualAtomicGateJson, gateMain } from '../../tools/qa-launch-gate.mjs'
+// Windows protocol fixtures simulate directory durability; production has no override.
+const directorySyncCalls = []
+function fixtureDirectorySync(parent) {
+  directorySyncCalls.push({ parent, entries: fs.readdirSync(parent), simulatedDirectoryDurability: process.platform === 'win32' })
+  if (process.platform !== 'win32') { const fd = fs.openSync(parent, 'r'); try { fs.fsyncSync(fd) } finally { fs.closeSync(fd) } }
+}
+const atomicGateJson = (path, value) => actualAtomicGateJson(path, value, { syncDirectory: fixtureDirectorySync })
 const roots = []
 afterEach(() => {
   const cleaned = [], errors = []
@@ -43,7 +54,7 @@ afterEach(() => {
     const source = Object.fromEntries(['tools/qa-artifact-smoke.mjs', 'tools/prepare-qa-artifacts.mjs', 'tests/tools/qa-artifact-smoke.test.mjs', 'tests/tools/prepare-qa-artifacts.test.mjs'].map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')]))
     try {
       mkdirSync(process.env.MARK_QA_CORE_EVIDENCE_ROOT, { recursive: true })
-      appendFileSync(join(process.env.MARK_QA_CORE_EVIDENCE_ROOT, 'fixture-cleanup.jsonl'), `${JSON.stringify({ source, cleaned, errors, nativeCommandsExecuted: false })}\n`)
+      appendFileSync(join(process.env.MARK_QA_CORE_EVIDENCE_ROOT, 'fixture-cleanup.jsonl'), `${JSON.stringify({ source, cleaned, errors, nativeCommandsExecuted: false, directorySyncCalls: directorySyncCalls.splice(0), simulatedDirectoryDurability: process.platform === 'win32' })}\n`)
     } catch (error) { errors.push(`external-evidence:${error.message}`) }
   }
   commandBoundary.run = () => { throw Error('unexpected native command: blocked') }
@@ -162,25 +173,65 @@ function fixture(fault = '') {
   const release = join(workspace, 'target', identity.target, 'release/bundle')
   const app = join(release, 'macos', `${identity.productName}.app`), dmg = join(release, 'dmg', `${identity.productName}_1.0_aarch64.dmg`)
   mkdirSync(join(app, 'Contents/MacOS'), { recursive: true }); writeFileSync(join(app, 'Contents/MacOS/mark'), 'synthetic, never executed'); mkdirSync(join(release, 'dmg')); writeFileSync(dmg, 'synthetic installer')
-  const calls = []; let alive = false; let now = 0
+  const runtime = join(root, 'inert-runtime'); writeFileSync(runtime, 'inert runtime, never executed')
+  const calls = []; let alive = false; let nativeExecuted = false; let now = 0
   const native = {
+    platform: 'darwin', execArgv: [], syncDirectory: fixtureDirectorySync,
+    gateRuntime() { return { path: runtime, sha256: createHash('sha256').update(readFileSync(runtime)).digest('hex'), mode: 0o600, version: '22.19.0' } },
+    pythonTool() { return { path: runtime, sha256: createHash('sha256').update(readFileSync(runtime)).digest('hex') } },
+    signBootstrap() {}, verify() {},
+    async capability(session) { atomicGateJson(session.capabilityResult, { nonce: session.nonce, version: '22.19.0', execve: true }); session.toolStopped = true },
+    image(pid, session) { return alive ? { status: 'present', pid, birth: { seconds: '1234', microseconds: '1' }, executablePath: nativeExecuted ? session.binary : existsSync(session.aside) ? session.aside : session.binary } : { status: 'absent', pid, reason: 'ESRCH' } },
     sign(path) { calls.push(['sign', path]); if (fault === 'sign') throw Error('sign-failed') },
     mount(path, mount) { expect(path).toBe(dmg); calls.push(['mount', path]); mkdirSync(join(mount, `${identity.productName}.app/Contents/MacOS`), { recursive: true }); writeFileSync(join(mount, `${identity.productName}.app/Contents/MacOS/mark`), 'synthetic, never executed'); if (fault === 'mount') throw Error('mount-failed') },
     detach(path) { calls.push(['detach', path]) },
     metadata() { return { identifier: fault === 'identity' ? 'com.xronocode.mark' : identity.identifier, executable: 'mark' } },
     clearQuarantine(path) { calls.push(['xattr', path]) },
     size() { return { bytes: 1024, human: '1.0K' } },
-    launch(path) { const recorded = JSON.parse(readFileSync(join(state.directory, 'evidence/lifecycle.json'))); expect(recorded.smoke.binarySha256).toMatch(/^[a-f0-9]{64}$/); expect(recorded.smoke.ownedPids).toEqual([]); calls.push(['open', path]); alive = fault !== 'timeout'; if (fault === 'open') throw Error('open-failed') },
+    async launch(path, args) {
+      const recorded = JSON.parse(readFileSync(join(state.directory, 'evidence/lifecycle.json')))
+      expect(recorded.smoke.binarySha256).toMatch(/^[a-f0-9]{64}$/); expect(recorded.smoke.ownedPids).toEqual([])
+      calls.push(['open', path]); alive = fault !== 'timeout'
+      if (args?.length && alive) {
+        const intent = args.at(-1)
+        native.gateTask = gateMain(intent, { platform: 'darwin', execArgv: [], syncDirectory: fixtureDirectorySync, pid: 12345, observe: pid => native.image(pid, state.smoke.launchGate),
+          wait: async () => { await new Promise(resolve => setImmediate(resolve)) },
+          execve() { nativeExecuted = true; native.nativePayload?.(); throw Error('inert-exec-boundary') }
+        }).then(() => { alive = false; native.gateAborted = true }, error => { if (error.message !== 'inert-exec-boundary') { native.gateError = error; alive = false } })
+        while (!existsSync(state.smoke.launchGate.hello) && !native.gateError) await Promise.resolve()
+      }
+      if (fault === 'open') throw Error('open-failed')
+    },
     probe(path) { return alive ? [{ pid: 12345, bundlePath: path, executablePath: join(path, 'Contents/MacOS/mark'), identifier: identity.identifier, windows: 1 }] : [] },
     processes(path) { return native.probe(path).map(({ windows, ...row }) => row) },
     windowOwnerCounts(pids) { return Object.fromEntries(pids.map(pid => [pid, alive ? 1 : 0])) },
     pidAlive(pid) { expect(pid).toBe(12345); return alive },
-    quit(process) { const recorded = JSON.parse(readFileSync(join(state.directory, 'evidence/lifecycle.json'))); expect(recorded.smoke.ownedPids).toEqual([12345]); calls.push(['quit', process.pid]); if (fault !== 'quit') alive = false },
-    async wait(ms) { now += ms }, now() { return now }
+    quit(process) { const recorded = JSON.parse(readFileSync(join(state.directory, 'evidence/lifecycle.json'))); expect(recorded.smoke.ownedPids).toEqual([12345]); calls.push(['quit', process.pid]); if (fault !== 'quit') alive = false; return { requested: true, pid: process.pid } },
+    async wait(ms) { await new Promise(resolve => setImmediate(resolve)); now += ms }, now() { return now }
   }
   return { state, native, applications, calls, app, dmg, setAlive(value) { alive = value } }
 }
 describe('exact QA native smoke lifecycle', () => {
+  it('native payload cannot execute before durable owned PID', async () => {
+    const f = fixture(), launch = f.native.launch
+    let nativeExecutions = 0, nativeBeforeReceipt = false
+    const executeNative = () => {
+      nativeExecutions++
+      const path = join(f.state.directory, 'evidence/native-launch/before-exec.json')
+      const receipt = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null
+      if (!receipt?.pid || !receipt?.birth || receipt.pid !== 12345) nativeBeforeReceipt = true
+    }
+    f.native.nativePayload = executeNative
+    f.native.launch = (path, args) => {
+      // The old adapter directly starts the native app here. A gated launch
+      // instead executes its nativePayload callback only after actual gateMain.
+      if (!args?.length) executeNative()
+      return launch(path, args)
+    }
+    await smokeQa({ ...f, applicationsRoot: f.applications })
+    expect(nativeExecutions).toBe(1)
+    expect(nativeBeforeReceipt).toBe(false)
+  })
   it('records identity/digest before launch, normal-quits exact PID and deletes all completed copies', async () => {
     const f = fixture(); await smokeQa({ ...f, applicationsRoot: f.applications })
     expect(f.calls.map(x => x[0])).toEqual(['sign', 'mount', 'detach', 'sign', 'xattr', 'open', 'quit'])
@@ -191,9 +242,9 @@ describe('exact QA native smoke lifecycle', () => {
   })
   for (const fault of ['sign', 'mount', 'identity', 'open', 'timeout']) it(`runs finally cleanup after ${fault} failure`, async () => {
     const f = fixture(fault); await expect(smokeQa({ ...f, applicationsRoot: f.applications })).rejects.toThrow()
-    expect(existsSync(f.app)).toBe(false); expect(existsSync(f.dmg)).toBe(false)
-    if (f.state.smoke?.installedPath) expect(existsSync(f.state.smoke.installedPath)).toBe(false)
-    if (fault === 'open') expect(f.calls).toContainEqual(['quit', 12345])
+    expect(existsSync(f.app)).toBe(fault === 'timeout'); expect(existsSync(f.dmg)).toBe(fault === 'timeout')
+    if (f.state.smoke?.installedPath) expect(existsSync(f.state.smoke.installedPath)).toBe(fault === 'timeout')
+    if (fault === 'open') expect(f.native.gateAborted).toBe(true) // No native release: abort the known gate, not Quit Mark.
     if (fault === 'timeout') expect(f.native.now()).toBe(10000)
   })
   it.each(['SIGINT', 'SIGTERM'])('handles actual wrapper %s cooperatively and unregisters handlers', async signalName => {
@@ -220,8 +271,8 @@ describe('exact QA native smoke lifecycle', () => {
   it('finishes normal shutdown if cancellation arrives while waiting for Quit', async () => {
     const f = fixture(), controller = new AbortController(), quit = f.native.quit, wait = f.native.wait
     let quitting
-    f.native.quit = process => { quitting = process }
-    f.native.wait = async ms => { await wait(ms); controller.abort(); quit(quitting) }
+    f.native.quit = process => { quitting = process; return { requested: true, pid: process.pid } }
+    f.native.wait = async ms => { await wait(ms); if (quitting) { controller.abort(); quit(quitting) } }
     await expect(smokeQa({ ...f, applicationsRoot: f.applications, signal: controller.signal })).rejects.toThrow(/cancelled/)
     expect(f.state.smoke.shutdownVerified).toBe(true)
     expect(existsSync(f.state.smoke.installedPath)).toBe(false)
@@ -271,11 +322,12 @@ describe('independent cleanup proof under failed observations', () => {
     await expect(smokeQa({ ...f, applicationsRoot: f.applications })).rejects.toThrow('startup-timeout')
     expect(count).toBeGreaterThan(1); expect(f.state.smoke.ownedPids).toEqual([])
     expect(f.calls.some(([name]) => name === 'quit')).toBe(false)
-    expect(f.state.smoke.shutdownVerified).toBe(true)
+    expect(f.state.smoke.shutdownVerified).toBe(false)
+    expect(f.state.smoke.processIdentityUncertain).toBe(true) // No hello means unknown lifetime despite empty lookup.
   })
   it.each(['alive', 'EPERM', 'EIO', 'absent'])('checks recorded OS PID after AppKit registration disappears: %s', async mode => {
     const f = fixture(), observe = [], quit = f.native.quit
-    f.native.quit = app => { quit(app) }
+    f.native.quit = app => quit(app)
     f.native.pidAlive = pid => {
       observe.push(pid)
       if (mode === 'EPERM' || mode === 'EIO') throw Object.assign(Error(mode), { code: mode })
@@ -294,7 +346,7 @@ describe('independent cleanup proof under failed observations', () => {
     const f = fixture(), processes = f.native.processes
     f.native.processes = path => {
       const rows = processes(path)
-      if (!f.state.smoke.ownedPids.length) {
+      if (!f.state.smoke.launchGate?.nativeObserved) {
         if (mode === 'mismatched' && f.state.smoke.launchRequested) return rows.map(row => ({ ...row, executablePath: '/owner/Mark.app/Contents/MacOS/mark' }))
         if (mode === 'ambiguous' && f.state.smoke.launchRequested) return [...rows, ...rows.map(row => ({ ...row, pid: 54321 }))]
         return rows
@@ -313,12 +365,13 @@ describe('independent cleanup proof under failed observations', () => {
     const obstruct = () => { rmSync(receipt); mkdirSync(receipt) }
     if (phase === 'before-launch') f.native.sign = path => { sign(path); obstruct() }
     if (phase === 'after-launch') {
-      f.native.launch = path => { launch(path); obstruct() }
-      f.native.quit = app => { expect(f.state.smoke.ownedPids).toEqual([12345]); f.calls.push(['quit', app.pid]); f.setAlive(false) }
+      f.native.launch = async (path, args) => { await launch(path, args); obstruct() }
+      f.native.quit = app => { expect(f.state.smoke.ownedPids).toEqual([12345]); f.calls.push(['quit', app.pid]); f.setAlive(false); return { requested: true, pid: app.pid } }
     }
-    if (phase === 'during-Quit') f.native.quit = app => { quit(app); obstruct() }
+    if (phase === 'during-Quit') f.native.quit = app => { const result = quit(app); obstruct(); return result }
     await expect(smokeQa({ ...f, applicationsRoot: f.applications })).rejects.toThrow(/cleanup|EISDIR/)
-    if (phase !== 'before-launch') expect(f.calls).toContainEqual(['quit', 12345])
+    if (phase === 'during-Quit') expect(f.calls).toContainEqual(['quit', 12345])
+    else if (phase === 'after-launch') expect(f.native.gateAborted).toBe(true)
     else expect(f.calls.some(([name]) => name === 'open')).toBe(false)
     expect(f.state.smoke.processStopped).toBe(true)
     expect(f.state.cleanupErrors.join(' ')).toMatch(/EISDIR|illegal operation/)
@@ -332,7 +385,7 @@ describe('independent cleanup proof under failed observations', () => {
   })
   it('first appearance ends the startup gate immediately rather than demanding ten-second survival', async () => {
     const f = fixture(); await smokeQa({ ...f, applicationsRoot: f.applications })
-    expect(f.native.now()).toBe(0); expect(f.state.smoke.startupVerified).toBe(true)
+    expect(f.native.now()).toBe(20); expect(f.state.smoke.startupVerified).toBe(true) // One gate polling quantum, no survival soak.
   })
 })
 
@@ -366,13 +419,13 @@ describe('sticky rejected-process uncertainty', () => {
     f.native.pidAlive = pid => { observed.push(pid); return true }
     await expect(smokeQa({ ...f, applicationsRoot: f.applications })).rejects.toThrow()
     expect(rejected).toBe(true)
-    expect(f.state.smoke.ownedPids).toEqual([])
+    expect(f.state.smoke.ownedPids).toEqual([12345]) // Durable gate PID, never the rejected registration.
     expect(f.state.smoke.processStopped).toBe(false)
     expect(f.state.smoke.shutdownVerified).toBe(false)
     expect(f.calls.some(([name]) => name === 'quit')).toBe(false)
     for (const path of [f.app, f.dmg, f.state.smoke.installedPath]) expect(existsSync(path)).toBe(true)
     expect(f.state.cleanupErrors.join(' ')).toContain(f.state.smoke.installedPath)
-    expect(observed).toEqual([]) // Rejected candidates are not fabricated owned processes.
+    expect(new Set(observed)).toEqual(new Set([12345])) // Only the independently recorded gate PID; no rejected candidate adoption.
   })
   it('does not erase a replacement seen once in finally when the old exact PID is absent', async () => {
     const f = fixture(), processes = f.native.processes, observed = []
@@ -479,7 +532,7 @@ describe('before-action saves and local completed-copy cleanup', () => {
     const observed = []
     f.native.mount = (...args) => { const p = loadQaState(join(f.state.directory, 'state.json')).smoke.cleanupProtection; expect(p.mount.status).toBe('active-or-unknown'); expect(p.installer.path).toBe(f.dmg); observed.push('attach'); mount(...args) }
     f.native.processes = path => { const p = loadQaState(join(f.state.directory, 'state.json')).smoke.cleanupProtection; expect(p.process.status).toBe('active-or-unknown'); observed.push('process'); return processes(path) }
-    f.native.launch = path => { const p = loadQaState(join(f.state.directory, 'state.json')).smoke.cleanupProtection; expect(p.process.status).toBe('active-or-unknown'); expect(p.mount.status).toBe('verified-detached'); observed.push('open'); launch(path) }
+    f.native.launch = async (path, args) => { const p = loadQaState(join(f.state.directory, 'state.json')).smoke.cleanupProtection; expect(p.process.status).toBe('active-or-unknown'); expect(p.mount.status).toBe('verified-detached'); observed.push('open'); await launch(path, args) }
     await smokeQa({ ...f, applicationsRoot: f.applications })
     expect(observed[0]).toBe('attach'); expect(observed.indexOf('process')).toBeLessThan(observed.indexOf('open'))
   })
@@ -512,7 +565,7 @@ describe('before-action saves and local completed-copy cleanup', () => {
   })
   it('removes locally completed copies despite failed clear evidence and keeps fresh outer state conservative', async () => {
     const f = fixture(), quit = f.native.quit, receipt = join(f.state.directory, 'evidence/lifecycle.json')
-    f.native.quit = app => { quit(app); rmSync(receipt); mkdirSync(receipt) }
+    f.native.quit = app => { const result = quit(app); rmSync(receipt); mkdirSync(receipt); return result }
     await expect(smokeQa({ ...f, applicationsRoot: f.applications })).rejects.toThrow(/EISDIR/)
     expect(f.state.smoke.processStopped).toBe(true)
     for (const path of [f.app, f.dmg, f.state.smoke.installedPath]) expect(existsSync(path)).toBe(false)
@@ -521,4 +574,18 @@ describe('before-action saves and local completed-copy cleanup', () => {
     const result = await cleanupCliFixture(f.state)
     expect(result.result.code).not.toBe(0); expect(result.output).toContain('12345')
   })
+})
+
+it('preserves proven gate stop and generated cleanup when final installed metadata observation fails', async () => {
+  const f = fixture(), original = fs.lstatSync; let failed = false
+  const stat = vi.spyOn(fs, 'lstatSync').mockImplementation((path, ...args) => {
+    const copies = f.state.smoke?.launchGate?.copyCleanup
+    if (!failed && String(path) === f.state.smoke?.installedPath && copies?.length === 5 && copies.every(copy => copy.absent === true)) { failed = true; throw Object.assign(Error('controlled final installed metadata EIO'), { code: 'EIO' }) }
+    return original(path, ...args)
+  })
+  syncBuiltinESMExports()
+  try { await expect(smokeQa({ ...f, applicationsRoot: f.applications })).rejects.toThrow('controlled final installed metadata EIO') }
+  finally { stat.mockRestore(); syncBuiltinESMExports() }
+  expect(failed).toBe(true); expect(f.state.smoke.processStopped).toBe(true); expect(f.state.smoke.windowsStopped).toBe(true)
+  expect(existsSync(f.app)).toBe(false); expect(existsSync(f.dmg)).toBe(false)
 })

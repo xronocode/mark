@@ -25,6 +25,7 @@
 //   commands - Flatten one job's command-bearing steps for negative assertions.
 //   runTestAggregate - Execute the actual aggregate shell with controlled workflow results.
 //   FakeControlsClient - In-memory control-plane adapter used to prove staged convergence and rollback.
+//   assertQaGateWorkflow - Reverse exactly the cleanup command and pin every other baseline AST node.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
@@ -47,6 +48,7 @@
 // END_CHANGE_SUMMARY
 
 import { readFileSync, readdirSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { parse } from 'yaml'
@@ -672,3 +674,29 @@ describe('release GitHub control-plane reconciliation', () => {
   })
 })
 // END_BLOCK_RELEASE_GITHUB_CONTROLS_TESTS
+
+// Pin the complete 48ff workflow AST after reversing only the declared cleanup line.
+function assertQaGateWorkflow(document) {
+  const baseline = structuredClone(document)
+  const steps = baseline.jobs.build.steps
+  const matches = steps.filter(step => step.name === 'remove local QA binaries')
+  expect(matches).toHaveLength(1)
+  expect(matches[0]).toEqual({ name: 'remove local QA binaries', if: "always() && steps.qa.outputs.state != ''", env: { QA_STATE: '${{ steps.qa.outputs.state }}' }, run: 'node tools/qa-artifact-smoke.mjs --cleanup-only --state "$QA_STATE"' })
+  matches[0].run = 'node tools/prepare-qa-artifacts.mjs cleanup --state "$QA_STATE"'
+  expect(createHash('sha256').update(JSON.stringify(baseline)).digest('hex')).toBe('10922408615e75cb9a0cc489b0db08eeed7bd5b64ea2e6f8f74ea39ebce61c8c')
+}
+describe('source-native QA gate workflow boundary', () => {
+  it('reverses exactly one always-cleanup line to the complete approved baseline AST', () => {
+    assertQaGateWorkflow(parseWorkflow('.github/workflows/release-tauri.yml'))
+  })
+  it.each(['cleanup-command', 'cleanup-condition', 'trigger', 'cache', 'evidence'])('rejects an unrelated or weakened %s workflow mutation', change => {
+    const document = parseWorkflow('.github/workflows/release-tauri.yml')
+    const steps = document.jobs.build.steps
+    if (change === 'cleanup-command') steps.find(step => step.name === 'remove local QA binaries').run += ' --trust-json'
+    if (change === 'cleanup-condition') steps.find(step => step.name === 'remove local QA binaries').if = 'success()'
+    if (change === 'trigger') document.on.workflow_dispatch = { inputs: { unsafe: {} } }
+    if (change === 'cache') steps.find(step => step.name === 'cache cargo').with.path += '\n/tmp/unsafe'
+    if (change === 'evidence') steps.find(step => step.name === 'upload QA lifecycle evidence').with.path = '${{ steps.qa.outputs.directory }}'
+    expect(() => assertQaGateWorkflow(document)).toThrow()
+  })
+})

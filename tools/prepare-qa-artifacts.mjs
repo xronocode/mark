@@ -34,6 +34,7 @@
 //   qaCli - Dispatch the narrow local helper commands.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-QA-MACOS-LAUNCH-GATE: fixed-directory protection requires an opaque fresh native stop proof.
 //   - C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP: persist identity-bound mount/process intent and enforce it across fresh cleanup; commit authoritative state last.
 //   - 2026-11-16 C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP: permission/I/O errors stay explicit, only ENOENT confirms absence; independent owned cleanup continues.
 //   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: purpose-bound QA handoff and exact generated-output hygiene.
@@ -43,6 +44,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
+import { gateProtected, isGateStopProof } from './qa-launch-gate.mjs'
 
 export const PLATFORMS = Object.freeze({
   'macos-arm64': { target: 'aarch64-apple-darwin', folder: 'dmg', extension: '.dmg', bundles: ['app', 'dmg'], executable: 'mark' },
@@ -163,7 +165,13 @@ function validateSmokeProtection(state) {
   }
   return p
 }
-function smokeCleanupPolicy(state, localProof) {
+function smokeCleanupPolicy(state, localProof, gateProof) {
+  let protectedGate, freshGate = false
+  try {
+    protectedGate = gateProtected(state)
+    freshGate = isGateStopProof(gateProof || localSmokeProofs.get(localProof)?.gateProof, state)
+  } catch (error) { return { processSafe: false, mountSafe: false, error: `gate-protection:${error.message}:${state.directory}` } }
+  if (protectedGate && !freshGate) return { processSafe: false, mountSafe: false, error: `gate-native-proof-required:${join(state.directory, 'native-launch')}` }
   if (state.smoke === undefined) return { processSafe: true, mountSafe: true }
   const local = localSmokeProofs.get(localProof)
   let p
@@ -174,12 +182,12 @@ function smokeCleanupPolicy(state, localProof) {
   if (local && local.state === state && local.finished && local.identity === JSON.stringify(state.identity) && local.workspace === state.workspace && local.directory === state.directory && local.configSha256 === state.configSha256) {
     return { processSafe: local.processSafe, mountSafe: local.mountSafe, installer: p?.installer.path, mount: p?.mount.path }
   }
-  return { processSafe: !state.smoke.processIdentityUncertain && ['not-launched', 'independently-stopped'].includes(p.process.status), mountSafe: p.mount.status !== 'active-or-unknown', installer: p.installer.path, mount: p.mount.path }
+  return { processSafe: freshGate || (!state.smoke.processIdentityUncertain && ['not-launched', 'independently-stopped'].includes(p.process.status)), mountSafe: p.mount.status !== 'active-or-unknown', installer: p.installer.path, mount: p.mount.path }
 }
-export function beginSmokeCleanup(state) {
-  const previous = smokeCleanupPolicy(state)
-  if (!previous.processSafe || !previous.mountSafe || previous.error) fail(`smoke-restart-uncertain:${previous.error || previous.installer || state.directory}`)
-  const token = {}, local = { state, identity: JSON.stringify(state.identity), workspace: state.workspace, directory: state.directory, configSha256: state.configSha256, finished: false }
+export function beginSmokeCleanup(state, { gateProof } = {}) {
+  const previous = smokeCleanupPolicy(state, undefined, gateProof)
+  if (!previous.processSafe || (!previous.mountSafe && !isGateStopProof(gateProof, state)) || previous.error) fail(`smoke-restart-uncertain:${previous.error || previous.installer || state.directory}`)
+  const token = {}, local = { state, identity: JSON.stringify(state.identity), workspace: state.workspace, directory: state.directory, configSha256: state.configSha256, finished: false, gateProof }
   localSmokeProofs.set(token, local)
   const sync = () => {
     const p = state.smoke?.cleanupProtection
@@ -203,7 +211,8 @@ export function beginSmokeCleanup(state) {
     },
     detached() { saveTransition(p => { p.mount.status = 'verified-detached' }) },
     armProcess() { saveTransition(p => { if (p.process.status === 'identity-uncertain') fail('smoke-process-already-uncertain'); p.process.status = 'active-or-unknown' }) },
-    finish({ mountStatus, processSafe }) {
+    finish({ mountStatus, processSafe, gateProof: completedGateProof }) {
+      if (completedGateProof) local.gateProof = completedGateProof
       local.finished = true; local.mountSafe = mountStatus !== 'active-or-unknown'; local.processSafe = processSafe && !state.smoke.processIdentityUncertain
       if (state.smoke.cleanupProtection) saveTransition(p => {
         p.mount.status = mountStatus
@@ -220,6 +229,7 @@ export function loadQaState(path) {
   if (JSON.stringify(identity) !== JSON.stringify(state.identity)) fail('state-identity')
   if (measuredFile(state.directory, join(state.directory, 'qa-config.json')).sha256 !== state.configSha256) fail('config-digest-changed')
   if (state.smoke?.cleanupProtection !== undefined) validateSmokeProtection(state)
+  if (gateProtected(state) && (!state.smoke?.launchGate || state.smoke.launchGate.version !== 1)) fail('gate-protection-state-missing')
   return state
 }
 export function recordBinary(state, path, reason = 'compiled-output') {

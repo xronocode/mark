@@ -205,7 +205,7 @@ jobs:
         if: always() && steps.qa.outputs.state != ''
         env:
           QA_STATE: ${{ steps.qa.outputs.state }}
-        run: node tools/prepare-qa-artifacts.mjs cleanup --state "$QA_STATE"
+        run: node tools/qa-artifact-smoke.mjs --cleanup-only --state "$QA_STATE"
 
       # Generic dry-runs complete their test here. Retain evidence, not installers.
       - name: upload QA lifecycle evidence

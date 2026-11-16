@@ -384,3 +384,26 @@ describe('local cleanup proof ownership', () => {
     expect(readFileSync(outside, 'utf8')).toBe('keep'); expect(existsSync(f.installer)).toBe(true)
   })
 })
+
+describe('deterministic native-gate cleanup protection', () => {
+  it.each(['directory', 'guard', 'truncated-guard', 'linked-directory'])('protects %s even with omitted smoke flags', kind => {
+    const { state, installer, root } = fixture('macos-arm64', 'dryrun'); put(installer)
+    const gate = join(state.directory, 'native-launch'), guard = join(state.directory, 'gate-protection.json')
+    if (kind === 'directory') mkdirSync(gate)
+    if (kind === 'guard') writeFileSync(guard, '{}')
+    if (kind === 'truncated-guard') writeFileSync(guard, '{')
+    if (kind === 'linked-directory') { const other = join(root, 'unowned-inert'); mkdirSync(other); symlinkSync(other, gate, process.platform === 'win32' ? 'junction' : 'dir') }
+    expect(() => cleanupGenerated(state)).toThrow('gate-native-proof-required')
+    expect(() => beginSmokeCleanup(state, { gateProof: { processSafe: true, sources: 'forged' } })).toThrow('gate-native-proof-required')
+    expect(() => loadQaState(join(state.directory, 'state.json'))).toThrow('gate-protection-state-missing')
+    expect(readFileSync(installer, 'utf8')).toBe('synthetic installer bytes')
+  })
+  it('treats gate-presence EACCES as uncertainty and still performs no native query', () => {
+    const { state, installer } = fixture('macos-arm64', 'dryrun'); put(installer)
+    const original = fs.lstatSync, denied = join(state.directory, 'native-launch')
+    const observation = vi.spyOn(fs, 'lstatSync').mockImplementation((path, ...args) => { if (String(path) === denied) throw Object.assign(Error('controlled gate EACCES'), { code: 'EACCES' }); return original(path, ...args) })
+    syncBuiltinESMExports()
+    try { expect(() => cleanupGenerated(state)).toThrow('gate-protection:controlled gate EACCES'); expect(existsSync(installer)).toBe(true) }
+    finally { observation.mockRestore(); syncBuiltinESMExports() }
+  })
+})

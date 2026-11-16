@@ -16,9 +16,11 @@
 //   nativeAdapter - Existing native operations and read-only exact-PID liveness boundary.
 //   checkedProcesses - Validate exact process identities without manufacturing window-only applications.
 //   smokeQa - Preserve appearance timing and attempt independent shutdown, observation and owned-copy cleanup.
-//   smokeWithSignals - Keep cooperative cleanup active while cancellation is pending.
+//   smokeWithSignals - Keep cooperative smoke or cleanup active while cancellation is pending.
+//   cleanupSmokeQa - Fresh exact native recovery and same-process opaque generic cleanup.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-QA-MACOS-LAUNCH-GATE: durable PID/birth before native exec and fresh cleanup-only route.
 //   - C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP: arm persisted cleanup protection before attach/preflight/open and retain unresolved mounted/process copies across outer cleanup.
 //   - C-QA-NATIVE-BRIDGE-CLEANUP: typed CFArray/CFString conversion and cleanup independent of window/evidence failures.
 //   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: isolated install and exact lifecycle evidence.
@@ -27,7 +29,8 @@ import { cpSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFi
 import { join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
-import { beginSmokeCleanup, loadQaState, measuredFile, recordGenerated, saveQaState } from './prepare-qa-artifacts.mjs'
+import { beginSmokeCleanup, cleanupGenerated, loadQaState, measuredFile, recordGenerated, saveQaState } from './prepare-qa-artifacts.mjs'
+import { currentGateRuntime, gateProtected, observeOwnedImage, prepareLaunchGate, launchGate, finishGate, resumeGateCleanup } from './qa-launch-gate.mjs'
 const present = path => {
   try { lstatSync(path); return true } catch (error) { if (error.code === 'ENOENT') return false; throw error }
 }
@@ -100,7 +103,12 @@ export const nativeAdapter = {
   metadata(path) { return { identifier: command('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleIdentifier', join(path, 'Contents/Info.plist')]), executable: command('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleExecutable', join(path, 'Contents/Info.plist')]) } },
   clearQuarantine(path) { command('/usr/bin/xattr', ['-cr', path]) },
   size(path) { return { bytes: Number(command('/usr/bin/du', ['-sk', path]).split(/\s+/)[0]) * 1024, human: command('/usr/bin/du', ['-sh', path]).split(/\s+/)[0] } },
-  launch(path) { command('/usr/bin/open', ['-n', '-g', path]) },
+  platform: process.platform,
+  gateRuntime: currentGateRuntime,
+  signBootstrap(path) { command('/usr/bin/codesign', ['--force', '--sign', '-', path]); command('/usr/bin/codesign', ['--verify', '--verbose=4', path]) },
+  verify(path) { command('/usr/bin/codesign', ['--verify', '--verbose=4', path]) },
+  image(pid, session) { return observeOwnedImage(pid, session.python) },
+  launch(path, args = []) { command('/usr/bin/open', ['-n', '-g', path, ...(args.length ? ['--args', ...args] : [])]) },
   processes: processQuery,
   windowOwnerCounts,
   // Compatibility facade; orchestration uses the independent boundaries below.
@@ -110,7 +118,9 @@ export const nativeAdapter = {
     return rows.map(row => ({ ...row, windows: counts[row.pid] }))
   },
   quit(process) {
-    if (!processQuery(process.bundlePath, process.identifier, [process.pid], process).requested) throw Error(`normal-quit-not-found:${process.pid}`)
+    const result = processQuery(process.bundlePath, process.identifier, [process.pid], process)
+    if (!result.requested) throw Error(`normal-quit-not-found:${process.pid}`)
+    return result
   },
   pidAlive(pid) {
     try { process.kill(pid, 0); return true } catch (error) { if (error.code === 'ESRCH') return false; throw error }
@@ -141,7 +151,7 @@ export async function smokeQa({ state, native = nativeAdapter, applicationsRoot 
   const installed = join(applicationsRoot, `${state.identity.productName}.app`)
   state.smoke = { installedPath: installed, bundleIdentifier: state.identity.identifier, sourceSha: state.identity.sourceSha,
     ownedPids: [], ownedProcesses: [], processIdentityUncertain: false, installedOwned: false, launchRequested: false }
-  let mount, mounted = false, attachAttempted = false, failure, preflightProcessSafe = true, preflightWindowsSafe = true
+  let mount, gate, gateProof, mounted = false, attachAttempted = false, failure, preflightProcessSafe = true, preflightWindowsSafe = true
   const errors = state.cleanupErrors
   const failed = (phase, error) => {
     const message = `${phase}:${error.message}`
@@ -151,9 +161,9 @@ export async function smokeQa({ state, native = nativeAdapter, applicationsRoot 
   const checkpoint = () => { try { cleanupSession.sync(); saveQaState(state); return true } catch (error) { failed('evidence', error); return false } }
   const requiredCheckpoint = () => { if (!checkpoint()) throw failure }
   const remember = entries => {
-    for (const entry of entries) if (!state.smoke.ownedPids.includes(entry.pid)) {
-      state.smoke.ownedPids.push(entry.pid)
-      state.smoke.ownedProcesses.push({ pid: entry.pid, bundlePath: entry.bundlePath, executablePath: entry.executablePath, identifier: entry.identifier })
+    for (const entry of entries) {
+      if (!state.smoke.ownedPids.includes(entry.pid)) state.smoke.ownedPids.push(entry.pid)
+      if (!state.smoke.ownedProcesses.some(owned => owned.pid === entry.pid)) state.smoke.ownedProcesses.push({ pid: entry.pid, bundlePath: entry.bundlePath, executablePath: entry.executablePath, identifier: entry.identifier })
     }
   }
   const windows = () => {
@@ -191,23 +201,20 @@ export async function smokeQa({ state, native = nativeAdapter, applicationsRoot 
     windows() // Validate CF collection even when no application has appeared.
     preflightWindowsSafe = true
     cleanupSession.armProcess()
-    state.smoke.launchRequested = true; requiredCheckpoint()
-    native.launch(installed)
-    checkCancellation()
-    const deadline = native.now() + 10000
-    let running = checkedProcesses(state, native, installed)
-    remember(running); requiredCheckpoint(); windows()
-    while (!running.length && native.now() < deadline) {
-      await native.wait(Math.min(1000, deadline - native.now())); checkCancellation()
-      running = checkedProcesses(state, native, installed)
-      remember(running); requiredCheckpoint(); windows()
-    }
-    if (!running.length) throw Error('MT_QA_SMOKE:startup-timeout')
+    gate = await prepareLaunchGate({ state, installed, native, checkpoint: requiredCheckpoint, signal })
+    await launchGate(gate, { remember, processes: () => checkedProcesses(state, native, installed), windows })
     state.smoke.startupVerified = true; requiredCheckpoint()
-  } catch (error) { failure ||= error } finally {
+  } catch (error) { gate ||= error.gateSession; failure ||= error } finally {
     let processStopped = !state.smoke.launchRequested && preflightProcessSafe
     let windowStopped = !state.smoke.launchRequested && preflightWindowsSafe
-    if (state.smoke.launchRequested) {
+    if (gate) {
+      try {
+        const result = await finishGate(gate, { processes: () => checkedProcesses(state, native, installed), windows, remember, checkpoint: requiredCheckpoint })
+        processStopped = result.processSafe; windowStopped = result.windowSafe; gateProof = result.proof
+        try { state.smoke.installedDeleted = !present(installed) } catch (error) { failed('installed-metadata', error) }
+        for (const message of result.errors) failed('gate', Error(message))
+      } catch (error) { processStopped = false; windowStopped = false; failed('gate-cleanup', error) }
+    } else if (state.smoke.launchRequested) {
       let current, observationValid = false
       try {
         current = checkedProcesses(state, native, installed)
@@ -242,32 +249,60 @@ export async function smokeQa({ state, native = nativeAdapter, applicationsRoot 
     state.smoke.processStopped = processStopped; state.smoke.windowsStopped = windowStopped
     state.smoke.shutdownVerified = processStopped && windowStopped
     if (mounted) { try { native.detach(mount); mounted = false } catch (error) { failed(`detach:${mount}`, error) } }
-    if (processStopped && state.smoke.installedOwned) {
+    if (processStopped && !gate && state.smoke.installedOwned) {
       try { rmSync(installed, { recursive: true }); state.smoke.installedDeleted = !present(installed); if (!state.smoke.installedDeleted) throw Error('installed-path-remains') } catch (error) { failed(`installed:${installed}`, error) }
     }
     if (!mounted && mount) { try { rmSync(mount, { recursive: true, force: true }) } catch (error) { failed(`mount-directory:${mount}`, error) } }
-    try { cleanupSession.finish({ mountStatus: !attachAttempted ? 'not-attempted' : mounted ? 'active-or-unknown' : 'verified-detached', processSafe: processStopped }) } catch (error) { failed('protection-save', error) }
+    try { cleanupSession.finish({ mountStatus: !attachAttempted ? 'not-attempted' : mounted ? 'active-or-unknown' : 'verified-detached', processSafe: processStopped, gateProof }) } catch (error) { failed('protection-save', error) }
     try { cleanupSession.cleanup() } catch (error) { failed('generated', error) }
     state.smoke.cancelled = signal?.aborted === true
     checkpoint()
   }
-  if (errors.length) throw Error(`MT_QA_SMOKE:cleanup:${errors.join(';')}`)
+  if (errors.length) throw Error(`MT_QA_SMOKE:cleanup:${[failure?.message, ...errors].filter(Boolean).join(';')}`)
   if (failure) throw failure
   checkCancellation()
   return state.smoke
 }
-export async function smokeWithSignals({ signals = process, ...options }) {
+export async function cleanupSmokeQa({ state, native = nativeAdapter, signal }) {
+  if (!gateProtected(state)) { const result = cleanupGenerated(state); if (signal?.aborted) throw Error('MT_QA_SMOKE:cancelled'); return result }
+  const errors = [], checkpoint = () => saveQaState(state)
+  const session = resumeGateCleanup(state, native, checkpoint)
+  if (state.smoke.cleanupProtection?.mount.status === 'active-or-unknown') {
+    try { native.detach(state.smoke.mount); state.smoke.cleanupProtection.mount.status = 'verified-detached' } catch (error) { errors.push(`detach:${state.smoke.mount}:${error.message}`) }
+  }
+  const counts = () => {
+    const value = native.windowOwnerCounts(state.smoke.ownedPids)
+    if (!value || Object.keys(value).length !== state.smoke.ownedPids.length || state.smoke.ownedPids.some(pid => !Number.isSafeInteger(value[pid]) || value[pid] < 0)) throw Error('window-counts')
+    return value
+  }
+  const result = await finishGate(session, { processes: () => checkedProcesses(state, native, session.installed), windows: counts, checkpoint })
+  errors.push(...result.errors)
+  state.smoke.processStopped = result.processSafe; state.smoke.windowsStopped = result.windowSafe
+  state.smoke.shutdownVerified = result.processSafe && result.windowSafe
+  if (result.proof) {
+    const cleanup = beginSmokeCleanup(state, { gateProof: result.proof })
+    try { cleanup.finish({ mountStatus: state.smoke.cleanupProtection.mount.status, processSafe: result.processSafe, gateProof: result.proof }) } catch (error) { errors.push(`save:${error.message}`) }
+    try { cleanup.cleanup() } catch (error) { errors.push(`generated:${error.message}`) }
+  }
+  try { saveQaState(state) } catch (error) { errors.push(`evidence:${error.message}`) }
+  if (signal?.aborted) errors.push('cancelled')
+  if (errors.length) throw Error(`MT_QA_SMOKE:cleanup:${errors.join(';')}`)
+  return state
+}
+export async function smokeWithSignals({ signals = process, cleanupOnly = false, ...options }) {
   const controller = new AbortController()
   const cancel = () => controller.abort()
   signals.on('SIGINT', cancel); signals.on('SIGTERM', cancel)
-  try { return await smokeQa({ ...options, signal: controller.signal }) } finally {
+  try { return await (cleanupOnly ? cleanupSmokeQa : smokeQa)({ ...options, signal: controller.signal }) } finally {
     signals.off('SIGINT', cancel); signals.off('SIGTERM', cancel)
   }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const index = process.argv.indexOf('--state'); if (index < 0 || !process.argv[index + 1]) throw Error('MT_QA_SMOKE:state-required')
-    const state = loadQaState(process.argv[index + 1]); await smokeWithSignals({ state })
-    if (process.env.GITHUB_OUTPUT) for (const [key, value] of Object.entries({ bundle_bytes: state.smoke.size.bytes, bundle_human: state.smoke.size.human })) writeFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`, { flag: 'a' })
+    const state = loadQaState(process.argv[index + 1])
+    if (process.argv.includes('--cleanup-only')) await smokeWithSignals({ state, cleanupOnly: true })
+    else await smokeWithSignals({ state })
+    if (!process.argv.includes('--cleanup-only') && process.env.GITHUB_OUTPUT) for (const [key, value] of Object.entries({ bundle_bytes: state.smoke.size.bytes, bundle_human: state.smoke.size.human })) writeFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`, { flag: 'a' })
   } catch (error) { console.error(error.message); process.exitCode = 1 }
 }
