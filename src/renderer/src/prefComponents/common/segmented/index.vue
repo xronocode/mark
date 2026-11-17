@@ -37,7 +37,7 @@
 // VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings segmented-control row (C-38 T-003) — label + optional help left, a mockup segmented control (Light/Dark/Auto style) right.
-//   SCOPE: Segment rendering and single-selection; v-model-style contract matching the other controls (value/options/onChange). C-PAGE-WIDTH-TABLES T-003: the optional markedValue prop adds the is-near anchor state (the nearest-preset underline the quick-settings Page tab shows on the closest preset of a non-preset value), and the dark-member active tile is raised with a hairline border in THIS shared component (the research fix — every consumer, Settings and the panel alike, inherits it; never forked into panel-local CSS).
+//   SCOPE: Segment rendering, keyboard-focus presentation and single-selection; v-model-style contract matching the other controls (value/options/onChange). C-PAGE-WIDTH-TABLES T-003: the optional markedValue prop adds the is-near anchor state (the nearest-preset underline the quick-settings Page tab shows on the closest preset of a non-preset value), and the dark-member active tile is raised with a hairline border in THIS shared component (the research fix — every consumer, Settings and the panel alike, inherits it; never forked into panel-local CSS).
 //   DEPENDS: prefComponents/common/osClass (prefOsClass).
 //   LINKS: .grace/changes/archive/C-38 T-003/T-004; .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-003, corner C-4); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
@@ -51,6 +51,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-14: distinguish keyboard focus with the existing preference-accent outline, preserving active and nearest-preset states.
 //   - 2026-11-02 v1.1.0: C-PAGE-WIDTH-TABLES T-003 — optional markedValue
 //     prop renders the is-near nearest-preset anchor on a non-active
 //     segment, and the dark-member macOS active tile is raised (#5a5a60)
@@ -128,6 +129,11 @@ body.dark .pref-segmented-item .pref-segmented {
   padding: 3px 12px;
   border-radius: 5px;
   color: var(--prefText, #1d1d1f);
+}
+
+.pref-segmented-item .pref-segment:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-segmented-item.pref-os-win .pref-segment {

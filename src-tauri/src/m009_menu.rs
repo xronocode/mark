@@ -53,6 +53,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-17 FIX-SIDEBAR-BOLD-CONFLICT: View › Toggle Sidebar moves from
+//     CmdOrCtrl+B to CmdOrCtrl+Shift+B — the native menu was intercepting the
+//     plain chord before the webview could apply strong emphasis, so the
+//     Bold shortcut the format picker advertises never reached the editor.
+//     Command ids, labels, check syncing and every other accelerator are
+//     unchanged.
 //   - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: View › Page Width submenu
 //     (spec R-13) — Compact 60 ch / Standard 80 ch / Wide 110 ch /
 //     Full window / Custom… between the zoom trio and Theme. The four
@@ -663,11 +669,15 @@ pub fn standard_menu() -> Vec<MenuItem> {
             command: None,
             accelerator: None,
             items: Some(vec![
+                // FIX-SIDEBAR-BOLD-CONFLICT: plain CmdOrCtrl+B belongs to
+                // bold text in the editor (the format picker advertises it);
+                // the native menu was intercepting the chord before the
+                // webview could apply strong emphasis.
                 MenuItem {
                     id: "view.toggle-sidebar".to_string(),
                     label: "Toggle Sidebar".to_string(),
                     command: Some("toggleSidebar".to_string()),
-                    accelerator: Some("CmdOrCtrl+B".to_string()),
+                    accelerator: Some("CmdOrCtrl+Shift+B".to_string()),
                     items: None,
                 },
                 MenuItem {

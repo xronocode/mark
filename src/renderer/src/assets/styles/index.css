@@ -562,17 +562,22 @@ button.button-primary:not(.custom):focus,
    .editor-wrapper carries the editor font as an inline style, so muya
    content never inherits this stack. Element Plus dialogs render in
    the chrome (rename / import / tweet / export / about / what's new),
-   teleported or not, hence the .el-dialog rule. */
+   teleported or not, hence the .el-dialog rule.
+   2026-11-13: include the shared notification stack and custom What's New
+   sheet/buttons so newer chrome surfaces retain the same system stack. */
 .title-bar,
 .title-bar-editor-bg,
 .editor-tabs,
 .side-bar,
 .search-bar,
 .editor-notifications,
+.notification-stack,
 .status-bar,
 .outline-rail,
 .command-palette,
 .problems-panel,
+.ag-whats-new-sheet,
+.ag-whats-new-sheet button,
 .el-dialog,
 .ag-dialog-table {
   font-family: var(--chromeFontFamily);

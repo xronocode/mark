@@ -21,6 +21,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-17 C-AUTOSAVE-DEFAULT-ON: the write-through autosave default
+//     flips to true (external-tester expectation, Obsidian parity); an
+//     explicitly persisted false still keeps it off, the delay and the
+//     requiresExplicitSave guards are unchanged.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: supported-codec default guard, with unavailable stored defaults retained and surfaced.
 //   LAST_CHANGE: v2.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-006: two new
 //   persisted, resettable keys for the quick-settings Tables tab —
@@ -203,7 +207,10 @@ export const preferenceDefaults = () => ({
       share: true,
       review: false
     },
-    autoSave: false,
+    // C-AUTOSAVE-DEFAULT-ON (external tester, 2026-11-16): write-through
+    // autosave is the expected default (Obsidian parity); an explicit
+    // persisted false keeps it off.
+    autoSave: true,
     autoSaveDelay: 5000,
     liveReload: true,
     // C-17: markdownlint-subset validation (problems panel recomputation gate).
