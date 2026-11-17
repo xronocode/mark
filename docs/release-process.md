@@ -87,6 +87,20 @@ Use the [recovery matrix](release-trains/README.md#recovery-matrix) for failures
 After publication, record `Released` in the train and open the next train by
 updating `current.json`.
 
+### 4a. Prerelease builds for external testers (C-RELEASE-CANARY-PRERELEASE)
+
+A hyphenated tag — `vX.Y.Z-beta.N` or `vX.Y.Z-canary.N`, base equal to the
+current train's `computedVersion` — follows the same owner mechanics (the
+`release-authorize` approval creates the tag; the synchronous `release`
+Environment approval publishes) but rides the prerelease lane: no Ready seal,
+no strict readiness, no materials or preflight gates, and a generated body
+with the tester notice instead of reviewed notes. Publication exposes a
+GitHub **prerelease** that never becomes `releases/latest`: the in-app updater
+feed stays on the previous stable tag and the Homebrew cask handoff is
+skipped. Testers install from the direct asset links over their existing
+installation and roll back by reinstalling the stable DMG. A prerelease is
+not a train dispatch and records no acceptance.
+
 ## 5. Release notes
 
 The workflow publishes only the automated verification block. Once the release
