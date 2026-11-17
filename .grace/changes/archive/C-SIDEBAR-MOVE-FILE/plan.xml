@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved under the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (technical plan approval delegated); Pass-1 self-review with corner simulation, Pass-2 structural pin suite, Pass-3 full-suite run. -->
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved under the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (technical plan approval delegated); Pass-1 self-review with corner simulation, Pass-2 structural pin suite, Pass-3 full-suite run. -->
 <C-SIDEBAR-MOVE-FILE>
   <ChangeRef>C-SIDEBAR-MOVE-FILE</ChangeRef>
   <Created>2026-11-17</Created>
