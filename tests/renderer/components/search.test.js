@@ -53,7 +53,9 @@ describe('search/index.vue', () => {
     // showSearch is false by default, so the search bar is hidden via v-show
     const bar = wrapper.find('.search-bar')
     expect(bar.exists()).toBe(true)
-    // v-show sets display none
-    expect(bar.isVisible()).toBe(false)
+    // v-show sets display none. jsdom 31 changed the computed-style
+    // surface isVisible() relies on, so the v-show mechanism is asserted
+    // through the inline style it writes.
+    expect(bar.attributes('style')).toContain('display: none')
   })
 })
