@@ -148,8 +148,11 @@ class FakeControlsClient {
 
 // START_BLOCK_RELEASE_GITHUB_CONTROLS_TESTS
 describe('release GitHub trust boundaries', () => {
-  it('keeps promotion input-free and puts privileged tag creation behind owner approval', () => {
-    expect(promote.on.workflow_dispatch).toBeUndefined()
+  it('admits only the Ready-seal push and the prerelease dispatch, with privileged tag creation behind owner approval', () => {
+    // C-RELEASE-CANARY-PRERELEASE: the one manual input is the prerelease
+    // suffix; everything else stays push-driven and input-free.
+    expect(Object.keys(promote.on.workflow_dispatch?.inputs ?? {})).toEqual(['prereleaseSuffix'])
+    expect(promote.on.workflow_dispatch.inputs.prereleaseSuffix.required).toBe(false)
     expect(promote.on.push.branches).toEqual(['main'])
     expect(promote.permissions).toEqual({})
     expect(promote.jobs.preflight.environment).toBeUndefined()
@@ -161,7 +164,10 @@ describe('release GitHub trust boundaries', () => {
     // now via the negative guard plus the seal-gated authorize-tag job.
     expect(commands(promote.jobs.preflight)).toContain('[ "$STATE" != "Ready" ]')
     expect(commands(promote.jobs.preflight)).toContain('nothing to promote')
-    expect(promote.jobs['authorize-tag'].if).toContain("needs.preflight.outputs.seal != ''")
+    expect(promote.jobs['authorize-tag'].if).toContain("needs.preflight.outputs.mode == 'stable'")
+    expect(promote.jobs['authorize-tag'].if).toContain("needs.preflight.outputs.mode == 'prerelease'")
+    // The prerelease suffix is shape-gated before anything derives a tag.
+    expect(commands(promote.jobs.preflight)).toContain('suffix must be beta.N or canary.N')
     expect(JSON.stringify(promote.jobs['authorize-tag'])).toContain('permission-contents')
     expect(commands(promote.jobs['authorize-tag'])).not.toContain('secrets.GITHUB_TOKEN')
     expect(promoteSource).toContain('actions/create-github-app-token@')

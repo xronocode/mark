@@ -90,9 +90,11 @@ updating `current.json`.
 ### 4a. Prerelease builds for external testers (C-RELEASE-CANARY-PRERELEASE)
 
 A hyphenated tag — `vX.Y.Z-beta.N` or `vX.Y.Z-canary.N`, base equal to the
-current train's `computedVersion` — follows the same owner mechanics (the
-`release-authorize` approval creates the tag; the synchronous `release`
-Environment approval publishes) but rides the prerelease lane: no Ready seal,
+current train's `computedVersion` — is created by dispatching
+`release/promote` with the `prereleaseSuffix` input (`beta.1`, `canary.2`…):
+the `release-authorize` approval then mints the Release Bot annotated tag at
+current main HEAD (no Ready seal), and the synchronous `release` Environment
+approval publishes. The tag run rides the prerelease lane: no Ready seal,
 no strict readiness, no materials or preflight gates, and a generated body
 with the tester notice instead of reviewed notes. Publication exposes a
 GitHub **prerelease** that never becomes `releases/latest`: the in-app updater
