@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-SIDEBAR-MOVE-FILE>
     <Summary>Move files between sidebar folders by drag-and-drop, with one unified move semantics: explicit collision refusal, open-tab pathname migration, and stored table-layout / reading-position entries following the file, reusing the existing native move.</Summary>
     <Problem>The external tester cannot move a file from folder to folder in the sidebar (reported 2026-11-16). The machinery half-exists but is split and lossy: context-menu cut+paste moves the file yet leaves open tabs pointing at the dead old pathname and abandons the per-file table-layout and position stores; the only full-migration path is rename; drag-and-drop, the natural sidebar gesture, does nothing.</Problem>
@@ -43,5 +43,9 @@
       <ApprovedBy>Owner requested the feature from the external tester session 2026-11-16 (Telegram, message id 117656) and noted the rename-collision corners in the same chat; technical spec approval delegated by the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (recorded privately, 2026-11-17). Delegated approval recorded by the agent; not an interactive owner answer to this document.</ApprovedBy>
       <ApprovalScope>Implement with the established gates: focused unit tests, full renderer suite, grace target/final assertions.</ApprovalScope>
     </Approval>
+    <Completion>
+      <Date>2026-11-17</Date>
+      <Note>PR #278 squash ce92b473: moveItem action + drag-and-drop + cut/paste rerouting; project-move 9/9, neighborhood 1242/0, full suite 0 failures; hosted CI green.</Note>
+    </Completion>
   </C-SIDEBAR-MOVE-FILE>
 </GraceChangeSpec>
