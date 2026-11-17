@@ -1156,6 +1156,66 @@
           "detail": "Admitted to Collecting train 2.9.x-next after exact-head green CI and sequential integration. No release authorized."
         }
       ]
+    },
+    {
+      "id": "FIX-SIDEBAR-BOLD-CONFLICT",
+      "summary": "Cmd+B performs two actions: hiding the sidebar (intercepts) and bold text (does not apply); bold must win or the bindings must be separated.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-16",
+          "actor": "owner",
+          "detail": "External tester (Dmitry Kononenko, Telegram, message id 117635) on a stable macOS build: in Mark the Cmd+B combination carries two actions — hiding the sidebar works (it intercepts the key), making text bold does not. Owner took the item into the 2.9.0 stabilization pack in the same chat."
+        }
+      ]
+    },
+    {
+      "id": "C-AUTOSAVE-DEFAULT-ON",
+      "summary": "Write changes to disk as they are made (Obsidian-like autosave); today unsaved content exists only in the editor until an explicit Cmd+S.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-16",
+          "actor": "owner",
+          "detail": "External tester (Telegram, ids 117647/117651/117659): wrote a file in Mark, opened the same file in Obsidian — it was empty because Mark had not written anything to disk without an explicit Cmd+S. Expected every change to be saved immediately, as Obsidian does. A toggle-autosave command already exists; the gap is default behavior and write-through cadence. Owner: 'easy, taking it too'."
+        }
+      ]
+    },
+    {
+      "id": "C-SIDEBAR-MOVE-FILE",
+      "summary": "Move a file between folders from the sidebar (drag or command), with collision and same-name-tab corners handled.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-16",
+          "actor": "owner",
+          "detail": "External tester (Telegram, id 117656): 'In the sidebar I really want a feature to move a file from folder to folder.' Owner noted the corners in the same chat: rename collisions when a same-named file exists, and distinguishing same-named tabs from different folders."
+        }
+      ]
+    },
+    {
+      "id": "FIX-IMAGE-TOOLBAR-RESIDUE",
+      "summary": "After closing a file with Discard changes, the image resize corner handles and toolbar remain rendered on the start screen.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-16",
+          "actor": "owner",
+          "detail": "External tester (Telegram, ids 117661-117662): resized an image inside a file, closed the tab via the close button choosing Discard changes — the resize corner handles and the image toolbar stayed on the start screen and persisted when reopening the file. Owner: 'probably already fixed in 2.9, will verify' — verify on the first prerelease build before scoping a repair. Visual evidence (messages 117661/117662, analyzed 2026-11-17): the residue is not limited to the image toolbar — a floating properties/format bar (edit, image, list, alignment, delete actions) plus orphaned gold selection handles remain over the home screen, partially covering the Restore-all button, and the same residue reappears after reopening the file from the tab bar; a stray gold edit badge also floats in the header area. Scope the verification and repair to the full floating-toolbar/selection-overlay teardown on tab close with Discard, not just the image corner handles."
+        }
+      ]
+    },
+    {
+      "id": "C-PASTE-ASCII-TABLES",
+      "summary": "Smart paste converts plain-text box-drawing or column-aligned tables (terminal/CLI output) into GFM pipe tables on paste.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-17",
+          "actor": "owner",
+          "detail": "Owner-approved backlog addition: pasting terminal-rendered tables (box-drawing borders, no pipes, no text/html table flavor) currently inserts literal text because the paste pipeline imports only HTML tables from plain text. Convert box-drawing and aligned-column tables to GFM on paste; candidate for the 2.9.x-next train."
+        }
+      ]
     }
   ]
 }

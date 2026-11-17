@@ -1,0 +1,108 @@
+<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved under the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (technical plan approval delegated); Pass-1 self-review with corner simulation, Pass-2 structural pin suite, Pass-3 full-suite run. -->
+<C-SIDEBAR-MOVE-FILE>
+  <ChangeRef>C-SIDEBAR-MOVE-FILE</ChangeRef>
+  <Created>2026-11-17</Created>
+  <IntentSummary>One moveItem action in the project store (same-destination and destination-exists refusals, native mt_fs_move, open-tab pathname/filename/DIRNAME migration, table-layouts and reading-position entry migration, tree refresh, clipboard clearing) reached by two doors: sidebar drag-and-drop (treeFile rows draggable, treeFolder rows drop targets) and the existing cut+paste path rerouted through the action. Files only in v1; notices plain English per the sidebar precedent; rename flow untouched.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/project.js</File>
+      <Text>bus.on('SIDEBAR::paste', () => {</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/util/fileSystem.js</File>
+      <Text>window.fileUtils.move(src, dest)</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustContain>
+      <File>src/renderer/src/store/project.js</File>
+      <Text>moveItem</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/sideBar/treeFile.vue</File>
+      <Text>draggable</Text>
+    </MustContain>
+    <MustContain>
+      <File>src/renderer/src/components/sideBar/treeFolder.vue</File>
+      <Text>drop</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command budgetSeconds="300">npx vitest run tests/renderer/store/project-move.test.js</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command budgetSeconds="900">npx vitest run tests/renderer/store tests/renderer/components/sideBar</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-009 />
+      <M-011 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-009 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>src/renderer/src/store/project.js</File>
+    <File>src/renderer/src/store/editor.js</File>
+    <File>src/renderer/src/components/sideBar/treeFile.vue</File>
+    <File>src/renderer/src/components/sideBar/treeFolder.vue</File>
+    <File>src/renderer/src/components/sideBar/tree.vue</File>
+    <Glob>tests/renderer/**</Glob>
+    <Glob>.grace/changes/active/C-SIDEBAR-MOVE-FILE/*</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id="corner-1"><Situation>Drag a file onto the folder it already lives in (or paste into it)</Situation><Expected>refusal notice, no filesystem call, clipboard preserved for paste</Expected></Corner>
+    <Corner id="corner-2"><Situation>Destination folder already contains a same-named file</Situation><Expected>refusal notice naming the file before any native call; nothing moves</Expected></Corner>
+    <Corner id="corner-3"><Situation>Moved file is open in a tab (dirty and clean)</Situation><Expected>tab pathname/filename migrate; current file's DIRNAME updates; a subsequent save writes to the new path; buffer and dirty state unchanged</Expected></Corner>
+    <Corner id="corner-4"><Situation>Moved file has stored table layouts / reading position</Situation><Expected>entries re-keyed to the new pathname (rename's RENAME_IF_NEEDED pattern)</Expected></Corner>
+    <Corner id="corner-5"><Situation>Native move fails (permissions, missing source)</Situation><Expected>error notice; tabs, stores, clipboard untouched</Expected></Corner>
+    <Corner id="corner-6"><Situation>Moved file was the clipboard source</Situation><Expected>clipboard cleared on success; on failure it stays armed</Expected></Corner>
+    <Corner id="corner-7"><Situation>Drop onto a file row, or drag a folder</Situation><Expected>no move — files are the only draggable v1 payload and folders are the only drop targets</Expected></Corner>
+    <Corner id="corner-8"><Situation>Cut+paste after the rerouting</Situation><Expected>identical behavior to drag-and-drop (same action, same refusals, same migrations)</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>moveItem action in the project store</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Async moveItem(src, destDir): normalizes dest, refuses same-destination with the existing notice; refuses when the destination file exists (window.fileUtils.exists-style check or equivalent guarded read) with a notice naming the file; awaits fileUtils.move; migrates open tabs via the editor store (pathname/filename, DIRNAME for the current file); migrates table-layouts and reading-position entries mirroring rename's RENAME_IF_NEEDED; refreshes the tree the same way paste does today; clears the clipboard when its src matches; returns the move result and never throws uncaught.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/project-move.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>route SIDEBAR::paste through moveItem</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The SIDEBAR::paste handler computes destDir from the active item exactly as today, then delegates to moveItem for cut sources (copy keeps the existing copy path); success/failure notices come from the action.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store/project-move.test.js</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>drag-and-drop wiring</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>treeFile rows become draggable (dataTransfer carries the pathname); treeFolder rows accept dragover (drop-effect move, visual active state) and drop (calls moveItem); drops on non-folder surfaces are ignored; the component templates and store stay within the existing snabbdom/Vue patterns.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -n "draggable" src/renderer/src/components/sideBar/treeFile.vue</Command>
+        <Command>grep -n "drop" src/renderer/src/components/sideBar/treeFolder.vue</Command>
+      </Verification>
+    </T-003>
+    <T-004>
+      <Title>tests and module headers</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>tests/renderer/store/project-move.test.js pins corners 1/2/3/5/6 with a mocked fileUtils and a minimal editor-store stub; a source-level pin asserts the dnd wiring and the paste rerouting; touched files carry updated MODULE_MAP/CHANGE_SUMMARY headers; grace target assertions green during implementation, final with --run-commands green before handoff.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npx vitest run tests/renderer/store tests/renderer/components/sideBar</Command>
+      </Verification>
+    </T-004>
+  </ImplementationPlan>
+</C-SIDEBAR-MOVE-FILE>
+</GraceChangePlan>

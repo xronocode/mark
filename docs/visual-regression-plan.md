@@ -370,7 +370,7 @@ Dark (23): ayu-dark, ayu-mirage, dark, catppuccin-mocha, cyberdream, dracula, ev
 
 | # | Item | Verify |
 |---|-------|-----------|
-| 10D.1 | View → Toggle Sidebar (Cmd+B) | Sidebar |
+| 10D.1 | View → Toggle Sidebar (⇧⌘B; plain ⌘B is Bold per 13B.1) | Sidebar |
 | 10D.2 | View → Source Code Mode (Cmd+Alt+S) | Source code mode |
 | 10D.3 | View → Theme → (submenu) | Submenu: light, dark, graphite, material-dark, one-dark, ulysses → the theme is applied |
 
