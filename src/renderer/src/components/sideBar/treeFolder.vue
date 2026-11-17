@@ -3,9 +3,12 @@
     <div
       ref="folderEl"
       class="folder-name"
-      :class="[{ active: folder.id === activeItem.id }]"
+      :class="[{ active: folder.id === activeItem.id, 'drop-target': isDropTarget }]"
       :title="folder.pathname"
       @click="folderNameClick"
+      @dragover="handleDragOver"
+      @dragleave="handleDragLeave"
+      @drop="handleDrop"
     >
       <chrome-icon
         :name="isCollapsed ? 'folder' : 'folder-open'"
@@ -68,6 +71,7 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-17 v2.2.0 C-SIDEBAR-MOVE-FILE: the folder header is a drop target for the file drag payload (dragover highlight, drop → SIDEBAR::move-item → the shared moveItem semantics); clicks and collapse behavior unchanged.
 //   - 2026-10-17 v2.1.0: C-51 T-013 — folder rows go semibold (600) so
 //     they read as structure against the regular-weight file rows, and
 //     the row starts at the shared --sideBarRowInset (12px) so its glyph
@@ -141,6 +145,29 @@ const handleInputFocus = () => {
 
 const handleInputEnter = () => {
   projectStore.CREATE_FILE_DIRECTORY(createName.value)
+}
+
+// C-SIDEBAR-MOVE-FILE: folder rows are the only drop targets; a file
+// payload dropped here rides the shared moveItem semantics (refusals,
+// tab/store migration) through SIDEBAR::move-item.
+const isDropTarget = ref(false)
+const MOVE_MIME = 'text/markmark-move-path'
+const handleDragOver = (event) => {
+  if (!event.dataTransfer?.types?.includes(MOVE_MIME)) return
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'move'
+  isDropTarget.value = true
+}
+const handleDragLeave = () => {
+  isDropTarget.value = false
+}
+const handleDrop = (event) => {
+  isDropTarget.value = false
+  const src = event.dataTransfer?.getData(MOVE_MIME)
+  if (!src) return
+  event.preventDefault()
+  event.stopPropagation()
+  bus.emit('SIDEBAR::move-item', { src, destDir: props.folder.pathname })
 }
 
 const folderNameClick = () => {

@@ -1,0 +1,51 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-RELEASE-CANARY-PRERELEASE>
+    <Summary>Publish owner-created hyphenated tags (beta/canary) as signed GitHub prereleases for external testers without advancing the stable updater feed, the GitHub latest pointer, or the Homebrew cask.</Summary>
+    <Problem>The release workflow's publish stage unconditionally clears the prerelease flag, requires that releases/latest advance to the tag, and runs the Homebrew cask handoff. A hyphenated tag pushed through the current pipeline therefore reaches every stable user through the in-app updater. There is no sanctioned way to hand a signed, notarized pre-release build of a collecting train to an external tester: the manual-build job is unsigned and discards its artifacts, and hand-built DMGs (the TokMo pattern) carry Gatekeeper friction and per-iteration manual work.</Problem>
+    <Goals>
+      <Goal>A hyphenated SemVer tag (vX.Y.Z-beta.N or vX.Y.Z-canary.N) created through the owner tag mechanism builds with the same signing and notarization lanes as a stable release and publishes as a GitHub prerelease that never becomes the repository's latest release.</Goal>
+      <Goal>Stable-channel invariants hold for every prerelease publication: releases/latest and the updater feed (latest.json and the counting-gateway URLs) still point at the previous stable tag, and the publish-cask job does not run.</Goal>
+      <Goal>Prerelease assets include the macOS DMG and the Windows installer under the same WINDOWS_RELEASE staging variable as stable releases, so external testers on both platforms install from direct asset links.</Goal>
+      <Goal>Prerelease publication stays owner-gated exactly like stable publication: the tag app creates the tag, and the synchronous release Environment approval exposes the draft.</Goal>
+      <Goal>Release train documentation (release-trains README boundary note, release process) states that a prerelease tag is not a train dispatch, needs no Ready seal, and records no acceptance.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>The five train rules stand: a prerelease tag may bind to a Collecting-train commit; readiness/Ready-seal is intentionally not required for it; nothing in this change dispatches or publishes a train.</Constraint>
+      <Constraint>The stable path stays byte-identical for non-hyphenated tags: prerelease flag cleared, feed-advance verification, cask handoff, materials checks.</Constraint>
+      <Constraint>The edit is actionlint-clean; no new secrets, environments, or permissions; signing stays inside the tag-restricted release-signing environment.</Constraint>
+      <Constraint>Immutable-release guarantees are preserved: draft-first publication, digest verification, no clobbering of published assets, no tag retargeting.</Constraint>
+      <Constraint>Repository artifacts stay in English; the prerelease notes body is a generated short summary, not reviewed release materials.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>A separate canary updater feed, an in-app channel switcher, or scheduled nightly automation — a future change if direct-link installs stop being sufficient for testers.</NonGoal>
+      <NonGoal>Making any prerelease the GitHub latest release or advancing /releases/latest to it.</NonGoal>
+      <NonGoal>Homebrew cask, winget, App Store, or TestFlight publication of prereleases.</NonGoal>
+      <NonGoal>Reviewed release materials (What's New cards, screenshot manifests) for prereleases.</NonGoal>
+      <NonGoal>Changing the in-app updater client, its endpoint, or its rollback guards.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>For a hyphenated-tag run, gh release view reports isDraft=false and isPrerelease=true, and gh api repos/xronocode/mark/releases/latest still returns the previous stable tag after publication.</Criterion>
+      <Criterion>The updater feed is unchanged by a prerelease publication: latest.json content and the counting-gateway URLs still address the previous stable version, verified in the publish job output.</Criterion>
+      <Criterion>The publish-cask job is skipped for hyphenated tags and still runs for stable tags.</Criterion>
+      <Criterion>The existing hyphenated-SemVer prerelease classification (v1.4.0 behavior) keeps working in the create and idempotent-update paths.</Criterion>
+      <Criterion>Windows assets upload for a prerelease when WINDOWS_RELEASE is set, and the asset digest verification path covers them.</Criterion>
+      <Criterion>A subsequent stable release on the same pipeline advances releases/latest and the updater feed exactly as before (existing assertions green).</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>actionlint on .github/workflows/release.yml; npm run release:governance; the workflow's own publish-path assertions on a dry-run/manual dispatch; after approval, the first real prerelease tag run serves as live evidence.</ExpectedCommand>
+      <ExpectedEvidence>For the first prerelease tag: release-view JSON with isPrerelease=true and isLatest=false, releases/latest unchanged, latest.json diff-clean, cask job skipped in the run log; for the next stable release: feed-advance and cask assertions green, proving no stable-path regression.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>Only -beta.N and -canary.N suffix shapes are expected in practice; the classifier keeps treating any hyphenated SemVer as a prerelease.</Assumption>
+      <Assumption>Testers install prereleases by direct asset links over the stable installation (same bundle id) and roll back by reinstalling the stable DMG; the existing updater rollback guards cover the return path.</Assumption>
+      <Assumption>The owner accepts collecting-train quality for prerelease tags: the prerelease path deliberately skips train readiness while keeping signing and notarization.</Assumption>
+    </Assumptions>
+    <Approval>
+      <ApprovedBy>Owner, 2026-11-17: channel design chosen interactively (prerelease-tag option selected over hand-built DMG and full canary channel), confirmed with "го"; autonomous-goal mandate the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (recorded privately, 2026-11-17) delegates technical spec/plan approval for this wave to the executing agent. Delegated approval recorded by the agent per that mandate; not an interactive owner answer to this document.</ApprovedBy>
+      <ApprovalScope>Implement with the established gates: actionlint, npm run release:governance, grace target/final assertions, hosted CI green on the exact candidate.</ApprovalScope>
+    </Approval>
+  </C-RELEASE-CANARY-PRERELEASE>
+</GraceChangeSpec>
