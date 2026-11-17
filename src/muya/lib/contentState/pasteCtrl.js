@@ -15,6 +15,7 @@
 //
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream pasteCtrl baseline, previously ungoverned.)
+//   - 2026-11-17 v1.3.0: C-PASTE-ASCII-TABLES — START_BLOCK_SMART_PASTE_ASCII_TABLE converts a detected terminal-rendered plain-text table (box borders or rule-aligned columns) into a GFM pipe table before markdownToState on the normal path only; pasteAsPlainText and special surfaces keep raw text.
 //   - 2026-10-13 v1.2.0: C-24 R-4 — the local-path image branch of pasteImage became START_BLOCK_INSERT_IMAGE_FROM_PATH (insertImageFromPath), reused by the Tauri file drop; an image-action failure still ends the paste.
 //   - 2026-09-21 v1.1.0: C-16 R-1 — START_BLOCK_SMART_PASTE_URL wraps a non-empty single-block selection as [text](url) before the Firefox URL→anchor special case; SMART_PASTE_URL_REG accepts bare hosts (URL_REG's mandatory /path rejected the most common clipboard form); link labels escape brackets/backslashes and flatten soft breaks, and URLs containing parentheses are declined so the CommonMark destination cannot be truncated; special surfaces (code/language/table cells) and pasteAsPlainText keep their own handling.
 // END_CHANGE_SUMMARY
@@ -28,6 +29,7 @@ import {
 } from '../config'
 import { sanitize, getUniqueId, getImageInfo as getImageSrc, getPageTitle } from '../utils'
 import { getImageInfo } from '../utils/getImageInfo'
+import { plainTextTableToMarkdown } from '../utils/plainTextTable'
 
 const LIST_REG = /ul|ol/
 const LINE_BREAKS_REG = /\n/
@@ -538,9 +540,24 @@ const pasteCtrl = (ContentState) => {
       return this.partialRender()
     }
 
+    // START_BLOCK_SMART_PASTE_ASCII_TABLE
+    // C-PASTE-ASCII-TABLES: terminal-rendered tables (box-drawing borders
+    // or rule-aligned columns) arrive as plain text with no HTML flavor and
+    // no Markdown syntax, so they used to paste as literal art. Convert a
+    // confidently detected table to a GFM pipe table before the Markdown
+    // parse. Only the normal plain-text path converts: pasteAsPlainText is
+    // an explicit raw-text request, and the special surfaces (language
+    // input, code content, table cells) were handled and returned above.
+    let markdownSource = text
+    if (type === 'normal' && copyType === 'onlyMarkdown') {
+      const converted = plainTextTableToMarkdown(text)
+      if (converted) markdownSource = converted
+    }
+    // END_BLOCK_SMART_PASTE_ASCII_TABLE
+
     const stateFragments =
       type === 'pasteAsPlainText' || copyType === 'onlyMarkdown'
-        ? this.markdownToState(text)
+        ? this.markdownToState(markdownSource)
         : this.html2State(html)
 
     if (stateFragments.length <= 0) {
