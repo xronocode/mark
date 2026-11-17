@@ -66,7 +66,10 @@ const sliceBySpans = (line, spans) =>
   spans.map(([start, end]) => line.slice(start, end).trim())
 
 const escapeCell = (cell) =>
-  cell.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
+  // Backslash first so an escaped pipe cannot itself be re-escaped, and
+  // a trailing backslash cannot merge with the closing delimiter — the
+  // complete escape set for a GFM table cell (CodeQL js/incomplete-sanitization).
+  cell.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
 
 const rowsToGfm = (rows) => {
   const width = rows[0].length

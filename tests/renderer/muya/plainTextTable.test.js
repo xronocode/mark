@@ -102,10 +102,11 @@ describe('plainTextTableToMarkdown', () => {
     expect(convert('short')).toBeNull()
   })
 
-  it('escapes pipes inside cells and cannot break out of the GFM row', () => {
-    const boxed = '┌────┬────┐\n│ a|b │ c  │\n│ d  │ e  │\n└────┴────┘'
+  it('escapes pipes and backslashes inside cells and cannot break out of the GFM row', () => {
+    const boxed = '┌────┬────┐\n│ a|b │ c\\│\n│ d  │ e  │\n└────┴────┘'
     const out = convert(boxed)
     expect(out).toContain('a\\|b')
+    expect(out).toContain('c\\\\')
   })
 
   it('pads ragged rows and clips phantom columns', () => {
