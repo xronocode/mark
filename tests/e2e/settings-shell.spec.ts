@@ -1,7 +1,128 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator, type Page, type TestInfo } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
 import JSZip from 'jszip'
+import { writeFile } from 'node:fs/promises'
+
+// START_MODULE_CONTRACT
+//   PURPOSE: Verify real Settings consumers, export preferences and shared keyboard-focus presentation.
+//   SCOPE: Built renderer in the existing Chromium/WebKit projects with controlled preference transport.
+//   DEPENDS: Playwright, canonical Tauri shim, editor boot helpers, JSZip and task-output filesystem writes.
+//   LINKS: M-011; V-M-011; C-SETTINGS-KEYBOARD-FOCUS.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   installFocusPreferences - Seed controlled theme/value states and observe preference writes.
+//   focusThroughKeyboard - Reach a real target by Tab, recording any WebKit Option-Tab fallback.
+//   focusState - Read value, selection, geometry and resolved focus colors without changing focus.
+//   checkKeyboardFocus - Prove visible focus and unchanged control semantics from actual keyboard input.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: Add source-bound keyboard presentation regressions for actual Settings/Quick Settings consumers.
+// END_CHANGE_SUMMARY
+
+async function installFocusPreferences(page: Page, theme: string) {
+  await installTauriShim(page)
+  await page.addInitScript(({ theme }) => {
+    const w = window as any
+    const defaults = w.__TAURI_INTERNALS__.invoke('mt_prefs_get_all')
+    w.__mockInvoke.mt_prefs_get_all = async () => ({
+      ...await defaults,
+      theme, followSystemTheme: false, language: 'en', autoSave: false,
+      previewModeOnFinderOpen: false, restoreSessionOnLaunch: true,
+      rememberTableColumnSizes: true, tableFullWidthDefault: 'auto',
+      fontSize: 16, lineHeight: 1.6, editorLineWidth: '769px'
+    })
+    w.__focusPreferenceWrites = []
+    for (const command of ['mt_prefs_set', 'mt_set_user_preference', 'mt::prefs::set']) {
+      w.__mockInvoke[command] = (args: unknown) => {
+        w.__focusPreferenceWrites.push({ command, args })
+        return null
+      }
+    }
+  }, { theme })
+}
+
+async function focusThroughKeyboard(page: Page, target: Locator, info: TestInfo, label: string) {
+  let reached = false
+  for (const key of info.project.name.includes('webkit') ? ['Tab', 'Alt+Tab'] : ['Tab']) {
+    const visited = await page.evaluateHandle(() => new Set<Element>())
+    let presses = 0
+    try {
+      for (; presses < 140; presses++) {
+        await page.keyboard.press(key)
+        if (await target.evaluate(el => document.activeElement === el)) { reached = true; break }
+        if (await page.evaluate(seen => {
+          const active = document.activeElement!
+          if (seen.has(active)) return true
+          seen.add(active)
+          return false
+        }, visited)) break
+      }
+    } finally { await visited.dispose() }
+    info.annotations.push({ type: 'keyboard-route', description: `${label}: ${key}, ${presses + 1} presses, reached=${reached}` })
+    if (reached) return
+  }
+  expect(reached, `No real keyboard route to ${label}`).toBe(true)
+}
+
+async function focusState(target: Locator) {
+  return target.evaluate(el => {
+    const row = el.closest('.pref-row')!
+    const style = getComputedStyle(el)
+    const probe = document.createElement('span')
+    probe.style.cssText = 'position:absolute;color:var(--prefAccent)'
+    row.append(probe)
+    const accent = getComputedStyle(probe).color
+    probe.remove()
+    const bounds = (node: Element) => {
+      const r = node.getBoundingClientRect()
+      const anchor = row.getBoundingClientRect()
+      return { x: r.x - anchor.x, y: r.y - anchor.y, width: r.width, height: r.height }
+    }
+    return {
+      focused: document.activeElement === el, focusVisible: el.matches(':focus-visible'), accent,
+      outline: { style: style.outlineStyle, width: style.outlineWidth, offset: style.outlineOffset, color: style.outlineColor },
+      border: style.borderColor,
+      invariant: {
+        value: 'value' in el ? String((el as HTMLInputElement).value) : el.getAttribute('aria-checked'),
+        checked: el.getAttribute('aria-checked'),
+        classes: el.className, bounds: bounds(el), rowBounds: bounds(row),
+        segments: [...row.querySelectorAll('.pref-segment')].map(node => ({ classes: node.className, checked: node.getAttribute('aria-checked') })),
+        writes: (window as any).__focusPreferenceWrites.length
+      }
+    }
+  })
+}
+
+async function checkKeyboardFocus(page: Page, target: Locator, info: TestInfo, label: string, textbox = false) {
+  await target.scrollIntoViewIfNeeded()
+  await page.mouse.move(1, 1)
+  const before = await focusState(target)
+  expect(before.focused, `${label}: setup must start outside the target`).toBe(false)
+  const row = target.locator('xpath=ancestor::section[contains(@class,"pref-row")]')
+  const beforePath = info.outputPath(`${label}-before.png`)
+  const beforeImage = await row.screenshot({ path: beforePath, animations: 'disabled', caret: 'hide' })
+  await focusThroughKeyboard(page, target, info, label)
+  const after = await focusState(target)
+  const statePath = info.outputPath(`${label}-state.json`)
+  await writeFile(statePath, JSON.stringify({ before, after, keyboardRoutes: info.annotations.filter(item => item.type === 'keyboard-route'), writes: await page.evaluate(() => (window as any).__focusPreferenceWrites) }, null, 2))
+  await info.attach(`${label}-state`, { path: statePath, contentType: 'application/json' })
+  expect(after.focusVisible, label).toBe(true)
+  expect(after.invariant, `${label}: focus must not change value, geometry, selection or writes`).toEqual(before.invariant)
+  const focusedPath = info.outputPath(`${label}-focused.png`)
+  const focusedImage = await row.screenshot({ path: focusedPath, animations: 'disabled', caret: 'hide' })
+  await info.attach(`${label}-before`, { path: beforePath, contentType: 'image/png' })
+  await info.attach(`${label}-focused`, { path: focusedPath, contentType: 'image/png' })
+  if (textbox) expect.soft(after.border, label).not.toBe(before.border)
+  else expect.soft(after.outline, label).toEqual({ style: 'solid', width: '2px', offset: '1px', color: after.accent })
+  expect.soft(focusedImage.equals(beforeImage), `${label}: the painted row must visibly distinguish focus`).toBe(false)
+  await page.keyboard.press('Tab')
+  const away = await focusState(target)
+  expect(away.focused).toBe(false)
+  if (!textbox) expect.soft(away.outline.style, label).not.toBe('solid')
+}
 
 /**
  * C-38 T-003 — the redesigned Settings shell.
@@ -12,6 +133,89 @@ import JSZip from 'jszip'
  */
 
 test.use({ viewport: { width: 640, height: 620 } })
+
+for (const theme of ['paper', 'ink']) {
+  test(`shows keyboard focus on shared Settings controls in ${theme}`, async ({ page, browser }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    const general = page.locator('.pref-toolbar [data-tab="general"]')
+    const generalTargets = [
+      ['switch-off', '.pref-switch[aria-checked="false"]'],
+      ['switch-on', '.pref-switch[aria-checked="true"]'],
+      ['select', '.pref-popup:not([disabled])']
+    ]
+    for (const [label, selector] of generalTargets) {
+      await general.click()
+      await checkKeyboardFocus(page, page.locator(`.pref-tab-page--general ${selector}`).first(), info, `${theme}-${label}`)
+    }
+    const appearance = page.locator('.pref-toolbar [data-tab="appearance"]')
+    for (const [label, selector] of [
+      ['segment-selected', '.pref-segment.is-active'],
+      ['segment-unselected', '.pref-segment:not(.is-active)'],
+      ['textbox-control', '.pref-text-box-item input.pref-field:not([disabled])']
+    ]) {
+      await appearance.click()
+      await checkKeyboardFocus(page, page.locator(`.pref-tab-page--appearance ${selector}`).first(), info, `${theme}-${label}`, label === 'textbox-control')
+    }
+    // Independent pointer-first context: keyboard modality from the main
+    // regression must not make this positive activation control pass.
+    const pointerContext = await browser.newContext({ viewport: { width: 640, height: 620 } })
+    try {
+      const pointerPage = await pointerContext.newPage()
+      await installFocusPreferences(pointerPage, theme)
+      await pointerPage.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-pointer&debug=0')
+      if (theme === 'ink') await expect(pointerPage.locator('body')).toHaveClass(/dark/)
+      else await expect(pointerPage.locator('body')).not.toHaveClass(/dark/)
+      const toggle = pointerPage.locator('.pref-tab-page--general .pref-switch').first()
+      await expect(toggle).toHaveAttribute('aria-checked', 'false')
+      await toggle.click()
+      await expect(toggle).toHaveAttribute('aria-checked', 'true')
+      await expect.poll(() => pointerPage.evaluate(() => (window as any).__focusPreferenceWrites.length)).toBeGreaterThan(0)
+      const state = await focusState(toggle)
+      if (state.focusVisible) expect(state.outline).toEqual({ style: 'solid', width: '2px', offset: '1px', color: state.accent })
+      else expect(state.outline.style).not.toBe('solid')
+    } finally { await pointerContext.close() }
+  })
+
+  test(`shows keyboard focus on shared Quick Settings controls in ${theme}`, async ({ page }, info) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await installFocusPreferences(page, theme)
+    await bootEditor(page)
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.evaluate(() => (window as any).__emitFakeEvent('mt::open-new-tab', {
+      pathname: '/tmp/mark-e2e/focus-controls.md', filename: 'focus-controls.md',
+      markdown: '# Focus controls\n\nControlled keyboard focus document.\n',
+      lineEnding: 'lf', isUtf8BomEncoded: false, adjustLineEndingOnSave: false
+    }))
+    await expect(page.locator('.editor-with-tabs')).toContainText('Controlled keyboard focus document.')
+    await page.locator('.quick-settings-btn').click()
+    const panel = page.locator('.quick-settings-popover')
+    await expect(panel).toBeVisible()
+    await panel.getByRole('tab', { name: 'Page', exact: true }).click()
+    // Opening the fixture schedules session/position persistence independently
+    // of keyboard focus. Observe those real bootstrap writes before counting
+    // control-only effects; never erase or filter the write record.
+    await expect.poll(() => page.evaluate(() => {
+      const writes = (window as any).__focusPreferenceWrites
+      return writes.some((entry: any) => entry.args?.key === 'lastSessionFormats' && entry.args.value.some((item: any) => item.pathname === '/tmp/mark-e2e/focus-controls.md')) &&
+        writes.some((entry: any) => entry.args?.key === 'filePositions' && entry.args.value.files?.['/tmp/mark-e2e/focus-controls.md'])
+    })).toBeTruthy()
+    const nearest = panel.locator('.quick-page-tab .pref-segment.is-near')
+    await expect(nearest).toHaveCount(1)
+    await checkKeyboardFocus(page, nearest, info, `${theme}-quick-nearest-preset`)
+    for (const [label, selector] of [
+      ['switch-on', '.pref-switch'],
+      ['segment-selected', '.pref-segment.is-active'],
+      ['segment-unselected', '.pref-segment:not(.is-active)']
+    ]) {
+      await panel.getByRole('tab', { name: 'Tables', exact: true }).click()
+      await checkKeyboardFocus(page, panel.locator(`.quick-tables-tab ${selector}`).first(), info, `${theme}-quick-${label}`)
+    }
+  })
+}
 
 test.describe('settings shell', () => {
   test.beforeEach(async ({ page }) => {

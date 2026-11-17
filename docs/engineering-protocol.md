@@ -124,6 +124,20 @@ module and define explicit wave-level gates for broad changes.
    `grace status --path . --with modules --json`.
 7. Follow the [commit and push safety protocol](commit-push-safety.md).
 
+## Archive link maintenance
+
+When archiving a change, search the tracked source, tests and tools for paths
+to its active bundle. Update contract and comment navigation links to the
+archived bundle in the same change. Use an approved successor only when its
+recorded lineage replaces the original bundle. Do not rewrite historical plans,
+frozen sources, executable evidence paths or deliberate negative fixtures.
+
+After moving the bundle, repeat the search and verify that every navigation
+link resolves to the intended existing specification or plan. Inspect remaining
+matches individually: an executable active-or-archive resolver or a negative
+fixture is not a broken navigation link. Unresolved navigation links must be
+fixed before handoff; record the reason for any retained executable reference.
+
 ## Delivery boundary
 
 The [release-train protocol](release-trains/README.md) is authoritative for

@@ -1,3 +1,23 @@
+// FILE: tests/renderer/prefComponents/keybindings-deep.test.js
+// VERSION: 1.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: Verify the keyboard-shortcuts settings actions, loading, filtering and release of configurator data on unmount.
+//   SCOPE: Shallow-mounted settings component with controlled IPC; settled-bootstrap cleanup assertions retain the same component instance after unmount.
+//   DEPENDS: Vue Test Utils, Vue, Vitest, test Pinia, prefComponents/keybindings/index.vue.
+//   LINKS: .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011; .grace/changes/archive/C-38.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   logErrorMock - Capture expected logger failures from settings actions and loading.
+//   notifyMock - Capture user notices from controlled settings actions.
+//   globalStubs - Provide framework and control stubs for mounted settings tests.
+//   makeMockConfigurator - Build a controlled configurator for settings action and lifecycle tests.
+// END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   - 2026-11-13 TEST:F-002: assert both cleanup results on the retained mounted instance after bootstrap settles, with populated preconditions.
+// END_CHANGE_SUMMARY
+
 /**
  * Deep tests for src/renderer/src/prefComponents/keybindings/index.vue
  *
@@ -135,7 +155,7 @@ describe('KeybindingsSettings.vue – deep tests', () => {
   })
 
   afterEach(() => {
-    wrapper.unmount()
+    wrapper?.unmount()
   })
 
   // ── openKeybindingWiki ───────────────────────────────────────────────
@@ -372,13 +392,19 @@ describe('KeybindingsSettings.vue – deep tests', () => {
 
   // ── onUnmounted cleanup ──────────────────────────────────────────────
 
-  it('onUnmounted clears keybindingList and configurator', () => {
-    wrapper.vm.keybindingConfigurator = makeMockConfigurator()
-    wrapper.vm.keybindingList = [{ id: 'test' }]
+  it('onUnmounted clears keybindingList and configurator', async () => {
+    await flushPromises()
+    const instance = wrapper.vm
+    instance.keybindingConfigurator = makeMockConfigurator()
+    instance.keybindingList = [{ id: 'test' }]
+    expect(instance.keybindingConfigurator).not.toBeNull()
+    expect(instance.keybindingList).toEqual([{ id: 'test' }])
+
     wrapper.unmount()
-    // After unmount, the refs should be cleared
-    // We test this by creating a new wrapper since unmount already happened
-    expect(true).toBe(true) // unmount completed without error
+    wrapper = null
+
+    expect(instance.keybindingList).toEqual([])
+    expect(instance.keybindingConfigurator).toBeNull()
   })
 
   // ── rebuildKeybindingList ────────────────────────────────────────────

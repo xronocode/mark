@@ -1758,6 +1758,13 @@
               "date": "2026-11-13",
               "build": "f9b709ec14d2b53f58d414a58cb38d09743040de",
               "evidence": "https://github.com/xronocode/mark/pull/240"
+            },
+            {
+              "command": "Supplemental original gallery-state and hover verification",
+              "result": "Supplemental source-bound built-renderer verification covers enabled/healthy, disabled/healthy and disabled/unavailable gallery states in Chromium and WebKit under Paper and Ink: 12 state instances and eight hover controls. Token and rendered-state evidence covers the original gallery-state criterion using isolated synthetic data. Browser/preview processes stopped and generated renderer assets were deleted. Native discovery, credentials, extension operations and owner/platform acceptance remain outside this evidence.",
+              "date": "2026-11-15",
+              "build": "a504783a98b9aa8ff5b1b388689ba2f1af114b3c",
+              "evidence": "https://github.com/xronocode/mark/pull/240; https://github.com/xronocode/mark/commit/a504783a98b9aa8ff5b1b388689ba2f1af114b3c"
             }
           ],
           "manual": [],
@@ -1878,6 +1885,239 @@
               "section": "manual",
               "scenario": "Dispatch-build native and owner/platform tab presentation acceptance",
               "reason": "Rendered source-bound observations are not a native or owner verdict. No dispatch artifact or platform acceptance is supplied by this theme-only repair."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-IMAGE-ACTION-CATALOG",
+        "summary": "Keep Settings search aligned with the two supported image actions.",
+        "state": "queued",
+        "commits": [
+          "6e8e2a1d0d19aa44144225090859caa005f005e3"
+        ],
+        "pullRequest": {
+          "number": 248,
+          "headSha": "716b11db1e962ff457c55d4a9e5a7054ce51d134",
+          "mergeSha": "6e8e2a1d0d19aa44144225090859caa005f005e3",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/248/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Five focused renderer suites for schema, mounted Settings search, Advanced options and preference hydration",
+              "result": "60 passed, zero failed on the current candidate. Schema and regression test are byte-identical to the reviewed repair. All 68 schema keys, defaults, unrelated metadata and legacy upload-to-folder hydration remain intact.",
+              "date": "2026-11-14",
+              "build": "716b11db1e962ff457c55d4a9e5a7054ce51d134",
+              "evidence": "https://github.com/xronocode/mark/pull/248"
+            },
+            {
+              "command": "Current-state integrity and verification preservation",
+              "result": "Current lint reports zero errors and four existing heuristic warnings. Every existing verification command/scenario and unrelated verification entity is preserved; one command and one scenario are added. Staged whitespace check passed.",
+              "date": "2026-11-14",
+              "build": "716b11db1e962ff457c55d4a9e5a7054ce51d134",
+              "evidence": "https://github.com/xronocode/mark/pull/248"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, renderer/backend checks on macOS, Windows and Linux, QuickLook, CI and five CodeQL analyses passed. Browser: 840 passed, zero failed, zero flaky and seven existing conditional skips. No assertions, retries, skips, timeouts or coverage floors changed. The earlier failed browser result remains recorded on the superseded proposal.",
+              "date": "2026-11-14",
+              "build": "716b11db1e962ff457c55d4a9e5a7054ce51d134",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43559860469; https://github.com/xronocode/mark/pull/248/checks"
+            },
+            {
+              "command": "Merge identity and current-state integrity",
+              "result": "Exactly three source/verification files differ from main and match the checked candidate. Predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing heuristic warnings and no drift. Detailed module-health remains one ready and 72 blocked from existing verification-linkage findings.",
+              "date": "2026-11-14",
+              "build": "6e8e2a1d0d19aa44144225090859caa005f005e3",
+              "evidence": "https://github.com/xronocode/mark/pull/248"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native Settings, cross-window search and dispatch-build owner/platform acceptance",
+              "reason": "Mounted renderer tests use controlled routing and translation boundaries. No native application or owner verdict is supplied by this metadata correction."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-SHELL-CHROME-FONT",
+        "summary": "Use the shared interface font for notices and the What's New sheet while preserving document typography.",
+        "state": "queued",
+        "commits": [
+          "48e7fe17db434d2162b4423fd6d19ed66d6427c0"
+        ],
+        "pullRequest": {
+          "number": 249,
+          "headSha": "df3a43647a4c4d56febc02490b194bf50d0db229",
+          "mergeSha": "48e7fe17db434d2162b4423fd6d19ed66d6427c0",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/249/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused shell renderer tests and source identity",
+              "result": "49 tests across four suites passed. The reviewed CSS and all runtime/test inputs are unchanged; the updated base differs only in two train documents. Existing verification entries are preserved.",
+              "date": "2026-11-14",
+              "build": "df3a43647a4c4d56febc02490b194bf50d0db229",
+              "evidence": "https://github.com/xronocode/mark/pull/249"
+            },
+            {
+              "command": "Source-bound native macOS presentation",
+              "result": "Six native observations cover the Paper startup sheet, a Georgia document, Paper/Ink What's New opened through the Help menu and Paper/Ink notices from real HTML exports. Both HTML files contain the expected fixture text; the Markdown fixture and checked final preferences are preserved. Exact glyph-face identity and owner/platform verdicts are not supplied.",
+              "date": "2026-11-14",
+              "build": "Staged tree adaac5c90b7c2668209f0679e76c96f8dbb1dc90; binary SHA-256 c6415a467e7b0c9ebd6e5ee86c8302b8495ef300988f4adc8b1c99a10688ba2e; runtime matches df3a43647a4c4d56febc02490b194bf50d0db229",
+              "evidence": "https://github.com/xronocode/mark/pull/249"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, renderer/backend checks on three hosts, QuickLook, CI and five CodeQL analyses passed. Browser: 840 passed, zero failed, zero flaky and seven existing conditional skips. Earlier canceled jobs remain separate historical evidence.",
+              "date": "2026-11-14",
+              "build": "df3a43647a4c4d56febc02490b194bf50d0db229",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43565683830; https://github.com/xronocode/mark/pull/249/checks"
+            },
+            {
+              "command": "Merge identity and current-state integrity",
+              "result": "Predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing warnings and no drift; module-health remains one ready and 72 blocked from existing verification-linkage findings.",
+              "date": "2026-11-14",
+              "build": "48e7fe17db434d2162b4423fd6d19ed66d6427c0",
+              "evidence": "https://github.com/xronocode/mark/pull/249"
+            },
+            {
+              "command": "Supplemental original interface-font control comparison",
+              "result": "Supplemental source-bound built-renderer verification compares notices and What's New with actual ordinary dialog and banner interface-font controls in Chromium and WebKit under Paper and Ink, using Open Sans and Georgia document settings: 16 surface cases and eight ordinary-dialog controls. Shell stacks match the interface controls while document typography follows the selected document font. Browser/preview processes stopped and generated renderer assets were deleted. This provides no exact native glyph-face identity or new owner/platform verdict.",
+              "date": "2026-11-15",
+              "build": "a504783a98b9aa8ff5b1b388689ba2f1af114b3c",
+              "evidence": "https://github.com/xronocode/mark/pull/249; https://github.com/xronocode/mark/commit/a504783a98b9aa8ff5b1b388689ba2f1af114b3c"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Exact native glyph-face identity, non-macOS native rendering and dispatch-build owner/platform acceptance",
+              "reason": "Native observations cover macOS Paper/Ink with a controlled Georgia document; computed browser stacks and rendered observations do not supply these broader verdicts."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SETTINGS-KEYBOARD-FOCUS",
+        "summary": "Show keyboard focus on shared Settings and Quick Settings controls without changing values or layout.",
+        "state": "queued",
+        "commits": [
+          "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990"
+        ],
+        "pullRequest": {
+          "number": 269,
+          "headSha": "5857278e75cee89e6a0e08e499e61b18851c5dae",
+          "mergeSha": "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/269/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Shared-control suites, final renderer build and source-bound Settings matrix",
+              "result": "The combined current-main candidate passed 122 tests across six suites, including all 26 shared-control cases, and the renderer build. All nine Focus files match the approved implementation. The unchanged implementation also passed 30 source-bound Chromium/WebKit Settings cases, including eight focus cases and 40 keyboard checkpoints; values, geometry, selection and preference-write counts are preserved.",
+              "date": "2026-11-14",
+              "build": "5857278e75cee89e6a0e08e499e61b18851c5dae",
+              "evidence": "https://github.com/xronocode/mark/pull/269"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend checks, QuickLook, CI and five CodeQL analyses passed. Browser: 848 passed, 0 failed, 0 flaky and 7 existing conditional skips. Thresholds and retry policy are unchanged.",
+              "date": "2026-11-14",
+              "build": "5857278e75cee89e6a0e08e499e61b18851c5dae",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43604961531; https://github.com/xronocode/mark/pull/269/checks"
+            },
+            {
+              "command": "Merge identity and current-state integrity",
+              "result": "Predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing warnings and no drift. Existing module verification-linkage findings remain separate.",
+              "date": "2026-11-14",
+              "build": "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990",
+              "evidence": "https://github.com/xronocode/mark/pull/269"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native switch/segment keyboard focus and owner/platform acceptance",
+              "reason": "The owner explicitly approved integration while retaining these open checks. Earlier native select observations are partial; browser transport fixtures do not replace native keyboard evidence."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SETTINGS-WINDOW-RESTORE",
+        "summary": "Restore Settings to the foreground when reopened and show Export settings from Word export notices.",
+        "state": "queued",
+        "commits": [
+          "e68c06b69017f6b752934b1791ac513c735a5e6b"
+        ],
+        "pullRequest": {
+          "number": 271,
+          "headSha": "45d5da4d34e8ab6711c446ce35aa5e5125673672",
+          "mergeSha": "e68c06b69017f6b752934b1791ac513c735a5e6b",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/271/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused backend compatibility and Settings navigation suites; renderer production build",
+              "result": "43 backend compatibility tests and 34 renderer tests across three suites passed. Selected final assertions and both declared command gates passed with zero errors and four existing heuristic warnings; the renderer production build passed.",
+              "date": "2026-11-15",
+              "build": "45d5da4d34e8ab6711c446ce35aa5e5125673672",
+              "evidence": "https://github.com/xronocode/mark/pull/271"
+            },
+            {
+              "command": "Automated native macOS Settings restoration and Word export controls",
+              "result": "All five controls passed: ordinary reopening restores the minimized Settings window and preserves General; Word-notice actions restore minimized, visible and application-hidden Settings to Export using the same window; after normal close a fresh notice creates one Settings window with Export selected. The window remains 640 by 620. Word outputs contain the fixture marker and the Markdown source is unchanged. Actual accessibility controls, selected section and WindowServer visibility supply the evidence; no pixel-capture or owner verdict is supplied. Test applications quit normally, owned processes and windows stopped, and test binaries were deleted.",
+              "date": "2026-11-15",
+              "build": "Checked command source 45d5da4d34e8ab6711c446ce35aa5e5125673672; runtime SHA-256 f59baa5b38631533d99cf7e7f41dd4580c32a708499b1aaa0da55ff234218e6d; binary SHA-256 787c3ea0923b1703da4cb28ed41d0cb468323f0414da016f7b83d0ecbc59abc0",
+              "evidence": "https://github.com/xronocode/mark/pull/271"
+            },
+            {
+              "command": "Exact-head hosted matrix, required checks and unsigned packaging dry-run",
+              "result": "All four required statuses, CI, test, release/governance, unsigned packaging dry-run and five CodeQL analyses passed. Browser: 848 passed, zero failed, zero flaky and seven existing conditional skips. No release or signing authorization follows from these checks.",
+              "date": "2026-11-15",
+              "build": "45d5da4d34e8ab6711c446ce35aa5e5125673672",
+              "evidence": "https://github.com/xronocode/mark/pull/271/checks"
+            },
+            {
+              "command": "Merge identity and post-integration current-state integrity",
+              "result": "Predicted and integrated tree d3656fc6f3f0cdc9acf208f32e28921fd7c109ec match. Main is clean; current lint/status reports zero integrity errors and four existing heuristic warnings. Existing module verification-linkage findings remain separate.",
+              "date": "2026-11-15",
+              "build": "e68c06b69017f6b752934b1791ac513c735a5e6b",
+              "evidence": "https://github.com/xronocode/mark/pull/271"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner acceptance and Windows/Linux native restoration",
+              "reason": "Objective macOS accessibility and WindowServer observations supply technical evidence only. No personal owner verdict or Windows/Linux native verdict is supplied."
+            },
+            {
+              "section": "automatic",
+              "scenario": "Pixel-level native presentation or screenshot comparison",
+              "reason": "Native direct capture was unavailable. The verified native controls, selected section and WindowServer visibility do not establish a screenshot or pixel-rendering verdict."
             }
           ]
         },
@@ -2482,7 +2722,8 @@
         "summary": "Resolve current source and test contract links to existing archived change bundles.",
         "state": "queued",
         "commits": [
-          "8723f859e9f3c385ad628ccff68556488e2a7f15"
+          "8723f859e9f3c385ad628ccff68556488e2a7f15",
+          "d8857f2516fd59f171d1d50412199c620e017eb0"
         ],
         "pullRequest": {
           "number": 254,
@@ -2505,6 +2746,13 @@
               "date": "2026-11-14",
               "build": "4129316b298b6aba9374fb898af4693a4bc54284",
               "evidence": "https://github.com/xronocode/mark/actions/runs/43468521081; https://github.com/xronocode/mark/pull/254/checks"
+            },
+            {
+              "command": "Archive link maintenance procedure",
+              "result": "Engineering protocol requires contract links to move with archived bundles and verifies their target specifications or plans before handoff. Four required statuses passed on the documentation head; predicted and integrated trees match. Current lint reports zero errors and four existing heuristic warnings. Runtime and executable test fixtures are unchanged. Rust and Swift CodeQL were still running at merge; application source matches the previously checked source with all five language analyses passed.",
+              "date": "2026-11-14",
+              "build": "3cc9731e9bb1294a6b69a2e369211966b3b47ef7",
+              "evidence": "https://github.com/xronocode/mark/pull/266; https://github.com/xronocode/mark/pull/266/checks"
             }
           ],
           "manual": [],
@@ -2671,6 +2919,156 @@
               "section": "manual",
               "scenario": "Native clipboard and dispatch-build owner/platform acceptance",
               "reason": "This verification-only repair uses the existing renderer IPC shim and supplies no native clipboard, native editor or owner verdict. It is an additional verification dependency, not another original audit record."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-CARGO-REPOSITORY-METADATA",
+        "summary": "Point inherited Cargo package metadata to the canonical public repository.",
+        "state": "queued",
+        "commits": [
+          "ef2e4359873688baa777edff275fd4012c177a08"
+        ],
+        "pullRequest": {
+          "number": 260,
+          "headSha": "773e7994f272c6707ce01d8e645f3296673ca60f",
+          "mergeSha": "ef2e4359873688baa777edff275fd4012c177a08",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/260/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Locked offline Cargo metadata and exact-source comparison",
+              "result": "The inherited package repository URL is the only metadata difference. The corrected manifest is byte-identical to the original metadata correction; versions, dependencies and lockfiles are unchanged. Merged workspace metadata resolves the canonical repository.",
+              "date": "2026-11-14",
+              "build": "773e7994f272c6707ce01d8e645f3296673ca60f",
+              "evidence": "https://github.com/xronocode/mark/pull/260"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend tests, QuickLook, CI and five CodeQL analyses passed. Browser: 840 passed, zero failed, zero flaky and seven existing conditional skips. The integrated base contains the separate clipboard observation correction; the original metadata candidate remains closed without merge with its failed browser result preserved.",
+              "date": "2026-11-14",
+              "build": "773e7994f272c6707ce01d8e645f3296673ca60f",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43507141092; https://github.com/xronocode/mark/pull/260/checks"
+            },
+            {
+              "command": "Merge compatibility and current-state integrity",
+              "result": "Only Cargo.toml differs from main and it matches the checked head. All other main files are preserved; predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing heuristic warnings and no drift. Detailed module-health remains one ready and 72 blocked from existing verification-linkage findings.",
+              "date": "2026-11-14",
+              "build": "ef2e4359873688baa777edff275fd4012c177a08",
+              "evidence": "https://github.com/xronocode/mark/pull/260"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance",
+              "reason": "Metadata-only correction. No new native application or owner verdict is supplied; version, signing and release controls remain unchanged."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "FIX-KEYBINDING-CLEANUP-REGRESSION",
+        "summary": "Verify the existing keybinding editor releases populated state on unmount.",
+        "state": "queued",
+        "commits": [
+          "7f4f672e6c69f3f42ecb0c582e57e7a5d6ac795e"
+        ],
+        "pullRequest": {
+          "number": 238,
+          "headSha": "9dd86a1a7c8ae9c1a2486254c917642d9e6e7992",
+          "mergeSha": "7f4f672e6c69f3f42ecb0c582e57e7a5d6ac795e",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/238/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Four focused keybinding renderer suites",
+              "result": "61 tests passed on the exact committed tree. The mounted regression settles bootstrap, positively verifies populated state, retains the same instance and verifies both cleanup values. The regression and runtime match the reviewed repair and its two earlier independent cleanup-omission controls. All prior verification elements and attributes are preserved.",
+              "date": "2026-11-14",
+              "build": "9dd86a1a7c8ae9c1a2486254c917642d9e6e7992",
+              "evidence": "https://github.com/xronocode/mark/pull/238"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend checks, QuickLook, CI and five CodeQL analyses passed. Browser: 840 passed, 0 failed, 0 flaky and 7 existing conditional skips. Assertions, retries, skips, timeouts and coverage floors are unchanged.",
+              "date": "2026-11-14",
+              "build": "9dd86a1a7c8ae9c1a2486254c917642d9e6e7992",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43568641688; https://github.com/xronocode/mark/pull/238/checks"
+            },
+            {
+              "command": "Merge identity and current-state integrity",
+              "result": "Only the regression test and its verification entry differ from main. Predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing warnings and no drift; existing module-health linkage findings remain separate.",
+              "date": "2026-11-14",
+              "build": "7f4f672e6c69f3f42ecb0c582e57e7a5d6ac795e",
+              "evidence": "https://github.com/xronocode/mark/pull/238"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native memory-leak measurements, late-bootstrap lifetime and dispatch-build owner/platform acceptance",
+              "reason": "The regression verifies release after settled bootstrap; it does not measure native heap retention or provide broader lifetime/owner verdicts."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-QA-LOCAL-TAURI-TOOL",
+        "summary": "Require prepared local tooling and a restricted environment for isolated QA builds.",
+        "state": "queued",
+        "commits": [
+          "7450719668cf79454032ebc8d6cd8ead831d29cc"
+        ],
+        "pullRequest": {
+          "number": 268,
+          "headSha": "780eb362248604a34e6a343c0ca3d1be33e07f08",
+          "mergeSha": "7450719668cf79454032ebc8d6cd8ead831d29cc",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/268/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "Focused QA tool, registry and GitHub-control suites plus platform dry-runs",
+              "result": "96 tests across three suites and all three final commands passed. Matching inert tooling runs through Node; invalid metadata and paths fail before build or registry mutation. The explicit synthetic environment fixture preserves every excluded-name and input-immutability check. The registry still contains 22 items and 11 artifacts, and the generated survey is unchanged.",
+              "date": "2026-11-14",
+              "build": "780eb362248604a34e6a343c0ca3d1be33e07f08",
+              "evidence": "https://github.com/xronocode/mark/pull/268"
+            },
+            {
+              "command": "Exact-head hosted matrix and required checks",
+              "result": "All four required statuses, three-host renderer/backend checks, QuickLook, CI and five CodeQL analyses passed. Browser: 840 passed, 0 failed, 0 flaky and 7 existing conditional skips. Thresholds and retry policy are unchanged.",
+              "date": "2026-11-14",
+              "build": "780eb362248604a34e6a343c0ca3d1be33e07f08",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43600726047; https://github.com/xronocode/mark/pull/268/checks"
+            },
+            {
+              "command": "Merge identity and current-state integrity",
+              "result": "Predicted and integrated trees match. Current lint/status reports zero integrity errors, four existing warnings and no drift. Existing module verification-linkage findings remain separate.",
+              "date": "2026-11-14",
+              "build": "7450719668cf79454032ebc8d6cd8ead831d29cc",
+              "evidence": "https://github.com/xronocode/mark/pull/268"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Dispatch-build owner/platform acceptance and the separate signed-release dependency threat model",
+              "reason": "The approved security probe uses inert local tools and non-building dry-runs. Environment minimization is not a filesystem sandbox or installed-package byte-integrity proof."
             }
           ]
         },
