@@ -117,6 +117,8 @@
 //   handleImageCopyAction - C-56 T-006 embedded-image copy transport: an already-inserted ![](…) image goes back on the clipboard as a picture — local files through the existing read-binary bridge, remotes via fetch, PNG bytes as-is, other formats re-encoded on a canvas; serves the muya image toolbar button and the editor context-menu item.
 //   handleEditorSurfaceKeydown - FIX-005/FIX-006 wrapper keydown entry: runs the paragraph shortcut wave, then the preview Cmd+\ chord.
 //   handleParagraphShortcutKeys - FIX-005/FIX-006: physical-code chords inside the WYSIWYG surface — ⇧⌘D duplicate, ⇧⌘N new paragraph, ⇧⌘⌫ delete paragraph, ⌘1–6 heading levels (visual-regression-plan 13C; ⇧⌘P stays reserved for UC-025 Command Palette).
+//   currentFile float teardown - FIX-IMAGE-TOOLBAR-RESIDUE: every currentFile transition (including the falsy one that closes the last tab onto the home screen) clears the muya float overlays — toolbars and transformer circles no longer linger over the start screen.
+//   handleInlineFormatShortcutKeys - FIX-SIDEBAR-BOLD-CONFLICT: delivers the format picker's advertised Bold ⌘B chord (physical KeyB, no shift/alt) to muya's contentState.format('strong') on the WYSIWYG surface; read-only/locked/composing surfaces are inert, and the sidebar now rides ⇧⌘B in the native menu.
 //   handlePreviewKeydown - Cmd+\ preview-aware sidebar toggle (V-M-022 E-05 keeps other keys from exiting preview).
 //   renderFromStore - Debounced, IME-fenced render-only follow; no history, dirty or autosave echo.
 //   ensureUnified - Activate the single Muya history once per tab using one raw payload per entry.
@@ -637,8 +639,33 @@ const handleEditorSurfaceKeydown = (event) => {
     return
   }
   handleParagraphShortcutKeys(event)
+  handleInlineFormatShortcutKeys(event)
   handlePreviewKeydown(event)
 }
+
+// START_BLOCK_INLINE_FORMAT_SHORTCUTS
+// FIX-SIDEBAR-BOLD-CONFLICT (2026-11-17): the format picker advertises
+// Bold ⌘B, but no layer delivered the chord — the native menu used to
+// claim plain Cmd+B for the sidebar and swallow it before the webview
+// (the sidebar now rides ⇧⌘B, m009_menu.rs). This capture handler is the
+// desktop shortcut path for advertised inline formats, mirroring the
+// FIX-005/FIX-006 paragraph pattern: physical `code` matching so the
+// chord survives non-Latin layouts.
+const handleInlineFormatShortcutKeys = (event) => {
+  if (!event || event.isComposing) return
+  const cmdOrCtrl = isOsx ? event.metaKey : event.ctrlKey
+  if (!cmdOrCtrl || event.altKey || event.shiftKey) return
+  const target = event.target
+  if (!target || !target.closest || !target.closest('.editor-component')) return
+  if (target.closest('.ag-block-viewer')) return
+  if (isReadOnlySurface.value || currentFile.value?.locked) return
+  if (event.code === 'KeyB') {
+    event.preventDefault()
+    const muya = editor.value
+    if (muya?.contentState) muya.contentState.format('strong')
+  }
+}
+// END_BLOCK_INLINE_FORMAT_SHORTCUTS
 
 // START_BLOCK_PARAGRAPH_SHORTCUTS
 // FIX-005/FIX-006 (2026-10-20): the paragraph front menu advertised
@@ -1250,15 +1277,22 @@ watch(spellcheckerLanguage, (value, oldValue) => {
   }
 })
 
+// START_BLOCK_FLOAT_TOOLS_TEARDOWN
+// FIX-IMAGE-TOOLBAR-RESIDUE (external tester, 2026-11-16): closing the
+// last tab leaves currentFile null and the previous watch skipped the
+// hide on that falsy transition — the muya float overlays (format/image
+// toolbars and the transformer's resize circles, all registered in
+// keyboard.shownFloat) lingered over the home screen and survived file
+// reopen. Every real currentFile transition now clears them.
 watch(currentFile, (value, oldValue) => {
   if (value && value !== oldValue) {
     scrollToCursor(0)
-    // Hide float tools if needed.
-    if (editor.value) {
-      editor.value.hideAllFloatTools()
-    }
+  }
+  if (value !== oldValue && editor.value) {
+    editor.value.hideAllFloatTools()
   }
 })
+// END_BLOCK_FLOAT_TOOLS_TEARDOWN
 
 watch(sourceCode, (value, oldValue) => {
   if (value && value !== oldValue) {

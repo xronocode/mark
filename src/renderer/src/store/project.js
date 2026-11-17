@@ -32,6 +32,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-17 v2.1.0 C-SIDEBAR-MOVE-FILE: one async moveItem action owns
+//     sidebar moves — same-destination and destination-exists refusals
+//     before any native call, mt_fs_move, open-tab pathname/filename/DIRNAME
+//     migration, table-layouts / reading-position / page-width entry
+//     re-keying (rename's RENAME_IF_NEEDED pattern) and clipboard clearing;
+//     SIDEBAR::paste delegates cut sources to it and SIDEBAR::move-item
+//     carries drag-and-drop drops. The copy path is unchanged.
 //   - 2026-10-22 v2.2.0 C-MULTI-SOURCE-WORKSPACE fix wave (cloud
 //     follow-up): walk events coalesce (ENQUEUE_TREE_EVENT / FLUSH_TREE_EVENTS
 //     — a whole cloud drive froze the webview when ~30k events folded
@@ -50,6 +57,9 @@ import { defineStore } from 'pinia'
 import { addFile, unlinkFile, addDirectory, unlinkDirectory } from './treeCtrl'
 import bus from '../bus'
 import { create, paste, rename } from '../util/fileSystem'
+import { moveTableLayoutsEntry } from '../util/tableLayoutStore'
+import { moveFilePositionsEntry } from '../util/filePositionStore'
+import { movePageWidthEntry } from '../util/pageWidthStore'
 import { PATH_SEPARATOR } from '../config'
 import notice from '../services/notification'
 import { i18n } from '../i18n'
@@ -858,8 +868,13 @@ export const useProjectStore = defineStore('project', {
         const { pathname, isDirectory } = this.activeItem
         const dirname = isDirectory ? pathname : window.path.dirname(pathname)
         if (clipboard && clipboard.src) {
+          if (clipboard.type === 'cut') {
+            // C-SIDEBAR-MOVE-FILE: cut-paste and drag-and-drop share one
+            // move semantics (refusals, tab/store migration, clipboard).
+            this.moveItem(clipboard.src, dirname)
+            return
+          }
           clipboard.dest = dirname + PATH_SEPARATOR + window.path.basename(clipboard.src)
-
           if (window.path.normalize(clipboard.src) === window.path.normalize(clipboard.dest)) {
             notice.notify({
               title: 'Paste Forbidden',
@@ -868,7 +883,6 @@ export const useProjectStore = defineStore('project', {
             })
             return
           }
-
           paste(clipboard)
             .then(() => {
               this.clipboard = null
@@ -882,11 +896,81 @@ export const useProjectStore = defineStore('project', {
             })
         }
       })
+      bus.on('SIDEBAR::move-item', ({ src, destDir }) => {
+        this.moveItem(src, destDir)
+      })
       bus.on('SIDEBAR::rename', () => {
         const { pathname } = this.activeItem
         this.renameCache = pathname
         bus.emit('SIDEBAR::show-rename-input')
       })
+    },
+
+    // C-SIDEBAR-MOVE-FILE: one move semantics for every sidebar door
+    // (drag-and-drop and cut+paste). Refuses the no-op and the colliding
+    // destination before any native call, moves through mt_fs_move, then
+    // migrates open tabs and the per-pathname stores exactly like rename.
+    async moveItem(src, destDir) {
+      if (typeof src !== 'string' || typeof destDir !== 'string') return false
+      const filename = window.path.basename(src)
+      const dest = destDir + PATH_SEPARATOR + filename
+      if (window.path.normalize(src) === window.path.normalize(dest)) {
+        notice.notify({
+          title: 'Move Forbidden',
+          type: 'warning',
+          message: 'Source and destination must not be the same.'
+        })
+        return false
+      }
+      let exists = false
+      try {
+        await window.fileUtils.stat(dest)
+        exists = true
+      } catch {
+        exists = false
+      }
+      if (exists) {
+        notice.notify({
+          title: 'Move Forbidden',
+          type: 'warning',
+          message: `"${filename}" already exists in the destination folder.`
+        })
+        return false
+      }
+      try {
+        await window.fileUtils.move(src, dest)
+      } catch (err) {
+        notice.notify({
+          title: 'Error while moving',
+          type: 'error',
+          message: String(err?.message || err)
+        })
+        return false
+      }
+      // Open tabs follow the file (the editor store owns the tab list);
+      // the current file's DIRNAME must follow too, like the tab-move
+      // and rename paths.
+      const editorStore = useEditorStore()
+      const moved = editorStore.tabs.find((tab) => tab.pathname === src)
+      if (moved) {
+        moved.pathname = dest
+        moved.filename = filename
+        if (editorStore.currentFile && editorStore.currentFile.id === moved.id) {
+          window.DIRNAME = window.path.dirname(dest)
+        }
+      }
+      // Per-pathname stores re-key to the new location (rename's
+      // RENAME_IF_NEEDED pattern): table layouts, reading positions and
+      // the page-width entry.
+      moveTableLayoutsEntry(src, dest).catch((e) =>
+        console.warn(`[project][move][BLOCK_TABLE_LAYOUTS_MOVE_FAILED] ${e}`)
+      )
+      moveFilePositionsEntry(src, dest)
+      movePageWidthEntry(src, dest)
+      if (this.clipboard && this.clipboard.src === src) {
+        this.clipboard = null
+      }
+      return true
     },
 
     CREATE_FILE_DIRECTORY(name) {
