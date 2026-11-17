@@ -669,14 +669,14 @@ pub fn standard_menu() -> Vec<MenuItem> {
             command: None,
             accelerator: None,
             items: Some(vec![
+                // FIX-SIDEBAR-BOLD-CONFLICT: plain CmdOrCtrl+B belongs to
+                // bold text in the editor (the format picker advertises it);
+                // the native menu was intercepting the chord before the
+                // webview could apply strong emphasis.
                 MenuItem {
                     id: "view.toggle-sidebar".to_string(),
                     label: "Toggle Sidebar".to_string(),
                     command: Some("toggleSidebar".to_string()),
-                    // FIX-SIDEBAR-BOLD-CONFLICT: plain CmdOrCtrl+B belongs to
-                    // bold text in the editor (the format picker advertises
-                    // it); the native menu was intercepting the chord before
-                    // the webview could apply strong emphasis.
                     accelerator: Some("CmdOrCtrl+Shift+B".to_string()),
                     items: None,
                 },

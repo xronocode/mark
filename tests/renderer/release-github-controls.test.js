@@ -325,14 +325,18 @@ describe('release GitHub trust boundaries', () => {
       'PUB_DATE=$(git show -s --format=%cI "$TAG^{commit}")'
     )
     expect(release.jobs.publish.environment).toEqual({ name: 'release' })
-    expect(release.jobs.publish.needs).toEqual(['build', 'prepare-publication'])
+    // C-RELEASE-CANARY-PRERELEASE: publish reads authorize-tag's prerelease
+    // output for the prerelease-not-latest publication branch.
+    expect(release.jobs.publish.needs).toEqual(['authorize-tag', 'build', 'prepare-publication'])
     expect(release.jobs.publish.permissions).toEqual({ contents: 'write' })
     expect(release.jobs.publish.steps.some(({ uses }) => uses?.startsWith('actions/checkout@'))).toBe(false)
     expect(commands(release.jobs.publish)).not.toMatch(/npm\s|node tools\/|release:readiness/)
     expect(release.jobs['close-release-please']).toBeUndefined()
     expect(commands(release.jobs.publish)).toContain('BLOCK_RELEASE_LATEST_ADVANCED')
     expect(release.jobs['publish-cask'].environment).toBe('release-cask')
-    expect(release.jobs['publish-cask'].needs).toEqual(['build', 'publish'])
+    // C-RELEASE-CANARY-PRERELEASE: cask reads authorize-tag's prerelease
+    // output to skip prerelease tags entirely.
+    expect(release.jobs['publish-cask'].needs).toEqual(['authorize-tag', 'build', 'publish'])
     expect(releaseSource).toContain('--verify-tag')
     expect(releaseSource).toContain('--draft')
     expect(releaseSource).toContain('release-assets.sha256')
@@ -369,7 +373,9 @@ describe('release GitHub trust boundaries', () => {
     // approval is the second, final owner instruction.
     expect(release.jobs['veto-window']).toBeUndefined()
     expect(release.jobs.publish.environment).toEqual({ name: 'release' })
-    expect(release.jobs.publish.needs).toEqual(['build', 'prepare-publication'])
+    // C-RELEASE-CANARY-PRERELEASE: publish reads authorize-tag's prerelease
+    // output for the prerelease-not-latest publication branch.
+    expect(release.jobs.publish.needs).toEqual(['authorize-tag', 'build', 'prepare-publication'])
     // No operative timer or notify mechanics survive (only the CHANGE_SUMMARY
     // history entries mention the repealed names).
     expect(releaseSource).not.toContain('vars.RELEASE_VETO_MINUTES')
