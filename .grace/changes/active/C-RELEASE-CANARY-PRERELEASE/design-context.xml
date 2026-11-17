@@ -1,0 +1,15 @@
+<!-- Non-normative context for C-RELEASE-CANARY-PRERELEASE. Adds no requirements. -->
+<GraceChangeDesignContext graceVersion="4.0">
+  <Change>C-RELEASE-CANARY-PRERELEASE</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>An external tester (Dmitry Kononenko, macOS; a Windows tester is being onboarded after the winget package merged 2026-11-16) tests stable builds while the fixes they report ride the collecting 2.9.x-next train. The owner offered a 2.9 beta build in the tester chat on 2026-11-16 and chose the prerelease-tag channel on 2026-11-17 over hand-built DMGs and over a full canary update channel. Install UX agreed with the owner: testers download the DMG/installer from direct prerelease asset links; Homebrew and the in-app updater keep serving only stable releases, so a prerelease never reaches a stable user, and a tester rolls back by reinstalling the stable DMG.</Rationale>
+  <Alternatives>
+    <Alternative>Hand-built DMG per iteration (the sister product TokMo pattern: locally built DMG with a SHA card handed over in chat, e.g. TokMo-Test-0.15.0-canary.1-b14-timer-fix.dmg): rejected — unsigned, Gatekeeper friction on every install, per-iteration manual work, no Windows lane.</Alternative>
+    <Alternative>Full canary channel (separate feed updates.mark.xronocode.com/canary/ plus an in-app channel switcher so testers auto-update): deferred — materially more work across the updater client, feed routing and settings surface for a tester pool of two; revisit when manual-link installs become the bottleneck.</Alternative>
+    <Alternative>Beta tags as GitHub latest (the v1.6.0 behavior that advanced /releases/latest): rejected for this purpose — it pushes pre-train builds to every stable user through the in-app updater.</Alternative>
+  </Alternatives>
+  <Scenarios>
+    <Scenario>The owner tags v2.9.0-beta.1 on a Collecting-train commit; the run signs and notarizes both platforms, publishes a prerelease with the DMG and (behind WINDOWS_RELEASE) the NSIS installer; latest.json and releases/latest stay on the previous stable; the tester installs from the asset link over the stable installation.</Scenario>
+    <Scenario>A stable release ships later from a Ready seal; the pipeline clears the prerelease flag, advances the feed, and runs the cask handoff exactly as before, proving no stable-path regression.</Scenario>
+  </Scenarios>
+</GraceChangeDesignContext>
