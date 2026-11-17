@@ -1,0 +1,38 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SETTINGS-WINDOW-RESTORE>
+    <Summary>Restore the existing native Settings window before focusing it, so ordinary Settings requests and export-notice correction actions can reach a minimized window.</Summary>
+    <Problem>A clean main57 native run opened General in Settings, clicked its native minimize button and exported Word. The Export settings notice action updated the same Settings window to Export, confirmed by native accessibility, but WindowServer still reported that window off-screen. The existing mt_open_setting_window branch only calls set_focus; the application main-window activation already uses unminimize, show and set_focus. Export R-3 remains incomplete for this previously open native case.</Problem>
+    <Goals>
+      <R-1>When the existing Settings window is minimized or hidden, an ordinary existing open-settings request restores and shows that same window before focusing it. Preserve its selected section unless the caller already requests another section.</R-1>
+      <R-2>The existing export-notice action restores minimized Settings visibly at Export. Retain its window identity and the current storage-driven section routing; do not create a second Settings window.</R-2>
+      <R-3>Preserve fresh-window creation, already-visible Settings behavior, fixed dimensions, title-bar treatment, developer badge and existing best-effort activation error policy.</R-3>
+    </Goals>
+    <Constraints>
+      <Constraint>Use the existing native mt_open_setting_window entry and the existing unminimize, show, set_focus pattern. Runtime scope is limited to its existing-window branch in src-tauri/src/m_v1_compat.rs plus its file-local description/change summary. Preserve all other compatibility commands and public signatures.</Constraint>
+      <Constraint>Update only M-001/V-M-001 current-state ownership/evidence for this correction. M-011 and M-072 are unchanged consumers. Keep all existing graph and verification content.</Constraint>
+      <Constraint>No dependency, capability, IPC, payload, preference schema, export execution, page geometry, document/history/dirty-state, version, signing or release change. Preserve frozen and archived bundles, including the approved Export recovery bundle.</Constraint>
+      <Constraint>Execute sequentially after this specification and a concrete execution plan are approved. Do not treat this draft as implementation or apply authorization.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No generic window manager refactor, new frontend window API or native window activation framework.</NonGoal>
+      <NonGoal>No replay of the full export route matrix, unrelated acceptance waivers, owner/platform verdict or release authorization.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>On an identified isolated macOS artifact, open Settings at General, minimize it through its native button, trigger the ordinary Settings entry point and confirm the same native window is visible at General.</Criterion>
+      <Criterion>On that artifact, minimize General Settings, perform a real Word export of an owned fixture and click its fresh Export settings notice action. Confirm the same native window is visible with Export selected. Verify exported document.xml marker and unchanged source Markdown.</Criterion>
+      <Criterion>Check hidden and already-visible General Settings requests through the existing export action, and a fresh Settings window control. Preserve one Settings identity, expected section, dimensions and normal close/reopen behavior.</Criterion>
+      <Criterion>Run relevant existing compatibility/backend tests and renderer export-settings navigation/Settings-shell tests, current integrity and exact-candidate hosted checks without lowering coverage, retries or timing assertions. Browser fixture results do not substitute for native restoration evidence.</Criterion>
+      <Criterion>Record source revision, artifact identity/digest and owned processes before input. After the run, Quit normally, verify no owned processes/windows remain and delete all task-owned app/executable/renderer copies while preserving recipes, outputs, profiles and shared caches.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas><M-001 /><M-011 /><M-072 /></AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m_v1_compat::tests</ExpectedCommand>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/util/export-settings-navigation.test.js tests/renderer/pages/preference.test.js tests/renderer/prefComponents/tabsBar-config.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedEvidence>Fresh exact-source native failure-to-success proof for minimized Settings and the declared visible/hidden/fresh controls, using real native actions and WindowServer/accessibility state. Ordinary required hosted checks and current-state integrity remain mandatory for integration.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The canonical native main-window activation sequence is applicable to the existing Settings WebviewWindow without new permissions. Unsupported activation operations retain the current best-effort policy and do not prevent later activation attempts.</Assumption>
+      <Assumption>This is the previously open minimized Settings acceptance case within the original Export group; the original 77-record denominator is unchanged.</Assumption>
+    </Assumptions>
+  </C-SETTINGS-WINDOW-RESTORE>
+</GraceChangeSpec>

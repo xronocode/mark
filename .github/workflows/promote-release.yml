@@ -1,5 +1,5 @@
 # FILE: .github/workflows/promote-release.yml
-# VERSION: 2.0.0
+# VERSION: 2.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Turn one merged Ready release seal into its computed annotated tag only after an explicit owner-approved release-authorize deployment.
 #   SCOPE: Read-only Ready/seal/check admission followed by idempotent tag creation through a purpose-specific GitHub App; never builds, signs, or publishes.
@@ -10,11 +10,12 @@
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-#   preflight - Admit only the current merged Ready seal using live payload check evidence without privileged credentials.
-#   authorize-tag - After owner approval, re-bind identity and create or verify one annotated tag with the Release Bot App.
+#   preflight - Admit only the current merged Ready seal using live payload check evidence without privileged credentials. C-RELEASE-CANARY-PRERELEASE: a manual dispatch with prereleaseSuffix (beta.N/canary.N) derives vX.Y.Z-<suffix> at current main HEAD instead — base equal to the collecting train computedVersion, no readiness/materials gates.
+#   authorize-tag - After owner approval, re-bind identity and create or verify one annotated tag with the Release Bot App; the prerelease mode rebinds against the non-terminal train and tags with the approved-prerelease message.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-17 v2.1.0 C-RELEASE-CANARY-PRERELEASE: workflow_dispatch prereleaseSuffix mode — owner dispatches release/promote with beta.N/canary.N, the same release-authorize approval mints the Release Bot annotated tag vX.Y.Z-<suffix> at current main HEAD (base = train computedVersion), and the stable Ready-seal path is unchanged.
 #   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — trigger on any train ledger, read the train through docs/release-trains/current.json, and require only that the seal is on main (an ancestor of main's tip) so merges after the seal no longer invalidate a waiting approval.
 #   - 2026-10-21 v1.1.1: preserve complete main ancestry so strict payload-to-seal merge-base proofs work on GitHub runners.
 #   - 2026-10-20 v1.1.0: remove manual promotion, revalidate main/check evidence after approval, and verify existing annotated tag metadata exactly.
@@ -29,6 +30,12 @@ on:
     paths:
       - 'docs/release-trains/**'
       - 'docs/assets/readme/**'
+  workflow_dispatch:
+    inputs:
+      prereleaseSuffix:
+        description: 'Prerelease suffix (beta.N or canary.N): create vX.Y.Z-<suffix> at current main HEAD through the same release-authorize approval and Release Bot tag. Leave empty for the ordinary Ready-seal path.'
+        required: false
+        default: ''
 
 concurrency:
   group: release-promote
@@ -47,6 +54,7 @@ jobs:
       tag: ${{ steps.identity.outputs.tag }}
       payload: ${{ steps.identity.outputs.payload }}
       seal: ${{ steps.identity.outputs.seal }}
+      mode: ${{ steps.identity.outputs.mode }}
     steps:
       - name: checkout merged candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -63,6 +71,8 @@ jobs:
 
       - name: derive Ready seal identity
         id: identity
+        env:
+          PRERELEASE_SUFFIX: ${{ inputs.prereleaseSuffix }}
         run: |
           set -euo pipefail
           git fetch origin main
@@ -72,11 +82,30 @@ jobs:
           [[ "$TRAIN_ID" =~ ^[0-9]+\.[0-9]+\.(x|[0-9]+)-next$ ]]
           TRAIN="docs/release-trains/$TRAIN_ID.json"
           STATE=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).state")
+          # C-RELEASE-CANARY-PRERELEASE: a manual dispatch with a
+          # prerelease suffix targets current main HEAD — no Ready seal,
+          # no strict readiness, no materials; the base version must
+          # still equal the collecting train's computedVersion so the
+          # beta always names this train. Tag identity stays the Release
+          # Bot App behind the same release-authorize approval.
+          if [ -n "$PRERELEASE_SUFFIX" ]; then
+            [ "$STATE" != "Released" ] && [ "$STATE" != "Aborted" ]
+            [[ "$PRERELEASE_SUFFIX" =~ ^(beta|canary)\.[1-9][0-9]*$ ]] || { echo "::error::suffix must be beta.N or canary.N"; exit 1; }
+            BASE=v$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).computedVersion")
+            SEAL=$(git rev-parse origin/main)
+            TAG="$BASE-$PRERELEASE_SUFFIX"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "payload=" >> "$GITHUB_OUTPUT"
+            echo "seal=$SEAL" >> "$GITHUB_OUTPUT"
+            echo "mode=prerelease" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           # A push that touches the train files while no seal is Ready
           # (Collecting after a roll, terminal Released/Aborted) is a
           # bookkeeping change: admit it without promoting anything.
           if [ "$STATE" != "Ready" ]; then
             echo "state=$STATE — nothing to promote"
+            echo "mode=none" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           PAYLOAD=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).payloadSha")
@@ -87,13 +116,14 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
           echo "seal=$SEAL" >> "$GITHUB_OUTPUT"
+          echo "mode=stable" >> "$GITHUB_OUTPUT"
 
       - name: install locked dependencies without lifecycle scripts
-        if: steps.identity.outputs.seal != ''
+        if: steps.identity.outputs.mode == 'stable'
         run: npm ci --ignore-scripts
 
       - name: read exact payload check runs
-        if: steps.identity.outputs.seal != ''
+        if: steps.identity.outputs.mode == 'stable'
         env:
           GH_TOKEN: ${{ github.token }}
           PAYLOAD: ${{ steps.identity.outputs.payload }}
@@ -105,7 +135,7 @@ jobs:
             > /tmp/release-checks.json
 
       - name: create local proof tag for strict read-only admission
-        if: steps.identity.outputs.seal != ''
+        if: steps.identity.outputs.mode == 'stable'
         env:
           TAG: ${{ steps.identity.outputs.tag }}
           SEAL: ${{ steps.identity.outputs.seal }}
@@ -121,7 +151,7 @@ jobs:
           fi
 
       - name: strict online release admission
-        if: steps.identity.outputs.seal != ''
+        if: steps.identity.outputs.mode == 'stable'
         env:
           TAG: ${{ steps.identity.outputs.tag }}
           PAYLOAD: ${{ steps.identity.outputs.payload }}
@@ -130,7 +160,7 @@ jobs:
         run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file /tmp/release-checks.json
 
       - name: materials and version admission
-        if: steps.identity.outputs.seal != ''
+        if: steps.identity.outputs.mode == 'stable'
         env:
           TAG: ${{ steps.identity.outputs.tag }}
         run: |
@@ -140,7 +170,7 @@ jobs:
   authorize-tag:
     name: release/authorize-tag
     needs: preflight
-    if: needs.preflight.outputs.seal != ''
+    if: needs.preflight.outputs.mode == 'stable' || needs.preflight.outputs.mode == 'prerelease'
     runs-on: ubuntu-latest
     environment: release-authorize
     permissions:
@@ -158,6 +188,7 @@ jobs:
           TAG: ${{ needs.preflight.outputs.tag }}
           PAYLOAD: ${{ needs.preflight.outputs.payload }}
           SEAL: ${{ needs.preflight.outputs.seal }}
+          MODE: ${{ needs.preflight.outputs.mode }}
         run: |
           set -euo pipefail
           git fetch origin main
@@ -166,7 +197,15 @@ jobs:
           TRAIN_ID=$(node -p "JSON.parse(require('fs').readFileSync('docs/release-trains/current.json')).trainId")
           [[ "$TRAIN_ID" =~ ^[0-9]+\.[0-9]+\.(x|[0-9]+)-next$ ]]
           TRAIN="docs/release-trains/$TRAIN_ID.json"
-          TRAIN="$TRAIN" node -e "const f=require('fs'),m=JSON.parse(f.readFileSync(process.env.TRAIN));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
+          if [ "$MODE" = prerelease ]; then
+            # C-RELEASE-CANARY-PRERELEASE: the prerelease tag binds to a
+            # main commit of a non-terminal train whose computedVersion
+            # names its base — the same identity authorize-tag enforces.
+            BASE="${TAG%%-*}"
+            TRAIN="$TRAIN" TAG="$TAG" BASE="$BASE" node -e "const f=require('fs'),m=JSON.parse(f.readFileSync(process.env.TRAIN));if(/^(Released|Aborted)$/.test(m.state)||('v'+m.computedVersion)!==process.env.BASE||!/^.+-(beta|canary)\.[1-9][0-9]*$/.test(process.env.TAG))process.exit(1)"
+          else
+            TRAIN="$TRAIN" node -e "const f=require('fs'),m=JSON.parse(f.readFileSync(process.env.TRAIN));if(m.state!=='Ready'||m.payloadSha!==process.env.PAYLOAD||m.sealSha!==null||('v'+m.computedVersion)!==process.env.TAG)process.exit(1)"
+          fi
 
       - name: setup Node 22 after approval
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -178,6 +217,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: refresh exact payload check evidence after approval
+        if: needs.preflight.outputs.mode == 'stable'
         env:
           GH_TOKEN: ${{ github.token }}
           PAYLOAD: ${{ needs.preflight.outputs.payload }}
@@ -189,6 +229,7 @@ jobs:
             > /tmp/release-checks-approved.json
 
       - name: rerun strict admission after approval
+        if: needs.preflight.outputs.mode == 'stable'
         env:
           TAG: ${{ needs.preflight.outputs.tag }}
           PAYLOAD: ${{ needs.preflight.outputs.payload }}
@@ -222,6 +263,9 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED_MESSAGE="Mark $TAG approved release seal"
+          if [ "${{ needs.preflight.outputs.mode }}" = prerelease ]; then
+            EXPECTED_MESSAGE="Mark $TAG approved prerelease"
+          fi
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
             git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
             [ "$(git cat-file -t "$TAG")" = tag ]
