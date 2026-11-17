@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved"><!-- Approved under the owner autonomous-goal mandate the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (recorded privately, 2026-11-17) (technical plan approval delegated); Pass-1 findings applied, Pass-2 independent review, Pass-3 clean. -->
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved under the owner autonomous-goal mandate the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (recorded privately, 2026-11-17) (technical plan approval delegated); Pass-1 findings applied, Pass-2 independent review, Pass-3 clean. -->
 <C-RELEASE-CANARY-PRERELEASE>
   <ChangeRef>C-RELEASE-CANARY-PRERELEASE</ChangeRef>
   <Created>2026-11-17</Created>

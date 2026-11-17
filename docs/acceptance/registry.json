@@ -1166,6 +1166,12 @@
           "date": "2026-11-16",
           "actor": "owner",
           "detail": "External tester (Dmitry Kononenko, Telegram, message id 117635) on a stable macOS build: in Mark the Cmd+B combination carries two actions — hiding the sidebar works (it intercepts the key), making text bold does not. Owner took the item into the 2.9.0 stabilization pack in the same chat."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-17",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #278 (squash ce92b473): full renderer suite 429-430 files / 0 failures, hosted CI green after macOS eviction reruns; PR merged by the owner 2026-11-17. Owner acceptance pending on the first prerelease build."
         }
       ]
     },
@@ -1178,6 +1184,12 @@
           "date": "2026-11-16",
           "actor": "owner",
           "detail": "External tester (Telegram, ids 117647/117651/117659): wrote a file in Mark, opened the same file in Obsidian — it was empty because Mark had not written anything to disk without an explicit Cmd+S. Expected every change to be saved immediately, as Obsidian does. A toggle-autosave command already exists; the gap is default behavior and write-through cadence. Owner: 'easy, taking it too'."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-17",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #278 (squash ce92b473): full renderer suite 429-430 files / 0 failures, hosted CI green after macOS eviction reruns; PR merged by the owner 2026-11-17. Owner acceptance pending on the first prerelease build."
         }
       ]
     },
@@ -1190,6 +1202,12 @@
           "date": "2026-11-16",
           "actor": "owner",
           "detail": "External tester (Telegram, id 117656): 'In the sidebar I really want a feature to move a file from folder to folder.' Owner noted the corners in the same chat: rename collisions when a same-named file exists, and distinguishing same-named tabs from different folders."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-17",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #278 (squash ce92b473): full renderer suite 429-430 files / 0 failures, hosted CI green after macOS eviction reruns; PR merged by the owner 2026-11-17. Owner acceptance pending on the first prerelease build."
         }
       ]
     },
@@ -1202,6 +1220,12 @@
           "date": "2026-11-16",
           "actor": "owner",
           "detail": "External tester (Telegram, ids 117661-117662): resized an image inside a file, closed the tab via the close button choosing Discard changes — the resize corner handles and the image toolbar stayed on the start screen and persisted when reopening the file. Owner: 'probably already fixed in 2.9, will verify' — verify on the first prerelease build before scoping a repair. Visual evidence (messages 117661/117662, analyzed 2026-11-17): the residue is not limited to the image toolbar — a floating properties/format bar (edit, image, list, alignment, delete actions) plus orphaned gold selection handles remain over the home screen, partially covering the Restore-all button, and the same residue reappears after reopening the file from the tab bar; a stray gold edit badge also floats in the header area. Scope the verification and repair to the full floating-toolbar/selection-overlay teardown on tab close with Discard, not just the image corner handles."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-17",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #278 (squash ce92b473): full renderer suite 429-430 files / 0 failures, hosted CI green after macOS eviction reruns; PR merged by the owner 2026-11-17. Owner acceptance pending on the first prerelease build."
         }
       ]
     },
@@ -1214,6 +1238,12 @@
           "date": "2026-11-17",
           "actor": "owner",
           "detail": "Owner-approved backlog addition: pasting terminal-rendered tables (box-drawing borders, no pipes, no text/html table flavor) currently inserts literal text because the paste pipeline imports only HTML tables from plain text. Convert box-drawing and aligned-column tables to GFM on paste; candidate for the 2.9.x-next train."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-17",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #278 (squash ce92b473): full renderer suite 429-430 files / 0 failures, hosted CI green after macOS eviction reruns; PR merged by the owner 2026-11-17. Owner acceptance pending on the first prerelease build."
         }
       ]
     }
