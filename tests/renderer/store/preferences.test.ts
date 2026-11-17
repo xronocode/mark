@@ -66,7 +66,9 @@ describe('store/preferences', () => {
     const { usePreferencesStore } = await import('@/store/preferences')
     const s = usePreferencesStore()
 
-    expect(s.autoSave).toBe(false)
+    // C-AUTOSAVE-DEFAULT-ON (2026-11-17): write-through autosave
+    // defaults on; an explicit persisted false keeps it off.
+    expect(s.autoSave).toBe(true)
     expect(s.theme).toBe('paper') // C-41 T-001: brand default
     expect(s.titleBarStyle).toBe('custom')
     expect(s.tabSize).toBe(4)
