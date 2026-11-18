@@ -2137,9 +2137,9 @@
           "automatic": [
             {
               "command": "npx vitest run (full renderer suite)",
-              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns.",
+              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
               "date": "2026-11-17",
-              "build": "6a537899be0a4c3e1a4bd7120a6f34a4a2a2f2b7",
+              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
               "evidence": "https://github.com/xronocode/mark/pull/278"
             },
             {
@@ -2176,9 +2176,9 @@
           "automatic": [
             {
               "command": "npx vitest run (full renderer suite)",
-              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns.",
+              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
               "date": "2026-11-17",
-              "build": "6a537899be0a4c3e1a4bd7120a6f34a4a2a2f2b7",
+              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
               "evidence": "https://github.com/xronocode/mark/pull/278"
             },
             {
@@ -2215,9 +2215,9 @@
           "automatic": [
             {
               "command": "npx vitest run (full renderer suite)",
-              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns.",
+              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
               "date": "2026-11-17",
-              "build": "6a537899be0a4c3e1a4bd7120a6f34a4a2a2f2b7",
+              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
               "evidence": "https://github.com/xronocode/mark/pull/278"
             },
             {
@@ -2254,9 +2254,9 @@
           "automatic": [
             {
               "command": "npx vitest run (full renderer suite)",
-              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns.",
+              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
               "date": "2026-11-17",
-              "build": "6a537899be0a4c3e1a4bd7120a6f34a4a2a2f2b7",
+              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
               "evidence": "https://github.com/xronocode/mark/pull/278"
             },
             {
@@ -2293,9 +2293,9 @@
           "automatic": [
             {
               "command": "npx vitest run (full renderer suite)",
-              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns.",
+              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
               "date": "2026-11-17",
-              "build": "6a537899be0a4c3e1a4bd7120a6f34a4a2a2f2b7",
+              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
               "evidence": "https://github.com/xronocode/mark/pull/278"
             },
             {
@@ -3283,9 +3283,9 @@
           "automatic": [
             {
               "command": "npx vitest run (full renderer suite)",
-              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns.",
+              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
               "date": "2026-11-17",
-              "build": "6a537899be0a4c3e1a4bd7120a6f34a4a2a2f2b7",
+              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
               "evidence": "https://github.com/xronocode/mark/pull/278"
             },
             {
