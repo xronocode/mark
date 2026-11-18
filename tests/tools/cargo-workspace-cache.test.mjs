@@ -15,8 +15,10 @@
 //   assertCacheInputs - Check workspace paths and exact platform/toolchain/lock identity.
 //   materialize - Expand only the controlled matrix/hash expressions for cache matching fixtures.
 //   fixture - Independent valid cache inputs used by rejection controls.
+//   packaged - The packaged dry-run row: qa-v2 key isolation plus legacy-v1/cross-platform rejection controls.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-19 C-QA-ARCHIVE-LIFECYCLE: isolate the packaged dry-run cache in the qa-v2 namespace with explicit legacy-v1 rejection.
 //   - 2026-11-15 C-CARGO-WORKSPACE-CACHE: root-target and legacy-namespace regressions for actual workflow caches.
 // END_CHANGE_SUMMARY
 
@@ -29,7 +31,7 @@ const hash = "${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}"
 const contracts = [
   { file: 'test.yml', job: 'backend-unit', dimension: '${{ matrix.os }}', prefix: 'cargo-workspace-v1-test-', legacy: 'cargo-test-' },
   { file: 'release.yml', job: 'build', dimension: '${{ matrix.platform.target }}', prefix: 'cargo-workspace-v1-', legacy: 'cargo-' },
-  { file: 'release-tauri.yml', job: 'build', dimension: '${{ matrix.platform.target }}', prefix: 'cargo-workspace-v1-', legacy: 'cargo-' }
+  { file: 'release-tauri.yml', job: 'build', dimension: '${{ matrix.platform.target }}', prefix: 'cargo-workspace-qa-v2-', legacy: 'cargo-workspace-v1-' }
 ]
 
 const expectedInputs = contract => ({
@@ -110,3 +112,27 @@ describe('controlled cache fixtures', () => {
   }
 })
 // END_BLOCK_CARGO_CACHE_MUTATION_CONTROLS
+
+// START_BLOCK_PACKAGED_QA_CACHE_ISOLATION
+const packaged = contracts[2]
+describe('packaged QA cache isolation', () => {
+  it('binds the packaged row to the isolated qa-v2 namespace against the legacy v1 contract', () => {
+    expect(packaged).toMatchObject({ file: 'release-tauri.yml', job: 'build', prefix: 'cargo-workspace-qa-v2-', legacy: 'cargo-workspace-v1-' })
+    expect(contracts[1]).toMatchObject({ file: 'release.yml', prefix: 'cargo-workspace-v1-' })
+  })
+
+  for (const [name, mutate] of [
+    ['restored legacy v1 key', value => { value.key = `${packaged.legacy}${packaged.dimension}-${hash}` }],
+    ['restored legacy v1 fallback', value => { value['restore-keys'] = `${packaged.legacy}${packaged.dimension}-\n` }],
+    ['old generic fallback', value => { value['restore-keys'] = 'cargo-\n' }],
+    ['cross-platform qa fallback', value => { value['restore-keys'] = 'cargo-workspace-qa-v2-\n' }],
+    ['missing lock hash', value => { value.key = value.key.replace(`-${hash}`, '') }]
+  ]) {
+    it(`rejects ${name}`, () => {
+      const value = expectedInputs(packaged)
+      mutate(value)
+      expect(() => assertCacheInputs(value, packaged)).toThrow()
+    })
+  }
+})
+// END_BLOCK_PACKAGED_QA_CACHE_ISOLATION

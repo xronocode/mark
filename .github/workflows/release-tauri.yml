@@ -14,6 +14,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-19 C-QA-ARCHIVE-LIFECYCLE: isolate the packaged build cache in the qa-v2 namespace away from legacy untracked archives.
 #   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: bind smoke to a unique app/run, normal Quit and remove all completed binary copies.
 #   LAST_CHANGE: 2026-11-09 v1.2.0 C-CI-CD-AUDIT-FIXES - pin executable actions and Rust 1.99.0 with a version-sensitive cache.
 #   PREV: 2026-10-31 v1.1.0 - build the macOS dry-run lane on the macos-15 runner image ahead of the macos-14 retirement (matrix os and the platform conditions).
@@ -110,9 +111,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: cargo-workspace-v1-${{ matrix.platform.target }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
+          key: cargo-workspace-qa-v2-${{ matrix.platform.target }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
           restore-keys: |
-            cargo-workspace-v1-${{ matrix.platform.target }}-
+            cargo-workspace-qa-v2-${{ matrix.platform.target }}-
 
       # ── install + build frontend ─────────────────────────────────
       - name: npm ci

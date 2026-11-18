@@ -25,10 +25,11 @@
 //   commands - Flatten one job's command-bearing steps for negative assertions.
 //   runTestAggregate - Execute the actual aggregate shell with controlled workflow results.
 //   FakeControlsClient - In-memory control-plane adapter used to prove staged convergence and rollback.
-//   assertQaGateWorkflow - Reverse exactly the cleanup command and pin every other baseline AST node.
+//   assertQaGateWorkflow - Reverse exactly the packaged cache strings and cleanup command, pinning every other baseline AST node.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-19 C-QA-ARCHIVE-LIFECYCLE: isolate the packaged dry-run cache in the qa-v2 namespace via exact key/restore inverse controls.
 //   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: require isolated named-test handoffs, exact smoke cleanup and evidence-only generic retention.
 //   - 2026-11-12 v2.4.0 C-QUICKLOOK-CONTENT-BOUNDARY: require native QuickLook evidence and execute both aggregate branches for failed/cancelled/skipped inputs.
 //   - 2026-11-09 v2.3.0 C-CI-CD-AUDIT-FIXES: guard unsigned QA, IPC gating, WebKit de-duplication and immutable CI inputs.
@@ -679,6 +680,12 @@ describe('release GitHub control-plane reconciliation', () => {
 function assertQaGateWorkflow(document) {
   const baseline = structuredClone(document)
   const steps = baseline.jobs.build.steps
+  const caches = steps.filter(step => step.name === 'cache cargo')
+  expect(caches).toHaveLength(1)
+  expect(caches[0].with.key).toBe("cargo-workspace-qa-v2-${{ matrix.platform.target }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}")
+  expect(caches[0].with['restore-keys']).toBe('cargo-workspace-qa-v2-${{ matrix.platform.target }}-\n')
+  caches[0].with.key = caches[0].with.key.replace('cargo-workspace-qa-v2-', 'cargo-workspace-v1-')
+  caches[0].with['restore-keys'] = caches[0].with['restore-keys'].replace('cargo-workspace-qa-v2-', 'cargo-workspace-v1-')
   const matches = steps.filter(step => step.name === 'remove local QA binaries')
   expect(matches).toHaveLength(1)
   expect(matches[0]).toEqual({ name: 'remove local QA binaries', if: "always() && steps.qa.outputs.state != ''", env: { QA_STATE: '${{ steps.qa.outputs.state }}' }, run: 'node tools/qa-artifact-smoke.mjs --cleanup-only --state "$QA_STATE"' })

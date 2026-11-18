@@ -2,7 +2,7 @@
 // FILE: tools/prepare-qa-artifacts.mjs
 // START_MODULE_CONTRACT
 //   PURPOSE: Bind unsigned QA identities and preserve active/unknown smoke artifacts across cleanup processes.
-//   SCOPE: Isolated state, contained installer/digest receipts, persisted mount/process protection and exact generated-output cleanup.
+//   SCOPE: Isolated state, contained installer/digest receipts, exact-identity macOS archive/sidecar ownership, persisted mount/process protection and exact generated-output cleanup.
 //   DEPENDS: Node filesystem/path/crypto/process built-ins; existing target bundle layouts.
 //   LINKS: M-046; V-M-046; C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP; C-QA-INSTALLER-ARTIFACTS; N-QA-DRYRUN-ARTIFACT-HYGIENE.
 //   ROLE: SCRIPT
@@ -19,6 +19,7 @@
 //   qaIdentity - Validate and derive source/run/platform/test-bound QA identity.
 //   cachedExecutables - Enumerate only regular project executable-name cache candidates.
 //   candidateFiles - Discover only expected-identity package/app and exact project executable candidates.
+//   archiveArtifacts - Exact current-identity macOS archive and adjacent signature sidecar paths.
 //   prepareQa - Create a fresh isolated config/evidence/staging state before any build.
 //   saveQaState - Persist current evidence and private runner state.
 //   localSmokeProofs - Opaque same-invocation proof, never a serialized or CLI cleanup bypass.
@@ -34,6 +35,7 @@
 //   qaCli - Dispatch the narrow local helper commands.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-19 C-QA-ARCHIVE-LIFECYCLE: own only newly created exact-identity macOS .app.tar.gz/.sig bytes, refuse preexisting same-identity archives and keep recorded archive digests immutable.
 //   - C-QA-MACOS-LAUNCH-GATE: fixed-directory protection requires an opaque fresh native stop proof.
 //   - C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP: persist identity-bound mount/process intent and enforce it across fresh cleanup; commit authoritative state last.
 //   - 2026-11-16 C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP: permission/I/O errors stay explicit, only ENOENT confirms absence; independent owned cleanup continues.
@@ -103,6 +105,11 @@ const candidateFiles = state => {
   }
   return result.filter(path => present(path))
 }
+const archiveArtifacts = state => {
+  if (state.identity.platform !== 'macos-arm64') return []
+  const archive = join(state.workspace, 'target', state.identity.target, 'release/bundle/macos', `${state.identity.productName}.app.tar.gz`)
+  return [{ path: archive, kind: 'archive' }, { path: `${archive}.sig`, kind: 'signature' }]
+}
 const cachedExecutables = state => {
   const result = []
   for (const directory of [join(state.workspace, 'target/release/deps'), join(state.workspace, 'target/debug/deps'), join(state.workspace, 'target', state.identity.target, 'release/deps')]) {
@@ -130,6 +137,9 @@ export function prepareQa({ workspace, temporaryRoot, identity, actualHead = exe
     const info = lstatSync(path)
     if (info.isDirectory() || info.isSymbolicLink() || basename(path).startsWith(`${identity.productName}_`)) fail('existing-identity-output')
     state.baseline[path] = measuredFile(workspace, path).sha256
+  }
+  for (const artifact of archiveArtifacts(state)) {
+    if (present(artifact.path)) fail('existing-identity-output')
   }
   for (const path of cachedExecutables(state)) state.baseline[path] = measuredFile(workspace, path).sha256
   saveQaState(state)
@@ -263,6 +273,16 @@ export function recordGenerated(state) {
         if (old) Object.assign(old, entry); else state.owned.push(entry)
       }
     }
+  }
+  for (const artifact of archiveArtifacts(state)) {
+    if (!present(artifact.path)) continue
+    safeParents(state.workspace, artifact.path)
+    if (lstatSync(artifact.path).isSymbolicLink()) fail('linked-output')
+    const data = measuredFile(state.workspace, artifact.path)
+    const old = state.owned.find(entry => entry.path === artifact.path)
+    if (old) {
+      if (old.kind !== artifact.kind || old.sha256 !== data.sha256 || old.size !== data.size) fail('archive-digest-changed')
+    } else state.owned.push({ path: artifact.path, kind: artifact.kind, sha256: data.sha256, size: data.size, reason: 'unique-run-identity' })
   }
   if (state.rustCompilationAttempted) for (const path of cachedExecutables(state)) {
     if (dirname(path) !== join(state.workspace, 'target/debug/deps')) continue

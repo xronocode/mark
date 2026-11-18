@@ -1,8 +1,8 @@
 // @vitest-environment node
 // FILE: tests/tools/prepare-qa-artifacts.test.mjs
 // START_MODULE_CONTRACT
-//   PURPOSE: Prove exact QA identity, installer collection and owned binary cleanup with synthetic filesystem fixtures.
-//   SCOPE: Inert platform layouts, exact identity/digests, persisted smoke protection, owned Node cleanup CLI, malformed records and cache preservation.
+//   PURPOSE: Prove exact QA identity, installer collection, archive/sidecar ownership and owned binary cleanup with synthetic filesystem fixtures.
+//   SCOPE: Inert platform layouts, exact identity/digests, exact-identity archive/sidecar lifecycle, persisted smoke protection, owned Node cleanup CLI, malformed records and cache preservation.
 //   DEPENDS: Vitest, Node built-ins and prepare-qa-artifacts; no installer execution, native build or network.
 //   LINKS: M-046; V-M-046; C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP; C-QA-INSTALLER-ARTIFACTS.
 //   ROLE: TEST
@@ -15,11 +15,15 @@
 //   cleanupCliFixture - Execute only the owned Node cleanup CLI with external source/PID/reap evidence.
 //   protectedFixture - Bind one inert mounted/process descriptor through the production protocol.
 //   put - Write one owned synthetic output.
+//   qaArchive - Exact current-identity macOS archive and adjacent signature sidecar paths for one fixture.
 // END_MODULE_MAP
+// START_CHANGE_SUMMARY
+//   - 2026-11-19 C-QA-ARCHIVE-LIFECYCLE: exact-identity macOS archive/signature ownership, preexisting refusal and immutable recorded digests.
+// END_CHANGE_SUMMARY
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
 import { syncBuiltinESMExports } from 'node:module'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
@@ -36,6 +40,10 @@ const fixture = (platform = 'macos-arm64', mode = 'manual-handoff') => {
   const bundle = join(workspace, 'target', layout.target, 'release/bundle', layout.folder)
   const installer = join(bundle, `${state.identity.productName}_2.8.2${layout.extension}`)
   return { root, workspace, state, bundle, installer }
+}
+const qaArchive = ({ workspace, state }) => {
+  const archive = join(workspace, 'target', state.identity.target, 'release/bundle/macos', `${state.identity.productName}.app.tar.gz`)
+  return { archive, signature: `${archive}.sig` }
 }
 afterEach(() => {
   const cleaned = [], errors = []
@@ -172,6 +180,127 @@ describe('QA generated-output cleanup', () => {
     expect(readFileSync(path, 'utf8')).toBe('cache')
   })
 })
+
+describe('QA exact archive and signature lifecycle', () => {
+  it('owns and removes an exact-current-identity archive and sidecar that the old helper omitted', () => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive, signature } = qaArchive(f)
+    put(archive, 'inert synthetic archive bytes'); put(signature, 'inert synthetic signature bytes')
+    recordGenerated(f.state)
+    const owned = Object.fromEntries(f.state.owned.map(entry => [entry.path, entry]))
+    // Red control against the previous helper: exact archive/signature ownership was omitted entirely.
+    expect(owned[archive]).toMatchObject({ kind: 'archive', size: 'inert synthetic archive bytes'.length, sha256: hash('inert synthetic archive bytes') })
+    expect(owned[signature]).toMatchObject({ kind: 'signature', size: 'inert synthetic signature bytes'.length, sha256: hash('inert synthetic signature bytes') })
+    expect(loadQaState(join(f.state.directory, 'state.json')).owned).toEqual(f.state.owned)
+    recordGenerated(f.state)
+    expect(f.state.owned.filter(entry => entry.path === archive || entry.path === signature)).toHaveLength(2)
+    cleanupGenerated(f.state)
+    expect(existsSync(archive)).toBe(false); expect(existsSync(signature)).toBe(false)
+    expect(f.state.generatedCleanupComplete).toBe(true)
+    expect(f.state.owned.filter(entry => entry.kind === 'archive' || entry.kind === 'signature').every(entry => entry.deleted)).toBe(true)
+  })
+
+  it('owns and removes an archive without any sidecar', () => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive, signature } = qaArchive(f)
+    put(archive, 'archive only bytes')
+    recordGenerated(f.state); cleanupGenerated(f.state)
+    expect(existsSync(archive)).toBe(false); expect(existsSync(signature)).toBe(false)
+    expect(f.state.owned.find(entry => entry.path === archive)).toMatchObject({ kind: 'archive', deleted: true })
+    expect(f.state.generatedCleanupComplete).toBe(true)
+  })
+
+  it('records and removes a signature alone after partial packaging output', () => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive, signature } = qaArchive(f)
+    put(signature, 'orphan sidecar bytes')
+    expect(() => recordGenerated(f.state)).not.toThrow()
+    expect(f.state.owned.find(item => item.path === signature)).toMatchObject({ kind: 'signature', size: 'orphan sidecar bytes'.length, sha256: hash('orphan sidecar bytes') })
+    expect(f.state.owned.some(item => item.kind === 'archive')).toBe(false)
+    cleanupGenerated(f.state)
+    expect(existsSync(signature)).toBe(false); expect(existsSync(archive)).toBe(false)
+    expect(f.state.generatedCleanupComplete).toBe(true)
+  })
+
+  it.each(['archive', 'signature', 'archive-directory', 'archive-link'])('refuses a preexisting same-identity %s without adopting or changing it', kind => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive, signature } = qaArchive(f)
+    const outside = put(join(f.root, 'outside-sidecar'), 'outside bytes')
+    if (kind === 'archive') put(archive, 'preexisting archive bytes')
+    if (kind === 'signature') put(signature, 'preexisting signature bytes')
+    if (kind === 'archive-directory') put(join(archive, 'inert-entry'), 'directory payload')
+    if (kind === 'archive-link') { mkdirSync(dirname(archive), { recursive: true }); symlinkSync(outside, archive, 'file') }
+    expect(() => prepareQa({ workspace: f.workspace, temporaryRoot: f.root, identity: f.state.identity, actualHead: SHA })).toThrow('existing-identity-output')
+    if (kind === 'archive') expect(readFileSync(archive, 'utf8')).toBe('preexisting archive bytes')
+    if (kind === 'signature') expect(readFileSync(signature, 'utf8')).toBe('preexisting signature bytes')
+    if (kind === 'archive-directory') expect(readFileSync(join(archive, 'inert-entry'), 'utf8')).toBe('directory payload')
+    if (kind === 'archive-link') expect(readFileSync(outside, 'utf8')).toBe('outside bytes')
+    expect(f.state.owned.some(entry => entry.path === archive || entry.path === signature)).toBe(false)
+  })
+
+  it('keeps near-miss, other-identity and dependency cache archives byte-identical', () => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive, signature } = qaArchive(f)
+    const macos = join(f.workspace, 'target', f.state.identity.target, 'release/bundle/macos')
+    const other = qaIdentity({ sourceSha: SHA, runId: '9876543', attempt: '7', platform: 'macos-arm64', mode: 'dryrun' }).productName
+    const suffix = put(join(macos, `${f.state.identity.productName}.app.tar.gz.extracted`), 'near-miss suffix bytes')
+    const historical = put(join(macos, `${other}.app.tar.gz`), 'other-identity archive bytes')
+    const dependency = put(join(f.workspace, 'target/release/deps/mark-abcdef.tar.gz'), 'dependency cache bytes')
+    put(archive, 'owned archive bytes')
+    recordGenerated(f.state); cleanupGenerated(f.state)
+    expect(readFileSync(suffix, 'utf8')).toBe('near-miss suffix bytes')
+    expect(readFileSync(historical, 'utf8')).toBe('other-identity archive bytes')
+    expect(readFileSync(dependency, 'utf8')).toBe('dependency cache bytes')
+    expect(existsSync(archive)).toBe(false); expect(existsSync(signature)).toBe(false)
+  })
+
+  it.each(['link', 'directory', 'empty', 'permission'])('fails truthfully on a %s archive without claiming ownership or success', kind => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive } = qaArchive(f)
+    const outside = put(join(f.root, 'outside-archive'), 'outside archive bytes')
+    if (kind === 'link') { mkdirSync(dirname(archive), { recursive: true }); symlinkSync(outside, archive, 'file') }
+    if (kind === 'directory') put(join(archive, 'inert-entry'), 'directory payload')
+    if (kind === 'empty') put(archive, '')
+    if (kind === 'permission') { put(archive, 'permission archive bytes'); chmodSync(archive, 0o000) }
+    expect(() => recordGenerated(f.state)).toThrow()
+    expect(f.state.owned.some(entry => entry.path === archive)).toBe(false)
+    expect(() => cleanupGenerated(f.state)).toThrow()
+    expect(f.state.generatedCleanupComplete).toBe(false)
+    if (kind === 'link') expect(readFileSync(outside, 'utf8')).toBe('outside archive bytes')
+    if (kind === 'directory') expect(existsSync(archive)).toBe(true)
+    if (kind === 'empty') expect(readFileSync(archive, 'utf8')).toBe('')
+    if (kind === 'permission') { expect(existsSync(archive)).toBe(true); chmodSync(archive, 0o644) }
+  })
+
+  it('retains a changed owned archive without rebinding its digest and still cleans an independent owned executable', () => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive } = qaArchive(f)
+    put(archive, 'original archive bytes')
+    const executable = put(join(f.workspace, 'target', f.state.identity.target, 'release', PLATFORMS['macos-arm64'].executable), 'independent owned executable bytes')
+    recordGenerated(f.state)
+    const recorded = { ...f.state.owned.find(entry => entry.path === archive) }
+    recordBinary(f.state, executable)
+    put(archive, 'replaced archive bytes')
+    expect(() => recordGenerated(f.state)).toThrow('archive-digest-changed')
+    expect(f.state.owned.find(entry => entry.path === archive)).toMatchObject({ kind: 'archive', sha256: recorded.sha256, size: recorded.size })
+    expect(() => cleanupGenerated(f.state)).toThrow(/archive-digest-changed/)
+    expect(f.state.generatedCleanupComplete).toBe(false)
+    expect(readFileSync(archive, 'utf8')).toBe('replaced archive bytes')
+    expect(f.state.owned.find(entry => entry.path === archive).deleted).not.toBe(true)
+    expect(existsSync(executable)).toBe(false)
+  })
+
+  it('never discovers archives for a non-macOS identity', () => {
+    const f = fixture('windows-x64', 'dryrun')
+    const archive = join(f.workspace, 'target', f.state.identity.target, 'release/bundle/macos', `${f.state.identity.productName}.app.tar.gz`)
+    put(archive, 'windows archive bytes')
+    recordGenerated(f.state); cleanupGenerated(f.state)
+    expect(readFileSync(archive, 'utf8')).toBe('windows archive bytes')
+    expect(f.state.owned.some(entry => entry.kind === 'archive' || entry.kind === 'signature')).toBe(false)
+    expect(f.state.generatedCleanupComplete).toBe(true)
+  })
+})
+
 
 
 describe('QA cleanup permission and evidence failure boundaries', () => {
