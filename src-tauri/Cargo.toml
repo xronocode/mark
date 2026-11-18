@@ -55,7 +55,7 @@ url = "2"
 # minisign-verify is already in the lock transitively (tauri-plugin-updater)
 # and is reused directly; sha2 likewise already-locked; trash is new.
 minisign-verify = "0.2"
-sha2 = "0.10"
+sha2 = "0.11"
 trash = "5"
 rand = "0.10"
 tokio = { version = "1", features = ["sync", "rt", "time", "net", "macros"] }
