@@ -1,4 +1,5 @@
-import { CLASS_OR_ID } from '../../../config'
+import { CLASS_OR_ID, PREVIEW_DOMPURIFY_CONFIG } from '../../../config'
+import { sanitize } from '../../../utils'
 import { htmlToVNode } from '../snabbdom'
 
 export default function htmlRuby (h, cursor, block, token, outerClass) {
@@ -6,7 +7,11 @@ export default function htmlRuby (h, cursor, block, token, outerClass) {
   const { children } = token
   const { start, end } = token.range
   const content = this.highlight(h, block, start, end, token)
-  const vNode = htmlToVNode(token.raw)
+  // token.raw is attacker-controlled document HTML; sanitize it with the
+  // same DOMPurify pass the HTML-block preview uses (#282) before it
+  // reaches htmlToVNode's innerHTML sink.
+  const { disableHtml } = this.muya.options
+  const vNode = htmlToVNode(sanitize(token.raw, PREVIEW_DOMPURIFY_CONFIG, disableHtml))
 
   const previewSelector = `span.${CLASS_OR_ID.AG_RUBY_RENDER}`
 
