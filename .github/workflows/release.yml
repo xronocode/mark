@@ -10,18 +10,6 @@
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-<<<<<<< HEAD
-#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute.
-#   manual-build - Build isolated unsigned installers for a separately owner-requested unfinished test.
-#   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing.
-#   prepare-publication - Render and digest the exact release body and asset set without write credentials.
-#   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final owner-gated step once the build lanes are green and the owner approves the release environment.
-#   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge.
-# END_MODULE_MAP
-#
-# START_CHANGE_SUMMARY
-#   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: isolate named-test QA handoffs and clean completed local binaries.
-=======
 #   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute. C-RELEASE-CANARY-PRERELEASE: hyphenated vX.Y.Z-beta.N/canary.N tags (base equal to the collecting train computedVersion) take the prerelease lane — payload-checks, strict admission, materials, preflight and the release-identity artifact are skipped for them while the tagger, annotated-tag and seal=HEAD checks stay.
 #   manual-build - Run unsigned build-only QA from an input-free manual dispatch.
 #   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing. C-RELEASE-CANARY-PRERELEASE: the admitted-evidence download, repeated strict admission, materials gate and metadata preflight are skipped for prerelease tags; packaging, signing and smoke stay unconditional.
@@ -32,7 +20,7 @@
 #
 # START_CHANGE_SUMMARY
 #   - 2026-11-17 v3.7.0 C-RELEASE-CANARY-PRERELEASE: prerelease lane for external-tester tags — authorize-tag admits vX.Y.Z-beta.N/canary.N (base = train computedVersion, no Ready seal) and skips readiness/materials/preflight plus the identity artifact; build skips the repeated admission gates; prepare-publication renders a tester body; publish exposes a prerelease that never advances releases/latest; publish-cask is skipped for prereleases. The stable path is unchanged for non-hyphenated tags.
->>>>>>> fork/main
+#   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: isolate named-test QA handoffs and clean completed local binaries.
 #   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: resolve exact release action pins and preserve shell output under actionlint.
 #   - 2026-11-09 v3.6.0 C-SEC-AUDIT-FIXES T-001: generate Node supply-chain evidence with lockfile-installed local binaries.
 #   - 2026-11-09 v3.5.0 C-CI-CD-AUDIT-FIXES: split manual QA checks into fail-fast steps, disable updater artifacts only in unsigned packaging, and pin Rust and its cache keys.
