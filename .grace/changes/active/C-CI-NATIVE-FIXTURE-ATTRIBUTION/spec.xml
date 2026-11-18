@@ -1,0 +1,54 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-CI-NATIVE-FIXTURE-ATTRIBUTION>
+    <Summary>Attribute generic cancellation fixtures to their selected carrier and separately verify the unchanged final Node image without changing timers or production behavior.</Summary>
+    <Problem>The reviewed universal C carrier, selected SDK context and genuine direct copied Node one-target control work. The exact438-case run has436 passes and two unchanged2500ms watchdog failures in mode wait deliberately left direct to preserve a Node-only digest expectation. Generic carrier selection is also needed for cancellation; the selected-image digest must describe the carrier truthfully while retaining equally strong final Node identity and every existing assertion.</Problem>
+    <Relationship>Narrow successor of incomplete/not-applied C-CI-NATIVE-FIXTURE-CARRIER. Adopt legitimate current six-file partial source; five files and all C/SDK/compiler/gating/cleanup code remain frozen. Parent3e46190dd4c63e3be3b4c3bfc13ce6dfee8b1c828aae7831ecd2ba78f16f8fea/dadfd0eadc84921bf2251b70d66a5fb620d8dece1f47907dac9dda2a353d3491 remain immutable historical approvals. Root alone retires parent with reversible required terminal metadata; no parent durable apply or new candidate acceptance is claimed. Necessary CI/artifact-hygiene prerequisite separate from original77 records.</Relationship>
+    <Goals>
+      <Goal>Use the reviewed same-PID carrier for generic cancellation without weakening any signal/status/PID/cwd/env/cleanup assertion or timer.</Goal>
+      <Goal>Make the one selected-artifact SHA expectation truthful and verify bound Node+script+actual final payload identity independently through retained raw proof.</Goal>
+      <Goal>Keep all nine explicit direct Node sites, sentinel, genuine direct Node one-target positive, proper FAT/strict workflow/native hygiene, and mandatory affected/full configured coverage.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Observed recovery scope remains the same six paths; ONLY tests/tools/run-rust-tests.test.mjs may gain new edits. Five frozen hashes/current preimages, original2296/current manifests and parent approvals are bound in source-baseline.json. All production functions/FAT parser/workflow files/four QA helpers remain byte-identical.</Constraint>
+      <Constraint>Inherit all parent carrier/portable evidence/FAT/workflow/native build/SDK/PID/cleanup/direct-positive requirements, except replace its mode wait direct exemption and literal Node-only SHA expectation with the exact narrow mechanics here. C source88b7, fixed xcrun compiler+SDK lookup, selected compiler/sysroot argv, held PID/fsync protocol, group cleanup, script refresh and pre-deletion raw-proof retention remain exact current source, not redesigned.</Constraint>
+      <Constraint>Only two mechanical edits: remove mode !== wait from common carrier source selection; in the existing handles %s cancellation and reaps/deletes the exact child case, replace only the expected selected-image SHA operand with the known bound carrier digest on carrier hosts, retaining the original fresh SHA(process.execPath) operand on noncarrier hosts. Add explicit equally strong bound final Node digest/path, actual payload PID==recorded nativePID, selected-artifact path/digest/kind, script SHA, raw argv0/canonical script/harness args, cwd, fixture env and DYLD assertions using retained raw child-proof data. No blanket all25-old-body claim: exactly this one declaration (SIGINT/SIGTERM expanded pair) changes; all other old bodies remain byte-exact.</Constraint>
+      <Constraint>Nine explicit direct Node copy sites and unrelated sentinel remain unchanged, as does the new genuine full copied official Node one-target positive under existing5000ms. All malformed FAT controls, old signal/status/cancellation/ownership/receipt/cleanup assertions,2500ms watchdog,5000ms cases,two-worker config,floors91.8/85/84.1/92.74/autoUpdate=false and2existing skip3todo remain unchanged. No digest/cache/timer/concurrency/runtime substitution or weakened matcher.</Constraint>
+      <Constraint>Retain current actual436/2 failed history, successful C/SDK build and carrier/directNode positive raw proof with historical49912byte templateD328 explicitly unavailable/deleted. Do not repeat old whole suite or timing experiments. No prior result is new candidate acceptance.</Constraint>
+      <Constraint>Future approved tests may build one fresh suite-owned universal C carrier from exact reviewed source/recipe using existing selected Apple tools and same Node22, with renewed source-bound native authority. Existing resolver/SDK/compiler group/source/PID/fsync/template/copy proof and independent safe cleanup stay exact. All completed templates/copies/intermediate executables are deleted; only source/metadata/results retained, caches untouched. No Mark/LS/AppKit/libproc/Cargo/Rust compiler/keys/profile/service action.</Constraint>
+      <Constraint>Affected10-suite60s and other existing leaves30/10/10/10, plus one mandatory complete same-Node22 no-QA-env coverage300s remain mandatory exact-candidate gates. No speed is assumed, no full rerun without all primary pass and actual native attribution/cleanup safe. All source/tool/config/dependencies must remain bound; failure stops authority, no blind rerun.</Constraint>
+      <Constraint>Root alone imports/approves spec then plan/current/actual recovery baseline; retires parent not-applied with full body inverse, renews native authority after tiny delta review, applies only three bounded M046/VM046 additions on original83fe/7684 with complete inverse/outside proof, final/archive/current/Git/publication. No old current XML applied and no duplicate parent additions. Separate packaging .app.tar.gz/native/product/delivery holds remain.</Constraint>
+    </Constraints>
+    <AcceptanceCriteria>
+      <Criterion>Exact expected source delta reverses to parent file; only common wait selection and one old case SHA expectation plus stronger explicit payload assertions differ. Five files, C/SDK/build/gating/cleanup code, other old bodies, all manual direct sites/sentinel and direct one-target positive stay exact.</Criterion>
+      <Criterion>Both SIGINT/SIGTERM cases reach payload proof and preserve every existing signal/status/PID/cleanup assertion with truthful selected-carrier SHA and separately verified actual bound final Node digest/path/script/PID/argv/cwd/env/DYLD. No timer or runtime change.</Criterion>
+      <Criterion>All affected leaves and full configured no-QA-env coverage pass under same Node22 with unchanged settings/floors2skip3todo, and actual native compiler/tool/template/copy identity barriers plus final stopped/deleted artifacts are retained. Failure remains a hold.</Criterion>
+      <Criterion>Root independent source/native binding/three-owner-op inverse/outside/final/archive/current remain separate; no Mark/production/native-app or publication claim.</Criterion>
+    </AcceptanceCriteria>
+    <NonGoals>
+      <NonGoal>No source/lookup/build/test/current XML/Git/active metadata write in this private preparation. No new API, runtime/compiler/SDK/timer/integrity policy or C redesign.</NonGoal>
+    </NonGoals>
+    <AffectedAreas>
+      <M-046 />
+      <File>tests/tools/qa-launch-gate.test.mjs</File>
+      <File>.github/workflows/test.yml</File>
+      <File>tests/tools/ci-rust-receipt-retention.test.mjs</File>
+      <File>tests/tools/ci-rust-test-lifecycle.test.mjs</File>
+      <File>tools/run-rust-tests.mjs</File>
+      <File>tests/tools/run-rust-tests.test.mjs</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/run-rust-tests.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>npm run release:governance</ExpectedCommand>
+      <ExpectedCommand>node --check tools/run-rust-tests.mjs</ExpectedCommand>
+      <ExpectedCommand>actionlint .github/workflows/test.yml</ExpectedCommand>
+      <ExpectedCommand>git diff --check</ExpectedCommand>
+      <ExpectedCommand>npm run test:coverage</ExpectedCommand>
+      <ExpectedEvidence>Actual old438/2 failure history and native/direct success remain provenance. Exact one-case/mechanical exception, renewed source-bound native authority, affected10suite and mandatory full sameNode22 no-QA-env coverage with all original limits, retained raw carrier+Node+script/PID/argv/env proofs and exact cleanup. No repeated old whole-suite/timing probes.</ExpectedEvidence>
+    </VerificationIntent>
+    <ReferenceState>
+      <SourceBaseline>1ea0d7c3e99059373a1f949acb2d0363be4a48ed29dcd5d8621d0f6cfd0ab5f3</SourceBaseline>
+      <MechanicalProposal>b810d523501131c841994d95f8002e9f0b686fc06cde641ac4f4e22b4b5288b5</MechanicalProposal>
+      <DurableProjection>d69695c2306b4373da6ff208e5805eec0aa6559b99b7ba99e14d4db1169d2dcb</DurableProjection>
+    </ReferenceState>
+  </C-CI-NATIVE-FIXTURE-ATTRIBUTION>
+</GraceChangeSpec>

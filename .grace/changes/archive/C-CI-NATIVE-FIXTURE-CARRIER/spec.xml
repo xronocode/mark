@@ -1,5 +1,6 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="superseded">
   <C-CI-NATIVE-FIXTURE-CARRIER>
+    <ReplacementChange>C-CI-NATIVE-FIXTURE-ATTRIBUTION</ReplacementChange>
     <Summary>Use an explicitly attributed source-built universal C carrier for controlled macOS lifecycle fixtures while preserving direct official Node execution, proper FAT recognition, runtime identity and every existing test limit.</Summary>
     <Problem>Correct universal classification exposes the actual lifecycle fixtures to repeated224548656-byte fresh Node image starts. The affected run has431 passes and five unchanged timing failures; a single unchanged representative case passes near its existing limit. A fixture carrier may isolate equivalent selected-harness lifecycle mechanics from fresh copied-runtime startup cost, while genuine copied official Node and malformed FAT coverage remain mandatory. Speed is not established by this design.</Problem>
     <Relationship>Successor of incomplete/not-applied C-CI-NATIVE-EVIDENCE-COMPATIBILITY. Adopt its legitimate observed six-file state; preserve five files byte exact and change only the existing Rust test fixture file. Parent approvals and old source/failed timing/isolated-pass proofs remain immutable. Root alone supersedes/archives parent with reversible terminal metadata; original applied archives stay frozen. Necessary CI/artifact-hygiene prerequisite separate from original77 records and linked to CI:F-002.</Relationship>

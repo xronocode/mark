@@ -1,5 +1,6 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="superseded">
   <C-CI-NATIVE-FIXTURE-CARRIER>
+    <ReplacementChange>C-CI-NATIVE-FIXTURE-ATTRIBUTION</ReplacementChange>
     <IntentSummary>Private proposed fixture-only recovery plan. After separate spec/plan approval and source-bound C recipe review, preserve five files and change only Rust fixture carrier/attribution mechanics; all runtime policies and test limits remain exact.</IntentSummary>
     <BaselineAssertions>
       <MustExist>
