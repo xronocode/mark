@@ -14,8 +14,6 @@
 //   readSource - read a repo file as text for source-level pins.
 //   makeStore - build a project store instance with a controlled editor twin.
 //   fileUtils - the mocked window.fileUtils surface (stat/move).
-//   moveTableLayoutsEntry - spy for the table-layouts migration util (the other two migrations are asserted through their effects).
-//   moveFilePositionsEntry / movePageWidthEntry - spies for the reading-position and page-width migration utils.
 //   editorTwin - the controlled editor-store twin the mocked useEditorStore returns.
 // END_MODULE_MAP
 //
