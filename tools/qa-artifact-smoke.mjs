@@ -51,9 +51,13 @@ function run(argv) {
  var count=integer(apps.count), requested=false;
  for(var i=0;i<count;i++) {
   var app=apps.objectAtIndex(i), pid=app.processIdentifier;
-  if(typeof pid!=='number' || !Number.isSafeInteger(pid) || pid<=0) throw Error('process-pid');
   var bundle=app.bundleURL?string(app.bundleURL.path):'', identifier=string(app.bundleIdentifier);
-  if(bundle!==path && identifier!==id && owned.indexOf(pid)<0) continue;
+  // Unrelated zombie entries (invalid pid, e.g. -1 while terminating) must not abort
+  // the scan; the strict pid invariant still applies to every matched/owned target.
+  var validPid = typeof pid==='number' && Number.isSafeInteger(pid) && pid>0;
+  var matched = bundle===path || identifier===id || (validPid && owned.indexOf(pid)>=0);
+  if(!matched) continue;
+  if(!validPid) throw Error('process-pid');
   var executable=app.executableURL?string(app.executableURL.path):'';
   if(quit) {
    if(pid!==quit.pid) continue;
