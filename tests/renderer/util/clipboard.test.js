@@ -15,9 +15,7 @@ vi.mock('@/util/index', () => ({
 }))
 
 vi.mock('plist', () => ({
-  default: {
-    parse: vi.fn((data) => ['/path/to/file.png'])
-  }
+  parse: vi.fn((data) => ['/path/to/file.png'])
 }))
 
 describe('util/clipboard', () => {
@@ -72,7 +70,7 @@ describe('util/clipboard (Windows)', () => {
       isWindows: true
     }))
     vi.doMock('plist', () => ({
-      default: { parse: vi.fn() }
+      parse: vi.fn()
     }))
 
     window.electron.clipboard = {
@@ -93,7 +91,7 @@ describe('util/clipboard (Windows)', () => {
       isWindows: true
     }))
     vi.doMock('plist', () => ({
-      default: { parse: vi.fn() }
+      parse: vi.fn()
     }))
 
     window.electron.clipboard = {
@@ -117,7 +115,7 @@ describe('util/clipboard (unknown platform)', () => {
       isWindows: false
     }))
     vi.doMock('plist', () => ({
-      default: { parse: vi.fn() }
+      parse: vi.fn()
     }))
 
     const { guessClipboardFilePath: guessFn } = await import('@/util/clipboard')
@@ -135,7 +133,7 @@ describe('util/clipboard (macOS, non-array plist)', () => {
       isWindows: false
     }))
     vi.doMock('plist', () => ({
-      default: { parse: vi.fn().mockReturnValue('not-an-array') }
+      parse: vi.fn().mockReturnValue('not-an-array')
     }))
 
     window.electron.clipboard = {
@@ -155,7 +153,7 @@ describe('util/clipboard (macOS, non-array plist)', () => {
       isWindows: false
     }))
     vi.doMock('plist', () => ({
-      default: { parse: vi.fn().mockReturnValue([]) }
+      parse: vi.fn().mockReturnValue([])
     }))
 
     window.electron.clipboard = {
@@ -177,7 +175,7 @@ describe('util/clipboard (Tauri shim — no native .has/.read)', () => {
       isWindows: false
     }))
     vi.doMock('plist', () => ({
-      default: { parse: vi.fn() }
+      parse: vi.fn()
     }))
 
     window.electron.clipboard = {
@@ -199,7 +197,7 @@ describe('util/clipboard (Tauri shim — no native .has/.read)', () => {
       isWindows: false
     }))
     vi.doMock('plist', () => ({
-      default: { parse: vi.fn() }
+      parse: vi.fn()
     }))
 
     window.electron.clipboard = {
