@@ -63,7 +63,9 @@ export const WINDOW_MENU_ACCELERATORS = Object.freeze(
     'Ctrl+Shift+G': 'edit.find-previous',
     'Ctrl+H': 'edit.replace',
     'Ctrl+Shift+F': 'edit.find-in-folder',
-    'Ctrl+B': 'view.toggle-sidebar',
+    // FIX-SIDEBAR-BOLD-CONFLICT: plain Ctrl+B belongs to bold text in
+    // the editor; the sidebar rides the shifted chord (m009 parity).
+    'Ctrl+Shift+B': 'view.toggle-sidebar',
     'Ctrl+Alt+S': 'view.source-code-mode',
     'Ctrl+Alt+Backslash': 'view.split-view',
     'Ctrl+D': 'view.diff-mode',

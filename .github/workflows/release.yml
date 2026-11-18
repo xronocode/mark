@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.6.0
+# VERSION: 3.7.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -10,15 +10,16 @@
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute.
+#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute. C-RELEASE-CANARY-PRERELEASE: hyphenated vX.Y.Z-beta.N/canary.N tags (base equal to the collecting train computedVersion) take the prerelease lane — payload-checks, strict admission, materials, preflight and the release-identity artifact are skipped for them while the tagger, annotated-tag and seal=HEAD checks stay.
 #   manual-build - Run unsigned build-only QA from an input-free manual dispatch.
-#   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing.
-#   prepare-publication - Render and digest the exact release body and asset set without write credentials.
-#   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final owner-gated step once the build lanes are green and the owner approves the release environment.
-#   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge.
+#   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing. C-RELEASE-CANARY-PRERELEASE: the admitted-evidence download, repeated strict admission, materials gate and metadata preflight are skipped for prerelease tags; packaging, signing and smoke stay unconditional.
+#   prepare-publication - Render and digest the exact release body and asset set without write credentials. C-RELEASE-CANARY-PRERELEASE: prerelease tags get a generated body (automated verification block plus the external-tester notice) with no reviewed-notes extraction and no brew line.
+#   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final owner-gated step once the build lanes are green and the owner approves the release environment. C-RELEASE-CANARY-PRERELEASE: prerelease tags publish with isPrerelease=true and an assertion that releases/latest did NOT advance (updater feed untouched).
+#   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge; skipped for prerelease tags.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-17 v3.7.0 C-RELEASE-CANARY-PRERELEASE: prerelease lane for external-tester tags — authorize-tag admits vX.Y.Z-beta.N/canary.N (base = train computedVersion, no Ready seal) and skips readiness/materials/preflight plus the identity artifact; build skips the repeated admission gates; prepare-publication renders a tester body; publish exposes a prerelease that never advances releases/latest; publish-cask is skipped for prereleases. The stable path is unchanged for non-hyphenated tags.
 #   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: resolve exact release action pins and preserve shell output under actionlint.
 #   - 2026-11-09 v3.6.0 C-SEC-AUDIT-FIXES T-001: generate Node supply-chain evidence with lockfile-installed local binaries.
 #   - 2026-11-09 v3.5.0 C-CI-CD-AUDIT-FIXES: split manual QA checks into fail-fast steps, disable updater artifacts only in unsigned packaging, and pin Rust and its cache keys.
@@ -102,6 +103,7 @@ jobs:
       tag: ${{ steps.identity.outputs.tag }}
       payload: ${{ steps.identity.outputs.payload }}
       seal: ${{ steps.identity.outputs.seal }}
+      prerelease: ${{ steps.identity.outputs.prerelease }}
     steps:
       - name: checkout exact tag
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -141,18 +143,39 @@ jobs:
           STATE=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).state")
           PAYLOAD=$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).payloadSha")
           EXPECTED_TAG=v$(TRAIN="$TRAIN" node -p "JSON.parse(require('fs').readFileSync(process.env.TRAIN)).computedVersion")
-          [ "$STATE" = Ready ]
-          [ "$REF_NAME" = "$EXPECTED_TAG" ]
+          # C-RELEASE-CANARY-PRERELEASE: a hyphenated owner tag
+          # (vX.Y.Z-beta.N / vX.Y.Z-canary.N) rides the prerelease lane —
+          # no Ready seal, no strict admission, no materials or preflight.
+          # Its base must still equal the collecting train's computedVersion
+          # so a beta always names this train; any other hyphen shape is
+          # rejected before secrets or candidate code execute.
+          PRERELEASE=false
+          if [[ "$REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|canary)\.[1-9][0-9]*$ ]]; then
+            PRERELEASE=true
+          elif [[ "$REF_NAME" == *"-"* ]]; then
+            echo "::error::hyphenated tags must match vX.Y.Z-beta.N or vX.Y.Z-canary.N"
+            exit 1
+          fi
+          if [ "$PRERELEASE" = false ]; then
+            [ "$STATE" = Ready ]
+            [ "$REF_NAME" = "$EXPECTED_TAG" ]
+          else
+            [[ "$STATE" =~ ^(Collecting|Preparing|Frozen|Ready)$ ]]
+            BASE_TAG="${REF_NAME%%-*}"
+            [ "$BASE_TAG" = "$EXPECTED_TAG" ]
+          fi
           {
             echo "tag=$REF_NAME"
             echo "payload=$PAYLOAD"
             echo "seal=$SEAL"
+            echo "prerelease=$PRERELEASE"
           } >> "$GITHUB_OUTPUT"
 
       - name: install locked dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
 
       - name: read exact payload check runs
+        if: steps.identity.outputs.prerelease != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PAYLOAD: ${{ steps.identity.outputs.payload }}
@@ -164,6 +187,7 @@ jobs:
             > /tmp/release-checks.json
 
       - name: strict online release admission
+        if: steps.identity.outputs.prerelease != 'true'
         env:
           TAG: ${{ steps.identity.outputs.tag }}
           PAYLOAD: ${{ steps.identity.outputs.payload }}
@@ -172,6 +196,7 @@ jobs:
         run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file /tmp/release-checks.json
 
       - name: materials and version admission
+        if: steps.identity.outputs.prerelease != 'true'
         env:
           TAG: ${{ steps.identity.outputs.tag }}
         run: |
@@ -179,6 +204,7 @@ jobs:
           npm run release:preflight -- --tag "$TAG"
 
       - name: preserve checked identity for packaging
+        if: steps.identity.outputs.prerelease != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-identity
@@ -318,6 +344,7 @@ jobs:
             cargo-${{ matrix.platform.target }}-
 
       - name: download admitted check evidence
+        if: needs.authorize-tag.outputs.prerelease != 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-identity
@@ -328,6 +355,7 @@ jobs:
         run: npm ci
 
       - name: repeat strict release admission before packaging
+        if: needs.authorize-tag.outputs.prerelease != 'true'
         env:
           TAG: ${{ needs.authorize-tag.outputs.tag }}
           PAYLOAD: ${{ needs.authorize-tag.outputs.payload }}
@@ -337,11 +365,13 @@ jobs:
         run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file "$CHECKS_FILE"
 
       - name: release materials gate
+        if: needs.authorize-tag.outputs.prerelease != 'true'
         env:
           TAG: ${{ needs.authorize-tag.outputs.tag }}
         run: npm run release:materials -- --tag "$TAG"
 
       - name: release metadata preflight
+        if: needs.authorize-tag.outputs.prerelease != 'true'
         env:
           TAG: ${{ steps.resolve_tag.outputs.tag }}
         run: npm run release:preflight -- --tag "$TAG"
@@ -813,7 +843,7 @@ jobs:
 
   prepare-publication:
     name: prepare immutable publication bundle
-    needs: build
+    needs: [authorize-tag, build]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -898,9 +928,38 @@ jobs:
         env:
           TAG: ${{ needs.build.outputs.tag }}
           WINDOWS_RELEASE: ${{ vars.WINDOWS_RELEASE }}
+          PRERELEASE: ${{ needs.authorize-tag.outputs.prerelease }}
         run: |
           set -euo pipefail
           VER="${TAG#v}"
+          if [ "$PRERELEASE" = true ]; then
+            # C-RELEASE-CANARY-PRERELEASE: prerelease bodies carry the
+            # automated verification block and a tester notice only — no
+            # reviewed notes, no What's New materials, no brew line.
+            cat > /tmp/release-body.md <<NOTES_EOF
+          Automated prerelease from \`$GITHUB_SHA\`.
+
+          **Prerelease build for external testers.** Install by downloading the assets below over your existing installation; roll back by reinstalling the latest stable DMG. This build is not published to the in-app updater feed, Homebrew or winget.
+
+          **Verification:**
+
+          Build provenance (SLSA-3):
+          \`\`\`
+          gh attestation verify Mark_${VER}_aarch64.dmg --owner xronocode
+          \`\`\`
+
+          Cosign keyless signature:
+          \`\`\`
+          cosign verify-blob --bundle Mark_${VER}_aarch64.dmg.bundle Mark_${VER}_aarch64.dmg
+          \`\`\`
+
+          DMG SHA-256, CycloneDX SBOMs, attribution notices, and the ed25519-signed updater feed are published as release assets.
+          NOTES_EOF
+            if [ "$WINDOWS_RELEASE" = true ]; then
+              printf "\n**Windows (x64):** NSIS installer \`Mark_%s_x64-setup.exe\` is attached for direct download (not in the updater feed).\n" "$VER" >> /tmp/release-body.md
+            fi
+            exit 0
+          fi
           cat > /tmp/automated-release-body.md <<NOTES_EOF
           Automated release from \`$GITHUB_SHA\`.
 
@@ -945,7 +1004,7 @@ jobs:
 
   publish:
     name: publish github release
-    needs: [build, prepare-publication]
+    needs: [authorize-tag, build, prepare-publication]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # C-RELEASE-MANUAL-PUBLISH: publication is manual-only (owner train
@@ -1036,8 +1095,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.build.outputs.tag }}
+          PRERELEASE: ${{ needs.authorize-tag.outputs.prerelease }}
         run: |
           set -euo pipefail
+          if [ "$PRERELEASE" = true ]; then
+            # C-RELEASE-CANARY-PRERELEASE: a prerelease is exposed as a
+            # GitHub prerelease and must never become releases/latest —
+            # the in-app updater feed stays on the previous stable tag.
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=true
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,tagName \
+              | jq -e --arg tag "$TAG" 'select(.isDraft == false and .isPrerelease == true and .tagName == $tag)' >/dev/null
+            for ATTEMPT in 1 2 3 4 5; do
+              LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+              [ "$LATEST" != "$TAG" ] && break
+              [ "$ATTEMPT" = 5 ] && { echo "::error::prerelease must not advance releases/latest"; exit 1; }
+              sleep $((ATTEMPT * 3))
+            done
+            echo "[ReleasePublish][publish][BLOCK_RELEASE_PRERELEASE_NOT_LATEST] tag=$TAG"
+            exit 0
+          fi
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,tagName \
             | jq -e --arg tag "$TAG" 'select(.isDraft == false and .isPrerelease == false and .tagName == $tag)' >/dev/null
@@ -1053,7 +1129,10 @@ jobs:
 
   publish-cask:
     name: cross-repo cask PR
-    needs: [build, publish]
+    needs: [authorize-tag, build, publish]
+    # C-RELEASE-CANARY-PRERELEASE: prereleases never reach the Homebrew
+    # cask; the stable path keeps its unchanged handoff.
+    if: needs.authorize-tag.outputs.prerelease != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: release-cask

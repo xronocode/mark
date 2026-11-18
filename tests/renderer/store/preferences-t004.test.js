@@ -63,10 +63,10 @@ describe('preferences store — C-38 T-004', () => {
       expect(store.titleBarStyle).toBe('native')
     })
 
-    it('undefined values stay filtered as before', () => {
+    it('undefined values stay filtered; autosave defaults on (C-AUTOSAVE-DEFAULT-ON)', () => {
       const store = usePreferencesStore()
       store.SET_USER_PREFERENCE({ autoSave: undefined })
-      expect(store.autoSave).toBe(false)
+      expect(store.autoSave).toBe(true)
     })
   })
 

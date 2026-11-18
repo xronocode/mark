@@ -1,0 +1,51 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SIDEBAR-MOVE-FILE>
+    <Summary>Move files between sidebar folders by drag-and-drop, with one unified move semantics: explicit collision refusal, open-tab pathname migration, and stored table-layout / reading-position entries following the file, reusing the existing native move.</Summary>
+    <Problem>The external tester cannot move a file from folder to folder in the sidebar (reported 2026-11-16). The machinery half-exists but is split and lossy: context-menu cut+paste moves the file yet leaves open tabs pointing at the dead old pathname and abandons the per-file table-layout and position stores; the only full-migration path is rename; drag-and-drop, the natural sidebar gesture, does nothing.</Problem>
+    <Goals>
+      <Goal>Dragging a file row onto a folder row (or an open root section) moves the file into that folder through the native mt_fs_move.</Goal>
+      <Goal>One project-store moveItem action owns the semantics: same-destination refusal, explicit destination-exists refusal naming the colliding file, native move, open-tab pathname/filename/DIRNAME migration, table-layouts entry migration, reading-position entry migration, tree refresh, clipboard clearing when the moved source was the clipboard.</Goal>
+      <Goal>The existing cut+paste path routes through the same action, so context-menu moves stop orphaning open tabs.</Goal>
+      <Goal>Locked or preview-only tabs do not block the move; their pathname migrates the same way.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No new Tauri commands, capabilities or permissions; the move reuses window.fileUtils.move (mt_fs_move).</Constraint>
+      <Constraint>Folder drag stays out of v1 (files only); dropping onto a file row is ignored (no implicit parent routing beyond the existing paste semantics).</Constraint>
+      <Constraint>Notices follow the existing sidebar paste pattern (plain English strings, no locale wave in this change).</Constraint>
+      <Constraint>Rename's migration behavior is the template and is not altered; the rename path keeps its own flow.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Dragging folders, cross-root moves between workspace roots, or move-on-collision renaming.</NonGoal>
+      <NonGoal>Undo of a move, trash integration, or Recent-list rewriting beyond what the existing tree refresh already does.</NonGoal>
+      <NonGoal>Localization of the new notices (follows the existing hardcoded-EN sidebar notice precedent).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Drag file → folder moves the file; drag onto the source's own folder is refused with the same-destination notice and no filesystem change.</Criterion>
+      <Criterion>A move whose destination already contains a same-named file is refused with a notice naming the file, before any native call.</Criterion>
+      <Criterion>An open tab whose file moved keeps editing the same buffer at the new pathname (tab pathname/filename updated, DIRNAME fixed for the current file) and survives save.</Criterion>
+      <Criterion>The stored table-layouts entry and reading-position entry for the old pathname are migrated to the new pathname on a successful move.</Criterion>
+      <Criterion>Cut+paste produces identical results to drag-and-drop (same action).</Criterion>
+      <Criterion>A failed native move leaves tabs, stores and clipboard untouched and surfaces the error notice.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-009 />
+      <M-011 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx vitest run tests/renderer/store/project-move.test.js tests/renderer/muya/plainTextTable.test.js</ExpectedCommand>
+      <ExpectedEvidence>Store-level unit tests with a mocked fileUtils proving both refusals, tab/store migration and failure atomicity; a source-level pin that treeFile/treeFolder wire the drag events and that SIDEBAR::paste routes through moveItem; full renderer suite green.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>mt_fs_move fails on an existing destination (native rename semantics), which the pre-check turns into an explicit refusal before any call.</Assumption>
+      <Assumption>The tree refresh after a move re-reads the directory state exactly as it does after cut+paste today.</Assumption>
+    </Assumptions>
+    <Approval>
+      <ApprovedBy>Owner requested the feature from the external tester session 2026-11-16 (Telegram, message id 117656) and noted the rename-collision corners in the same chat; technical spec approval delegated by the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (recorded privately, 2026-11-17). Delegated approval recorded by the agent; not an interactive owner answer to this document.</ApprovedBy>
+      <ApprovalScope>Implement with the established gates: focused unit tests, full renderer suite, grace target/final assertions.</ApprovalScope>
+    </Approval>
+    <Completion>
+      <Date>2026-11-17</Date>
+      <Note>PR #278 squash ce92b473: moveItem action + drag-and-drop + cut/paste rerouting; project-move 9/9, neighborhood 1242/0, full suite 0 failures; hosted CI green.</Note>
+    </Completion>
+  </C-SIDEBAR-MOVE-FILE>
+</GraceChangeSpec>

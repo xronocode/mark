@@ -7,6 +7,8 @@
     :class="[
       { current: currentFile.pathname === file.pathname, active: file.id === activeItem.id, dirty: isDirty }
     ]"
+    draggable="true"
+    @dragstart="handleDragStart"
     @click="handleFileClick"
   >
     <input
@@ -46,6 +48,7 @@
 // END_MODULE_CONTRACT
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-17 v2.3.0 C-SIDEBAR-MOVE-FILE: the row is draggable and carries its pathname (text/markmark-move-path) so folder rows can accept a sidebar move; click behavior unchanged.
 //   - 2026-10-17 v2.2.0: C-51 T-013 — the leading file-type icon is gone;
 //     the row keeps the shared inset (--sideBarRowInset + the 20px folder
 //     icon slot) so the name aligns with folder names, and every file row
@@ -117,6 +120,14 @@ const isDirty = computed(() => {
 })
 
 // from fileMixins
+// C-SIDEBAR-MOVE-FILE: the row is the drag payload — the pathname travels
+// in the dataTransfer so folder rows (and only folder rows) can accept it.
+const handleDragStart = (event) => {
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/markmark-move-path', props.file.pathname)
+  event.dataTransfer.setData('text/plain', props.file.pathname)
+}
+
 const handleFileClick = (event) => {
   const { isMarkdown, pathname } = props.file
   if (!isMarkdown) return
