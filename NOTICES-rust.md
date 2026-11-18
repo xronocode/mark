@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **638 crates**.
+Generated from `cargo-bundle-licenses --format json` over **637 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -13,7 +13,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 
 | License | Crate count |
 |---|---:|
-| MIT OR Apache-2.0 | 304 |
+| MIT OR Apache-2.0 | 303 |
 | MIT | 136 |
 | Apache-2.0 OR MIT | 55 |
 | MIT/Apache-2.0 | 23 |
@@ -54,7 +54,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | MIT AND BSD-3-Clause | 1 |
 | MIT OR Zlib OR Apache-2.0 | 1 |
 
-## MIT OR Apache-2.0 (304)
+## MIT OR Apache-2.0 (303)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -90,7 +90,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | clap_builder | 4.6.7 | https://github.com/clap-rs/clap |
 | clap_derive | 4.6.7 | https://github.com/clap-rs/clap |
 | clap_lex | 1.1.0 | https://github.com/clap-rs/clap |
-| cocoa | 0.26.1 | https://github.com/servo/core-foundation-rs |
+| cocoa | 0.27.0 | https://github.com/servo/core-foundation-rs |
 | cocoa-foundation | 0.2.1 | https://github.com/servo/core-foundation-rs |
 | colorchoice | 1.0.5 | https://github.com/rust-cli/anstyle.git |
 | cookie | 0.18.1 | https://github.com/SergioBenitez/cookie-rs |
@@ -98,7 +98,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | core-foundation | 0.10.1 | https://github.com/servo/core-foundation-rs |
 | core-foundation-sys | 0.8.7 | https://github.com/servo/core-foundation-rs |
 | core-graphics | 0.23.2 | https://github.com/servo/core-foundation-rs |
-| core-graphics | 0.24.0 | https://github.com/servo/core-foundation-rs |
 | core-graphics | 0.25.0 | https://github.com/servo/core-foundation-rs |
 | core-graphics-types | 0.1.3 | https://github.com/servo/core-foundation-rs |
 | core-graphics-types | 0.2.0 | https://github.com/servo/core-foundation-rs |
@@ -259,7 +258,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | servo_arc | 0.4.3 | https://github.com/servo/stylo |
 | sha2 | 0.10.9 | https://github.com/RustCrypto/hashes |
 | sha2 | 0.11.1 | https://github.com/RustCrypto/hashes |
-| signal-hook | 0.4.5 | https://github.com/vorner/signal-hook |
+| signal-hook | 0.4.6 | https://github.com/vorner/signal-hook |
 | signal-hook-registry | 1.4.8 | https://github.com/vorner/signal-hook |
 | simdutf8 | 0.1.5 | https://github.com/rusticstuff/simdutf8 |
 | smallvec | 1.15.2 | https://github.com/servo/rust-smallvec |
@@ -549,7 +548,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | tauri-plugin-dialog | 2.8.4 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-fs | 2.7.1 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-global-shortcut | 2.4.1 | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-opener | 2.7.2 | https://github.com/tauri-apps/plugins-workspace |
+| tauri-plugin-opener | 2.7.3 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-process | 2.4.0 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-single-instance | 2.5.5 | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-updater | 2.14.1 | https://github.com/tauri-apps/plugins-workspace |
