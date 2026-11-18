@@ -13,8 +13,12 @@
 //   baselineDigests - Full AST fingerprints of the reviewed cache delivery baseline.
 //   digest - Stable complete AST fingerprint without a private-commit history dependency.
 //   lifecycleProjection - Remove only the intended wrapper/setup changes for exact AST comparison.
+//   qaEvidenceRoot - Exact per-runner metadata root already owned by renderer fixture retention.
+//   qaReceiptStep - Exact approved JSON-only renderer collector validated before inverse removal.
+//   restoreQaEvidence - Preserve the original complete workflow oracle after validating only the QA additions.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-CI-NATIVE-EVIDENCE-COMPATIBILITY: compose exact renderer metadata additions with the unchanged original Rust workflow digest.
 //   - 2026-11-16 C-CI-RUST-RECEIPT-RETENTION: retain exact prior AST gates with validated receipt collection and original lane baseline.
 //   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: complete workflow preservation controls.
 // END_CHANGE_SUMMARY
@@ -44,9 +48,27 @@ const baselineDigests = {
   'ci.yml': '81fafd6cc3286490cd38b3a25dc829a9cfda05d6e424df1bc2eacd230d52b228',
   'lane.yml': '7d42522c2477650b2cc0ea51594f579c4786ade2213083f798bf53c352394496'
 }
+const qaEvidenceRoot = '${{ runner.temp }}/mark-qa-core-evidence-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}'
+const qaReceiptStep = {
+  name: 'upload QA core fixture receipts', if: 'always()', env: { MARK_QA_CORE_EVIDENCE_ROOT: qaEvidenceRoot },
+  uses: 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
+  with: {
+    name: 'qa-core-fixture-receipts-${{ github.job }}-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}',
+    path: '${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.json\n${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.jsonl\n',
+    'if-no-files-found': 'error', 'retention-days': 1
+  }
+}
+function restoreQaEvidence(workflow) {
+  const job = workflow.jobs['renderer-unit'], coverage = job.steps.find(step => step.name === 'vitest run with coverage')
+  expect(coverage.env).toEqual({ MARK_QA_CORE_EVIDENCE_ROOT: qaEvidenceRoot })
+  expect(job.steps.filter(step => step.name === qaReceiptStep.name)).toEqual([qaReceiptStep])
+  expect(job.steps.at(-1)).toEqual(qaReceiptStep)
+  delete coverage.env; job.steps.pop()
+}
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex')
 const lifecycleProjection = (workflow, job, replacements) => {
   const result = structuredClone(workflow)
+  if (job === 'backend-unit') restoreQaEvidence(result)
   const steps = result.jobs[job].steps
   const added = steps.filter(step => step.name === nodeStep.name)
   expect(added).toEqual([nodeStep])
@@ -105,5 +127,27 @@ describe('CI Cargo lifecycle preserves original gate selection', () => {
     const modified = parse(readFileSync('.github/workflows/test.yml', 'utf8'))
     modified.jobs['backend-unit']['timeout-minutes'] = 60
     expect(digest(modified)).not.toBe(digest(parse(readFileSync('.github/workflows/test.yml', 'utf8'))))
+  })
+})
+
+describe('strict renderer metadata composition in the original lifecycle oracle', () => {
+  it.each([
+    ['missing env', job => { delete job.steps.find(step => step.name === 'vitest run with coverage').env }],
+    ['changed env', job => { job.steps.find(step => step.name === 'vitest run with coverage').env.MARK_QA_CORE_EVIDENCE_ROOT = 'shared' }],
+    ['missing collector', job => { job.steps.pop() }],
+    ['duplicate collector', job => { job.steps.push(structuredClone(qaReceiptStep)) }],
+    ['nonfinal collector', job => { job.steps.unshift(job.steps.pop()) }],
+    ['success-only', job => { job.steps.at(-1).if = 'success()' }],
+    ['changed collector env', job => { job.steps.at(-1).env.MARK_QA_CORE_EVIDENCE_ROOT = 'other' }],
+    ['wrong pin', job => { job.steps.at(-1).uses = 'actions/upload-artifact@v4' }],
+    ['long retention', job => { job.steps.at(-1).with['retention-days'] = 14 }],
+    ['ignored absence', job => { job.steps.at(-1).with['if-no-files-found'] = 'ignore' }],
+    ['broad path', job => { job.steps.at(-1).with.path = '${{ runner.temp }}/**\n' }],
+    ['missing JSONL', job => { job.steps.at(-1).with.path = '${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.json\n' }],
+    ['changed old coverage', job => { job.steps.find(step => step.name === 'vitest run with coverage').run = 'npm test' }],
+    ['changed old timeout', job => { job['timeout-minutes'] = 999 }]
+  ])('rejects %s without replacing the historical full-workflow digest', (_name, mutate) => {
+    const actual = parse(readFileSync('.github/workflows/test.yml', 'utf8')); mutate(actual.jobs['renderer-unit'])
+    expect(() => expect(digest(lifecycleProjection(actual, 'backend-unit', { 'node ../tools/run-rust-tests.mjs --bin mark': 'cargo test --bin mark' }))).toBe(baselineDigests['test.yml'])).toThrow()
   })
 })

@@ -11,6 +11,8 @@
 // START_MODULE_MAP
 //   fixture - Fresh isolated identity, files and injected native boundary.
 //   external - Fsync retained source/tool/PID/barrier/cleanup records outside teardown.
+//   evidenceStorage - Memoize only this worker's automatically owned external metadata root.
+//   cleanupFixtures - Attempt independent safe fixture deletion before reporting evidence or ownership faults.
 //   execute - Run the actual gate against injected observations/exec, never Mark.
 //   ownedTool - Actual controlled existing runtime child with a before-payload barrier.
 //   directorySyncCalls - Retain directory-sync call observations for inert fixtures.
@@ -22,6 +24,7 @@
 //   source - Bind every exercised helper and test source.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-QA-CORE-EVIDENCE-PORTABILITY: keep mandatory external receipts without a caller environment prerequisite and clean stopped fixtures despite recording faults.
 //   - C-QA-MACOS-LAUNCH-GATE: real protocol and failure controls with final owned cleanup.
 // END_CHANGE_SUMMARY
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -42,25 +45,46 @@ function fixtureDirectorySync(parent) {
 }
 const atomicGateJson = (path, value) => actualAtomicGateJson(path, value, { syncDirectory: fixtureDirectorySync })
 const roots = [], children = []
+const evidenceStorage = {}
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 const source = () => Object.fromEntries(['tools/qa-launch-gate.mjs', 'tools/qa-pid-image.py', 'tools/qa-artifact-smoke.mjs', 'tools/prepare-qa-artifacts.mjs', 'tests/tools/qa-launch-gate.test.mjs'].map(path => [path, gateHashFile(path)]))
-function external(record) {
-  const root = process.env.MARK_QA_CORE_EVIDENCE_ROOT
-  if (!root) throw Error('external fixture evidence required')
-  fs.mkdirSync(root, { recursive: true })
-  const fd = fs.openSync(join(root, 'gate-fixtures.jsonl'), 'a', 0o600)
-  try { fs.writeFileSync(fd, JSON.stringify({ source: source(), ...record }) + '\n'); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
-}
-afterEach(() => {
-  vi.restoreAllMocks()
-  for (const child of children.splice(0)) {
-    let absent = false
-    try { process.kill(child.pid, 0) } catch (error) { if (error.code === 'ESRCH') absent = true; else throw error }
-    external({ phase: 'child-after-test', ...child, absent }); expect(absent).toBe(true)
+function external(record, { environment = process.env, storage = evidenceStorage, io = fs } = {}) {
+  let root = environment.MARK_QA_CORE_EVIDENCE_ROOT
+  if (!root) {
+    storage.root ||= io.mkdtempSync(join(tmpdir(), 'mark-qa-core-evidence-'))
+    root = storage.root
   }
-  external({ phase: 'directory-sync-fixture', calls: directorySyncCalls.splice(0), simulatedDirectoryDurability: process.platform === 'win32' })
-  for (const root of roots.splice(0)) { fs.rmSync(root, { recursive: true, force: true }); external({ phase: 'fixture-removed', root, absent: !fs.existsSync(root) }); expect(fs.existsSync(root)).toBe(false) }
-})
+  io.mkdirSync(root, { recursive: true, mode: 0o700 })
+  const fd = io.openSync(join(root, 'gate-fixtures.jsonl'), 'a', 0o600)
+  try { io.writeFileSync(fd, JSON.stringify({ source: source(), ...record }) + '\n'); io.fsyncSync(fd) } finally { io.closeSync(fd) }
+}
+function cleanupFixtures({ ownedChildren = children.splice(0), ownedRoots = roots.splice(0), syncCalls = directorySyncCalls.splice(0), write = external, observe = pid => process.kill(pid, 0), io = fs } = {}) {
+  const errors = [], protectedRoots = new Set()
+  const record = value => { try { write(value) } catch (error) { errors.push(error) } }
+  for (const child of ownedChildren) {
+    let absent = false
+    try { observe(child.pid) } catch (error) { if (error.code === 'ESRCH') absent = true; else errors.push(error) }
+    if (!absent) {
+      if (ownedRoots.includes(child.root)) protectedRoots.add(child.root)
+      else for (const root of ownedRoots) protectedRoots.add(root)
+      errors.push(Error(`owned fixture tool is live or unknown: pid=${child.pid} root=${child.root || 'unbound'}`))
+    }
+    record({ phase: 'child-after-test', ...child, absent })
+  }
+  record({ phase: 'directory-sync-fixture', calls: syncCalls, simulatedDirectoryDurability: process.platform === 'win32' })
+  for (const root of ownedRoots) {
+    if (protectedRoots.has(root)) { record({ phase: 'fixture-retained', root, reason: 'live-or-unknown-tool' }); continue }
+    let absent = false
+    try {
+      io.rmSync(root, { recursive: true, force: true })
+      try { io.lstatSync(root) } catch (error) { if (error.code === 'ENOENT') absent = true; else throw error }
+      if (!absent) throw Error(`owned fixture remains after cleanup: ${root}`)
+    } catch (error) { errors.push(error) }
+    record({ phase: 'fixture-removed', root, absent })
+  }
+  if (errors.length) throw new AggregateError(errors, `fixture cleanup or evidence failed; protected roots: ${[...protectedRoots].join(', ') || 'none'}`)
+}
+afterEach(() => { vi.restoreAllMocks(); cleanupFixtures() })
 function fixture() {
   const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'qa-gate-'))); roots.push(root)
   const workspace = join(root, 'workspace'), applications = join(root, 'Applications'); fs.mkdirSync(workspace); fs.mkdirSync(applications)
@@ -100,6 +124,70 @@ function fixture() {
   const boundaries = { processes: () => native.processes(), windows: () => native.windowOwnerCounts(state.smoke.ownedPids), remember: rows => { state.smoke.ownedProcesses = rows }, checkpoint: options.checkpoint }
   return { root, state, native, installed, binary, runtime, installer, birth, pid, calls, options, boundaries, cleanup, setAlive: value => { alive = value }, setNative: value => { nativeExecuted = value }, task: () => gateTask }
 }
+describe('portable mandatory external evidence and independent fixture cleanup', () => {
+  it('lazily retains a private fsynced metadata root outside fixture teardown when no environment is supplied', () => {
+    const storage = {}, calls = [], io = { ...fs, openSync(...args) { calls.push(args); return fs.openSync(...args) }, fsyncSync(fd) { calls.push('fsync'); fs.fsyncSync(fd) } }
+    external({ phase: 'portable-first' }, { environment: {}, storage, io })
+    const root = storage.root
+    external({ phase: 'portable-second' }, { environment: {}, storage, io })
+    expect(storage.root).toBe(root); expect(roots).not.toContain(root)
+    expect(root.startsWith(join(tmpdir(), 'mark-qa-core-evidence-'))).toBe(true)
+    const path = join(root, 'gate-fixtures.jsonl'), rows = fs.readFileSync(path, 'utf8').trim().split('\n').map(line => JSON.parse(line))
+    expect(rows.map(row => row.phase)).toEqual(['portable-first', 'portable-second'])
+    expect(rows.every(row => JSON.stringify(row.source) === JSON.stringify(source()))).toBe(true)
+    expect(calls.filter(call => call === 'fsync')).toHaveLength(2)
+    expect(calls.filter(Array.isArray).every(call => call[2] === 0o600)).toBe(true)
+    if (process.platform !== 'win32') expect(fs.statSync(path).mode & 0o777).toBe(0o600)
+    cleanupFixtures({ ownedChildren: [], ownedRoots: [], syncCalls: [], write: () => {} })
+    expect(fs.existsSync(path)).toBe(true)
+    external({ phase: 'portability-metadata-retained', root, metadataOnly: true })
+  })
+  it('honors an explicit metadata root without allocating or changing the caller environment', () => {
+    const root = fs.mkdtempSync(join(tmpdir(), 'mark-qa-core-evidence-')), environment = { MARK_QA_CORE_EVIDENCE_ROOT: root }, storage = {}
+    external({ phase: 'explicit-control' }, { environment, storage, io: { ...fs, mkdtempSync() { throw Error('unexpected-default-root') } } })
+    expect(environment).toEqual({ MARK_QA_CORE_EVIDENCE_ROOT: root }); expect(storage).toEqual({})
+    expect(JSON.parse(fs.readFileSync(join(root, 'gate-fixtures.jsonl'), 'utf8')).phase).toBe('explicit-control')
+    external({ phase: 'portability-metadata-retained', root, metadataOnly: true })
+  })
+  it.each(['create', 'write', 'fsync'])('fails closed on automatic metadata %s faults', fault => {
+    const storage = {}, io = { ...fs, ...(fault === 'create' ? { mkdtempSync() { throw Error('metadata-create-fault') } } : fault === 'write' ? { writeFileSync() { throw Error('metadata-write-fault') } } : { fsyncSync() { throw Error('metadata-fsync-fault') } }) }
+    expect(() => external({ phase: 'must-not-complete' }, { environment: {}, storage, io })).toThrow(`metadata-${fault}-fault`)
+    if (storage.root) external({ phase: 'portability-incomplete-metadata-retained', root: storage.root, metadataOnly: true })
+  })
+  it('does not fall back or release an actual inert child payload after an explicit evidence fault', async () => {
+    const f = fixture(), metadata = fs.mkdtempSync(join(tmpdir(), 'mark-qa-core-evidence-')), blocked = join(metadata, 'not-a-directory')
+    fs.writeFileSync(blocked, 'inert invalid metadata sink')
+    const script = "process.stdin.once('data',()=>{process.stdout.write('forbidden-payload-release');process.exit(0)})"
+    vi.stubEnv('MARK_QA_CORE_EVIDENCE_ROOT', blocked)
+    try { await expect(ownedTool(f, process.execPath, ['-e', script], script)).rejects.toThrow() } finally { vi.unstubAllEnvs() }
+    const result = JSON.parse(fs.readFileSync(join(f.state.smoke.launchGate.evidence, 'tool-result.json')))
+    expect(result.reaped).toBe(true); expect(result.stdout).not.toContain('forbidden-payload-release')
+    external({ phase: 'portability-incomplete-metadata-retained', root: metadata, metadataOnly: true })
+  })
+  it.each(['child-after-test', 'directory-sync-fixture', 'fixture-removed'])('deletes safe fixture copies despite %s evidence faults and reports failure', phase => {
+    const root = fs.mkdtempSync(join(tmpdir(), 'qa-gate-cleanup-')), calls = [], child = { pid: 23456, root, simulatedObservation: true }
+    try {
+      expect(() => cleanupFixtures({ ownedChildren: [child], ownedRoots: [root], syncCalls: [], observe() { throw Object.assign(Error('stopped'), { code: 'ESRCH' }) }, write(record) { calls.push(record); if (record.phase === phase) throw Error('inert-evidence-fault') } })).toThrow(AggregateError)
+      expect(fs.existsSync(root)).toBe(false); expect(calls.find(record => record.phase === 'fixture-removed')).toMatchObject({ root, absent: true })
+    } finally { fs.rmSync(root, { recursive: true, force: true }); external({ phase: 'portability-cleanup-control', roots: [root], absent: !fs.existsSync(root), simulatedObservation: true }) }
+  })
+  it.each(['alive', 'EPERM', 'EIO'])('retains only the %s child root while independently removing a safe root', mode => {
+    const retained = fs.mkdtempSync(join(tmpdir(), 'qa-gate-cleanup-')), safe = fs.mkdtempSync(join(tmpdir(), 'qa-gate-cleanup-')), calls = []
+    try {
+      expect(() => cleanupFixtures({ ownedChildren: [{ pid: 23456, root: retained, simulatedObservation: true }], ownedRoots: [retained, safe], syncCalls: [], observe() { if (mode !== 'alive') throw Object.assign(Error(mode), { code: mode }) }, write: record => calls.push(record) })).toThrow(AggregateError)
+      expect(fs.existsSync(retained)).toBe(true); expect(fs.existsSync(safe)).toBe(false)
+      expect(calls).toContainEqual({ phase: 'fixture-retained', root: retained, reason: 'live-or-unknown-tool' })
+    } finally { fs.rmSync(retained, { recursive: true, force: true }); fs.rmSync(safe, { recursive: true, force: true }); external({ phase: 'portability-cleanup-control', roots: [retained, safe], absent: !fs.existsSync(retained) && !fs.existsSync(safe), simulatedObservation: true }) }
+  })
+  it('attempts other safe roots after an independent removal fault without claiming failed removal complete', () => {
+    const failed = fs.mkdtempSync(join(tmpdir(), 'qa-gate-cleanup-')), safe = fs.mkdtempSync(join(tmpdir(), 'qa-gate-cleanup-')), calls = []
+    try {
+      expect(() => cleanupFixtures({ ownedChildren: [], ownedRoots: [failed, safe], syncCalls: [], write: record => calls.push(record), io: { ...fs, rmSync(root, options) { if (root === failed) throw Object.assign(Error('inert-denied'), { code: 'EACCES' }); fs.rmSync(root, options) } } })).toThrow(AggregateError)
+      expect(fs.existsSync(failed)).toBe(true); expect(fs.existsSync(safe)).toBe(false)
+      expect(calls.find(record => record.root === failed)).toMatchObject({ phase: 'fixture-removed', absent: false })
+    } finally { fs.rmSync(failed, { recursive: true, force: true }); fs.rmSync(safe, { recursive: true, force: true }); external({ phase: 'portability-cleanup-control', roots: [failed, safe], absent: !fs.existsSync(failed) && !fs.existsSync(safe), simulatedObservation: true }) }
+  })
+})
 async function execute(f) {
   const session = await prepareLaunchGate(f.options)
   await launchGate(session, f.boundaries)
@@ -209,7 +297,9 @@ describe('actual protected gate protocol', () => {
     expect(gateProtected(f.state)).toBe(false); expect(f.calls).toEqual([])
     vi.stubEnv('NODE_OPTIONS', '--require unreviewed')
     try { expect(() => currentGateRuntime()).toThrow('execution-hooks') } finally { vi.unstubAllEnvs() }
-    expect(process.platform === 'win32' ? typeof process.execve !== 'function' : true).toBe(true)
+    await expect(gateMain(join(f.root, 'must-not-read.json'), { platform: 'win32' })).rejects.toThrow('unsupported-platform')
+    await expect(capabilityMain(join(f.root, 'must-not-read.json'), { platform: 'win32' })).rejects.toThrow('unsupported-platform')
+    expect(gateProtected(f.state)).toBe(false); expect(f.calls).toEqual([])
   })
 })
 
@@ -219,7 +309,7 @@ async function ownedTool(f, file, args, payloadSource, onReady, signal) {
   try {
     return await runGateTool({ file, args, session, signal, inspect: async (tool, child, closed) => {
       ownedChild = child; childClose = new Promise(resolve => child.once('close', () => { childClosed = true; resolve() }))
-      children.push({ pid: tool.pidAtSpawn, toolPath: file, toolSha256: tool.sha256, payloadSha256: hash(payloadSource) })
+      children.push({ pid: tool.pidAtSpawn, root: f.root, toolPath: file, toolSha256: tool.sha256, payloadSha256: hash(payloadSource) })
       external({ phase: 'before-payload-release', ...children.at(-1), args, closed: closed() })
       if (onReady) await onReady(tool, child)
       else child.stdin.end('continue\n')

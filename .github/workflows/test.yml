@@ -132,7 +132,22 @@ jobs:
         run: npm run typecheck:ipc
 
       - name: vitest run with coverage
+        env:
+          MARK_QA_CORE_EVIDENCE_ROOT: ${{ runner.temp }}/mark-qa-core-evidence-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: npm run test:coverage
+
+      - name: upload QA core fixture receipts
+        if: always()
+        env:
+          MARK_QA_CORE_EVIDENCE_ROOT: ${{ runner.temp }}/mark-qa-core-evidence-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qa-core-fixture-receipts-${{ github.job }}-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.json
+            ${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.jsonl
+          if-no-files-found: error
+          retention-days: 1
 
   backend-unit:
     name: backend unit (${{ matrix.os }})

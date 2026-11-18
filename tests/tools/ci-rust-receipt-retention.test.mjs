@@ -16,9 +16,13 @@
 //   readWorkflow - Parse the actual checked-in workflow.
 //   validateWorkflow - Validate additions before removing only them for a complete AST inverse.
 //   fixtureWorkflow - Construct a positive mutation control from actual baseline controls.
+//   qaEvidenceRoot - Per-runner temporary metadata-only root for renderer receipts.
+//   qaReceiptStep - Exact pinned one-day JSON/JSONL renderer receipt collector.
+//   restoreQaRendererEvidence - Validate only the QA additions before recovering the original full workflow AST.
 //   roots - Owned inert fixture roots removed after every case.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-QA-CORE-EVIDENCE-PORTABILITY: retain renderer fixture metadata and preserve the original complete workflow digest through a strict inverse.
 //   - 2026-11-16 C-CI-RUST-RECEIPT-RETENTION: actual workflow and JSON-only receipt selection controls; hosted acceptance remains separate.
 // END_CHANGE_SUMMARY
 import { afterEach, describe, expect, it } from 'vitest'
@@ -49,6 +53,28 @@ const nodeStep = {
   uses: 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020',
   with: { 'node-version': '22' }
 }
+const qaEvidenceRoot = '${{ runner.temp }}/mark-qa-core-evidence-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}'
+const qaReceiptStep = {
+  name: 'upload QA core fixture receipts',
+  if: 'always()',
+  env: { MARK_QA_CORE_EVIDENCE_ROOT: qaEvidenceRoot },
+  uses: 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
+  with: {
+    name: 'qa-core-fixture-receipts-${{ github.job }}-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}',
+    path: '${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.json\n${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.jsonl\n',
+    'if-no-files-found': 'error',
+    'retention-days': 1
+  }
+}
+function restoreQaRendererEvidence(projected) {
+  const job = projected.jobs['renderer-unit']
+  const coverage = job.steps.find(step => step.name === 'vitest run with coverage')
+  expect(coverage.env).toEqual({ MARK_QA_CORE_EVIDENCE_ROOT: qaEvidenceRoot })
+  expect(job.steps.filter(step => step.name === qaReceiptStep.name)).toEqual([qaReceiptStep])
+  expect(job.steps.at(-1)).toEqual(qaReceiptStep)
+  delete coverage.env
+  job.steps = job.steps.filter(step => step.name !== qaReceiptStep.name)
+}
 const workflows = [
   { file: 'ci.yml', job: 'test', digest: 'e62b37f440a719603591115773049437e68990da95b0993c3a12813640543654',
     calls: [{ name: 'Cargo test', run: 'node tools/run-rust-tests.mjs' }, { name: 'Fixture validation', run: 'node tools/run-rust-tests.mjs embedded_fixture_parses_and_matches_registered' }] },
@@ -69,6 +95,7 @@ function validateWorkflow(actual, config) {
     restored = restored.filter(step => step.name !== nodeStep.name).map(step => step.name === 'Cargo test' ? { ...step, run: 'cargo test' } : step)
   }
   projected.jobs[config.job].steps = restored
+  if (config.file === 'test.yml') restoreQaRendererEvidence(projected)
   expect(createHash('sha256').update(JSON.stringify(projected)).digest('hex')).toBe(config.digest)
 }
 function fixtureWorkflow(config) {
@@ -152,5 +179,46 @@ describe('actual Rust receipt retention', () => {
     const selected = globSync(actualPaths).filter(path => lstatSync(path).isFile()).map(path => resolve(path)).sort()
     expect(selected).toEqual(expected.map(path => resolve(root, path)).sort())
     expect(selected).toHaveLength(6)
+  })
+})
+
+describe('actual renderer QA receipt retention', () => {
+  it('retains only the exact renderer metadata additions with a complete original workflow inverse', () => {
+    validateWorkflow(readWorkflow('test.yml'), workflows.find(config => config.file === 'test.yml'))
+  })
+  it.each([
+    ['missing environment', job => { delete job.steps.find(step => step.name === 'vitest run with coverage').env }],
+    ['shared root', job => { job.steps.find(step => step.name === 'vitest run with coverage').env.MARK_QA_CORE_EVIDENCE_ROOT = '${{ runner.temp }}/shared' }],
+    ['extra environment', job => { job.steps.find(step => step.name === 'vitest run with coverage').env.EXTRA = 'not-authorized' }],
+    ['missing always', job => { delete job.steps.at(-1).if }],
+    ['success-only', job => { job.steps.at(-1).if = 'success()' }],
+    ['wrong pin', job => { job.steps.at(-1).uses = 'actions/upload-artifact@v4' }],
+    ['long retention', job => { job.steps.at(-1).with['retention-days'] = 14 }],
+    ['ignored absent receipts', job => { job.steps.at(-1).with['if-no-files-found'] = 'ignore' }],
+    ['overwrite', job => { job.steps.at(-1).with.overwrite = true }],
+    ['hidden files', job => { job.steps.at(-1).with['include-hidden-files'] = true }],
+    ['broad root', job => { job.steps.at(-1).with.path = '${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/\n' }],
+    ['recursive metadata', job => { job.steps.at(-1).with.path = '${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/**/*.json\n' }],
+    ['logs', job => { job.steps.at(-1).with.path += '${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.log\n' }],
+    ['binaries', job => { job.steps.at(-1).with.path += 'target/**\n' }],
+    ['missing JSONL', job => { job.steps.at(-1).with.path = '${{ env.MARK_QA_CORE_EVIDENCE_ROOT }}/*.json\n' }],
+    ...['github.job', 'runner.os', 'github.run_id', 'github.run_attempt'].map(key => [`missing name ${key}`, job => { job.steps.at(-1).with.name = job.steps.at(-1).with.name.replace('${{ ' + key + ' }}', '') }])
+  ])('rejects %s QA collection without changing the old baseline digest', (_name, mutate) => {
+    const actual = readWorkflow('test.yml'); mutate(actual.jobs['renderer-unit'])
+    expect(() => validateWorkflow(actual, workflows.find(config => config.file === 'test.yml'))).toThrow()
+  })
+  it('rejects duplicate or non-final collectors and changes to old renderer controls', () => {
+    for (const mutate of [job => job.steps.push(structuredClone(qaReceiptStep)), job => job.steps.unshift(job.steps.pop()), job => { job.steps.find(step => step.name === 'vitest run with coverage').run = 'npm test' }, job => { job['timeout-minutes'] = 999 }]) {
+      const actual = readWorkflow('test.yml'); mutate(actual.jobs['renderer-unit'])
+      expect(() => validateWorkflow(actual, workflows.find(config => config.file === 'test.yml'))).toThrow()
+    }
+  })
+  it('selects only top-level JSON and JSONL metadata in an owned root with spaces', () => {
+    const root = mkdtempSync(join(tmpdir(), 'qa receipt space-')); roots.push(root)
+    const expected = ['gate-fixtures.jsonl', 'fixture-cleanup.jsonl', 'prepare-fixture-cleanup.jsonl', 'cleanup-cli-control.json']
+    const excluded = ['tool.stdout', 'tool.stderr', 'tool.log', 'mark-0123456789abcdef', 'fixture.json.stdout', 'profile/preferences.json', 'nested/child.json', 'payload.app/Contents/MacOS/mark', 'cache/state.json', 'environment.env']
+    for (const name of [...expected, ...excluded]) { const path = join(root, name); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, '{}') }
+    const selected = globSync([join(root, '*.json'), join(root, '*.jsonl')]).filter(path => lstatSync(path).isFile()).map(path => resolve(path)).sort()
+    expect(selected).toEqual(expected.map(path => resolve(root, path)).sort())
   })
 })

@@ -14,7 +14,7 @@
 //   inside - Require strict lexical path containment.
 //   measured - Validate a contained regular file and measure its digest.
 //   containedRegular - Reject outside, symlinked or non-file identities before ownership or format reads.
-//   executable - Recognize native ELF, PE and Mach-O executable formats only.
+//   executable - Recognize existing ELF/PE/thin Mach-O and bounded validated universal Mach-O executables.
 //   namedExecutable - Match workspace output identities without dependency/object suffixes.
 //   present - Distinguish actual ENOENT from inaccessible/unknown owned paths.
 //   validateRuntime - Fail closed before Cargo build on unsupported Node/POSIX execve runtimes.
@@ -33,6 +33,7 @@
 //   runRustTests - Preserve original Cargo selection and clean metadata/snapshot-owned outputs in finally.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-CI-NATIVE-EVIDENCE-COMPATIBILITY: validate complete canonical FAT32/FAT64 containers without changing lifecycle or execution policy.
 //   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: Cargo-preserving executable ownership and finally cleanup.
 // END_CHANGE_SUMMARY
 
@@ -72,6 +73,36 @@ function executable(path) {
     if (bytes.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46]))) {
       const type = bytes[5] === 2 ? bytes.readUInt16BE(16) : bytes.readUInt16LE(16)
       return type === 2 || type === 3
+    }
+    const fatMagic = bytes.readUInt32BE(0)
+    if (fatMagic === 0xcafebabe || fatMagic === 0xcafebabf) {
+      const wide = fatMagic === 0xcafebabf, rowBytes = wide ? 32 : 20, count = bytes.readUInt32BE(4)
+      if (!count || count > Math.floor((4096 - 8) / rowBytes)) return false
+      const tableBytes = 8 + count * rowBytes, length = fs.fstatSync(fd, { bigint: true }).size
+      if (BigInt(tableBytes) > length) return false
+      const table = Buffer.alloc(tableBytes)
+      if (fs.readSync(fd, table, 0, tableBytes, 0) !== tableBytes) return false
+      if (table.readUInt32BE(0) !== fatMagic || table.readUInt32BE(4) !== count) return false
+      const ranges = [], architectures = new Set(), safe = BigInt(Number.MAX_SAFE_INTEGER)
+      for (let index = 0; index < count; index++) {
+        const row = 8 + index * rowBytes, cpu = table.readUInt32BE(row), subtype = table.readUInt32BE(row + 4) & 0x00ffffff
+        const offset = wide ? table.readBigUInt64BE(row + 8) : BigInt(table.readUInt32BE(row + 8))
+        const size = wide ? table.readBigUInt64BE(row + 16) : BigInt(table.readUInt32BE(row + 12))
+        const align = table.readUInt32BE(row + (wide ? 24 : 16)), end = offset + size, identity = `${cpu}:${subtype}`
+        if (align > (wide ? 63 : 31) || (wide && table.readUInt32BE(row + 28) !== 0)) return false
+        if (offset < BigInt(tableBytes) || size < 28n || end > length || end > safe || offset % (1n << BigInt(align)) !== 0n) return false
+        if (architectures.has(identity) || ranges.some(range => offset < range.end && end > range.offset)) return false
+        architectures.add(identity); ranges.push({ offset, end })
+        const member = Buffer.alloc(32), position = Number(offset)
+        if (fs.readSync(fd, member, 0, 28, position) !== 28) return false
+        const magic = member.readUInt32LE(0), little = magic === 0xfeedfacf || magic === 0xfeedface, big = magic === 0xcffaedfe || magic === 0xcefaedfe
+        if (!little && !big) return false
+        const headerBytes = magic === 0xfeedfacf || magic === 0xcffaedfe ? 32 : 28
+        if (size < BigInt(headerBytes) || (headerBytes === 32 && fs.readSync(fd, member, 28, 4, position + 28) !== 4)) return false
+        const read = at => little ? member.readUInt32LE(at) : member.readUInt32BE(at)
+        if (read(12) !== 2 || read(4) !== cpu || (read(8) & 0x00ffffff) !== subtype || BigInt(headerBytes) + BigInt(read(20)) > size) return false
+      }
+      return true
     }
     const magic = bytes.readUInt32LE(0)
     if (magic === 0xfeedfacf || magic === 0xfeedface) return bytes.readUInt32LE(12) === 2

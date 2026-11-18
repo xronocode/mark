@@ -16,41 +16,305 @@
 //   stopped - Assert the recorded native child no longer exists.
 //   recordControl - Fsync exact synthetic launch, signal and cleanup evidence.
 //   prepareControl - Measure owned executable/script identities before controlled launch.
+//   thinFormat - Construct inert complete thin Mach-O member headers without executing them.
+//   universalFormat - Construct bounded canonical FAT32/FAT64 inventory fixtures.
+//   formatInventory - Exercise the actual executable inventory and retain source-bound no-launch cleanup evidence.
+//   formatEvidenceStorage - Keep one lazily owned fallback metadata directory outside fixture cleanup.
+//   carrierSource - Generate the reviewed literal-path execv source without interpreting runtime path bytes.
+//   carrierRecord - Atomically retain fsynced source/tool/build/cleanup metadata outside executable teardown.
+//   carrierState - Track only this suite's owned compiler/template and fixture cleanup proofs.
+//   fixtureEvidenceRoot - Honor existing metadata sinks or lazily own a private external root.
+//   digestFile - Bind exact existing runtime, compiler, script and owned fixture bytes.
+//   settleCarrierToolGroup - Reap and stop only a recorded detached resolver/compiler process group.
+//   syntheticEvidence - Retain fsynced pre-cleanup payload proof and final fixture cleanup without requiring a private environment.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - C-CI-NATIVE-FIXTURE-CARRIER: attribute a suite-owned universal execv fixture carrier separately from the unchanged Node payload; retain direct Node controls and every existing timer.
+//   - C-CI-NATIVE-EVIDENCE-COMPATIBILITY: inert universal-format validation and unchanged actual official-runtime lifecycle controls.
 //   - C-CI-RUST-PLATFORM-CANCELLATION-VERIFICATION: distinguish parent recovery and direct runner completion; prove exact-child escalation.
 //   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: actual synthetic process/filesystem fault coverage.
 // END_CHANGE_SUMMARY
 import * as fs from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve, dirname, basename } from 'node:path'
+import { join, resolve, dirname, basename, isAbsolute } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { createHash, randomUUID } from 'node:crypto'
-import { afterEach, describe, expect, it } from 'vitest'
-import { runRustTests, runExecutable, runOwned, cleanupFiles, validateRuntime } from '../../tools/run-rust-tests.mjs'
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest'
+import { runRustTests, runExecutable, runOwned, cleanupFiles, validateRuntime, snapshotExecutables } from '../../tools/run-rust-tests.mjs'
 
 const helper = resolve('tools/run-rust-tests.mjs')
-const fixtures = []
-afterEach(async () => {
-  for (const f of fixtures.splice(0)) {
-    f.signals.emit('SIGTERM')
-    for (const child of f.external) if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM')
-    await Promise.allSettled([...f.pending])
-    const records = receipts(f.root)
-    for (const row of records) if (row.nativePid) stopped(row.nativePid)
-    fs.rmSync(f.root, { recursive: true, force: true })
-    const evidence = { fixture: f.root, source: f.source, records, controls: f.controls, externalPids: f.external.map(child => child.pid),
-      artifactAvailable: false, fixtureRemoved: !fs.existsSync(f.root), ownedProcessesReaped: f.external.every(child => child.exitCode !== null || child.signalCode !== null) }
-    if (process.env.MARK_RUST_TEST_EVIDENCE_ROOT) {
-      fs.mkdirSync(process.env.MARK_RUST_TEST_EVIDENCE_ROOT, { recursive: true })
-      fs.appendFileSync(join(process.env.MARK_RUST_TEST_EVIDENCE_ROOT, 'synthetic-child-receipts.jsonl'), `${JSON.stringify(evidence)}\n`)
-    } else console.log(`[RustTestLifecycleFixture] ${JSON.stringify(evidence)}`)
+const formatEvidenceStorage = {}
+const digestFile = path => createHash('sha256').update(fs.readFileSync(path)).digest('hex')
+const fixtureEvidenceRoot = () => process.env.MARK_RUST_TEST_EVIDENCE_ROOT || process.env.MARK_QA_CORE_EVIDENCE_ROOT || (formatEvidenceStorage.root ||= fs.mkdtempSync(join(tmpdir(), 'mark-rust-format-evidence-')))
+let carrierState
+function carrierSource(nodePath) {
+  const literal = '"' + [...Buffer.from(nodePath)].map(byte => '\\x' + byte.toString(16).padStart(2, '0')).join('') + '"'
+  return '#include <unistd.h>\n\nstatic const char bound_node[] = ' + literal + ';\n\nint main(int argc, char **argv) {\n    if (argc < 2) return 64;\n    execv(bound_node, argv);\n    static const char failure[] = "fixture-carrier: execv failed\\n";\n    (void)write(STDERR_FILENO, failure, sizeof(failure) - 1);\n    return 126;\n}\n'
+}
+function carrierRecord(state, phase, fields = {}) {
+  Object.assign(state.record, fields, { phase })
+  fs.mkdirSync(state.evidence, { recursive: true, mode: 0o700 })
+  const path = join(state.evidence, `carrier-${state.identity}.json`), temporary = path + '.tmp'
+  try {
+    const fd = fs.openSync(temporary, 'w', 0o600)
+    try { fs.writeFileSync(fd, JSON.stringify(state.record, null, 2) + '\n'); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+    fs.renameSync(temporary, path)
+    const directory = fs.openSync(state.evidence, 'r'); try { fs.fsyncSync(directory) } finally { fs.closeSync(directory) }
+  } finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary) }
+}
+async function settleCarrierToolGroup(tool, result) {
+  tool.stopped = !tool.pid || result?.reaped === true
+  if (!tool.stopped || !tool.pid) return
+  try {
+    const absent = () => { try { process.kill(-tool.pid, 0); return false } catch (error) { if (error.code === 'ESRCH') return true; throw error } }
+    if (!absent()) {
+      tool.groupCleanup = { group: tool.pid, requestedSignal: 'SIGTERM', stopped: false }
+      process.kill(-tool.pid, 'SIGTERM')
+      const deadline = Date.now() + 2000
+      while (!absent() && Date.now() < deadline) await new Promise(done => setTimeout(done, 25))
+    }
+    tool.stopped = absent()
+    if (tool.groupCleanup) tool.groupCleanup.stopped = tool.stopped
+  } catch (error) { tool.stopped = false; tool.groupObservationError = error.code || 'unknown' }
+}
+beforeAll(async () => {
+  if (process.platform !== 'darwin') return
+  const fd = fs.openSync(process.execPath, 'r'), header = Buffer.alloc(4)
+  try { if (fs.readSync(fd, header, 0, 4, 0) !== 4) throw Error('fixture runtime header truncated') } finally { fs.closeSync(fd) }
+  if (![0xcafebabe, 0xcafebabf].includes(header.readUInt32BE(0))) return
+  const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'mark-rust-carrier-'))), source = join(root, 'carrier.c'), binary = join(root, 'carrier'), temporary = join(root, 'compiler-temporary')
+  const resolver = '/usr/bin/xcrun', identity = randomUUID()
+  fs.mkdirSync(temporary); fs.writeFileSync(source, carrierSource(process.execPath), { mode: 0o600 })
+  const args = ['-arch', 'arm64', '-arch', 'x86_64', '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-fno-modules', source, '-o', binary]
+  const state = carrierState = { root, source, binary, temporary, evidence: fixtureEvidenceRoot(), identity, fixtures: [], record: {
+    identity, source: { path: source, sha256: digestFile(source), testSha256: digestFile(resolve('tests/tools/run-rust-tests.test.mjs')), helperSha256: digestFile(helper) },
+    node: { path: process.execPath, sha256: digestFile(process.execPath), version: process.versions.node, arch: process.arch },
+    resolver: { path: resolver, sha256: digestFile(resolver), args: ['--find', 'clang'], stopped: true },
+    sdkResolver: { path: resolver, sha256: digestFile(resolver), args: ['--sdk', 'macosx', '--show-sdk-path'], stopped: true },
+    compiler: { args, cwd: root, environmentOverrides: { TMPDIR: temporary } },
+    ownedPaths: { root, source, binary, temporary, stdout: join(root, 'compiler.stdout'), stderr: join(root, 'compiler.stderr') },
+    nativeBuild: true, linkerDefaultIncludesImplicitAdHocSigning: true, explicitSigningKeysOrCodesignUsed: false, compilerManagedSubprocessesIndividuallyPreexecRecorded: false,
+    template: { path: binary, available: false }, builderStopped: true, noMarkOrAppOperation: true
+  } }
+  carrierRecord(state, 'source-and-resolver-before-lookup')
+  let compilerOutput = '', resolverFailure
+  try {
+    state.record.resolver.result = await runOwned(process.execPath, [helper, '--exec-gate', resolver, '--find', 'clang'], {
+      cwd: root, env: process.env, gate: true, spawnProcess: (file, launch, settings) => spawn(file, launch, { ...settings, detached: true }),
+      onSpawn(pid) { state.record.resolver.pid = pid; state.record.resolver.stopped = false; carrierRecord(state, 'held-before-compiler-lookup') },
+      onStdout(bytes) { compilerOutput += bytes.toString(); if (compilerOutput.length > 8192) throw Error('compiler lookup output exceeds path bound') },
+      onStderr(bytes) { fs.appendFileSync(join(root, 'resolver.stderr'), bytes) }
+    })
+  } catch (error) { resolverFailure = error; state.record.resolver.result = error.result } finally {
+    await settleCarrierToolGroup(state.record.resolver, state.record.resolver.result)
+    try { carrierRecord(state, 'compiler-lookup-closed') } catch (error) { resolverFailure ||= error }
   }
+  if (resolverFailure) throw resolverFailure
+  const selected = compilerOutput.trim()
+  if (!state.record.resolver.stopped || state.record.resolver.result.status !== 0 || !isAbsolute(selected) || /[\r\n\0]/.test(selected)) throw Error('selected Apple compiler lookup failed')
+  const compiler = fs.realpathSync(selected)
+  if (!fs.lstatSync(compiler).isFile()) throw Error('selected Apple compiler is not a regular file')
+  let sdkOutput = '', sdkFailure
+  try {
+    state.record.sdkResolver.result = await runOwned(process.execPath, [helper, '--exec-gate', resolver, '--sdk', 'macosx', '--show-sdk-path'], {
+      cwd: root, env: process.env, gate: true, spawnProcess: (file, launch, settings) => spawn(file, launch, { ...settings, detached: true }),
+      onSpawn(pid) { state.record.sdkResolver.pid = pid; state.record.sdkResolver.stopped = false; carrierRecord(state, 'held-before-sdk-lookup') },
+      onStdout(bytes) { sdkOutput += bytes.toString(); if (sdkOutput.length > 8192) throw Error('SDK lookup output exceeds path bound') },
+      onStderr(bytes) { fs.appendFileSync(join(root, 'sdk-resolver.stderr'), bytes) }
+    })
+  } catch (error) { sdkFailure = error; state.record.sdkResolver.result = error.result } finally {
+    await settleCarrierToolGroup(state.record.sdkResolver, state.record.sdkResolver.result)
+    try { carrierRecord(state, 'sdk-lookup-closed') } catch (error) { sdkFailure ||= error }
+  }
+  if (sdkFailure) throw sdkFailure
+  const selectedSDK = sdkOutput.trim()
+  if (!state.record.sdkResolver.stopped || state.record.sdkResolver.result.status !== 0 || !isAbsolute(selectedSDK) || /[\r\n\0]/.test(selectedSDK)) throw Error('selected Apple SDK lookup failed')
+  const sdk = fs.realpathSync(selectedSDK), sdkHeader = fs.realpathSync(join(sdk, 'usr/include/unistd.h')), sdkSettings = fs.realpathSync(join(sdk, 'SDKSettings.json'))
+  if (!fs.lstatSync(sdk).isDirectory() || !sdkHeader.startsWith(sdk + '/') || !sdkSettings.startsWith(sdk + '/') || !fs.lstatSync(sdkHeader).isFile() || !fs.lstatSync(sdkSettings).isFile()) throw Error('selected Apple SDK identity is not regular')
+  state.record.sdk = { path: sdk, header: { path: sdkHeader, sha256: digestFile(sdkHeader) }, settings: { path: sdkSettings, sha256: digestFile(sdkSettings) } }
+  state.record.sdkResolver.selectedPath = selectedSDK
+  args.unshift('-isysroot', sdk)
+  Object.assign(state.record.compiler, { path: compiler, sha256: digestFile(compiler) })
+  state.record.resolver.selectedPath = selected
+  state.record.builderLaunch = { file: process.execPath, args: [helper, '--exec-gate', compiler, ...args] }
+  carrierRecord(state, 'source-and-recipe-before-build')
+  const options = { cwd: root, env: { ...process.env, TMPDIR: temporary }, gate: true,
+    spawnProcess: (file, launch, settings) => spawn(file, launch, { ...settings, detached: true }),
+    onSpawn(pid) { state.record.builderPid = pid; state.record.compiler.pid = pid; state.record.builderStopped = false; carrierRecord(state, 'held-before-compiler-exec', { builderGroup: pid }) },
+    onStdout(bytes) { fs.appendFileSync(join(root, 'compiler.stdout'), bytes) }, onStderr(bytes) { fs.appendFileSync(join(root, 'compiler.stderr'), bytes) }
+  }
+  let buildFailure
+  try {
+    state.record.builderResult = await runOwned(process.execPath, [helper, '--exec-gate', compiler, ...args], options)
+  } catch (error) { state.record.builderResult = error.result; buildFailure = error } finally {
+    await settleCarrierToolGroup(state.record.compiler, state.record.builderResult)
+    state.record.builderStopped = state.record.compiler.stopped
+    try { carrierRecord(state, 'builder-closed') } catch (error) { buildFailure ||= error }
+  }
+  if (buildFailure) throw buildFailure
+  if (!state.record.builderStopped || state.record.builderResult.status !== 0) throw Error('fixture carrier compiler failed or remains active')
+  const bytes = fs.readFileSync(binary), magic = bytes.readUInt32BE(0), wide = magic === 0xcafebabf
+  if (![0xcafebabe, 0xcafebabf].includes(magic) || bytes.readUInt32BE(4) !== 2 || !snapshotExecutables(root, ['carrier']).has(binary)) throw Error('fixture carrier is not a validated universal executable')
+  expect([bytes.readUInt32BE(8), bytes.readUInt32BE(8 + (wide ? 32 : 20))].sort()).toEqual([0x01000007, 0x0100000c].sort())
+  state.record.template = { path: binary, sha256: digestFile(binary), mode: fs.statSync(binary).mode, bytes: bytes.length, available: true, signatureAttribution: 'compiler/linker output covered by complete binary digest; no signing keys or explicit codesign' }
+  carrierRecord(state, 'template-ready-before-any-carrier-exec')
+})
+afterAll(() => {
+  const state = carrierState
+  if (!state) return
+  if (!state.record.builderStopped || !state.record.resolver.stopped || !state.record.sdkResolver.stopped) {
+    carrierRecord(state, 'cleanup-held-unknown-process-or-fixture', { remainingTemplate: state.binary })
+    throw Error(`fixture carrier cleanup safety unconfirmed: ${state.binary}`)
+  }
+  const remainingFixtures = state.fixtures.filter(f => !f.cleanupVerified).map(f => f.root)
+  let failure = remainingFixtures.length ? Error(`fixture copy cleanup unconfirmed: ${remainingFixtures.join(', ')}`) : null
+  let nodeUnchanged = false
+  try { nodeUnchanged = digestFile(process.execPath) === state.record.node.sha256; if (!nodeUnchanged) failure ||= Error('bound fixture Node changed') } catch (error) { failure ||= error }
+  const cleanupErrors = [], remainingPaths = []
+  for (const path of [state.binary, state.temporary]) {
+    try { fs.rmSync(path, { recursive: path === state.temporary, force: true }) } catch (error) { failure ||= error; cleanupErrors.push({ path, code: error.code || 'unknown' }) }
+    try { fs.lstatSync(path); remainingPaths.push(path) } catch (error) { if (error.code !== 'ENOENT') { failure ||= error; cleanupErrors.push({ path, code: error.code || 'unknown' }); remainingPaths.push(path) } }
+  }
+  state.record.template.available = remainingPaths.includes(state.binary)
+  state.record.executablesRemoved = remainingPaths.length === 0
+  try { carrierRecord(state, state.record.executablesRemoved && !remainingFixtures.length ? 'suite-executable-cleanup-complete' : 'suite-executable-cleanup-incomplete', { boundNodeUnchanged: nodeUnchanged, remainingFixtures, remainingPaths, cleanupErrors }) } catch (error) { failure ||= error }
+  if (!state.record.executablesRemoved) failure ||= Error(`fixture carrier executable remains: ${state.binary}`)
+  if (failure) throw failure
+})
+function thinFormat({ bits = 64, little = true, cpu = 0x01000007, subtype = 3, type = 2, commands = 0 } = {}) {
+  const bytes = Buffer.alloc(64), write = (value, offset) => little ? bytes.writeUInt32LE(value >>> 0, offset) : bytes.writeUInt32BE(value >>> 0, offset)
+  write(bits === 64 ? 0xfeedfacf : 0xfeedface, 0); write(cpu, 4); write(subtype, 8); write(type, 12); write(commands, 20)
+  return bytes
+}
+function universalFormat(wide = false, bits = 64, little = true, capability = false) {
+  const bytes = Buffer.alloc(512), rowBytes = wide ? 32 : 20
+  bytes.writeUInt32BE(wide ? 0xcafebabf : 0xcafebabe, 0); bytes.writeUInt32BE(2, 4)
+  for (let index = 0; index < 2; index++) {
+    const row = 8 + index * rowBytes, offset = 128 + index * 128, cpu = (bits === 64 ? 0x01000000 : 0) + (index ? 12 : 7), subtype = index ? 0 : 3
+    bytes.writeUInt32BE(cpu, row); bytes.writeUInt32BE(subtype, row + 4)
+    if (wide) { bytes.writeBigUInt64BE(BigInt(offset), row + 8); bytes.writeBigUInt64BE(64n, row + 16); bytes.writeUInt32BE(6, row + 24) }
+    else { bytes.writeUInt32BE(offset, row + 8); bytes.writeUInt32BE(64, row + 12); bytes.writeUInt32BE(6, row + 16) }
+    thinFormat({ bits, little, cpu, subtype: capability ? (subtype | 0x80000000) >>> 0 : subtype }).copy(bytes, offset)
+  }
+  return bytes
+}
+function formatInventory(bytes) {
+  const root = fs.mkdtempSync(join(tmpdir(), 'mark-rust-format-fixture-')), path = join(root, 'first-0123456789abcdef'), sentinel = join(root, 'libfirst.rlib')
+  const evidence = process.env.MARK_RUST_TEST_EVIDENCE_ROOT || process.env.MARK_QA_CORE_EVIDENCE_ROOT || (formatEvidenceStorage.root ||= fs.mkdtempSync(join(tmpdir(), 'mark-rust-format-evidence-')))
+  const record = { root, path, evidenceDirectory: evidence, syntheticFormatOnly: true, launched: false, nativePid: null, source: { helperSha256: createHash('sha256').update(fs.readFileSync(helper)).digest('hex'), testSha256: createHash('sha256').update(fs.readFileSync(resolve('tests/tools/run-rust-tests.test.mjs'))).digest('hex') }, sha256: createHash('sha256').update(bytes).digest('hex') }
+  try {
+    fs.writeFileSync(path, bytes); fs.writeFileSync(sentinel, 'unrelated dependency sentinel')
+    record.recognized = snapshotExecutables(root, ['first']).has(path)
+    expect(fs.readFileSync(sentinel, 'utf8')).toBe('unrelated dependency sentinel')
+    return record.recognized
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true }); record.fixtureRemoved = !fs.existsSync(root)
+    fs.mkdirSync(evidence, { recursive: true, mode: 0o700 }); const fd = fs.openSync(join(evidence, 'format-fixtures.jsonl'), 'a', 0o600)
+    try { fs.writeFileSync(fd, JSON.stringify(record) + '\n'); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+  }
+}
+describe('bounded universal format inventory', () => {
+  it.each([[false, 32, true, false], [false, 64, true, false], [true, 32, false, false], [true, 64, false, false], [true, 64, true, true]])('recognizes complete executable members in FAT configuration %s/%s/%s/%s without launching', (wide, bits, little, capability) => {
+    expect(formatInventory(universalFormat(wide, bits, little, capability))).toBe(true)
+  })
+  it.each([
+    ['Java magic', bytes => { bytes.writeUInt32BE(0x003d0000, 4) }],
+    ['zero count', bytes => { bytes.writeUInt32BE(0, 4) }],
+    ['excess count', bytes => { bytes.writeUInt32BE(204, 4) }],
+    ['table truncation', bytes => bytes.subarray(0, 35)],
+    ['header truncation', bytes => bytes.subarray(0, 7)],
+    ['offset inside table', bytes => { bytes.writeUInt32BE(8, 16) }],
+    ['zero size', bytes => { bytes.writeUInt32BE(0, 20) }],
+    ['short member', bytes => { bytes.writeUInt32BE(20, 20) }],
+    ['end past file', bytes => { bytes.writeUInt32BE(500, 20) }],
+    ['misalignment', bytes => { bytes.writeUInt32BE(129, 16) }],
+    ['alignment overflow', bytes => { bytes.writeUInt32BE(32, 24) }],
+    ['overlapping members', bytes => { bytes.writeUInt32BE(128, 36) }],
+    ['duplicate architecture', bytes => { bytes.copy(bytes, 28, 8, 16); bytes.writeUInt32LE(0x01000007, 260); bytes.writeUInt32LE(3, 264) }],
+    ['nested FAT', bytes => { bytes.writeUInt32BE(0xcafebabe, 128) }],
+    ['static archive', bytes => { bytes.write('!<arch>\n', 128) }],
+    ['ELF member', bytes => { bytes.writeUInt32BE(0x7f454c46, 128) }],
+    ['object member', bytes => { bytes.writeUInt32LE(1, 140) }],
+    ['dylib member', bytes => { bytes.writeUInt32LE(6, 140) }],
+    ['CPU mismatch', bytes => { bytes.writeUInt32LE(7, 132) }],
+    ['subtype mismatch', bytes => { bytes.writeUInt32LE(4, 136) }],
+    ['commands past slice', bytes => { bytes.writeUInt32LE(33, 148) }],
+    ['invalid second member', bytes => { bytes.writeUInt32LE(6, 268) }]
+  ])('rejects malformed FAT32 %s without registration or launch', (_name, mutate) => {
+    const bytes = universalFormat(); expect(formatInventory(mutate(bytes) || bytes)).toBe(false)
+  })
+  it.each([
+    ['excess count', bytes => { bytes.writeUInt32BE(128, 4) }],
+    ['unsafe offset', bytes => { bytes.writeBigUInt64BE(9007199254740992n, 16) }],
+    ['overflow-like end', bytes => { bytes.writeBigUInt64BE(0xffffffffffffffffn, 24) }],
+    ['reserved', bytes => { bytes.writeUInt32BE(1, 36) }],
+    ['alignment overflow', bytes => { bytes.writeUInt32BE(64, 32) }],
+    ['overlap', bytes => { bytes.writeBigUInt64BE(128n, 48) }]
+  ])('rejects malformed FAT64 %s without registration or launch', (_name, mutate) => {
+    const bytes = universalFormat(true); mutate(bytes); expect(formatInventory(bytes)).toBe(false)
+  })
+  it.each([[32, true], [32, false], [64, true], [64, false]])('preserves existing thin Mach-O %s/%s recognition', (bits, little) => {
+    expect(formatInventory(thinFormat({ bits, little }))).toBe(true)
+  })
+  it('preserves existing ELF and PE recognition', () => {
+    for (const type of [2, 3]) { const bytes = Buffer.alloc(20); bytes.writeUInt32BE(0x7f454c46, 0); bytes[5] = 1; bytes.writeUInt16LE(type, 16); expect(formatInventory(bytes)).toBe(true) }
+    const bytes = Buffer.alloc(20); bytes.write('MZ'); expect(formatInventory(bytes)).toBe(true)
+  })
+})
+const fixtures = []
+function syntheticEvidence(record) {
+  const root = fixtureEvidenceRoot(); fs.mkdirSync(root, { recursive: true, mode: 0o700 })
+  const fd = fs.openSync(join(root, 'synthetic-child-receipts.jsonl'), 'a', 0o600)
+  try { fs.writeFileSync(fd, JSON.stringify(record) + '\n'); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+}
+afterEach(async () => {
+  const errors = []
+  for (const f of fixtures.splice(0)) {
+    let records = [], safe = false, payloadProof = [], payloadProofState = 'unread'
+    try {
+      f.signals.emit('SIGTERM')
+      for (const child of f.external) if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM')
+      await Promise.allSettled([...f.pending])
+      records = receipts(f.root)
+      for (const row of records) if (row.nativePid) stopped(row.nativePid)
+      safe = f.external.every(child => child.exitCode !== null || child.signalCode !== null)
+      if (!safe) errors.push(Error(`owned fixture tools remain: ${f.root}`))
+    } catch (error) { errors.push(error) }
+    try {
+      let payload
+      try { payload = fs.readFileSync(f.proof, 'utf8') } catch (error) {
+        if (error.code === 'ENOENT') payloadProofState = 'no-payload-ENOENT'
+        else { payloadProofState = 'read-failed'; errors.push(Error(`fixture payload proof read failed: ${error.code || 'unknown'}`)) }
+      }
+      if (payload !== undefined) {
+        try {
+          if (!payload.trim()) throw Error('empty proof')
+          payloadProof = payload.trim().split('\n').map(line => JSON.parse(line))
+          if (payloadProof.some(row => !row || typeof row !== 'object' || Array.isArray(row))) throw Error('proof row shape')
+          payloadProofState = 'retained'
+        } catch {
+          payloadProof = []; payloadProofState = 'parse-failed'; errors.push(Error('fixture payload proof parse failed'))
+        }
+      }
+      syntheticEvidence({ phase: 'payload-before-fixture-cleanup', fixture: f.root, source: f.source, records, payloadProofState, payloadProof, controls: f.controls, externalPids: f.external.map(child => child.pid) })
+    } catch (error) { errors.push(error) }
+    if (safe) {
+      try {
+        fs.rmSync(f.root, { recursive: true, force: true })
+        try { fs.lstatSync(f.root); errors.push(Error(`owned fixture remains: ${f.root}`)) } catch (error) { if (error.code === 'ENOENT') f.cleanupVerified = true; else throw error }
+      } catch (error) { errors.push(error) }
+    }
+    try {
+      syntheticEvidence({ phase: 'fixture-after-cleanup', fixture: f.root, source: f.source, records, controls: f.controls, externalPids: f.external.map(child => child.pid),
+        artifactAvailable: !f.cleanupVerified, fixtureRemoved: f.cleanupVerified === true, ownedProcessesReaped: safe, payloadProofState })
+    } catch (error) { errors.push(error) }
+  }
+  if (errors.length) throw new AggregateError(errors, 'fixture proof or cleanup failed; safe independent cleanup was attempted')
 })
 
-const fixture = (mode = 'success', { count = 2 } = {}) => {
+const fixture = (mode = 'success', { count = 2, direct = false } = {}) => {
   const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'mark-rust-lifecycle-fixture-')))
   const target = join(root, 'target'), directory = join(target, 'debug', 'deps')
   fs.mkdirSync(directory, { recursive: true })
@@ -64,14 +328,23 @@ const fixture = (mode = 'success', { count = 2 } = {}) => {
   const script = join(root, 'child.mjs'), cargoScript = join(root, 'cargo.mjs')
   const suffix = process.platform === 'win32' ? '.exe' : ''
   const paths = ['first', 'second'].slice(0, count).map(name => join(directory, `${name}-0123456789abcdef${suffix}`))
+  const artifactSource = carrierState && !direct && mode !== 'wait' ? carrierState.binary : process.execPath
   const source = { revision: 'synthetic-current-source', helperSha256: createHash('sha256').update(fs.readFileSync(helper)).digest('hex'),
-    testSha256: createHash('sha256').update(fs.readFileSync(resolve('tests/tools/run-rust-tests.test.mjs'))).digest('hex') }
+    testSha256: createHash('sha256').update(fs.readFileSync(resolve('tests/tools/run-rust-tests.test.mjs'))).digest('hex'),
+    node: { path: process.execPath, sha256: digestFile(process.execPath) },
+    carrier: carrierState ? { path: carrierState.binary, sha256: carrierState.record.template.sha256, sourceSha256: carrierState.record.source.sha256 } : null }
   fs.writeFileSync(script, `
     import*as fs from'node:fs';import{dirname,join}from'node:path';
+    import{createHash}from'node:crypto';
     const control=JSON.parse(fs.readFileSync(process.env.MARK_RUST_TEST_STATE,'utf8'));
     const records=fs.readdirSync(control.directory).filter(n=>/^runner-.*\\.json$/.test(n)).map(n=>JSON.parse(fs.readFileSync(join(control.directory,n),'utf8')));
     const own=records.find(r=>r.nativePid===process.pid);
     if(!own||own.source.revision!==${JSON.stringify(source.revision)}||!own.sha256)process.exit(98);
+    const node=${JSON.stringify(source.node)},carrier=${JSON.stringify(source.carrier)};
+    const selected=own.sha256===node.sha256?'direct-node':carrier&&own.sha256===carrier.sha256?'carrier':null;
+    const digest=path=>createHash('sha256').update(fs.readFileSync(path)).digest('hex');
+    const runtime={path:process.execPath,sha256:digest(process.execPath)},scriptSha256=digest(process.argv[1]);
+    if(!selected||runtime.sha256!==node.sha256||scriptSha256!==own.source.scriptSha256||process.argv0!==own.path||process.execPath!==(selected==='carrier'?node.path:own.path))process.exit(98);
     const mode=${JSON.stringify(mode)};
     if(mode==='ordinary-brace-output')console.log('{ordinary test diagnostic}');
     if(mode==='child-failure')process.exitCode=7;
@@ -79,9 +352,11 @@ const fixture = (mode = 'success', { count = 2 } = {}) => {
       setInterval(()=>{},100);
       for(const signal of['SIGINT','SIGTERM'])process.on(signal,()=>{if(mode==='wait')process.exit(0)});
     }
-    fs.appendFileSync(${JSON.stringify(proof)},JSON.stringify({pid:process.pid,beforeExecRecorded:true,cwd:process.cwd(),args:process.argv.slice(2),marker:process.env.FIXTURE_RUNTIME_ENV,dynamic:process.env.DYLD_FALLBACK_LIBRARY_PATH,receipt:own})+'\\n');
+    fs.appendFileSync(${JSON.stringify(proof)},JSON.stringify({pid:process.pid,beforeExecRecorded:true,cwd:process.cwd(),args:process.argv.slice(2),marker:process.env.FIXTURE_RUNTIME_ENV,dynamic:process.env.DYLD_FALLBACK_LIBRARY_PATH,receipt:own,selectedArtifact:{kind:selected,path:own.path,sha256:own.sha256},runtime,scriptSha256,argv0:process.argv0,argv:process.argv.slice(1)})+'\\n');
     console.log('synthetic child started');
   `)
+  source.scriptSha256 = digestFile(script)
+  const refreshScriptIdentity = () => { source.scriptSha256 = digestFile(script); return source }
   fs.writeFileSync(cargoScript, `
     import*as fs from'node:fs';import{spawn}from'node:child_process';import{dirname,join}from'node:path';
     const args=process.argv.slice(2),config=args[args.indexOf('--config')+1];
@@ -91,16 +366,16 @@ const fixture = (mode = 'success', { count = 2 } = {}) => {
     const original=args.slice(args.indexOf('test')+1).filter(a=>!a.startsWith('--message-format'));
     const harnessArgs=original[0]==='--bin'?[]:original;
     if(mode==='compile-pending'){
-      const path=${JSON.stringify(paths[0])};fs.copyFileSync(process.execPath,path,fs.constants.COPYFILE_FICLONE);fs.chmodSync(path,0o755);
+      const path=${JSON.stringify(paths[0])};fs.copyFileSync(${JSON.stringify(artifactSource)},path,fs.constants.COPYFILE_FICLONE);fs.chmodSync(path,0o755);
       const ticker=setInterval(()=>console.log('synthetic compiler still running'),5);
       await new Promise(done=>setTimeout(done,8000));clearInterval(ticker);process.exit(0);
     }
     if(mode==='chatty'){
-      const path=${JSON.stringify(paths[1] || paths[0])};fs.copyFileSync(process.execPath,path,fs.constants.COPYFILE_FICLONE);fs.chmodSync(path,0o755);
+      const path=${JSON.stringify(paths[1] || paths[0])};fs.copyFileSync(${JSON.stringify(artifactSource)},path,fs.constants.COPYFILE_FICLONE);fs.chmodSync(path,0o755);
       console.log(JSON.stringify({reason:'compiler-artifact',package_id:'workspace',profile:{test:false},target:{name:'second',kind:['bin']},executable:path}));
     }
     for(const path of ${JSON.stringify(paths)}){
-      if(!fs.existsSync(path))fs.copyFileSync(process.execPath,path,fs.constants.COPYFILE_FICLONE);fs.chmodSync(path,0o755);
+      if(!fs.existsSync(path))fs.copyFileSync(${JSON.stringify(artifactSource)},path,fs.constants.COPYFILE_FICLONE);fs.chmodSync(path,0o755);
       if(mode==='changed-output-failure'){fs.appendFileSync(path,Buffer.of(0));process.exit(2)};
       if(mode==='missing-metadata')process.exit(2);
       if(mode==='truncated-metadata'){process.stdout.write('{"reason":"compiler-artifact"');process.exit(0)};
@@ -124,13 +399,16 @@ const fixture = (mode = 'success', { count = 2 } = {}) => {
   const pending = new Set()
   const external = []
   const run = (overrides = {}) => {
+    refreshScriptIdentity()
     const operation = runRustTests({ ...options, ...overrides })
     pending.add(operation)
     operation.finally(() => pending.delete(operation)).catch(() => {})
     return operation
   }
-  const value = { root, target, directory, paths, proof, cargoProof, script, source, signals, options, pending, external, run, controls: [] }
+  // Driver/state serialization binds edits made before launch; teardown retains the last snapshot.
+  const value = { root, target, directory, paths, proof, cargoProof, script, get source() { return this.cleanupVerified ? source : refreshScriptIdentity() }, signals, options, pending, external, run, controls: [] }
   fixtures.push(value)
+  if (carrierState) carrierState.fixtures.push(value)
   return value
 }
 
@@ -168,6 +446,34 @@ const prepareControl = (f, name, executables, scripts) => {
   recordControl(control)
   return control
 }
+
+describe('selected native fixture and final Node attribution', () => {
+  it('keeps the recorded native PID through the selected carrier or direct fixture into the bound Node payload', async () => {
+    const f = fixture('success', { count: 1 })
+    expect((await f.run()).status).toBe(0)
+    const row = JSON.parse(fs.readFileSync(f.proof, 'utf8'))
+    expect(row.pid).toBe(row.receipt.nativePid)
+    expect(row.selectedArtifact).toEqual({ kind: carrierState ? 'carrier' : 'direct-node', path: f.paths[0], sha256: carrierState ? carrierState.record.template.sha256 : f.source.node.sha256 })
+    expect(row.runtime).toEqual({ path: carrierState ? f.source.node.path : f.paths[0], sha256: f.source.node.sha256 })
+    expect(row.scriptSha256).toBe(f.source.scriptSha256)
+    expect(row.argv0).toBe(f.paths[0]); expect(row.argv).toEqual([f.script]); expect(row.args).toEqual([])
+    expect(row.cwd).toBe(f.root); expect(row.marker).toBe('preserved-cargo-environment'); expect(row.dynamic).toBe('synthetic-preserved-dynamic-search')
+    expect(row.receipt.source).toEqual(f.source); stopped(row.pid)
+    expect(f.paths.every(path => !fs.existsSync(path))).toBe(true)
+  })
+  it('executes a genuine complete copied current Node image as one direct target under the unchanged case limit', async () => {
+    const f = fixture('success', { count: 1, direct: true })
+    expect((await f.run()).status).toBe(0)
+    const row = JSON.parse(fs.readFileSync(f.proof, 'utf8'))
+    expect(row.pid).toBe(row.receipt.nativePid)
+    expect(row.selectedArtifact).toEqual({ kind: 'direct-node', path: f.paths[0], sha256: f.source.node.sha256 })
+    expect(row.runtime).toEqual({ path: f.paths[0], sha256: f.source.node.sha256 })
+    expect(row.scriptSha256).toBe(f.source.scriptSha256); expect(row.argv0).toBe(f.paths[0]); expect(row.argv).toEqual([f.script])
+    expect(row.cwd).toBe(f.root); expect(row.marker).toBe('preserved-cargo-environment'); expect(row.dynamic).toBe('synthetic-preserved-dynamic-search')
+    expect(row.receipt.source).toEqual(f.source); stopped(row.pid)
+    expect(f.paths.every(path => !fs.existsSync(path))).toBe(true)
+  })
+})
 
 describe('Cargo-preserving parent and actual executable runner', () => {
   it('preserves successful child output beginning with an ordinary brace', async () => {
