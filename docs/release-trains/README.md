@@ -147,6 +147,8 @@ The one-time owner setup — GitHub Apps, Environments, secrets, rulesets, the p
 
 Statements such as “works”, “accepted”, “mark for release”, “include in the next patch”, and a request to freeze/review the candidate authorize the corresponding preparation or queue update. They do not authorize version bumps, tags, publishing workflow dispatches, store uploads or tap publication. An explicit release instruction authorizes its stated release scope; do not ask again for steps already authorized by it.
 
+Prerelease boundary (2026-11-17, C-RELEASE-CANARY-PRERELEASE): an owner hyphenated tag (`vX.Y.Z-beta.N` / `vX.Y.Z-canary.N`, base equal to the current train's `computedVersion`) may be built and published as a GitHub prerelease for external testers while the train is still Collecting. Such a prerelease is not a train dispatch: it requires no Ready seal, records no acceptance, never advances `releases/latest` or the updater feed, and skips the cask handoff. The owner tag mechanism and the release Environment approval stay exactly as for stable releases.
+
 After that instruction, follow the [repository release procedure](../release-process.md). Do not infer a release from a test result. Ordinary integration/CI and local test builds remain separate from publication.
 
 After publication, record GitHub assets, updater `latest.json`, Homebrew version/hash and any other channels included in that release's scope. App Store approval has its own version and external status; do not infer it from a direct-download release. A successful workflow alone is not proof that an update is available to users.

@@ -242,14 +242,19 @@ describe('production release workflow', () => {
     expect(workflow).not.toContain('{version:$tag,')
   })
 
-  it('publishes beta tags as normal releases so the /latest updater feed advances', () => {
+  it('publishes stable tags as latest releases and prerelease tags as never-latest prereleases', () => {
     expect(tauriConfig.plugins.updater.endpoints).toEqual([
       'https://updates.mark.xronocode.com/feed?from={{current_version}}&os={{target}}',
       'https://github.com/xronocode/mark/releases/latest/download/latest.json'
     ])
+    // C-RELEASE-CANARY-PRERELEASE: the stable branch keeps clearing the
+    // prerelease flag and requires the feed to advance; the prerelease
+    // branch exposes a GitHub prerelease and asserts /releases/latest did
+    // NOT advance, so the updater feed stays on the previous stable tag.
     expect(workflow).toContain('--draft=false --prerelease=false')
     expect(workflow).not.toContain('if [[ "$VER" == *-* ]]')
-    expect(workflow).not.toContain('PRERELEASE=true')
+    expect(workflow).toContain('--draft=false --prerelease=true')
+    expect(workflow).toContain('[ "$LATEST" != "$TAG" ] && break')
     expect(workflow).not.toContain('--prerelease="$PRERELEASE"')
     expect(workflow).toContain('publish verified draft as final mutation')
   })

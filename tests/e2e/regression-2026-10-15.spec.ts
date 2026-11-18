@@ -296,7 +296,8 @@ test.describe('Settings content (C-38 T-004)', () => {
 
     await restore.click()
     await page.locator('.pref-reset-btn.is-danger').click()
-    await expect.poll(() => lastWrite(page, 'autoSave')).toBe(false)
+    // C-AUTOSAVE-DEFAULT-ON: restore-all persists the (new) default.
+    await expect.poll(() => lastWrite(page, 'autoSave')).toBe(true)
     expect(await lastWrite(page, 'tabSize')).toBe(4)
   })
 

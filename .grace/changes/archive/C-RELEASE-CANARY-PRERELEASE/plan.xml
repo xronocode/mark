@@ -1,0 +1,157 @@
+<GraceChangePlan graceVersion="4.0" status="applied"><!-- Approved under the owner autonomous-goal mandate the owner-side autonomous-goal mandate GOAL-CANARY-BETA-2026-11-17 (recorded privately, 2026-11-17) (technical plan approval delegated); Pass-1 findings applied, Pass-2 independent review, Pass-3 clean. -->
+<C-RELEASE-CANARY-PRERELEASE>
+  <ChangeRef>C-RELEASE-CANARY-PRERELEASE</ChangeRef>
+  <Created>2026-11-17</Created>
+  <IntentSummary>Prerelease lane in .github/workflows/release.yml: a hyphenated owner tag (vX.Y.Z-beta.N / -canary.N, base equal to the current train computedVersion) is admitted by authorize-tag without the Ready seal, materials or preflight gates (tagger identity, annotated tag, seal=HEAD and train-document checks stay), builds and signs on the unchanged release-signing lanes, renders a prerelease-only body (automated verification block, no reviewed materials, no brew line, direct-asset install wording), publishes as a GitHub prerelease that is never latest (assert isPrerelease=true and that releases/latest did NOT advance), and skips publish-cask. Every stable-path step keeps byte-identical behavior for non-hyphenated tags. Train README boundary note and release-process prerelease subsection document that a prerelease tag is not a train dispatch and carries no acceptance.</IntentSummary>
+  <BaselineAssertions>
+    <MustContain>
+      <File>.github/workflows/release.yml</File>
+      <Text>[ "$STATE" = Ready ]</Text>
+    </MustContain>
+    <MustContain>
+      <File>.github/workflows/release.yml</File>
+      <Text>--draft=false --prerelease=false</Text>
+    </MustContain>
+    <MustContain>
+      <File>.github/workflows/release.yml</File>
+      <Text>needs: [build, publish]</Text>
+    </MustContain>
+  </BaselineAssertions>
+  <TargetAssertions>
+    <MustVerify>
+      <Module>V-M-046</Module>
+    </MustVerify>
+    <MustContain>
+      <File>.github/workflows/release.yml</File>
+      <Text>prerelease</Text>
+    </MustContain>
+    <MustContain>
+      <File>.grace/verification/features.xml</File>
+      <Text>prerelease</Text>
+    </MustContain>
+    <MustContain>
+      <File>docs/release-trains/README.md</File>
+      <Text>prerelease</Text>
+    </MustContain>
+    <MustPassCommand>
+      <Command budgetSeconds="300">npm run release:governance</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command budgetSeconds="600">npx vitest run tests/renderer/release-governance.test.js tests/renderer/release-train.test.js</Command>
+    </MustPassCommand>
+  </TargetAssertions>
+  <DurableScope>
+    <GraphAnchors>
+      <M-046 />
+    </GraphAnchors>
+    <VerificationAnchors>
+      <V-M-046 />
+    </VerificationAnchors>
+  </DurableScope>
+  <ObservedWriteScope>
+    <File>.github/workflows/release.yml</File>
+    <File>docs/release-trains/README.md</File>
+    <File>docs/release-process.md</File>
+    <File>.grace/graph/features.xml</File>
+    <File>.grace/verification/features.xml</File>
+    <Glob>.grace/changes/active/C-RELEASE-CANARY-PRERELEASE/*</Glob>
+  </ObservedWriteScope>
+  <CornerMatrix>
+    <Corner id="corner-1"><Situation>Owner tag v2.9.0-beta.1 pushed by the release bot while the train is Collecting</Situation><Expected>authorize-tag admits it (tagger, annotated tag, seal=HEAD, train document present, base version v2.9.0 equals computedVersion); readiness/materials/preflight steps and the release-identity artifact are skipped; both build lanes sign and notarize as usual; publish exposes the draft with isPrerelease=true and asserts releases/latest still names the previous stable tag</Expected></Corner>
+    <Corner id="corner-2"><Situation>Non-hyphenated stable tag (train Ready, seal in place)</Situation><Expected>every step behaves exactly as before: Ready-state and exact-tag equality enforced, strict admission repeated in build, materials and preflight gates run, publication clears the prerelease flag, latest-advance verification and cask handoff execute</Expected></Corner>
+    <Corner id="corner-3"><Situation>Hyphenated tag whose base does not match the train computedVersion (e.g. v2.9.1-beta.1 while the train computes 2.9.0)</Situation><Expected>authorize-tag rejects the tag before any secret or candidate code executes</Expected></Corner>
+    <Corner id="corner-4"><Situation>Hyphenated tag with an unexpected suffix shape (v2.9.0-nightly or v2.9.0-beta.x)</Situation><Expected>authorize-tag rejects it; only -beta.N and -canary.N are admitted prerelease shapes</Expected></Corner>
+    <Corner id="corner-5"><Situation>publish-cask after a prerelease publication</Situation><Expected>the job is skipped through its own needs/if condition; a stable tag still runs it unchanged</Expected></Corner>
+    <Corner id="corner-6"><Situation>Publication rerun after a partial prerelease publish (draft already exposed)</Situation><Expected>the reconcile step keeps treating the existing non-draft release as already_published; asset and body verification remain idempotent; no clobbering</Expected></Corner>
+    <Corner id="corner-7"><Situation>WINDOWS_RELEASE variable on and off during a prerelease</Situation><Expected>on: the NSIS exe and sidecars join the verified asset set; off: windows assets stay build-only workflow artifacts — identical semantics to the stable lane</Expected></Corner>
+    <Corner id="corner-8"><Situation>Prerelease body content</Situation><Expected>automated verification block (attestation, cosign, assets sentence) plus a prerelease notice with direct-asset install and rollback wording; no brew line, no reviewed-notes extraction, no What's New materials</Expected></Corner>
+  </CornerMatrix>
+  <ImplementationPlan>
+    <T-001>
+      <Title>authorize-tag prerelease admission</Title>
+      <DependsOn></DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Identity step derives PRERELEASE from the tag suffix (only -beta.N / -canary.N admitted); prerelease path keeps PUSH_ACTOR, annotated-tag, seal=HEAD and train-document checks, requires base == computedVersion and a well-formed train state, skips Ready equality; job outputs prerelease; the payload-checks, strict admission, materials, preflight and release-identity artifact steps gain if: non-prerelease conditions.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -n "prerelease" .github/workflows/release.yml</Command>
+        <Command>npx vitest run tests/renderer/release-governance.test.js</Command>
+      </Verification>
+    </T-001>
+    <T-002>
+      <Title>build gates</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>The admitted-check-evidence download, repeated strict admission, materials gate and metadata preflight steps run only for non-prerelease tags; typecheck:ipc and every packaging/signing/smoke step stays unconditional.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -n "prerelease" .github/workflows/release.yml</Command>
+        <Command>npx vitest run tests/renderer/release-governance.test.js</Command>
+      </Verification>
+    </T-002>
+    <T-003>
+      <Title>prerelease publication body</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>prepare-publication render step branches: prerelease body = automated verification block + prerelease notice (direct-asset install and rollback wording), no notes extractor call, no brew line; stable body path byte-identical.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -n "prerelease" .github/workflows/release.yml</Command>
+        <Command>npx vitest run tests/renderer/release-governance.test.js</Command>
+      </Verification>
+    </T-003>
+    <T-004>
+      <Title>publish final mutation branch</Title>
+      <DependsOn>T-003</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>Prerelease: gh release edit --draft=false --prerelease=true; assert isDraft=false, isPrerelease=true, tagName match; assert releases/latest still names the previous stable tag (loop until inequality is stable). Stable: existing --prerelease=false + latest-advance assertions unchanged.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -n "prerelease" .github/workflows/release.yml</Command>
+        <Command>npx vitest run tests/renderer/release-governance.test.js</Command>
+      </Verification>
+    </T-004>
+    <T-005>
+      <Title>cask skip</Title>
+      <DependsOn>T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>publish-cask adds authorize-tag to needs and an if-condition excluding prerelease tags; stable behavior unchanged.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -n "prerelease" .github/workflows/release.yml</Command>
+      </Verification>
+    </T-005>
+    <T-006>
+      <Title>protocol docs</Title>
+      <DependsOn>T-004</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>docs/release-trains/README.md boundary note and docs/release-process.md subsection: a prerelease tag is not a train dispatch, needs no Ready seal, records no acceptance, never advances the updater feed or cask; owner tag semantics (tag app + release environment) unchanged.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grep -rn "prerelease" docs/release-trains/README.md docs/release-process.md</Command>
+      </Verification>
+    </T-006>
+    <T-007>
+      <Title>durable records</Title>
+      <DependsOn>T-001</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>release.yml FILE header: VERSION bump, MODULE_MAP entries for the new branches, CHANGE_SUMMARY line; .grace/graph/features.xml M-046 summary updated; .grace/verification/features.xml V-M-046 prerelease scenario/evidence entry added.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>grace lint --path . --assertions current</Command>
+      </Verification>
+    </T-007>
+    <T-008>
+      <Title>verification runs</Title>
+      <DependsOn>T-007</DependsOn>
+      <AcceptanceCriteria>
+        <Criterion>npm run release:governance green; npx vitest run tests/renderer/release-governance.test.js tests/renderer/release-train.test.js green; grace target assertions during implementation and final assertions with --run-commands before archive.</Criterion>
+      </AcceptanceCriteria>
+      <Verification>
+        <Command>npm run release:governance</Command>
+        <Command>npx vitest run tests/renderer/release-governance.test.js tests/renderer/release-train.test.js</Command>
+      </Verification>
+    </T-008>
+  </ImplementationPlan>
+</C-RELEASE-CANARY-PRERELEASE>
+</GraceChangePlan>

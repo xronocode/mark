@@ -160,3 +160,8 @@ those require exact-candidate CI and a separately authorized two-platform handof
 | C-SAVE-CLOSE-DATA-SAFETY | queued | mark-save-close-fa25b309 | accepted 2026-11-10 |
 | C-MD-LINK-TABS | queued | mark-links-94db8add | accepted 2026-11-10 |
 | FIX-EMOJI-TIMESTAMPS | queued | mark-timestamps-debfe25d | accepted 2026-11-10 |
+| FIX-SIDEBAR-BOLD-CONFLICT | repaired | — | pending |
+| C-AUTOSAVE-DEFAULT-ON | repaired | — | pending |
+| C-SIDEBAR-MOVE-FILE | repaired | — | pending |
+| FIX-IMAGE-TOOLBAR-RESIDUE | repaired | — | pending |
+| C-PASTE-ASCII-TABLES | repaired | — | pending |
