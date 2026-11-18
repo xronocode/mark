@@ -1,5 +1,5 @@
 import { isLinux, isOsx, isWindows } from './index'
-import plist from 'plist'
+import * as plist from 'plist'
 // step-8e: @electron/remote.clipboard → window.electron.clipboard.
 // Preload (src/preload/index.js customElectronAPI) imports clipboard
 // directly from 'electron' and exposes it on the bridge — same API
