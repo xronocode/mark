@@ -328,7 +328,7 @@ const fixture = (mode = 'success', { count = 2, direct = false } = {}) => {
   const script = join(root, 'child.mjs'), cargoScript = join(root, 'cargo.mjs')
   const suffix = process.platform === 'win32' ? '.exe' : ''
   const paths = ['first', 'second'].slice(0, count).map(name => join(directory, `${name}-0123456789abcdef${suffix}`))
-  const artifactSource = carrierState && !direct && mode !== 'wait' ? carrierState.binary : process.execPath
+  const artifactSource = carrierState && !direct ? carrierState.binary : process.execPath
   const source = { revision: 'synthetic-current-source', helperSha256: createHash('sha256').update(fs.readFileSync(helper)).digest('hex'),
     testSha256: createHash('sha256').update(fs.readFileSync(resolve('tests/tools/run-rust-tests.test.mjs'))).digest('hex'),
     node: { path: process.execPath, sha256: digestFile(process.execPath) },
@@ -546,7 +546,14 @@ describe('Cargo-preserving parent and actual executable runner', () => {
     stopped(row.nativePid)
     expect(row.source).toEqual(f.source)
     expect(row.path).toBe(f.paths[0])
-    expect(row.sha256).toBe(createHash('sha256').update(fs.readFileSync(process.execPath)).digest('hex'))
+    expect(row.sha256).toBe(f.source.carrier ? f.source.carrier.sha256 : createHash('sha256').update(fs.readFileSync(process.execPath)).digest('hex'))
+    const payload = JSON.parse(fs.readFileSync(f.proof, 'utf8').trim())
+    expect(payload.pid).toBe(row.nativePid)
+    expect(payload.selectedArtifact).toEqual({ kind: f.source.carrier ? 'carrier' : 'direct-node', path: row.path, sha256: row.sha256 })
+    expect(payload.runtime).toEqual({ path: f.source.carrier ? f.source.node.path : row.path, sha256: createHash('sha256').update(fs.readFileSync(process.execPath)).digest('hex') })
+    expect(payload.scriptSha256).toBe(f.source.scriptSha256)
+    expect(payload.argv0).toBe(row.path); expect(payload.argv).toEqual([f.script]); expect(payload.args).toEqual([])
+    expect(payload.cwd).toBe(f.root); expect(payload.marker).toBe('preserved-cargo-environment'); expect(payload.dynamic).toBe('synthetic-preserved-dynamic-search')
     if (process.platform === 'win32') {
       expect(result.state.stopped).toBe(true)
       expect(result.state.result.reaped).toBe(true)

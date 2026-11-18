@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-CI-NATIVE-FIXTURE-ATTRIBUTION>
     <Summary>Attribute generic cancellation fixtures to their selected carrier and separately verify the unchanged final Node image without changing timers or production behavior.</Summary>
     <Problem>The reviewed universal C carrier, selected SDK context and genuine direct copied Node one-target control work. The exact438-case run has436 passes and two unchanged2500ms watchdog failures in mode wait deliberately left direct to preserve a Node-only digest expectation. Generic carrier selection is also needed for cancellation; the selected-image digest must describe the carrier truthfully while retaining equally strong final Node identity and every existing assertion.</Problem>

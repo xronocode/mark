@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-CI-NATIVE-FIXTURE-ATTRIBUTION>
     <IntentSummary>Private proposed recovery plan: after fresh approvals, make only exact generic wait carrier selection and one cancellation selected-digest/payload-attribution exception; preserve all other source and native execution protocol.</IntentSummary>
     <BaselineAssertions>
