@@ -71,9 +71,9 @@ import { createI18n } from 'vue-i18n'
 // path-browserify); no dependency, bundling or global test configuration
 // changes.
 import { createHash } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 /* ── hoisted mock state ─────────────────────────────────────────── */
 const busMock = vi.hoisted(() => ({
@@ -3092,27 +3092,37 @@ describe('editor.vue — coverage', () => {
       // A literal template import is a variable dynamic import Vite cannot
       // analyze; a runtime file:// URL with a unique query keeps the module
       // runner busting its transform cache per mutant.
-      const mutantUrl = pathToFileURL(editorPath).href + `?table-dialog-mutant-${++mutationImportSeq}`
+      const mutantUrl = pathToFileURL(mutantPath).href + `?table-dialog-mutant-${++mutationImportSeq}`
       return (await import(/* @vite-ignore */ mutantUrl)).default
     }
 
+    // Mutations land in a per-run TEMP COPY, never in the shared source:
+    // in the full parallel suite other test files (and the transform
+    // watcher) may read editor.vue at any moment, so on-disk mutation of
+    // the real file is a suite-wide hazard; the mutant module is imported
+    // from the copy by its file URL.
+    // Inside the vite root (module runner rejects outside-root file URLs),
+    // but a dotfile sibling no other test imports.
+    const mutantPath = join(dirname(editorPath), '.editor.mutant.tmp.vue')
     const applyMutation = (name, patches) => {
-      const current = readFileSync(editorPath, 'utf8')
-      expect(current, `precondition for ${name}: exact editor.vue bytes before mutating`).toBe(pristineBytes)
+      expect(
+        readFileSync(editorPath, 'utf8'),
+        `precondition for ${name}: exact editor.vue bytes before mutating`
+      ).toBe(pristineBytes)
       let mutated = pristineBytes
       for (const [anchor, replacement] of patches) {
         expect(mutated.includes(anchor), `mutation ${name}: anchor present`).toBe(true)
         mutated = mutated.replace(anchor, replacement)
       }
       expect(mutated, `mutation ${name}: bytes changed`).not.toBe(pristineBytes)
-      writeFileSync(editorPath, mutated)
+      writeFileSync(mutantPath, mutated)
     }
 
     const restorePristineBytes = (name) => {
-      writeFileSync(editorPath, pristineBytes)
+      rmSync(mutantPath, { force: true })
       expect(
         readFileSync(editorPath, 'utf8'),
-        `mutation ${name}: exact runtime bytes restored`
+        `mutation ${name}: shared source untouched`
       ).toBe(pristineBytes)
     }
 
