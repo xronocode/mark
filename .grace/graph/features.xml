@@ -3193,6 +3193,7 @@
         <Errors><Error><Code>read error</Code><Description>Return the selected-file read error to QuickLook; no successful missing-file completion.</Description></Error></Errors>
       </Contract>
       <Sources><Source>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</Source><Source>mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift</Source><Source>mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements</Source><Tests>tests/quicklook/PreviewBoundaryTests.swift</Tests><Tests>tests/renderer/quicklook-runner.test.js</Tests></Sources>
-    </M-073>
+          <SummaryDelta>C-QUICKLOOK-SYNTAX-THEME: append-only prefers-color-scheme light overrides in the packaged github-dark.css give QuickLook syntax tokens the existing light appearance with unrounded WCAG contrast at or above 4.5:1 across all 13 token groups / 41 selectors; dark values, layout and the security boundary are byte-unchanged.</SummaryDelta>
+</M-073>
   </GD-FEATURES>
 </GraceGraphDocument>

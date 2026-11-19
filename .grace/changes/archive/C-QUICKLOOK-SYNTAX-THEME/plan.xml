@@ -1,0 +1,248 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-QUICKLOOK-SYNTAX-THEME>
+    <IntentSummary>Make the packaged QuickLook syntax-token colors follow its existing supported light/dark appearance by appending light-mode foreground/background overrides for all 41 existing color-bearing selectors (13 token groups) of the existing github-dark.css resource inside one new prefers-color-scheme: light media branch, with every group at an unrounded contrast of at least 4.5:1 against its actually applicable background (light pre #f6f8fa from the byte-identical style.css; addition/deletion against their own token backgrounds). The renderer, markup pipeline, layout, resource name/load order, attribution header, every dark/default declaration and the accepted C-QUICKLOOK-CONTENT-BOUNDARY security behavior remain byte-for-byte or behaviorally unchanged. Verification proves the palette on the actual Swift-produced Markdown/highlight pipeline in Chromium and WebKit, adds mandatory fail-closed theme-light/theme-dark cases to the actual PreviewProvider/WKWebView native fixture and its runner protocol (the complete previous 24 named boundary cases stay required and unchanged, the case set grows to exactly 26), extends the renderer runner unit suite with completeness/failure and deterministic palette-coverage controls, and synchronizes M-073/V-M-073 plus the M-046 quicklook-native job ownership markup. No new resource, dependency, theme engine, signing, installation, workflow dispatch or release authorization is introduced; native/owner/platform acceptance of the installed extension remains separate.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-073</Value>
+        <Value>V-M-073</Value>
+        <Value>M-046</Value>
+        <Value>V-M-046</Value>
+      </MustExist>
+      <MustContain>
+        <File>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</File>
+        <Text>bundleResource("github-dark", ext: "css")</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/style.css</File>
+        <Text>--code-bg: #f6f8fa</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-deletion{color:#ffdcd7;background-color:#67060c}</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>prefers-color-scheme</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+        <Text>exit(rows.count == 24</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/check-quicklook.mjs</File>
+        <Text>'file-resource-policy', 'repeat-preview'</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-073</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>@media (prefers-color-scheme: light){</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs,.hljs-subst{color:#1f2328}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-doctag,.hljs-keyword,.hljs-meta .hljs-keyword,.hljs-template-tag,.hljs-template-variable,.hljs-type,.hljs-variable.language_{color:#cf222e}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-title,.hljs-title.class_,.hljs-title.class_.inherited__,.hljs-title.function_{color:#6f42c1}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-attr,.hljs-attribute,.hljs-literal,.hljs-meta,.hljs-number,.hljs-operator,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-id,.hljs-variable{color:#005cc5}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-meta .hljs-string,.hljs-regexp,.hljs-string{color:#032f62}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-built_in,.hljs-symbol{color:#953800}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-code,.hljs-comment,.hljs-formula{color:#656d76}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-name,.hljs-quote,.hljs-selector-pseudo,.hljs-selector-tag{color:#116329}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-emphasis,.hljs-strong{color:#1f2328}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-section{color:#005cc5}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-bullet{color:#735c0f}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-addition{color:#116329;background-color:#f0fff4}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-deletion{color:#b31d28;background-color:#ffeef0}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs{color:#c9d1d9;background:#0d1117}</Text>
+      </MustContain>
+      <MustContain>
+        <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+        <Text>.hljs-deletion{color:#ffdcd7;background-color:#67060c}</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+        <Text>BoundaryCase("theme-light"</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+        <Text>BoundaryCase("theme-dark"</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+        <Text>exit(rows.count == 26</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+        <Text>matchMedia('(prefers-color-scheme: light)')</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+        <Text>NSAppearance(named: .aqua)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+        <Text>NSAppearance(named: .darkAqua)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/check-quicklook.mjs</File>
+        <Text>'theme-light', 'theme-dark'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/quicklook-runner.test.js</File>
+        <Text>'theme-light', 'theme-dark'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/quicklook-runner.test.js</File>
+        <Text>toBe(26)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/quicklook-runner.test.js</File>
+        <Text>toHaveLength(26)</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node tools/check-quicklook.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">xcodebuild -project mark-quicklook/MarkQuickLook.xcodeproj -target MarkPreview -configuration Debug SYMROOT="$PWD/.claude/quicklook-content-boundary/target-build/products" OBJROOT="$PWD/.claude/quicklook-content-boundary/target-build/intermediates" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES build</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-073 />
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-073 />
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css</File>
+      <File>tests/quicklook/PreviewBoundaryTests.swift</File>
+      <File>tools/check-quicklook.mjs</File>
+      <File>tests/renderer/quicklook-runner.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ReferenceState>
+      <SpecSha256>0d7d7ddfdc4d82eba0e885098eadcec9fba6dada71a16e24dc20bc985c883119</SpecSha256>
+    </ReferenceState>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Append the 4.5:1 light syntax palette to github-dark.css with failing-first two-engine evidence</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Before any write, on the fresh head: record SHA-256 digests of the byte-identical file set (mark-quicklook/Sources/Shared/MarkdownRenderer.swift, mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift, mark-quicklook/Sources/PreviewExtension/Resources/style.css, mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js, mark-quicklook/Sources/PreviewExtension/Resources/highlight.min.js, mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements) via shasum -a 256 into the change bundle, and produce failing-first evidence on the unchanged sources: the actual MarkdownRenderer.swift output (private Foundation-only console driver, packaged resources byte-copied) rendered in Chromium and WebKit under a light appearance shows the highlighted-string contrast failure on the light pre background while the dark appearance remains the positive control. Historical review numbers (1.4438:1 light, 11.2542:1 dark) are characterization only; this plan re-measures on the fresh head.</Criterion>
+          <Criterion>Append exactly the implementation-notes CSS block to the end of mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css: one new @media (prefers-color-scheme: light){...} branch containing the 13 group rules covering all 41 existing color-bearing selectors verbatim (selector text copied 1:1 from the existing dark rules), with foregrounds base/.hljs-subst #1f2328; keyword group #cf222e; title group #6f42c1; constant group #005cc5; string group #032f62; builtin group #953800; comment group #656d76; tag group #116329; emphasis/strong #1f2328; section #005cc5; bullet #735c0f; addition #116329 on background-color #f0fff4; deletion #b31d28 on background-color #ffeef0. Only color and background-color declarations appear in the new branch; no font, spacing, geometry, parsing or script change. The attribution header, resource name, bundle load order and every dark/default declaration stay byte-identical (append-only; a single newline separator; no new GRACE markup inside the packaged resource). No .hljs root class, theme engine, script bridge, dependency or additional resource is introduced.</Criterion>
+          <Criterion>Deterministic palette proof: every one of the 41 dark color-bearing selectors is covered exactly once by the 13 light groups; each group meets an unrounded WCAG contrast of at least 4.5:1 computed against its actually applicable background (#f6f8fa for base/keyword/title/constant/string/builtin/comment/tag/emphasis/section/bullet; the group's own #f0fff4/#ffeef0 token background for addition/deletion), with computed values compared against the approved spec palette table; representative Markdown-generated tokens are measured in the actual rendered document and any supplemental controlled selector spans used for full 41-selector coverage are labelled separately from real Markdown/highlight cases. Evidence retained: failing-first and after-override HTML, recipe, contrast computations and screenshots.</Criterion>
+          <Criterion>Two-engine appearance matrix on the actual Swift HTML after the override: Chromium and WebKit, light and dark, with a JavaScript block, a Python block, an unknown-language/plain block and an inline-code control. Light values follow the specified palette on the #f6f8fa pre background with all light target ratios at 4.5:1 or above before rounding; plain/inline controls stay readable; no page errors and no external resource requests occur; switching appearance preserves the exact code text, token classes and code geometry; dark control retains the original dark computed values.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>shasum -a 256 mark-quicklook/Sources/Shared/MarkdownRenderer.swift mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift mark-quicklook/Sources/PreviewExtension/Resources/style.css mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js mark-quicklook/Sources/PreviewExtension/Resources/highlight.min.js mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements</Command>
+          <Command>npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Add required fail-closed theme-light/theme-dark native fixture cases and extend the runner protocol</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/quicklook/PreviewBoundaryTests.swift adds exactly two required cases per the implementation notes: BoundaryCase("theme-light", ...) and BoundaryCase("theme-dark", ...) with a JavaScript block carrying real keyword/string/number/comment token spans plus an inline-code control. Each theme case forces the appearance only on the fixture's own provider WKWebView via NSAppearance(named: .aqua) or NSAppearance(named: .darkAqua) — never NSApplication.shared.appearance, never system appearance, no host/extension registration — waits bounded for matchMedia('(prefers-color-scheme: light)') to agree, and evaluates a dedicated theme script returning media matches, the pre background, computed token colors, code text length and code geometry. theme-light asserts the light media match, pre background rgb(246, 248, 250), computed colors equal to the specified light palette rgb values, an unrounded in-page contrast of at least 4.5:1 for every measured token, readable plain/inline controls, and that switching to the dark appearance preserves code text and geometry exactly. theme-dark asserts the dark media match (light media false), computed colors equal to the original dark palette values, and a dark contrast control of at least 4.5:1. Any mismatched color, media, sub-4.5:1 ratio, changed text/geometry or failed observation sets passed=false — never a skip. The shared snapshotScript, all 24 existing case definitions and checks stay unchanged; the native exit gate becomes exit(rows.count == 26 ...); file-local VERSION, MODULE_CONTRACT SCOPE and CHANGE_SUMMARY are synchronized (case count stated as twenty-six).</Criterion>
+          <Criterion>tools/check-quicklook.mjs extends REQUIRED_QUICKLOOK_CASES to exactly 26 entries by appending 'theme-light', 'theme-dark' after 'repeat-preview'. The fail-closed protocol mechanics are unchanged and now cover the theme cases: complete exact ID set (missing, duplicate or unknown case is QL_CASE_SET_INCOMPLETE), literal passed==true per case (anything else is QL_NATIVE_CASE_FAILED), independent zero observer requests, zero native exit code, unchanged-source and bundled-resource digests, and the unchanged 110-second whole-run deadline including the two additional provider cycles. Markers, receipt fields and output format are unchanged; file-local VERSION, MODULE_CONTRACT/MODULE_MAP and CHANGE_SUMMARY are synchronized. No skip, retry, budget raise or unsupported-host success path is added.</Criterion>
+          <Criterion>Native sensitivity proof: with the fixture and runner changes in place but the T-001 light branch temporarily removed (exact bytes restored afterwards and proven by digest), node tools/check-quicklook.mjs fails via QL_NATIVE_CASE_FAILED on theme-light — proving the native theme gate actually detects the palette it claims — and passes after restoration. The full failed receipt from the mutated run is retained.</Criterion>
+          <Criterion>Both new cases are mandatory elements of the native result protocol everywhere it is consumed: locally and in the hosted macos-15 quicklook-native job, which runs the same command on the exact head and therefore requires the complete 26-case set. No workflow file change is made; the hosted job keeps its required-gate role, inverses and budgets unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node tools/check-quicklook.mjs</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Renderer runner unit completeness/failure controls and deterministic CSS palette coverage</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/quicklook-runner.test.js updates its pinned counts to the 26-case protocol — expect(validateNativeResult(nativeResult())).toBe(26) and expect(result.cases).toHaveLength(26) in the existing happy-path case — and pins the frozen required list exactly: the 24 existing boundary case IDs in their current order followed by 'theme-light', 'theme-dark' (toEqual on the full array). All 34 existing unit cases keep their assertions, doubles and structure; no skip, retry, timeout or floor change.</Criterion>
+          <Criterion>New fail-closed controls with expectations stated independently from the implementation: a result missing theme-dark is QL_CASE_SET_INCOMPLETE; a duplicated theme-light is QL_CASE_SET_INCOMPLETE; a theme case with passed=false, undefined, 'true' or 1 is QL_NATIVE_CASE_FAILED. These reuse the existing protocol error codes and add no new runner behavior.</Criterion>
+          <Criterion>New deterministic static palette control reading the packaged mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css and style.css: exactly one @media (prefers-color-scheme: light){ branch whose declarations are only color/background-color; the 13 light group rules equal the implementation-notes strings exactly; the union of light selectors equals the 41 color-bearing selectors extracted from the dark rules with each covered exactly once; every original dark rule statement is still present verbatim; style.css still sets --code-bg: #f6f8fa; and the unrounded WCAG contrast of each of the 13 groups against its applicable background (#f6f8fa, addition #f0fff4, deletion #ffeef0) is at least 4.5:1 and matches the approved spec palette table values, never values derived from this repository's own implementation.</Criterion>
+          <Criterion>File-local VERSION, CHANGE_SUMMARY and MODULE_CONTRACT/MODULE_MAP of quicklook-runner.test.js are synchronized with the theme-protocol and palette-coverage controls.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Graph/verification deltas, unsigned build and hosted evidence notes</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/features.xml: M-073 gains mark-quicklook/Sources/PreviewExtension/Resources/github-dark.css in its Sources/PlannedPath and a Summary/contract note that it owns the packaged syntax stylesheet including the appended light-appearance color overrides (13 groups over all 41 color-bearing selectors, 4.5:1 unrounded floor, colors/background-color only, dark/default palette retained as default) while security ownership of the content boundary is unchanged. The M-046 quicklook-native job description notes that its fixture matrix is extended to the required theme-light/theme-dark cases without changing the job's required-gate role, inverses or budgets.</Criterion>
+          <Criterion>.grace/verification/features.xml: V-M-073 gains a scenario-native-theme recording the executed evidence — actual PreviewProvider/WKWebView theme fixtures under isolated light and dark appearances, media matches, computed palette equality, unrounded 4.5:1 contrast, appearance isolation to the fixture's own view, fail-closed result protocol — and its TraceAssertions extend to the complete 26-case set including both theme cases; unavailable native evidence stays classified honestly and open, never a green skip. V-M-046's hosted-job scenario note is synchronized. No frozen archive, unrelated module metadata or accepted boundary scenario is mutated.</Criterion>
+          <Criterion>Run the unsigned extension-only build with the exact command from the approved spec (target MarkPreview, Debug, SYMROOT/OBJROOT under .claude/quicklook-content-boundary/target-build, CODE_SIGNING_ALLOWED/REQUIRED/IDENTITY and REGISTER_APP_WITH_LAUNCH_SERVICES disabled, SKIP_INSTALL=YES); verify zero LaunchServices registration steps in the log, record the output identity, and leave installed apps/extensions and owner documents untouched. Packaging is not owner acceptance: installed Finder/owner/platform acceptance and any release authorization remain separate explicit decisions; browser and source evidence never bypass the native gate.</Criterion>
+          <Criterion>Close-out: the hosted quicklook-native result on the exact candidate head is recorded (or its unavailability is classified as open evidence with cause); all task-owned fixture/browser processes are closed and reaped, owned artifacts removed after shutdown, and source/recipe/hash/log/HTML/screenshot evidence retained; the byte-identical file set is re-verified against the T-001 digests; grace lint current-state and status pass with no new errors. Apply/archive and train admission follow their normal separate decisions.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>xcodebuild -project mark-quicklook/MarkQuickLook.xcodeproj -target MarkPreview -configuration Debug SYMROOT="$PWD/.claude/quicklook-content-boundary/target-build/products" OBJROOT="$PWD/.claude/quicklook-content-boundary/target-build/intermediates" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES build</Command>
+          <Command>grace lint --path . --assertions current</Command>
+          <Command>grace status --path . --with modules --json</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node tools/check-quicklook.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">xcodebuild -project mark-quicklook/MarkQuickLook.xcodeproj -target MarkPreview -configuration Debug SYMROOT="$PWD/.claude/quicklook-content-boundary/target-build/products" OBJROOT="$PWD/.claude/quicklook-content-boundary/target-build/intermediates" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES build</Command>
+      </MustPassCommand>
+      <Environment>Repository root on the exact candidate head with Node 22, the committed toolchain pins and Xcode available locally; macOS for the native fixture and unsigned build. Real runs only: the native gate requires the complete 26-case result set including literal-passed theme-light and theme-dark, zero observer requests and a zero native exit code; a failed, missing, duplicated or absent theme result is runner failure, never a skip or empty pass, and no unsupported-host success path exists. Failing-first evidence (browser contrast failure on unchanged sources; native theme failure with the light branch temporarily removed) is retained alongside the passing evidence; the byte-identical file set is proven unchanged by digest against the values recorded before T-001. Measured actual runtimes must fit the bound budgets; an over-budget or unavailable native host requires a bounded replan, not a silently longer timeout or a green skip. A green acceptance is not release authorization; apply/archive, owner/platform acceptance of the installed extension and any integration remain separate owner decisions, with sequential execution still in force.</Environment>
+    </AcceptanceVerification>
+  </C-QUICKLOOK-SYNTAX-THEME>
+</GraceChangePlan>
