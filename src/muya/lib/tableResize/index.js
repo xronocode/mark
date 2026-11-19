@@ -619,7 +619,12 @@ class TableResize {
     this.adoptionFrame = 0
     for (const [table, paint] of this.repaintFrames) {
       cancelAnimationFrame(paint.frame)
-      if (table.style.transform === paint.applied) table.style.transform = paint.previous
+      // Engines may normalize/reorder the composite transform string; restore
+      // whenever the applied layer hint is still present, not only on an
+      // exact-string match.
+      if (table.style.transform === paint.applied || table.style.transform.includes(paint.applied)) {
+        table.style.transform = paint.previous
+      }
     }
     this.repaintFrames.clear()
     if (typeof window !== 'undefined' && this.handleWindowResize) {
