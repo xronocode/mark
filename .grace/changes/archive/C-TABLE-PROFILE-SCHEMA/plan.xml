@@ -1,0 +1,144 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-TABLE-PROFILE-SCHEMA>
+    <IntentSummary>Extract the independently maintained persisted table-layout schema decisions of Muya sanitizePersistedEntries (M-012) and renderer migrateTableEntry (M-061 store side) into one new pure owner src/muya/lib/tableResize/tableLayoutSchema.js, with both existing consumers delegating to it through thin, boundary-explicit adapters. All current observable results are preserved: renderer persistence keeps its explicit-Auto reset, rounding without a display floor and unit-sum ratio normalization; Muya direct keeps its 48 px clamp, copied (non-normalized) ratios, array-shaped raw acceptance and direct explicit-Auto record shape. Proof is direct shared-owner characterization, both consumer APIs, store round trips and the existing Chromium/webkit-tables browser scenarios; delivery runs on integ/techdebt through a fresh technical-debt lane with separate admission.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-012</Value>
+        <Value>M-046</Value>
+        <Value>M-061</Value>
+        <Value>V-M-012</Value>
+        <Value>V-M-061</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>export const sanitizePersistedEntries = (raw) => {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/tableLayoutRatios.js</File>
+        <Text>export const migrateTableEntry = (raw) => {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+        <Text>describe('persistent identity (C-65 R-1)', () => {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/table-layout-ratios.test.js</File>
+        <Text>describe('migrateTableEntry — the idempotent v1→v2 migration (corner C-8)', () => {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/table-layout-store.test.js</File>
+        <Text>describe('pure store transforms (C-65 T-001)', () => {</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-012</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-061</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/muya/lib/tableResize/tableLayoutSchema.js</File>
+        <Text>export const resolveTableLayoutMode = (raw) => {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>from './tableLayoutSchema'</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/tableLayoutRatios.js</File>
+        <Text>from 'muya/lib/tableResize/tableLayoutSchema'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/muya/table-layout-schema.test.js</File>
+        <Text>describe('tableLayoutSchema — the shared persisted-layout schema owner (C-TABLE-PROFILE-SCHEMA)', () => {</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-schema.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js tests/renderer/muya/table-layout-persistence.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/table-width-persistence.spec.ts tests/e2e/table-modes.spec.ts --project=chromium --project=webkit-tables</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-012 />
+        <M-046 />
+        <M-061 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-012 />
+        <V-M-061 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/muya/lib/tableResize/tableLayoutSchema.js</File>
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>src/renderer/src/util/tableLayoutRatios.js</File>
+      <File>tests/renderer/muya/table-layout-schema.test.js</File>
+      <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+      <File>tests/renderer/util/table-layout-ratios.test.js</File>
+      <File>tests/renderer/store/table-layout-store.test.js</File>
+      <File>tests/e2e/table-width-persistence.spec.ts</File>
+      <File>tests/e2e/table-modes.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <Glob>.grace/changes/active/C-TABLE-PROFILE-SCHEMA/**</Glob>
+    </ObservedWriteScope>
+    <ReferenceState>
+      <SpecSha256>0b593bae381cff28f4b96837c11bce81a3e0bbf972f4f1c0dadf558d98f79bd5</SpecSha256>
+    </ReferenceState>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Create the pure shared schema owner and its direct characterization suite</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Add src/muya/lib/tableResize/tableLayoutSchema.js with the exact exported shape pinned in the implementation notes: TABLE_LAYOUT_MODES, isTableLayoutMode, isPositiveFinite, resolveTableLayoutMode, filterPositiveWidths, deriveManualFlags, deriveTableWidth, areStorableRatios, isMeaningfulEntry. Zero imports, no DOM/runtime-environment dependency, full GRACE contract/map/summary blocks. No wrapper independently repeats field extraction, valid mode/legacy precedence or meaningful-entry logic after this task lands.</Criterion>
+          <Criterion>Add tests/renderer/muya/table-layout-schema.test.js pinning, with independently stated expected results: explicit mode precedence over legacy flags, legacy fullWidth-over-fit, absent mode/flags resolving to null (inheritance stays caller-side), unknown mode strings, positive-finite width filtering, per-kept-width manual flag derivation, ratio validity (length match plus all positive finite, including the empty-array-at-zero-widths verdict), tableWidth rounding, both meaningful-entry drop rules and raw-input immutability.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-schema.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js tests/renderer/muya/table-layout-persistence.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Delegate the Muya sanitizer to the shared owner with its boundary explicit</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>sanitizePersistedEntries in src/muya/lib/tableResize/index.js routes field extraction, mode/legacy precedence and meaningful-entry decisions through tableLayoutSchema helpers; the adapter keeps clampWidth (48 px floor) application, ratio copying without unit-sum normalization, top-level array-shaped raw acceptance, the direct explicit-Auto record shape and all existing exports unchanged. Update the module contract, map and change summary; bump the module version.</Criterion>
+          <Criterion>Add a scoped describe block to tests/renderer/muya/table-layout-persistence.test.js pinning the six historical Muya-direct families (contradictory legacy flags, legacy fit, explicit Auto with stale fields, non-unit ratios copied, below-display-minimum widths clamped, empty default dropped) plus the array-acceptance and empty-ratios-at-zero-widths edges, each with independently stated expected results; existing assertions unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-schema.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js tests/renderer/muya/table-layout-persistence.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Delegate the renderer migration to the shared owner and prove cross-boundary compatibility</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>migrateTableEntry in src/renderer/src/util/tableLayoutRatios.js routes the same shared decisions through the owner imported as 'muya/lib/tableResize/tableLayoutSchema'; the adapter keeps the explicit-Auto stripped record, Math.round without a display floor, unit-sum ratio normalization via the existing normalizeRatios, top-level array rejection, MIN_TABLE_COLUMN_PX and all existing exports unchanged. Update the module contract, map and change summary; bump the module version.</Criterion>
+          <Criterion>Add scoped blocks to tests/renderer/util/table-layout-ratios.test.js and tests/renderer/store/table-layout-store.test.js pinning the six historical renderer-direct families, renderer-then-Muya round trips, the current array and numeric-edge differences, and a control proving a changed shared legacy precedence is detected through both consumers. Keep and run every existing suite assertion.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-schema.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js tests/renderer/muya/table-layout-persistence.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Run the browser scenarios and refresh the owned graph and verification records</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Run tests/e2e/table-width-persistence.spec.ts and tests/e2e/table-modes.spec.ts in chromium and webkit-tables: mode choice, remembered widths/ratios after reopen and explicit Auto under a global Fit default pass with unchanged geometry, Markdown/dirty/history behavior and no adoption writes. Extend an existing assertion only if this plan identifies a missing boundary; no configuration change.</Criterion>
+          <Criterion>Update current M-012/M-061 ownership, source paths and executed evidence in .grace/graph/runtime.xml, .grace/graph/performance.xml, .grace/verification/runtime.xml and .grace/verification/performance.xml; keep frozen artifacts unchanged and distinguish pure/browser proof from native/manual acceptance. Bind the fresh td-N lane ledger bootstrap/admission paths on integ/techdebt per the spec LaneBookkeeping; merged td-1 is not reused and lane admission stays separate.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/table-width-persistence.spec.ts tests/e2e/table-modes.spec.ts --project=chromium --project=webkit-tables</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="1800">npx --no-install playwright test tests/e2e/table-width-persistence.spec.ts tests/e2e/table-modes.spec.ts --project=chromium --project=webkit-tables</Command>
+      <Environment>Repository root of the integ/techdebt lane worktree with node_modules installed and the committed playwright.config.ts projects available locally (chromium plus webkit-tables, the WebKit browser build present). Real-browser run, no retries, skips or coverage-floor changes; the vitest gate must also pass with the same four-suite invocation recorded in TargetAssertions before this browser gate runs.</Environment>
+    </AcceptanceVerification>
+  </C-TABLE-PROFILE-SCHEMA>
+</GraceChangePlan>

@@ -938,6 +938,7 @@
       <ChangeRefs>
         <C-PAGE-WIDTH-TABLES/>
       </ChangeRefs>
-    </M-061>
+          <SummaryDelta>C-TABLE-PROFILE-SCHEMA: the persisted table-layout profile consumers share one zero-import schema owner, so profile adoption and migration cost one validation pass with unchanged store/serialization behavior.</SummaryDelta>
+</M-061>
   </GD-PERFORMANCE>
 </GraceGraphDocument>

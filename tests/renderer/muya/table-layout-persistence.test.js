@@ -1,8 +1,8 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 2.2.1
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the persistent table layout behaviour (C-65 T-001/T-004 + C-PAGE-WIDTH-TABLES T-007/T-008/T-009) — the persistent identity (ordinal + header signature), the schema-v2 adoption (widths + ratios + tableWidth + mode, with the idempotent legacy fit:true/fullWidth migration), the rememberTableColumnSizes gate, the identity-change drops (corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the honest three-mode defaults and the toolbar mode-segment routing, the degradation badge caption, the walls and the reset/wall-double-click persist paths.
-//   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities load versus write modes, applyPersistedLayouts, serializeTableLayouts, persist snapshot refresh, toggle/openViewer, handleToolbarAction/Click/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
+//   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities load versus write modes, applyPersistedLayouts, serializeTableLayouts, persist snapshot refresh, toggle/openViewer, handleToolbarAction/Click/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) plus the shared schema owner muya/lib/tableResize/tableLayoutSchema.js behind sanitizePersistedEntries (C-TABLE-PROFILE-SCHEMA) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
 //   DEPENDS: TableResize with a real-listener event-center double, Vitest + jsdom.
 //   LINKS: .grace/changes/archive/C-65 T-001/T-004; .grace/verification/runtime.xml V-M-012 scenario-66; the store twin tests/renderer/store/table-layout-store.test.js; the C-39 maths twin tests/renderer/muya/table-column-resize.test.js; e2e tests/e2e/table-width-persistence.spec.ts.
 //   ROLE: TEST
@@ -24,6 +24,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: scoped shared-owner block —
+//   the six historical Muya-direct sanitize families (contradictory legacy
+//   flags, legacy fit, explicit Auto with stale fields, verbatim ratio
+//   copy, 48 px width clamp, empty default dropped), the array-shaped raw
+//   acceptance, the ratios []-at-zero-widths record and the legacy
+//   precedence control through the Muya boundary.
 //   CURRENT: 2026-11-10 C-TABLE-FITTED-RESET: partial Fit/Full reset
 //   after adjacent drags fits before persistence and never exposes overflow.
 //   CURRENT: 2026-11-10 C-TABLE-SEQUENTIAL-RESIZE: adjacent Fit/Full
@@ -252,6 +258,60 @@ describe('persistent identity (C-65 R-1)', () => {
     // Ratios of the wrong length drop; a valid pair survives with the px.
     const dropped = sanitizePersistedEntries({ 'c': { widths: [120, 80], manual: [true, true], ratios: [0.5] } })
     expect(dropped.c).toEqual({ widths: [120, 80], manual: [true, true] })
+  })
+})
+
+// C-TABLE-PROFILE-SCHEMA: sanitizePersistedEntries delegates the shared
+// schema decisions (field decoding, legacy precedence, meaningful-entry
+// rules) to muya/lib/tableResize/tableLayoutSchema; the Muya boundary
+// keeps its own clamp, verbatim ratio copy, array acceptance and direct
+// Auto record shape. Expectations stated independently of the owner.
+describe('the shared schema owner behind sanitizePersistedEntries (C-TABLE-PROFILE-SCHEMA)', () => {
+  it('the six historical Muya-direct families keep their outputs', () => {
+    const entries = sanitizePersistedEntries({
+      'legacy-pair': { widths: [], manual: [], fullWidth: true, fit: true },
+      'legacy-fit': { widths: [], manual: [], fit: true },
+      'auto-stale': { mode: 'auto', widths: [300, 400], manual: [true, true], ratios: [0.4, 0.6], tableWidth: 700 },
+      'ratios-raw': { widths: [200, 600], manual: [true, true], ratios: [2, 3] },
+      'tiny-widths': { widths: [20, 30], manual: [true, true] },
+      'bare-husk': { widths: [], manual: [] }
+    })
+    // Contradictory legacy flags: Full width wins the shared precedence.
+    expect(entries['legacy-pair']).toEqual({ widths: [], manual: [], mode: 'full' })
+    expect(entries['legacy-fit']).toEqual({ widths: [], manual: [], mode: 'fit' })
+    // A direct explicit Auto keeps its record shape (stale widths stay;
+    // later adoption skips them) — the renderer boundary strips instead.
+    expect(entries['auto-stale']).toEqual({
+      widths: [300, 400], manual: [true, true], mode: 'auto', ratios: [0.4, 0.6], tableWidth: 700
+    })
+    // Ratios are copied verbatim, never unit-sum normalized here.
+    expect(entries['ratios-raw']).toEqual({ widths: [200, 600], manual: [true, true], ratios: [2, 3] })
+    // Below-display-minimum widths clamp at the 48 px floor.
+    expect(entries['tiny-widths']).toEqual({ widths: [48, 48], manual: [true, true] })
+    // The empty default is indistinguishable from no layout: dropped.
+    expect(entries['bare-husk']).toBeUndefined()
+  })
+
+  it('array-shaped raw stays accepted; a ratios [] at zero widths survives', () => {
+    // No hidden API hardening: arrays are objects here (the renderer
+    // migration rejects the same input instead).
+    expect(sanitizePersistedEntries([])).toEqual({})
+    expect(sanitizePersistedEntries([1, 'x'])).toEqual({})
+    // Intentional asymmetry: an empty ratios array is truthy, so the
+    // zero-width record keeps `ratios: []` (migrateTableEntry drops it).
+    expect(sanitizePersistedEntries({ pid: { ratios: [] } }))
+      .toEqual({ pid: { widths: [], manual: [], ratios: [] } })
+  })
+
+  it('a shared-precedence flip is detected through this boundary (control)', () => {
+    // If the shared owner's legacy precedence ever flipped, fit would
+    // outrank fullWidth below and BOTH verdicts change.
+    const entries = sanitizePersistedEntries({
+      'only-full-width': { fullWidth: true, fit: false },
+      'only-fit': { fullWidth: false, fit: true }
+    })
+    expect(entries['only-full-width'].mode).toBe('full')
+    expect(entries['only-fit'].mode).toBe('fit')
   })
 })
 

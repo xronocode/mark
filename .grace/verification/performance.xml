@@ -1624,7 +1624,8 @@
         <Marker>[BLOCK_COLUMN_COUNT_RECONCILED] table=T columns=N — a structural change reconciled stored column sizes</Marker>
       </Markers>
       <TraceAssertions/>
-    </V-M-061>
+            <scenario-table-profile-schema-perf>C-TABLE-PROFILE-SCHEMA: schema validation is one pure pass per entry with no new IO or timers; existing e2e performance assertions and projects are unchanged.</scenario-table-profile-schema-perf>
+</V-M-061>
     <V-M-063>
       <Priority>high</Priority>
       <Commands>
