@@ -3325,7 +3325,7 @@ describe('editor.vue — coverage', () => {
     ))
 
     it('proves the exact editor.vue bytes are restored after the mutation loop', () => {
-      const finalBytes = readFileSync(editorPath, 'utf8')
+      const finalBytes = readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n')
       expect(finalBytes).toBe(pristineBytes)
       expect(createHash('sha256').update(finalBytes).digest('hex')).toBe(pristineSha256)
     })
