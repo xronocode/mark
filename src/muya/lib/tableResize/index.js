@@ -1,10 +1,10 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 3.5.0
+// VERSION: 4.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Table sizing and resize affordances in Auto (content-sized), Fit page (text frame) and Full width (window canvas). All modes wrap or squeeze rather than internally scroll; explicit Auto reset drops fixed widths. Fit/Full external edges are pinned, Auto alone exposes external walls, and internal borders remain draggable at full table height.
-//   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, fixed-geometry wrapping through Auto reconciliation, proportional fitting, adjacent-pair framed drags, mode-bounded partial reset and bounded Auto drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
+//   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, fixed-geometry wrapping through Auto reconciliation, proportional fitting, adjacent-pair framed drags, mode-bounded partial reset and bounded Auto drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. ONE completion stage (completeTableOperation) owns the documented final sequence of every layout-affecting operation and read-only refresh — external/internal walls, the geometry-reading cue pass, owned-repaint bookkeeping coherence and the single authorized profile commit; the write permit derives from the operation cause alone, never from measurement success or serialized inequality (C-TABLE-LAYOUT-COMPLETION). Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
 //   DEPENDS: muya.eventCenter (capture- and bubble-phase DOM events on muya.container), window pointer events during a drag, ResizeObserver (jsdom degrades to render-time evaluation only), DOM colgroup/th measuring; ./tableFit (measureColumnExtents, planTableFit, distributeIntoFrame, applyRatiosToWidth, ratiosFromWidths); ./tableLayoutSchema (the shared persisted-layout schema owner — field decoding, mode/legacy precedence, meaningful-entry rules; C-TABLE-PROFILE-SCHEMA); ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS + the degradation badge formatting); ../parser/render/renderBlock/renderTableToolbar (the mode segment for the live active-state swap).
-//   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-007/T-008/T-009, spec R-8/R-9/R-10/R-11, corners C-7/C-8/C-9/C-10); .grace/graph/performance.xml M-061 and runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21/scenario-66 and verification/performance.xml V-M-061; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js (schema v2) + tableLayoutRatios.js (the store-side ratio maths) + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side); store/preferences.js tableFullWidthDefault/rememberTableColumnSizes (the Tables-tab keys this module consumes).
+//   LINKS: .grace/changes/active/C-TABLE-LAYOUT-COMPLETION (the completion stage, the cause/write-permit model, T-001..T-005); .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-007/T-008/T-009, spec R-8/R-9/R-10/R-11, corners C-7/C-8/C-9/C-10); .grace/graph/performance.xml M-061 and runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21/scenario-66 and verification/performance.xml V-M-061; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js (schema v2) + tableLayoutRatios.js (the store-side ratio maths) + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side); store/preferences.js tableFullWidthDefault/rememberTableColumnSizes (the Tables-tab keys this module consumes).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -24,6 +24,8 @@
 //   TABLE_COLUMN_WALLS_CLASS - transparent host for internal-border hit zones.
 //   TABLE_SIZE_CHIPS_CLASS - class of the %·px chips overlay above the columns during a drag.
 //   TABLE_MODES - the honest mode set ('auto' | 'fit' | 'full').
+//   COMPLETION_CAUSE - why a TableResize operation reached completion (mode choice, wall/column drag end, wall/column reset, gesture rollback, preview, adopt, reconcile, refit, refresh, window, scroll, destroy); the cause — never a measurement result, never serialized inequality — decides the write permit.
+//   COMPLETION_CAUSE_WRITES_PROFILE - the static closed set of causes allowed to persist (the five qualifying terminal user actions); nothing at completion time may widen it.
 //   TABLE_FULL_WIDTH_CLASS - re-export of the tableCue figure class for the renderContainerBlock vnode ("ag-table-full-width").
 //   TABLE_TOOLBAR_BUTTON_SELECTOR - selector of the table toolbar buttons (from renderTableToolbar; routed here on normal bubble phase).
 //   ensureAffordanceStyles - inject the wall/chip stylesheet once per document (the muya stylesheet is outside the change's observed write scope).
@@ -38,6 +40,20 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-LAYOUT-COMPLETION: ONE completion stage
+//   (completeTableOperation) owns the documented final sequence of every
+//   layout-affecting operation and read-only refresh — external walls,
+//   internal zones, the geometry-reading cue pass, owned-repaint
+//   bookkeeping coherence and the single authorized persist. The six
+//   handler-local persist call sites (mode choice, wall/column drag
+//   terminal, wall reset, whole/partial column reset) collapse into the
+//   stage; adoption, render reconciliation, refit, refresh, window resize
+//   and scroll route their tails through it with non-writing causes, and
+//   the write permit is the static per-cause set only. Moved predicates,
+//   no-move/return-to-start rollback tails and pointercancel sharing
+//   handlePointerUp are untouched; the pure siblings (tableFit.js,
+//   tableCue.js), the serializer and the persist boundary keep their
+//   behavior byte-for-byte.
 //   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: sanitizePersistedEntries
 //   delegates the shared schema decisions (width/manual/ratio/tableWidth
 //   decoding, legacy mode precedence, meaningful-entry rules) to the new
@@ -260,6 +276,39 @@ export const TABLE_MODES = ['auto', 'fit', 'full']
 export const REFIT_DEBOUNCE_MS = 200
 // T-009: the chips fade «shortly after release».
 export const CHIPS_FADE_MS = 700
+
+// START_BLOCK_COMPLETION_STAGE
+// C-TABLE-LAYOUT-COMPLETION: why an operation reached completion. The
+// cause — never a measurement result, never serialized inequality —
+// decides whether the profile is written.
+export const COMPLETION_CAUSE = Object.freeze({
+  MODE_CHOICE:      'mode-choice',       // toolbar Auto/Fit/Full (incl. repeat choice, hidden geometry)
+  WALL_DRAG_END:    'wall-drag-end',     // terminal wall gesture, actually moved
+  COLUMN_DRAG_END:  'column-drag-end',   // terminal column gesture, actually moved
+  WALL_RESET:       'wall-reset',        // wall double-click resets the explicit table width
+  COLUMN_RESET:     'column-reset',      // header/column-wall double-click reset (whole and partial branches)
+  GESTURE_ROLLBACK: 'gesture-rollback',  // no-move / return-to-start terminal; never writes
+  PREVIEW:          'preview',           // pointermove preview surface; never completes a write
+  ADOPT:            'adopt',             // applyPersistedLayouts + generation-fenced delayed adoption
+  RECONCILE:        'reconcile',         // reconcileAfterRender tail
+  REFIT:            'refit',             // scheduleRefit / refitAll / refitNow tail
+  REFRESH:          'refresh',           // refreshTableSurfaces tail
+  WINDOW:           'window',            // window resize entry
+  SCROLL:           'scroll',            // capture-phase scroll entry
+  DESTROY:          'destroy',           // teardown: cancels owned work, never writes
+})
+
+// Static, closed set. Nothing at completion time may widen it: a successful
+// measurement, a changed serialization, or a non-null geometry NEVER grants
+// a write; a deferred (hidden/zero-geometry) layout NEVER suppresses one.
+export const COMPLETION_CAUSE_WRITES_PROFILE = Object.freeze(new Set([
+  COMPLETION_CAUSE.MODE_CHOICE,
+  COMPLETION_CAUSE.WALL_DRAG_END,
+  COMPLETION_CAUSE.COLUMN_DRAG_END,
+  COMPLETION_CAUSE.WALL_RESET,
+  COMPLETION_CAUSE.COLUMN_RESET
+]))
+// END_BLOCK_COMPLETION_STAGE
 
 // START_BLOCK_CLAMP_AND_RECONCILE
 // Pure width maths, kept free of DOM so tests can pin the policy.
@@ -492,9 +541,10 @@ class TableResize {
         if (!table.id) continue
         const figure = table.closest('figure')
         if (!figure) continue
-        this.positionTableWalls(figure, table)
-        this.ensureColumnWalls(table)
+        // The tail clip lands BEFORE the completion stage so the stage's
+        // cue pass reads the real (post-clip) scrollbar geometry.
         this.clipTailScrollbar(table)
+        this.completeTableOperation(COMPLETION_CAUSE.WINDOW, { key: table.id, figure, table })
       }
     }
     if (typeof window !== 'undefined') {
@@ -1019,7 +1069,7 @@ class TableResize {
     if (!this.rememberingSizes()) {
       this.persisted = null
       this.syncIdentities({ adoptPersisted: false })
-      this.refreshTableSurfaces()
+      this.refreshTableSurfaces(COMPLETION_CAUSE.ADOPT)
       console.debug(
         '[Muya][tableResize][BLOCK_TABLE_LAYOUTS_SKIPPED reason=remember-off]'
       )
@@ -1036,7 +1086,7 @@ class TableResize {
       this.adoptionFrame = 0
       this.syncIdentities()
       this.refitAll({ immediate: true })
-      this.refreshTableSurfaces()
+      this.refreshTableSurfaces(COMPLETION_CAUSE.ADOPT)
       console.debug(
         `[Muya][tableResize][BLOCK_TABLE_LAYOUTS_APPLIED persisted=${this.persisted ? Object.keys(this.persisted).length : 0} adopted=${adopted}]`
       )
@@ -1097,6 +1147,34 @@ class TableResize {
     console.debug(
       `[Muya][tableResize][BLOCK_TABLE_LAYOUTS_PERSISTED tables=${Object.keys(entries).length}]`
     )
+  }
+
+  // The ONE completion stage for layout-affecting TableResize operations
+  // and read-only refreshes. `cause` (COMPLETION_CAUSE) decides the write
+  // permit; the context carries the operation's already-prepared model
+  // result (preparation — mode/wrapper/width writes, ratio maths,
+  // wrapping, clipping, toolbar DOM — stays with the callers). The stage
+  // owns the documented final sequence:
+  //   1. external walls land on the final edges (positionTableWalls,
+  //      Auto-only and guarded internally),
+  //   2. internal full-height zones re-anchor (ensureColumnWalls),
+  //   3. the cue syncs caption/shades AND the native scrollbar-height CSS
+  //      variable from the resulting REAL geometry (syncTableCue) — its
+  //      position after the final wall writes and before the persist is
+  //      normative and is verified against real browser geometry (T-004),
+  //   4. the operation's owned layer repaint bookkeeping stays coherent:
+  //      no stage path cancels or clobbers a newer pending repaint frame,
+  //      and destroy() keeps restoring previous transforms (the
+  //      repaintFrames logic is untouched),
+  //   5. the authorized profile commit happens at most once, driven purely
+  //      by the cause's write permit.
+  completeTableOperation(cause, { key, figure, table } = {}) {
+    if (figure && table) {
+      this.positionTableWalls(figure, table) // external walls (Auto-only, guarded internally)
+      this.ensureColumnWalls(table)          // internal zones ride the final edges
+    }
+    if (figure) syncTableCue(figure, this.muya.options && this.muya.options.t)
+    if (COMPLETION_CAUSE_WRITES_PROFILE.has(cause)) this.persist()
   }
 
   // ---- Mode DOM application (class, breakout geometry, toolbar, cue) ----
@@ -1323,13 +1401,16 @@ class TableResize {
       const figure = table.closest("figure[data-role='TABLE']")
       if (figure) this.applyTableLayout(key, figure, table)
     }
-    this.refreshTableSurfaces()
+    this.refreshTableSurfaces(COMPLETION_CAUSE.RECONCILE)
   }
 
   // Re-apply the mode class/geometry, refresh the cues and keep the walls
   // of every table figure in step (the surface funnel for state the
-  // vnodes cannot carry).
-  refreshTableSurfaces() {
+  // vnodes cannot carry). `cause` defaults to the read-only REFRESH
+  // completion; the funnels that route through here hand their own
+  // non-writing cause (ADOPT / RECONCILE / REFIT) so the completion
+  // stage's write permit stays cause-driven end to end.
+  refreshTableSurfaces(cause = COMPLETION_CAUSE.REFRESH) {
     const { container, options } = this.muya
     if (!container || !container.querySelectorAll) return
     const t = options && options.t
@@ -1347,10 +1428,9 @@ class TableResize {
       }
       // The walls ride every surface pass: a plain Auto document never
       // enters the apply funnel (nothing to fit), but the handles must
-      // exist and stay clamped to the visible area anyway.
-      if (table) this.positionTableWalls(figure, table)
-      if (table) this.ensureColumnWalls(table)
-      syncTableCue(figure, t)
+      // exist and stay clamped to the visible area anyway — one
+      // completion stage per figure (walls → cue → cause-gated persist).
+      this.completeTableOperation(cause, { key, figure, table })
     }
   }
 
@@ -1393,7 +1473,7 @@ class TableResize {
     }
     // The surfaces keep the walls clamped to the visible area on every
     // geometry change.
-    this.refreshTableSurfaces()
+    this.refreshTableSurfaces(COMPLETION_CAUSE.REFIT)
   }
 
   observeFigure(figure) {
@@ -1471,11 +1551,12 @@ class TableResize {
       }
       table.classList.remove('ag-table-wrap-anywhere')
       this.applyTableLayout(key, figure, table)
-      // Auto is the walls' one home (owner convention) — the reset must
-      // REBUILD them: the mode switch removed them in Fit/Full.
-      this.positionTableWalls(figure, table)
-      this.ensureColumnWalls(table)
-      syncTableCue(figure, this.muya.options && this.muya.options.t)
+      // Auto is the walls' one home (owner convention) — the completion
+      // stage below REBUILDS them: the mode switch removed them in
+      // Fit/Full. Its positionTableWalls + ensureColumnWalls + cue tail
+      // replaced the explicit tail that used to live here; a
+      // hidden/zero-geometry framed choice defers layout but still
+      // persists its mode intent.
     } else {
       this.modes.set(key, mode)
       this.applyTableLayout(key, figure, table)
@@ -1483,7 +1564,7 @@ class TableResize {
     console.debug(
       `[Muya][tableResize][BLOCK_TABLE_MODE table=${key} mode=${this.modeOf(key)}]`
     )
-    this.persist()
+    this.completeTableOperation(COMPLETION_CAUSE.MODE_CHOICE, { key, figure, table })
   }
 
   // The toolbar's Open full screen action — the same dispatch the removed
@@ -1504,17 +1585,14 @@ class TableResize {
 
   // C-65 T-003 + T-009: wrapper scrolls keep their caption/shades live
   // (scroll does not bubble; it captures) and the walls inside the
-  // visible scroll area.
+  // visible scroll area — one read-only SCROLL completion per event.
   handleScrollCapture = event => {
     const target = event.target
     if (!target || !target.classList || !target.classList.contains('ag-table-scroll')) return
     const figure = target.closest ? target.closest("figure[data-role='TABLE']") : null
     if (!figure) return
     const table = figure.querySelector('table')
-    if (table && table.id && this.modeOf(table.id) !== 'fit' && this.enabled()) {
-      this.positionTableWalls(figure, table)
-    }
-    syncTableCue(figure, this.muya.options && this.muya.options.t)
+    this.completeTableOperation(COMPLETION_CAUSE.SCROLL, { key: table && table.id, figure, table })
   }
 
   // ---- T-009: side walls ----
@@ -1920,9 +1998,14 @@ class TableResize {
         console.debug(
           `[Muya][tableResize][BLOCK_TABLE_WALL_WIDTH table=${drag.key} width=${drag.entry.tableWidth}]`
         )
-        if (drag.figure) syncTableCue(drag.figure, this.muya.options && this.muya.options.t)
         this.fadeChips(drag.figure)
-        this.persist()
+        // The stage gives this branch the same final wall settle the
+        // column terminal already had (every width-mutating path
+        // re-positions walls after applying), then the cue and the
+        // authorized write.
+        this.completeTableOperation(COMPLETION_CAUSE.WALL_DRAG_END, {
+          key: drag.key, figure: drag.figure, table: drag.table
+        })
       } else if (drag.createdThisDrag) {
         this.widths.delete(drag.key)
       }
@@ -1941,10 +2024,15 @@ class TableResize {
       console.debug(
         `[Muya][tableResize][BLOCK_COLUMN_RESIZED table=${drag.key} col=${drag.columnIndex} width=${drag.entry.widths[drag.columnIndex]}]`
       )
-      // C-65 R-1: a real resize is the only thing that writes widths.
-      if (figure) syncTableCue(figure, this.muya.options && this.muya.options.t)
+      // C-65 R-1: a real resize is the only thing that writes widths —
+      // now through the completion stage (final walls → cue → persist);
+      // the chips fade precedes the final cue (aria-hidden overlays on a
+      // CSS timer; the cue reads table geometry only — pinned by the
+      // browser scenarios).
       this.fadeChips(figure)
-      this.persist()
+      this.completeTableOperation(COMPLETION_CAUSE.COLUMN_DRAG_END, {
+        key: drag.key, figure, table: drag.table
+      })
     } else {
       // A plain click on the handle (no move) must not silently freeze the
       // table at its auto widths — undo the baseline created on pointerdown.
@@ -1981,17 +2069,15 @@ class TableResize {
       delete entry.tableWidth
       const mode = this.modeOf(key)
       if (mode === 'auto') {
-        // Back to plain content sizing.
+        // Back to plain content sizing. The reset table's edges moved —
+        // the completion stage below carries the walls to them.
         this.resetTable(key)
         this.stripWidths(table)
-        // The reset table's edges moved — carry the walls to them.
-        this.positionTableWalls(figure, table)
       } else {
         this.applyTableLayout(key, figure, table)
       }
       console.debug(`[Muya][tableResize][BLOCK_TABLE_WALL_RESET table=${key}]`)
-      syncTableCue(figure, this.muya.options && this.muya.options.t)
-      this.persist()
+      this.completeTableOperation(COMPLETION_CAUSE.WALL_RESET, { key, figure, table })
       return
     }
     const handle = overlappedResizer || this.findHandle(event.target)
@@ -2018,16 +2104,15 @@ class TableResize {
       this.resetTable(key)
       this.stripWidths(table)
       // T-007: in Fit/Full the reset falls back to the mode's own layout.
+      // In Auto the completion stage below re-flows the walls onto the
+      // content-sized edges (no stale border); a null figure skips
+      // walls/cue but the stage still persists — same permit rules as
+      // everywhere else.
       if (figure && this.modeOf(key) !== 'auto') {
         this.applyTableLayout(key, figure, table)
-      } else if (figure) {
-        // Auto reset re-flows the table to content width — the walls
-        // follow the new edges (no stale border).
-        this.positionTableWalls(figure, table)
       }
       console.debug(`[Muya][tableResize][BLOCK_COLUMN_RESET table=${key} col=${columnIndex} mode=auto]`)
-      if (figure) syncTableCue(figure, this.muya.options && this.muya.options.t)
-      this.persist()
+      this.completeTableOperation(COMPLETION_CAUSE.COLUMN_RESET, { key, figure, table })
       return
     }
     this.stripWidths(table)
@@ -2042,19 +2127,17 @@ class TableResize {
     // A measured natural width can make this partial reset exceed the
     // fitted frame. Apply the selected mode before persisting its widths.
     if (figure && this.modeOf(key) !== 'auto') {
-      this.applyTableLayout(key, figure, table)
+      this.applyTableLayout(key, figure, table)   // measured reset width must fit before persist
     } else {
       this.applyWidths(table, entry)
     }
-    // The measured reset width may change the table's edges — the walls
-    // ride along (owner smoke 2026-11-05: the wall left behind reads as
-    // an extra fixed table border).
-    if (figure) this.positionTableWalls(figure, table)
+    // The measured reset width may change the table's edges — the
+    // completion stage carries the walls/cue along (owner smoke
+    // 2026-11-05: the wall left behind reads as an extra fixed border).
     console.debug(
       `[Muya][tableResize][BLOCK_COLUMN_RESET table=${key} col=${columnIndex} width=${entry.widths[columnIndex]}]`
     )
-    if (figure) syncTableCue(figure, this.muya.options && this.muya.options.t)
-    this.persist()
+    this.completeTableOperation(COMPLETION_CAUSE.COLUMN_RESET, { key, figure, table })
   }
 
   // ---- T-009: % · px chips ----

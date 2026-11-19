@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-TABLE-LAYOUT-COMPLETION>
   <Relationship>Necessary C-TABLE-LAYOUT-COMPLETION work from the paused program decision registry (delegated technical); composed on current main after the 2026-11-19 handover-chain merge. Baselines cited in the private reviews are historical; the plan re-verifies anchors on the fresh head.</Relationship>
     <Summary>Give TableResize one explicit completion stage for layout-affecting operations and read-only refreshes, with operation cause and profile-write permission separate from geometry readiness.</Summary>

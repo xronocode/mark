@@ -1625,6 +1625,7 @@
       </Markers>
       <TraceAssertions/>
             <scenario-table-profile-schema-perf>C-TABLE-PROFILE-SCHEMA: schema validation is one pure pass per entry with no new IO or timers; existing e2e performance assertions and projects are unchanged.</scenario-table-profile-schema-perf>
+        <scenario-table-layout-completion-perf>C-TABLE-LAYOUT-COMPLETION: no performance-assertion or timer changes; browser suites pass within existing budgets on a fresh build.</scenario-table-layout-completion-perf>
 </V-M-061>
     <V-M-063>
       <Priority>high</Priority>

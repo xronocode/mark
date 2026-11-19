@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-column-resize.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin C-39 T-002 session-only table column resize: the width store keyed by table block key, min-width clamping, column-count reconciliation, the re-apply-after-render hook, the colgroup/resizer-handle vnodes, and the guarantee that resizing never touches markdown, history or DOM structure of unresized tables.
 //   SCOPE: src/muya/lib/tableResize/index.js (store, reconcileWidths, reconcileAfterRender) and START_BLOCK_TABLE_COLUMN_WIDTHS / START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE in renderContainerBlock.js, plus the full render path via a real Muya in jsdom.
@@ -14,9 +14,28 @@
 //   makeFakeMuya - fake muya {container, options, eventCenter, contentState} with a REAL TableResize instance attached.
 //   buildTable - jsdom table with N header cells; omits the id attribute for missing-id guard scenarios.
 //   stubCellWidths - monkey-patches getBoundingClientRect on the th cells (jsdom has no layout).
+//   makePinsFramedFixture - the C-TABLE-LAYOUT-COMPLETION framed fixture: seeded entry + mode, handles, real window-level pointer helpers and a muya-table-layouts dispatch filter.
+//   readPinsSrc - read a repo source file as text for the byte-identity anchors.
+//   PINS_ROOT - repository root for source reads.
+//   PINS_FIT - the byte-identity source snapshots.
+//   PINS_CUE - the byte-identity source snapshots.
+//   PINS_INDEX - the byte-identity source snapshots.
+//   PINS_RENDER - the byte-identity source snapshots.
+//   PINS_RESIZE_HANDLER - the byte-identity source snapshots.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-LAYOUT-COMPLETION: scoped completion-stage
+//   pins — adjacent framed gestures persist exactly once per terminal
+//   through completeTableOperation while keeping the entry identity,
+//   pointercancel stays byte-identical to pointerup, and the pure
+//   siblings (tableFit.js / tableCue.js) plus the external callers keep
+//   their byte-identity anchors. Every historical case is unchanged.
+//   CURRENT: 2026-11-19 C-TABLE-LAYOUT-COMPLETION verification fix: the
+//   adjacent-gesture pin expects the paired-manual contract per DRAG (the
+//   second border pairs columns 1+2, so column 2 goes manual too), and
+//   the resize-handler anchor pins the real guarded funnel line
+//   (`if (this.muya.tableResize?.refitNow) …refitNow()`).
 //   CURRENT: 2026-11-10 C-STABILIZE-AUTO-RESIZE-WRAP: preserve fixed Auto
 //   wrapping through render/refit/tab reconciliation; require explicit frame
 //   clamp and slack-growth preconditions with settled pointer geometry.
@@ -30,6 +49,9 @@
 // END_CHANGE_SUMMARY
 
 import { describe, expect, it, vi, afterEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { h } from 'muya/lib/parser/render/snabbdom'
 import TableResize, {
   MIN_COLUMN_WIDTH,
@@ -538,3 +560,131 @@ describe('extentsFor never caches a null verdict', () => {
     expect(muya.tableResize.fitCache.has(table.id)).toBe(false)
   })
 })
+
+
+// START_BLOCK_COMPLETION_STAGE_PINS
+// C-TABLE-LAYOUT-COMPLETION: scoped pins for the consolidated completion
+// boundary — adjacent framed terminals write exactly once per gesture
+// through completeTableOperation, pointercancel keeps the shared
+// pointerup semantics, and the byte-identical siblings stay untouched.
+const PINS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+const readPinsSrc = (rel) => readFileSync(resolve(PINS_ROOT, rel), 'utf8')
+const PINS_FIT = readPinsSrc('src/muya/lib/tableResize/tableFit.js')
+const PINS_CUE = readPinsSrc('src/muya/lib/tableResize/tableCue.js')
+const PINS_INDEX = readPinsSrc('src/muya/lib/tableResize/index.js')
+const PINS_RENDER = readPinsSrc('src/muya/lib/parser/render/index.js')
+const PINS_RESIZE_HANDLER = readPinsSrc('src/muya/lib/eventHandler/resize.js')
+
+// A framed single-table fixture driven through the REAL pointer handlers
+// (handlePointerDown is invoked directly; the window move/up/cancel
+// listeners it installs carry the rest of the gesture).
+const makePinsFramedFixture = (mode = 'fit', initial = [240, 240, 240]) => {
+  const muya = makeFakeMuya()
+  const resize = muya.tableResize
+  CLEANUP.push(() => resize.destroy())
+  const figure = document.createElement('figure')
+  figure.dataset.role = 'TABLE'
+  const wrapper = document.createElement('div')
+  wrapper.className = 'ag-table-scroll'
+  const table = buildTable('boundary', 3)
+  wrapper.appendChild(table)
+  figure.appendChild(wrapper)
+  muya.container.appendChild(figure)
+  const frame = initial.reduce((a, b) => a + b, 0)
+  Object.defineProperty(figure, 'clientWidth', { value: frame + 1, configurable: true })
+  Object.defineProperty(wrapper, 'clientWidth', { value: frame + 1, configurable: true })
+  resize.modes.set(table.id, mode)
+  resize.widths.set(table.id, { widths: initial.slice(), manual: initial.map(() => false) })
+  const handles = []
+  for (const cell of table.tHead.rows[0].cells) {
+    const handle = document.createElement('span')
+    handle.className = RESIZER_CLASS
+    cell.appendChild(handle)
+    handles.push(handle)
+  }
+  const entryNow = () => resize.widths.get(table.id)
+  table.getBoundingClientRect = () => ({ left: 0, right: frame, width: frame, top: 0, height: 40 })
+  Array.from(table.tHead.rows[0].cells).forEach((cell, i) => {
+    cell.getBoundingClientRect = () => ({
+      left: entryNow().widths.slice(0, i).reduce((a, b) => a + b, 0),
+      width: entryNow().widths[i],
+      right: entryNow().widths.slice(0, i + 1).reduce((a, b) => a + b, 0),
+      top: 0, height: 20
+    })
+  })
+  vi.spyOn(resize, 'extentsFor').mockReturnValue({ minContent: initial.map(() => 48), maxContent: initial.map(() => 600), wrappedMin: initial.map(() => 16) })
+  resize.applyWidths(table, entryNow())
+  const down = index => resize.handlePointerDown({
+    target: handles[index], button: 0, clientX: 400, preventDefault: vi.fn(), stopPropagation: vi.fn()
+  })
+  const move = delta => window.dispatchEvent(new MouseEvent('pointermove', { clientX: 400 + delta }))
+  const up = () => window.dispatchEvent(new MouseEvent('pointerup'))
+  const cancel = () => window.dispatchEvent(new MouseEvent('pointercancel'))
+  const drag = (index, delta) => { down(index); move(delta); up() }
+  const layoutDispatches = () => muya.eventCenter.dispatch.mock.calls.filter(([type]) => type === 'muya-table-layouts')
+  return { muya, resize, figure, wrapper, table, entryNow, down, move, up, cancel, drag, layoutDispatches, frame }
+}
+
+describe('completion-stage scoped pins (C-TABLE-LAYOUT-COMPLETION)', () => {
+  it('adjacent framed gestures persist exactly once per terminal and keep the entry identity across them', () => {
+    const f = makePinsFramedFixture('fit')
+    const entryBefore = f.entryNow()
+
+    f.drag(0, -180)
+    expect(f.entryNow().widths).toEqual([60, 420, 240])
+    expect(f.entryNow()).toBe(entryBefore)
+    expect(entryBefore.manual).toEqual([true, true, false])
+
+    f.drag(1, 60 - f.entryNow().widths[1])
+    expect(f.entryNow().widths).toEqual([60, 60, 600])
+    expect(f.entryNow()).toBe(entryBefore)
+    // The paired-manual contract is per DRAG, not once per table: the
+    // second border pairs columns 1+2, so column 2 is user-touched too.
+    expect(f.entryNow().manual).toEqual([true, true, true])
+
+    // One authorized completion write per terminal gesture — never more,
+    // each carrying the single identity's current layout.
+    const dispatches = f.layoutDispatches()
+    expect(dispatches).toHaveLength(2)
+    const lastEntries = dispatches[1][1].entries
+    expect(Object.keys(lastEntries)).toHaveLength(1)
+    expect(Object.values(lastEntries)[0].widths).toEqual([60, 60, 600])
+    expect(Object.values(lastEntries)[0].mode).toBe('fit')
+  })
+
+  it('pointercancel completes exactly like pointerup for a moved adjacent gesture', () => {
+    const runGesture = (terminal) => {
+      const f = makePinsFramedFixture('fit')
+      f.down(0)
+      f.move(-180)
+      if (terminal === 'up') f.up()
+      else f.cancel()
+      return {
+        widths: f.entryNow().widths,
+        manual: f.entryNow().manual,
+        dispatches: f.layoutDispatches().map(([, p]) => p)
+      }
+    }
+    expect(runGesture('cancel')).toEqual(runGesture('up'))
+    expect(runGesture('cancel').dispatches).toHaveLength(1)
+    expect(runGesture('cancel').widths).toEqual([60, 420, 240])
+  })
+
+  it('the pure sibling modules and the external callers keep their byte-identity anchors', () => {
+    expect(PINS_FIT).toContain('// VERSION: 1.2.1')
+    expect(PINS_FIT).toContain('export const ratiosFromWidths')
+    expect(PINS_FIT).not.toContain('completeTableOperation')
+    expect(PINS_FIT).not.toContain('COMPLETION_CAUSE')
+    expect(PINS_FIT).not.toContain('this.persist()')
+    expect(PINS_CUE).toContain('// VERSION: 1.3.0')
+    expect(PINS_CUE).toContain('export const visibleColumnRange')
+    expect(PINS_CUE).not.toContain('completeTableOperation')
+    expect(PINS_CUE).not.toContain('COMPLETION_CAUSE')
+    // The stage owns the only authorized persist call site.
+    expect((PINS_INDEX.match(/this\.persist\(\)/g) || [])).toHaveLength(1)
+    expect(PINS_RENDER).toContain('tableResize.reconcileAfterRender()')
+    expect(PINS_RESIZE_HANDLER).toContain('if (this.muya.tableResize?.refitNow) this.muya.tableResize.refitNow()')
+    expect(PINS_RESIZE_HANDLER).toContain('this.muya.tableResize?.refreshTableSurfaces?.()')
+  })
+})
+// END_BLOCK_COMPLETION_STAGE_PINS
