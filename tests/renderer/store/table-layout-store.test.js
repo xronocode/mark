@@ -1,8 +1,8 @@
 // FILE: tests/renderer/store/table-layout-store.test.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the per-file table layout profile store (C-65 T-001 + C-PAGE-WIDTH-TABLES T-008) — the schema-v2 sanitize/normalize (ratios + tableWidth + mode; the legacy fullWidth/fit booleans migrate one-way), the file-entries set/replace/delete transform, the bounded size cap, the missing-file prune (stat false / stat throws / no stat capability), the rename move, and the three IO flows with an injected fake prefs IO.
-//   SCOPE: src/renderer/src/util/tableLayoutStore.js (pure transforms + IO flows with defaultIo swapped by injection).
+//   SCOPE: src/renderer/src/util/tableLayoutStore.js (pure transforms + IO flows with defaultIo swapped by injection) plus the shared-owner compatibility pins over util/tableLayoutRatios.migrateTableEntry (renderer boundary) and muya tableResize sanitizePersistedEntries (Muya boundary) — C-TABLE-PROFILE-SCHEMA.
 //   DEPENDS: Vitest, a fake { get, set } IO recording writes.
 //   LINKS: .grace/changes/archive/C-65 R-1/R-2 (T-001); .grace/verification/runtime.xml V-M-012 scenario-66; the muya twin tests/renderer/muya/table-layout-persistence.test.js; the host wiring in editor.vue (BLOCK_TABLE_LAYOUTS_HOST) and store/editor.js RENAME/RENAME_IF_NEEDED.
 //   ROLE: TEST
@@ -16,6 +16,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: shared-owner compatibility
+//   block — renderer-then-Muya round trips (a migrated v2 entry sanitizes
+//   consistently through the Muya boundary; explicit Auto strips in the
+//   store while the Muya record keeps its facts), malformed array and
+//   numeric-edge store outputs, and the legacy-precedence control through
+//   both consumers.
 //   LAST_CHANGE: v2.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-008: the
 //   entry pins move to schema v2 — sanitize drops the legacy booleans in
 //   favour of mode (a stored fit:true reads back as the honest Fit page),
@@ -56,6 +62,15 @@ import {
   writeStore
 } from '@/util/tableLayoutStore'
 import { ipcPrefs } from '@/ipc/runtime'
+// C-TABLE-PROFILE-SCHEMA: the round-trip pins exercise BOTH consumer
+// boundaries of the shared schema owner. The Muya module mock mirrors
+// tests/renderer/muya/table-layout-persistence.test.js (the import chain
+// must not load the real renderer registry in jsdom).
+vi.mock('muya/lib/renderers', () => ({
+  default: async () => ({})
+}))
+import { migrateTableEntry } from '@/util/tableLayoutRatios'
+import { sanitizePersistedEntries } from 'muya/lib/tableResize'
 
 // Schema-v2 entries: px widths + manual flags (mode/ratios/tableWidth optional).
 const entryFor = (widths, manual) => ({ widths, manual })
@@ -339,5 +354,62 @@ describe('prune + IO flows (C-65 R-1/R-2, corner-3)', () => {
     await expect(moveTableLayoutsEntry('/old.md', '/new.md', io)).resolves.toBe(false)
     expect(warn).toHaveBeenCalled()
     warn.mockRestore()
+  })
+})
+
+// C-TABLE-PROFILE-SCHEMA: the store consumes migrateTableEntry (the
+// renderer boundary) while the Muya sanitizer consumes the same shared
+// owner (muya/lib/tableResize/tableLayoutSchema) — these pins keep the
+// two boundaries' verdicts consistent by construction without forcing
+// artificially identical records.
+describe('shared-owner compatibility (C-TABLE-PROFILE-SCHEMA)', () => {
+  it('a migrated v2 entry sanitizes consistently through the Muya boundary', () => {
+    const migrated = migrateTableEntry({ widths: [120, 80], manual: [true, false], fit: true, ratios: [0.6, 0.4] })
+    expect(migrated).toEqual({ widths: [120, 80], manual: [true, false], mode: 'fit', ratios: [0.6, 0.4] })
+    // The Muya sanitizer over that output changes nothing (idempotent).
+    expect(sanitizePersistedEntries({ '0#2:x': migrated })).toEqual({ '0#2:x': migrated })
+  })
+
+  it('explicit Auto: the renderer strips while the Muya record keeps its facts', async () => {
+    const raw = { mode: 'auto', widths: [300, 400], manual: [true, true], ratios: [0.4, 0.6], tableWidth: 700 }
+    const io = makeIo({})
+    await saveTableLayoutsFor('/auto.md', { '0#2:auto': raw }, io)
+    const restored = await loadTableLayoutsFor('/auto.md', io)
+    // Renderer persistence: the explicit Auto reset strips stale fields.
+    expect(restored['0#2:auto']).toEqual({ widths: [], manual: [], mode: 'auto' })
+    // Muya direct: the same stored record keeps its facts (adoption skips
+    // the stale widths later) — both verdicts share the one owner.
+    expect(sanitizePersistedEntries({ '0#2:auto': raw })).toEqual({
+      '0#2:auto': { widths: [300, 400], manual: [true, true], mode: 'auto', ratios: [0.4, 0.6], tableWidth: 700 }
+    })
+  })
+
+  it('malformed array and numeric-edge store outputs stay unchanged', () => {
+    const store = normalizeStore({
+      files: {
+        '/edges.md': {
+          '0#2:array': [1, 2],
+          '1#2:round': { widths: [120.4, -5], manual: [true] },
+          '2#1:nan': { widths: [NaN], manual: [true] },
+          '3#2:zero': { widths: [0, 80], manual: [true, true] }
+        }
+      }
+    })
+    // Arrays reject; rounding keeps the floor-less px verdict; zeros and
+    // NaNs filter away (manual flags derive to the KEPT width count).
+    expect(store.files['/edges.md']).toEqual({
+      '1#2:round': { widths: [120], manual: [true] },
+      '3#2:zero': { widths: [80], manual: [true] }
+    })
+  })
+
+  it('a shared-precedence flip is detected through both consumers (control)', () => {
+    // One shared owner resolves the contradictory legacy pair: a flip of
+    // its precedence changes BOTH boundary verdicts at once — the renderer
+    // suite and the Muya persistence suite fail together (a mutation-style
+    // statement; no manufactured product red lives here).
+    const raw = { fullWidth: true, fit: true }
+    expect(migrateTableEntry(raw).mode).toBe('full')
+    expect(sanitizePersistedEntries({ pid: raw }).pid.mode).toBe('full')
   })
 })

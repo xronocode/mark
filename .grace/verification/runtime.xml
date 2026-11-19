@@ -8469,7 +8469,8 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-012</LegacySource>
-    </V-M-012>
+            <scenario-table-profile-schema>C-TABLE-PROFILE-SCHEMA: the shared schema owner behind both persisted-entry consumers — six historical mode families through each adapter, array/width edge shapes, the intentional truthy-empty-ratios vs null asymmetry, input immutability and legacy-precedence change detection — verified by the four-suite delegation pins and the table-width-persistence plus table-modes browser scenarios.</scenario-table-profile-schema>
+</V-M-012>
     <V-M-013>
       <Priority>high</Priority>
       <Commands>
