@@ -1,0 +1,136 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-TABLE-DIALOG-CREATION-VERIFICATION>
+    <IntentSummary>Restore the two explicitly skipped table-dialog component cases in tests/renderer/components/editor-coverage.test.js on a real Element Plus dialog/form/numeric-input/button mount, and repair the single initial-focus timing defect that keeps the strict focus case red: editor.vue handleEditParagraph currently claims row-input focus on nextTick, before the Element Plus dialog FocusTrap performs its opening focus of the dialog container, so the trap overwrites the claim. The repair replaces that pre-trap nextTick claim with one @opened lifecycle handler — no timers, no retries, no trap disabling — that claims row focus only while the dialog is still open and the trap still holds its container default, never overriding a deliberate user focus move to the columns input or a footer button, and preserves everything else: opening defaults 4×3, declared limits rows 1–30 / columns 1–20, reset on reopen, Cancel creating nothing, exactly one createTable dispatch with the user-entered dimensions and dialog close. A new tests/e2e/table-dialog.spec.ts proves the production renderer through the actual menu-command/dialog path in chromium and webkit-tables: default 4×3 opening with stable row focus, Cancel creating nothing, and real 7×5 input confirmation producing exactly one matching table — real DOM rows/cells plus canonical Markdown. Verification bookkeeping refreshes M-011/V-M-011 records and local semantic markup; no other runtime, dialog design, dependency or infrastructure file is in scope.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-011</Value>
+        <Value>V-M-011</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>rowInput.value.focus()</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/editor-coverage.test.js</File>
+        <Text>it.skip('handleEditParagraph opens table dialog for type=table'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/editor-coverage.test.js</File>
+        <Text>it.skip('handleDialogTableConfirm creates table'</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>@opened="handleDialogTableOpened"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>const handleDialogTableOpened = () => {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>rowInput.value?.focus()</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/editor-coverage.test.js</File>
+        <Text>it('handleEditParagraph opens table dialog for type=table'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/editor-coverage.test.js</File>
+        <Text>it('handleDialogTableConfirm creates table'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/table-dialog.spec.ts</File>
+        <Text>test.describe('table dialog creation (C-TABLE-DIALOG-CREATION-VERIFICATION)'</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/components/editor-coverage.test.js tests/renderer/commands/index-deep.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/table-dialog.spec.ts --project=chromium --project=webkit-tables</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1800">npm run build</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>tests/e2e/table-dialog.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <Glob>.grace/changes/active/C-TABLE-DIALOG-CREATION-VERIFICATION/**</Glob>
+    </ObservedWriteScope>
+    <ReferenceState>
+      <SpecSha256>a08fa9145f9c64ecdaeaac1bd96cda8d1938fac61313fc14cb4eb9cf72c8fa6b</SpecSha256>
+    </ReferenceState>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Lifecycle-safe initial row focus in editor.vue; the pre-trap nextTick claim removed</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/components/editorWithTabs/editor.vue replaces the nextTick(() => rowInput.value.focus()) claim inside handleEditParagraph with the exact lifecycle repair pinned in the implementation notes: the el-dialog template gains @opened="handleDialogTableOpened"; handleEditParagraph keeps only the 4×3 tableChecker reset and dialogTableVisible = true; the new handleDialogTableOpened claims row focus only while dialogTableVisible is still true AND document.activeElement is still the focus trap's container default (null/body, the .ag-dialog-table dialog container or the .el-overlay), then calls rowInput.value?.focus(). No setTimeout/setInterval/rAF retry, no trap disabling, no synthetic focus stub, no focus assertion removal; the trap's containment and close-time focus restoration are untouched; the nextTick import stays for its other call sites. A deliberate user focus move to the columns input or a footer button while the dialog opens is never overridden; a close, unmount or superseding opening invalidates stale focus work. File-local VERSION, MODULE_CONTRACT, MODULE_MAP and CHANGE_SUMMARY are updated and the module version bumped.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/components/editor-coverage.test.js tests/renderer/commands/index-deep.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Restore both skipped component cases on a real Element Plus mount with mutation controls</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/components/editor-coverage.test.js turns it.skip('handleEditParagraph opens table dialog for type=table') and it.skip('handleDialogTableConfirm creates table') into running cases per the implementation notes: an opt-in real mount (actual installed Element Plus dialog/form/numeric-input/button controls, Node-compatible import of the installed library entry without changing dependencies, bundling or global test configuration) used only by these two cases; all other cases keep the existing shallowMount/stub harness and the Muya mock stays the Muya boundary. Expectations are independently stated, never derived from the implementation: open via the registered paragraph bus handler shows the real dialog at 4×3 with declared limits (rows min 1/max 30, columns min 1/max 20); after the dialog's real opening lifecycle settles, the row input holds focus; focusing the columns input before the lifecycle settles is not stolen back; editing and Cancel create nothing and close; reopening resets to 4×3; real inputs set 7×5 and a real footer OK button click dispatches exactly one createTable with { rows: 7, columns: 5 } and closes the dialog.</Criterion>
+          <Criterion>After the restored cases pass, controlled mutations of the actual editor SFC each fail the relevant case: missing dialog open, missing 4×3 reset, missing opened-focus claim, missing createTable dispatch, transposed dimensions, ignored dimensions, and omitted close. Exact editor.vue bytes are restored in a finally step after every mutation and no mutant enters the candidate. A temporary revert of the T-001 focus repair alone reproduces the strict row-focus failure (container/other control holds focus after the lifecycle settles), proving sensitivity without suppressing the opening lifecycle. File-local VERSION, CHANGE_SUMMARY and the MODULE_CONTRACT LINKS line are updated; the 198 already-active cases are preserved with no weakened assertions, skips, retries, timeouts or coverage floors.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/components/editor-coverage.test.js tests/renderer/commands/index-deep.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>New browser scenario tests/e2e/table-dialog.spec.ts in chromium and webkit-tables</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/table-dialog.spec.ts is created per the implementation notes outline with describe block 'table dialog creation (C-TABLE-DIALOG-CREATION-VERIFICATION)': installTauriShim/bootEditor/openFileTab setup, the production menu-command path via window.__emitFakeEvent('mt::menu-invoked', 'paragraph.table'), and exactly these browser checks in the built renderer (npm run build precedes the run; the config serves the built bundle): (1) default opening — the real .el-dialog.ag-dialog-table opens at 4×3 and after the opening lifecycle settles document.activeElement is the row input's inner el-input__inner; (2) Cancel closes the dialog, creates no figure[data-role='TABLE'] table and leaves the Markdown/dirty state untouched; (3) real input edits to 7×5 plus the real primary footer button produce exactly one real table — the DOM figure renders 7 rows with 5 cells each — and the tab Markdown contains the canonical 7×5 pipe table; the dialog is closed afterwards. No retries, skips, timeout floors or playwright.config.ts changes; the file is auto-matched by the existing webkit-tables project (table-*.spec.ts). Existing Source/Split confirmation routing keeps its positive coverage elsewhere, untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/table-dialog.spec.ts --project=chromium --project=webkit-tables</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Graph deltas, verification evidence and bookkeeping</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/runtime.xml M-011 gains a SummaryDelta naming the opened-lifecycle initial row focus as the owned table-dialog focus behavior (handleDialogTableOpened replacing the pre-trap nextTick claim), with the editor.vue module contract/map/summary links synchronized; .grace/verification/runtime.xml V-M-011 gains scenario metadata recording the executed evidence: the vitest editor-coverage + index-deep run with the restored cases and mutation controls, the chromium + webkit-tables table-dialog browser proof and the npm run build gate. The historical strict-focus failure, the opt-in real-control candidate and the two-engine pre-fix traces remain preserved as provenance of the separate N-TABLE-DIALOG-INITIAL-FOCUS finding, which stays linked to TEST:F-001 without expanding the original 77-record/59-group ledger. Frozen docs artifacts are unchanged; browser proof stays distinct from native/owner/platform acceptance. grace lint current-state and status pass with no new errors.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --assertions current</Command>
+          <Command>grace status --path . --with modules --json</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <MustPassCommand>
+        <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/components/editor-coverage.test.js tests/renderer/commands/index-deep.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/table-dialog.spec.ts --project=chromium --project=webkit-tables</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1800">npm run build</Command>
+      </MustPassCommand>
+      <Environment>Repository root on the exact candidate with node_modules installed and the committed playwright.config.ts projects available locally (chromium plus webkit-tables). npm run build completes before the playwright run because the config serves the built renderer bundle. Real runs only: no retries, skips, weakened assertions, timeout/coverage-floor changes or suppressed opening lifecycle; the restored component cases must still fail on a temporary revert of the focus repair, and exact runtime bytes must be proven restored after mutation checks. A green acceptance is not release authorization; apply/archive and any integration remain separate owner decisions, with the QA/prepared-fixes priority and sequential execution still in force.</Environment>
+    </AcceptanceVerification>
+  </C-TABLE-DIALOG-CREATION-VERIFICATION>
+</GraceChangePlan>

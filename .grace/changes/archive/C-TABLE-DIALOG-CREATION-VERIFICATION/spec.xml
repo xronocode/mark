@@ -1,0 +1,52 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-TABLE-DIALOG-CREATION-VERIFICATION>
+  <Relationship>Necessary C-TABLE-DIALOG-CREATION-VERIFICATION work from the paused program decision registry (delegated technical); composed on current main after the 2026-11-19 handover-chain merge. Baselines cited in the private reviews are historical; the plan re-verifies anchors on the fresh head.</Relationship>
+    <Summary>Restore the two disabled table-dialog creation tests and make the existing row-input focus intent survive the real dialog's opening autofocus lifecycle.</Summary>
+    <Problem>TEST:F-001 has two explicit skipped editor component cases because shallow dialog/input stubs leave rowInput unavailable. An opt-in real Element Plus harness on main 0a72917c restores input/confirmation execution: non-default 7×5 dimensions reach createTable and the dialog closes. The strict row-focus case remains red. Current built-renderer Chromium and WebKit traces confirm row input receives focus and then the dialog focus trap moves it to the container; both engines still create a real 7×5 table. N-TABLE-DIALOG-INITIAL-FOCUS is recorded separately from the original 77 findings and linked to TEST:F-001. This draft explicitly proposes including that narrow focus repair rather than hiding it with a stub or dropping the failed expectation.</Problem>
+    <Goals>
+      <Goal>Reactivate both named component regressions with real dialog/form/numeric-input/button controls, preserving the existing opening defaults, limits, reset, cancel and confirmation behavior.</Goal>
+      <Goal>Honor the existing initial row-input focus intent after the real dialog has completed its opening autofocus work, without subsequently stealing deliberate user focus or focusing a closed dialog.</Goal>
+      <Goal>Keep confirmation routed through the existing rich-editor or Source/Split command path with the user-entered dimensions and prove browser-level table creation.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Keep scope within M-011's existing editor host and verification. Opening resets rows/columns to 4/3, declared numeric limits remain rows 1–30 and columns 1–20, Cancel creates nothing, and confirmation closes the dialog and dispatches the selected dimensions once.</Constraint>
+      <Constraint>ObservedWriteScope: runtime changes are limited to the minimal initial-focus timing repair inside the editor host src/renderer/src/components/editorWithTabs/editor.vue. Test changes are limited to tests/renderer/components/editor-coverage.test.js (restoring the two skipped cases with real-control interactions plus mutation controls) and the planned browser artifact tests/e2e/table-dialog.spec.ts. Verification bookkeeping is limited to M-011/V-M-011 scenario metadata and local semantic markup where changed. No other runtime, dialog design, dependency or infrastructure file is in scope.</Constraint>
+      <Constraint>Use the dialog's actual readiness/focus lifecycle for initial row focus rather than an arbitrary timeout or retry loop. A close, unmount or superseding opening invalidates stale focus work. Preserve the dialog's focus containment and normal focus restoration.</Constraint>
+      <Constraint>Do not move focus back to rows after the user has deliberately moved to columns or a footer button while the dialog opens. The final opening focus must be rows when no such user action supersedes it; do not satisfy the test by calling focus only before the focus trap overwrites it.</Constraint>
+      <Constraint>Keep normal paragraph actions, mirror/read-only safeguards, Source/Split routing, keyboard behavior, document ownership, Markdown/history/save semantics and supported table behavior unchanged. No new dialog design, dimensions policy, keyboard shortcut or persistence field.</Constraint>
+      <Constraint>The repaired tests use actual rendered controls and button/input interactions. Existing Muya mocking in the component suite remains an explicit boundary; browser tests must inspect the actual resulting table/model. Do not replace the row input with a fake focus method, call the confirmation handler instead of its button, remove the current strict focus expectation or alter skips/timeouts/retries/floors to pass.</Constraint>
+      <Constraint>Preserve the 198 already-active component cases and restore the two skipped cases. A Node-compatible import of the installed library in the test harness is permitted without changing dependencies, production bundling or global test configuration.</Constraint>
+      <Constraint>The additional focus finding remains separately identified and linked; approving this spec explicitly includes that bounded product repair, not a silent expansion of the original 77-record ledger. The existing sequential mode and QA/prepared-fixes priority remain in force.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No general focus manager, Element Plus upgrade, dialog/restyle work, cleanup of unrelated legacy size props, table-model/layout refactor, source-mode redesign or new permission surface.</NonGoal>
+      <NonGoal>No claim that the current failing component check is fixed, that browser shim tests establish native IPC/owner acceptance, or that a local draft delivers TEST:F-001.</NonGoal>
+      <NonGoal>No signing-boundary C-50 work, version/tag/release/signing/workflow dispatch/publication authority or rewrite of archived provenance.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Both previously skipped tests run: the registered paragraph action opens the actual dialog at 4×3, declared limits and stable row focus are verified, editing/cancel creates nothing, reopening resets values, and actual inputs set 7×5 before the real confirmation button dispatches exactly one matching createTable call and closes the dialog.</Criterion>
+      <Criterion>After the real opening lifecycle settles, rows retains focus unless superseded by deliberate user focus. Cancel/reopen, fast close/unmount and a user moving to columns or a footer button do not cause stale focus or focus theft. Reverting the focus repair reproduces the current strict focus failure; do not suppress the opening lifecycle to obtain a pass.</Criterion>
+      <Criterion>Independent controlled mutations of defaults/reset, missing creation, transposed or ignored dimensions, and omitted close are rejected by the relevant restored tests. Exact runtime bytes are restored after mutation checks; no mutant enters the candidate.</Criterion>
+      <Criterion>Chromium and WebKit exercise the production renderer through the actual menu-command/dialog path. Default opening, Cancel, non-default 7×5 confirmation, DOM table row/column dimensions and canonical Markdown are checked. Existing Source/Split confirmation routing retains positive coverage. Native/owner/platform limits remain explicit until verified or separately excepted.</Criterion>
+      <Criterion>The full editor component suite and relevant command tests pass without reducing the existing 198 active cases; no assertions, skips, retries, timeout or coverage threshold is weakened. Current pre-fix ESM import failure, strict focus failure and two-engine traces remain separately preserved as provenance.</Criterion>
+      <Criterion>Update M-011/V-M-011 and local semantic markup where changed, complete appropriate review/final commands and exact-candidate hosted gates, then obtain required apply/archive and collecting-train accounting before declaring delivery. No release is inferred.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-011 />
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>tests/e2e/table-dialog.spec.ts</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/components/editor-coverage.test.js tests/renderer/commands/index-deep.test.js</ExpectedCommand>
+      <ExpectedCommand>npx --no-install playwright test tests/e2e/table-dialog.spec.ts --project=chromium --project=webkit-tables</ExpectedCommand>
+      <ExpectedCommand>npm run build</ExpectedCommand>
+      <ExpectedEvidence>The e2e test is a future implementation artifact. Preserve baseline 198 passed/2 skipped, opt-in real-control confirmation pass and strict focus failure, and production browser input→container focus traces with successful 7×5 table controls.</ExpectedEvidence>
+      <ExpectedEvidence>Use actual lifecycle and user-focus interleavings; distinguish mounted host/Muya spy proof, browser model proof and native acceptance. All owned preview/browser/test artifacts must be stopped and cleaned, preserving toolchain caches and reproducible evidence.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>This is a proposal, not approval to edit runtime. The current test-only candidate stays unpublished and retains its failing focus assertion until the approved change is executed.</Assumption>
+      <Assumption>The future plan selects the smallest existing dialog lifecycle hook and binds exact execution scopes. Spec approval permits sequential planning, not execution of an unwritten plan or integration/release.</Assumption>
+    </Assumptions>
+  </C-TABLE-DIALOG-CREATION-VERIFICATION>
+</GraceChangeSpec>

@@ -3817,7 +3817,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-011; docs/development-plan.xml: M-011</LegacySource>
-    </M-011>
+          <SummaryDelta>C-TABLE-DIALOG-CREATION-VERIFICATION: the table-creation dialog focuses the rows input through the trap-committed lifecycle (@open-auto-focus chain) with a trapDefault guard, so the opening claim never steals a deliberate user focus; the two previously skipped component cases run on a real Element Plus mount with mutation controls, and a new browser spec covers default/cancel/7×5 flows in both engines.</SummaryDelta>
+</M-011>
     <M-012>
       <SummaryDelta>Mutation crash guards retain their existing per-record table/element-empty-root semantics. Empty-root detection checks firstElementChild rather than counting every child element for each root insertion; observer registration, recovery dispatch, document state and public APIs are unchanged.</SummaryDelta>
       <SummaryDelta>C-MUYA-CURRENT-MODEL-EXPORT: the existing exportStyledHTML and exportHtml methods capture getMarkdown once before constructing ExportHtml. Render-only model loads therefore export current complete content without refreshing the change-event cache, emitting document changes or changing history/cursor/import behavior. The captured string remains the operation source during asynchronous conversion.</SummaryDelta>
