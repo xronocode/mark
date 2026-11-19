@@ -3077,7 +3077,8 @@ describe('editor.vue — coverage', () => {
       dirname(fileURLToPath(import.meta.url)),
       '../../../src/renderer/src/components/editorWithTabs/editor.vue'
     )
-    const pristineBytes = readFileSync(editorPath, 'utf8')
+    // Normalize CRLF (Windows checkouts) so byte anchors are portable.
+    const pristineBytes = readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n')
     const pristineSha256 = createHash('sha256').update(pristineBytes).digest('hex')
 
     // Each probe loads the mutated SFC under a fresh
@@ -3106,7 +3107,7 @@ describe('editor.vue — coverage', () => {
     const mutantPath = join(dirname(editorPath), '.editor.mutant.tmp.vue')
     const applyMutation = (name, patches) => {
       expect(
-        readFileSync(editorPath, 'utf8'),
+        readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n'),
         `precondition for ${name}: exact editor.vue bytes before mutating`
       ).toBe(pristineBytes)
       let mutated = pristineBytes
@@ -3121,7 +3122,7 @@ describe('editor.vue — coverage', () => {
     const restorePristineBytes = (name) => {
       rmSync(mutantPath, { force: true })
       expect(
-        readFileSync(editorPath, 'utf8'),
+        readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n'),
         `mutation ${name}: shared source untouched`
       ).toBe(pristineBytes)
     }
