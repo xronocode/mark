@@ -1537,7 +1537,8 @@
         </closed-evidence>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-004</LegacySource>
-    </V-M-004>
+            <scenario-search-session-completion>C-SEARCH-SESSION-COMPLETION: the session-trace family — two-root single-terminal, strictly increasing seq across the root boundary, pre/mid/between-root cancellation shapes, error stopping remaining roots for both adapters, one-shot finalize, post-terminal silence and cross-session isolation — runs through the production run_session; the renderer two-root scenarios drive the real consumer class with captured envelopes.</scenario-search-session-completion>
+</V-M-004>
     <V-M-005>
       <Priority>high</Priority>
       <Commands>
@@ -8739,7 +8740,8 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-013</LegacySource>
-    </V-M-013>
+            <scenario-search-session-m013b>C-SEARCH-SESSION-COMPLETION: inline cargo suite 41/41 on the bin mark search filter with unchanged budgets and quiet caps; rg-guarded parity tests included.</scenario-search-session-m013b>
+</V-M-013>
     <V-M-013-A>
       <Priority>critical</Priority>
       <Commands>

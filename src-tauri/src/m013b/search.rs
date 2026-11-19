@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m013b/search.rs
-// VERSION: 2.1.1-beta
+// VERSION: 2.3.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Run cancellable content searches and stream bounded result batches to the renderer.
-//   SCOPE: Tauri search commands, rg JSON-process transport, embedded ignore/regex fallback, cancellation, and search-event payloads.
+//   SCOPE: Tauri search commands, rg JSON-process transport, embedded ignore/regex fallback, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads.
 //   DEPENDS: ignore, regex, serde_json, tauri, m010_security, m013b::error, m013b::state.
-//   LINKS: M-004, V-M-004, Phase-B2 step-4.
+//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -18,13 +18,17 @@
 //   SearchEvent - Batched search-event wire payload.
 //   SearchSink - Event-sink abstraction shared by Tauri and tests.
 //   SearchRegistry - Registry of cancellable in-flight searches.
-//   run_search - Execute the embedded ignore/regex fallback search.
+//   SearchTerminal - Which single terminal kind (complete/cancelled/error) ends a session.
+//   SearchSessionCoordinator - Session-wide owner of the seq counter and the single terminal.
+//   run_session - Execute one full search session across every validated root.
+//   run_search - Embedded walker adapter emitting match batches through the session coordinator.
 //   mt_search_spawn - Validate and start an asynchronous rg-backed search.
-//   mt_search_cancel - Cancel an in-flight search and emit its terminal event.
+//   mt_search_cancel - Cancel an in-flight search by id (flag flip; the terminal comes from the session coordinator).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2.2.0-beta - C-15 T-W2: ripgrep_available probe — desktop builds without a system rg (typical Windows) degrade to the in-process walker with BLOCK_RIPGREP_FALLBACK marker.
+//   LAST_CHANGE: 2.3.0-beta - C-SEARCH-SESSION-COMPLETION T-001: SearchSessionCoordinator owns the session-wide seq and the single terminal (complete/cancelled/error); run_search/run_ripgrep emit match batches only, run_session finalizes exactly once across all roots and both engines — no per-root terminals, no seq restart.
+//   PREVIOUS: 2.2.0-beta - C-15 T-W2: ripgrep_available probe — desktop builds without a system rg (typical Windows) degrade to the in-process walker with BLOCK_RIPGREP_FALLBACK marker.
 //   PREVIOUS: 2.1.1-beta - Defined injectable rg execution so spawn-failure tests remain deterministic under parallel cargo test.
 //   PREVIOUS: 2026-04-28 B2-step-4 - Replaced stubs with ignore/regex fallback, streaming batches, cancellation, and SearchRegistry.
 // END_CHANGE_SUMMARY
@@ -179,6 +183,157 @@ impl SearchRegistry {
     }
 }
 
+/// Which single terminal ends a search session.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SearchTerminal {
+    Complete,
+    Cancelled,
+    Error,
+}
+
+/// Session-scoped owner of event ordering and finalization across all
+/// validated roots and both engine adapters (C-SEARCH-SESSION-COMPLETION).
+/// Owns the strictly increasing session-wide seq counter; guarantees at
+/// most one terminal event and silence afterwards.
+struct SearchSessionCoordinator {
+    search_id: String,
+    sink: Arc<dyn SearchSink>,
+    next_seq: u32,
+    finished: bool,
+}
+
+impl SearchSessionCoordinator {
+    fn new(search_id: String, sink: Arc<dyn SearchSink>) -> Self {
+        Self { search_id, sink, next_seq: 1, finished: false }
+    }
+
+    fn search_id(&self) -> &str {
+        &self.search_id
+    }
+
+    /// Emit one match batch under the next session-wide seq.
+    /// Post-terminal or empty-batch calls are silent and return false.
+    fn emit_matches(&mut self, hits: Vec<SearchHit>) -> bool {
+        if self.finished || hits.is_empty() {
+            return false;
+        }
+        let seq = self.next_seq;
+        self.next_seq += 1;
+        self.sink.emit(&SearchEvent {
+            search_id: self.search_id.clone(),
+            kind: "match".to_string(),
+            hits,
+            error: None,
+            seq,
+        });
+        true
+    }
+
+    /// Emit the session's single terminal event. Later calls are
+    /// no-ops that return false: terminal finalization cannot occur twice.
+    fn finalize(&mut self, terminal: SearchTerminal, error: Option<String>) -> bool {
+        if self.finished {
+            return false;
+        }
+        self.finished = true;
+        let seq = self.next_seq;
+        self.next_seq += 1;
+        let kind = match terminal {
+            SearchTerminal::Complete => "complete",
+            SearchTerminal::Cancelled => "cancelled",
+            SearchTerminal::Error => "error",
+        };
+        self.sink.emit(&SearchEvent {
+            search_id: self.search_id.clone(),
+            kind: kind.to_string(),
+            hits: vec![],
+            error,
+            seq,
+        });
+        true
+    }
+}
+
+// START_CONTRACT: run_session
+//   PURPOSE: Execute one full search session across every validated root through the single coordinator — the only production finalization path (C-SEARCH-SESSION-COMPLETION).
+//   INPUTS: { roots: &[PathBuf] - M-010-validated roots in traversal order, pattern: &str, opts: &SearchOptions, in_process: bool - embedded walker vs rg shellout, cancel: Arc<AtomicBool>, coordinator: &mut SearchSessionCoordinator }
+//   OUTPUTS: { (u32, &'static str) - total hits across all roots and the emitted terminal kind }
+//   SIDE_EFFECTS: Emits match events for all roots and exactly one terminal event (complete/cancelled/error) through the coordinator; a returned engine error stops the remaining roots.
+//   LINKS: mt_search_spawn, run_search, run_ripgrep, SearchSessionCoordinator, V-M-004
+// END_CONTRACT: run_session
+fn run_session(
+    roots: &[PathBuf],
+    pattern: &str,
+    opts: &SearchOptions,
+    in_process: bool,
+    cancel: Arc<AtomicBool>,
+    coordinator: &mut SearchSessionCoordinator,
+) -> (u32, &'static str) {
+    run_session_with_program(
+        std::ffi::OsStr::new("rg"),
+        roots,
+        pattern,
+        opts,
+        in_process,
+        cancel,
+        coordinator,
+    )
+}
+
+/// Deterministic rg-error injection seam mirroring the existing
+/// run_ripgrep_with_program pattern: a thin test indirection only; every
+/// production root still flows through the same coordinator and finalize
+/// path.
+fn run_session_with_program(
+    rg_program: &std::ffi::OsStr,
+    roots: &[PathBuf],
+    pattern: &str,
+    opts: &SearchOptions,
+    in_process: bool,
+    cancel: Arc<AtomicBool>,
+    coordinator: &mut SearchSessionCoordinator,
+) -> (u32, &'static str) {
+    let mut total_hits: u32 = 0;
+    for root in roots {
+        if cancel.load(Ordering::SeqCst) {
+            break;
+        }
+        let result = if in_process {
+            run_search(root, pattern, opts, cancel.clone(), coordinator)
+                .map_err(|e| e.message)
+        } else {
+            run_ripgrep_with_program(rg_program, root, pattern, opts, cancel.clone(), coordinator)
+        };
+        match result {
+            Ok(hits) => total_hits += hits,
+            Err(e) => {
+                safe_eprintln!(
+                    "[Search][run][BLOCK_RIPGREP_FAILED search_id={} err={e}]",
+                    coordinator.search_id()
+                );
+                coordinator.finalize(SearchTerminal::Error, Some(e));
+                return (total_hits, "error");
+            }
+        }
+    }
+    let terminal = if cancel.load(Ordering::SeqCst) {
+        SearchTerminal::Cancelled
+    } else {
+        SearchTerminal::Complete
+    };
+    coordinator.finalize(terminal, None);
+    (total_hits, terminal_kind_name(terminal))
+}
+
+/// Static kind name for the DONE log line.
+fn terminal_kind_name(terminal: SearchTerminal) -> &'static str {
+    match terminal {
+        SearchTerminal::Complete => "complete",
+        SearchTerminal::Cancelled => "cancelled",
+        SearchTerminal::Error => "error",
+    }
+}
+
 /// Build a regex from user options. Literal mode escapes the pattern;
 /// whole-word wraps in `\b...\b`. Case-insensitive flips the i flag.
 fn build_matcher(pattern: &str, opts: &SearchOptions) -> Result<regex::Regex, regex::Error> {
@@ -197,17 +352,18 @@ fn build_matcher(pattern: &str, opts: &SearchOptions) -> Result<regex::Regex, re
         .build()
 }
 
-/// Run a content search across one root. Streams hits in batches via
-/// the sink; checks the cancel token between files; returns total
-/// hit count for the run. Tests call this directly; production uses
-/// the Tauri command wrapper below.
+/// Embedded walker adapter: run a content search across one root,
+/// streaming match batches through the session coordinator. Checks the
+/// cancel token between files; returns the per-root hit count. This
+/// adapter owns neither terminals nor seq (C-SEARCH-SESSION-COMPLETION):
+/// run_session finalizes the session. Tests call this directly;
+/// production goes through run_session via mt_search_spawn.
 pub fn run_search(
-    search_id: &str,
     root: &Path,
     pattern: &str,
     opts: &SearchOptions,
     cancel: Arc<AtomicBool>,
-    sink: Arc<dyn SearchSink>,
+    coordinator: &mut SearchSessionCoordinator,
 ) -> Result<u32, IpcError> {
     let cmd = "mt::search::spawn";
     safe_eprintln!(
@@ -239,31 +395,14 @@ pub fn run_search(
         walker.max_filesize(Some(max_size));
     }
 
-    let mut seq: u32 = 0;
     let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
     let mut total_hits: u32 = 0;
 
     for entry in walker.build() {
         if cancel.load(Ordering::SeqCst) {
-            // Drain pending batch, then emit cancelled event.
-            if !batch.is_empty() {
-                seq += 1;
-                sink.emit(&SearchEvent {
-                    search_id: search_id.to_string(),
-                    kind: "match".to_string(),
-                    hits: std::mem::take(&mut batch),
-                    error: None,
-                    seq,
-                });
-            }
-            seq += 1;
-            sink.emit(&SearchEvent {
-                search_id: search_id.to_string(),
-                kind: "cancelled".to_string(),
-                hits: vec![],
-                error: None,
-                seq,
-            });
+            // Drain the pending batch; the session terminal is owned by
+            // run_session's coordinator, not by this adapter.
+            coordinator.emit_matches(std::mem::take(&mut batch));
             return Ok(total_hits);
         }
         let entry = match entry {
@@ -304,20 +443,12 @@ pub fn run_search(
                     truncated,
                 });
                 if batch.len() >= DEFAULT_BATCH_SIZE {
-                    seq += 1;
                     let to_emit = std::mem::take(&mut batch);
                     safe_eprintln!(
-                        "[Search][run][BLOCK_STREAM_RESULTS batch_size={} seq={}]",
-                        to_emit.len(),
-                        seq
+                        "[Search][run][BLOCK_STREAM_RESULTS batch_size={}]",
+                        to_emit.len()
                     );
-                    sink.emit(&SearchEvent {
-                        search_id: search_id.to_string(),
-                        kind: "match".to_string(),
-                        hits: to_emit,
-                        error: None,
-                        seq,
-                    });
+                    coordinator.emit_matches(to_emit);
                     batch = Vec::with_capacity(DEFAULT_BATCH_SIZE);
                 }
             }
@@ -325,29 +456,13 @@ pub fn run_search(
     }
 
     if !batch.is_empty() {
-        seq += 1;
         let to_emit = std::mem::take(&mut batch);
         safe_eprintln!(
-            "[Search][run][BLOCK_STREAM_RESULTS batch_size={} seq={}]",
-            to_emit.len(),
-            seq
+            "[Search][run][BLOCK_STREAM_RESULTS batch_size={}]",
+            to_emit.len()
         );
-        sink.emit(&SearchEvent {
-            search_id: search_id.to_string(),
-            kind: "match".to_string(),
-            hits: to_emit,
-            error: None,
-            seq,
-        });
+        coordinator.emit_matches(to_emit);
     }
-    seq += 1;
-    sink.emit(&SearchEvent {
-        search_id: search_id.to_string(),
-        kind: "complete".to_string(),
-        hits: vec![],
-        error: None,
-        seq,
-    });
     Ok(total_hits)
 }
 
@@ -411,73 +526,22 @@ pub async fn mt_search_spawn(
         // completes before any event fires (see RACE rationale in
         // F-SEARCH-DISABLED-FOR-ALPHA followup).
         std::thread::sleep(std::time::Duration::from_millis(120));
-        let mut total_hits: u32 = 0;
-        let mut seq: u32 = 0;
-        for root in &validated_roots {
-            if cancel.load(Ordering::SeqCst) {
-                break;
-            }
-            // C-15 T-M4: app-store builds use the in-process run_search
-            // walker (no spawned binaries); desktop keeps the rg shellout.
-            // run_search emits its own terminal "cancelled"/"complete"
-            // event, so the thread-level completion below is desktop-only
-            // and guarded to keep the wire contract identical.
-            let result: Result<(u32, u32), String> = if in_process {
-                match run_search(
-                    &search_id_for_thread,
-                    root,
-                    &pattern,
-                    &opts,
-                    cancel.clone(),
-                    sink.clone(),
-                ) {
-                    Ok(hits) => Ok((hits, seq)),
-                    Err(e) => Err(e.message),
-                }
-            } else {
-                run_ripgrep(
-                    &search_id_for_thread,
-                    root,
-                    &pattern,
-                    &opts,
-                    cancel.clone(),
-                    sink.clone(),
-                    seq,
-                )
-            };
-            match result {
-                Ok((hits, last_seq)) => {
-                    total_hits += hits;
-                    seq = last_seq;
-                }
-                Err(e) => {
-                    seq += 1;
-                    sink.emit(&SearchEvent {
-                        search_id: search_id_for_thread.clone(),
-                        kind: "error".to_string(),
-                        hits: vec![],
-                        error: Some(e.clone()),
-                        seq,
-                    });
-                    safe_eprintln!("[Search][run][BLOCK_RIPGREP_FAILED search_id={search_id_for_thread} err={e}]");
-                }
-            }
-        }
-        seq += 1;
-        let final_kind = if cancel.load(Ordering::SeqCst) {
-            "cancelled"
-        } else {
-            "complete"
-        };
-        sink.emit(&SearchEvent {
-            search_id: search_id_for_thread.clone(),
-            kind: final_kind.to_string(),
-            hits: vec![],
-            error: None,
-            seq,
-        });
+        // C-SEARCH-SESSION-COMPLETION: one session coordinator owns the
+        // session-wide seq and the single terminal for every validated
+        // root and both engine adapters (C-15 T-M4/T-W2 selection
+        // unchanged; run_session is the only finalization path).
+        let mut coordinator =
+            SearchSessionCoordinator::new(search_id_for_thread.clone(), sink.clone());
+        let (total_hits, kind) = run_session(
+            &validated_roots,
+            &pattern,
+            &opts,
+            in_process,
+            cancel,
+            &mut coordinator,
+        );
         safe_eprintln!(
-            "[Search][run][BLOCK_RIPGREP_DONE search_id={search_id_for_thread} hits={total_hits} kind={final_kind}]"
+            "[Search][run][BLOCK_RIPGREP_DONE search_id={search_id_for_thread} hits={total_hits} kind={kind}]"
         );
         let registry: tauri::State<'_, SearchRegistry> = registry_app_handle.state();
         registry.remove(&search_id_for_thread);
@@ -508,50 +572,44 @@ fn ripgrep_available_with_program(program: &std::ffi::OsStr) -> bool {
 }
 
 // START_CONTRACT: run_ripgrep
-//   PURPOSE: Execute the production rg binary and stream normalized match batches.
-//   INPUTS: { search_id: &str, root: &Path, pattern: &str, opts: &SearchOptions, cancel: Arc<AtomicBool>, sink: Arc<dyn SearchSink>, starting_seq: u32 }
-//   OUTPUTS: { Result<(u32, u32), String> - total hits and last sequence, or a stable spawn/stream error }
-//   SIDE_EFFECTS: Spawns and waits for an rg child process; emits match events through sink.
-//   LINKS: M-004, V-M-004
+//   PURPOSE: Execute the production rg binary and stream normalized match batches through the session coordinator.
+//   INPUTS: { root: &Path, pattern: &str, opts: &SearchOptions, cancel: Arc<AtomicBool>, coordinator: &mut SearchSessionCoordinator }
+//   OUTPUTS: { Result<u32, String> - per-root total hits, or a stable spawn/stream error }
+//   SIDE_EFFECTS: Spawns and waits for an rg child process; emits match batches through the coordinator (terminals are owned by run_session).
+//   LINKS: M-004, V-M-004, run_session
 // END_CONTRACT: run_ripgrep
 fn run_ripgrep(
-    search_id: &str,
     root: &Path,
     pattern: &str,
     opts: &SearchOptions,
     cancel: Arc<AtomicBool>,
-    sink: Arc<dyn SearchSink>,
-    starting_seq: u32,
-) -> Result<(u32, u32), String> {
+    coordinator: &mut SearchSessionCoordinator,
+) -> Result<u32, String> {
     run_ripgrep_with_program(
         std::ffi::OsStr::new("rg"),
-        search_id,
         root,
         pattern,
         opts,
         cancel,
-        sink,
-        starting_seq,
+        coordinator,
     )
 }
 
 // START_CONTRACT: run_ripgrep_with_program
 //   PURPOSE: Run the rg transport with an explicitly selected executable for deterministic failure verification.
 //   INPUTS: { rg_program: &OsStr - executable path/name, remaining inputs: same as run_ripgrep }
-//   OUTPUTS: { Result<(u32, u32), String> - total hits and last sequence, or a stable spawn/stream error }
-//   SIDE_EFFECTS: Spawns and waits for the selected child process; emits match events through sink.
-//   LINKS: run_ripgrep, V-M-004 scenario-5
+//   OUTPUTS: { Result<u32, String> - per-root total hits, or a stable spawn/stream error }
+//   SIDE_EFFECTS: Spawns and waits for the selected child process; emits match batches through the coordinator.
+//   LINKS: run_ripgrep, run_session, V-M-004 scenario-5
 // END_CONTRACT: run_ripgrep_with_program
 fn run_ripgrep_with_program(
     rg_program: &std::ffi::OsStr,
-    search_id: &str,
     root: &Path,
     pattern: &str,
     opts: &SearchOptions,
     cancel: Arc<AtomicBool>,
-    sink: Arc<dyn SearchSink>,
-    starting_seq: u32,
-) -> Result<(u32, u32), String> {
+    coordinator: &mut SearchSessionCoordinator,
+) -> Result<u32, String> {
     use std::io::{BufRead, BufReader};
     use std::process::{Command, Stdio};
 
@@ -587,7 +645,8 @@ fn run_ripgrep_with_program(
 
     // START_BLOCK_SPAWN_RIPGREP_PROCESS
     safe_eprintln!(
-        "[Search][rg][BLOCK_SPAWN search_id={search_id} root={}]",
+        "[Search][rg][BLOCK_SPAWN search_id={} root={}]",
+        coordinator.search_id(),
         root.display()
     );
     let mut child = cmd.spawn().map_err(|e| format!("spawn rg: {e}"))?;
@@ -596,7 +655,6 @@ fn run_ripgrep_with_program(
     // END_BLOCK_SPAWN_RIPGREP_PROCESS
 
     let mut total: u32 = 0;
-    let mut seq = starting_seq;
     let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
     let pattern_len = pattern.chars().count() as u32;
 
@@ -656,31 +714,15 @@ fn run_ripgrep_with_program(
         });
         total += 1;
         if batch.len() >= DEFAULT_BATCH_SIZE {
-            seq += 1;
-            sink.emit(&SearchEvent {
-                search_id: search_id.to_string(),
-                kind: "match".to_string(),
-                hits: std::mem::take(&mut batch),
-                error: None,
-                seq,
-            });
+            coordinator.emit_matches(std::mem::take(&mut batch));
         }
     }
 
-    if !batch.is_empty() {
-        seq += 1;
-        sink.emit(&SearchEvent {
-            search_id: search_id.to_string(),
-            kind: "match".to_string(),
-            hits: std::mem::take(&mut batch),
-            error: None,
-            seq,
-        });
-    }
+    coordinator.emit_matches(std::mem::take(&mut batch));
 
     let _ = child.wait();
     let _ = pattern_len; // reserved for future range-end calc
-    Ok((total, seq))
+    Ok(total)
 }
 
 
@@ -733,15 +775,88 @@ mod tests {
         out
     }
 
+    /// Session-level harness: single root over the embedded walker with a
+    /// channel sink. Returns total hits, the emitted terminal kind and the
+    /// receiver carrying every event the session produced.
+    fn run_session_one_root(
+        search_id: &str,
+        root: &Path,
+        pattern: &str,
+        opts: &SearchOptions,
+        cancel: Arc<AtomicBool>,
+    ) -> (u32, &'static str, mpsc::Receiver<SearchEvent>) {
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new(search_id.to_string(), sink);
+        let roots = vec![root.to_path_buf()];
+        let (total, kind) = run_session(&roots, pattern, opts, true, cancel, &mut coordinator);
+        (total, kind, rx)
+    }
+
+    /// Full-trace collector (C-SEARCH-SESSION-COMPLETION): drains until a
+    /// quiet period or the total cap deadline, pushing EVERY event — it
+    /// never stops at a terminal kind, so session proofs observe any
+    /// post-terminal event instead of truncating at the first one.
+    fn collect_all(
+        rx: &mpsc::Receiver<SearchEvent>,
+        quiet: Duration,
+        cap: Duration,
+    ) -> Vec<SearchEvent> {
+        let mut out = Vec::new();
+        let deadline = std::time::Instant::now() + cap;
+        loop {
+            if std::time::Instant::now() >= deadline {
+                break;
+            }
+            match rx.recv_timeout(quiet) {
+                Ok(ev) => out.push(ev),
+                Err(_) => break, // quiet period elapsed or sender dropped
+            }
+        }
+        out
+    }
+
+    fn count_terminals(events: &[SearchEvent]) -> usize {
+        events
+            .iter()
+            .filter(|e| matches!(e.kind.as_str(), "complete" | "cancelled" | "error"))
+            .count()
+    }
+
+    fn assert_seq_strictly_increasing(events: &[SearchEvent]) {
+        if let Some(first) = events.first() {
+            assert_eq!(first.seq, 1, "first session event must carry seq 1");
+        }
+        for w in events.windows(2) {
+            assert!(
+                w[1].seq > w[0].seq,
+                "session seq must strictly increase (got {} then {})",
+                w[0].seq,
+                w[1].seq
+            );
+        }
+    }
+
+    /// Sink that runs a hook at each emit boundary — deterministic
+    /// cancel/error timing exactly when an event is published.
+    struct HookSink {
+        tx: mpsc::Sender<SearchEvent>,
+        on_emit: Box<dyn Fn(&SearchEvent) + Send + Sync>,
+    }
+    impl SearchSink for HookSink {
+        fn emit(&self, event: &SearchEvent) {
+            let _ = self.tx.send(event.clone());
+            (self.on_emit)(event);
+        }
+    }
+
     #[test]
     fn literal_match_in_one_file() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "hello world\nbye world\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let total = run_search("s-1", dir.path(), "world", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "world", &opts, cancel);
         assert_eq!(total, 2);
         let events = collect_until_terminal(&rx, Duration::from_secs(1));
         assert!(events.iter().any(|e| e.kind == "match"));
@@ -752,14 +867,13 @@ mod tests {
     fn regex_mode_uses_pattern_as_is() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "foo123 bar456\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             is_regexp: Some(true),
             ..Default::default()
         };
-        let total = run_search("s-1", dir.path(), r"\w+\d+", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) =
+            run_session_one_root("s-1", dir.path(), r"\w+\d+", &opts, cancel);
         assert_eq!(total, 2);
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
@@ -768,14 +882,12 @@ mod tests {
     fn case_insensitive_default() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "Hello World\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             is_case_sensitive: Some(false),
             ..Default::default()
         };
-        let total = run_search("s-1", dir.path(), "HELLO", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "HELLO", &opts, cancel);
         assert_eq!(total, 1);
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
@@ -784,14 +896,12 @@ mod tests {
     fn case_sensitive_excludes_mismatched_case() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "Hello World\nhello world\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             is_case_sensitive: Some(true),
             ..Default::default()
         };
-        let total = run_search("s-1", dir.path(), "hello", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "hello", &opts, cancel);
         assert_eq!(total, 1);
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
@@ -800,14 +910,12 @@ mod tests {
     fn whole_word_excludes_substring() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "cat catalog scattered\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             is_whole_word: Some(true),
             ..Default::default()
         };
-        let total = run_search("s-1", dir.path(), "cat", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "cat", &opts, cancel);
         assert_eq!(total, 1, "only standalone 'cat' should match");
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
@@ -818,11 +926,9 @@ mod tests {
         write(dir.path().join(".gitignore"), "secret.md\n").unwrap();
         write(dir.path().join("public.md"), "needle\n").unwrap();
         write(dir.path().join("secret.md"), "needle\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "needle", &opts, cancel);
         assert_eq!(total, 1, "secret.md should be gitignored");
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
@@ -833,24 +939,23 @@ mod tests {
         write(dir.path().join(".gitignore"), "secret.md\n").unwrap();
         write(dir.path().join("public.md"), "needle\n").unwrap();
         write(dir.path().join("secret.md"), "needle\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             no_ignore: Some(true),
             ..Default::default()
         };
-        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "needle", &opts, cancel);
         assert_eq!(total, 2, "with no_ignore both files match");
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
 
     #[test]
     fn cancellation_returns_immediately_when_pre_cancelled() {
-        // Deterministic test: pre-set cancel BEFORE run_search starts.
-        // run_search must observe the flag and emit 'cancelled' without
-        // streaming any hit batches. Tests V-M-004 negative-assertion
-        // "After cancel: zero BLOCK_STREAM_RESULTS with seq > cancel_seq".
+        // Deterministic test: pre-set cancel BEFORE run_session starts.
+        // The session must observe the flag and emit exactly one
+        // 'cancelled' terminal without streaming any hit batches. Tests
+        // V-M-004 negative-assertion "After cancel: zero
+        // BLOCK_STREAM_RESULTS with seq > cancel_seq".
         let dir = TempDir::new().unwrap();
         for i in 0..20 {
             write(
@@ -859,22 +964,21 @@ mod tests {
             )
             .unwrap();
         }
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(true)); // pre-cancelled
         let opts = SearchOptions::default();
 
-        let total = run_search("s-cancel", dir.path(), "needle", &opts, cancel, sink).unwrap();
-        let events = collect_until_terminal(&rx, Duration::from_millis(500));
+        let (total, kind, rx) =
+            run_session_one_root("s-cancel", dir.path(), "needle", &opts, cancel);
         assert_eq!(
             total, 0,
             "pre-cancelled search must not produce any hits"
         );
-        assert!(
-            events.iter().any(|e| e.kind == "cancelled"),
-            "expected exactly one 'cancelled' event"
-        );
-        // Stronger: NO match events.
+        assert_eq!(kind, "cancelled");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        // Session-level trace: exactly one 'cancelled' event, zero match
+        // events, and nothing after the terminal.
+        assert_eq!(events.len(), 1, "expected exactly one event; got {events:?}");
+        assert_eq!(events[0].kind, "cancelled");
         assert!(
             !events.iter().any(|e| e.kind == "match"),
             "pre-cancelled search must emit zero match batches"
@@ -885,7 +989,9 @@ mod tests {
     fn cancellation_mid_stream_caps_total_hits() {
         // Larger workload (500 files × 100 hits = 50_000 potential hits)
         // ensures the search runs long enough for a runtime cancel to
-        // catch it. Asserts total hits < workload total.
+        // catch it. Adapter-level: run_search stops early on the flag and
+        // returns; the session terminal is not this adapter's concern.
+        // Asserts total hits < workload total.
         let dir = TempDir::new().unwrap();
         for i in 0..500 {
             write(
@@ -895,21 +1001,15 @@ mod tests {
             .unwrap();
         }
         let (tx, _rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let cancel_for_thread = cancel.clone();
         let opts = SearchOptions::default();
 
         let dir_path = dir.path().to_path_buf();
         let handle = std::thread::spawn(move || {
-            run_search(
-                "s-cancel",
-                &dir_path,
-                "needle",
-                &opts,
-                cancel_for_thread,
-                sink,
-            )
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator = SearchSessionCoordinator::new("s-cancel".to_string(), sink);
+            run_search(&dir_path, "needle", &opts, cancel_for_thread, &mut coordinator)
         });
         std::thread::sleep(Duration::from_millis(5));
         cancel.store(true, Ordering::SeqCst);
@@ -926,12 +1026,13 @@ mod tests {
         write(dir.path().join("a.md"), "hello\n").unwrap();
         let (tx, _rx) = mpsc::channel();
         let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-1".to_string(), sink);
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             is_regexp: Some(true),
             ..Default::default()
         };
-        let err = run_search("s-1", dir.path(), "[invalid", &opts, cancel, sink).unwrap_err();
+        let err = run_search(dir.path(), "[invalid", &opts, cancel, &mut coordinator).unwrap_err();
         assert_eq!(err.code, "MT_SEARCH_BAD_PATTERN");
     }
 
@@ -986,11 +1087,9 @@ mod tests {
         let dir = TempDir::new().unwrap();
         write(dir.path().join(".secret.md"), "needle\n").unwrap();
         write(dir.path().join("public.md"), "needle\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "needle", &opts, cancel);
         assert_eq!(total, 1, "hidden .secret.md should be skipped");
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
@@ -999,14 +1098,12 @@ mod tests {
     fn include_hidden_picks_up_dotfiles() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join(".secret.md"), "needle\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             include_hidden: Some(true),
             ..Default::default()
         };
-        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "needle", &opts, cancel);
         assert_eq!(total, 1);
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
@@ -1018,43 +1115,43 @@ mod tests {
         let big = "needle\n".repeat(20_000);
         write(dir.path().join("big.md"), big).unwrap();
         write(dir.path().join("small.md"), "needle\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             max_file_size: Some(1024), // 1 KB ceiling — big.md skipped
             ..Default::default()
         };
-        let total = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-1", dir.path(), "needle", &opts, cancel);
         assert_eq!(total, 1, "only small.md should be searched");
         let _ = collect_until_terminal(&rx, Duration::from_secs(1));
     }
 
     #[test]
     fn cancellation_drains_partial_batch_before_emit_cancelled() {
-        // Build a workload that produces hits but stop the search via
+        // Build a workload that produces hits but stop the session via
         // cancel BEFORE the batch fills. The drain branch in run_search
-        // (lines 246-258 in original) emits the partial batch THEN
-        // emits the cancelled event.
+        // emits the partial batch through the coordinator, then
+        // run_session emits the single 'cancelled' terminal.
         let dir = TempDir::new().unwrap();
         // 2 hits is below DEFAULT_BATCH_SIZE (16) so the partial-batch
         // drain branch will fire when cancel observed mid-walk.
         write(dir.path().join("a.md"), "needle\nneedle\n").unwrap();
         write(dir.path().join("b.md"), "needle\nneedle\n").unwrap();
         let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let cancel_for_thread = cancel.clone();
         let opts = SearchOptions::default();
         let dir_path = dir.path().to_path_buf();
         let handle = std::thread::spawn(move || {
-            run_search("s-drain", &dir_path, "needle", &opts, cancel_for_thread, sink)
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator = SearchSessionCoordinator::new("s-drain".to_string(), sink);
+            let roots = vec![dir_path];
+            run_session(&roots, "needle", &opts, true, cancel_for_thread, &mut coordinator)
         });
         // Give walker time to find first file but cancel before all done.
         std::thread::sleep(Duration::from_millis(2));
         cancel.store(true, Ordering::SeqCst);
-        let _total = handle.join().unwrap().unwrap();
-        let events = collect_until_terminal(&rx, Duration::from_millis(500));
+        let _total = handle.join().unwrap().0;
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
         // Either we got 'cancelled' OR the search completed before cancel
         // was observed — both are valid; the assertion is no panic.
         assert!(
@@ -1062,6 +1159,22 @@ mod tests {
                 .iter()
                 .any(|e| e.kind == "cancelled" || e.kind == "complete"),
             "expected terminal event"
+        );
+        // C-SEARCH-SESSION-COMPLETION: exactly ONE terminal, it is the
+        // last event, and every match batch precedes it.
+        assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+        let last = events.last().unwrap();
+        assert!(
+            last.kind == "cancelled" || last.kind == "complete",
+            "terminal must be the final event; got {events:?}"
+        );
+        let terminal_pos = events
+            .iter()
+            .position(|e| matches!(e.kind.as_str(), "complete" | "cancelled" | "error"))
+            .unwrap();
+        assert!(
+            events[..terminal_pos].iter().all(|e| e.kind == "match"),
+            "only match events may precede the terminal; got {events:?}"
         );
     }
 
@@ -1086,11 +1199,9 @@ mod tests {
     fn search_hit_payload_contains_path_line_column() {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "first line\nneedle here\nlast\n").unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let _ = run_search("s-1", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (_total, _kind, rx) = run_session_one_root("s-1", dir.path(), "needle", &opts, cancel);
         let events = collect_until_terminal(&rx, Duration::from_secs(1));
         let mut found = false;
         for ev in &events {
@@ -1111,15 +1222,18 @@ mod tests {
     #[test]
     fn empty_directory_emits_only_complete() {
         let dir = TempDir::new().unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let total = run_search("s-empty", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (total, kind, rx) =
+            run_session_one_root("s-empty", dir.path(), "needle", &opts, cancel);
         assert_eq!(total, 0);
-        let events = collect_until_terminal(&rx, Duration::from_secs(1));
+        assert_eq!(kind, "complete");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        // Session level: zero matches → exactly one event, kind complete,
+        // seq 1 (the first seq of the session-wide counter).
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].kind, "complete");
+        assert_eq!(events[0].seq, 1);
     }
 
     #[test]
@@ -1148,17 +1262,17 @@ mod tests {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "alpha needle beta\n").unwrap();
         let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let (hits, _seq) =
-            run_ripgrep("rg-1", dir.path(), "needle", &opts, cancel, sink, 0)
-                .unwrap_or((0, 0));
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("rg-1".to_string(), sink);
+        let hits = run_ripgrep(dir.path(), "needle", &opts, cancel, &mut coordinator)
+            .unwrap_or(0);
         assert!(hits >= 1, "expected at least one rg match, got {hits}");
         let events = collect_until_terminal(&rx, Duration::from_millis(500));
-        // run_ripgrep doesn't emit a terminal event on its own — drain
-        // whatever match batches arrived. At least one match event
-        // expected when hits > 0.
+        // run_ripgrep emits match batches only — no terminal event of its
+        // own anymore (the session coordinator owns terminals). At least
+        // one match event expected when hits > 0.
         if hits > 0 {
             assert!(events.iter().any(|e| e.kind == "match"));
         }
@@ -1173,12 +1287,12 @@ mod tests {
         let dir = TempDir::new().unwrap();
         write(dir.path().join("a.md"), "no relevant content\n").unwrap();
         let (tx, _rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let (hits, _seq) =
-            run_ripgrep("rg-2", dir.path(), "needle", &opts, cancel, sink, 0)
-                .unwrap_or((0, 0));
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("rg-2".to_string(), sink);
+        let hits = run_ripgrep(dir.path(), "needle", &opts, cancel, &mut coordinator)
+            .unwrap_or(0);
         assert_eq!(hits, 0);
     }
 
@@ -1192,7 +1306,6 @@ mod tests {
         write(dir.path().join(".hidden.md"), "needle\n").unwrap();
         write(dir.path().join("vis.md"), "Needle\n").unwrap();
         let (tx, _rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions {
             include_hidden: Some(true),
@@ -1204,10 +1317,12 @@ mod tests {
             max_file_size: Some(1024 * 1024),
             ..Default::default()
         };
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("rg-opt".to_string(), sink);
         // Use a regex; with case-sensitive whole-word, only lowercase
         // 'needle' matches (the hidden file). At minimum expect one hit,
         // and the call itself returns Ok.
-        let result = run_ripgrep("rg-opt", dir.path(), r"needle", &opts, cancel, sink, 0);
+        let result = run_ripgrep(dir.path(), r"needle", &opts, cancel, &mut coordinator);
         assert!(result.is_ok(), "rg with full options must run cleanly: {result:?}");
     }
 
@@ -1226,12 +1341,12 @@ mod tests {
             .unwrap();
         }
         let (tx, _rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(true)); // pre-cancelled
         let opts = SearchOptions::default();
-        let (hits, _seq) =
-            run_ripgrep("rg-cancel", dir.path(), "needle", &opts, cancel, sink, 0)
-                .unwrap_or((u32::MAX, 0));
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("rg-cancel".to_string(), sink);
+        let hits = run_ripgrep(dir.path(), "needle", &opts, cancel, &mut coordinator)
+            .unwrap_or(u32::MAX);
         // With pre-cancel, the loop break fires on the first read iteration
         // and no batches accumulate; hits should be 0 or very small (rg
         // may have produced output before kill landed). Strict bound:
@@ -1246,18 +1361,17 @@ mod tests {
         let invalid_rg = Path::new("/dev/null/mark-rg-does-not-exist").as_os_str();
         let dir = TempDir::new().unwrap();
         let (tx, _rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("rg-fail".to_string(), sink);
         let result = run_ripgrep_with_program(
             invalid_rg,
-            "rg-fail",
             dir.path(),
             "needle",
             &opts,
             cancel,
-            sink,
-            0,
+            &mut coordinator,
         );
         assert!(result.is_err(), "invalid rg executable must fail to spawn");
         assert!(result.unwrap_err().contains("spawn rg"));
@@ -1269,11 +1383,9 @@ mod tests {
         // 50 hits in one file → expect ceil(50/16)=4 batches + 1 complete
         let content = "needle\n".repeat(50);
         write(dir.path().join("a.md"), content).unwrap();
-        let (tx, rx) = mpsc::channel();
-        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let cancel = Arc::new(AtomicBool::new(false));
         let opts = SearchOptions::default();
-        let total = run_search("s-batch", dir.path(), "needle", &opts, cancel, sink).unwrap();
+        let (total, _kind, rx) = run_session_one_root("s-batch", dir.path(), "needle", &opts, cancel);
         assert_eq!(total, 50);
         let events = collect_until_terminal(&rx, Duration::from_secs(2));
         let match_batches: Vec<_> = events.iter().filter(|e| e.kind == "match").collect();
@@ -1283,6 +1395,458 @@ mod tests {
             match_batches.len()
         );
         assert!(events.iter().any(|e| e.kind == "complete"));
+    }
+
+    // ─── C-SEARCH-SESSION-COMPLETION: session-trace family ─────────────
+    // Every test below executes the production run_session path and the
+    // single coordinator used by mt_search_spawn; full-trace capture via
+    // collect_all proves single-terminal + zero post-terminal events.
+
+    #[test]
+    fn session_two_roots_single_complete_after_all_matches() {
+        // Core regression: against the double-terminal tree the producer
+        // trace for two roots was match, complete, match, complete,
+        // complete with seq restarting per root. The session coordinator
+        // must deliver both roots' matches before exactly one terminal.
+        let root_a = TempDir::new().unwrap();
+        write(root_a.path().join("a.md"), "needle alpha\n").unwrap();
+        let root_b = TempDir::new().unwrap();
+        write(root_b.path().join("b.md"), "needle beta\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-two-roots".to_string(), sink);
+        let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let (total, kind) = run_session(&roots, "needle", &opts, true, cancel, &mut coordinator);
+        assert_eq!(total, 2, "one matching file per root");
+        assert_eq!(kind, "complete");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_secs(2));
+        let mut saw_a = false;
+        let mut saw_b = false;
+        for ev in &events {
+            if ev.kind == "match" {
+                for hit in &ev.hits {
+                    if hit.path.ends_with("a.md") {
+                        saw_a = true;
+                    }
+                    if hit.path.ends_with("b.md") {
+                        saw_b = true;
+                    }
+                }
+            }
+        }
+        assert!(
+            saw_a && saw_b,
+            "both roots' matches must be delivered; events={events:?}"
+        );
+        assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+        assert_eq!(events.last().unwrap().kind, "complete", "terminal is the last event");
+        assert_seq_strictly_increasing(&events);
+    }
+
+    #[test]
+    fn session_one_root_and_zero_matches_and_batched_shapes() {
+        let opts = SearchOptions::default();
+        // (a) one root with matches: matches first, exactly one complete.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "needle\nneedle\nneedle\n").unwrap();
+            let (total, kind, rx) = run_session_one_root(
+                "s-shapes-a",
+                dir.path(),
+                "needle",
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(total, 3);
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_secs(2));
+            assert!(events.iter().any(|e| e.kind == "match"));
+            assert_eq!(count_terminals(&events), 1);
+            assert_eq!(events.last().unwrap().kind, "complete");
+            assert_seq_strictly_increasing(&events);
+        }
+        // (b) two empty roots: exactly one event — "complete" with seq 1.
+        {
+            let dir_a = TempDir::new().unwrap();
+            let dir_b = TempDir::new().unwrap();
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator = SearchSessionCoordinator::new("s-shapes-b".to_string(), sink);
+            let roots = vec![dir_a.path().to_path_buf(), dir_b.path().to_path_buf()];
+            let (total, kind) = run_session(
+                &roots,
+                "needle",
+                &opts,
+                true,
+                Arc::new(AtomicBool::new(false)),
+                &mut coordinator,
+            );
+            assert_eq!(total, 0);
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_secs(2));
+            assert_eq!(events.len(), 1, "zero matches → exactly one event; got {events:?}");
+            assert_eq!(events[0].kind, "complete");
+            assert_eq!(events[0].seq, 1);
+        }
+        // (c) 50-hit single file: 4+ match batches then one complete.
+        {
+            let dir = TempDir::new().unwrap();
+            let content = "needle\n".repeat(50);
+            write(dir.path().join("a.md"), content).unwrap();
+            let (total, kind, rx) = run_session_one_root(
+                "s-shapes-c",
+                dir.path(),
+                "needle",
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(total, 50);
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_secs(2));
+            let match_batches = events.iter().filter(|e| e.kind == "match").count();
+            assert!(match_batches >= 4, "expected ≥4 batches; got {match_batches}");
+            assert_eq!(count_terminals(&events), 1);
+            assert_eq!(events.last().unwrap().kind, "complete");
+            assert_seq_strictly_increasing(&events);
+        }
+    }
+
+    #[test]
+    fn session_seq_strictly_increasing_across_root_boundary() {
+        // 30 hits per root → 2 batches per root; the final drain of root A
+        // and the first batch of root B straddle the root boundary, so a
+        // per-root seq restart would show a second seq == 1.
+        let root_a = TempDir::new().unwrap();
+        write(root_a.path().join("a.md"), "needle\n".repeat(30)).unwrap();
+        let root_b = TempDir::new().unwrap();
+        write(root_b.path().join("b.md"), "needle\n".repeat(30)).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-seq-boundary".to_string(), sink);
+        let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let (total, kind) = run_session(&roots, "needle", &opts, true, cancel, &mut coordinator);
+        assert_eq!(total, 60);
+        assert_eq!(kind, "complete");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_secs(2));
+        assert!(events.len() >= 2, "expected several events; got {events:?}");
+        assert_eq!(
+            events.iter().filter(|e| e.seq == 1).count(),
+            1,
+            "no seq restart at the root boundary; events={events:?}"
+        );
+        assert_seq_strictly_increasing(&events);
+    }
+
+    #[test]
+    fn session_pre_cancelled_single_cancelled_no_matches() {
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("a.md"), "needle\n".repeat(10)).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-precancel".to_string(), sink);
+        let roots = vec![dir.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let cancel = Arc::new(AtomicBool::new(true));
+        let (total, kind) = run_session(&roots, "needle", &opts, true, cancel, &mut coordinator);
+        assert_eq!(total, 0);
+        assert_eq!(kind, "cancelled");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert_eq!(events.len(), 1, "trace == [cancelled]; got {events:?}");
+        assert_eq!(events[0].kind, "cancelled");
+        assert!(!events.iter().any(|e| e.kind == "match"));
+    }
+
+    #[test]
+    fn session_cancel_between_roots_single_terminal_no_second_root() {
+        // HookSink flips the cancel flag on the first match emit. The flag
+        // is set before run_search returns, so the loop's cancel check for
+        // root B fires deterministically → exactly one "cancelled"
+        // terminal and zero second-root events.
+        let root_a = TempDir::new().unwrap();
+        write(root_a.path().join("a.md"), "needle alpha\n").unwrap();
+        let root_b = TempDir::new().unwrap();
+        write(root_b.path().join("b.md"), "needle beta\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel_for_hook = cancel.clone();
+        let sink: Arc<dyn SearchSink> = Arc::new(HookSink {
+            tx,
+            on_emit: Box::new(move |_ev: &SearchEvent| {
+                cancel_for_hook.store(true, Ordering::SeqCst);
+            }),
+        });
+        let mut coordinator = SearchSessionCoordinator::new("s-between".to_string(), sink);
+        let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let (_total, kind) =
+            run_session(&roots, "needle", &opts, true, cancel.clone(), &mut coordinator);
+        assert_eq!(kind, "cancelled");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert!(
+            !events
+                .iter()
+                .any(|e| e.hits.iter().any(|h| h.path.ends_with("b.md"))),
+            "second root must not be searched after cancel; events={events:?}"
+        );
+        assert_eq!(count_terminals(&events), 1);
+        assert_eq!(events.last().unwrap().kind, "cancelled");
+        assert_seq_strictly_increasing(&events);
+    }
+
+    #[test]
+    fn session_cancel_mid_stream_drains_batch_then_single_cancelled() {
+        // Workload large enough to observe a runtime cancel mid-stream;
+        // tolerant to fast hosts where the walk finishes before the flag.
+        let dir = TempDir::new().unwrap();
+        for i in 0..500 {
+            write(
+                dir.path().join(format!("file-{i:04}.md")),
+                "needle\n".repeat(100),
+            )
+            .unwrap();
+        }
+        let (tx, rx) = mpsc::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel_for_thread = cancel.clone();
+        let opts = SearchOptions::default();
+        let dir_path = dir.path().to_path_buf();
+        let handle = std::thread::spawn(move || {
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator = SearchSessionCoordinator::new("s-mid-cancel".to_string(), sink);
+            let roots = vec![dir_path];
+            run_session(&roots, "needle", &opts, true, cancel_for_thread, &mut coordinator)
+        });
+        std::thread::sleep(Duration::from_millis(5));
+        cancel.store(true, Ordering::SeqCst);
+        let (_total, kind) = handle.join().unwrap();
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_secs(3));
+        // Exactly one terminal, and it is the LAST event — zero
+        // post-terminal events even with the cancel racing the stream.
+        assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+        assert_eq!(
+            events.last().unwrap().kind, kind,
+            "terminal must be the final event"
+        );
+        // Every match batch (including any drained partial batch)
+        // precedes the single terminal.
+        let terminal_pos = events
+            .iter()
+            .position(|e| matches!(e.kind.as_str(), "complete" | "cancelled" | "error"))
+            .unwrap();
+        assert!(
+            events[..terminal_pos].iter().all(|e| e.kind == "match"),
+            "only match events may precede the terminal; got {events:?}"
+        );
+    }
+
+    #[test]
+    fn session_embedded_error_stops_remaining_roots() {
+        // Bad regexp on the first of two roots: one error terminal, the
+        // second root is never started, no complete afterwards.
+        let root_a = TempDir::new().unwrap();
+        write(root_a.path().join("a.md"), "hello\n").unwrap();
+        let root_b = TempDir::new().unwrap();
+        write(root_b.path().join("b.md"), "needle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-embedded-err".to_string(), sink);
+        let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+        let opts = SearchOptions {
+            is_regexp: Some(true),
+            ..Default::default()
+        };
+        let cancel = Arc::new(AtomicBool::new(false));
+        let (total, kind) =
+            run_session(&roots, "[invalid", &opts, true, cancel, &mut coordinator);
+        assert_eq!(kind, "error");
+        assert_eq!(total, 0);
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert_eq!(count_terminals(&events), 1);
+        let last = events.last().unwrap();
+        assert_eq!(last.kind, "error");
+        assert!(last.error.is_some());
+        assert!(
+            !events
+                .iter()
+                .any(|e| e.hits.iter().any(|h| h.path.ends_with("b.md"))),
+            "second root must not be started after an engine error; events={events:?}"
+        );
+        assert!(!events.iter().any(|e| e.kind == "complete"));
+    }
+
+    #[test]
+    fn session_rg_error_stops_remaining_roots() {
+        // rg adapter error parity: invalid executable on the first of two
+        // roots via run_session_with_program — same session invariants.
+        let root_a = TempDir::new().unwrap();
+        write(root_a.path().join("a.md"), "needle\n").unwrap();
+        let root_b = TempDir::new().unwrap();
+        write(root_b.path().join("b.md"), "needle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-rg-err".to_string(), sink);
+        let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let invalid_rg = Path::new("/dev/null/mark-rg-does-not-exist").as_os_str();
+        let (total, kind) = run_session_with_program(
+            invalid_rg,
+            &roots,
+            "needle",
+            &opts,
+            false,
+            cancel,
+            &mut coordinator,
+        );
+        assert_eq!(kind, "error");
+        assert_eq!(total, 0);
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert_eq!(count_terminals(&events), 1);
+        let last = events.last().unwrap();
+        assert_eq!(last.kind, "error");
+        assert!(
+            last.error.as_deref().unwrap_or("").contains("spawn rg"),
+            "spawn failure surfaces as the error payload; got {last:?}"
+        );
+        assert!(
+            !events
+                .iter()
+                .any(|e| e.hits.iter().any(|h| h.path.ends_with("b.md"))),
+            "second root must not be started after an engine error; events={events:?}"
+        );
+        assert!(!events.iter().any(|e| e.kind == "complete"));
+    }
+
+    #[test]
+    fn session_rg_two_roots_parity_with_embedded() {
+        // rg control parity for the full producer trace: same session
+        // invariants as the embedded two-root regression.
+        if !rg_available() {
+            safe_eprintln!("[test][skip] rg binary not on PATH");
+            return;
+        }
+        let root_a = TempDir::new().unwrap();
+        write(root_a.path().join("a.md"), "needle alpha\n").unwrap();
+        let root_b = TempDir::new().unwrap();
+        write(root_b.path().join("b.md"), "needle beta\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-rg-two".to_string(), sink);
+        let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let (total, kind) = run_session(&roots, "needle", &opts, false, cancel, &mut coordinator);
+        assert_eq!(total, 2, "one matching file per root");
+        assert_eq!(kind, "complete");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_secs(3));
+        let mut saw_a = false;
+        let mut saw_b = false;
+        for ev in &events {
+            if ev.kind == "match" {
+                for hit in &ev.hits {
+                    if hit.path.ends_with("a.md") {
+                        saw_a = true;
+                    }
+                    if hit.path.ends_with("b.md") {
+                        saw_b = true;
+                    }
+                }
+            }
+        }
+        assert!(saw_a, "root a match missing; events={events:?}");
+        assert!(saw_b, "root b match missing; events={events:?}");
+        assert_eq!(count_terminals(&events), 1);
+        assert_eq!(events.last().unwrap().kind, "complete");
+        assert_seq_strictly_increasing(&events);
+    }
+
+    #[test]
+    fn coordinator_finalize_is_one_shot() {
+        // Unit-level post-terminal silence: finalize returns true once and
+        // emits one event; any later finalize or emit_matches is a silent
+        // no-op returning false.
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-unit".to_string(), sink);
+        assert!(coordinator.finalize(SearchTerminal::Complete, None));
+        assert!(!coordinator.finalize(SearchTerminal::Cancelled, None));
+        assert!(!coordinator.emit_matches(vec![SearchHit {
+            path: "x.md".to_string(),
+            line: 1,
+            column: 1,
+            snippet: "needle".to_string(),
+            truncated: false,
+        }]));
+        let events = collect_all(&rx, Duration::from_millis(300), Duration::from_millis(1500));
+        assert_eq!(events.len(), 1, "exactly one terminal event; got {events:?}");
+        assert_eq!(events[0].kind, "complete");
+        assert_eq!(events[0].seq, 1);
+    }
+
+    #[test]
+    fn concurrent_sessions_are_isolated() {
+        // Two run_session calls on two threads with separate sinks and
+        // TempDirs; cancelling session A mid-run must not finish, feed or
+        // renumber session B — per-session coordinator owns all state,
+        // nothing static is shared.
+        let dir_a = TempDir::new().unwrap();
+        for i in 0..300 {
+            write(
+                dir_a.path().join(format!("file-{i:03}.md")),
+                "needle\n".repeat(20),
+            )
+            .unwrap();
+        }
+        let dir_b = TempDir::new().unwrap();
+        write(dir_b.path().join("only.md"), "needle\n").unwrap();
+
+        let (tx_a, rx_a) = mpsc::channel();
+        let (tx_b, rx_b) = mpsc::channel();
+        let cancel_a = Arc::new(AtomicBool::new(false));
+
+        let opts_a = SearchOptions::default();
+        let opts_b = SearchOptions::default();
+        let roots_a = vec![dir_a.path().to_path_buf()];
+        let roots_b = vec![dir_b.path().to_path_buf()];
+
+        let cancel_a_for_thread = cancel_a.clone();
+        let handle_a = std::thread::spawn(move || {
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx: tx_a });
+            let mut coordinator = SearchSessionCoordinator::new("s-iso-a".to_string(), sink);
+            run_session(&roots_a, "needle", &opts_a, true, cancel_a_for_thread, &mut coordinator)
+        });
+        let handle_b = std::thread::spawn(move || {
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx: tx_b });
+            let mut coordinator = SearchSessionCoordinator::new("s-iso-b".to_string(), sink);
+            run_session(&roots_b, "needle", &opts_b, true, Arc::new(AtomicBool::new(false)), &mut coordinator)
+        });
+        // Let both sessions start, then cancel ONLY A.
+        std::thread::sleep(Duration::from_millis(5));
+        cancel_a.store(true, Ordering::SeqCst);
+        let (_total_a, kind_a) = handle_a.join().unwrap();
+        let (_total_b, kind_b) = handle_b.join().unwrap();
+        assert_eq!(kind_b, "complete", "cancelling A must not finish B");
+        // B's stream: its own trace, seq starting at 1, only its own
+        // searchId — no foreign terminal kind in its stream.
+        let events_b = collect_all(&rx_b, Duration::from_millis(400), Duration::from_millis(1500));
+        assert!(!events_b.is_empty());
+        assert!(events_b.iter().all(|e| e.search_id == "s-iso-b"));
+        assert_eq!(events_b[0].seq, 1, "session B owns its seq counter from 1");
+        assert_seq_strictly_increasing(&events_b);
+        assert_eq!(events_b.last().unwrap().kind, "complete");
+        // A's stream: single terminal (cancelled, or complete if the walk
+        // finished before the flag), only its own searchId.
+        let events_a = collect_all(&rx_a, Duration::from_millis(400), Duration::from_millis(1500));
+        assert!(events_a.iter().all(|e| e.search_id == "s-iso-a"));
+        assert_eq!(count_terminals(&events_a), 1);
+        assert!(
+            kind_a == "cancelled" || kind_a == "complete",
+            "A's terminal kind is well-formed; got {kind_a}"
+        );
     }
 
     // C-15 T-W2: desktop builds without a system rg must degrade to the
