@@ -1,0 +1,141 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-TABLE-LAYOUT-COMPLETION>
+    <ChangeRef>C-TABLE-LAYOUT-COMPLETION</ChangeRef>
+    <Created>2026-11-19</Created>
+    <IntentSummary>Give TableResize one internal completion stage that owns the documented final sequence — external/internal walls, toolbar/caption cue synchronization, the owned WKWebView layer repaint and the single authorized profile commit — after each operation's own mode/wrapper/width preparation. Every operation declares an explicit cause and the write permit derives from that cause alone, never from measurement success or serialized inequality: qualifying mode choices, terminal moved gestures and the three reset branches keep their exactly-once persist, while pointer previews, no-move/return-to-start/pointercancel rollback, adoption, render reconciliation, refit, refresh, window resize, scroll and teardown never write. The six independent this.persist() handler call sites in src/muya/lib/tableResize/index.js (lines ~1486 mode choice, ~1925 wall drag terminal, ~1947 column drag terminal, ~1994 wall reset, ~2030 whole-table column reset, ~2057 partial column reset) collapse into one authorized completion call site. Pure fit maths, entry identity, schema v2, the serializer, the rememberTableColumnSizes persist gate and all lifecycle fences are preserved; tableFit.js, tableCue.js, the renderer store/profile schema, preferences, CSS/template literals, render/index.js and eventHandler/resize.js stay byte-identical.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-012</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-061</Value>
+      </MustExist>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>M-012</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/performance.xml</File>
+        <Text>M-061</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>this.persist()</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>serializeTableLayouts()</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-012</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-061</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>completeTableOperation(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>COMPLETION_CAUSE</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-completion.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-column-resize.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">node node_modules/@playwright/test/cli.js test tests/e2e/table-modes.spec.ts tests/e2e/table-column-resize.spec.ts tests/e2e/table-width-persistence.spec.ts tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-012 />
+        <M-061 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-012 />
+        <V-M-061 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>tests/renderer/muya/table-layout-completion.test.js</File>
+      <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+      <File>tests/renderer/muya/table-column-resize.test.js</File>
+      <File>tests/e2e/table-modes.spec.ts</File>
+      <File>tests/e2e/table-column-resize.spec.ts</File>
+      <File>tests/e2e/table-width-persistence.spec.ts</File>
+      <File>tests/e2e/table-ui-regressions.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <Glob>.grace/changes/active/C-TABLE-LAYOUT-COMPLETION/**</Glob>
+    </ObservedWriteScope>
+    <ReferenceState>SpecSha256 = f3980c3a6afa0715fb729c4a79630dd6f60de46220907e279dff75919ad4dd21 (pinned at admission over the approved spec.xml; the private review snapshot recorded 08aa0fcfc481d3344ab711b589a274f91e91eb9498cf60ef7313154aa9832dec). Authored 2026-11-19 against the fresh post-handover-chain head; the historical evidence in the private review (24-method boundary inventory, 15 boundary checks, AST-equivalent 104-test baseline) characterizes the unchanged starting point and is not execution proof — this plan re-verifies M-012/M-061 and V-M-012/V-M-061 on the fresh head before any write. Delivery is sequential through integ/techdebt on a fresh collecting or next unused td-N bound exactly by this plan; merged td-1 is not reused, the product current pointer and Project mirror do not move, and main departure remains a separate explicit owner decision.</ReferenceState>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Completion stage in tableResize; the six persist call sites replaced</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/muya/lib/tableResize/index.js gains one internal completion stage completeTableOperation(cause, context) owning the final sequence positionTableWalls + ensureColumnWalls, syncTableCue, owned-repaint bookkeeping and the authorized persist; an explicit COMPLETION_CAUSE enum covers mode choice, wall/column drag end, wall reset, column reset, gesture rollback, preview, adopt, reconcile, refit, refresh, window, scroll and destroy, and the write permit is the static per-cause set only. The six persist call sites at ~1486 (setModeFromElement), ~1925 (wall drag terminal), ~1947 (column drag terminal), ~1994 (wall reset), ~2030 (whole-table column reset) and ~2057 (partial column reset) each end in one stage call; handlers no longer independently assemble the walls/cue/persist tail. No-move/return-to-start rollback tails keep their current moved predicates verbatim and never write; pointercancel keeps sharing handlePointerUp with pointerup and no new cancel policy appears. Read-only funnels (reconcileAfterRender, refitNow/refitAll, refreshTableSurfaces, handleScrollCapture, handleWindowResize, applyPersistedLayouts and the generation-fenced delayed adoption) route their tails through the stage with non-writing causes. Hidden/zero-geometry mode choices still persist their mode intent and retry layout on a later measurable pass without a second write. persist() internals are untouched: rememberTableColumnSizes gate, syncIdentities({ adoptPersisted: false }) before serialization, this.persisted replaced before the single muya-table-layouts dispatch. tableFit.js, tableCue.js, render/index.js, eventHandler/resize.js, CSS/template literals, schema and preferences stay byte-identical.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-column-resize.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>New focused completion suite tests/renderer/muya/table-layout-completion.test.js</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The suite characterizes the cause/readiness/write matrix on the real TableResize model and DOM: mode Auto/Fit/Full including repeated choice and hidden/zero-geometry deferred layout (mode intent persisted, exactly one dispatch per qualifying action, layout retried later without a second write); wall and column pointer preview and terminal moved gestures; no-move/return-to-start/pointercancel rollback restoring the baseline; wall reset; whole-table and partial fitted reset with fit before persist. Assertions pin final widths/manual flags/ratios/mode, muya-table-layouts event counts and payload content (identities synchronized with adoptPersisted:false, this.persisted equal to the dispatched entries, remember-off skipping the dispatch) and the ABSENCE of profile writes from preview, adoption, reconcile, refit, refresh, window and scroll completions — not merely invocation of the new helper. Mutation controls detect a refresh-cause write permit (a refresh completion must not dispatch even when serialization would differ) and old-snapshot re-adoption during a user commit. Teardown assertions cover destroy() cancelling owned repaint/refit/adoption work and restoring prior transforms.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-completion.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Scoped pins added to the existing unit suites</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/muya/table-layout-persistence.test.js and tests/renderer/muya/table-column-resize.test.js gain scoped assertions for the consolidated boundary without weakening or removing any current case: entry identity across observer refit and sequential adjacent gestures, fixed/natural Auto reconciliation and reset, framed outer-edge guards, generation/container/membership-fenced adoption, stale/detached/bare targets, remember-off, and the serializer having one authorized completion call site. Source-immutability pins hash tableFit.js and tableCue.js contents to prove the byte-identical siblings. Independent expected behavior and current pending/DOM/model boundaries are retained; the historical 104 tests remain baseline evidence, not new verification.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-completion.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-column-resize.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Scoped browser scenarios in the four e2e specs, chromium + webkit-tables</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/table-modes.spec.ts, tests/e2e/table-column-resize.spec.ts, tests/e2e/table-width-persistence.spec.ts and tests/e2e/table-ui-regressions.spec.ts gain scoped assertions without config changes, retries, skips or weakened cases, executed in both --project=chromium and --project=webkit-tables: mode/drag/reset/reopen sequences, narrow frames, hidden-to-visible measurement, font/window geometry refresh, wrap with no real horizontal overflow (scrollWidth checks), final full-height internal and external wall alignment against real border geometry, cue ordering verified against real geometry (caption text, shade sides and the native scrollbar-height CSS variable measured after the final walls in both engines), toolbar active states and caption facts, pointercancel behaving as pointerup, and stable Markdown/history (gestures never dirty the document).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/@playwright/test/cli.js test tests/e2e/table-modes.spec.ts tests/e2e/table-column-resize.spec.ts tests/e2e/table-width-persistence.spec.ts tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Graph deltas, verification evidence and lane bookkeeping</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>M-012 and M-061 records name the completion stage as the owner of the final walls/cue/repaint/persist sequence with updated contracts, maps and source links (MODULE_CONTRACT, MODULE_MAP, CHANGE_SUMMARY in src/muya/lib/tableResize/index.js); V-M-012 and V-M-061 gain the executed vitest and two-engine playwright evidence plus the completion scenario. Frozen legacy artifacts are preserved; browser proof is recorded as distinct from separate native/owner/platform acceptance. Lane bootstrap/admission records land under the approved integ/techdebt td-N; current-state integrity and status pass with no new errors against the recorded baseline. Original 77 records/59 groups accounting stays unchanged; a mandatory incomplete delivery or acceptance keeps COMPLEX:F-003 open.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grace lint --path . --assertions current</Command>
+          <Command>grace status --path . --with modules --json</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <MustPassCommand>
+        <Command budgetSeconds="900">node node_modules/@playwright/test/cli.js test tests/e2e/table-modes.spec.ts tests/e2e/table-column-resize.spec.ts tests/e2e/table-width-persistence.spec.ts tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-completion.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-column-resize.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <Note>Final acceptance is the combined chromium + webkit-tables playwright run over the four table specs together with the combined focused/existing vitest run, both green with no weakened assertions, after suitable local/browser checks and a full exact-head lane pass. Source-only call inventories are not runtime chronology or final acceptance; apply/archive follows fresh end-state proof and an explicit owner decision, and admission/main departure stay traceable per the spec lifecycle.</Note>
+    </AcceptanceVerification>
+  </C-TABLE-LAYOUT-COMPLETION>
+</GraceChangePlan>

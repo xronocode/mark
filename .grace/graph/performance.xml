@@ -939,6 +939,7 @@
         <C-PAGE-WIDTH-TABLES/>
       </ChangeRefs>
           <SummaryDelta>C-TABLE-PROFILE-SCHEMA: the persisted table-layout profile consumers share one zero-import schema owner, so profile adoption and migration cost one validation pass with unchanged store/serialization behavior.</SummaryDelta>
+      <SummaryDelta>C-TABLE-LAYOUT-COMPLETION: terminal table operations run one ordered completion pass instead of six ad-hoc persist paths; no new timers, polling or geometry reads beyond the existing cue measurement.</SummaryDelta>
 </M-061>
   </GD-PERFORMANCE>
 </GraceGraphDocument>

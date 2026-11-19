@@ -1,5 +1,5 @@
 // FILE: tests/renderer/muya/table-layout-persistence.test.js
-// VERSION: 2.3.0
+// VERSION: 2.4.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the persistent table layout behaviour (C-65 T-001/T-004 + C-PAGE-WIDTH-TABLES T-007/T-008/T-009) — the persistent identity (ordinal + header signature), the schema-v2 adoption (widths + ratios + tableWidth + mode, with the idempotent legacy fit:true/fullWidth migration), the rememberTableColumnSizes gate, the identity-change drops (corner-2), the unseen-entry drop, the serialize/dispatch write path (only after real user actions), the honest three-mode defaults and the toolbar mode-segment routing, the degradation badge caption, the walls and the reset/wall-double-click persist paths.
 //   SCOPE: src/muya/lib/tableResize/index.js (syncIdentities load versus write modes, applyPersistedLayouts, serializeTableLayouts, persist snapshot refresh, toggle/openViewer, handleToolbarAction/Click/Mousedown, handleScrollCapture, sanitizePersistedEntries, tableSignature) plus the shared schema owner muya/lib/tableResize/tableLayoutSchema.js behind sanitizePersistedEntries (C-TABLE-PROFILE-SCHEMA) and the R-3 reset-persist paths of handleDoubleClick / handlePointerUp.
@@ -20,10 +20,28 @@
 //   buildBareTable - jsdom table.ag-paragraph with a thead (or tbody) row of th cells, NOT wrapped in a figure — the guard paths where closest('figure') must miss.
 //   addHandles - appends one .ag-column-resizer span per row cell; returns the handles.
 //   pidOf - computes the expected ordinal#signature identity of a buildTableFigure/buildBareTable fixture.
+//   readBoundarySrc - read a repo source file as text for the byte-identity anchors.
+//   BOUNDARY_ROOT - the C-TABLE-LAYOUT-COMPLETION byte-identity source snapshot.
+//   BOUNDARY_FIT - the C-TABLE-LAYOUT-COMPLETION byte-identity source snapshot.
+//   BOUNDARY_CUE - the C-TABLE-LAYOUT-COMPLETION byte-identity source snapshot.
+//   BOUNDARY_INDEX - the C-TABLE-LAYOUT-COMPLETION byte-identity source snapshot.
+//   BOUNDARY_RENDER - the C-TABLE-LAYOUT-COMPLETION byte-identity source snapshot.
+//   BOUNDARY_RESIZE_HANDLER - the C-TABLE-LAYOUT-COMPLETION byte-identity source snapshot.
 //   T - test helper (T).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-LAYOUT-COMPLETION: scoped completion-stage
+//   boundary pins — the serializer keeps exactly ONE authorized persist
+//   call site (inside completeTableOperation), the read-only funnels route
+//   their causes through the stage without writes, the membership-fenced
+//   adoption stays silent, and the pure siblings (tableFit.js,
+//   tableCue.js) plus the external callers keep their byte-identity
+//   anchors. v2.4.1: the resize-handler anchor pins the real guarded
+//   funnel line (`if (this.muya.tableResize?.refitNow) …refitNow()`) —
+//   the caller guard and the argument-free call are two tokens on one
+//   line, not an optional-chained call. Existing suites keep every
+//   historical case unchanged.
 //   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: scoped shared-owner block —
 //   the six historical Muya-direct sanitize families (contradictory legacy
 //   flags, legacy fit, explicit Auto with stale fields, verbatim ratio
@@ -48,6 +66,9 @@
 // END_CHANGE_SUMMARY
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import TableResize, {
   MIN_COLUMN_WIDTH,
   RESIZER_CLASS,
@@ -1611,3 +1632,101 @@ describe('sequential fitted borders (C-TABLE-SEQUENTIAL-RESIZE)', () => {
   })
 })
 // END_BLOCK_SEQUENTIAL_FITTED_RESIZE
+
+// START_BLOCK_COMPLETION_BOUNDARY_PINS
+// C-TABLE-LAYOUT-COMPLETION: scoped pins for the consolidated completion
+// boundary. The behavioral matrix lives in
+// tests/renderer/muya/table-layout-completion.test.js; these pins keep
+// THIS suite's own guarantees (persist boundary, adoption fences) honest
+// against the one-stage shape and prove the byte-identical siblings.
+const BOUNDARY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+const readBoundarySrc = (rel) => readFileSync(resolve(BOUNDARY_ROOT, rel), 'utf8')
+const BOUNDARY_INDEX = readBoundarySrc('src/muya/lib/tableResize/index.js')
+const BOUNDARY_FIT = readBoundarySrc('src/muya/lib/tableResize/tableFit.js')
+const BOUNDARY_CUE = readBoundarySrc('src/muya/lib/tableResize/tableCue.js')
+const BOUNDARY_RENDER = readBoundarySrc('src/muya/lib/parser/render/index.js')
+const BOUNDARY_RESIZE_HANDLER = readBoundarySrc('src/muya/lib/eventHandler/resize.js')
+
+describe('completion-stage boundary pins (C-TABLE-LAYOUT-COMPLETION)', () => {
+  it('the serializer keeps exactly one authorized persist call site, inside completeTableOperation', () => {
+    const callSites = BOUNDARY_INDEX.match(/this\.persist\(\)/g) || []
+    expect(callSites).toHaveLength(1)
+    const stageAt = BOUNDARY_INDEX.indexOf('completeTableOperation(cause, { key, figure, table } = {})')
+    expect(stageAt).toBeGreaterThan(-1)
+    expect(BOUNDARY_INDEX.indexOf('this.persist()')).toBeGreaterThan(stageAt)
+    // Every rewritten completion site routes its cause through the stage.
+    for (const marker of [
+      'BLOCK_TABLE_MODE',
+      'BLOCK_TABLE_WALL_WIDTH',
+      'BLOCK_COLUMN_RESIZED',
+      'BLOCK_TABLE_WALL_RESET',
+      'col=${columnIndex} mode=auto]',
+      'col=${columnIndex} width='
+    ]) {
+      const at = BOUNDARY_INDEX.indexOf(marker)
+      expect(at).toBeGreaterThan(-1)
+      expect(BOUNDARY_INDEX.indexOf('completeTableOperation(COMPLETION_CAUSE.', at)).toBeGreaterThan(at)
+    }
+    // The read-only funnels route through the stage; destroy and preview
+    // never complete anything.
+    expect(BOUNDARY_INDEX).toContain('refreshTableSurfaces(cause = COMPLETION_CAUSE.REFRESH)')
+    expect(BOUNDARY_INDEX).toContain('this.refreshTableSurfaces(COMPLETION_CAUSE.ADOPT)')
+    expect(BOUNDARY_INDEX).toContain('this.refreshTableSurfaces(COMPLETION_CAUSE.RECONCILE)')
+    expect(BOUNDARY_INDEX).toContain('this.refreshTableSurfaces(COMPLETION_CAUSE.REFIT)')
+    expect(BOUNDARY_INDEX).toContain('completeTableOperation(COMPLETION_CAUSE.SCROLL')
+    expect(BOUNDARY_INDEX).toContain('completeTableOperation(COMPLETION_CAUSE.WINDOW')
+    expect(BOUNDARY_INDEX).not.toContain('COMPLETION_CAUSE.DESTROY)')
+    expect(BOUNDARY_INDEX).not.toContain('COMPLETION_CAUSE.PREVIEW)')
+  })
+
+  it('the pure sibling modules and the external callers keep their byte-identity anchors', () => {
+    expect(BOUNDARY_FIT).toContain('// VERSION: 1.2.1')
+    expect(BOUNDARY_FIT).toContain('export const measureColumnExtents')
+    expect(BOUNDARY_FIT).toContain('export const planTableFit')
+    expect(BOUNDARY_FIT).not.toContain('completeTableOperation')
+    expect(BOUNDARY_FIT).not.toContain('COMPLETION_CAUSE')
+    expect(BOUNDARY_FIT).not.toContain('this.persist()')
+    expect(BOUNDARY_CUE).toContain('// VERSION: 1.3.0')
+    expect(BOUNDARY_CUE).toContain('export const syncTableCue')
+    expect(BOUNDARY_CUE).not.toContain('completeTableOperation')
+    expect(BOUNDARY_CUE).not.toContain('COMPLETION_CAUSE')
+    expect(BOUNDARY_RENDER).toContain('tableResize.reconcileAfterRender()')
+    expect(BOUNDARY_RESIZE_HANDLER).toContain('if (this.muya.tableResize?.refitNow) this.muya.tableResize.refitNow()')
+    expect(BOUNDARY_RESIZE_HANDLER).toContain('this.muya.tableResize?.refreshTableSurfaces?.()')
+  })
+
+  it('a read-only completion never writes, even when the serialization differs from the snapshot', () => {
+    const muya = makeFakeMuya()
+    const built = buildTableFigure('t1', ['Alpha', 'Beta'])
+    muya.container.appendChild(built.figure)
+    muya.tableResize.persisted = { [pidOf(0, ['Alpha', 'Beta'])]: { widths: [1], manual: [true] } }
+    muya.tableResize.setTableWidths('t1', [130, 90], [true, false])
+    expect(muya.tableResize.serializeTableLayouts()).not.toEqual(muya.tableResize.persisted)
+
+    muya.tableResize.reconcileAfterRender()
+    muya.tableResize.refitNow()
+    muya.tableResize.refreshTableSurfaces()
+
+    expect(built.table.classList.contains('ag-column-widths-fixed')).toBe(true)
+    expect(muya.eventCenter.dispatch).not.toHaveBeenCalledWith('muya-table-layouts', expect.anything())
+  })
+
+  it('membership-fenced adoption: a table removed during the paint delay adopts nothing and never writes', () => {
+    const frames = []
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => { frames.push(cb); return frames.length })
+    const muya = makeFakeMuya()
+    const built = buildTableFigure('gone', ['Alpha', 'Beta'])
+    muya.container.appendChild(built.figure)
+
+    muya.tableResize.applyPersistedLayouts({
+      [pidOf(0, ['Alpha', 'Beta'])]: { widths: [90, 80], manual: [true, false] }
+    })
+    built.figure.remove() // the membership fence: the table left the container
+    while (frames.length) frames.shift()()
+
+    expect(muya.tableResize.getWidths('gone')).toBeUndefined()
+    expect(muya.eventCenter.dispatch).not.toHaveBeenCalledWith('muya-table-layouts', expect.anything())
+    muya.tableResize.destroy()
+  })
+})
+// END_BLOCK_COMPLETION_BOUNDARY_PINS
