@@ -1,0 +1,9 @@
+# Cargo workspace cache evidence
+
+Locked offline Cargo metadata resolves the build target at the repository root. Three explicit workflow caches instead retained the member target path. This repair changes only those cache path, key and restore-prefix mappings and their file-local descriptions. The corrected namespace retains the existing test OS/release target split and exact toolchain/lock inputs, and cannot restore a legacy member-target entry.
+
+Fourteen new parsed-workflow and controlled-mutation tests initially produced six expected failures and eight passing controls. The final focused set passed 116 tests across four suites. Complete parsed workflow comparisons preserve every executable field outside the three cache mappings, including all 48 action uses, registry/Git paths, platform matrices, build/test commands, signing and publication boundaries. Metadata inspection created no target directory and no Cargo build or cache service operation ran locally.
+
+Independent source review found zero remaining findings. Root reconciled the additive current graph/verification entries and runs selected final assertions with the declared metadata and focused-test gates. Technical specification, plan and apply/archive decisions use the owner's delegated authority dated 2026-11-15. No test app or task-owned executable is created; dependency caches remain untouched.
+
+Ordinary exact-candidate hosted backend checks, main integration and Collecting accounting remain separate delivery gates. A subsequent normal authorized CI run must record actual target cache save/restore and Cargo reuse where available before the original reuse acceptance closes. Production release-cache execution and measured speed are unverified. No release dispatch, signing, version, tag or publication is authorized.

@@ -1,0 +1,103 @@
+<GraceChangePlan graceVersion="4.0" status="superseded">
+  <C-CI-NATIVE-FIXTURE-CARRIER>
+    <ReplacementChange>C-CI-NATIVE-FIXTURE-ATTRIBUTION</ReplacementChange>
+    <IntentSummary>Private proposed fixture-only recovery plan. After separate spec/plan approval and source-bound C recipe review, preserve five files and change only Rust fixture carrier/attribution mechanics; all runtime policies and test limits remain exact.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-046</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="60">node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/run-rust-tests.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npm run release:governance</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tools/run-rust-tests.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">actionlint .github/workflows/test.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/tools/qa-launch-gate.test.mjs</File>
+      <File>.github/workflows/test.yml</File>
+      <File>tests/tools/ci-rust-receipt-retention.test.mjs</File>
+      <File>tests/tools/ci-rust-test-lifecycle.test.mjs</File>
+      <File>tools/run-rust-tests.mjs</File>
+      <File>tests/tools/run-rust-tests.test.mjs</File>
+    </ObservedWriteScope>
+    <ReferenceState>
+      <SourceBaseline>0021dc376998086f22a701d2372010ffeabec5b90da1c01f1c69fcdb932bdb31</SourceBaseline>
+      <NativeCarrierRecipe>3e9dbe844081712575ac3aa0e669b37022d5fc481f1138fcaa7267d28dab7951</NativeCarrierRecipe>
+      <DurableProjection>bd5a0dcb4bb27d89c79fc994af72141665d6a32d904df3a1dddab2d98cfe536b</DurableProjection>
+      <SpecDraftSha256>150fa6ed115924f09e639ae917dc7d9a7a2eac128565ba50bfe1bb68f09568e3</SpecDraftSha256>
+    </ReferenceState>
+    <ExecutionProtocol>
+      <ApprovalSequence>Root alone terminal-final/retires parent superseded-not-applied with approved-body inverse; spec-only/current/approval then plan/current/approval and exact recovery baseline before new writes. Root reviews exact generated C/compiler/argv/tool+source identity before any carrier build. Private draft is not native authority.</ApprovalSequence>
+      <Budgets>Keep five original leaves60/30/10/10/10 and fullcoverage300s; no old timer/defaultHook/concurrency/config change. Carrier speed/build sufficiency is unmeasured. Compiler/runtime child fixtures are real native CLI activity and must be explicitly attributed/cleaned, not called source-only.</Budgets>
+    </ExecutionProtocol>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Prepare exact owned carrier fixture source and reviewed build protocol</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Verify approved pair/current/recovery baseline, six preimages/five frozen files and parent terminal proof before writes. Snapshot exact existing helper/case bodies/copy sites/SHA operand. No old whole-suite or timing rerun.</Criterion>
+          <Criterion>Change only fixture test file: generated safely bound C execv literal source and one suite-owned universal clang template build; metadata writer follows RUST→QA→lazy private root. Before any build send actual generated C/source/recipe/compiler identity to root for review; this is an explicit native build gate.</Criterion>
+          <Criterion>Use existing held same-PID tool protocol to record builder PID/source/argv before release, await/reap builder and compiler-managed tools, record actual final universal binary/digest/mode. No hidden warmup; missing/unavailable/failure stops with cleanup, never fallback or skip.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/run-rust-tests.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Preserve direct cases and prove carrier identity equivalence</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Only generated fake-Cargo copy sources180/185/189 select the carrier on darwin+universal currentNode; mode wait stays direct; all nine explicit sites362/429/557/595/606/654/669/685/693 plus sentinel559 remain exact direct copies. Keep SHA operand329 literal. Enumerate all helper/case/source identity deltas precisely.</Criterion>
+          <Criterion>Bind carrier/source/Node/script identities in fixture records and add actual final execPath/rawargv0/argv/cwd/env/DYLD +samePID assertions without weakening old assertions/status/signal/fault checks. Add one direct copied official universalNode one-target positive under unchanged5000ms, non-carrier host positive direct attribution and no new skip.</Criterion>
+          <Criterion>Run exact affected10-suite60s and other four existing leaves only after source freeze; record actual timings/results/identities. Finally all exact fixture children/builders stop/reap and template/copies/intermediates are removed; retain source/JSON/recipes, preserve caches.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/run-rust-tests.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Prove complete ordinary no-env coverage and bounded root handoff</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Freeze six files+approved docs+C recipe/tool/runtime/config; run full configured npm run test:coverage once with QA evidence key absent, same Node22/physical deps300s/floors/timers2skip3todo. Record actual carrier native build, all tool before-release/PID/source/digests and full actual result; no substitutes.</Criterion>
+          <Criterion>Prove five frozen files/all runtime functions exact, precise old assertions/copy/SHA preservation and newly strengthened attribution, all outside six/oldarchives exact. Bind raw failed history, directNode positive, carrier/build source/PID/result/cleanup and exact3-op private projection.</Criterion>
+          <Criterion>Root alone applies three owner additions without prior duplicate, independent target/final/archive/current/status/Git. Packaging/Mark/platform/publication holds remain explicit.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run test:coverage</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="300">npm run test:coverage</Command>
+      <Environment>Remove MARK_QA_CORE_EVIDENCE_ROOT from child only; existing RUST evidence sink allowed; same Node22/current physical dependencies/canonical two-worker coverage thresholds/skips/todos/timers.</Environment>
+      <OwnedNativeBuild>Carrier source/recipe/root review before build; existing CLT universal compiler/linker implicit ad-hoc signing are actual native CLI build work. No keys/apps. Exact templates/copies/intermediates deleted only after all owned PIDs stop; caches/source/JSON/results retained.</OwnedNativeBuild>
+    </AcceptanceVerification>
+  </C-CI-NATIVE-FIXTURE-CARRIER>
+</GraceChangePlan>

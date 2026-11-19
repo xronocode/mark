@@ -89,6 +89,51 @@ GitHub, Apple signing and updater credentials, `NODE_OPTIONS`, registry tokens a
 wrapper variables are not forwarded. This minimizes inherited environment for prepared
 trusted tooling; it is not a filesystem sandbox or a signed-release security boundary.
 
+## Manual CI installer handoff
+
+The `release.yml` manual lane builds unsigned, updater-disabled macOS arm64 DMG and
+Windows x64 NSIS packages under a unique QA application name and bundle identifier.
+Production tag publishing and signing are separate. A workflow run or package never
+supplies an owner acceptance verdict.
+
+Before dispatching, record the owner's explicit request for a concrete active,
+unfinished test and permission to dispatch the exact candidate. The required
+`qa_test_case` input is a safe case ID such as `CI-F002`; entering it does not create
+that request or grant authorization. This repository change authorizes no dispatch
+and asserts no current installer-retention request.
+
+Each platform artifact is named
+`mark-qa-<platform>-<actual-checkout-SHA>-<run-ID>-<attempt>` and contains only its
+installer and `qa-manifest.json`. The manifest binds the actual checkout and candidate
+head separately, source/run/attempt/platform, isolated identity, configuration digest,
+installer filename, byte length and SHA-256, and unfinished test. Missing, empty,
+ambiguous or linked package outputs fail collection. The upload receipt records the
+remote artifact ID and ZIP SHA-256 separately from the installer's SHA-256. Evidence
+uploads contain manifests, logs and cleanup results, never packaged applications.
+
+Download only the exact recorded artifact ID. Verify the downloaded ZIP against its
+upload digest, then verify the contained installer bytes and length against the
+manifest before launch. Record the exact installed path, source, bundle identity,
+binary digest and owned process IDs. Use an isolated test profile, normal Quit and
+finally cleanup; verify processes and windows stopped, then remove the task's local
+app, installer and duplicate executable copies. Keep the recipe, identities, digests
+and results as evidence, with deleted binaries marked unavailable.
+
+The remote installer exists only for that separately requested unfinished test, with
+a maximum one-day expiry. When the test finishes or is cancelled, delete its exact
+remote artifact ID and verify absence; expiry is a fallback, not a reason to retain a
+completed test. Preserve lifecycle evidence. A later test requires a fresh reviewed
+candidate and build. Record any failed cleanup with exact remaining paths and PIDs.
+
+Ordinary `release-tauri.yml` PR/push/manual dry runs complete their install/startup
+smoke on the ephemeral runner. They install an exclusive, run-specific QA app rather
+than the owner's production app, request normal Quit for the exact bundle/executable
+and PID, verify process/window shutdown and remove all completed binary copies in
+finally cleanup. They upload lifecycle metadata and warning logs only. The original
+size threshold, warning allowlist and installed-app launch gate still apply. Pure
+fixture tests do not establish native-runner success or actual installer delivery;
+those require exact-candidate CI and a separately authorized two-platform handoff.
+
 ## Survey (generated from registry.json — `node tools/acceptance-registry.mjs --survey`)
 
 | Item | State | Artifact | Verdict / Why pending |

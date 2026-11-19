@@ -1,0 +1,122 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-QA-ARCHIVE-LIFECYCLE>
+    <IntentSummary>PRIVATE proposed plan only. Make exact-QA archive ownership complete and isolate the packaged cache from old untracked archives; preserve native behavior and all other jobs.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-046</Value>
+      </MustExist>
+      <MustContain>
+        <File>tools/prepare-qa-artifacts.mjs</File>
+        <Text>const candidateFiles = state =&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-tauri.yml</File>
+        <Text>cargo-workspace-v1-${{ matrix.platform.target }}-</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-github-controls.test.js</File>
+        <Text>10922408615e75cb9a0cc489b0db08eeed7bd5b64ea2e6f8f74ea39ebce61c8c</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>tools/prepare-qa-artifacts.mjs</File>
+        <Text>.app.tar.gz</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-tauri.yml</File>
+        <Text>cargo-workspace-qa-v2-${{ matrix.platform.target }}-</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-qa-archive-lifecycle</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="60">node node_modules/vitest/vitest.mjs run tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npm run release:governance</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tools/prepare-qa-artifacts.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">actionlint .github/workflows/release-tauri.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/prepare-qa-artifacts.mjs</File>
+      <File>tests/tools/prepare-qa-artifacts.test.mjs</File>
+      <File>.github/workflows/release-tauri.yml</File>
+      <File>tests/tools/cargo-workspace-cache.test.mjs</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+    </ObservedWriteScope>
+    <ReferenceState>
+      <SpecDraftSha256>a2911ee473d957dfc765eea83c099c92f6069d419c03a799dd8a0ecf681cd5f2</SpecDraftSha256>
+      <SourceBaseline>a640b90ecfcdc5c77bf880f8b76696769ceb3bc857349eacb41587b221a6279b</SourceBaseline>
+      <DurableProjection>b11b4853d8de878edc1c352434e335ab12fc9f2b49c047adde175dc9516f1218</DurableProjection>
+    </ReferenceState>
+    <ExecutionProtocol>Actual predecessor C-CI-NATIVE-FIXTURE-ATTRIBUTION completed final/apply/archive/current on 2026-11-19 (CARRIER retired superseded-not-applied). Before any archive spec/plan approval or observed edit, freshly revalidate actual all-source/fulltracked/archive/current-owner baseline and HEAD/tree, then reconstruct the three bounded operations. The private owner projection was rebuilt (2026-11-19) against the applied attribution graph/verification postimages with revalidated five-file preimages. Import/approve spec only, then review/import/approve exact plan and selected baseline before edits. No active draft-plan import before spec approval; approved bodies immutable. Current is pre-edit only; target/final are post-edit; root owns all durable apply/archive and public operations.</ExecutionProtocol>
+    <BudgetEvidence>Five declared leaves: affected six-suite60s proposed from prior core261/5 at25.77s plus small cache/control suites, governance30s and syntax/actionlint/diff10s from existing fast gates. New bounds must be measured; no unmeasured green/quiet timeout/skip/retry. Use existing pinned actionlint tooling via per-command PATH, no install. Full configured coverage on changed-head ordinary CI is required before merge; preceding carrier and inherited compatibility coverage remain attributed to their exact candidates.</BudgetEvidence>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Bind actual post-carrier source and reproduce omitted archive ownership</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Read approved pair/contracts and root fresh baseline/current/selected checks. Bind five preimages, all outside/archive bytes, three native helpers and original prepare functions/branches. Preserve all old fixtures, action pins and historical workflow digest.</Criterion>
+          <Criterion>Add actual real inert filesystem test creating current-QA .app.tar.gz and optional signature after prepare; call actual recordGenerated/cleanupGenerated then fail the desired owned/deleted assertions on old helper. Add cache new-prefix control that actually fails old source. Preserve raw red/tool/source identities; no missing API/import red and no native/executable/archive launch.</Criterion>
+          <Criterion>Add positive/preexisting/link/empty/digest-change/sidecar-only/unrelated/dependency/independent-cleanup controls using existing owned fixtures with outer-finally cleanup. Archive contents are synthetic inert bytes; no tar/native build needed.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Track exact archives and isolate packaged cache restoration</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Implement only exact macOS archive/sidecar discovery, preexisting refusal and archive/signature kinds. Use existing measured descriptor/digest protection and schema; once owned, archive digests cannot refresh on rediscovery. Keep unrelated executable/installer rules and all native cleanup policies unchanged; update honest MODULE_MAP/summary only as needed.</Criterion>
+          <Criterion>Change only two release-tauri cache key strings to qa-v2, with no old fallback; keep paths/pins/target/hash/job controls. Change only its existing cache-contract row plus necessary negatives. Extend assertQaGateWorkflow by checking exact new strings then reversing them before existing cleanup-line inverse and unchanged109224 historical digest.</Criterion>
+          <Criterion>Run five leaf commands and retain real outputs/counts/timings; compare complete workflow AST/byte inverse, old test bodies outside justified validator/contract changes, all outside files/archives and native branch source bridge. Do not run postwrite current before archive.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+          <Command>npm run release:governance</Command>
+          <Command>node --check tools/prepare-qa-artifacts.mjs</Command>
+          <Command>actionlint .github/workflows/release-tauri.yml</Command>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Hand off bounded durable state and hosted acceptance</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Freeze exact five source paths/approved docs, raw meaningful red/green/fault receipts and original outside/archive manifest. Request independent source Standards/Spec review. Root alone applies three additions reconstructed on actual current owners, proves complete inverse/outside, final command gates, archive/current/status.</Criterion>
+          <Criterion>Prior actual Mark proof stays historical; exact three native protocol helpers and all unchanged runtime branches provide a limited compatibility bridge. No new private Mark rebuild/LS request is required or authorized. All original native/owner/manual/release/signing holds persist.</Criterion>
+          <Criterion>Before merge, root normal changed-head hosted path must prove new namespace does not restore legacy key, archives/optional signature recorded and deleted before cache-save poststep, other native gates and configured renderer CI pass. Cache save/hit only if emitted; no remote-content certainty invented, old cache deletion or dispatch/rerun authority.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceTier>Local gates are inert filesystem/AST/testing only. Actual changed-head ordinary hosted QA archive cleanup, cache namespace and configured tests remain required before merge; no production signing/release/manual owner acceptance is inferred. Carrier and inherited predecessor coverage are not relabeled as exact-source evidence for this later candidate.</AcceptanceTier>
+  </C-QA-ARCHIVE-LIFECYCLE>
+</GraceChangePlan>

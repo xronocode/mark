@@ -1,0 +1,186 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-QA-MACOS-LAUNCH-GATE>
+    <IntentSummary>Add the approved source-native macOS PID/birth gate with exact original bundle restoration, original LaunchServices timing and fresh recovery; preserve the complete core185 behavior and nine-path boundary.</IntentSummary>
+    <ReferenceState>Approved active spec SHA25677eef0b7d4e27497f8e737987eb7de27e60a917abf14a05e47111b77be546713; root-approved clean48ff5169ca43e1bb7212848f8badee2bfec5a5cd/tree26c6ae9827cc2621efc2223d7448bd2339568e77. Full preimplementation2290-file manifest SHA2560e57c3c372f7ddcfd507799a18da55b948c3fd6006f3af43369a9794ec5527b3. Root retained before-spec and approved-spec current0,23 exact preimages/3 new-path absences. Planning rehash matches all23; no planner test/native/Git call. Root explicit post-approval plan instruction controls the spec historical draft-only task narration; approved body remains immutable. Private draft only; no source or active plan write.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustContain>
+        <File>tools/qa-artifact-smoke.mjs</File>
+        <Text>processIdentityUncertain</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/qa-artifact-smoke.mjs</File>
+        <Text>launch(path) { command('/usr/bin/open', ['-n', '-g', path]) }</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/prepare-qa-artifacts.mjs</File>
+        <Text>export function beginSmokeCleanup</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-tauri.yml</File>
+        <Text>node tools/prepare-qa-artifacts.mjs cleanup --state "$QA_STATE"</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>tools/qa-launch-gate.mjs</File>
+        <Text>export function isGateStopProof</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/qa-launch-gate.mjs</File>
+        <Text>native-launch</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/qa-pid-image.py</File>
+        <Text>def observe_pid</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/qa-artifact-smoke.mjs</File>
+        <Text>--cleanup-only</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/prepare-qa-artifacts.mjs</File>
+        <Text>isGateStopProof</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/qa-artifact-smoke.test.mjs</File>
+        <Text>native payload cannot execute before durable owned PID</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-qa-macos-launch-gate</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="60">node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npm run release:governance</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tools/qa-launch-gate.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tools/qa-artifact-smoke.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tools/prepare-qa-artifacts.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">python3 -c "import ast,pathlib; ast.parse(pathlib.Path('tools/qa-pid-image.py').read_text())"</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">actionlint .github/workflows/release-tauri.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/qa-launch-gate.mjs</File>
+      <File>tools/qa-pid-image.py</File>
+      <File>tools/qa-artifact-smoke.mjs</File>
+      <File>tools/prepare-qa-artifacts.mjs</File>
+      <File>.github/workflows/release-tauri.yml</File>
+      <File>tests/tools/qa-launch-gate.test.mjs</File>
+      <File>tests/tools/qa-artifact-smoke.test.mjs</File>
+      <File>tests/tools/prepare-qa-artifacts.test.mjs</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+    </ObservedWriteScope>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Architecture>tools/qa-launch-gate.mjs owns strict records, physical runtime copy, manifest/atomic fsynced controls, gate entry and module-private opaque stop proof. tools/qa-pid-image.py exposes observe_pid(pid, backend=None) and CLI exact-positive-PID only; import has no libproc query, backend is injected by tests after module import, never enabled by production argv/environment. Output is typed present/absent/unknown with canonical seconds/usec strings and exact image; Python launcher and actual framework image are separate observations. qa-artifact-smoke integrates one LS request, the original10s monotonic appearance clock, independent process/window/Quit/tool/detach cleanup and cleanup-only recovery. Generic prepare imports only pure isGateStopProof(proof, expected), checks deterministic native-launch directory/guard independently and makes no native query. No serialized/CLI flag authorizes new-gate deletion. Immutable source/config/nonce/birth binding flows through prepareLaunchGate(session), gateMain(intentPath), observeOwnedImage(pid), finishGate(session) and resumeGateCleanup(state).</Architecture>
+    <ReviewFocus>
+      <Item>LSaccepted/nohello after controller failure: exact validated abort only; unknown lifetime retains protected paths, no discovery adoption/release/second LS/allcopiesclean promise.</Item>
+      <Item>Missing guard/smoke flags with native-launch directory, partial JSON, stale cleared state, symlink/EACCES or forged terminal flags: fresh CLI cannot downgrade protection.</Item>
+      <Item>Post-sign copied Node relocated or handed off elsewhere: held exact-slot image/capability/close must pass before LS; source runtime inode/digest unchanged.</Item>
+      <Item>Evidence/export/inventory/app-metadata save failures after independent stop: all separately safe known-copy deletions still attempted; unknown app/tool/mount stays retained.</Item>
+      <Item>PID birth reuse/short reads/EPERM/EIO, transient identity mismatch and late receipt/deadline: sticky uncertainty, no Quit of rejected PID or successful after-deadline appearance.</Item>
+    </ReviewFocus>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Prove the old native-before-PID path and implement the bounded gate protocol</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Before observed writes, root imports/reviews this draft, approves plan separately, runs current and selected baseline, and verifies active approvals/full2290 manifest/23 preimages/3 absent paths. Preserve existing185 assertion bodies and archive/workflow hashes as the comparison baseline. Worker writes only the nine declared paths after approval; no private prototype is copied wholesale.</Criterion>
+          <Criterion>Add the meaningful red named native payload cannot execute before durable owned PID to actual existing smoke tests using native.launch callback inspection of real fixture state/receipts. The old production smoke call must reach launch before a durable owned PID/preexec receipt; assert that unsafe behavior fails the proposed requirement. Retain actual assertion failure/source hash/log, not missing imports/APIs. Every inert owned child/copy is barrier-recorded and finally reaped/deleted with external source/path/digest/PID receipts.</Criterion>
+          <Criterion>Create qa-launch-gate helper/tests and qa-pid-image.py with truthful contracts/maps. Implement strict source/config/identity/nonce/path/digest records, fixed native-launch directory and independently fsynced guard before instrumentation, durable intent-before-action/completion-afterward, physical runtime separate-inode backup/copy, full bytes/ordinary modes/signature/link-target manifest and atomic exclusive temp/file+directory fsync/rename. Do not follow unowned links or copy secrets/environment.</Criterion>
+          <Criterion>Gate entry validates hello/release/abort and sources, writes actual PID/canonical kernel birth hello, permits only validated original native argv/environment, independently rechecks restored full manifest, fsyncs beforeExec then same-PID process.execve. Active Node moves to owned aside and remains until proven stopped. Dynamic source process.execPath is regular/resolved/hashed with Node22/process.execve capability; reject unreviewed hooks. No hardcoded host/prototype runtime, new dependency or source signing.</Criterion>
+          <Criterion>Test actual exported helpers with real inert files/controlled Node children: positive held release/abort; wrong/missing/late nonce/PID/birth/source/digest/restore/receipt refuses exec; source/inode/hooks/link/copy errors; guard/write/fsync/rename/crash handoffs; changed original payload/mode/resource/signature manifest; sentinels/caches/source tool preserved. Synthetic payload is a known preexisting Node copy/script, never Mark/AppKit/LS/signing. On POSIX execve-unavailable and Windows assert explicit unsupported failure without skipped tests.</Criterion>
+          <Criterion>Import actual Python helper with injected fake libproc backend from tracked gate test; no native libproc operation at import. Assert exact136-byte ABI/PID, canonical positive uint64 seconds/usec0..999999, path bracket birth equality, short/EPERM/EIO/reused/zero/malformed/ESRCH results and framework observer launcher distinction. Python tests call actual observe_pid, never duplicate its predicate. Production CLI has no fake-backend override.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+          <Command>node --check tools/qa-launch-gate.mjs</Command>
+          <Command>python3 -c "import ast,pathlib; ast.parse(pathlib.Path('tools/qa-pid-image.py').read_text())"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Integrate one gated LaunchServices launch and independent safe completion</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend actual smoke and gate tests/only declared helpers. After existing readonly mount/install/identity/original signing/quarantine/size operations, arm existing core process/mount protection before first preflight query and guard before gate mutation. Original app/native/full signature baseline is backed up before instrumentation; temporary signing touches only owned installed copy and no new deep-force command. Restore and verify entire original bundle before release.</Criterion>
+          <Criterion>Before LS execute bounded controlled CLI capability against exact post-sign copied installed slot: source/digest/PID barrier, held exact OS image/birth, Node/execve result, close/reap. Relocation/library/launcher handoff/output/cancel/malformed/timeout failure produces zero LS. Inject native adapter for unit controls; native signing/libproc/LS stays root-only later.</Criterion>
+          <Criterion>Use exactly open -n -g app --args checkedOutGateModule gate --intent ownedIntent. Start monotonic10s appearance deadline before open; include hello/aside/full restore/signature/preexec/OS image checks in same clock. Require durable matching actual PID/birth before original native exec, positive same-PID/birth aside-to-native image plus existing unique AppKit identity. No second LS/direct launch/clock reset/readiness/positive-window/soak gate; finishedLaunching optional.</Criterion>
+          <Criterion>Abort held gate via exact nonce controls; native Quit requires revalidated PID/birth/bundle/executable and exact accepted response. Preserve up-to10s stop phase and cooperative cancellation. Independently observe exact OS PID/window/tool/detach after startup/Quit/window/evidence failure, sticky transient mismatch/reuse, no process name kill, app signal, rejected-PID Quit or LS-child reap claim.</Criterion>
+          <Criterion>Test actual smoke/helper orchestration and generated boundaries: positive launch/normalQuit; observed Node registration cannot pass appearance; full deadline overhead/late receipts; refusal/error/missing Quit despite exit; cancellation; every evidence/export/inventory/app-presence/state failure continues independent safe known-copy deletion after proof, without unlinking active aside or deleting unknown/live paths. Preserve core185 individual behavior/assertions; changed obsolete fixture expectations require narrow before/after rationale, never removal/weakening.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+          <Command>npm run release:governance</Command>
+          <Command>node --check tools/qa-artifact-smoke.mjs</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Enforce fresh-process recovery and the single always-cleanup route</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Wire cleanup-only smoke wrapper and prepare pure capability validation. Fresh wrapper validates exact state/config/guard, never releases/relaunches, aborts held gate or normal-Quits only fully bound/revalidated native PID/birth. Mint module-private WeakMap proof only after fresh independent stop/window/tool/detach observations, bind current invocation/identity/directory/config/launch/source; generic helper can validate/consume but not mint/deserialize. No native queries in generic helper or a second generic process trusting JSON.</Criterion>
+          <Criterion>Generic protection checks deterministic native-launch directory and guard independently, with only ENOENT absence; directory presence/empty/link/EACCES, missing/truncated state/guard/intent, omitted smoke/gate flags, legacy/unknownversion/forged stopped/deleted states remain closed. Never remove guard/directory before fresh proof plus required deletions. Existing no-gate/no-smoke Windows/manual/prelaunch cleanup and mount protection remain usable.</Criterion>
+          <Criterion>LSaccepted/nohello is explicit unknown lifetime: exact abort only from valid state/guard/intent, no discovered-PID adoption/release/retry. An already durable fully source/config/nonce/PID/birth recovery/error/exit receipt still needs fresh expected image/liveness/window checks; otherwise fail and retain/report exact applicable app/gate/aside/backup/generated/mount/installer. Timeout/self-exit/empty registration cannot create absence or allcopiesclean.</Criterion>
+          <Criterion>Actual fresh owned Node cleanup CLI fixtures exercise crashes before/after copy/sign/preflight/LSintent/open/hello/aside/restore/release/preexec/nativeobservation/Quit/stop/deletion/export via inert native backend seams. Assert no release/relaunch in recovery; malformed/stale/partial JSON and guard omissions fail closed; current opaque local proof permits independently completed-copy deletion despite later clear/export/save failure, while fresh stale persisted state remains closed. Retain finally PID/copy receipts outside fixture teardown.</Criterion>
+          <Criterion>Change exactly one existing workflow always cleanup run line to node tools/qa-artifact-smoke.mjs --cleanup-only --state "$QA_STATE". Keep step name/if/env/position and original smoke invocation. Actual YAML AST inverse must recover entire dryrun baseline; all production jobs, other workflows/actions/cache/pins/triggers/permissions/required statuses/uploads14days/size advisory/continue-on-error posture remain identical. Update only declared release-github-controls test with old assertions retained.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+          <Command>node --check tools/prepare-qa-artifacts.mjs</Command>
+          <Command>actionlint .github/workflows/release-tauri.yml</Command>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Bind nine-file candidate and hand off bounded durable and acceptance evidence</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Run all eight declared MustPass leaves with retained actual wall times and external fixture receipts using a fresh private MARK_QA_CORE_EVIDENCE_ROOT for existing and new gate fixtures; primary proposed60s includes actual injected Python backend controls. Capture first budget/requirement failure and ask root before any change to immutable approval; no skips/timer/retry/filter/floor weakening. Use existing pinned actionlint1.7.12 via configured PATH with retained digest/version; no install/download. AST Python parse writes no bytecode.</Criterion>
+          <Criterion>Bind final9 source files+approved spec/plan to exact full2290 baseline; prove every outside tracked file and original archive unchanged, existing185 individual behaviors retained, complete workflow inverse and production/cache/pin controls exact. Record actual source red/green and artifact/PID/cleanup provenance; normal source fixtures do not constitute native/Mark acceptance. Obtain independent Standards/Spec source review before root apply.</Criterion>
+          <Criterion>Hand root exact proposed seven bounded M046/VM046 operations with preimages/fullowner hashes/inverse/outside proof: additive SummaryDelta, two new Sources, one Tests, new scenario and trace; reconcile exactly existing four-suite Command to same five-suite superset. Preserve every other owner/scenario/command byte and archives. Root alone applies actual currentXML then selected target/final with leaves, archives, and runs postarchive current/status. Never put GRACE commands in MustPass or postwrite current.</Criterion>
+          <Criterion>No source/CI push before root separately approves and executes exact-source owned Mark recipe with isolated app/runtime/profile/keyring/signing/document-prompt limits and independent audit of actual preexec PID/birth/manifest/nativeimage/originalappearance/acceptedQuit/PID-window/tool/detach stop/deleted copies. TinyCocoa and inertsource proof do not waive it. Supported macOS15 hosted, pristine DMG and broader owner/product acceptance remain separate open; no native/GitHub/signing/release authority is granted by this plan.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</Command>
+          <Command>npm run release:governance</Command>
+          <Command>node --check tools/qa-launch-gate.mjs</Command>
+          <Command>node --check tools/qa-artifact-smoke.mjs</Command>
+          <Command>node --check tools/prepare-qa-artifacts.mjs</Command>
+          <Command>python3 -c "import ast,pathlib; ast.parse(pathlib.Path('tools/qa-pid-image.py').read_text())"</Command>
+          <Command>actionlint .github/workflows/release-tauri.yml</Command>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceTier>Only approved sequential source implementation and inert filesystem/controlled existing-runtime CLI fixtures follow plan approval. No Mark/AppKit/libproc/signing/LS/native build is authorized. Historical core185/4/1.851s supports proposed primary60s, but expanded duration is unmeasured; actual measured evidence is required. Source target/final are not permission to publish. Root-owned Mark acceptance before push and later macOS15/pristine DMG/owner gates remain explicit.</AcceptanceTier>
+    <PublicationAndNativeSmokeHold>No source/CI push, Mark launch, signing credential/profile/keyring action or native acceptance follows from plan approval. Root must separately authorize source-bound native recipe and independently audit actual Mark evidence before push; if unsafe/unavailable, hold remains.</PublicationAndNativeSmokeHold>
+  </C-QA-MACOS-LAUNCH-GATE>
+</GraceChangePlan>

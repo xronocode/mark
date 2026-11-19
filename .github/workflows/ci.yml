@@ -1,3 +1,17 @@
+# FILE: .github/workflows/ci.yml
+# START_MODULE_CONTRACT
+#   PURPOSE: Keep full workspace Cargo and fixture validation as blocking CI gates.
+#   SCOPE: Existing docs classification and test job; record/reap/delete exact test executables before cache save.
+#   DEPENDS: Cargo workspace, Node22 lifecycle helper, GitHub Actions runners.
+#   LINKS: M-046; V-M-046; C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE.
+#   ROLE: CONFIG
+#   MAP_MODE: NONE
+# END_MODULE_CONTRACT
+# START_MODULE_MAP
+# END_MODULE_MAP
+# START_CHANGE_SUMMARY
+#   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: preserve both root Cargo selections with exact artifact cleanup.
+# END_CHANGE_SUMMARY
 name: CI
 # Docs-only lane (owner instruction 2026-11-09): pull requests whose diff is
 # confined to docs/**, .grace/changes/** or top-level *.md skip this cargo
@@ -45,7 +59,22 @@ jobs:
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: src-tauri
+      - name: setup node for Rust test lifecycle
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
       - name: Cargo test
-        run: cargo test
+        run: node tools/run-rust-tests.mjs
       - name: Fixture validation
-        run: cargo test embedded_fixture_parses_and_matches_registered
+        run: node tools/run-rust-tests.mjs embedded_fixture_parses_and_matches_registered
+      - name: upload Rust lifecycle receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rust-test-lifecycle-${{ github.job }}-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/mark-rust-tests-*/state.json
+            ${{ runner.temp }}/mark-rust-tests-*/result.json
+            ${{ runner.temp }}/mark-rust-tests-*/runner-*.json
+          if-no-files-found: error
+          retention-days: 1

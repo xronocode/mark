@@ -2,7 +2,7 @@
 # VERSION: 3.7.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
-#   SCOPE: Input-free manual unsigned QA builds plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
+#   SCOPE: Named-test manual unsigned QA handoffs plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
 #   DEPENDS: M-046 release readiness/materials/preflight, Node 22, lockfile-installed attribution/SBOM tools, Rust 1.99.0, tauri-action, tag-restricted release-signing secrets, GitHub OIDC, release environment (owner reviewer).
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; .grace/changes/archive/C-SEC-AUDIT-FIXES.
 #   ROLE: CONFIG
@@ -20,6 +20,7 @@
 #
 # START_CHANGE_SUMMARY
 #   - 2026-11-17 v3.7.0 C-RELEASE-CANARY-PRERELEASE: prerelease lane for external-tester tags — authorize-tag admits vX.Y.Z-beta.N/canary.N (base = train computedVersion, no Ready seal) and skips readiness/materials/preflight plus the identity artifact; build skips the repeated admission gates; prepare-publication renders a tester body; publish exposes a prerelease that never advances releases/latest; publish-cask is skipped for prereleases. The stable path is unchanged for non-hyphenated tags.
+#   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: isolate named-test QA handoffs and clean completed local binaries.
 #   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: resolve exact release action pins and preserve shell output under actionlint.
 #   - 2026-11-09 v3.6.0 C-SEC-AUDIT-FIXES T-001: generate Node supply-chain evidence with lockfile-installed local binaries.
 #   - 2026-11-09 v3.5.0 C-CI-CD-AUDIT-FIXES: split manual QA checks into fail-fast steps, disable updater artifacts only in unsigned packaging, and pin Rust and its cache keys.
@@ -84,6 +85,11 @@ on:
       - 'v*.*.*'
       - 'v*.*.*-*'
   workflow_dispatch:
+    inputs:
+      qa_test_case:
+        description: Active owner-requested unfinished test ID (provenance only; separate exact-candidate authorization required)
+        required: true
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
@@ -245,6 +251,17 @@ jobs:
           targets: ${{ matrix.platform.target }}
       - name: install npm dependencies
         run: npm ci
+      - name: prepare isolated QA identity
+        id: qa
+        env:
+          QA_SOURCE_SHA: ${{ github.sha }}
+          QA_CANDIDATE_SHA: ${{ github.sha }}
+          QA_RUN_ID: ${{ github.run_id }}
+          QA_RUN_ATTEMPT: ${{ github.run_attempt }}
+          QA_PLATFORM: ${{ matrix.platform.name }}
+          QA_MODE: manual-handoff
+          QA_TEST_CASE: ${{ inputs.qa_test_case }}
+        run: node tools/prepare-qa-artifacts.mjs prepare
       - name: verify release governance
         run: npm run release:governance
       - name: verify IPC types
@@ -254,13 +271,60 @@ jobs:
       - name: build renderer
         run: npm run build
       - name: run Rust tests
-        run: cargo test --bin mark --manifest-path src-tauri/Cargo.toml
+        shell: bash
+        env:
+          QA_STATE: ${{ steps.qa.outputs.state }}
+        run: node tools/run-qa-rust-tests.mjs --state "$QA_STATE"
       - name: package unsigned QA build
         shell: bash
+        env:
+          QA_CONFIG: ${{ steps.qa.outputs.config }}
         run: |
           set -euo pipefail
           # Bypass npm.cmd on Windows so the JSON override reaches Tauri intact.
-          node ./node_modules/@tauri-apps/cli/tauri.js build --target "${{ matrix.platform.target }}" --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          node ./node_modules/@tauri-apps/cli/tauri.js build --target "${{ matrix.platform.target }}" --config "$QA_CONFIG"
+
+      - name: record generated QA outputs
+        shell: bash
+        env:
+          QA_STATE: ${{ steps.qa.outputs.state }}
+        run: node tools/prepare-qa-artifacts.mjs record --state "$QA_STATE"
+      - name: collect exact QA installer
+        shell: bash
+        env:
+          QA_STATE: ${{ steps.qa.outputs.state }}
+        run: node tools/prepare-qa-artifacts.mjs collect --state "$QA_STATE"
+      # This case ID does not establish owner authorization. Dispatch requires
+      # a prior explicit request for this exact candidate and unfinished test.
+      - name: upload requested QA installer
+        id: qa_upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.qa.outputs.artifact_name }}
+          path: ${{ steps.qa.outputs.handoff }}
+          if-no-files-found: error
+          retention-days: 1
+      - name: record QA upload identity
+        shell: bash
+        env:
+          QA_STATE: ${{ steps.qa.outputs.state }}
+          QA_UPLOAD_ID: ${{ steps.qa_upload.outputs.artifact-id }}
+          QA_UPLOAD_DIGEST: ${{ steps.qa_upload.outputs.artifact-digest }}
+        run: node tools/prepare-qa-artifacts.mjs upload-receipt --state "$QA_STATE"
+      - name: remove local QA binaries
+        if: always() && steps.qa.outputs.state != ''
+        shell: bash
+        env:
+          QA_STATE: ${{ steps.qa.outputs.state }}
+        run: node tools/prepare-qa-artifacts.mjs cleanup --state "$QA_STATE"
+      - name: upload QA lifecycle evidence
+        if: always() && steps.qa.outputs.state != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.qa.outputs.artifact_name }}-evidence
+          path: ${{ steps.qa.outputs.evidence }}
+          if-no-files-found: error
+          retention-days: 14
 
   build:
     name: build (${{ matrix.platform.name }})
@@ -335,13 +399,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
+            target
           # Key on the Rust toolchain and Cargo.lock; hashing every Rust
           # source line dropped the whole target dir on any src change,
           # so incremental release rebuilds never stayed warm.
-          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
+          key: cargo-workspace-v1-${{ matrix.platform.target }}-${{ hashFiles('rust-toolchain.toml', '**/Cargo.lock') }}
           restore-keys: |
-            cargo-${{ matrix.platform.target }}-
+            cargo-workspace-v1-${{ matrix.platform.target }}-
 
       - name: download admitted check evidence
         if: needs.authorize-tag.outputs.prerelease != 'true'

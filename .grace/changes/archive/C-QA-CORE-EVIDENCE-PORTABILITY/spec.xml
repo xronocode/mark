@@ -1,0 +1,61 @@
+<GraceChangeSpec graceVersion="4.0" status="superseded">
+  <C-QA-CORE-EVIDENCE-PORTABILITY>
+    <ReplacementChange>C-CI-NATIVE-EVIDENCE-COMPATIBILITY</ReplacementChange>
+    <Summary>Preserve mandatory external QA protocol receipts in ordinary tests and hosted renderer jobs, with independent safe teardown after metadata faults.</Summary>
+    <Problem>The launch-gate test external writer requires a caller-provided evidence environment variable. Ordinary documented npm test and hosted renderer coverage do not provide it, so all63 gate cases fail; on Windows, an additional API-presence assumption also contradicts the installed Node22 runtime and teardown can stop before deleting safe fixture directories. Production launch behavior is not the defect.</Problem>
+    <Relationship>Successor correction to applied C-QA-MACOS-LAUNCH-GATE; preserve its archived approved bodies. Necessary CI/artifact-hygiene prerequisite linked to CI:F-002, separately tracked from the original77 records. No reapproval or rewriting of an applied archive.</Relationship>
+    <Goals>
+      <Goal>Make documented npm test and configured coverage work without a manually configured evidence environment variable while retaining mandatory fsynced external JSON/tool identity/PID/barrier receipts.</Goal>
+      <Goal>Attempt independent safe cleanup even when evidence recording fails, retain exact fixture roots whose tools are alive or unknown, then fail truthfully.</Goal>
+      <Goal>Keep renderer CI receipts after VM teardown through a narrowly scoped existing-pin one-day JSON/JSONL-only always collector without changing test decisions or production gates.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Observed writes are exactly tests/tools/qa-launch-gate.test.mjs, .github/workflows/test.yml and tests/tools/ci-rust-receipt-retention.test.mjs. Bind actual417c7195e0d1e25ee0864533fda2c60d5e46d023/treec315 preimages in source-baseline.json. No fourth source path, dependency, config or production-helper edit.</Constraint>
+      <Constraint>external(record) must always retain its existing source-bound record envelope and restrictive file/fsync behavior. Honor an explicit MARK_QA_CORE_EVIDENCE_ROOT exactly. When absent or empty, lazily create and memoize a uniquely owned directory under os.tmpdir outside fixture roots, using mkdtemp and private directory/file modes. Keep metadata after fixture teardown. Do not mutate the parent environment, disable receipts, use a repo/shared fixed path or substitute fallback after an explicit-root I/O error. Root creation/write/fsync faults remain failures.</Constraint>
+      <Constraint>Before-payload-release external evidence is a mandatory barrier. Neither the default root nor cleanup handling may release an owned CLI payload until its actual source/tool digest/PID receipt is durably recorded. Existing actual tools remain inert Node/Python controls; no AppKit/libproc/LaunchServices/Mark or credentials are used.</Constraint>
+      <Constraint>Refactor only fixture lifecycle helpers/registration to collect observation/assertion/evidence errors and independently attempt every safe owned fixture cleanup before throwing. Associate actual owned child records with the fixture root so exact ESRCH permits cleanup, while alive/EPERM/EIO/unknown observation protects only the associated root and records/report its exact remaining path. Never infer absent from a failed observation. Do not delete default/explicit external metadata roots. Never hide evidence errors or claim cleanup complete when any owned fixture remains.</Constraint>
+      <Constraint>Preserve all other62 expanded launch-gate case bodies and assertions byte-for-byte, including actual ownedTool behavior, timers, platform-mode distinction, simulated Windows durability and no-native assertions. Lifecycle helpers may change only for the stated evidence/cleanup correction; add narrow positive/failure controls. Preserve the current261 core behaviors and all original skips/todos/floors.</Constraint>
+      <Constraint>All four production helpers tools/qa-launch-gate.mjs, tools/qa-pid-image.py, tools/qa-artifact-smoke.mjs and tools/prepare-qa-artifacts.mjs remain byte-identical. All native/source guard, same-PID birth receipt, original up-to10s appearance clock, normal Quit, persistence/mount protection, opaque cleanup proof, signing/restoration and native/platform holds remain unchanged. No Mark rebuild or retry is authorized.</Constraint>
+      <Constraint>Only renderer-unit in test.yml gains MARK_QA_CORE_EVIDENCE_ROOT=${{ runner.temp }}/mark-qa-core-evidence-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }} and a final always() upload step using actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02, retention-days1, unique job/OS/run/attempt name. Positive paths are exactly that root/*.json and that root/*.jsonl, top-level only. No logs/binaries/apps/cache/profile/env/secrets, hidden-file inclusion, overwrite, broad recursion, new permission/action or changed test command. if-no-files-found=error: setup-before-test failure produces no invented receipt or successful retention claim.</Constraint>
+      <Constraint>Extend existing ci-rust-receipt-retention.test.mjs with strict QA collector/environment positive and mutation-negative controls. Its whole-test.yml AST comparison must validate and remove only the exact new QA objects before the unchanged historical digest assertion. Preserve all original Rust collectors, command selections, action pins, cache partition keys, triggers, permissions, matrix/deadlines, release posture and required checks; never update an old digest to accept unrelated drift.</Constraint>
+      <Constraint>Root alone approves/imports spec then plan, selected pre-edit current/baseline, durable3 additions within M046/VM046, final/archive/current, Git/publication. Private draft spec+plan are proposals only; do not import a draft plan before spec approval. No real model/gate/shared hook deployment/native build or application action is part of this change.</Constraint>
+      <Constraint>Full configured coverage must pass once on the exact final candidate with MARK_QA_CORE_EVIDENCE_ROOT unset, unmodified canonical config/two workers/thresholds91.8/85/84.1/92.74/autoUpdate=false and the existing2 skips/3todos unchanged. No test filters, timer changes or new skips. Output-only report redirection may use a private per-run directory. Proposed budget300s based actual hosted232.88s failure run, not a measured new green. Fullsuite availability/substrate failures must be reported, never reclassified as pass.</Constraint>
+      <Constraint>One explicit existing-case exception is required: in "rejects unsupported platform and hook before any mutation, without a skipped test", replace only the process.platform/typeof process.execve assertion with actual injected-win32 gateMain and capabilityMain unsupported-platform rejections before intent I/O/mutation, retaining all other original assertions. The production darwin-only guards already exist and remain byte-identical. Node22 API presence is not the platform contract; do not pin/downgrade Node, skip Windows or change runtime guards.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No production gate/native protocol/CI job posture modification, repeated Mark smoke, signing/key/profile/cache action, new dependencies or security policy change.</NonGoal>
+      <NonGoal>No source or workflow implementation, tests/build/native execution, active metadata/current XML or Git writes in this private draft preparation.</NonGoal>
+      <NonGoal>No owner product decision or new original audit record; no claim all-platform hosted acceptance from local tests.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Meaningful old callback control extracts the exact checked-in afterEach callback body and injects an external-writer fault with an owned stopped fixture; the desired removed-root assertion fails because the old callback exits before deletion. The retained actual hosted unconfigured whole-suite failures are authoritative old red evidence; do not rerun the entire old unconfigured suite locally. Keep the exact owned-inert callback and Windows-assertion controls; no missing API/import failure is used.</Criterion>
+      <Criterion>New controls exercise unset-env lazy private root persistence, explicit-root honoring, candidate source-bound/fsynced records, root creation/write/fsync error fail-closed, and no before-payload release on failed recording. A separate positive control proves metadata survives fixture teardown.</Criterion>
+      <Criterion>Corrected teardown attempts safe roots despite child-evidence/directory-evidence/removal-evidence faults, still reports errors, and retains associated alive/unknown roots. Independent failures do not prevent other safe roots cleanup; fixtures introduced for red/fault controls are finally cleaned once stopped.</Criterion>
+      <Criterion>Other62 body/assertion preservation plus the exact one-case strengthening and4-helper byte identity are mechanically proven; current261 core cases stay green plus new cases, structural workflow negatives and full no-private-env configured coverage pass within declared budgets. Unknown counts are estimates until actual execution.</Criterion>
+      <Criterion>Strict workflow AST inverse preserves every old control after removing exactly the renderer env/collector additions. Collector selects only JSON/JSONL metadata, always runs, reports absent receipts truthfully and uses exact existing action pin/one-day retention; no binaries/logs/env or permissions are exported.</Criterion>
+      <Criterion>Root durable inverse/outside-owner/source/archive preservation and final/current are separate acceptance. Existing417 native Mark evidence remains bound by exact4-helper/runtime-input bridge; no fresh Mark run is required or claimed.</Criterion>
+      <Criterion>The existing Windows Node22.23.4 hosted failure and an exact original erroneous-assertion control establish that callable execve does not imply supported Windows launch. Corrected case checks actual prepareLaunchGate, gateMain and capabilityMain injected-win32 refusal before any effect, independent of host API presence; execution-hook rejection and every other original case assertion remain. Other62 bodies are byte exact.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+      <File>tests/tools/qa-launch-gate.test.mjs</File>
+      <File>.github/workflows/test.yml</File>
+      <File>tests/tools/ci-rust-receipt-retention.test.mjs</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>npm run release:governance</ExpectedCommand>
+      <ExpectedCommand>node --check tests/tools/qa-launch-gate.test.mjs</ExpectedCommand>
+      <ExpectedCommand>node --check tests/tools/ci-rust-receipt-retention.test.mjs</ExpectedCommand>
+      <ExpectedCommand>actionlint .github/workflows/test.yml</ExpectedCommand>
+      <ExpectedCommand>git diff --check</ExpectedCommand>
+      <ExpectedCommand>npm run test:coverage</ExpectedCommand>
+      <ExpectedEvidence>Actual hosted no-environment red, exact original teardown callback and Windows assertion controls, fresh affected suites and mandatory complete no-environment coverage; strict source/workflow inverse and bounded durable preservation. No production/native source or behavior change.</ExpectedEvidence>
+    </VerificationIntent>
+    <ReferenceState>
+      <BaselineBinding>e5abd81ccb19a4753ab8457dd290fc006fdab1a3a4de019c43444a0c8aa17db8</BaselineBinding>
+      <DurableProjection>acd9e885213e2abd5e2a05f470b580044e135795a6c49ed21e595b620d82fa4e</DurableProjection>
+      <OriginalAppliedArchive>C-QA-MACOS-LAUNCH-GATE</OriginalAppliedArchive>
+    </ReferenceState>
+  </C-QA-CORE-EVIDENCE-PORTABILITY>
+</GraceChangeSpec>

@@ -1,0 +1,60 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP>
+    <Summary>Deliver the approved CI cache/artifact union and correct the two newly reviewed QA permission/output failure paths before hosted execution.</Summary>
+    <Problem>The actual17file composition at source binding e04e5caf45afb7fcf004520db66e2467b0ec40ead46c26aef5f64f07b6e33e96 passed201tests and exact owner/cache/production-job preservation. Independent source review then identified two untested QA failure paths: existsSync may turn EACCES into false absent/deleted cleanup, and an asynchronous outer stderr EPIPE may bypass the manual Rust runner finally/reap. These are concrete source-grounded concerns pending failure-first fixtures, not yet observed product/native failures. This bounded successor adds only their tests and minimal fixes. All original owner/archive bodies remain unchanged.</Problem>
+    <Goals>
+      <Goal>Keep root target cache mappings and versioned platform/toolchain/lock namespace with existing registry/git caches and action pins.</Goal>
+      <Goal>Keep exact original Cargo selection/cwd/order and runtime environment while recording source/digest/PID and cleaning completed owned executables before successful cache-save boundary.</Goal>
+      <Goal>Keep isolated packaged dry-run app identity, full ad-hoc/install/LaunchServices ten-second startup/size/warning gates and normal native Quit/finally cleanup. Ordinary completed runs upload evidence only.</Goal>
+      <Goal>Preserve approved manual case-bound installer collection capability as source, without invoking dispatch or inferring an owner retention/installation verdict.</Goal>
+      <Goal>Prove the exact composed source with all affected tests and workflow AST preservation, independent review, final/current lifecycle, normal publication checks and exact-head hosted validation.</Goal>
+      <Goal>Prove known owned artifact permission denial cannot become deletion success or cache-safe cleanup. Only ENOENT is absence; permission/I/O errors remain explicit and independent cleanup continues where safe.</Goal>
+      <Goal>Contain actual asynchronous outer stderr pipe errors in the QA Rust child controller, stop/reap only its owned CLI child, then execute cleanup and propagate failure. Preserve synchronous evidence-error behavior and full harness selection.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Technical approval uses explicit owner2026-11-15 delegation. Root owns durable XML/apply/archive/publication; one isolated worker composes only17declared source/test/docs files sequentially. This adds no original audit record and fabricates no individual owner answer.</Constraint>
+      <Constraint>Source behavior is the union of C-CARGO-WORKSPACE-CACHE, C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE and C-QA-INSTALLER-ARTIFACTS. Preserve their complete applied archives and retired predecessor bodies unchanged. Their independent source evidence remains bounded to original tested source; fresh combined gates bind actual delivery source.</Constraint>
+      <Constraint>Preserve all three original Cargo calls: src-tauri cwd --bin mark; root unfiltered workspace cargo test; root exact embedded_fixture_parses_and_matches_registered filter. Node22 setup uses existing exact pinned action; POSIX execve22.15 availability fails closed. No test filter/feature/coverage/retry/timeout weakening.</Constraint>
+      <Constraint>Generic executable cancellation may terminate/reap only its owned CLI children. Packaged test applications use exact identity and normal native Quit, never broad process-name kill or forced app termination. Cleanup failure fails the step and reports remaining paths; no false cache-safe success.</Constraint>
+      <Constraint>Preserve all production release/tag/signing/publish jobs, triggers/conditions/permissions, expected check names, cache partitions and QA smoke/size/warning gates outside the exact approved union. No signing-boundary/C50 change, key access or dependency/toolchain/version alteration.</Constraint>
+      <Constraint>Manual qa_test_case is a bounded identifier, not owner authorization. No actual workflow dispatch, manual installer upload/retention exception, owner install, release, tag, store/tap publication or protection change in this composition task. Ordinary PR CI alone is authorized.</Constraint>
+      <Constraint>Root reconciles only M046/VM046, retains every prior applicable scenario/command/assertion and copies original bundle metadata unchanged. Later real3OS/native/cache/manual checks remain explicitly open until observed or separately authorized.</Constraint>
+      <Constraint>The successor permits minimal corrective edits to tools/prepare-qa-artifacts.mjs and tools/run-qa-rust-tests.mjs plus their existing tests. The other15source files and all original workflow, cache, production job and manual authorization boundaries remain byte-identical to the reviewed union. No applied original bundle is rewritten.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No product runtime/UI behavior, new platform, test-policy redesign, cache-speed claim, unowned dependency/cache sweep or unrelated dead-code cleanup.</NonGoal>
+      <NonGoal>No manual dispatch, owner retention/acceptance inference, production signing/release/publication, version/tag change or expansion of original77records.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Exactly17observed source/test/docs paths implement the original approved union. Workflow AST/source proofs show intended cache and lifecycle edits compose without dropping prior checks or changing production release jobs. All original affected tests remain.</Criterion>
+      <Criterion>All nine affected unit suites, locked offline metadata, governance, syntax/diff and selected target/final commands pass on actual composition. Independent Standards/Spec review confirms source bindings, failure cleanup, preserved test semantics and explicit limits.</Criterion>
+      <Criterion>After root current XML reconciliation and successful final/review, root may apply/archive this composition bundle, preserving approved bodies. Fresh current/status pass, normal deterministic/model commit/push checks and exact-head required hosted checks gate integration.</Criterion>
+      <Criterion>Ordinary hosted CI must demonstrate actual3OS/native lifecycle and cache evidence before its corresponding acceptance claims. Manual two-platform handoff/download hash and owner installation acceptance stay open without dispatch authorization. No source fixture substitutes for native outcome.</Criterion>
+      <Criterion>Meaningful pre-fix controls reproduce owned-target EACCES false absence and actual closed outer stderr pipe failure, using isolated task fixtures and bounded owned children with finally cleanup. Corrected controls pass; no compile/import/mock-only failure is called behavioral red.</Criterion>
+      <Criterion>After correction, all201existing union tests remain and new fault controls pass with retained source/digest/PID and cleanup evidence. Only two helper and two associated test files may differ from the frozen reviewed union, unless a separately approved necessary follow-up is justified.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+      <File>.github/workflows/ci.yml</File>
+      <File>.github/workflows/test.yml</File>
+      <File>.github/workflows/release.yml</File>
+      <File>.github/workflows/release-tauri.yml</File>
+      <File>tools/run-rust-tests.mjs</File>
+      <File>tools/prepare-qa-artifacts.mjs</File>
+      <File>tools/qa-artifact-smoke.mjs</File>
+      <File>tools/run-qa-rust-tests.mjs</File>
+      <File>tests/tools/cargo-workspace-cache.test.mjs</File>
+      <File>tests/tools/run-rust-tests.test.mjs</File>
+      <File>tests/tools/ci-rust-test-lifecycle.test.mjs</File>
+      <File>tests/tools/prepare-qa-artifacts.test.mjs</File>
+      <File>tests/tools/qa-artifact-smoke.test.mjs</File>
+      <File>tests/tools/run-qa-rust-tests.test.mjs</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+      <File>tests/renderer/release-preflight.test.js</File>
+      <File>docs/acceptance/README.md</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedEvidence>Combined source tests and exact workflow/archived body preservation, native fault receipts, independent review and fresh root final/current evidence, followed by ordinary exact-head CI. No manual dispatch or release action.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP>
+</GraceChangeSpec>

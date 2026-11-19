@@ -1,0 +1,59 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-QA-ARCHIVE-LIFECYCLE>
+    <Summary>Track and safely remove exact-QA app archives and optional sidecars, and isolate future packaged cache restoration from legacy untracked archives.</Summary>
+    <Problem>The pinned Tauri action creates a macOS .app.tar.gz even without release uploads. Current QA discovery does not record this completed binary copy. The actual packaged job saved its ordinary cache after cleanup; direct remote archive membership was not measured. New-identity-only cleanup cannot safely adopt an old archive restored from that namespace.</Problem>
+    <Relationship>Separate necessary CI/artifact-hygiene successor linked to CI:F-002/CI:F-003, outside the original77 records. Applied lifecycle bundles remain immutable. Actual predecessor C-CI-NATIVE-FIXTURE-ATTRIBUTION completed root final/apply/archive/current on 2026-11-19 (C-CI-NATIVE-FIXTURE-CARRIER retired superseded-not-applied with this replacement); five observed preimages revalidated byte-exact and the three-op projection rebuilt against the applied attribution graph/verification state before this approval. C-QA-CORE-EVIDENCE-PORTABILITY and C-CI-NATIVE-EVIDENCE-COMPATIBILITY remain retired historical lineage, not applied prerequisites. Preserve every approved/archived predecessor body.</Relationship>
+    <Goals>
+      <Goal>Own and remove only newly created exact-current-identity .app.tar.gz and optional .sig using existing protected digest-based cleanup.</Goal>
+      <Goal>Avoid legacy packaged cache entries without deleting remote/dependency caches or changing other jobs.</Goal>
+      <Goal>Retain truthful archive metadata/absence evidence and preserve every native smoke, handoff, warning and release boundary.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Observed writes are exactly tools/prepare-qa-artifacts.mjs, tests/tools/prepare-qa-artifacts.test.mjs, .github/workflows/release-tauri.yml, tests/tools/cargo-workspace-cache.test.mjs and tests/renderer/release-github-controls.test.js. No dependency, production signing/release/API or other source path changes. Private source-baseline binds actual current preimages; root freshly revalidates actual all-source/archive/current-owner baseline and resulting HEAD/tree after carrier final/archive/current, before any spec/plan approval or observed edit.</Constraint>
+      <Constraint>For macos-arm64 only, discover exact target/&lt;identity.target&gt;/release/bundle/macos/&lt;identity.productName&gt;.app.tar.gz and the exact adjacent .app.tar.gz.sig when present. No broad glob or arbitrary product-name parsing. Any preexisting same-identity archive/sidecar, including file/directory/link, causes prepareQa refusal without adopting or changing it. Other-run identities are untouched.</Constraint>
+      <Constraint>New archives/sidecars must pass existing safeParents/measuredFile checks: contained regular nonlinked nonempty file, descriptor inode/device stability, exact bytes/size/SHA. Record explicit archive/signature ownership kinds in existing schema1 state. A sidecar may be discovered independently on partial failure; no creation or signing is requested.</Constraint>
+      <Constraint>Archive/signature ownership digests remain immutable once recorded. Repeated discovery of identical bytes is idempotent; changed bytes are a reported failure and retained, never silently rebound by the general created-or-changed executable refresh. Existing executable/installer refresh semantics stay unchanged.</Constraint>
+      <Constraint>Existing cleanupGenerated process/mount/gate protections, safe-parent/digest checks and independent error accumulation apply unchanged. Invalid/link/empty/changed archive or evidence failure must not claim success or prevent independently safe known owned outputs from receiving cleanup attempts. No unknown/live/protected output deletion; record exact retained paths. No unpacking or execution of archive bytes.</Constraint>
+      <Constraint>Change only release-tauri.yml build cache key prefix from cargo-workspace-v1- to cargo-workspace-qa-v2-, with matching same-target restore prefix and no v1/old generic fallback. Keep exact target/lock/toolchain expressions, registry/git/root-target paths, action pins, job ordering/conditions/permissions/timeouts and all other jobs/workflows unchanged. Preserve the old remote cache entry; no eviction/namespace changes elsewhere.</Constraint>
+      <Constraint>Update only the packaged row of existing cargo cache contracts and add explicit legacy-v1/cross-platform rejection controls. In release-github-controls assertQaGateWorkflow, validate exact new key and restore strings before reversing only those strings to their old values, then keep its existing cleanup-line inverse and historical10922408615e75cb9a0cc489b0db08eeed7bd5b64ea2e6f8f74ea39ebce61c8c digest unchanged. No broad normalization/digest replacement; all other old case bodies/assertions stay exact except this narrowly justified validator and single contract row.</Constraint>
+      <Constraint>Native QA gate/smoke/Python helpers, normal Quit/PID/birth/10s clocks/readonly mounts, signing/quarantine/restoration, handoff purpose and evidence-only uploads remain unchanged. prepare-qa-artifacts changes are only exact archive discovery/preexisting admission/ownership recording and truthful module documentation; all unrelated functions/constants/old branches preserve source identity.</Constraint>
+      <Constraint>Root alone selects baseline, approves SPEC then PLAN, applies three M046/VM046 additions, runs target/final/archive/current/status and handles integration/Git/publication/hosted delivery. Private drafts authorize no source/native/model/cache/public action. No mandatory new private Mark rebuild is added for discovery-only changes.</Constraint>
+      <Constraint>Local verification uses real owned inert filesystem fixtures and exact workflow source/AST controls only, preserving all old skips/todos/timers/thresholds and dependency cache sentinels. Retain meaningful old-helper archive cleanup red and old-key rejection before source edits; no missing API/import red. Own fixture cleanup and actual tool PID/digest/barriers follow existing hygiene.</Constraint>
+      <Constraint>Existing native evidence remains historical exact-source evidence. Provide a precise bridge showing native protocol helpers/runtime inputs and all unrelated prepare helper branches unchanged; do not relabel old evidence as a new all-source native run. Before merge, actual changed-head ordinary packaged job must show archive ownership/digest/deletion and new namespace restore/save facts if emitted. No dispatch/rerun/new local Mark operation is authorized by this draft.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No deletion or inspection of remote cache payloads, unknown historical outputs, shared cache files, owner profiles or keys; no broad archive sanitizer.</NonGoal>
+      <NonGoal>No tauri-action inputs/pins, updater/signing policy, cache path/performance redesign, production release jobs or native protocol change.</NonGoal>
+      <NonGoal>No implementation/tests/build/native/model/Git/active XML/publication in private preparation; no new original audit record or release authorization.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>An actual old-helper control creates inert exact-current-identity archive/sidecar after prepare, calls actual recordGenerated/cleanupGenerated and fails desired ownership/absence assertions because archive is omitted. Existing cache contracts reject intended new QA keys before their narrowly scoped update. All fixtures stop/clean in outer finally; no native/real archive execution.</Criterion>
+      <Criterion>Positive actual filesystem controls own nonempty archive with or without signature and signature alone after partial output; persistent state records exact path/kind/size/digest, repeated recording is idempotent and protected cleanup removes them with verified absence. Preexisting same-identity output is refused unchanged.</Criterion>
+      <Criterion>Exact unrelated old identity/prefix-near-miss and dependency cache files remain byte-identical. File/parent links, nonregular/empty archive and permission/I/O errors fail truthfully; changed measured archive stays retained, and independent already-owned safe outputs still receive cleanup attempts. Existing unresolved process/mount/gate tests remain intact.</Criterion>
+      <Criterion>Packaged QA cache key/restore only use qa-v2 and same platform/toolchain/lock identity. Mutations restoring old v1, a generic/cross-platform prefix, missing hash/dimension or changing cache paths fail. Complete workflow AST inverse retains the old historical digest and rejects unrelated controls.</Criterion>
+      <Criterion>Five scoped paths and approved docs are hash-bound; all outside source/archive/current nodes and native runtime branches are preserved. Declared leaf gates pass within measured bounds, root three-op inverse/final/archive/current remain separate. Actual new-head hosted QA/archive/cache and configured renderer acceptance remain open until observed.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-046 />
+      <File>tools/prepare-qa-artifacts.mjs</File>
+      <File>tests/tools/prepare-qa-artifacts.test.mjs</File>
+      <File>.github/workflows/release-tauri.yml</File>
+      <File>tests/tools/cargo-workspace-cache.test.mjs</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>npm run release:governance</ExpectedCommand>
+      <ExpectedCommand>node --check tools/prepare-qa-artifacts.mjs</ExpectedCommand>
+      <ExpectedCommand>actionlint .github/workflows/release-tauri.yml</ExpectedCommand>
+      <ExpectedCommand>git diff --check</ExpectedCommand>
+      <ExpectedEvidence>Real inert archive lifecycle red/green/fault/preservation, exact cache key/no-legacy and full-workflow inverse controls, five leaf results, source/runtime/archive bridge, root durable/final/current, then actual changed-head hosted archive and cache evidence before merge. No native operation in local verification.</ExpectedEvidence>
+    </VerificationIntent>
+    <ReferenceState>
+      <SourceBaseline>a640b90ecfcdc5c77bf880f8b76696769ceb3bc857349eacb41587b221a6279b</SourceBaseline>
+      <DurableProjection>b11b4853d8de878edc1c352434e335ab12fc9f2b49c047adde175dc9516f1218</DurableProjection>
+      <Investigation>d984a6f131e9071e6a45f762a4f1d5cef6e9dcf5ba11dd66301f13d34ea7b347</Investigation>
+      <Prerequisite>Actual C-CI-NATIVE-FIXTURE-CARRIER final/apply/archive/current and fresh root-selected all-source/archive/current-owner baseline are required before any approval/edit. The archive three-op projection is VIRTUAL against private carrier-proposed postimages, not actual current owners; five unchanged417 source preimages are planning references only.</Prerequisite>
+    </ReferenceState>
+  </C-QA-ARCHIVE-LIFECYCLE>
+</GraceChangeSpec>
