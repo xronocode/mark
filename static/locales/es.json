@@ -1249,6 +1249,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "No se guardó el permiso de acceso",
+    "bookmarkPersistenceFailedMessage": "Puede seguir trabajando. Después de reiniciar Mark, puede que deba seleccionar este archivo o carpeta de nuevo. Compruebe el espacio disponible y los permisos de escritura, y vuelva a seleccionarlo para guardar el acceso.",
     "chooser": {
       "title": "¿Añadir o reemplazar carpetas?",
       "message": "«{folder}»: ¿añadirla junto a las carpetas abiertas o reemplazarlas? Reemplazar cierra las demás carpetas y sus pestañas.",

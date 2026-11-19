@@ -10,7 +10,9 @@
 //            from main process). Per-component listeners that fire
 //            AFTER user interaction stay in their component as bus.on
 //            or local listen() calls.
-//   DEPENDS: @tauri-apps/api/event, @tauri-apps/api/core, pinia stores
+//   DEPENDS: @tauri-apps/api/event, @tauri-apps/api/core, @tauri-apps/api/window,
+//            services/notification,
+//            util/bookmarkPersistenceWarning, pinia stores
 //            (preferences, project, editor) and the dynamically imported
 //            store/recentlyClosed (C-FIX-009: the mt::open-new-tab
 //            arrival consumes the matching closed-tab history entry).
@@ -20,6 +22,8 @@
 //            retained as migration provenance.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-15 C-BOOKMARK-PERSISTENCE-DURABILITY: queued permission warnings
+//     recover after pending opens and on content-free live wakeups.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: shared strict-open refusal notification;
 //     unchanged parallel drain and successful tab arrival ordering.
 //   - 2026-10-25 C-FILE-POSITION-MEMORY: the mt::open-new-tab arrival
@@ -49,8 +53,11 @@
 
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import bus from './bus'
-import { setLanguage } from './i18n'
+import { setLanguage, t } from './i18n'
+import notice from './services/notification'
+import { createBookmarkPersistenceWarningDrain } from './util/bookmarkPersistenceWarning'
 import { ipcFs } from './ipc/runtime'
 import { initTextOpsListener } from './components/extensionGallery/textOps'
 
@@ -139,6 +146,11 @@ const setupIpcListenersImpl = async () => {
   const prefs = usePreferencesStore()
   const projectStore = useProjectStore()
   const editorStore = useEditorStore()
+  const drainBookmarkWarning = getCurrentWindow().label === 'main'
+    ? createBookmarkPersistenceWarningDrain({
+      invoke, notify: (options) => notice.notify(options), translate: t
+    })
+    : null
 
   // C-15 T-M5: fetch build capabilities once at boot — MAS builds hide
   // sandbox-hostile surfaces (command registry + settings UI). The store
@@ -165,6 +177,7 @@ const setupIpcListenersImpl = async () => {
     // mt::user-preference — fires on every cross-window pref change
     // (broadcast from backend mt_set_user_preference). When Settings
     // window changes theme, editor window receives this and updates.
+    ...(drainBookmarkWarning ? [listen('mt::bookmark-persistence-warning', drainBookmarkWarning)] : []),
     listen('mt::user-preference', (event) => {
       if (event?.payload && typeof event.payload === 'object') {
         prefs.SET_USER_PREFERENCE(event.payload)
@@ -378,9 +391,9 @@ const setupIpcListenersImpl = async () => {
   console.log('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
 
   // V-M-025 invariant (1): LISTENERS_READY immediately precedes
-  // DRAIN_INVOKED. count=9 matches the 9-listener post-audit-M-1 surface.
+  // DRAIN_INVOKED. Count includes the two extension text-operation listeners.
   console.log(
-    `[boot][pending_opens][BLOCK_LISTENERS_READY elapsed_ms=${_elapsedMs()} count=11]`
+    `[boot][pending_opens][BLOCK_LISTENERS_READY elapsed_ms=${_elapsedMs()} count=${drainBookmarkWarning ? 13 : 12}]`
   )
 
   // F-FILE-OPEN-PENDING (alpha.5) + M-025 perf-pending-opens-parallel
@@ -425,6 +438,9 @@ const setupIpcListenersImpl = async () => {
     console.debug('[boot][pending_opens][BLOCK_DRAIN_FAILED]', e)
   }
 
+  // Recover failures queued before any renderer listener existed. The original
+  // pending-open invoke remains first and retains its startup timing contract.
+  await drainBookmarkWarning?.()
   setTimeout(() => editorStore.END_BOOT_PHASE(), 0)
 }
 

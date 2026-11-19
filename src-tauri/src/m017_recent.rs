@@ -11,7 +11,8 @@
 //            (most-recent-first ordering). NO per-platform OS
 //            integration (macOS NSDocumentController / Windows
 //            JumpList) — those are F-RECENT-OS-INTEGRATION.
-//   DEPENDS: m005_prefs (PrefsState); m047_bookmarks (grant moments).
+//   DEPENDS: m005_prefs (PrefsState); m047_bookmarks (grant moments and
+//            queued persistence-failure warnings; current access is retained).
 //   LINKS:   docs/development-plan.xml Phase-B3 step-8;
 //            v1.2.3 src/main/menu/actions/recently-used-documents.js
 //            for the upstream behavior (10-item cap, dedupe);
@@ -34,6 +35,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-15 C-BOOKMARK-PERSISTENCE-DURABILITY: consume bookmark failures
+//     through the queued notice channel while preserving recent-add behavior.
 //   LAST_CHANGE: 2026-10-15 C-46 review: header normalized to the
 //     canonical START/END contract + MODULE_MAP form (grace lint); the
 //     insert-dedupe test mixed &str and String in one vec! and did not
@@ -92,7 +95,9 @@ pub(crate) fn recent_add_inner(prefs: &PrefsState, path: &str) -> Result<(), Str
 pub async fn mt_recent_add(path: String, prefs: State<'_, PrefsState>) -> Result<(), String> {
     // C-15 T-M3: every recents entry is a grant moment — persist a
     // security-scoped bookmark so sandboxed builds can reopen it later.
-    crate::m047_bookmarks::remember(&path);
+    if let Err(error) = crate::m047_bookmarks::remember(&path) {
+        crate::m047_bookmarks::report_persistence_failure(&error);
+    }
     recent_add_inner(prefs.inner(), &path)
 }
 
