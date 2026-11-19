@@ -122,7 +122,7 @@ const SPEC_LIGHT_CONTRAST = Object.freeze([
 const LIGHT_MEDIA_MARKER = '@media (prefers-color-scheme: light){'
 const packagedResource = async name => fs.readFile(
   join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'mark-quicklook/Sources/PreviewExtension/Resources', name),
-  'utf8')
+  'utf8').then(text => text.replace(/\r\n/g, '\n'))
 const declarations = rule => rule.slice(rule.indexOf('{') + 1, -1).split(';')
 const srgbLinear = channel => {
   const c = channel / 255
