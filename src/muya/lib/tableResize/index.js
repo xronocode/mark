@@ -1,9 +1,9 @@
 // FILE: src/muya/lib/tableResize/index.js
-// VERSION: 3.4.4
+// VERSION: 3.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Table sizing and resize affordances in Auto (content-sized), Fit page (text frame) and Full width (window canvas). All modes wrap or squeeze rather than internally scroll; explicit Auto reset drops fixed widths. Fit/Full external edges are pinned, Auto alone exposes external walls, and internal borders remain draggable at full table height.
 //   SCOPE: Session widths/manual flags/ratios, persistent identities and schema-v2 adoption, null-measurement retry, fixed-geometry wrapping through Auto reconciliation, proportional fitting, adjacent-pair framed drags, mode-bounded partial reset and bounded Auto drag, mode toolbar routing, transparent hit zones and size chips, window/container resize refresh, generation-guarded delayed adoption and transform-preserving repaint teardown. Markdown and undo remain unchanged. Archived degradation contracts are superseded by the active stabilization change.
-//   DEPENDS: muya.eventCenter (capture- and bubble-phase DOM events on muya.container), window pointer events during a drag, ResizeObserver (jsdom degrades to render-time evaluation only), DOM colgroup/th measuring; ./tableFit (measureColumnExtents, planTableFit, distributeIntoFrame, applyRatiosToWidth, ratiosFromWidths); ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS + the degradation badge formatting); ../parser/render/renderBlock/renderTableToolbar (the mode segment for the live active-state swap).
+//   DEPENDS: muya.eventCenter (capture- and bubble-phase DOM events on muya.container), window pointer events during a drag, ResizeObserver (jsdom degrades to render-time evaluation only), DOM colgroup/th measuring; ./tableFit (measureColumnExtents, planTableFit, distributeIntoFrame, applyRatiosToWidth, ratiosFromWidths); ./tableLayoutSchema (the shared persisted-layout schema owner — field decoding, mode/legacy precedence, meaningful-entry rules; C-TABLE-PROFILE-SCHEMA); ./tableCue (cue sync + TABLE_FULL_WIDTH_CLASS + the degradation badge formatting); ../parser/render/renderBlock/renderTableToolbar (the mode segment for the live active-state swap).
 //   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-007/T-008/T-009, spec R-8/R-9/R-10/R-11, corners C-7/C-8/C-9/C-10); .grace/graph/performance.xml M-061 and runtime.xml M-012 fn-tableResize; .grace/verification/runtime.xml V-M-012 scenario-21/scenario-66 and verification/performance.xml V-M-061; .grace/changes/archive/C-39 T-002; .grace/changes/archive/C-65 T-001/T-002/T-004; renderContainerBlock START_BLOCK_TABLE_COLUMN_WIDTHS, START_BLOCK_TABLE_COLUMN_RESIZER_HANDLE and START_BLOCK_TABLE_TOOLBAR_AND_CAPTION; render/index.js START_BLOCK_TABLE_WIDTHS_KEEP; renderer util tableLayoutStore.js (schema v2) + tableLayoutRatios.js (the store-side ratio maths) + editor.vue BLOCK_TABLE_LAYOUTS_HOST (the prefs host side); store/preferences.js tableFullWidthDefault/rememberTableColumnSizes (the Tables-tab keys this module consumes).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -27,7 +27,7 @@
 //   TABLE_FULL_WIDTH_CLASS - re-export of the tableCue figure class for the renderContainerBlock vnode ("ag-table-full-width").
 //   TABLE_TOOLBAR_BUTTON_SELECTOR - selector of the table toolbar buttons (from renderTableToolbar; routed here on normal bubble phase).
 //   ensureAffordanceStyles - inject the wall/chip stylesheet once per document (the muya stylesheet is outside the change's observed write scope).
-//   sanitizePersistedEntries - pure: coerce a raw persisted entries object into schema-v2 entries { widths, manual, mode?, ratios?, tableWidth? }; the legacy fullWidth/fit booleans migrate to mode (idempotent), invalid shapes drop.
+//   sanitizePersistedEntries - pure: coerce a raw persisted entries object into schema-v2 entries { widths, manual, mode?, ratios?, tableWidth? }; the legacy fullWidth/fit booleans migrate to mode (idempotent), invalid shapes drop (C-TABLE-PROFILE-SCHEMA: the field decoding, mode/legacy precedence and meaningful-entry decisions delegate to ./tableLayoutSchema — the 48 px clamp, the ratio copy, the array-shaped raw acceptance and the direct Auto record shape stay here).
 //   tableSignature - pure-ish: header signature of a thead row (column count + hash of the header cell texts).
 //   hashHeaderText - pure: djb2 base36 hash used by the signature.
 //   clampWidth - pure: round and clamp a drag width to the minimum.
@@ -38,6 +38,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: sanitizePersistedEntries
+//   delegates the shared schema decisions (width/manual/ratio/tableWidth
+//   decoding, legacy mode precedence, meaningful-entry rules) to the new
+//   pure owner src/muya/lib/tableResize/tableLayoutSchema.js; the 48 px
+//   clamp, the verbatim ratio copy, the array-shaped raw acceptance and
+//   the direct explicit-Auto record shape stay at this boundary.
 //   CURRENT: 2026-11-10 C-TABLE-FITTED-RESET: partial column resets
 //   pass through the selected Fit/Full layout before persistence, so
 //   measured natural widths cannot leave a wider-than-frame table.
@@ -220,6 +226,14 @@ import {
   ratiosFromWidths,
   snapWidthsToInt
 } from './tableFit'
+import {
+  filterPositiveWidths,
+  deriveManualFlags,
+  resolveTableLayoutMode,
+  areStorableRatios,
+  deriveTableWidth,
+  isMeaningfulEntry
+} from './tableLayoutSchema'
 
 export { TABLE_FULL_WIDTH_CLASS }
 export { TABLE_TOOLBAR_BUTTON_SELECTOR }
@@ -310,39 +324,25 @@ export const tableSignature = (row) => {
 // Fit page (R-8, owner gate №4: same user intent, now really delivered).
 // Running the sanitizer on its own output changes nothing (idempotent):
 // mode reads back as mode and the booleans are never written again.
+// C-TABLE-PROFILE-SCHEMA: the shared field decoding, legacy mode
+// precedence and meaningful-entry rules live in ./tableLayoutSchema —
+// THIS boundary keeps the 48 px clamp (clampWidth), the verbatim ratio
+// copy (no unit-sum normalization), the array-shaped raw acceptance and
+// the direct explicit-Auto record shape.
 export const sanitizePersistedEntries = (raw) => {
   if (!raw || typeof raw !== 'object') return null
   const entries = {}
   for (const pid of Object.keys(raw)) {
     const value = raw[pid]
     if (!value || typeof value !== 'object') continue
-    const widths = Array.isArray(value.widths)
-      ? value.widths
-        .filter(w => Number.isFinite(w) && w > 0)
-        .map(w => clampWidth(w))
-      : []
-    // One manual flag per kept width (missing flags read as auto).
-    const rawManual = Array.isArray(value.manual) ? value.manual : []
-    const manual = widths.map((_, i) => !!rawManual[i])
-    // Schema v2 mode. Full width wins a contradictory legacy pair.
-    let mode
-    if (TABLE_MODES.includes(value.mode)) mode = value.mode
-    else if (value.fullWidth) mode = 'full'
-    else if (value.fit) mode = 'fit'
-    // T-008: stored proportions (fractions of the table width) and the
-    // side-wall-set explicit width travel with the entry.
-    const ratios = Array.isArray(value.ratios) &&
-      value.ratios.length === widths.length &&
-      value.ratios.every(r => Number.isFinite(r) && r > 0)
+    const widths = filterPositiveWidths(value.widths).map(w => clampWidth(w))
+    const manual = deriveManualFlags(value.manual, widths.length)
+    const mode = resolveTableLayoutMode(value)
+    const ratios = areStorableRatios(value.ratios, widths.length)
       ? value.ratios.slice()
       : undefined
-    const tableWidth = Number.isFinite(value.tableWidth) && value.tableWidth > 0
-      ? Math.round(value.tableWidth)
-      : undefined
-    // No user-dragged column, no mode choice, no wall width and no stored
-    // proportions: indistinguishable from the default layout.
-    if (widths.length === 0 && !mode && !tableWidth && !ratios) continue
-    if (!mode && !tableWidth && !ratios && !manual.some(Boolean)) continue
+    const tableWidth = deriveTableWidth(value)
+    if (!isMeaningfulEntry({ widths, manual, mode, ratios, tableWidth })) continue
     const entry = { widths, manual }
     if (mode) entry.mode = mode
     if (ratios) entry.ratios = ratios

@@ -1,0 +1,67 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-TABLE-PROFILE-SCHEMA>
+  <Relationship>Necessary C-TABLE-PROFILE-SCHEMA work from the paused program decision registry (delegated technical); composed on current main after the 2026-11-19 handover-chain merge. Baselines cited in the private reviews are historical; the plan re-verifies anchors on the fresh head.</Relationship>
+    <Summary>Give persisted table-layout field validation and legacy mode migration one pure owner under Muya, with explicit compatibility adapters preserving current renderer persistence and Muya adoption outputs.</Summary>
+    <Problem>Original UNIFY:F-003 identifies independently maintained widths/manual/mode/fullWidth/fit/ratios/tableWidth and empty-entry decisions in migrateTableEntry and sanitizePersistedEntries. Six historical diagnostic cases prove separate schema owners and intentional boundary differences, not an ordinary round-trip user defect. Seven current runtime/test files have identical executable tokens to that baseline; five full-file hashes changed only for archived contract links.</Problem>
+    <Goals>
+      <Goal>Place common pure field validation, legacy mode precedence and meaningful-entry rules in src/muya/lib/tableResize/tableLayoutSchema.js. Both current consumers delegate to that owner rather than independently decoding the same schema. Muya remains self-contained without renderer imports.</Goal>
+      <Goal>Preserve the existing renderer and Muya public exports and observable results at their respective boundaries. Keep persistence normalization, explicit Auto reset and display adaptation explicit; do not force different stages to return artificially identical records.</Goal>
+      <Goal>Prove compatibility through direct shared-owner tests, both existing consumer APIs, store round trips and actual table browser behavior. Route this structural debt through the existing technical-debt lane protocol.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Preserve current explicit mode precedence over legacy flags, legacy fullWidth priority over fit, absent mode inheritance, widths/manual filtering and alignment, rounding, valid/invalid ratio handling, optional tableWidth, omission of fields and empty-entry removal. Do not silently introduce a stricter schema, a new version, field, coercion, cap or migration write.</Constraint>
+      <Constraint>Renderer persistence continues to reject arrays as entries, clear stale widths/manual/ratios/tableWidth for explicit mode auto, keep its current width rounding without a display floor, and normalize positive ratios through the existing algorithm. Preserve current malformed/numeric-edge results; this refactor is not permission to repair unrelated validation behavior.</Constraint>
+      <Constraint>Muya direct sanitizePersistedEntries continues to return its existing null/empty/entry shapes, clamp display widths at 48 px, copy valid ratios without unit-sum normalization and keep its present direct explicit-Auto record shape. Its later adoption continues to skip stale widths for explicit Auto. Preserve existing acceptance of array-shaped raw objects at this boundary; no hidden API hardening.</Constraint>
+      <Constraint>The shared owner may expose small pure decoding helpers; renderer storage policy and Muya geometry remain named adapters. Do not create a generic plugin/policy framework, parallel schema implementation or second maintained copy of field/mode rules. The approved plan resolves exact internal helper signatures without changing these outputs.</Constraint>
+      <Constraint>Preserve all existing exports of tableLayoutRatios.js and tableResize/index.js, including migrateTableEntry, normalizeRatios, sanitizePersistedEntries and the 48 px constants. Existing imports remain valid through thin delegation/re-export. No DOM, IPC, storage, window, Vue, Node or runtime environment dependency is added to the pure schema module.</Constraint>
+      <Constraint>Keep tableLayoutStore.js, tableFit.js, editor.vue, preferences protocol and existing geometry/measurement/adoption/serialization/dispatch method bodies unchanged. No read-failure, pruning, cap, timestamps, queue, save/move or cross-window fix is included. UNIFY:F-001 remains independently open and its pending route decision grants no authority here.</Constraint>
+      <Constraint>ObservedWriteScope: product changes are limited to the new pure owner src/muya/lib/tableResize/tableLayoutSchema.js and the two existing owners it serves, src/muya/lib/tableResize/index.js and src/renderer/src/util/tableLayoutRatios.js. Test changes are limited to the new shared-owner suite tests/renderer/muya/table-layout-schema.test.js, scoped additions to the existing tests/renderer/muya/table-layout-persistence.test.js, tests/renderer/util/table-layout-ratios.test.js and tests/renderer/store/table-layout-store.test.js suites, and the existing browser scenarios tests/e2e/table-width-persistence.spec.ts and tests/e2e/table-modes.spec.ts. Bookkeeping is limited to current M-012/M-061 and V-M-012/V-M-061 records and the matching runtime/performance graph and verification files. No other product, store, editor or infrastructure file is in scope.</Constraint>
+      <Constraint>Do not alter Markdown, dirty/history state, table identities, rememberTableColumnSizes, generation fencing, delayed adoption, mode UI, drag/resize/reset calculations or file lifecycle. Preserve callbacks/events and avoid new persistence writes or events during load/adoption.</Constraint>
+      <Constraint>Implement sequentially on integ/techdebt with the current collecting or next unused td-N. The approved plan binds exact ledger paths after fresh lane inspection; merged td-1 cannot be reused. Full lane checks and separate admission are required. Product current pointer and Project mirror remain unchanged; explicit owner departure is separate.</Constraint>
+      <Constraint>No dependency, package/lock, workflow or Playwright configuration changes; no retries/skips/coverage-floor reductions. No owner documents/profiles, live native persistence, C-50/signing, release version/tag, dispatch or publication. Native/owner verdicts remain open wherever required until actual evidence or explicit exception.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No unification of renderer/Muya geometry algorithms, extraction of the TableResize lifecycle, new public table mode or standardized identical output at all stages.</NonGoal>
+      <NonGoal>No claim to fix UNIFY:F-001 IO/concurrency losses or to establish cross-window/native persistence safety from pure/browser tests.</NonGoal>
+      <NonGoal>No manufactured functional red-case, broad validation cleanup or universal idempotence claim for arbitrary malformed/extreme inputs. Preserve current results and pin fixed-point behavior for the existing supported canonical fixtures.</NonGoal>
+      <NonGoal>No direct-main exception, technical-debt lane departure, release or waiver of existing acceptance gates.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Source/dependency inspection shows one pure common schema owner, both consumers delegate to it, and there is no renderer dependency from Muya. Neither wrapper independently repeats field extraction, valid mode/legacy precedence or meaningful-entry schema logic. Boundary-specific rounding/floor/ratio/Auto decisions are explicit and characterized.</Criterion>
+      <Criterion>Preserve all six historical characterization outputs independently for renderer direct, Muya direct and renderer-then-Muya: contradictory legacy flags, legacy fit, explicit Auto with stale fields, non-unit ratios, below-display-minimum widths and empty default. Preserve input immutability and returned-array independence where the existing APIs provide it.</Criterion>
+      <Criterion>Pin explicit valid mode priority, absent versus explicit Auto, malformed shapes including current array differences, invalid widths/manual lengths, missing/invalid ratios, optional tableWidth and representative numeric edges. Existing supported canonical v2 fixtures remain stable on repeated normalization; broader behavior changes require a separate approved scope.</Criterion>
+      <Criterion>Keep and run existing table-layout-ratios, table-layout-store and table-layout-persistence suites. Add focused shared-owner/consumer characterization with independently stated expected results; a change to shared legacy precedence must be detected through both consumers. Do not count compiler/import success or two equal wrappers as sufficient proof.</Criterion>
+      <Criterion>Run existing table-width-persistence and table-modes browser scenarios in Chromium and webkit-tables. Verify mode choice, remembered widths/ratios after reopen and explicit Auto under a global Fit default, with unchanged geometry, Markdown/dirty/history behavior and no adoption writes. Extend relevant existing assertions only if the approved plan identifies a missing boundary; no global configuration change.</Criterion>
+      <Criterion>Update M-012/M-061 and V-M-012/V-M-061 current ownership, source paths and executed verification evidence. Keep historical frozen artifacts unchanged and distinguish pure/browser proof from native/manual acceptance.</Criterion>
+      <Criterion>Current/target/final lifecycle assertions, appropriate local and full exact-head lane checks, deterministic review/commit/push gates pass without weakening or suppressing old failures. Apply/archive occurs only after fresh end-state evidence and its explicit decision; lane admission and later separately authorized main departure remain traceable.</Criterion>
+      <Criterion>Owned test builds/processes are closed and removed after runs; preserve source, recipe, hashes, outputs and logs. Original 77-record accounting remains unchanged; a lane-only refactor is not reported as delivered to main.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-012 />
+      <M-061 />
+      <M-046 />
+      <File>src/muya/lib/tableResize/tableLayoutSchema.js</File>
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>src/renderer/src/util/tableLayoutRatios.js</File>
+      <File>tests/renderer/muya/table-layout-schema.test.js</File>
+      <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+      <File>tests/renderer/util/table-layout-ratios.test.js</File>
+      <File>tests/e2e/table-width-persistence.spec.ts</File>
+      <File>tests/e2e/table-modes.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <LaneBookkeeping>The approved plan binds exact fresh td-N.json/md bootstrap/admission paths on integ/techdebt if needed. Existing merged lane documents and product current pointer are not rewritten.</LaneBookkeeping>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-schema.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/store/table-layout-store.test.js tests/renderer/muya/table-layout-persistence.test.js</ExpectedCommand>
+      <ExpectedCommand>node node_modules/@playwright/test/cli.js test tests/e2e/table-width-persistence.spec.ts tests/e2e/table-modes.spec.ts --project=chromium --project=webkit-tables</ExpectedCommand>
+      <ExpectedEvidence>A later approved sequential plan binds exact shared-owner/API controls, existing lifecycle/browser assertions, source immutability controls, current/target/final commands and lane accounting. Historical 6-case/118-test evidence is reused by token identity, not presented as new execution.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The owner approves this narrow common-schema-with-compatible-adapters scope. A single normalized policy at both APIs is rejected here because the original finding explicitly preserves geometry/persistence distinctions and no ordinary round-trip defect was shown.</Assumption>
+      <Assumption>This draft approves no implementation plan, apply/archive, lane departure, native/manual exception or release. Any adjacent approved persistence changes are reconciled on a fresh baseline without expanding either scope silently.</Assumption>
+    </Assumptions>
+  </C-TABLE-PROFILE-SCHEMA>
+</GraceChangeSpec>

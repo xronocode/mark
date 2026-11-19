@@ -1,10 +1,10 @@
 // FILE: src/renderer/src/util/tableLayoutRatios.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-008 (M-061) the store-side pure maths of the tableLayouts schema v2 — the ratios (fractions of the table width) that let persisted column sizes survive window resizes, zoom, page-width changes and Fit↔Full switches, plus the one-way migration of the legacy px-only entries (the fullWidth/fit booleans become the v2 mode field; a stored fit:true — the retired fake fit — opens in the honest Fit page). The muya counterpart of the apply/re-apply maths lives in src/muya/lib/tableResize/tableFit.js (muya stays self-contained); this module owns what the persistence layer needs: normalize, derive, apply, migrate.
-//   SCOPE: Pure transforms only — normalizeRatios (sanitize + unit-sum correction), ratiosFromWidths, applyRatios (ratios + frame → px widths floored at minima, summing to the frame), migrateTableEntry (schema v1 → v2: legacy fullWidth/fit booleans → mode, idempotent by construction), MIN_TABLE_COLUMN_PX (the shared 48px floor). No IO, no DOM, no imports — unit-pinnable with plain objects.
-//   DEPENDS: none (framework-free pure functions).
-//   LINKS: .grace/changes/archive/C-STABILIZE-TABLE-AUTO-PERSISTENCE;  .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-008, spec R-8/R-10, corners C-8/C-9); .grace/graph/performance.xml M-061; util/tableLayoutStore.js (the store consuming migrateTableEntry + normalizeRatios); src/muya/lib/tableResize/index.js + tableFit.js (the muya-side sanitize/apply counterparts); store/preferences.js rememberTableColumnSizes (the consumption gate).
+//   SCOPE: Pure transforms only — normalizeRatios (sanitize + unit-sum correction), ratiosFromWidths, applyRatios (ratios + frame → px widths floored at minima, summing to the frame), migrateTableEntry (schema v1 → v2: legacy fullWidth/fit booleans → mode, idempotent by construction), MIN_TABLE_COLUMN_PX (the shared 48px floor). No IO, no DOM — unit-pinnable with plain objects. C-TABLE-PROFILE-SCHEMA: migrateTableEntry's field decoding, legacy mode precedence and meaningful-entry rules delegate to muya/lib/tableResize/tableLayoutSchema (the shared owner); the explicit-Auto strip, the floor-less rounding, the unit-sum normalization, the array rejection and MIN_TABLE_COLUMN_PX stay local.
+//   DEPENDS: muya/lib/tableResize/tableLayoutSchema (the shared persisted-layout schema owner — C-TABLE-PROFILE-SCHEMA; the renderer→muya import direction only, never the reverse).
+//   LINKS: .grace/changes/archive/C-STABILIZE-TABLE-AUTO-PERSISTENCE;  .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-008, spec R-8/R-10, corners C-8/C-9); .grace/changes/active/C-TABLE-PROFILE-SCHEMA (the shared schema owner — spec + plan); .grace/graph/performance.xml M-061; src/muya/lib/tableResize/tableLayoutSchema.js (the shared persisted-layout schema owner); util/tableLayoutStore.js (the store consuming migrateTableEntry + normalizeRatios); src/muya/lib/tableResize/index.js + tableFit.js (the muya-side sanitize/apply counterparts); store/preferences.js rememberTableColumnSizes (the consumption gate).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,10 +14,16 @@
 //   normalizeRatios - pure: raw array + expected length → positive fractions summing to 1 (scaled), or null.
 //   ratiosFromWidths - pure: px widths → fractions of their sum (null when the sum collapses).
 //   applyRatios - pure: ratios + frame (+ optional minima) → integer px widths summing to round(frame).
-//   migrateTableEntry - pure: schema v1 entry → v2 { widths, manual, mode?, ratios?, tableWidth? } (legacy booleans become mode; re-running changes nothing).
+//   migrateTableEntry - pure: schema v1 entry → v2 { widths, manual, mode?, ratios?, tableWidth? } (legacy booleans become mode; re-running changes nothing; C-TABLE-PROFILE-SCHEMA: decoding/precedence/husk rules delegate to muya/lib/tableResize/tableLayoutSchema).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: migrateTableEntry
+//   delegates the shared schema decisions (width/manual/ratio/tableWidth
+//   decoding, legacy mode precedence, meaningful-entry rules) to the new
+//   pure owner muya/lib/tableResize/tableLayoutSchema.js; the explicit-Auto
+//   strip, the floor-less Math.round, the unit-sum ratio normalization,
+//   the array rejection and MIN_TABLE_COLUMN_PX stay at this boundary.
 //   LAST_CHANGE: 2026-11-09 C-STABILIZE-TABLE-AUTO-PERSISTENCE: explicit Auto survives profile round trips and drops stale fixed-layout data.
 //   PREV: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-008: new
 //   module. tableLayouts entries gain ratios + an explicit tableWidth and
@@ -25,6 +31,15 @@
 //   flag migrates one-way to the honest Fit page (owner gate №4) and the
 //   migration is idempotent (corner C-8: a second run changes nothing).
 // END_CHANGE_SUMMARY
+
+import {
+  filterPositiveWidths,
+  deriveManualFlags,
+  resolveTableLayoutMode,
+  areStorableRatios,
+  deriveTableWidth,
+  isMeaningfulEntry
+} from 'muya/lib/tableResize/tableLayoutSchema'
 
 export const MIN_TABLE_COLUMN_PX = 48
 
@@ -116,22 +131,18 @@ export const migrateTableEntry = (raw) => {
   // C-STABILIZE-TABLE-AUTO-PERSISTENCE: Auto is an explicit reset,
   // distinct from an absent override that inherits the global default.
   if (raw.mode === 'auto') return { widths: [], manual: [], mode: 'auto' }
-  const widths = Array.isArray(raw.widths)
-    ? raw.widths.filter(w => Number.isFinite(w) && w > 0).map(w => Math.round(w))
-    : []
-  const manual = Array.isArray(raw.manual)
-    ? widths.map((_, i) => !!raw.manual[i])
-    : widths.map(() => false)
-  let mode
-  if (['auto', 'fit', 'full'].includes(raw.mode)) mode = raw.mode
-  else if (raw.fullWidth) mode = 'full'
-  else if (raw.fit) mode = 'fit'
-  const ratios = normalizeRatios(raw.ratios, widths.length) || undefined
-  const tableWidth = Number.isFinite(raw.tableWidth) && raw.tableWidth > 0
-    ? Math.round(raw.tableWidth)
-    : undefined
-  if (widths.length === 0 && !mode && !tableWidth && !ratios) return null
-  if (!mode && !tableWidth && !ratios && !manual.some(Boolean)) return null
+  // Field decoding, legacy precedence and the husk rules are the shared
+  // owner's (tableLayoutSchema); THIS boundary keeps the Auto strip, the
+  // floor-less Math.round, the unit-sum normalization and the array
+  // rejection.
+  const widths = filterPositiveWidths(raw.widths).map(w => Math.round(w))
+  const manual = deriveManualFlags(raw.manual, widths.length)
+  const mode = resolveTableLayoutMode(raw)
+  const ratios = (areStorableRatios(raw.ratios, widths.length)
+    ? normalizeRatios(raw.ratios, widths.length)
+    : null) || undefined
+  const tableWidth = deriveTableWidth(raw)
+  if (!isMeaningfulEntry({ widths, manual, mode, ratios, tableWidth })) return null
   const entry = { widths, manual }
   if (mode) entry.mode = mode
   if (ratios) entry.ratios = ratios

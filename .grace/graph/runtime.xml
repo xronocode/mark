@@ -4925,7 +4925,8 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-012; docs/development-plan.xml: M-012</LegacySource>
-    </M-012>
+          <SummaryDelta>C-TABLE-PROFILE-SCHEMA: one pure schema owner tableLayoutSchema.js now defines field validation, legacy-mode precedence and meaningful-entry rules; sanitizePersistedEntries and migrateTableEntry are thin adapters over it while their boundary differences (renderer round-without-floor vs Muya 48px clamp, array acceptance vs rejection, the truthy-empty-ratios vs null asymmetry) stay pinned; no schema version, field or migration write changes.</SummaryDelta>
+</M-012>
     <M-013>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Document save commands use the typed invoke contract; native picker and physical-write tracking last until actual settlement. Missing registration is an explicit error, never undefined success.</SummaryDelta>
       <Name>mt-ipc-bridge</Name>

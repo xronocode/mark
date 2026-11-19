@@ -1,8 +1,8 @@
 // FILE: tests/renderer/util/table-layout-ratios.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-008: pin the schema-v2 ratio persistence of tableLayouts — the pure ratio maths (normalize/derive/apply with the minima floors), the store sanitize carrying ratios + tableWidth + mode next to the px widths, the one-way idempotent v1→v2 migration (a legacy fit:true — the retired fake fit — opens in the honest Fit page; re-running the migration changes nothing), the v2 save→load round trip through the store IO, and the unchanged cap/prune/rename rules over the new shape.
-//   SCOPE: src/renderer/src/util/tableLayoutRatios.js (normalizeRatios, ratiosFromWidths, applyRatios, migrateTableEntry, MIN_TABLE_COLUMN_PX) and the tableLayoutStore.js flows over v2 entries (sanitizeEntry, normalizeStore version, saveTableLayoutsFor/loadTableLayoutsFor with a fake IO).
+//   SCOPE: src/renderer/src/util/tableLayoutRatios.js (normalizeRatios, ratiosFromWidths, applyRatios, migrateTableEntry, MIN_TABLE_COLUMN_PX) plus the shared schema owner muya/lib/tableResize/tableLayoutSchema.js behind migrateTableEntry (C-TABLE-PROFILE-SCHEMA), and the tableLayoutStore.js flows over v2 entries (sanitizeEntry, normalizeStore version, saveTableLayoutsFor/loadTableLayoutsFor with a fake IO).
 //   DEPENDS: Vitest; a fake prefs IO (the store/twin pattern of table-layout-store.test.js).
 //   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-008; spec R-8/R-10; corners C-8/C-9); .grace/graph/performance.xml M-061; src/renderer/src/util/tableLayoutRatios.js; src/renderer/src/util/tableLayoutStore.js; src/muya/lib/tableResize (the muya-side sanitize/apply counterpart, pinned in tests/renderer/muya/).
 //   ROLE: TEST
@@ -14,6 +14,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: scoped shared-owner block —
+//   the six historical renderer-direct migrateTableEntry families (explicit
+//   Auto stripped record, floor-less width rounding, unit-sum ratio
+//   normalization, contradictory legacy pair, empty default dropped, array
+//   raw rejected) plus the legacy precedence control through the renderer
+//   boundary.
 //   LAST_CHANGE: v1.0.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-008: new
 //   suite over the new module and the v2 store — ratios round-trip,
 //   Fit↔Full re-application maths, the idempotent legacy migration
@@ -136,6 +142,39 @@ describe('migrateTableEntry — the idempotent v1→v2 migration (corner C-8)', 
     expect(migrateTableEntry(null)).toBeNull()
     expect(migrateTableEntry({ widths: [], manual: [] })).toBeNull()
     expect(migrateTableEntry('nope')).toBeNull()
+  })
+})
+
+// C-TABLE-PROFILE-SCHEMA: migrateTableEntry delegates the shared schema
+// decisions (field decoding, legacy precedence, meaningful-entry rules) to
+// muya/lib/tableResize/tableLayoutSchema; the renderer boundary keeps its
+// own Auto strip, floor-less rounding, unit-sum normalization and array
+// rejection. Expectations stated independently of the owner.
+describe('the shared schema owner behind migrateTableEntry (C-TABLE-PROFILE-SCHEMA)', () => {
+  it('the six historical renderer-direct families keep their outputs', () => {
+    // Explicit Auto strips the record: no stale widths/ratios/tableWidth.
+    expect(migrateTableEntry({
+      mode: 'auto', widths: [300, 400], manual: [true, true], ratios: [0.4, 0.6], tableWidth: 700
+    })).toEqual({ widths: [], manual: [], mode: 'auto' })
+    // Widths round WITHOUT the 48 px display floor (40.4 → 40, not 48).
+    expect(migrateTableEntry({ widths: [40.4, 80.6], manual: [true, true] }))
+      .toEqual({ widths: [40, 81], manual: [true, true] })
+    // Non-unit ratios are unit-sum normalized (the Muya boundary copies).
+    expect(migrateTableEntry({ widths: [200, 600], manual: [true, true], ratios: [2, 3] }).ratios)
+      .toEqual([0.4, 0.6])
+    // Contradictory legacy flags resolve through the shared precedence.
+    expect(migrateTableEntry({ widths: [], manual: [], fullWidth: true, fit: true }).mode).toBe('full')
+    // The empty default is a husk: null.
+    expect(migrateTableEntry({ widths: [], manual: [] })).toBeNull()
+    // Array-shaped raw is rejected (the Muya boundary accepts it instead).
+    expect(migrateTableEntry([{ widths: [90], manual: [true] }])).toBeNull()
+  })
+
+  it('a shared-precedence flip is detected through this boundary (control)', () => {
+    // If the shared owner's legacy precedence ever flipped, fit would
+    // outrank fullWidth below and BOTH verdicts change.
+    expect(migrateTableEntry({ fullWidth: true, fit: false }).mode).toBe('full')
+    expect(migrateTableEntry({ fullWidth: false, fit: true }).mode).toBe('fit')
   })
 })
 
