@@ -619,11 +619,14 @@ class TableResize {
     this.adoptionFrame = 0
     for (const [table, paint] of this.repaintFrames) {
       cancelAnimationFrame(paint.frame)
-      // Engines may normalize/reorder the composite transform string; restore
-      // whenever the applied layer hint is still present, not only on an
-      // exact-string match.
+      // Engines may normalize/reformat the composite transform string (e.g.
+      // translateZ(0) → translateZ(0px)), so restore on the exact match and
+      // otherwise strip the layer-hint token itself.
       if (table.style.transform === paint.applied || table.style.transform.includes(paint.applied)) {
         table.style.transform = paint.previous
+      } else if (table.style.transform.includes('translateZ')) {
+        const stripped = table.style.transform.replace(/translateZ\([^)]*\)\s*/g, '').trim()
+        table.style.transform = stripped || paint.previous
       }
     }
     this.repaintFrames.clear()
